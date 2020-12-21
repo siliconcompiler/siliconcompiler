@@ -6,8 +6,7 @@
 
 ## Examples
 
-Below you can see a number of simple exaples and use cases that hopefully illustrate the power and simplicity of SCC.
-For a complete set of variables and command line switches, see the Arguments section of the README file.
+Below you can see a number of simple exaples and use cases that hopefully illustrate the power and simplicity of SCC. For a complete set of variables and command line switches, see the Arguments section of the README file.
 
 
 #### *Hello world*
@@ -81,7 +80,7 @@ For a complete set of variables and command line switches, see the Arguments sec
 >> scc -target FPGA -flow "vivado" -device "zynq" examples/oh/common/sdc/default.sdc -y examples/oh/common examples/oh/common/hdl/oh_fifo_sync.v
 ````
 
-#### *File Configuration*
+#### *File Based Configuration*
 * For complex projects, it may be more efficient to drive all command arguments from a configuration file.
 * This example shows how scc can be configured from a "json" configuration file, incorporating all of the previous switches in one file.  
 
@@ -97,4 +96,71 @@ For a complete set of variables and command line switches, see the Arguments sec
 >> scc -printcfg
 ```
 
-## Command Line Arguments
+## Source Code Arguments
+
+| Argument           | Default              | Description                      |
+| ------------------ | -------------------- | ---------------------------------|
+| -design <name>     | <from input.v>       | Top module name                  |
+| -output <name>     | $design              | Root name for output files       |
+| -y <dir>           | ""                   | Directory to search for modules  |
+| -v <file>          | ""                   | Verilog library                  |
+| +libext+<ext>+[ext]| ".v,.sv,.vh"         | Extensions for finding modules   |
+| -I<dir>            | ""                   | Directory to search for includes |
+| -Wno-<message>     | ""                   | Disables a warning               |
+| -Wall              | ""                   | Enable all style warnings        |
+| -Wno-lint          | ""                   | Disable all lint warnings        |
+| -Wno-fatal         | ""                   | Disable fatal exit on warnings   |
+| -D<var>[=<value>]  | ""                   | Set preprocessor define          |
+| -lint-only         | ""                   | Lint, but do not make output     |
+| -f <file>          | ""                   | Parse options from a file        |
+
+ 
+## Silicon Compilation Arguments
+
+| Argument           | Default              | Description                      |
+| -------------------| -------------------- | ---------------------------------|
+| -sdc <file>        | ""                   | Synopsys Design Constraints      |
+| -def <file>        | ""                   | Floor-plan in DEF format         |
+| -upf <file>        | ""                   | UPF file path                    |
+| -libpaths <dir>    | ""                   | List of mappping libray paths    |
+| -foundry <name>    | "virtual"            | Name of foundry                  |
+| -process <name>    | "asap7"              | List of synthesis libraries      |
+| -techfile <file>   | ${process}_tech.json | Technology setup file            |
+| -minlayer <name>   | "M2"                 | Minimum routing layer            |
+| -maxlayer <name>   | "M7"                 | Maximum routing layer            |
+| -reflibs <struct>  | "asap7lib"           | Library file struture            |
+| -scenarios <struct>| "all,all,tt,0.7,25"  | Scenario for pnr optimiation     |
+| -flow <name>       | "openroad"           | Name of synthesis/pnr flow       |
+| -clk <name,value>  | "clk,1ns"            | Specified a signal as clock      |
+| -multibit          | ""                   | Enable multibit registers        |
+| -j <jobs>          | "4"                  | Compilation parallelism          |
+| -ndr <signal,w,s>  | ""                   | Non-default routed signals       |
+| -effort <level>    | "high"               | Compilation effort               |
+| -priority <name>   | "power"              | Compilation goal priority        |
+| -start <name>      | "syn"                | Name of starting stage           |
+| -end <name>        | "export"             | Name of finishing stage          |
+
+
+## Library Arguments
+
+| Argument               | Default            | Description                      |
+| ------------------     | ------------------ | ---------------------------------|
+| -libheight <value>     | "7"                | Height of library (in grids)     |
+| -default_driver <name> | ""                 | Name of default driver cell      |
+| -icg_cells <list>      | ""                 | List of ICG cells                |
+| -tielo_cells <list>    | ""                 | List of tie to 0 cells           |
+| -tiehi_cells <list>    | ""                 | List of tie to 1 cells           |
+| -antenna_cells <list>  | ""                 | List of antenna fix cells        |
+| -dcap_cells <list>     | ""                 | List of decoupling cap cells     |
+| -filler_cells <list>   | ""                 | List of filler cells             |
+| -tap_cells <list>      | ""                 | List of tap cells                |
+| -dontuse_cells <list>  | ""                 | List if lib cells to ignore      |
+
+## Debug Arguments
+| Argument           | Default              | Description                      |
+| ------------------ | -------------------- | ---------------------------------|
+| -printvars         | ""                   | Print out var settigs and exit   |
+| -debug <level>     | ""                   | Enables increasing verbosity     |
+| -h, -help          | ""                   | Prints out verbose help          |
+| -version           | ""                   | Prints out version               |
+
