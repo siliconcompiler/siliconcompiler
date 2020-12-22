@@ -1,0 +1,701 @@
+# BSD 3-Clause License
+# 
+# Copyright 2020 Lawrence T. Clark, Vinay Vashishtha, or Arizona State
+# University
+# 
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+# 
+# 1. Redistributions of source code must retain the above copyright notice,
+# this list of conditions and the following disclaimer.
+# 
+# 2. Redistributions in binary form must reproduce the above copyright
+# notice, this list of conditions and the following disclaimer in the
+# documentation and/or other materials provided with the distribution.
+# 
+# 3. Neither the name of the copyright holder nor the names of its
+# contributors may be used to endorse or promote products derived from this
+# software without specific prior written permission.
+# 
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+#  RVE Check Text Override(CTO) file
+#  Created on Sun Nov 12 15:40:42 2017
+#  Calibre v2017.1_34.33    Wed Apr 5 14:22:50 PDT 2017
+
+WELL.W.1
+RVE Show Layers: 1 
+WELL.W.2
+RVE Show Layers: 1 
+WELL.S.1
+RVE Show Layers: 1 
+WELL.S.2
+RVE Show Layers: 1 
+WELL.A.1A
+RVE Show Layers: 1 
+WELL.A.1B
+RVE Show Layers: 1 
+WELL.GATE.EX.1
+RVE Show Layers: 1 7 10 
+WELL.GATE.EX.2
+RVE Show Layers: 1 7 10 99 
+FIN.W.1
+RVE Show Layers: 2 
+FIN.W.2
+RVE Show Layers: 2 
+FIN.S.1
+RVE Show Layers: 2 
+FIN.AUX.1
+RVE Show Layers: 2 
+GATE.W.1
+RVE Show Layers: 7 
+GATE.W.2
+RVE Show Layers: 7 
+GATE.S.1
+RVE Show Layers: 7 
+GATE.S.2
+RVE Show Layers: 7 
+GATE.S.3
+RVE Show Layers: 7 99 
+GATE.AUX.1
+RVE Show Layers: 7 
+GATE.AUX.2
+RVE Show Layers: 7 
+GATE.ACTIVE.AUX.3
+RVE Show Layers: 7 11 
+GATE.ACTIVE.EX.1
+RVE Show Layers: 7 10 11 
+GATE.ACTIVE.EX.2
+RVE Show Layers: 7 10 11 
+GATE.ACTIVE.S.4
+RVE Show Layers: 7 10 11 
+ACTIVE.FIN.EX.1
+RVE Show Layers: 2 11 
+ACTIVE.W.1
+RVE Show Layers: 11 
+ACTIVE.W.2
+RVE Show Layers: 11 
+ACTIVE.W.3
+RVE Show Layers: 11 
+ACTIVE.S.1
+RVE Show Layers: 11 
+ACTIVE.S.2A
+RVE Show Layers: 7 10 11 99 
+ACTIVE.S.2B
+RVE Show Layers: 11 
+ACTIVE.WELL.S.4
+RVE Show Layers: 1 11 99 
+SRAM.ACTIVE.WELL.S.5
+RVE Show Layers: 1 11 99 
+ACTIVE.WELL.EN.1
+RVE Show Layers: 1 11 99 
+SRAM.ACTIVE.WELL.EN.2
+RVE Show Layers: 1 11 99 
+ACTIVE.A.1A
+RVE Show Layers: 11 99 
+ACTIVE.A.1B
+RVE Show Layers: 11 99 
+SRAM.ACTIVE.A.2A
+RVE Show Layers: 11 99 
+SRAM.ACTIVE.A.2B
+RVE Show Layers: 11 99 
+ACTIVE.AUX.1
+RVE Show Layers: 11 12 13 
+SRAM.ACTIVE.AUX.2
+RVE Show Layers: 11 99 
+ACTIVE.AUX.3
+RVE Show Layers: 11 
+ACTIVE.LUP.1
+RVE Show Layers: 1 11 12 13 
+GCUT.W.1
+RVE Show Layers: 10 
+GCUT.ACTIVE.S.1
+RVE Show Layers: 7 10 11 
+GCUT.GATE.EX.1
+RVE Show Layers: 7 10 
+GCUT.GATE.S.2
+RVE Show Layers: 7 10 
+GCUT.S.3
+RVE Show Layers: 10 
+GCUT.AUX.1
+RVE Show Layers: 7 10 
+GCUT.AUX.2
+RVE Show Layers: 7 10 
+GCUT.AUX.3
+RVE Show Layers: 7 10 11 
+NSELECT.W.1
+RVE Show Layers: 12 
+NSELECT.W.2
+RVE Show Layers: 12 
+NSELECT.ACTIVE.EN.1
+RVE Show Layers: 11 12 99 
+NSELECT.ACTIVE.EN.2
+RVE Show Layers: 11 12 99 
+SRAM.NSELECT.ACTIVE.EN.3
+RVE Show Layers: 11 12 99 
+SRAM.NSELECT.ACTIVE.EN.4
+RVE Show Layers: 11 12 99 
+NSELECT.GATE.EX.1
+RVE Show Layers: 7 10 12 
+NSELECT.GATE.EX.2
+RVE Show Layers: 7 10 12 
+PSELECT.W.1
+RVE Show Layers: 13 
+PSELECT.W.2
+RVE Show Layers: 13 
+PSELECT.ACTIVE.EN.1
+RVE Show Layers: 11 13 99 
+PSELECT.ACTIVE.EN.2
+RVE Show Layers: 11 13 99 
+SRAM.PSELECT.ACTIVE.EN.3
+RVE Show Layers: 11 13 99 
+SRAM.PSELECT.ACTIVE.EN.4
+RVE Show Layers: 11 13 99 
+PSELECT.GATE.EX.1
+RVE Show Layers: 7 10 13 
+PSELECT.GATE.EX.2
+RVE Show Layers: 7 10 13 
+NSELECT.PSELECT.AUX.1
+RVE Show Layers: 12 13 
+SLVT.W.1
+RVE Show Layers: 97 
+SLVT.W.2
+RVE Show Layers: 97 
+SLVT.ACTIVE.EN.1
+RVE Show Layers: 11 97 99 
+SLVT.ACTIVE.EN.2
+RVE Show Layers: 11 97 99 
+SRAM.SLVT.ACTIVE.EN.3
+RVE Show Layers: 11 97 99 
+SRAM.SLVT.ACTIVE.EN.4
+RVE Show Layers: 11 97 99 
+SLVT.GATE.EX.1
+RVE Show Layers: 7 10 97 
+SLVT.GATE.EX.2
+RVE Show Layers: 7 10 97 
+LVT.W.1
+RVE Show Layers: 98 
+LVT.W.2
+RVE Show Layers: 98 
+LVT.ACTIVE.EN.1
+RVE Show Layers: 11 98 99 
+LVT.ACTIVE.EN.2
+RVE Show Layers: 11 98 99 
+SRAM.LVT.ACTIVE.EN.3
+RVE Show Layers: 11 98 99 
+SRAM.LVT.ACTIVE.EN.4
+RVE Show Layers: 11 98 99 
+LVT.GATE.EX.1
+RVE Show Layers: 7 10 98 
+LVT.GATE.EX.2
+RVE Show Layers: 7 10 98 
+SRAMVT.W.1
+RVE Show Layers: 110 
+SRAMVT.W.2
+RVE Show Layers: 110 
+SRAMVT.ACTIVE.EN.1
+RVE Show Layers: 110 11 99 
+SRAMVT.ACTIVE.EN.2
+RVE Show Layers: 110 11 99 
+SRAM.SRAMVT.ACTIVE.EN.3
+RVE Show Layers: 110 11 99 
+SRAM.SRAMVT.ACTIVE.EN.4
+RVE Show Layers: 110 11 99 
+SRAMVT.GATE.EX.1
+RVE Show Layers: 7 110 10 
+SRAMVT.GATE.EX.2
+RVE Show Layers: 7 110 10 
+VT.AUX.2
+RVE Show Layers: 110 97 98 
+DUMMY.W.1
+RVE Show Layers: 8 
+DUMMY.CHANNEL.S.1
+RVE Show Layers: 7 8 10 11 99 
+DUMMY.CHANNEL.AUX.1
+RVE Show Layers: 8 11 
+DUMMY.AUX.2
+RVE Show Layers: 8 11 
+SDT.W.1
+RVE Show Layers: 88 
+SDT.W.2
+RVE Show Layers: 88 99 
+SDT.W.3
+RVE Show Layers: 88 99 
+SRAM.SDT.W.4
+RVE Show Layers: 88 99 
+SDT.S.1
+RVE Show Layers: 88 
+SDT.GATE.S.2
+RVE Show Layers: 88 7 
+SDT.ACTIVE.OV.1
+RVE Show Layers: 88 11 99 
+SDT.LISD.OV.2
+RVE Show Layers: 17 88 99 
+SRAM.SDT.ACTIVE.OV.3
+RVE Show Layers: 88 11 99 
+SRAM.SDT.LISD.OV.4
+RVE Show Layers: 17 88 99 
+SDT.GATE.AUX.1
+RVE Show Layers: 88 7 
+SDT.ACTIVE.AUX.2
+RVE Show Layers: 88 11 99 
+SDT.ACTIVE.AUX.3
+RVE Show Layers: 88 11 
+SDT.LISD.AUX.4
+RVE Show Layers: 17 88 
+LISD.W.1
+RVE Show Layers: 17 
+LISD.S.1
+RVE Show Layers: 17 
+LISD.S.2
+RVE Show Layers: 17 
+LISD.S.3
+RVE Show Layers: 17 99 
+SRAM.LISD.S.4
+RVE Show Layers: 17 99 
+LISD.A.1
+RVE Show Layers: 17 
+SRAM.LISD.AUX.1
+RVE Show Layers: 17 99 
+LIG.W.1
+RVE Show Layers: 16 
+LIG.S.1
+RVE Show Layers: 16 
+LIG.S.2
+RVE Show Layers: 16 
+LIG.S.3
+RVE Show Layers: 16 
+LIG.S.4
+RVE Show Layers: 16 
+LIG.S.5
+RVE Show Layers: 16 
+LIG.LISD.S.6
+RVE Show Layers: 17 16 
+LIG.LISD.S.7
+RVE Show Layers: 17 16 
+LIG.SDT.S.8
+RVE Show Layers: 88 16 
+LIG.GATE.S.9A
+RVE Show Layers: 7 10 16 
+LIG.GATE.S.9B
+RVE Show Layers: 7 10 16 
+LIG.GATE.S.10
+RVE Show Layers: 7 10 11 16 
+LIG.GCUT.S.11
+RVE Show Layers: 10 16 
+LIG.A.1
+RVE Show Layers: 16 
+LIG.LISD.A.2
+RVE Show Layers: 17 16 
+LIG.GATE.A.3
+RVE Show Layers: 7 10 99 16 
+SRAM.LIG.GATE.A.4
+RVE Show Layers: 7 10 99 16 
+LIG.GATE.AUX.1
+RVE Show Layers: 7 99 16 
+SRAM.LIG.AUX.2
+RVE Show Layers: 99 16 
+LIG.GATE.EX.1
+RVE Show Layers: 7 10 99 16 
+LIG.LISD.OV.1
+RVE Show Layers: 17 16 
+SRAM.LIG.GATE.OV.2
+RVE Show Layers: 7 10 99 16 
+V0.W.1
+RVE Show Layers: 18 19 
+V0.S.1
+RVE Show Layers: 18 19 
+V0.S.2
+RVE Show Layers: 18 19 
+V0.S.3
+RVE Show Layers: 18 19 
+V0.S.4
+RVE Show Layers: 18 19 
+V0.M1.EN.1
+RVE Show Layers: 18 19 
+V0.LISD.EN.2
+RVE Show Layers: 17 18 16 
+V0.LISD.EN.3
+RVE Show Layers: 17 18 16 
+V0.LIG.EN.4
+RVE Show Layers: 17 18 16 
+V0.LIG.A.1
+RVE Show Layers: 17 18 16 
+V0.AUX.1
+RVE Show Layers: 17 18 19 16 
+V0.LIG.AUX.2
+RVE Show Layers: 17 18 16 
+V0.M1.AUX.3
+RVE Show Layers: 18 19 
+M1.W.1
+RVE Show Layers: 19 
+M1.S.1
+RVE Show Layers: 19 
+M1.S.2
+RVE Show Layers: 19 
+M1.S.3
+RVE Show Layers: 19 
+M1.S.4
+RVE Show Layers: 19 
+M1.S.5
+RVE Show Layers: 19 
+M1.S.6
+RVE Show Layers: 19 
+M1.A.1
+RVE Show Layers: 19 
+M2.W.1
+RVE Show Layers: 20 
+M2.S.1
+RVE Show Layers: 20 
+M2.S.2
+RVE Show Layers: 20 
+M2.S.3
+RVE Show Layers: 20 
+M2.S.4
+RVE Show Layers: 20 
+M2.S.5
+RVE Show Layers: 20 
+M2.S.6
+RVE Show Layers: 20 
+M2.A.1
+RVE Show Layers: 20 
+M3.W.1
+RVE Show Layers: 30 
+M3.S.1
+RVE Show Layers: 30 
+M3.S.2
+RVE Show Layers: 30 
+M3.S.3
+RVE Show Layers: 30 
+M3.S.4
+RVE Show Layers: 30 
+M3.S.5
+RVE Show Layers: 30 
+M3.S.6
+RVE Show Layers: 30 
+M3.A.1
+RVE Show Layers: 30 
+V1.W.1
+RVE Show Layers: 20 21 
+V1.S.1
+RVE Show Layers: 20 21 
+V1.S.2
+RVE Show Layers: 20 21 
+V1.S.3
+RVE Show Layers: 20 21 
+V1.S.4
+RVE Show Layers: 20 21 
+V1.M1.EN.1
+RVE Show Layers: 19 21 
+V1.M2.EN.2
+RVE Show Layers: 20 21 
+V1.AUX.1
+RVE Show Layers: 19 20 21 
+V1.M2.AUX.2
+RVE Show Layers: 20 21 
+V2.W.1
+RVE Show Layers: 25 30 
+V2.S.1
+RVE Show Layers: 25 30 
+V2.S.2
+RVE Show Layers: 25 30 
+V2.S.3
+RVE Show Layers: 25 30 
+V2.S.4
+RVE Show Layers: 25 30 
+V2.M2.EN.1
+RVE Show Layers: 20 25 
+V2.M3.EN.2
+RVE Show Layers: 25 30 
+V2.AUX.1
+RVE Show Layers: 20 25 30 
+V2.M3.AUX.2
+RVE Show Layers: 25 30 
+V3.W.1
+RVE Show Layers: 35 40 
+V3.S.1
+RVE Show Layers: 35 40 
+V3.S.2
+RVE Show Layers: 35 40 
+V3.S.3
+RVE Show Layers: 35 40 
+V3.S.4
+RVE Show Layers: 35 40 
+V3.M3.EN.1
+RVE Show Layers: 35 30 
+V3.M4.EN.2
+RVE Show Layers: 35 40 
+V3.AUX.1
+RVE Show Layers: 35 40 30 
+V3.M4.AUX.2
+RVE Show Layers: 35 40 
+M4.W.1
+RVE Show Layers: 40 
+M4.W.2
+RVE Show Layers: 40 
+M4.W.3
+RVE Show Layers: 40 
+M4.W.4
+RVE Show Layers: 40 
+M4.W.5
+RVE Show Layers: 40 
+M4.S.1
+RVE Show Layers: 40 
+M4.S.2
+RVE Show Layers: 40 
+M4.S.3
+RVE Show Layers: 40 
+M4.S.4
+RVE Show Layers: 40 
+M4.S.5
+RVE Show Layers: 40 
+M4.AUX.1
+RVE Show Layers: 40 
+M4.AUX.2
+RVE Show Layers: 40 
+M4.AUX.3
+RVE Show Layers: 40 
+M4.AUX.4
+RVE Show Layers: 40 
+M5.W.1
+RVE Show Layers: 50 
+M5.W.2
+RVE Show Layers: 50 
+M5.W.3
+RVE Show Layers: 50 
+M5.W.4
+RVE Show Layers: 50 
+M5.W.5
+RVE Show Layers: 50 
+M5.S.1
+RVE Show Layers: 50 
+M5.S.2
+RVE Show Layers: 50 
+M5.S.3
+RVE Show Layers: 50 
+M5.S.4
+RVE Show Layers: 50 
+M5.S.5
+RVE Show Layers: 50 
+M5.AUX.1
+RVE Show Layers: 50 
+M5.AUX.2
+RVE Show Layers: 50 
+M5.AUX.3
+RVE Show Layers: 50 
+M5.AUX.4
+RVE Show Layers: 50 
+M6.W.1
+RVE Show Layers: 60 
+M6.W.2
+RVE Show Layers: 60 
+M6.W.3
+RVE Show Layers: 60 
+M6.W.4
+RVE Show Layers: 60 
+M6.W.5
+RVE Show Layers: 60 
+M6.S.1
+RVE Show Layers: 60 
+M6.S.2
+RVE Show Layers: 60 
+M6.S.3
+RVE Show Layers: 60 
+M6.S.4
+RVE Show Layers: 60 
+M6.S.5
+RVE Show Layers: 60 
+M6.AUX.1
+RVE Show Layers: 60 
+M6.AUX.2
+RVE Show Layers: 60 
+M6.AUX.3
+RVE Show Layers: 60 
+M6.AUX.4
+RVE Show Layers: 60 
+M7.W.1
+RVE Show Layers: 70 
+M7.W.2
+RVE Show Layers: 70 
+M7.W.3
+RVE Show Layers: 70 
+M7.W.4
+RVE Show Layers: 70 
+M7.W.5
+RVE Show Layers: 70 
+M7.S.1
+RVE Show Layers: 70 
+M7.S.2
+RVE Show Layers: 70 
+M7.S.3
+RVE Show Layers: 70 
+M7.S.4
+RVE Show Layers: 70 
+M7.S.5
+RVE Show Layers: 70 
+M7.AUX.1
+RVE Show Layers: 70 
+M7.AUX.2
+RVE Show Layers: 70 
+M7.AUX.3
+RVE Show Layers: 70 
+M7.AUX.4
+RVE Show Layers: 70 
+V4.W.1
+RVE Show Layers: 45 50 
+V4.S.1
+RVE Show Layers: 45 
+V4.S.2
+RVE Show Layers: 45 
+V4.S.3
+RVE Show Layers: 45 
+V4.M4.EN.1
+RVE Show Layers: 40 45 
+V4.M5.EN.2
+RVE Show Layers: 45 50 
+V4.AUX.1
+RVE Show Layers: 40 45 50 
+V4.M5.AUX.2
+RVE Show Layers: 45 50 
+V5.W.1
+RVE Show Layers: 55 60 
+V5.S.1
+RVE Show Layers: 55 
+V5.S.2
+RVE Show Layers: 55 
+V5.S.3
+RVE Show Layers: 55 
+V5.M5.EN.1
+RVE Show Layers: 55 50 
+V5.M6.EN.2
+RVE Show Layers: 55 60 
+V5.AUX.1
+RVE Show Layers: 55 60 50 
+V5.M6.AUX.2
+RVE Show Layers: 55 60 
+V6.W.1
+RVE Show Layers: 70 65 
+V6.S.1
+RVE Show Layers: 65 
+V6.S.2
+RVE Show Layers: 65 
+V6.S.3
+RVE Show Layers: 65 
+V6.M6.EN.1
+RVE Show Layers: 60 65 
+V6.M7.EN.2
+RVE Show Layers: 70 65 
+V6.AUX.1
+RVE Show Layers: 70 60 65 
+V6.M7.AUX.2
+RVE Show Layers: 70 65 
+V7.W.1
+RVE Show Layers: 75 80 
+V7.S.1
+RVE Show Layers: 75 
+V7.S.2
+RVE Show Layers: 75 
+V7.S.3
+RVE Show Layers: 75 
+V7.M7.EN.1
+RVE Show Layers: 70 75 
+V7.M8.EN.2
+RVE Show Layers: 75 80 
+V7.AUX.1
+RVE Show Layers: 70 75 80 
+V7.M8.AUX.2
+RVE Show Layers: 75 80 
+M8.W.1
+RVE Show Layers: 80 
+M8.W.2
+RVE Show Layers: 80 
+M8.W.3
+RVE Show Layers: 80 
+M8.W.4
+RVE Show Layers: 80 
+M8.W.5
+RVE Show Layers: 80 
+M8.S.1
+RVE Show Layers: 80 
+M8.S.2
+RVE Show Layers: 80 
+M8.S.3
+RVE Show Layers: 80 
+M8.S.4
+RVE Show Layers: 80 
+M8.S.5
+RVE Show Layers: 80 
+M8.S.6
+RVE Show Layers: 80 
+M8.S.7
+RVE Show Layers: 80 
+M8.S.8
+RVE Show Layers: 80 
+M8.A.1
+RVE Show Layers: 80 
+M8.L.1
+RVE Show Layers: 80 
+M9.W.1
+RVE Show Layers: 90 
+M9.W.2
+RVE Show Layers: 90 
+M9.W.3
+RVE Show Layers: 90 
+M9.W.4
+RVE Show Layers: 90 
+M9.W.5
+RVE Show Layers: 90 
+M9.S.1
+RVE Show Layers: 90 
+M9.S.2
+RVE Show Layers: 90 
+M9.S.3
+RVE Show Layers: 90 
+M9.S.4
+RVE Show Layers: 90 
+M9.S.5
+RVE Show Layers: 90 
+M9.S.6
+RVE Show Layers: 90 
+M9.S.7
+RVE Show Layers: 90 
+M9.S.8
+RVE Show Layers: 90 
+M9.A.1
+RVE Show Layers: 90 
+M9.L.1
+RVE Show Layers: 90 
+V8.W.1
+RVE Show Layers: 85 
+V8.S.1
+RVE Show Layers: 85 
+V8.S.2
+RVE Show Layers: 85 
+V8.M8.EN.1
+RVE Show Layers: 85 80 
+V8.M9.EN.2
+RVE Show Layers: 85 90 
+V8.AUX.1
+RVE Show Layers: 85 90 80 
+V9.W.1
+RVE Show Layers: 95 
+V9.S.1
+RVE Show Layers: 95 
+V9.S.2
+RVE Show Layers: 95 
+V9.M9.EN.1
+RVE Show Layers: 90 95 
+V9.PAD.EN.2
+RVE Show Layers: 95 96 
+V9.AUX.1
+RVE Show Layers: 90 95 96 

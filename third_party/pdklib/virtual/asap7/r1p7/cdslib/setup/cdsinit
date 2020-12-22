@@ -1,0 +1,202 @@
+;; BSD 3-Clause License
+;; 
+;; Copyright 2020 Lawrence T. Clark, Vinay Vashishtha, or Arizona State
+;; University
+;; 
+;; Redistribution and use in source and binary forms, with or without
+;; modification, are permitted provided that the following conditions are met:
+;; 
+;; 1. Redistributions of source code must retain the above copyright notice,
+;; this list of conditions and the following disclaimer.
+;; 
+;; 2. Redistributions in binary form must reproduce the above copyright
+;; notice, this list of conditions and the following disclaimer in the
+;; documentation and/or other materials provided with the distribution.
+;; 
+;; 3. Neither the name of the copyright holder nor the names of its
+;; contributors may be used to endorse or promote products derived from this
+;; software without specific prior written permission.
+;; 
+;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+;; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+;; IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+;; ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+;; LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+;; CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+;; SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+;; INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+;; CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+;; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+;; POSSIBILITY OF SUCH DAMAGE.
+
+;;—————————————————————————————————————————————————————————————————————————————————————————
+
+;;——————————————————————————————————————————————————————————————————————————
+;# Moves/Resizes Command Interface Window on startup.
+;# Change numbers is list(a b) to the position and size of window wanted
+;# a - x:y coordinate for bottom left corner
+;# b - x:y coordinate for top right corner
+;# the following skill command can be used to get the CIW coordinates
+;# hiGetAbsWindowScreenBBox(hiGetCIWindow())
+;;——————————————————————————————————————————————————————————————————————————
+
+;; hiResizeWindow(hiGetCIWindow() list(2883:200 3597:1002))
+
+;;——————————————————————————————————————————————————————————————————————————
+;# Open the Library Manager, position is set by .Xdefaults file
+;;——————————————————————————————————————————————————————————————————————————
+
+unless( getShellEnvVar("SKIP_CDSLIB_MANAGER") != nil
+          ddsOpenLibManager()
+      )
+
+;; SKILL path and SKILL programming settings
+;; —————————————————————————————————————————
+sstatus(writeProtect nil)
+
+let((skillPath)
+   skillPath= strcat(
+    ". ~ "                                          ; Current & home directory
+    prependInstallPath("samples/techfile ")         ; sample source technology files
+   )
+   setSkillPath(skillPath)
+)
+
+;; Load bind key definitions
+;; —————————————————————————
+let( (bindKeyFileList file path saveSkillPath)
+    bindKeyFileList = '(
+                 "leBindKeys.il"
+                 "schBindKeys.il"
+                    )
+
+;  this is the path that is searched for the files
+    path = strcat(
+              ".   ~   "
+              prependInstallPath("local ")
+              prependInstallPath("samples/local")
+             )
+    saveSkillPath=getSkillPath()
+    setSkillPath(path)
+;
+;
+
+   foreach(file bindKeyFileList
+       if(isFile(file) then
+          loadi(file)
+         )
+    )
+
+    setSkillPath(saveSkillPath)
+)
+
+; Schematic cellview to cellview defaults for creating a symbol with Artist
+; IL interpreted labels. The default is to not create an Artist symbol.
+;
+schSetEnv( "tsgTemplateType" "artist" )
+
+;;———————————————————————————————————————————————————————————————————————————————
+; Calibre interactive setup
+;;———————————————————————————————————————————————————————————————————————————————
+
+; check MGC_HOME
+
+mgc_home=getShellEnvVar("MGC_HOME")
+
+if( mgc_home!=nil && isDir(mgc_home) && isReadable(mgc_home) then
+
+    ; Load calibre.skl for Cadence versions 4.4 and greater
+
+    load(strcat(mgc_home "/lib/calibre.skl"))
+else
+
+    ; If MGC_HOME is not set correctly. Report the problem.
+
+    printf("//  Calibre Error: Environment variable ")
+
+    if( mgc_home==nil || mgc_home=="" then
+        printf("MGC_HOME is not set.");
+    else
+        if( !isDir(mgc_home) then
+            printf("MGC_HOME does not point to a directory.");
+        else
+            if( !isReadable(mgc_home) then
+                printf("MGC_HOME points to an unreadable directory.");
+            )
+        )
+    )
+    printf(" Calibre Skill Interface not loaded.\n")
+
+    ; Display a dialog box message about load failure.
+
+    hiDisplayAppDBox(
+        ?name           'MGCHOMEErrorDlg
+        ?dboxBanner     "Calibre Error"
+        ?dboxText       "Calibre Skill Interface not loaded."
+        ?dialogType     hicErrorDialog
+        ?dialogStyle    'modal
+        ?buttonLayout   'Close
+    )
+)
+;;———————————————————————————————————————————————————————————————————————————————
+
+; Load the default .cdsenv file
+; —————————————————————————————
+
+; Use the following if setting the path using the variable "PDK_DIR". But this 
+; will point to the cdsenv file in the PDK bundle and not the local PDK run directory.
+
+(envLoadVals ?envFile  strcat( getShellEnvVar("PDK_DIR") "/cdslib/setup/cdsenv") ?tool "layout")
+
+; Use the following if the local cdsenv file is to be used. 
+; (envLoadVals ?envFile  strcat( "./.cdsenv") ?tool "layout")
+
+;;———————————————————————————————————————————————————————————————————————————————
+
+printf( strcat( 
+"---------------------------------------------------------------------------------------------------\n"
+"   ###     ######     ###    ########  ########    ########  ########  ##    ## \n"
+"  ## ##   ##    ##   ## ##   ##     ## ##    ##    ##     ## ##     ## ##   ##  \n"
+" ##   ##  ##        ##   ##  ##     ##     ##      ##     ## ##     ## ##  ##   \n"
+"##     ##  ######  ##     ## ########     ##       ########  ##     ## #####    \n"
+"#########       ## ######### ##          ##        ##        ##     ## ##  ##   \n"
+"##     ## ##    ## ##     ## ##          ##        ##        ##     ## ##   ##  \n"
+"##     ##  ######  ##     ## ##          ##        ##        ########  ##    ## \n"
+"---------------------------------------------------------------------------------------------------\n"
+))
+
+printf("
+\n
+\n
+BSD 3-Clause License \n
+ \n
+Copyright 2020 Lawrence T. Clark, Vinay Vashishtha, or Arizona State \n
+University \n
+ \n
+Redistribution and use in source and binary forms, with or without \n
+modification, are permitted provided that the following conditions are met: \n
+ \n
+1. Redistributions of source code must retain the above copyright notice, \n
+this list of conditions and the following disclaimer. \n
+ \n
+2. Redistributions in binary form must reproduce the above copyright \n
+notice, this list of conditions and the following disclaimer in the \n
+documentation and/or other materials provided with the distribution. \n
+ \n
+3. Neither the name of the copyright holder nor the names of its \n
+contributors may be used to endorse or promote products derived from this \n
+software without specific prior written permission. \n
+ \n
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" \n
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE \n
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE \n
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE \n
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR \n
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF \n
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS \n
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN \n
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) \n
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE \n
+POSSIBILITY OF SUCH DAMAGE. \n
+"
+)

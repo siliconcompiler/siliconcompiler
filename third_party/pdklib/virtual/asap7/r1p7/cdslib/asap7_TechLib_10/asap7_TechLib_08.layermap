@@ -1,0 +1,136 @@
+# BSD 3-Clause License
+# 
+# Copyright 2020 Lawrence T. Clark, Vinay Vashishtha, or Arizona State
+# University
+# 
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+# 
+# 1. Redistributions of source code must retain the above copyright notice,
+# this list of conditions and the following disclaimer.
+# 
+# 2. Redistributions in binary form must reproduce the above copyright
+# notice, this list of conditions and the following disclaimer in the
+# documentation and/or other materials provided with the distribution.
+# 
+# 3. Neither the name of the copyright holder nor the names of its
+# contributors may be used to endorse or promote products derived from this
+# software without specific prior written permission.
+# 
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+###############################################################################
+#Layer Name     Layer Purpose  Layer Stream Number  Datatype Stream Number
+well		drawing			1		0
+fin		drawing			2		0
+#P_SUB		drawing			3		0
+Gate		drawing			7		0
+Dummy		drawing			8		0
+GCut		drawing			10		0
+Active		drawing			11		0
+Nselect		drawing			12		0
+Pselect		drawing			13		0
+LIG		drawing			16		0
+LISD		drawing			17		0
+V0		drawing			18		0
+M1		drawing			19		0
+V1		drawing			21		0
+M2		drawing			20		0
+V2		drawing			25		0
+M3		drawing			30		0
+V3		drawing			35		0
+M4		drawing			40		0
+V4		drawing			45		0
+M5		drawing			50		0
+V5		drawing			55		0
+M6		drawing			60		0
+V6		drawing			65		0
+M7		drawing			70		0
+V7		drawing			75		0
+M8		drawing			80		0
+V8		drawing			85		0
+M9		drawing			90		0
+V9		drawing			95		0
+SDT		drawing			88		0
+SLVT		drawing			97		0
+LVT		drawing			98		0
+SRAMDRC  	drawing			99		0
+BOUNDARY	drawing			100		0
+TEXT		drawing			101		0
+SRAMVT	        drawing			110		0
+well		pin			1		251	
+P_SUB		pin			3		251	
+Gate		pin			7		251	
+LIG		pin			16		251	
+LISD		pin			17		251	
+M1		pin			19		251	
+M2		pin			20		251	
+M3		pin			30		251	
+M4		pin			40		251	
+M5		pin			50		251	
+M6		pin			60		251	
+M7		pin			70		251	
+M8		pin			80		251	
+M9		pin			90		251	
+#well		label			1		2
+#P_SUB		label			3		2
+Gate		label			7		2
+LIG		label			16		2
+LISD		label			17		2
+M1		label			19		2
+M2		label			20		2
+M3		label			30		2
+M4		label			40		2
+M5		label			50		2
+M6		label			60		2
+M7		label			70		2
+M8		label			80		2
+M9		label			90		2
+#well		net			1		3
+#P_SUB		net			3		3
+Gate		net			7		3
+LIG		net			16		3
+LISD		net			17		3
+M1		net			19		3
+M2		net			20		3
+M3		net			30		3
+M4		net			40		3
+M5		net			50		3
+M6		net			60		3
+M7		net			70		3
+M8		net			80		3
+M9		net			90		3
+LIG		blockage		16		4
+LISD		blockage		17		4
+V0		blockage		18		4
+M1		blockage		19		4
+V1		blockage		21		4
+M2		blockage		20		4
+V2		blockage		25		4
+M3		blockage		30		4
+V3		blockage		35		4
+M4		blockage		40		4
+V4		blockage		45		4
+M5		blockage		50		4
+V5		blockage		55		4
+M6		blockage		60		4
+V6		blockage		65		4
+M7		blockage		70		4
+V7		blockage		75		4
+M8		blockage		80		4
+V8		blockage		85		4
+M9		blockage		90		4
+V9		blockage		95		4
+SDT		blockage		88		4
+
+
