@@ -4,21 +4,81 @@ import subprocess
 import sys
 import argparse
 import os
+import re
+
+ ###########################################################################
+ # Deriving install directory
+ ###########################################################################
+script_path = os.path.dirname(os.path.abspath(__file__))
+
 
 if __name__ == "__main__":
 
     ###########################################################################
-    # Variable Priorities
+    # Shared argument structure for all tools
+    # 1. SCC Default (lowest)
+    # 2. Environment
+    # 3. -cfg json file
+    # 4. Command line flags (highest)    
     ###########################################################################
 
-    # 1. Environment (lowest)
-    # 2. -cfg json file
-    # 3. Command line flags (higheset)
-        
+    scc_args = {}
+
     ###########################################################################
-    # Environment Variables
+    # Defaults
     ###########################################################################
 
+    scc_args['default'] = {}
+
+    install_dir = os.path.dirname(os.path.abspath(__file__))
+    install_dir = re.sub("siliconcompiler/siliconcompiler", "siliconcompiler",install_dir,1)
+    pdklib      = install_dir + "/third_party/pdklib/"
+    iplib       = install_dir + "/third_party/iplib/"
+    edalib      = install_dir + "/third_party/edalib/"
+
+    scc_args['default']['scc_flow_init']   = "scc"
+    scc_args['default']['scc_flow_syn']    = "scc"
+    scc_args['default']['scc_flow_place']  = "scc"
+    scc_args['default']['scc_flow_cts']    = "scc"
+    scc_args['default']['scc_flow_route']  = "scc"
+    scc_args['default']['scc_flow_finish'] = "scc"
+
+    scc_args['default']['scc_techfile']    = pdklib + "virtual/nangate45/r1p0/pnr/nangate45.tech.lef"
+    scc_args['default']['scc_lib']         = iplib + "virtual/nangate45/NangateOpenCellLibrary/r1p0/lib/NangateOpenCellLibrary_typical.lib"
+    scc_args['default']['scc_minlayer']    = "M2"
+    scc_args['default']['scc_maxlayer']    = "M5"
+    scc_args['default']['effort']          = "high"
+    scc_args['default']['scc_output']      = "output"
+    scc_args['default']['scc_jobs']        = 1
+    scc_args['default']['scc_start']       = "init"
+    scc_args['default']['scc_end']         = "export"
+    
+    
+    ###########################################################################
+    # Environment Configuration
+    ###########################################################################
+    
+    scc_args['env']['scc_home']      = os.getenv('SCC_HOME')
+    scc_args['env']['scc_ydir']      = os.getenv('SCC_YDIR')
+    scc_args['env']['scc_vlib']      = os.getenv('SCC_VLIB')
+    scc_args['env']['scc_idir']      = os.getenv('SCC_IDIR')
+    scc_args['env']['scc_libext']    = os.getenv('SCC_LIBEXT')
+    scc_args['env']['scc_cmdfile']   = os.getenv('SCC_CMDFILE')
+    scc_args['env']['scc_sdcfile']   = os.getenv('SCC_SDCFILE')
+    scc_args['env']['scc_flowname']  = os.getenv('SCC_FLOWNAME')
+    scc_args['env']['scc_techfile']  = os.getenv('SCC_TECHFILE')
+    scc_args['env']['scc_layermap']  = os.getenv('SCC_LAYERMAP')
+    scc_args['env']['scc_minlayer']  = os.getenv('SCC_MINLAYER')
+    scc_args['env']['scc_maxlayer']  = os.getenv('SCC_MAXLAYER')
+    scc_args['env']['scc_lib']       = os.getenv('SCC_LIB')
+    scc_args['env']['scc_scenario']  = os.getenv('SCC_SCENARIO')
+    scc_args['env']['scc_effort']    = os.getenv('SCC_EFFORT')
+    
+    
+    print(scc_args)
+    exit
+
+    SCC_HOME     = os.getenv('SCC_HOME')
     SCC_YDIR     = os.getenv('SCC_YDIR')
     SCC_VLIST    = os.getenv('SCC_VLIST')
     SCC_IDIR     = os.getenv('SCC_IDIR')
@@ -66,25 +126,21 @@ if __name__ == "__main__":
     #-t option needed in all but trivial "hello world single module designs
     parser.add_argument('-t',
                         dest='module',
-                        default="",
                         action='store',
                         help='Top module name ("design")')
 
     parser.add_argument('-cfg',
                         dest='cfgfile',
-                        default="",
                         action="store",
                         help='Configuration in json file format')
     
     parser.add_argument('-o',
                         dest='output',
-                        default="output",
                         action="store",
                         help='Root name for output files')
         
     parser.add_argument('-j',
                         dest='jobs',
-                        default=1,
                         action='store',
                         help='Number of jobs to run simultaneously')
 
@@ -94,49 +150,41 @@ if __name__ == "__main__":
 
     parser.add_argument('-y',
                         dest='ydir',
-                        default=[],
                         action='append',
                         help='Directory to search for modules')
 
     parser.add_argument('+libext', 
                         dest='libext',
-                        default=[],
                         action='append',
                         help='Specify signal as a clock')
     
     parser.add_argument('-v', 
                         dest='vlist',
-                        default=[],
                         action='append',
                         help='Verilog library files')
 
     parser.add_argument('-I', 
                         dest='idir',
-                        default=[],
                         action='append',
                         help='Directory to search for includes')
         
     parser.add_argument('-D',
                         dest='define',
-                        default=[],
                         action='append',
                         help='Set preprocessor define')
 
     parser.add_argument('-Wno-', 
                         dest='message',
-                        default=[],
                         action='append',
                         help='Disables warning <MESSAGE> !!!!FIX!!!!!')
 
     parser.add_argument('-clk', 
                         dest='clkname',
-                        default=[],
                         action='append',
                         help='Specify signal as a clock')
 
     parser.add_argument('-f', 
                         dest='cmdfile',
-                        default=[],
                         action='store',
                         help='Parse options from a file')
 
@@ -146,79 +194,66 @@ if __name__ == "__main__":
 
     parser.add_argument('-sdc', 
                         dest='sdcfile',
-                        default=[],
                         action='append',
                         help='Timing constraints in SDC format')
 
     parser.add_argument('-def',
                         dest='deffile',
-                        default=[],
                         action='append',
                         help='Floor-plan in DEF format')
 
     parser.add_argument('-upf', 
                         dest='upffile',
-                        default=[],
                         action='append',
                         help='Power file in UPF format')
 
     parser.add_argument('-ndr',
                         dest='ndrsignal',
-                        default=[],
                         action='append',
                         help='Non-default routed signals')
     
     parser.add_argument('-techfile',
                         dest='techfile',
-                        default="",
                         action='store',
                         help='Place and route setup file')
     
     parser.add_argument('-flow', 
                         dest='flowname',
-                        default="openroad",
                         action='store',
                         help='Named eda/compiler flow')
 
     parser.add_argument('-min', 
                         dest='minlayer',
-                        default="",
                         action='store',
                         help='Minimum routing layer')
 
     parser.add_argument('-max', 
                         dest='maxlayer',
-                        default="",
                         action='store',
                         help='Maximum routing layer')
     
     parser.add_argument('-lib', 
                         dest='liblist',
-                        default=[],
                         action='append',
                         help='Synthesis Libary')
 
     parser.add_argument('-libpath', 
                         dest='libpathlist',
-                        default=[],
                         action='append',
                         help='Synthesis Libary Search Paths')
 
     parser.add_argument('-start', 
                         dest='startstep',
-                        default="init",
                         action='store',
                         help=' Name of PNR starting step')
 
     parser.add_argument('-end',
                         dest='endstep',
-                        default="export",
                         action='store',
                         help=' Name of PNR ending step')
 
     parser.add_argument('-effort',
                         dest='effort',
-                        default="high",
                         action='store',
                         help='Compilation effort')
     
@@ -238,43 +273,36 @@ if __name__ == "__main__":
 
     parser.add_argument('-icg', 
                         dest='icglist',
-                        default=[],
                         action='append',
                         help='List of ICG cells')
     
     parser.add_argument('-tielo', 
                         dest='tielolist',
-                        default=[],
                         action='append',
                         help='List of tie to 0 cells')
     
     parser.add_argument('-tielhi', 
                         dest='tiehilist',
-                        default=[],
                         action='append',
                         help='List of tie to 1 cells')
     
     parser.add_argument('-antenna', 
                         dest='antennalist',
-                        default=[],
                         action='append',
                         help='List of antenna fix cells')
 
     parser.add_argument('-dcap', 
                         dest='dcaplist',
-                        default=[],
                         action='append',
                         help='List of decoupling-cap cells')
 
     parser.add_argument('-filler', 
                         dest='fillerlist',
-                        default=[],
                         action='append',
                         help='List of filler cells')
     
     parser.add_argument('-dontuse', 
                         dest='dontuselist',
-                        default=[],
                         action='append',
                         help='List of cells to ignore')
     
@@ -289,12 +317,20 @@ if __name__ == "__main__":
     ###########################################################################
 
     print(args)
-    exit
 
+    mytcl = "generated_setup.tcl"
+
+    f = open(mytcl, "w")
+    
+    f.write("Woops! I have deleted the content!")
+    f.close()
+    
     ###########################################################################
     # Run Verilator Preprocessor/Linter
     ###########################################################################
-
+    #stdout=subprocess.DEVNULL,
+    #stderr=subprocess.DEVNULL)
+    
     #Creating a verilator compatible command based on arguments
     verilator_cmd = ' '.join(['verilator',
                               '--lint-only',
@@ -304,16 +340,25 @@ if __name__ == "__main__":
                               ' -v '.join(args.vlist),
                               ' -I'.join(args.idir)])
 
-    error = subprocess.run(verilator_cmd,
-                           shell=True,
-                           stdout=subprocess.DEVNULL,
-                           stderr=subprocess.DEVNULL)
-                           
+    error = subprocess.run(verilator_cmd, shell=True)
+
     #Concatenating all pre-processed files for synthesis
-    error = subprocess.run('cat obj_dir/*.vpp > output.vpp',
-                           shell=True)
+    cat_cmd = 'cat obj_dir/*.vpp > output.vpp'
+    error = subprocess.run(cat_cmd, shell=True)
 
     ###########################################################################
     # Run Synthesis
+    #
     ###########################################################################
-    
+        
+    cmd_file = SCC_HOME + "/third_party/edalib/yosys/default.tcl"
+
+    yosys_cmd = ' '.join(['yosys', '-c', cmd_file])
+                          
+    error = subprocess.run(yosys_cmd, shell=True)
+
+
+
+
+
+
