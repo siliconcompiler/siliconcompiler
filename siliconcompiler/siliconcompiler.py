@@ -1,17 +1,23 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
+import os
+
 
 if __name__ == "__main__":
     
     import argparse
     
     #Creating parser
-    parser = argparse.ArgumentParser(description="Silicon Compiler")
+    parser = argparse.ArgumentParser(prog='scc',
+                                     formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=42),
+                                     prefix_chars='-+',
+                                     description="Silicon Compiler Collection (SCC)")
 
     ###########################################################################
-    # Positional Argument (required)
+    # Source files (at least one required)
     ###########################################################################
 
-    parser.add_argument("file(s).v", 
+    parser.add_argument('sourcefiles',
+                        nargs='*',
                         help='Verilog source files')
 
     ###########################################################################
@@ -19,35 +25,44 @@ if __name__ == "__main__":
     ###########################################################################
 
     #-t option needed in all but trivial "hello world single module designs
-    parser.add_argument('-t', action='store',
+    parser.add_argument('-t',
                         dest='module',
                         default="",
+                        action='store',
                         help='Top module name ("design")')
 
-    parser.add_argument('-cfg', action="store",
-                        dest='jsoncfg',
+    parser.add_argument('-cfg',
+                        dest='cfgfile',
                         default="",
-                        help='Name of Root name for output files')
+                        action="store",
+                        help='Configuration in json file format')
     
-    
-    parser.add_argument('-o', action="store",
+    parser.add_argument('-o',
                         dest='output',
                         default="output",
+                        action="store",
                         help='Root name for output files')
         
-    parser.add_argument('-j', action='store',
+    parser.add_argument('-j',
                         dest='jobs',
                         default=1,
-                        help='Number of jobs (commands) to run simultaneously')
+                        action='store',
+                        help='Number of jobs to run simultaneously')
 
     ###########################################################################
     # Optional Verilator Arguments
     ###########################################################################
 
-    parser.add_argument('-y', action='append',
+    parser.add_argument('-y',
                         dest='ydir',
+                        action='append',
                         default=[],
                         help='Directory to search for modules')
+
+    parser.add_argument('+libext', action='append',
+                        dest='libext',
+                        default=[],
+                        help='Specify signal as a clock')
     
     parser.add_argument('-v', action='append',
                         dest='vlist',
@@ -58,12 +73,7 @@ if __name__ == "__main__":
                         dest='idir',
                         default=[],
                         help='Directory to search for includes')
-    
-    parser.add_argument('-f', action='store',
-                        dest='cmdfile',
-                        default=[],
-                        help='Parse options from a file')
-    
+        
     parser.add_argument('-D', action='store',
                         dest='define',
                         default=[],
@@ -75,12 +85,17 @@ if __name__ == "__main__":
                         help='Disables warning <MESSAGE> !!!!FIX!!!!!')
 
     parser.add_argument('-clk', action='append',
-                        dest='message',
+                        dest='clkname',
                         default=[],
                         help='Specify signal as a clock')
-    
+
+    parser.add_argument('-f', action='store',
+                        dest='cmdfile',
+                        default=[],
+                        help='Parse options from a file')
+
     ###########################################################################
-    # Synthesis/PD Arguments
+    # Synthesis/Place and Route Arguments
     ###########################################################################
 
     parser.add_argument('-sdc', action='store',
@@ -109,9 +124,9 @@ if __name__ == "__main__":
                         help='Place and route setup file')
     
     parser.add_argument('-flow', action='store',
-                        dest='edaflow',
+                        dest='flowname',
                         default="openroad",
-                        help='Name of synthesis and place and route flow')
+                        help='Named eda/compiler flow')
 
     parser.add_argument('-min', action='store',
                         dest='minlayer',
@@ -126,12 +141,12 @@ if __name__ == "__main__":
     parser.add_argument('-lib', action='append',
                         dest='liblist',
                         default=[],
-                        help='Synthesis/PNR Libary')
+                        help='Synthesis Libary')
 
     parser.add_argument('-libpath', action='append',
                         dest='libpathlist',
                         default=[],
-                        help='Synthesis/PNR Libary Search Paths')
+                        help='Synthesis Libary Search Paths')
 
     parser.add_argument('-start', action='append',
                         dest='startstep',
@@ -194,11 +209,23 @@ if __name__ == "__main__":
                         default=[],
                         help='List of cells to ignore')
     
-
     ###########################################################################
     # Parse arguments
     ###########################################################################
    
     args = parser.parse_args()
 
-    print(args)
+    ###########################################################################
+    # Run Verilator Preprocessor/Linter
+    ###########################################################################
+
+    #Creating a verilator compatible command based on arguments
+    verilator_cmd = ' '.join(["verilator ",
+                              '-E',
+                              ' '.join(args.sourcefiles),
+                              ' -y '.join(args.ydir),
+                              ' -v '.join(args.vlist),
+                              ' -I'.join(args.idir)])
+    
+    print(verilator_cmd)    
+    os.system(verilator_cmd)
