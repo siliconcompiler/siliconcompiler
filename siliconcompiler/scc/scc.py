@@ -5,6 +5,7 @@ import sys
 import argparse
 import os
 import re
+import json
 
 ############################
 # FUNCTIONS
@@ -70,6 +71,7 @@ def design_import(config_file, output_dir):
     #Return to CWD
     os.chdir(cwd)
 
+
 def cfg_default():
     
     install_dir = os.path.dirname(os.path.abspath(__file__))
@@ -77,54 +79,209 @@ def cfg_default():
     pdklib      = root_dir + "/third_party/pdklib/virtual/nangate45/r1p0/pnr/"
     iplib       = root_dir + "/third_party/iplib/virtual/nangate45/NangateOpenCellLibrary/r1p0/lib/"
 
-    args = {}
-    args['scc_import_dir']     = "build/import"
-    args['scc_syn_tool']       = "yosys -c"
-    args['scc_syn_script']     = install_dir + "asic/syn.tcl"
-    args['scc_syn_dir']        = "build/syn"
-    args['scc_place_tool']     = "openroad -no_init -exit"
-    args['scc_place_dir']      = "build/place"
-    args['scc_place_script']   = install_dir + "asic/place.tcl"
-    args['scc_cts_tool']       = "openroad -no_init -exit"
-    args['scc_cts_script']     = install_dir + "asic/cts.tcl"
-    args['scc_cts_dir']        = "build/cts"
-    args['scc_route_tool']     = "openroad -no_init -exit"
-    args['scc_route_script']   = install_dir + "asic/route.tcl"
-    args['scc_route_dir']      = "build/route"
-    args['scc_signoff_tool']   = "openroad -no_init -exit"
-    args['scc_signoff_script'] = install_dir + "asic/signoff.tcl"
-    args['scc_signoff_dir']    = "build/signoff"
-    args['scc_export_tool']    = "openroad -no_init -exit"
-    args['scc_export_script']  = install_dir + "asic/export.tcl"
-    args['scc_export_dir']     = "build/export"
-    args['scc_techfile']       = pdklib + "nangate45.tech.lef"
-    args['scc_lib']            = iplib + "NangateOpenCellLibrary_typical.lib"
-    args['scc_minlayer']       = "M2"
-    args['scc_maxlayer']       = "M5"
-    args['scc_effort']         = "high"
-    args['scc_output']         = "output"
-    args['scc_jobs']           = 4
-    args['scc_start']          = "init"
-    args['scc_end']            = "export"
 
-    print(args)
-    return(args)
+    scc_args={}
+
+    ###############
+    #Technology
+    scc_args['scc_techfile']={}
+    scc_args['scc_techfile']['help']     = "Place and route tehnology files"
+    scc_args['scc_techfile']['values']   =  [pdklib + "nangate45.tech.lef"]
+    scc_args['scc_techfile']['switch']   = "-techfile"
+
+    scc_args['scc_minlayer']={}
+    scc_args['scc_minlayer']['help']     = "Minimum routing layer"
+    scc_args['scc_minlayer']['values']   = ["M2"]
+    scc_args['scc_minlayer']['switch']   = "-minlayer"
+
+    scc_args['scc_maxlayer']={}
+    scc_args['scc_maxlayer']['help']     = "Maximum routing layer"
+    scc_args['scc_maxlayer']['values']   = ["M7"]
+    scc_args['scc_maxlayer']['switch']   = "-maxlayer"
+
+    scc_args['scc_scenario']={}
+    scc_args['scc_scenario']['help']     = "Process, voltage, temp scenarios for compilation"
+    scc_args['scc_scenario']['values']   = ["all,timing,tt,0.7,25"]
+    scc_args['scc_scenario']['switch']   = "-scenario"
+
+    
+    ###############
+    #Libraries
+    scc_args['scc_lib']={}
+    scc_args['scc_lib']['help']          = "Standard cell libraries (liberty)"    
+    scc_args['scc_lib']['values']        = [iplib + "NangateOpenCellLibrary_typical.lib"]
+    scc_args['scc_lib']['switch']        = "-lib"
+
+    scc_args['scc_libheight']={}
+    scc_args['scc_libheight']['help']    = "Height of library (in grids)"
+    scc_args['scc_libheight']['values']  = [12]
+    scc_args['scc_libheight']['switch']  = "-libheight"
+
+    scc_args['scc_libdriver']={}
+    scc_args['scc_libdriver']['help']    = "Name of default driver cell"
+    scc_args['scc_libdriver']['values']  = []
+    scc_args['scc_libdriver']['switch']  = "-libdriver"
+
+
+    cell_lists = ["icg", "dontuse", "antenna", "dcap", "filler", "tielo", "tiehi"]
+
+    for value in cell_lists:
+        scc_args['scc_' + value]={}
+        scc_args['scc_' + value]['help']   = "List of " + value + " cells"
+        scc_args['scc_' + value]['values'] = []
+        scc_args['scc_' + value]['switch'] = value
+    
+    ###############
+    # Tool Definitions
+    
+    all_stages = ["import", "syn", "place", "cts", "route", "signoff", "export"]
+
+    for stage in all_stages:
+        #init dict
+        scc_args['scc_' + stage + '_tool']={}
+        scc_args['scc_' + stage + '_opt']={}
+        scc_args['scc_' + stage + '_dir']={}
+        scc_args['scc_' + stage + '_script']={}
+        #descriptions
+        scc_args['scc_' + stage + '_tool']['help']       = "Name of " + stage + " tool"
+        scc_args['scc_' + stage + '_opt']['help']        = "Options for " + stage + " tool"
+        scc_args['scc_' + stage + '_dir']['help']        = "Build diretory for " + stage
+        scc_args['scc_' + stage + '_script']['help']     = "TCL script for " + stage + "tool"
+        #command line switches
+        scc_args['scc_' + stage + '_tool']['switch']     = "-" + stage + "_tool"
+        scc_args['scc_' + stage + '_opt']['switch']      = "-" + stage + "_opt"
+        scc_args['scc_' + stage + '_dir']['switch']      = "-" + stage + "_dir"
+        scc_args['scc_' + stage + '_script']['switch']   = "-" + stage + "_script"        
+        #scc defaults
+        scc_args['scc_' + stage + '_script']['values']   = ["build/" + stage]
+        scc_args['scc_' + stage + '_dir']['values']      = [install_dir + "asic/" + stage + ".tcl"]
+        if(stage=="import"):
+            scc_args['scc_import_tool']['values']        = ["verilator"]
+            scc_args['scc_import_opt']['values']         = ["--lint-only", "--debug"]
+        elif(stage=="syn"):
+            scc_args['scc_syn_tool']['values']           = ["yosys"]
+            scc_args['scc_syn_opt']['values']            = ["-c"]
+        else:
+            scc_args['scc_' + stage + '_tool']['values'] = ["openroad"]
+            scc_args['scc_' + stage + '_opt']['values']  = ["-no_init", "-exit"]
+    
+    ###############
+    #Execution Options
+    scc_args['scc_jobs']={}
+    scc_args['scc_jobs']['values']      = ["4"]
+    scc_args['scc_jobs']['switch']      = "-j"
+    scc_args['scc_jobs']['help']        = "Number of jobs to run simultaneously"
+
+    scc_args['scc_effort']={}
+    scc_args['scc_effort']['values']    = ["high"]
+    scc_args['scc_effort']['switch']    = "-effort"
+    scc_args['scc_effort']['help']      = "Compilation effort (low, medium, high)"
+
+    scc_args['scc_priority']={}
+    scc_args['scc_priority']['values']  = ["speed"]
+    scc_args['scc_priority']['switch']  = "-priority"
+    scc_args['scc_priority']['help']    = "Optimization priority (speed, area, power)"
+
+    scc_args['scc_start']={}
+    scc_args['scc_start']['values']     = ["import"]
+    scc_args['scc_start']['switch']     = "-start"
+    scc_args['scc_start']['help']       = "Stage to start with"
+
+    scc_args['scc_stop']={}
+    scc_args['scc_stop']['values']      = ["export"]
+    scc_args['scc_stop']['switch']      = "-stop"
+    scc_args['scc_stop']['help']        = "Stage to stop after"        
+
+            
+    ###############
+    #Design
+    scc_args['scc_source']={}
+    scc_args['scc_source']['values']    = []
+    scc_args['scc_source']['switch']    = ""
+    scc_args['scc_source']['help']      = "Verilog source files (minimum one)"
+
+    scc_args['scc_topmodule']={}
+    scc_args['scc_topmodule']['values'] = []
+    scc_args['scc_topmodule']['switch'] = "-topmodule"
+    scc_args['scc_topmodule']['help']   = "Top module name"
+
+    scc_args['scc_clk']={}
+    scc_args['scc_clk']['values']       = []
+    scc_args['scc_clk']['switch']       = "-clk"
+    scc_args['scc_clk']['help']         = "Clock defintions"
+    
+    scc_args['scc_def']={}
+    scc_args['scc_def']['values']       = []
+    scc_args['scc_def']['switch']       = "-def"
+    scc_args['scc_def']['help']         = "Physical floorplan (DEF) file"
+
+    scc_args['scc_sdc']={}
+    scc_args['scc_sdc']['values']       = []
+    scc_args['scc_sdc']['switch']       = "-sdc"
+    scc_args['scc_sdc']['help']         = "Constraints (SDC) file"
+
+    scc_args['scc_upf']={}
+    scc_args['scc_upf']['values']       = []
+    scc_args['scc_upf']['switch']       = "-upf"
+    scc_args['scc_upf']['help']         = "Unified power format (UPF) file"
+
+    scc_args['scc_ydir']={}
+    scc_args['scc_ydir']['values']      = []
+    scc_args['scc_ydir']['switch']      = "-y"
+    scc_args['scc_ydir']['help']        = "Directory to search for modules"
+
+    scc_args['scc_vlib']={}
+    scc_args['scc_vlib']['values']      = []
+    scc_args['scc_vlib']['switch']      = "-v"
+    scc_args['scc_vlib']['help']        = "Verilog library"
+
+    scc_args['scc_libext']={}
+    scc_args['scc_libext']['values']    = [".v", ".vh"]
+    scc_args['scc_libext']['switch']    = "+libext"
+    scc_args['scc_libext']['help']      = "Extensions for finding modules"
+
+    scc_args['scc_idir']={}
+    scc_args['scc_idir']['values']      = []
+    scc_args['scc_idir']['switch']      = "-I"
+    scc_args['scc_idir']['help']        = "Directory to search for includes"
+
+    scc_args['scc_define']={}
+    scc_args['scc_define']['values']    = []
+    scc_args['scc_define']['switch']    = "-D"
+    scc_args['scc_define']['help']      = "Defines for Verilog preprocessor"
+
+    scc_args['scc_cmdfile']={}
+    scc_args['scc_cmdfile']['values']   = []
+    scc_args['scc_cmdfile']['switch']   = "-f"
+    scc_args['scc_cmdfile']['help']     = "Parse options from file"
+
+    scc_args['scc_wall']={}
+    scc_args['scc_wall']['values']      = []
+    scc_args['scc_wall']['switch']      = "-Wall"
+    scc_args['scc_wall']['help']        = "Enable all style warnings"
+
+    scc_args['scc_wno']={}
+    scc_args['scc_wno']['values']       = []
+    scc_args['scc_wno']['switch']       = "-Wno"
+    scc_args['scc_wno']['help']         = "Disables a warning -Woo-<message>"
+
+    return(scc_args)
 
 def cfg_env():
-    args = {}
-    args['scc_ydir']      = os.getenv('SCC_YDIR')
-    args['scc_vlib']      = os.getenv('SCC_VLIB')
-    args['scc_idir']      = os.getenv('SCC_IDIR')
-    args['scc_libext']    = os.getenv('SCC_LIBEXT')
-    args['scc_cmdfile']   = os.getenv('SCC_CMDFILE')
-    args['scc_sdcfile']   = os.getenv('SCC_SDCFILE')
-    args['scc_flowname']  = os.getenv('SCC_FLOWNAME')
-    args['scc_techfile']  = os.getenv('SCC_TECHFILE')
-    args['scc_layermap']  = os.getenv('SCC_LAYERMAP')
-    args['scc_minlayer']  = os.getenv('SCC_MINLAYER')
-    args['scc_maxlayer']  = os.getenv('SCC_MAXLAYER')
-    args['scc_lib']       = os.getenv('SCC_LIB')
-    args['scc_scenario']  = os.getenv('SCC_SCENARIO')
+    scc_args = {}
+    scc_args['scc_ydir']      = os.getenv('SCC_YDIR')
+    scc_args['scc_vlib']      = os.getenv('SCC_VLIB')
+    scc_args['scc_idir']      = os.getenv('SCC_IDIR')
+    scc_args['scc_libext']    = os.getenv('SCC_LIBEXT')
+    scc_args['scc_cmdfile']   = os.getenv('SCC_CMDFILE')
+    scc_args['scc_sdcfile']   = os.getenv('SCC_SDCFILE')
+    scc_args['scc_flowname']  = os.getenv('SCC_FLOWNAME')
+    scc_args['scc_techfile']  = os.getenv('SCC_TECHFILE')
+    scc_args['scc_layermap']  = os.getenv('SCC_LAYERMAP')
+    scc_args['scc_minlayer']  = os.getenv('SCC_MINLAYER')
+    scc_args['scc_maxlayer']  = os.getenv('SCC_MAXLAYER')
+    scc_args['scc_lib']       = os.getenv('SCC_LIB')
+    scc_args['scc_scenario']  = os.getenv('SCC_SCENARIO')
     args['scc_effort']    = os.getenv('SCC_EFFORT')
     print(args)
     return(args)
@@ -136,8 +293,9 @@ def cfg_merge(all_args):
     scc_args = {}
     print("merge")
     return(scc_args)
-def cfg_print():
-    print("print")
+def cfg_print(scc_args):
+    print(json.dumps(scc_args, sort_keys=True, indent=4))
+
 
 ############################
 # COMMAND LINE SCRIPT
@@ -146,48 +304,28 @@ if __name__ == "__main__":
 
     script_path = os.path.dirname(os.path.abspath(__file__))
 
-    #1. Reading of config into mega dictionary
-    all_args = {}
-    all_args['default']  = cfg_default()  # set in scc.py 
-    all_args['env']      = cfg_env()      # set in .bashrc
-    all_args['file']     = cfg_file()     # set by -cfg
-    all_args['cmdline']  = cfg_cmdline()  # set by all others 
- 
-    #2. Prioritized merge of all values
-    scc_args = cfg_merge(all_args)
+    #1. Reading of config by priority
+    scc_args  = {}
+    scc_args  = cfg_default()          # set in scc.py 
+    cfg_print(scc_args)                # print config
+    sys.exit()
 
-    #3. Setup design
+    scc_args  = cfg_env(scc_args)      # set in .bashrc
+    scc_args  = cfg_cmdline(scc_args)  # set by all others 
+ 
+    #2. Setup design
     design_import(scc_args, scc_args['scc_import_dir'])
 
-    #4. Run thhrough compiler
+    #3. Run compiler
     run(scc_args, "syn",     scc_args['scc_import_dir'],scc_args['scc_syn_dir'])
     run(scc_args, "place",   scc_args['scc_syn_dir'],scc_args['scc_place_dir'])
     run(scc_args, "cts",     scc_args['scc_place_dir'],scc_args['scc_cts_dir'])
     run(scc_args, "route",   scc_args['scc_cts_dir'],scc_args['scc_route_dir'])
     run(scc_args, "signoff", scc_args['scc_route_dir'],scc_args['scc_signoff_dir'])
     run(scc_args, "export",  scc_args['scc_signoff_dir'],scc_args['scc_export_dir'])
-    sys.exit()
-  
-    
-    ###########################################################################
-    # Shared argument structure for all tools
-    # 1. SCC Default (lowest)
-    # 2. Environment
-    # 3. -cfg json file
-    # 4. Command line flags (highest)    
-    ###########################################################################
 
-    scc_args = {}
-
-    ###########################################################################
-    # Defaults
-    ###########################################################################
-
-    scc_args['default'] = {}
 
   
-    
-    
     ###########################################################################
     # Environment Configuration
     ###########################################################################
