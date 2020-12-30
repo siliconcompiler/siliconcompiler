@@ -23,9 +23,13 @@ def run(scc_args, stage):
     #Dump TCL (EDA tcl lacks support for json)
     with open("scc_setup.tcl", 'w') as f:
         print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
-        for key in sorted(scc_args.keys()):
-            print('set ', key , scc_args[key], file=f)
-
+        for key in cfg_keys(scc_args):
+            values=cfg_get(scc_args,key)
+            print('set ', key , '  [ list ', end='',file=f)
+            for i in values:
+                print('\"', i, '\" ', sep='', end='', file=f)
+            print(']', file=f)
+            
     #Prepare EDA command
     tool    = cfg_get(scc_args,'scc_' + stage + '_tool')[0]   #scalar!
     opt     = cfg_get(scc_args,'scc_' + stage + '_opt')
@@ -100,7 +104,7 @@ def cfg_init():
 
     def_args['scc_scenario']             = {}
     def_args['scc_scenario']['help']     = "Process,voltage,temp scenario"
-    def_args['scc_scenario']['values']   = ["all,timing,tt,0.7,25"]
+    def_args['scc_scenario']['values']   = ["all timing tt 0.7 25"]
     def_args['scc_scenario']['switch']   = "-scenario"
 
     ###############
@@ -361,6 +365,9 @@ def cfg_print(scc_args,filename=None):
 def cfg_get(scc_args,key):
     return (scc_args['merged'][key]['values'])
 
+def cfg_keys(scc_args):
+    return(sorted(scc_args['merged'].keys()))
+
 ###########################
 def cfg_set(scc_args,key,values):    
     scc_args['merged'][key]['values'] = values
@@ -376,7 +383,7 @@ if __name__ == "__main__":
     scc_args            = {}
     scc_args['default'] = cfg_init()                        # defines dictionary
     scc_args['env']     = cfg_env(scc_args['default'])  # env variables
-    scc_args['cli']     = cfg_cli(scc_args['default'])  # command line args
+    scc_args['cli']     = cfg_cli(scc_args['default'])  # command line argsbuild/import/scc_setup.tcl
 
     # json files appended one by one (priority gets too confusing
     scc_args['files'] = {}
