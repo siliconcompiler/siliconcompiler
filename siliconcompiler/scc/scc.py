@@ -309,37 +309,45 @@ def cfg_cli(default_args):
     # Copy the arguments into dictionary format
     for arg in vars(args):
         cli_args[arg]           = {}
+        
         cli_args[arg]['values'] = getattr(args, arg)
 
-    #print(args)	
+    print("CLI", args)	
     return(cli_args)
 
 ###########################
-def cfg_file(filelist):
-    file_args = {}    
-    for jsonfile in filelist:
-        with open(os.path.abspath(jsonfile), "r") as f:
-            file_args = args.aupdate(json.load(f))    
-    print("args")
+def cfg_json(default_args,filepath):
+
+    file_args={}
+    #Read arguments from file    
+    with open(os.path.abspath(jsonfile), "r") as f:
+        json_args = args.update(json.load(f))
+
+    #Copy in only values defined in default array
+    for key in default_args.keys():
+            file_args[key]['values']  = json_args[key]['values']
+
+    print('FILE', filepath, file_args)
     return(file_args)
 
 ###########################
-def cfg_merge(all_args):
-    scc_args = {}
-    cfg_list =['env','cli'] #priority override list
+def cfg_merge(all_args, src, dst, opt):
+    merge_args = {}
     for key in all_args['default'].keys():
-        scc_args[key] = {}
-        scc_args[key]['values']= all_args['default'][key]['values']
-        scc_args[key]['help']  = all_args['default'][key]['help']
-        scc_args[key]['src']   = "default"
-        for src in cfg_list:
-            if(all_args[src][key]['values']!=None):
-                scc_args[key]['values']= all_args[src][key]['values']
-                scc_args[key]['src']   = src
-                #print(key,all_args['default'][key]['values'],all_args['env'][key]['values'], all_args['cli'][key]['values'])
-    print("merge")
-    print(scc_args)
-    return(scc_args)
+        merge_args[key]           = {}
+        merge_args[key]['values'] = all_args['default'][key]['values']
+        merge_args[key]['help']   = all_args['default'][key]['help']
+        merge_args[key]['src']    = "default"
+        print(key, src)
+        if key in all_args[src]:
+            if(all_args[src][key]['values'] != None):
+                if(opt=="append"):
+                    merge_args[key]['values'] = all_args[dst][key]['values'].append(all_args[src][key]['values'])
+                else:
+                    merge_args[key]['values'] = all_args[src][key]['values']
+        
+    print(merge_args)
+    return(merge_args)
 
 ###########################
 def cfg_print(scc_args):
@@ -347,12 +355,12 @@ def cfg_print(scc_args):
 
 ###########################
 def cfg_get(scc_args,key):
-    return (scc_args[key]['values'])
+    return (scc_args['merged'][key]['values'])
 
 ###########################
 def cfg_set(scc_args,key,values):    
-    scc_args[key]['values'] = values
-    scc_args[key]['src']    = 'program'
+    scc_args['merged'][key]['values'] = values
+    scc_args['merged'][key]['src']    = 'program'
     
 ############################
 # COMMAND LINE SCRIPT
@@ -360,17 +368,27 @@ def cfg_set(scc_args,key,values):
 if __name__ == "__main__":
 
     #1. Reading args (in many ways...)
-    all_args     = {}
-    all_args['default'] = cfg_init()                        # defines dictionary
-    all_args['env']     = cfg_env(all_args['default'])  # env variables
-    all_args['cli']     = cfg_cli(all_args['default'])  # command line args
-    #all_args['file']    = cfg_file(all_args['cli']['scc_cfgfile']['values']) # file based loading
-
-    #2. Merge all configs in order of priority
     scc_args            = {}
-    scc_args            = cfg_merge(all_args)
+    scc_args['default'] = cfg_init()                        # defines dictionary
+    scc_args['env']     = cfg_env(scc_args['default'])  # env variables
+    scc_args['cli']     = cfg_cli(scc_args['default'])  # command line args
 
-    #3. Print out the golden config file
+    #2. Reading in all json config files (append operation)
+    scc_args['files'] = {}
+    if(scc_args['cli']['scc_cfgfile']['values']!=None):
+        for i in range(len(scc_args['cli']['scc_cfgfile']['values'])):
+            jsonfile            = 'json'+ i
+            scc_args[jsonfile]  = cfg_json(scc_args['cli']['scc_cfgfile']['values'][i])
+            scc_args['files']   = cfg_merge(scc_args,'files', jsonfile, "append")
+
+    #3. Merging all confifurations (order below defines priority)
+    scc_args['merged']  = {}
+    scc_args['merged']  = cfg_merge(scc_args,'default','merged', "clobber")
+    scc_args['merged']  = cfg_merge(scc_args,'env',    'merged', "clobber")
+    scc_args['merged']  = cfg_merge(scc_args,'files',  'merged', "clobber")
+    scc_args['merged']  = cfg_merge(scc_args,'cli',    'merged', "clobber")
+
+    #3. Print out current config file
     cfg_print(scc_args)
 
     #4. Run compiler
