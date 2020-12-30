@@ -55,19 +55,33 @@ def run(scc_args, stage):
     cmd_fields.append(script)           
     cmd   = ' '.join(cmd_fields)
 
-    #Run executable
-    print(cmd)
-    #subprocess.run(cmd, shell=True)
-
-    #Post process
-    #if(stage=="import"):
-    #    subprocess.run('cat obj_dir/*.vpp > output.v', shell=True)
+    #execute cmd if current stage is within range of start and stop
+    if((cfg_get(scc_args,'scc_stages').index(stage) <
+       cfg_get(scc_args,'scc_stages').index(cfg_get(scc_args,'scc_start')[0])) |
+       (cfg_get(scc_args,'scc_stages').index(stage) >
+       cfg_get(scc_args,'scc_stages').index(cfg_get(scc_args,'scc_stop')[0]))):
+        print("SCCINFO (", stage, "): Execution skipped due to scc_start/scc_stop setting",sep='')
+    else:
+        #Run executable
+        #print(cmd)
+        subprocess.run(cmd, shell=True)
+        #Post process
+        if(stage=="import"):
+            subprocess.run('cat obj_dir/*.vpp > output.v', shell=True)
     
     #Return to CWD
     os.chdir(cwd)
     
 ###########################
 def cfg_init():
+
+    ###############
+    # Compiler file structure
+    install_dir = os.path.dirname(os.path.abspath(__file__))
+    root_dir    = re.sub("siliconcompiler/scc","",install_dir,1)
+    asic_dir    = root_dir + "siliconcompiler/asic/"
+    fpga_dir    = root_dir + "siliconcompiler/fpga/"
+    pdklib      = root_dir + "/third_party/pdklib/virtual/nangate45/r1p0/pnr/"
 
     ###############
     # Single setup dict for all tools
@@ -83,10 +97,7 @@ def cfg_init():
     
     ###############
     #Technology
-    install_dir = os.path.dirname(os.path.abspath(__file__))
-    root_dir    = re.sub("siliconcompiler/siliconcompiler", "siliconcompiler",install_dir,1)
-    pdklib      = root_dir + "/third_party/pdklib/virtual/nangate45/r1p0/pnr/"
-   
+
     def_args['scc_techfile']             = {}
     def_args['scc_techfile']['help']     = "Place and route tehnology files"
     def_args['scc_techfile']['values']   =  [pdklib + "nangate45.tech.lef"]
@@ -125,9 +136,12 @@ def cfg_init():
     def_args['scc_libdriver']['values']  = []
     def_args['scc_libdriver']['switch']  = "-libdriver"
 
-    cell_lists = ["icg", "dontuse", "antenna", "dcap", "filler", "tielo", "tiehi"]
+    def_args['scc_cell_lists']            = {}
+    def_args['scc_cell_lists']['help']    = "Name of default driver cell"
+    def_args['scc_cell_lists']['values']  = ["icg", "dontuse", "antenna", "dcap", "filler", "tielo", "tiehi"]
+    def_args['scc_cell_lists']['switch']  = "-cell_lists"
 
-    for value in cell_lists:
+    for value in def_args['scc_cell_lists']['values']:
         def_args['scc_' + value]           = {}
         def_args['scc_' + value]['help']   = "List of " + value + " cells"
         def_args['scc_' + value]['values'] = []
@@ -135,10 +149,13 @@ def cfg_init():
     
     ##################
     # Tool Definitions
+   
+    def_args['scc_stages']            = {}
+    def_args['scc_stages']['help']    = "List of all compilation stages"
+    def_args['scc_stages']['values']  = ["import", "syn", "place", "cts", "route", "signoff", "export"]
+    def_args['scc_stages']['switch']  = "-stages"
     
-    all_stages = ["import", "syn", "place", "cts", "route", "signoff", "export"]
-
-    for stage in all_stages:
+    for stage in def_args['scc_stages']['values']:
         #init dict
         def_args['scc_' + stage + '_tool']   = {}
         def_args['scc_' + stage + '_opt']    = {}
@@ -163,11 +180,11 @@ def cfg_init():
         elif(stage=="syn"):
             def_args['scc_syn_tool']['values']             = ["yosys"]
             def_args['scc_syn_opt']['values']              = ["-c"]
-            def_args['scc_syn_script']['values']           = [install_dir + "/asic/" + stage + ".tcl"]
+            def_args['scc_syn_script']['values']           = [asic_dir + stage + ".tcl"]
         else:
             def_args['scc_' + stage + '_tool']['values']   = ["openroad"]
             def_args['scc_' + stage + '_opt']['values']    = ["-no_init", "-exit"]
-            def_args['scc_' + stage + '_script']['values'] = [install_dir + "/asic/" + stage + ".tcl"]
+            def_args['scc_' + stage + '_script']['values'] = [asic_dir + stage + ".tcl"]
             
     #################
     #Execution Options
@@ -195,6 +212,11 @@ def cfg_init():
     def_args['scc_stop']['values']      = ["export"]
     def_args['scc_stop']['switch']      = "-stop"
     def_args['scc_stop']['help']        = "Stage to stop after"        
+
+    def_args['scc_cont']                = {}
+    def_args['scc_cont']['values']      = []
+    def_args['scc_cont']['switch']      = "-cont"
+    def_args['scc_cont']['help']        = "Continue from last completed stage"        
 
     ###############
     #Design
@@ -381,9 +403,9 @@ if __name__ == "__main__":
     ###########################################################################
     #1. Reading args (in many ways...)
     scc_args            = {}
-    scc_args['default'] = cfg_init()                        # defines dictionary
+    scc_args['default'] = cfg_init()                    # defines dictionary
     scc_args['env']     = cfg_env(scc_args['default'])  # env variables
-    scc_args['cli']     = cfg_cli(scc_args['default'])  # command line argsbuild/import/scc_setup.tcl
+    scc_args['cli']     = cfg_cli(scc_args['default'])  # command line args
 
     # json files appended one by one (priority gets too confusing
     scc_args['files'] = {}
