@@ -3,19 +3,52 @@
 import math
 import logging
 
+#####################
+# Create diearea
+# Orientation = (N,S,W,E,FN,FS,FW,FE)
+def diearea (box):
+    logging.debug('Executing fp.diearea', box, libheight)
+
+#####################
+# Place Rows 
+# Orientation = (N,S,W,E,FN,FS,FW,FE)
+def rows (box, libheight):
+    logging.debug('Executing fp.rows', box, libheight)
+
+####################
+# Place a single pin
+def pin (name, box, metal):
+    logging.debug('Executing fp.pin', name, box, metal)
+
+#####################
+# Place Wire
+def wire (name, box, metal):
+    logging.debug('Executing fp.wire', name, box, metal)
+
+#####################
+# Place Cell
+# Orientation=(N,S,W,E,FN,FS,FW,FE)
+def cell (name, x, y, orientation):
+    logging.debug('Executing fp.cell', name, x, y, orientation)
+
 #############################
 #Snaps value to routing grid
 def snap2grid (val, grid):
+    logging.debug('Executing fp.snap2grid', val,grid)
     return(grid * math.ceil(val/grid))
 
+#####################
+# Place Blockage
+def blockage (name, box, metal):
+    logging.debug('Executing fp.cell', name, x, y, orientation)
 
 #####################
 #Place a list of pins
 #Everything starts in the lower left corer (0,0) and counts up and to the right
 
-def place_pinlist (pinlist, side, block_w, block_h, offset, pinwidth, pindepth, pinhalo, pitch, metal):
+def pinlist (pinlist, side, block_w, block_h, offset, pinwidth, pindepth, pinhalo, pitch, metal):
 
-    logging.debug('Executing place_pinlist',pinlist, side, block_w, block_h, offset, pinwidth, pindepth, pinhalo, pitch, metal)
+    logging.debug('Executing pinlist',pinlist, side, block_w, block_h, offset, pinwidth, pindepth, pinhalo, pitch, metal)
     
     if(side=='no'):
         x0    = offset
@@ -57,8 +90,4 @@ def place_pinlist (pinlist, side, block_w, block_h, offset, pinwidth, pindepth, 
         y1 = y1 + yincr
 
 
-####################
-# Place a single pin
-def place_pin (name, box, metal):
-    logging.debug('Executing place_pin', name, box, metal)
 
