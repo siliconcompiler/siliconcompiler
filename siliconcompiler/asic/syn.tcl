@@ -1,25 +1,25 @@
 ########################################################
 # Options
 ########################################################
-source ./scc_setup.tcl
+source ./sc_setup.tcl
 
-set syn_verilog "../import/$scc_topmodule.v"
+set input_verilog "../import/$sc_topmodule.v"
 
 ########################################################
 # Technology Mapping
 ########################################################
 
-yosys read_verilog $syn_verilog
-yosys synth "-flatten" -top $scc_topmodule
+yosys read_verilog $input_verilog
+yosys synth "-flatten" -top $sc_topmodule
 yosys opt -purge
 
 ########################################################
 # Technology Mapping
 ########################################################
 
-yosys dfflibmap -liberty $scc_lib
+yosys dfflibmap -liberty $sc_lib
 yosys opt
-yosys abc -liberty $scc_lib
+yosys abc -liberty $sc_lib
 
 ########################################################
 # Write Netlist
@@ -27,4 +27,4 @@ yosys abc -liberty $scc_lib
 yosys setundef -zero
 yosys splitnets
 yosys clean
-yosys write_verilog -noattr -noexpr -nohex -nodec "$scc_topmodule.v"
+yosys write_verilog -noattr -noexpr -nohex -nodec "$sc_topmodule.v"
