@@ -48,9 +48,10 @@ def run(scc_args, stage):
             cmd_fields.append('-D ' + value)
         for value in cfg_get(scc_args,'scc_source'):
             cmd_fields.append(os.path.abspath(value))
+        cmd_fields.append("> verilator.log")    
         script = ""
     else:
-        script  = os.path.abspath(cfg_get(scc_args,'scc_' + stage + '_script')[0]) #scalar!
+        script  = os.path.abspath(cfg_get(scc_args,'scc_'+stage+'_script')[0]) #scalar!
 
     cmd_fields.append(script)           
     cmd   = ' '.join(cmd_fields)
@@ -63,11 +64,15 @@ def run(scc_args, stage):
         print("SCCINFO (", stage, "): Execution skipped due to scc_start/scc_stop setting",sep='')
     else:
         #Run executable
-        #print(cmd)
+        print(cmd)
         subprocess.run(cmd, shell=True)
         #Post process
         if(stage=="import"):
-            subprocess.run('cat obj_dir/*.vpp > output.v', shell=True)
+            #hack: use the --debug feature in verilator to output .vpp files
+            #hack: workaround yosys parser error
+            topmodule = cfg_get(scc_args,'scc_topmodule')[0]
+            cmd = 'grep -v \`begin_keywords obj_dir/*.vpp >'+topmodule+".v"
+            subprocess.run(cmd, shell=True)
     
     #Return to CWD
     os.chdir(cwd)
