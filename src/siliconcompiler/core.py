@@ -2,7 +2,6 @@
 
 import subprocess
 import sys
-import argparse
 import os
 import re
 import json
@@ -10,6 +9,36 @@ import json
 ############################
 # FUNCTIONS
 ############################
+
+def compile(scc_args, mode, filelist=[]):
+
+    if(mode=="cli"):
+        # json files appended one by one (priority gets too confusing
+        if(scc_args['cli']['scc_cfgfile']['values']!=None):
+            filelist=scc_args['cli']['scc_cfgfile']['values']
+    for i in range(len(filelist)):
+        jsonfile            = 'json'+ i
+        scc_args[jsonfile]  = cfg_json(scc_args['cli']['scc_cfgfile']['values'][i])
+        scc_args['files']   = cfg_merge(scc_args,'files', jsonfile, "append")
+            
+    #2. Merging all confifurations (order below defines priority)
+    scc_args['merged']  = {}
+    scc_args['merged']  = cfg_merge(scc_args,'default','merged', "clobber")
+    scc_args['merged']  = cfg_merge(scc_args,'env',    'merged', "clobber")
+    scc_args['merged']  = cfg_merge(scc_args,'files',  'merged', "clobber")
+    scc_args['merged']  = cfg_merge(scc_args,'cli',    'merged', "clobber")
+
+    #3. Print out current config file
+    cfg_print(scc_args,"build/setup.json")
+
+    #4. Run compiler recipe
+    run(scc_args, "import")
+    run(scc_args, "syn")
+    run(scc_args, "place")
+    run(scc_args, "cts")
+    run(scc_args, "route"),
+    run(scc_args, "signoff")
+    run(scc_args, "export")
 
 ###########################
 def run(scc_args, stage):
@@ -78,7 +107,7 @@ def run(scc_args, stage):
     os.chdir(cwd)
     
 ###########################
-def cfg_init():
+def scc_init():
 
     ###############
     # Compiler file structure
@@ -307,40 +336,7 @@ def cfg_env(default_args):
     return(env_args)
 
 
-###########################
-def cfg_cli(default_args):    
 
-    #init of args dictionary to return
-    cli_args = {}
-
-    # Argument Parser
-    parser = argparse.ArgumentParser(prog='scc',
-                                     formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=42),
-                                     prefix_chars='-+',
-                                     description="Silicon Compiler Collection (SCC)")
-
-    # Source files
-    parser.add_argument('scc_source',
-                        nargs='+',
-                        help=default_args['scc_source']['help'])
-
-    # All other arguments
-    for key in default_args.keys():
-        if(key!='scc_source'):
-            parser.add_argument(default_args[key]['switch'],
-                                dest=key,
-                                action='append',
-                                help=default_args[key]['help'])
-        
-    # Parse the cli arguments
-    args=parser.parse_args()
-
-    # Copy the arguments into dictionary format
-    for arg in vars(args):
-        cli_args[arg]           = {}        
-        cli_args[arg]['values'] = getattr(args, arg)
-
-    return(cli_args)
 
 ###########################
 def cfg_json(default_args,filepath):
