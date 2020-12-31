@@ -4,6 +4,8 @@
 
 import argparse
 import core
+import file as fl
+from siliconcompiler import core
 
 ###########################
 def parse_args(default_args):    

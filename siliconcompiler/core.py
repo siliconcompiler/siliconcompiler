@@ -6,108 +6,9 @@ import os
 import re
 import json
 
-############################
-# FUNCTIONS
-############################
-
-def compile(scc_args, mode, filelist=[]):
-
-    if(mode=="cli"):
-        # json files appended one by one (priority gets too confusing
-        if(scc_args['cli']['scc_cfgfile']['values']!=None):
-            filelist=scc_args['cli']['scc_cfgfile']['values']
-    for i in range(len(filelist)):
-        jsonfile            = 'json'+ i
-        scc_args[jsonfile]  = cfg_json(scc_args['cli']['scc_cfgfile']['values'][i])
-        scc_args['files']   = cfg_merge(scc_args,'files', jsonfile, "append")
-            
-    #2. Merging all confifurations (order below defines priority)
-    scc_args['merged']  = {}
-    scc_args['merged']  = cfg_merge(scc_args,'default','merged', "clobber")
-    scc_args['merged']  = cfg_merge(scc_args,'env',    'merged', "clobber")
-    scc_args['merged']  = cfg_merge(scc_args,'files',  'merged', "clobber")
-    scc_args['merged']  = cfg_merge(scc_args,'cli',    'merged', "clobber")
-
-    #3. Print out current config file
-    cfg_print(scc_args,"build/setup.json")
-
-    #4. Run compiler recipe
-    run(scc_args, "import")
-    run(scc_args, "syn")
-    run(scc_args, "place")
-    run(scc_args, "cts")
-    run(scc_args, "route"),
-    run(scc_args, "signoff")
-    run(scc_args, "export")
 
 ###########################
-def run(scc_args, stage):
-
-    #Moving to working directory
-    cwd = os.getcwd()
-    output_dir=cfg_get(scc_args,'scc_' + stage + '_dir')[0] #scalar!
-    os.makedirs(os.path.abspath(output_dir), exist_ok=True)
-    os.chdir(os.path.abspath(output_dir))
-
-    #Dump TCL (EDA tcl lacks support for json)
-    with open("scc_setup.tcl", 'w') as f:
-        print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
-        for key in cfg_keys(scc_args):
-            values=cfg_get(scc_args,key)
-            print('set ', key , '  [ list ', end='',file=f)
-            for i in values:
-                print('\"', i, '\" ', sep='', end='', file=f)
-            print(']', file=f)
-            
-    #Prepare EDA command
-    tool    = cfg_get(scc_args,'scc_' + stage + '_tool')[0]   #scalar!
-    opt     = cfg_get(scc_args,'scc_' + stage + '_opt')
-
-    cmd_fields = [tool]
-    for value in cfg_get(scc_args,'scc_' + stage + '_opt'):
-        cmd_fields.append(value)        
-    if(stage=="import"):       
-        for value in cfg_get(scc_args,'scc_ydir'):
-            cmd_fields.append('-y ' + os.path.abspath(value))
-        for value in cfg_get(scc_args,'scc_vlib'):
-            cmd_fields.append('-v ' + os.path.abspath(value))
-        for value in cfg_get(scc_args,'scc_idir'):
-            cmd_fields.append('-I ' + os.path.abspath(value))
-        for value in cfg_get(scc_args,'scc_define'):
-            cmd_fields.append('-D ' + value)
-        for value in cfg_get(scc_args,'scc_source'):
-            cmd_fields.append(os.path.abspath(value))
-        cmd_fields.append("> verilator.log")    
-        script = ""
-    else:
-        script  = os.path.abspath(cfg_get(scc_args,'scc_'+stage+'_script')[0]) #scalar!
-
-    cmd_fields.append(script)           
-    cmd   = ' '.join(cmd_fields)
-
-    #execute cmd if current stage is within range of start and stop
-    if((cfg_get(scc_args,'scc_stages').index(stage) <
-       cfg_get(scc_args,'scc_stages').index(cfg_get(scc_args,'scc_start')[0])) |
-       (cfg_get(scc_args,'scc_stages').index(stage) >
-       cfg_get(scc_args,'scc_stages').index(cfg_get(scc_args,'scc_stop')[0]))):
-        print("SCCINFO (", stage, "): Execution skipped due to scc_start/scc_stop setting",sep='')
-    else:
-        #Run executable
-        print(cmd)
-        subprocess.run(cmd, shell=True)
-        #Post process
-        if(stage=="import"):
-            #hack: use the --debug feature in verilator to output .vpp files
-            #hack: workaround yosys parser error
-            topmodule = cfg_get(scc_args,'scc_topmodule')[0]
-            cmd = 'grep -v \`begin_keywords obj_dir/*.vpp >'+topmodule+".v"
-            subprocess.run(cmd, shell=True)
-    
-    #Return to CWD
-    os.chdir(cwd)
-    
-###########################
-def scc_init():
+def init():
 
     ###############
     # Compiler file structure
@@ -336,8 +237,6 @@ def cfg_env(default_args):
     return(env_args)
 
 
-
-
 ###########################
 def cfg_json(default_args,filepath):
 
@@ -396,3 +295,100 @@ def cfg_set(scc_args,key,values):
     scc_args['merged'][key]['values'] = values
     scc_args['merged'][key]['src']    = 'program'
     
+
+###########################
+def run(scc_args, stage):
+
+    #Moving to working directory
+    cwd = os.getcwd()
+    output_dir=cfg_get(scc_args,'scc_' + stage + '_dir')[0] #scalar!
+    os.makedirs(os.path.abspath(output_dir), exist_ok=True)
+    os.chdir(os.path.abspath(output_dir))
+
+    #Dump TCL (EDA tcl lacks support for json)
+    with open("scc_setup.tcl", 'w') as f:
+        print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
+        for key in cfg_keys(scc_args):
+            values=cfg_get(scc_args,key)
+            print('set ', key , '  [ list ', end='',file=f)
+            for i in values:
+                print('\"', i, '\" ', sep='', end='', file=f)
+            print(']', file=f)
+            
+    #Prepare EDA command
+    tool    = cfg_get(scc_args,'scc_' + stage + '_tool')[0]   #scalar!
+    opt     = cfg_get(scc_args,'scc_' + stage + '_opt')
+
+    cmd_fields = [tool]
+    for value in cfg_get(scc_args,'scc_' + stage + '_opt'):
+        cmd_fields.append(value)        
+    if(stage=="import"):       
+        for value in cfg_get(scc_args,'scc_ydir'):
+            cmd_fields.append('-y ' + os.path.abspath(value))
+        for value in cfg_get(scc_args,'scc_vlib'):
+            cmd_fields.append('-v ' + os.path.abspath(value))
+        for value in cfg_get(scc_args,'scc_idir'):
+            cmd_fields.append('-I ' + os.path.abspath(value))
+        for value in cfg_get(scc_args,'scc_define'):
+            cmd_fields.append('-D ' + value)
+        for value in cfg_get(scc_args,'scc_source'):
+            cmd_fields.append(os.path.abspath(value))
+        cmd_fields.append("> verilator.log")    
+        script = ""
+    else:
+        script  = os.path.abspath(cfg_get(scc_args,'scc_'+stage+'_script')[0]) #scalar!
+
+    cmd_fields.append(script)           
+    cmd   = ' '.join(cmd_fields)
+
+    #execute cmd if current stage is within range of start and stop
+    if((cfg_get(scc_args,'scc_stages').index(stage) <
+       cfg_get(scc_args,'scc_stages').index(cfg_get(scc_args,'scc_start')[0])) |
+       (cfg_get(scc_args,'scc_stages').index(stage) >
+       cfg_get(scc_args,'scc_stages').index(cfg_get(scc_args,'scc_stop')[0]))):
+        print("SCCINFO (", stage, "): Execution skipped due to scc_start/scc_stop setting",sep='')
+    else:
+        #Run executable
+        print(cmd)
+        subprocess.run(cmd, shell=True)
+        #Post process
+        if(stage=="import"):
+            #hack: use the --debug feature in verilator to output .vpp files
+            #hack: workaround yosys parser error
+            topmodule = cfg_get(scc_args,'scc_topmodule')[0]
+            cmd = 'grep -v \`begin_keywords obj_dir/*.vpp >'+topmodule+".v"
+            subprocess.run(cmd, shell=True)
+    
+    #Return to CWD
+    os.chdir(cwd)
+
+###########################
+def compile(scc_args, mode, filelist=[]):
+
+    if(mode=="cli"):
+        # json files appended one by one (priority gets too confusing
+        if(scc_args['cli']['scc_cfgfile']['values']!=None):
+            filelist=scc_args['cli']['scc_cfgfile']['values']
+    for i in range(len(filelist)):
+        jsonfile            = 'json'+ i
+        scc_args[jsonfile]  = cfg_json(scc_args['cli']['scc_cfgfile']['values'][i])
+        scc_args['files']   = cfg_merge(scc_args,'files', jsonfile, "append")
+            
+    #2. Merging all confifurations (order below defines priority)
+    scc_args['merged']  = {}
+    scc_args['merged']  = cfg_merge(scc_args,'default','merged', "clobber")
+    scc_args['merged']  = cfg_merge(scc_args,'env',    'merged', "clobber")
+    scc_args['merged']  = cfg_merge(scc_args,'files',  'merged', "clobber")
+    scc_args['merged']  = cfg_merge(scc_args,'cli',    'merged', "clobber")
+
+    #3. Print out current config file
+    cfg_print(scc_args,"build/setup.json")
+
+    #4. Run compiler recipe
+    run(scc_args, "import")
+    run(scc_args, "syn")
+    run(scc_args, "place")
+    run(scc_args, "cts")
+    run(scc_args, "route"),
+    run(scc_args, "signoff")
+    run(scc_args, "export")
