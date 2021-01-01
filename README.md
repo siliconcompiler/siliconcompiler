@@ -2,6 +2,11 @@
 
 ## Pre-Requisites
 
+* verilator: front end parsing
+* yosys:     synthesis
+* openroad:  netlist to GDSII
+* klayout :  general gui, file conversion
+
 
 ## Examples
 
