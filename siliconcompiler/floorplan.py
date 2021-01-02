@@ -124,8 +124,8 @@ def plot():
                            facecolor = 'blue',
                            fill=True,
                            lw=1))
+    plt.savefig("test.svg", format="svg")
     plt.show()                        # Display figure
-
     
 plot()
     
