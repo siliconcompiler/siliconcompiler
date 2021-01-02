@@ -18,7 +18,7 @@ def main(args=None):
     sc_args            = {}
     sc_args['default'] = sc.init()                       # defines dictionary
     sc_args['env']     = sc.readenv(sc_args['default'])  # env variables
-    sc_args['cli']     = sc.cmdline(sc_args['default'])      # command line args
+    sc_args['cli']     = sc.cmdline(sc_args['default'])  # command line args
     sc_args['files']   = {}
 
     sc.run(sc_args,"cli")
