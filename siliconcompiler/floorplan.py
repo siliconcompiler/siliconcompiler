@@ -2,6 +2,8 @@
 
 import math
 import logging
+import matplotlib.pyplot as plt
+import numpy as np
 
 #####################
 # Create diearea
@@ -16,7 +18,7 @@ def rows (box, libheight):
     logging.debug('Executing fp.rows', box, libheight)
 
 ####################
-# Place a single pin
+# Place a pin
 def pin (name, box, metal):
     logging.debug('Executing fp.pin', name, box, metal)
 
@@ -77,17 +79,37 @@ def pinlist (pinlist, side, block_w, block_h, offset, pinwidth, pindepth, pinhal
         x1    = x0 - pindepth + 2 * halo
         y1    = y0 + pinwidth
         xincr = 0.0
-        yincr = pitch
-    
+        yincr = pitch    
     #loop through all pins
     for name in pinlist:
         box = [x0,y0,x1,y1]
-        place_pin (name, box, metal)
+        pin (name, box, metal)
         #Update with new values
         x0 = x0 + xincr
         y0 = y0 + yincr
         x1 = x1 + xincr
         y1 = y1 + yincr
 
+#####################
+def writedef(filename):
+    logging.debug('Writing DEF to:', filename)
+
+#####################
+def writesvg(filename):
+    logging.debug('Writing SVG to:', filename)
+
+#####################
+def display():
+    logging.debug('Display design')
+    plt.figure(figsize=[6, 6])
+    x = np.arange(0, 100, 0.00001)
+    y = x*np.sin(2* np.pi * x)
+    plt.plot(y)
+    plt.axis('off')
+    plt.gca().set_position([0, 0, 1, 1])
+    plt.savefig("test.svg")
+    plt.show()
 
 
+display()
+    
