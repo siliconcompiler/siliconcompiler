@@ -2,8 +2,9 @@
 
 import math
 import logging
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
+from   matplotlib.patches import Rectangle
 
 #####################
 # Create diearea
@@ -95,21 +96,36 @@ def writedef(filename):
     logging.debug('Writing DEF to:', filename)
 
 #####################
-def writesvg(filename):
-    logging.debug('Writing SVG to:', filename)
+# Plot the design
+# Input=structure
+# Output=display | write to file
 
-#####################
-def display():
+def plot():
     logging.debug('Display design')
-    plt.figure(figsize=[6, 6])
-    x = np.arange(0, 100, 0.00001)
-    y = x*np.sin(2* np.pi * x)
-    plt.plot(y)
-    plt.axis('off')
-    plt.gca().set_position([0, 0, 1, 1])
-    plt.savefig("test.svg")
-    plt.show()
 
+    design = "Floorplan"
+    width  = 1000
+    height = 1000
+    
+    fig, ax = plt.subplots()
+    ax.tick_params(labeltop=True,
+                   top=True,
+                   right=True,
+                   labelright=True)   # Put labels on both side for ease uf use
+    ax.grid(True)                     # Turn on grids
+    ax.set_xlim(0, width)
+    ax.set_ylim(0, height)
+    ax.set_xlabel('Width')            # x label
+    ax.set_ylabel('Height')           # y label
+    ax.set_title(design)              # Name of design
+    
+    ax.add_patch(Rectangle((100, 100), 200, 600,
+                           edgecolor = 'pink',
+                           facecolor = 'blue',
+                           fill=True,
+                           lw=1))
+    plt.show()                        # Display figure
 
-display()
+    
+plot()
     
