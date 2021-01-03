@@ -7,6 +7,213 @@ import re
 import json
 import argparse
 import glob
+import numpy
+
+class Chip:
+
+    def __init__(self):
+        self.cfg = {}    
+        ###############
+        #Config file
+        self.cfg['sc_cfgfile']             = {}
+        self.cfg['sc_cfgfile']['help']     = "Loads switches from json file"
+        self.cfg['sc_cfgfile']['values']   =  []
+        self.cfg['sc_cfgfile']['switch']   = "-cfgfile"
+        
+        ###############
+        # Process Technology
+        
+        self.cfg['sc_techfile']             = {}
+        self.cfg['sc_techfile']['help']     = "Place and route tehnology files"
+        self.cfg['sc_techfile']['values']   =  [pdklib + "nangate45.tech.lef"]
+        self.cfg['sc_techfile']['switch']   = "-techfile"
+        
+        self.cfg['sc_minlayer']             = {}
+        self.cfg['sc_minlayer']['help']     = "Minimum routing layer"
+        self.cfg['sc_minlayer']['values']   = ["M2"]
+        self.cfg['sc_minlayer']['switch']   = "-minlayer"
+        
+        self.cfg['sc_maxlayer']             = {}
+        self.cfg['sc_maxlayer']['help']     = "Maximum routing layer"
+        self.cfg['sc_maxlayer']['values']   = ["M10"]
+        self.cfg['sc_maxlayer']['switch']   = "-maxlayer"
+
+        self.cfg['sc_scenario']             = {}
+        self.cfg['sc_scenario']['help']     = "Process,voltage,temp scenario"
+        self.cfg['sc_scenario']['values']   = ["all timing tt 0.7 25"]
+        self.cfg['sc_scenario']['switch']   = "-scenario"
+        
+        ###############
+        #Libraries
+        iplib = root_dir + "/third_party/iplib/virtual/nangate45/NangateOpenCellLibrary/r1p0/lib/"
+        self.cfg['sc_lib']                  = {}
+        self.cfg['sc_lib']['help']          = "Standard cell libraries (liberty)"    
+        self.cfg['sc_lib']['values']        = [iplib + "NangateOpenCellLibrary_typical.lib"]
+        self.cfg['sc_lib']['switch']        = "-lib"
+        
+        self.cfg['sc_libheight']            = {}
+        self.cfg['sc_libheight']['help']    = "Height of library (in grids)"
+        self.cfg['sc_libheight']['values']  = [12]
+        self.cfg['sc_libheight']['switch']  = "-libheight"
+        
+        self.cfg['sc_libdriver']            = {}
+        self.cfg['sc_libdriver']['help']    = "Name of default driver cell"
+        self.cfg['sc_libdriver']['values']  = []
+        self.cfg['sc_libdriver']['switch']  = "-libdriver"
+        
+        self.cfg['sc_cell_lists']            = {}
+        self.cfg['sc_cell_lists']['help']    = "Name of default driver cell"
+        self.cfg['sc_cell_lists']['values']  = ["icg", "dontuse", "antenna", "dcap", "filler", "tielo", "tiehi"]
+        self.cfg['sc_cell_lists']['switch']  = "-cell_lists"
+        
+        for value in self.cfg['sc_cell_lists']['values']:
+            self.cfg['sc_' + value]           = {}
+            self.cfg['sc_' + value]['help']   = "List of " + value + " cells"
+            self.cfg['sc_' + value]['values'] = []
+            self.cfg['sc_' + value]['switch'] =  "-" + value
+            
+            ##################
+            # Tool Definitions
+            
+            self.cfg['sc_stages']            = {}
+            self.cfg['sc_stages']['help']    = "List of all compilation stages"
+            self.cfg['sc_stages']['values']  = ["import", "syn", "floorplan", "place", "cts", "route", "signoff", "export"]
+            self.cfg['sc_stages']['switch']  = "-stages"
+            
+            for stage in self.cfg['sc_stages']['values']:
+                #init dict
+                self.cfg['sc_' + stage + '_tool']   = {}
+                self.cfg['sc_' + stage + '_opt']    = {}
+                self.cfg['sc_' + stage + '_dir']    = {}
+                self.cfg['sc_' + stage + '_script'] = {}
+                #descriptions
+                self.cfg['sc_' + stage + '_tool']['help']       = "Name of " + stage + " tool"
+                self.cfg['sc_' + stage + '_opt']['help']        = "Options for " + stage + " tool"
+                self.cfg['sc_' + stage + '_dir']['help']        = "Build diretory for " + stage
+                self.cfg['sc_' + stage + '_script']['help']     = "TCL script for " + stage + " tool"
+                #command line switches
+                self.cfg['sc_' + stage + '_tool']['switch']     = "-" + stage + "_tool"
+                self.cfg['sc_' + stage + '_opt']['switch']      = "-" + stage + "_opt"
+                self.cfg['sc_' + stage + '_dir']['switch']      = "-" + stage + "_dir"
+                self.cfg['sc_' + stage + '_script']['switch']   = "-" + stage + "_script"        
+                #build dir
+                self.cfg['sc_' + stage + '_dir']['values']      = ["build/" + stage]
+                if(stage=="import"):
+                    self.cfg['sc_import_tool']['values']          = ["verilator"]
+                    self.cfg['sc_import_opt']['values']           = ["--lint-only", "--debug"]
+                    self.cfg['sc_import_script']['values']        = [" "]
+                elif(stage=="syn"):
+                    self.cfg['sc_syn_tool']['values']             = ["yosys"]
+                    self.cfg['sc_syn_opt']['values']              = ["-c"]
+                    self.cfg['sc_syn_script']['values']           = [asic_dir + stage + ".tcl"]
+                else:
+                    self.cfg['sc_' + stage + '_tool']['values']   = ["openroad"]
+                    self.cfg['sc_' + stage + '_opt']['values']    = ["-no_init", "-exit"]
+                    self.cfg['sc_' + stage + '_script']['values'] = [asic_dir + stage + ".tcl"]
+                    
+            #################
+            #Execution Options
+            self.cfg['sc_jobs']                = {}
+            self.cfg['sc_jobs']['values']      = ["4"]
+            self.cfg['sc_jobs']['switch']      = "-j"
+            self.cfg['sc_jobs']['help']        = "Number of jobs to run simultaneously"
+            
+            self.cfg['sc_effort']              = {}
+            self.cfg['sc_effort']['values']    = ["high"]
+            self.cfg['sc_effort']['switch']    = "-effort"
+            self.cfg['sc_effort']['help']      = "Compilation effort(low,medium,high)"
+            
+            self.cfg['sc_priority']            = {}
+            self.cfg['sc_priority']['values']  = ["speed"]
+            self.cfg['sc_priority']['switch']  = "-priority"
+            self.cfg['sc_priority']['help']    = "Optimization priority(speed,area,power)"
+            
+            self.cfg['sc_start']               = {}
+            self.cfg['sc_start']['values']     = ["import"]
+            self.cfg['sc_start']['switch']     = "-start"
+            self.cfg['sc_start']['help']       = "Stage to start with"
+            
+            self.cfg['sc_stop']                = {}
+            self.cfg['sc_stop']['values']      = ["export"]
+            self.cfg['sc_stop']['switch']      = "-stop"
+            self.cfg['sc_stop']['help']        = "Stage to stop after"        
+            
+            self.cfg['sc_cont']                = {}
+            self.cfg['sc_cont']['values']      = []
+            self.cfg['sc_cont']['switch']      = "-cont"
+            self.cfg['sc_cont']['help']        = "Continue from last completed stage"        
+            
+            ###############
+            #Design Parameters
+            self.cfg['sc_source']              = {}
+            self.cfg['sc_source']['values']    = []
+            self.cfg['sc_source']['switch']    = ""
+            self.cfg['sc_source']['help']      = "Verilog source files, minimum one"
+            
+            self.cfg['sc_topmodule']           = {}
+            self.cfg['sc_topmodule']['values'] = []
+            self.cfg['sc_topmodule']['switch'] = "-topmodule,-m"
+            self.cfg['sc_topmodule']['help']   = "Top module name"
+            
+            self.cfg['sc_clk']                 = {}
+            self.cfg['sc_clk']['values']       = []
+            self.cfg['sc_clk']['switch']       = "-clk"
+            self.cfg['sc_clk']['help']         = "Clock defintions"
+            
+            self.cfg['sc_def']                 = {}
+            self.cfg['sc_def']['values']       = []
+            self.cfg['sc_def']['switch']       = "-def"
+            self.cfg['sc_def']['help']         = "Physical floorplan (DEF) file"
+            
+            self.cfg['sc_sdc']                 = {}
+            self.cfg['sc_sdc']['values']       = []
+            self.cfg['sc_sdc']['switch']       = "-sdc"
+            self.cfg['sc_sdc']['help']         = "Constraints (SDC) file"
+            
+            self.cfg['sc_upf']                 = {}
+            self.cfg['sc_upf']['values']       = []
+            self.cfg['sc_upf']['switch']       = "-upf"
+            self.cfg['sc_upf']['help']         = "Unified power format (UPF) file"
+            
+            self.cfg['sc_ydir']                = {}
+            self.cfg['sc_ydir']['values']      = []
+            self.cfg['sc_ydir']['switch']      = "-y"
+            self.cfg['sc_ydir']['help']        = "Directory to search for modules"
+            
+            self.cfg['sc_vlib']                = {}
+            self.cfg['sc_vlib']['values']      = []
+            self.cfg['sc_vlib']['switch']      = "-v"
+            self.cfg['sc_vlib']['help']        = "Verilog library"
+            
+            self.cfg['sc_libext']              = {}
+            self.cfg['sc_libext']['values']    = [".v", ".vh"]
+            self.cfg['sc_libext']['switch']    = "+libext"
+            self.cfg['sc_libext']['help']      = "Extensions for finding modules"
+            
+            self.cfg['sc_idir']                = {}
+            self.cfg['sc_idir']['values']      = []
+            self.cfg['sc_idir']['switch']      = "-I"
+            self.cfg['sc_idir']['help']        = "Directory to search for includes"
+            
+            self.cfg['sc_define']              = {}
+            self.cfg['sc_define']['values']    = []
+            self.cfg['sc_define']['switch']    = "-D"
+            self.cfg['sc_define']['help']      = "Defines for Verilog preprocessor"
+            
+            self.cfg['sc_cmdfile']             = {}
+            self.cfg['sc_cmdfile']['values']   = []
+            self.cfg['sc_cmdfile']['switch']   = "-f"
+            self.cfg['sc_cmdfile']['help']     = "Parse options from file"
+            
+            self.cfg['sc_wall']                = {}
+            self.cfg['sc_wall']['values']      = []
+            self.cfg['sc_wall']['switch']      = "-Wall"
+            self.cfg['sc_wall']['help']        = "Enable all style warnings"
+            
+            self.cfg['sc_wno']                 = {}
+            self.cfg['sc_wno']['values']       = []
+            self.cfg['sc_wno']['switch']       = "-Wno"
+            self.cfg['sc_wno']['help']         = "Disables a warning -Woo-<message>"
 
 ###########################
 def cmdline(default_args):    
@@ -67,7 +274,7 @@ def init():
     def_args['sc_cfgfile']['switch']   = "-cfgfile"
     
     ###############
-    #Technology
+    # Process Technology
 
     def_args['sc_techfile']             = {}
     def_args['sc_techfile']['help']     = "Place and route tehnology files"
@@ -81,7 +288,7 @@ def init():
 
     def_args['sc_maxlayer']             = {}
     def_args['sc_maxlayer']['help']     = "Maximum routing layer"
-    def_args['sc_maxlayer']['values']   = ["M7"]
+    def_args['sc_maxlayer']['values']   = ["M10"]
     def_args['sc_maxlayer']['switch']   = "-maxlayer"
 
     def_args['sc_scenario']             = {}
@@ -123,7 +330,7 @@ def init():
    
     def_args['sc_stages']            = {}
     def_args['sc_stages']['help']    = "List of all compilation stages"
-    def_args['sc_stages']['values']  = ["import", "syn", "place", "cts", "route", "signoff", "export"]
+    def_args['sc_stages']['values']  = ["import", "syn", "floorplan", "place", "cts", "route", "signoff", "export"]
     def_args['sc_stages']['switch']  = "-stages"
     
     for stage in def_args['sc_stages']['values']:
@@ -190,7 +397,7 @@ def init():
     def_args['sc_cont']['help']        = "Continue from last completed stage"        
 
     ###############
-    #Design
+    #Design Parameters
     def_args['sc_source']              = {}
     def_args['sc_source']['values']    = []
     def_args['sc_source']['switch']    = ""
@@ -402,6 +609,8 @@ def runstage(sc_args, stage):
 ###########################
 def run(sc_args, mode, filelist=[]):
 
+
+    #1. Reading JSON files if supplied
     if(mode=="cli"):
         # json files appended one by one (priority gets too confusing
         if(sc_args['cli']['sc_cfgfile']['values']!=None):
@@ -409,24 +618,32 @@ def run(sc_args, mode, filelist=[]):
     for i in range(len(filelist)):
         jsonfile            = 'json'+ i
         sc_args[jsonfile]  = readjson(sc_args['cli']['sc_cfgfile']['values'][i])
+        #JSON files are appended, not over-written on a per key basis
         sc_args['files']   = mergecfg(sc_args,'files', jsonfile, "append")
-            
-
-    #3. Merging all confifurations (order below defines priority)
+        
+   
+        
+    #1. Merging all confifurations (order below defines priority)
     sc_args['merged']  = {}
     sc_args['merged']  = mergecfg(sc_args,'default','merged', "clobber")
     sc_args['merged']  = mergecfg(sc_args,'env',    'merged', "clobber")
     sc_args['merged']  = mergecfg(sc_args,'files',  'merged', "clobber")
     sc_args['merged']  = mergecfg(sc_args,'cli',    'merged', "clobber")
 
+    #3. Reading in the tech file (adds keys since it depends on techfile complexity)
+    sc_args['tech']   = readlef(sc_args,'files', jsonfile, "append")
+    #sc_args['merged']  = mergecfg(sc_args,'tech',   'merged', "clobber")
+    
+
     #4. Print out current config file
-    #printcfg(sc_args)
+    printcfg(sc_args)
 
     #5. Run compiler recipe
     runstage(sc_args, "import")
     runstage(sc_args, "syn")
-    runstage(sc_args, "place")
-    runstage(sc_args, "cts")
-    runstage(sc_args, "route"),
-    runstage(sc_args, "signoff")
-    runstage(sc_args, "export")
+    runstage(sc_args, "floorplan") # power grid, read def, etc    
+    runstage(sc_args, "place")     # automated placement
+    runstage(sc_args, "cts")       # clock tree synthesis
+    runstage(sc_args, "route"),    # global/dtaild route
+    runstage(sc_args, "signoff")   # drc/lvs fixing
+    runstage(sc_args, "export")    # export gds to
