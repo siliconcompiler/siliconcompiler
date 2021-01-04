@@ -119,13 +119,22 @@ def plot():
     ax.set_ylabel('Height')           # y label
     ax.set_title(design)              # Name of design
     
-    ax.add_patch(Rectangle((100, 100), 200, 600,
+    for i in range(10):
+        for j in range(10):
+            print(i*100, j*100)
+            ax.add_patch(Rectangle((i*100,j*100), 50, 50,
                            edgecolor = 'pink',
                            facecolor = 'blue',
                            fill=True,
                            lw=1))
     plt.savefig("test.svg", format="svg")
     plt.show()                        # Display figure
+
+
+
+
+#####################
+# Test Program
     
 plot()
     
