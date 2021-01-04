@@ -12,7 +12,20 @@ import numpy
 class Chip:
 
     def __init__(self):
+       
+        ###############
+        # Compiler file structure
+        install_dir = os.path.dirname(os.path.abspath(__file__))
+        asic_dir    = install_dir + "/asic/"
+        fpga_dir    = install_dir + "/fpga/"
+        root_dir    = re.sub("siliconcompiler/siliconcompiler","siliconcompiler",install_dir,1)
+        pdklib      = root_dir + "/third_party/pdklib/virtual/nangate45/r1p0/pnr/"
+        
+        ###############
+        # Single setup dict for all tools
+
         self.cfg = {}    
+
         ###############
         #Config file
         self.cfg['sc_cfgfile']             = {}
@@ -152,7 +165,7 @@ class Chip:
             
             self.cfg['sc_topmodule']           = {}
             self.cfg['sc_topmodule']['values'] = []
-            self.cfg['sc_topmodule']['switch'] = "-topmodule,-m"
+            self.cfg['sc_topmodule']['switch'] = "-topmodule"
             self.cfg['sc_topmodule']['help']   = "Top module name"
             
             self.cfg['sc_clk']                 = {}
@@ -160,10 +173,10 @@ class Chip:
             self.cfg['sc_clk']['switch']       = "-clk"
             self.cfg['sc_clk']['help']         = "Clock defintions"
             
-            self.cfg['sc_def']                 = {}
-            self.cfg['sc_def']['values']       = []
-            self.cfg['sc_def']['switch']       = "-def"
-            self.cfg['sc_def']['help']         = "Physical floorplan (DEF) file"
+            self.cfg['sc_floorplan']           = {}
+            self.cfg['sc_floorplan']['values'] = []
+            self.cfg['sc_floorplan']['switch'] = "-floorplan"
+            self.cfg['sc_floorplan']['help']   = "Floorplan .PY or DEF file"
             
             self.cfg['sc_sdc']                 = {}
             self.cfg['sc_sdc']['values']       = []
@@ -214,7 +227,75 @@ class Chip:
             self.cfg['sc_wno']['values']       = []
             self.cfg['sc_wno']['switch']       = "-Wno"
             self.cfg['sc_wno']['help']         = "Disables a warning -Woo-<message>"
+    
+    ###########################
+    def run(self, stage):
 
+        #Moving to working directory
+        cwd        = os.getcwd()
+        output_dir = self.cfg['sc_' + stage + '_dir']['values'][0]   #scalar
+        os.makedirs(os.path.abspath(output_dir), exist_ok=True)
+        os.chdir(os.path.abspath(output_dir))
+                            
+        #Prepare EDA command
+        tool       = self.cfg['sc_' + stage + '_tool'][0] #scalar
+        opt        = self.cfg['sc_' + stage + '_opt']    
+        cmd_fields = [tool]
+        for value in self.cfg['sc_' + stage + '_opt']:
+            cmd_fields.append(value)        
+
+        #Special import stage
+        if(stage=="import"):       
+            for value in self.cfg['sc_ydir']:
+                cmd_fields.append('-y ' + os.path.abspath(value))
+            for value in self.cfg['sc_vlib']:
+                cmd_fields.append('-v ' + os.path.abspath(value))
+            for value in self.cfg['sc_idir']:
+                cmd_fields.append('-I ' + os.path.abspath(value))
+            for value in self.cfg['sc_define']:
+                cmd_fields.append('-D ' + value)
+            for value in self.cfg['sc_source']:
+                cmd_fields.append(os.path.abspath(value))
+                cmd_fields.append("> verilator.log")    
+        #All other stages run tcl code
+        else:                
+            #Adding tcl script to comamnd line
+            script  = os.path.abspath(self.cfg['sc_'+stage+'_script'][0]) #scalar!
+            cmd_fields.append(script)           
+            cmd   = ' '.join(cmd_fields)
+            #Write out CFG as TCL (EDA tcl lacks support for json)
+            with open("sc_setup.tcl", 'w') as f:
+                print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
+                for key in self.cfg:
+                    values=self.cfg[key]['values']
+                    print('set ', key , '  [ list ', end='',file=f)
+                    for i in values:
+                        print('\"', i, '\" ', sep='', end='', file=f)
+                        print(']', file=f)  
+
+        #Execute cmd if current stage is within range of start and stop
+        if((self.cfg['sc_stages'].index(stage) <
+            self.cfg['sc_stages'].index(self.cfg['sc_start'][0])) |
+           (self.cfg['sc_stages'].index(stage) >
+            self.cfg['sc_stages'].index(self.cfg['sc_stop'][0]))):
+            print("SCINFO (", stage, "): Execution skipped due to sc_start/sc_stop setting",sep='')
+        else:
+            #Run executable
+            print(cmd)
+            subprocess.run(cmd, shell=True)
+
+        #Post process (only for verilator for now)
+        if(stage=="import"):
+            #hack: use the --debug feature in verilator to output .vpp files
+            #hack: count number of vpp files to find it module==1            
+            topmodule = getcfg(sc_args,'sc_topmodule')[0]
+            #hack: workaround yosys parser error
+            cmd = 'grep -v \`begin_keywords obj_dir/*.vpp >'+topmodule+'.v'
+            subprocess.run(cmd, shell=True)
+            
+        #Return to CWD
+        os.chdir(cwd)
+        
 ###########################
 def cmdline(default_args):    
 
@@ -538,73 +619,6 @@ def setcfg(sc_args,key,values):
     #TODO: Check that key is in defult!
     sc_args['merged'][key]['values'] = values
     sc_args['merged'][key]['src']    = 'program'
-    
-###########################
-def runstage(sc_args, stage):
-
-    #Moving to working directory
-    cwd = os.getcwd()
-    output_dir=getcfg(sc_args,'sc_' + stage + '_dir')[0] #scalar!
-    os.makedirs(os.path.abspath(output_dir), exist_ok=True)
-    os.chdir(os.path.abspath(output_dir))
-
-    #Dump TCL (EDA tcl lacks support for json)
-    with open("sc_setup.tcl", 'w') as f:
-        print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
-        for key in cfgkeys(sc_args):
-            values=getcfg(sc_args,key)
-            print('set ', key , '  [ list ', end='',file=f)
-            for i in values:
-                print('\"', i, '\" ', sep='', end='', file=f)
-            print(']', file=f)
-            
-    #Prepare EDA command
-    tool    = getcfg(sc_args,'sc_' + stage + '_tool')[0]   #scalar!
-    opt     = getcfg(sc_args,'sc_' + stage + '_opt')
-
-    cmd_fields = [tool]
-    for value in getcfg(sc_args,'sc_' + stage + '_opt'):
-        cmd_fields.append(value)        
-    if(stage=="import"):       
-        for value in getcfg(sc_args,'sc_ydir'):
-            cmd_fields.append('-y ' + os.path.abspath(value))
-        for value in getcfg(sc_args,'sc_vlib'):
-            cmd_fields.append('-v ' + os.path.abspath(value))
-        for value in getcfg(sc_args,'sc_idir'):
-            cmd_fields.append('-I ' + os.path.abspath(value))
-        for value in getcfg(sc_args,'sc_define'):
-            cmd_fields.append('-D ' + value)
-        for value in getcfg(sc_args,'sc_source'):
-            cmd_fields.append(os.path.abspath(value))
-        cmd_fields.append("> verilator.log")    
-        script = ""
-    else:
-        script  = os.path.abspath(getcfg(sc_args,'sc_'+stage+'_script')[0]) #scalar!
-
-    cmd_fields.append(script)           
-    cmd   = ' '.join(cmd_fields)
-
-    #execute cmd if current stage is within range of start and stop
-    if((getcfg(sc_args,'sc_stages').index(stage) <
-       getcfg(sc_args,'sc_stages').index(getcfg(sc_args,'sc_start')[0])) |
-       (getcfg(sc_args,'sc_stages').index(stage) >
-       getcfg(sc_args,'sc_stages').index(getcfg(sc_args,'sc_stop')[0]))):
-        print("SCINFO (", stage, "): Execution skipped due to sc_start/sc_stop setting",sep='')
-    else:
-        #Run executable
-        print(cmd)
-        subprocess.run(cmd, shell=True)
-        #Post process
-        if(stage=="import"):
-            #hack: use the --debug feature in verilator to output .vpp files
-            #hack: count number of vpp files to find it module==1            
-            topmodule = getcfg(sc_args,'sc_topmodule')[0]
-            #hack: workaround yosys parser error
-            cmd = 'grep -v \`begin_keywords obj_dir/*.vpp >'+topmodule+'.v'
-            subprocess.run(cmd, shell=True)
-    
-    #Return to CWD
-    os.chdir(cwd)
 
 ###########################
 def run(sc_args, mode, filelist=[]):
@@ -647,3 +661,14 @@ def run(sc_args, mode, filelist=[]):
     runstage(sc_args, "route"),    # global/dtaild route
     runstage(sc_args, "signoff")   # drc/lvs fixing
     runstage(sc_args, "export")    # export gds to
+
+
+###########################
+#Testing
+def init():
+    inst = Chip() 
+    return inst
+
+
+chip = init()
+print(chip.cfg['sc_cfgfile']['help'])
