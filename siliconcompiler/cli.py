@@ -7,22 +7,42 @@ import sys
 import siliconcompiler as sc
 
 #Silicon Compiler Modules
-from siliconcompiler.core import init
-from siliconcompiler.core import readenv
-from siliconcompiler.core import cmdline
-from siliconcompiler.core import run
+#from siliconcompiler.core import cli
+#from siliconcompiler.core import run
 
 ###########################
-def main(args=None):
+def main():
+
+    #Command line interface
+    cmdargs = sc.cmdline()
+
+    #Create one (or many...) instances of Chip class
+    chip = sc.Chip()
+
+    #Read environment variables
+    chip.readenv()
+
+    #Read in json files
+    if(getattr(cmdargs,'sc_cfgfile') != None):
+        for filename in getattr(cmdargs,'sc_cfgfile'):
+            chip.readjson(filename)
+
+    #Overide with command line arguments
+    chip.readargs(cmdargs)
+
+    #Printing out run-config
+    chip.printcfg("build/setup.json")
     
-    sc_args            = {}
-    sc_args['default'] = sc.init()                       # defines dictionary
-    sc_args['env']     = sc.readenv(sc_args['default'])  # env variables
-    sc_args['cli']     = sc.cmdline(sc_args['default'])  # command line args
-    sc_args['files']   = {}
-
-    sc.run(sc_args,"cli")
-
+    #Compiler
+    chip.run("import")
+    chip.run("syn")
+    chip.run("floorplan")
+    chip.run("place")
+    chip.run("cts")
+    chip.run("route")
+    chip.run("signoff")
+    chip.run("export")
+    
 #########################
 if __name__ == "__main__":    
     sys.exit(main())
