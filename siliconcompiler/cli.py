@@ -2,6 +2,7 @@
 
 #Standard Modules
 import sys
+import logging
 
 #Shorten siliconcompiler as sc
 import siliconcompiler as sc
@@ -13,6 +14,7 @@ import siliconcompiler as sc
 ###########################
 def main():
 
+
     #Command line interface
     cmdargs = sc.cmdline()
 
@@ -20,6 +22,7 @@ def main():
     chip = sc.Chip()
 
     #Read environment variables
+    #TODO: Feed in command line argent
     chip.readenv()
 
     #Read in json files
@@ -31,7 +34,7 @@ def main():
     chip.readargs(cmdargs)
 
     #Printing out run-config
-    chip.printcfg("build/setup.json")
+    chip.writejson("setup.json")
     
     #Compiler
     chip.run("import")

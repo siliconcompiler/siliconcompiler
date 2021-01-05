@@ -8,12 +8,28 @@ import json
 import argparse
 import glob
 import numpy
+import logging
 
 class Chip:
 
     ####################
-    def __init__(self):
+    def __init__(self,loglevel="INFO"):
 
+        ######################################
+        # Logging
+        
+        #INFO:(alle except for debug)
+        #DEBUG:(all)
+        #CRITICAL:(error, critical)
+        #ERROR: (error, critical)
+        self.logger    = logging.getLogger()
+        self.handler   = logging.StreamHandler()
+        self.formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+
+        self.handler.setFormatter(self.formatter)        
+        self.logger.addHandler(self.handler)
+        self.logger.setLevel(str(loglevel))
+        
         self.cfg = {}    
         
         ###############
@@ -37,6 +53,7 @@ class Chip:
 
     #################################
     def readargs(self, args):
+        self.logger.info('Overwriting config with command line args')
         for arg in vars(args):
             if(arg in self.cfg):
                 var = getattr(args, arg)
@@ -45,6 +62,7 @@ class Chip:
             
     #################################
     def readenv(self):
+        self.logger.info('Readinv environment variables')
         for key in self.cfg.keys():
             var=os.getenv(key.upper())
             if(var != None):
@@ -52,7 +70,7 @@ class Chip:
 
     #################################
     def readjson(self,filename):
-
+        self.logger.info('Reading config from json file: %s',os.path.abspath(filename))
         #Read arguments from file    
         with open(os.path.abspath(filename), "r") as f:
             json_args = json.load(f)
@@ -66,6 +84,7 @@ class Chip:
                
     ##################################
     def writejson(self, filename=None):
+        self.logger.debug('Writing configuration to json file: %s',os.path.abspath(filename))
         if(filename==None):
             print(json.dumps(self.cfg, sort_keys=True, indent=4))
         else:
@@ -74,7 +93,8 @@ class Chip:
 
     ##################################
     def writetcl(self, filename=None):
-        with open(filename, 'w') as f:
+        self.logger.debug('Writing configuration to tcl file:%s',os.path.abspath(filename))
+        with open(os.path.abspath(filename), 'w') as f:
             print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
             for key in self.cfg:
                 #print(key, self.cfg[key]['values'])
@@ -87,17 +107,18 @@ class Chip:
                 
     ###################################
     def run(self, stage):
-
+        
         #Looking up stage numbers 
         current = self.cfg['sc_stages']['values'].index(stage)
         start   = self.cfg['sc_stages']['values'].index(self.cfg['sc_start']['values'][0]) 
         stop    = self.cfg['sc_stages']['values'].index(self.cfg['sc_stop']['values'][0])
         
         if stage not in self.cfg['sc_stages']['values']:
-            print("ERROR: Illegal stage name")
+            self.logger.error('Illegal stage name',stage)
         elif((current < start) | (current > stop)):
-            print("SCINFO (", stage, "): Execution skipped due to sc_start/sc_stop setting",sep='')
-        else:            
+            self.logger.info('Skipping stage: %s',stage)
+        else:
+            self.logger.info('Running stage: %s',stage)
             #Moving to working directory
             cwd        = os.getcwd()
             output_dir = self.cfg['sc_' + stage + '_dir']['values'][0]   #scalar
@@ -293,6 +314,12 @@ def defaults():
             
     #################
     #Execution Options
+
+    default_cfg['sc_debug']                = {}
+    default_cfg['sc_debug']['values']      = ["4"]
+    default_cfg['sc_debug']['switch']      = "-debug"
+    default_cfg['sc_debug']['help']        = "Debug level: INFO/DEBUG/WARNING/ERROR/CRITICAL"
+    
     default_cfg['sc_jobs']                = {}
     default_cfg['sc_jobs']['values']      = ["4"]
     default_cfg['sc_jobs']['switch']      = "-j"
@@ -322,6 +349,7 @@ def defaults():
     default_cfg['sc_cont']['values']      = []
     default_cfg['sc_cont']['switch']      = "-cont"
     default_cfg['sc_cont']['help']        = "Continue from last completed stage"        
+
     
     ###############
     #Design Parameters
