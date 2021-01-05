@@ -15,7 +15,6 @@ class Chip:
     def __init__(self):
 
         self.cfg = {}    
-        os.environ["COLUMNS"]='100'
         
         ###############
         # Compiler file structure
@@ -66,88 +65,95 @@ class Chip:
                 print("ERROR: Merging of unknown keys not allowed,", key)
                
     ##################################
-    def printcfg(self, filename=None):
+    def writejson(self, filename=None):
         if(filename==None):
             print(json.dumps(self.cfg, sort_keys=True, indent=4))
         else:
             with open(os.path.abspath(filename), 'w') as f:
                 print(json.dumps(self.cfg, sort_keys=True, indent=4), file=f)
-            
+
+    ##################################
+    def writetcl(self, filename=None):
+        with open(filename, 'w') as f:
+            print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
+            for key in self.cfg:
+                #print(key, self.cfg[key]['values'])
+                keystr  = "set " + key
+                #Put quotes around all list entries
+                valstr = "[ list \""
+                valstr = valstr + '\" \"'.join(self.cfg[key]['values'])
+                valstr = valstr + "\"]"
+                print('{:10s} {:100s}'.format(keystr, valstr), file=f)
+                
     ###################################
     def run(self, stage):
 
+        #Looking up stage numbers 
+        current = self.cfg['sc_stages']['values'].index(stage)
+        start   = self.cfg['sc_stages']['values'].index(self.cfg['sc_start']['values'][0]) 
+        stop    = self.cfg['sc_stages']['values'].index(self.cfg['sc_stop']['values'][0])
+        
         if stage not in self.cfg['sc_stages']['values']:
             print("ERROR: Illegal stage name")
-        
-        #Moving to working directory
-        cwd        = os.getcwd()
-        output_dir = self.cfg['sc_' + stage + '_dir']['values'][0]   #scalar
-        os.makedirs(os.path.abspath(output_dir), exist_ok=True)
-        os.chdir(os.path.abspath(output_dir))
-                            
-        #Prepare EDA command
-        tool       = self.cfg['sc_' + stage + '_tool']['values'][0] #scalar
-        cmd_fields = [tool]
-        for value in self.cfg['sc_' + stage + '_opt']['values']:
-            cmd_fields.append(value)        
-
-        #Special import stage
-        if(stage=="import"):       
-            for value in self.cfg['sc_ydir']['values']:
-                cmd_fields.append('-y ' + os.path.abspath(value))
-            for value in self.cfg['sc_vlib']['values']:
-                cmd_fields.append('-v ' + os.path.abspath(value))
-            for value in self.cfg['sc_idir']['values']:
-                cmd_fields.append('-I ' + os.path.abspath(value))
-            for value in self.cfg['sc_define']['values']:
-                cmd_fields.append('-D ' + value)
-            for value in self.cfg['sc_source']['values']:
-                cmd_fields.append(os.path.abspath(value))
-                cmd_fields.append("> verilator.log")    
-        #All other stages run tcl code
-        else:
-            #Adding tcl script to comamnd line
-            script  = os.path.abspath(self.cfg['sc_'+stage+'_script']['values'][0]) #scalar!
-            cmd_fields.append(script)           
-            
-            #Write out CFG as TCL (EDA tcl lacks support for json)
-            with open("sc_setup.tcl", 'w') as f:
-                print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
-                for key in self.cfg:
-                    print('set ', key , '  [ list ', end='',file=f)
-                    for val in self.cfg[key]['values']:
-                        print('\"', val, '\" ', sep='', end='', file=f)
-                    print(']', file=f)  
-
-        #Execute cmd if current stage is within range of start and stop
-        if((self.cfg['sc_stages']['values'].index(stage) <
-            self.cfg['sc_stages']['values'].index(self.cfg['sc_start']['values'][0])) |
-           (self.cfg['sc_stages']['values'].index(stage) >
-            self.cfg['sc_stages']['values'].index(self.cfg['sc_stop']['values'][0]))):
+        elif((current < start) | (current > stop)):
             print("SCINFO (", stage, "): Execution skipped due to sc_start/sc_stop setting",sep='')
-        else:
+        else:            
+            #Moving to working directory
+            cwd        = os.getcwd()
+            output_dir = self.cfg['sc_' + stage + '_dir']['values'][0]   #scalar
+            os.makedirs(os.path.abspath(output_dir), exist_ok=True)
+            os.chdir(os.path.abspath(output_dir))
+            
+            #Prepare tool command
+            tool       = self.cfg['sc_' + stage + '_tool']['values'][0] #scalar
+            cmd_fields = [tool]
+            for value in self.cfg['sc_' + stage + '_opt']['values']:
+                cmd_fields.append(value)        
+                
+            if(tool=="verilator"):       
+                for value in self.cfg['sc_ydir']['values']:
+                    cmd_fields.append('-y ' + os.path.abspath(value))
+                for value in self.cfg['sc_vlib']['values']:
+                    cmd_fields.append('-v ' + os.path.abspath(value))
+                for value in self.cfg['sc_idir']['values']:
+                    cmd_fields.append('-I ' + os.path.abspath(value))
+                for value in self.cfg['sc_define']['values']:
+                    cmd_fields.append('-D ' + value)
+                for value in self.cfg['sc_source']['values']:
+                    cmd_fields.append(os.path.abspath(value))
+                cmd_fields.append("> verilator.log")    
+            else:
+                #Write out CFG as TCL (EDA tcl lacks support for json)
+                self.writetcl("sc_setup.tcl")
+        
+                #Adding tcl script to comamnd line
+                script  = os.path.abspath(self.cfg['sc_'+stage+'_script']['values'][0]) #scalar!
+                cmd_fields.append(script)           
+            
+            #Execute cmd if current stage is within range of start and stop
+            cmd_fields.append("> " + tool + ".log")
             cmd   = ' '.join(cmd_fields)
-            #Run executable
-            print(cmd)
             subprocess.run(cmd, shell=True)
 
-        #Post process (only for verilator for now)
-        if(stage=="import"):
-            #hack: use the --debug feature in verilator to output .vpp files
-            #hack: count number of vpp files to find it module==1            
-            topmodule = self.cfg['sc_topmodule']['values'][0]
-            #hack: workaround yosys parser error
-            cmd = 'grep -v \`begin_keywords obj_dir/*.vpp >'+topmodule+'.v'
-            subprocess.run(cmd, shell=True)
+            #Post process (only for verilator for now)
+            if(tool=="verilator"):
+                #hack: use the --debug feature in verilator to output .vpp files
+                #hack: count number of vpp files to find it module==1            
+                topmodule = self.cfg['sc_topmodule']['values'][0]
+                #hack: workaround yosys parser error
+                cmd = 'grep -v \`begin_keywords obj_dir/*.vpp >'+topmodule+'.v'
+                subprocess.run(cmd, shell=True)
             
-        #Return to CWD
-        os.chdir(cwd)
+            #Return to CWD
+            os.chdir(cwd)
         
                     
 ###########################
 def cmdline():
 
     default_cfg = defaults()
+
+    os.environ["COLUMNS"]='100'
 
     # Argument Parser
     parser = argparse.ArgumentParser(prog='siliconcompiler',
@@ -223,7 +229,7 @@ def defaults():
     
     default_cfg['sc_libheight']            = {}
     default_cfg['sc_libheight']['help']    = "Height of library (in grids)"
-    default_cfg['sc_libheight']['values']  = [12]
+    default_cfg['sc_libheight']['values']  = ["12"]
     default_cfg['sc_libheight']['switch']  = "-libheight"
     
     default_cfg['sc_libdriver']            = {}
