@@ -102,10 +102,11 @@ lexer.input(data)
 #3. List is further split by ";"
 #4. Then based on stage, put the list/scalar into keys
 
-string  = False
-lef     = {}
-values  = []
-keyword = None
+string        = False
+lef           = {}
+values        = []
+keyword       = None
+routing_layer = 1
 while True:
     tok = lexer.token()
     if not tok:
@@ -154,16 +155,28 @@ while True:
         else:
             attr   = values[0]
             start  = 1
-        lef[keyword]              ={}
-        lef[keyword][group]       ={}
+
+        #Initializing dict (better way?)
+        if(keyword not in lef):
+            lef[keyword] ={}
+        if(group not in lef[keyword]):
+            lef[keyword][group] = {}
+
+        #stuffing properties in dictionary
         lef[keyword][group][attr] = values[slice(start,len(values))]
+        #keeping track of routing layers, where lef order matters?!!
+        if((keyword=="LAYER") & (attr=="TYPE") & (lef[keyword][group][attr][0]=="ROUTING")):
+            lef[keyword][group]["ROUTING_LAYER"] = routing_layer
+            routing_layer = routing_layer + 1
+            print("METAL", keyword, group, attr, lef[keyword][group]["ROUTING_LAYER"])
         #print("VAL", values)
-        print("                            STATEMENT", " key=", keyword, " group=", group, " attr=", attr, " lef=",lef[keyword][group][attr], sep='')
+        #print("                            STATEMENT", " key=", keyword, " group=", group, " attr=", attr, " lef=",lef[keyword][group][attr], sep='')
         values.clear()
     else:
         values.append(tok.value)        
    
-
 #Printing out struct
 for key in lef.keys():
-    print("KV PAIR:", key, lef[key])
+    for group in lef[key].keys():
+        for attr in lef[key][group].keys(): 
+            print(key, group, attr,lef[key][group][attr])
