@@ -138,3 +138,5 @@ def plot():
     
 plot()
    
+#import webbrowser
+#webbrowser.open("https://google.com")
