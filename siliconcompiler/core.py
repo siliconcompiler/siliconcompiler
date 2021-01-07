@@ -33,14 +33,6 @@ class Chip:
         self.cfg = {}    
         
         ###############
-        # Compiler file structure
-        install_dir = os.path.dirname(os.path.abspath(__file__))
-        asic_dir    = install_dir + "/asic/"
-        fpga_dir    = install_dir + "/fpga/"
-        root_dir    = re.sub("siliconcompiler/siliconcompiler","siliconcompiler",install_dir,1)
-        pdklib      = root_dir + "/third_party/pdklib/virtual/nangate45/r1p0/pnr/"
-        
-        ###############
         # Single setup dict for all tools
         default_cfg = defaults()
         self.cfg = {}
@@ -62,7 +54,7 @@ class Chip:
             
     #################################
     def readenv(self):
-        self.logger.info('Readinv environment variables')
+        self.logger.info('Reading environment variables')
         for key in self.cfg.keys():
             var=os.getenv(key.upper())
             if(var != None):
@@ -137,10 +129,8 @@ class Chip:
                      "/job" +
                      self.cfg['sc_' + stage + '_jobid']['values'][0])
 
-            print(jobdir)
-
-            #if(os.path.isdir(jobdir)):
-                #os.system("rm -rf " +  jobdir)
+            if(os.path.isdir(jobdir)):
+                os.system("rm -rf " +  jobdir)
             os.makedirs(jobdir, exist_ok=True)
             os.chdir(jobdir)
             
@@ -233,8 +223,9 @@ def defaults():
     asic_dir    = install_dir + "/asic/"
     fpga_dir    = install_dir + "/fpga/"
     root_dir    = re.sub("siliconcompiler/siliconcompiler","siliconcompiler",install_dir,1)
-    pdklib      = root_dir + "/third_party/pdklib/virtual/nangate45/r1p0/pnr/"
-        
+    pdklib      = root_dir + "/pdklib/virtual/nangate45/r1p0/pnr/"
+    iplib       = root_dir + "/iplib/virtual/nangate45/NangateOpenCellLibrary/r1p0/lib/"
+
     #Core dictionary
     default_cfg = {}
 
@@ -269,7 +260,7 @@ def defaults():
     
     ###############
     #Libraries
-    iplib = root_dir + "/third_party/iplib/virtual/nangate45/NangateOpenCellLibrary/r1p0/lib/"
+    
     default_cfg['sc_lib']                  = {}
     default_cfg['sc_lib']['help']          = "Standard cell libraries (liberty)"    
     default_cfg['sc_lib']['values']        = [iplib + "NangateOpenCellLibrary_typical.lib"]
