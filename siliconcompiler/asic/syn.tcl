@@ -5,7 +5,7 @@ source ./sc_setup.tcl
 
 set scriptdir [file dirname [file normalize [info script]]]
 
-set input_verilog "$sc_import_jobdir/$sc_topmodule.v"
+set input_verilog "../../import/job$sc_import_jobid/$sc_topmodule.v"
 
 ########################################################
 # Technology Mapping
