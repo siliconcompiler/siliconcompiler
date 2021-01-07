@@ -130,11 +130,11 @@ class Def:
 ####################################################
 #FOOFOO TESTING
 ####################################################
-from pathlib import Path
-
-defdata = Path('test/complete.5.8.def').read_text()
-mydef = Def()
-mydef.parse(defdata)
+if(False):
+    from pathlib import Path
+    defdata = Path('test/complete.5.8.def').read_text()
+    mydef = Def()
+    mydef.parse(defdata)
 
 
 

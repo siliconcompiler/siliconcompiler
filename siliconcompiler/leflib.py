@@ -166,14 +166,17 @@ class Lef:
 ####################################################
 #FOOFOO TESTING
 ####################################################
-from pathlib import Path
 
-lefdata = Path('../third_party/pdklib/virtual/nangate45/r1p0/pnr/nangate45.tech.lef').read_text()
-mylef = Lef()
-lef = mylef.parse(lefdata)
-
-#Printing out struct
-for key in lef.keys():
-    for group in lef[key].keys():
-        for attr in lef[key][group].keys(): 
-           print(key, group, attr,lef[key][group][attr])
+if(False):
+    from pathlib import Path
+    
+    lefdata = Path('../third_party/pdklib/virtual/nangate45/r1p0/pnr/nangate45.tech.lef').read_text()
+    mylef = Lef()
+    lef = mylef.parse(lefdata)
+    
+    #Printing out struct
+    for key in lef.keys():
+        for group in lef[key].keys():
+            for attr in lef[key][group].keys(): 
+                print(key, group, attr,lef[key][group][attr])
+                
