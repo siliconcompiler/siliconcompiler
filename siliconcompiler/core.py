@@ -45,7 +45,7 @@ class Chip:
 
     #################################
     def readargs(self, args):
-        self.logger.info('Overwriting config with command line args')
+        self.logger.info('Reading command line variables')
         for arg in vars(args):
             if(arg in self.cfg):
                 var = getattr(args, arg)
@@ -62,7 +62,7 @@ class Chip:
 
     #################################
     def readjson(self,filename):
-        self.logger.info('Reading config from json file: %s',os.path.abspath(filename))
+        self.logger.info('Reading JSON format configuration file: %s',os.path.abspath(filename))
         #Read arguments from file    
         with open(os.path.abspath(filename), "r") as f:
             json_args = json.load(f)
@@ -76,7 +76,7 @@ class Chip:
                
     ##################################
     def writejson(self, filename=None):
-        self.logger.debug('Writing configuration to json file: %s',os.path.abspath(filename))
+        self.logger.info('Writing JSON format configuration file: %s',os.path.abspath(filename))
         if(filename==None):
             print(json.dumps(self.cfg, sort_keys=True, indent=4))
         else:
@@ -87,7 +87,7 @@ class Chip:
             f.close()
     ##################################
     def writetcl(self, filename=None):
-        self.logger.debug('Writing configuration to tcl file:%s',os.path.abspath(filename))
+        self.logger.info('Writing TCL format configuration file:%s',os.path.abspath(filename))
         with open(os.path.abspath(filename), 'w') as f:
             print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
             for key in self.cfg:
@@ -198,7 +198,7 @@ class Chip:
             os.chmod("run.sh", 0o755)
                 
             #run command
-            self.logger.debug('%s', cmd)
+            self.logger.info('%s', cmd)
             subprocess.run(cmd, shell=True)
 
             #Post process (only for verilator for now)
