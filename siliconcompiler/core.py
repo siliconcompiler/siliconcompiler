@@ -107,7 +107,19 @@ class Chip:
                 
     ###################################
     def run(self, stage):
+
+        #Directory structure
+        cwd        = os.getcwd()        
+
+        #Update job id
+        self.cfg['sc_' + stage + '_jobid']['values'][0] = str(int(self.cfg['sc_' + stage + '_jobid']['values'][0]) + 1)
         
+        #Creating absolute job directory
+        jobdir     = os.path.abspath(self.cfg['sc_' + stage + '_dir']['values'][0] +
+                                     "/job" + self.cfg['sc_' + stage + '_jobid']['values'][0])
+        
+        self.cfg['sc_' + stage + '_jobdir']['values'][0] = jobdir 
+                          
         #Looking up stage numbers 
         current = self.cfg['sc_stages']['values'].index(stage)
         start   = self.cfg['sc_stages']['values'].index(self.cfg['sc_start']['values'][0]) 
@@ -120,10 +132,11 @@ class Chip:
         else:
             self.logger.info('Running stage: %s',stage)
             #Moving to working directory
-            cwd        = os.getcwd()
-            output_dir = self.cfg['sc_' + stage + '_dir']['values'][0]   #scalar
-            os.makedirs(os.path.abspath(output_dir), exist_ok=True)
-            os.chdir(os.path.abspath(output_dir))
+            #Removing old job directory if it exists
+            if(os.path.isdir(jobdir)):
+                os.system("rm -rf " +  jobdir)
+            os.makedirs(jobdir, exist_ok=True)
+            os.chdir(jobdir)
             
             #Prepare tool command
             tool       = self.cfg['sc_' + stage + '_tool']['values'][0] #scalar
@@ -142,7 +155,6 @@ class Chip:
                     cmd_fields.append('-D ' + value)
                 for value in self.cfg['sc_source']['values']:
                     cmd_fields.append(os.path.abspath(value))
-                cmd_fields.append("> verilator.log")    
             else:
                 #Write out CFG as TCL (EDA tcl lacks support for json)
                 self.writetcl("sc_setup.tcl")
@@ -162,13 +174,16 @@ class Chip:
                 #hack: count number of vpp files to find it module==1            
                 topmodule = self.cfg['sc_topmodule']['values'][0]
                 #hack: workaround yosys parser error
-                cmd = 'grep -v \`begin_keywords obj_dir/*.vpp >'+topmodule+'.v'
+                cmd = 'grep -h -v \`begin_keywords obj_dir/*.vpp >'+topmodule+'.v'
                 subprocess.run(cmd, shell=True)
-            
+                
             #Return to CWD
             os.chdir(cwd)
-        
-                    
+
+            #Updating the index
+           
+
+            
 ###########################
 def cmdline():
 
@@ -282,23 +297,31 @@ def defaults():
         default_cfg['sc_' + stage + '_tool']   = {}
         default_cfg['sc_' + stage + '_opt']    = {}
         default_cfg['sc_' + stage + '_dir']    = {}
-        default_cfg['sc_' + stage + '_suffix']    = {}
+        default_cfg['sc_' + stage + '_suffix'] = {}
         default_cfg['sc_' + stage + '_script'] = {}
+        default_cfg['sc_' + stage + '_jobid']  = {}
+        default_cfg['sc_' + stage + '_jobdir'] = {}
         #descriptions
         default_cfg['sc_' + stage + '_tool']['help']         = "Name of " + stage + " tool"
         default_cfg['sc_' + stage + '_opt']['help']          = "Options for " + stage + " tool"
         default_cfg['sc_' + stage + '_script']['help']       = "TCL script for " + stage + " tool"
         default_cfg['sc_' + stage + '_dir']['help']          = "Build diretory for " + stage
         default_cfg['sc_' + stage + '_suffix']['help']       = "Output name suffix for" + stage
+        default_cfg['sc_' + stage + '_jobid']['help']        = "Job index of last job" + stage
+        default_cfg['sc_' + stage + '_jobdir']['help']       = "Job directory of last job" + stage
         #command line switches
         default_cfg['sc_' + stage + '_tool']['switch']       = "-" + stage + "_tool"
         default_cfg['sc_' + stage + '_opt']['switch']        = "-" + stage + "_opt"
         default_cfg['sc_' + stage + '_dir']['switch']        = "-" + stage + "_dir"
         default_cfg['sc_' + stage + '_suffix']['switch']     =  "-" + stage + "_suffix"
-        default_cfg['sc_' + stage + '_script']['switch']     = "-" + stage + "_script"        
+        default_cfg['sc_' + stage + '_script']['switch']     = "-" + stage + "_script"
+        default_cfg['sc_' + stage + '_jobid']['switch']      = "-" + stage + "_jobid"
+        default_cfg['sc_' + stage + '_jobdir']['switch']     = "-" + stage + "_jobdir"        
         #build dir
         default_cfg['sc_' + stage + '_dir']['values']        = ["build/" + stage]
         default_cfg['sc_' + stage + '_suffix']['values']     = [stage]
+        default_cfg['sc_' + stage + '_jobid']['values']      = ["0"]
+        default_cfg['sc_' + stage + '_jobdir']['values']     = ["job0"]
         if(stage=="import"):
             default_cfg['sc_import_tool']['values']          = ["verilator"]
             default_cfg['sc_import_opt']['values']           = ["--lint-only", "--debug"]
