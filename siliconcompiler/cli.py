@@ -34,7 +34,7 @@ def main():
     chip.readargs(cmdargs)
 
     #Printing out run-config
-    chip.writejson("setup.json")
+    chip.writejson(chip.cfg['sc_build_dir']['values'][0] + "/setup.json")
     
     #Compiler
     chip.run("import")
