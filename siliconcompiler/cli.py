@@ -33,6 +33,9 @@ def main():
     #Overide with command line arguments
     chip.readargs(cmdargs)
 
+    #Lock chip configuration
+    chip.lock()
+    
     #Printing out run-config
     chip.writejson(chip.cfg['sc_build_dir']['values'][0] + "/setup.json")
     

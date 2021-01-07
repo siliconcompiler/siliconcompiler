@@ -13,7 +13,7 @@ import logging
 class Chip:
 
     ####################
-    def __init__(self,loglevel="INFO"):
+    def __init__(self,loglevel="DEBUG"):
 
         ######################################
         # Logging
@@ -99,6 +99,33 @@ class Chip:
                 valstr = valstr + "\"]"
                 print('{:10s} {:100s}'.format(keystr, valstr), file=f)
         f.close()
+
+    ##################################
+    def lock(self):
+
+        #Aggregating abs paths in one place
+        source_list = ["sc_source",
+                       "sc_sdc",
+                       "sc_upf",
+                       "sc_floorplan",
+                       "sc_ydir",
+                       "sc_cmdfile",
+                       "sc_idir",
+                       "sc_vlib",
+                       "sc_build_dir",
+                       "sc_lib",
+                       "sc_techfile"]
+        
+        for stage in self.cfg['sc_stages']['values']:
+            source_list.append("sc_"+stage+"_script")
+
+        for source in source_list:
+            for i,val in enumerate(self.cfg[source]['values']):
+                self.cfg[source]['values'][i] = os.path.abspath(val)
+
+        #Locking the configuration
+        self.cfg['sc_lock']['values'][0] = "1"
+                
     ###################################
     def run(self, stage):
 
@@ -142,21 +169,21 @@ class Chip:
                 
             if(tool=="verilator"):       
                 for value in self.cfg['sc_ydir']['values']:
-                    cmd_fields.append('-y ' + os.path.abspath(value))
+                    cmd_fields.append('-y ' + value)
                 for value in self.cfg['sc_vlib']['values']:
-                    cmd_fields.append('-v ' + os.path.abspath(value))
+                    cmd_fields.append('-v ' + value)
                 for value in self.cfg['sc_idir']['values']:
-                    cmd_fields.append('-I ' + os.path.abspath(value))
+                    cmd_fields.append('-I ' + value)
                 for value in self.cfg['sc_define']['values']:
                     cmd_fields.append('-D ' + value)
                 for value in self.cfg['sc_source']['values']:
-                    cmd_fields.append(os.path.abspath(value))
+                    cmd_fields.append(value)
             else:
                 #Write out CFG as TCL (EDA tcl lacks support for json)
                 self.writetcl("sc_setup.tcl")
         
                 #Adding tcl script to comamnd line
-                script  = os.path.abspath(self.cfg['sc_'+stage+'_script']['values'][0]) #scalar!
+                script  = self.cfg['sc_'+stage+'_script']['values'][0] #scalar!
                 cmd_fields.append(script)           
             
             #Execute cmd if current stage is within range of start and stop
@@ -171,6 +198,7 @@ class Chip:
             os.chmod("run.sh", 0o755)
                 
             #run command
+            self.logger.debug('%s', cmd)
             subprocess.run(cmd, shell=True)
 
             #Post process (only for verilator for now)
@@ -230,6 +258,12 @@ def defaults():
     #Core dictionary
     default_cfg = {}
 
+    #Deines lock state
+    default_cfg['sc_lock']             = {}
+    default_cfg['sc_lock']['help']     = "Congiruation lock state (1==locked)"
+    default_cfg['sc_lock']['values']   = ["0"]
+    default_cfg['sc_lock']['switch']   = "-lock"
+    
     #Config file
     default_cfg['sc_cfgfile']             = {}
     default_cfg['sc_cfgfile']['help']     = "Loads switches from json file"
