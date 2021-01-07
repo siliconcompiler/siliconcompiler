@@ -220,11 +220,12 @@ def cmdline():
 def defaults():
 
     install_dir = os.path.dirname(os.path.abspath(__file__))
-    asic_dir    = install_dir + "/asic/"
-    fpga_dir    = install_dir + "/fpga/"
-    root_dir    = re.sub("siliconcompiler/siliconcompiler","siliconcompiler",install_dir,1)
-    pdklib      = root_dir + "/pdklib/virtual/nangate45/r1p0/pnr/"
-    iplib       = root_dir + "/iplib/virtual/nangate45/NangateOpenCellLibrary/r1p0/lib/"
+   
+    root_dir  = re.sub("siliconcompiler/siliconcompiler","siliconcompiler",install_dir,1)
+    asic_dir  = root_dir + "/edalib/asic/"
+    fpga_dir  = root_dir + "/edalib/fpga/"
+    pdklib    = root_dir + "/pdklib/virtual/nangate45/r1p0/pnr/"
+    iplib     = root_dir + "/iplib/virtual/nangate45/NangateOpenCellLibrary/r1p0/lib/"
 
     #Core dictionary
     default_cfg = {}
@@ -237,7 +238,12 @@ def defaults():
 
     ###############
     # Process Technology
-    
+
+    default_cfg['sc_mode']                 = {}
+    default_cfg['sc_mode']['help']         = "Implementation mode (ASICor or FPGA)"
+    default_cfg['sc_mode']['values']       =  ["ASIC"]
+    default_cfg['sc_mode']['switch']       = "-mode"
+
     default_cfg['sc_techfile']             = {}
     default_cfg['sc_techfile']['help']     = "Place and route tehnology files"
     default_cfg['sc_techfile']['values']   =  [pdklib + "nangate45.tech.lef"]
