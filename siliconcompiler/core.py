@@ -24,10 +24,9 @@ class Chip:
         #CRITICAL:(error, critical)
         #ERROR: (error, critical)
 
-        self.logger    = logging.getLogger()
-        self.handler   = logging.StreamHandler()
-        self.formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
-
+        self.logger     = logging.getLogger()
+        self.handler    = logging.StreamHandler()
+        self.formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s')
         self.handler.setFormatter(self.formatter)        
         self.logger.addHandler(self.handler)
         self.logger.setLevel(str(loglevel))
