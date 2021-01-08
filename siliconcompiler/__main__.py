@@ -3,7 +3,9 @@
 
 from siliconcompiler import cli
 
-if __name__ == '__main__':
+def main():
     cli.main()
 
-  
+if __name__ == '__main__':
+    main()
+
