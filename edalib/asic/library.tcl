@@ -1,10 +1,10 @@
 # Read liberty files
-foreach lib $sc_lib {
+foreach lib $SC_LIB {
     read_liberty $lib
 }
 
 # Read library lefs
-foreach lef $sc_lef {
+foreach lef $SC_LEFLIB {
     read_lef $lef
 }
 
