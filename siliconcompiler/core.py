@@ -11,7 +11,7 @@ import webbrowser
 class Chip:
 
     ####################
-    def __init__(self, loglevel="DEBUG"):
+    def __init__(self, args, loglevel="DEBUG"):
         '''init method for Chip class.
         
         '''
@@ -45,7 +45,10 @@ class Chip:
 
         ###############
         # Configuration locking variable
-        self.cfg_locked = False
+        if getattr(args,'sc_locked'):
+            self.cfg_locked = True;
+        else:
+            self.cfg_locked = False;
 
     #################################
     def readargs(self, args):

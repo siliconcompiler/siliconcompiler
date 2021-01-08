@@ -14,15 +14,13 @@ import siliconcompiler as sc
 ###########################
 def main():
 
-
     #Command line interface
     cmdargs = sc.cmdline()
 
     #Create one (or many...) instances of Chip class
-    chip = sc.Chip()
+    chip = sc.Chip(cmdargs)
 
     #Read environment variables
-    #TODO: Feed in command line argent
     chip.readenv()
 
     #Read in json files
