@@ -1,21 +1,26 @@
-################################################################
-# Setup
-################################################################
+########################################################
+# SC setup (!!DO NOT EDIT THIS SECTION!!)
+########################################################
 
-#Get path to script
-set scriptdir [file dirname [file normalize [info script]]]
+source -verbose ./sc_setup.tcl
 
-#Souce the SC generated TCL file from the current working directory
-source -verbose  ./sc_setup.tcl
+set scriptdir [file dirname $SC_FLOORPLAN_SCRIPT]
 
-#Set up process
 source -verbose $scriptdir/process.tcl
 
-#Set up libraries
 source -verbose $scriptdir/library.tcl
 
-#Souce the SC generated TCL file from the current working directory
-source -verbose  ./sc_setup.tcl
+#Inputs
+set input_verilog    "../../syn/job${SC_SYN_JOBID}/${SC_TOPMODULE}.v"
+set input_sdc        "../../syn/job${SC_SYN_JOBID}/${SC_TOPMODULE}.sdc"
+set input_def        "$SC_DEF"
+
+#Outputs
+set output_verilog   "${SC_TOPMODULE}.v"
+set output_def       "${SC_TOPMODULE}.def"
+set output_sdc       "${SC_TOPMODULE}.sdc"
+set output_report    "${SC_TOPMODULE}.report"
+set output_qor       "${SC_TOPMODULE}.json"
 
 ################################################################
 # Read Inputs
@@ -23,30 +28,63 @@ source -verbose  ./sc_setup.tcl
 
 #Read data from synthesis
 
-read_verilog $sc_syn_dir/${top_module}$sc_syn_suffix.v
-link_design $sc_topmodule
-read_sdc $sc_syn_dir/${top_module}$sc_syn_suffix.sdc
+read_verilog $input_verilog
+
+link_design $SC_TOPMODULE
+
+if {[file exists $input_sdc]} {
+    read_sdc $input_sdc
+}
 
 ################################################################
-# Options for floor-planning
+# Floorplan
 ################################################################ 
 
-read_def $sc_syn_dir/${top_module}$sc_syn_suffix.def
-
-#1. Take input .def
-#2. Auto-generate if nothing is provided
+if {[file exists $input_def]} {
+    read_def $input_def
+} elseif {[llength $SC_DIESIZE] == 4} {
+   initialize_floorplan -die_area $SC_DIESIZE \
+                        -core_area $SC_CORESIZE \
+                        -tracks ./sc_tracks.txt \
+                        -site $SC_SITE
+} else {
+    initialize_floorplan -utilization $SC_DENSITY \
+	                 -aspect_ratio $SC_ASPECTRATIO \
+	                 -core_space $SC_MARGIN \
+                         -tracks ./sc_tracks.txt \
+                         -site $SC_SITE
+}
 
 ################################################################
-# Reporting
+# Cleanup Synthesis Results
+################################################################ 
+
+remove_buffers
+
 ################################################################
+# Report 
+################################################################
+
+log_begin $output_report
+
+report_checks -fields {input slew capacitance} -format full_clock
+
 report_tns
+
 report_wns
+
 report_design_area
 
+log_end
+
 ################################################################
-# Write Results
+# Write output
 ################################################################
 
-write_def $sc_floorplan_dir/$top_module$sc_floorplan_suffix.def
+write_def     $output_def
 
-exit
+write_verilog $output_verilog
+
+write_sdc     $output_sdc
+
+
