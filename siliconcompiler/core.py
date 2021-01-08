@@ -9,6 +9,7 @@ import argparse
 import glob
 import numpy
 import logging
+import webbrowser
 
 class Chip:
 
@@ -18,10 +19,11 @@ class Chip:
         ######################################
         # Logging
         
-        #INFO:(alle except for debug)
+        #INFO:(all except for debug)
         #DEBUG:(all)
         #CRITICAL:(error, critical)
         #ERROR: (error, critical)
+
         self.logger    = logging.getLogger()
         self.handler   = logging.StreamHandler()
         self.formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
@@ -30,53 +32,74 @@ class Chip:
         self.logger.addHandler(self.handler)
         self.logger.setLevel(str(loglevel))
         
-        self.cfg = {}    
-        
         ###############
         # Single setup dict for all tools
         default_cfg = defaults()
-        self.cfg = {}
+
         # Copying defaults every time a new constructor is made
+        self.cfg = {}
         for key in default_cfg.keys():
             self.cfg[key] = {}
             self.cfg[key]['values'] = default_cfg[key]['values']
             self.cfg[key]['help']   = default_cfg[key]['help']
             self.cfg[key]['switch'] = default_cfg[key]['switch']
 
+        ###############
+        # Configuration locking variable
+        self.cfg_locked = False
+            
     #################################
     def readargs(self, args):
         self.logger.info('Reading command line variables')
-        for arg in vars(args):
-            if(arg in self.cfg):
-                var = getattr(args, arg)
-                if(var != None):
-                    self.cfg[arg]['values'] = var
-            
+        if(not self.cfg_locked):
+            for arg in vars(args):
+                if(arg in self.cfg):
+                    var = getattr(args, arg)
+                    if(var != None):
+                        self.cfg[arg]['values'] = var
+        else:
+            self.logger.error('Trying to change configuration while locked')       
+                        
+        if(self.cfg['sc_locked']['values'] == "True"):
+            self.cfg_locked =  True
+
     #################################
     def readenv(self):
         self.logger.info('Reading environment variables')
-        for key in self.cfg.keys():
-            var=os.getenv(key.upper())
-            if(var != None):
-                self.cfg[key]['values']= var
-
+        if(not self.cfg_locked):
+            for key in self.cfg.keys():
+                var=os.getenv(key.upper())
+                if(var != None):
+                    self.cfg[key]['values']= var
+        else:
+            self.logger.error('Trying to change configuration while locked')        
+                    
+        if(self.cfg['sc_locked']['values'] == "True"):
+            self.cfg_locked =  True
+            
     #################################
     def readjson(self,filename):
-        self.logger.info('Reading JSON format configuration file: %s',os.path.abspath(filename))
+        self.logger.info('Reading JSON format configuration file %s',os.path.abspath(filename))
         #Read arguments from file    
         with open(os.path.abspath(filename), "r") as f:
             json_args = json.load(f)
 
-        for key in json_args:
-            #Only allow merging of keys that already exist (no new keys!)
-            if key in self.cfg:
-                self.cfg[key]['values'] = json_args[key]['values']
-            else:
-                print("ERROR: Merging of unknown keys not allowed,", key)
-               
+        if(not self.cfg_locked):
+            for key in json_args:
+                #Only allow merging of keys that already exist (no new keys!)
+                if key in self.cfg:
+                    self.cfg[key]['values'] = json_args[key]['values']
+                else:
+                    print("ERROR: Merging of unknown keys not allowed,", key)
+        else:
+             self.logger.error('Trying to change configuration while locked')
+
+        if(self.cfg['sc_locked']['values'] == "True"):
+            self.cfg_locked =  True
+                    
     ##################################
     def writejson(self, filename=None):
-        self.logger.info('Writing JSON format configuration file: %s',os.path.abspath(filename))
+        self.logger.info('Writing JSON format configuration file %s',os.path.abspath(filename))
         if(filename==None):
             print(json.dumps(self.cfg, sort_keys=True, indent=4))
         else:
@@ -85,19 +108,21 @@ class Chip:
             with open(os.path.abspath(filename), 'w') as f:
                 print(json.dumps(self.cfg, sort_keys=True, indent=4), file=f)
             f.close()
+
     ##################################
     def writetcl(self, filename=None):
-        self.logger.info('Writing TCL format configuration file:%s',os.path.abspath(filename))
+        self.logger.info('Writing TCL format configuration file %s',os.path.abspath(filename))
         with open(os.path.abspath(filename), 'w') as f:
             print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
             for key in self.cfg:
                 #print(key, self.cfg[key]['values'])
-                keystr  = "set " + key
+                keystr  = "set " + key.upper()
                 #Put quotes around all list entries
                 valstr = "[ list \""
-                valstr = valstr + '\" \"'.join(self.cfg[key]['values'])
-                valstr = valstr + "\"]"
-                print('{:10s} {:100s}'.format(keystr, valstr), file=f)
+                if(type(self.cfg[key]['values'])!=bool):
+                    valstr = valstr + '\" \"'.join(self.cfg[key]['values'])
+                    valstr = valstr + "\"]"
+                    print('{:10s} {:100s}'.format(keystr, valstr), file=f)
         f.close()
 
     ##################################
@@ -124,7 +149,7 @@ class Chip:
                 self.cfg[source]['values'][i] = os.path.abspath(val)
 
         #Locking the configuration
-        self.cfg['sc_lock']['values'][0] = "1"
+        self.cfg_locked = True
                 
     ###################################
     def run(self, stage):
@@ -207,8 +232,13 @@ class Chip:
                 #hack: count number of vpp files to find it module==1            
                 topmodule = self.cfg['sc_topmodule']['values'][0]
                 #hack: workaround yosys parser error
-                cmd = 'grep -h -v \`begin_keywords obj_dir/*.vpp >' + topmodule + '.v'
+                cmd = 'grep -h -v \`begin_keywords obj_dir/*.vpp > ' + topmodule + '.v'
+                self.logger.info('%s', cmd)
                 subprocess.run(cmd, shell=True)
+
+            #TODO
+            if(self.cfg['sc_gui']['values']):
+                webbrowser.open("https://google.com")
                 
             #Return to CWD
             os.chdir(cwd)
@@ -233,7 +263,12 @@ def cmdline():
     
     # All other arguments
     for key in default_cfg.keys():
-        if(key!='sc_source'):
+        if(key=='sc_gui' or key== 'sc_locked'):
+            parser.add_argument(default_cfg[key]['switch'],
+                                dest=key,
+                                action="store_true",
+                                help=default_cfg[key]['help'])
+        elif(key!='sc_source'):
             parser.add_argument(default_cfg[key]['switch'],
                                 dest=key,
                                 action='append',
@@ -258,13 +293,23 @@ def defaults():
     #Core dictionary
     default_cfg = {}
 
-    #Deines lock state
-    default_cfg['sc_lock']             = {}
-    default_cfg['sc_lock']['help']     = "Congiruation lock state (1==locked)"
-    default_cfg['sc_lock']['values']   = ["0"]
-    default_cfg['sc_lock']['switch']   = "-lock"
+    ###############
+    # Boolean Switches
+
+    default_cfg['sc_gui']                 = {}
+    default_cfg['sc_gui']['help']         = "Launches GUI at every stage"
+    default_cfg['sc_gui']['values']       = False
+    default_cfg['sc_gui']['switch']       = "-gui"
+
+    #Enable locking through config
+    default_cfg['sc_locked']              = {}
+    default_cfg['sc_locked']['help']      = "Congiruation lock state (True/False)"
+    default_cfg['sc_locked']['values']    = False
+    default_cfg['sc_locked']['switch']    = "-lock"
     
+    ###############
     #Config file
+
     default_cfg['sc_cfgfile']             = {}
     default_cfg['sc_cfgfile']['help']     = "Loads switches from json file"
     default_cfg['sc_cfgfile']['values']   =  []
@@ -331,11 +376,11 @@ def defaults():
     #################
     #Execution Options
 
-    default_cfg['sc_debug']                = {}
-    default_cfg['sc_debug']['values']      = ["4"]
-    default_cfg['sc_debug']['switch']      = "-debug"
-    default_cfg['sc_debug']['help']        = "Debug level: INFO/DEBUG/WARNING/ERROR/CRITICAL"
-    
+    default_cfg['sc_debug']               = {}
+    default_cfg['sc_debug']['values']     = ["4"]
+    default_cfg['sc_debug']['switch']     = "-debug"
+    default_cfg['sc_debug']['help']       = "Debug level: INFO/DEBUG/WARNING/ERROR/CRITICAL"
+
     default_cfg['sc_jobs']                = {}
     default_cfg['sc_jobs']['values']      = ["4"]
     default_cfg['sc_jobs']['switch']      = "-j"
@@ -370,54 +415,7 @@ def defaults():
     default_cfg['sc_cont']['values']      = []
     default_cfg['sc_cont']['switch']      = "-cont"
     default_cfg['sc_cont']['help']        = "Continue from last completed stage"           
-
         
-    ##################
-    # Tool Definitions
-    
-    default_cfg['sc_stages']            = {}
-    default_cfg['sc_stages']['help']    = "List of all compilation stages"
-    default_cfg['sc_stages']['values']  = ["import", "syn", "floorplan", "place", "cts", "route", "signoff", "export"]
-    default_cfg['sc_stages']['switch']  = "-stages"
-        
-    for stage in default_cfg['sc_stages']['values']:
-        #init dict
-        default_cfg['sc_' + stage + '_tool']   = {}
-        default_cfg['sc_' + stage + '_opt']    = {}
-        default_cfg['sc_' + stage + '_suffix'] = {}
-        default_cfg['sc_' + stage + '_script'] = {}
-        default_cfg['sc_' + stage + '_jobid']  = {}
-        #descriptions
-        default_cfg['sc_' + stage + '_tool']['help']         = "Name of " + stage + " tool"
-        default_cfg['sc_' + stage + '_opt']['help']          = "Options for " + stage + " tool"
-        default_cfg['sc_' + stage + '_script']['help']       = "TCL script for " + stage + " tool"
-        default_cfg['sc_' + stage + '_suffix']['help']       = "Output name suffix for" + stage
-        default_cfg['sc_' + stage + '_jobid']['help']        = "Job index of last job" + stage
-        #command line switches
-        default_cfg['sc_' + stage + '_tool']['switch']       = "-" + stage + "_tool"
-        default_cfg['sc_' + stage + '_opt']['switch']        = "-" + stage + "_opt"
-        default_cfg['sc_' + stage + '_suffix']['switch']     =  "-" + stage + "_suffix"
-        default_cfg['sc_' + stage + '_script']['switch']     = "-" + stage + "_script"
-        default_cfg['sc_' + stage + '_jobid']['switch']      = "-" + stage + "_jobid"
-        #build dir
-        default_cfg['sc_' + stage + '_suffix']['values']     = [stage]
-        default_cfg['sc_' + stage + '_jobid']['values']      = ["0"]
-        if(stage=="import"):
-            default_cfg['sc_import_tool']['values']          = ["verilator"]
-            default_cfg['sc_import_opt']['values']           = ["--lint-only", "--debug"]
-            default_cfg['sc_import_script']['values']        = [" "]
-        elif(stage=="syn"):
-            default_cfg['sc_syn_tool']['values']             = ["yosys"]
-            default_cfg['sc_syn_opt']['values']              = ["-c"]
-            default_cfg['sc_syn_script']['values']           = [asic_dir + stage + ".tcl"]
-        else:
-            default_cfg['sc_' + stage + '_tool']['values']   = ["openroad"]
-            default_cfg['sc_' + stage + '_opt']['values']    = ["-no_init", "-exit"]
-            default_cfg['sc_' + stage + '_script']['values'] = [asic_dir + stage + ".tcl"]
-            
-  
-
-    
     ###############
     #Design Parameters
     default_cfg['sc_source']              = {}
@@ -426,7 +424,7 @@ def defaults():
     default_cfg['sc_source']['help']      = "Verilog source files, minimum one"
     
     default_cfg['sc_topmodule']           = {}
-    default_cfg['sc_topmodule']['values'] = []
+    default_cfg['sc_topmodule']['values'] = ["top"]
     default_cfg['sc_topmodule']['switch'] = "-topmodule"
     default_cfg['sc_topmodule']['help']   = "Top module name"
     
@@ -490,4 +488,44 @@ def defaults():
     default_cfg['sc_wno']['switch']       = "-Wno"
     default_cfg['sc_wno']['help']         = "Disables a warning -Woo-<message>"
 
+    ##################
+    # Tool Flow Configuration
+    
+    default_cfg['sc_stages']            = {}
+    default_cfg['sc_stages']['help']    = "List of all compilation stages"
+    default_cfg['sc_stages']['values']  = ["import", "syn", "floorplan", "place", "cts", "route", "signoff", "export"]
+    default_cfg['sc_stages']['switch']  = "-stages"
+        
+    for stage in default_cfg['sc_stages']['values']:
+        #init dict
+        default_cfg['sc_' + stage + '_tool']   = {}
+        default_cfg['sc_' + stage + '_opt']    = {}
+        default_cfg['sc_' + stage + '_script'] = {}
+        default_cfg['sc_' + stage + '_jobid']  = {}
+        #descriptions
+        default_cfg['sc_' + stage + '_tool']['help']         = "Name of " + stage + " tool"
+        default_cfg['sc_' + stage + '_opt']['help']          = "Options for " + stage + " tool"
+        default_cfg['sc_' + stage + '_script']['help']       = "TCL script for " + stage + " tool"
+        default_cfg['sc_' + stage + '_jobid']['help']        = "Job index of last job" + stage
+        #command line switches
+        default_cfg['sc_' + stage + '_tool']['switch']       = "-" + stage + "_tool"
+        default_cfg['sc_' + stage + '_opt']['switch']        = "-" + stage + "_opt"
+        default_cfg['sc_' + stage + '_script']['switch']     = "-" + stage + "_script"
+        default_cfg['sc_' + stage + '_jobid']['switch']      = "-" + stage + "_jobid"
+        #build dir
+        default_cfg['sc_' + stage + '_jobid']['values']      = ["0"]
+        if(stage=="import"):
+            default_cfg['sc_import_tool']['values']          = ["verilator"]
+            default_cfg['sc_import_opt']['values']           = ["--lint-only", "--debug"]
+            default_cfg['sc_import_script']['values']        = [" "]
+        elif(stage=="syn"):
+            default_cfg['sc_syn_tool']['values']             = ["yosys"]
+            default_cfg['sc_syn_opt']['values']              = ["-c"]
+            default_cfg['sc_syn_script']['values']           = [asic_dir + stage + ".tcl"]
+        else:
+            default_cfg['sc_' + stage + '_tool']['values']   = ["openroad"]
+            default_cfg['sc_' + stage + '_opt']['values']    = ["-no_init", "-exit"]
+            default_cfg['sc_' + stage + '_script']['values'] = [asic_dir + stage + ".tcl"]
+
+    
     return(default_cfg)
