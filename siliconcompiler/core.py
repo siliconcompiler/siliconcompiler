@@ -158,15 +158,17 @@ class Chip:
         '''
         #Aggregating abs paths in one place
         source_list = ["sc_source",
-                       "sc_sdc",
+                       "sc_constraints",
                        "sc_upf",
                        "sc_floorplan",
                        "sc_ydir",
                        "sc_cmdfile",
                        "sc_idir",
                        "sc_vlib",
-                       "sc_build_dir",
+                       "sc_build",
                        "sc_lib",
+                       "sc_gdslib",
+                       "sc_leflib",
                        "sc_techfile"]
 
         for stage in self.cfg['sc_stages']['values']:
@@ -186,7 +188,7 @@ class Chip:
         '''
 
         #Hard coded directory structure is
-        #sc_build_dir/stage/job{id}
+        #sc_build/stage/job{id}
 
         cwd = os.getcwd()
 
@@ -206,7 +208,7 @@ class Chip:
             self.cfg['sc_' + stage + '_jobid']['values'][0] = str(int(self.cfg['sc_' + stage + '_jobid']['values'][0]) + 1)
 
             #Moving to working directory
-            jobdir = (self.cfg['sc_build_dir']['values'][0] +
+            jobdir = (self.cfg['sc_build']['values'][0] +
                       "/" +
                       stage +
                       "/job" +
@@ -215,6 +217,7 @@ class Chip:
             if os.path.isdir(jobdir):
                 os.system("rm -rf " +  jobdir)
             os.makedirs(jobdir, exist_ok=True)
+            self.logger.info('Entering workig directory %s', jobdir)
             os.chdir(jobdir)
 
             #Prepare tool command
@@ -323,7 +326,7 @@ def defaults():
     asic_dir = root_dir + "/edalib/asic/"
     fpga_dir = root_dir + "/edalib/fpga/"
     pdklib = root_dir + "/pdklib/virtual/nangate45/r1p0/pnr/"
-    iplib = root_dir + "/iplib/virtual/nangate45/NangateOpenCellLibrary/r1p0/lib/"
+    iplib = root_dir + "/iplib/virtual/nangate45/NangateOpenCellLibrary/r1p0/"
 
     #Core dictionary
     default_cfg = {}
@@ -358,11 +361,45 @@ def defaults():
     default_cfg['sc_mode']['values'] = ["ASIC"]
     default_cfg['sc_mode']['switch'] = "-mode"
 
+    default_cfg['sc_process'] = {}
+    default_cfg['sc_process']['help'] = "Name of target process node"
+    default_cfg['sc_process']['values'] = ["nangate45"]
+    default_cfg['sc_process']['switch'] = "-process"
+
     default_cfg['sc_techfile'] = {}
     default_cfg['sc_techfile']['help'] = "Place and route tehnology files"
     default_cfg['sc_techfile']['values'] = [pdklib + "nangate45.tech.lef"]
     default_cfg['sc_techfile']['switch'] = "-techfile"
 
+    default_cfg['sc_site'] = {}
+    default_cfg['sc_site']['help'] = "Site name for automated floor-planning"
+    default_cfg['sc_site']['values'] = ["FreePDK45_38x28_10R_NP_162NW_34O"]
+    default_cfg['sc_site']['switch'] = "-site"
+    
+    default_cfg['sc_layer'] = {}
+    default_cfg['sc_layer']['help'] = "Routing layer definitionss"
+    default_cfg['sc_layer']['values'] = ["metal1 X 0.095 0.19",
+                                                 "metal1 Y 0.07  0.14",
+                                                 "metal2 X 0.095 0.19",
+                                                 "metal2 Y 0.07  0.14",
+                                                 "metal3 X 0.095 0.19",
+                                                 "metal3 Y 0.07  0.14",
+                                                 "metal4 X 0.095 0.28",
+                                                 "metal4 Y 0.07  0.28",
+                                                 "metal5 X 0.095 0.28",
+                                                 "metal5 Y 0.07  0.28",
+                                                 "metal6 X 0.095 0.28",
+                                                 "metal6 Y 0.07  0.28",
+                                                 "metal7 X 0.095 0.8",
+                                                 "metal7 Y 0.07  0.8",
+                                                 "metal8 X 0.095 0.8",
+                                                 "metal8 Y 0.07  0.8",
+                                                 "metal9 X 0.095 1.6",
+                                                 "metal9 Y 0.07  1.6",
+                                                 "metal10 X 0.095 1.6",
+                                                 "metal10 Y 0.07 1.6"]
+    default_cfg['sc_layer']['switch'] = "-layer"
+    
     default_cfg['sc_minlayer'] = {}
     default_cfg['sc_minlayer']['help'] = "Minimum routing layer"
     default_cfg['sc_minlayer']['values'] = ["M2"]
@@ -370,7 +407,7 @@ def defaults():
 
     default_cfg['sc_maxlayer'] = {}
     default_cfg['sc_maxlayer']['help'] = "Maximum routing layer"
-    default_cfg['sc_maxlayer']['values'] = ["M10"]
+    default_cfg['sc_maxlayer']['values'] = ["M5"]
     default_cfg['sc_maxlayer']['switch'] = "-maxlayer"
 
     default_cfg['sc_scenario'] = {}
@@ -378,13 +415,28 @@ def defaults():
     default_cfg['sc_scenario']['values'] = ["all timing tt 0.7 25"]
     default_cfg['sc_scenario']['switch'] = "-scenario"
 
+    default_cfg['sc_maxfanout'] = {}
+    default_cfg['sc_maxfanout']['help'] = "Maximum fanout "
+    default_cfg['sc_maxfanout']['values'] = ["100"]
+    default_cfg['sc_maxfanout']['switch'] = "-maxfanout"
+
     ###############
     #Libraries
 
     default_cfg['sc_lib'] = {}
-    default_cfg['sc_lib']['help'] = "Standard cell libraries (liberty)"
-    default_cfg['sc_lib']['values'] = [iplib + "NangateOpenCellLibrary_typical.lib"]
+    default_cfg['sc_lib']['help'] = "Standard cell libraries"
+    default_cfg['sc_lib']['values'] = [iplib + "lib/NangateOpenCellLibrary_typical.lib"]
     default_cfg['sc_lib']['switch'] = "-lib"
+
+    default_cfg['sc_leflib'] = {}
+    default_cfg['sc_leflib']['help'] = "GDS files"
+    default_cfg['sc_leflib']['values'] = [iplib + "lef/NangateOpenCellLibrary.macro.lef"]
+    default_cfg['sc_leflib']['switch'] = "-lef"
+
+    default_cfg['sc_gdslib'] = {}
+    default_cfg['sc_gdslib']['help'] = "GDS files"
+    default_cfg['sc_gdslib']['values'] = [iplib + "gds/NangateOpenCellLibrary.gds"]
+    default_cfg['sc_gdslib']['switch'] = "-gds"
 
     default_cfg['sc_libheight'] = {}
     default_cfg['sc_libheight']['help'] = "Height of library (in grids)"
@@ -415,15 +467,15 @@ def defaults():
     default_cfg['sc_debug']['values'] = ["4"]
     default_cfg['sc_debug']['switch'] = "-debug"
 
-    default_cfg['sc_jobs'] = {}
-    default_cfg['sc_jobs']['help'] = "Number of jobs to run simultaneously"
-    default_cfg['sc_jobs']['values'] = ["4"]
-    default_cfg['sc_jobs']['switch'] = "-j"
+    default_cfg['sc_np'] = {}
+    default_cfg['sc_np']['help'] = "Number of tasks to run in parallel"
+    default_cfg['sc_np']['values'] = ["4"]
+    default_cfg['sc_np']['switch'] = "-np"
 
-    default_cfg['sc_build_dir'] = {}
-    default_cfg['sc_build_dir']['help'] = "Name of build directory"
-    default_cfg['sc_build_dir']['values'] = ["build"]
-    default_cfg['sc_build_dir']['switch'] = "-build_dir"
+    default_cfg['sc_build'] = {}
+    default_cfg['sc_build']['help'] = "Name of build directory"
+    default_cfg['sc_build']['values'] = ["build"]
+    default_cfg['sc_build']['switch'] = "-build"
 
     default_cfg['sc_effort'] = {}
     default_cfg['sc_effort']['help'] = "Compilation effort(low,medium,high)"
@@ -451,10 +503,10 @@ def defaults():
     default_cfg['sc_cont']['switch'] = "-cont"
 
     ###############
-    #Design Parameters
+    #Design Source Parameters
 
     default_cfg['sc_source'] = {}
-    default_cfg['sc_source']['help'] = "Verilog source files, minimum one"
+    default_cfg['sc_source']['help'] = "Source files (.v/.vh/.sv/.vhd)"
     default_cfg['sc_source']['values'] = []
     default_cfg['sc_source']['switch'] = ""
 
@@ -468,34 +520,19 @@ def defaults():
     default_cfg['sc_clk']['values'] = []
     default_cfg['sc_clk']['switch'] = "-clk"
 
-    default_cfg['sc_floorplan'] = {}
-    default_cfg['sc_floorplan']['help'] = "Floorplan .PY or DEF file"
-    default_cfg['sc_floorplan']['values'] = []
-    default_cfg['sc_floorplan']['switch'] = "-floorplan"
-
-    default_cfg['sc_sdc'] = {}
-    default_cfg['sc_sdc']['help'] = "Constraints (SDC) file"
-    default_cfg['sc_sdc']['values'] = []
-    default_cfg['sc_sdc']['switch'] = "-sdc"
-
-    default_cfg['sc_upf'] = {}
-    default_cfg['sc_upf']['help'] = "Unified power format (UPF) file"
-    default_cfg['sc_upf']['values'] = []
-    default_cfg['sc_upf']['switch'] = "-upf"
-
     default_cfg['sc_ydir'] = {}
     default_cfg['sc_ydir']['help'] = "Directory to search for modules"
     default_cfg['sc_ydir']['values'] = []
     default_cfg['sc_ydir']['switch'] = "-y"
 
     default_cfg['sc_vlib'] = {}
-    default_cfg['sc_vlib']['help'] = "Verilog library"
+    default_cfg['sc_vlib']['help'] = "Library file"
     default_cfg['sc_vlib']['values'] = []
     default_cfg['sc_vlib']['switch'] = "-v"
 
     default_cfg['sc_libext'] = {}
-    default_cfg['sc_libext']['help'] = "Extensions for finding modules"
-    default_cfg['sc_libext']['values'] = [".v", ".vh"]
+    default_cfg['sc_libext']['help'] = "Extension for finding modules"
+    default_cfg['sc_libext']['values'] = [".v", ".vh", ".sv", ".vhd"]
     default_cfg['sc_libext']['switch'] = "+libext"
 
     default_cfg['sc_idir'] = {}
@@ -523,6 +560,59 @@ def defaults():
     default_cfg['sc_wno']['switch'] = "-Wno"
     default_cfg['sc_wno']['help'] = "Disables a warning -Woo-<message>"
 
+    ##################
+    # Physical Design Setup
+      
+    default_cfg['sc_density'] = {}
+    default_cfg['sc_density']['help'] = "Target density for automated floor-planning"
+    default_cfg['sc_density']['values'] = ["0.3"]
+    default_cfg['sc_density']['switch'] = "-density"
+
+    default_cfg['sc_margin'] = {}
+    default_cfg['sc_margin']['help'] = "Margin to leave around core for automated floor-planning"
+    default_cfg['sc_margin']['values'] = ["2.0"]
+    default_cfg['sc_margin']['switch'] = "-margin"
+    
+    default_cfg['sc_diesize'] = {}
+    default_cfg['sc_diesize']['help'] = "Die size (x0 y0 x1 y1) for automated floor-planning"
+    default_cfg['sc_diesize']['values'] = [""]
+    default_cfg['sc_diesize']['switch'] = "-diesize"
+
+    default_cfg['sc_coresize'] = {}
+    default_cfg['sc_coresize']['help'] = "Core size (x0 y0 x1 y1) for automated floor-planning"
+    default_cfg['sc_coresize']['values'] = [""]
+    default_cfg['sc_coresize']['switch'] = "-coresize"
+    
+    default_cfg['sc_aspectratio'] = {}
+    default_cfg['sc_aspectratio']['help'] = "Aspect ratio for density driven floor-planning"
+    default_cfg['sc_aspectratio']['values'] = ["0.3"]
+    default_cfg['sc_aspectratio']['switch'] = "-aspectratio"
+    
+    default_cfg['sc_floorplan'] = {}
+    default_cfg['sc_floorplan']['help'] = "User supplied floorplaning program"
+    default_cfg['sc_floorplan']['values'] = []
+    default_cfg['sc_floorplan']['switch'] = "-floorplan"
+
+    default_cfg['sc_def'] = {}
+    default_cfg['sc_def']['help'] = "User supplied hard-coded DEF floorplan"
+    default_cfg['sc_def']['values'] = []
+    default_cfg['sc_def']['switch'] = "-def"
+
+    default_cfg['sc_constraints'] = {}
+    default_cfg['sc_constraints']['help'] = "Timing constraints file"
+    default_cfg['sc_constraints']['values'] = []
+    default_cfg['sc_constraints']['switch'] = "-constraints"
+
+    default_cfg['sc_ndr'] = {}
+    default_cfg['sc_ndr']['help'] = "Non-default net routing file"
+    default_cfg['sc_ndr']['values'] = []
+    default_cfg['sc_ndr']['switch'] = "-ndr"
+
+    default_cfg['sc_upf'] = {}
+    default_cfg['sc_upf']['help'] = "Unified power format (UPF) file"
+    default_cfg['sc_upf']['values'] = []
+    default_cfg['sc_upf']['switch'] = "-upf" 
+    
     ##################
     # Tool Flow Configuration
 
