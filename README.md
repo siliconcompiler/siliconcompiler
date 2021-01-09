@@ -7,6 +7,11 @@
 * openroad:  netlist to GDSII
 * klayout :  general gui, file conversion
 
+Python3 libraries (`pip3 install -r requirements.txt`):
+* numpy:      linear algebra
+* matploblib: graphing / SVG processing
+* ply:        generic lexer / parser
+
 
 ## Examples
 
