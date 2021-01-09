@@ -39,10 +39,10 @@ class Chip:
         self.cfg = {}
         for key in default_cfg.keys():
             self.cfg[key] = {}
-            if type(self.cfg[key]['values']) in [dict, list]:
+            if ('values' in self.cfg[key]) and (type(self.cfg[key]['values']) in [dict, list]):
               self.cfg[key]['values'] = default_cfg[key]['values'].copy()
             else:
-              self.cfg[key]['values'] = default_cfg[key]['switch']
+              self.cfg[key]['values'] = default_cfg[key]['values']
             self.cfg[key]['help'] = default_cfg[key]['help']
             self.cfg[key]['switch'] = default_cfg[key]['switch']
 
