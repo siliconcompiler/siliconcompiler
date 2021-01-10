@@ -11,7 +11,7 @@ import webbrowser
 class Chip:
 
     ####################
-    def __init__(self, args, loglevel="DEBUG"):
+    def __init__(self, loglevel="DEBUG"):
         '''init method for Chip class.
         
         '''
@@ -42,14 +42,11 @@ class Chip:
             self.cfg[key]['help'] = default_cfg[key]['help']
             self.cfg[key]['switch'] = default_cfg[key]['switch']
             self.cfg[key]['values'] = default_cfg[key]['values'].copy()
-        
-        ###############
-        # Configuration locking variable
-        if getattr(args,'sc_lock'):
-            self.cfg_locked = True;
-        else:
-            self.cfg_locked = False;
 
+
+        #instance starts unlocked
+        self.cfg_locked = False
+            
     #################################
     def readargs(self, args):
         '''Copies the arg structure from the command line into the Chip cfg dictionary.
@@ -305,11 +302,13 @@ def cmdline():
 
     # All other arguments
     for key in default_cfg.keys():
-        if key == 'sc_gui' or key == 'sc_lock':
+        if key == 'sc_gui':
             parser.add_argument(default_cfg[key]['switch'],
                                 dest=key,
                                 action='store_true',
                                 help=default_cfg[key]['help'])
+        elif key == 'sc_lock':
+            pass 
         elif key != 'sc_source':
             parser.add_argument(default_cfg[key]['switch'],
                                 dest=key,
@@ -570,7 +569,7 @@ def defaults():
     # Physical Design Setup
       
     default_cfg['sc_density'] = {}
-    default_cfg['sc_density']['help'] = "Target density for automated floor-planning (%)"
+    default_cfg['sc_density']['help'] = "Target density for automated floor-planning (percent)"
     default_cfg['sc_density']['values'] = ["30"]
     default_cfg['sc_density']['switch'] = "-density"
 
@@ -580,9 +579,9 @@ def defaults():
     default_cfg['sc_aspectratio']['switch'] = "-aspectratio"
     
     default_cfg['sc_margin'] = {}
-    default_cfg['sc_margin']['help'] = "Margin to leave around core for density driven floor-planning (um)"
+    default_cfg['sc_margin']['help'] = "Maring around core for density driven floor-planning (um)"
     default_cfg['sc_margin']['values'] = ["2.0"]
-    default_cfg['sc_margin']['switch'] = "-margin"
+    default_cfg['sc_margin']['switch'] = "-coremargin"
     
     default_cfg['sc_diesize'] = {}
     default_cfg['sc_diesize']['help'] = "Die size (x0 y0 x1 y1) for automated floor-planning (um)"

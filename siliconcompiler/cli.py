@@ -18,7 +18,7 @@ def main():
     cmdargs = sc.cmdline()
 
     #Create one (or many...) instances of Chip class
-    chip = sc.Chip(cmdargs)
+    chip = sc.Chip()
 
     #Read environment variables
     chip.readenv()
