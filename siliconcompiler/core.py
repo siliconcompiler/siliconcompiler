@@ -39,18 +39,13 @@ class Chip:
         self.cfg = {}
         for key in default_cfg.keys():
             self.cfg[key] = {}
-            if ('values' in self.cfg[key]) and (type(self.cfg[key]['values']) in [dict, list]):
-              self.cfg[key]['values'] = default_cfg[key]['values'].copy()
-            else:
-              self.cfg[key]['values'] = default_cfg[key]['values']
             self.cfg[key]['help'] = default_cfg[key]['help']
             self.cfg[key]['switch'] = default_cfg[key]['switch']
-
-        print("DEEPCOPY", default_cfg['sc_np']['values'],self.cfg['sc_np']['values']) 
+            self.cfg[key]['values'] = default_cfg[key]['values'].copy()
         
         ###############
         # Configuration locking variable
-        if getattr(args,'sc_locked'):
+        if getattr(args,'sc_lock'):
             self.cfg_locked = True;
         else:
             self.cfg_locked = False;
@@ -60,18 +55,24 @@ class Chip:
         '''Copies the arg structure from the command line into the Chip cfg dictionary.
 
         '''
-
+      
         self.logger.info('Reading command line variables')
-        if not self.cfg_locked:
-            for arg in vars(args):
-                if arg in self.cfg:
-                    var = getattr(args, arg)
-                    if var != None:
-                        self.cfg[arg]['values'] = var
-        else:
-            self.logger.error('Trying to change configuration while locked')
 
-        if self.cfg['sc_locked']['values'] == "True":
+
+        #Copying the parse_arg Namespace object into the dictorary
+        #Converting True/False into [""] for consistency
+        for arg in vars(args):
+            if arg in self.cfg:
+                var = getattr(args, arg)
+                if var != None:
+                    if var == True:
+                        self.cfg[arg]['values'] = ["True"]
+                    elif var == False:
+                        self.cfg[arg]['values'] = ["False"]
+                    else:
+                        self.cfg[arg]['values'] = var
+        
+        if self.cfg['sc_lock']['values'][0] == "True":
             self.cfg_locked = True
             
     #################################
@@ -90,7 +91,7 @@ class Chip:
         else:
             self.logger.error('Trying to change configuration while locked')
 
-        if self.cfg['sc_locked']['values'] == "True":
+        if self.cfg['sc_lock']['values'][0] == "True":
             self.cfg_locked = True
 
     #################################
@@ -109,13 +110,13 @@ class Chip:
             for key in json_args:
                 #Only allow merging of keys that already exist (no new keys!)
                 if key in self.cfg:
-                    self.cfg[key]['values'] = json_args[key]['values']
+                    self.cfg[key]['values'] = json_args[key]['values'].copy()
                 else:
                     print("ERROR: Merging of unknown keys not allowed,", key)
         else:
             self.logger.error('Trying to change configuration while locked')
 
-        if self.cfg['sc_locked']['values'] == "True":
+        if self.cfg['sc_locked']['values'][0] == "True":
             self.cfg_locked = True
 
     ##################################
@@ -149,10 +150,9 @@ class Chip:
                 keystr = "set " + key.upper()
                 #Put quotes around all list entries
                 valstr = "[ list \""
-                if type(self.cfg[key]['values']) != bool:
-                    valstr = valstr + '\" \"'.join(self.cfg[key]['values'])
-                    valstr = valstr + "\"]"
-                    print('{:10s} {:100s}'.format(keystr, valstr), file=f)
+                valstr = valstr + '\" \"'.join(self.cfg[key]['values'])
+                valstr = valstr + "\"]"
+                print('{:10s} {:100s}'.format(keystr, valstr), file=f)
         f.close()
 
     ##################################
@@ -275,7 +275,7 @@ class Chip:
                 self.logger.info('%s', cmd)
                 subprocess.run(cmd, shell=True)
 
-            if self.cfg['sc_gui']['values']:
+            if self.cfg['sc_gui']['values'][0]=="True":
                 webbrowser.open("https://google.com")
 
             #Return to CWD
@@ -292,6 +292,7 @@ def cmdline():
     os.environ["COLUMNS"] = '100'
 
     # Argument Parser
+    
     parser = argparse.ArgumentParser(prog='siliconcompiler',
                                      formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=42),
                                      prefix_chars='-+',
@@ -304,10 +305,10 @@ def cmdline():
 
     # All other arguments
     for key in default_cfg.keys():
-        if(key == 'sc_gui' or key == 'sc_locked'):
+        if key == 'sc_gui' or key == 'sc_lock':
             parser.add_argument(default_cfg[key]['switch'],
                                 dest=key,
-                                action="store_true",
+                                action='store_true',
                                 help=default_cfg[key]['help'])
         elif key != 'sc_source':
             parser.add_argument(default_cfg[key]['switch'],
@@ -341,14 +342,14 @@ def defaults():
 
     default_cfg['sc_gui'] = {}
     default_cfg['sc_gui']['help'] = "Launches GUI at every stage"
-    default_cfg['sc_gui']['values'] = False
+    default_cfg['sc_gui']['values'] = ["False"]
     default_cfg['sc_gui']['switch'] = "-gui"
 
     #Enable locking through config
-    default_cfg['sc_locked'] = {}
-    default_cfg['sc_locked']['help'] = "Congiruation lock state (True/False)"
-    default_cfg['sc_locked']['values'] = False
-    default_cfg['sc_locked']['switch'] = "-lock"
+    default_cfg['sc_lock'] = {}
+    default_cfg['sc_lock']['help'] = "Congiruation lock state (True/False)"
+    default_cfg['sc_lock']['values'] = ["False"]
+    default_cfg['sc_lock']['switch'] = "-lock"
 
     ###############
     #Config file
@@ -362,8 +363,8 @@ def defaults():
     # Process Technology
 
     default_cfg['sc_mode'] = {}
-    default_cfg['sc_mode']['help'] = "Implementation mode (ASICor or FPGA)"
-    default_cfg['sc_mode']['values'] = ["ASIC"]
+    default_cfg['sc_mode']['help'] = "Implementation mode (asic or fpga)"
+    default_cfg['sc_mode']['values'] = ["asic"]
     default_cfg['sc_mode']['switch'] = "-mode"
 
     default_cfg['sc_process'] = {}
