@@ -43,6 +43,8 @@ class Chip:
             self.cfg[key]['help'] = default_cfg[key]['help']
             self.cfg[key]['switch'] = default_cfg[key]['switch']
 
+        print("DEEPCOPY", default_cfg['sc_np']['values'],self.cfg['sc_np']['values']) 
+        
         ###############
         # Configuration locking variable
         if getattr(args,'sc_locked'):
@@ -68,7 +70,7 @@ class Chip:
 
         if self.cfg['sc_locked']['values'] == "True":
             self.cfg_locked = True
-
+            
     #################################
     def readenv(self):
         '''Reads the SC environment variables set by the O/S and copies them into the Chip cfg
@@ -564,30 +566,30 @@ def defaults():
     # Physical Design Setup
       
     default_cfg['sc_density'] = {}
-    default_cfg['sc_density']['help'] = "Target density for automated floor-planning"
-    default_cfg['sc_density']['values'] = ["0.3"]
+    default_cfg['sc_density']['help'] = "Target density for automated floor-planning (%)"
+    default_cfg['sc_density']['values'] = ["30"]
     default_cfg['sc_density']['switch'] = "-density"
 
+    default_cfg['sc_aspectratio'] = {}
+    default_cfg['sc_aspectratio']['help'] = "Aspect ratio for density driven floor-planning"
+    default_cfg['sc_aspectratio']['values'] = ["1"]
+    default_cfg['sc_aspectratio']['switch'] = "-aspectratio"
+    
     default_cfg['sc_margin'] = {}
-    default_cfg['sc_margin']['help'] = "Margin to leave around core for automated floor-planning"
+    default_cfg['sc_margin']['help'] = "Margin to leave around core for density driven floor-planning (um)"
     default_cfg['sc_margin']['values'] = ["2.0"]
     default_cfg['sc_margin']['switch'] = "-margin"
     
     default_cfg['sc_diesize'] = {}
-    default_cfg['sc_diesize']['help'] = "Die size (x0 y0 x1 y1) for automated floor-planning"
+    default_cfg['sc_diesize']['help'] = "Die size (x0 y0 x1 y1) for automated floor-planning (um)"
     default_cfg['sc_diesize']['values'] = [""]
     default_cfg['sc_diesize']['switch'] = "-diesize"
 
     default_cfg['sc_coresize'] = {}
-    default_cfg['sc_coresize']['help'] = "Core size (x0 y0 x1 y1) for automated floor-planning"
+    default_cfg['sc_coresize']['help'] = "Core size  (x0 y0 x1 y1) for automated floor-planning (um)"
     default_cfg['sc_coresize']['values'] = [""]
     default_cfg['sc_coresize']['switch'] = "-coresize"
-    
-    default_cfg['sc_aspectratio'] = {}
-    default_cfg['sc_aspectratio']['help'] = "Aspect ratio for density driven floor-planning"
-    default_cfg['sc_aspectratio']['values'] = ["0.3"]
-    default_cfg['sc_aspectratio']['switch'] = "-aspectratio"
-    
+
     default_cfg['sc_floorplan'] = {}
     default_cfg['sc_floorplan']['help'] = "User supplied floorplaning program"
     default_cfg['sc_floorplan']['values'] = []
