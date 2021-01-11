@@ -32,7 +32,6 @@ def main():
     chip.readargs(cmdargs)
 
     #Lock chip configuration
-    chip.writejson(chip.cfg['sc_build']['values'] + "/setup.json")
     chip.lock()
     
     #Printing out run-config

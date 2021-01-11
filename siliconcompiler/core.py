@@ -38,7 +38,6 @@ class Chip:
         # Copying defaults every time a new constructor is made
         self.cfg = {}
         for key in default_cfg.keys():
-            print(key)
             self.cfg[key] = {}
             self.cfg[key]['help'] = default_cfg[key]['help']
             self.cfg[key]['switch'] = default_cfg[key]['switch']
@@ -153,12 +152,10 @@ class Chip:
         with open(os.path.abspath(filename), 'w') as f:
             print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
             for key in self.cfg:
-                #print(key, self.cfg[key]['values'])
                 keystr = "set " + key.upper()
                 #Put quotes around all list entries
                 valstr = "{"
-                print(key)
-                if self.cfg[key]['type'] == "list":
+                if self.cfg[key]['type'] in {"list", "file"}:
                     for value in self.cfg[key]['values']:
                         valstr = valstr + " {" + value + "}"
                 else:
@@ -173,34 +170,11 @@ class Chip:
         compilation flow.
 
         '''
-        #Aggregating abs paths in one place
-        source_list = ["sc_source",
-                       "sc_constraints",
-                       "sc_upf",
-                       "sc_floorplan",
-                       "sc_ydir",
-                       "sc_cmdfile",
-                       "sc_idir",
-                       "sc_vlib",
-                       "sc_build",
-                       "sc_lib",
-                       "sc_gdslib",
-                       "sc_leflib",
-                       "sc_techfile"]
-
-        for stage in self.cfg['sc_stages']['values']:
-            source_list.append("sc_"+stage+"_script")
-
-        #for source in source_list:
-        #    for i, val in enumerate(self.cfg[source]['values']):
-        #        self.cfg[source]['values'][i] = os.path.abspath(val)
-
         for key in self.cfg:
-            print(key)
-            if ((self.cfg[key]['type']=="list") | (self.cfg[key]['type']=="string")):
+            if (self.cfg[key]['type']=="file"):
                 for i, val in enumerate(self.cfg[key]['values']):
-                    print(self.cfg[key]['values'][i],val)
-
+                    self.cfg[key]['values'][i] = str(os.path.abspath(val))
+                    
         #Locking the configuration
         self.cfg_locked = True
 
@@ -264,9 +238,9 @@ class Chip:
                 #Write out CFG as TCL (EDA tcl lacks support for json)
                 self.writetcl("sc_setup.tcl")
 
-                #Adding tcl script to comamnd line
-                script = self.cfg['sc_'+stage+'_script']['values']
-                cmd_fields.append(script)
+                #Adding tcl scripts to comamnd line
+                for value in self.cfg['sc_' + stage + '_script']['values']:
+                    cmd_fields.append(value)
 
             #Execute cmd if current stage is within range of start and stop
             cmd_fields.append("> " + tool + ".log")
@@ -328,7 +302,7 @@ def cmdline():
                                 dest=key,
                                 action='store_true',
                                 help=default_cfg[key]['help'])
-        elif default_cfg[key]['type'] != "list":
+        elif default_cfg[key]['type'] in {"int", "float", "string"}:
             parser.add_argument(default_cfg[key]['switch'],
                                 dest=key,
                                 help=default_cfg[key]['help'])
@@ -379,7 +353,7 @@ def defaults():
 
     default_cfg['sc_cfgfile'] = {
         'help' : "Loads configurations from a json file",
-        'type' : "list",
+        'type' : "file",
         'switch' : "-cfgfile",
         'values' : []
     }
@@ -390,9 +364,9 @@ def defaults():
 
     default_cfg['sc_techfile'] = {
         'help' : "Place and route tehnology file (lef or tf)",
-        'type' : "string",
+        'type' : "file",
         'switch' : "-techfile",
-        'values' : pdklib + "nangate45.tech.lef"
+        'values' : [pdklib + "nangate45.tech.lef"]
     }
 
     default_cfg['sc_layer'] = {
@@ -447,21 +421,21 @@ def defaults():
 
     default_cfg['sc_lib'] = {
         'help' : "Standard cell libraries",
-        'type' : "list",
+        'type' : "file",
         'switch' : "-lib",
         'values' : [iplib + "lib/NangateOpenCellLibrary_typical.lib"]
     }
 
     default_cfg['sc_lef'] = {
         'help' : "LEF files",
-        'type' : "list",
+        'type' : "file",
         'switch' : "-lef",
         'values' : [iplib + "lef/NangateOpenCellLibrary.macro.lef"]
     }
 
     default_cfg['sc_gds'] = {
         'help' : "GDS files",
-        'type' : "list",
+        'type' : "file",
         'switch' : "-gds",
         'values' : [iplib + "gds/NangateOpenCellLibrary.gds"]
     }
@@ -527,13 +501,6 @@ def defaults():
         'values' : "performance"
     }
 
-    default_cfg['sc_priority'] = {
-        'help' : "Optimization priority (performance, power, area)",
-        'type' : "string",
-        'switch' : "-priority",
-        'values' : "performance"
-    }
-
     default_cfg['sc_cont'] = {
         'help' : "Continues from last completed stage",
         'type' : "bool",
@@ -575,7 +542,7 @@ def defaults():
 
     default_cfg['sc_source'] = {
         'help' : "Source files (.v/.vh/.sv/.vhd)",
-        'type' : "list",
+        'type' : "file",
         'switch' : "None",
         'values' : []
     }
@@ -604,21 +571,21 @@ def defaults():
     
     default_cfg['sc_ydir'] = {
         'help' : "Directory to search for modules",
-        'type' : "list",
+        'type' : "file",
         'switch' : "-y",
         'values' : []
     }
 
     default_cfg['sc_idir'] = {
         'help' : "Directory to search for inclodes",
-        'type' : "list",
+        'type' : "file",
         'switch' : "-I",
         'values' : []
     }
 
     default_cfg['sc_vlib'] = {
         'help' : "Library file",
-        'type' : "list",
+        'type' : "file",
         'switch' : "-v",
         'values' : []
     }
@@ -632,7 +599,7 @@ def defaults():
 
     default_cfg['sc_cmdfile'] = {
         'help' : "Parse source options from command file",
-        'type' : "list",
+        'type' : "file",
         'switch' : "-f",
         'values' : []
     }
@@ -641,7 +608,7 @@ def defaults():
         'help' : "Enable all lint style warnings",
         'type' : "string",
         'switch' : "-Wall",
-        'values' : []
+        'values' : ""
     }
 
     default_cfg['sc_wno'] = {
@@ -713,37 +680,37 @@ def defaults():
 
     default_cfg['sc_floorplan'] = {
         'help' : "User supplied python based floorplaning script",
-        'type' : "string",
+        'type' : "file",
         'switch' : "-floorplan",
-        'values' : ""
+        'values' : []
     }
     
     default_cfg['sc_def'] = {
         'help' : "User supplied hard-coded floorplan (DEF)",
-        'type' : "string",
+        'type' : "file",
         'switch' : "-def",
-        'values' : ""
+        'values' : []
     }
     
     default_cfg['sc_constraints'] = {
         'help' : "Timing constraints file (SDC)",
-        'type' : "string",
+        'type' : "file",
         'switch' : "-constraints",
-        'values' : asic_dir + "/default.sdc"
+        'values' : [asic_dir + "/default.sdc"]
     }
     
     default_cfg['sc_ndr'] = {
         'help' : "Non-default net routing file",
-        'type' : "string",
+        'type' : "file",
         'switch' : "-ndr",
-        'values' : ""
+        'values' : []
     }
 
     default_cfg['sc_upf'] = {
         'help' : "Unified power format (UPF) file",
-        'type' : "string",
+        'type' : "file",
         'switch' : "-upf",
-        'values' : ""
+        'values' : []
     }
 
     ############################################
@@ -789,7 +756,7 @@ def defaults():
         #type
         default_cfg['sc_' + stage + '_tool']['type'] = "string"
         default_cfg['sc_' + stage + '_opt']['type'] = "list"
-        default_cfg['sc_' + stage + '_script']['type'] = "string"
+        default_cfg['sc_' + stage + '_script']['type'] = "file"
         default_cfg['sc_' + stage + '_jobid']['type'] = "int"
         default_cfg['sc_' + stage + '_np']['type'] = "int"
         
@@ -800,22 +767,20 @@ def defaults():
         default_cfg['sc_' + stage + '_jobid']['switch'] = "-" + stage + "_jobid"
         default_cfg['sc_' + stage + '_np']['switch'] = "-" + stage + "_np"
 
-        #Tool specific values
+        #Common values
         default_cfg['sc_' + stage + '_jobid']['values'] = 0
+        default_cfg['sc_' + stage + '_script']['values'] = [asic_dir + stage + ".tcl"]
+        default_cfg['sc_' + stage + '_np']['values'] = 4
+
+        #Tool specific values
         if stage == "import":
             default_cfg['sc_import_tool']['values'] = "verilator"
             default_cfg['sc_import_opt']['values'] = ["--lint-only", "--debug"]
-            default_cfg['sc_import_script']['values'] = [""]
-            default_cfg['sc_import_np']['values'] = 4
         elif stage == "syn":
             default_cfg['sc_syn_tool']['values'] = "yosys"
             default_cfg['sc_syn_opt']['values'] = ["-c"]
-            default_cfg['sc_syn_script']['values'] = [asic_dir + stage + ".tcl"]
-            default_cfg['sc_syn_np']['values'] = 4
         else:
             default_cfg['sc_' + stage + '_tool']['values'] = "openroad"
             default_cfg['sc_' + stage + '_opt']['values'] = ["-no_init", "-exit"]
-            default_cfg['sc_' + stage + '_script']['values'] = [asic_dir + stage + ".tcl"]
-            default_cfg['sc_' + stage + '_np']['values'] = 4
             
     return default_cfg
