@@ -1,8 +1,14 @@
 
 # Read tech lef
-read_lef $SC_TECHFILE
+read_lef [lindex $SC_TECHFILE 0]
 
-#hack!, fix later
-#fix should be to auto-generate this file from parameters in tcl file 
-file copy -force /home/aolofsson/work/zeroasic/siliconcompiler/pdklib/virtual/nangate45/r1p0/pnr/tracks.info sc_tracks.txt
+#Generating the tracks file on the fly based on sc settings
+
+set outfile [open "sc_tracks.txt" w]
+foreach layer $SC_LAYER {
+    puts $layer
+    puts $outfile "$layer"
+}
+close $outfile
+
 
