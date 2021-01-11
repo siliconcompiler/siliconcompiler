@@ -6,11 +6,13 @@ source ./sc_setup.tcl
 
 set scriptdir [file dirname [lindex $SC_FLOORPLAN_SCRIPT 0]]
 
+source -verbose $scriptdir/sc_procedures.tcl
+
 source -verbose $scriptdir/process.tcl
 
 source -verbose $scriptdir/library.tcl
 
-set jobid         [lindex $SC_FLOORPLAN_JOBID 0]
+set jobid         [lindex $SC_SYN_JOBID 0]
 set topmodule     [lindex $SC_TOPMODULE 0]
 set mainlib       [lindex $SC_LIB 0]
 
@@ -37,8 +39,6 @@ read_verilog $input_verilog
 link_design $topmodule
 
 #Read in constraints if there is a clock and it matches
-
-set a [lindex $SC_CLK 0]
 
 if {[file exists $input_sdc]} {
     read_sdc $input_sdc
@@ -100,3 +100,14 @@ write_verilog $output_verilog
 write_sdc     $output_sdc
 
 
+################################################################
+# Reporting
+################################################################
+
+sc_write_reports $topmodule
+
+################################################################
+# Write Results
+################################################################
+
+sc_write_outputs $topmodule
