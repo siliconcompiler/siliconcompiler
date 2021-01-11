@@ -134,8 +134,12 @@ class Chip:
 
     ##################################
     def writetcl(self, filename=None):
-        '''Writes out the Chip cfg dictionary in TCL format for use by EDA tools. All keys
-         are written as uppercase in accordance to common methodologies. 
+        '''Writes out the Chip cfg dictionary as TC lists used by EDA tools. All keys
+         are written as uppercase in accordance to common EDA ethodologies.  The list is 
+        the basic Tcl data structure. A list is simply an ordered collection of stuff; 
+        numbers, words, strings, or other lists. Even commands in Tcl are just lists 
+        in which the first list entry is the name of a proc, and subsequent members of the 
+        list are the arguments to the proc.
 
         '''
         
@@ -146,9 +150,13 @@ class Chip:
                 #print(key, self.cfg[key]['values'])
                 keystr = "set " + key.upper()
                 #Put quotes around all list entries
-                valstr = "[ list \""
-                valstr = valstr + '\" \"'.join(self.cfg[key]['values'])
-                valstr = valstr + "\"]"
+                valstr = "{"
+                for value in self.cfg[key]['values']:
+                    valstr = valstr + "{" + value + "}"
+                valstr = valstr + "}"
+                #valstr = "[ list \""
+                #valstr = valstr + '\" \"'.join(self.cfg[key]['values'])
+                #valstr = valstr + "\"]"
                 print('{:10s} {:100s}'.format(keystr, valstr), file=f)
         f.close()
 
@@ -521,8 +529,8 @@ def defaults():
     default_cfg['sc_topmodule']['switch'] = "-topmodule"
 
     default_cfg['sc_clk'] = {}
-    default_cfg['sc_clk']['help'] = "Clock defintions"
-    default_cfg['sc_clk']['values'] = []
+    default_cfg['sc_clk']['help'] = "Clock defintion tuple (<clkname> <period>)"
+    default_cfg['sc_clk']['values'] = ["clk 100"]
     default_cfg['sc_clk']['switch'] = "-clk"
 
     default_cfg['sc_ydir'] = {}
@@ -605,7 +613,7 @@ def defaults():
 
     default_cfg['sc_constraints'] = {}
     default_cfg['sc_constraints']['help'] = "Timing constraints file"
-    default_cfg['sc_constraints']['values'] = []
+    default_cfg['sc_constraints']['values'] = [asic_dir + "/default.sdc" ]
     default_cfg['sc_constraints']['switch'] = "-constraints"
 
     default_cfg['sc_ndr'] = {}
@@ -650,7 +658,7 @@ def defaults():
         if stage == "import":
             default_cfg['sc_import_tool']['values'] = ["verilator"]
             default_cfg['sc_import_opt']['values'] = ["--lint-only", "--debug"]
-            default_cfg['sc_import_script']['values'] = [" "]
+            default_cfg['sc_import_script']['values'] = [""]
         elif stage == "syn":
             default_cfg['sc_syn_tool']['values'] = ["yosys"]
             default_cfg['sc_syn_opt']['values'] = ["-c"]
