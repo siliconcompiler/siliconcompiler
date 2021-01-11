@@ -2,19 +2,20 @@
 # SC setup (!!DO NOT EDIT THIS SECTION!!)
 ########################################################
 
-set scriptdir [file dirname [file normalize [info script]]]
-
 source ./sc_setup.tcl
 
-set input_verilog "../../import/job${SC_IMPORT_JOBID}/${SC_TOPMODULE}.v"
+set scriptdir [file dirname [lindex $SC_SYN_SCRIPT 0]]
+
+set jobid         [lindex $SC_IMPORT_JOBID 0]
+set topmodule     [lindex $SC_TOPMODULE 0]
+set constraints   [lindex $SC_CONSTRAINTS 0]
+set mainlib       [lindex $SC_LIB 0]
 
 #Inputs
-set input_verilog    "../../import/job${SC_IMPORT_JOBID}/${SC_TOPMODULE}.v"
-set input_sdc        "../../import/job${SC_IMPORT_JOBID}/${SC_TOPMODULE}.sdc"
+set input_verilog    "../../import/job$jobid/$topmodule.v"
 
 #Outputs
-set output_verilog   "${SC_TOPMODULE}.v"
-set output_sdc       "${SC_TOPMODULE}.sdc"
+set output_verilog   "$topmodule.v"
 
 ########################################################
 # Technology Mapping
@@ -22,7 +23,7 @@ set output_sdc       "${SC_TOPMODULE}.sdc"
 
 yosys read_verilog $input_verilog
 
-yosys synth "-flatten" -top $SC_TOPMODULE
+yosys synth "-flatten" -top $topmodule 
 
 yosys opt -purge
 
@@ -30,15 +31,11 @@ yosys opt -purge
 # Technology Mapping
 ########################################################
 
-yosys dfflibmap -liberty $SC_LIB
+yosys dfflibmap -liberty $mainlib
 
 yosys opt
 
-if {[file exists $input_sdc]} {
-    yosys abc -liberty $SC_LIB -constr $input_sdc
-} else {
-    yosys abc -liberty $SC_LIB
-}
+yosys abc -liberty $mainlib
 
 ########################################################
 # Cleanup
@@ -55,8 +52,4 @@ yosys clean
 ########################################################
 
 yosys write_verilog -noattr -noexpr -nohex -nodec $output_verilog
-
-if {[file exists $input_sdc]} {
-    file copy $input_sdc $output_sdc
-}
 
