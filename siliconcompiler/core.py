@@ -152,7 +152,7 @@ class Chip:
                 #Put quotes around all list entries
                 valstr = "{"
                 for value in self.cfg[key]['values']:
-                    valstr = valstr + "{" + value + "}"
+                    valstr = valstr + " {" + value + "}"
                 valstr = valstr + "}"
                 #valstr = "[ list \""
                 #valstr = valstr + '\" \"'.join(self.cfg[key]['values'])
@@ -392,25 +392,25 @@ def defaults():
     default_cfg['sc_layer'] = {}
     default_cfg['sc_layer']['help'] = "Routing layer definitionss"
     default_cfg['sc_layer']['values'] = ["metal1 X 0.095 0.19",
-                                                 "metal1 Y 0.07  0.14",
-                                                 "metal2 X 0.095 0.19",
-                                                 "metal2 Y 0.07  0.14",
-                                                 "metal3 X 0.095 0.19",
-                                                 "metal3 Y 0.07  0.14",
-                                                 "metal4 X 0.095 0.28",
-                                                 "metal4 Y 0.07  0.28",
-                                                 "metal5 X 0.095 0.28",
-                                                 "metal5 Y 0.07  0.28",
-                                                 "metal6 X 0.095 0.28",
-                                                 "metal6 Y 0.07  0.28",
-                                                 "metal7 X 0.095 0.8",
-                                                 "metal7 Y 0.07  0.8",
-                                                 "metal8 X 0.095 0.8",
-                                                 "metal8 Y 0.07  0.8",
-                                                 "metal9 X 0.095 1.6",
-                                                 "metal9 Y 0.07  1.6",
-                                                 "metal10 X 0.095 1.6",
-                                                 "metal10 Y 0.07 1.6"]
+                                         "metal1 Y 0.07  0.14",
+                                         "metal2 X 0.095 0.19",
+                                         "metal2 Y 0.07  0.14",
+                                         "metal3 X 0.095 0.19",
+                                         "metal3 Y 0.07  0.14",
+                                         "metal4 X 0.095 0.28",
+                                         "metal4 Y 0.07  0.28",
+                                         "metal5 X 0.095 0.28",
+                                         "metal5 Y 0.07  0.28",
+                                         "metal6 X 0.095 0.28",
+                                         "metal6 Y 0.07  0.28",
+                                         "metal7 X 0.095 0.8",
+                                         "metal7 Y 0.07  0.8",
+                                         "metal8 X 0.095 0.8",
+                                         "metal8 Y 0.07  0.8",
+                                         "metal9 X 0.095 1.6",
+                                         "metal9 Y 0.07  1.6",
+                                         "metal10 X 0.095 1.6",
+                                         "metal10 Y 0.07 1.6"]
     default_cfg['sc_layer']['switch'] = "-layer"
     
     default_cfg['sc_minlayer'] = {}
