@@ -13,6 +13,16 @@ Python3 libraries (`pip3 install -r requirements.txt`):
 * ply:        generic lexer / parser
 
 
+## Local Installation
+Python installation will depend on your environment. The example below is based on running python3 and pipenv
+
+```
+git clone https://github.com/zeroasiccorp/siliconcompiler
+cd siliconcompiler
+python3 -m pip install -e .
+
+```
+
 ## Examples
 
 Below you can see a number of simple exaples and use cases that hopefully illustrate the power and simplicity of SCC. For a complete set of variables and command line switches, see the Arguments section of the README file.
@@ -22,19 +32,70 @@ Below you can see a number of simple exaples and use cases that hopefully illust
 * The example synthesizes, places, and routes a design using a default process design kit (ASAP7) and standard cell library.
 * A square floor-plan is auto-generated for the design.
 * No timing constraints are provided
-* Outputs:  hello.vg (netlist), hello.gds (mask layout)
+* Outputs:  build/hello.vg (netlist), build/hello.gds, build/hello.def
 
 ```bash
 >> echo "module hello(input a, input b, output c); assign c = a & b; endmodule " > hello.v
->> scc hello.v
+>> sc hello.v
 ```
 
 #### *Synchronous Design*
 * This example uses the [-clk] switch to defines the "clk" signal as a clock and constraints it to a 1 ns minimum cycle time
+* Outputs:  build/hello.vg (netlist), build/hello.gds
 
 ```bash
 >> echo "module hello(input a, input b, input clk, output reg c); always @ (posedge clk) c <= a & b; endmodule " > hello.v
->> scc -clk "clk 1ns" hello.v
+>> sc -clk "clk 1ns" hello.v
+```
+
+#### *With SDC iming Constraints*
+* For modules with complex timing constraints, timing constraints are generally specifie using the Synopsys Design Constraints (SDC) format.
+* This example shows an example synthesized using a full set of SDC constraints.
+
+```bash
+>> sc -constraints examples/hello_world/hello_world.sdc examples/hello_world/hello_world.v
+```
+
+#### *Specifying Compilation Target*
+* This example shows how to specify a target process and standard cell libraries used for compilation.
+
+```bash
+>> sc -foundry "skywater" -process "130nm" -library "openlib" -sdc examples/oh/common/sdc/default.sdc -y examples/oh/common examples/oh/common/hdl/oh_fifo_sync.v
+```
+
+#### *Floorplan*
+* This example shows how to input a floorplan file in specified in the industry standard Design Exchange Format (DEF).
+* The DEF file can be generated from source code of from a graphical floor-planning tool.  
+
+```bash
+>> sc -clk "clk 1ns"  -def examples/oh/common/floorplan/oh_fifo_sync.def examples/oh/common/hdl/oh_fifo_sync.v
+```
+
+#### *FPGA Compilation*
+* This example shows how to compile for an FPGA
+* The device should match the device name used for the FPGA tool-chain
+
+```bash
+>> sc -mode fpga -flow "vivado" -device "zynq" examples/oh/common/sdc/default.sdc -y examples/oh/common examples/oh/common/hdl/oh_fifo_sync.v
+```
+
+
+
+#### *Generating a JSON configuration file*
+* Configurations are created in Python using the siliconcompuler package API
+* The configuration is then saved in a json file  
+
+```bash
+>> python3 examples/generate_json/generate_json.py
+```
+
+
+#### *Using File Based Configuration*
+* For complex projects, it may be more efficient to drive all command arguments from a configuration file.
+* This example shows how scc can be configured from a "json" configuration file, incorporating all of the previous switches in one file.  
+
+```bash
+>> sc -cfg examples/hello_world/hello_world.json examples/hello_world/hello_world.v
 ```
 
 #### *Hierarchical Design*
@@ -42,7 +103,7 @@ Below you can see a number of simple exaples and use cases that hopefully illust
 * The [ -y ] switch defines a module search search directory (same behavior as Icarus and Verilator)
 
 ```bash
->> scc -clk "clk 1ns" -y examples/oh/common examples/oh/common/oh_fifo_sync.v
+>> sc -clk "clk 1ns" -y examples/oh/common examples/oh/common/oh_fifo_sync.v
 ```
 
 #### *Parametrized Design*
@@ -54,48 +115,10 @@ Below you can see a number of simple exaples and use cases that hopefully illust
 >>> echo "define CFG_DW 32" > define.vh
 >>> echo "module   hello #(parameter DW = CFG_DW) (input a[DW-1:0], input b[DW-1:0], input clk, output reg c[DW-1:0]); always @ (posedge clk) c <= a & b; endmodule " > hello.v
 
->> scc -clk "clk 1ns" define.vh hello.v
->> scc -clk "clk 1ns" -DCFG_DW=32 hello.v
+>> sc -clk "clk 1ns" define.vh hello.v
+>> sc -clk "clk 1ns" -DCFG_DW=32 hello.v
 ```
 
-#### *Advanced Timing Constraints*
-* For modules with complex timing constraints, timing constraints are generally specifie using the Synopsys Design Constraints (SDC) format.
-* This example shows an example synthesized using a full set of SDC constraints.
-
-```bash
->> scc -sdc examples/oh/common/sdc/default.sdc -y examples/oh/common examples/oh/common/hdl/oh_fifo_sync.v
-```
-
-#### *Compilation Target*
-* This example shows how to specify a target process and standard cell libraries used for compilation.
-
-```bash
->> scc -foundry "skywater" -process "130nm" -library "openlib" -sdc examples/oh/common/sdc/default.sdc -y examples/oh/common examples/oh/common/hdl/oh_fifo_sync.v
-```
-
-#### *Floorplan*
-* This example shows how to input a floorplan file in specified in the industry standard Design Exchange Format (DEF).
-* The DEF file can be generated from source code of from a graphical floor-planning tool.  
-
-```bash
->> scc -clk "clk 1ns"  -def examples/oh/common/floorplan/oh_fifo_sync.def examples/oh/common/hdl/oh_fifo_sync.v
-```
-
-#### *FPGA Compilation*
-* This example shows how to compile for an FPGA
-* The device should match the device name used for the FPGA tool-chain
-
-```bash
->> scc -target FPGA -flow "vivado" -device "zynq" examples/oh/common/sdc/default.sdc -y examples/oh/common examples/oh/common/hdl/oh_fifo_sync.v
-````
-
-#### *File Based Configuration*
-* For complex projects, it may be more efficient to drive all command arguments from a configuration file.
-* This example shows how scc can be configured from a "json" configuration file, incorporating all of the previous switches in one file.  
-
-```bash
->> scc -cfg examples/oh/common/cfg/oh_fifo_sync_cfg.json  examples/oh/common/hdl/oh_fifo_sync.v
-```
 
 #### *Display All Configuration Parameters*
 * The scc is imminently configurable allowing for setting variables through command line switches (highet), json config file, environment variables, and built-in default (lowest).
@@ -104,70 +127,6 @@ Below you can see a number of simple exaples and use cases that hopefully illust
 ```bash
 >> scc -printcfg
 ```
-
-## Basic Arguments
-
-| Argument               | Default              | Description                      |
-| ------------------     | -------------------- | ---------------------------------|
-| {file(s).v}            | ""                   | Module and top module filenames  |
-| -o,--output <name>     | "output"             | Root name for output files       |
-| --lint-only            | ""                   | Lint, but do not make output     |
-| -y <dir>               | ""                   | Directory to search for modules  |
-| -v <file>              | ""                   | Verilog library                  |
-| +libext+<ext>+[ext]    | ".v,.sv,.vh"         | Extensions for finding modules   |
-| -I<dir>                | ""                   | Directory to search for includes |
-| -f <file>              | ""                   | Parse options from a file        |
-| -Wno-<message>         | ""                   | Disables a warning               |
-| -Wall                  | ""                   | Enable all style warnings        |
-| -Wno-lint              | ""                   | Disable all lint warnings        |
-| -Wno-fatal             | ""                   | Disable fatal exit on warnings   |
-| -D<var>[=<value>]      | ""                   | Set preprocessor define          |
-| --top-module <topname> | ""                   | Top module name                  |
-| -j <jobs>              | "4"                  | Compilation parallelism          |
-| --printvars            | ""                   | Print out var settigs and exit   |
-| --debug <level>        | ""                   | Enables increasing verbosity     |
-| -h, -help              | ""                   | Prints out verbose help          |
-| --version              | ""                   | Prints out version               |
-
-## Silicon Compilation Arguments
-
-| Argument            | Default              | Description                      |
-| --------------------| -------------------- | ---------------------------------|
-| --sdc <file>        | ""                   | Synopsys Design Constraints      |
-| --def <file>        | ""                   | Floor-plan in DEF format         |
-| --upf <file>        | ""                   | UPF file path                    |
-| --libpaths <dir>    | ""                   | List of mappping libray paths    |
-| --foundry <name>    | "virtual"            | Name of foundry                  |
-| --process <name>    | "asap7"              | List of synthesis libraries      |
-| --techfile <file>   | ${process}_tech.json | Technology setup file            |
-| --minlayer <name>   | "M2"                 | Minimum routing layer            |
-| --maxlayer <name>   | "M7"                 | Maximum routing layer            |
-| --reflibs <struct>  | "asap7lib"           | Library file struture            |
-| --scenarios <struct>| "all,all,tt,0.7,25"  | Scenario for pnr optimiation     |
-| --flow <name>       | "openroad"           | Name of synthesis/pnr flow       |
-| --clk <name,value>  | "clk,1ns"            | Specified a signal as clock      |
-| --multibit          | ""                   | Enable multibit registers        |
-| --ndr <signal,w,s>  | ""                   | Non-default routed signals       |
-| --effort <level>    | "high"               | Compilation effort               |
-| --priority <name>   | "power"              | Compilation goal priority        |
-| --start <name>      | "syn"                | Name of starting stage           |
-| --end <name>        | "export"             | Name of finishing stage          |
-
-## Library Arguments
-
-| Argument               | Default            | Description                     |
-| ------------------     | ------------------ | --------------------------------|
-| --libheight <value>    | "7"                | Height of library (in grids)    |
-| --def_driver <name>    | ""                 | Name of default driver cell     |
-| --icg_cells <list>     | ""                 | List of ICG cells               |
-| --tielo_cells <list>   | ""                 | List of tie to 0 cells          |
-| --tiehi_cells <list>   | ""                 | List of tie to 1 cells          |
-| --antenna_cells <list> | ""                 | List of antenna fix cells       |
-| --dcap_cells <list>    | ""                 | List of decoupling cap cells    |
-| --filler_cells <list>  | ""                 | List of filler cells            |
-| --tap_cells <list>     | ""                 | List of tap cells               |
-| --dontuse_cells <list> | ""                 | List if lib cells to ignore     |
-
 
 
 
