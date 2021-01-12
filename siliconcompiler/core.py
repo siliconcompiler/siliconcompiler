@@ -2,6 +2,7 @@
 
 import subprocess
 import os
+import sys
 import re
 import json
 import logging
@@ -301,7 +302,8 @@ class Chip:
                 cmd_fields.append(value)
 
             #Execute cmd if current stage is within range of start and stop
-            cmd_fields.append("> " + tool + ".log")
+            logfile  = tool + ".log"
+            cmd_fields.append("> " + logfile)
             cmd = ' '.join(cmd_fields)
 
             #Create a shells cript for rerun purposes
@@ -313,7 +315,10 @@ class Chip:
 
             #run command
             self.logger.info('%s', cmd)
-            subprocess.run(cmd, shell=True)
+            error = subprocess.run(cmd, shell=True)
+            if error.returncode:
+                self.logger.error('Command failed. See log file %s', os.path.abspath(logfile))
+                sys.exit()
 
             #Post process (only for verilator for now)
             if tool == "verilator":
@@ -332,7 +337,7 @@ class Chip:
                 # Only setting sc_design when appropriate
                 if (modules > 1) & (self.cfg['sc_design']['values'] == ""):
                     self.logger.error('Multiple modules found during import, but sc_design was not set')
-                    sys.exit
+                    sys.exit()
                 else:
                     self.logger.info('Setting design (topmodule) to %s', topmodule)
                     self.cfg['sc_design']['values'] =  topmodule
