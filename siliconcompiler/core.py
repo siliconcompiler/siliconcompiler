@@ -42,7 +42,7 @@ class Chip:
             self.cfg[key]['help'] = default_cfg[key]['help']
             self.cfg[key]['switch'] = default_cfg[key]['switch']
             self.cfg[key]['type'] = default_cfg[key]['type']
-            if default_cfg[key]['type']=="list":
+            if default_cfg[key]['type'] == "list":
                 self.cfg[key]['values'] = default_cfg[key]['values'].copy()
             else:
                 self.cfg[key]['values'] = default_cfg[key]['values']
@@ -171,7 +171,7 @@ class Chip:
 
         '''
         for key in self.cfg:
-            if (self.cfg[key]['type']=="file"):
+            if self.cfg[key]['type'] == "file":
                 for i, val in enumerate(self.cfg[key]['values']):
                     self.cfg[key]['values'][i] = str(os.path.abspath(val))
                     
@@ -238,9 +238,9 @@ class Chip:
                 #Write out CFG as TCL (EDA tcl lacks support for json)
                 self.writetcl("sc_setup.tcl")
 
-                #Adding tcl scripts to comamnd line
-                for value in self.cfg['sc_' + stage + '_script']['values']:
-                    cmd_fields.append(value)
+            #Adding tcl scripts to comamnd line
+            for value in self.cfg['sc_' + stage + '_script']['values']:
+                cmd_fields.append(value)
 
             #Execute cmd if current stage is within range of start and stop
             cmd_fields.append("> " + tool + ".log")
@@ -267,7 +267,7 @@ class Chip:
                 self.logger.info('%s', cmd)
                 subprocess.run(cmd, shell=True)
 
-            if self.cfg['sc_gui']['values']=="True":
+            if self.cfg['sc_gui']['values'] == "True":
                 webbrowser.open("https://google.com")
 
             #Return to CWD
@@ -728,6 +728,7 @@ def defaults():
                     "cts",
                     "route",
                     "signoff",
+                    "pex",
                     "lec",
                     "sta",
                     "pi",
@@ -769,18 +770,20 @@ def defaults():
 
         #Common values
         default_cfg['sc_' + stage + '_jobid']['values'] = 0
-        default_cfg['sc_' + stage + '_script']['values'] = [asic_dir + stage + ".tcl"]
         default_cfg['sc_' + stage + '_np']['values'] = 4
 
         #Tool specific values
         if stage == "import":
             default_cfg['sc_import_tool']['values'] = "verilator"
             default_cfg['sc_import_opt']['values'] = ["--lint-only", "--debug"]
+            default_cfg['sc_import_script']['values'] = []
         elif stage == "syn":
             default_cfg['sc_syn_tool']['values'] = "yosys"
             default_cfg['sc_syn_opt']['values'] = ["-c"]
+            default_cfg['sc_syn_script']['values'] = [asic_dir + stage + ".tcl"]
         else:
             default_cfg['sc_' + stage + '_tool']['values'] = "openroad"
             default_cfg['sc_' + stage + '_opt']['values'] = ["-no_init", "-exit"]
+            default_cfg['sc_' + stage + '_script']['values'] = [asic_dir + stage + ".tcl"]
             
     return default_cfg
