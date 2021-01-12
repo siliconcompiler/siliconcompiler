@@ -7,10 +7,8 @@ source ./sc_setup.tcl
 set scriptdir [file dirname [lindex $SC_PLACE_SCRIPT 0]]
 
 source -verbose $scriptdir/sc_procedures.tcl
-
-source -verbose $scriptdir/process.tcl
-
-source -verbose $scriptdir/library.tcl
+source -verbose $scriptdir/sc_process.tcl
+source -verbose $scriptdir/sc_library.tcl
 
 set jobid         [lindex $SC_FLOORPLAN_JOBID 0]
 set topmodule     [lindex $SC_DESIGN 0]
@@ -18,8 +16,8 @@ set mainlib       [lindex $SC_LIB 0]
 
 #Inputs
 set input_verilog    "../../floorplan/job$jobid/$topmodule.v"
-set input_sdc        "../../floorplan/job$jobid/$topmodule.sdc"
 set input_def        "../../floorplan/job$jobid/$topmodule.def"
+set input_sdc        [lindex $SC_CONSTRAINTS 0]
 
 ################################################################
 # Read Inputs

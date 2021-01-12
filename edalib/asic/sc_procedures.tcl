@@ -1,4 +1,23 @@
 
+proc sc_read_inputs { root } {
+   
+    read_def "$root.def"
+
+    if {[file exists "$root.sdc"]} {
+	read_sdc "$root.sdc"
+    }
+}
+
+proc sc_write_outputs { root } {
+
+    write_def     "$root.def"
+
+    write_verilog "$root.v"
+    
+    write_sdc     "$root.sdc"
+
+}
+
 proc sc_write_reports { root } {
 
     log_begin "$root.report"
@@ -12,16 +31,5 @@ proc sc_write_reports { root } {
     log_end
     
 }
-
-proc sc_write_outputs { root } {
-
-    write_def     "$root.def"
-
-    write_verilog "$root.v"
-    
-    write_sdc     "$root.sdc"
-
-}
-
 
 
