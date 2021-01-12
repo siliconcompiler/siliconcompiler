@@ -42,14 +42,30 @@ class Chip:
             self.cfg[key]['help'] = default_cfg[key]['help']
             self.cfg[key]['switch'] = default_cfg[key]['switch']
             self.cfg[key]['type'] = default_cfg[key]['type']
-            if default_cfg[key]['type'] == "list":
+            if default_cfg[key]['type'] in {"file", "list"}:
                 self.cfg[key]['values'] = default_cfg[key]['values'].copy()
             else:
                 self.cfg[key]['values'] = default_cfg[key]['values']
 
         #instance starts unlocked
         self.cfg_locked = False
-            
+
+    #################################
+    def set(self,key,val):
+        if self.cfg[key]['type'] == "list":
+            self.cfg[key]['values'] = [val]
+        elif self.cfg[key]['type'] == "file":
+            self.cfg[key]['values'] = [os.path.abspath(val)]
+        else:
+            self.cfg[key]['values'] = val
+
+    #################################
+    def add(self,key,val):
+        if self.cfg[key]['type'] == "file":
+            self.cfg[key]['values'].append(os.path.abspath(val))
+        else:
+            self.cfg[key]['values'].append(val)
+           
     #################################
     def readargs(self, args):
         '''Copies the arg structure from the command line into the Chip cfg dictionary.
@@ -57,7 +73,6 @@ class Chip:
         '''
       
         self.logger.info('Reading command line variables')
-
 
         #Copying the parse_arg Namespace object into the dictorary
         #Converting True/False into [""] for consistency
@@ -84,6 +99,7 @@ class Chip:
         '''
 
         self.logger.info('Reading environment variables')
+        
         if not self.cfg_locked:
             for key in self.cfg.keys():
                 var = os.getenv(key.upper())
@@ -101,10 +117,12 @@ class Chip:
         structure
 
         '''
-        
-        self.logger.info('Reading JSON format configuration file %s', os.path.abspath(filename))
+        abspath = os.path.abspath(filename)
+
+        self.logger.info('Reading JSON format configuration file %s', abspath)
+
         #Read arguments from file
-        with open(os.path.abspath(filename), "r") as f:
+        with open(abspath, "r") as f:
             json_args = json.load(f)
 
         if not self.cfg_locked:
@@ -122,19 +140,50 @@ class Chip:
             self.cfg_locked = True
 
     ##################################
-    def writejson(self, filename=None):
+    def writejson(self, filename=None, mode="all"):
         '''Writes out the Chip cfg dictionary to a the display or to a file on disk in the JSON
          format.
 
         '''
-        self.logger.info('Writing JSON format configuration file %s', os.path.abspath(filename))
+
+        if filename != None:
+            abspath = os.path.abspath(filename)
+            self.logger.info('Writing JSON format configuration file %s',abspath)
+            
+        # Get defaults
+        default_cfg = defaults()
+        
+        # Extract all keys with non-default values
+        diff_list = []
+        for key in default_cfg.keys():
+            if mode=="all":
+                diff_list.append(key)  
+            elif default_cfg[key]['type'] in {"list", "file"}:                
+                for value in self.cfg[key]['values']:
+                    if value not in default_cfg[key]['values']:
+                        diff_list.append(key)
+                        break
+            elif self.cfg[key]['values'] != default_cfg[key]['values']:
+                diff_list.append(key)
+
+        # Create 'diff' dictionary
+        diff_cfg = {}
+        for key in diff_list:
+            diff_cfg[key] = {}
+            if self.cfg[key]['type'] in {"file", "list"}:
+                diff_cfg[key]['values'] = self.cfg[key]['values'].copy()
+            else:
+                diff_cfg[key]['values'] = self.cfg[key]['values']
+
+            
+        # Write out dictionary
         if filename == None:
-            print(json.dumps(self.cfg, sort_keys=True, indent=4))
+            print(json.dumps(diff_cfg, sort_keys=True, indent=4))
         else:
-            if not os.path.exists(os.path.dirname(filename)):
-                os.makedirs(os.path.dirname(filename))
-            with open(os.path.abspath(filename), 'w') as f:
-                print(json.dumps(self.cfg, sort_keys=True, indent=4), file=f)
+            if not os.path.exists(os.path.dirname(abspath)):
+                os.makedirs(os.path.dirname(abspath))
+            with open(abspath, 'w') as f:
+                print(json.dumps(diff_cfg, sort_keys=True, indent=4), file=f)
             f.close()
 
     ##################################
@@ -344,6 +393,13 @@ def defaults():
         'values' : "asic"
     }
 
+    default_cfg['sc_foundry'] = {
+        'help' : "Foundry name (eg: virtual, tsmc, gf, samsung)",
+        'type' : "string",
+        'switch' : "-foundry",
+        'values' : "virtual"
+    }
+    
     default_cfg['sc_process'] = {
         'help' : "Name of target process node",
         'type' : "string",
@@ -351,6 +407,8 @@ def defaults():
         'values' : "nangate45"
     }
 
+
+    
     default_cfg['sc_cfgfile'] = {
         'help' : "Loads configurations from a json file",
         'type' : "file",
@@ -567,10 +625,10 @@ def defaults():
         'values' : []
     }
 
-    default_cfg['sc_topmodule'] = {
+    default_cfg['sc_design'] = {
         'help' : "Design top module name",
         'type' : "string",
-        'switch' : "-topmodule",
+        'switch' : "-design",
         'values' : ""
     }
 
@@ -716,7 +774,7 @@ def defaults():
         'help' : "Timing constraints file (SDC)",
         'type' : "file",
         'switch' : "-constraints",
-        'values' : [asic_dir + "/default.sdc"]
+        'values' : [asic_dir + "default.sdc"]
     }
     
     default_cfg['sc_ndr'] = {
