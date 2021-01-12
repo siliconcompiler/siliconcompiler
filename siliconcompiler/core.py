@@ -359,7 +359,7 @@ def defaults():
     }
     
     ############################################
-    # Place and Route Setup
+    # Process Node
     #############################################
 
     default_cfg['sc_techfile'] = {
@@ -395,25 +395,31 @@ def defaults():
                     "metal10 Y 0.07 1.6"]
     }
     
-    
-    ############################################
-    # Simulation setup
-    #############################################
-
     default_cfg['sc_model'] = {
         'help' : "Spice model file",
         'type' : "string",
         'switch' : "-model",
         'values' : ""
     }
-     
+
     default_cfg['sc_scenario'] = {
         'help' : "Process,voltage,temp scenario (eg: tt 0.7 25 setup)",
         'type' : "list",
         'switch' : "-scenario",
-        'values' : ["tt 0.7 25 setup"]
+               #   corner  #voltage  #temp #opt/signoff  #setup/hold/power     
+        'values' : ["tt      1.0       25    all           all",
+                    "ff      1.1       -40   opt           hold",
+                    "ff      1.1       125   opt           power",
+                    "ss      0.9       125   signoff       setup"]
+
     }
 
+    default_cfg['sc_layermap'] = {
+        'help' : "GDS layer map",
+        'type' : "file",
+        'switch' : "-layermap",
+        'values' : []
+    }
 
     ############################################
     # Standard Cell Libraries
@@ -440,6 +446,20 @@ def defaults():
         'values' : [iplib + "gds/NangateOpenCellLibrary.gds"]
     }
 
+    default_cfg['sc_cdl'] = {
+        'help' : "Netlist files (CDL)",
+        'type' : "file",
+        'switch' : "-cdl",
+        'values' : []
+    }
+
+    default_cfg['sc_libsetup'] = {
+        'help' : "Library setup file for PNR tool",
+        'type' : "string",
+        'switch' : "-libsetup",
+        'values' : []
+    }
+    
     default_cfg['sc_libdriver'] = {
         'help' : "Name of default driver cell",
         'type' : "string",
@@ -653,7 +673,7 @@ def defaults():
     default_cfg['sc_aspectratio'] = {
         'help' : "Aspect ratio for density driven floor-planning",
         'type' : "float",
-        'switch' : "-aspect_ratio",
+        'switch' : "-aspectratio",
         'values' : 1
     }
 
@@ -713,6 +733,13 @@ def defaults():
         'values' : []
     }
 
+    default_cfg['sc_vcd'] = {
+        'help' : "Value Change Dump (VCD) file for power analysis",
+        'type' : "file",
+        'switch' : "-vcd",
+        'values' : []
+    }
+
     ############################################
     # Tool Configuration
     #############################################
@@ -748,11 +775,11 @@ def defaults():
         default_cfg['sc_' + stage + '_np'] = {}
 
         #descriptions
-        default_cfg['sc_' + stage + '_tool']['help'] = "Name of " + stage + " tool "
-        default_cfg['sc_' + stage + '_opt']['help'] = "Options for " + stage + " tool"
-        default_cfg['sc_' + stage + '_script']['help'] = "Tool run script" + stage + " tool"
-        default_cfg['sc_' + stage + '_jobid']['help'] = "Job index of last executed job" + stage
-        default_cfg['sc_' + stage + '_np']['help'] = "Thread parallelism for" + stage
+        default_cfg['sc_' + stage + '_tool']['help'] = "Name of tool for " + stage + " stage"
+        default_cfg['sc_' + stage + '_opt']['help'] = "Options for " + stage + " stage executable" 
+        default_cfg['sc_' + stage + '_script']['help'] = "Run script for " + stage + " stage"
+        default_cfg['sc_' + stage + '_jobid']['help'] = "Index of last executed job in " + stage + " stage"
+        default_cfg['sc_' + stage + '_np']['help'] = "Thread parallelism for " + stage + " stage"
 
         #type
         default_cfg['sc_' + stage + '_tool']['type'] = "string"
