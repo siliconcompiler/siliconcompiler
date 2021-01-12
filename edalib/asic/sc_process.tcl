@@ -6,7 +6,6 @@ read_lef [lindex $SC_TECHFILE 0]
 
 set outfile [open "sc_tracks.txt" w]
 foreach layer $SC_LAYER {
-    puts $layer
     puts $outfile "$layer"
 }
 close $outfile

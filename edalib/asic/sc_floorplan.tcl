@@ -42,7 +42,7 @@ if {[file exists $input_def]} {
     } else {
  	initialize_floorplan -utilization [lindex $SC_DENSITY 0]  \
 	    -aspect_ratio [lindex $SC_ASPECTRATIO 0] \
-	    -core_space [lindex $SC_MARGIN 0]\
+	    -core_space [lindex $SC_COREMARGIN 0]\
 	    -tracks ./sc_tracks.txt \
 	    -site [lindex $SC_SITE 0]
     }

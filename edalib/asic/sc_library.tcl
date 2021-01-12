@@ -4,7 +4,7 @@ foreach lib $SC_LIB {
 }
 
 # Read library lefs
-foreach lef $SC_LEFLIB {
+foreach lef $SC_LEF {
     read_lef $lef
 }
 
