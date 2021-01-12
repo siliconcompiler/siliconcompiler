@@ -549,11 +549,11 @@ def defaults():
         elif stage == "syn":
             default_cfg['sc_syn_tool']['values'] = "yosys"
             default_cfg['sc_syn_opt']['values'] = ["-c"]
-            default_cfg['sc_syn_script']['values'] = [asic_dir + stage + ".tcl"]
+            default_cfg['sc_syn_script']['values'] = [asic_dir + "sc_" + stage + ".tcl"]
         else:
             default_cfg['sc_' + stage + '_tool']['values'] = "openroad"
             default_cfg['sc_' + stage + '_opt']['values'] = ["-no_init", "-exit"]
-            default_cfg['sc_' + stage + '_script']['values'] = [asic_dir + stage + ".tcl"]
+            default_cfg['sc_' + stage + '_script']['values'] = [asic_dir + "sc_" + stage + ".tcl"]
             
     return default_cfg
 
