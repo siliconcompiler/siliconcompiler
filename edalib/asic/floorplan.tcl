@@ -13,7 +13,7 @@ source -verbose $scriptdir/process.tcl
 source -verbose $scriptdir/library.tcl
 
 set jobid         [lindex $SC_SYN_JOBID 0]
-set topmodule     [lindex $SC_TOPMODULE 0]
+set topmodule     [lindex $SC_DESIGN 0]
 set mainlib       [lindex $SC_LIB 0]
 
 #Inputs
