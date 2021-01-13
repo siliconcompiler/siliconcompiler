@@ -6,6 +6,7 @@ import sys
 import re
 import json
 import logging
+import hashlib
 import webbrowser
 from siliconcompiler.config import defaults, cmdline
 
@@ -43,8 +44,11 @@ class Chip:
             self.cfg[key]['help'] = default_cfg[key]['help']
             self.cfg[key]['switch'] = default_cfg[key]['switch']
             self.cfg[key]['type'] = default_cfg[key]['type']
-            if default_cfg[key]['type'] in {"file", "list"}:
+            if default_cfg[key]['type'] == "list":
                 self.cfg[key]['values'] = default_cfg[key]['values'].copy()
+            elif default_cfg[key]['type'] == "file":
+                self.cfg[key]['values'] = default_cfg[key]['values'].copy()
+                self.cfg[key]['hash'] = default_cfg[key]['hash'].copy()   
             else:
                 self.cfg[key]['values'] = default_cfg[key]['values']
 
@@ -176,12 +180,16 @@ class Chip:
         diff_cfg = {}
         for key in diff_list:
             diff_cfg[key] = {}
-            if self.cfg[key]['type'] in {"file", "list"}:
+            diff_cfg[key]['help'] = self.cfg[key]['help']
+            diff_cfg[key]['type'] = self.cfg[key]['type']
+            if self.cfg[key]['type'] == "list":
                 diff_cfg[key]['values'] = self.cfg[key]['values'].copy()
+            elif self.cfg[key]['type'] == "file":
+                diff_cfg[key]['values'] = self.cfg[key]['values'].copy()
+                diff_cfg[key]['hash'] = self.cfg[key]['hash'].copy() 
             else:
                 diff_cfg[key]['values'] = self.cfg[key]['values']
 
-            
         # Write out dictionary
         if filename == None:
             print(json.dumps(diff_cfg, sort_keys=True, indent=4))
@@ -233,6 +241,28 @@ class Chip:
         #Locking the configuration
         self.cfg_locked = True
 
+
+    ##################################
+    def sync(self):
+        '''Waits for all processes to complete
+        '''
+        pass
+
+    ##################################
+    def hash(self):
+        '''Creates hashes for all files sourced by Chip class
+        '''
+
+        for key in self.cfg:        
+            if self.cfg[key]['type'] == "file":
+                for filename in self.cfg[key]['values']:
+                   if os.path.isfile(filename):
+                       print(filename)
+                       with open(filename,"rb") as f:
+                           bytes = f.read() # read entire file as bytes
+                           hash_value = hashlib.sha256(bytes).hexdigest();
+                           self.cfg[key]['hash'].append(hash_value)
+        
     ###################################
     def run(self, stage, mode="sync", machine="local"):
         '''The common execution method for all compilation stages compilation flow.
