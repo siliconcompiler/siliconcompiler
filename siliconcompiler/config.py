@@ -97,7 +97,8 @@ def defaults():
         'help' : "Loads configurations from a json file",
         'type' : "file",
         'switch' : "-cfgfile",
-        'values' : []
+        'values' : [],
+        'hash'   : []
     }
     
     ############################################
@@ -108,7 +109,8 @@ def defaults():
         'help' : "Place and route tehnology file (lef or tf)",
         'type' : "file",
         'switch' : "-techfile",
-        'values' : [pdklib + "nangate45.tech.lef"]
+        'values' : [pdklib + "nangate45.tech.lef"],
+        'hash'   : []
     }
 
     default_cfg['sc_layer'] = {
@@ -139,9 +141,10 @@ def defaults():
     
     default_cfg['sc_model'] = {
         'help' : "Spice model file",
-        'type' : "string",
+        'type' : "file",
         'switch' : "-model",
-        'values' : ""
+        'values' : [],
+        'hash'   : []
     }
 
     default_cfg['sc_scenario'] = {
@@ -160,7 +163,8 @@ def defaults():
         'help' : "GDS layer map",
         'type' : "file",
         'switch' : "-layermap",
-        'values' : []
+        'values' : [],
+        'hash' : []
     }
 
     ############################################
@@ -171,35 +175,40 @@ def defaults():
         'help' : "Standard cell libraries",
         'type' : "file",
         'switch' : "-lib",
-        'values' : [iplib + "lib/NangateOpenCellLibrary_typical.lib"]
+        'values' : [iplib + "lib/NangateOpenCellLibrary_typical.lib"],
+        'hash'   : []
     }
 
     default_cfg['sc_lef'] = {
         'help' : "LEF files",
         'type' : "file",
         'switch' : "-lef",
-        'values' : [iplib + "lef/NangateOpenCellLibrary.macro.lef"]
+        'values' : [iplib + "lef/NangateOpenCellLibrary.macro.lef"],
+        'hash'   : []
     }
 
     default_cfg['sc_gds'] = {
         'help' : "GDS files",
         'type' : "file",
         'switch' : "-gds",
-        'values' : [iplib + "gds/NangateOpenCellLibrary.gds"]
+        'values' : [iplib + "gds/NangateOpenCellLibrary.gds"],
+        'hash'   : []
     }
 
     default_cfg['sc_cdl'] = {
         'help' : "Netlist files (CDL)",
         'type' : "file",
         'switch' : "-cdl",
-        'values' : []
+        'values' : [],
+        'hash'   : []
     }
 
     default_cfg['sc_libsetup'] = {
         'help' : "Library setup file for PNR tool",
         'type' : "string",
         'switch' : "-libsetup",
-        'values' : []
+        'values' : [],
+        'hash'   : []
     }
     
     default_cfg['sc_libdriver'] = {
@@ -306,7 +315,8 @@ def defaults():
         'help' : "Source files (.v/.vh/.sv/.vhd)",
         'type' : "file",
         'switch' : "None",
-        'values' : []
+        'values' : [],
+        'hash'   : []
     }
 
     default_cfg['sc_design'] = {
@@ -335,21 +345,24 @@ def defaults():
         'help' : "Directory to search for modules",
         'type' : "file",
         'switch' : "-y",
-        'values' : []
+        'values' : [],
+        'hash'   : []
     }
 
     default_cfg['sc_idir'] = {
         'help' : "Directory to search for inclodes",
         'type' : "file",
         'switch' : "-I",
-        'values' : []
+        'values' : [],
+        'hash'   : []
     }
 
     default_cfg['sc_vlib'] = {
         'help' : "Library file",
         'type' : "file",
         'switch' : "-v",
-        'values' : []
+        'values' : [],
+        'hash'   : []
     }
 
     default_cfg['sc_libext'] = {
@@ -363,7 +376,8 @@ def defaults():
         'help' : "Parse source options from command file",
         'type' : "file",
         'switch' : "-f",
-        'values' : []
+        'values' : [],
+        'hash'   : []
     }
 
     default_cfg['sc_wall'] = {
@@ -444,42 +458,48 @@ def defaults():
         'help' : "User supplied python based floorplaning script",
         'type' : "file",
         'switch' : "-floorplan",
-        'values' : []
+        'values' : [],
+        'hash'   : []
     }
     
     default_cfg['sc_def'] = {
         'help' : "User supplied hard-coded floorplan (DEF)",
         'type' : "file",
         'switch' : "-def",
-        'values' : []
+        'values' : [],
+        'hash'   : []
     }
     
     default_cfg['sc_constraints'] = {
         'help' : "Timing constraints file (SDC)",
         'type' : "file",
         'switch' : "-constraints",
-        'values' : [asic_dir + "default.sdc"]
+        'values' : [asic_dir + "default.sdc"],
+        'hash'   : []
     }
     
     default_cfg['sc_ndr'] = {
         'help' : "Non-default net routing file",
         'type' : "file",
         'switch' : "-ndr",
-        'values' : []
+        'values' : [],
+        'hash'   : []
     }
 
     default_cfg['sc_upf'] = {
         'help' : "Unified power format (UPF) file",
         'type' : "file",
         'switch' : "-upf",
-        'values' : []
+        'values' : [],
+        'hash'   : []
     }
 
     default_cfg['sc_vcd'] = {
         'help' : "Value Change Dump (VCD) file for power analysis",
         'type' : "file",
         'switch' : "-vcd",
-        'values' : []
+        'values' : [],
+        'hash'   : []
     }
 
     ############################################
@@ -529,6 +549,9 @@ def defaults():
         default_cfg['sc_' + stage + '_script']['type'] = "file"
         default_cfg['sc_' + stage + '_jobid']['type'] = "int"
         default_cfg['sc_' + stage + '_np']['type'] = "int"
+
+        #hash
+        default_cfg['sc_' + stage + '_script']['hash'] = []
         
         #command line switches
         default_cfg['sc_' + stage + '_tool']['switch'] = "-" + stage + "_tool"
