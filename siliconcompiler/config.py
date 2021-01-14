@@ -77,20 +77,6 @@ def defaults():
         'values' : "asic"
     }
 
-    default_cfg['sc_foundry'] = {
-        'help' : "Foundry name (eg: virtual, tsmc, gf, samsung)",
-        'type' : "string",
-        'switch' : "-foundry",
-        'values' : "virtual"
-    }
-    
-    default_cfg['sc_process'] = {
-        'help' : "Name of target process node",
-        'type' : "string",
-        'switch' : "-process",
-        'values' : "nangate45"
-    }
-
     default_cfg['sc_cfgfile'] = {
         'help' : "Loads configurations from a json file",
         'type' : "file",
@@ -102,11 +88,44 @@ def defaults():
     default_cfg['sc_custom'] = {
         'help' : "Custom pass through variables (eg: EDA_EFFORT enable_ludicrous_speed)",
         'type' : "list",
-        'switch' : "-user",
+        'switch' : "-custom",
         'values' : [],
         'hash'   : []
     }
+
+    ############################################
+    # Remote abstracted exeuction settings
+    #############################################
+
+    default_cfg['sc_remote'] = {
+        'help' : "Name of remote server address (https://acme.com)",
+        'type' : "string",
+        'switch' : "-remote",
+        'values' : ""
+    }
     
+    default_cfg['sc_foundry'] = {
+        'help' : "Foundry name (eg: virtual, tsmc, gf, samsung)",
+        'type' : "string",
+        'switch' : "-foundry",
+        'values' : "virtual"
+    }
+    
+    default_cfg['sc_process'] = {
+        'help' : "Process name",
+        'type' : "string",
+        'switch' : "-process",
+        'values' : "nangate45"
+    }
+
+    default_cfg['sc_ref'] = {
+        'help' : "Reference methodology name ",
+        'type' : "string",
+        'switch' : "-ref",
+        'values' : ""
+    }
+    
+
     ############################################
     # Process Node
     #############################################
