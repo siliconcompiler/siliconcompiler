@@ -38,11 +38,8 @@ def main():
     chip.hash()
     
     #Printing out run-config
-    chip.writejson("sc_setup.json")
+    chip.writejson(chip.get("sc_build") + "/sc_setup.json")
 
-    #Comparing config files
-    chip.compare("sc_setup1.json","sc_setup2.json")
-    
     #Compiler
     chip.run("import")
     chip.run("syn")
