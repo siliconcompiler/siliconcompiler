@@ -7,10 +7,6 @@ import logging
 #Shorten siliconcompiler as sc
 import siliconcompiler as sc
 
-#Silicon Compiler Modules
-#from siliconcompiler.core import cli
-#from siliconcompiler.core import run
-
 ###########################
 def main():
 

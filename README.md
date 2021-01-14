@@ -37,6 +37,7 @@ Below you can see a number of simple exaples and use cases that hopefully illust
 ```bash
 >> echo "module hello(input a, input b, output c); assign c = a & b; endmodule " > hello.v
 >> sc hello.v
+>> klayout hello.gds
 ```
 
 #### *Synchronous Design*
