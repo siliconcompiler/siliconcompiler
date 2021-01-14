@@ -91,12 +91,18 @@ def defaults():
         'values' : "nangate45"
     }
 
-
-    
     default_cfg['sc_cfgfile'] = {
         'help' : "Loads configurations from a json file",
         'type' : "file",
         'switch' : "-cfgfile",
+        'values' : [],
+        'hash'   : []
+    }
+
+    default_cfg['sc_custom'] = {
+        'help' : "Custom pass through variables (eg: EDA_EFFORT enable_ludicrous_speed)",
+        'type' : "list",
+        'switch' : "-user",
         'values' : [],
         'hash'   : []
     }
