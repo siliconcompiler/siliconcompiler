@@ -70,6 +70,10 @@ class Chip:
             self.cfg[key]['values'] = val
 
     #################################
+    def get(self,key,attr='values'):
+        return self.cfg[key][attr]
+            
+    #################################
     def add(self,key,val):
         if self.cfg[key]['type'] == "file":
             self.cfg[key]['values'].append(os.path.abspath(val))
@@ -292,15 +296,18 @@ class Chip:
                     #can't be combined?
                     file1_args[key]['values'].sort()
                     file2_args[key]['values'].sort()                    
-                    if file1_args[key]['values'] != file2_args[key]['values']:                        
+                    if file1_args[key]['values'] != file2_args[key]['values']:
                         same = False
+                        self.logger.error('File difference found for key %s', key)
                     if self.cfg[key]['type'] in {"file"}:
                         file1_args[key]['hash'].sort()
                         file2_args[key]['hash'].sort()        
                         if file1_args[key]['hash'] != file2_args[key]['hash']:
                             same = False
+                            self.logger.error('Comparison difference found for key %s', key)
                 elif file1_args[key]['values'] != file2_args[key]['values']:
                         same = False
+                        self.logger.error('Comparison difference found for key %s', key)
             else:
                 same = False
 
