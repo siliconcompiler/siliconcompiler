@@ -55,11 +55,14 @@ def defaults():
     The default setings are not manufacturable.
 
     '''
-    install_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    ############################################
+    # Paths
+    #############################################
 
+    install_dir = os.path.dirname(os.path.abspath(__file__))
     root_dir = re.sub("siliconcompiler/siliconcompiler", "siliconcompiler", install_dir, 1)
-    asic_dir = root_dir + "/edalib/asic/"
-    fpga_dir = root_dir + "/edalib/fpga/"
+    scripts_dir  = root_dir + "/edalib/"
     pdklib = root_dir + "/pdklib/virtual/nangate45/r1p0/pnr/"
     iplib = root_dir + "/iplib/virtual/nangate45/NangateOpenCellLibrary/r1p0/"
 
@@ -67,16 +70,35 @@ def defaults():
     default_cfg = {}
 
     ############################################
+    # Individual stages supported by "run"
+    #############################################
+
+    default_cfg['sc_stages'] = {
+        'help' : "List of all compilation stages",
+        'type' : "list",
+        'switch' : "-stages",
+        'values' : ["import",
+                    "syn",
+                    "floorplan",
+                    "place",
+                    "cts",
+                    "route",
+                    "signoff",
+                    "pex",
+                    "lec",
+                    "sta",
+                    "pi",
+                    "si",
+                    "drc",
+                    "lvs",
+                    "export"]
+    }
+    
+    ############################################
     # General Settings
     #############################################
 
-    default_cfg['sc_mode'] = {
-        'help' : "Implementation mode (asic or fpga)",
-        'type' : "string",
-        'switch' : "-mode",
-        'values' : "asic"
-    }
-
+ 
     default_cfg['sc_cfgfile'] = {
         'help' : "Loads configurations from a json file",
         'type' : "file",
@@ -93,6 +115,14 @@ def defaults():
         'hash'   : []
     }
 
+    default_cfg['sc_mode'] = {
+        'help' : "Implementation mode (asic or fpga)",
+        'type' : "string",
+        'switch' : "-mode",
+        'values' : "asic"
+    }
+  
+   
     ############################################
     # Remote abstracted exeuction settings
     #############################################
@@ -124,7 +154,6 @@ def defaults():
         'switch' : "-ref",
         'values' : ""
     }
-    
 
     ############################################
     # Process Node
@@ -332,6 +361,20 @@ def defaults():
         'values' : "export"
     }
 
+    default_cfg['sc_msgaddr'] = {
+        'help' : "Address (phone or email) that will recieve job completion messages",
+        'type' : "string",
+        'switch' : "-msgaddr",
+        'values' : ""
+    }
+
+    default_cfg['sc_msgstage'] = {
+        'help' : "List of stages that trigger sending of job completion messages",
+        'type' : "list",
+        'switch' : "-msgstage",
+        'values' : ["export"]
+    }
+
     ############################################
     # Design Specific Source Code Parameters
     #############################################
@@ -499,7 +542,7 @@ def defaults():
         'help' : "Timing constraints file (SDC)",
         'type' : "file",
         'switch' : "-constraints",
-        'values' : [asic_dir + "default.sdc"],
+        'values' : [],
         'hash'   : []
     }
     
@@ -530,27 +573,6 @@ def defaults():
     ############################################
     # Tool Configuration
     #############################################
-
-    default_cfg['sc_stages'] = {
-        'help' : "List of all compilation stages",
-        'type' : "list",
-        'switch' : "-stages",
-        'values' : ["import",
-                    "syn",
-                    "floorplan",
-                    "place",
-                    "cts",
-                    "route",
-                    "signoff",
-                    "pex",
-                    "lec",
-                    "sta",
-                    "pi",
-                    "si",
-                    "drc",
-                    "lvs",
-                    "export"]
-    }
 
     for stage in default_cfg['sc_stages']['values']:
         
@@ -590,6 +612,7 @@ def defaults():
         default_cfg['sc_' + stage + '_np']['values'] = 4
 
         #Tool specific values
+        default_script = scripts_dir + default_cfg['sc_mode']['values'] + "/sc_" + stage + ".tcl"
         if stage == "import":
             default_cfg['sc_import_tool']['values'] = "verilator"
             default_cfg['sc_import_opt']['values'] = ["--lint-only", "--debug"]
@@ -597,11 +620,11 @@ def defaults():
         elif stage == "syn":
             default_cfg['sc_syn_tool']['values'] = "yosys"
             default_cfg['sc_syn_opt']['values'] = ["-c"]
-            default_cfg['sc_syn_script']['values'] = [asic_dir + "sc_" + stage + ".tcl"]
+            default_cfg['sc_syn_script']['values'] = [default_script]
         else:
             default_cfg['sc_' + stage + '_tool']['values'] = "openroad"
             default_cfg['sc_' + stage + '_opt']['values'] = ["-no_init", "-exit"]
-            default_cfg['sc_' + stage + '_script']['values'] = [asic_dir + "sc_" + stage + ".tcl"]
+            default_cfg['sc_' + stage + '_script']['values'] = [default_script]
             
     return default_cfg
 
