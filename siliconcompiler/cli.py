@@ -33,9 +33,15 @@ def main():
 
     #Lock chip configuration
     chip.lock()
+
+    #Creating hashes for all sourced files
+    chip.hash()
     
     #Printing out run-config
-    chip.writejson(chip.cfg['sc_build']['values'] + "/setup.json")
+    chip.writejson("sc_setup.json")
+
+    #Comparing config files
+    chip.compare("sc_setup1.json","sc_setup2.json")
     
     #Compiler
     chip.run("import")

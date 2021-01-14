@@ -149,6 +149,9 @@ class Chip:
         if self.cfg['sc_lock']['values']:
             self.cfg_locked = True
 
+        return json_args
+
+            
     ##################################
     def writejson(self, filename=None, mode="all"):
         '''Writes out the Chip cfg dictionary to a the display or to a file on disk in the JSON
@@ -257,11 +260,51 @@ class Chip:
             if self.cfg[key]['type'] == "file":
                 for filename in self.cfg[key]['values']:
                    if os.path.isfile(filename):
-                       print(filename)
                        with open(filename,"rb") as f:
                            bytes = f.read() # read entire file as bytes
                            hash_value = hashlib.sha256(bytes).hexdigest();
                            self.cfg[key]['hash'].append(hash_value)
+        
+    ##################################
+    def compare(self, file1, file2):
+        '''Compares all keys and values of two json setup files
+        '''                      
+
+        abspath1 = os.path.abspath(file1)
+        abspath2 = os.path.abspath(file2)
+
+        self.logger.info('Comparing JSON format configuration file %s and %s ', abspath1, abspath2)
+
+        #Read arguments from file
+        with open(abspath1, "r") as f:
+            file1_args = json.load(f)
+        with open(abspath2, "r") as f:
+            file2_args = json.load(f)  
+            
+        same =  True
+        for key in self.cfg:
+            # check that both files have all the keys
+            # checking that all values and scalars are identical
+            # list compare implicitly checks for list lengths as well
+            if (key in file1_args) & (key in file2_args):
+                if self.cfg[key]['type'] in {"list", "file"}:
+                    #seems that sort needs to be done before doing list compare?
+                    #can't be combined?
+                    file1_args[key]['values'].sort()
+                    file2_args[key]['values'].sort()                    
+                    if file1_args[key]['values'] != file2_args[key]['values']:                        
+                        same = False
+                    if self.cfg[key]['type'] in {"file"}:
+                        file1_args[key]['hash'].sort()
+                        file2_args[key]['hash'].sort()        
+                        if file1_args[key]['hash'] != file2_args[key]['hash']:
+                            same = False
+                elif file1_args[key]['values'] != file2_args[key]['values']:
+                        same = False
+            else:
+                same = False
+
+        return same
         
     ###################################
     def run(self, stage, mode="sync", machine="local"):
