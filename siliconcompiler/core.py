@@ -5,6 +5,7 @@ import os
 import sys
 import re
 import json
+import yaml
 import logging
 import hashlib
 import webbrowser
@@ -206,7 +207,16 @@ class Chip:
             with open(abspath, 'w') as f:
                 print(json.dumps(diff_cfg, sort_keys=True, indent=4), file=f)
             f.close()
+            with open("my.yaml", 'w') as f:
+                print(yaml.dump(diff_cfg, default_flow_style = False), file=f)
 
+#    def writeyaml(self,cfg,filename):
+#        with open(filename, 'w') as f:
+#            print(yaml.dump(diff_cfg), file=f)
+
+
+    
+            
     ##################################
     def writetcl(self, filename=None):
         '''Writes out the Chip cfg dictionary as TC lists used by EDA tools. All keys
