@@ -12,21 +12,30 @@ import webbrowser
 from siliconcompiler.config import defaults, cmdline
 
 class Chip:
+    """
+    The core class for the siliconcompiler package with central control of
+    compilation configuration and state tracking. The class includes a
+    a collection of suport methods operating on the class attributes
 
+    Parameters
+    ----------
+    loglevel (string) : Level of debugging (DEBUG, INFO, WARNING, ERROR)
+
+    Attributes
+    ----------
+    cfg (dict): Configuration dictionary
+    status (dict) : Stage and job ID based status dictionary
+
+    """
+    
     ####################
     def __init__(self, loglevel="DEBUG"):
-        '''init method for Chip class.
+        '''
+        Init method for Chip object
         
         '''
 
-        ######################################
-        # Logging
-
-        #INFO:(all except for debug)
-        #DEBUG:(all)
-        #CRITICAL:(error, critical)
-        #ERROR: (error, critical)
-
+        # Initialize logger
         self.logger = logging.getLogger()
         self.handler = logging.StreamHandler()
         self.formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s')
@@ -34,11 +43,9 @@ class Chip:
         self.logger.addHandler(self.handler)
         self.logger.setLevel(str(loglevel))
 
-        ###############
-        # Single setup dict for all tools
+        # Initialize dict
         default_cfg = defaults()
 
-        # Copying defaults every time a new constructor is made
         self.cfg = {}
         for key in default_cfg.keys():
             self.cfg[key] = {}
@@ -53,44 +60,88 @@ class Chip:
             else:
                 self.cfg[key]['values'] = default_cfg[key]['values']
 
-        #instance starts unlocked
+        # instance starts unlocked
         self.cfg_locked = False
 
-        #setting up process stages
-        #for stage in self.cfg['sc_stages']['values']:
-        #self.status = {}
-        
-        
-    #################################
-    def set(self,key,val):
-        if self.cfg[key]['type'] == "list":
-            self.cfg[key]['values'] = [val]
-        elif self.cfg[key]['type'] == "file":
-            self.cfg[key]['values'] = [os.path.abspath(val)]
-        else:
-            self.cfg[key]['values'] = val
+        # setting up an empty status dictionary for each stage 
+        self.status = {}
+        for stage in self.cfg['sc_stages']['values']:
+            self.status[stage] = ["idle"]
 
-    #################################
-    def get(self,key,attr='values'):
-        return self.cfg[key][attr]
-            
-    #################################
-    def add(self,key,val):
-        if self.cfg[key]['type'] == "file":
-            self.cfg[key]['values'].append(os.path.abspath(val))
-        else:
-            self.cfg[key]['values'].append(val)
-           
-    #################################
-    def readargs(self, args):
-        '''Copies the arg structure from the command line into the Chip cfg dictionary.
+    ###################################
+    def getcfg(self, param):
+        '''Gets value for supplied Chip parameter
+       
+        Args:
+            param (string): Configuration parameter to fetch
+
+        Returns:
+            list: List of Chip configuration values
 
         '''
-      
+        
+        return self.cfg[param]['values']
+            
+    ###################################
+    def getstatus(self, stage, jobid):
+        '''Gets status of a job for a specific compilaton stage
+
+        Args:
+            stage (string): Stage name to get status for
+            jobid (int): Job index
+
+        Returns:
+            string: Status (pending, running, done, or error)
+
+        '''
+        
+        return self.status[stage][jobid]
+            
+    ####################################   
+    def setcfg(self, param, val):
+        '''Sets an Chip configuration parameter
+
+        Args:
+            param (string): Configuration parameter to set
+            val (list): Value(s) to assign to param 
+
+        '''
+        
+        if self.cfg[param]['type'] == "list":
+            self.cfg[param]['values'] = [val]
+        elif self.cfg[param]['type'] == "file":
+            self.cfg[param]['values'] = [os.path.abspath(val)]
+        else:
+            self.cfg[param]['values'] = val
+
+    #################################
+    def appendcfg(self,param, val):
+        '''Appends values to an existing Chip configuration parameter
+
+        Args:
+            param (string): Configuration parameter to set
+            val (list) : Value(s) to assign to param 
+
+        '''
+
+        if self.cfg[param]['type'] == "file":
+            self.cfg[param]['values'].append(os.path.abspath(val))
+        else:
+            self.cfg[param]['values'].append(val)
+           
+    #################################
+    def copyargs(self, argv):
+        '''Copies attributes from the ArgumentsParser object to the current Chip configuration.
+
+        Args:
+            argv (ArgumentParser) : ArgumentsParser object
+
+        '''
+            
         self.logger.info('Reading command line variables')
 
         #Copying the parse_arg Namespace object into the dictorary
-        #Converting True/False into [""] for consistency
+        #Converting True/False into [""] for consistency??? TODO
         for arg in vars(args):
             if arg in self.cfg:
                 var = getattr(args, arg)
@@ -108,9 +159,9 @@ class Chip:
             
     #################################
     def readenv(self):
-        '''Reads the SC environment variables set by the O/S and copies them into the Chip cfg
-        dictionary.
-
+        '''Reads Chip environment variables and copies them to the current configuration.
+        Environment variables are assumed to be the upper case of the Chip parameters.
+        For example, the parameter sc_foundry will be read as $env(SC_FOUNDRY).  
         '''
 
         self.logger.info('Reading environment variables')
@@ -127,11 +178,18 @@ class Chip:
             self.cfg_locked = True
 
     #################################
-    def readjson(self, filename):
-        '''Reads a json file formatted according to the Chip cfg dictionary
-        structure
+    def readcfg(self, filename):
+        '''Reads a json formatted config file into the Chip current Chip configuration
+
+        Args:
+            filename (string): JSON formatted configuration file to read
+
+        Returns:
+            dict: Returns a dictionary found in JSON file for all keys found in
+                  in the current Chip configuration
 
         '''
+
         abspath = os.path.abspath(filename)
 
         self.logger.info('Reading JSON format configuration file %s', abspath)
@@ -155,24 +213,56 @@ class Chip:
             self.cfg_locked = True
 
         return json_args
-
             
     ##################################
-    def writejson(self, filename=None, mode="all"):
-        '''Writes out the Chip cfg dictionary to a the display or to a file on disk in the JSON
-         format.
+    def writecfg(self, filename, mode="all"):
+        '''Writes out the current Chip configuration dictionary to a file
+
+        Args:
+            filename (string): Output filename. File-suffix indicates format (json, yaml, tcl)
+            mode (string): Write the whole configuration when mode=diff, otherwise writes
+            the complete current Chip configuration.
+
+        '''
+        abspath = os.path.abspath(filename)
+        self.logger.info('Writing configuration to file %s',abspath)
+
+        # Resolve path and make directory if it doesn't exist        
+        if not os.path.exists(os.path.dirname(abspath)):
+            os.makedirs(os.path.dirname(abspath))
+
+        # Get delta dictionary
+        difflist = delta(mode)
+
+        # Write out configuration based on file type
+        
+        if abspath.endswith('.json'):
+            with open(abspath, 'w') as f:
+                print(json.dumps(diff_cfg, sort_keys=True, indent=4), file=f)
+        elif abspath.endswith('.yaml'):
+            with open(abspath, 'w') as f:
+                print(yaml.dump(diff_cfg, default_flow_style = False), file=f)
+        else:
+            self.writetcl(difflist_cfg,abspath)
+                
+    ##################################
+    def delta(self, mode):
+        '''Compute the delta between the current Chip onfig and the default
+
+        Args:
+            filename (string): JSON formatted configuration file to read
+
+        Returns:
+            dict: Returns the difference between the current Chip configuration
+                  and the default configuration
 
         '''
 
-        if filename != None:
-            abspath = os.path.abspath(filename)
-            self.logger.info('Writing JSON format configuration file %s',abspath)
-            
-        # Get defaults
+        #Get default config
         default_cfg = defaults()
         
         # Extract all keys with non-default values
-        diff_list = []
+        difflist = []
         for key in default_cfg.keys():
             if mode=="all":
                 diff_list.append(key)  
@@ -183,55 +273,50 @@ class Chip:
                         break
             elif self.cfg[key]['values'] != default_cfg[key]['values']:
                 diff_list.append(key)
+                
+        diff_cfg = copy(diff_list)                
 
-        # Create 'diff' dictionary
-        diff_cfg = {}
-        for key in diff_list:
-            diff_cfg[key] = {}
-            diff_cfg[key]['help'] = self.cfg[key]['help']
-            diff_cfg[key]['type'] = self.cfg[key]['type']
-            if self.cfg[key]['type'] == "list":
-                diff_cfg[key]['values'] = self.cfg[key]['values'].copy()
-            elif self.cfg[key]['type'] == "file":
-                diff_cfg[key]['values'] = self.cfg[key]['values'].copy()
-                diff_cfg[key]['hash'] = self.cfg[key]['hash'].copy() 
-            else:
-                diff_cfg[key]['values'] = self.cfg[key]['values']
+        return diff_cfg
 
-        # Write out dictionary
-        if filename == None:
-            print(json.dumps(diff_cfg, sort_keys=True, indent=4))
-        else:
-            if not os.path.exists(os.path.dirname(abspath)):
-                os.makedirs(os.path.dirname(abspath))
-            with open(abspath, 'w') as f:
-                print(json.dumps(diff_cfg, sort_keys=True, indent=4), file=f)
-            f.close()
-            with open("my.yaml", 'w') as f:
-                print(yaml.dump(diff_cfg, default_flow_style = False), file=f)
-
-#    def writeyaml(self,cfg,filename):
-#        with open(filename, 'w') as f:
-#            print(yaml.dump(diff_cfg), file=f)
-
-
-    
-            
     ##################################
-    def writetcl(self, filename=None):
-        '''Writes out the Chip cfg dictionary as TC lists used by EDA tools. All keys
-         are written as uppercase in accordance to common EDA ethodologies.  The list is 
-        the basic Tcl data structure. A list is simply an ordered collection of stuff; 
-        numbers, words, strings, or other lists. Even commands in Tcl are just lists 
-        in which the first list entry is the name of a proc, and subsequent members of the 
-        list are the arguments to the proc.
+    def copy(self, keylist):
+        '''Create a subset of the current Chip configuration based on the given param list
+
+        Args:
+            keylist (string): List of configuratin parameters to copy
+
+        Returns:
+            dict: Chip configuration dictionary
 
         '''
         
-        self.logger.info('Writing TCL format configuration file %s', os.path.abspath(filename))
+        cfg = {}
+        for key in keylist:
+            cfg[key] = {}
+            cfg[key]['help'] = self.cfg[key]['help']
+            cfg[key]['type'] = self.cfg[key]['type']
+            if self.cfg[key]['type'] == "list":
+                cfg[key]['values'] = self.cfg[key]['values'].copy()
+            elif self.cfg[key]['type'] == "file":
+                cfg[key]['values'] = self.cfg[key]['values'].copy()
+                cfg[key]['hash'] = self.cfg[key]['hash'].copy() 
+            else:
+                cfg[key]['values'] = self.cfg[key]['values']
+
+        return cfg
+    
+    ##################################
+    def writetcl(self, cfg, filename):
+        '''Writes out the Chip cfg dictionary in TCL format
+
+        Args:
+            cfg (dict): Dictionary to print out in TCL format
+            filename (string): Output filename.
+
+        '''
         with open(os.path.abspath(filename), 'w') as f:
             print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
-            for key in self.cfg:
+            for key in cfg:
                 keystr = "set " + key.upper()
                 #Put quotes around all list entries
                 valstr = "{"
@@ -246,28 +331,31 @@ class Chip:
 
     ##################################
     def lock(self):
-        '''Locks the Chip cfg dictionary to prevent unwarranted configuration updates during the
-        compilation flow.
+        '''Locks the Chip configuration to prevent unwarranted configuration updates
+        '''                    
+        self.cfg_locked = True
 
+    ##################################
+    def abspath(self):
+         '''Resolves all configuration paths to be absolute paths
         '''
-        for key in self.cfg:
+         for key in self.cfg:
             if self.cfg[key]['type'] == "file":
                 for i, val in enumerate(self.cfg[key]['values']):
                     self.cfg[key]['values'][i] = str(os.path.abspath(val))
-                    
-        #Locking the configuration
-        self.cfg_locked = True
-
 
     ##################################
-    def sync(self):
-        '''Waits for all processes to complete
+    def sync(self, stage,jobid):
+        '''Waits for jobs for the stage and jobid specified to complete
+        Much work to do here!!
+
         '''
-        pass
+        
 
     ##################################
     def hash(self):
         '''Creates hashes for all files sourced by Chip class
+
         '''
 
         for key in self.cfg:        
@@ -281,7 +369,9 @@ class Chip:
         
     ##################################
     def compare(self, file1, file2):
-        '''Compares all keys and values of two json setup files
+        '''Compares Chip configurations contained in two different json files
+        Useful??
+
         '''                      
 
         abspath1 = os.path.abspath(file1)
@@ -322,7 +412,40 @@ class Chip:
                 same = False
 
         return same
-        
+
+
+    ###################################
+    def summary(self, stage, jobid, filename=None):
+        '''Creates a summary dictionary of the results of the specified stage and jobid
+
+         Args:
+            stage: The stage to report on (eg. cts)
+            jobid: Index of job to report on (1, 2, etc)
+        '''    
+        summary = 1
+        return summary
+
+    
+    ###################################
+    def show(self, stage, jobid):
+        '''Shows the layout of the specified stage and jobid
+
+         Args:
+            stage: The stage to report on (eg. cts)
+            jobid: Index of job to report on (1, 2, etc)
+        '''    
+        pass
+
+    ###################################
+    def metrics(self):
+        '''Displays the metrics of all jobs in a web browser
+
+         Args:
+            stage: The stage to report on (eg. cts)
+            jobid: Index of job to report on (1, 2, etc)
+        '''    
+        pass
+
     ###################################
     def run(self, stage, mode="sync", machine="local"):
         '''The common execution method for all compilation stages compilation flow.
@@ -441,3 +564,5 @@ class Chip:
             #Return to CWD
             os.chdir(cwd)
 
+  
+        
