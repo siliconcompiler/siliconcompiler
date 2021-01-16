@@ -6,7 +6,7 @@ import sys
 import re
 import json
 import yaml
-import logging
+import logging as log
 import hashlib
 import webbrowser
 from siliconcompiler.config import defaults, cmdline
@@ -27,18 +27,18 @@ class Chip:
     status (dict) : Stage and job ID based status dictionary
 
     """
-    
+
     ####################
     def __init__(self, cmdargs, loglevel="DEBUG"):
         '''
         Init method for Chip object
-        
+
         '''
 
         # Initialize logger
-        self.logger = logging.getLogger()
-        self.handler = logging.StreamHandler()
-        self.formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s')
+        self.logger = log.getLogger()
+        self.handler = log.StreamHandler()
+        self.formatter = log.Formatter('%(asctime)s %(levelname)-8s %(message)s')
         self.handler.setFormatter(self.formatter)
         self.logger.addHandler(self.handler)
         self.logger.setLevel(str(loglevel))
@@ -56,14 +56,14 @@ class Chip:
                 self.cfg[key]['values'] = default_cfg[key]['values'].copy()
             elif default_cfg[key]['type'] == "file":
                 self.cfg[key]['values'] = default_cfg[key]['values'].copy()
-                self.cfg[key]['hash'] = default_cfg[key]['hash'].copy()   
+                self.cfg[key]['hash'] = default_cfg[key]['hash'].copy()
             else:
                 self.cfg[key]['values'] = default_cfg[key]['values']
 
         # instance starts unlocked
         self.cfg_locked = False
 
-        # setting up an empty status dictionary for each stage 
+        # setting up an empty status dictionary for each stage
         self.status = {}
         for stage in self.cfg['sc_stages']['values']:
             self.status[stage] = ["idle"]
@@ -72,17 +72,17 @@ class Chip:
         self.readenv()
 
         #Read in json files based on cfg
-          
+
         #Overide with command line arguments
         self.copyargs(cmdargs)
 
         #Resolve all source files as absolute paths (should be a switch)
         self.abspath()
-          
+
     ###################################
     def get(self, param):
         '''Gets value for supplied Chip parameter
-       
+
         Args:
             param (string): Configuration parameter to fetch
 
@@ -90,19 +90,19 @@ class Chip:
             list: List of Chip configuration values
 
         '''
-        
+
         return self.cfg[param]['values']
 
-    ####################################   
+    ####################################
     def set(self, param, val):
         '''Sets an Chip configuration parameter
 
         Args:
             param (string): Configuration parameter to set
-            val (list): Value(s) to assign to param 
+            val (list): Value(s) to assign to param
 
         '''
-        
+
         if self.cfg[param]['type'] == "list":
             self.cfg[param]['values'] = [val]
         elif self.cfg[param]['type'] == "file":
@@ -122,16 +122,16 @@ class Chip:
             string: Status (pending, running, done, or error)
 
         '''
-        
+
         return self.status[stage][jobid]
-            
+
     #################################
     def append(self,param, val):
         '''Appends values to an existing Chip configuration parameter
 
         Args:
             param (string): Configuration parameter to set
-            val (list) : Value(s) to assign to param 
+            val (list) : Value(s) to assign to param
 
         '''
 
@@ -139,16 +139,17 @@ class Chip:
             self.cfg[param]['values'].append(os.path.abspath(val))
         else:
             self.cfg[param]['values'].append(val)
-           
+
     #################################
     def copyargs(self, cmdargs):
-        '''Copies attributes from the ArgumentsParser object to the current Chip configuration.
+        '''Copies attributes from the ArgumentsParser object to the current 
+        Chip configuration.
 
         Args:
             cmdargs (ArgumentParser) : ArgumentsParser object
 
         '''
-            
+
         self.logger.info('Reading command line variables')
 
         #Copying the parse_arg Namespace object into the dictorary
@@ -164,19 +165,20 @@ class Chip:
                     else:
                         #should work for both scalar and vlists
                         self.cfg[arg]['values'] = var
-        
+
         if self.cfg['sc_lock']['values']:
             self.cfg_locked = True
-            
+
     #################################
     def readenv(self):
-        '''Reads Chip environment variables and copies them to the current configuration.
-        Environment variables are assumed to be the upper case of the Chip parameters.
-        For example, the parameter sc_foundry will be read as $env(SC_FOUNDRY).  
+        '''Reads Chip environment variables and copies them to the current 
+        configuration. Environment variables are assumed to be the upper case 
+        of the Chip parameters. For example, the parameter sc_foundry will be 
+        read as $env(SC_FOUNDRY).
         '''
 
         self.logger.info('Reading environment variables')
-        
+
         if not self.cfg_locked:
             for key in self.cfg.keys():
                 var = os.getenv(key.upper())
@@ -190,7 +192,8 @@ class Chip:
 
     #################################
     def readcfg(self, filename):
-        '''Reads a json formatted config file into the Chip current Chip configuration
+        '''Reads a json formatted config file into the Chip current Chip 
+        configuration
 
         Args:
             filename (string): JSON formatted configuration file to read
@@ -224,21 +227,22 @@ class Chip:
             self.cfg_locked = True
 
         return json_args
-            
+
     ##################################
     def writecfg(self, filename, mode="all"):
         '''Writes out the current Chip configuration dictionary to a file
 
         Args:
-            filename (string): Output filename. File-suffix indicates format (json, yaml, tcl)
-            mode (string): Write the whole configuration when mode=diff, otherwise writes
-            the complete current Chip configuration.
+            filename (string): Output filename. File-suffix indicates format 
+                               (json, yaml, tcl)
+            mode (string): Write the whole configuration for mode=diff,otherwise
+                           writes the complete current Chip configuration.
 
         '''
         abspath = os.path.abspath(filename)
         self.logger.info('Writing configuration to file %s',abspath)
 
-        # Resolve path and make directory if it doesn't exist        
+        # Resolve path and make directory if it doesn't exist
         if not os.path.exists(os.path.dirname(abspath)):
             os.makedirs(os.path.dirname(abspath))
 
@@ -246,7 +250,7 @@ class Chip:
         diff_cfg = self.delta(mode)
 
         # Write out configuration based on file type
-        
+
         if abspath.endswith('.json'):
             with open(abspath, 'w') as f:
                 print(json.dumps(diff_cfg, sort_keys=True, indent=4), file=f)
@@ -255,7 +259,7 @@ class Chip:
                 print(yaml.dump(diff_cfg, default_flow_style = False), file=f)
         else:
             self.writetcl(diff_cfg,abspath)
-                
+
     ##################################
     def delta(self, mode):
         '''Compute the delta between the current Chip onfig and the default
@@ -271,21 +275,21 @@ class Chip:
 
         #Get default config
         default_cfg = defaults()
-        
+
         # Extract all keys with non-default values
         diff_list = []
         for key in default_cfg.keys():
             if mode=="all":
-                diff_list.append(key)  
-            elif default_cfg[key]['type'] in {"list", "file"}:                
+                diff_list.append(key)
+            elif default_cfg[key]['type'] in {"list", "file"}:
                 for value in self.cfg[key]['values']:
                     if value not in default_cfg[key]['values']:
                         diff_list.append(key)
                         break
             elif self.cfg[key]['values'] != default_cfg[key]['values']:
                 diff_list.append(key)
-                
-        diff_cfg = self.copy(diff_list)                
+
+        diff_cfg = self.copy(diff_list)
 
         return diff_cfg
 
@@ -300,7 +304,7 @@ class Chip:
             dict: Chip configuration dictionary
 
         '''
-        
+
         cfg = {}
         for key in keylist:
             cfg[key] = {}
@@ -310,12 +314,12 @@ class Chip:
                 cfg[key]['values'] = self.cfg[key]['values'].copy()
             elif self.cfg[key]['type'] == "file":
                 cfg[key]['values'] = self.cfg[key]['values'].copy()
-                cfg[key]['hash'] = self.cfg[key]['hash'].copy() 
+                cfg[key]['hash'] = self.cfg[key]['hash'].copy()
             else:
                 cfg[key]['values'] = self.cfg[key]['values']
 
         return cfg
-    
+
     ##################################
     def writetcl(self, cfg, filename):
         '''Writes out the Chip cfg dictionary in TCL format
@@ -335,15 +339,16 @@ class Chip:
                     for value in self.cfg[key]['values']:
                         valstr = valstr + " {" + value + "}"
                 else:
-                    valstr = valstr + " {" + str(self.cfg[key]['values']) + "}"           
+                    valstr = valstr + " {" + str(self.cfg[key]['values']) + "}"
                 valstr = valstr + "}"
                 print('{:10s} {:100s}'.format(keystr, valstr), file=f)
         f.close()
 
     ##################################
     def lock(self):
-        '''Locks the Chip configuration to prevent unwarranted configuration updates
-        '''                    
+        '''Locks the Chip configuration to prevent unwarranted configuration 
+        updates
+        '''
         self.cfg_locked = True
 
     ##################################
@@ -361,14 +366,14 @@ class Chip:
         Much work to do here!!
 
         '''
-        
+
     ##################################
     def hash(self):
         '''Creates hashes for all files sourced by Chip class
 
         '''
 
-        for key in self.cfg:        
+        for key in self.cfg:
             if self.cfg[key]['type'] == "file":
                 for filename in self.cfg[key]['values']:
                    if os.path.isfile(filename):
@@ -376,25 +381,27 @@ class Chip:
                            bytes = f.read() # read entire file as bytes
                            hash_value = hashlib.sha256(bytes).hexdigest();
                            self.cfg[key]['hash'].append(hash_value)
-        
+
     ##################################
     def compare(self, file1, file2):
         '''Compares Chip configurations contained in two different json files
         Useful??
 
-        '''                      
+        '''
 
         abspath1 = os.path.abspath(file1)
         abspath2 = os.path.abspath(file2)
 
-        self.logger.info('Comparing JSON format configuration file %s and %s ', abspath1, abspath2)
+        self.logger.info('Comparing JSON format configuration file %s and %s ',
+                         abspath1,
+                         abspath2)
 
         #Read arguments from file
         with open(abspath1, "r") as f:
             file1_args = json.load(f)
         with open(abspath2, "r") as f:
-            file2_args = json.load(f)  
-            
+            file2_args = json.load(f)
+
         same =  True
         for key in self.cfg:
             # check that both files have all the keys
@@ -405,19 +412,21 @@ class Chip:
                     #seems that sort needs to be done before doing list compare?
                     #can't be combined?
                     file1_args[key]['values'].sort()
-                    file2_args[key]['values'].sort()                    
+                    file2_args[key]['values'].sort()
                     if file1_args[key]['values'] != file2_args[key]['values']:
                         same = False
                         self.logger.error('File difference found for key %s', key)
                     if self.cfg[key]['type'] in {"file"}:
                         file1_args[key]['hash'].sort()
-                        file2_args[key]['hash'].sort()        
+                        file2_args[key]['hash'].sort()
                         if file1_args[key]['hash'] != file2_args[key]['hash']:
                             same = False
-                            self.logger.error('Comparison difference found for key %s', key)
+                            self.logger.error('Comparison difference for key %s',
+                                              key)
                 elif file1_args[key]['values'] != file2_args[key]['values']:
-                        same = False
-                        self.logger.error('Comparison difference found for key %s', key)
+                    same = False
+                    self.logger.error('Comparison difference found for key %s',
+                                      key)
             else:
                 same = False
 
@@ -426,16 +435,17 @@ class Chip:
 
     ###################################
     def summary(self, stage, jobid, filename=None):
-        '''Creates a summary dictionary of the results of the specified stage and jobid
+        '''Creates a summary dictionary of the results of the specified stage 
+        and jobid
 
          Args:
             stage: The stage to report on (eg. cts)
             jobid: Index of job to report on (1, 2, etc)
-        '''    
+        '''
         summary = 1
         return summary
 
-    
+
     ###################################
     def show(self, stage, jobid):
         '''Shows the layout of the specified stage and jobid
@@ -443,7 +453,7 @@ class Chip:
          Args:
             stage: The stage to report on (eg. cts)
             jobid: Index of job to report on (1, 2, etc)
-        '''    
+        '''
         pass
 
     ###################################
@@ -453,7 +463,7 @@ class Chip:
          Args:
             stage: The stage to report on (eg. cts)
             jobid: Index of job to report on (1, 2, etc)
-        '''    
+        '''
         pass
 
     ###################################
@@ -549,7 +559,7 @@ class Chip:
                 #hack: workaround yosys parser error
                 cmd = ('grep -h -v \`begin_keywords obj_dir/*.vpp > verilator.v')
                 subprocess.run(cmd, shell=True)
-                #hack: extracting topmodule from concatenated verilator files 
+                #hack: extracting topmodule from concatenated verilator files
                 modules=0
                 with open("verilator.v", "r") as open_file:
                     for line in open_file:
@@ -566,13 +576,10 @@ class Chip:
                     self.cfg['sc_design']['values'] =  topmodule
                     cmd = "cp verilator.v " + topmodule + ".v"
                     subprocess.run(cmd, shell=True)
-                    
-                    
+
+
             if self.cfg['sc_gui']['values'] == "True":
                 webbrowser.open("https://google.com")
 
             #Return to CWD
             os.chdir(cwd)
-
-  
-        
