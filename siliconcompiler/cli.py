@@ -14,27 +14,16 @@ def main():
     cmdargs = sc.cmdline()
 
     #Create one (or many...) instances of Chip class
-    chip = sc.Chip()
-
-    #Read environment variables
-    chip.readenv()
-
-    #Read in json files
-    if(getattr(cmdargs,'sc_cfgfile') != None):
-        for filename in getattr(cmdargs,'sc_cfgfile'):
-            chip.readjson(filename)
-
-    #Overide with command line arguments
-    chip.readargs(cmdargs)
-
-    #Lock chip configuration
-    chip.lock()
+    chip = sc.Chip(cmdargs)
 
     #Creating hashes for all sourced files
     chip.hash()
+
+    #Lock chip configuration
+    chip.lock()
     
     #Printing out run-config
-    chip.writejson(chip.get("sc_build") + "/sc_setup.json")
+    chip.writecfg("sc_setup.json")
 
     #Compiler
     chip.run("import")

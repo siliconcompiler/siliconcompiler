@@ -154,7 +154,7 @@ def defaults():
         'switch' : "-ref",
         'values' : ""
     }
-
+    
     ############################################
     # Process Node
     #############################################
@@ -362,14 +362,14 @@ def defaults():
     }
 
     default_cfg['sc_msgaddr'] = {
-        'help' : "Address (phone or email) that will recieve job completion messages",
+        'help' : "Address (phone/email) for job completion notifications",
         'type' : "string",
         'switch' : "-msgaddr",
         'values' : ""
     }
 
     default_cfg['sc_msgstage'] = {
-        'help' : "List of stages that trigger sending of job completion messages",
+        'help' : "List of stages that trigger job completion notifications",
         'type' : "list",
         'switch' : "-msgstage",
         'values' : ["export"]
