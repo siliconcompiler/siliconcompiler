@@ -5,11 +5,11 @@ import os
 import sys
 import re
 import json
-import yaml
 import logging as log
 import hashlib
 import webbrowser
-from siliconcompiler.config import defaults, cmdline
+import yaml
+from siliconcompiler.config import defaults
 
 class Chip:
     """
@@ -126,7 +126,7 @@ class Chip:
         return self.status[stage][jobid]
 
     #################################
-    def append(self,param, val):
+    def append(self, param, val):
         '''Appends values to an existing Chip configuration parameter
 
         Args:
@@ -142,7 +142,7 @@ class Chip:
 
     #################################
     def copyargs(self, cmdargs):
-        '''Copies attributes from the ArgumentsParser object to the current 
+        '''Copies attributes from the ArgumentsParser object to the current
         Chip configuration.
 
         Args:
@@ -158,10 +158,11 @@ class Chip:
             if arg in self.cfg:
                 var = getattr(cmdargs, arg)
                 if var != None:
-                    if var == True:
-                        self.cfg[arg]['values'] = ["True"]
-                    elif var == False:
-                        self.cfg[arg]['values'] = ["False"]
+                    if self.cfg[arg]['type'] == "bool":
+                        if var:
+                            self.cfg[arg]['values'] = ["True"]
+                        elif not var:
+                            self.cfg[arg]['values'] = ["False"]
                     else:
                         #should work for both scalar and vlists
                         self.cfg[arg]['values'] = var
@@ -171,9 +172,9 @@ class Chip:
 
     #################################
     def readenv(self):
-        '''Reads Chip environment variables and copies them to the current 
-        configuration. Environment variables are assumed to be the upper case 
-        of the Chip parameters. For example, the parameter sc_foundry will be 
+        '''Reads Chip environment variables and copies them to the current
+        configuration. Environment variables are assumed to be the upper case
+        of the Chip parameters. For example, the parameter sc_foundry will be
         read as $env(SC_FOUNDRY).
         '''
 
@@ -192,7 +193,7 @@ class Chip:
 
     #################################
     def readcfg(self, filename):
-        '''Reads a json formatted config file into the Chip current Chip 
+        '''Reads a json formatted config file into the Chip current Chip
         configuration
 
         Args:
@@ -233,14 +234,14 @@ class Chip:
         '''Writes out the current Chip configuration dictionary to a file
 
         Args:
-            filename (string): Output filename. File-suffix indicates format 
+            filename (string): Output filename. File-suffix indicates format
                                (json, yaml, tcl)
             mode (string): Write the whole configuration for mode=diff,otherwise
                            writes the complete current Chip configuration.
 
         '''
         abspath = os.path.abspath(filename)
-        self.logger.info('Writing configuration to file %s',abspath)
+        self.logger.info('Writing configuration to file %s', abspath)
 
         # Resolve path and make directory if it doesn't exist
         if not os.path.exists(os.path.dirname(abspath)):
@@ -256,9 +257,9 @@ class Chip:
                 print(json.dumps(diff_cfg, sort_keys=True, indent=4), file=f)
         elif abspath.endswith('.yaml'):
             with open(abspath, 'w') as f:
-                print(yaml.dump(diff_cfg, default_flow_style = False), file=f)
+                print(yaml.dump(diff_cfg, default_flow_style=False), file=f)
         else:
-            self.writetcl(diff_cfg,abspath)
+            self.writetcl(diff_cfg, abspath)
 
     ##################################
     def delta(self, mode):
@@ -279,7 +280,7 @@ class Chip:
         # Extract all keys with non-default values
         diff_list = []
         for key in default_cfg.keys():
-            if mode=="all":
+            if mode == "all":
                 diff_list.append(key)
             elif default_cfg[key]['type'] in {"list", "file"}:
                 for value in self.cfg[key]['values']:
@@ -346,22 +347,22 @@ class Chip:
 
     ##################################
     def lock(self):
-        '''Locks the Chip configuration to prevent unwarranted configuration 
+        '''Locks the Chip configuration to prevent unwarranted configuration
         updates
         '''
         self.cfg_locked = True
 
     ##################################
     def abspath(self):
-         '''Resolves all configuration paths to be absolute paths
+        '''Resolves all configuration paths to be absolute paths
         '''
-         for key in self.cfg:
+        for key in self.cfg:
             if self.cfg[key]['type'] == "file":
                 for i, val in enumerate(self.cfg[key]['values']):
                     self.cfg[key]['values'][i] = str(os.path.abspath(val))
 
     ##################################
-    def sync(self, stage,jobid):
+    def sync(self, stage, jobid):
         '''Waits for jobs for the stage and jobid specified to complete
         Much work to do here!!
 
@@ -376,11 +377,13 @@ class Chip:
         for key in self.cfg:
             if self.cfg[key]['type'] == "file":
                 for filename in self.cfg[key]['values']:
-                   if os.path.isfile(filename):
-                       with open(filename,"rb") as f:
-                           bytes = f.read() # read entire file as bytes
-                           hash_value = hashlib.sha256(bytes).hexdigest();
-                           self.cfg[key]['hash'].append(hash_value)
+                    if os.path.isfile(filename):
+                        sha256_hash = hashlib.sha256()
+                        with open(filename, "rb") as file:
+                            for byte_block in iter(lambda: f.read(4096), b""):
+                                sha256_hash.update(byte_block)
+                            hash_value = hashlib.sha256(bytes).hexdigest()
+                            self.cfg[key]['hash'].append(hash_value)
 
     ##################################
     def compare(self, file1, file2):
@@ -402,7 +405,7 @@ class Chip:
         with open(abspath2, "r") as f:
             file2_args = json.load(f)
 
-        same =  True
+        same = True
         for key in self.cfg:
             # check that both files have all the keys
             # checking that all values and scalars are identical
@@ -435,15 +438,14 @@ class Chip:
 
     ###################################
     def summary(self, stage, jobid, filename=None):
-        '''Creates a summary dictionary of the results of the specified stage 
+        '''Creates a summary dictionary of the results of the specified stage
         and jobid
 
          Args:
             stage: The stage to report on (eg. cts)
             jobid: Index of job to report on (1, 2, etc)
         '''
-        summary = 1
-        return summary
+        return stage
 
 
     ###################################
@@ -467,13 +469,13 @@ class Chip:
         pass
 
     ###################################
-    def run(self, stage, mode="sync", machine="local"):
-        '''The common execution method for all compilation stages compilation flow.
-        The job executes on the local machine by default, but can be execute as a remote
-        job as well. If executed in synthconorus mode, the run command waits at the end of the
-        function call before returning to main. If the job is executed in async mode,
-        flags are set in the Class state and the function cal returns to main.
-
+    def run(self, stage):
+        '''The common execution method for all compilation stages compilation
+        flow. The job executes on the local machine by default, but can be
+        execute as a remote job as well. If executed in synthconorus mode, the
+        run command waits at the end of the function call before returning to
+        main. If the job is executed in async mode, flags are set in the Class
+        state and the function cal returns to main.
         '''
 
         #Hard coded directory structure is
@@ -482,19 +484,21 @@ class Chip:
         cwd = os.getcwd()
 
         #Looking up stage numbers
-        current = self.cfg['sc_stages']['values'].index(stage)
-        start = self.cfg['sc_stages']['values'].index(self.cfg['sc_start']['values'])
-        stop = self.cfg['sc_stages']['values'].index(self.cfg['sc_stop']['values'])
+        stages = self.cfg['sc_stages']['values']
+        current = stages.index(stage)
+        start = stages.index(self.cfg['sc_start']['values'])
+        stop = stages.index(self.cfg['sc_stop']['values'])
 
         if stage not in self.cfg['sc_stages']['values']:
-            self.logger.error('Illegal stage name', stage)
+            self.logger.error('Illegal stage name %s', stage)
         elif (current < start) | (current > stop):
             self.logger.info('Skipping stage: %s', stage)
         else:
             self.logger.info('Running stage: %s', stage)
 
             #Updating jobindex
-            self.cfg['sc_' + stage + '_jobid']['values'] = str(int(self.cfg['sc_' + stage + '_jobid']['values']) + 1)
+            jobid = self.cfg['sc_'+stage+'_jobid']['values']
+            self.cfg['sc_'+stage+'_jobid']['values'] = jobid + 1
 
             #Moving to working directory
             jobdir = (self.cfg['sc_build']['values'] +
@@ -535,7 +539,7 @@ class Chip:
                 cmd_fields.append(value)
 
             #Execute cmd if current stage is within range of start and stop
-            logfile  = tool + ".log"
+            logfile = tool + ".log"
             cmd_fields.append("> " + logfile)
             cmd = ' '.join(cmd_fields)
 
@@ -560,7 +564,7 @@ class Chip:
                 cmd = ('grep -h -v \`begin_keywords obj_dir/*.vpp > verilator.v')
                 subprocess.run(cmd, shell=True)
                 #hack: extracting topmodule from concatenated verilator files
-                modules=0
+                modules = 0
                 with open("verilator.v", "r") as open_file:
                     for line in open_file:
                         modmatch = re.match('^module\s+(\w+)', line)
@@ -573,7 +577,7 @@ class Chip:
                     sys.exit()
                 else:
                     self.logger.info('Setting design (topmodule) to %s', topmodule)
-                    self.cfg['sc_design']['values'] =  topmodule
+                    self.cfg['sc_design']['values'] = topmodule
                     cmd = "cp verilator.v " + topmodule + ".v"
                     subprocess.run(cmd, shell=True)
 

@@ -6,15 +6,19 @@ import logging
 
 #Shorten siliconcompiler as sc
 import siliconcompiler as sc
+import siliconcompiler.config as sc
+from siliconcompiler.config import sc_cmdline
 
 ###########################
 def main():
 
     #Command line interface
-    cmdargs = sc.cmdline()
+    cmdargs = sc_cmdline()
 
     #Create one (or many...) instances of Chip class
     chip = sc.Chip(cmdargs)
+
+    #Custom config code goes here
 
     #Creating hashes for all sourced files
     chip.hash()

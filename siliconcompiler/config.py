@@ -5,7 +5,7 @@ import re
 import argparse
 
 ###########################
-def cmdline():
+def sc_cmdline():
     '''Handles the command line configuration usign argparse. 
     All configuration parameters are exposed at the command line interface.
 
