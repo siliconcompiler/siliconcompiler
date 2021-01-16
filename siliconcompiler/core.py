@@ -29,7 +29,7 @@ class Chip:
     """
     
     ####################
-    def __init__(self, loglevel="DEBUG"):
+    def __init__(self, cmdargs, loglevel="DEBUG"):
         '''
         Init method for Chip object
         
@@ -68,8 +68,19 @@ class Chip:
         for stage in self.cfg['sc_stages']['values']:
             self.status[stage] = ["idle"]
 
+        #Read environment variables
+        self.readenv()
+
+        #Read in json files based on cfg
+          
+        #Overide with command line arguments
+        self.copyargs(cmdargs)
+
+        #Resolve all source files as absolute paths (should be a switch)
+        self.abspath()
+          
     ###################################
-    def getcfg(self, param):
+    def get(self, param):
         '''Gets value for supplied Chip parameter
        
         Args:
@@ -81,24 +92,9 @@ class Chip:
         '''
         
         return self.cfg[param]['values']
-            
-    ###################################
-    def getstatus(self, stage, jobid):
-        '''Gets status of a job for a specific compilaton stage
 
-        Args:
-            stage (string): Stage name to get status for
-            jobid (int): Job index
-
-        Returns:
-            string: Status (pending, running, done, or error)
-
-        '''
-        
-        return self.status[stage][jobid]
-            
     ####################################   
-    def setcfg(self, param, val):
+    def set(self, param, val):
         '''Sets an Chip configuration parameter
 
         Args:
@@ -114,8 +110,23 @@ class Chip:
         else:
             self.cfg[param]['values'] = val
 
+    ###################################
+    def getstatus(self, stage, jobid):
+        '''Gets status of a job for a specific compilaton stage
+
+        Args:
+            stage (string): Stage name to get status for
+            jobid (int): Job index
+
+        Returns:
+            string: Status (pending, running, done, or error)
+
+        '''
+        
+        return self.status[stage][jobid]
+            
     #################################
-    def appendcfg(self,param, val):
+    def append(self,param, val):
         '''Appends values to an existing Chip configuration parameter
 
         Args:
@@ -130,11 +141,11 @@ class Chip:
             self.cfg[param]['values'].append(val)
            
     #################################
-    def copyargs(self, argv):
+    def copyargs(self, cmdargs):
         '''Copies attributes from the ArgumentsParser object to the current Chip configuration.
 
         Args:
-            argv (ArgumentParser) : ArgumentsParser object
+            cmdargs (ArgumentParser) : ArgumentsParser object
 
         '''
             
@@ -142,9 +153,9 @@ class Chip:
 
         #Copying the parse_arg Namespace object into the dictorary
         #Converting True/False into [""] for consistency??? TODO
-        for arg in vars(args):
+        for arg in vars(cmdargs):
             if arg in self.cfg:
-                var = getattr(args, arg)
+                var = getattr(cmdargs, arg)
                 if var != None:
                     if var == True:
                         self.cfg[arg]['values'] = ["True"]
@@ -232,7 +243,7 @@ class Chip:
             os.makedirs(os.path.dirname(abspath))
 
         # Get delta dictionary
-        difflist = delta(mode)
+        diff_cfg = self.delta(mode)
 
         # Write out configuration based on file type
         
@@ -243,7 +254,7 @@ class Chip:
             with open(abspath, 'w') as f:
                 print(yaml.dump(diff_cfg, default_flow_style = False), file=f)
         else:
-            self.writetcl(difflist_cfg,abspath)
+            self.writetcl(diff_cfg,abspath)
                 
     ##################################
     def delta(self, mode):
@@ -262,7 +273,7 @@ class Chip:
         default_cfg = defaults()
         
         # Extract all keys with non-default values
-        difflist = []
+        diff_list = []
         for key in default_cfg.keys():
             if mode=="all":
                 diff_list.append(key)  
@@ -274,7 +285,7 @@ class Chip:
             elif self.cfg[key]['values'] != default_cfg[key]['values']:
                 diff_list.append(key)
                 
-        diff_cfg = copy(diff_list)                
+        diff_cfg = self.copy(diff_list)                
 
         return diff_cfg
 
@@ -351,7 +362,6 @@ class Chip:
 
         '''
         
-
     ##################################
     def hash(self):
         '''Creates hashes for all files sourced by Chip class
@@ -508,7 +518,7 @@ class Chip:
                     cmd_fields.append(value)
             else:
                 #Write out CFG as TCL (EDA tcl lacks support for json)
-                self.writetcl("sc_setup.tcl")
+                self.writetcl(self.cfg, "sc_setup.tcl")
 
             #Adding tcl scripts to comamnd line
             for value in self.cfg['sc_' + stage + '_script']['values']:
