@@ -6,7 +6,6 @@ import logging
 
 #Shorten siliconcompiler as sc
 import siliconcompiler as sc
-import siliconcompiler.config as sc
 from siliconcompiler.config import sc_cmdline
 
 ###########################
