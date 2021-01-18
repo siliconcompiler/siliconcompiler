@@ -80,6 +80,15 @@ class Chip:
         #Resolve all source files as absolute paths (should be a switch)
         self.abspath()
 
+
+    ###################################
+    def clearcfg(self):
+        '''Clears all Chip configuration values
+
+        '''
+
+        pass
+
     ###################################
     def get(self, param):
         '''Gets value for supplied Chip parameter
@@ -193,12 +202,15 @@ class Chip:
             self.cfg_locked = True
 
     #################################
-    def readcfg(self, filename):
+    def readcfg(self, filename, keymap=None):
         '''Reads a json formatted config file into the Chip current Chip
         configuration
 
         Args:
-            filename (string): JSON formatted configuration file to read
+            filename (string): Input filename. File-suffix indicates format
+                               (json, yaml, tcl, mk)
+            keymap (dict): Translates Chip configuration key names to a new set
+                           of names based on a key lookup.x
 
         Returns:
             dict: Returns a dictionary found in JSON file for all keys found in
@@ -208,11 +220,21 @@ class Chip:
 
         abspath = os.path.abspath(filename)
 
-        self.logger.info('Reading JSON format configuration file %s', abspath)
+        self.logger.info('Reading configuration file %s', abspath)
 
-        #Read arguments from file
-        with open(abspath, "r") as f:
-            json_args = json.load(f)
+        #Read arguments from file based on file type
+        if abspath.endswith('.json'):
+            with open(abspath, 'r') as f:
+                read_args = json.load(f)
+        elif abspath.endswith('.yaml'):
+            with open(abspath, 'r') as f:
+                read_args = yaml.load(f)
+        elif abspath.endswith('.tcl'):
+            read_args = self.readtcl(abspath)
+        else:
+            read_args = self.readmake(abspath)
+            
+        #Rename dictionary based on keymap
 
         if not self.cfg_locked:
             for key in json_args:
@@ -231,7 +253,7 @@ class Chip:
         return json_args
 
     ##################################
-    def writecfg(self, filename, mode="all"):
+    def writecfg(self, filename, mode="all", keymap=None):
         '''Writes out the current Chip configuration dictionary to a file
 
         Args:
@@ -296,11 +318,14 @@ class Chip:
         return diff_cfg
 
     ##################################
-    def copy(self, keylist):
-        '''Create a subset of the current Chip configuration based on the given param list
+    def copy(self, keylist, keymap=None):
+        '''Create a subset of the current Chip configuration based on the given
+        param list
 
         Args:
-            keylist (string): List of configuratin parameters to copy
+            keylist (string): List of configuration parameters to copy
+            keymap (dict): Translates Chip configuration key names to a new set
+            of names based on a key lookup.
 
         Returns:
             dict: Chip configuration dictionary
@@ -346,6 +371,39 @@ class Chip:
                 print('{:10s} {:100s}'.format(keystr, valstr), file=f)
         f.close()
 
+    ##################################
+    def readtcl(self, filename):
+        '''Reads in the a Chip configuration in in TCL format
+
+        Args:
+            filename (string): Input filename.
+
+        '''
+        return(1)
+
+    ##################################
+    def writemake(self, cfg, filename):
+        '''Writes out the Chip cfg dictionary in Make format
+
+        Args:
+            cfg (dict): Dictionary to print out in Make format
+            filename (string): Output filename.
+
+        '''
+        pass
+    
+    
+    ##################################
+    def readmake(self, filename):
+        '''Reads in the a Chip configuration in in Make format
+
+        Args:
+            filename (string): Input filename.
+
+        '''
+        return(1)
+
+    
     ##################################
     def lock(self):
         '''Locks the Chip configuration to prevent unwarranted configuration
