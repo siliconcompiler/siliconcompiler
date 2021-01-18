@@ -98,7 +98,6 @@ def defaults():
     # General Settings
     #############################################
 
- 
     default_cfg['sc_cfgfile'] = {
         'help' : "Loads configurations from a json file",
         'type' : "file",
@@ -108,21 +107,26 @@ def defaults():
     }
 
     default_cfg['sc_custom'] = {
-        'help' : "Custom pass through variables (eg: EDA_EFFORT enable_ludicrous_speed)",
+        'help' : "Custom pass through variables (eg: EDA_EFFORT crazy_speed)",
         'type' : "list",
         'switch' : "-custom",
-        'values' : [],
-        'hash'   : []
+        'values' : []
     }
 
+    default_cfg['sc_keymap'] = {
+        'help' : "Translation lookup table from sc keys to alternate key names",
+        'type' : "list",
+        'switch' : "-keymap",
+        'values' : []
+    }
+    
     default_cfg['sc_mode'] = {
         'help' : "Implementation mode (asic or fpga)",
         'type' : "string",
         'switch' : "-mode",
         'values' : "asic"
     }
-  
-   
+
     ############################################
     # Remote abstracted exeuction settings
     #############################################
@@ -156,9 +160,11 @@ def defaults():
     }
     
     ############################################
-    # Process Node
+    # Technology setup
     #############################################
 
+   
+    
     default_cfg['sc_techfile'] = {
         'help' : "Place and route tehnology file (lef or tf)",
         'type' : "file",
@@ -193,14 +199,6 @@ def defaults():
                     "metal10 Y 0.07 1.6"]
     }
     
-    default_cfg['sc_model'] = {
-        'help' : "Spice model file",
-        'type' : "file",
-        'switch' : "-model",
-        'values' : [],
-        'hash'   : []
-    }
-
     default_cfg['sc_scenario'] = {
         'help' : "Process,voltage,temp scenario (eg: tt 0.7 25 setup)",
         'type' : "list",
@@ -221,6 +219,21 @@ def defaults():
         'hash' : []
     }
 
+    default_cfg['sc_node'] = {
+        'help' : "Effective process node in nm (180, 90, 22, 12, 7 etc)",
+        'type' : "string",
+        'switch' : "-node",
+        'values' : "45"
+    }
+
+    default_cfg['sc_model'] = {
+        'help' : "Spice model file",
+        'type' : "file",
+        'switch' : "-model",
+        'values' : [],
+        'hash'   : []
+    }
+     
     ############################################
     # Standard Cell Libraries
     #############################################
