@@ -379,10 +379,10 @@ class Chip:
                 for filename in self.cfg[key]['values']:
                     if os.path.isfile(filename):
                         sha256_hash = hashlib.sha256()
-                        with open(filename, "rb") as file:
+                        with open(filename, "rb") as f:
                             for byte_block in iter(lambda: f.read(4096), b""):
                                 sha256_hash.update(byte_block)
-                            hash_value = hashlib.sha256(bytes).hexdigest()
+                            hash_value = sha256_hash.hexdigest()
                             self.cfg[key]['hash'].append(hash_value)
 
     ##################################
@@ -501,11 +501,11 @@ class Chip:
             self.cfg['sc_'+stage+'_jobid']['values'] = jobid + 1
 
             #Moving to working directory
-            jobdir = (self.cfg['sc_build']['values'] +
+            jobdir = (str(self.cfg['sc_build']['values']) +
                       "/" +
-                      stage +
+                      str(stage) +
                       "/job" +
-                      self.cfg['sc_' + stage + '_jobid']['values'])
+                      str(self.cfg['sc_' + stage + '_jobid']['values']))
 
             if os.path.isdir(jobdir):
                 os.system("rm -rf " +  jobdir)
