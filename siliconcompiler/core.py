@@ -29,7 +29,7 @@ class Chip:
     """
 
     ####################
-    def __init__(self, cmdargs, loglevel="DEBUG"):
+    def __init__(self, cmdargs=None, loglevel="DEBUG"):
         '''
         Init method for Chip object
 
@@ -74,7 +74,8 @@ class Chip:
         #Read in json files based on cfg
 
         #Overide with command line arguments
-        self.copyargs(cmdargs)
+        if cmdargs is not None:
+            self.copyargs(cmdargs)
 
         #Resolve all source files as absolute paths (should be a switch)
         self.abspath()
