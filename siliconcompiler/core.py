@@ -51,7 +51,8 @@ class Chip:
 
         # setting up an empty status dictionary for each stage
         self.status = {}
-        for stage in self.cfg['sc_stages']['values']:
+
+        for stage in self.cfg['sc_stages']['default']:
             self.status[stage] = ["idle"]
 
         #Read environment variables
@@ -166,6 +167,8 @@ class Chip:
         if self.cfg['sc_lock']['values']:
             self.cfg_locked = True
 
+
+
     #################################
     def readenv(self):
         '''Reads Chip environment variables and copies them to the current
@@ -175,12 +178,10 @@ class Chip:
         '''
 
         self.logger.info('Reading environment variables')
-
-        if not self.cfg_locked:
-            for key in self.cfg.keys():
-                var = os.getenv(key.upper())
-                if var != None:
-                    self.cfg[key]['values'] = var
+                  
+        var = os.getenv(key.upper())
+        if var != None:
+            self.cfg[key]['values'] = var
         else:
             self.logger.error('Trying to change configuration while locked')
 

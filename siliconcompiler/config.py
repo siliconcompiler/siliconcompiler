@@ -242,34 +242,54 @@ def defaults():
     cfg['sc_stdlib']['switch'] = {}
     
     # Command line support
-    cfg['sc_stdlib']['help']['liberty'] = "Liberty file <libname pvt filename>"
-    cfg['sc_stdlib']['switch']['liberty'] = "-stdlib_liberty"
+    cfg['sc_stdlib']['help']['timing'] = "Timing file <lib pvt filename>"
+    cfg['sc_stdlib']['switch']['timing'] = "-stdlib_timing"
 
-    cfg['sc_stdlib']['help']['cells'] = "Cell list <libname type cells>"
-    cfg['sc_stdlib']['switch']['cells'] = "-stdlib_cells"
-    
-    cfg['sc_stdlib']['help']['lef'] = "LEF file <libname filename>"
+    cfg['sc_stdlib']['help']['power'] = "Power file <lib pvt filename>"
+    cfg['sc_stdlib']['switch']['power'] = "-stdlib_power"
+      
+    cfg['sc_stdlib']['help']['lef'] = "LEF file <lib filename>"
     cfg['sc_stdlib']['switch']['lef'] = "-stdlib_lef"
 
-    cfg['sc_stdlib']['help']['gds'] = "GDS file <libname filename>"
+    cfg['sc_stdlib']['help']['gds'] = "GDS file <lib filename>"
     cfg['sc_stdlib']['switch']['gds'] = "-stdlib_gds"
 
-    cfg['sc_stdlib']['help']['cdl'] = "CDL file <libname filename>"
+    cfg['sc_stdlib']['help']['cdl'] = "CDL file <lib filename>"
     cfg['sc_stdlib']['switch']['cdl'] = "-stdlib_cdl"
 
+    cfg['sc_stdlib']['help']['test'] = "Test file <lib filename>"
+    cfg['sc_stdlib']['switch']['test'] = "-stdlib_test"
+    
+    cfg['sc_stdlib']['help']['verilog'] = "Verilog file <lib filename>"
+    cfg['sc_stdlib']['switch']['verilog'] = "-stdlib_verilog"
+    
+    cfg['sc_stdlib']['help']['doc'] = "Documentation directory <lib dir>"
+    cfg['sc_stdlib']['switch']['doc'] = "-stdlib_doc"
+    
+    cfg['sc_stdlib']['help']['pnrdb'] = "PNR database <libname db>"
+    cfg['sc_stdlib']['switch']['pnrdb'] = "-stdlib_pnrdb"
+
+    cfg['sc_stdlib']['help']['customdb'] = "Custom design database <lib db>"
+    cfg['sc_stdlib']['switch']['customdb'] = "-stdlib_customdb"
+    
     cfg['sc_stdlib']['help']['setup'] = "Library setup file <libname filename>"
     cfg['sc_stdlib']['switch']['setup'] = "-stdlib_setup"
-
+    
     cfg['sc_stdlib']['help']['driver'] = "Default driver cell <libname cell>"
     cfg['sc_stdlib']['switch']['driver'] = "-stdlib_driver"
 
     cfg['sc_stdlib']['help']['site'] = "Placement site name <libname site>"
     cfg['sc_stdlib']['switch']['site'] = "-stdlib_site"
 
+    cfg['sc_stdlib']['help']['cells'] = "Cell list <lib type cells>"
+    cfg['sc_stdlib']['switch']['cells'] = "-stdlib_cells"
+    
     # Defaults
 
     libname = 'NangateOpenCellLibrary'
-    corner = 'tt_0.9_25'    
+
+    corner = 'tt_0.9_25'
+    
     cfg['sc_cell_list'] = {
         'help' : "List of cell lists needed for PNR setup",
         'type' : "list",
@@ -287,11 +307,19 @@ def defaults():
     cfg['sc_stdlib'][libname] = {}   
 
     #Liberty specified on a per corner basis (so one more level of nesting)
-    cfg['sc_stdlib'][libname]['liberty'] = {}
-    cfg['sc_stdlib'][libname]['liberty']['type'] = "nested"
-    cfg['sc_stdlib'][libname]['liberty'][corner] = {
+    cfg['sc_stdlib'][libname]['timing'] = {}
+    cfg['sc_stdlib'][libname]['timing'][corner] = {
         'type' : "file",
         'default' : [iplib + "lib/NangateOpenCellLibrary_typical.lib"],
+        'value' : [],
+        'hash' : []
+    }
+
+    #Power format
+    cfg['sc_stdlib'][libname]['power'] = {}
+    cfg['sc_stdlib'][libname]['power'][corner] = {
+        'type' : "file",
+        'default' : [],
         'value' : [],
         'hash' : []
     }
@@ -358,21 +386,41 @@ def defaults():
     cfg['sc_macro']['switch'] = {}
 
     # Command line support
-    cfg['sc_macro']['help']['liberty'] = "Liberty file <libname pvt filename>"
-    cfg['sc_macro']['switch']['liberty'] = "-macro_liberty"
+    cfg['sc_macro']['help']['timing'] = "Timing file <lib pvt filename>"
+    cfg['sc_macro']['switch']['timing'] = "-macro_timing"
 
-    cfg['sc_macro']['help']['lef'] = "LEF file <libname filename>"
+    cfg['sc_macro']['help']['power'] = "Power file <lib pvt filename>"
+    cfg['sc_macro']['switch']['power'] = "-macro_power"
+      
+    cfg['sc_macro']['help']['lef'] = "LEF file <lib filename>"
     cfg['sc_macro']['switch']['lef'] = "-macro_lef"
 
-    cfg['sc_macro']['help']['gds'] = "GDS file <libname filename>"
+    cfg['sc_macro']['help']['gds'] = "GDS file <lib filename>"
     cfg['sc_macro']['switch']['gds'] = "-macro_gds"
 
-    cfg['sc_macro']['help']['cdl'] = "CDL file <libname filename>"
+    cfg['sc_macro']['help']['cdl'] = "CDL file <lib filename>"
     cfg['sc_macro']['switch']['cdl'] = "-macro_cdl"
 
+    cfg['sc_macro']['help']['test'] = "Test file <lib filename>"
+    cfg['sc_macro']['switch']['test'] = "-macro_test"
+    
+    cfg['sc_macro']['help']['verilog'] = "Verilog file <lib filename>"
+    cfg['sc_macro']['switch']['verilog'] = "-macro_verilog"
+    
+    cfg['sc_macro']['help']['doc'] = "Documentation directory <lib dir>"
+    cfg['sc_macro']['switch']['doc'] = "-macro_doc"
+    
+    cfg['sc_macro']['help']['pnrdb'] = "PNR database <libname db>"
+    cfg['sc_macro']['switch']['pnrdb'] = "-macro_pnrdb"
+
+    cfg['sc_macro']['help']['customdb'] = "Custom design database <lib db>"
+    cfg['sc_macro']['switch']['customdb'] = "-macro_customdb"
+    
     cfg['sc_macro']['help']['setup'] = "Library setup file <libname filename>"
     cfg['sc_macro']['switch']['setup'] = "-macro_setup"
-
+    
+    # No defaults
+    
     ############################################
     # Execute Options
     #############################################
@@ -722,4 +770,8 @@ def defaults():
             cfg['sc_tool'][stage]['script']['default'] = []
             
     return cfg
+
+def search_dict(cfg):
+    for k,v in cfg.items():
+        print(k,v)
 

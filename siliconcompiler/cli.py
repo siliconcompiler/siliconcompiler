@@ -34,6 +34,7 @@ def cmdline():
 
     # All other arguments
     for key in default_cfg.keys():
+        print(key)
         if default_cfg[key]['type'] is "nested":
             for subkey in  default_cfg[key]['help']:
                 parser.add_argument(default_cfg[key]['switch'][subkey],
