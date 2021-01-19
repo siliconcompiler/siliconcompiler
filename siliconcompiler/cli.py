@@ -3,16 +3,69 @@
 #Standard Modules
 import sys
 import logging
+import argparse
+import os
 
 #Shorten siliconcompiler as sc
 import siliconcompiler as sc
-from siliconcompiler.config import sc_cmdline
+from siliconcompiler.config import defaults
+
+###########################
+def cmdline():
+    '''Handles the command line configuration usign argparse. 
+    All configuration parameters are exposed at the command line interface.
+
+    '''
+    default_cfg = defaults()
+
+    os.environ["COLUMNS"] = '100'
+
+    # Argument Parser
+    
+    parser = argparse.ArgumentParser(prog='siliconcompiler',
+                                     formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=42),
+                                     prefix_chars='-+',
+                                     description="Silicon Compiler Collection (SC)")
+
+    # Source files
+    parser.add_argument('sc_source',
+                        nargs='+',
+                        help=default_cfg['sc_source']['help'])
+
+    # All other arguments
+    for key in default_cfg.keys():
+        print(key)
+        if default_cfg[key]['type'] is "nested":
+            for view in default_cfg[key]['default']:
+                parser.add_argument(default_cfg[key]['default'][view]['switch'],
+                                    dest=key + "_" + view,
+                                    action='append',
+                                    help=default_cfg[key]['default'][view]['help'])   
+        elif default_cfg[key]['type'] is "bool":
+            parser.add_argument(default_cfg[key]['switch'],
+                                dest=key,
+                                action='store_true',
+                                help=default_cfg[key]['help'])
+        elif default_cfg[key]['type'] in {"int", "float", "string"}:
+            parser.add_argument(default_cfg[key]['switch'],
+                                dest=key,
+                                help=default_cfg[key]['help'])
+        elif key != "sc_source":
+            parser.add_argument(default_cfg[key]['switch'],
+                                dest=key,
+                                action='append',
+                                help=default_cfg[key]['help'])
+
+    args = parser.parse_args()
+
+    return args
+
 
 ###########################
 def main():
 
     #Command line interface
-    cmdargs = sc_cmdline()
+    cmdargs = cmdline()
 
     #Create one (or many...) instances of Chip class
     chip = sc.Chip(cmdargs)

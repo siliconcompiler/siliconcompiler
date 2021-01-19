@@ -43,23 +43,9 @@ class Chip:
         self.logger.addHandler(self.handler)
         self.logger.setLevel(str(loglevel))
 
-        # Initialize dict
-        default_cfg = defaults()
-
-        self.cfg = {}
-        for key in default_cfg.keys():
-            self.cfg[key] = {}
-            self.cfg[key]['help'] = default_cfg[key]['help']
-            self.cfg[key]['switch'] = default_cfg[key]['switch']
-            self.cfg[key]['type'] = default_cfg[key]['type']
-            if default_cfg[key]['type'] == "list":
-                self.cfg[key]['values'] = default_cfg[key]['values'].copy()
-            elif default_cfg[key]['type'] == "file":
-                self.cfg[key]['values'] = default_cfg[key]['values'].copy()
-                self.cfg[key]['hash'] = default_cfg[key]['hash'].copy()
-            else:
-                self.cfg[key]['values'] = default_cfg[key]['values']
-
+        # Create a default dict 
+        self.cfg = defaults()
+            
         # instance starts unlocked
         self.cfg_locked = False
 
@@ -235,13 +221,13 @@ class Chip:
             read_args = self.readmake(abspath)
             
         #Rename dictionary based on keymap
-
+        #Customize based on the types
         if not self.cfg_locked:
-            for key in json_args:
+            for key in read_args:
                 #Only allow merging of keys that already exist (no new keys!)
                 if key in self.cfg:
                     #ask if scalar
-                    self.cfg[key]['values'] = json_args[key]['values'].copy()
+                    self.cfg[key]['values'] = read_args[key]['values'].copy()
                 else:
                     print("ERROR: Merging of unknown keys not allowed,", key)
         else:
@@ -274,7 +260,6 @@ class Chip:
         diff_cfg = self.delta(mode)
 
         # Write out configuration based on file type
-
         if abspath.endswith('.json'):
             with open(abspath, 'w') as f:
                 print(json.dumps(diff_cfg, sort_keys=True, indent=4), file=f)
