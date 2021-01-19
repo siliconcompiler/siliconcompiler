@@ -16,19 +16,21 @@ def defaults():
     #############################################
 
     install_dir = os.path.dirname(os.path.abspath(__file__))
-    root_dir = re.sub("siliconcompiler/siliconcompiler", "siliconcompiler", install_dir, 1)
+    root_dir = re.sub("siliconcompiler/siliconcompiler",
+                      "siliconcompiler",
+                      install_dir, 1)
     scripts_dir  = root_dir + "/edalib/"
     pdklib = root_dir + "/pdklib/virtual/nangate45/r1p0/pnr/"
     iplib = root_dir + "/iplib/virtual/nangate45/NangateOpenCellLibrary/r1p0/"
 
     #Core dictionary
-    default_cfg = {}
+    cfg = {}
 
     ############################################
     # Individual stages supported by "run"
     #############################################
 
-    default_cfg['sc_stages'] = {
+    cfg['sc_stages'] = {
         'help' : "List of all compilation stages",
         'type' : "list",
         'switch' : "-stages",
@@ -58,7 +60,7 @@ def defaults():
     # General Settings
     #############################################
 
-    default_cfg['sc_cfgfile'] = {
+    cfg['sc_cfgfile'] = {
         'help' : "Loads configurations from a json file",
         'type' : "file",
         'switch' : "-cfgfile",
@@ -67,7 +69,7 @@ def defaults():
         'hash'   : []
     }
 
-    default_cfg['sc_mode'] = {
+    cfg['sc_mode'] = {
         'help' : "Implementation mode (asic or fpga)",
         'type' : "string",
         'switch' : "-mode",
@@ -80,7 +82,7 @@ def defaults():
     #############################################
     
     
-    default_cfg['sc_custom'] = {
+    cfg['sc_custom'] = {
         'help' : "Custom EDA pass through variables",
         'type' : "list",
         'switch' : "-custom",
@@ -88,7 +90,7 @@ def defaults():
         'value' : []        
     }
 
-    default_cfg['sc_keymap'] = {
+    cfg['sc_keymap'] = {
         'help' : "Framwork keyword translation table",
         'type' : "list",
         'switch' : "-keymap",
@@ -100,7 +102,7 @@ def defaults():
     # Remote exeuction settings
     #############################################
 
-    default_cfg['sc_remote'] = {
+    cfg['sc_remote'] = {
         'help' : "Name of remote server address (https://acme.com:8080)",
         'type' : "string",
         'switch' : "-remote",
@@ -109,7 +111,7 @@ def defaults():
         
     }
   
-    default_cfg['sc_ref'] = {
+    cfg['sc_ref'] = {
         'help' : "Reference methodology name ",
         'type' : "string",
         'switch' : "-ref",
@@ -121,7 +123,7 @@ def defaults():
     # Technology setup
     #############################################
       
-    default_cfg['sc_foundry'] = {
+    cfg['sc_foundry'] = {
         'help' : "Foundry name (eg: virtual, tsmc, gf, samsung)",
         'type' : "string",
         'switch' : "-foundry",
@@ -129,7 +131,7 @@ def defaults():
         'value' : ""
     }
     
-    default_cfg['sc_process'] = {
+    cfg['sc_process'] = {
         'help' : "Process name",
         'type' : "string",
         'switch' : "-process",
@@ -137,7 +139,7 @@ def defaults():
         'value' : ""
     }
 
-    default_cfg['sc_node'] = {
+    cfg['sc_node'] = {
         'help' : "Effective process node in nm (180, 90, 22, 12, 7 etc)",
         'type' : "string",
         'switch' : "-node",
@@ -145,7 +147,7 @@ def defaults():
         'value' : ""
     }
     
-    default_cfg['sc_metalstack'] = {
+    cfg['sc_metalstack'] = {
         'help' : "Metal stack as named in the PDK",
         'type' : "string",
         'switch' : "-metalstack",
@@ -153,7 +155,7 @@ def defaults():
         'value' : ""
     }
     
-    default_cfg['sc_techfile'] = {
+    cfg['sc_techfile'] = {
         'help' : "Place and route tehnology file (lef or tf)",
         'type' : "file",
         'switch' : "-techfile",
@@ -162,7 +164,7 @@ def defaults():
         'hash'   : []
     }
 
-    default_cfg['sc_rcfile'] = {
+    cfg['sc_rcfile'] = {
         'help' : "RC extraction file",
         'type' : "file",
         'switch' : "-rcfile",
@@ -171,7 +173,7 @@ def defaults():
         'hash'   : []
     }
 
-    default_cfg['sc_layer'] = {
+    cfg['sc_layer'] = {
         'help' : "Routing layer definitions (eg: metal1 X 0.095 0.19) ",
         'type' : "list",
         'switch' : "-layer",
@@ -198,7 +200,7 @@ def defaults():
         'value' : []
     }
     #TODO: Fix, layer
-    default_cfg['sc_scenario'] = {
+    cfg['sc_scenario'] = {
         'help' : "Process,voltage,temp scenario (eg: tt 0.7 25 setup)",
         'type' : "list",
         'switch' : "-scenario",
@@ -211,7 +213,7 @@ def defaults():
 
     }
 
-    default_cfg['sc_layermap'] = {
+    cfg['sc_layermap'] = {
         'help' : "GDS layer map",
         'type' : "file",
         'switch' : "-layermap",
@@ -220,7 +222,7 @@ def defaults():
         'hash' : []
     }
 
-    default_cfg['sc_model'] = {
+    cfg['sc_model'] = {
         'help' : "Spice model file",
         'type' : "file",
         'switch' : "-model",
@@ -230,239 +232,222 @@ def defaults():
     }
            
     ############################################
-    # Standard Cell Libraries
+    # Library Configuration (per library)
     #############################################
-    #NOTE: 'default' is a reserved word for hierarchical dictionaries
-    
-    libname = 'default'
-    corner = 'default'
-    
-    default_cfg['sc_stdlib'] = {}
-    default_cfg['sc_stdlib']['type'] = "nested"
-    default_cfg['sc_stdlib'][libname] = {}
 
-    default_cfg['sc_stdlib'][libname]['liberty'] = {
-        'help' : "Library, <libname pvt filename>",
-        'type' : "nested",
-        'switch' : "-stdlib_liberty",
-        }
+    # Setting up dicts
+    cfg['sc_stdlib'] = {}
+    cfg['sc_stdlib']['type'] = "nested"
+    cfg['sc_stdlib']['help'] = {}
+    cfg['sc_stdlib']['switch'] = {}
+    
+    # Command line support
+    cfg['sc_stdlib']['help']['liberty'] = "Liberty file <libname pvt filename>"
+    cfg['sc_stdlib']['switch']['liberty'] = "-stdlib_liberty"
 
-    default_cfg['sc_stdlib'][libname]['liberty'][corner] = {
+    cfg['sc_stdlib']['help']['cells'] = "Cell list <libname type cells>"
+    cfg['sc_stdlib']['switch']['cells'] = "-stdlib_cells"
+    
+    cfg['sc_stdlib']['help']['lef'] = "LEF file <libname filename>"
+    cfg['sc_stdlib']['switch']['lef'] = "-stdlib_lef"
+
+    cfg['sc_stdlib']['help']['gds'] = "GDS file <libname filename>"
+    cfg['sc_stdlib']['switch']['gds'] = "-stdlib_gds"
+
+    cfg['sc_stdlib']['help']['cdl'] = "CDL file <libname filename>"
+    cfg['sc_stdlib']['switch']['cdl'] = "-stdlib_cdl"
+
+    cfg['sc_stdlib']['help']['setup'] = "Library setup file <libname filename>"
+    cfg['sc_stdlib']['switch']['setup'] = "-stdlib_setup"
+
+    cfg['sc_stdlib']['help']['driver'] = "Default driver cell <libname cell>"
+    cfg['sc_stdlib']['switch']['driver'] = "-stdlib_driver"
+
+    cfg['sc_stdlib']['help']['site'] = "Placement site name <libname site>"
+    cfg['sc_stdlib']['switch']['site'] = "-stdlib_site"
+
+    # Defaults
+
+    libname = 'NangateOpenCellLibrary'
+    corner = 'tt_0.9_25'    
+    cfg['sc_cell_list'] = {
+        'help' : "List of cell lists needed for PNR setup",
+        'type' : "list",
+        'switch' : "-cell_list",
+        'default' : ["icg",
+                     "dontuse",
+                     "antenna",
+                     "dcap",
+                     "filler",
+                     "tielo",
+                     "tiehi"],
+        'value' : []
+    }
+        
+    cfg['sc_stdlib'][libname] = {}   
+
+    #Liberty specified on a per corner basis (so one more level of nesting)
+    cfg['sc_stdlib'][libname]['liberty'] = {}
+    cfg['sc_stdlib'][libname]['liberty']['type'] = "nested"
+    cfg['sc_stdlib'][libname]['liberty'][corner] = {
         'type' : "file",
         'default' : [iplib + "lib/NangateOpenCellLibrary_typical.lib"],
         'value' : [],
         'hash' : []
     }
 
-    default_cfg['sc_stdlib'][libname]['lef'] = {
-        'help' : "LEF, <libname filename>",
+    #Cell lists are many and dynamic (so one more level of nesting)
+    cfg['sc_stdlib'][libname]['cells'] = {}
+    cfg['sc_stdlib'][libname]['cells']['type'] = "nested"
+    for val in cfg['sc_cell_list']['default']:
+        cfg['sc_stdlib'][libname]['cells'][val] = {
+            'type' : "list",
+            'default' : [],
+            'value' : [],
+        }
+    
+    cfg['sc_stdlib'][libname]['lef'] = {
         'type' : "file",
-        'switch' : "-stdlib_lef",
         'default' : [iplib + "lef/NangateOpenCellLibrary.macro.lef"],
         'value' : [],
         'hash'   : []
     }
 
-    default_cfg['sc_stdlib'][libname]['gds'] = {
-        'help' : "GDS file, <libname filename>",
+    cfg['sc_stdlib'][libname]['gds'] = {
         'type' : "file",
-        'switch' : "-stdlib_gds",
         'default' : [iplib + "gds/NangateOpenCellLibrary.gds"],
         'value' : [],
         'hash'   : []
     } 
 
-    default_cfg['sc_stdlib'][libname]['cdl'] = {
-        'help' : "CDL file, <libname filename> ",
+    cfg['sc_stdlib'][libname]['cdl'] = {
         'type' : "file",
-        'switch' : "-stdlib_cdl",
         'default' : [iplib + "gds/NangateOpenCellLibrary.gds"],
         'value' : [],
         'hash'   : []
     } 
 
-    default_cfg['sc_stdlib'][libname]['setup'] = {
-        'help' : "Setup file, <libname filename> ",
+    cfg['sc_stdlib'][libname]['setup'] = {
         'type' : "file",
-        'switch' : "-stdlib_setup",
         'default' : [],
         'value' : [],
         'hash'   : []
     } 
 
-    default_cfg['sc_stdlib'][libname]['driver'] = {
-        'help' : "Default driver cell, <libname driver>",
+    cfg['sc_stdlib'][libname]['driver'] = {
         'type' : "string",
-        'switch' : "-stdlib_driver",
         'default' : ["BUF_X1"],
         'value' : []
     } 
 
-    default_cfg['sc_stdlib'][libname]['site'] = {
-        'help' : "Site name for automated floor-planning, <libname site>",
+    cfg['sc_stdlib'][libname]['site'] = {
         'type' : "list",
-        'switch' : "-stdlib_site",
         'default' : ["FreePDK45_38x28_10R_NP_162NW_34O"],
         'value' : []
     } 
 
-    default_cfg['sc_cell_list'] = {
-        'help' : "List of cell lists needed for PNR setup",
-        'type' : "list",
-        'switch' : "-cell_list",
-        'default' : ["icg",
-                    "dontuse",
-                    "antenna",
-                    "dcap",
-                    "filler",
-                    "tielo",
-                     "tiehi"],
-        'value' : []
-    }
-        
-    for value in default_cfg['sc_cell_list']['default']:
-        default_cfg['sc_stdlib'][libname][value] = {
-            'help' : "List of " + value + " cells, <libname cells>",
-            'type' : "list",
-            'switch' : "-" + "stdlib_" + value,            
-            'default' : [],
-            'value' : [],
-        }
-
-
     ############################################
-    # Macro Libraries
+    # Macro Configuration (per macro)
     #############################################
 
-    macroname = 'default'
-    corner = 'default'
+    #structure is the same as for standard cell libraries
     
-    default_cfg['sc_macro'] = {}
-    default_cfg['sc_macro']['type'] = "nested"
-    default_cfg['sc_macro'][macroname] = {}
+    cfg['sc_macro'] = {}
+    cfg['sc_macro']['type'] = "nested"
+    cfg['sc_macro']['help'] = {}
+    cfg['sc_macro']['switch'] = {}
 
-    default_cfg['sc_macro'][macroname]['liberty'] = {
-        'help' : "Library tuple, <macroname pvt filename>",
-        'type' : "nested",
-        'switch' : "-macro_liberty",
-        }
-    
-    default_cfg['sc_macro'][macroname]['liberty'][corner] = {
-        'type' : "file",
-        'default' : [iplib + "lib/NangateOpenCellLibrary_typical.lib"],
-        'value' : [],
-        'hash'   : []
-    }
+    # Command line support
+    cfg['sc_macro']['help']['liberty'] = "Liberty file <libname pvt filename>"
+    cfg['sc_macro']['switch']['liberty'] = "-macro_liberty"
 
-    default_cfg['sc_macro'][macroname]['lef'] = {
-        'help' : "LEF file, <macroname filename>",
-        'type' : "file",
-        'switch' : "-macro_lef",
-        'default' : [iplib + "lef/NangateOpenCellLibrary.macro.lef"],
-        'value' : [],
-        'hash'   : []
-    } 
+    cfg['sc_macro']['help']['lef'] = "LEF file <libname filename>"
+    cfg['sc_macro']['switch']['lef'] = "-macro_lef"
 
-    default_cfg['sc_macro'][macroname]['gds'] = {
-        'help' : "GDS file tuple, <macroname filename>",
-        'type' : "file",
-        'switch' : "-macro_gds",
-        'default' : [iplib + "gds/NangateOpenCellLibrary.gds"],
-        'hash'   : []
-    } 
+    cfg['sc_macro']['help']['gds'] = "GDS file <libname filename>"
+    cfg['sc_macro']['switch']['gds'] = "-macro_gds"
 
-    default_cfg['sc_macro'][macroname]['cdl'] = {
-        'help' : "CDL file tuple, <macroname filename> ",
-        'type' : "file",
-        'switch' : "-macro_cdl",
-        'default' : [iplib + "gds/NangateOpenCellLibrary.gds"],
-        'hash'   : []
-    } 
+    cfg['sc_macro']['help']['cdl'] = "CDL file <libname filename>"
+    cfg['sc_macro']['switch']['cdl'] = "-macro_cdl"
 
-    default_cfg['sc_macro'][macroname]['setup'] = {
-        'help' : "Setup file tuple, <macroname filename> ",
-        'type' : "file",
-        'switch' : "-macro_setup",
-        'default' : [],
-        'hash'   : []
-    } 
-                                          
-                                          
+    cfg['sc_macro']['help']['setup'] = "Library setup file <libname filename>"
+    cfg['sc_macro']['switch']['setup'] = "-macro_setup"
+
     ############################################
     # Execute Options
     #############################################
 
-    default_cfg['sc_debug'] = {
+    cfg['sc_debug'] = {
         'help' : "Debug level (INFO/DEBUG/WARNING/ERROR/CRITICAL)",
         'type' : "string",
         'switch' : "-debug",
         'default' : "INFO"
     }
 
-    default_cfg['sc_build'] = {
+    cfg['sc_build'] = {
         'help' : "Name of build directory",
         'type' : "string",
         'switch' : "-build",
         'default' : "build"
     }
     
-    default_cfg['sc_effort'] = {
+    cfg['sc_effort'] = {
         'help' : "Compilation effort (low,medium,high)",
         'type' : "string",
         'switch' : "-effort",
         'default' : "high"
     }
 
-    default_cfg['sc_priority'] = {
+    cfg['sc_priority'] = {
         'help' : "Optimization priority (performance, power, area)",
         'type' : "string",
         'switch' : "-priority",
         'default' : "performance"
     }
 
-    default_cfg['sc_cont'] = {
+    cfg['sc_cont'] = {
         'help' : "Continues from last completed stage",
         'type' : "bool",
         'switch' : "-cont",
         'default' : False
     }
         
-    default_cfg['sc_gui'] = {
+    cfg['sc_gui'] = {
         'help' : "Launches GUI at every stage",
         'type' : "bool",
         'switch' : "-gui",
         'default' : False
     }
 
-    default_cfg['sc_lock'] = {
+    cfg['sc_lock'] = {
         'help' : "Switch to lock configuration from further modification",
         'type' : "bool",
         'switch' : "-lock",
         'default' : False
     }
     
-    default_cfg['sc_start'] = {
+    cfg['sc_start'] = {
         'help' : "Compilation starting stage",
         'type' : "string",
         'switch' : "-start",
         'default' : "import"
     }
 
-    default_cfg['sc_stop'] = {
+    cfg['sc_stop'] = {
         'help' : "Compilation ending stage",
         'type' : "string",
         'switch' : "-stop",
         'default' : "export"
     }
     
-    default_cfg['sc_message_event'] = {
+    cfg['sc_message_event'] = {
         'help' : "List of stages that triggermessages",
         'type' : "list",
         'switch' : "-message_event",
         'default' : ["export"]
     }
 
-    default_cfg['sc_message_recipient'] = {
+    cfg['sc_message_address'] = {
         'help' : "Message address (phone #/email addr)",
         'type' : "string",
         'switch' : "-message_address",
@@ -473,7 +458,7 @@ def defaults():
     # Design Specific Source Code Parameters
     #############################################
 
-    default_cfg['sc_source'] = {
+    cfg['sc_source'] = {
         'help' : "Source files (.v/.vh/.sv/.vhd)",
         'type' : "file",
         'switch' : "None",
@@ -481,21 +466,21 @@ def defaults():
         'hash'   : []
     }
 
-    default_cfg['sc_design'] = {
+    cfg['sc_design'] = {
         'help' : "Design top module name",
         'type' : "string",
         'switch' : "-design",
         'default' : ""
     }
 
-    default_cfg['sc_nickname'] = {
+    cfg['sc_nickname'] = {
         'help' : "Design nickname",
         'type' : "string",
         'switch' : "-nickname",
         'default' : ""
     }
 
-    default_cfg['sc_clk'] = {
+    cfg['sc_clk'] = {
         'help' : "Clock defintion tuple (<clkname> <period(ns)>)",
         'type' : "list",
         'switch' : "-clk",
@@ -503,14 +488,14 @@ def defaults():
     }
 
 
-    default_cfg['sc_define'] = {
+    cfg['sc_define'] = {
         'help' : "Define variables for Verilog preprocessor",
         'type' : "list",
         'switch' : "-D",
         'default' : []
     }
     
-    default_cfg['sc_ydir'] = {
+    cfg['sc_ydir'] = {
         'help' : "Directory to search for modules",
         'type' : "file",
         'switch' : "-y",
@@ -518,7 +503,7 @@ def defaults():
         'hash'   : []
     }
 
-    default_cfg['sc_idir'] = {
+    cfg['sc_idir'] = {
         'help' : "Directory to search for inclodes",
         'type' : "file",
         'switch' : "-I",
@@ -526,7 +511,7 @@ def defaults():
         'hash'   : []
     }
 
-    default_cfg['sc_vlib'] = {
+    cfg['sc_vlib'] = {
         'help' : "Library file",
         'type' : "file",
         'switch' : "-v",
@@ -534,14 +519,14 @@ def defaults():
         'hash'   : []
     }
 
-    default_cfg['sc_libext'] = {
+    cfg['sc_libext'] = {
         'help' : "Extension for finding modules",
         'type' : "list",
         'switch' : "+libext",
         'default' : [".v", ".vh", ".sv", ".vhd"]
     }
 
-    default_cfg['sc_cmdfile'] = {
+    cfg['sc_cmdfile'] = {
         'help' : "Parse source options from command file",
         'type' : "file",
         'switch' : "-f",
@@ -549,14 +534,14 @@ def defaults():
         'hash'   : []
     }
 
-    default_cfg['sc_wall'] = {
+    cfg['sc_wall'] = {
         'help' : "Enable all lint style warnings",
         'type' : "string",
         'switch' : "-Wall",
         'default' : ""
     }
 
-    default_cfg['sc_wno'] = {
+    cfg['sc_wno'] = {
         'help' : "Disables a warning -Woo-<message>",
         'type' : "list",
         'switch' : "-Wno",
@@ -567,63 +552,63 @@ def defaults():
     # Design specific PD Parameters
     #############################################
 
-    default_cfg['sc_minlayer'] = {
+    cfg['sc_minlayer'] = {
         'help' : "Minimum routing layer (integer)",
         'type' : "int",
         'switch' : "-minlayer",
         'default' : 2
     }
 
-    default_cfg['sc_maxlayer'] = {
+    cfg['sc_maxlayer'] = {
         'help' : "Maximum routing layer (integer)",
         'type' : "int",
         'switch' : "-maxlayer",
         'default' : 5
     }
     
-    default_cfg['sc_maxfanout'] = {
+    cfg['sc_maxfanout'] = {
         'help' : "Maximum fanout",
         'type' : "int",
         'switch' : "-maxfanout",
         'default' : 64
     }
 
-    default_cfg['sc_density'] = {
+    cfg['sc_density'] = {
         'help' : "Target density for automated floor-planning (percent)",
         'type' : "int",
         'switch' : "-density",
         'default' : 30
     }
 
-    default_cfg['sc_aspectratio'] = {
+    cfg['sc_aspectratio'] = {
         'help' : "Aspect ratio for density driven floor-planning",
         'type' : "float",
         'switch' : "-aspectratio",
         'default' : 1
     }
 
-    default_cfg['sc_coremargin'] = {
+    cfg['sc_coremargin'] = {
         'help' : "Margin around core for density driven floor-planning (um)",
         'type' : "float",
         'switch' : "-coremargin",
         'default' : 2
     }
 
-    default_cfg['sc_diesize'] = {
+    cfg['sc_diesize'] = {
         'help' : "Die size (x0 y0 x1 y1) for automated floor-planning (um)",
         'type' : "string",
         'switch' : "-diesize",
         'default' : ""
     }
 
-    default_cfg['sc_coresize'] = {
+    cfg['sc_coresize'] = {
         'help' : "Core size (x0 y0 x1 y1) for automated floor-planning (um)",
         'type' : "string",
         'switch' : "-coresize",
         'default' : ""
     }
 
-    default_cfg['sc_floorplan'] = {
+    cfg['sc_floorplan'] = {
         'help' : "User supplied python based floorplaning script",
         'type' : "file",
         'switch' : "-floorplan",
@@ -631,7 +616,7 @@ def defaults():
         'hash'   : []
     }
     
-    default_cfg['sc_def'] = {
+    cfg['sc_def'] = {
         'help' : "User supplied hard-coded floorplan (DEF)",
         'type' : "file",
         'switch' : "-def",
@@ -639,15 +624,15 @@ def defaults():
         'hash'   : []
     }
     
-    default_cfg['sc_constraints'] = {
-        'help' : "Constraints file)",
+    cfg['sc_constraints'] = {
+        'help' : "Constraints file (SDC)",
         'type' : "file",
         'switch' : "-constraints",
         'default' : [],
         'hash'   : []
     }
     
-    default_cfg['sc_ndr'] = {
+    cfg['sc_ndr'] = {
         'help' : "Non-default net routing file",
         'type' : "file",
         'switch' : "-ndr",
@@ -655,7 +640,7 @@ def defaults():
         'hash'   : []
     }
 
-    default_cfg['sc_upf'] = {
+    cfg['sc_upf'] = {
         'help' : "Power intent file",
         'type' : "file",
         'switch' : "-upf",
@@ -663,7 +648,7 @@ def defaults():
         'hash'   : []
     }
 
-    default_cfg['sc_vcd'] = {
+    cfg['sc_vcd'] = {
         'help' : "Value Change Dump (VCD) file for power analysis",
         'type' : "file",
         'switch' : "-vcd",
@@ -672,60 +657,69 @@ def defaults():
     }
 
     ############################################
-    # Tool Configuration
+    # Tool Configuration (per stage)
     #############################################
+    
+    cfg['sc_tool'] = {}
+    cfg['sc_tool']['type'] = "nested"
+    cfg['sc_tool']['help'] = {}
+    cfg['sc_tool']['switch'] = {}
 
-    for stage in default_cfg['sc_stages']['default']:
-        
-        #init dict
-        default_cfg['sc_' + stage + '_tool'] = {}
-        default_cfg['sc_' + stage + '_opt'] = {}
-        default_cfg['sc_' + stage + '_script'] = {}
-        default_cfg['sc_' + stage + '_jobid'] = {}
-        default_cfg['sc_' + stage + '_np'] = {}
+    # Binary     
+    cfg['sc_tool']['help']['exe'] = "Executable <stage, exe>"
+    cfg['sc_tool']['switch']['exe'] = "-tool_exe"
+    # Options
+    cfg['sc_tool']['help']['opt'] = "Options <stage, options>"    
+    cfg['sc_tool']['switch']['opt'] = "-tool_opt"
+    # Script
+    cfg['sc_tool']['help']['script'] = "Run script <stage, script>"
+    cfg['sc_tool']['switch']['script'] = "-tool_script"
+    # Jobid
+    cfg['sc_tool']['help']['jobid'] = "Job index <stage, jobid>"
+    cfg['sc_tool']['switch']['jobid'] = "-tool_jobid"
+    # Parallelism
+    cfg['sc_tool']['help']['np'] = "Parallelism <stage, threads>"
+    cfg['sc_tool']['switch']['np'] = "-tool_np"
 
-        #descriptions
-        default_cfg['sc_' + stage + '_tool']['help'] = "Name of tool for " + stage + " stage"
-        default_cfg['sc_' + stage + '_opt']['help'] = "Options for " + stage + " stage executable" 
-        default_cfg['sc_' + stage + '_script']['help'] = "Run script for " + stage + " stage"
-        default_cfg['sc_' + stage + '_jobid']['help'] = "Index of last executed job in " + stage + " stage"
-        default_cfg['sc_' + stage + '_np']['help'] = "Thread parallelism for " + stage + " stage"
+    # Defaults and config for all stages
+    for stage in cfg['sc_stages']['default']:        
+        cfg['sc_tool'][stage] = {}
+        cfg['sc_tool'][stage]['type'] = "nested"
+        for opt in ("exe", "opt", "script", "jobid", "np"):
+            cfg['sc_tool'][stage][opt] = {}
 
-        #type
-        default_cfg['sc_' + stage + '_tool']['type'] = "string"
-        default_cfg['sc_' + stage + '_opt']['type'] = "list"
-        default_cfg['sc_' + stage + '_script']['type'] = "file"
-        default_cfg['sc_' + stage + '_jobid']['type'] = "int"
-        default_cfg['sc_' + stage + '_np']['type'] = "int"
+        # Types
+        cfg['sc_tool'][stage]['exe']['type'] = "string"
+        cfg['sc_tool'][stage]['opt']['type'] = "string"
+        cfg['sc_tool'][stage]['script']['type'] = "file"
+        cfg['sc_tool'][stage]['jobid']['type'] = "int"
+        cfg['sc_tool'][stage]['np']['type'] = "int"
 
-        #hash
-        default_cfg['sc_' + stage + '_script']['hash'] = []
-        
-        #command line switches
-        default_cfg['sc_' + stage + '_tool']['switch'] = "-" + stage + "_tool"
-        default_cfg['sc_' + stage + '_opt']['switch'] = "-" + stage + "_opt"
-        default_cfg['sc_' + stage + '_script']['switch'] = "-" + stage + "_script"
-        default_cfg['sc_' + stage + '_jobid']['switch'] = "-" + stage + "_jobid"
-        default_cfg['sc_' + stage + '_np']['switch'] = "-" + stage + "_np"
+        # No init hash
+        cfg['sc_tool'][stage]['script']['hash'] = []
 
-        #Common default
-        default_cfg['sc_' + stage + '_jobid']['default'] = 0
-        default_cfg['sc_' + stage + '_np']['default'] = 4
+        #Creating defaults on a per tool basis
+        cfg['sc_tool'][stage]['jobid']['default'] = 0
+        cfg['sc_tool'][stage]['np']['default'] = 4
 
-        #Tool specific default
-        default_script = scripts_dir + default_cfg['sc_mode']['default'] + "/sc_" + stage + ".tcl"
+        script = scripts_dir+cfg['sc_mode']['default']+"/sc_"+stage+".tcl"
+
         if stage == "import":
-            default_cfg['sc_import_tool']['default'] = "verilator"
-            default_cfg['sc_import_opt']['default'] = ["--lint-only", "--debug"]
-            default_cfg['sc_import_script']['default'] = []
+            cfg['sc_tool'][stage]['exe']['default'] = "verilator"
+            cfg['sc_tool'][stage]['opt']['default'] = ["--lint-only", "--debug"]
+            cfg['sc_tool'][stage]['script']['default'] = []
         elif stage == "syn":
-            default_cfg['sc_syn_tool']['default'] = "yosys"
-            default_cfg['sc_syn_opt']['default'] = ["-c"]
-            default_cfg['sc_syn_script']['default'] = [default_script]
+            cfg['sc_tool'][stage]['exe']['default'] = "yosys"
+            cfg['sc_tool'][stage]['opt']['default'] = ["-c"]
+            cfg['sc_tool'][stage]['script']['default'] = [script]
+        elif stage in ("floorplan", "place", "cts", "route", "signoff"):
+            cfg['sc_tool'][stage]['exe']['default'] = "openroad"
+            cfg['sc_tool'][stage]['opt']['default'] = ["-no_init", "-exit"]
+            cfg['sc_tool'][stage]['script']['default'] = [script]
         else:
-            default_cfg['sc_' + stage + '_tool']['default'] = "openroad"
-            default_cfg['sc_' + stage + '_opt']['default'] = ["-no_init", "-exit"]
-            default_cfg['sc_' + stage + '_script']['default'] = [default_script]
+            cfg['sc_tool'][stage]['exe']['default'] = ""
+            cfg['sc_tool'][stage]['opt']['default'] = []
+            cfg['sc_tool'][stage]['script']['default'] = []
             
-    return default_cfg
+    return cfg
 

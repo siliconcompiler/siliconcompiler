@@ -34,13 +34,12 @@ def cmdline():
 
     # All other arguments
     for key in default_cfg.keys():
-        print(key)
         if default_cfg[key]['type'] is "nested":
-            for view in default_cfg[key]['default']:
-                parser.add_argument(default_cfg[key]['default'][view]['switch'],
-                                    dest=key + "_" + view,
+            for subkey in  default_cfg[key]['help']:
+                parser.add_argument(default_cfg[key]['switch'][subkey],
+                                    dest=key+"_"+subkey,
                                     action='append',
-                                    help=default_cfg[key]['default'][view]['help'])   
+                                    help=default_cfg[key]['help'][subkey])   
         elif default_cfg[key]['type'] is "bool":
             parser.add_argument(default_cfg[key]['switch'],
                                 dest=key,
