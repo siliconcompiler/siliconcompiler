@@ -52,8 +52,7 @@ def defaults():
                      "density",
                      "erc",                    
                      "lvs",
-                     "tapeout"],
-        'value' : []
+                     "tapeout"]
     }
 
     ############################################
@@ -65,7 +64,6 @@ def defaults():
         'type' : "file",
         'switch' : "-cfgfile",
         'default' : [],
-        'value' : [],
         'hash'   : []
     }
 
@@ -73,8 +71,7 @@ def defaults():
         'help' : "Implementation mode (asic or fpga)",
         'type' : "string",
         'switch' : "-mode",
-        'default' : "asic",
-        'value' : []        
+        'default' : "asic"
     }
 
     ############################################
@@ -86,16 +83,14 @@ def defaults():
         'help' : "Custom EDA pass through variables",
         'type' : "list",
         'switch' : "-custom",
-        'default' : [],
-        'value' : []        
+        'default' : []
     }
 
     cfg['sc_keymap'] = {
         'help' : "Framwork keyword translation table",
         'type' : "list",
         'switch' : "-keymap",
-        'default' : [],
-        'value' : []        
+        'default' : []
     }
       
     ############################################
@@ -106,17 +101,14 @@ def defaults():
         'help' : "Name of remote server address (https://acme.com:8080)",
         'type' : "string",
         'switch' : "-remote",
-        'default' : "",
-        'value' : ""
-        
+        'default' : ""
     }
   
     cfg['sc_ref'] = {
         'help' : "Reference methodology name ",
         'type' : "string",
         'switch' : "-ref",
-        'default' : "nangate45",
-        'value' : ""
+        'default' : "nangate45"
     }
     
     ############################################
@@ -127,32 +119,28 @@ def defaults():
         'help' : "Foundry name (eg: virtual, tsmc, gf, samsung)",
         'type' : "string",
         'switch' : "-foundry",
-        'default' : "virtual",
-        'value' : ""
+        'default' : "virtual"
     }
     
     cfg['sc_process'] = {
         'help' : "Process name",
         'type' : "string",
         'switch' : "-process",
-        'default' : "nangate45",
-        'value' : ""
+        'default' : "nangate45"
     }
 
     cfg['sc_node'] = {
         'help' : "Effective process node in nm (180, 90, 22, 12, 7 etc)",
         'type' : "string",
         'switch' : "-node",
-        'default' : "45",
-        'value' : ""
+        'default' : "45"
     }
     
     cfg['sc_metalstack'] = {
         'help' : "Metal stack as named in the PDK",
         'type' : "string",
         'switch' : "-metalstack",
-        'default' : "",
-        'value' : ""
+        'default' : ""
     }
     
     cfg['sc_techfile'] = {
@@ -160,7 +148,6 @@ def defaults():
         'type' : "file",
         'switch' : "-techfile",
         'default' : [pdklib + "nangate45.tech.lef"],
-        'value' : [],
         'hash'   : []
     }
 
@@ -169,7 +156,6 @@ def defaults():
         'type' : "file",
         'switch' : "-rcfile",
         'default' : [],
-        'value' : [],
         'hash'   : []
     }
 
@@ -196,8 +182,7 @@ def defaults():
                     "metal9 X 0.095 1.6",
                     "metal9 Y 0.07  1.6",
                     "metal10 X 0.095 1.6",
-                     "metal10 Y 0.07 1.6"],
-        'value' : []
+                     "metal10 Y 0.07 1.6"]
     }
     #TODO: Fix, layer
     cfg['sc_scenario'] = {
@@ -208,9 +193,7 @@ def defaults():
         'default' : ["tt      1.0       25    all           all",
                     "ff      1.1       -40   opt           hold",
                     "ff      1.1       125   opt           power",
-                     "ss      0.9       125   signoff       setup"],
-        'value' : []
-
+                     "ss      0.9       125   signoff       setup"]
     }
 
     cfg['sc_layermap'] = {
@@ -218,7 +201,6 @@ def defaults():
         'type' : "file",
         'switch' : "-layermap",
         'default' : [],
-        'value' : [],
         'hash' : []
     }
 
@@ -227,68 +209,12 @@ def defaults():
         'type' : "file",
         'switch' : "-model",
         'default' : [],
-        'value' : [],
         'hash'   : []
     }
            
     ############################################
     # Library Configuration (per library)
     #############################################
-
-    # Setting up dicts
-    cfg['sc_stdlib'] = {}
-    cfg['sc_stdlib']['type'] = "nested"
-    cfg['sc_stdlib']['help'] = {}
-    cfg['sc_stdlib']['switch'] = {}
-    
-    # Command line support
-    cfg['sc_stdlib']['help']['timing'] = "Timing file <lib pvt filename>"
-    cfg['sc_stdlib']['switch']['timing'] = "-stdlib_timing"
-
-    cfg['sc_stdlib']['help']['power'] = "Power file <lib pvt filename>"
-    cfg['sc_stdlib']['switch']['power'] = "-stdlib_power"
-      
-    cfg['sc_stdlib']['help']['lef'] = "LEF file <lib filename>"
-    cfg['sc_stdlib']['switch']['lef'] = "-stdlib_lef"
-
-    cfg['sc_stdlib']['help']['gds'] = "GDS file <lib filename>"
-    cfg['sc_stdlib']['switch']['gds'] = "-stdlib_gds"
-
-    cfg['sc_stdlib']['help']['cdl'] = "CDL file <lib filename>"
-    cfg['sc_stdlib']['switch']['cdl'] = "-stdlib_cdl"
-
-    cfg['sc_stdlib']['help']['test'] = "Test file <lib filename>"
-    cfg['sc_stdlib']['switch']['test'] = "-stdlib_test"
-    
-    cfg['sc_stdlib']['help']['verilog'] = "Verilog file <lib filename>"
-    cfg['sc_stdlib']['switch']['verilog'] = "-stdlib_verilog"
-    
-    cfg['sc_stdlib']['help']['doc'] = "Documentation directory <lib dir>"
-    cfg['sc_stdlib']['switch']['doc'] = "-stdlib_doc"
-    
-    cfg['sc_stdlib']['help']['pnrdb'] = "PNR database <libname db>"
-    cfg['sc_stdlib']['switch']['pnrdb'] = "-stdlib_pnrdb"
-
-    cfg['sc_stdlib']['help']['customdb'] = "Custom design database <lib db>"
-    cfg['sc_stdlib']['switch']['customdb'] = "-stdlib_customdb"
-    
-    cfg['sc_stdlib']['help']['setup'] = "Library setup file <libname filename>"
-    cfg['sc_stdlib']['switch']['setup'] = "-stdlib_setup"
-    
-    cfg['sc_stdlib']['help']['driver'] = "Default driver cell <libname cell>"
-    cfg['sc_stdlib']['switch']['driver'] = "-stdlib_driver"
-
-    cfg['sc_stdlib']['help']['site'] = "Placement site name <libname site>"
-    cfg['sc_stdlib']['switch']['site'] = "-stdlib_site"
-
-    cfg['sc_stdlib']['help']['cells'] = "Cell list <lib type cells>"
-    cfg['sc_stdlib']['switch']['cells'] = "-stdlib_cells"
-    
-    # Defaults
-
-    libname = 'NangateOpenCellLibrary'
-
-    corner = 'tt_0.9_25'
     
     cfg['sc_cell_list'] = {
         'help' : "List of cell lists needed for PNR setup",
@@ -300,127 +226,233 @@ def defaults():
                      "dcap",
                      "filler",
                      "tielo",
-                     "tiehi"],
-        'value' : []
+                     "tiehi"]
     }
-        
-    cfg['sc_stdlib'][libname] = {}   
+
+    # Setting up dicts
+    #NOTE! 'default' is a reserved keyword for libname
+    cfg['sc_stdlib'] = {}  
+    cfg['sc_stdlib']['default'] = {}
 
     #Liberty specified on a per corner basis (so one more level of nesting)
-    cfg['sc_stdlib'][libname]['timing'] = {}
-    cfg['sc_stdlib'][libname]['timing'][corner] = {
+    cfg['sc_stdlib']['default']['timing'] = {}
+    cfg['sc_stdlib']['default']['timing']['default'] = {
+        'help' : "Timing file <lib pvt filename>",
+        'switch' : "-stdlib_timing",
         'type' : "file",
         'default' : [iplib + "lib/NangateOpenCellLibrary_typical.lib"],
-        'value' : [],
         'hash' : []
     }
 
     #Power format
-    cfg['sc_stdlib'][libname]['power'] = {}
-    cfg['sc_stdlib'][libname]['power'][corner] = {
+    cfg['sc_stdlib']['default']['power'] = {}
+    cfg['sc_stdlib']['default']['power']['default'] = {
+        'help' : "Power file <lib pvt filename>",
+        'switch' : "-stdlib_power",        
         'type' : "file",
         'default' : [],
-        'value' : [],
         'hash' : []
     }
 
     #Cell lists are many and dynamic (so one more level of nesting)
-    cfg['sc_stdlib'][libname]['cells'] = {}
-    cfg['sc_stdlib'][libname]['cells']['type'] = "nested"
+    cfg['sc_stdlib']['default']['cells'] = {}
     for val in cfg['sc_cell_list']['default']:
-        cfg['sc_stdlib'][libname]['cells'][val] = {
+        cfg['sc_stdlib']['default']['cells'][val] = {
+            'help' : "List of "+val+" cells",
+            'switch' : "-stdlib_"+val,
             'type' : "list",
-            'default' : [],
-            'value' : [],
+            'default' : []
         }
     
-    cfg['sc_stdlib'][libname]['lef'] = {
+    cfg['sc_stdlib']['default']['lef'] = {
+        'help' : "Library LEF file <lib filename>",
+        'switch' : "-stdlib_lef",      
         'type' : "file",
         'default' : [iplib + "lef/NangateOpenCellLibrary.macro.lef"],
-        'value' : [],
         'hash'   : []
     }
 
-    cfg['sc_stdlib'][libname]['gds'] = {
+    cfg['sc_stdlib']['default']['gds'] = {
+        'help' : "Library GDS file <lib filename>",
+        'switch' : "-stdlib_gds",        
         'type' : "file",
         'default' : [iplib + "gds/NangateOpenCellLibrary.gds"],
-        'value' : [],
         'hash'   : []
     } 
 
-    cfg['sc_stdlib'][libname]['cdl'] = {
-        'type' : "file",
-        'default' : [iplib + "gds/NangateOpenCellLibrary.gds"],
-        'value' : [],
-        'hash'   : []
-    } 
-
-    cfg['sc_stdlib'][libname]['setup'] = {
+    cfg['sc_stdlib']['default']['cdl'] = {
+        'help' : "Library CDL file <lib filename>",
+        'switch' : "-stdlib_cdl",        
         'type' : "file",
         'default' : [],
-        'value' : [],
         'hash'   : []
     } 
 
-    cfg['sc_stdlib'][libname]['driver'] = {
-        'type' : "string",
-        'default' : ["BUF_X1"],
-        'value' : []
+    cfg['sc_stdlib']['default']['setup'] = {
+        'help' : "Library setup file <lib filename>",
+        'switch' : "-stdlib_setup",     
+        'type' : "file",
+        'default' : [],
+        'hash'   : []
     } 
 
-    cfg['sc_stdlib'][libname]['site'] = {
+    cfg['sc_stdlib']['default']['dft'] = {
+        'help' : "Library DFT file <lib filename>",
+        'switch' : "-stdlib_dft",     
+        'type' : "file",
+        'default' : [],
+        'hash'   : []
+    }
+
+    cfg['sc_stdlib']['default']['verilog'] = {
+        'help' : "Library Verilog file <lib filename>",
+        'switch' : "-stdlib_verilog",     
+        'type' : "file",
+        'default' : [],
+        'hash'   : []
+    }
+    
+    cfg['sc_stdlib']['default']['doc'] = {
+        'help' : "Library documentation <lib path>",
+        'switch' : "-stdlib_doc",     
+        'type' : "file",
+        'default' : [],
+        'hash'   : []
+    }
+
+    cfg['sc_stdlib']['default']['pnrdb'] = {
+        'help' : "Library PNR database directory <lib path>",
+        'switch' : "-stdlib_pnrdb",     
+        'type' : "file",
+        'default' : [],
+        'hash'   : []
+    }
+
+    cfg['sc_stdlib']['default']['customdb'] = {
+        'help' : "Library custom design database <lib path>",
+        'switch' : "-stdlib_customdb",     
+        'type' : "file",
+        'default' : [],
+        'hash'   : []
+    }
+
+    cfg['sc_stdlib']['default']['driver'] = {
+        'help' : "Default driver cell <lib cell>",
+        'switch' : "-stdlib_driver",     
         'type' : "list",
-        'default' : ["FreePDK45_38x28_10R_NP_162NW_34O"],
-        'value' : []
-    } 
-
+        'default' : ["BUF_X1"]
+    }
+    
+    cfg['sc_stdlib']['default']['site'] = {
+        'help' : "Placement site name <lib site>",
+        'switch' : "-stdlib_site",     
+        'type' : "list",
+        'default' : ["FreePDK45_38x28_10R_NP_162NW_34O"]
+    }
+    
+    
     ############################################
     # Macro Configuration (per macro)
     #############################################
 
-    #structure is the same as for standard cell libraries
-    
+    #NOTE! 'default' is a reserved keyword for maconame
+     
     cfg['sc_macro'] = {}
-    cfg['sc_macro']['type'] = "nested"
-    cfg['sc_macro']['help'] = {}
-    cfg['sc_macro']['switch'] = {}
+    cfg['sc_macro']['default'] = {}
 
-    # Command line support
-    cfg['sc_macro']['help']['timing'] = "Timing file <lib pvt filename>"
-    cfg['sc_macro']['switch']['timing'] = "-macro_timing"
+    #Timing specified on a per corner basis
+    cfg['sc_macro']['default']['timing'] = {}
+    cfg['sc_macro']['default']['timing']['default'] = {
+        'help' : "Timing file <lib pvt filename>",
+        'switch' : "-macro_timing",
+        'type' : "file",
+        'default' : [],
+        'hash' : []
+    }
 
-    cfg['sc_macro']['help']['power'] = "Power file <lib pvt filename>"
-    cfg['sc_macro']['switch']['power'] = "-macro_power"
-      
-    cfg['sc_macro']['help']['lef'] = "LEF file <lib filename>"
-    cfg['sc_macro']['switch']['lef'] = "-macro_lef"
+    #Power specified on a per corner basis
+    cfg['sc_macro']['default']['power'] = {}
+    cfg['sc_macro']['default']['power']['default'] = {
+        'help' : "Power file <lib pvt filename>",
+        'switch' : "-macro_power",        
+        'type' : "file",
+        'default' : [],
+        'hash' : []
+    }
 
-    cfg['sc_macro']['help']['gds'] = "GDS file <lib filename>"
-    cfg['sc_macro']['switch']['gds'] = "-macro_gds"
+    cfg['sc_macro']['default']['lef'] = {
+        'help' : "Library LEF file <lib filename>",
+        'switch' : "-macro_lef",        
+        'type' : "file",
+        'default' : [],
+        'hash'   : []
+    }
 
-    cfg['sc_macro']['help']['cdl'] = "CDL file <lib filename>"
-    cfg['sc_macro']['switch']['cdl'] = "-macro_cdl"
+    cfg['sc_macro']['default']['gds'] = {
+        'help' : "Library GDS file <lib filename>",
+        'switch' : "-macro_gds",        
+        'type' : "file",
+        'default' : [],
+        'hash'   : []
+    } 
 
-    cfg['sc_macro']['help']['test'] = "Test file <lib filename>"
-    cfg['sc_macro']['switch']['test'] = "-macro_test"
-    
-    cfg['sc_macro']['help']['verilog'] = "Verilog file <lib filename>"
-    cfg['sc_macro']['switch']['verilog'] = "-macro_verilog"
-    
-    cfg['sc_macro']['help']['doc'] = "Documentation directory <lib dir>"
-    cfg['sc_macro']['switch']['doc'] = "-macro_doc"
-    
-    cfg['sc_macro']['help']['pnrdb'] = "PNR database <libname db>"
-    cfg['sc_macro']['switch']['pnrdb'] = "-macro_pnrdb"
+    cfg['sc_macro']['default']['cdl'] = {
+        'help' : "Library CDL file <lib filename>",
+        'switch' : "-macro_cdl",        
+        'type' : "file",
+        'default' : [],
+        'hash'   : []
+    } 
 
-    cfg['sc_macro']['help']['customdb'] = "Custom design database <lib db>"
-    cfg['sc_macro']['switch']['customdb'] = "-macro_customdb"
+    cfg['sc_macro']['default']['setup'] = {
+        'help' : "Library setup file <lib filename>",
+        'switch' : "-macro_setup",     
+        'type' : "file",
+        'default' : [],
+        'hash'   : []
+    } 
+
+    cfg['sc_macro']['default']['dft'] = {
+        'help' : "Library DFT file <lib filename>",
+        'switch' : "-macro_dft",     
+        'type' : "file",
+        'default' : [],
+        'hash'   : []
+    }
+
+    cfg['sc_macro']['default']['verilog'] = {
+        'help' : "Library Verilog file <lib filename>",
+        'switch' : "-macro_verilog",     
+        'type' : "file",
+        'default' : [],
+        'hash'   : []
+    }
     
-    cfg['sc_macro']['help']['setup'] = "Library setup file <libname filename>"
-    cfg['sc_macro']['switch']['setup'] = "-macro_setup"
-    
-    # No defaults
-    
+    cfg['sc_macro']['default']['doc'] = {
+        'help' : "Library documentation <lib path>",
+        'switch' : "-macro_doc",     
+        'type' : "file",
+        'default' : [],
+        'hash'   : []
+    }
+
+    cfg['sc_macro']['default']['pnrdb'] = {
+        'help' : "Library PNR database directory <lib path>",
+        'switch' : "-macro_pnrdb",     
+        'type' : "file",
+        'default' : [],
+        'hash'   : []
+    }
+
+    cfg['sc_macro']['default']['customdb'] = {
+        'help' : "Library custom design database <lib path>",
+        'switch' : "-macro_customdb",     
+        'type' : "file",
+        'default' : [],
+        'hash'   : []
+    }
+
+  
     ############################################
     # Execute Options
     #############################################
@@ -709,33 +741,21 @@ def defaults():
     #############################################
     
     cfg['sc_tool'] = {}
-    cfg['sc_tool']['type'] = "nested"
-    cfg['sc_tool']['help'] = {}
-    cfg['sc_tool']['switch'] = {}
-
-    # Binary     
-    cfg['sc_tool']['help']['exe'] = "Executable <stage, exe>"
-    cfg['sc_tool']['switch']['exe'] = "-tool_exe"
-    # Options
-    cfg['sc_tool']['help']['opt'] = "Options <stage, options>"    
-    cfg['sc_tool']['switch']['opt'] = "-tool_opt"
-    # Script
-    cfg['sc_tool']['help']['script'] = "Run script <stage, script>"
-    cfg['sc_tool']['switch']['script'] = "-tool_script"
-    # Jobid
-    cfg['sc_tool']['help']['jobid'] = "Job index <stage, jobid>"
-    cfg['sc_tool']['switch']['jobid'] = "-tool_jobid"
-    # Parallelism
-    cfg['sc_tool']['help']['np'] = "Parallelism <stage, threads>"
-    cfg['sc_tool']['switch']['np'] = "-tool_np"
 
     # Defaults and config for all stages
     for stage in cfg['sc_stages']['default']:        
         cfg['sc_tool'][stage] = {}
-        cfg['sc_tool'][stage]['type'] = "nested"
-        for opt in ("exe", "opt", "script", "jobid", "np"):
-            cfg['sc_tool'][stage][opt] = {}
-
+        for key in ("exe", "opt", "script", "jobid", "np"):
+            cfg['sc_tool'][stage][key] = {}
+            cfg['sc_tool'][stage][key]['switch'] = "-tool_"+key
+            
+        # Help
+        cfg['sc_tool'][stage]['exe']['help'] = "Executable <stage, exe>"
+        cfg['sc_tool'][stage]['opt']['help'] = "Options <stage, options>"
+        cfg['sc_tool'][stage]['script']['help'] = "Run script <stage, script>"
+        cfg['sc_tool'][stage]['jobid']['help'] = "Job index <stage, jobid>"
+        cfg['sc_tool'][stage]['np']['help'] = "Parallelism <stage, threads>"
+        
         # Types
         cfg['sc_tool'][stage]['exe']['type'] = "string"
         cfg['sc_tool'][stage]['opt']['type'] = "string"
@@ -770,8 +790,4 @@ def defaults():
             cfg['sc_tool'][stage]['script']['default'] = []
             
     return cfg
-
-def search_dict(cfg):
-    for k,v in cfg.items():
-        print(k,v)
 
