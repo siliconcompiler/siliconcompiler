@@ -181,14 +181,14 @@ class Chip:
                 if var != None:
                     if self.cfg[arg]['type'] == "bool":
                         if var:
-                            self.cfg[arg]['values'] = ["True"]
+                            self.cfg[arg]['value'] = ["True"]
                         elif not var:
-                            self.cfg[arg]['values'] = ["False"]
+                            self.cfg[arg]['value'] = ["False"]
                     else:
                         #should work for both scalar and vlists
-                        self.cfg[arg]['values'] = var
+                        self.cfg[arg]['value'] = var
 
-        if self.cfg['sc_lock']['values']:
+        if self.cfg['sc_lock']['value']:
             self.cfg_locked = True
 
     #################################
@@ -204,9 +204,8 @@ class Chip:
         #TODO: Complete later
         for key in self.cfg.keys():
             var = os.getenv(key.upper())
-            print(key,var)
             if var != None:
-                self.cfg[key]['values'] = var
+                self.cfg[key]['value'] = var
 
         #if self.cfg['sc_lock']['values']:
         #    self.cfg_locked = True
@@ -251,13 +250,13 @@ class Chip:
                 #Only allow merging of keys that already exist (no new keys!)
                 if key in self.cfg:
                     #ask if scalar
-                    self.cfg[key]['values'] = read_args[key]['values'].copy()
+                    self.cfg[key]['value'] = read_args[key]['value'].copy()
                 else:
                     print("ERROR: Merging of unknown keys not allowed,", key)
         else:
             self.logger.error('Trying to change configuration while locked')
 
-        if self.cfg['sc_lock']['values']:
+        if self.cfg['sc_lock']['value']:
             self.cfg_locked = True
 
         return json_args
@@ -315,11 +314,11 @@ class Chip:
             if mode == "all":
                 diff_list.append(key)
             elif default_cfg[key]['type'] in {"list", "file"}:
-                for value in self.cfg[key]['values']:
-                    if value not in default_cfg[key]['values']:
+                for value in self.cfg[key]['value']:
+                    if value not in default_cfg[key]['value']:
                         diff_list.append(key)
                         break
-            elif self.cfg[key]['values'] != default_cfg[key]['values']:
+            elif self.cfg[key]['value'] != default_cfg[key]['value']:
                 diff_list.append(key)
 
         diff_cfg = self.copy(diff_list)
@@ -345,7 +344,7 @@ class Chip:
         for key in keylist:
             cfg[key] = {}
             if self.cfg[key]['type'] == "list":
-                cfg[key]['values'] = self.cfg[key]['values'].copy()
+                cfg[key]['value'] = self.cfg[key]['value'].copy()
             elif self.cfg[key]['type'] == "file":
                 cfg[key]['values'] = self.cfg[key]['values'].copy()
                 cfg[key]['hash'] = self.cfg[key]['hash'].copy()
@@ -583,12 +582,12 @@ class Chip:
         cwd = os.getcwd()
 
         #Looking up stage numbers
-        stages = self.cfg['sc_stages']['values']
+        stages = self.cfg['sc_stages']['value']
         current = stages.index(stage)
-        start = stages.index(self.cfg['sc_start']['values'])
-        stop = stages.index(self.cfg['sc_stop']['values'])
+        start = stages.index(self.cfg['sc_start']['value'])
+        stop = stages.index(self.cfg['sc_stop']['value'])
 
-        if stage not in self.cfg['sc_stages']['values']:
+        if stage not in self.cfg['sc_stages']['value']:
             self.logger.error('Illegal stage name %s', stage)
         elif (current < start) | (current > stop):
             self.logger.info('Skipping stage: %s', stage)
@@ -596,15 +595,14 @@ class Chip:
             self.logger.info('Running stage: %s', stage)
 
             #Updating jobindex
-            jobid = self.cfg['sc_'+stage+'_jobid']['values']
-            self.cfg['sc_'+stage+'_jobid']['values'] = jobid + 1
-
+            jobid = self.cfg['sc_tool'][stage]['jobid']['value'] + 1
+            
             #Moving to working directory
-            jobdir = (str(self.cfg['sc_build']['values']) +
+            jobdir = (str(self.cfg['sc_build']['value']) +
                       "/" +
                       str(stage) +
                       "/job" +
-                      str(self.cfg['sc_' + stage + '_jobid']['values']))
+                      str(jobid))
 
             if os.path.isdir(jobdir):
                 os.system("rm -rf " +  jobdir)
@@ -613,32 +611,32 @@ class Chip:
             os.chdir(jobdir)
 
             #Prepare tool command
-            tool = self.cfg['sc_' + stage + '_tool']['values']
-            cmd_fields = [tool]
-            for value in self.cfg['sc_' + stage + '_opt']['values']:
-                cmd_fields.append(value)
+            exe = self.cfg['sc_tool'][stage]['exe']['value']
+            cmd_fields = [exe]
+            for opt in self.cfg['sc_tool'][stage]['opt']['value']:
+                cmd_fields.append(opt)
 
-            if tool == "verilator":
-                for value in self.cfg['sc_ydir']['values']:
+            if exe == "verilator":
+                for value in self.cfg['sc_ydir']['value']:
                     cmd_fields.append('-y ' + value)
-                for value in self.cfg['sc_vlib']['values']:
+                for value in self.cfg['sc_vlib']['value']:
                     cmd_fields.append('-v ' + value)
-                for value in self.cfg['sc_idir']['values']:
+                for value in self.cfg['sc_idir']['value']:
                     cmd_fields.append('-I ' + value)
-                for value in self.cfg['sc_define']['values']:
+                for value in self.cfg['sc_define']['value']:
                     cmd_fields.append('-D ' + value)
-                for value in self.cfg['sc_source']['values']:
+                for value in self.cfg['sc_source']['value']:
                     cmd_fields.append(value)
             else:
                 #Write out CFG as TCL (EDA tcl lacks support for json)
                 self.writetcl(self.cfg, "sc_setup.tcl")
 
             #Adding tcl scripts to comamnd line
-            for value in self.cfg['sc_' + stage + '_script']['values']:
+            for value in self.cfg['sc_tool'][stage]['script']['value']:
                 cmd_fields.append(value)
 
             #Execute cmd if current stage is within range of start and stop
-            logfile = tool + ".log"
+            logfile = exe + ".log"
             cmd_fields.append("> " + logfile)
             cmd = ' '.join(cmd_fields)
 
@@ -657,7 +655,7 @@ class Chip:
                 sys.exit()
 
             #Post process (only for verilator for now)
-            if tool == "verilator":
+            if exe == "verilator":
                 #hack: use the --debug feature in verilator to output .vpp files
                 #hack: workaround yosys parser error
                 cmd = ('grep -h -v \`begin_keywords obj_dir/*.vpp > verilator.v')
@@ -671,18 +669,21 @@ class Chip:
                             modules = modules + 1
                             topmodule = modmatch.group(1)
                 # Only setting sc_design when appropriate
-                if (modules > 1) & (self.cfg['sc_design']['values'] == ""):
+                if (modules > 1) & (self.cfg['sc_design']['value'] == ""):
                     self.logger.error('Multiple modules found during import, but sc_design was not set')
                     sys.exit()
                 else:
                     self.logger.info('Setting design (topmodule) to %s', topmodule)
-                    self.cfg['sc_design']['values'] = topmodule
+                    self.cfg['sc_design']['value'] = topmodule
                     cmd = "cp verilator.v " + topmodule + ".v"
                     subprocess.run(cmd, shell=True)
 
 
-            if self.cfg['sc_gui']['values'] == "True":
+            if self.cfg['sc_gui']['value'] == "True":
                 webbrowser.open("https://google.com")
 
+            #Updating jobid when complete
+            #TODO:fix
+            self.cfg['sc_tool'][stage]['jobid']['value'] = jobid
             #Return to CWD
             os.chdir(cwd)
