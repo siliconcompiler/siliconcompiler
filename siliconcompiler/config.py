@@ -7,8 +7,7 @@ import argparse
 ###########################
 def defaults():
     '''Method for setting the default values for the Chip dictionary. 
-    The default setings are not manufacturable.
-
+    All the keys defined in this dictionary are reserved words. 
     '''
     
     ############################################
@@ -256,11 +255,11 @@ def defaults():
     # Setting up dicts
     #NOTE! 'defvalue' is a reserved keyword for libname
     cfg['sc_stdlib'] = {}  
-    cfg['sc_stdlib']['deflib'] = {}
+    cfg['sc_stdlib']['default'] = {}
 
     #Liberty specified on a per corner basis (so one more level of nesting)
-    cfg['sc_stdlib']['deflib']['timing'] = {}
-    cfg['sc_stdlib']['deflib']['timing']['defcorner'] = {
+    cfg['sc_stdlib']['default']['timing'] = {}
+    cfg['sc_stdlib']['default']['timing']['default'] = {
         'help' : "Library Timing file <lib pvt filename>",
         'switch' : "-stdlib_timing",
         'type' : "file",
@@ -269,8 +268,8 @@ def defaults():
     }
 
     #Power format
-    cfg['sc_stdlib']['deflib']['power'] = {}
-    cfg['sc_stdlib']['deflib']['power']['defcorner'] = {
+    cfg['sc_stdlib']['default']['power'] = {}
+    cfg['sc_stdlib']['default']['power']['default'] = {
         'help' : "Library Power file <lib pvt filename>",
         'switch' : "-stdlib_power",        
         'type' : "file",
@@ -279,16 +278,16 @@ def defaults():
     }
 
     #Cell lists are many and dynamic (so one more level of nesting)
-    cfg['sc_stdlib']['deflib']['cells'] = {}
+    cfg['sc_stdlib']['default']['cells'] = {}
     for val in cfg['sc_cell_list']['defvalue']:
-        cfg['sc_stdlib']['deflib']['cells'][val] = {
+        cfg['sc_stdlib']['default']['cells'][val] = {
             'help' : "Library "+val+" cells <lib list> ",
             'switch' : "-stdlib_"+val,
             'type' : "list",
             'defvalue' : []
         }
     
-    cfg['sc_stdlib']['deflib']['lef'] = {
+    cfg['sc_stdlib']['default']['lef'] = {
         'help' : "Library LEF file <lib filename>",
         'switch' : "-stdlib_lef",      
         'type' : "file",
@@ -296,7 +295,7 @@ def defaults():
         'hash'   : []
     }
 
-    cfg['sc_stdlib']['deflib']['gds'] = {
+    cfg['sc_stdlib']['default']['gds'] = {
         'help' : "Library GDS file <lib filename>",
         'switch' : "-stdlib_gds",        
         'type' : "file",
@@ -304,7 +303,7 @@ def defaults():
         'hash'   : []
     } 
 
-    cfg['sc_stdlib']['deflib']['cdl'] = {
+    cfg['sc_stdlib']['default']['cdl'] = {
         'help' : "Library CDL file <lib filename>",
         'switch' : "-stdlib_cdl",        
         'type' : "file",
@@ -312,7 +311,7 @@ def defaults():
         'hash'   : []
     } 
 
-    cfg['sc_stdlib']['deflib']['setup'] = {
+    cfg['sc_stdlib']['default']['setup'] = {
         'help' : "Library Setup file <lib filename>",
         'switch' : "-stdlib_setup",     
         'type' : "file",
@@ -320,7 +319,7 @@ def defaults():
         'hash'   : []
     } 
 
-    cfg['sc_stdlib']['deflib']['dft'] = {
+    cfg['sc_stdlib']['default']['dft'] = {
         'help' : "Library DFT file <lib filename>",
         'switch' : "-stdlib_dft",     
         'type' : "file",
@@ -328,7 +327,7 @@ def defaults():
         'hash'   : []
     }
 
-    cfg['sc_stdlib']['deflib']['verilog'] = {
+    cfg['sc_stdlib']['default']['verilog'] = {
         'help' : "Library Verilog file <lib filename>",
         'switch' : "-stdlib_verilog",     
         'type' : "file",
@@ -336,7 +335,7 @@ def defaults():
         'hash'   : []
     }
     
-    cfg['sc_stdlib']['deflib']['doc'] = {
+    cfg['sc_stdlib']['default']['doc'] = {
         'help' : "Library documentation <lib path>",
         'switch' : "-stdlib_doc",     
         'type' : "file",
@@ -344,7 +343,7 @@ def defaults():
         'hash'   : []
     }
 
-    cfg['sc_stdlib']['deflib']['pnrdb'] = {
+    cfg['sc_stdlib']['default']['pnrdb'] = {
         'help' : "Library PNR database<lib path>",
         'switch' : "-stdlib_pnrdb",     
         'type' : "file",
@@ -352,7 +351,7 @@ def defaults():
         'hash'   : []
     }
 
-    cfg['sc_stdlib']['deflib']['customdb'] = {
+    cfg['sc_stdlib']['default']['customdb'] = {
         'help' : "Library custom database <lib path>",
         'switch' : "-stdlib_customdb",     
         'type' : "file",
@@ -360,14 +359,14 @@ def defaults():
         'hash'   : []
     }
 
-    cfg['sc_stdlib']['deflib']['driver'] = {
+    cfg['sc_stdlib']['default']['driver'] = {
         'help' : "Library default driver <lib cell>",
         'switch' : "-stdlib_driver",     
         'type' : "list",
         'defvalue' : ["BUF_X1"]
     }
     
-    cfg['sc_stdlib']['deflib']['site'] = {
+    cfg['sc_stdlib']['default']['site'] = {
         'help' : "Library placement site <lib site>",
         'switch' : "-stdlib_site",     
         'type' : "list",
@@ -382,11 +381,11 @@ def defaults():
     #NOTE! 'defvalue' is a reserved keyword for maconame
      
     cfg['sc_macro'] = {}
-    cfg['sc_macro']['defmacro'] = {}
+    cfg['sc_macro']['default'] = {}
 
     #Timing specified on a per corner basis
-    cfg['sc_macro']['defmacro']['timing'] = {}
-    cfg['sc_macro']['defmacro']['timing']['defcorner'] = {
+    cfg['sc_macro']['default']['timing'] = {}
+    cfg['sc_macro']['default']['timing']['default'] = {
         'help' : "Macro timing file <lib pvt filename>",
         'switch' : "-macro_timing",
         'type' : "file",
@@ -395,8 +394,8 @@ def defaults():
     }
 
     #Power specified on a per corner basis
-    cfg['sc_macro']['defmacro']['power'] = {}
-    cfg['sc_macro']['defmacro']['power']['defcorner'] = {
+    cfg['sc_macro']['default']['power'] = {}
+    cfg['sc_macro']['default']['power']['default'] = {
         'help' : "Macro power file <lib pvt filename>",
         'switch' : "-macro_power",        
         'type' : "file",
@@ -404,7 +403,7 @@ def defaults():
         'hash' : []
     }
 
-    cfg['sc_macro']['defmacro']['lef'] = {
+    cfg['sc_macro']['default']['lef'] = {
         'help' : "Macro LEF file <lib filename>",
         'switch' : "-macro_lef",        
         'type' : "file",
@@ -412,7 +411,7 @@ def defaults():
         'hash'   : []
     }
 
-    cfg['sc_macro']['defmacro']['gds'] = {
+    cfg['sc_macro']['default']['gds'] = {
         'help' : "Macro GDS file <lib filename>",
         'switch' : "-macro_gds",        
         'type' : "file",
@@ -420,7 +419,7 @@ def defaults():
         'hash'   : []
     } 
 
-    cfg['sc_macro']['defmacro']['cdl'] = {
+    cfg['sc_macro']['default']['cdl'] = {
         'help' : "Macro CDL file <lib filename>",
         'switch' : "-macro_cdl",        
         'type' : "file",
@@ -428,7 +427,7 @@ def defaults():
         'hash'   : []
     } 
 
-    cfg['sc_macro']['defmacro']['setup'] = {
+    cfg['sc_macro']['default']['setup'] = {
         'help' : "Macro Setup file <lib filename>",
         'switch' : "-macro_setup",     
         'type' : "file",
@@ -436,7 +435,7 @@ def defaults():
         'hash'   : []
     } 
 
-    cfg['sc_macro']['defmacro']['dft'] = {
+    cfg['sc_macro']['default']['dft'] = {
         'help' : "Macro DFT file <lib filename>",
         'switch' : "-macro_dft",     
         'type' : "file",
@@ -444,7 +443,7 @@ def defaults():
         'hash'   : []
     }
 
-    cfg['sc_macro']['defmacro']['verilog'] = {
+    cfg['sc_macro']['default']['verilog'] = {
         'help' : "Macro Verilog file <lib filename>",
         'switch' : "-macro_verilog",     
         'type' : "file",
@@ -452,7 +451,7 @@ def defaults():
         'hash'   : []
     }
     
-    cfg['sc_macro']['defmacro']['doc'] = {
+    cfg['sc_macro']['default']['doc'] = {
         'help' : "Macro documentation <lib path>",
         'switch' : "-macro_doc",     
         'type' : "file",
@@ -460,7 +459,7 @@ def defaults():
         'hash'   : []
     }
 
-    cfg['sc_macro']['defmacro']['pnrdb'] = {
+    cfg['sc_macro']['default']['pnrdb'] = {
         'help' : "Macro PNR database <lib path>",
         'switch' : "-macro_pnrdb",     
         'type' : "file",
@@ -468,7 +467,7 @@ def defaults():
         'hash'   : []
     }
 
-    cfg['sc_macro']['defmacro']['customdb'] = {
+    cfg['sc_macro']['default']['customdb'] = {
         'help' : "Macro Custom database <lib path>",
         'switch' : "-macro_customdb",     
         'type' : "file",

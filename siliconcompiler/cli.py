@@ -55,7 +55,7 @@ def cmdline():
                                         action='append',
                                         help=def_cfg[key1]['default'][key2]['help'])
         elif key1 in ('sc_tool'):
-            # Using sun tool as template for all configs
+            # Using 'syn' tool as template for all configs
             for key2 in def_cfg['sc_tool']['syn'].keys():           
                 parser.add_argument(def_cfg[key1]['syn'][key2]['switch'],
                                     dest=key1+"_"+key2,
@@ -88,31 +88,26 @@ def main():
     cmdargs = cmdline()
 
     #Create one (or many...) instances of Chip class
-    chip = sc.Chip(cmdargs)
+    chip = sc.Chip()
 
     # Iterative over nested dict recursively to get environment variables
-    readenv(self.cfg)
-
-    #Custom config code goes here
-
-             
-    # setting up an empty status dictionary for each stage
-    self.status = {}
-    for stage in self.cfg['sc_stages']['default']:
-        self.status[stage] = ["idle"]
-
-    #Overide with command line arguments
-    if cmdargs is not None:
-        self.readargs(cmdargs)
+    chip.readenv()
+   
+    # Read arguments
+    chip.readargs(cmdargs)
         
-    #Resolve all source files as absolute paths (should be a switch)
-    self.abspath()
-    
-    #Creating hashes for all sourced files
-    chip.hash()
 
+    #Setting defaults
+    chip.default()
+
+    #Resolve all source files as absolute paths (should be a switch)
+    chip.abspath()
     #Lock chip configuration
-    chip.lock()
+    #chip.lock()
+
+    #Creating hashes for all sourced files
+    #chip.hash()
+    
     
     #Printing out run-config
     chip.writecfg("sc_setup.json")
