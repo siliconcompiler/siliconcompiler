@@ -42,14 +42,19 @@ class Chip:
         self.handler.setFormatter(self.formatter)
         self.logger.addHandler(self.handler)
         self.logger.setLevel(str(loglevel))
-
-        # instance starts unlocked
-        self.cfg_locked = False
-
+       
         # Create a default dict 
         self.cfg = defaults()
 
-     
+        # instance starts unlocked
+        self.cfg_locked = False
+        
+        # instance starts with all default stages in idle
+        self.status = {}
+        for stage in self.cfg['sc_stages']['default']:
+            self.status[stage] = ["idle"]
+            
+            
 
     ###################################
     def clearcfg(self):
@@ -60,7 +65,7 @@ class Chip:
         pass
 
     ###################################
-    def get(self, param):
+    def get(self, *args):
         '''Gets value for supplied Chip parameter
 
         Args:
@@ -71,7 +76,7 @@ class Chip:
 
         '''
 
-        return self.cfg[param]['values']
+        return val
 
     ####################################
     def set(self, *args):
@@ -85,8 +90,8 @@ class Chip:
             self.logger.error('Illegal argument list %s', args)
             sys.exit()
 
-        param = args[0]
-        val = args[1]
+        val = args[0]
+        param = args[1]
         key1 = None
         key2 = None
         key3 = None
@@ -170,21 +175,6 @@ class Chip:
         return self.status[stage][jobid]
 
     #################################
-    def append(self, param, val):
-        '''Appends values to an existing Chip configuration parameter
-
-        Args:
-            param (string): Configuration parameter to set
-            val (list) : Value(s) to assign to param
-
-        '''
-
-        if self.cfg[param]['type'] == "file":
-            self.cfg[param]['values'].append(os.path.abspath(val))
-        else:
-            self.cfg[param]['values'].append(val)
-
-    #################################
     def readargs(self, cmdargs):
         '''Copies attributes from the ArgumentsParser object to the current
         Chip configuration.
@@ -223,15 +213,16 @@ class Chip:
         '''
 
         self.logger.info('Reading environment variables')
-                  
-        var = os.getenv(key.upper())
-        if var != None:
-            self.cfg[key]['values'] = var
-        else:
-            self.logger.error('Trying to change configuration while locked')
+        
+        #TODO: Complete later
+        for key in self.cfg.keys():
+            var = os.getenv(key.upper())
+            print(key,var)
+            if var != None:
+                self.cfg[key]['values'] = var
 
-        if self.cfg['sc_lock']['values']:
-            self.cfg_locked = True
+        #if self.cfg['sc_lock']['values']:
+        #    self.cfg_locked = True
 
     #################################
     def readcfg(self, filename, keymap=None):
