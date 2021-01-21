@@ -79,19 +79,13 @@ class Chip:
         return val
 
     ####################################
-    def set(self, *args):
+    def set(self, val, param, *keys):
         '''Sets a value in the Chip configuration dictionary 
         '''
-        self.logger.info('Setting config %s',args)
+        self.logger.info('Setting config %s %s %s',val,param,keys)
 
-        tot_args = len(args)
+        tot_keys = len(keys)
 
-        if tot_args > 6 or tot_args < 2:
-            self.logger.error('Illegal argument list %s', args)
-            sys.exit()
-
-        val = args[0]
-        param = args[1]
         key1 = None
         key2 = None
         key3 = None
@@ -99,7 +93,7 @@ class Chip:
         value_clobbered = False
         
         # Single level parameters
-        if tot_args == 2 :
+        if tot_keys == 0 :
             value_exists = 'value' in self.cfg[param]            
             if self.cfg[param]['type'] in {"list", "file"}:
                 if value_exists:
@@ -110,12 +104,12 @@ class Chip:
                 value_clobbered = value_exists
                 self.cfg[param]['value'] = val
         # Nested structure parameters with sub keys
-        elif tot_args > 3:
-            key1 = args[2]
-            key2 = args[3]
+        elif tot_keys > 1:
+            key1 = keys[0]
+            key2 = keys[1]
 
-            if tot_args > 4:
-                key3 = args[4]
+            if tot_keys > 2:
+                key3 = keys[2]
             # Dynamic dictionary entries for stdlib means we have to check
             # the default dict.
             defkey1 = key1
@@ -131,11 +125,11 @@ class Chip:
             if key2 not in self.cfg[param][key1]:
                 value_exists = False
                 self.cfg[param][key1][key2] = {}
-            if (tot_args > 4) & (key3 not in self.cfg[param][key1][key2]):
+            if (tot_keys > 2) & (key3 not in self.cfg[param][key1][key2]):
                  value_exists = False
                  self.cfg[param][key1][key2][key3] = {}
                  
-            if tot_args > 4:
+            if tot_keys > 2:
                 if self.cfg[param][defkey1][key2][defkey2]['type'] in {"list", "file"}:
                     if value_exists:
                         self.cfg[param][key1][key2][key3]['value'].append(val)
