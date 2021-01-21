@@ -123,7 +123,7 @@ class Chip:
                  self.cfg[param][key1][key2][key3] = {}                 
             if tot_keys > 2:
                 print(param,key1,key2,key3)
-                if self.cfg[param]['deflib'][key2]['corner']['type'] in {"list", "file"}:
+                if self.cfg[param]['deflib'][key2]['defcorner']['type'] in {"list", "file"}:
                     if value_exists:
                         self.cfg[param][key1][key2][key3]['value'].append(val)
                     else:

@@ -260,7 +260,7 @@ def defaults():
 
     #Liberty specified on a per corner basis (so one more level of nesting)
     cfg['sc_stdlib']['deflib']['timing'] = {}
-    cfg['sc_stdlib']['deflib']['timing']['corner'] = {
+    cfg['sc_stdlib']['deflib']['timing']['defcorner'] = {
         'help' : "Library Timing file <lib pvt filename>",
         'switch' : "-stdlib_timing",
         'type' : "file",
@@ -270,7 +270,7 @@ def defaults():
 
     #Power format
     cfg['sc_stdlib']['deflib']['power'] = {}
-    cfg['sc_stdlib']['deflib']['power']['corner'] = {
+    cfg['sc_stdlib']['deflib']['power']['defcorner'] = {
         'help' : "Library Power file <lib pvt filename>",
         'switch' : "-stdlib_power",        
         'type' : "file",
@@ -386,7 +386,7 @@ def defaults():
 
     #Timing specified on a per corner basis
     cfg['sc_macro']['defmacro']['timing'] = {}
-    cfg['sc_macro']['defmacro']['timing']['corner'] = {
+    cfg['sc_macro']['defmacro']['timing']['defcorner'] = {
         'help' : "Macro timing file <lib pvt filename>",
         'switch' : "-macro_timing",
         'type' : "file",
@@ -396,7 +396,7 @@ def defaults():
 
     #Power specified on a per corner basis
     cfg['sc_macro']['defmacro']['power'] = {}
-    cfg['sc_macro']['defmacro']['power']['corner'] = {
+    cfg['sc_macro']['defmacro']['power']['defcorner'] = {
         'help' : "Macro power file <lib pvt filename>",
         'switch' : "-macro_power",        
         'type' : "file",
