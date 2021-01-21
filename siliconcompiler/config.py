@@ -237,7 +237,7 @@ def defaults():
     #Liberty specified on a per corner basis (so one more level of nesting)
     cfg['sc_stdlib']['default']['timing'] = {}
     cfg['sc_stdlib']['default']['timing']['default'] = {
-        'help' : "Timing file <lib pvt filename>",
+        'help' : "Library Timing file <lib pvt filename>",
         'switch' : "-stdlib_timing",
         'type' : "file",
         'default' : [iplib + "lib/NangateOpenCellLibrary_typical.lib"],
@@ -247,7 +247,7 @@ def defaults():
     #Power format
     cfg['sc_stdlib']['default']['power'] = {}
     cfg['sc_stdlib']['default']['power']['default'] = {
-        'help' : "Power file <lib pvt filename>",
+        'help' : "Library Power file <lib pvt filename>",
         'switch' : "-stdlib_power",        
         'type' : "file",
         'default' : [],
@@ -258,7 +258,7 @@ def defaults():
     cfg['sc_stdlib']['default']['cells'] = {}
     for val in cfg['sc_cell_list']['default']:
         cfg['sc_stdlib']['default']['cells'][val] = {
-            'help' : "List of "+val+" cells",
+            'help' : "Library "+val+" cells <lib list> ",
             'switch' : "-stdlib_"+val,
             'type' : "list",
             'default' : []
@@ -289,7 +289,7 @@ def defaults():
     } 
 
     cfg['sc_stdlib']['default']['setup'] = {
-        'help' : "Library setup file <lib filename>",
+        'help' : "Library Setup file <lib filename>",
         'switch' : "-stdlib_setup",     
         'type' : "file",
         'default' : [],
@@ -321,7 +321,7 @@ def defaults():
     }
 
     cfg['sc_stdlib']['default']['pnrdb'] = {
-        'help' : "Library PNR database directory <lib path>",
+        'help' : "Library PNR database<lib path>",
         'switch' : "-stdlib_pnrdb",     
         'type' : "file",
         'default' : [],
@@ -329,7 +329,7 @@ def defaults():
     }
 
     cfg['sc_stdlib']['default']['customdb'] = {
-        'help' : "Library custom design database <lib path>",
+        'help' : "Library custom database <lib path>",
         'switch' : "-stdlib_customdb",     
         'type' : "file",
         'default' : [],
@@ -337,14 +337,14 @@ def defaults():
     }
 
     cfg['sc_stdlib']['default']['driver'] = {
-        'help' : "Default driver cell <lib cell>",
+        'help' : "Library default driver <lib cell>",
         'switch' : "-stdlib_driver",     
         'type' : "list",
         'default' : ["BUF_X1"]
     }
     
     cfg['sc_stdlib']['default']['site'] = {
-        'help' : "Placement site name <lib site>",
+        'help' : "Library placement site <lib site>",
         'switch' : "-stdlib_site",     
         'type' : "list",
         'default' : ["FreePDK45_38x28_10R_NP_162NW_34O"]
@@ -363,7 +363,7 @@ def defaults():
     #Timing specified on a per corner basis
     cfg['sc_macro']['default']['timing'] = {}
     cfg['sc_macro']['default']['timing']['default'] = {
-        'help' : "Timing file <lib pvt filename>",
+        'help' : "Macro timing file <lib pvt filename>",
         'switch' : "-macro_timing",
         'type' : "file",
         'default' : [],
@@ -373,7 +373,7 @@ def defaults():
     #Power specified on a per corner basis
     cfg['sc_macro']['default']['power'] = {}
     cfg['sc_macro']['default']['power']['default'] = {
-        'help' : "Power file <lib pvt filename>",
+        'help' : "Macro power file <lib pvt filename>",
         'switch' : "-macro_power",        
         'type' : "file",
         'default' : [],
@@ -381,7 +381,7 @@ def defaults():
     }
 
     cfg['sc_macro']['default']['lef'] = {
-        'help' : "Library LEF file <lib filename>",
+        'help' : "Macro LEF file <lib filename>",
         'switch' : "-macro_lef",        
         'type' : "file",
         'default' : [],
@@ -389,7 +389,7 @@ def defaults():
     }
 
     cfg['sc_macro']['default']['gds'] = {
-        'help' : "Library GDS file <lib filename>",
+        'help' : "Macro GDS file <lib filename>",
         'switch' : "-macro_gds",        
         'type' : "file",
         'default' : [],
@@ -397,7 +397,7 @@ def defaults():
     } 
 
     cfg['sc_macro']['default']['cdl'] = {
-        'help' : "Library CDL file <lib filename>",
+        'help' : "Macro CDL file <lib filename>",
         'switch' : "-macro_cdl",        
         'type' : "file",
         'default' : [],
@@ -405,7 +405,7 @@ def defaults():
     } 
 
     cfg['sc_macro']['default']['setup'] = {
-        'help' : "Library setup file <lib filename>",
+        'help' : "Macro Setup file <lib filename>",
         'switch' : "-macro_setup",     
         'type' : "file",
         'default' : [],
@@ -413,7 +413,7 @@ def defaults():
     } 
 
     cfg['sc_macro']['default']['dft'] = {
-        'help' : "Library DFT file <lib filename>",
+        'help' : "Macro DFT file <lib filename>",
         'switch' : "-macro_dft",     
         'type' : "file",
         'default' : [],
@@ -421,7 +421,7 @@ def defaults():
     }
 
     cfg['sc_macro']['default']['verilog'] = {
-        'help' : "Library Verilog file <lib filename>",
+        'help' : "Macro Verilog file <lib filename>",
         'switch' : "-macro_verilog",     
         'type' : "file",
         'default' : [],
@@ -429,7 +429,7 @@ def defaults():
     }
     
     cfg['sc_macro']['default']['doc'] = {
-        'help' : "Library documentation <lib path>",
+        'help' : "Macro documentation <lib path>",
         'switch' : "-macro_doc",     
         'type' : "file",
         'default' : [],
@@ -437,7 +437,7 @@ def defaults():
     }
 
     cfg['sc_macro']['default']['pnrdb'] = {
-        'help' : "Library PNR database directory <lib path>",
+        'help' : "Macro PNR database <lib path>",
         'switch' : "-macro_pnrdb",     
         'type' : "file",
         'default' : [],
@@ -445,7 +445,7 @@ def defaults():
     }
 
     cfg['sc_macro']['default']['customdb'] = {
-        'help' : "Library custom design database <lib path>",
+        'help' : "Macro Custom database <lib path>",
         'switch' : "-macro_customdb",     
         'type' : "file",
         'default' : [],
@@ -560,6 +560,7 @@ def defaults():
         'default' : ""
     }
 
+    #TODO: Enhance, no tuples!
     cfg['sc_clk'] = {
         'help' : "Clock defintion tuple (<clkname> <period(ns)>)",
         'type' : "list",
@@ -739,6 +740,8 @@ def defaults():
     ############################################
     # Tool Configuration (per stage)
     #############################################
+
+    
     
     cfg['sc_tool'] = {}
 

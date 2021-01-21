@@ -16,13 +16,13 @@ def cmdline():
     All configuration parameters are exposed at the command line interface.
 
     '''
-    default_cfg = defaults()
+    def_cfg = defaults()
 
     os.environ["COLUMNS"] = '100'
 
     # Argument Parser
     
-    parser = argparse.ArgumentParser(prog='siliconcompiler',
+    parser = argparse.ArgumentParser(prog='sc',
                                      formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=42),
                                      prefix_chars='-+',
                                      description="Silicon Compiler Collection (SC)")
@@ -30,31 +30,51 @@ def cmdline():
     # Source files
     parser.add_argument('sc_source',
                         nargs='+',
-                        help=default_cfg['sc_source']['help'])
+                        help=def_cfg['sc_source']['help'])
 
     # All other arguments
-    for key in default_cfg.keys():
-        print(key)
-        if default_cfg[key]['type'] is "nested":
-            for subkey in  default_cfg[key]['help']:
-                parser.add_argument(default_cfg[key]['switch'][subkey],
-                                    dest=key+"_"+subkey,
+    for key1 in sorted(def_cfg):
+        if key1 in ('sc_stdlib', 'sc_macro'):
+            for key2 in  def_cfg[key1]['default'].keys():
+                #Timing/power has a fixed structure with default as keyword for lib/corner
+                if key2 in ('timing', 'power'):
+                    parser.add_argument(def_cfg[key1]['default'][key2]['default']['switch'],
+                                        dest=key1+"_"+key2,
+                                        action='append',
+                                        help=def_cfg[key1]['default'][key2]['default']['help'])
+                #Cells have a variable number of types
+                elif key2 in ('cells'):
+                    for key3 in def_cfg[key1]['default'][key2].keys():
+                        parser.add_argument(def_cfg[key1]['default'][key2][key3]['switch'],
+                                            dest=key1+"_"+key3,
+                                            action='append',
+                                            help=def_cfg[key1]['default'][key2][key3]['help'])
+                else:
+                    parser.add_argument(def_cfg[key1]['default'][key2]['switch'],
+                                        dest=key1+"_"+key2,
+                                        action='append',
+                                        help=def_cfg[key1]['default'][key2]['help'])
+        elif key1 in ('sc_tool'):
+            # Using sun tool as template for all configs
+            for key2 in def_cfg['sc_tool']['syn'].keys():           
+                parser.add_argument(def_cfg[key1]['syn'][key2]['switch'],
+                                    dest=key1+"_"+key2,
                                     action='append',
-                                    help=default_cfg[key]['help'][subkey])   
-        elif default_cfg[key]['type'] is "bool":
-            parser.add_argument(default_cfg[key]['switch'],
-                                dest=key,
+                                    help=def_cfg[key1]['syn'][key2]['help'])   
+        elif def_cfg[key1]['type'] is "bool":
+            parser.add_argument(def_cfg[key1]['switch'],
+                                dest=key1,
                                 action='store_true',
-                                help=default_cfg[key]['help'])
-        elif default_cfg[key]['type'] in {"int", "float", "string"}:
-            parser.add_argument(default_cfg[key]['switch'],
-                                dest=key,
-                                help=default_cfg[key]['help'])
-        elif key != "sc_source":
-            parser.add_argument(default_cfg[key]['switch'],
-                                dest=key,
+                                help=def_cfg[key1]['help'])
+        elif def_cfg[key1]['type'] in {"int", "float", "string"}:
+            parser.add_argument(def_cfg[key1]['switch'],
+                                dest=key1,
+                                help=def_cfg[key1]['help'])
+        elif key1 != "sc_source":
+            parser.add_argument(def_cfg[key1]['switch'],
+                                dest=key1,
                                 action='append',
-                                help=default_cfg[key]['help'])
+                                help=def_cfg[key1]['help'])
 
     args = parser.parse_args()
 
@@ -70,8 +90,24 @@ def main():
     #Create one (or many...) instances of Chip class
     chip = sc.Chip(cmdargs)
 
+    # Iterative over nested dict recursively to get environment variables
+    readenv(self.cfg)
+
     #Custom config code goes here
 
+             
+    # setting up an empty status dictionary for each stage
+    self.status = {}
+    for stage in self.cfg['sc_stages']['default']:
+        self.status[stage] = ["idle"]
+
+    #Overide with command line arguments
+    if cmdargs is not None:
+        self.readargs(cmdargs)
+        
+    #Resolve all source files as absolute paths (should be a switch)
+    self.abspath()
+    
     #Creating hashes for all sourced files
     chip.hash()
 
