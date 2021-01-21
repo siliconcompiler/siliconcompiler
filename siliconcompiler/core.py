@@ -51,7 +51,7 @@ class Chip:
         
         # instance starts with all default stages in idle
         self.status = {}
-        for stage in self.cfg['sc_stages']['default']:
+        for stage in self.cfg['sc_stages']['defvalue']:
             self.status[stage] = ["idle"]
             
             
@@ -107,17 +107,10 @@ class Chip:
         elif tot_keys > 1:
             key1 = keys[0]
             key2 = keys[1]
-
             if tot_keys > 2:
                 key3 = keys[2]
             # Dynamic dictionary entries for stdlib means we have to check
             # the default dict.
-            defkey1 = key1
-            defkey1 = key2
-            if param in ("sc_stdlib", "sc_macro"): 
-                defkey1 = 'default' #special key name!
-            if key2 in ("timing", "power"):
-                defkey2 = 'default'
             # Create dictionary if it doesn't exist
             if key1 not in self.cfg[param]:
                 value_exists = False
@@ -127,10 +120,10 @@ class Chip:
                 self.cfg[param][key1][key2] = {}
             if (tot_keys > 2) & (key3 not in self.cfg[param][key1][key2]):
                  value_exists = False
-                 self.cfg[param][key1][key2][key3] = {}
-                 
+                 self.cfg[param][key1][key2][key3] = {}                 
             if tot_keys > 2:
-                if self.cfg[param][defkey1][key2][defkey2]['type'] in {"list", "file"}:
+                print(param,key1,key2,key3)
+                if self.cfg[param]['deflib'][key2]['corner']['type'] in {"list", "file"}:
                     if value_exists:
                         self.cfg[param][key1][key2][key3]['value'].append(val)
                     else:
@@ -139,7 +132,7 @@ class Chip:
                     value_clobbered = value_exists
                     self.cfg[param][key1][key2][key3]['value'] = val
             else:
-                if self.cfg[param][defkey1][key2]['type'] in {"list", "file"}:
+                if self.cfg[param]['deflib'][key2]['type'] in {"list", "file"}:
                     if value_exists:
                         self.cfg[param][key1][key2]['value'].append(val)
                     else:
@@ -421,19 +414,52 @@ class Chip:
     ##################################
     def lock(self):
         '''Locks the Chip configuration to prevent unwarranted configuration
-        updates
+        updates. Copies defvalue into value if value is not set.
+        
         '''
         self.cfg_locked = True
 
+     ##################################
+    def default(self,cfg=None):
+        '''Recursively copies 'defvalue' to 'value' for all configuration 
+        parameters
+        '''
+        #Setting initial dict so user doesn't have to
+        if cfg is None:
+            cfg = self.cfg
+        for k, v in cfg.items():            
+            if isinstance(v, dict):
+                if 'defvalue' in cfg[k].keys():
+                    cfg[k]['value'] = cfg[k]['defvalue']
+                else:
+                    self.default(cfg=cfg[k])
+        
     ##################################
-    def abspath(self):
+    def abspath(self,cfg=None):
         '''Resolves all configuration paths to be absolute paths
         '''
-        for key in self.cfg:
-            if self.cfg[key]['type'] == "file":
-                for i, val in enumerate(self.cfg[key]['values']):
-                    self.cfg[key]['values'][i] = str(os.path.abspath(val))
 
+        #Setting initial dict so user doesn't have to
+        if cfg is None:
+            cfg = self.cfg        
+        #Recursively going through dict to set abspaths for files
+        for k, v in cfg.items():            
+            if isinstance(v, dict):
+                if 'defvalue' in cfg[k].keys():
+                    if(cfg[k]['value'] == 'file'):
+                        cfg[k]['value'] = os.path.abspath(cfg[k]['value'])
+                else:
+                    self.abspath(cfg=cfg[k])
+
+#        for k, v in cfg.items():            
+#            if isinstance(v, dict):
+#                self.abspath(cfg=cfg[k])
+#            else:
+#                print(k,v, "leaf")
+
+
+                
+                
     ##################################
     def sync(self, stage, jobid):
         '''Waits for jobs for the stage and jobid specified to complete
@@ -449,7 +475,7 @@ class Chip:
 
         for key in self.cfg:
             if self.cfg[key]['type'] == "file":
-                for filename in self.cfg[key]['values']:
+                for filename in self.cfg[key]['value']:
                     if os.path.isfile(filename):
                         sha256_hash = hashlib.sha256()
                         with open(filename, "rb") as f:
