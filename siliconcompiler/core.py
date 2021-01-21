@@ -29,7 +29,7 @@ class Chip:
     """
 
     ####################
-    def __init__(self, cmdargs=None, loglevel="DEBUG"):
+    def __init__(self, loglevel="DEBUG"):
         '''
         Init method for Chip object
 
@@ -43,30 +43,13 @@ class Chip:
         self.logger.addHandler(self.handler)
         self.logger.setLevel(str(loglevel))
 
-        # Create a default dict 
-        self.cfg = defaults()
-            
         # instance starts unlocked
         self.cfg_locked = False
 
-        # setting up an empty status dictionary for each stage
-        self.status = {}
+        # Create a default dict 
+        self.cfg = defaults()
 
-        for stage in self.cfg['sc_stages']['default']:
-            self.status[stage] = ["idle"]
-
-        #Read environment variables
-        self.readenv()
-
-        #Read in json files based on cfg
-
-        #Overide with command line arguments
-        if cmdargs is not None:
-            self.copyargs(cmdargs)
-
-        #Resolve all source files as absolute paths (should be a switch)
-        self.abspath()
-
+     
 
     ###################################
     def clearcfg(self):
@@ -91,21 +74,85 @@ class Chip:
         return self.cfg[param]['values']
 
     ####################################
-    def set(self, param, val):
-        '''Sets an Chip configuration parameter
-
-        Args:
-            param (string): Configuration parameter to set
-            val (list): Value(s) to assign to param
-
+    def set(self, *args):
+        '''Sets a value in the Chip configuration dictionary 
         '''
+        self.logger.info('Setting config %s',args)
 
-        if self.cfg[param]['type'] == "list":
-            self.cfg[param]['values'] = [val]
-        elif self.cfg[param]['type'] == "file":
-            self.cfg[param]['values'] = [os.path.abspath(val)]
-        else:
-            self.cfg[param]['values'] = val
+        tot_args = len(args)
+
+        if tot_args > 6 or tot_args < 2:
+            self.logger.error('Illegal argument list %s', args)
+            sys.exit()
+
+        param = args[0]
+        val = args[1]
+        key1 = None
+        key2 = None
+        key3 = None
+        value_exists = True
+        value_clobbered = False
+        
+        # Single level parameters
+        if tot_args == 2 :
+            value_exists = 'value' in self.cfg[param]            
+            if self.cfg[param]['type'] in {"list", "file"}:
+                if value_exists:
+                    self.cfg[param]['value'].append(val)
+                else:
+                    self.cfg[param]['value'] = val
+            else:
+                value_clobbered = value_exists
+                self.cfg[param]['value'] = val
+        # Nested structure parameters with sub keys
+        elif tot_args > 3:
+            key1 = args[2]
+            key2 = args[3]
+
+            if tot_args > 4:
+                key3 = args[4]
+            # Dynamic dictionary entries for stdlib means we have to check
+            # the default dict.
+            defkey1 = key1
+            defkey1 = key2
+            if param in ("sc_stdlib", "sc_macro"): 
+                defkey1 = 'default' #special key name!
+            if key2 in ("timing", "power"):
+                defkey2 = 'default'
+            # Create dictionary if it doesn't exist
+            if key1 not in self.cfg[param]:
+                value_exists = False
+                self.cfg[param][key1] = {}                
+            if key2 not in self.cfg[param][key1]:
+                value_exists = False
+                self.cfg[param][key1][key2] = {}
+            if (tot_args > 4) & (key3 not in self.cfg[param][key1][key2]):
+                 value_exists = False
+                 self.cfg[param][key1][key2][key3] = {}
+                 
+            if tot_args > 4:
+                if self.cfg[param][defkey1][key2][defkey2]['type'] in {"list", "file"}:
+                    if value_exists:
+                        self.cfg[param][key1][key2][key3]['value'].append(val)
+                    else:
+                        self.cfg[param][key1][key2][key3]['value'] = val
+                else:                    
+                    value_clobbered = value_exists
+                    self.cfg[param][key1][key2][key3]['value'] = val
+            else:
+                if self.cfg[param][defkey1][key2]['type'] in {"list", "file"}:
+                    if value_exists:
+                        self.cfg[param][key1][key2]['value'].append(val)
+                    else:
+                        self.cfg[param][key1][key2]['value'] = val
+                else:                    
+                    value_clobbered = value_exists
+                    self.cfg[param][key1][key2]['value'] = val
+
+        # Warn on clobber
+        if value_clobbered:
+            self.logger.warning('Overwriting existing value for %s', param)
+        
 
     ###################################
     def getstatus(self, stage, jobid):
@@ -138,7 +185,7 @@ class Chip:
             self.cfg[param]['values'].append(val)
 
     #################################
-    def copyargs(self, cmdargs):
+    def readargs(self, cmdargs):
         '''Copies attributes from the ArgumentsParser object to the current
         Chip configuration.
 
@@ -166,8 +213,6 @@ class Chip:
 
         if self.cfg['sc_lock']['values']:
             self.cfg_locked = True
-
-
 
     #################################
     def readenv(self):
@@ -258,8 +303,8 @@ class Chip:
             os.makedirs(os.path.dirname(abspath))
 
         # Get delta dictionary
-        diff_cfg = self.delta(mode)
-
+        #diff_cfg = self.delta(mode)
+        diff_cfg = self.cfg
         # Write out configuration based on file type
         if abspath.endswith('.json'):
             with open(abspath, 'w') as f:
@@ -321,8 +366,6 @@ class Chip:
         cfg = {}
         for key in keylist:
             cfg[key] = {}
-            cfg[key]['help'] = self.cfg[key]['help']
-            cfg[key]['type'] = self.cfg[key]['type']
             if self.cfg[key]['type'] == "list":
                 cfg[key]['values'] = self.cfg[key]['values'].copy()
             elif self.cfg[key]['type'] == "file":
