@@ -260,7 +260,7 @@ def defaults():
     #Liberty specified on a per corner basis (so one more level of nesting)
     cfg['sc_stdlib']['default']['timing'] = {}
     cfg['sc_stdlib']['default']['timing']['default'] = {
-        'help' : "Library Timing file <lib pvt filename>",
+        'help' : "Library timing file <lib pvt filename>",
         'switch' : "-stdlib_timing",
         'type' : "file",
         'defvalue' : [iplib + "lib/NangateOpenCellLibrary_typical.lib"],
@@ -270,7 +270,7 @@ def defaults():
     #Power format
     cfg['sc_stdlib']['default']['power'] = {}
     cfg['sc_stdlib']['default']['power']['default'] = {
-        'help' : "Library Power file <lib pvt filename>",
+        'help' : "Library power file <lib pvt filename>",
         'switch' : "-stdlib_power",        
         'type' : "file",
         'defvalue' : [],
@@ -279,10 +279,9 @@ def defaults():
 
     #Cell lists are many and dynamic (so one more level of nesting)
     cfg['sc_stdlib']['default']['cells'] = {}
-    for val in cfg['sc_cell_list']['defvalue']:
-        cfg['sc_stdlib']['default']['cells'][val] = {
-            'help' : "Library "+val+" cells <lib list> ",
-            'switch' : "-stdlib_"+val,
+    cfg['sc_stdlib']['default']['cells']['default'] = {
+            'help' : "Library cell type list <lib type list> ",
+            'switch' : "-stdlib_cells",
             'type' : "list",
             'defvalue' : []
         }
@@ -521,7 +520,7 @@ def defaults():
         'switch' : "-gui",
         'defvalue' : False
     }
-
+    
     cfg['sc_lock'] = {
         'help' : "Switch to lock configuration from further modification",
         'type' : "bool",
