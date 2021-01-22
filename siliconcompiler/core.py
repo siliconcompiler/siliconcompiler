@@ -269,6 +269,7 @@ class Chip:
         pass
 
     ##################################
+    #TODO: Need a hierarchical TCL writer!
     def writetcl(self, cfg, filename):
         '''Writes out the Chip cfg dictionary in TCL format
 
@@ -340,6 +341,7 @@ class Chip:
         '''
         #Setting initial dict so user doesn't have to
         if cfg is None:
+            self.logger.info('Setting Configuration to Default Values')
             cfg = self.cfg
         for k, v in cfg.items():            
             if isinstance(v, dict):
@@ -355,16 +357,17 @@ class Chip:
     def abspath(self,cfg=None):
         '''Resolves all configuration paths to be absolute paths
         '''
-
         #Setting initial dict so user doesn't have to
         if cfg is None:
+            self.logger.info('Resolving all paths to absolute paths')
             cfg = self.cfg        
         #Recursively going through dict to set abspaths for files
-        for k, v in cfg.items():            
+        for k, v in cfg.items():
             if isinstance(v, dict):
                 if 'defvalue' in cfg[k].keys():
-                    if(cfg[k]['value'] == 'file'):
-                        cfg[k]['value'] = os.path.abspath(cfg[k]['value'])
+                    if(cfg[k]['type'] == 'file'):
+                        for i, v in enumerate(cfg[k]['value']):
+                            cfg[k]['value'][i] = os.path.abspath(v)
                 else:
                     self.abspath(cfg=cfg[k])
 
@@ -373,7 +376,7 @@ class Chip:
         '''Merges dictionary with the Chip configuration dictionary
         '''
         if d1 is None:
-            self.logger.info('Merging new cfg into Chip configuration', d2)
+            self.logger.info('Merging %s dictionary into Chip instance configuration', src)
             d1 = self.cfg
         for k, v in d2.items():
             #Checking if dub dict exists in self.cfg and new dict
@@ -382,7 +385,7 @@ class Chip:
                 if 'defvalue' in d1[k].keys():
                     if d1[k]['type'] in ("list", "file"):
                         d1[k]['setter'] = src
-                        d1[k]['value'].append(d2[k]['value'])
+                        d1[k]['value'].extend(d2[k]['value'])
                     else:
                         d1[k]['setter'] = src
                         d1[k]['value'] = d2[k]['value']
