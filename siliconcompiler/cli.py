@@ -41,12 +41,14 @@ def cmdline():
                 #Timing/power has a fixed structure with default as keyword for lib/corner
                 if key2 in ('timing', 'power', 'cells'):
                     parser.add_argument(def_cfg[key1]['default'][key2]['default']['switch'],
+                                        nargs=3,
                                         dest=key1+"_"+key2,
                                         action='append',
                                         help=def_cfg[key1]['default'][key2]['default']['help'])
                 #Cells have a variable number of types
                 else:
                     parser.add_argument(def_cfg[key1]['default'][key2]['switch'],
+                                        nargs=2,
                                         dest=key1+"_"+key2,
                                         action='append',
                                         help=def_cfg[key1]['default'][key2]['help'])
@@ -54,6 +56,7 @@ def cmdline():
             # Using 'syn' tool as template for all configs
             for key2 in def_cfg['sc_tool']['syn'].keys():                
                 parser.add_argument(def_cfg[key1]['syn'][key2]['switch'],
+                                    nargs=2,
                                     dest=key1+"_"+key2,
                                     action='append',
                                     help=def_cfg[key1]['syn'][key2]['help'])   
@@ -91,24 +94,22 @@ def cmdline():
                 cfg[param] = {}
             #Iterate over list
             if type(values) is list:
-                for val in values:
-                    #TODO: Any way to simplify init of these dicts?
+                for val in values:                    
                     if switch[1] in ('stdlib', 'macro', 'tool'):
-                        #All these i
-                        field = val.split(' ')
-                        if field[0] not in cfg[param]:
-                            cfg[param][field[0]]={}
-                        if switch[2] not in cfg[param][field[0]].keys():
-                            cfg[param][field[0]][switch[2]]={}
+                        #TODO: Any way to simplify init of these dicts?
+                        if val[0] not in cfg[param]:
+                            cfg[param][val[0]]={}
+                        if switch[2] not in cfg[param][val[0]].keys():
+                            cfg[param][val[0]][switch[2]]={}
                         if switch[2] in ('timing', 'power', 'cells'):
-                            if switch[2] not in cfg[param][field[0]][switch[2]].keys():
-                                cfg[param][field[0]][switch[2]][field[1]]={}
-                            cfg[param][field[0]][switch[2]][field[1]]['value'] = field[2]
+                            if switch[2] not in cfg[param][val[0]][switch[2]].keys():
+                                cfg[param][val[0]][switch[2]][val[1]]={}
+                            cfg[param][val[0]][switch[2]][val[1]]['value'] = val[2]
                         else:
-                            if field[1].isdigit():
-                                cfg[param][field[0]][switch[2]]['value']= int(field[1])
+                            if val[1].isdigit():
+                                cfg[param][val[0]][switch[2]]['value']= int(val[1])
                             else:
-                                cfg[param][field[0]][switch[2]]['value']= field[1]
+                                cfg[param][val[0]][switch[2]]['value']= val[1]
                         # Check for boolean switches that are true
                     else:
                         cfg[param] = val   
