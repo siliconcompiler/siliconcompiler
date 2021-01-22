@@ -39,10 +39,10 @@ def cmdline():
         if key1 in ('sc_stdlib', 'sc_macro'):
             for key2 in  def_cfg[key1]['default'].keys():
                 #Timing/power has a fixed structure with default as keyword for lib/corner
-                print(key1, key2)
                 if key2 in ('timing', 'power'):
                     parser.add_argument(def_cfg[key1]['default'][key2]['default']['switch'],
                                         nargs=3,
+                                        dest=key1+"_"+key2,
                                         metavar=('<lib', 'corner', 'filename>'),
                                         action='append',
                                         help=def_cfg[key1]['default'][key2]['default']['help'],
@@ -51,6 +51,7 @@ def cmdline():
                 elif key2 in ('cells'):
                     parser.add_argument(def_cfg[key1]['default'][key2]['default']['switch'],
                                         nargs=3,
+                                        dest=key1+"_"+key2,
                                         metavar=('<lib', 'type', 'cellname>'),
                                         action='append',
                                         help=def_cfg[key1]['default'][key2]['default']['help'],
@@ -68,6 +69,7 @@ def cmdline():
             for key2 in def_cfg['sc_tool']['syn'].keys():                
                 parser.add_argument(def_cfg[key1]['syn'][key2]['switch'],
                                     nargs=2,
+                                    dest=key1+"_"+key2,
                                     metavar=('<stage',key2+'>'),
                                     action='append',
                                     help=def_cfg[key1]['syn'][key2]['help'],
@@ -94,8 +96,6 @@ def cmdline():
 
     #Parsing args and converting to dict
     cmdargs = vars(parser.parse_args())
-
-    print(cmdargs)
     
     # Copying flat parse_args to nested cfg dict based on key type
     # Values are lists of varying legnth based on cfg parameter
