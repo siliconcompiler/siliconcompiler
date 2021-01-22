@@ -167,7 +167,7 @@ def defaults():
     }
     
     cfg['sc_techfile'] = {
-        'help' : "Place and route tehnology file (lef or tf)",
+        'help' : "Place and route tehnology file",
         'type' : "file",
         'switch' : "-techfile",
         'defvalue' : [pdklib + "nangate45.tech.lef"],
@@ -181,33 +181,33 @@ def defaults():
         'defvalue' : [],
         'hash'   : []
     }
-
+    #TODO, make it a list
     cfg['sc_layer'] = {
-        'help' : "Routing layer definitions (eg: metal1 X 0.095 0.19) ",
+        'help' : "Routing layer definitions",
         'type' : "list",
         'switch' : "-layer",
         'defvalue' : ["metal1 X 0.095 0.19",
-                    "metal1 Y 0.07  0.14",
-                    "metal2 X 0.095 0.19",
-                    "metal2 Y 0.07  0.14",
-                    "metal3 X 0.095 0.19",
-                    "metal3 Y 0.07  0.14",
-                    "metal4 X 0.095 0.28",
-                    "metal4 Y 0.07  0.28",
-                    "metal5 X 0.095 0.28",
-                    "metal5 Y 0.07  0.28",
-                    "metal6 X 0.095 0.28",
-                    "metal6 Y 0.07  0.28",
-                    "metal7 X 0.095 0.8",
-                    "metal7 Y 0.07  0.8",
-                    "metal8 X 0.095 0.8",
-                    "metal8 Y 0.07  0.8",
-                    "metal9 X 0.095 1.6",
-                    "metal9 Y 0.07  1.6",
-                    "metal10 X 0.095 1.6",
-                     "metal10 Y 0.07 1.6"]
+                      "metal1 Y 0.07  0.14",
+                      "metal2 X 0.095 0.19",
+                      "metal2 Y 0.07  0.14",
+                      "metal3 X 0.095 0.19",
+                      "metal3 Y 0.07  0.14",
+                      "metal4 X 0.095 0.28",
+                      "metal4 Y 0.07  0.28",
+                      "metal5 X 0.095 0.28",
+                      "metal5 Y 0.07  0.28",
+                      "metal6 X 0.095 0.28",
+                      "metal6 Y 0.07  0.28",
+                      "metal7 X 0.095 0.8",
+                      "metal7 Y 0.07  0.8",
+                      "metal8 X 0.095 0.8",
+                      "metal8 Y 0.07  0.8",
+                      "metal9 X 0.095 1.6",
+                      "metal9 Y 0.07  1.6",
+                      "metal10 X 0.095 1.6",
+                      "metal10 Y 0.07 1.6"]
     }
-    #TODO: Fix, layer
+    #TODO: make it a list
     cfg['sc_scenario'] = {
         'help' : "Process,voltage,temp scenario (eg: tt 0.7 25 setup)",
         'type' : "list",
@@ -260,7 +260,7 @@ def defaults():
     #Liberty specified on a per corner basis (so one more level of nesting)
     cfg['sc_stdlib']['default']['timing'] = {}
     cfg['sc_stdlib']['default']['timing']['default'] = {
-        'help' : "Library timing file <lib pvt filename>",
+        'help' : "Library timing file",
         'switch' : "-stdlib_timing",
         'type' : "file",
         'defvalue' : [iplib + "lib/NangateOpenCellLibrary_typical.lib"],
@@ -270,7 +270,7 @@ def defaults():
     #Power format
     cfg['sc_stdlib']['default']['power'] = {}
     cfg['sc_stdlib']['default']['power']['default'] = {
-        'help' : "Library power file <lib pvt filename>",
+        'help' : "Library power file",
         'switch' : "-stdlib_power",        
         'type' : "file",
         'defvalue' : [],
@@ -280,14 +280,14 @@ def defaults():
     #Cell lists are many and dynamic (so one more level of nesting)
     cfg['sc_stdlib']['default']['cells'] = {}
     cfg['sc_stdlib']['default']['cells']['default'] = {
-            'help' : "Library cell type list <lib type list> ",
+            'help' : "Library cell type list",
             'switch' : "-stdlib_cells",
             'type' : "list",
             'defvalue' : []
         }
     
     cfg['sc_stdlib']['default']['lef'] = {
-        'help' : "Library LEF file <lib filename>",
+        'help' : "Library LEF file",
         'switch' : "-stdlib_lef",      
         'type' : "file",
         'defvalue' : [iplib + "lef/NangateOpenCellLibrary.macro.lef"],
@@ -295,7 +295,7 @@ def defaults():
     }
 
     cfg['sc_stdlib']['default']['gds'] = {
-        'help' : "Library GDS file <lib filename>",
+        'help' : "Library GDS file",
         'switch' : "-stdlib_gds",        
         'type' : "file",
         'defvalue' : [iplib + "gds/NangateOpenCellLibrary.gds"],
@@ -303,7 +303,7 @@ def defaults():
     } 
 
     cfg['sc_stdlib']['default']['cdl'] = {
-        'help' : "Library CDL file <lib filename>",
+        'help' : "Library CDL file",
         'switch' : "-stdlib_cdl",        
         'type' : "file",
         'defvalue' : [],
@@ -311,7 +311,7 @@ def defaults():
     } 
 
     cfg['sc_stdlib']['default']['setup'] = {
-        'help' : "Library Setup file <lib filename>",
+        'help' : "Library Setup file",
         'switch' : "-stdlib_setup",     
         'type' : "file",
         'defvalue' : [],
@@ -319,7 +319,7 @@ def defaults():
     } 
 
     cfg['sc_stdlib']['default']['dft'] = {
-        'help' : "Library DFT file <lib filename>",
+        'help' : "Library DFT file",
         'switch' : "-stdlib_dft",     
         'type' : "file",
         'defvalue' : [],
@@ -327,7 +327,7 @@ def defaults():
     }
 
     cfg['sc_stdlib']['default']['verilog'] = {
-        'help' : "Library Verilog file <lib filename>",
+        'help' : "Library Verilog file",
         'switch' : "-stdlib_verilog",     
         'type' : "file",
         'defvalue' : [],
@@ -335,7 +335,7 @@ def defaults():
     }
     
     cfg['sc_stdlib']['default']['doc'] = {
-        'help' : "Library documentation <lib path>",
+        'help' : "Library documentation",
         'switch' : "-stdlib_doc",     
         'type' : "file",
         'defvalue' : [],
@@ -343,7 +343,7 @@ def defaults():
     }
 
     cfg['sc_stdlib']['default']['pnrdb'] = {
-        'help' : "Library PNR database<lib path>",
+        'help' : "Library PNR database",
         'switch' : "-stdlib_pnrdb",     
         'type' : "file",
         'defvalue' : [],
@@ -351,7 +351,7 @@ def defaults():
     }
 
     cfg['sc_stdlib']['default']['customdb'] = {
-        'help' : "Library custom database <lib path>",
+        'help' : "Library custom database",
         'switch' : "-stdlib_customdb",     
         'type' : "file",
         'defvalue' : [],
@@ -359,14 +359,14 @@ def defaults():
     }
 
     cfg['sc_stdlib']['default']['driver'] = {
-        'help' : "Library default driver <lib cell>",
+        'help' : "Library default driver",
         'switch' : "-stdlib_driver",     
         'type' : "list",
         'defvalue' : ["BUF_X1"]
     }
     
     cfg['sc_stdlib']['default']['site'] = {
-        'help' : "Library placement site <lib site>",
+        'help' : "Library placement site",
         'switch' : "-stdlib_site",     
         'type' : "list",
         'defvalue' : ["FreePDK45_38x28_10R_NP_162NW_34O"]
@@ -385,7 +385,7 @@ def defaults():
     #Timing specified on a per corner basis
     cfg['sc_macro']['default']['timing'] = {}
     cfg['sc_macro']['default']['timing']['default'] = {
-        'help' : "Macro timing file <lib pvt filename>",
+        'help' : "Macro timing file",
         'switch' : "-macro_timing",
         'type' : "file",
         'defvalue' : [],
@@ -395,7 +395,7 @@ def defaults():
     #Power specified on a per corner basis
     cfg['sc_macro']['default']['power'] = {}
     cfg['sc_macro']['default']['power']['default'] = {
-        'help' : "Macro power file <lib pvt filename>",
+        'help' : "Macro power file",
         'switch' : "-macro_power",        
         'type' : "file",
         'defvalue' : [],
@@ -403,7 +403,7 @@ def defaults():
     }
 
     cfg['sc_macro']['default']['lef'] = {
-        'help' : "Macro LEF file <lib filename>",
+        'help' : "Macro LEF file",
         'switch' : "-macro_lef",        
         'type' : "file",
         'defvalue' : [],
@@ -411,7 +411,7 @@ def defaults():
     }
 
     cfg['sc_macro']['default']['gds'] = {
-        'help' : "Macro GDS file <lib filename>",
+        'help' : "Macro GDS file",
         'switch' : "-macro_gds",        
         'type' : "file",
         'defvalue' : [],
@@ -419,7 +419,7 @@ def defaults():
     } 
 
     cfg['sc_macro']['default']['cdl'] = {
-        'help' : "Macro CDL file <lib filename>",
+        'help' : "Macro CDL file",
         'switch' : "-macro_cdl",        
         'type' : "file",
         'defvalue' : [],
@@ -427,7 +427,7 @@ def defaults():
     } 
 
     cfg['sc_macro']['default']['setup'] = {
-        'help' : "Macro Setup file <lib filename>",
+        'help' : "Macro Setup file",
         'switch' : "-macro_setup",     
         'type' : "file",
         'defvalue' : [],
@@ -435,7 +435,7 @@ def defaults():
     } 
 
     cfg['sc_macro']['default']['dft'] = {
-        'help' : "Macro DFT file <lib filename>",
+        'help' : "Macro DFT file",
         'switch' : "-macro_dft",     
         'type' : "file",
         'defvalue' : [],
@@ -443,7 +443,7 @@ def defaults():
     }
 
     cfg['sc_macro']['default']['verilog'] = {
-        'help' : "Macro Verilog file <lib filename>",
+        'help' : "Macro Verilog file",
         'switch' : "-macro_verilog",     
         'type' : "file",
         'defvalue' : [],
@@ -451,7 +451,7 @@ def defaults():
     }
     
     cfg['sc_macro']['default']['doc'] = {
-        'help' : "Macro documentation <lib path>",
+        'help' : "Macro documentation",
         'switch' : "-macro_doc",     
         'type' : "file",
         'defvalue' : [],
@@ -459,7 +459,7 @@ def defaults():
     }
 
     cfg['sc_macro']['default']['pnrdb'] = {
-        'help' : "Macro PNR database <lib path>",
+        'help' : "Macro PNR database",
         'switch' : "-macro_pnrdb",     
         'type' : "file",
         'defvalue' : [],
@@ -467,7 +467,7 @@ def defaults():
     }
 
     cfg['sc_macro']['default']['customdb'] = {
-        'help' : "Macro Custom database <lib path>",
+        'help' : "Macro Custom database",
         'switch' : "-macro_customdb",     
         'type' : "file",
         'defvalue' : [],
@@ -781,11 +781,11 @@ def defaults():
             cfg['sc_tool'][stage][key]['switch'] = "-tool_"+key
             
         # Help
-        cfg['sc_tool'][stage]['exe']['help'] = "Executable <stage, exe>"
-        cfg['sc_tool'][stage]['opt']['help'] = "Options <stage, options>"
-        cfg['sc_tool'][stage]['script']['help'] = "Run script <stage, script>"
-        cfg['sc_tool'][stage]['jobid']['help'] = "Job index <stage, jobid>"
-        cfg['sc_tool'][stage]['np']['help'] = "Parallelism <stage, threads>"
+        cfg['sc_tool'][stage]['exe']['help'] = "Stage Tool Executable"
+        cfg['sc_tool'][stage]['opt']['help'] = "Stage Tool Options"
+        cfg['sc_tool'][stage]['script']['help'] = "Stage Tool Run script"
+        cfg['sc_tool'][stage]['jobid']['help'] = "Stage Tool Job index"
+        cfg['sc_tool'][stage]['np']['help'] = "Stage Tool Parallelism"
         
         # Types
         cfg['sc_tool'][stage]['exe']['type'] = "string"
