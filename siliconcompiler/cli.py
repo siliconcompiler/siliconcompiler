@@ -66,7 +66,7 @@ def cmdline():
                                         default = argparse.SUPPRESS)
         elif key1 in ('sc_tool'):
             # Using 'syn' tool as template for all configs
-            for key2 in def_cfg['sc_tool']['syn'].keys():                
+            for key2 in def_cfg['sc_tool']['syn'].keys():
                 parser.add_argument(def_cfg[key1]['syn'][key2]['switch'],
                                     nargs=2,
                                     dest=key1+"_"+key2,
@@ -80,8 +80,21 @@ def cmdline():
                                 action='store_true',
                                 help=def_cfg[key1]['help'],
                                 default = argparse.SUPPRESS)
-        elif def_cfg[key1]['type'] in {"int", "float", "string"}:
+        elif def_cfg[key1]['type'] in {"string"}:
             parser.add_argument(def_cfg[key1]['switch'],
+                                dest=key1,
+                                help=def_cfg[key1]['help'],
+                                default = argparse.SUPPRESS)   
+        elif def_cfg[key1]['type'] in {"int"}:
+            parser.add_argument(def_cfg[key1]['switch'],
+                                type=int,
+                                dest=key1,
+                                help=def_cfg[key1]['help'],
+                                default = argparse.SUPPRESS)  
+
+        elif def_cfg[key1]['type'] in {"float",}:
+            parser.add_argument(def_cfg[key1]['switch'],
+                                type=float,
                                 dest=key1,
                                 help=def_cfg[key1]['help'],
                                 default = argparse.SUPPRESS)
@@ -96,43 +109,73 @@ def cmdline():
 
     #Parsing args and converting to dict
     cmdargs = vars(parser.parse_args())
-    
+
     # Copying flat parse_args to nested cfg dict based on key type
     # Values are lists of varying legnth based on cfg parameter
     # stdlib, macro, tool has length 3 or 4 depending on type
     # (timing, cells, power has length 4)
     # Format is "key(s) val"
+
+    #scalars, list, lists of lists need to be treated
+    #destination is the nested cfg dictionary
+
     cfg= {}
-    for key,values in cmdargs.items():
+    
+    for key,all_vals in cmdargs.items():
         #split string and command switch
+        #sc_tool_ext
+        #sc_stdlib_timing
         switch = key.split('_')       
         # Nested dict entries
         param = switch[0] + "_" + switch[1]
         if param not in cfg:
             cfg[param] = {}
         #Iterate over list
-        if type(values) is list:
-            for val in values:                    
-                if switch[1] in ('stdlib', 'macro', 'tool'):
+        if type(all_vals) is list:
+            for val in all_vals:
+                if switch[1] in ('stdlib', 'macro'):
                     #TODO: Any way to simplify init of these dicts?
                     if val[0] not in cfg[param]:
                         cfg[param][val[0]]={}
                     if switch[2] not in cfg[param][val[0]].keys():
                         cfg[param][val[0]][switch[2]]={}
                     if switch[2] in ('timing', 'power', 'cells'):
-                        if switch[2] not in cfg[param][val[0]][switch[2]].keys():
+                    #this is easy since every thing is a string list
+                        if val[1] not in cfg[param][val[0]][switch[2]].keys():
                             cfg[param][val[0]][switch[2]][val[1]]={}
-                        cfg[param][val[0]][switch[2]][val[1]]['value'] = val[2]
-                    else:
-                        if val[1].isdigit():
-                            cfg[param][val[0]][switch[2]]['value']= int(val[1])
+                            cfg[param][val[0]][switch[2]][val[1]]['value'] = [val[2]]
                         else:
-                            cfg[param][val[0]][switch[2]]['value']= val[1]
-                    # Check for boolean switches that are true
+                            cfg[param][val[0]][switch[2]][val[1]]['value'].append(val[2])
+                    else:
+                        if 'value' not in cfg[param][val[0]][switch[2]].keys():
+                            cfg[param][val[0]][switch[2]]['value'] = [val[1]]
+                        else:
+                            cfg[param][val[0]][switch[2]]['value'].append(val[1])
+                elif  switch[1] in ('tool'):
+                    if val[0] not in cfg[param]:
+                        cfg[param][val[0]] = {}
+                    if switch[2] not in cfg[param][val[0]].keys():
+                        cfg[param][val[0]][switch[2]] = {}
+                    #Setting alue based in typ in default dictionary
+                    if def_cfg[param][val[0]][switch[2]]['type'] == "int":
+                        cfg[param][val[0]][switch[2]]['value'] = int(val[1])
+                    elif def_cfg[param][val[0]][switch[2]]['type'] == "string":
+                        cfg[param][val[0]][switch[2]]['value'] = val[1]
+                    elif def_cfg[param][val[0]][switch[2]]['type'] == "file":
+                        if 'value' not in cfg[param][val[0]][switch[2]].keys():
+                            cfg[param][val[0]][switch[2]]['value'] = [val[1]]
+                        else:
+                            cfg[param][val[0]][switch[2]]['value'].append(val[1])
+                #Passing though list as is
+                elif  switch[1] in ('source'):
+                    if 'value' not in cfg[param].keys():
+                        cfg[param]['value'] = [val]
+                    else:
+                        cfg[param]['value'].append(val)
                 else:
-                    cfg[param] = val   
+                    cfg[param]['value'] = val
         else:
-            cfg[param] = values   
+            cfg[param]['value'] = all_vals   
                 
     return cfg
 
@@ -141,13 +184,11 @@ def cmdline():
 def main():
 
     #Command line inputs, read once
-    cmdcfg = cmdline()
+    cmdlinecfg = cmdline()
 
-    print(json.dumps(cmdcfg, sort_keys=True, indent=4))
-    
     #Create one (or many...) instances of Chip class
     mychip = sc.Chip()
-
+    
     # Iterative over nested dict recursively to get environment variables
     mychip.readenv()
 
@@ -156,10 +197,12 @@ def main():
     #    mychip.loadcfg(file=filename)
     
     # Copy a cfg dictionary into Chip.cfg
-    #mychip.copycfg(cmdcfg)
+    #print(json.dumps(cmdlinecfg, sort_keys=True, indent=4))
+    
+    mychip.mergecfg(cmdlinecfg,"cmdline")
         
     #Resolve as absolute paths (should be a switch)
-    #mychip.abspath()
+    mychip.abspath()
 
     #Creating hashes for all sourced files
     #mychip.hash()
@@ -172,8 +215,15 @@ def main():
 
     #Compilation
     #for stage in mychip.get('sc_stages'):
-    mychip.run("import")
     
+    mychip.run("import")
+    mychip.run("syn")
+    mychip.run("place")
+    mychip.run("cts")
+    mychip.run("route")
+    mychip.run("signoff")
+    mychip.run("export")
+        
 #########################
 if __name__ == "__main__":    
     sys.exit(main())
