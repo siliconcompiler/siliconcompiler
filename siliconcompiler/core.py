@@ -465,30 +465,20 @@ class Chip:
         if d1 is None:
             d1 = self.cfg
         for k, v in d2.items():
+            #Checking if dub dict exists in self.cfg and new dict
             if k in d1 and isinstance(d1[k], dict) and isinstance(d2[k], dict):
+                #if we reach a leaf copy d2 to d1
                 if 'defvalue' in d1[k].keys():
                     if d1[k]['type'] in ("list", "file"):
                         d1[k]['value'].append(d2[k]['value'])
                     else:
                         d1[k]['value'] = d2[k]['value']
+                #if not in leaf keep descending
                 else:
-                    self.mergecfg(d2[k],d1=d1[k]) 
+                    self.mergecfg(d2[k],d1=d1[k])
+            #if a new d2 key is found do a deep copy
             else:
-                print("MISMATCH", k)
-        print("WHATTTT", d1)
-                    
-                
-                       
-#                if k in d1 and isinstance(d1[k], dict) and isinstance(d2[k], dict):
-#                    print("MERGING")
-#                    self.mergecfg(d2[k],d1=d1[k])
-#                else:
-#                    print("COPY", k, d2[k], d1[k]['type'])
-#                    #print(k, d2[k], d1[k]['type'],d1[k]['value'],d2[k]['value'])
-#                    if d1['type'] in ("list", "file"):
-#                        d1['value'].append(d2['value'])
-#                    else:
-#                        d1['value'] = d2['value']
+                d1[k] = d2[k].copy()
                     
     ##################################
     def sync(self, stage, jobid):
