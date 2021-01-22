@@ -251,20 +251,14 @@ class Chip:
         #Rename dictionary based on keymap
         #Customize based on the types
         if not self.cfg_locked:
-            for key in read_args:
-                #Only allow merging of keys that already exist (no new keys!)
-                if key in self.cfg:
-                    #ask if scalar
-                    self.cfg[key]['value'] = read_args[key]['value'].copy()
-                else:
-                    print("ERROR: Merging of unknown keys not allowed,", key)
+            #Merging arguments with the Chip configuration
+            self.merge(read_args, abspath)
         else:
             self.logger.error('Trying to change configuration while locked')
 
         if self.cfg['sc_lock']['value']:
             self.cfg_locked = True
 
-        return json_args
 
     ##################################
     def writecfg(self, filename, mode="all", keymap=None):
@@ -459,10 +453,11 @@ class Chip:
                     self.abspath(cfg=cfg[k])
 
     ##################################
-    def mergecfg(self, d2, d1=None):
+    def mergecfg(self, d2, src, d1=None):
         '''Merges dictionary with the Chip configuration dictionary
         '''
         if d1 is None:
+            self.logger.info('Merging new cfg into Chip configuration', d2)
             d1 = self.cfg
         for k, v in d2.items():
             #Checking if dub dict exists in self.cfg and new dict
@@ -470,12 +465,16 @@ class Chip:
                 #if we reach a leaf copy d2 to d1
                 if 'defvalue' in d1[k].keys():
                     if d1[k]['type'] in ("list", "file"):
+                        d1[k]['setter'] = src
                         d1[k]['value'].append(d2[k]['value'])
                     else:
+                        d1[k]['setter'] = src
                         d1[k]['value'] = d2[k]['value']
+                    #Adding warning message if overwriting a value
+                        
                 #if not in leaf keep descending
                 else:
-                    self.mergecfg(d2[k],d1=d1[k])
+                    self.mergecfg(d2[k], src, d1=d1[k])
             #if a new d2 key is found do a deep copy
             else:
                 d1[k] = d2[k].copy()
