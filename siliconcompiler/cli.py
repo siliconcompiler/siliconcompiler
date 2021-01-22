@@ -52,7 +52,7 @@ def cmdline():
                                         help=def_cfg[key1]['default'][key2]['help'])
         elif key1 in ('sc_tool'):
             # Using 'syn' tool as template for all configs
-            for key2 in def_cfg['sc_tool']['syn'].keys():           
+            for key2 in def_cfg['sc_tool']['syn'].keys():                
                 parser.add_argument(def_cfg[key1]['syn'][key2]['switch'],
                                     dest=key1+"_"+key2,
                                     action='append',
@@ -92,10 +92,10 @@ def cmdline():
             #Iterate over list
             if type(values) is list:
                 for val in values:
-                    #Chek for string entries
-                    field = val.split(' ')
                     #TODO: Any way to simplify init of these dicts?
                     if switch[1] in ('stdlib', 'macro', 'tool'):
+                        #All these i
+                        field = val.split(' ')
                         if field[0] not in cfg[param]:
                             cfg[param][field[0]]={}
                         if switch[2] not in cfg[param][field[0]].keys():
@@ -105,18 +105,16 @@ def cmdline():
                                 cfg[param][field[0]][switch[2]][field[1]]={}
                             cfg[param][field[0]][switch[2]][field[1]]['value'] = field[2]
                         else:
-                            cfg[param][field[0]][switch[2]]['value']= field[1]
+                            if field[1].isdigit():
+                                cfg[param][field[0]][switch[2]]['value']= int(field[1])
+                            else:
+                                cfg[param][field[0]][switch[2]]['value']= field[1]
                         # Check for boolean switches that are true
                     else:
                         cfg[param] = val   
-            elif type(val) is bool:
-                cfg[param] = values
             else:
                 cfg[param] = values   
                 
-            #Fancy reshuffling of fields to fit dictionary
-            
-           
     return cfg
 
 
