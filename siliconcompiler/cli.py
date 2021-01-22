@@ -5,6 +5,7 @@ import sys
 import logging
 import argparse
 import os
+import json
 
 #Shorten siliconcompiler as sc
 import siliconcompiler as sc
@@ -14,6 +15,7 @@ from siliconcompiler.config import defaults
 def cmdline():
     '''Handles the command line configuration usign argparse. 
     All configuration parameters are exposed at the command line interface.
+    This is outside of the class since this can be called 
 
     '''
     def_cfg = defaults()
@@ -37,18 +39,12 @@ def cmdline():
         if key1 in ('sc_stdlib', 'sc_macro'):
             for key2 in  def_cfg[key1]['default'].keys():
                 #Timing/power has a fixed structure with default as keyword for lib/corner
-                if key2 in ('timing', 'power'):
+                if key2 in ('timing', 'power', 'cells'):
                     parser.add_argument(def_cfg[key1]['default'][key2]['default']['switch'],
                                         dest=key1+"_"+key2,
                                         action='append',
                                         help=def_cfg[key1]['default'][key2]['default']['help'])
                 #Cells have a variable number of types
-                elif key2 in ('cells'):
-                    for key3 in def_cfg[key1]['default'][key2].keys():
-                        parser.add_argument(def_cfg[key1]['default'][key2][key3]['switch'],
-                                            dest=key1+"_"+key3,
-                                            action='append',
-                                            help=def_cfg[key1]['default'][key2][key3]['help'])
                 else:
                     parser.add_argument(def_cfg[key1]['default'][key2]['switch'],
                                         dest=key1+"_"+key2,
@@ -76,51 +72,90 @@ def cmdline():
                                 action='append',
                                 help=def_cfg[key1]['help'])
 
-    args = parser.parse_args()
+    #Parsing args and converting to dict        
+    cmdargs = vars(parser.parse_args())
 
-    return args
+    # Copying flat parse_args to nested cfg dict based on key type
+    # Values are lists of varying legnth based on cfg parameter
+    # stdlib, macro, tool has length 3 or 4 depending on type
+    # (timing, cells, power has length 4)
+    # Format is "keys val"
+    cfg= {}
+    for key,values in cmdargs.items():
+        if values != None:
+            #split string and command switch
+            switch = key.split('_')       
+            # Nested dict entries
+            param = switch[0] + "_" + switch[1]
+            if param not in cfg:
+                cfg[param] = {}
+            #Iterate over list
+            if type(values) is list:
+                for val in values:
+                    #Chek for string entries
+                    field = val.split(' ')
+                    #TODO: Any way to simplify init of these dicts?
+                    if switch[1] in ('stdlib', 'macro', 'tool'):
+                        if field[0] not in cfg[param]:
+                            cfg[param][field[0]]={}
+                        if switch[2] not in cfg[param][field[0]].keys():
+                            cfg[param][field[0]][switch[2]]={}
+                        if switch[2] in ('timing', 'power', 'cells'):
+                            if switch[2] not in cfg[param][field[0]][switch[2]].keys():
+                                cfg[param][field[0]][switch[2]][field[1]]={}
+                            cfg[param][field[0]][switch[2]][field[1]]['value'] = field[2]
+                        else:
+                            cfg[param][field[0]][switch[2]]['value']= field[1]
+                        # Check for boolean switches that are true
+                    else:
+                        cfg[param] = val   
+            elif type(val) is bool:
+                cfg[param] = values
+            else:
+                cfg[param] = values   
+                
+            #Fancy reshuffling of fields to fit dictionary
+            
+           
+    return cfg
 
 
 ###########################
 def main():
 
-    #Command line interface
-    cmdargs = cmdline()
+    #Command line inputs, read once
+    cmdcfg = cmdline()
 
+    print(json.dumps(cmdcfg, sort_keys=True, indent=4))
+    
     #Create one (or many...) instances of Chip class
-    chip = sc.Chip()
+    mychip = sc.Chip()
 
     # Iterative over nested dict recursively to get environment variables
-    chip.readenv()
-   
-    # Read arguments
-    chip.readargs(cmdargs)
+    mychip.readenv()
+
+    # Read files sourced from command line
+    #for filename in cmdargs['sc_cfgfile']:
+    #    mychip.loadcfg(file=filename)
+    
+    # Copy a cfg dictionary into Chip.cfg
+    #mychip.copycfg(cmdcfg)
         
-
-    #Setting defaults
-    chip.default()
-
-    #Resolve all source files as absolute paths (should be a switch)
-    chip.abspath()
-    #Lock chip configuration
-    #chip.lock()
+    #Resolve as absolute paths (should be a switch)
+    #mychip.abspath()
 
     #Creating hashes for all sourced files
-    #chip.hash()
-    
+    #mychip.hash()
+
+    #Lock chip configuration
+    mychip.lock()
     
     #Printing out run-config
-    chip.writecfg("sc_setup.json")
+    mychip.writecfg("sc_setup.json")
 
-    #Compiler
-    chip.run("import")
-    chip.run("syn")
-    chip.run("floorplan")
-    chip.run("place")
-    chip.run("cts")
-    chip.run("route")
-    chip.run("signoff")
-    chip.run("export")
+    #Compilation
+    #for stage in mychip.get('sc_stages'):
+    mychip.run("import")
     
 #########################
 if __name__ == "__main__":    
