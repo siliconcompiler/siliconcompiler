@@ -14,6 +14,10 @@ def defaults():
     # Paths
     #############################################
 
+    # TODO!! Move defaults out of this file into the main compiler
+    # THIs file should be pristine, "spec"
+    # They can be set by loading a config file from a root directory 
+    # That would emulate a real PDK show a setup file!
     install_dir = os.path.dirname(os.path.abspath(__file__))
     root_dir = re.sub("siliconcompiler/siliconcompiler",
                       "siliconcompiler",
