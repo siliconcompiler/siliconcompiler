@@ -9,6 +9,8 @@ import logging as log
 import hashlib
 import webbrowser
 import yaml
+from collections import defaultdict
+
 from siliconcompiler.config import defaults
 
 class Chip:
@@ -46,10 +48,13 @@ class Chip:
         # Create a default dict 
         self.cfg = defaults()
 
-        # instance starts unlocked
+        # Copy 'default' to 'value'
+        self.reset()
+        
+        # Instance starts unlocked
         self.cfg_locked = False
         
-        # instance starts with all default stages in idle
+        # Instance starts with all default stages in idle
         self.status = {}
         for stage in self.cfg['sc_stages']['defvalue']:
             self.status[stage] = ["idle"]
@@ -75,7 +80,7 @@ class Chip:
             list: List of Chip configuration values
 
         '''
-
+        val = 1
         return val
 
     ####################################
@@ -177,7 +182,7 @@ class Chip:
         #Converting True/False into [""] for consistency??? TODO
         for arg in vars(cmdargs):
             if arg in self.cfg:
-                var = getattr(cmdargs, arg)
+                var = getattr(cmdargs, arg) 
                 if var != None:
                     if self.cfg[arg]['type'] == "bool":
                         if var:
@@ -419,7 +424,7 @@ class Chip:
         self.cfg_locked = True
 
      ##################################
-    def default(self,cfg=None):
+    def reset(self,cfg=None):
         '''Recursively copies 'defvalue' to 'value' for all configuration 
         parameters
         '''
@@ -429,9 +434,12 @@ class Chip:
         for k, v in cfg.items():            
             if isinstance(v, dict):
                 if 'defvalue' in cfg[k].keys():
-                    cfg[k]['value'] = cfg[k]['defvalue']
+                    if cfg[k]['type'] in ("file", "list"):
+                        cfg[k]['value'] = cfg[k]['defvalue'].copy()
+                    else:
+                        cfg[k]['value'] = cfg[k]['defvalue']
                 else:
-                    self.default(cfg=cfg[k])
+                    self.reset(cfg=cfg[k])
         
     ##################################
     def abspath(self,cfg=None):
@@ -450,22 +458,44 @@ class Chip:
                 else:
                     self.abspath(cfg=cfg[k])
 
-#        for k, v in cfg.items():            
-#            if isinstance(v, dict):
-#                self.abspath(cfg=cfg[k])
-#            else:
-#                print(k,v, "leaf")
-
-
+    ##################################
+    def mergecfg(self, d2, d1=None):
+        '''Merges dictionary with the Chip configuration dictionary
+        '''
+        if d1 is None:
+            d1 = self.cfg
+        for k, v in d2.items():
+            if k in d1 and isinstance(d1[k], dict) and isinstance(d2[k], dict):
+                if 'defvalue' in d1[k].keys():
+                    if d1[k]['type'] in ("list", "file"):
+                        d1[k]['value'].append(d2[k]['value'])
+                    else:
+                        d1[k]['value'] = d2[k]['value']
+                else:
+                    self.mergecfg(d2[k],d1=d1[k]) 
+            else:
+                print("MISMATCH", k)
+        print("WHATTTT", d1)
+                    
                 
-                
+                       
+#                if k in d1 and isinstance(d1[k], dict) and isinstance(d2[k], dict):
+#                    print("MERGING")
+#                    self.mergecfg(d2[k],d1=d1[k])
+#                else:
+#                    print("COPY", k, d2[k], d1[k]['type'])
+#                    #print(k, d2[k], d1[k]['type'],d1[k]['value'],d2[k]['value'])
+#                    if d1['type'] in ("list", "file"):
+#                        d1['value'].append(d2['value'])
+#                    else:
+#                        d1['value'] = d2['value']
+                    
     ##################################
     def sync(self, stage, jobid):
         '''Waits for jobs for the stage and jobid specified to complete
         Much work to do here!!
 
         '''
-
     ##################################
     def hash(self):
         '''Creates hashes for all files sourced by Chip class
