@@ -59,16 +59,6 @@ class Chip:
         for stage in self.cfg['sc_stages']['defvalue']:
             self.status[stage] = ["idle"]
             
-            
-
-    ###################################
-    def clearcfg(self):
-        '''Clears all Chip configuration values
-
-        '''
-
-        pass
-
     ###################################
     def get(self, *args):
         '''Gets value for supplied Chip parameter
@@ -89,6 +79,12 @@ class Chip:
         '''
         self.logger.info('Setting config %s %s %s',val,param,keys)
 
+        #TODO:
+        #Use the keys and value to create a small dict
+        #Use the merge function to merge with self.cfg!
+        #!!!!This function gets deleted!
+
+        
         tot_keys = len(keys)
 
         key1 = None
@@ -167,36 +163,6 @@ class Chip:
         return self.status[stage][jobid]
 
     #################################
-    def readargs(self, cmdargs):
-        '''Copies attributes from the ArgumentsParser object to the current
-        Chip configuration.
-
-        Args:
-            cmdargs (ArgumentParser) : ArgumentsParser object
-
-        '''
-
-        self.logger.info('Reading command line variables')
-
-        #Copying the parse_arg Namespace object into the dictorary
-        #Converting True/False into [""] for consistency??? TODO
-        for arg in vars(cmdargs):
-            if arg in self.cfg:
-                var = getattr(cmdargs, arg) 
-                if var != None:
-                    if self.cfg[arg]['type'] == "bool":
-                        if var:
-                            self.cfg[arg]['value'] = ["True"]
-                        elif not var:
-                            self.cfg[arg]['value'] = ["False"]
-                    else:
-                        #should work for both scalar and vlists
-                        self.cfg[arg]['value'] = var
-
-        if self.cfg['sc_lock']['value']:
-            self.cfg_locked = True
-
-    #################################
     def readenv(self):
         '''Reads Chip environment variables and copies them to the current
         configuration. Environment variables are assumed to be the upper case
@@ -261,14 +227,12 @@ class Chip:
 
 
     ##################################
-    def writecfg(self, filename, mode="all", keymap=None):
+    def writecfg(self, filename, keymap=None):
         '''Writes out the current Chip configuration dictionary to a file
 
         Args:
             filename (string): Output filename. File-suffix indicates format
                                (json, yaml, tcl)
-            mode (string): Write the whole configuration for mode=diff,otherwise
-                           writes the complete current Chip configuration.
 
         '''
         abspath = os.path.abspath(filename)
@@ -278,54 +242,18 @@ class Chip:
         if not os.path.exists(os.path.dirname(abspath)):
             os.makedirs(os.path.dirname(abspath))
 
-        # Get delta dictionary
-        #diff_cfg = self.delta(mode)
-        diff_cfg = self.cfg
         # Write out configuration based on file type
         if abspath.endswith('.json'):
             with open(abspath, 'w') as f:
-                print(json.dumps(diff_cfg, sort_keys=True, indent=4), file=f)
+                print(json.dumps(self.cfg, sort_keys=True, indent=4), file=f)
         elif abspath.endswith('.yaml'):
             with open(abspath, 'w') as f:
-                print(yaml.dump(diff_cfg, default_flow_style=False), file=f)
+                print(yaml.dump(self.cfg, default_flow_style=False), file=f)
         else:
-            self.writetcl(diff_cfg, abspath)
+            self.writetcl(self.cfg, abspath)
 
     ##################################
-    def delta(self, mode):
-        '''Compute the delta between the current Chip onfig and the default
-
-        Args:
-            filename (string): JSON formatted configuration file to read
-
-        Returns:
-            dict: Returns the difference between the current Chip configuration
-                  and the default configuration
-
-        '''
-
-        #Get default config
-        default_cfg = defaults()
-
-        # Extract all keys with non-default values
-        diff_list = []
-        for key in default_cfg.keys():
-            if mode == "all":
-                diff_list.append(key)
-            elif default_cfg[key]['type'] in {"list", "file"}:
-                for value in self.cfg[key]['value']:
-                    if value not in default_cfg[key]['value']:
-                        diff_list.append(key)
-                        break
-            elif self.cfg[key]['value'] != default_cfg[key]['value']:
-                diff_list.append(key)
-
-        diff_cfg = self.copy(diff_list)
-
-        return diff_cfg
-
-    ##################################
-    def copy(self, keylist, keymap=None):
+    def copycfg (self, keylist, keymap=None):
         '''Create a subset of the current Chip configuration based on the given
         param list
 
@@ -338,19 +266,7 @@ class Chip:
             dict: Chip configuration dictionary
 
         '''
-
-        cfg = {}
-        for key in keylist:
-            cfg[key] = {}
-            if self.cfg[key]['type'] == "list":
-                cfg[key]['value'] = self.cfg[key]['value'].copy()
-            elif self.cfg[key]['type'] == "file":
-                cfg[key]['values'] = self.cfg[key]['values'].copy()
-                cfg[key]['hash'] = self.cfg[key]['hash'].copy()
-            else:
-                cfg[key]['values'] = self.cfg[key]['values']
-
-        return cfg
+        pass
 
     ##################################
     def writetcl(self, cfg, filename):
@@ -509,6 +425,8 @@ class Chip:
 
         '''
 
+        #TODO: Solve recursively
+        
         abspath1 = os.path.abspath(file1)
         abspath2 = os.path.abspath(file2)
 
