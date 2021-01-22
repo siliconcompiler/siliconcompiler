@@ -39,82 +39,100 @@ def cmdline():
         if key1 in ('sc_stdlib', 'sc_macro'):
             for key2 in  def_cfg[key1]['default'].keys():
                 #Timing/power has a fixed structure with default as keyword for lib/corner
-                if key2 in ('timing', 'power', 'cells'):
+                print(key1, key2)
+                if key2 in ('timing', 'power'):
                     parser.add_argument(def_cfg[key1]['default'][key2]['default']['switch'],
                                         nargs=3,
-                                        dest=key1+"_"+key2,
+                                        metavar=('<lib', 'corner', 'filename>'),
                                         action='append',
-                                        help=def_cfg[key1]['default'][key2]['default']['help'])
+                                        help=def_cfg[key1]['default'][key2]['default']['help'],
+                                        default = argparse.SUPPRESS)
                 #Cells have a variable number of types
+                elif key2 in ('cells'):
+                    parser.add_argument(def_cfg[key1]['default'][key2]['default']['switch'],
+                                        nargs=3,
+                                        metavar=('<lib', 'type', 'cellname>'),
+                                        action='append',
+                                        help=def_cfg[key1]['default'][key2]['default']['help'],
+                                        default = argparse.SUPPRESS)
                 else:
                     parser.add_argument(def_cfg[key1]['default'][key2]['switch'],
-                                        nargs=2,
-                                        dest=key1+"_"+key2,
                                         action='append',
-                                        help=def_cfg[key1]['default'][key2]['help'])
+                                        nargs=2,
+                                        metavar=('<lib','path>'),
+                                        dest=key1+"_"+key2,
+                                        help=def_cfg[key1]['default'][key2]['help'],
+                                        default = argparse.SUPPRESS)
         elif key1 in ('sc_tool'):
             # Using 'syn' tool as template for all configs
             for key2 in def_cfg['sc_tool']['syn'].keys():                
                 parser.add_argument(def_cfg[key1]['syn'][key2]['switch'],
                                     nargs=2,
-                                    dest=key1+"_"+key2,
+                                    metavar=('<stage',key2+'>'),
                                     action='append',
-                                    help=def_cfg[key1]['syn'][key2]['help'])   
+                                    help=def_cfg[key1]['syn'][key2]['help'],
+                                    default = argparse.SUPPRESS)
         elif def_cfg[key1]['type'] is "bool":
             parser.add_argument(def_cfg[key1]['switch'],
                                 dest=key1,
                                 action='store_true',
-                                help=def_cfg[key1]['help'])
+                                help=def_cfg[key1]['help'],
+                                default = argparse.SUPPRESS)
         elif def_cfg[key1]['type'] in {"int", "float", "string"}:
             parser.add_argument(def_cfg[key1]['switch'],
                                 dest=key1,
-                                help=def_cfg[key1]['help'])
+                                help=def_cfg[key1]['help'],
+                                default = argparse.SUPPRESS)
+                                
         elif key1 != "sc_source":
             parser.add_argument(def_cfg[key1]['switch'],
                                 dest=key1,
                                 action='append',
-                                help=def_cfg[key1]['help'])
+                                help=def_cfg[key1]['help'],
+                                default = argparse.SUPPRESS)
+                                
 
-    #Parsing args and converting to dict        
+    #Parsing args and converting to dict
     cmdargs = vars(parser.parse_args())
 
+    print(cmdargs)
+    
     # Copying flat parse_args to nested cfg dict based on key type
     # Values are lists of varying legnth based on cfg parameter
     # stdlib, macro, tool has length 3 or 4 depending on type
     # (timing, cells, power has length 4)
-    # Format is "keys val"
+    # Format is "key(s) val"
     cfg= {}
     for key,values in cmdargs.items():
-        if values != None:
-            #split string and command switch
-            switch = key.split('_')       
-            # Nested dict entries
-            param = switch[0] + "_" + switch[1]
-            if param not in cfg:
-                cfg[param] = {}
-            #Iterate over list
-            if type(values) is list:
-                for val in values:                    
-                    if switch[1] in ('stdlib', 'macro', 'tool'):
-                        #TODO: Any way to simplify init of these dicts?
-                        if val[0] not in cfg[param]:
-                            cfg[param][val[0]]={}
-                        if switch[2] not in cfg[param][val[0]].keys():
-                            cfg[param][val[0]][switch[2]]={}
-                        if switch[2] in ('timing', 'power', 'cells'):
-                            if switch[2] not in cfg[param][val[0]][switch[2]].keys():
-                                cfg[param][val[0]][switch[2]][val[1]]={}
-                            cfg[param][val[0]][switch[2]][val[1]]['value'] = val[2]
-                        else:
-                            if val[1].isdigit():
-                                cfg[param][val[0]][switch[2]]['value']= int(val[1])
-                            else:
-                                cfg[param][val[0]][switch[2]]['value']= val[1]
-                        # Check for boolean switches that are true
+        #split string and command switch
+        switch = key.split('_')       
+        # Nested dict entries
+        param = switch[0] + "_" + switch[1]
+        if param not in cfg:
+            cfg[param] = {}
+        #Iterate over list
+        if type(values) is list:
+            for val in values:                    
+                if switch[1] in ('stdlib', 'macro', 'tool'):
+                    #TODO: Any way to simplify init of these dicts?
+                    if val[0] not in cfg[param]:
+                        cfg[param][val[0]]={}
+                    if switch[2] not in cfg[param][val[0]].keys():
+                        cfg[param][val[0]][switch[2]]={}
+                    if switch[2] in ('timing', 'power', 'cells'):
+                        if switch[2] not in cfg[param][val[0]][switch[2]].keys():
+                            cfg[param][val[0]][switch[2]][val[1]]={}
+                        cfg[param][val[0]][switch[2]][val[1]]['value'] = val[2]
                     else:
-                        cfg[param] = val   
-            else:
-                cfg[param] = values   
+                        if val[1].isdigit():
+                            cfg[param][val[0]][switch[2]]['value']= int(val[1])
+                        else:
+                            cfg[param][val[0]][switch[2]]['value']= val[1]
+                    # Check for boolean switches that are true
+                else:
+                    cfg[param] = val   
+        else:
+            cfg[param] = values   
                 
     return cfg
 
