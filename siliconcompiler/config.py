@@ -550,14 +550,14 @@ def defaults():
         'help' : "Event that triggers message to <sc_contact>",
         'type' : "list",
         'switch' : "-trigger",
-        'defvalue' : []
+        'defvalue' : ["export"]
     }
 
     cfg['sc_contact'] = {
         'help' : "Who to contact on trigge event (phone#/email)",
-        'type' : "string",
+        'type' : "list",
         'switch' : "-contact",
-        'defvalue' : ""
+        'defvalue' : []
     }
 
     ############################################
