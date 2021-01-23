@@ -546,17 +546,17 @@ def defaults():
         'defvalue' : "export"
     }
     
-    cfg['sc_message_event'] = {
-        'help' : "List of stages that triggermessages",
+    cfg['sc_trigger'] = {
+        'help' : "Event that triggers message to <sc_contact>",
         'type' : "list",
-        'switch' : "-message_event",
-        'defvalue' : ["export"]
+        'switch' : "-trigger",
+        'defvalue' : []
     }
 
-    cfg['sc_message_address'] = {
-        'help' : "Message address (phone #/email addr)",
+    cfg['sc_contact'] = {
+        'help' : "Who to contact on trigge event (phone#/email)",
         'type' : "string",
-        'switch' : "-message_address",
+        'switch' : "-contact",
         'defvalue' : ""
     }
 
