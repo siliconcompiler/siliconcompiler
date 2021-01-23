@@ -10,22 +10,6 @@ def defaults():
     All the keys defined in this dictionary are reserved words. 
     '''
     
-    ############################################
-    # Paths
-    #############################################
-
-    # TODO!! Move defaults out of this file into the main compiler
-    # THIs file should be pristine, "spec"
-    # They can be set by loading a config file from a root directory 
-    # That would emulate a real PDK show a setup file!
-    install_dir = os.path.dirname(os.path.abspath(__file__))
-    root_dir = re.sub("siliconcompiler/siliconcompiler",
-                      "siliconcompiler",
-                      install_dir, 1)
-    scripts_dir  = root_dir + "/edalib/"
-    pdklib = root_dir + "/pdklib/virtual/nangate45/r1p0/pnr/"
-    iplib = root_dir + "/iplib/virtual/nangate45/NangateOpenCellLibrary/r1p0/"
-
     #Core dictionary
     cfg = {}
 
@@ -35,7 +19,7 @@ def defaults():
 
     cfg['sc_stages'] = {
         'help' : "List of all compilation stages",
-        'type' : "list",
+        'type' : "string",
         'switch' : "-stages",
         'defvalue' : ["import",
                      "syn",
@@ -74,7 +58,7 @@ def defaults():
         'help' : "Implementation mode (asic or fpga)",
         'type' : "string",
         'switch' : "-mode",
-        'defvalue' : "asic"
+        'defvalue' : []
     }
 
     ############################################
@@ -84,16 +68,16 @@ def defaults():
     
     cfg['sc_custom'] = {
         'help' : "Custom EDA pass through variables",
-        'type' : "list",
+        'type' : "string",
         'switch' : "-custom",
         'defvalue' : []
     }
 
     cfg['sc_keymap'] = {
         'help' : "Framwork keyword translation table",
-        'type' : "list",
+        'type' : "string",
         'switch' : "-keymap",
-        'defvalue' : []
+        'defvalue' : ["default default"]
     }
       
     ############################################
@@ -104,7 +88,7 @@ def defaults():
         'help' : "Name of remote server address (https://acme.com:8080)",
         'type' : "string",
         'switch' : "-remote",
-        'defvalue' : ""
+        'defvalue' : []
     }
 
     ############################################
@@ -115,27 +99,27 @@ def defaults():
         'help' : "Reference methodology name",
         'type' : "string",
         'switch' : "-ref",
-        'defvalue' : "nangate45"
+        'defvalue' : []
     }
 
     cfg['sc_pdkdir'] = {
         'help' : "PDK root directory",
         'type' : "string",
         'switch' : "-pdkdir",
-        'defvalue' : ""
+        'defvalue' : []
     }
     cfg['sc_edadir'] = {
         'help' : "EDA root directory",
         'type' : "string",
         'switch' : "-edadir",
-        'defvalue' : ""
+        'defvalue' : []
     }
 
     cfg['sc_ipdir'] = {
         'help' : "IP root directory",
         'type' : "string",
         'switch' : "-ipdir",
-        'defvalue' : ""
+        'defvalue' : []
     }
 
     ############################################
@@ -146,35 +130,64 @@ def defaults():
         'help' : "Foundry name (eg: virtual, tsmc, gf, samsung)",
         'type' : "string",
         'switch' : "-foundry",
-        'defvalue' : "virtual"
+        'defvalue' : []
     }
-    
+
     cfg['sc_process'] = {
         'help' : "Process name",
         'type' : "string",
         'switch' : "-process",
-        'defvalue' : "nangate45"
+        'defvalue' : []
     }
 
     cfg['sc_node'] = {
-        'help' : "Effective process node in nm (180, 90, 22, 12, 7 etc)",
-        'type' : "string",
+        'help' : "Process node in nm (180, 90, 22, 12, 7 etc)",
+        'type' : "int",
         'switch' : "-node",
-        'defvalue' : "45"
+        'defvalue' : []
     }
-    
-    cfg['sc_metalstack'] = {
-        'help' : "Metal stack as named in the PDK",
+
+    cfg['sc_grid'] = {
+        'help' : "Grid unit (in um)",
+        'type' : "float",
+        'switch' : "-grid",
+        'defvalue' : []
+    }
+
+    cfg['sc_time'] = {
+        'help' : "Time unit (1 ps)",
+        'type' : "int",
+        'switch' : "-time",
+        'defvalue' : []
+    }
+
+    cfg['sc_stackup'] = {
+        'help' : "Metal stackup as named in the PDK",
         'type' : "string",
-        'switch' : "-metalstack",
-        'defvalue' : ""
+        'switch' : "-stackup",
+        'defvalue' : []
+    }
+
+    cfg['sc_layer'] = {
+        'help' : "Metal stackup routing layer definitions",
+        'type' : "tuple4",
+        'switch' : "-layer",
+        'defvalue' : []
     }
     
     cfg['sc_techfile'] = {
         'help' : "Place and route tehnology file",
         'type' : "file",
         'switch' : "-techfile",
-        'defvalue' : [pdklib + "nangate45.tech.lef"],
+        'defvalue' : [],
+        'hash'   : []
+    }
+
+    cfg['sc_model'] = {
+        'help' : "Device model file",
+        'type' : "file",
+        'switch' : "-model",
+        'defvalue' : [],
         'hash'   : []
     }
 
@@ -185,77 +198,34 @@ def defaults():
         'defvalue' : [],
         'hash'   : []
     }
-    #TODO, make it a list
-    cfg['sc_layer'] = {
-        'help' : "Routing layer definitions",
-        'type' : "list",
-        'switch' : "-layer",
-        'defvalue' : ["metal1 X 0.095 0.19",
-                      "metal1 Y 0.07  0.14",
-                      "metal2 X 0.095 0.19",
-                      "metal2 Y 0.07  0.14",
-                      "metal3 X 0.095 0.19",
-                      "metal3 Y 0.07  0.14",
-                      "metal4 X 0.095 0.28",
-                      "metal4 Y 0.07  0.28",
-                      "metal5 X 0.095 0.28",
-                      "metal5 Y 0.07  0.28",
-                      "metal6 X 0.095 0.28",
-                      "metal6 Y 0.07  0.28",
-                      "metal7 X 0.095 0.8",
-                      "metal7 Y 0.07  0.8",
-                      "metal8 X 0.095 0.8",
-                      "metal8 Y 0.07  0.8",
-                      "metal9 X 0.095 1.6",
-                      "metal9 Y 0.07  1.6",
-                      "metal10 X 0.095 1.6",
-                      "metal10 Y 0.07 1.6"]
-    }
-    #TODO: make it a list
+
     cfg['sc_scenario'] = {
-        'help' : "Process,voltage,temp scenario (eg: tt 0.7 25 setup)",
-        'type' : "list",
+        'help' : "Process, voltage, temp scenario",
+        'type' : "tuple5",
         'switch' : "-scenario",
-               #     procr  #voltage  #temp #opt/signoff  #setup/hold/power     
-        'defvalue' : ["tt      1.0       25    all           all",
-                    "ff      1.1       -40   opt           hold",
-                    "ff      1.1       125   opt           power",
-                     "ss      0.9       125   signoff       setup"]
+        'defvalue' : []
     }
 
     cfg['sc_layermap'] = {
         'help' : "GDS layer map",
-        'type' : "file",
+        'type' : "tuple4",
         'switch' : "-layermap",
         'defvalue' : [],
         'hash' : []
     }
 
-    cfg['sc_model'] = {
-        'help' : "Spice model file",
-        'type' : "file",
-        'switch' : "-model",
+    cfg['sc_taprules'] = {
+        'help' : "Tap cell rules <maxdistance offset>",
+        'type' : "tuple2",
+        'switch' : "-taprules",
         'defvalue' : [],
-        'hash'   : []
+        'hash' : []
     }
            
     ############################################
     # Library Configuration (per library)
     #############################################
     
-    cfg['sc_cell_list'] = {
-        'help' : "List of cell lists needed for PNR setup",
-        'type' : "list",
-        'switch' : "-cell_list",
-        'defvalue' : ["icg",
-                     "dontuse",
-                     "antenna",
-                     "dcap",
-                     "filler",
-                     "tielo",
-                     "tiehi"]
-    }
-
     # Setting up dicts
     #NOTE! 'defvalue' is a reserved keyword for libname
     cfg['sc_stdlib'] = {}  
@@ -267,7 +237,7 @@ def defaults():
         'help' : "Library timing file",
         'switch' : "-stdlib_timing",
         'type' : "file",
-        'defvalue' : [iplib + "lib/NangateOpenCellLibrary_typical.lib"],
+        'defvalue' : [],
         'hash' : []
     }
 
@@ -286,7 +256,7 @@ def defaults():
     cfg['sc_stdlib']['default']['cells']['default'] = {
             'help' : "Library cell type list",
             'switch' : "-stdlib_cells",
-            'type' : "list",
+            'type' : "string",
             'defvalue' : []
         }
     
@@ -294,7 +264,7 @@ def defaults():
         'help' : "Library LEF file",
         'switch' : "-stdlib_lef",      
         'type' : "file",
-        'defvalue' : [iplib + "lef/NangateOpenCellLibrary.macro.lef"],
+        'defvalue' : [],
         'hash'   : []
     }
 
@@ -302,7 +272,7 @@ def defaults():
         'help' : "Library GDS file",
         'switch' : "-stdlib_gds",        
         'type' : "file",
-        'defvalue' : [iplib + "gds/NangateOpenCellLibrary.gds"],
+        'defvalue' : [],
         'hash'   : []
     } 
 
@@ -365,17 +335,30 @@ def defaults():
     cfg['sc_stdlib']['default']['driver'] = {
         'help' : "Library default driver",
         'switch' : "-stdlib_driver",     
-        'type' : "list",
-        'defvalue' : ["BUF_X1"]
+        'type' : "string",
+        'defvalue' : []
     }
     
     cfg['sc_stdlib']['default']['site'] = {
         'help' : "Library placement site",
         'switch' : "-stdlib_site",     
-        'type' : "list",
-        'defvalue' : ["FreePDK45_38x28_10R_NP_162NW_34O"]
+        'type' : "string",
+        'defvalue' : []
     }
-    
+
+    cfg['sc_stdlib']['default']['pgmetal'] = {
+        'help' : "Metal layer used for power rails",
+        'switch' : "-stdlib_pgmetal",     
+        'type' : "string",
+        'defvalue' : []
+    }
+
+    cfg['sc_stdlib']['default']['tag'] = {
+        'help' : "Tags to identify library",
+        'switch' : "-stdlib_tag",     
+        'type' : "string",
+        'defvalue' : []
+    }
     
     ############################################
     # Macro Configuration (per macro)
@@ -487,75 +470,75 @@ def defaults():
         'help' : "Debug level (INFO/DEBUG/WARNING/ERROR/CRITICAL)",
         'type' : "string",
         'switch' : "-debug",
-        'defvalue' : "INFO"
+        'defvalue' : ["INFO"]
     }
 
     cfg['sc_build'] = {
         'help' : "Name of build directory",
         'type' : "string",
         'switch' : "-build",
-        'defvalue' : "build"
+        'defvalue' : ["build"]
     }
     
     cfg['sc_effort'] = {
         'help' : "Compilation effort (low,medium,high)",
         'type' : "string",
         'switch' : "-effort",
-        'defvalue' : "high"
+        'defvalue' : ["high"]
     }
 
     cfg['sc_priority'] = {
         'help' : "Optimization priority (performance, power, area)",
         'type' : "string",
         'switch' : "-priority",
-        'defvalue' : "performance"
+        'defvalue' : ["performance"]
     }
 
     cfg['sc_cont'] = {
         'help' : "Continues from last completed stage",
         'type' : "bool",
         'switch' : "-cont",
-        'defvalue' : False
+        'defvalue' : ["False"]
     }
         
     cfg['sc_gui'] = {
         'help' : "Launches GUI at every stage",
         'type' : "bool",
         'switch' : "-gui",
-        'defvalue' : False
+        'defvalue' : ["False"]
     }
     
     cfg['sc_lock'] = {
         'help' : "Switch to lock configuration from further modification",
         'type' : "bool",
         'switch' : "-lock",
-        'defvalue' : False
+        'defvalue' : ["False"]
     }
     
     cfg['sc_start'] = {
         'help' : "Compilation starting stage",
         'type' : "string",
         'switch' : "-start",
-        'defvalue' : "import"
+        'defvalue' : ["import"]
     }
 
     cfg['sc_stop'] = {
         'help' : "Compilation ending stage",
         'type' : "string",
         'switch' : "-stop",
-        'defvalue' : "export"
+        'defvalue' : ["export"]
     }
     
     cfg['sc_trigger'] = {
-        'help' : "Event that triggers message to <sc_contact>",
-        'type' : "list",
+        'help' : "Stage completion that triggers message to <sc_contact>",
+        'type' : "string",
         'switch' : "-trigger",
         'defvalue' : ["export"]
     }
 
     cfg['sc_contact'] = {
-        'help' : "Who to contact on trigge event (phone#/email)",
-        'type' : "list",
+        'help' : "Trigger event contact (phone#/email)",
+        'type' : "string",
         'switch' : "-contact",
         'defvalue' : []
     }
@@ -576,35 +559,40 @@ def defaults():
         'help' : "Design top module name",
         'type' : "string",
         'switch' : "-design",
-        'defvalue' : ""
+        'defvalue' : []
     }
 
     cfg['sc_nickname'] = {
         'help' : "Design nickname",
         'type' : "string",
         'switch' : "-nickname",
-        'defvalue' : ""
+        'defvalue' : []
     }
 
-    #TODO: Enhance, no tuples!
     cfg['sc_clk'] = {
-        'help' : "Clock defintion tuple (<clkname> <period(ns)>)",
-        'type' : "list",
+        'help' : "Clock defintion (<name period uncertainty>)",
+        'type' : "tuple3",
         'switch' : "-clk",
         'defvalue' : []
     }
 
-
+    cfg['sc_supplies'] = {
+        'help' : "Supply voltages (<name pin voltage>)",
+        'type' : "tuple3",
+        'switch' : "-supply",
+        'defvalue' : []
+    }
+    
     cfg['sc_define'] = {
         'help' : "Define variables for Verilog preprocessor",
-        'type' : "list",
+        'type' : "string",
         'switch' : "-D",
         'defvalue' : []
     }
     
     cfg['sc_ydir'] = {
         'help' : "Directory to search for modules",
-        'type' : "file",
+        'type' : "string",
         'switch' : "-y",
         'defvalue' : [],
         'hash'   : []
@@ -612,7 +600,7 @@ def defaults():
 
     cfg['sc_idir'] = {
         'help' : "Directory to search for inclodes",
-        'type' : "file",
+        'type' : "string",
         'switch' : "-I",
         'defvalue' : [],
         'hash'   : []
@@ -628,7 +616,7 @@ def defaults():
 
     cfg['sc_libext'] = {
         'help' : "Extension for finding modules",
-        'type' : "list",
+        'type' : "string",
         'switch' : "+libext",
         'defvalue' : [".v", ".vh", ".sv", ".vhd"]
     }
@@ -645,12 +633,12 @@ def defaults():
         'help' : "Enable all lint style warnings",
         'type' : "string",
         'switch' : "-Wall",
-        'defvalue' : ""
+        'defvalue' : []
     }
 
     cfg['sc_wno'] = {
         'help' : "Disables a warning -Woo-<message>",
-        'type' : "list",
+        'type' : "string",
         'switch' : "-Wno",
         'defvalue' : []
     }
@@ -663,56 +651,56 @@ def defaults():
         'help' : "Minimum routing layer (integer)",
         'type' : "int",
         'switch' : "-minlayer",
-        'defvalue' : 2
+        'defvalue' : []
     }
 
     cfg['sc_maxlayer'] = {
         'help' : "Maximum routing layer (integer)",
         'type' : "int",
         'switch' : "-maxlayer",
-        'defvalue' : 5
+        'defvalue' : []
     }
     
     cfg['sc_maxfanout'] = {
         'help' : "Maximum fanout",
         'type' : "int",
         'switch' : "-maxfanout",
-        'defvalue' : 64
+        'defvalue' : ["64"]
     }
 
     cfg['sc_density'] = {
         'help' : "Target density for automated floor-planning (percent)",
         'type' : "int",
         'switch' : "-density",
-        'defvalue' : 30
+        'defvalue' : ["30"]
     }
 
     cfg['sc_aspectratio'] = {
         'help' : "Aspect ratio for density driven floor-planning",
         'type' : "float",
         'switch' : "-aspectratio",
-        'defvalue' : 1
+        'defvalue' : ["1"]
     }
 
     cfg['sc_coremargin'] = {
         'help' : "Margin around core for density driven floor-planning (um)",
         'type' : "float",
         'switch' : "-coremargin",
-        'defvalue' : 2
+        'defvalue' : ["2"]
     }
 
     cfg['sc_diesize'] = {
         'help' : "Die size (x0 y0 x1 y1) for automated floor-planning (um)",
-        'type' : "string",
+        'type' : "tuple4",
         'switch' : "-diesize",
-        'defvalue' : ""
+        'defvalue' : []
     }
 
     cfg['sc_coresize'] = {
         'help' : "Core size (x0 y0 x1 y1) for automated floor-planning (um)",
-        'type' : "string",
+        'type' : "tuple4",
         'switch' : "-coresize",
-        'defvalue' : ""
+        'defvalue' : []
     }
 
     cfg['sc_floorplan'] = {
@@ -771,6 +759,8 @@ def defaults():
         'hash'   : []
     }
 
+    
+
     ############################################
     # Tool Configuration (per stage)
     #############################################
@@ -802,25 +792,23 @@ def defaults():
         cfg['sc_tool'][stage]['script']['hash'] = []
 
         #Creating defaults on a per tool basis
-        cfg['sc_tool'][stage]['jobid']['defvalue'] = 0
-        cfg['sc_tool'][stage]['np']['defvalue'] = 4
-
-        script = scripts_dir+cfg['sc_mode']['defvalue']+"/sc_"+stage+".tcl"
+        cfg['sc_tool'][stage]['jobid']['defvalue'] = ["0"]
+        cfg['sc_tool'][stage]['np']['defvalue'] = ["4"]
 
         if stage == "import":
-            cfg['sc_tool'][stage]['exe']['defvalue'] = "verilator"
-            cfg['sc_tool'][stage]['opt']['defvalue'] = ["--lint-only", "--debug"]
+            cfg['sc_tool'][stage]['exe']['defvalue'] = []
+            cfg['sc_tool'][stage]['opt']['defvalue'] = []
             cfg['sc_tool'][stage]['script']['defvalue'] = []
         elif stage == "syn":
-            cfg['sc_tool'][stage]['exe']['defvalue'] = "yosys"
-            cfg['sc_tool'][stage]['opt']['defvalue'] = ["-c"]
-            cfg['sc_tool'][stage]['script']['defvalue'] = [script]
+            cfg['sc_tool'][stage]['exe']['defvalue'] = []
+            cfg['sc_tool'][stage]['opt']['defvalue'] = []
+            cfg['sc_tool'][stage]['script']['defvalue'] = []
         elif stage in ("floorplan", "place", "cts", "route", "signoff"):
-            cfg['sc_tool'][stage]['exe']['defvalue'] = "openroad"
-            cfg['sc_tool'][stage]['opt']['defvalue'] = ["-no_init", "-exit"]
-            cfg['sc_tool'][stage]['script']['defvalue'] = [script]
+            cfg['sc_tool'][stage]['exe']['defvalue'] = []
+            cfg['sc_tool'][stage]['opt']['defvalue'] = []
+            cfg['sc_tool'][stage]['script']['defvalue'] = []
         else:
-            cfg['sc_tool'][stage]['exe']['defvalue'] = ""
+            cfg['sc_tool'][stage]['exe']['defvalue'] = [""]
             cfg['sc_tool'][stage]['opt']['defvalue'] = []
             cfg['sc_tool'][stage]['script']['defvalue'] = []
             
