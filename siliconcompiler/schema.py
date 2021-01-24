@@ -1,48 +1,37 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
+import json
 
 ###########################
-def defaults():
-    '''Method for setting the default values for the Chip dictionary. 
+
+def schema():
+    '''Method for defining Chip configuration schema 
     All the keys defined in this dictionary are reserved words. 
     '''
     
-    #Core dictionary
     cfg = {}
+        
+    cfg = schema_setup(cfg)
 
-    ############################################
-    # Individual stages supported by "run"
-    #############################################
+    cfg = schema_process(cfg)
 
-    cfg['sc_stages'] = {
-        'help' : "List of all compilation stages",
-        'type' : "string",
-        'switch' : "-stages",
-        'defvalue' : ["import",
-                     "syn",
-                     "floorplan",
-                     "place",
-                     "cts",
-                     "route",
-                     "signoff",
-                     "export",
-                     "lec",
-                     "pex",
-                     "sta",
-                     "pi",
-                     "si",
-                     "drc",
-                     "antenna",
-                     "density",
-                     "erc",                    
-                     "lvs",
-                     "tapeout"]
-    }
+    cfg = schema_libs(cfg, "stdlib")
 
-    ############################################
-    # General Settings
-    #############################################
+    cfg = schema_libs(cfg, "macro")
 
+    cfg = schema_tools(cfg)
+
+    cfg = schema_design(cfg)
+       
+    return cfg
+    
+############################################
+# General Setup
+#############################################
+
+def schema_setup(cfg):
+    '''Compilation setup method
+    '''
     cfg['sc_cfgfile'] = {
         'help' : "Loads configurations from a json file",
         'type' : "file",
@@ -58,11 +47,6 @@ def defaults():
         'defvalue' : []
     }
 
-    ############################################
-    # Framework Adoption/Translation
-    #############################################
-    
-    
     cfg['sc_custom'] = {
         'help' : "Custom EDA pass through variables",
         'type' : "string",
@@ -76,11 +60,7 @@ def defaults():
         'switch' : "-keymap",
         'defvalue' : ["default default"]
     }
-      
-    ############################################
-    # Remote exeuction settings
-    #############################################
-
+  
     cfg['sc_remote'] = {
         'help' : "Name of remote server address (https://acme.com:8080)",
         'type' : "string",
@@ -88,10 +68,6 @@ def defaults():
         'defvalue' : []
     }
 
-    ############################################
-    # Environment Variables
-    #############################################
-      
     cfg['sc_ref'] = {
         'help' : "Reference methodology name",
         'type' : "string",
@@ -119,9 +95,93 @@ def defaults():
         'defvalue' : []
     }
 
-    ############################################
-    # Technology setup
-    #############################################
+    cfg['sc_debug'] = {
+        'help' : "Debug level (INFO/DEBUG/WARNING/ERROR/CRITICAL)",
+        'type' : "string",
+        'switch' : "-debug",
+        'defvalue' : ["INFO"]
+    }
+
+    cfg['sc_build'] = {
+        'help' : "Name of build directory",
+        'type' : "string",
+        'switch' : "-build",
+        'defvalue' : ["build"]
+    }
+    
+    cfg['sc_effort'] = {
+        'help' : "Compilation effort (low,medium,high)",
+        'type' : "string",
+        'switch' : "-effort",
+        'defvalue' : ["high"]
+    }
+
+    cfg['sc_priority'] = {
+        'help' : "Optimization priority (performance, power, area)",
+        'type' : "string",
+        'switch' : "-priority",
+        'defvalue' : ["performance"]
+    }
+
+    cfg['sc_cont'] = {
+        'help' : "Continues from last completed stage",
+        'type' : "bool",
+        'switch' : "-cont",
+        'defvalue' : ["False"]
+    }
+        
+    cfg['sc_gui'] = {
+        'help' : "Launches GUI at every stage",
+        'type' : "bool",
+        'switch' : "-gui",
+        'defvalue' : ["False"]
+    }
+    
+    cfg['sc_lock'] = {
+        'help' : "Switch to lock configuration from further modification",
+        'type' : "bool",
+        'switch' : "-lock",
+        'defvalue' : ["False"]
+    }
+    
+    cfg['sc_start'] = {
+        'help' : "Compilation starting stage",
+        'type' : "string",
+        'switch' : "-start",
+        'defvalue' : ["import"]
+    }
+
+    cfg['sc_stop'] = {
+        'help' : "Compilation ending stage",
+        'type' : "string",
+        'switch' : "-stop",
+        'defvalue' : ["export"]
+    }
+    
+    cfg['sc_trigger'] = {
+        'help' : "Stage completion that triggers message to <sc_contact>",
+        'type' : "string",
+        'switch' : "-trigger",
+        'defvalue' : ["export"]
+    }
+
+    cfg['sc_contact'] = {
+        'help' : "Trigger event contact (phone#/email)",
+        'type' : "string",
+        'switch' : "-contact",
+        'defvalue' : []
+    }
+
+    return cfg
+    
+
+############################################
+# Technology setup
+#############################################
+
+def schema_process(cfg):
+    ''' Process technology setup
+    '''
       
     cfg['sc_foundry'] = {
         'help' : "Foundry name (eg: virtual, tsmc, gf, samsung)",
@@ -218,332 +278,59 @@ def defaults():
         'defvalue' : [],
         'hash' : []
     }
-           
-    ############################################
-    # Library Configuration (per library)
-    #############################################
-    
-    # Setting up dicts
-    #NOTE! 'defvalue' is a reserved keyword for libname
-    cfg['sc_stdlib'] = {}  
-    cfg['sc_stdlib']['default'] = {}
 
-    #Liberty specified on a per corner basis (so one more level of nesting)
-    cfg['sc_stdlib']['default']['timing'] = {}
-    cfg['sc_stdlib']['default']['timing']['default'] = {
-        'help' : "Library timing file",
-        'switch' : "-stdlib_timing",
-        'type' : "file",
-        'defvalue' : [],
-        'hash' : []
-    }
-
-    #Power format
-    cfg['sc_stdlib']['default']['power'] = {}
-    cfg['sc_stdlib']['default']['power']['default'] = {
-        'help' : "Library power file",
-        'switch' : "-stdlib_power",        
-        'type' : "file",
-        'defvalue' : [],
-        'hash' : []
-    }
-
-    #Cell lists are many and dynamic (so one more level of nesting)
-    cfg['sc_stdlib']['default']['cells'] = {}
-    cfg['sc_stdlib']['default']['cells']['default'] = {
-            'help' : "Library cell type list",
-            'switch' : "-stdlib_cells",
-            'type' : "string",
-            'defvalue' : []
-        }
-    
-    cfg['sc_stdlib']['default']['lef'] = {
-        'help' : "Library LEF file",
-        'switch' : "-stdlib_lef",      
-        'type' : "file",
-        'defvalue' : [],
-        'hash'   : []
-    }
-
-    cfg['sc_stdlib']['default']['gds'] = {
-        'help' : "Library GDS file",
-        'switch' : "-stdlib_gds",        
-        'type' : "file",
-        'defvalue' : [],
-        'hash'   : []
-    } 
-
-    cfg['sc_stdlib']['default']['cdl'] = {
-        'help' : "Library CDL file",
-        'switch' : "-stdlib_cdl",        
-        'type' : "file",
-        'defvalue' : [],
-        'hash'   : []
-    } 
-
-    cfg['sc_stdlib']['default']['setup'] = {
-        'help' : "Library Setup file",
-        'switch' : "-stdlib_setup",     
-        'type' : "file",
-        'defvalue' : [],
-        'hash'   : []
-    } 
-
-    cfg['sc_stdlib']['default']['dft'] = {
-        'help' : "Library DFT file",
-        'switch' : "-stdlib_dft",     
-        'type' : "file",
-        'defvalue' : [],
-        'hash'   : []
-    }
-
-    cfg['sc_stdlib']['default']['verilog'] = {
-        'help' : "Library Verilog file",
-        'switch' : "-stdlib_verilog",     
-        'type' : "file",
-        'defvalue' : [],
-        'hash'   : []
-    }
-    
-    cfg['sc_stdlib']['default']['doc'] = {
-        'help' : "Library documentation",
-        'switch' : "-stdlib_doc",     
-        'type' : "file",
-        'defvalue' : [],
-        'hash'   : []
-    }
-
-    cfg['sc_stdlib']['default']['pnrdb'] = {
-        'help' : "Library PNR database",
-        'switch' : "-stdlib_pnrdb",     
-        'type' : "file",
-        'defvalue' : [],
-        'hash'   : []
-    }
-
-    cfg['sc_stdlib']['default']['customdb'] = {
-        'help' : "Library custom database",
-        'switch' : "-stdlib_customdb",     
-        'type' : "file",
-        'defvalue' : [],
-        'hash'   : []
-    }
-
-    cfg['sc_stdlib']['default']['driver'] = {
-        'help' : "Library default driver",
-        'switch' : "-stdlib_driver",     
-        'type' : "string",
-        'defvalue' : []
-    }
-    
-    cfg['sc_stdlib']['default']['site'] = {
-        'help' : "Library placement site",
-        'switch' : "-stdlib_site",     
-        'type' : "string",
+    cfg['sc_minlayer'] = {
+        'help' : "Minimum routing layer (integer)",
+        'type' : "int",
+        'switch' : "-minlayer",
         'defvalue' : []
     }
 
-    cfg['sc_stdlib']['default']['pgmetal'] = {
-        'help' : "Metal layer used for power rails",
-        'switch' : "-stdlib_pgmetal",     
-        'type' : "string",
-        'defvalue' : []
-    }
-
-    cfg['sc_stdlib']['default']['tag'] = {
-        'help' : "Tags to identify library",
-        'switch' : "-stdlib_tag",     
-        'type' : "string",
+    cfg['sc_maxlayer'] = {
+        'help' : "Maximum routing layer (integer)",
+        'type' : "int",
+        'switch' : "-maxlayer",
         'defvalue' : []
     }
     
-    ############################################
-    # Macro Configuration (per macro)
-    #############################################
-
-    #NOTE! 'defvalue' is a reserved keyword for maconame
-     
-    cfg['sc_macro'] = {}
-    cfg['sc_macro']['default'] = {}
-
-    #Timing specified on a per corner basis
-    cfg['sc_macro']['default']['timing'] = {}
-    cfg['sc_macro']['default']['timing']['default'] = {
-        'help' : "Macro timing file",
-        'switch' : "-macro_timing",
-        'type' : "file",
-        'defvalue' : [],
-        'hash' : []
+    cfg['sc_maxfanout'] = {
+        'help' : "Maximum fanout",
+        'type' : "int",
+        'switch' : "-maxfanout",
+        'defvalue' : ["64"]
     }
 
-    #Power specified on a per corner basis
-    cfg['sc_macro']['default']['power'] = {}
-    cfg['sc_macro']['default']['power']['default'] = {
-        'help' : "Macro power file",
-        'switch' : "-macro_power",        
-        'type' : "file",
-        'defvalue' : [],
-        'hash' : []
+    cfg['sc_density'] = {
+        'help' : "Target density for density driven floor-planning (percent)",
+        'type' : "int",
+        'switch' : "-density",
+        'defvalue' : ["30"]
     }
 
-    cfg['sc_macro']['default']['lef'] = {
-        'help' : "Macro LEF file",
-        'switch' : "-macro_lef",        
-        'type' : "file",
-        'defvalue' : [],
-        'hash'   : []
+    cfg['sc_coremargin'] = {
+        'help' : "Margin around core for density driven floor-planning (um)",
+        'type' : "float",
+        'switch' : "-coremargin",
+        'defvalue' : ["2"]
     }
 
-    cfg['sc_macro']['default']['gds'] = {
-        'help' : "Macro GDS file",
-        'switch' : "-macro_gds",        
-        'type' : "file",
-        'defvalue' : [],
-        'hash'   : []
-    } 
-
-    cfg['sc_macro']['default']['cdl'] = {
-        'help' : "Macro CDL file",
-        'switch' : "-macro_cdl",        
-        'type' : "file",
-        'defvalue' : [],
-        'hash'   : []
-    } 
-
-    cfg['sc_macro']['default']['setup'] = {
-        'help' : "Macro Setup file",
-        'switch' : "-macro_setup",     
-        'type' : "file",
-        'defvalue' : [],
-        'hash'   : []
-    } 
-
-    cfg['sc_macro']['default']['dft'] = {
-        'help' : "Macro DFT file",
-        'switch' : "-macro_dft",     
-        'type' : "file",
-        'defvalue' : [],
-        'hash'   : []
+    cfg['sc_aspectratio'] = {
+        'help' : "Aspect ratio for density driven floor-planning",
+        'type' : "float",
+        'switch' : "-aspectratio",
+        'defvalue' : ["1"]
     }
 
-    cfg['sc_macro']['default']['verilog'] = {
-        'help' : "Macro Verilog file",
-        'switch' : "-macro_verilog",     
-        'type' : "file",
-        'defvalue' : [],
-        'hash'   : []
-    }
+    return cfg
+
+############################################
+# Design Specific Parameters
+#############################################
+
+def schema_design(cfg):
+    ''' Design setup schema
+    '''
     
-    cfg['sc_macro']['default']['doc'] = {
-        'help' : "Macro documentation",
-        'switch' : "-macro_doc",     
-        'type' : "file",
-        'defvalue' : [],
-        'hash'   : []
-    }
-
-    cfg['sc_macro']['default']['pnrdb'] = {
-        'help' : "Macro PNR database",
-        'switch' : "-macro_pnrdb",     
-        'type' : "file",
-        'defvalue' : [],
-        'hash'   : []
-    }
-
-    cfg['sc_macro']['default']['customdb'] = {
-        'help' : "Macro Custom database",
-        'switch' : "-macro_customdb",     
-        'type' : "file",
-        'defvalue' : [],
-        'hash'   : []
-    }
-
-  
-    ############################################
-    # Execute Options
-    #############################################
-
-    cfg['sc_debug'] = {
-        'help' : "Debug level (INFO/DEBUG/WARNING/ERROR/CRITICAL)",
-        'type' : "string",
-        'switch' : "-debug",
-        'defvalue' : ["INFO"]
-    }
-
-    cfg['sc_build'] = {
-        'help' : "Name of build directory",
-        'type' : "string",
-        'switch' : "-build",
-        'defvalue' : ["build"]
-    }
-    
-    cfg['sc_effort'] = {
-        'help' : "Compilation effort (low,medium,high)",
-        'type' : "string",
-        'switch' : "-effort",
-        'defvalue' : ["high"]
-    }
-
-    cfg['sc_priority'] = {
-        'help' : "Optimization priority (performance, power, area)",
-        'type' : "string",
-        'switch' : "-priority",
-        'defvalue' : ["performance"]
-    }
-
-    cfg['sc_cont'] = {
-        'help' : "Continues from last completed stage",
-        'type' : "bool",
-        'switch' : "-cont",
-        'defvalue' : ["False"]
-    }
-        
-    cfg['sc_gui'] = {
-        'help' : "Launches GUI at every stage",
-        'type' : "bool",
-        'switch' : "-gui",
-        'defvalue' : ["False"]
-    }
-    
-    cfg['sc_lock'] = {
-        'help' : "Switch to lock configuration from further modification",
-        'type' : "bool",
-        'switch' : "-lock",
-        'defvalue' : ["False"]
-    }
-    
-    cfg['sc_start'] = {
-        'help' : "Compilation starting stage",
-        'type' : "string",
-        'switch' : "-start",
-        'defvalue' : ["import"]
-    }
-
-    cfg['sc_stop'] = {
-        'help' : "Compilation ending stage",
-        'type' : "string",
-        'switch' : "-stop",
-        'defvalue' : ["export"]
-    }
-    
-    cfg['sc_trigger'] = {
-        'help' : "Stage completion that triggers message to <sc_contact>",
-        'type' : "string",
-        'switch' : "-trigger",
-        'defvalue' : ["export"]
-    }
-
-    cfg['sc_contact'] = {
-        'help' : "Trigger event contact (phone#/email)",
-        'type' : "string",
-        'switch' : "-contact",
-        'defvalue' : []
-    }
-
-    ############################################
-    # Design Specific Source Code Parameters
-    #############################################
-
     cfg['sc_source'] = {
         'help' : "Source files (.v/.vh/.sv/.vhd)",
         'type' : "file",
@@ -639,53 +426,7 @@ def defaults():
         'switch' : "-Wno",
         'defvalue' : []
     }
-
-    ############################################
-    # Design specific PD Parameters
-    #############################################
-
-    cfg['sc_minlayer'] = {
-        'help' : "Minimum routing layer (integer)",
-        'type' : "int",
-        'switch' : "-minlayer",
-        'defvalue' : []
-    }
-
-    cfg['sc_maxlayer'] = {
-        'help' : "Maximum routing layer (integer)",
-        'type' : "int",
-        'switch' : "-maxlayer",
-        'defvalue' : []
-    }
-    
-    cfg['sc_maxfanout'] = {
-        'help' : "Maximum fanout",
-        'type' : "int",
-        'switch' : "-maxfanout",
-        'defvalue' : ["64"]
-    }
-
-    cfg['sc_density'] = {
-        'help' : "Target density for automated floor-planning (percent)",
-        'type' : "int",
-        'switch' : "-density",
-        'defvalue' : ["30"]
-    }
-
-    cfg['sc_aspectratio'] = {
-        'help' : "Aspect ratio for density driven floor-planning",
-        'type' : "float",
-        'switch' : "-aspectratio",
-        'defvalue' : ["1"]
-    }
-
-    cfg['sc_coremargin'] = {
-        'help' : "Margin around core for density driven floor-planning (um)",
-        'type' : "float",
-        'switch' : "-coremargin",
-        'defvalue' : ["2"]
-    }
-
+ 
     cfg['sc_diesize'] = {
         'help' : "Die size (x0 y0 x1 y1) for automated floor-planning (um)",
         'type' : "tuple4",
@@ -732,14 +473,6 @@ def defaults():
         'hash'   : []
     }
 
-    cfg['sc_upf'] = {
-        'help' : "Power intent file",
-        'type' : "file",
-        'switch' : "-upf",
-        'defvalue' : [],
-        'hash'   : []
-    }
-
     cfg['sc_vcd'] = {
         'help' : "Value Change Dump (VCD) file for power analysis",
         'type' : "file",
@@ -756,14 +489,182 @@ def defaults():
         'hash'   : []
     }
 
-    
+    return cfg
 
-    ############################################
-    # Tool Configuration (per stage)
-    #############################################
+############################################
+# Library Configuration
+#############################################   
+
+def schema_libs(cfg, group):
+
+    
+    cfg['sc_'+group] = {}  
+    cfg['sc_'+group]['default'] = {}
+
+    #Liberty specified on a per corner basis (so one more level of nesting)
+    cfg['sc_'+group]['default']['timing'] = {}
+    cfg['sc_'+group]['default']['timing']['default'] = {
+        'help' : "Library timing file",
+        'switch' : "-"+group+"_timing",
+        'type' : "file",
+        'defvalue' : [],
+        'hash' : []
+    }
+
+    #Power format
+    cfg['sc_'+group]['default']['power'] = {}
+    cfg['sc_'+group]['default']['power']['default'] = {
+        'help' : "Library power file",
+        'switch' : "-"+group+"_power",        
+        'type' : "file",
+        'defvalue' : [],
+        'hash' : []
+    }
+
+    #Cell lists are many and dynamic (so one more level of nesting)
+    cfg['sc_'+group]['default']['cells'] = {}
+    cfg['sc_'+group]['default']['cells']['default'] = {
+            'help' : "Library cell type list",
+            'switch' : "-"+group+"_cells",
+            'type' : "string",
+            'defvalue' : []
+        }
+    
+    cfg['sc_'+group]['default']['lef'] = {
+        'help' : "Library LEF file",
+        'switch' : "-"+group+"_lef",      
+        'type' : "file",
+        'defvalue' : [],
+        'hash'   : []
+    }
+
+    cfg['sc_'+group]['default']['gds'] = {
+        'help' : "Library GDS file",
+        'switch' : "-"+group+"_gds",        
+        'type' : "file",
+        'defvalue' : [],
+        'hash'   : []
+    } 
+
+    cfg['sc_'+group]['default']['cdl'] = {
+        'help' : "Library CDL file",
+        'switch' : "-"+group+"_cdl",        
+        'type' : "file",
+        'defvalue' : [],
+        'hash'   : []
+    } 
+
+    cfg['sc_'+group]['default']['setup'] = {
+        'help' : "Library Setup file",
+        'switch' : "-"+group+"_setup",     
+        'type' : "file",
+        'defvalue' : [],
+        'hash'   : []
+    } 
+
+    cfg['sc_'+group]['default']['dft'] = {
+        'help' : "Library DFT file",
+        'switch' : "-"+group+"_dft",     
+        'type' : "file",
+        'defvalue' : [],
+        'hash'   : []
+    }
+
+    cfg['sc_'+group]['default']['verilog'] = {
+        'help' : "Library Verilog file",
+        'switch' : "-"+group+"_verilog",     
+        'type' : "file",
+        'defvalue' : [],
+        'hash'   : []
+    }
+    
+    cfg['sc_'+group]['default']['doc'] = {
+        'help' : "Library documentation",
+        'switch' : "-"+group+"_doc",     
+        'type' : "file",
+        'defvalue' : [],
+        'hash'   : []
+    }
+
+    cfg['sc_'+group]['default']['pnrdb'] = {
+        'help' : "Library PNR database",
+        'switch' : "-"+group+"_pnrdb",     
+        'type' : "file",
+        'defvalue' : [],
+        'hash'   : []
+    }
+
+    cfg['sc_'+group]['default']['customdb'] = {
+        'help' : "Library custom database",
+        'switch' : "-"+group+"_customdb",     
+        'type' : "file",
+        'defvalue' : [],
+        'hash'   : []
+    }
+
+    cfg['sc_'+group]['default']['driver'] = {
+        'help' : "Library default driver",
+        'switch' : "-"+group+"_driver",     
+        'type' : "string",
+        'defvalue' : []
+    }
+    
+    cfg['sc_'+group]['default']['site'] = {
+        'help' : "Library placement site",
+        'switch' : "-"+group+"_site",     
+        'type' : "string",
+        'defvalue' : []
+    }
+
+    cfg['sc_'+group]['default']['pgmetal'] = {
+        'help' : "Metal layer used for power rails",
+        'switch' : "-"+group+"_pgmetal",     
+        'type' : "string",
+        'defvalue' : []
+    }
+
+    cfg['sc_'+group]['default']['tag'] = {
+        'help' : "Tags to identify library",
+        'switch' : "-"+group+"_tag",     
+        'type' : "string",
+        'defvalue' : []
+    }
+    
+    return cfg
+
+############################################
+# Tool Configuration
+#############################################
+
+def schema_tools(cfg):
+
+    cfg['sc_stages'] = {
+        'help' : "List of all compilation stages",
+        'type' : "string",
+        'switch' : "-stages",
+        'defvalue' : ["import",
+                     "syn",
+                     "floorplan",
+                     "place",
+                     "cts",
+                     "route",
+                     "signoff",
+                     "export",
+                     "lec",
+                     "pex",
+                     "sta",
+                     "pi",
+                     "si",
+                     "drc",
+                     "antenna",
+                     "density",
+                     "erc",                    
+                     "lvs",
+                     "tapeout"]
+    }
 
     cfg['sc_tool'] = {}
-
+   
     # Defaults and config for all stages
     for stage in cfg['sc_stages']['defvalue']:        
         cfg['sc_tool'][stage] = {}
@@ -809,5 +710,7 @@ def defaults():
             cfg['sc_tool'][stage]['opt']['defvalue'] = []
             cfg['sc_tool'][stage]['script']['defvalue'] = []
             
+    
     return cfg
+
 
