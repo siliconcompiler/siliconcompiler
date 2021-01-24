@@ -74,6 +74,25 @@ class Chip:
         return val
 
     ####################################
+    #set2('sc_design', 'top')
+    #set2('sc_clk', 'clkname', '1ns')
+    #set2('sc_tool', 'stagename', 'exe', 'openroad')
+    #set2('sc_stdlib', 'libname', 'timing', corner, 'libname.lib')
+    
+    def set2(self, *args):
+        '''Sets a value in the Chip configuration dictionary 
+        '''
+        self.logger.info('Setting config %s',args)
+
+        tot_args = len(args)
+        val = args[-1]
+        keys = args[:-1]
+        print("tot=",tot_args,"keys=", keys,"val=",val)
+
+        
+        
+        
+    ####################################
     def set(self, val, param, *keys):
         '''Sets a value in the Chip configuration dictionary 
         '''
@@ -83,7 +102,6 @@ class Chip:
         #Use the keys and value to create a small dict
         #Use the merge function to merge with self.cfg!
         #!!!!This function gets deleted!
-
         
         tot_keys = len(keys)
 
@@ -346,10 +364,7 @@ class Chip:
         for k, v in cfg.items():            
             if isinstance(v, dict):
                 if 'defvalue' in cfg[k].keys():
-                    if cfg[k]['type'] in ("file", "list"):
-                        cfg[k]['value'] = cfg[k]['defvalue'].copy()
-                    else:
-                        cfg[k]['value'] = cfg[k]['defvalue']
+                    cfg[k]['value'] = cfg[k]['defvalue'].copy()
                 else:
                     self.reset(cfg=cfg[k])
         
@@ -383,14 +398,8 @@ class Chip:
             if k in d1 and isinstance(d1[k], dict) and isinstance(d2[k], dict):
                 #if we reach a leaf copy d2 to d1
                 if 'defvalue' in d1[k].keys():
-                    if d1[k]['type'] in ("list", "file"):
-                        d1[k]['setter'] = src
-                        d1[k]['value'].extend(d2[k]['value'])
-                    else:
-                        d1[k]['setter'] = src
-                        d1[k]['value'] = d2[k]['value']
-                    #Adding warning message if overwriting a value
-                        
+                    d1[k]['setter'] = src
+                    d1[k]['value'].extend(d2[k]['value'])
                 #if not in leaf keep descending
                 else:
                     self.mergecfg(d2[k], src, d1=d1[k])
