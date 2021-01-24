@@ -11,7 +11,7 @@ import webbrowser
 import yaml
 from collections import defaultdict
 
-from siliconcompiler.config import defaults
+from siliconcompiler.schema import schema
 
 class Chip:
     """
@@ -46,7 +46,7 @@ class Chip:
         self.logger.setLevel(str(loglevel))
        
         # Create a default dict 
-        self.cfg = defaults()
+        self.cfg = schema()
 
         # Copy 'default' to 'value'
         self.reset()
@@ -303,7 +303,7 @@ class Chip:
                 #Put quotes around all list entries
                 valstr = "{"
                 if self.cfg[key]['type'] in {"list", "file"}:
-                    for value in self.cfg[key]['values']:
+                    for value in self.cfg[key]['value']:
                         valstr = valstr + " {" + value + "}"
                 else:
                     valstr = valstr + " {" + str(self.cfg[key]['values']) + "}"
@@ -533,8 +533,9 @@ class Chip:
         #Looking up stage numbers
         stages = self.cfg['sc_stages']['value']
         current = stages.index(stage)
-        start = stages.index(self.cfg['sc_start']['value'])
-        stop = stages.index(self.cfg['sc_stop']['value'])
+        start = stages.index(self.cfg['sc_start']['value'][-1]) #scalar
+        stop = stages.index(self.cfg['sc_stop']['value'][-1]) #scalar
+        print("STAGE", current, start, stop)
 
         if stage not in self.cfg['sc_stages']['value']:
             self.logger.error('Illegal stage name %s', stage)
@@ -544,10 +545,10 @@ class Chip:
             self.logger.info('Running stage: %s', stage)
 
             #Updating jobindex
-            jobid = self.cfg['sc_tool'][stage]['jobid']['value'] + 1
+            jobid = int(self.cfg['sc_tool'][stage]['jobid']['value'][-1]) + 1 #scalar
             
             #Moving to working directory
-            jobdir = (str(self.cfg['sc_build']['value']) +
+            jobdir = (str(self.cfg['sc_build']['value'][-1]) + #scalar
                       "/" +
                       str(stage) +
                       "/job" +
@@ -560,7 +561,7 @@ class Chip:
             os.chdir(jobdir)
 
             #Prepare tool command
-            exe = self.cfg['sc_tool'][stage]['exe']['value']
+            exe = self.cfg['sc_tool'][stage]['exe']['value'][-1] #scalar
             cmd_fields = [exe]
             for opt in self.cfg['sc_tool'][stage]['opt']['value']:
                 cmd_fields.append(opt)

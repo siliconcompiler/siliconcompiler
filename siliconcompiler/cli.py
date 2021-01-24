@@ -9,7 +9,7 @@ import json
 
 #Shorten siliconcompiler as sc
 import siliconcompiler as sc
-from siliconcompiler.config import defaults
+from siliconcompiler.schema import schema
 
 ###########################
 def cmdline():
@@ -18,7 +18,7 @@ def cmdline():
     This is outside of the class since this can be called 
 
     '''
-    def_cfg = defaults()
+    def_cfg = schema()
 
     os.environ["COLUMNS"] = '100'
 
@@ -63,7 +63,7 @@ def cmdline():
             for key2 in def_cfg['sc_tool']['syn'].keys():
                 parser.add_argument(def_cfg[key1]['syn'][key2]['switch'],
                                     dest=key1+"_"+key2,
-                                    metavar='<stage ' + key2 + '>'),
+                                    metavar='<stage ' + key2 + '>',
                                     action='append',
                                     help=def_cfg[key1]['syn'][key2]['help'],
                                     default = argparse.SUPPRESS)
@@ -103,36 +103,32 @@ def cmdline():
         param = switch[0] + "_" + switch[1]
         if param not in cfg:
             cfg[param] = {}
-        #Iterate over list
-        if type(all_vals) is list:
+
+        #Iterate over list since these are dynamic
+        if switch[1] in ('stdlib', 'macro', 'tool'):
             for val in all_vals:
-                if switch[1] in ('stdlib', 'macro', 'tool'):
-                    if val[0] not in cfg[param]:
+                if val[0] not in cfg[param]:
                         cfg[param][val[0]]={}
-                    if switch[2] not in cfg[param][val[0]].keys():
+                if switch[2] not in cfg[param][val[0]].keys():
                         cfg[param][val[0]][switch[2]]={}
-                    if switch[2] in ('timing', 'power', 'cells'):
-                        if val[1] not in cfg[param][val[0]][switch[2]].keys():
-                            cfg[param][val[0]][switch[2]][val[1]]={}
-                            cfg[param][val[0]][switch[2]][val[1]]['value'] = [val[2]]
-                        else:
-                            cfg[param][val[0]][switch[2]][val[1]]['value'].append(val[2])
+                if switch[2] in ('timing', 'power', 'cells'):
+                    if val[1] not in cfg[param][val[0]][switch[2]].keys():
+                        cfg[param][val[0]][switch[2]][val[1]]={}
+                        cfg[param][val[0]][switch[2]][val[1]]['value'] = val[2]
                     else:
-                        if 'value' not in cfg[param][val[0]][switch[2]].keys():
-                            cfg[param][val[0]][switch[2]]['value'] = [val[1]]
-                        else:
-                            cfg[param][val[0]][switch[2]]['value'].append(val[1])
-                #Passing though list as is
-                elif  switch[1] in ('source'):
-                    if 'value' not in cfg[param].keys():
-                        cfg[param]['value'] = [val]
-                    else:
-                        cfg[param]['value'].append(val)
+                        cfg[param][val[0]][switch[2]][val[1]]['value'].extend(val[2])
                 else:
-                    cfg[param]['value'] = val
+                    if 'value' not in cfg[param][val[0]][switch[2]].keys():
+                        cfg[param][val[0]][switch[2]]['value'] = val[1]
+                    else:
+                        cfg[param][val[0]][switch[2]]['value'].extend(val[1])
         else:
-            cfg[param]['value'] = all_vals   
-                
+            if 'value' not in cfg:
+                 cfg[param] = {}
+                 cfg[param]['value'] = all_vals
+            else:
+                cfg[param]['value'].extend(all_vals)
+
     return cfg
 
 
@@ -171,14 +167,17 @@ def main():
 
     #Compilation
     #for stage in mychip.get('sc_stages'):
-    
+
+    mychip.cfg['sc_tool']['import']['exe']['value'].extend(["verilator"])
+    mychip.cfg['sc_tool']['import']['opt']['value'].extend(["--lint-only", "--debug"])
+
     mychip.run("import")
-    mychip.run("syn")
-    mychip.run("place")
-    mychip.run("cts")
-    mychip.run("route")
-    mychip.run("signoff")
-    mychip.run("export")
+    #mychip.run("syn")
+    #mychip.run("place")
+    #mychip.run("cts")
+    #mychip.run("route")
+    #mychip.run("signoff")
+    #mychip.run("export")
         
 #########################
 if __name__ == "__main__":    
