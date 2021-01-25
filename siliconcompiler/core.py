@@ -61,7 +61,7 @@ class Chip:
             
     ###################################
     def get(self, *args):
-        '''Gets value for supplied Chip parameter
+        '''Gets value in the Chip configuration dictionary
 
         Args:
             param (string): Configuration parameter to fetch
@@ -88,10 +88,56 @@ class Chip:
         val = args[-1]
         keys = args[:-1]
         print("tot=",tot_args,"keys=", keys,"val=",val)
+    
+    ###################################
+    def readwrite(self, *args, mode="set"):
+        '''Searches configuration dictionary for a key list match.
+        If mode='set" writes to value, else only reads
 
+        Args:
+            param (string): Configuration parameter to fetch
+
+        Returns:
+            list: List of Chip configuration values
+
+        '''
+        val = 1
+        return val
+
+    ##################################
+    def search(self, *args, cfg=None, replace=False):
+        '''Recursively searches the nested dictionary for a key match
+
+        Args:
+            keys (string): Keys to match to.
+            value (list): List to replace match with if mode is set
+            mode (string): None, extend,replace
         
-        
-        
+        Returns:
+            list: Returns list if match is found
+
+        '''
+
+        all_keys = list(args)
+        param = all_keys[0]
+        val = args[-1]
+
+        #Setting initial dict so user doesn't have to
+        if cfg is None:
+            cfg = self.cfg        
+        #Search recursively going through dict to set abspaths for files
+        if param in cfg.keys():
+            #indicates leaf cell
+            if 'value' in cfg[param].keys():
+                if replace:
+                    cfg[param]['value'].extend(val)
+                return cfg[param]['value']
+            else:
+                all_keys.pop(0)
+                result = self.search(*all_keys, cfg=cfg[param], replace=replace)
+
+        return result
+                
     ####################################
     def set(self, val, param, *keys):
         '''Sets a value in the Chip configuration dictionary 
@@ -379,7 +425,9 @@ class Chip:
         #Recursively going through dict to set abspaths for files
         for k, v in cfg.items():
             if isinstance(v, dict):
+                #indicates leaf cell
                 if 'defvalue' in cfg[k].keys():
+                    #only do something if a file is found
                     if(cfg[k]['type'] == 'file'):
                         for i, v in enumerate(cfg[k]['value']):
                             cfg[k]['value'][i] = os.path.abspath(v)
