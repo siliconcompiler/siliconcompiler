@@ -1,7 +1,5 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
-import json
-
 ###########################
 
 def schema():
@@ -297,28 +295,28 @@ def schema_process(cfg):
         'help' : "Maximum fanout",
         'type' : "int",
         'switch' : "-maxfanout",
-        'defvalue' : ["64"]
+        'defvalue' : []
     }
 
     cfg['sc_density'] = {
         'help' : "Target density for density driven floor-planning (percent)",
         'type' : "int",
         'switch' : "-density",
-        'defvalue' : ["30"]
+        'defvalue' : []
     }
 
     cfg['sc_coremargin'] = {
         'help' : "Margin around core for density driven floor-planning (um)",
         'type' : "float",
         'switch' : "-coremargin",
-        'defvalue' : ["2"]
+        'defvalue' : []
     }
 
     cfg['sc_aspectratio'] = {
         'help' : "Aspect ratio for density driven floor-planning",
         'type' : "float",
         'switch' : "-aspectratio",
-        'defvalue' : ["1"]
+        'defvalue' : []
     }
 
     return cfg
