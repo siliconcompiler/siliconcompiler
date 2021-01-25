@@ -54,9 +54,9 @@ def schema_setup(cfg):
 
     cfg['sc_keymap'] = {
         'help' : "Framwork keyword translation table",
-        'type' : "string",
+        'type' : "tuple2",
         'switch' : "-keymap",
-        'defvalue' : ["default default"]
+        'defvalue' : []
     }
   
     cfg['sc_remote'] = {
@@ -111,14 +111,14 @@ def schema_setup(cfg):
         'help' : "Compilation effort (low,medium,high)",
         'type' : "string",
         'switch' : "-effort",
-        'defvalue' : ["high"]
+        'defvalue' : []
     }
 
     cfg['sc_priority'] = {
         'help' : "Optimization priority (performance, power, area)",
         'type' : "string",
         'switch' : "-priority",
-        'defvalue' : ["performance"]
+        'defvalue' : []
     }
 
     cfg['sc_cont'] = {
@@ -146,21 +146,21 @@ def schema_setup(cfg):
         'help' : "Compilation starting stage",
         'type' : "string",
         'switch' : "-start",
-        'defvalue' : ["import"]
+        'defvalue' : []
     }
 
     cfg['sc_stop'] = {
         'help' : "Compilation ending stage",
         'type' : "string",
         'switch' : "-stop",
-        'defvalue' : ["export"]
+        'defvalue' : []
     }
     
     cfg['sc_trigger'] = {
         'help' : "Stage completion that triggers message to <sc_contact>",
         'type' : "string",
         'switch' : "-trigger",
-        'defvalue' : ["export"]
+        'defvalue' : []
     }
 
     cfg['sc_contact'] = {
@@ -400,7 +400,7 @@ def schema_design(cfg):
         'help' : "Extension for finding modules",
         'type' : "string",
         'switch' : "+libext",
-        'defvalue' : [".v", ".vh", ".sv", ".vhd"]
+        'defvalue' : []
     }
 
     cfg['sc_cmdfile'] = {
@@ -688,8 +688,8 @@ def schema_tools(cfg):
         cfg['sc_tool'][stage]['script']['hash'] = []
 
         #Creating defaults on a per tool basis
-        cfg['sc_tool'][stage]['jobid']['defvalue'] = ["0"]
-        cfg['sc_tool'][stage]['np']['defvalue'] = ["4"]
+        cfg['sc_tool'][stage]['jobid']['defvalue'] = []
+        cfg['sc_tool'][stage]['np']['defvalue'] = []
 
         if stage == "import":
             cfg['sc_tool'][stage]['exe']['defvalue'] = []
