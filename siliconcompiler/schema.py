@@ -79,13 +79,7 @@ def schema_setup(cfg):
         'switch' : "-pdkdir",
         'defvalue' : []
     }
-    cfg['sc_edadir'] = {
-        'help' : "EDA root directory",
-        'type' : "string",
-        'switch' : "-edadir",
-        'defvalue' : []
-    }
-
+    
     cfg['sc_ipdir'] = {
         'help' : "IP root directory",
         'type' : "string",
@@ -106,7 +100,7 @@ def schema_setup(cfg):
         'switch' : "-build",
         'defvalue' : ["build"]
     }
-    
+
     cfg['sc_effort'] = {
         'help' : "Compilation effort (low,medium,high)",
         'type' : "string",
@@ -132,6 +126,13 @@ def schema_setup(cfg):
         'help' : "Launches GUI at every stage",
         'type' : "bool",
         'switch' : "-gui",
+        'defvalue' : ["False"]
+    }
+
+    cfg['sc_verbose'] = {
+        'help' : "Enables verbose printing to screen by EDA tools",
+        'type' : "bool",
+        'switch' : "-verbose",
         'defvalue' : ["False"]
     }
     
@@ -403,8 +404,8 @@ def schema_design(cfg):
         'defvalue' : []
     }
 
-    cfg['sc_cmdfile'] = {
-        'help' : "Parse source options from command file",
+    cfg['sc_readscript'] = {
+        'help' : "Read script for source files ",
         'type' : "file",
         'switch' : "-f",
         'defvalue' : [],
@@ -666,49 +667,41 @@ def schema_tools(cfg):
     # Defaults and config for all stages
     for stage in cfg['sc_stages']['defvalue']:        
         cfg['sc_tool'][stage] = {}
-        for key in ("exe", "opt", "script", "jobid", "np"):
+        for key in ("exe", "opt", "refdir", "script", "format", "jobid", "np"):
             cfg['sc_tool'][stage][key] = {}
             cfg['sc_tool'][stage][key]['switch'] = "-tool_"+key
             
         # Help
         cfg['sc_tool'][stage]['exe']['help'] = "Stage Tool Executable"
         cfg['sc_tool'][stage]['opt']['help'] = "Stage Tool Options"
-        cfg['sc_tool'][stage]['script']['help'] = "Stage Tool Run script"
+        cfg['sc_tool'][stage]['refdir']['help'] = "Stage Tool Reference Flow Directory"
+        cfg['sc_tool'][stage]['script']['help'] = "Stage Tool Script (relative to refdir)"
+        cfg['sc_tool'][stage]['format']['help'] = "Stage Tool Configuration Format"
         cfg['sc_tool'][stage]['jobid']['help'] = "Stage Tool Job index"
         cfg['sc_tool'][stage]['np']['help'] = "Stage Tool Parallelism"
         
         # Types
         cfg['sc_tool'][stage]['exe']['type'] = "string"
         cfg['sc_tool'][stage]['opt']['type'] = "string"
+        cfg['sc_tool'][stage]['refdir']['type'] = "file"
         cfg['sc_tool'][stage]['script']['type'] = "file"
+        cfg['sc_tool'][stage]['format']['type'] = "string"
         cfg['sc_tool'][stage]['jobid']['type'] = "int"
         cfg['sc_tool'][stage]['np']['type'] = "int"
 
-        # No init hash
+        # Hash
+        cfg['sc_tool'][stage]['refdir']['hash'] = []
         cfg['sc_tool'][stage]['script']['hash'] = []
 
-        #Creating defaults on a per tool basis
+        # Default value
+        cfg['sc_tool'][stage]['exe']['defvalue'] = []
+        cfg['sc_tool'][stage]['opt']['defvalue'] = []
+        cfg['sc_tool'][stage]['refdir']['defvalue'] = []
+        cfg['sc_tool'][stage]['script']['defvalue'] = []
+        cfg['sc_tool'][stage]['format']['defvalue'] = []
         cfg['sc_tool'][stage]['jobid']['defvalue'] = []
         cfg['sc_tool'][stage]['np']['defvalue'] = []
-
-        if stage == "import":
-            cfg['sc_tool'][stage]['exe']['defvalue'] = []
-            cfg['sc_tool'][stage]['opt']['defvalue'] = []
-            cfg['sc_tool'][stage]['script']['defvalue'] = []
-        elif stage == "syn":
-            cfg['sc_tool'][stage]['exe']['defvalue'] = []
-            cfg['sc_tool'][stage]['opt']['defvalue'] = []
-            cfg['sc_tool'][stage]['script']['defvalue'] = []
-        elif stage in ("floorplan", "place", "cts", "route", "signoff"):
-            cfg['sc_tool'][stage]['exe']['defvalue'] = []
-            cfg['sc_tool'][stage]['opt']['defvalue'] = []
-            cfg['sc_tool'][stage]['script']['defvalue'] = []
-        else:
-            cfg['sc_tool'][stage]['exe']['defvalue'] = [""]
-            cfg['sc_tool'][stage]['opt']['defvalue'] = []
-            cfg['sc_tool'][stage]['script']['defvalue'] = []
-            
-    
+                
     return cfg
 
 
