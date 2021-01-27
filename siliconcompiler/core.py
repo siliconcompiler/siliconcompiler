@@ -48,7 +48,7 @@ class Chip:
         # Create a default dict 
         self.cfg = schema()
 
-        # Copy 'default' to 'value'
+        # Copy 'defvalue' to 'value'
         self.reset()
         
         # Instance starts unlocked
@@ -58,7 +58,24 @@ class Chip:
         self.status = {}
         for stage in self.cfg['sc_stages']['defvalue']:
             self.status[stage] = ["idle"]
-            
+
+    ###################################
+    def add(self, *args):
+        '''Add a new Chip configuration subkey group
+
+        Args:
+            args (string): Configuration parameter to fetch
+
+        '''
+        self.logger.info('Adding a nested dictionary: %s', args)
+
+        all_keys = list(args)
+        param = all_keys[0]
+        if param in ('sc_stdlib', 'sc_macro'):
+            self.cfg[param][all_keys[1]] = {}
+            for view in self.cfg[param]['default']['views']: 
+                self.cfg[param][all_keys[1]][view] = {} 
+
     ###################################
     def get(self, *args):
         '''Gets value in the Chip configuration dictionary
@@ -113,19 +130,24 @@ class Chip:
         #Setting initial dict so user doesn't have to
         if cfg is None:
             cfg = self.cfg        
-        #Search recursively going through dict to set abspaths for files
+        #Init dictionary if not existant
+        if replace & (param not in cfg.keys()):
+            cfg[param] = {}
         if param in cfg.keys():
             #indicates leaf cell
-            if 'value' in cfg[param].keys():
-                if replace:
-                    #TODO: Check types
-                    print(val, len(val))
+            if replace & (len(all_keys) == 2):
+                #create value key if not defined
+                if ('value' not in cfg[param].keys()):
+                    cfg[param]['value'] = val
+                else:
                     cfg[param]['value'].extend(val)
+                return cfg[param]['value']
+            elif (len(all_keys) == 1):
                 return cfg[param]['value']
             else:
                 all_keys.pop(0)
                 return self.search(*all_keys, cfg=cfg[param], replace=replace)
-
+            
     ###################################
     def check(self, cfg, val):
         #1. Check length of list
@@ -134,6 +156,7 @@ class Chip:
         #if cfg['type'] == "int":
         error = 1
         return error
+
     ###################################
     def getstatus(self, stage, jobid):
         '''Gets status of a job for a specific compilaton stage
@@ -240,22 +263,6 @@ class Chip:
             self.writetcl(self.cfg, abspath)
 
     ##################################
-    def copycfg (self, keylist, keymap=None):
-        '''Create a subset of the current Chip configuration based on the given
-        param list
-
-        Args:
-            keylist (string): List of configuration parameters to copy
-            keymap (dict): Translates Chip configuration key names to a new set
-            of names based on a key lookup.
-
-        Returns:
-            dict: Chip configuration dictionary
-
-        '''
-        pass
-
-    ##################################
     #TODO: Need a hierarchical TCL writer!
     def writetcl(self, cfg, filename):
         '''Writes out the Chip cfg dictionary in TCL format
@@ -321,7 +328,7 @@ class Chip:
         '''
         self.cfg_locked = True
 
-     ##################################
+    ##################################
     def reset(self,cfg=None):
         '''Recursively copies 'defvalue' to 'value' for all configuration 
         parameters
@@ -349,9 +356,9 @@ class Chip:
         for k, v in cfg.items():
             if isinstance(v, dict):
                 #indicates leaf cell
-                if 'defvalue' in cfg[k].keys():
+                if 'value' in cfg[k].keys():
                     #only do something if a file is found
-                    if(cfg[k]['type'] == 'file'):
+                    if(cfg[k]['type'][-1] == 'file'):
                         for i, v in enumerate(cfg[k]['value']):
                             cfg[k]['value'][i] = os.path.abspath(v)
                 else:
