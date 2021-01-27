@@ -64,45 +64,33 @@ class Chip:
         '''Gets value in the Chip configuration dictionary
 
         Args:
-            param (string): Configuration parameter to fetch
+            args (string): Configuration parameter to fetch
 
         Returns:
             list: List of Chip configuration values
 
         '''
-        val = 1
-        return val
+        self.logger.info('Retrieving config dictionary value: %s', args)
+
+        return self.search(*args)
 
     ####################################
     #set2('sc_design', 'top')
     #set2('sc_clk', 'clkname', '1ns')
     #set2('sc_tool', 'stagename', 'exe', 'openroad')
     #set2('sc_stdlib', 'libname', 'timing', corner, 'libname.lib')
-    
-    def set2(self, *args):
+       
+    def set(self, *args):
         '''Sets a value in the Chip configuration dictionary 
         '''
-        self.logger.info('Setting config %s',args)
-
-        tot_args = len(args)
-        val = args[-1]
-        keys = args[:-1]
-        print("tot=",tot_args,"keys=", keys,"val=",val)
-    
-    ###################################
-    def readwrite(self, *args, mode="set"):
-        '''Searches configuration dictionary for a key list match.
-        If mode='set" writes to value, else only reads
-
-        Args:
-            param (string): Configuration parameter to fetch
-
-        Returns:
-            list: List of Chip configuration values
-
-        '''
-        val = 1
-        return val
+        self.logger.info('Setting config dictionary value: %s', args)
+        
+        all_args = list(args)
+        #Convert val to list if not a list
+        if type(all_args[-1]) != list:
+            all_args[-1]=[all_args[-1]]
+        
+        return self.search(*all_args, replace=True)
 
     ##################################
     def search(self, *args, cfg=None, replace=False):
@@ -130,87 +118,29 @@ class Chip:
             #indicates leaf cell
             if 'value' in cfg[param].keys():
                 if replace:
+                    #TODO: Check types
+                    print(val, len(val))
                     cfg[param]['value'].extend(val)
                 return cfg[param]['value']
             else:
                 all_keys.pop(0)
-                result = self.search(*all_keys, cfg=cfg[param], replace=replace)
+                return self.search(*all_keys, cfg=cfg[param], replace=replace)
 
-        return result
-                
-    ####################################
-    def set(self, val, param, *keys):
-        '''Sets a value in the Chip configuration dictionary 
-        '''
-        self.logger.info('Setting config %s %s %s',val,param,keys)
-
-        #TODO:
-        #Use the keys and value to create a small dict
-        #Use the merge function to merge with self.cfg!
-        #!!!!This function gets deleted!
-        
-        tot_keys = len(keys)
-
-        key1 = None
-        key2 = None
-        key3 = None
-        value_exists = True
-        value_clobbered = False
-        
-        # Single level parameters
-        if tot_keys == 0 :
-            value_exists = 'value' in self.cfg[param]            
-            if self.cfg[param]['type'] in {"list", "file"}:
-                if value_exists:
-                    self.cfg[param]['value'].append(val)
-                else:
-                    self.cfg[param]['value'] = val
-            else:
-                value_clobbered = value_exists
-                self.cfg[param]['value'] = val
-        # Nested structure parameters with sub keys
-        elif tot_keys > 1:
-            key1 = keys[0]
-            key2 = keys[1]
-            if tot_keys > 2:
-                key3 = keys[2]
-            # Dynamic dictionary entries for stdlib means we have to check
-            # the default dict.
-            # Create dictionary if it doesn't exist
-            if key1 not in self.cfg[param]:
-                value_exists = False
-                self.cfg[param][key1] = {}                
-            if key2 not in self.cfg[param][key1]:
-                value_exists = False
-                self.cfg[param][key1][key2] = {}
-            if (tot_keys > 2) & (key3 not in self.cfg[param][key1][key2]):
-                 value_exists = False
-                 self.cfg[param][key1][key2][key3] = {}                 
-            if tot_keys > 2:
-                print(param,key1,key2,key3)
-                if self.cfg[param]['deflib'][key2]['defcorner']['type'] in {"list", "file"}:
-                    if value_exists:
-                        self.cfg[param][key1][key2][key3]['value'].append(val)
-                    else:
-                        self.cfg[param][key1][key2][key3]['value'] = val
-                else:                    
-                    value_clobbered = value_exists
-                    self.cfg[param][key1][key2][key3]['value'] = val
-            else:
-                if self.cfg[param]['deflib'][key2]['type'] in {"list", "file"}:
-                    if value_exists:
-                        self.cfg[param][key1][key2]['value'].append(val)
-                    else:
-                        self.cfg[param][key1][key2]['value'] = val
-                else:                    
-                    value_clobbered = value_exists
-                    self.cfg[param][key1][key2]['value'] = val
-
-        # Warn on clobber
-        if value_clobbered:
-            self.logger.warning('Overwriting existing value for %s', param)
-        
-
+    ###################################
+    def check_value(self, cfg, val):
+        if cfg['type'] == "int":
+        elif cfg['type'] == "float":
+        elif cfg['type'] == "float2":
+        elif cfg['type'] == "string":
+        elif cfg['type'] == "string2":
+        elif cfg['type'] == "string3":
+        elif cfg['type'] == "string4":
+        elif cfg['type'] == "string5":
+        elif cfg['type'] == "file":
+        elif cfg['file'] == "string":
+        elif cfg['file'] == "string":
+                    
+    return error
     ###################################
     def getstatus(self, stage, jobid):
         '''Gets status of a job for a specific compilaton stage
@@ -466,7 +396,10 @@ class Chip:
         '''Creates hashes for all files sourced by Chip class
 
         '''
-
+        #TODO: modify to run on directory recursively if found
+        #don't follow links
+        #for root, dirs, files in os.walk(directory):
+        #read files
         for key in self.cfg:
             if self.cfg[key]['type'] == "file":
                 for filename in self.cfg[key]['value']:
