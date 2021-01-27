@@ -127,20 +127,13 @@ class Chip:
                 return self.search(*all_keys, cfg=cfg[param], replace=replace)
 
     ###################################
-    def check_value(self, cfg, val):
-        if cfg['type'] == "int":
-        elif cfg['type'] == "float":
-        elif cfg['type'] == "float2":
-        elif cfg['type'] == "string":
-        elif cfg['type'] == "string2":
-        elif cfg['type'] == "string3":
-        elif cfg['type'] == "string4":
-        elif cfg['type'] == "string5":
-        elif cfg['type'] == "file":
-        elif cfg['file'] == "string":
-        elif cfg['file'] == "string":
-                    
-    return error
+    def check(self, cfg, val):
+        #1. Check length of list
+        #2. If lengths match, check each item using foor loop
+        #legal values are (file|string), int, float
+        #if cfg['type'] == "int":
+        error = 1
+        return error
     ###################################
     def getstatus(self, stage, jobid):
         '''Gets status of a job for a specific compilaton stage
