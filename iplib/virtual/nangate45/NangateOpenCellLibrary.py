@@ -6,6 +6,7 @@ import siliconcompiler as sc
 
 mychip = sc.Chip()
 scriptdir = os.path.dirname(os.path.realpath(__file__))
+outputfile = scriptdir + '/' + library + '.json'
 
 ####################################################
 # Setup
@@ -30,5 +31,5 @@ mychip.set('sc_stdlib', library, 'gds', ipdir+'gds/NangateOpenCellLibrary.gds')
 
 mychip.abspath()
 
-mychip.writecfg(scriptdir + '/' + library + '.json')
+mychip.writecfg(outputfile)
            

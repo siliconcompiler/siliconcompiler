@@ -1,17 +1,22 @@
 
+####################################################
+# BOILER PLATE
+####################################################
+
 import os
 import siliconcompiler as sc
 
 mychip = sc.Chip()
 scriptdir = os.path.dirname(os.path.realpath(__file__))
+outputfile = scriptdir + "/" + process + ".json"
 
-##############
-# General
-##############
+####################################################
+# Setup
+####################################################
 
 process = 'nangate45'
 version = 'r1p0'
-pdkdir = scriptdir + version
+pdkdir = scriptdir + "/" + version
 
 # process name
 mychip.set('sc_process', process)
@@ -21,10 +26,6 @@ mychip.set('sc_node', '45')
 
 # name of metal stack
 mychip.set('sc_metalstack', '3MA_3MB_2MC_2MD')
-
-##############
-# PNR Setup
-##############
 
 # PNR tech file
 mychip.set('sc_techfile', pdkdir + 'pnr/nangate45.tech.lef')
@@ -51,15 +52,16 @@ mychip.set('sc_layer', 'metal9  Y 0.070  1.60')
 mychip.set('sc_layer', 'metal10 X 0.095  1.60')
 mychip.set('sc_layer', 'metal10 Y 0.070  1.60')
 
-##############
 # DRC
-##############
-
 mychip.set('sc_tool', 'drc', 'script',  pdkdir + 'drc/FreePDK45.lydrc')
 
-##############
-# Write Out CFG
-##############
+########################################################
+# Write JSON
+########################################################
+
 mychip.abspath()
-mychip.writecfg(pdkdir + "/" + process + ".json")
+
+mychip.writecfg(outputfile)
+
+
            
