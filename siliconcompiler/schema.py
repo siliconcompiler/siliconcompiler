@@ -700,7 +700,7 @@ def schema_tools(cfg):
     # Defaults and config for all stages
     for stage in cfg['sc_stages']['defvalue']:        
         cfg['sc_tool'][stage] = {}
-        for key in ("exe", "opt", "refdir", "script", "format", "jobid", "np"):
+        for key in ("exe", "opt", "refdir", "script", "copy", "format", "jobid", "np"):
             cfg['sc_tool'][stage][key] = {}
             cfg['sc_tool'][stage][key]['switch'] = "-tool_"+key
             
@@ -709,6 +709,7 @@ def schema_tools(cfg):
         cfg['sc_tool'][stage]['opt']['help'] = "Stage Tool Options"
         cfg['sc_tool'][stage]['refdir']['help'] = "Stage Tool Reference Flow Directory"
         cfg['sc_tool'][stage]['script']['help'] = "Stage Tool Script"
+        cfg['sc_tool'][stage]['copy']['help'] = "Stage Tool Copy To Local"
         cfg['sc_tool'][stage]['format']['help'] = "Stage Tool Configuration Format"
         cfg['sc_tool'][stage]['jobid']['help'] = "Stage Tool Job index"
         cfg['sc_tool'][stage]['np']['help'] = "Stage Tool Parallelism"
@@ -718,6 +719,7 @@ def schema_tools(cfg):
         cfg['sc_tool'][stage]['opt']['type'] = ["string"]
         cfg['sc_tool'][stage]['refdir']['type'] = ["file"]
         cfg['sc_tool'][stage]['script']['type'] = ["file"]
+        cfg['sc_tool'][stage]['copy']['type'] = ["string"]
         cfg['sc_tool'][stage]['format']['type'] = ["string"]
         cfg['sc_tool'][stage]['jobid']['type'] = ["int"]
         cfg['sc_tool'][stage]['np']['type'] = ["int"]
@@ -731,6 +733,7 @@ def schema_tools(cfg):
         cfg['sc_tool'][stage]['opt']['defvalue'] = []
         cfg['sc_tool'][stage]['refdir']['defvalue'] = []
         cfg['sc_tool'][stage]['script']['defvalue'] = []
+        cfg['sc_tool'][stage]['copy']['defvalue'] = []
         cfg['sc_tool'][stage]['format']['defvalue'] = []
         cfg['sc_tool'][stage]['np']['defvalue'] = []
         cfg['sc_tool'][stage]['jobid']['defvalue'] = ["0"]
