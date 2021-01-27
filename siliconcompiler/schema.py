@@ -8,7 +8,9 @@ def schema():
     '''
     
     cfg = {}
-        
+
+    cfg = schema_defaults(cfg)
+    
     cfg = schema_setup(cfg)
 
     cfg = schema_process(cfg)
@@ -22,7 +24,92 @@ def schema():
     cfg = schema_design(cfg)
        
     return cfg
+
+############################################
+# Parameters that deserve default values
+#############################################
+
+def schema_defaults(cfg):
+
+    cfg['sc_mode'] = {
+        'help' : "Implementation mode (asic or fpga)",
+        'switch' : "-mode",
+        'type' : ["string"],
+        'defvalue' : ['asic']
+    }
     
+    cfg['sc_debug'] = {
+        'help' : "Debug level (INFO/DEBUG/WARNING/ERROR/CRITICAL)",
+        'switch' : "-debug",
+        'type' : ["string"],
+        'defvalue' : ['INFO']
+    }
+
+    cfg['sc_build'] = {
+        'help' : "Name of build directory",
+        'switch' : "-build",
+        'type' : ["string"],
+        'defvalue' : ['build']
+    }
+
+    cfg['sc_effort'] = {
+        'help' : "Compilation effort (low,medium,high)",
+        'switch' : "-effort",
+        'type' : ["string"],
+        'defvalue' : ['high']
+    }
+
+    cfg['sc_priority'] = {
+        'help' : "Optimization priority (timing, power, area)",
+        'switch' : "-priority",
+        'type' : ["string"],
+        'defvalue' : ['timing']
+    }
+
+    cfg['sc_start'] = {
+        'help' : "Compilation starting stage",
+        'type' : "string",
+        'switch' : "-start",
+        'defvalue' : ['import']
+    }
+
+    cfg['sc_stop'] = {
+        'help' : "Compilation ending stage",
+        'switch' : "-stop",
+        'type' : ["string"],
+        'defvalue' : ['export']
+    }
+
+     cfg['sc_cont'] = {
+        'help' : "Continues from last completed stage",
+        'switch' : "-cont",
+        'type' : ["bool"],
+        'defvalue' : ["False"]
+    }
+        
+    cfg['sc_gui'] = {
+        'help' : "Launches GUI at every stage",
+        'switch' : "-gui",
+        'type' : ["bool"],
+        'defvalue' : ["False"]
+    }
+
+    cfg['sc_verbose'] = {
+        'help' : "Enables verbose printing to screen by EDA tools",
+        'switch' : "-verbose",
+        'type' : ["bool"],
+        'defvalue' : ["False"]
+    }
+    
+    cfg['sc_lock'] = {
+        'help' : "Switch to lock configuration from further modification",
+        'switch' : "-lock",
+        'type' : ["bool"],
+        'defvalue' : ["False"]
+    }
+
+    return cfg
+
 ############################################
 # General Setup
 #############################################
@@ -38,13 +125,6 @@ def schema_setup(cfg):
         'hash'   : []
     }
 
-    cfg['sc_mode'] = {
-        'help' : "Implementation mode (asic or fpga)",
-        'switch' : "-mode",
-        'type' : ["string"],
-        'defvalue' : []
-    }
-
     cfg['sc_custom'] = {
         'help' : "Custom EDA pass through variables",
         'switch' : "-custom",
@@ -53,7 +133,7 @@ def schema_setup(cfg):
     }
 
     cfg['sc_keymap'] = {
-        'help' : "Framwork keyword translation table",
+        'help' : "Keyword translation table for readcfg/writecfg ",
         'switch' : "-keymap",
         'type' : ["string", "string"],
         'defvalue' : []
@@ -83,76 +163,6 @@ def schema_setup(cfg):
     cfg['sc_ipdir'] = {
         'help' : "IP root directory",
         'switch' : "-ipdir",
-        'type' : ["string"],
-        'defvalue' : []
-    }
-
-    cfg['sc_debug'] = {
-        'help' : "Debug level (INFO/DEBUG/WARNING/ERROR/CRITICAL)",
-        'switch' : "-debug",
-        'type' : ["string"],
-        'defvalue' : ["INFO"]
-    }
-
-    cfg['sc_build'] = {
-        'help' : "Name of build directory",
-        'switch' : "-build",
-        'type' : ["string"],
-        'defvalue' : ["build"]
-    }
-
-    cfg['sc_effort'] = {
-        'help' : "Compilation effort (low,medium,high)",
-        'switch' : "-effort",
-        'type' : ["string"],
-        'defvalue' : []
-    }
-
-    cfg['sc_priority'] = {
-        'help' : "Optimization priority (performance, power, area)",
-        'switch' : "-priority",
-        'type' : ["string"],
-        'defvalue' : []
-    }
-
-    cfg['sc_cont'] = {
-        'help' : "Continues from last completed stage",
-        'switch' : "-cont",
-        'type' : ["bool"],
-        'defvalue' : ["False"]
-    }
-        
-    cfg['sc_gui'] = {
-        'help' : "Launches GUI at every stage",
-        'switch' : "-gui",
-        'type' : ["bool"],
-        'defvalue' : ["False"]
-    }
-
-    cfg['sc_verbose'] = {
-        'help' : "Enables verbose printing to screen by EDA tools",
-        'switch' : "-verbose",
-        'type' : ["bool"],
-        'defvalue' : ["False"]
-    }
-    
-    cfg['sc_lock'] = {
-        'help' : "Switch to lock configuration from further modification",
-        'switch' : "-lock",
-        'type' : ["bool"],
-        'defvalue' : ["False"]
-    }
-    
-    cfg['sc_start'] = {
-        'help' : "Compilation starting stage",
-        'type' : "string",
-        'switch' : "-start",
-        'defvalue' : []
-    }
-
-    cfg['sc_stop'] = {
-        'help' : "Compilation ending stage",
-        'switch' : "-stop",
         'type' : ["string"],
         'defvalue' : []
     }
@@ -641,24 +651,25 @@ def schema_tools(cfg):
         'switch' : "-stages",
         'type' : ["string"],
         'defvalue' : ["import",
-                     "syn",
-                     "floorplan",
-                     "place",
-                     "cts",
-                     "route",
-                     "signoff",
-                     "export",
-                     "lec",
-                     "pex",
-                     "sta",
-                     "pi",
-                     "si",
-                     "drc",
-                     "antenna",
-                     "density",
-                     "erc",                    
-                     "lvs",
-                     "tapeout"]
+                      "syn",
+                      "floorplan",
+                      "place",
+                      "cts",
+                      "route",
+                      "signoff",
+                      "export",
+                      "display",
+                      "lec",
+                      "pex",
+                      "sta",
+                      "pi",
+                      "si",
+                      "drc",
+                      "antenna",
+                      "density",
+                      "erc",                    
+                      "lvs",
+                      "tapeout"]
     }
 
     cfg['sc_tool'] = {}
