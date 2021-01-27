@@ -1,0 +1,2369 @@
+{
+    "sc_aspectratio": {
+        "defvalue": [],
+        "help": "Aspect ratio for density driven floor-planning",
+        "switch": "-aspectratio",
+        "type": [
+            "float"
+        ],
+        "value": []
+    },
+    "sc_build": {
+        "defvalue": [
+            "build"
+        ],
+        "help": "Name of build directory",
+        "switch": "-build",
+        "type": [
+            "string"
+        ],
+        "value": [
+            "build"
+        ]
+    },
+    "sc_cfgfile": {
+        "defvalue": [],
+        "hash": [],
+        "help": "Loads configurations from a json file",
+        "switch": "-cfgfile",
+        "type": [
+            "file"
+        ],
+        "value": []
+    },
+    "sc_clk": {
+        "defvalue": [],
+        "help": "Clock defintion (<name period uncertainty>)",
+        "switch": "-clk",
+        "type": [
+            "string",
+            "float",
+            "float"
+        ],
+        "value": []
+    },
+    "sc_constraints": {
+        "defvalue": [],
+        "hash": [],
+        "help": "Constraints file (SDC)",
+        "switch": "-constraints",
+        "type": [
+            "file"
+        ],
+        "value": []
+    },
+    "sc_cont": {
+        "defvalue": [
+            "False"
+        ],
+        "help": "Continues from last completed stage",
+        "switch": "-cont",
+        "type": [
+            "bool"
+        ],
+        "value": [
+            "False"
+        ]
+    },
+    "sc_contact": {
+        "defvalue": [],
+        "help": "Trigger event contact (phone#/email)",
+        "switch": "-contact",
+        "type": [
+            "string"
+        ],
+        "value": []
+    },
+    "sc_coremargin": {
+        "defvalue": [],
+        "help": "Margin around core for density driven floor-planning (um)",
+        "switch": "-coremargin",
+        "type": [
+            "float"
+        ],
+        "value": []
+    },
+    "sc_coresize": {
+        "defvalue": [],
+        "help": "Core size (x0 y0 x1 y1) for automated floor-planning (um)",
+        "switch": "-coresize",
+        "type": [
+            "float",
+            "float",
+            "float",
+            "float"
+        ],
+        "value": []
+    },
+    "sc_custom": {
+        "defvalue": [],
+        "help": "Custom EDA pass through variables",
+        "switch": "-custom",
+        "type": [
+            "string"
+        ],
+        "value": []
+    },
+    "sc_debug": {
+        "defvalue": [
+            "INFO"
+        ],
+        "help": "Debug level (INFO/DEBUG/WARNING/ERROR/CRITICAL)",
+        "switch": "-debug",
+        "type": [
+            "string"
+        ],
+        "value": [
+            "INFO"
+        ]
+    },
+    "sc_def": {
+        "defvalue": [],
+        "hash": [],
+        "help": "User supplied hard-coded floorplan (DEF)",
+        "switch": "-def",
+        "type": [
+            "file"
+        ],
+        "value": []
+    },
+    "sc_define": {
+        "defvalue": [],
+        "help": "Define variables for Verilog preprocessor",
+        "switch": "-D",
+        "type": [
+            "string"
+        ],
+        "value": []
+    },
+    "sc_density": {
+        "defvalue": [],
+        "help": "Target density for density driven floor-planning (percent)",
+        "switch": "-density",
+        "type": [
+            "int"
+        ],
+        "value": []
+    },
+    "sc_design": {
+        "defvalue": [],
+        "help": "Design top module name",
+        "switch": "-design",
+        "type": [
+            "string"
+        ],
+        "value": []
+    },
+    "sc_diesize": {
+        "defvalue": [],
+        "help": "Die size (x0 y0 x1 y1) for automated floor-planning (um)",
+        "switch": "-diesize",
+        "type": [
+            "float",
+            "float",
+            "float",
+            "float"
+        ],
+        "value": []
+    },
+    "sc_effort": {
+        "defvalue": [
+            "high"
+        ],
+        "help": "Compilation effort (low,medium,high)",
+        "switch": "-effort",
+        "type": [
+            "string"
+        ],
+        "value": [
+            "high"
+        ]
+    },
+    "sc_floorplan": {
+        "defvalue": [],
+        "hash": [],
+        "help": "User supplied python based floorplaning script",
+        "switch": "-floorplan",
+        "type": [
+            "file"
+        ],
+        "value": []
+    },
+    "sc_foundry": {
+        "defvalue": [],
+        "help": "Foundry name (eg: virtual, tsmc, gf, samsung)",
+        "switch": "-foundry",
+        "type": [
+            "string"
+        ],
+        "value": []
+    },
+    "sc_grid": {
+        "defvalue": [],
+        "help": "Grid unit (in um)",
+        "switch": "-grid",
+        "type": [
+            "float"
+        ],
+        "value": []
+    },
+    "sc_gui": {
+        "defvalue": [
+            "False"
+        ],
+        "help": "Launches GUI at every stage",
+        "switch": "-gui",
+        "type": [
+            "bool"
+        ],
+        "value": [
+            "False"
+        ]
+    },
+    "sc_idir": {
+        "defvalue": [],
+        "hash": [],
+        "help": "Directory to search for inclodes",
+        "switch": "-I",
+        "type": [
+            "string"
+        ],
+        "value": []
+    },
+    "sc_ipdir": {
+        "defvalue": [],
+        "help": "IP root directory",
+        "switch": "-ipdir",
+        "type": [
+            "string"
+        ],
+        "value": []
+    },
+    "sc_keymap": {
+        "defvalue": [],
+        "help": "Keyword translation table for readcfg/writecfg ",
+        "switch": "-keymap",
+        "type": [
+            "string",
+            "string"
+        ],
+        "value": []
+    },
+    "sc_layer": {
+        "defvalue": [],
+        "help": "Metal stackup routing layer definitions",
+        "switch": "-layer",
+        "type": [
+            "string",
+            "string",
+            "float",
+            "float"
+        ],
+        "value": [
+            "metal1  X 0.095  0.19",
+            "metal1  Y 0.070  0.14",
+            "metal2  X 0.095  0.19",
+            "metal2  Y 0.070  0.14",
+            "metal3  X 0.095  0.19",
+            "metal3  Y 0.070  0.14",
+            "metal4  X 0.095  0.28",
+            "metal4  Y 0.070  0.28",
+            "metal5  X 0.095  0.28",
+            "metal5  Y 0.070  0.28",
+            "metal6  X 0.095  0.28",
+            "metal6  Y 0.070  0.28",
+            "metal7  X 0.095  0.80",
+            "metal7  Y 0.070  0.80",
+            "metal8  X 0.095  0.80",
+            "metal8  Y 0.070  0.80",
+            "metal9  X 0.095  1.60",
+            "metal9  Y 0.070  1.60",
+            "metal10 X 0.095  1.60",
+            "metal10 Y 0.070  1.60"
+        ]
+    },
+    "sc_layermap": {
+        "defvalue": [],
+        "hash": [],
+        "help": "GDS layer map",
+        "switch": "-layermap",
+        "type": "string, string, int, int",
+        "value": []
+    },
+    "sc_libext": {
+        "defvalue": [],
+        "help": "Extension for finding modules",
+        "switch": "+libext",
+        "type": [
+            "string"
+        ],
+        "value": []
+    },
+    "sc_lock": {
+        "defvalue": [
+            "False"
+        ],
+        "help": "Switch to lock configuration from further modification",
+        "switch": "-lock",
+        "type": [
+            "bool"
+        ],
+        "value": [
+            "False"
+        ]
+    },
+    "sc_macro": {
+        "default": {
+            "cdl": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library CDL file",
+                "switch": "-macro_cdl",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "cells": {
+                "default": {
+                    "defvalue": [],
+                    "help": "Library cell type list",
+                    "switch": "-macro_cells",
+                    "type": [
+                        "string"
+                    ],
+                    "value": []
+                }
+            },
+            "customdb": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library custom database",
+                "switch": "-macro_customdb",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "dft": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library DFT file",
+                "switch": "-macro_dft",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "doc": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library documentation",
+                "switch": "-macro_doc",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "driver": {
+                "defvalue": [],
+                "help": "Library default driver",
+                "switch": "-macro_driver",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "gds": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library GDS file",
+                "switch": "-macro_gds",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "lef": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library LEF file",
+                "switch": "-macro_lef",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "pgmetal": {
+                "defvalue": [],
+                "help": "Metal layer used for power rails",
+                "switch": "-macro_pgmetal",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "pnrdb": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library PNR database",
+                "switch": "-macro_pnrdb",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "power": {
+                "default": {
+                    "defvalue": [],
+                    "hash": [],
+                    "help": "Library power file",
+                    "switch": "-macro_power",
+                    "type": [
+                        "file"
+                    ],
+                    "value": []
+                }
+            },
+            "setup": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library Setup file",
+                "switch": "-macro_setup",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "site": {
+                "defvalue": [],
+                "help": "Library placement site",
+                "switch": "-macro_site",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "tag": {
+                "defvalue": [],
+                "help": "Tags to identify library",
+                "switch": "-macro_tag",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "timing": {
+                "default": {
+                    "defvalue": [],
+                    "hash": [],
+                    "help": "Library timing file",
+                    "switch": "-macro_timing",
+                    "type": [
+                        "file"
+                    ],
+                    "value": []
+                }
+            },
+            "verilog": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library Verilog file",
+                "switch": "-macro_verilog",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            }
+        }
+    },
+    "sc_maxfanout": {
+        "defvalue": [],
+        "help": "Maximum fanout",
+        "switch": "-maxfanout",
+        "type": [
+            "int"
+        ],
+        "value": []
+    },
+    "sc_maxlayer": {
+        "defvalue": [],
+        "help": "Maximum routing layer (integer)",
+        "switch": "-maxlayer",
+        "type": [
+            "int"
+        ],
+        "value": []
+    },
+    "sc_minlayer": {
+        "defvalue": [],
+        "help": "Minimum routing layer (integer)",
+        "switch": "-minlayer",
+        "type": [
+            "int"
+        ],
+        "value": []
+    },
+    "sc_mode": {
+        "defvalue": [
+            "asic"
+        ],
+        "help": "Implementation mode (asic or fpga)",
+        "switch": "-mode",
+        "type": [
+            "string"
+        ],
+        "value": [
+            "asic"
+        ]
+    },
+    "sc_model": {
+        "defvalue": [],
+        "hash": [],
+        "help": "Device model file",
+        "switch": "-model",
+        "type": [
+            "file"
+        ],
+        "value": []
+    },
+    "sc_ndr": {
+        "defvalue": [],
+        "hash": [],
+        "help": "Non-default net routing file",
+        "switch": "-ndr",
+        "type": [
+            "file"
+        ],
+        "value": []
+    },
+    "sc_nickname": {
+        "defvalue": [],
+        "help": "Design nickname",
+        "switch": "-nickname",
+        "type": [
+            "string"
+        ],
+        "value": []
+    },
+    "sc_node": {
+        "defvalue": [],
+        "help": "Process node in nm (180, 90, 22, 12, 7 etc)",
+        "switch": "-node",
+        "type": [
+            "int"
+        ],
+        "value": [
+            "45"
+        ]
+    },
+    "sc_pdkdir": {
+        "defvalue": [],
+        "help": "PDK root directory",
+        "switch": "-pdkdir",
+        "type": [
+            "string"
+        ],
+        "value": []
+    },
+    "sc_priority": {
+        "defvalue": [
+            "timing"
+        ],
+        "help": "Optimization priority (timing, power, area)",
+        "switch": "-priority",
+        "type": [
+            "string"
+        ],
+        "value": [
+            "timing"
+        ]
+    },
+    "sc_process": {
+        "defvalue": [],
+        "help": "Process name",
+        "switch": "-process",
+        "type": [
+            "string"
+        ],
+        "value": [
+            "nangate45"
+        ]
+    },
+    "sc_rcfile": {
+        "defvalue": [],
+        "hash": [],
+        "help": "RC extraction file",
+        "switch": "-rcfile",
+        "type": [
+            "file"
+        ],
+        "value": []
+    },
+    "sc_readscript": {
+        "defvalue": [],
+        "hash": [],
+        "help": "Source file read script",
+        "switch": "-f",
+        "type": [
+            "file"
+        ],
+        "value": []
+    },
+    "sc_ref": {
+        "defvalue": [],
+        "help": "Reference methodology name",
+        "switch": "-ref",
+        "type": [
+            "string"
+        ],
+        "value": []
+    },
+    "sc_remote": {
+        "defvalue": [],
+        "help": "Name of remote server address (https://acme.com:8080)",
+        "switch": "-remote",
+        "type": [
+            "string"
+        ],
+        "value": []
+    },
+    "sc_saif": {
+        "defvalue": [],
+        "hash": [],
+        "help": "Switching activity (SAIF) file for power analysis",
+        "switch": "-saif",
+        "type": [
+            "file"
+        ],
+        "value": []
+    },
+    "sc_scenario": {
+        "defvalue": [],
+        "help": "Process, voltage, temp scenario ",
+        "switch": "-scenario",
+        "type": [
+            "string",
+            "float",
+            "int",
+            "string"
+        ],
+        "value": []
+    },
+    "sc_source": {
+        "defvalue": [],
+        "hash": [],
+        "help": "Source files (.v/.vh/.sv/.vhd)",
+        "switch": "None",
+        "type": [
+            "file"
+        ],
+        "value": []
+    },
+    "sc_stackup": {
+        "defvalue": [],
+        "help": "Metal stackup as named in the PDK",
+        "switch": "-stackup",
+        "type": [
+            "string"
+        ],
+        "value": []
+    },
+    "sc_stages": {
+        "defvalue": [
+            "import",
+            "syn",
+            "floorplan",
+            "place",
+            "cts",
+            "route",
+            "signoff",
+            "export",
+            "display",
+            "lec",
+            "pex",
+            "sta",
+            "pi",
+            "si",
+            "drc",
+            "antenna",
+            "density",
+            "erc",
+            "lvs",
+            "tapeout"
+        ],
+        "help": "List of all compilation stages",
+        "switch": "-stages",
+        "type": [
+            "string"
+        ],
+        "value": [
+            "import",
+            "syn",
+            "floorplan",
+            "place",
+            "cts",
+            "route",
+            "signoff",
+            "export",
+            "display",
+            "lec",
+            "pex",
+            "sta",
+            "pi",
+            "si",
+            "drc",
+            "antenna",
+            "density",
+            "erc",
+            "lvs",
+            "tapeout"
+        ]
+    },
+    "sc_start": {
+        "defvalue": [
+            "import"
+        ],
+        "help": "Compilation starting stage",
+        "switch": "-start",
+        "type": "string",
+        "value": [
+            "import"
+        ]
+    },
+    "sc_stdlib": {
+        "default": {
+            "cdl": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library CDL file",
+                "switch": "-stdlib_cdl",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "cells": {
+                "default": {
+                    "defvalue": [],
+                    "help": "Library cell type list",
+                    "switch": "-stdlib_cells",
+                    "type": [
+                        "string"
+                    ],
+                    "value": []
+                }
+            },
+            "customdb": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library custom database",
+                "switch": "-stdlib_customdb",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "dft": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library DFT file",
+                "switch": "-stdlib_dft",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "doc": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library documentation",
+                "switch": "-stdlib_doc",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "driver": {
+                "defvalue": [],
+                "help": "Library default driver",
+                "switch": "-stdlib_driver",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "gds": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library GDS file",
+                "switch": "-stdlib_gds",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "lef": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library LEF file",
+                "switch": "-stdlib_lef",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "pgmetal": {
+                "defvalue": [],
+                "help": "Metal layer used for power rails",
+                "switch": "-stdlib_pgmetal",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "pnrdb": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library PNR database",
+                "switch": "-stdlib_pnrdb",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "power": {
+                "default": {
+                    "defvalue": [],
+                    "hash": [],
+                    "help": "Library power file",
+                    "switch": "-stdlib_power",
+                    "type": [
+                        "file"
+                    ],
+                    "value": []
+                }
+            },
+            "setup": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library Setup file",
+                "switch": "-stdlib_setup",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "site": {
+                "defvalue": [],
+                "help": "Library placement site",
+                "switch": "-stdlib_site",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "tag": {
+                "defvalue": [],
+                "help": "Tags to identify library",
+                "switch": "-stdlib_tag",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "timing": {
+                "default": {
+                    "defvalue": [],
+                    "hash": [],
+                    "help": "Library timing file",
+                    "switch": "-stdlib_timing",
+                    "type": [
+                        "file"
+                    ],
+                    "value": []
+                }
+            },
+            "verilog": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library Verilog file",
+                "switch": "-stdlib_verilog",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            }
+        }
+    },
+    "sc_stop": {
+        "defvalue": [
+            "export"
+        ],
+        "help": "Compilation ending stage",
+        "switch": "-stop",
+        "type": [
+            "string"
+        ],
+        "value": [
+            "export"
+        ]
+    },
+    "sc_supplies": {
+        "defvalue": [],
+        "help": "Supply voltages (<name pin voltage>)",
+        "switch": "-supply",
+        "type": [
+            "string",
+            "string",
+            "float"
+        ],
+        "value": []
+    },
+    "sc_taprules": {
+        "defvalue": [],
+        "hash": [],
+        "help": "Tap cell rules <maxdistance offset>",
+        "switch": "-taprules",
+        "type": [
+            "float",
+            "float"
+        ],
+        "value": []
+    },
+    "sc_techfile": {
+        "defvalue": [],
+        "hash": [],
+        "help": "Place and route tehnology file",
+        "switch": "-techfile",
+        "type": [
+            "file"
+        ],
+        "value": [
+            "/home/aolofsson/work/zeroasic/siliconcompiler/pdklib/virtual/nangate45/r1p0pnr/nangate45.tech.lef"
+        ]
+    },
+    "sc_time": {
+        "defvalue": [],
+        "help": "Time unit (1 ps)",
+        "switch": "-time",
+        "type": [
+            "int"
+        ],
+        "value": []
+    },
+    "sc_tool": {
+        "antenna": {
+            "exe": {
+                "defvalue": [],
+                "help": "Stage Tool Executable",
+                "switch": "-tool_exe",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "format": {
+                "defvalue": [],
+                "help": "Stage Tool Configuration Format",
+                "switch": "-tool_format",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "jobid": {
+                "defvalue": [],
+                "help": "Stage Tool Job index",
+                "switch": "-tool_jobid",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "np": {
+                "defvalue": [],
+                "help": "Stage Tool Parallelism",
+                "switch": "-tool_np",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "opt": {
+                "defvalue": [],
+                "help": "Stage Tool Options",
+                "switch": "-tool_opt",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "refdir": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Reference Flow Directory",
+                "switch": "-tool_refdir",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "script": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Script (relative to refdir)",
+                "switch": "-tool_script",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            }
+        },
+        "cts": {
+            "exe": {
+                "defvalue": [],
+                "help": "Stage Tool Executable",
+                "switch": "-tool_exe",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "format": {
+                "defvalue": [],
+                "help": "Stage Tool Configuration Format",
+                "switch": "-tool_format",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "jobid": {
+                "defvalue": [],
+                "help": "Stage Tool Job index",
+                "switch": "-tool_jobid",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "np": {
+                "defvalue": [],
+                "help": "Stage Tool Parallelism",
+                "switch": "-tool_np",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "opt": {
+                "defvalue": [],
+                "help": "Stage Tool Options",
+                "switch": "-tool_opt",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "refdir": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Reference Flow Directory",
+                "switch": "-tool_refdir",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "script": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Script (relative to refdir)",
+                "switch": "-tool_script",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            }
+        },
+        "density": {
+            "exe": {
+                "defvalue": [],
+                "help": "Stage Tool Executable",
+                "switch": "-tool_exe",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "format": {
+                "defvalue": [],
+                "help": "Stage Tool Configuration Format",
+                "switch": "-tool_format",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "jobid": {
+                "defvalue": [],
+                "help": "Stage Tool Job index",
+                "switch": "-tool_jobid",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "np": {
+                "defvalue": [],
+                "help": "Stage Tool Parallelism",
+                "switch": "-tool_np",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "opt": {
+                "defvalue": [],
+                "help": "Stage Tool Options",
+                "switch": "-tool_opt",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "refdir": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Reference Flow Directory",
+                "switch": "-tool_refdir",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "script": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Script (relative to refdir)",
+                "switch": "-tool_script",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            }
+        },
+        "display": {
+            "exe": {
+                "defvalue": [],
+                "help": "Stage Tool Executable",
+                "switch": "-tool_exe",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "format": {
+                "defvalue": [],
+                "help": "Stage Tool Configuration Format",
+                "switch": "-tool_format",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "jobid": {
+                "defvalue": [],
+                "help": "Stage Tool Job index",
+                "switch": "-tool_jobid",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "np": {
+                "defvalue": [],
+                "help": "Stage Tool Parallelism",
+                "switch": "-tool_np",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "opt": {
+                "defvalue": [],
+                "help": "Stage Tool Options",
+                "switch": "-tool_opt",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "refdir": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Reference Flow Directory",
+                "switch": "-tool_refdir",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "script": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Script (relative to refdir)",
+                "switch": "-tool_script",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            }
+        },
+        "drc": {
+            "exe": {
+                "defvalue": [],
+                "help": "Stage Tool Executable",
+                "switch": "-tool_exe",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "format": {
+                "defvalue": [],
+                "help": "Stage Tool Configuration Format",
+                "switch": "-tool_format",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "jobid": {
+                "defvalue": [],
+                "help": "Stage Tool Job index",
+                "switch": "-tool_jobid",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "np": {
+                "defvalue": [],
+                "help": "Stage Tool Parallelism",
+                "switch": "-tool_np",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "opt": {
+                "defvalue": [],
+                "help": "Stage Tool Options",
+                "switch": "-tool_opt",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "refdir": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Reference Flow Directory",
+                "switch": "-tool_refdir",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "script": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Script (relative to refdir)",
+                "switch": "-tool_script",
+                "type": [
+                    "file"
+                ],
+                "value": [
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/pdklib/virtual/nangate45/r1p0drc/FreePDK45.lydrc"
+                ]
+            }
+        },
+        "erc": {
+            "exe": {
+                "defvalue": [],
+                "help": "Stage Tool Executable",
+                "switch": "-tool_exe",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "format": {
+                "defvalue": [],
+                "help": "Stage Tool Configuration Format",
+                "switch": "-tool_format",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "jobid": {
+                "defvalue": [],
+                "help": "Stage Tool Job index",
+                "switch": "-tool_jobid",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "np": {
+                "defvalue": [],
+                "help": "Stage Tool Parallelism",
+                "switch": "-tool_np",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "opt": {
+                "defvalue": [],
+                "help": "Stage Tool Options",
+                "switch": "-tool_opt",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "refdir": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Reference Flow Directory",
+                "switch": "-tool_refdir",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "script": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Script (relative to refdir)",
+                "switch": "-tool_script",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            }
+        },
+        "export": {
+            "exe": {
+                "defvalue": [],
+                "help": "Stage Tool Executable",
+                "switch": "-tool_exe",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "format": {
+                "defvalue": [],
+                "help": "Stage Tool Configuration Format",
+                "switch": "-tool_format",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "jobid": {
+                "defvalue": [],
+                "help": "Stage Tool Job index",
+                "switch": "-tool_jobid",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "np": {
+                "defvalue": [],
+                "help": "Stage Tool Parallelism",
+                "switch": "-tool_np",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "opt": {
+                "defvalue": [],
+                "help": "Stage Tool Options",
+                "switch": "-tool_opt",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "refdir": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Reference Flow Directory",
+                "switch": "-tool_refdir",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "script": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Script (relative to refdir)",
+                "switch": "-tool_script",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            }
+        },
+        "floorplan": {
+            "exe": {
+                "defvalue": [],
+                "help": "Stage Tool Executable",
+                "switch": "-tool_exe",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "format": {
+                "defvalue": [],
+                "help": "Stage Tool Configuration Format",
+                "switch": "-tool_format",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "jobid": {
+                "defvalue": [],
+                "help": "Stage Tool Job index",
+                "switch": "-tool_jobid",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "np": {
+                "defvalue": [],
+                "help": "Stage Tool Parallelism",
+                "switch": "-tool_np",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "opt": {
+                "defvalue": [],
+                "help": "Stage Tool Options",
+                "switch": "-tool_opt",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "refdir": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Reference Flow Directory",
+                "switch": "-tool_refdir",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "script": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Script (relative to refdir)",
+                "switch": "-tool_script",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            }
+        },
+        "import": {
+            "exe": {
+                "defvalue": [],
+                "help": "Stage Tool Executable",
+                "switch": "-tool_exe",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "format": {
+                "defvalue": [],
+                "help": "Stage Tool Configuration Format",
+                "switch": "-tool_format",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "jobid": {
+                "defvalue": [],
+                "help": "Stage Tool Job index",
+                "switch": "-tool_jobid",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "np": {
+                "defvalue": [],
+                "help": "Stage Tool Parallelism",
+                "switch": "-tool_np",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "opt": {
+                "defvalue": [],
+                "help": "Stage Tool Options",
+                "switch": "-tool_opt",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "refdir": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Reference Flow Directory",
+                "switch": "-tool_refdir",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "script": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Script (relative to refdir)",
+                "switch": "-tool_script",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            }
+        },
+        "lec": {
+            "exe": {
+                "defvalue": [],
+                "help": "Stage Tool Executable",
+                "switch": "-tool_exe",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "format": {
+                "defvalue": [],
+                "help": "Stage Tool Configuration Format",
+                "switch": "-tool_format",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "jobid": {
+                "defvalue": [],
+                "help": "Stage Tool Job index",
+                "switch": "-tool_jobid",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "np": {
+                "defvalue": [],
+                "help": "Stage Tool Parallelism",
+                "switch": "-tool_np",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "opt": {
+                "defvalue": [],
+                "help": "Stage Tool Options",
+                "switch": "-tool_opt",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "refdir": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Reference Flow Directory",
+                "switch": "-tool_refdir",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "script": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Script (relative to refdir)",
+                "switch": "-tool_script",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            }
+        },
+        "lvs": {
+            "exe": {
+                "defvalue": [],
+                "help": "Stage Tool Executable",
+                "switch": "-tool_exe",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "format": {
+                "defvalue": [],
+                "help": "Stage Tool Configuration Format",
+                "switch": "-tool_format",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "jobid": {
+                "defvalue": [],
+                "help": "Stage Tool Job index",
+                "switch": "-tool_jobid",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "np": {
+                "defvalue": [],
+                "help": "Stage Tool Parallelism",
+                "switch": "-tool_np",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "opt": {
+                "defvalue": [],
+                "help": "Stage Tool Options",
+                "switch": "-tool_opt",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "refdir": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Reference Flow Directory",
+                "switch": "-tool_refdir",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "script": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Script (relative to refdir)",
+                "switch": "-tool_script",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            }
+        },
+        "pex": {
+            "exe": {
+                "defvalue": [],
+                "help": "Stage Tool Executable",
+                "switch": "-tool_exe",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "format": {
+                "defvalue": [],
+                "help": "Stage Tool Configuration Format",
+                "switch": "-tool_format",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "jobid": {
+                "defvalue": [],
+                "help": "Stage Tool Job index",
+                "switch": "-tool_jobid",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "np": {
+                "defvalue": [],
+                "help": "Stage Tool Parallelism",
+                "switch": "-tool_np",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "opt": {
+                "defvalue": [],
+                "help": "Stage Tool Options",
+                "switch": "-tool_opt",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "refdir": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Reference Flow Directory",
+                "switch": "-tool_refdir",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "script": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Script (relative to refdir)",
+                "switch": "-tool_script",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            }
+        },
+        "pi": {
+            "exe": {
+                "defvalue": [],
+                "help": "Stage Tool Executable",
+                "switch": "-tool_exe",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "format": {
+                "defvalue": [],
+                "help": "Stage Tool Configuration Format",
+                "switch": "-tool_format",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "jobid": {
+                "defvalue": [],
+                "help": "Stage Tool Job index",
+                "switch": "-tool_jobid",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "np": {
+                "defvalue": [],
+                "help": "Stage Tool Parallelism",
+                "switch": "-tool_np",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "opt": {
+                "defvalue": [],
+                "help": "Stage Tool Options",
+                "switch": "-tool_opt",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "refdir": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Reference Flow Directory",
+                "switch": "-tool_refdir",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "script": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Script (relative to refdir)",
+                "switch": "-tool_script",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            }
+        },
+        "place": {
+            "exe": {
+                "defvalue": [],
+                "help": "Stage Tool Executable",
+                "switch": "-tool_exe",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "format": {
+                "defvalue": [],
+                "help": "Stage Tool Configuration Format",
+                "switch": "-tool_format",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "jobid": {
+                "defvalue": [],
+                "help": "Stage Tool Job index",
+                "switch": "-tool_jobid",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "np": {
+                "defvalue": [],
+                "help": "Stage Tool Parallelism",
+                "switch": "-tool_np",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "opt": {
+                "defvalue": [],
+                "help": "Stage Tool Options",
+                "switch": "-tool_opt",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "refdir": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Reference Flow Directory",
+                "switch": "-tool_refdir",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "script": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Script (relative to refdir)",
+                "switch": "-tool_script",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            }
+        },
+        "route": {
+            "exe": {
+                "defvalue": [],
+                "help": "Stage Tool Executable",
+                "switch": "-tool_exe",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "format": {
+                "defvalue": [],
+                "help": "Stage Tool Configuration Format",
+                "switch": "-tool_format",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "jobid": {
+                "defvalue": [],
+                "help": "Stage Tool Job index",
+                "switch": "-tool_jobid",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "np": {
+                "defvalue": [],
+                "help": "Stage Tool Parallelism",
+                "switch": "-tool_np",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "opt": {
+                "defvalue": [],
+                "help": "Stage Tool Options",
+                "switch": "-tool_opt",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "refdir": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Reference Flow Directory",
+                "switch": "-tool_refdir",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "script": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Script (relative to refdir)",
+                "switch": "-tool_script",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            }
+        },
+        "si": {
+            "exe": {
+                "defvalue": [],
+                "help": "Stage Tool Executable",
+                "switch": "-tool_exe",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "format": {
+                "defvalue": [],
+                "help": "Stage Tool Configuration Format",
+                "switch": "-tool_format",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "jobid": {
+                "defvalue": [],
+                "help": "Stage Tool Job index",
+                "switch": "-tool_jobid",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "np": {
+                "defvalue": [],
+                "help": "Stage Tool Parallelism",
+                "switch": "-tool_np",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "opt": {
+                "defvalue": [],
+                "help": "Stage Tool Options",
+                "switch": "-tool_opt",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "refdir": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Reference Flow Directory",
+                "switch": "-tool_refdir",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "script": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Script (relative to refdir)",
+                "switch": "-tool_script",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            }
+        },
+        "signoff": {
+            "exe": {
+                "defvalue": [],
+                "help": "Stage Tool Executable",
+                "switch": "-tool_exe",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "format": {
+                "defvalue": [],
+                "help": "Stage Tool Configuration Format",
+                "switch": "-tool_format",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "jobid": {
+                "defvalue": [],
+                "help": "Stage Tool Job index",
+                "switch": "-tool_jobid",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "np": {
+                "defvalue": [],
+                "help": "Stage Tool Parallelism",
+                "switch": "-tool_np",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "opt": {
+                "defvalue": [],
+                "help": "Stage Tool Options",
+                "switch": "-tool_opt",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "refdir": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Reference Flow Directory",
+                "switch": "-tool_refdir",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "script": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Script (relative to refdir)",
+                "switch": "-tool_script",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            }
+        },
+        "sta": {
+            "exe": {
+                "defvalue": [],
+                "help": "Stage Tool Executable",
+                "switch": "-tool_exe",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "format": {
+                "defvalue": [],
+                "help": "Stage Tool Configuration Format",
+                "switch": "-tool_format",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "jobid": {
+                "defvalue": [],
+                "help": "Stage Tool Job index",
+                "switch": "-tool_jobid",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "np": {
+                "defvalue": [],
+                "help": "Stage Tool Parallelism",
+                "switch": "-tool_np",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "opt": {
+                "defvalue": [],
+                "help": "Stage Tool Options",
+                "switch": "-tool_opt",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "refdir": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Reference Flow Directory",
+                "switch": "-tool_refdir",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "script": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Script (relative to refdir)",
+                "switch": "-tool_script",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            }
+        },
+        "syn": {
+            "exe": {
+                "defvalue": [],
+                "help": "Stage Tool Executable",
+                "switch": "-tool_exe",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "format": {
+                "defvalue": [],
+                "help": "Stage Tool Configuration Format",
+                "switch": "-tool_format",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "jobid": {
+                "defvalue": [],
+                "help": "Stage Tool Job index",
+                "switch": "-tool_jobid",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "np": {
+                "defvalue": [],
+                "help": "Stage Tool Parallelism",
+                "switch": "-tool_np",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "opt": {
+                "defvalue": [],
+                "help": "Stage Tool Options",
+                "switch": "-tool_opt",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "refdir": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Reference Flow Directory",
+                "switch": "-tool_refdir",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "script": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Script (relative to refdir)",
+                "switch": "-tool_script",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            }
+        },
+        "tapeout": {
+            "exe": {
+                "defvalue": [],
+                "help": "Stage Tool Executable",
+                "switch": "-tool_exe",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "format": {
+                "defvalue": [],
+                "help": "Stage Tool Configuration Format",
+                "switch": "-tool_format",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "jobid": {
+                "defvalue": [],
+                "help": "Stage Tool Job index",
+                "switch": "-tool_jobid",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "np": {
+                "defvalue": [],
+                "help": "Stage Tool Parallelism",
+                "switch": "-tool_np",
+                "type": [
+                    "int"
+                ],
+                "value": []
+            },
+            "opt": {
+                "defvalue": [],
+                "help": "Stage Tool Options",
+                "switch": "-tool_opt",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "refdir": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Reference Flow Directory",
+                "switch": "-tool_refdir",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "script": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Stage Tool Script (relative to refdir)",
+                "switch": "-tool_script",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            }
+        }
+    },
+    "sc_trigger": {
+        "defvalue": [],
+        "help": "Stage completion that triggers message to <sc_contact>",
+        "switch": "-trigger",
+        "type": [
+            "string"
+        ],
+        "value": []
+    },
+    "sc_vcd": {
+        "defvalue": [],
+        "hash": [],
+        "help": "Value Change Dump (VCD) file for power analysis",
+        "switch": "-vcd",
+        "type": [
+            "file"
+        ],
+        "value": []
+    },
+    "sc_verbose": {
+        "defvalue": [
+            "False"
+        ],
+        "help": "Enables verbose printing to screen by EDA tools",
+        "switch": "-verbose",
+        "type": [
+            "bool"
+        ],
+        "value": [
+            "False"
+        ]
+    },
+    "sc_vlib": {
+        "defvalue": [],
+        "hash": [],
+        "help": "Library file",
+        "switch": "-v",
+        "type": [
+            "file"
+        ],
+        "value": []
+    },
+    "sc_wall": {
+        "defvalue": [],
+        "help": "Enable all lint style warnings",
+        "switch": "-Wall",
+        "type": [
+            "string"
+        ],
+        "value": []
+    },
+    "sc_wno": {
+        "defvalue": [],
+        "help": "Disables a warning -Woo-<message>",
+        "switch": "-Wno",
+        "type": [
+            "string"
+        ],
+        "value": []
+    },
+    "sc_ydir": {
+        "defvalue": [],
+        "hash": [],
+        "help": "Directory to search for modules",
+        "switch": "-y",
+        "type": [
+            "string"
+        ],
+        "value": []
+    }
+}
