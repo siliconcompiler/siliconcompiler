@@ -80,7 +80,7 @@ def schema_defaults(cfg):
         'defvalue' : ['export']
     }
 
-     cfg['sc_cont'] = {
+    cfg['sc_cont'] = {
         'help' : "Continues from last completed stage",
         'switch' : "-cont",
         'type' : ["bool"],
@@ -507,8 +507,31 @@ def schema_design(cfg):
 def schema_libs(cfg, group):
 
     cfg['sc_'+group] = {}  
+
     cfg['sc_'+group]['default'] = {}
 
+    cfg['sc_'+group]['default']['views'] = {
+        'help' : "List of all library views",
+        'switch' : "-"+group+"_views",
+        'type' : ["string"],
+        'defvalue' : ["timing",
+                      "power",
+                      "cells",
+                      "lef",
+                      "gds",
+                      "cdl",
+                      "setup",
+                      "dft",
+                      "verilog",
+                      "doc",
+                      "pnrdb",
+                      "customdb",
+                      "driver",
+                      "site",
+                      "pgmetal",
+                      "tag"]
+    }
+    
     #Liberty specified on a per corner basis (so one more level of nesting)
     cfg['sc_'+group]['default']['timing'] = {}
     cfg['sc_'+group]['default']['timing']['default'] = {
@@ -685,7 +708,7 @@ def schema_tools(cfg):
         cfg['sc_tool'][stage]['exe']['help'] = "Stage Tool Executable"
         cfg['sc_tool'][stage]['opt']['help'] = "Stage Tool Options"
         cfg['sc_tool'][stage]['refdir']['help'] = "Stage Tool Reference Flow Directory"
-        cfg['sc_tool'][stage]['script']['help'] = "Stage Tool Script (relative to refdir)"
+        cfg['sc_tool'][stage]['script']['help'] = "Stage Tool Script"
         cfg['sc_tool'][stage]['format']['help'] = "Stage Tool Configuration Format"
         cfg['sc_tool'][stage]['jobid']['help'] = "Stage Tool Job index"
         cfg['sc_tool'][stage]['np']['help'] = "Stage Tool Parallelism"
@@ -709,9 +732,9 @@ def schema_tools(cfg):
         cfg['sc_tool'][stage]['refdir']['defvalue'] = []
         cfg['sc_tool'][stage]['script']['defvalue'] = []
         cfg['sc_tool'][stage]['format']['defvalue'] = []
-        cfg['sc_tool'][stage]['jobid']['defvalue'] = []
         cfg['sc_tool'][stage]['np']['defvalue'] = []
-                
+        cfg['sc_tool'][stage]['jobid']['defvalue'] = ["0"]
+
     return cfg
 
 
