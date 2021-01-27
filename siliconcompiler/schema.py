@@ -32,114 +32,114 @@ def schema_setup(cfg):
     '''
     cfg['sc_cfgfile'] = {
         'help' : "Loads configurations from a json file",
-        'type' : "file",
         'switch' : "-cfgfile",
+        'type' : ["file"],
         'defvalue' : [],
         'hash'   : []
     }
 
     cfg['sc_mode'] = {
         'help' : "Implementation mode (asic or fpga)",
-        'type' : "string",
         'switch' : "-mode",
+        'type' : ["string"],
         'defvalue' : []
     }
 
     cfg['sc_custom'] = {
         'help' : "Custom EDA pass through variables",
-        'type' : "string",
         'switch' : "-custom",
+        'type' : ["string"],
         'defvalue' : []
     }
 
     cfg['sc_keymap'] = {
         'help' : "Framwork keyword translation table",
-        'type' : "tuple2",
         'switch' : "-keymap",
+        'type' : ["string", "string"],
         'defvalue' : []
     }
   
     cfg['sc_remote'] = {
         'help' : "Name of remote server address (https://acme.com:8080)",
-        'type' : "string",
         'switch' : "-remote",
+        'type' : ["string"],
         'defvalue' : []
     }
 
     cfg['sc_ref'] = {
         'help' : "Reference methodology name",
-        'type' : "string",
         'switch' : "-ref",
+        'type' : ["string"],
         'defvalue' : []
     }
 
     cfg['sc_pdkdir'] = {
         'help' : "PDK root directory",
-        'type' : "string",
         'switch' : "-pdkdir",
+        'type' : ["string"],
         'defvalue' : []
     }
     
     cfg['sc_ipdir'] = {
         'help' : "IP root directory",
-        'type' : "string",
         'switch' : "-ipdir",
+        'type' : ["string"],
         'defvalue' : []
     }
 
     cfg['sc_debug'] = {
         'help' : "Debug level (INFO/DEBUG/WARNING/ERROR/CRITICAL)",
-        'type' : "string",
         'switch' : "-debug",
+        'type' : ["string"],
         'defvalue' : ["INFO"]
     }
 
     cfg['sc_build'] = {
         'help' : "Name of build directory",
-        'type' : "string",
         'switch' : "-build",
+        'type' : ["string"],
         'defvalue' : ["build"]
     }
 
     cfg['sc_effort'] = {
         'help' : "Compilation effort (low,medium,high)",
-        'type' : "string",
         'switch' : "-effort",
+        'type' : ["string"],
         'defvalue' : []
     }
 
     cfg['sc_priority'] = {
         'help' : "Optimization priority (performance, power, area)",
-        'type' : "string",
         'switch' : "-priority",
+        'type' : ["string"],
         'defvalue' : []
     }
 
     cfg['sc_cont'] = {
         'help' : "Continues from last completed stage",
-        'type' : "bool",
         'switch' : "-cont",
+        'type' : ["bool"],
         'defvalue' : ["False"]
     }
         
     cfg['sc_gui'] = {
         'help' : "Launches GUI at every stage",
-        'type' : "bool",
         'switch' : "-gui",
+        'type' : ["bool"],
         'defvalue' : ["False"]
     }
 
     cfg['sc_verbose'] = {
         'help' : "Enables verbose printing to screen by EDA tools",
-        'type' : "bool",
         'switch' : "-verbose",
+        'type' : ["bool"],
         'defvalue' : ["False"]
     }
     
     cfg['sc_lock'] = {
         'help' : "Switch to lock configuration from further modification",
-        'type' : "bool",
         'switch' : "-lock",
+        'type' : ["bool"],
         'defvalue' : ["False"]
     }
     
@@ -152,22 +152,22 @@ def schema_setup(cfg):
 
     cfg['sc_stop'] = {
         'help' : "Compilation ending stage",
-        'type' : "string",
         'switch' : "-stop",
+        'type' : ["string"],
         'defvalue' : []
     }
     
     cfg['sc_trigger'] = {
         'help' : "Stage completion that triggers message to <sc_contact>",
-        'type' : "string",
         'switch' : "-trigger",
+        'type' : ["string"],
         'defvalue' : []
     }
 
     cfg['sc_contact'] = {
         'help' : "Trigger event contact (phone#/email)",
-        'type' : "string",
         'switch' : "-contact",
+        'type' : ["string"],
         'defvalue' : []
     }
 
@@ -184,139 +184,139 @@ def schema_process(cfg):
       
     cfg['sc_foundry'] = {
         'help' : "Foundry name (eg: virtual, tsmc, gf, samsung)",
-        'type' : "string",
         'switch' : "-foundry",
+        'type' : ["string"],
         'defvalue' : []
     }
 
     cfg['sc_process'] = {
         'help' : "Process name",
-        'type' : "string",
         'switch' : "-process",
+        'type' : ["string"],
         'defvalue' : []
     }
 
     cfg['sc_node'] = {
         'help' : "Process node in nm (180, 90, 22, 12, 7 etc)",
-        'type' : "int",
         'switch' : "-node",
+        'type' : ["int"],
         'defvalue' : []
     }
 
     cfg['sc_grid'] = {
         'help' : "Grid unit (in um)",
-        'type' : "float",
         'switch' : "-grid",
+        'type' : ["float"],
         'defvalue' : []
     }
 
     cfg['sc_time'] = {
         'help' : "Time unit (1 ps)",
-        'type' : "int",
         'switch' : "-time",
+        'type' : ["int"],
         'defvalue' : []
     }
 
     cfg['sc_stackup'] = {
         'help' : "Metal stackup as named in the PDK",
-        'type' : "string",
         'switch' : "-stackup",
+        'type' : ["string"],
         'defvalue' : []
     }
 
     cfg['sc_layer'] = {
         'help' : "Metal stackup routing layer definitions",
-        'type' : "tuple4",
         'switch' : "-layer",
+        'type' : ["string", "string", "float", "float"],
         'defvalue' : []
     }
     
     cfg['sc_techfile'] = {
         'help' : "Place and route tehnology file",
-        'type' : "file",
         'switch' : "-techfile",
+        'type' : ["file"],
         'defvalue' : [],
         'hash'   : []
     }
 
     cfg['sc_model'] = {
         'help' : "Device model file",
-        'type' : "file",
         'switch' : "-model",
+        'type' : ["file"],
         'defvalue' : [],
         'hash'   : []
     }
 
     cfg['sc_rcfile'] = {
         'help' : "RC extraction file",
-        'type' : "file",
         'switch' : "-rcfile",
+        'type' : ["file"],
         'defvalue' : [],
         'hash'   : []
     }
 
     cfg['sc_scenario'] = {
-        'help' : "Process, voltage, temp scenario",
-        'type' : "tuple5",
+        'help' : "Process, voltage, temp scenario ",
         'switch' : "-scenario",
+        'type' : ["string", "float", "int", "string"],
         'defvalue' : []
     }
 
     cfg['sc_layermap'] = {
         'help' : "GDS layer map",
-        'type' : "tuple4",
         'switch' : "-layermap",
+        'type' : "string, string, int, int",
         'defvalue' : [],
         'hash' : []
     }
 
     cfg['sc_taprules'] = {
         'help' : "Tap cell rules <maxdistance offset>",
-        'type' : "tuple2",
         'switch' : "-taprules",
+        'type' : ["float","float"],
         'defvalue' : [],
         'hash' : []
     }
 
     cfg['sc_minlayer'] = {
         'help' : "Minimum routing layer (integer)",
-        'type' : "int",
         'switch' : "-minlayer",
+        'type' : ["int"],
         'defvalue' : []
     }
 
     cfg['sc_maxlayer'] = {
         'help' : "Maximum routing layer (integer)",
-        'type' : "int",
         'switch' : "-maxlayer",
+        'type' : ["int"],
         'defvalue' : []
     }
     
     cfg['sc_maxfanout'] = {
         'help' : "Maximum fanout",
-        'type' : "int",
         'switch' : "-maxfanout",
+        'type' : ["int"],
         'defvalue' : []
     }
 
     cfg['sc_density'] = {
         'help' : "Target density for density driven floor-planning (percent)",
-        'type' : "int",
         'switch' : "-density",
+        'type' : ["int"],
         'defvalue' : []
     }
 
     cfg['sc_coremargin'] = {
         'help' : "Margin around core for density driven floor-planning (um)",
-        'type' : "float",
         'switch' : "-coremargin",
+        'type' : ["float"],
         'defvalue' : []
     }
 
     cfg['sc_aspectratio'] = {
         'help' : "Aspect ratio for density driven floor-planning",
-        'type' : "float",
         'switch' : "-aspectratio",
+        'type' : ["float"],
         'defvalue' : []
     }
 
@@ -332,158 +332,158 @@ def schema_design(cfg):
     
     cfg['sc_source'] = {
         'help' : "Source files (.v/.vh/.sv/.vhd)",
-        'type' : "file",
         'switch' : "None",
+        'type' : ["file"],
         'defvalue' : [],
         'hash'   : []
     }
 
     cfg['sc_design'] = {
         'help' : "Design top module name",
-        'type' : "string",
         'switch' : "-design",
+        'type' : ["string"],
         'defvalue' : []
     }
 
     cfg['sc_nickname'] = {
         'help' : "Design nickname",
-        'type' : "string",
         'switch' : "-nickname",
+        'type' : ["string"],
         'defvalue' : []
     }
 
     cfg['sc_clk'] = {
         'help' : "Clock defintion (<name period uncertainty>)",
-        'type' : "tuple3",
         'switch' : "-clk",
+        'type' : ["string", "float", "float"],
         'defvalue' : []
     }
 
     cfg['sc_supplies'] = {
         'help' : "Supply voltages (<name pin voltage>)",
-        'type' : "tuple3",
         'switch' : "-supply",
+        'type' : ["string", "string", "float"],
+
         'defvalue' : []
     }
     
     cfg['sc_define'] = {
         'help' : "Define variables for Verilog preprocessor",
-        'type' : "string",
         'switch' : "-D",
+        'type' : ["string"],
         'defvalue' : []
     }
     
     cfg['sc_ydir'] = {
         'help' : "Directory to search for modules",
-        'type' : "string",
         'switch' : "-y",
+        'type' : ["string"],
         'defvalue' : [],
         'hash'   : []
     }
 
     cfg['sc_idir'] = {
         'help' : "Directory to search for inclodes",
-        'type' : "string",
         'switch' : "-I",
+        'type' : ["string"],
         'defvalue' : [],
         'hash'   : []
     }
 
     cfg['sc_vlib'] = {
         'help' : "Library file",
-        'type' : "file",
         'switch' : "-v",
+        'type' : ["file"],
         'defvalue' : [],
         'hash'   : []
     }
 
     cfg['sc_libext'] = {
         'help' : "Extension for finding modules",
-        'type' : "string",
         'switch' : "+libext",
+        'type' : ["string"],
         'defvalue' : []
     }
 
     cfg['sc_readscript'] = {
-        'help' : "Read script for source files ",
-        'type' : "file",
+        'help' : "Source file read script",
         'switch' : "-f",
+        'type' : ["file"],
         'defvalue' : [],
         'hash'   : []
     }
-
     cfg['sc_wall'] = {
         'help' : "Enable all lint style warnings",
-        'type' : "string",
         'switch' : "-Wall",
+        'type' : ["string"],
         'defvalue' : []
     }
 
     cfg['sc_wno'] = {
         'help' : "Disables a warning -Woo-<message>",
-        'type' : "string",
         'switch' : "-Wno",
+        'type' : ["string"],
         'defvalue' : []
     }
  
     cfg['sc_diesize'] = {
         'help' : "Die size (x0 y0 x1 y1) for automated floor-planning (um)",
-        'type' : "tuple4",
         'switch' : "-diesize",
+        'type' : ["float", "float", "float", "float"],
         'defvalue' : []
     }
 
     cfg['sc_coresize'] = {
         'help' : "Core size (x0 y0 x1 y1) for automated floor-planning (um)",
-        'type' : "tuple4",
         'switch' : "-coresize",
+        'type' : ["float", "float", "float", "float"],
         'defvalue' : []
     }
 
     cfg['sc_floorplan'] = {
         'help' : "User supplied python based floorplaning script",
-        'type' : "file",
         'switch' : "-floorplan",
+        'type' : ["file"],
         'defvalue' : [],
         'hash'   : []
     }
     
     cfg['sc_def'] = {
         'help' : "User supplied hard-coded floorplan (DEF)",
-        'type' : "file",
         'switch' : "-def",
+        'type' : ["file"],
         'defvalue' : [],
         'hash'   : []
     }
     
     cfg['sc_constraints'] = {
         'help' : "Constraints file (SDC)",
-        'type' : "file",
         'switch' : "-constraints",
+        'type' : ["file"],
         'defvalue' : [],
         'hash'   : []
     }
     
     cfg['sc_ndr'] = {
         'help' : "Non-default net routing file",
-        'type' : "file",
         'switch' : "-ndr",
+        'type' : ["file"],
         'defvalue' : [],
         'hash'   : []
     }
 
     cfg['sc_vcd'] = {
         'help' : "Value Change Dump (VCD) file for power analysis",
-        'type' : "file",
         'switch' : "-vcd",
+        'type' : ["file"],
         'defvalue' : [],
         'hash'   : []
     }
 
     cfg['sc_saif'] = {
         'help' : "Switching activity (SAIF) file for power analysis",
-        'type' : "file",
         'switch' : "-saif",
+        'type' : ["file"],
         'defvalue' : [],
         'hash'   : []
     }
@@ -496,7 +496,6 @@ def schema_design(cfg):
 
 def schema_libs(cfg, group):
 
-    
     cfg['sc_'+group] = {}  
     cfg['sc_'+group]['default'] = {}
 
@@ -505,7 +504,7 @@ def schema_libs(cfg, group):
     cfg['sc_'+group]['default']['timing']['default'] = {
         'help' : "Library timing file",
         'switch' : "-"+group+"_timing",
-        'type' : "file",
+        'type' : ["file"],
         'defvalue' : [],
         'hash' : []
     }
@@ -515,7 +514,7 @@ def schema_libs(cfg, group):
     cfg['sc_'+group]['default']['power']['default'] = {
         'help' : "Library power file",
         'switch' : "-"+group+"_power",        
-        'type' : "file",
+        'type' : ["file"],
         'defvalue' : [],
         'hash' : []
     }
@@ -525,14 +524,14 @@ def schema_libs(cfg, group):
     cfg['sc_'+group]['default']['cells']['default'] = {
             'help' : "Library cell type list",
             'switch' : "-"+group+"_cells",
-            'type' : "string",
+            'type' : ["string"],
             'defvalue' : []
         }
     
     cfg['sc_'+group]['default']['lef'] = {
         'help' : "Library LEF file",
         'switch' : "-"+group+"_lef",      
-        'type' : "file",
+        'type' : ["file"],
         'defvalue' : [],
         'hash'   : []
     }
@@ -540,7 +539,7 @@ def schema_libs(cfg, group):
     cfg['sc_'+group]['default']['gds'] = {
         'help' : "Library GDS file",
         'switch' : "-"+group+"_gds",        
-        'type' : "file",
+        'type' : ["file"],
         'defvalue' : [],
         'hash'   : []
     } 
@@ -548,7 +547,7 @@ def schema_libs(cfg, group):
     cfg['sc_'+group]['default']['cdl'] = {
         'help' : "Library CDL file",
         'switch' : "-"+group+"_cdl",        
-        'type' : "file",
+        'type' : ["file"],
         'defvalue' : [],
         'hash'   : []
     } 
@@ -556,7 +555,7 @@ def schema_libs(cfg, group):
     cfg['sc_'+group]['default']['setup'] = {
         'help' : "Library Setup file",
         'switch' : "-"+group+"_setup",     
-        'type' : "file",
+        'type' : ["file"],
         'defvalue' : [],
         'hash'   : []
     } 
@@ -564,7 +563,7 @@ def schema_libs(cfg, group):
     cfg['sc_'+group]['default']['dft'] = {
         'help' : "Library DFT file",
         'switch' : "-"+group+"_dft",     
-        'type' : "file",
+        'type' : ["file"],
         'defvalue' : [],
         'hash'   : []
     }
@@ -572,7 +571,7 @@ def schema_libs(cfg, group):
     cfg['sc_'+group]['default']['verilog'] = {
         'help' : "Library Verilog file",
         'switch' : "-"+group+"_verilog",     
-        'type' : "file",
+        'type' : ["file"],
         'defvalue' : [],
         'hash'   : []
     }
@@ -580,7 +579,7 @@ def schema_libs(cfg, group):
     cfg['sc_'+group]['default']['doc'] = {
         'help' : "Library documentation",
         'switch' : "-"+group+"_doc",     
-        'type' : "file",
+        'type' : ["file"],
         'defvalue' : [],
         'hash'   : []
     }
@@ -588,7 +587,7 @@ def schema_libs(cfg, group):
     cfg['sc_'+group]['default']['pnrdb'] = {
         'help' : "Library PNR database",
         'switch' : "-"+group+"_pnrdb",     
-        'type' : "file",
+        'type' : ["file"],
         'defvalue' : [],
         'hash'   : []
     }
@@ -596,7 +595,7 @@ def schema_libs(cfg, group):
     cfg['sc_'+group]['default']['customdb'] = {
         'help' : "Library custom database",
         'switch' : "-"+group+"_customdb",     
-        'type' : "file",
+        'type' : ["file"],
         'defvalue' : [],
         'hash'   : []
     }
@@ -604,28 +603,28 @@ def schema_libs(cfg, group):
     cfg['sc_'+group]['default']['driver'] = {
         'help' : "Library default driver",
         'switch' : "-"+group+"_driver",     
-        'type' : "string",
+        'type' : ["string"],
         'defvalue' : []
     }
     
     cfg['sc_'+group]['default']['site'] = {
         'help' : "Library placement site",
         'switch' : "-"+group+"_site",     
-        'type' : "string",
+        'type' : ["string"],
         'defvalue' : []
     }
 
     cfg['sc_'+group]['default']['pgmetal'] = {
         'help' : "Metal layer used for power rails",
         'switch' : "-"+group+"_pgmetal",     
-        'type' : "string",
+        'type' : ["string"],
         'defvalue' : []
     }
 
     cfg['sc_'+group]['default']['tag'] = {
         'help' : "Tags to identify library",
         'switch' : "-"+group+"_tag",     
-        'type' : "string",
+        'type' : ["string"],
         'defvalue' : []
     }
     
@@ -639,8 +638,8 @@ def schema_tools(cfg):
 
     cfg['sc_stages'] = {
         'help' : "List of all compilation stages",
-        'type' : "string",
         'switch' : "-stages",
+        'type' : ["string"],
         'defvalue' : ["import",
                      "syn",
                      "floorplan",
@@ -681,13 +680,13 @@ def schema_tools(cfg):
         cfg['sc_tool'][stage]['np']['help'] = "Stage Tool Parallelism"
         
         # Types
-        cfg['sc_tool'][stage]['exe']['type'] = "string"
-        cfg['sc_tool'][stage]['opt']['type'] = "string"
-        cfg['sc_tool'][stage]['refdir']['type'] = "file"
-        cfg['sc_tool'][stage]['script']['type'] = "file"
-        cfg['sc_tool'][stage]['format']['type'] = "string"
-        cfg['sc_tool'][stage]['jobid']['type'] = "int"
-        cfg['sc_tool'][stage]['np']['type'] = "int"
+        cfg['sc_tool'][stage]['exe']['type'] = ["string"]
+        cfg['sc_tool'][stage]['opt']['type'] = ["string"]
+        cfg['sc_tool'][stage]['refdir']['type'] = ["file"]
+        cfg['sc_tool'][stage]['script']['type'] = ["file"]
+        cfg['sc_tool'][stage]['format']['type'] = ["string"]
+        cfg['sc_tool'][stage]['jobid']['type'] = ["int"]
+        cfg['sc_tool'][stage]['np']['type'] = ["int"]
 
         # Hash
         cfg['sc_tool'][stage]['refdir']['hash'] = []
