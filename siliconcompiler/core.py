@@ -89,7 +89,7 @@ class Chip:
         '''
         self.logger.info('Retrieving config dictionary value: %s', args)
 
-        return self.search(*args)
+        return self.search(*args, cfg=self.cfg)
 
     ####################################
     #set2('sc_design', 'top')
@@ -107,10 +107,10 @@ class Chip:
         if type(all_args[-1]) != list:
             all_args[-1]=[all_args[-1]]
         
-        return self.search(*all_args, replace=True)
+        return self.search(*all_args, cfg=self.cfg, replace=True)
 
     ##################################
-    def search(self, *args, cfg=None, replace=False):
+    def search(self, *args, cfg, replace=False):
         '''Recursively searches the nested dictionary for a key match
 
         Args:
@@ -125,16 +125,22 @@ class Chip:
 
         all_keys = list(args)
         param = all_keys[0]
+        key = all_keys[1]
         val = args[-1]
 
-        #Setting initial dict so user doesn't have to
-        if cfg is None:
-            cfg = self.cfg        
+        #Populating with default dictionary
+        #Nasty hard coded solution, how to improve?
+        #Need nested recursive support for dict copy with multipe key overrides
+        if replace and param in ('sc_stdlib', 'sc_macro'):
+            cfg[param][key] = self.cfg[param]['default'].copy()
+        elif replace and param in ('timing', 'sc_cells'):
+            cfg[param][key] = self.cfg['sc_stdlib']['default'][param]['default'].copy()
         #Init dictionary if not existant
         if replace & (param not in cfg.keys()):
             cfg[param] = {}
         if param in cfg.keys():
             #indicates leaf cell
+            #copy in defaults for dynamic entries (macro/libs)
             if replace & (len(all_keys) == 2):
                 #create value key if not defined
                 if ('value' not in cfg[param].keys()):
@@ -188,9 +194,6 @@ class Chip:
             if var != None:
                 self.cfg[key]['value'] = var
 
-        #if self.cfg['sc_lock']['values']:
-        #    self.cfg_locked = True
-
     #################################
     def readcfg(self, filename, keymap=None):
         '''Reads a json formatted config file into the Chip current Chip
@@ -228,13 +231,34 @@ class Chip:
         #Customize based on the types
         if not self.cfg_locked:
             #Merging arguments with the Chip configuration
-            self.merge(read_args, abspath)
+            self.mergecfg(read_args, abspath)
         else:
             self.logger.error('Trying to change configuration while locked')
 
-        if self.cfg['sc_lock']['value']:
+        if self.cfg['sc_lock']['value'] == "True":
             self.cfg_locked = True
 
+    
+    ##################################
+    def mergecfg(self, d2, src, d1=None):
+        '''Merges dictionary with the Chip configuration dictionary
+        '''
+        if d1 is None:
+            self.logger.info('Merging %s dictionary into Chip instance configuration', src)
+            d1 = self.cfg
+        for k, v in d2.items():
+            #Checking if dub dict exists in self.cfg and new dict
+            if k in d1 and isinstance(d1[k], dict) and isinstance(d2[k], dict):
+                #if we reach a leaf copy d2 to d1
+                if 'value' in d1[k].keys():
+                    d1[k]['setter'] = src
+                    d1[k]['value'].extend(d2[k]['value'])
+                #if not in leaf keep descending
+                else:
+                    self.mergecfg(d2[k], src, d1=d1[k])
+            #if a new d2 key is found do a deep copy
+            else:
+                d1[k] = d2[k].copy()       
 
     ##################################
     def writecfg(self, filename, keymap=None):
