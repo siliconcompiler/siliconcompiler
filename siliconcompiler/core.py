@@ -125,16 +125,17 @@ class Chip:
 
         all_keys = list(args)
         param = all_keys[0]
-        key = all_keys[1]
         val = args[-1]
 
         #Populating with default dictionary
         #Nasty hard coded solution, how to improve?
         #Need nested recursive support for dict copy with multipe key overrides
-        if replace and param in ('sc_stdlib', 'sc_macro'):
-            cfg[param][key] = self.cfg[param]['default'].copy()
-        elif replace and param in ('timing', 'sc_cells'):
-            cfg[param][key] = self.cfg['sc_stdlib']['default'][param]['default'].copy()
+        if replace:
+            key = all_keys[1]
+            if param in ('sc_stdlib', 'sc_macro'):
+                cfg[param][key] = self.cfg[param]['default'].copy()
+            elif param in ('timing', 'sc_cells'):
+                cfg[param][key] = self.cfg['sc_stdlib']['default'][param]['default'].copy()
         #Init dictionary if not existant
         if replace & (param not in cfg.keys()):
             cfg[param] = {}
@@ -155,8 +156,20 @@ class Chip:
                 return self.search(*all_keys, cfg=cfg[param], replace=replace)
             
     ###################################
-    def check(self, cfg, val):
-        #1. Check length of list
+    def check(self):
+        '''Checks all values set in Chip configuration for legality.
+        Also checks for missing values.
+
+        Args:
+            stage (string): Stage name to get status for
+            jobid (int): Job index
+
+        Returns:
+            : Status (pending, running, done, or error)
+
+        '''
+        
+        #1. All values of configuration
         #2. If lengths match, check each item using foor loop
         #legal values are (file|string), int, float
         #if cfg['type'] == "int":
@@ -231,34 +244,13 @@ class Chip:
         #Customize based on the types
         if not self.cfg_locked:
             #Merging arguments with the Chip configuration
-            self.mergecfg(read_args, abspath)
+            self.mergecfg(read_args)
         else:
             self.logger.error('Trying to change configuration while locked')
 
         if self.cfg['sc_lock']['value'] == "True":
             self.cfg_locked = True
 
-    
-    ##################################
-    def mergecfg(self, d2, src, d1=None):
-        '''Merges dictionary with the Chip configuration dictionary
-        '''
-        if d1 is None:
-            self.logger.info('Merging %s dictionary into Chip instance configuration', src)
-            d1 = self.cfg
-        for k, v in d2.items():
-            #Checking if dub dict exists in self.cfg and new dict
-            if k in d1 and isinstance(d1[k], dict) and isinstance(d2[k], dict):
-                #if we reach a leaf copy d2 to d1
-                if 'value' in d1[k].keys():
-                    d1[k]['setter'] = src
-                    d1[k]['value'].extend(d2[k]['value'])
-                #if not in leaf keep descending
-                else:
-                    self.mergecfg(d2[k], src, d1=d1[k])
-            #if a new d2 key is found do a deep copy
-            else:
-                d1[k] = d2[k].copy()       
 
     ##################################
     def writecfg(self, filename, keymap=None):
@@ -359,7 +351,7 @@ class Chip:
         '''
         #Setting initial dict so user doesn't have to
         if cfg is None:
-            self.logger.info('Setting Configuration to Default Values')
+            self.logger.info('Loading default values into Chip configuration')
             cfg = self.cfg
         for k, v in cfg.items():            
             if isinstance(v, dict):
@@ -374,7 +366,7 @@ class Chip:
         '''
         #Setting initial dict so user doesn't have to
         if cfg is None:
-            self.logger.info('Resolving all paths to absolute paths')
+            self.logger.info('Creating absolute file paths')
             cfg = self.cfg        
         #Recursively going through dict to set abspaths for files
         for k, v in cfg.items():
@@ -389,22 +381,25 @@ class Chip:
                     self.abspath(cfg=cfg[k])
 
     ##################################
-    def mergecfg(self, d2, src, d1=None):
+    def mergecfg(self, d2, d1=None):
         '''Merges dictionary with the Chip configuration dictionary
         '''
         if d1 is None:
-            self.logger.info('Merging %s dictionary into Chip instance configuration', src)
             d1 = self.cfg
         for k, v in d2.items():
             #Checking if dub dict exists in self.cfg and new dict
             if k in d1 and isinstance(d1[k], dict) and isinstance(d2[k], dict):
                 #if we reach a leaf copy d2 to d1
-                if 'defvalue' in d1[k].keys():
-                    d1[k]['setter'] = src
-                    d1[k]['value'].extend(d2[k]['value'])
+                if 'value' in d1[k].keys():
+                    #only add items that are not in the current list
+                    new_items = []
+                    for i in range(len(d2[k]['value'])):
+                        if(d2[k]['value'][i] not in d1[k]['value']):
+                           new_items.append(d2[k]['value'][i])
+                    d1[k]['value'].extend(new_items)
                 #if not in leaf keep descending
                 else:
-                    self.mergecfg(d2[k], src, d1=d1[k])
+                    self.mergecfg(d2[k], d1=d1[k])
             #if a new d2 key is found do a deep copy
             else:
                 d1[k] = d2[k].copy()
@@ -540,7 +535,6 @@ class Chip:
         current = stages.index(stage)
         start = stages.index(self.cfg['sc_start']['value'][-1]) #scalar
         stop = stages.index(self.cfg['sc_stop']['value'][-1]) #scalar
-        print("STAGE", current, start, stop)
 
         if stage not in self.cfg['sc_stages']['value']:
             self.logger.error('Illegal stage name %s', stage)
