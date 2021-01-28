@@ -208,7 +208,7 @@ class Chip:
                 self.cfg[key]['value'] = var
 
     #################################
-    def readcfg(self, filename, keymap=None):
+    def readcfg(self, filename):
         '''Reads a json formatted config file into the Chip current Chip
         configuration
 
@@ -253,7 +253,7 @@ class Chip:
 
 
     ##################################
-    def writecfg(self, filename, keymap=None):
+    def writecfg(self, filename):
         '''Writes out the current Chip configuration dictionary to a file
 
         Args:
@@ -279,7 +279,20 @@ class Chip:
             self.writetcl(self.cfg, abspath)
 
     ##################################
-    #TODO: Need a hierarchical TCL writer!
+    def rename(self, cfg, keymap):
+        '''Creates a copy of the dictionary with renamed primary keys
+        '''
+
+        for key in cfg:        
+            if key in keymap:
+                keyout = keymap[key]
+            else:
+                keyout = key
+                cfgout[keyout] = cfg[key].copy() 
+    
+        return cfgout
+
+    ##################################
     def writetcl(self, cfg, filename):
         '''Writes out the Chip cfg dictionary in TCL format
 
@@ -288,6 +301,7 @@ class Chip:
             filename (string): Output filename.
 
         '''
+
         with open(os.path.abspath(filename), 'w') as f:
             print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
             for key in cfg:
