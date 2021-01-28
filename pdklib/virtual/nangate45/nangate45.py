@@ -8,7 +8,6 @@ import siliconcompiler as sc
 
 mychip = sc.Chip()
 scriptdir = os.path.dirname(os.path.realpath(__file__))
-outputfile = scriptdir + "/" + process + ".json"
 
 ####################################################
 # Setup
@@ -17,6 +16,7 @@ outputfile = scriptdir + "/" + process + ".json"
 process = 'nangate45'
 version = 'r1p0'
 pdkdir = scriptdir + "/" + version
+outputfile = scriptdir + "/" + process + ".json"
 
 # process name
 mychip.set('sc_process', process)

@@ -249,7 +249,28 @@
             "float",
             "float"
         ],
-        "value": []
+        "value": [
+            "metal1  X 0.095  0.19",
+            "metal1  Y 0.070  0.14",
+            "metal2  X 0.095  0.19",
+            "metal2  Y 0.070  0.14",
+            "metal3  X 0.095  0.19",
+            "metal3  Y 0.070  0.14",
+            "metal4  X 0.095  0.28",
+            "metal4  Y 0.070  0.28",
+            "metal5  X 0.095  0.28",
+            "metal5  Y 0.070  0.28",
+            "metal6  X 0.095  0.28",
+            "metal6  Y 0.070  0.28",
+            "metal7  X 0.095  0.80",
+            "metal7  Y 0.070  0.80",
+            "metal8  X 0.095  0.80",
+            "metal8  Y 0.070  0.80",
+            "metal9  X 0.095  1.60",
+            "metal9  Y 0.070  1.60",
+            "metal10 X 0.095  1.60",
+            "metal10 Y 0.070  1.60"
+        ]
     },
     "sc_layermap": {
         "defvalue": [],
@@ -565,7 +586,9 @@
         "type": [
             "int"
         ],
-        "value": []
+        "value": [
+            "45"
+        ]
     },
     "sc_pdkdir": {
         "defvalue": [],
@@ -596,7 +619,9 @@
         "type": [
             "string"
         ],
-        "value": []
+        "value": [
+            "nangate45"
+        ]
     },
     "sc_rcfile": {
         "defvalue": [],
@@ -740,228 +765,6 @@
         ]
     },
     "sc_stdlib": {
-        "NangateOpenCellLibrary": {
-            "cdl": {
-                "defvalue": [],
-                "hash": [],
-                "help": "Library CDL file",
-                "switch": "-stdlib_cdl",
-                "type": [
-                    "file"
-                ],
-                "value": []
-            },
-            "cells": {
-                "default": {
-                    "defvalue": [],
-                    "help": "Library cell type list",
-                    "switch": "-stdlib_cells",
-                    "type": [
-                        "string"
-                    ],
-                    "value": []
-                }
-            },
-            "customdb": {
-                "defvalue": [],
-                "hash": [],
-                "help": "Library custom database",
-                "switch": "-stdlib_customdb",
-                "type": [
-                    "file"
-                ],
-                "value": []
-            },
-            "dft": {
-                "defvalue": [],
-                "hash": [],
-                "help": "Library DFT file",
-                "switch": "-stdlib_dft",
-                "type": [
-                    "file"
-                ],
-                "value": []
-            },
-            "doc": {
-                "defvalue": [],
-                "hash": [],
-                "help": "Library documentation",
-                "switch": "-stdlib_doc",
-                "type": [
-                    "file"
-                ],
-                "value": []
-            },
-            "driver": {
-                "defvalue": [],
-                "help": "Library default driver",
-                "switch": "-stdlib_driver",
-                "type": [
-                    "string"
-                ],
-                "value": []
-            },
-            "gds": {
-                "defvalue": [],
-                "hash": [],
-                "help": "Library GDS file",
-                "switch": "-stdlib_gds",
-                "type": [
-                    "file"
-                ],
-                "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/iplib/virtual/nangate45/NangateOpenCellLibrary/r1p0/gds/NangateOpenCellLibrary.gds"
-                ]
-            },
-            "lef": {
-                "defvalue": [],
-                "hash": [],
-                "help": "Library LEF file",
-                "switch": "-stdlib_lef",
-                "type": [
-                    "file"
-                ],
-                "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/iplib/virtual/nangate45/NangateOpenCellLibrary/r1p0/lef/NangateOpenCellLibrary.macro.lef"
-                ]
-            },
-            "pgmetal": {
-                "defvalue": [],
-                "help": "Metal layer used for power rails",
-                "switch": "-stdlib_pgmetal",
-                "type": [
-                    "string"
-                ],
-                "value": []
-            },
-            "pnrdb": {
-                "defvalue": [],
-                "hash": [],
-                "help": "Library PNR database",
-                "switch": "-stdlib_pnrdb",
-                "type": [
-                    "file"
-                ],
-                "value": []
-            },
-            "power": {
-                "default": {
-                    "defvalue": [],
-                    "hash": [],
-                    "help": "Library power file",
-                    "switch": "-stdlib_power",
-                    "type": [
-                        "file"
-                    ],
-                    "value": []
-                }
-            },
-            "setup": {
-                "defvalue": [],
-                "hash": [],
-                "help": "Library Setup file",
-                "switch": "-stdlib_setup",
-                "type": [
-                    "file"
-                ],
-                "value": []
-            },
-            "site": {
-                "defvalue": [],
-                "help": "Library placement site",
-                "switch": "-stdlib_site",
-                "type": [
-                    "string"
-                ],
-                "value": []
-            },
-            "tag": {
-                "defvalue": [],
-                "help": "Tags to identify library",
-                "switch": "-stdlib_tag",
-                "type": [
-                    "string"
-                ],
-                "value": []
-            },
-            "timing": {
-                "default": {
-                    "defvalue": [],
-                    "hash": [],
-                    "help": "Library timing file",
-                    "switch": "-stdlib_timing",
-                    "type": [
-                        "file"
-                    ],
-                    "value": []
-                },
-                "typical": {
-                    "defvalue": [],
-                    "hash": [],
-                    "help": "Library timing file",
-                    "switch": "-stdlib_timing",
-                    "type": [
-                        "file"
-                    ],
-                    "value": [
-                        "/home/aolofsson/work/zeroasic/siliconcompiler/iplib/virtual/nangate45/NangateOpenCellLibrary/r1p0/lib/NangateOpenCellLibrary_typical.lib"
-                    ]
-                }
-            },
-            "verilog": {
-                "defvalue": [],
-                "hash": [],
-                "help": "Library Verilog file",
-                "switch": "-stdlib_verilog",
-                "type": [
-                    "file"
-                ],
-                "value": []
-            },
-            "views": {
-                "defvalue": [
-                    "timing",
-                    "power",
-                    "cells",
-                    "lef",
-                    "gds",
-                    "cdl",
-                    "setup",
-                    "dft",
-                    "verilog",
-                    "doc",
-                    "pnrdb",
-                    "customdb",
-                    "driver",
-                    "site",
-                    "pgmetal",
-                    "tag"
-                ],
-                "help": "List of all library views",
-                "switch": "-stdlib_views",
-                "type": [
-                    "string"
-                ],
-                "value": [
-                    "timing",
-                    "power",
-                    "cells",
-                    "lef",
-                    "gds",
-                    "cdl",
-                    "setup",
-                    "dft",
-                    "verilog",
-                    "doc",
-                    "pnrdb",
-                    "customdb",
-                    "driver",
-                    "site",
-                    "pgmetal",
-                    "tag"
-                ]
-            }
-        },
         "default": {
             "cdl": {
                 "defvalue": [],
@@ -1221,7 +1024,9 @@
         "type": [
             "file"
         ],
-        "value": []
+        "value": [
+            "/home/aolofsson/work/zeroasic/siliconcompiler/pdklib/virtual/nangate45/r1p0pnr/nangate45.tech.lef"
+        ]
     },
     "sc_time": {
         "defvalue": [],
@@ -1680,7 +1485,9 @@
                 "type": [
                     "file"
                 ],
-                "value": []
+                "value": [
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/pdklib/virtual/nangate45/r1p0drc/FreePDK45.lydrc"
+                ]
             }
         },
         "erc": {
