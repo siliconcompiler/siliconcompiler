@@ -32,10 +32,10 @@ def schema():
 def schema_defaults(cfg):
 
     cfg['sc_mode'] = {
-        'help' : "Implementation mode (asic or fpga)",
+        'help' : "Implementation mode (virtual, asic, or fpga)",
         'switch' : "-mode",
         'type' : ["string"],
-        'defvalue' : ['asic']
+        'defvalue' : ['virtual']
     }
     
     cfg['sc_debug'] = {
@@ -192,6 +192,13 @@ def schema_process(cfg):
     ''' Process technology setup
     '''
       
+    cfg['sc_target'] = {
+        'help' : "Single name target (nangate45, asap7)",
+        'switch' : "-target",
+        'type' : ["string"],
+        'defvalue' : []
+    }
+
     cfg['sc_foundry'] = {
         'help' : "Foundry name (eg: virtual, tsmc, gf, samsung)",
         'switch' : "-foundry",
