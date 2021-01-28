@@ -155,6 +155,75 @@ class Chip:
                 all_keys.pop(0)
                 return self.search(*all_keys, cfg=cfg[param], replace=replace)
             
+    ##################################
+    def rename(self, cfg, stage):
+        '''Creates a copy of the dictionary with renamed primary keys
+        '''
+
+        cfgout =  {}
+        keymap = {}
+        
+        #Create a dynamic keymap from string pairs
+        string_list = self.cfg['sc_tool'][stage]['keymap']['value']
+        for string in string_list:
+            k,v = string.split()
+            keymap[k]=v
+
+        #Cycle through all primary params and rename keys
+        for key in cfg:        
+            if key in keymap:
+                newkey = keymap[key]
+                self.logger.info('Keymap renaming from %s to %s', key, newkey)
+            else:
+                newkey = key
+            cfgout[newkey] = cfg[key].copy() 
+    
+        return cfgout
+    
+    ##################################
+    def abspath(self,cfg=None):
+        '''Resolves all configuration paths to be absolute paths
+        '''
+        #Setting initial dict so user doesn't have to
+        if cfg is None:
+            self.logger.info('Creating absolute file paths')
+            cfg = self.cfg        
+        #Recursively going through dict to set abspaths for files
+        for k, v in cfg.items():
+            if isinstance(v, dict):
+                #indicates leaf cell
+                if 'value' in cfg[k].keys():
+                    #only do something if a file is found
+                    if(cfg[k]['type'][-1] == 'file'):
+                        for i, v in enumerate(cfg[k]['value']):
+                            cfg[k]['value'][i] = os.path.abspath(v)
+                else:
+                    self.abspath(cfg=cfg[k])
+
+    ##################################
+    def mergecfg(self, d2, d1=None):
+        '''Merges dictionary with the Chip configuration dictionary
+        '''
+        if d1 is None:
+            d1 = self.cfg
+        for k, v in d2.items():
+            #Checking if dub dict exists in self.cfg and new dict
+            if k in d1 and isinstance(d1[k], dict) and isinstance(d2[k], dict):
+                #if we reach a leaf copy d2 to d1
+                if 'value' in d1[k].keys():
+                    #only add items that are not in the current list
+                    new_items = []
+                    for i in range(len(d2[k]['value'])):
+                        if(d2[k]['value'][i] not in d1[k]['value']):
+                           new_items.append(d2[k]['value'][i])
+                    d1[k]['value'].extend(new_items)
+                #if not in leaf keep descending
+                else:
+                    self.mergecfg(d2[k], d1=d1[k])
+            #if a new d2 key is found do a deep copy
+            else:
+                d1[k] = d2[k].copy()
+    
     ###################################
     def check(self):
         '''Checks all values set in Chip configuration for legality.
@@ -261,39 +330,22 @@ class Chip:
                                (json, yaml, tcl)
 
         '''
-        abspath = os.path.abspath(filename)
-        self.logger.info('Writing configuration to file %s', abspath)
+
+        filepath = os.path.abspath(filename)
+
+        self.logger.info('Writing configuration to file %s', filepath)
 
         # Resolve path and make directory if it doesn't exist
-        if not os.path.exists(os.path.dirname(abspath)):
-            os.makedirs(os.path.dirname(abspath))
-
+        if not os.path.exists(os.path.dirname(filepath)):
+            os.makedirs(os.path.dirname(filepath))
+        
         # Write out configuration based on file type
-        if abspath.endswith('.json'):
-            with open(abspath, 'w') as f:
+        if filepath.endswith('.json'):
+            with open(filepath, 'w') as f:
                 print(json.dumps(self.cfg, sort_keys=True, indent=4), file=f)
-        elif abspath.endswith('.yaml'):
-            with open(abspath, 'w') as f:
-                print(yaml.dump(self.cfg, default_flow_style=False), file=f)
-        else:
-            self.writetcl(self.cfg, abspath)
 
     ##################################
-    def rename(self, cfg, keymap):
-        '''Creates a copy of the dictionary with renamed primary keys
-        '''
-
-        for key in cfg:        
-            if key in keymap:
-                keyout = keymap[key]
-            else:
-                keyout = key
-                cfgout[keyout] = cfg[key].copy() 
-    
-        return cfgout
-
-    ##################################
-    def writetcl(self, cfg, filename):
+    def writetcl(self, stage, filename):
         '''Writes out the Chip cfg dictionary in TCL format
 
         Args:
@@ -302,20 +354,40 @@ class Chip:
 
         '''
 
+        # Name remapping
+        cfg = self.rename(self.cfg, stage)
+
+        # Writing out file
         with open(os.path.abspath(filename), 'w') as f:
             print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
             for key in cfg:
-                keystr = "set " + key.upper()
-                #Put quotes around all list entries
-                valstr = "{"
-                if self.cfg[key]['type'] in {"list", "file"}:
-                    for value in self.cfg[key]['value']:
-                        valstr = valstr + " {" + value + "}"
-                else:
-                    valstr = valstr + " {" + str(self.cfg[key]['values']) + "}"
-                valstr = valstr + "}"
+                if 'value' in cfg[key]:
+                    val_list= cfg[key]['value']
+                    keystr = "set " + key.upper()
+                    #Put quotes around all entries
+                    valstr = "{"
+                    for val in val_list:
+                        valstr = valstr + " {" + val + "}"
+                    valstr = valstr + "}"
                 print('{:10s} {:100s}'.format(keystr, valstr), file=f)
-        f.close()
+        f.close()  
+            
+            
+        
+       # with open(os.path.abspath(filename), 'w') as f:
+       #     print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
+       #     for key in cfg:
+       #         keystr = "set " + key.upper()
+       #         #Put quotes around all list entries
+       #         valstr = "{"
+       #         if self.cfg[key]['type'] in {"list", "file"}:
+       #             for value in self.cfg[key]['value']:
+       #                 valstr = valstr + " {" + value + "}"
+       #         else:
+       #             valstr = valstr + " {" + str(self.cfg[key]['values']) + "}"
+       #         valstr = valstr + "}"
+       #         print('{:10s} {:100s}'.format(keystr, valstr), file=f)
+       # f.close()
 
     ##################################
     def readtcl(self, filename):
@@ -374,49 +446,7 @@ class Chip:
                 else:
                     self.reset(cfg=cfg[k])
         
-    ##################################
-    def abspath(self,cfg=None):
-        '''Resolves all configuration paths to be absolute paths
-        '''
-        #Setting initial dict so user doesn't have to
-        if cfg is None:
-            self.logger.info('Creating absolute file paths')
-            cfg = self.cfg        
-        #Recursively going through dict to set abspaths for files
-        for k, v in cfg.items():
-            if isinstance(v, dict):
-                #indicates leaf cell
-                if 'value' in cfg[k].keys():
-                    #only do something if a file is found
-                    if(cfg[k]['type'][-1] == 'file'):
-                        for i, v in enumerate(cfg[k]['value']):
-                            cfg[k]['value'][i] = os.path.abspath(v)
-                else:
-                    self.abspath(cfg=cfg[k])
-
-    ##################################
-    def mergecfg(self, d2, d1=None):
-        '''Merges dictionary with the Chip configuration dictionary
-        '''
-        if d1 is None:
-            d1 = self.cfg
-        for k, v in d2.items():
-            #Checking if dub dict exists in self.cfg and new dict
-            if k in d1 and isinstance(d1[k], dict) and isinstance(d2[k], dict):
-                #if we reach a leaf copy d2 to d1
-                if 'value' in d1[k].keys():
-                    #only add items that are not in the current list
-                    new_items = []
-                    for i in range(len(d2[k]['value'])):
-                        if(d2[k]['value'][i] not in d1[k]['value']):
-                           new_items.append(d2[k]['value'][i])
-                    d1[k]['value'].extend(new_items)
-                #if not in leaf keep descending
-                else:
-                    self.mergecfg(d2[k], d1=d1[k])
-            #if a new d2 key is found do a deep copy
-            else:
-                d1[k] = d2[k].copy()
+   
                     
     ##################################
     def sync(self, stage, jobid):
