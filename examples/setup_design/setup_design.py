@@ -7,6 +7,7 @@ chip = sc.Chip()
 
 # Print defult values
 chip.writecfg("default.json")
+chip.readcfg(".json")
 
 # Demostrating use of general python variables (your names)
 
@@ -18,9 +19,6 @@ foundry = 'acme'
 process  = '22nm'
 stdlib  = 'mylib.lib'
 nominal_corner = "tt 1.0 25  all all"
-hold_corner    = "ff 1.1 125 hold all"
-setup_corner   = "ss 0.9 125 setup all"
-leakage_corner = "ff 1.1 125  leakage signoff"
 
 # Inserting value into configuration
 chip.set('sc_design', design)
@@ -31,12 +29,6 @@ chip.set('sc_foundry', foundry)
 chip.set('sc_process', process)
 chip.set('sc_lib', stdlib)
 chip.set('sc_scenario', nominal_corner)
-chip.append('sc_scenario', hold_corner)
-chip.append('sc_scenario', setup_corner)
-chip.append('sc_scenario', leakage_corner)
 
 # Print out new merged config to a file
 chip.writecfg("new.json") 
-
-# Print out only the non-default values
-chip.writecfg("diff.json", mode="diff")
