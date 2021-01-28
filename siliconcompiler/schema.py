@@ -131,14 +131,7 @@ def schema_setup(cfg):
         'type' : ["string"],
         'defvalue' : []
     }
-
-    cfg['sc_keymap'] = {
-        'help' : "Keyword translation table for readcfg/writecfg ",
-        'switch' : "-keymap",
-        'type' : ["string", "string"],
-        'defvalue' : []
-    }
-  
+    
     cfg['sc_remote'] = {
         'help' : "Name of remote server address (https://acme.com:8080)",
         'switch' : "-remote",
@@ -720,6 +713,7 @@ def schema_tools(cfg):
         cfg['sc_tool'][stage]['format']['help'] = "Stage Tool Configuration Format"
         cfg['sc_tool'][stage]['jobid']['help'] = "Stage Tool Job index"
         cfg['sc_tool'][stage]['np']['help'] = "Stage Tool Parallelism"
+        cfg['sc_tool'][stage]['keymap']['help'] = "Stage Tool Keyword translation table"
         
         # Types
         cfg['sc_tool'][stage]['exe']['type'] = ["string"]
@@ -730,6 +724,7 @@ def schema_tools(cfg):
         cfg['sc_tool'][stage]['format']['type'] = ["string"]
         cfg['sc_tool'][stage]['jobid']['type'] = ["int"]
         cfg['sc_tool'][stage]['np']['type'] = ["int"]
+        cfg['sc_tool'][stage]['keymap']['type'] = ["string", "string"]
 
         # Hash
         cfg['sc_tool'][stage]['refdir']['hash'] = []
@@ -743,6 +738,7 @@ def schema_tools(cfg):
         cfg['sc_tool'][stage]['copy']['defvalue'] = []
         cfg['sc_tool'][stage]['format']['defvalue'] = []
         cfg['sc_tool'][stage]['np']['defvalue'] = []
+        cfg['sc_tool'][stage]['keymap']['defvalue'] = []
         cfg['sc_tool'][stage]['jobid']['defvalue'] = ["0"]
 
     return cfg
