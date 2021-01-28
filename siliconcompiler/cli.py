@@ -5,7 +5,10 @@ import sys
 import logging
 import argparse
 import os
+import re
 import json
+import sys
+import importlib.resources
 
 #Shorten siliconcompiler as sc
 import siliconcompiler as sc
@@ -68,7 +71,7 @@ def cmdline():
                                     help=def_cfg[key1]['syn'][key2]['help'],
                                     default = argparse.SUPPRESS)
         #Command line on/off switches
-        elif def_cfg[key1]['type'] is "bool":
+        elif def_cfg[key1]['type'] == "bool":
             parser.add_argument(def_cfg[key1]['switch'],
                                 dest=key1,
                                 action='store_true',
@@ -110,7 +113,7 @@ def cmdline():
                 if val[0] not in cfg[param]:
                         cfg[param][val[0]]={}
                 if switch[2] not in cfg[param][val[0]].keys():
-                        cfg[param][val[0]][switch[2]]={}
+                        cfg[param][val[0]][switch[2]] = {}
                 if switch[2] in ('timing', 'power', 'cells'):
                     if val[1] not in cfg[param][val[0]][switch[2]].keys():
                         cfg[param][val[0]][switch[2]][val[1]]={}
@@ -126,6 +129,7 @@ def cmdline():
             if 'value' not in cfg:
                  cfg[param] = {}
                  cfg[param]['value'] = all_vals
+
             else:
                 cfg[param]['value'].extend(all_vals)
 
@@ -135,24 +139,31 @@ def cmdline():
 ###########################
 def main():
 
+    scriptdir = os.path.dirname(os.path.abspath(__file__))
+    rootdir = re.sub("siliconcompiler/siliconcompiler", "siliconcompiler", scriptdir, 1)
+    pdkcfg = rootdir + "/pdklib/virtual/nangate45/nangate45.json"
+    ipcfg = rootdir + "/iplib/virtual/nangate45/NangateOpenCellLibrary.json"
+    edacfg = rootdir + "/edalib/asic/sc_asicflow.json"
+
+
     #Command line inputs, read once
     cmdlinecfg = cmdline()
 
     #Create one (or many...) instances of Chip class
     mychip = sc.Chip()
     
-    # Iterative over nested dict recursively to get environment variables
+    # Reading in default config files unless cfg file is set
+    if 'nangate45' in cmdlinecfg['sc_target']['value']:
+        mychip.readcfg(edacfg)
+        mychip.readcfg(pdkcfg)
+        mychip.readcfg(ipcfg)
+    
+    # Reading in user variables
     mychip.readenv()
 
-    # Read files sourced from command line
-    #for filename in cmdargs['sc_cfgfile']:
-    #    mychip.loadcfg(file=filename)
+    # Reading in command line arguments
+    mychip.mergecfg(cmdlinecfg)
     
-    # Copy a cfg dictionary into Chip.cfg
-    #print(json.dumps(cmdlinecfg, sort_keys=True, indent=4))
-    
-    mychip.mergecfg(cmdlinecfg,"cmdline")
-        
     #Resolve as absolute paths (should be a switch)
     mychip.abspath()
 
@@ -165,20 +176,11 @@ def main():
     #Printing out run-config
     mychip.writecfg("sc_setup.json")
 
-    #Compilation
-    #for stage in mychip.get('sc_stages'):
-
-    mychip.cfg['sc_tool']['import']['exe']['value'].extend(["verilator"])
-    mychip.cfg['sc_tool']['import']['opt']['value'].extend(["--lint-only", "--debug"])
-
-    mychip.run("import")
-    #mychip.run("syn")
-    #mychip.run("place")
-    #mychip.run("cts")
-    #mychip.run("route")
-    #mychip.run("signoff")
-    #mychip.run("export")
-        
+    all_stages = mychip.get('sc_stages')
+    for stage in all_stages:
+        mychip.run(stage)
+    
+    
 #########################
 if __name__ == "__main__":    
     sys.exit(main())
