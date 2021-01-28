@@ -528,15 +528,15 @@
     },
     "sc_mode": {
         "defvalue": [
-            "asic"
+            "virtual"
         ],
-        "help": "Implementation mode (asic or fpga)",
+        "help": "Implementation mode (virtual, asic, or fpga)",
         "switch": "-mode",
         "type": [
             "string"
         ],
         "value": [
-            "asic"
+            "virtual"
         ]
     },
     "sc_model": {
@@ -992,6 +992,15 @@
         ],
         "value": []
     },
+    "sc_target": {
+        "defvalue": [],
+        "help": "Single name target (nangate45, asap7)",
+        "switch": "-target",
+        "type": [
+            "string"
+        ],
+        "value": []
+    },
     "sc_techfile": {
         "defvalue": [],
         "hash": [],
@@ -1013,6 +1022,17 @@
     },
     "sc_tool": {
         "antenna": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": [
+                    "no"
+                ]
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -1086,12 +1106,21 @@
                 "type": [
                     "file"
                 ],
-                "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edalib/asic/sc_antenna.tcl"
-                ]
+                "value": []
             }
         },
         "cts": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": [
+                    "no"
+                ]
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -1175,6 +1204,17 @@
             }
         },
         "density": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": [
+                    "no"
+                ]
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -1248,12 +1288,21 @@
                 "type": [
                     "file"
                 ],
-                "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edalib/asic/sc_density.tcl"
-                ]
+                "value": []
             }
         },
         "display": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": [
+                    "no"
+                ]
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -1327,12 +1376,21 @@
                 "type": [
                     "file"
                 ],
-                "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edalib/asic/sc_display.tcl"
-                ]
+                "value": []
             }
         },
         "drc": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": [
+                    "no"
+                ]
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -1406,12 +1464,21 @@
                 "type": [
                     "file"
                 ],
-                "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edalib/asic/sc_drc.tcl"
-                ]
+                "value": []
             }
         },
         "erc": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": [
+                    "no"
+                ]
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -1485,12 +1552,21 @@
                 "type": [
                     "file"
                 ],
-                "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edalib/asic/sc_erc.tcl"
-                ]
+                "value": []
             }
         },
         "export": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": [
+                    "no"
+                ]
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -1566,12 +1642,21 @@
                 "type": [
                     "file"
                 ],
-                "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edalib/asic/sc_export.tcl"
-                ]
+                "value": []
             }
         },
         "floorplan": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": [
+                    "no"
+                ]
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -1655,6 +1740,17 @@
             }
         },
         "import": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": [
+                    "no"
+                ]
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -1732,12 +1828,21 @@
                 "type": [
                     "file"
                 ],
-                "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edalib/asic/sc_import.tcl"
-                ]
+                "value": []
             }
         },
         "lec": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": [
+                    "no"
+                ]
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -1811,12 +1916,21 @@
                 "type": [
                     "file"
                 ],
-                "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edalib/asic/sc_lec.tcl"
-                ]
+                "value": []
             }
         },
         "lvs": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": [
+                    "no"
+                ]
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -1890,12 +2004,21 @@
                 "type": [
                     "file"
                 ],
-                "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edalib/asic/sc_lvs.tcl"
-                ]
+                "value": []
             }
         },
         "pex": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": [
+                    "no"
+                ]
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -1969,12 +2092,21 @@
                 "type": [
                     "file"
                 ],
-                "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edalib/asic/sc_pex.tcl"
-                ]
+                "value": []
             }
         },
         "pi": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": [
+                    "no"
+                ]
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -2048,12 +2180,21 @@
                 "type": [
                     "file"
                 ],
-                "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edalib/asic/sc_pi.tcl"
-                ]
+                "value": []
             }
         },
         "place": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": [
+                    "no"
+                ]
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -2137,6 +2278,17 @@
             }
         },
         "route": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": [
+                    "no"
+                ]
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -2220,6 +2372,17 @@
             }
         },
         "si": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": [
+                    "no"
+                ]
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -2293,12 +2456,21 @@
                 "type": [
                     "file"
                 ],
-                "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edalib/asic/sc_si.tcl"
-                ]
+                "value": []
             }
         },
         "signoff": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": [
+                    "no"
+                ]
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -2382,6 +2554,17 @@
             }
         },
         "sta": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": [
+                    "no"
+                ]
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -2455,12 +2638,21 @@
                 "type": [
                     "file"
                 ],
-                "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edalib/asic/sc_sta.tcl"
-                ]
+                "value": []
             }
         },
         "syn": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": [
+                    "no"
+                ]
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -2544,6 +2736,17 @@
             }
         },
         "tapeout": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": [
+                    "no"
+                ]
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -2617,9 +2820,7 @@
                 "type": [
                     "file"
                 ],
-                "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edalib/asic/sc_tapeout.tcl"
-                ]
+                "value": []
             }
         }
     },

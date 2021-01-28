@@ -28,7 +28,6 @@ for stage in all_stages:
      mychip.set('sc_tool', stage, 'refdir', edadir)
      mychip.set('sc_tool', stage, 'format', 'tcl')
      mychip.set('sc_tool', stage, 'copy', 'no')
-     mychip.set('sc_tool', stage, 'script', 'sc_'+stage+'.tcl')
      
 # import
 mychip.set('sc_tool', 'import', 'exe', 'verilator')
@@ -37,11 +36,13 @@ mychip.set('sc_tool', 'import', 'opt', '--lint-only --debug')
 # syn
 mychip.set('sc_tool', 'syn', 'exe', 'yosys')
 mychip.set('sc_tool', 'syn', 'opt', '-c')
+mychip.set('sc_tool', 'syn', 'script', 'sc_syn.tcl')
 
 # pnr
 for stage in ('floorplan', 'place', 'cts', 'route', 'signoff'):
-    mychip.set('sc_tool', stage, 'exe', 'openroad')
-    mychip.set('sc_tool', stage, 'opt', '-no_init -exit')
+     mychip.set('sc_tool', stage, 'script', 'sc_'+stage+'.tcl')
+     mychip.set('sc_tool', stage, 'exe', 'openroad')
+     mychip.set('sc_tool', stage, 'opt', '-no_init -exit')
 
 # export
 mychip.set('sc_tool', 'export', 'exe', 'klayout')
