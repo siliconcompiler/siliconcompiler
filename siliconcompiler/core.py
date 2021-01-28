@@ -9,6 +9,7 @@ import logging as log
 import hashlib
 import webbrowser
 import yaml
+import copy
 from collections import defaultdict
 
 from siliconcompiler.schema import schema
@@ -60,23 +61,6 @@ class Chip:
             self.status[stage] = ["idle"]
 
     ###################################
-    def add(self, *args):
-        '''Add a new Chip configuration subkey group
-
-        Args:
-            args (string): Configuration parameter to fetch
-
-        '''
-        self.logger.info('Adding a nested dictionary: %s', args)
-
-        all_keys = list(args)
-        param = all_keys[0]
-        if param in ('sc_stdlib', 'sc_macro'):
-            self.cfg[param][all_keys[1]] = {}
-            for view in self.cfg[param]['default']['views']: 
-                self.cfg[param][all_keys[1]][view] = {} 
-
-    ###################################
     def get(self, *args):
         '''Gets value in the Chip configuration dictionary
 
@@ -93,20 +77,34 @@ class Chip:
 
     ####################################
     #set2('sc_design', 'top')
-    #set2('sc_clk', 'clkname', '1ns')
-    #set2('sc_tool', 'stagename', 'exe', 'openroad')
-    #set2('sc_stdlib', 'libname', 'timing', corner, 'libname.lib')
+    #set2('sc_tool',   'stagename', 'exe',    'openroad')
+    #set2('sc_stdlib', 'libname',   'lef',    'libname.lef')
+    #set2('sc_stdlib', 'libname',   'timing', 'corner',     'libname.lib')
        
     def set(self, *args):
         '''Sets a value in the Chip configuration dictionary 
         '''
         self.logger.info('Setting config dictionary value: %s', args)
-        
+                
         all_args = list(args)
-        #Convert val to list if not a list
-        if type(all_args[-1]) != list:
-            all_args[-1]=[all_args[-1]]
+        param = all_args[0]
         
+        # Convert val to list if not a list
+        if type(all_args[-1]) != list:
+            all_args[-1] = [all_args[-1]]
+
+        # Deepcopy library from default template if it doesn't exist
+        if param in ('sc_stdlib', 'sc_macro'):
+            key = all_args[1]
+            if not (key in self.cfg[param]):
+                self.cfg[param][key] = {}
+                self.cfg[param][key] = copy.deepcopy(self.cfg[param]['default'])
+        if (len(all_args) == 5):
+            view = all_args[2]
+            leaf = all_args[3]
+            if not (leaf in self.cfg[param][key][view]):
+                self.cfg[param][key][view][leaf] = {}
+                self.cfg[param][key][view][leaf] = copy.deepcopy(self.cfg[param]['default'][view]['default'])
         return self.search(*all_args, cfg=self.cfg, replace=True)
 
     ##################################
@@ -123,38 +121,50 @@ class Chip:
 
         '''
 
-        all_keys = list(args)
-        param = all_keys[0]
-        val = args[-1]
+        all_args = list(args)
+        param = all_args[0]
+        val = all_args[-1]
 
-        #Populating with default dictionary
-        #Nasty hard coded solution, how to improve?
-        #Need nested recursive support for dict copy with multipe key overrides
-        if replace:
-            key = all_keys[1]
-            if param in ('sc_stdlib', 'sc_macro'):
-                cfg[param][key] = self.cfg[param]['default'].copy()
-            elif param in ('timing', 'sc_cells'):
-                cfg[param][key] = self.cfg['sc_stdlib']['default'][param]['default'].copy()
-        #Init dictionary if not existant
-        if replace & (param not in cfg.keys()):
-            cfg[param] = {}
         if param in cfg.keys():
             #indicates leaf cell
-            #copy in defaults for dynamic entries (macro/libs)
-            if replace & (len(all_keys) == 2):
+            if replace & (len(all_args) == 2):
                 #create value key if not defined
-                if ('value' not in cfg[param].keys()):
-                    cfg[param]['value'] = val
-                else:
-                    cfg[param]['value'].extend(val)
-                return cfg[param]['value']
-            elif (len(all_keys) == 1):
+                #cfg[param]['value'].extend(val)
+                #if ('value' not in cfg[param].keys()):
+                #    cfg[param]['value'] = val
+                #else:
+                #    cfg[param]['value'].extend(val)
+                return cfg[param]['value'].extend(val)
+            elif (len(all_args) == 1):
                 return cfg[param]['value']
             else:
-                all_keys.pop(0)
-                return self.search(*all_keys, cfg=cfg[param], replace=replace)
-            
+                all_args.pop(0)
+                return self.search(*all_args, cfg=cfg[param], replace=replace)
+        else:
+            self.logger.error('Param %s not found in dictionary', param)  
+
+    ##################################
+    def slice(self, key1, key2, cfg=None, result=None):
+        '''Returns list of all vals matchinng key1 and key2
+        '''
+        # Using self if cfg is not specified
+        if cfg is None:
+            cfg = self.cfg
+        # Special recursion entry conditon
+        # #1.init list
+        # #2.select key1 sub tree
+        if result is None:
+            self.logger.info('Retrieving dictionary slice from %s and %s:', key1, key2)
+            result = []
+            cfg = cfg[key1]
+        for k,v in cfg.items():
+            if isinstance(v, dict):
+                if k == key2:
+                    result.extend(cfg[key2]['value'])
+                else:
+                    self.slice(key1, key2, cfg=cfg[k], result=result)
+        return result
+
     ##################################
     def rename(self, cfg, stage):
         '''Creates a copy of the dictionary with renamed primary keys
