@@ -528,15 +528,15 @@
     },
     "sc_mode": {
         "defvalue": [
-            "asic"
+            "virtual"
         ],
-        "help": "Implementation mode (asic or fpga)",
+        "help": "Implementation mode (virtual, asic, or fpga)",
         "switch": "-mode",
         "type": [
             "string"
         ],
         "value": [
-            "asic"
+            "virtual"
         ]
     },
     "sc_model": {
@@ -751,22 +751,227 @@
     },
     "sc_stdlib": {
         "NangateOpenCellLibrary": {
+            "cdl": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library CDL file",
+                "switch": "-stdlib_cdl",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "cells": {
+                "default": {
+                    "defvalue": [],
+                    "help": "Library cell type list",
+                    "switch": "-stdlib_cells",
+                    "type": [
+                        "string"
+                    ],
+                    "value": []
+                }
+            },
+            "customdb": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library custom database",
+                "switch": "-stdlib_customdb",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "dft": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library DFT file",
+                "switch": "-stdlib_dft",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "doc": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library documentation",
+                "switch": "-stdlib_doc",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "driver": {
+                "defvalue": [],
+                "help": "Library default driver",
+                "switch": "-stdlib_driver",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
             "gds": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library GDS file",
+                "switch": "-stdlib_gds",
+                "type": [
+                    "file"
+                ],
                 "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/iplib/virtual/nangate45/NangateOpenCellLibrary/r1p0gds/NangateOpenCellLibrary.gds"
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/iplib/virtual/nangate45/NangateOpenCellLibrary/r1p0/gds/NangateOpenCellLibrary.gds"
                 ]
             },
             "lef": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library LEF file",
+                "switch": "-stdlib_lef",
+                "type": [
+                    "file"
+                ],
                 "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/iplib/virtual/nangate45/NangateOpenCellLibrary/r1p0lef/NangateOpenCellLibrary.macro.lef"
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/iplib/virtual/nangate45/NangateOpenCellLibrary/r1p0/lef/NangateOpenCellLibrary.macro.lef"
                 ]
             },
+            "pgmetal": {
+                "defvalue": [],
+                "help": "Metal layer used for power rails",
+                "switch": "-stdlib_pgmetal",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "pnrdb": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library PNR database",
+                "switch": "-stdlib_pnrdb",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "power": {
+                "default": {
+                    "defvalue": [],
+                    "hash": [],
+                    "help": "Library power file",
+                    "switch": "-stdlib_power",
+                    "type": [
+                        "file"
+                    ],
+                    "value": []
+                }
+            },
+            "setup": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library Setup file",
+                "switch": "-stdlib_setup",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "site": {
+                "defvalue": [],
+                "help": "Library placement site",
+                "switch": "-stdlib_site",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "tag": {
+                "defvalue": [],
+                "help": "Tags to identify library",
+                "switch": "-stdlib_tag",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
             "timing": {
-                "typical": {
+                "default": {
+                    "defvalue": [],
+                    "hash": [],
+                    "help": "Library timing file",
+                    "switch": "-stdlib_timing",
+                    "type": [
+                        "file"
+                    ],
                     "value": [
-                        "/home/aolofsson/work/zeroasic/siliconcompiler/iplib/virtual/nangate45/NangateOpenCellLibrary/r1p0lib/NangateOpenCellLibrary_typical.lib"
+                        "/home/aolofsson/work/zeroasic/siliconcompiler/iplib/virtual/nangate45/NangateOpenCellLibrary/r1p0/lib/NangateOpenCellLibrary_typical.lib"
+                    ]
+                },
+                "typical": {
+                    "defvalue": [],
+                    "hash": [],
+                    "help": "Library timing file",
+                    "switch": "-stdlib_timing",
+                    "type": [
+                        "file"
+                    ],
+                    "value": [
+                        "/home/aolofsson/work/zeroasic/siliconcompiler/iplib/virtual/nangate45/NangateOpenCellLibrary/r1p0/lib/NangateOpenCellLibrary_typical.lib"
                     ]
                 }
+            },
+            "verilog": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library Verilog file",
+                "switch": "-stdlib_verilog",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "views": {
+                "defvalue": [
+                    "timing",
+                    "power",
+                    "cells",
+                    "lef",
+                    "gds",
+                    "cdl",
+                    "setup",
+                    "dft",
+                    "verilog",
+                    "doc",
+                    "pnrdb",
+                    "customdb",
+                    "driver",
+                    "site",
+                    "pgmetal",
+                    "tag"
+                ],
+                "help": "List of all library views",
+                "switch": "-stdlib_views",
+                "type": [
+                    "string"
+                ],
+                "value": [
+                    "timing",
+                    "power",
+                    "cells",
+                    "lef",
+                    "gds",
+                    "cdl",
+                    "setup",
+                    "dft",
+                    "verilog",
+                    "doc",
+                    "pnrdb",
+                    "customdb",
+                    "driver",
+                    "site",
+                    "pgmetal",
+                    "tag"
+                ]
             }
         },
         "default": {
@@ -838,7 +1043,9 @@
                 "type": [
                     "file"
                 ],
-                "value": []
+                "value": [
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/iplib/virtual/nangate45/NangateOpenCellLibrary/r1p0/gds/NangateOpenCellLibrary.gds"
+                ]
             },
             "lef": {
                 "defvalue": [],
@@ -848,7 +1055,9 @@
                 "type": [
                     "file"
                 ],
-                "value": []
+                "value": [
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/iplib/virtual/nangate45/NangateOpenCellLibrary/r1p0/lef/NangateOpenCellLibrary.macro.lef"
+                ]
             },
             "pgmetal": {
                 "defvalue": [],
@@ -918,7 +1127,21 @@
                     "type": [
                         "file"
                     ],
-                    "value": []
+                    "value": [
+                        "/home/aolofsson/work/zeroasic/siliconcompiler/iplib/virtual/nangate45/NangateOpenCellLibrary/r1p0/lib/NangateOpenCellLibrary_typical.lib"
+                    ]
+                },
+                "typical": {
+                    "defvalue": [],
+                    "hash": [],
+                    "help": "Library timing file",
+                    "switch": "-stdlib_timing",
+                    "type": [
+                        "file"
+                    ],
+                    "value": [
+                        "/home/aolofsson/work/zeroasic/siliconcompiler/iplib/virtual/nangate45/NangateOpenCellLibrary/r1p0/lib/NangateOpenCellLibrary_typical.lib"
+                    ]
                 }
             },
             "verilog": {
@@ -1011,6 +1234,15 @@
         ],
         "value": []
     },
+    "sc_target": {
+        "defvalue": [],
+        "help": "Single name target (nangate45, asap7)",
+        "switch": "-target",
+        "type": [
+            "string"
+        ],
+        "value": []
+    },
     "sc_techfile": {
         "defvalue": [],
         "hash": [],
@@ -1032,6 +1264,15 @@
     },
     "sc_tool": {
         "antenna": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -1051,13 +1292,17 @@
                 "value": []
             },
             "jobid": {
-                "defvalue": [],
+                "defvalue": [
+                    "0"
+                ],
                 "help": "Stage Tool Job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
                 ],
-                "value": []
+                "value": [
+                    "0"
+                ]
             },
             "np": {
                 "defvalue": [],
@@ -1090,7 +1335,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script (relative to refdir)",
+                "help": "Stage Tool Script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -1099,6 +1344,15 @@
             }
         },
         "cts": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -1118,13 +1372,17 @@
                 "value": []
             },
             "jobid": {
-                "defvalue": [],
+                "defvalue": [
+                    "0"
+                ],
                 "help": "Stage Tool Job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
                 ],
-                "value": []
+                "value": [
+                    "0"
+                ]
             },
             "np": {
                 "defvalue": [],
@@ -1157,7 +1415,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script (relative to refdir)",
+                "help": "Stage Tool Script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -1166,6 +1424,15 @@
             }
         },
         "density": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -1185,13 +1452,17 @@
                 "value": []
             },
             "jobid": {
-                "defvalue": [],
+                "defvalue": [
+                    "0"
+                ],
                 "help": "Stage Tool Job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
                 ],
-                "value": []
+                "value": [
+                    "0"
+                ]
             },
             "np": {
                 "defvalue": [],
@@ -1224,7 +1495,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script (relative to refdir)",
+                "help": "Stage Tool Script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -1233,6 +1504,15 @@
             }
         },
         "display": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -1252,13 +1532,17 @@
                 "value": []
             },
             "jobid": {
-                "defvalue": [],
+                "defvalue": [
+                    "0"
+                ],
                 "help": "Stage Tool Job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
                 ],
-                "value": []
+                "value": [
+                    "0"
+                ]
             },
             "np": {
                 "defvalue": [],
@@ -1291,7 +1575,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script (relative to refdir)",
+                "help": "Stage Tool Script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -1300,6 +1584,15 @@
             }
         },
         "drc": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -1319,13 +1612,17 @@
                 "value": []
             },
             "jobid": {
-                "defvalue": [],
+                "defvalue": [
+                    "0"
+                ],
                 "help": "Stage Tool Job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
                 ],
-                "value": []
+                "value": [
+                    "0"
+                ]
             },
             "np": {
                 "defvalue": [],
@@ -1358,7 +1655,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script (relative to refdir)",
+                "help": "Stage Tool Script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -1367,6 +1664,15 @@
             }
         },
         "erc": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -1386,13 +1692,17 @@
                 "value": []
             },
             "jobid": {
-                "defvalue": [],
+                "defvalue": [
+                    "0"
+                ],
                 "help": "Stage Tool Job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
                 ],
-                "value": []
+                "value": [
+                    "0"
+                ]
             },
             "np": {
                 "defvalue": [],
@@ -1425,7 +1735,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script (relative to refdir)",
+                "help": "Stage Tool Script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -1434,6 +1744,15 @@
             }
         },
         "export": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -1453,13 +1772,17 @@
                 "value": []
             },
             "jobid": {
-                "defvalue": [],
+                "defvalue": [
+                    "0"
+                ],
                 "help": "Stage Tool Job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
                 ],
-                "value": []
+                "value": [
+                    "0"
+                ]
             },
             "np": {
                 "defvalue": [],
@@ -1492,7 +1815,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script (relative to refdir)",
+                "help": "Stage Tool Script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -1501,6 +1824,15 @@
             }
         },
         "floorplan": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -1520,13 +1852,17 @@
                 "value": []
             },
             "jobid": {
-                "defvalue": [],
+                "defvalue": [
+                    "0"
+                ],
                 "help": "Stage Tool Job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
                 ],
-                "value": []
+                "value": [
+                    "0"
+                ]
             },
             "np": {
                 "defvalue": [],
@@ -1559,7 +1895,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script (relative to refdir)",
+                "help": "Stage Tool Script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -1568,6 +1904,15 @@
             }
         },
         "import": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -1587,13 +1932,17 @@
                 "value": []
             },
             "jobid": {
-                "defvalue": [],
+                "defvalue": [
+                    "0"
+                ],
                 "help": "Stage Tool Job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
                 ],
-                "value": []
+                "value": [
+                    "0"
+                ]
             },
             "np": {
                 "defvalue": [],
@@ -1626,7 +1975,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script (relative to refdir)",
+                "help": "Stage Tool Script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -1635,6 +1984,15 @@
             }
         },
         "lec": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -1654,13 +2012,17 @@
                 "value": []
             },
             "jobid": {
-                "defvalue": [],
+                "defvalue": [
+                    "0"
+                ],
                 "help": "Stage Tool Job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
                 ],
-                "value": []
+                "value": [
+                    "0"
+                ]
             },
             "np": {
                 "defvalue": [],
@@ -1693,7 +2055,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script (relative to refdir)",
+                "help": "Stage Tool Script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -1702,6 +2064,15 @@
             }
         },
         "lvs": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -1721,13 +2092,17 @@
                 "value": []
             },
             "jobid": {
-                "defvalue": [],
+                "defvalue": [
+                    "0"
+                ],
                 "help": "Stage Tool Job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
                 ],
-                "value": []
+                "value": [
+                    "0"
+                ]
             },
             "np": {
                 "defvalue": [],
@@ -1760,7 +2135,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script (relative to refdir)",
+                "help": "Stage Tool Script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -1769,6 +2144,15 @@
             }
         },
         "pex": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -1788,13 +2172,17 @@
                 "value": []
             },
             "jobid": {
-                "defvalue": [],
+                "defvalue": [
+                    "0"
+                ],
                 "help": "Stage Tool Job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
                 ],
-                "value": []
+                "value": [
+                    "0"
+                ]
             },
             "np": {
                 "defvalue": [],
@@ -1827,7 +2215,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script (relative to refdir)",
+                "help": "Stage Tool Script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -1836,6 +2224,15 @@
             }
         },
         "pi": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -1855,13 +2252,17 @@
                 "value": []
             },
             "jobid": {
-                "defvalue": [],
+                "defvalue": [
+                    "0"
+                ],
                 "help": "Stage Tool Job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
                 ],
-                "value": []
+                "value": [
+                    "0"
+                ]
             },
             "np": {
                 "defvalue": [],
@@ -1894,7 +2295,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script (relative to refdir)",
+                "help": "Stage Tool Script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -1903,6 +2304,15 @@
             }
         },
         "place": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -1922,13 +2332,17 @@
                 "value": []
             },
             "jobid": {
-                "defvalue": [],
+                "defvalue": [
+                    "0"
+                ],
                 "help": "Stage Tool Job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
                 ],
-                "value": []
+                "value": [
+                    "0"
+                ]
             },
             "np": {
                 "defvalue": [],
@@ -1961,7 +2375,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script (relative to refdir)",
+                "help": "Stage Tool Script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -1970,6 +2384,15 @@
             }
         },
         "route": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -1989,13 +2412,17 @@
                 "value": []
             },
             "jobid": {
-                "defvalue": [],
+                "defvalue": [
+                    "0"
+                ],
                 "help": "Stage Tool Job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
                 ],
-                "value": []
+                "value": [
+                    "0"
+                ]
             },
             "np": {
                 "defvalue": [],
@@ -2028,7 +2455,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script (relative to refdir)",
+                "help": "Stage Tool Script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -2037,6 +2464,15 @@
             }
         },
         "si": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -2056,13 +2492,17 @@
                 "value": []
             },
             "jobid": {
-                "defvalue": [],
+                "defvalue": [
+                    "0"
+                ],
                 "help": "Stage Tool Job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
                 ],
-                "value": []
+                "value": [
+                    "0"
+                ]
             },
             "np": {
                 "defvalue": [],
@@ -2095,7 +2535,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script (relative to refdir)",
+                "help": "Stage Tool Script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -2104,6 +2544,15 @@
             }
         },
         "signoff": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -2123,13 +2572,17 @@
                 "value": []
             },
             "jobid": {
-                "defvalue": [],
+                "defvalue": [
+                    "0"
+                ],
                 "help": "Stage Tool Job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
                 ],
-                "value": []
+                "value": [
+                    "0"
+                ]
             },
             "np": {
                 "defvalue": [],
@@ -2162,7 +2615,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script (relative to refdir)",
+                "help": "Stage Tool Script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -2171,6 +2624,15 @@
             }
         },
         "sta": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -2190,13 +2652,17 @@
                 "value": []
             },
             "jobid": {
-                "defvalue": [],
+                "defvalue": [
+                    "0"
+                ],
                 "help": "Stage Tool Job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
                 ],
-                "value": []
+                "value": [
+                    "0"
+                ]
             },
             "np": {
                 "defvalue": [],
@@ -2229,7 +2695,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script (relative to refdir)",
+                "help": "Stage Tool Script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -2238,6 +2704,15 @@
             }
         },
         "syn": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -2257,13 +2732,17 @@
                 "value": []
             },
             "jobid": {
-                "defvalue": [],
+                "defvalue": [
+                    "0"
+                ],
                 "help": "Stage Tool Job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
                 ],
-                "value": []
+                "value": [
+                    "0"
+                ]
             },
             "np": {
                 "defvalue": [],
@@ -2296,7 +2775,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script (relative to refdir)",
+                "help": "Stage Tool Script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -2305,6 +2784,15 @@
             }
         },
         "tapeout": {
+            "copy": {
+                "defvalue": [],
+                "help": "Stage Tool Copy To Local",
+                "switch": "-tool_copy",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
             "exe": {
                 "defvalue": [],
                 "help": "Stage Tool Executable",
@@ -2324,13 +2812,17 @@
                 "value": []
             },
             "jobid": {
-                "defvalue": [],
+                "defvalue": [
+                    "0"
+                ],
                 "help": "Stage Tool Job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
                 ],
-                "value": []
+                "value": [
+                    "0"
+                ]
             },
             "np": {
                 "defvalue": [],
@@ -2363,7 +2855,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script (relative to refdir)",
+                "help": "Stage Tool Script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
