@@ -504,24 +504,12 @@ def schema_design(cfg):
 #############################################   
 
 def schema_mcmm(cfg):
-
     
     cfg['sc_mcmm'] = {}
     cfg['sc_mcmm']['default'] = {}
 
-    cfg['sc_mcmm']['default']['views'] = {
-        'help' : 'List of MCMM views',
-        'switch' : '-mcmm_views',
-        'type' : ['string'],
-        'defvalue' : ['lib_corner',
-                      'rc_corner',
-                      'constraints',
-                      'objectives']
-    }
-
     #Library corner name (needs to match sc_stdlib)
-    cfg['sc_mcmm']['default']['lib_corner'] = {}
-    cfg['sc_mcmm']['default']['lib_corner']['default'] = {
+    cfg['sc_mcmm']['default']['lib_corner'] = {
         'help' : 'MMCM Library corner name',
         'switch' : '-mcmm_lib_corner',
         'type' : ['string'],
@@ -529,8 +517,7 @@ def schema_mcmm(cfg):
     }
 
     #Wire parastitics corner name
-    cfg['sc_mcmm']['default']['rc_corner'] = {}
-    cfg['sc_mcmm']['default']['rc_corner']['default'] = {
+    cfg['sc_mcmm']['default']['rc_corner'] = {
         'help' : 'MMCM Wire Parasticics (RC) corner name',
         'switch' : '-mcmm_rc_corner',
         'type' : ['string'],
@@ -538,8 +525,7 @@ def schema_mcmm(cfg):
     }
 
     #Constraints
-    cfg['sc_mcmm']['default']['constraints'] = {}
-    cfg['sc_mcmm']['default']['constraints']['default'] = {
+    cfg['sc_mcmm']['default']['constraints'] = {
         'help' : 'MMCM Constraints (SDC)',
         'switch' : '-mcmm_constraints',
         'type' : ['file'],
@@ -547,8 +533,7 @@ def schema_mcmm(cfg):
     }
 
     #Optimization Objectives
-    cfg['sc_mcmm']['default']['objectives'] = {}
-    cfg['sc_mcmm']['default']['objectives']['default'] = {
+    cfg['sc_mcmm']['default']['objectives'] = {
         'help' : 'MMCM Objectives (setup, hold, leakge, dynamic,..)',
         'switch' : '-mcmm_objectives',
         'type' : ['string'],
@@ -569,7 +554,7 @@ def schema_libs(cfg, group):
 
     # Userguide
     cfg['sc_'+group]['default']['userguide'] = {
-      'help' : 'Library Userguide (PDF or README)',
+        'help' : 'Library userguide (PDF or TXT)',
         'switch' : '-'+group+'_userguide',     
         'type' : ['file'],
         'defvalue' : [],
@@ -578,7 +563,7 @@ def schema_libs(cfg, group):
 
     # Datasheets
     cfg['sc_'+group]['default']['datasheet'] = {
-      'help' : 'Library Datasheet (PDF or HTML directory)',
+        'help' : 'Library datasheet (PDF, TXT, or HTML directory)',
         'switch' : '-'+group+'_datasheet',     
         'type' : ['file'],
         'defvalue' : [],
@@ -614,7 +599,7 @@ def schema_libs(cfg, group):
     }
 
     cfg['sc_'+group]['default']['ccsdb'] = {}
-    cfg['sc_'+group]['default']['ccs']['default'] = {
+    cfg['sc_'+group]['default']['ccsdb']['default'] = {
         'help' : 'Library CCS compiled databse',
         'switch' : '-'+group+'_ccsdb',
         'type' : ['file'],
@@ -678,7 +663,7 @@ def schema_libs(cfg, group):
     }
 
     cfg['sc_'+group]['default']['setup'] = {
-        'help' : 'Library Setup file',
+        'help' : 'Library TCL setup file',
         'switch' : '-'+group+'_setup',     
         'type' : ['file'],
         'defvalue' : [],
@@ -693,7 +678,7 @@ def schema_libs(cfg, group):
     }
 
     cfg['sc_'+group]['default']['pgmetal'] = {
-        'help' : 'Metal layer used for power rails',
+        'help' : 'Library power rail metal layer',
         'switch' : '-'+group+'_pgmetal',     
         'type' : ['string'],
         'defvalue' : []
@@ -708,7 +693,7 @@ def schema_libs(cfg, group):
     } 
 
     cfg['sc_'+group]['default']['tag'] = {
-        'help' : 'Tags to identify library',
+        'help' : 'Library indentifier tags',
         'switch' : '-'+group+'_tag',     
         'type' : ['string'],
         'defvalue' : []
@@ -774,15 +759,15 @@ def schema_tools(cfg):
             cfg['sc_tool'][stage][key]['switch'] = '-tool_'+key
             
         # Help
-        cfg['sc_tool'][stage]['exe']['help'] = 'Stage Tool Executable'
-        cfg['sc_tool'][stage]['opt']['help'] = 'Stage Tool Options'
-        cfg['sc_tool'][stage]['refdir']['help'] = 'Stage Tool Reference Flow Directory'
-        cfg['sc_tool'][stage]['script']['help'] = 'Stage Tool Script'
-        cfg['sc_tool'][stage]['copy']['help'] = 'Stage Tool Copy To Local'
-        cfg['sc_tool'][stage]['format']['help'] = 'Stage Tool Configuration Format'
-        cfg['sc_tool'][stage]['jobid']['help'] = 'Stage Tool Job index'
-        cfg['sc_tool'][stage]['np']['help'] = 'Stage Tool Parallelism'
-        cfg['sc_tool'][stage]['keymap']['help'] = 'Stage Tool Keyword translation table'
+        cfg['sc_tool'][stage]['exe']['help'] = 'Stage executable'
+        cfg['sc_tool'][stage]['opt']['help'] = 'Stage executable options'
+        cfg['sc_tool'][stage]['refdir']['help'] = 'Stage reference Flow Directory'
+        cfg['sc_tool'][stage]['script']['help'] = 'Stage entry point script'
+        cfg['sc_tool'][stage]['copy']['help'] = 'Stage copy-to-local option'
+        cfg['sc_tool'][stage]['format']['help'] = 'Stage configuration format'
+        cfg['sc_tool'][stage]['jobid']['help'] = 'Stage job index'
+        cfg['sc_tool'][stage]['np']['help'] = 'Stage thread parallelism'
+        cfg['sc_tool'][stage]['keymap']['help'] = 'Stage keyword translation'
         
         # Types
         cfg['sc_tool'][stage]['exe']['type'] = ['string']
