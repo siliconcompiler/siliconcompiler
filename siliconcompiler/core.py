@@ -73,8 +73,24 @@ class Chip:
         '''
         self.logger.info('Retrieving config dictionary value: %s', args)
 
-        return self.search(*args, cfg=self.cfg)
+        return self.search(self.cfg, *args, mode='get')
 
+    ###################################
+    def getkeys(self, *args):
+        '''Gets all keys for the specified Chip args
+
+        Args:
+            args (string): Configuration keys to quqery
+
+        Returns:
+            list: List of Chip configuration values
+
+        '''
+        self.logger.info('Retrieving config dictionary value: %s', args)
+
+        return list(self.search(self.cfg, *args, mode='getkeys'))
+
+    
     ####################################
     #set2('sc_design', 'top')
     #set2('sc_tool',   'stagename', 'exe',    'openroad')
@@ -105,10 +121,10 @@ class Chip:
             if not (leaf in self.cfg[param][key][view]):
                 self.cfg[param][key][view][leaf] = {}
                 self.cfg[param][key][view][leaf] = copy.deepcopy(self.cfg[param]['default'][view]['default'])
-        return self.search(*all_args, cfg=self.cfg, replace=True)
+        return self.search(self.cfg, *all_args, mode='set')
 
     ##################################
-    def search(self, *args, cfg, replace=False):
+    def search(self, cfg, *args, field='value', mode='get'):
         '''Recursively searches the nested dictionary for a key match
 
         Args:
@@ -124,22 +140,18 @@ class Chip:
         all_args = list(args)
         param = all_args[0]
         val = all_args[-1]
-
         if param in cfg.keys():
             #indicates leaf cell
-            if replace & (len(all_args) == 2):
-                #create value key if not defined
-                #cfg[param]['value'].extend(val)
-                #if ('value' not in cfg[param].keys()):
-                #    cfg[param]['value'] = val
-                #else:
-                #    cfg[param]['value'].extend(val)
-                return cfg[param]['value'].extend(val)
+            if (mode=='set') & (len(all_args) == 2):
+                return cfg[param][field].extend(val)
             elif (len(all_args) == 1):
-                return cfg[param]['value']
+                if(mode=='getkeys'):
+                    return cfg[param].keys()
+                else:
+                    return cfg[param][field]
             else:
                 all_args.pop(0)
-                return self.search(*all_args, cfg=cfg[param], replace=replace)
+                return self.search(cfg[param], *all_args, field=field, mode=mode)
         else:
             self.logger.error('Param %s not found in dictionary', param)  
 
@@ -551,17 +563,20 @@ class Chip:
         '''
         return stage
 
-
     ###################################
-    def show(self, stage, jobid):
-        '''Shows the layout of the specified stage and jobid
-
-         Args:
-            stage: The stage to report on (eg. cts)
-            jobid: Index of job to report on (1, 2, etc)
+    def display(self, *args, index=0):
+      '''Displays content related keys provided  
         '''
-        pass
+      self.logger.info('Displaying file contents: %s', args)
 
+      EDITOR = os.environ.get('EDITOR')
+      
+      cfgtype = self.search(self.cfg, *args, field="type")
+      if(str(cfgtype[0]) == 'file'):
+          filename = self.search(self.cfg, *args )
+          cmd = EDITOR + " " + filename[index]
+          error = subprocess.run(cmd, shell=True)
+      
     ###################################
     def metrics(self):
         '''Displays the metrics of all jobs in a web browser
