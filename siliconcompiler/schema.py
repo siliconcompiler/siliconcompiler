@@ -567,65 +567,76 @@ def schema_libs(cfg, group):
 
     cfg['sc_'+group]['default'] = {}
 
-    cfg['sc_'+group]['default']['views'] = {
-        'help' : 'List of all library views',
-        'switch' : '-'+group+'_views',
-        'type' : ['string'],
-        'defvalue' : ['timing',
-                      'power',
-                      'cells',
-                      'lef',
-                      'gds',
-                      'cdl',
-                      'setup',
-                      'dft',
-                      'verilog',
-                      'doc',
-                      'pnrdb',
-                      'customdb',
-                      'driver',
-                      'site',
-                      'pgmetal',
-                      'tag']
+    # Userguide
+    cfg['sc_'+group]['default']['userguide'] = {
+      'help' : 'Library Userguide (PDF or README)',
+        'switch' : '-'+group+'_userguide',     
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash'   : []
     }
-    
-    #Liberty specified on a per corner basis (so one more level of nesting)
-    cfg['sc_'+group]['default']['timing'] = {}
-    cfg['sc_'+group]['default']['timing']['default'] = {
-        'help' : 'Library timing file',
-        'switch' : '-'+group+'_timing',
+
+    # Datasheets
+    cfg['sc_'+group]['default']['datasheet'] = {
+      'help' : 'Library Datasheet (PDF or HTML directory)',
+        'switch' : '-'+group+'_datasheet',     
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash'   : []
+    }
+
+    # Non linear delay models (timing only)
+    cfg['sc_'+group]['default']['nldm'] = {}
+    cfg['sc_'+group]['default']['nldm']['default'] = {
+        'help' : 'Library non-linear delay timing model',
+        'switch' : '-'+group+'_nldm',
         'type' : ['file'],
         'defvalue' : [],
         'hash' : []
     }
 
-    #Power format
-    cfg['sc_'+group]['default']['power'] = {}
-    cfg['sc_'+group]['default']['power']['default'] = {
-        'help' : 'Library power file',
-        'switch' : '-'+group+'_power',        
+    cfg['sc_'+group]['default']['nldmdb'] = {}
+    cfg['sc_'+group]['default']['nldmdb']['default'] = {
+        'help' : 'Library NLDM compiled database',
+        'switch' : '-'+group+'_nldmdb',
         'type' : ['file'],
         'defvalue' : [],
         'hash' : []
     }
 
-    #Cell lists are many and dynamic (so one more level of nesting)
-    cfg['sc_'+group]['default']['cells'] = {}
-    cfg['sc_'+group]['default']['cells']['default'] = {
-            'help' : 'Library cell type list',
-            'switch' : '-'+group+'_cells',
-            'type' : ['string'],
-            'defvalue' : []
-        }
-    
+    cfg['sc_'+group]['default']['ccs'] = {}
+    cfg['sc_'+group]['default']['ccs']['default'] = {
+        'help' : 'Library composite current source (ccs) model',
+        'switch' : '-'+group+'_ccs',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash' : []
+    }
+
+    cfg['sc_'+group]['default']['ccsdb'] = {}
+    cfg['sc_'+group]['default']['ccs']['default'] = {
+        'help' : 'Library CCS compiled databse',
+        'switch' : '-'+group+'_ccsdb',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash' : []
+    }
+
     cfg['sc_'+group]['default']['lef'] = {
-        'help' : 'Library LEF file',
+        'help' : 'Library layout exchange file (LEF)',
         'switch' : '-'+group+'_lef',      
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
     }
 
+    cfg['sc_'+group]['default']['libdb'] = {
+        'help' : 'Library layout compiled database',
+        'switch' : '-'+group+'_libdb',     
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash'   : []
+    }
     cfg['sc_'+group]['default']['gds'] = {
         'help' : 'Library GDS file',
         'switch' : '-'+group+'_gds',        
@@ -640,23 +651,15 @@ def schema_libs(cfg, group):
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
-    } 
-
-    cfg['sc_'+group]['default']['setup'] = {
-        'help' : 'Library Setup file',
-        'switch' : '-'+group+'_setup',     
-        'type' : ['file'],
-        'defvalue' : [],
-        'hash'   : []
-    } 
-
-    cfg['sc_'+group]['default']['dft'] = {
-        'help' : 'Library DFT file',
-        'switch' : '-'+group+'_dft',     
-        'type' : ['file'],
-        'defvalue' : [],
-        'hash'   : []
     }
+
+    cfg['sc_'+group]['default']['spice'] = {
+        'help' : 'Library Spice file',
+        'switch' : '-'+group+'_spice',        
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash'   : []
+    } 
 
     cfg['sc_'+group]['default']['verilog'] = {
         'help' : 'Library Verilog file',
@@ -665,38 +668,23 @@ def schema_libs(cfg, group):
         'defvalue' : [],
         'hash'   : []
     }
-    
-    cfg['sc_'+group]['default']['doc'] = {
-        'help' : 'Library documentation',
-        'switch' : '-'+group+'_doc',     
+
+    cfg['sc_'+group]['default']['atpg'] = {
+        'help' : 'Library ATPG file',
+        'switch' : '-'+group+'_atpg',     
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
     }
 
-    cfg['sc_'+group]['default']['pnrdb'] = {
-        'help' : 'Library PNR database',
-        'switch' : '-'+group+'_pnrdb',     
+    cfg['sc_'+group]['default']['setup'] = {
+        'help' : 'Library Setup file',
+        'switch' : '-'+group+'_setup',     
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
-    }
-
-    cfg['sc_'+group]['default']['customdb'] = {
-        'help' : 'Library custom database',
-        'switch' : '-'+group+'_customdb',     
-        'type' : ['file'],
-        'defvalue' : [],
-        'hash'   : []
-    }
-
-    cfg['sc_'+group]['default']['driver'] = {
-        'help' : 'Library default driver',
-        'switch' : '-'+group+'_driver',     
-        'type' : ['string'],
-        'defvalue' : []
-    }
-    
+    } 
+           
     cfg['sc_'+group]['default']['site'] = {
         'help' : 'Library placement site',
         'switch' : '-'+group+'_site',     
@@ -711,13 +699,37 @@ def schema_libs(cfg, group):
         'defvalue' : []
     }
 
+    cfg['sc_'+group]['default']['vt'] = {
+        'help' : 'Library Transistor Threshold',
+        'switch' : '-'+group+'_vt',     
+        'type' : ['string'],
+        'defvalue' : [],
+        'hash'   : []
+    } 
+
     cfg['sc_'+group]['default']['tag'] = {
         'help' : 'Tags to identify library',
         'switch' : '-'+group+'_tag',     
         'type' : ['string'],
         'defvalue' : []
     }
-    
+
+    cfg['sc_'+group]['default']['driver'] = {
+        'help' : 'Library default driver cell',
+        'switch' : '-'+group+'_driver',     
+        'type' : ['string'],
+        'defvalue' : []
+    }
+
+    #Cell lists are many and dynamic (so one more level of nesting)
+    cfg['sc_'+group]['default']['cells'] = {}
+    cfg['sc_'+group]['default']['cells']['default'] = {
+            'help' : 'Library cell type list',
+            'switch' : '-'+group+'_cells',
+            'type' : ['string'],
+            'defvalue' : []
+        } 
+
     return cfg
 
 ############################################
@@ -738,7 +750,6 @@ def schema_tools(cfg):
                       'route',
                       'signoff',
                       'export',
-                      'display',
                       'lec',
                       'pex',
                       'sta',
@@ -749,7 +760,8 @@ def schema_tools(cfg):
                       'density',
                       'erc',                    
                       'lvs',
-                      'tapeout']
+                      'tapeout',
+                      'display']
     }
 
     cfg['sc_tool'] = {}
