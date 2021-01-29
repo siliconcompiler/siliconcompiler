@@ -174,6 +174,7 @@ class Chip:
         keymap = {}
         
         #Create a dynamic keymap from string pairs
+        print(stage) 
         string_list = self.cfg['sc_tool'][stage]['keymap']['value']
         for string in string_list:
             k,v = string.split()
@@ -209,6 +210,26 @@ class Chip:
                             cfg[k]['value'][i] = os.path.abspath(v)
                 else:
                     self.abspath(cfg=cfg[k])
+
+    ##################################
+    def printcfg (self, cfg, keys=None, f=None, prefix=""):
+        '''Prints out flattened dictionary
+        '''
+        if keys is None:
+            keys = []
+        for k in cfg:
+            newkeys =  keys.copy()
+            newkeys.append(k)
+            if 'value' in cfg[k]:
+                lst = cfg[k]['value']
+                keystr = ' '.join(newkeys)
+                for i in range(len(lst)):
+                    if f is None:
+                        print(prefix, keystr, i, lst[i])
+                    else:
+                        print(prefix, keystr, i, lst[i], file=f)
+            else:
+                self.printcfg(cfg[k], keys=newkeys, f=f, prefix=prefix)
 
     ##################################
     def mergecfg(self, d2, d1=None):
@@ -355,7 +376,7 @@ class Chip:
                 print(json.dumps(self.cfg, sort_keys=True, indent=4), file=f)
 
     ##################################
-    def writetcl(self, stage, filename):
+    def writetcl(self, stage, filename, cfg=None):
         '''Writes out the Chip cfg dictionary in TCL format
 
         Args:
@@ -363,41 +384,23 @@ class Chip:
             filename (string): Output filename.
 
         '''
-
-        # Name remapping
-        cfg = self.rename(self.cfg, stage)
-
-        # Writing out file
-        with open(os.path.abspath(filename), 'w') as f:
-            print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
-            for key in cfg:
-                if 'value' in cfg[key]:
-                    val_list= cfg[key]['value']
-                    keystr = "set " + key.upper()
-                    #Put quotes around all entries
-                    valstr = "{"
-                    for val in val_list:
-                        valstr = valstr + " {" + val + "}"
-                    valstr = valstr + "}"
-                print('{:10s} {:100s}'.format(keystr, valstr), file=f)
-        f.close()  
-            
-            
+        filepath = os.path.abspath(filename)
         
-       # with open(os.path.abspath(filename), 'w') as f:
-       #     print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
-       #     for key in cfg:
-       #         keystr = "set " + key.upper()
-       #         #Put quotes around all list entries
-       #         valstr = "{"
-       #         if self.cfg[key]['type'] in {"list", "file"}:
-       #             for value in self.cfg[key]['value']:
-       #                 valstr = valstr + " {" + value + "}"
-       #         else:
-       #             valstr = valstr + " {" + str(self.cfg[key]['values']) + "}"
-       #         valstr = valstr + "}"
-       #         print('{:10s} {:100s}'.format(keystr, valstr), file=f)
-       # f.close()
+        self.logger.info('Writing configuration in TCL format: %s', filepath)
+        
+        if cfg is None:
+            cfg = self.cfg
+
+        #Creating a copy of cfg with name remap based on stage
+        cfg = self.rename(cfg, stage)
+        
+        # Writing out file
+        with open(filepath, 'w') as f:
+            print("#############################################", file=f)
+            print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
+            print("#############################################", file=f)
+            self.printcfg(cfg, prefix="dict set sc_cfg", f=f)
+        f.close()  
 
     ##################################
     def readtcl(self, filename):
@@ -631,8 +634,8 @@ class Chip:
                 for value in self.cfg['sc_source']['value']:
                     cmd_fields.append(value)
             else:
-                #Write out CFG as TCL (EDA tcl lacks support for json)
-                self.writetcl(self.cfg, "sc_setup.tcl")
+                #Write out CFG dictionary as TCL
+                self.writetcl(stage, "sc_setup.tcl")
 
             #Adding tcl scripts to comamnd line
             for value in self.cfg['sc_tool'][stage]['script']['value']:
@@ -686,7 +689,6 @@ class Chip:
                 webbrowser.open("https://google.com")
 
             #Updating jobid when complete
-            #TODO:fix
-            self.cfg['sc_tool'][stage]['jobid']['value'] = jobid
+            self.cfg['sc_tool'][stage]['jobid']['value'] = [str(jobid)]
             #Return to CWD
             os.chdir(cwd)
