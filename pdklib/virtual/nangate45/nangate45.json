@@ -1059,7 +1059,7 @@
             "file"
         ],
         "value": [
-            "/home/aolofsson/work/zeroasic/siliconcompiler/pdklib/virtual/nangate45/r1p0pnr/nangate45.tech.lef"
+            "/home/aolofsson/work/zeroasic/siliconcompiler/pdklib/virtual/nangate45/r1p0/pnr/nangate45.tech.lef"
         ]
     },
     "sc_time": {
@@ -1520,7 +1520,7 @@
                     "file"
                 ],
                 "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/pdklib/virtual/nangate45/r1p0drc/FreePDK45.lydrc"
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/pdklib/virtual/nangate45/r1p0/drc/FreePDK45.lydrc"
                 ]
             }
         },

@@ -28,7 +28,7 @@ mychip.set('sc_node', '45')
 mychip.set('sc_stackup', '3MA_3MB_2MC_2MD')
 
 # PNR tech file
-mychip.set('sc_techfile', pdkdir + 'pnr/nangate45.tech.lef')
+mychip.set('sc_techfile', pdkdir + '/pnr/nangate45.tech.lef')
 
 # PNR routing layer setup
 mychip.set('sc_layer', 'metal1  X 0.095  0.19')
@@ -53,7 +53,7 @@ mychip.set('sc_layer', 'metal10 X 0.095  1.60')
 mychip.set('sc_layer', 'metal10 Y 0.070  1.60')
 
 # DRC
-mychip.set('sc_tool', 'drc', 'script',  pdkdir + 'drc/FreePDK45.lydrc')
+mychip.set('sc_tool', 'drc', 'script',  pdkdir + '/drc/FreePDK45.lydrc')
 
 ########################################################
 # Write JSON
