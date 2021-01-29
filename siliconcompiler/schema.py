@@ -22,7 +22,9 @@ def schema():
     cfg = schema_tools(cfg)
 
     cfg = schema_design(cfg)
-       
+
+    cfg = schema_mcmm(cfg)
+
     return cfg
 
 ############################################
@@ -339,7 +341,9 @@ def schema_process(cfg):
 def schema_design(cfg):
     ''' Design setup schema
     '''
-    
+
+
+    # RTL Design Parameters
     cfg['sc_source'] = {
         'help' : 'Source files (.v/.vh/.sv/.vhd)',
         'switch' : 'None',
@@ -435,7 +439,7 @@ def schema_design(cfg):
         'type' : ['string'],
         'defvalue' : []
     }
- 
+
     cfg['sc_diesize'] = {
         'help' : 'Die size (x0 y0 x1 y1) for automated floor-planning (um)',
         'switch' : '-diesize',
@@ -466,14 +470,6 @@ def schema_design(cfg):
         'hash'   : []
     }
     
-    cfg['sc_constraints'] = {
-        'help' : 'Constraints file (SDC)',
-        'switch' : '-constraints',
-        'type' : ['file'],
-        'defvalue' : [],
-        'hash'   : []
-    }
-    
     cfg['sc_ndr'] = {
         'help' : 'Non-default net routing file',
         'switch' : '-ndr',
@@ -498,6 +494,67 @@ def schema_design(cfg):
         'hash'   : []
     }
 
+
+    
+
+    return cfg
+
+############################################
+# MMCM Configuration
+#############################################   
+
+def schema_mmcm(cfg):
+
+    
+    cfg['sc_mcmm'] = {}
+    cfg['sc_mcmm']['default'] = {}
+
+    cfg['sc_mcmm']['default']['views'] = {
+        'help' : 'List of MCMM views',
+        'switch' : '-'+mcmm+'_views',
+        'type' : ['string'],
+        'defvalue' : ['lib_corner',
+                      'rc_corner',
+                      'constraints',
+                      'objectives']
+    }
+
+    #Library corner name (needs to match sc_stdlib)
+    cfg['sc_mcmm']['default']['lib_corner'] = {}
+    cfg['sc_mcmm']['default']['lib_corner']['default'] = {
+        'help' : 'MMCM Library corner name',
+        'switch' : '-mcmm_lib_corner',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+
+    #Wire parastitics corner name
+    cfg['sc_mcmm']['default']['rc_corner'] = {}
+    cfg['sc_mcmm']['default']['rc_corner']['default'] = {
+        'help' : 'MMCM Wire Parasticics (RC) corner name',
+        'switch' : '-mcmm_rc_corner',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+
+    #Constraints
+    cfg['sc_mcmm']['default']['constraints'] = {}
+    cfg['sc_mcmm']['default']['constraints']['default'] = {
+        'help' : 'MMCM Constraints (SDC)',
+        'switch' : '-mcmm_constraints',
+        'type' : ['file'],
+        'defvalue' : []
+    }
+
+    #Optimization Objectives
+    cfg['sc_mcmm']['default']['objectives'] = {}
+    cfg['sc_mcmm']['default']['objectives']['default'] = {
+        'help' : 'MMCM Objectives (setup, hold, leakge, dynamic,..)',
+        'switch' : '-mcmm_objectives',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+    
     return cfg
 
 ############################################
