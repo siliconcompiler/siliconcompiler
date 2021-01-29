@@ -503,7 +503,7 @@ def schema_design(cfg):
 # MMCM Configuration
 #############################################   
 
-def schema_mmcm(cfg):
+def schema_mcmm(cfg):
 
     
     cfg['sc_mcmm'] = {}
@@ -511,7 +511,7 @@ def schema_mmcm(cfg):
 
     cfg['sc_mcmm']['default']['views'] = {
         'help' : 'List of MCMM views',
-        'switch' : '-'+mcmm+'_views',
+        'switch' : '-mcmm_views',
         'type' : ['string'],
         'defvalue' : ['lib_corner',
                       'rc_corner',
