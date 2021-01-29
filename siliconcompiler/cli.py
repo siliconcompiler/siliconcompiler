@@ -39,14 +39,16 @@ def cmdline():
 
     # Auto generated source file arguments
     for key1 in sorted(def_cfg):
-        #Library and macro pattern
+        print(key1)
+        #Library and macro pattern        
         if key1 in ('sc_stdlib', 'sc_macro'):
             for key2 in  def_cfg[key1]['default'].keys():
                 #Timing/power has a fixed structure with default as keyword for lib/corner
-                metahelp =  '<lib corner filename>'
-                if key2 in ('cells'):
-                    metahelp = '<lib type cellname>'
-                if key2 in ('timing', 'power', 'cells'):
+                if 'default' in def_cfg[key1]['default'][key2]:   
+                    if key2 in ('cells'):
+                        metahelp = '<lib type cellname>'
+                    else:
+                        metahelp = '<lib type filepath>'
                     parser.add_argument(def_cfg[key1]['default'][key2]['default']['switch'],
                                         dest=key1+"_"+key2,
                                         metavar=metahelp,
@@ -54,14 +56,28 @@ def cmdline():
                                         help=def_cfg[key1]['default'][key2]['default']['help'],
                                         default = argparse.SUPPRESS)
                 else:
-                    #All other  
+                    print(key1, key2, def_cfg[key1]['default'][key2]['type'])
+                    if (def_cfg[key1]['default'][key2]['type'][0] == 'file'): 
+                        metahelp = '<lib filepath>'
+                    else:
+                        metahelp = '<lib string>'
                     parser.add_argument(def_cfg[key1]['default'][key2]['switch'],
                                         dest=key1+"_"+key2,
-                                        metavar='<lib path>',
+                                        metavar=metahelp,
                                         action='append',
                                         help=def_cfg[key1]['default'][key2]['help'],
                                         default = argparse.SUPPRESS)        
-        #Tool config pattern
+
+        #MCMM pattern
+        elif key1 in ('sc_mcmm'):
+            for key2 in def_cfg[key1]['default'].keys():
+                parser.add_argument(def_cfg[key1]['default'][key2]['switch'],
+                                    dest=key1+"_"+key2,
+                                    metavar='<mode ' + key2 + '>',
+                                    action='append',
+                                    help=def_cfg[key1]['default'][key2]['help'],
+                                    default = argparse.SUPPRESS)             
+        #Tool pattern
         elif key1 in ('sc_tool'):
             for key2 in def_cfg['sc_tool']['syn'].keys():
                 parser.add_argument(def_cfg[key1]['syn'][key2]['switch'],
