@@ -25,7 +25,7 @@ mychip.set('sc_process', process)
 mychip.set('sc_node', '45')
 
 # name of metal stack
-mychip.set('sc_metalstack', '3MA_3MB_2MC_2MD')
+mychip.set('sc_stackup', '3MA_3MB_2MC_2MD')
 
 # PNR tech file
 mychip.set('sc_techfile', pdkdir + 'pnr/nangate45.tech.lef')

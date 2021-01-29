@@ -42,16 +42,6 @@
         ],
         "value": []
     },
-    "sc_constraints": {
-        "defvalue": [],
-        "hash": [],
-        "help": "Constraints file (SDC)",
-        "switch": "-constraints",
-        "type": [
-            "file"
-        ],
-        "value": []
-    },
     "sc_cont": {
         "defvalue": [
             "False"
@@ -304,6 +294,40 @@
     },
     "sc_macro": {
         "default": {
+            "atpg": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library ATPG file",
+                "switch": "-macro_atpg",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "ccs": {
+                "default": {
+                    "defvalue": [],
+                    "hash": [],
+                    "help": "Library composite current source (ccs) model",
+                    "switch": "-macro_ccs",
+                    "type": [
+                        "file"
+                    ],
+                    "value": []
+                }
+            },
+            "ccsdb": {
+                "default": {
+                    "defvalue": [],
+                    "hash": [],
+                    "help": "Library CCS compiled databse",
+                    "switch": "-macro_ccsdb",
+                    "type": [
+                        "file"
+                    ],
+                    "value": []
+                }
+            },
             "cdl": {
                 "defvalue": [],
                 "hash": [],
@@ -325,31 +349,11 @@
                     "value": []
                 }
             },
-            "customdb": {
+            "datasheet": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Library custom database",
-                "switch": "-macro_customdb",
-                "type": [
-                    "file"
-                ],
-                "value": []
-            },
-            "dft": {
-                "defvalue": [],
-                "hash": [],
-                "help": "Library DFT file",
-                "switch": "-macro_dft",
-                "type": [
-                    "file"
-                ],
-                "value": []
-            },
-            "doc": {
-                "defvalue": [],
-                "hash": [],
-                "help": "Library documentation",
-                "switch": "-macro_doc",
+                "help": "Library datasheet (PDF, TXT, or HTML directory)",
+                "switch": "-macro_datasheet",
                 "type": [
                     "file"
                 ],
@@ -357,7 +361,7 @@
             },
             "driver": {
                 "defvalue": [],
-                "help": "Library default driver",
+                "help": "Library default driver cell",
                 "switch": "-macro_driver",
                 "type": [
                     "string"
@@ -377,48 +381,60 @@
             "lef": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Library LEF file",
+                "help": "Library layout exchange file (LEF)",
                 "switch": "-macro_lef",
                 "type": [
                     "file"
                 ],
                 "value": []
             },
-            "pgmetal": {
-                "defvalue": [],
-                "help": "Metal layer used for power rails",
-                "switch": "-macro_pgmetal",
-                "type": [
-                    "string"
-                ],
-                "value": []
-            },
-            "pnrdb": {
+            "libdb": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Library PNR database",
-                "switch": "-macro_pnrdb",
+                "help": "Library layout compiled database",
+                "switch": "-macro_libdb",
                 "type": [
                     "file"
                 ],
                 "value": []
             },
-            "power": {
+            "nldm": {
                 "default": {
                     "defvalue": [],
                     "hash": [],
-                    "help": "Library power file",
-                    "switch": "-macro_power",
+                    "help": "Library non-linear delay timing model",
+                    "switch": "-macro_nldm",
                     "type": [
                         "file"
                     ],
                     "value": []
                 }
             },
+            "nldmdb": {
+                "default": {
+                    "defvalue": [],
+                    "hash": [],
+                    "help": "Library NLDM compiled database",
+                    "switch": "-macro_nldmdb",
+                    "type": [
+                        "file"
+                    ],
+                    "value": []
+                }
+            },
+            "pgmetal": {
+                "defvalue": [],
+                "help": "Library power rail metal layer",
+                "switch": "-macro_pgmetal",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
             "setup": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Library Setup file",
+                "help": "Library TCL setup file",
                 "switch": "-macro_setup",
                 "type": [
                     "file"
@@ -434,26 +450,34 @@
                 ],
                 "value": []
             },
+            "spice": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library Spice file",
+                "switch": "-macro_spice",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
             "tag": {
                 "defvalue": [],
-                "help": "Tags to identify library",
+                "help": "Library indentifier tags",
                 "switch": "-macro_tag",
                 "type": [
                     "string"
                 ],
                 "value": []
             },
-            "timing": {
-                "default": {
-                    "defvalue": [],
-                    "hash": [],
-                    "help": "Library timing file",
-                    "switch": "-macro_timing",
-                    "type": [
-                        "file"
-                    ],
-                    "value": []
-                }
+            "userguide": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library userguide (PDF or TXT)",
+                "switch": "-macro_userguide",
+                "type": [
+                    "file"
+                ],
+                "value": []
             },
             "verilog": {
                 "defvalue": [],
@@ -465,48 +489,15 @@
                 ],
                 "value": []
             },
-            "views": {
-                "defvalue": [
-                    "timing",
-                    "power",
-                    "cells",
-                    "lef",
-                    "gds",
-                    "cdl",
-                    "setup",
-                    "dft",
-                    "verilog",
-                    "doc",
-                    "pnrdb",
-                    "customdb",
-                    "driver",
-                    "site",
-                    "pgmetal",
-                    "tag"
-                ],
-                "help": "List of all library views",
-                "switch": "-macro_views",
+            "vt": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library Transistor Threshold",
+                "switch": "-macro_vt",
                 "type": [
                     "string"
                 ],
-                "value": [
-                    "timing",
-                    "power",
-                    "cells",
-                    "lef",
-                    "gds",
-                    "cdl",
-                    "setup",
-                    "dft",
-                    "verilog",
-                    "doc",
-                    "pnrdb",
-                    "customdb",
-                    "driver",
-                    "site",
-                    "pgmetal",
-                    "tag"
-                ]
+                "value": []
             }
         }
     },
@@ -527,6 +518,46 @@
             "int"
         ],
         "value": []
+    },
+    "sc_mcmm": {
+        "default": {
+            "constraints": {
+                "defvalue": [],
+                "help": "MMCM Constraints (SDC)",
+                "switch": "-mcmm_constraints",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "lib_corner": {
+                "defvalue": [],
+                "help": "MMCM Library corner name",
+                "switch": "-mcmm_lib_corner",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "objectives": {
+                "defvalue": [],
+                "help": "MMCM Objectives (setup, hold, leakge, dynamic,..)",
+                "switch": "-mcmm_objectives",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
+            "rc_corner": {
+                "defvalue": [],
+                "help": "MMCM Wire Parasticics (RC) corner name",
+                "switch": "-mcmm_rc_corner",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            }
+        }
     },
     "sc_minlayer": {
         "defvalue": [],
@@ -700,7 +731,9 @@
         "type": [
             "string"
         ],
-        "value": []
+        "value": [
+            "3MA_3MB_2MC_2MD"
+        ]
     },
     "sc_stages": {
         "defvalue": [
@@ -712,7 +745,6 @@
             "route",
             "signoff",
             "export",
-            "display",
             "lec",
             "pex",
             "sta",
@@ -723,7 +755,8 @@
             "density",
             "erc",
             "lvs",
-            "tapeout"
+            "tapeout",
+            "display"
         ],
         "help": "List of all compilation stages",
         "switch": "-stages",
@@ -739,7 +772,6 @@
             "route",
             "signoff",
             "export",
-            "display",
             "lec",
             "pex",
             "sta",
@@ -750,7 +782,8 @@
             "density",
             "erc",
             "lvs",
-            "tapeout"
+            "tapeout",
+            "display"
         ]
     },
     "sc_start": {
@@ -766,6 +799,40 @@
     },
     "sc_stdlib": {
         "default": {
+            "atpg": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library ATPG file",
+                "switch": "-stdlib_atpg",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
+            "ccs": {
+                "default": {
+                    "defvalue": [],
+                    "hash": [],
+                    "help": "Library composite current source (ccs) model",
+                    "switch": "-stdlib_ccs",
+                    "type": [
+                        "file"
+                    ],
+                    "value": []
+                }
+            },
+            "ccsdb": {
+                "default": {
+                    "defvalue": [],
+                    "hash": [],
+                    "help": "Library CCS compiled databse",
+                    "switch": "-stdlib_ccsdb",
+                    "type": [
+                        "file"
+                    ],
+                    "value": []
+                }
+            },
             "cdl": {
                 "defvalue": [],
                 "hash": [],
@@ -787,31 +854,11 @@
                     "value": []
                 }
             },
-            "customdb": {
+            "datasheet": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Library custom database",
-                "switch": "-stdlib_customdb",
-                "type": [
-                    "file"
-                ],
-                "value": []
-            },
-            "dft": {
-                "defvalue": [],
-                "hash": [],
-                "help": "Library DFT file",
-                "switch": "-stdlib_dft",
-                "type": [
-                    "file"
-                ],
-                "value": []
-            },
-            "doc": {
-                "defvalue": [],
-                "hash": [],
-                "help": "Library documentation",
-                "switch": "-stdlib_doc",
+                "help": "Library datasheet (PDF, TXT, or HTML directory)",
+                "switch": "-stdlib_datasheet",
                 "type": [
                     "file"
                 ],
@@ -819,7 +866,7 @@
             },
             "driver": {
                 "defvalue": [],
-                "help": "Library default driver",
+                "help": "Library default driver cell",
                 "switch": "-stdlib_driver",
                 "type": [
                     "string"
@@ -839,48 +886,60 @@
             "lef": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Library LEF file",
+                "help": "Library layout exchange file (LEF)",
                 "switch": "-stdlib_lef",
                 "type": [
                     "file"
                 ],
                 "value": []
             },
-            "pgmetal": {
-                "defvalue": [],
-                "help": "Metal layer used for power rails",
-                "switch": "-stdlib_pgmetal",
-                "type": [
-                    "string"
-                ],
-                "value": []
-            },
-            "pnrdb": {
+            "libdb": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Library PNR database",
-                "switch": "-stdlib_pnrdb",
+                "help": "Library layout compiled database",
+                "switch": "-stdlib_libdb",
                 "type": [
                     "file"
                 ],
                 "value": []
             },
-            "power": {
+            "nldm": {
                 "default": {
                     "defvalue": [],
                     "hash": [],
-                    "help": "Library power file",
-                    "switch": "-stdlib_power",
+                    "help": "Library non-linear delay timing model",
+                    "switch": "-stdlib_nldm",
                     "type": [
                         "file"
                     ],
                     "value": []
                 }
             },
+            "nldmdb": {
+                "default": {
+                    "defvalue": [],
+                    "hash": [],
+                    "help": "Library NLDM compiled database",
+                    "switch": "-stdlib_nldmdb",
+                    "type": [
+                        "file"
+                    ],
+                    "value": []
+                }
+            },
+            "pgmetal": {
+                "defvalue": [],
+                "help": "Library power rail metal layer",
+                "switch": "-stdlib_pgmetal",
+                "type": [
+                    "string"
+                ],
+                "value": []
+            },
             "setup": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Library Setup file",
+                "help": "Library TCL setup file",
                 "switch": "-stdlib_setup",
                 "type": [
                     "file"
@@ -896,26 +955,34 @@
                 ],
                 "value": []
             },
+            "spice": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library Spice file",
+                "switch": "-stdlib_spice",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            },
             "tag": {
                 "defvalue": [],
-                "help": "Tags to identify library",
+                "help": "Library indentifier tags",
                 "switch": "-stdlib_tag",
                 "type": [
                     "string"
                 ],
                 "value": []
             },
-            "timing": {
-                "default": {
-                    "defvalue": [],
-                    "hash": [],
-                    "help": "Library timing file",
-                    "switch": "-stdlib_timing",
-                    "type": [
-                        "file"
-                    ],
-                    "value": []
-                }
+            "userguide": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library userguide (PDF or TXT)",
+                "switch": "-stdlib_userguide",
+                "type": [
+                    "file"
+                ],
+                "value": []
             },
             "verilog": {
                 "defvalue": [],
@@ -927,48 +994,15 @@
                 ],
                 "value": []
             },
-            "views": {
-                "defvalue": [
-                    "timing",
-                    "power",
-                    "cells",
-                    "lef",
-                    "gds",
-                    "cdl",
-                    "setup",
-                    "dft",
-                    "verilog",
-                    "doc",
-                    "pnrdb",
-                    "customdb",
-                    "driver",
-                    "site",
-                    "pgmetal",
-                    "tag"
-                ],
-                "help": "List of all library views",
-                "switch": "-stdlib_views",
+            "vt": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Library Transistor Threshold",
+                "switch": "-stdlib_vt",
                 "type": [
                     "string"
                 ],
-                "value": [
-                    "timing",
-                    "power",
-                    "cells",
-                    "lef",
-                    "gds",
-                    "cdl",
-                    "setup",
-                    "dft",
-                    "verilog",
-                    "doc",
-                    "pnrdb",
-                    "customdb",
-                    "driver",
-                    "site",
-                    "pgmetal",
-                    "tag"
-                ]
+                "value": []
             }
         }
     },
@@ -1041,7 +1075,7 @@
         "antenna": {
             "copy": {
                 "defvalue": [],
-                "help": "Stage Tool Copy To Local",
+                "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
                 "type": [
                     "string"
@@ -1050,7 +1084,7 @@
             },
             "exe": {
                 "defvalue": [],
-                "help": "Stage Tool Executable",
+                "help": "Stage executable",
                 "switch": "-tool_exe",
                 "type": [
                     "string"
@@ -1059,7 +1093,7 @@
             },
             "format": {
                 "defvalue": [],
-                "help": "Stage Tool Configuration Format",
+                "help": "Stage configuration format",
                 "switch": "-tool_format",
                 "type": [
                     "string"
@@ -1070,7 +1104,7 @@
                 "defvalue": [
                     "0"
                 ],
-                "help": "Stage Tool Job index",
+                "help": "Stage job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
@@ -1081,7 +1115,7 @@
             },
             "keymap": {
                 "defvalue": [],
-                "help": "Stage Tool Keyword translation table",
+                "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
                 "type": [
                     "string",
@@ -1091,7 +1125,7 @@
             },
             "np": {
                 "defvalue": [],
-                "help": "Stage Tool Parallelism",
+                "help": "Stage thread parallelism",
                 "switch": "-tool_np",
                 "type": [
                     "int"
@@ -1100,7 +1134,7 @@
             },
             "opt": {
                 "defvalue": [],
-                "help": "Stage Tool Options",
+                "help": "Stage executable options",
                 "switch": "-tool_opt",
                 "type": [
                     "string"
@@ -1110,7 +1144,7 @@
             "refdir": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Reference Flow Directory",
+                "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
                 "type": [
                     "file"
@@ -1120,7 +1154,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script",
+                "help": "Stage entry point script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -1131,7 +1165,7 @@
         "cts": {
             "copy": {
                 "defvalue": [],
-                "help": "Stage Tool Copy To Local",
+                "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
                 "type": [
                     "string"
@@ -1140,7 +1174,7 @@
             },
             "exe": {
                 "defvalue": [],
-                "help": "Stage Tool Executable",
+                "help": "Stage executable",
                 "switch": "-tool_exe",
                 "type": [
                     "string"
@@ -1149,7 +1183,7 @@
             },
             "format": {
                 "defvalue": [],
-                "help": "Stage Tool Configuration Format",
+                "help": "Stage configuration format",
                 "switch": "-tool_format",
                 "type": [
                     "string"
@@ -1160,7 +1194,7 @@
                 "defvalue": [
                     "0"
                 ],
-                "help": "Stage Tool Job index",
+                "help": "Stage job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
@@ -1171,7 +1205,7 @@
             },
             "keymap": {
                 "defvalue": [],
-                "help": "Stage Tool Keyword translation table",
+                "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
                 "type": [
                     "string",
@@ -1181,7 +1215,7 @@
             },
             "np": {
                 "defvalue": [],
-                "help": "Stage Tool Parallelism",
+                "help": "Stage thread parallelism",
                 "switch": "-tool_np",
                 "type": [
                     "int"
@@ -1190,7 +1224,7 @@
             },
             "opt": {
                 "defvalue": [],
-                "help": "Stage Tool Options",
+                "help": "Stage executable options",
                 "switch": "-tool_opt",
                 "type": [
                     "string"
@@ -1200,7 +1234,7 @@
             "refdir": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Reference Flow Directory",
+                "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
                 "type": [
                     "file"
@@ -1210,7 +1244,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script",
+                "help": "Stage entry point script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -1221,7 +1255,7 @@
         "density": {
             "copy": {
                 "defvalue": [],
-                "help": "Stage Tool Copy To Local",
+                "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
                 "type": [
                     "string"
@@ -1230,7 +1264,7 @@
             },
             "exe": {
                 "defvalue": [],
-                "help": "Stage Tool Executable",
+                "help": "Stage executable",
                 "switch": "-tool_exe",
                 "type": [
                     "string"
@@ -1239,7 +1273,7 @@
             },
             "format": {
                 "defvalue": [],
-                "help": "Stage Tool Configuration Format",
+                "help": "Stage configuration format",
                 "switch": "-tool_format",
                 "type": [
                     "string"
@@ -1250,7 +1284,7 @@
                 "defvalue": [
                     "0"
                 ],
-                "help": "Stage Tool Job index",
+                "help": "Stage job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
@@ -1261,7 +1295,7 @@
             },
             "keymap": {
                 "defvalue": [],
-                "help": "Stage Tool Keyword translation table",
+                "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
                 "type": [
                     "string",
@@ -1271,7 +1305,7 @@
             },
             "np": {
                 "defvalue": [],
-                "help": "Stage Tool Parallelism",
+                "help": "Stage thread parallelism",
                 "switch": "-tool_np",
                 "type": [
                     "int"
@@ -1280,7 +1314,7 @@
             },
             "opt": {
                 "defvalue": [],
-                "help": "Stage Tool Options",
+                "help": "Stage executable options",
                 "switch": "-tool_opt",
                 "type": [
                     "string"
@@ -1290,7 +1324,7 @@
             "refdir": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Reference Flow Directory",
+                "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
                 "type": [
                     "file"
@@ -1300,7 +1334,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script",
+                "help": "Stage entry point script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -1311,7 +1345,7 @@
         "display": {
             "copy": {
                 "defvalue": [],
-                "help": "Stage Tool Copy To Local",
+                "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
                 "type": [
                     "string"
@@ -1320,7 +1354,7 @@
             },
             "exe": {
                 "defvalue": [],
-                "help": "Stage Tool Executable",
+                "help": "Stage executable",
                 "switch": "-tool_exe",
                 "type": [
                     "string"
@@ -1329,7 +1363,7 @@
             },
             "format": {
                 "defvalue": [],
-                "help": "Stage Tool Configuration Format",
+                "help": "Stage configuration format",
                 "switch": "-tool_format",
                 "type": [
                     "string"
@@ -1340,7 +1374,7 @@
                 "defvalue": [
                     "0"
                 ],
-                "help": "Stage Tool Job index",
+                "help": "Stage job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
@@ -1351,7 +1385,7 @@
             },
             "keymap": {
                 "defvalue": [],
-                "help": "Stage Tool Keyword translation table",
+                "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
                 "type": [
                     "string",
@@ -1361,7 +1395,7 @@
             },
             "np": {
                 "defvalue": [],
-                "help": "Stage Tool Parallelism",
+                "help": "Stage thread parallelism",
                 "switch": "-tool_np",
                 "type": [
                     "int"
@@ -1370,7 +1404,7 @@
             },
             "opt": {
                 "defvalue": [],
-                "help": "Stage Tool Options",
+                "help": "Stage executable options",
                 "switch": "-tool_opt",
                 "type": [
                     "string"
@@ -1380,7 +1414,7 @@
             "refdir": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Reference Flow Directory",
+                "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
                 "type": [
                     "file"
@@ -1390,7 +1424,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script",
+                "help": "Stage entry point script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -1401,7 +1435,7 @@
         "drc": {
             "copy": {
                 "defvalue": [],
-                "help": "Stage Tool Copy To Local",
+                "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
                 "type": [
                     "string"
@@ -1410,7 +1444,7 @@
             },
             "exe": {
                 "defvalue": [],
-                "help": "Stage Tool Executable",
+                "help": "Stage executable",
                 "switch": "-tool_exe",
                 "type": [
                     "string"
@@ -1419,7 +1453,7 @@
             },
             "format": {
                 "defvalue": [],
-                "help": "Stage Tool Configuration Format",
+                "help": "Stage configuration format",
                 "switch": "-tool_format",
                 "type": [
                     "string"
@@ -1430,7 +1464,7 @@
                 "defvalue": [
                     "0"
                 ],
-                "help": "Stage Tool Job index",
+                "help": "Stage job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
@@ -1441,7 +1475,7 @@
             },
             "keymap": {
                 "defvalue": [],
-                "help": "Stage Tool Keyword translation table",
+                "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
                 "type": [
                     "string",
@@ -1451,7 +1485,7 @@
             },
             "np": {
                 "defvalue": [],
-                "help": "Stage Tool Parallelism",
+                "help": "Stage thread parallelism",
                 "switch": "-tool_np",
                 "type": [
                     "int"
@@ -1460,7 +1494,7 @@
             },
             "opt": {
                 "defvalue": [],
-                "help": "Stage Tool Options",
+                "help": "Stage executable options",
                 "switch": "-tool_opt",
                 "type": [
                     "string"
@@ -1470,7 +1504,7 @@
             "refdir": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Reference Flow Directory",
+                "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
                 "type": [
                     "file"
@@ -1480,7 +1514,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script",
+                "help": "Stage entry point script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -1493,7 +1527,7 @@
         "erc": {
             "copy": {
                 "defvalue": [],
-                "help": "Stage Tool Copy To Local",
+                "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
                 "type": [
                     "string"
@@ -1502,7 +1536,7 @@
             },
             "exe": {
                 "defvalue": [],
-                "help": "Stage Tool Executable",
+                "help": "Stage executable",
                 "switch": "-tool_exe",
                 "type": [
                     "string"
@@ -1511,7 +1545,7 @@
             },
             "format": {
                 "defvalue": [],
-                "help": "Stage Tool Configuration Format",
+                "help": "Stage configuration format",
                 "switch": "-tool_format",
                 "type": [
                     "string"
@@ -1522,7 +1556,7 @@
                 "defvalue": [
                     "0"
                 ],
-                "help": "Stage Tool Job index",
+                "help": "Stage job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
@@ -1533,7 +1567,7 @@
             },
             "keymap": {
                 "defvalue": [],
-                "help": "Stage Tool Keyword translation table",
+                "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
                 "type": [
                     "string",
@@ -1543,7 +1577,7 @@
             },
             "np": {
                 "defvalue": [],
-                "help": "Stage Tool Parallelism",
+                "help": "Stage thread parallelism",
                 "switch": "-tool_np",
                 "type": [
                     "int"
@@ -1552,7 +1586,7 @@
             },
             "opt": {
                 "defvalue": [],
-                "help": "Stage Tool Options",
+                "help": "Stage executable options",
                 "switch": "-tool_opt",
                 "type": [
                     "string"
@@ -1562,7 +1596,7 @@
             "refdir": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Reference Flow Directory",
+                "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
                 "type": [
                     "file"
@@ -1572,7 +1606,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script",
+                "help": "Stage entry point script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -1583,7 +1617,7 @@
         "export": {
             "copy": {
                 "defvalue": [],
-                "help": "Stage Tool Copy To Local",
+                "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
                 "type": [
                     "string"
@@ -1592,7 +1626,7 @@
             },
             "exe": {
                 "defvalue": [],
-                "help": "Stage Tool Executable",
+                "help": "Stage executable",
                 "switch": "-tool_exe",
                 "type": [
                     "string"
@@ -1601,7 +1635,7 @@
             },
             "format": {
                 "defvalue": [],
-                "help": "Stage Tool Configuration Format",
+                "help": "Stage configuration format",
                 "switch": "-tool_format",
                 "type": [
                     "string"
@@ -1612,7 +1646,7 @@
                 "defvalue": [
                     "0"
                 ],
-                "help": "Stage Tool Job index",
+                "help": "Stage job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
@@ -1623,7 +1657,7 @@
             },
             "keymap": {
                 "defvalue": [],
-                "help": "Stage Tool Keyword translation table",
+                "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
                 "type": [
                     "string",
@@ -1633,7 +1667,7 @@
             },
             "np": {
                 "defvalue": [],
-                "help": "Stage Tool Parallelism",
+                "help": "Stage thread parallelism",
                 "switch": "-tool_np",
                 "type": [
                     "int"
@@ -1642,7 +1676,7 @@
             },
             "opt": {
                 "defvalue": [],
-                "help": "Stage Tool Options",
+                "help": "Stage executable options",
                 "switch": "-tool_opt",
                 "type": [
                     "string"
@@ -1652,7 +1686,7 @@
             "refdir": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Reference Flow Directory",
+                "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
                 "type": [
                     "file"
@@ -1662,7 +1696,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script",
+                "help": "Stage entry point script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -1673,7 +1707,7 @@
         "floorplan": {
             "copy": {
                 "defvalue": [],
-                "help": "Stage Tool Copy To Local",
+                "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
                 "type": [
                     "string"
@@ -1682,7 +1716,7 @@
             },
             "exe": {
                 "defvalue": [],
-                "help": "Stage Tool Executable",
+                "help": "Stage executable",
                 "switch": "-tool_exe",
                 "type": [
                     "string"
@@ -1691,7 +1725,7 @@
             },
             "format": {
                 "defvalue": [],
-                "help": "Stage Tool Configuration Format",
+                "help": "Stage configuration format",
                 "switch": "-tool_format",
                 "type": [
                     "string"
@@ -1702,7 +1736,7 @@
                 "defvalue": [
                     "0"
                 ],
-                "help": "Stage Tool Job index",
+                "help": "Stage job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
@@ -1713,7 +1747,7 @@
             },
             "keymap": {
                 "defvalue": [],
-                "help": "Stage Tool Keyword translation table",
+                "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
                 "type": [
                     "string",
@@ -1723,7 +1757,7 @@
             },
             "np": {
                 "defvalue": [],
-                "help": "Stage Tool Parallelism",
+                "help": "Stage thread parallelism",
                 "switch": "-tool_np",
                 "type": [
                     "int"
@@ -1732,7 +1766,7 @@
             },
             "opt": {
                 "defvalue": [],
-                "help": "Stage Tool Options",
+                "help": "Stage executable options",
                 "switch": "-tool_opt",
                 "type": [
                     "string"
@@ -1742,7 +1776,7 @@
             "refdir": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Reference Flow Directory",
+                "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
                 "type": [
                     "file"
@@ -1752,7 +1786,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script",
+                "help": "Stage entry point script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -1763,7 +1797,7 @@
         "import": {
             "copy": {
                 "defvalue": [],
-                "help": "Stage Tool Copy To Local",
+                "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
                 "type": [
                     "string"
@@ -1772,7 +1806,7 @@
             },
             "exe": {
                 "defvalue": [],
-                "help": "Stage Tool Executable",
+                "help": "Stage executable",
                 "switch": "-tool_exe",
                 "type": [
                     "string"
@@ -1781,7 +1815,7 @@
             },
             "format": {
                 "defvalue": [],
-                "help": "Stage Tool Configuration Format",
+                "help": "Stage configuration format",
                 "switch": "-tool_format",
                 "type": [
                     "string"
@@ -1792,7 +1826,7 @@
                 "defvalue": [
                     "0"
                 ],
-                "help": "Stage Tool Job index",
+                "help": "Stage job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
@@ -1803,7 +1837,7 @@
             },
             "keymap": {
                 "defvalue": [],
-                "help": "Stage Tool Keyword translation table",
+                "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
                 "type": [
                     "string",
@@ -1813,7 +1847,7 @@
             },
             "np": {
                 "defvalue": [],
-                "help": "Stage Tool Parallelism",
+                "help": "Stage thread parallelism",
                 "switch": "-tool_np",
                 "type": [
                     "int"
@@ -1822,7 +1856,7 @@
             },
             "opt": {
                 "defvalue": [],
-                "help": "Stage Tool Options",
+                "help": "Stage executable options",
                 "switch": "-tool_opt",
                 "type": [
                     "string"
@@ -1832,7 +1866,7 @@
             "refdir": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Reference Flow Directory",
+                "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
                 "type": [
                     "file"
@@ -1842,7 +1876,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script",
+                "help": "Stage entry point script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -1853,7 +1887,7 @@
         "lec": {
             "copy": {
                 "defvalue": [],
-                "help": "Stage Tool Copy To Local",
+                "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
                 "type": [
                     "string"
@@ -1862,7 +1896,7 @@
             },
             "exe": {
                 "defvalue": [],
-                "help": "Stage Tool Executable",
+                "help": "Stage executable",
                 "switch": "-tool_exe",
                 "type": [
                     "string"
@@ -1871,7 +1905,7 @@
             },
             "format": {
                 "defvalue": [],
-                "help": "Stage Tool Configuration Format",
+                "help": "Stage configuration format",
                 "switch": "-tool_format",
                 "type": [
                     "string"
@@ -1882,7 +1916,7 @@
                 "defvalue": [
                     "0"
                 ],
-                "help": "Stage Tool Job index",
+                "help": "Stage job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
@@ -1893,7 +1927,7 @@
             },
             "keymap": {
                 "defvalue": [],
-                "help": "Stage Tool Keyword translation table",
+                "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
                 "type": [
                     "string",
@@ -1903,7 +1937,7 @@
             },
             "np": {
                 "defvalue": [],
-                "help": "Stage Tool Parallelism",
+                "help": "Stage thread parallelism",
                 "switch": "-tool_np",
                 "type": [
                     "int"
@@ -1912,7 +1946,7 @@
             },
             "opt": {
                 "defvalue": [],
-                "help": "Stage Tool Options",
+                "help": "Stage executable options",
                 "switch": "-tool_opt",
                 "type": [
                     "string"
@@ -1922,7 +1956,7 @@
             "refdir": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Reference Flow Directory",
+                "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
                 "type": [
                     "file"
@@ -1932,7 +1966,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script",
+                "help": "Stage entry point script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -1943,7 +1977,7 @@
         "lvs": {
             "copy": {
                 "defvalue": [],
-                "help": "Stage Tool Copy To Local",
+                "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
                 "type": [
                     "string"
@@ -1952,7 +1986,7 @@
             },
             "exe": {
                 "defvalue": [],
-                "help": "Stage Tool Executable",
+                "help": "Stage executable",
                 "switch": "-tool_exe",
                 "type": [
                     "string"
@@ -1961,7 +1995,7 @@
             },
             "format": {
                 "defvalue": [],
-                "help": "Stage Tool Configuration Format",
+                "help": "Stage configuration format",
                 "switch": "-tool_format",
                 "type": [
                     "string"
@@ -1972,7 +2006,7 @@
                 "defvalue": [
                     "0"
                 ],
-                "help": "Stage Tool Job index",
+                "help": "Stage job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
@@ -1983,7 +2017,7 @@
             },
             "keymap": {
                 "defvalue": [],
-                "help": "Stage Tool Keyword translation table",
+                "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
                 "type": [
                     "string",
@@ -1993,7 +2027,7 @@
             },
             "np": {
                 "defvalue": [],
-                "help": "Stage Tool Parallelism",
+                "help": "Stage thread parallelism",
                 "switch": "-tool_np",
                 "type": [
                     "int"
@@ -2002,7 +2036,7 @@
             },
             "opt": {
                 "defvalue": [],
-                "help": "Stage Tool Options",
+                "help": "Stage executable options",
                 "switch": "-tool_opt",
                 "type": [
                     "string"
@@ -2012,7 +2046,7 @@
             "refdir": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Reference Flow Directory",
+                "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
                 "type": [
                     "file"
@@ -2022,7 +2056,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script",
+                "help": "Stage entry point script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -2033,7 +2067,7 @@
         "pex": {
             "copy": {
                 "defvalue": [],
-                "help": "Stage Tool Copy To Local",
+                "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
                 "type": [
                     "string"
@@ -2042,7 +2076,7 @@
             },
             "exe": {
                 "defvalue": [],
-                "help": "Stage Tool Executable",
+                "help": "Stage executable",
                 "switch": "-tool_exe",
                 "type": [
                     "string"
@@ -2051,7 +2085,7 @@
             },
             "format": {
                 "defvalue": [],
-                "help": "Stage Tool Configuration Format",
+                "help": "Stage configuration format",
                 "switch": "-tool_format",
                 "type": [
                     "string"
@@ -2062,7 +2096,7 @@
                 "defvalue": [
                     "0"
                 ],
-                "help": "Stage Tool Job index",
+                "help": "Stage job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
@@ -2073,7 +2107,7 @@
             },
             "keymap": {
                 "defvalue": [],
-                "help": "Stage Tool Keyword translation table",
+                "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
                 "type": [
                     "string",
@@ -2083,7 +2117,7 @@
             },
             "np": {
                 "defvalue": [],
-                "help": "Stage Tool Parallelism",
+                "help": "Stage thread parallelism",
                 "switch": "-tool_np",
                 "type": [
                     "int"
@@ -2092,7 +2126,7 @@
             },
             "opt": {
                 "defvalue": [],
-                "help": "Stage Tool Options",
+                "help": "Stage executable options",
                 "switch": "-tool_opt",
                 "type": [
                     "string"
@@ -2102,7 +2136,7 @@
             "refdir": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Reference Flow Directory",
+                "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
                 "type": [
                     "file"
@@ -2112,7 +2146,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script",
+                "help": "Stage entry point script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -2123,7 +2157,7 @@
         "pi": {
             "copy": {
                 "defvalue": [],
-                "help": "Stage Tool Copy To Local",
+                "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
                 "type": [
                     "string"
@@ -2132,7 +2166,7 @@
             },
             "exe": {
                 "defvalue": [],
-                "help": "Stage Tool Executable",
+                "help": "Stage executable",
                 "switch": "-tool_exe",
                 "type": [
                     "string"
@@ -2141,7 +2175,7 @@
             },
             "format": {
                 "defvalue": [],
-                "help": "Stage Tool Configuration Format",
+                "help": "Stage configuration format",
                 "switch": "-tool_format",
                 "type": [
                     "string"
@@ -2152,7 +2186,7 @@
                 "defvalue": [
                     "0"
                 ],
-                "help": "Stage Tool Job index",
+                "help": "Stage job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
@@ -2163,7 +2197,7 @@
             },
             "keymap": {
                 "defvalue": [],
-                "help": "Stage Tool Keyword translation table",
+                "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
                 "type": [
                     "string",
@@ -2173,7 +2207,7 @@
             },
             "np": {
                 "defvalue": [],
-                "help": "Stage Tool Parallelism",
+                "help": "Stage thread parallelism",
                 "switch": "-tool_np",
                 "type": [
                     "int"
@@ -2182,7 +2216,7 @@
             },
             "opt": {
                 "defvalue": [],
-                "help": "Stage Tool Options",
+                "help": "Stage executable options",
                 "switch": "-tool_opt",
                 "type": [
                     "string"
@@ -2192,7 +2226,7 @@
             "refdir": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Reference Flow Directory",
+                "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
                 "type": [
                     "file"
@@ -2202,7 +2236,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script",
+                "help": "Stage entry point script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -2213,7 +2247,7 @@
         "place": {
             "copy": {
                 "defvalue": [],
-                "help": "Stage Tool Copy To Local",
+                "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
                 "type": [
                     "string"
@@ -2222,7 +2256,7 @@
             },
             "exe": {
                 "defvalue": [],
-                "help": "Stage Tool Executable",
+                "help": "Stage executable",
                 "switch": "-tool_exe",
                 "type": [
                     "string"
@@ -2231,7 +2265,7 @@
             },
             "format": {
                 "defvalue": [],
-                "help": "Stage Tool Configuration Format",
+                "help": "Stage configuration format",
                 "switch": "-tool_format",
                 "type": [
                     "string"
@@ -2242,7 +2276,7 @@
                 "defvalue": [
                     "0"
                 ],
-                "help": "Stage Tool Job index",
+                "help": "Stage job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
@@ -2253,7 +2287,7 @@
             },
             "keymap": {
                 "defvalue": [],
-                "help": "Stage Tool Keyword translation table",
+                "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
                 "type": [
                     "string",
@@ -2263,7 +2297,7 @@
             },
             "np": {
                 "defvalue": [],
-                "help": "Stage Tool Parallelism",
+                "help": "Stage thread parallelism",
                 "switch": "-tool_np",
                 "type": [
                     "int"
@@ -2272,7 +2306,7 @@
             },
             "opt": {
                 "defvalue": [],
-                "help": "Stage Tool Options",
+                "help": "Stage executable options",
                 "switch": "-tool_opt",
                 "type": [
                     "string"
@@ -2282,7 +2316,7 @@
             "refdir": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Reference Flow Directory",
+                "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
                 "type": [
                     "file"
@@ -2292,7 +2326,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script",
+                "help": "Stage entry point script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -2303,7 +2337,7 @@
         "route": {
             "copy": {
                 "defvalue": [],
-                "help": "Stage Tool Copy To Local",
+                "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
                 "type": [
                     "string"
@@ -2312,7 +2346,7 @@
             },
             "exe": {
                 "defvalue": [],
-                "help": "Stage Tool Executable",
+                "help": "Stage executable",
                 "switch": "-tool_exe",
                 "type": [
                     "string"
@@ -2321,7 +2355,7 @@
             },
             "format": {
                 "defvalue": [],
-                "help": "Stage Tool Configuration Format",
+                "help": "Stage configuration format",
                 "switch": "-tool_format",
                 "type": [
                     "string"
@@ -2332,7 +2366,7 @@
                 "defvalue": [
                     "0"
                 ],
-                "help": "Stage Tool Job index",
+                "help": "Stage job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
@@ -2343,7 +2377,7 @@
             },
             "keymap": {
                 "defvalue": [],
-                "help": "Stage Tool Keyword translation table",
+                "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
                 "type": [
                     "string",
@@ -2353,7 +2387,7 @@
             },
             "np": {
                 "defvalue": [],
-                "help": "Stage Tool Parallelism",
+                "help": "Stage thread parallelism",
                 "switch": "-tool_np",
                 "type": [
                     "int"
@@ -2362,7 +2396,7 @@
             },
             "opt": {
                 "defvalue": [],
-                "help": "Stage Tool Options",
+                "help": "Stage executable options",
                 "switch": "-tool_opt",
                 "type": [
                     "string"
@@ -2372,7 +2406,7 @@
             "refdir": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Reference Flow Directory",
+                "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
                 "type": [
                     "file"
@@ -2382,7 +2416,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script",
+                "help": "Stage entry point script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -2393,7 +2427,7 @@
         "si": {
             "copy": {
                 "defvalue": [],
-                "help": "Stage Tool Copy To Local",
+                "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
                 "type": [
                     "string"
@@ -2402,7 +2436,7 @@
             },
             "exe": {
                 "defvalue": [],
-                "help": "Stage Tool Executable",
+                "help": "Stage executable",
                 "switch": "-tool_exe",
                 "type": [
                     "string"
@@ -2411,7 +2445,7 @@
             },
             "format": {
                 "defvalue": [],
-                "help": "Stage Tool Configuration Format",
+                "help": "Stage configuration format",
                 "switch": "-tool_format",
                 "type": [
                     "string"
@@ -2422,7 +2456,7 @@
                 "defvalue": [
                     "0"
                 ],
-                "help": "Stage Tool Job index",
+                "help": "Stage job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
@@ -2433,7 +2467,7 @@
             },
             "keymap": {
                 "defvalue": [],
-                "help": "Stage Tool Keyword translation table",
+                "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
                 "type": [
                     "string",
@@ -2443,7 +2477,7 @@
             },
             "np": {
                 "defvalue": [],
-                "help": "Stage Tool Parallelism",
+                "help": "Stage thread parallelism",
                 "switch": "-tool_np",
                 "type": [
                     "int"
@@ -2452,7 +2486,7 @@
             },
             "opt": {
                 "defvalue": [],
-                "help": "Stage Tool Options",
+                "help": "Stage executable options",
                 "switch": "-tool_opt",
                 "type": [
                     "string"
@@ -2462,7 +2496,7 @@
             "refdir": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Reference Flow Directory",
+                "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
                 "type": [
                     "file"
@@ -2472,7 +2506,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script",
+                "help": "Stage entry point script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -2483,7 +2517,7 @@
         "signoff": {
             "copy": {
                 "defvalue": [],
-                "help": "Stage Tool Copy To Local",
+                "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
                 "type": [
                     "string"
@@ -2492,7 +2526,7 @@
             },
             "exe": {
                 "defvalue": [],
-                "help": "Stage Tool Executable",
+                "help": "Stage executable",
                 "switch": "-tool_exe",
                 "type": [
                     "string"
@@ -2501,7 +2535,7 @@
             },
             "format": {
                 "defvalue": [],
-                "help": "Stage Tool Configuration Format",
+                "help": "Stage configuration format",
                 "switch": "-tool_format",
                 "type": [
                     "string"
@@ -2512,7 +2546,7 @@
                 "defvalue": [
                     "0"
                 ],
-                "help": "Stage Tool Job index",
+                "help": "Stage job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
@@ -2523,7 +2557,7 @@
             },
             "keymap": {
                 "defvalue": [],
-                "help": "Stage Tool Keyword translation table",
+                "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
                 "type": [
                     "string",
@@ -2533,7 +2567,7 @@
             },
             "np": {
                 "defvalue": [],
-                "help": "Stage Tool Parallelism",
+                "help": "Stage thread parallelism",
                 "switch": "-tool_np",
                 "type": [
                     "int"
@@ -2542,7 +2576,7 @@
             },
             "opt": {
                 "defvalue": [],
-                "help": "Stage Tool Options",
+                "help": "Stage executable options",
                 "switch": "-tool_opt",
                 "type": [
                     "string"
@@ -2552,7 +2586,7 @@
             "refdir": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Reference Flow Directory",
+                "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
                 "type": [
                     "file"
@@ -2562,7 +2596,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script",
+                "help": "Stage entry point script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -2573,7 +2607,7 @@
         "sta": {
             "copy": {
                 "defvalue": [],
-                "help": "Stage Tool Copy To Local",
+                "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
                 "type": [
                     "string"
@@ -2582,7 +2616,7 @@
             },
             "exe": {
                 "defvalue": [],
-                "help": "Stage Tool Executable",
+                "help": "Stage executable",
                 "switch": "-tool_exe",
                 "type": [
                     "string"
@@ -2591,7 +2625,7 @@
             },
             "format": {
                 "defvalue": [],
-                "help": "Stage Tool Configuration Format",
+                "help": "Stage configuration format",
                 "switch": "-tool_format",
                 "type": [
                     "string"
@@ -2602,7 +2636,7 @@
                 "defvalue": [
                     "0"
                 ],
-                "help": "Stage Tool Job index",
+                "help": "Stage job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
@@ -2613,7 +2647,7 @@
             },
             "keymap": {
                 "defvalue": [],
-                "help": "Stage Tool Keyword translation table",
+                "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
                 "type": [
                     "string",
@@ -2623,7 +2657,7 @@
             },
             "np": {
                 "defvalue": [],
-                "help": "Stage Tool Parallelism",
+                "help": "Stage thread parallelism",
                 "switch": "-tool_np",
                 "type": [
                     "int"
@@ -2632,7 +2666,7 @@
             },
             "opt": {
                 "defvalue": [],
-                "help": "Stage Tool Options",
+                "help": "Stage executable options",
                 "switch": "-tool_opt",
                 "type": [
                     "string"
@@ -2642,7 +2676,7 @@
             "refdir": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Reference Flow Directory",
+                "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
                 "type": [
                     "file"
@@ -2652,7 +2686,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script",
+                "help": "Stage entry point script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -2663,7 +2697,7 @@
         "syn": {
             "copy": {
                 "defvalue": [],
-                "help": "Stage Tool Copy To Local",
+                "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
                 "type": [
                     "string"
@@ -2672,7 +2706,7 @@
             },
             "exe": {
                 "defvalue": [],
-                "help": "Stage Tool Executable",
+                "help": "Stage executable",
                 "switch": "-tool_exe",
                 "type": [
                     "string"
@@ -2681,7 +2715,7 @@
             },
             "format": {
                 "defvalue": [],
-                "help": "Stage Tool Configuration Format",
+                "help": "Stage configuration format",
                 "switch": "-tool_format",
                 "type": [
                     "string"
@@ -2692,7 +2726,7 @@
                 "defvalue": [
                     "0"
                 ],
-                "help": "Stage Tool Job index",
+                "help": "Stage job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
@@ -2703,7 +2737,7 @@
             },
             "keymap": {
                 "defvalue": [],
-                "help": "Stage Tool Keyword translation table",
+                "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
                 "type": [
                     "string",
@@ -2713,7 +2747,7 @@
             },
             "np": {
                 "defvalue": [],
-                "help": "Stage Tool Parallelism",
+                "help": "Stage thread parallelism",
                 "switch": "-tool_np",
                 "type": [
                     "int"
@@ -2722,7 +2756,7 @@
             },
             "opt": {
                 "defvalue": [],
-                "help": "Stage Tool Options",
+                "help": "Stage executable options",
                 "switch": "-tool_opt",
                 "type": [
                     "string"
@@ -2732,7 +2766,7 @@
             "refdir": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Reference Flow Directory",
+                "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
                 "type": [
                     "file"
@@ -2742,7 +2776,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script",
+                "help": "Stage entry point script",
                 "switch": "-tool_script",
                 "type": [
                     "file"
@@ -2753,7 +2787,7 @@
         "tapeout": {
             "copy": {
                 "defvalue": [],
-                "help": "Stage Tool Copy To Local",
+                "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
                 "type": [
                     "string"
@@ -2762,7 +2796,7 @@
             },
             "exe": {
                 "defvalue": [],
-                "help": "Stage Tool Executable",
+                "help": "Stage executable",
                 "switch": "-tool_exe",
                 "type": [
                     "string"
@@ -2771,7 +2805,7 @@
             },
             "format": {
                 "defvalue": [],
-                "help": "Stage Tool Configuration Format",
+                "help": "Stage configuration format",
                 "switch": "-tool_format",
                 "type": [
                     "string"
@@ -2782,7 +2816,7 @@
                 "defvalue": [
                     "0"
                 ],
-                "help": "Stage Tool Job index",
+                "help": "Stage job index",
                 "switch": "-tool_jobid",
                 "type": [
                     "int"
@@ -2793,7 +2827,7 @@
             },
             "keymap": {
                 "defvalue": [],
-                "help": "Stage Tool Keyword translation table",
+                "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
                 "type": [
                     "string",
@@ -2803,7 +2837,7 @@
             },
             "np": {
                 "defvalue": [],
-                "help": "Stage Tool Parallelism",
+                "help": "Stage thread parallelism",
                 "switch": "-tool_np",
                 "type": [
                     "int"
@@ -2812,7 +2846,7 @@
             },
             "opt": {
                 "defvalue": [],
-                "help": "Stage Tool Options",
+                "help": "Stage executable options",
                 "switch": "-tool_opt",
                 "type": [
                     "string"
@@ -2822,7 +2856,7 @@
             "refdir": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Reference Flow Directory",
+                "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
                 "type": [
                     "file"
@@ -2832,7 +2866,7 @@
             "script": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Stage Tool Script",
+                "help": "Stage entry point script",
                 "switch": "-tool_script",
                 "type": [
                     "file"

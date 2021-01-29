@@ -18,7 +18,7 @@ ipdir = scriptdir + '/' + library + '/' + version
 outputfile = scriptdir + '/' + library + '.json'
 
 # timing
-mychip.set('sc_stdlib', library, 'timing', 'typical', ipdir+'/lib/NangateOpenCellLibrary_typical.lib')
+mychip.set('sc_stdlib', library, 'nldm', 'typical', ipdir+'/lib/NangateOpenCellLibrary_typical.lib')
 
 # lef
 mychip.set('sc_stdlib', library, 'lef', ipdir+'/lef/NangateOpenCellLibrary.macro.lef')
