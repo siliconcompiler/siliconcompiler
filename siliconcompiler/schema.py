@@ -187,13 +187,6 @@ def schema_process(cfg):
     ''' Process technology setup
     '''
       
-    cfg['sc_target'] = {
-        'help' : 'Single name target (nangate45, asap7)',
-        'switch' : '-target',
-        'type' : ['string'],
-        'defvalue' : []
-    }
-
     cfg['sc_foundry'] = {
         'help' : 'Foundry name (eg: virtual, tsmc, gf, samsung)',
         'switch' : '-foundry',
@@ -215,6 +208,22 @@ def schema_process(cfg):
         'defvalue' : []
     }
 
+    cfg['sc_pdkguide'] = {
+        'help' : 'Process Manual (PDF)',
+        'switch' : '-'+group+'_userguide',     
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash'   : []
+    }
+
+    cfg['sc_pdkguide'] = {
+        'help' : 'Process Manual (PDF)',
+        'switch' : '-'+group+'_userguide',     
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash'   : []
+    }
+    
     cfg['sc_grid'] = {
         'help' : 'Grid unit (in um)',
         'switch' : '-grid',
@@ -243,37 +252,6 @@ def schema_process(cfg):
         'defvalue' : []
     }
     
-    cfg['sc_techfile'] = {
-        'help' : 'Place and route tehnology file',
-        'switch' : '-techfile',
-        'type' : ['file'],
-        'defvalue' : [],
-        'hash'   : []
-    }
-
-    cfg['sc_model'] = {
-        'help' : 'Device model file',
-        'switch' : '-model',
-        'type' : ['file'],
-        'defvalue' : [],
-        'hash'   : []
-    }
-
-    cfg['sc_rcfile'] = {
-        'help' : 'RC extraction file',
-        'switch' : '-rcfile',
-        'type' : ['file'],
-        'defvalue' : [],
-        'hash'   : []
-    }
-
-    cfg['sc_scenario'] = {
-        'help' : 'Process, voltage, temp scenario ',
-        'switch' : '-scenario',
-        'type' : ['string', 'float', 'int', 'string'],
-        'defvalue' : []
-    }
-
     cfg['sc_layermap'] = {
         'help' : 'GDS layer map',
         'switch' : '-layermap',
@@ -282,13 +260,22 @@ def schema_process(cfg):
         'hash' : []
     }
 
-    cfg['sc_taprules'] = {
-        'help' : 'Tap cell rules <maxdistance offset>',
-        'switch' : '-taprules',
-        'type' : ['float','float'],
+    cfg['sc_tapmax'] = {
+        'help' : 'Tap cell max distance rule',
+        'switch' : '-tapmax',
+        'type' : ['float'],
         'defvalue' : [],
         'hash' : []
     }
+
+    cfg['sc_tapoffset'] = {
+        'help' : 'Tap cell offset rule',
+        'switch' : '-tapoffset',
+        'type' : ['float'],
+        'defvalue' : [],
+        'hash' : []
+    }
+
 
     cfg['sc_minlayer'] = {
         'help' : 'Minimum routing layer (integer)',
@@ -332,6 +319,34 @@ def schema_process(cfg):
         'defvalue' : []
     }
 
+    cfg['sc_techfile'] = {
+        'help' : 'Place and route tehnology file',
+        'switch' : '-techfile',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash'   : []
+    }
+
+    
+    cfg['sc_model'] = {
+        'help' : 'Device model file',
+        'switch' : '-model',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash'   : []
+    }
+
+    cfg['sc_rcfile'] = {
+        'help' : 'Wire model file',
+        'switch' : '-rcfile',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash'   : []
+    }
+
+    
+
+    
     return cfg
 
 ############################################
@@ -341,7 +356,13 @@ def schema_process(cfg):
 def schema_design(cfg):
     ''' Design setup schema
     '''
-
+    # Mapping Target
+    cfg['sc_target'] = {
+        'help' : 'Single name target (nangate45, asap7)',
+        'switch' : '-target',
+        'type' : ['string'],
+        'defvalue' : []
+    }
 
     # RTL Design Parameters
     cfg['sc_source'] = {
@@ -754,7 +775,7 @@ def schema_tools(cfg):
     # Defaults and config for all stages
     for stage in cfg['sc_stages']['defvalue']:        
         cfg['sc_tool'][stage] = {}
-        for key in ('exe', 'opt', 'refdir', 'script', 'copy', 'format', 'jobid', 'np', 'keymap'):
+        for key in ('exe', 'opt', 'refdir', 'script', 'copy', 'format', 'jobid', 'np', 'keymap','vendor'):
             cfg['sc_tool'][stage][key] = {}
             cfg['sc_tool'][stage][key]['switch'] = '-tool_'+key
             
@@ -768,6 +789,7 @@ def schema_tools(cfg):
         cfg['sc_tool'][stage]['jobid']['help'] = 'Stage job index'
         cfg['sc_tool'][stage]['np']['help'] = 'Stage thread parallelism'
         cfg['sc_tool'][stage]['keymap']['help'] = 'Stage keyword translation'
+        cfg['sc_tool'][stage]['vendor']['help'] = 'Stage tool vendor'
         
         # Types
         cfg['sc_tool'][stage]['exe']['type'] = ['string']
@@ -779,6 +801,7 @@ def schema_tools(cfg):
         cfg['sc_tool'][stage]['jobid']['type'] = ['int']
         cfg['sc_tool'][stage]['np']['type'] = ['int']
         cfg['sc_tool'][stage]['keymap']['type'] = ['string', 'string']
+        cfg['sc_tool'][stage]['keymap']['vendor'] = ['string']
 
         # Hash
         cfg['sc_tool'][stage]['refdir']['hash'] = []
@@ -793,6 +816,7 @@ def schema_tools(cfg):
         cfg['sc_tool'][stage]['format']['defvalue'] = []
         cfg['sc_tool'][stage]['np']['defvalue'] = []
         cfg['sc_tool'][stage]['keymap']['defvalue'] = []
+        cfg['sc_tool'][stage]['defvalue']['defvalue'] = []
         cfg['sc_tool'][stage]['jobid']['defvalue'] = ['0']
 
     return cfg
