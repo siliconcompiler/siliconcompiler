@@ -130,11 +130,11 @@ class Chip:
                     self.cfg[param][k1] = copy.deepcopy(self.cfg[param]['default'])
             if len(all_args) > 3:
                 k2 = all_args[2]
-                if len(self.cfg[param]['default']) > 1:
-                    view = k2
-                else:
-                    view = 'default'     
                 if not (k2 in self.cfg[param][k1]):
+                    if len(self.cfg[param]['default']) > 1:
+                        view = k2
+                    else:
+                        view = 'default'  
                     self.cfg[param][k1][k2] = {}
                     self.cfg[param][k1][k2] = copy.deepcopy(self.cfg[param]['default'][view])
             if len(all_args) > 4:
@@ -143,7 +143,8 @@ class Chip:
                 if not (k3 in self.cfg[param][k1][k2]):
                     self.cfg[param][k1][k2][k3] = {}                    
                     self.cfg[param][k1][k2][k3] = copy.deepcopy(self.cfg[param]['default'][view]['default'])
-                                               
+        else:
+            self.logger.error('Parameter is not valid: %s', param)        
 
         return self.search(self.cfg, *all_args, mode=mode)
     
