@@ -51,7 +51,7 @@ def schema_pdk(cfg):
     '''
          
     cfg['sc_pdk_foundry'] = {
-        'help' : 'Foundry name (eg: virtual, tsmc, gf, samsung)',
+        'help' : 'Foundry name',
         'switch' : '-pdk_foundry',
         'switch_args' : '<string>',
         'type' : ['string'],
@@ -67,7 +67,7 @@ def schema_pdk(cfg):
     }
 
     cfg['sc_pdk_node'] = {
-        'help' : 'Process node in nm (180, 90, 22, 12, 7 etc)',
+        'help' : 'Process node (in nm)',
         'switch' : '-pdk_node',
         'switch_args' : '<int>',
         'type' : ['int'],
@@ -200,12 +200,12 @@ def schema_pdk(cfg):
     }
 
     #stackup, lib, vendor
-    cfg['sc_pdk_pnrtechfile'] = {}
-    cfg['sc_pdk_pnrtechfile']['default'] = {}
-    cfg['sc_pdk_pnrtechfile']['default']['default'] = {}
-    cfg['sc_pdk_pnrtechfile']['default']['default']['default'] = {
+    cfg['sc_pdk_pnrtech'] = {}
+    cfg['sc_pdk_pnrtech']['default'] = {}
+    cfg['sc_pdk_pnrtech']['default']['default'] = {}
+    cfg['sc_pdk_pnrtech']['default']['default']['default'] = {
         'help' : 'Place and route tehnology file',
-        'switch' : '-pdk_pnrtechfile',
+        'switch' : '-pdk_pnrtech',
         'switch_args' : '<stackup corner vendor file>', 
         'type' : ['file'],
         'defvalue' : [],
@@ -282,7 +282,7 @@ def schema_libs(cfg, group):
 
     # Datasheets
     cfg['sc_'+group]['default']['datasheet'] = {
-        'help' : 'Library datasheet (PDF, TXT, or HTML directory)',
+        'help' : 'Library datasheets (PDF, TXT, HTML)',
         'switch' : '-'+group+'_datasheet',
         'switch_args' : '<lib path>',  
         'type' : ['file'],
@@ -291,7 +291,8 @@ def schema_libs(cfg, group):
     }
 
     # Non linear delay models (timing only)
-    cfg['sc_'+group]['default']['nldm'] = {
+    cfg['sc_'+group]['default']['nldm'] = {}
+    cfg['sc_'+group]['default']['nldm']['default'] = {
         'help' : 'Library non-linear delay timing model',
         'switch' : '-'+group+'_nldm',
         'switch_args' : '<lib file>',
@@ -300,8 +301,9 @@ def schema_libs(cfg, group):
         'hash' : []
     }
 
-    cfg['sc_'+group]['default']['ccs'] = {
-        'help' : 'Library composite current source (ccs) model',
+    cfg['sc_'+group]['default']['ccs'] = {}
+    cfg['sc_'+group]['default']['ccs']['default'] = {
+        'help' : 'Library composite current source model',
         'switch' : '-'+group+'_ccs',
         'switch_args' : '<lib file>',
         'type' : ['file'],
@@ -378,7 +380,7 @@ def schema_libs(cfg, group):
     cfg['sc_'+group]['default']['site'] = {
         'help' : 'Library placement site',
         'switch' : '-'+group+'_site',
-        'switch_args' : '<lib sitename width height>',     
+        'switch_args' : '<lib site width height>',     
         'type' : ['string', 'float', 'float'],
         'defvalue' : []
     }
@@ -482,11 +484,9 @@ def schema_eda(cfg):
                       'pi',
                       'si',
                       'drc',
-                      'density',
                       'erc',                    
                       'lvs',
-                      'tapeout',
-                      'display']
+                      'tapeout']
     }
 
     cfg['sc_tool'] = {}
@@ -563,7 +563,7 @@ def schema_design(cfg):
 
     #Mandatory Inputs
     cfg['sc_target'] = {
-        'help' : 'Target libraries or device',
+        'help' : 'Target library or device',
         'switch' : '-target',
         'switch_args' : '<string>',        
         'type' : ['string'],
@@ -672,13 +672,6 @@ def schema_design(cfg):
         'defvalue' : [],
         'hash'   : []
     }
-    cfg['sc_wall'] = {
-        'help' : 'Enable all lint style warnings',
-        'switch' : '-Wall',
-        'switch_args' : '',
-        'type' : ['bool'],
-        'defvalue' : ['False']
-    }
 
     cfg['sc_wno'] = {
         'help' : 'Disables a warning -Woo-<message>',
@@ -689,7 +682,7 @@ def schema_design(cfg):
     }
 
     cfg['sc_diesize'] = {
-        'help' : 'Die size (x0 y0 x1 y1) for automated floor-planning (um)',
+        'help' : 'Target die size (x0 y0 x1 y1) (um)',
         'switch' : '-diesize',
         'switch_args' : '<float float float float>',
         'type' : ['float', 'float', 'float', 'float'],
@@ -697,7 +690,7 @@ def schema_design(cfg):
     }
 
     cfg['sc_coresize'] = {
-        'help' : 'Core size (x0 y0 x1 y1) for automated floor-planning (um)',
+        'help' : 'Target core size (x0 y0 x1 y1) (um)',
         'switch' : '-coresize',
         'switch_args' : '<float float float float>',
         'type' : ['float', 'float', 'float', 'float'],
@@ -705,7 +698,7 @@ def schema_design(cfg):
     }
 
     cfg['sc_floorplan'] = {
-        'help' : 'User supplied floorplaning script',
+        'help' : 'Floorplaning script/program',
         'switch' : '-floorplan',
         'switch_args' : '<file>',
         'type' : ['file'],
@@ -714,7 +707,7 @@ def schema_design(cfg):
     }
     
     cfg['sc_def'] = {
-        'help' : 'User supplied hard-coded floorplan (DEF)',
+        'help' : 'Firm floorplan file (DEF)',
         'switch' : '-def',
         'switch_args' : '<file>',
         'type' : ['file'],
@@ -732,7 +725,7 @@ def schema_design(cfg):
     }
 
     cfg['sc_vcd'] = {
-        'help' : 'Value Change Dump (VCD) file for power analysis',
+        'help' : 'Value Change Dump (VCD) file',
         'switch' : '-vcd',
         'switch_args' : '<file>',
         'type' : ['file'],
@@ -741,7 +734,7 @@ def schema_design(cfg):
     }
 
     cfg['sc_saif'] = {
-        'help' : 'Switching activity (SAIF) file for power analysis',
+        'help' : 'Switching activity (SAIF) file',
         'switch' : '-saif',
         'switch_args' : '<file>',
         'type' : ['file'],
@@ -758,7 +751,7 @@ def schema_design(cfg):
     }
     
     cfg['sc_remote'] = {
-        'help' : 'Name of remote server address (https://acme.com:8080)',
+        'help' : 'Remote server (https://acme.com:8080)',
         'switch' : '-remote',
         'switch_args' : '<string>',
         'type' : ['string'],
@@ -766,7 +759,7 @@ def schema_design(cfg):
     }
 
     cfg['sc_debug'] = {
-        'help' : 'Debug level (INFO/DEBUG/WARNING/ERROR/CRITICAL)',
+        'help' : 'Debug level (INFO/DEBUG/WARNING/ERROR)',
         'switch' : '-debug',
         'switch_args' : '<string>',
         'type' : ['string'],
@@ -782,7 +775,7 @@ def schema_design(cfg):
     }
 
     cfg['sc_effort'] = {
-        'help' : 'Compilation effort (low,medium,high)',
+        'help' : 'Compilation effort',
         'switch' : '-effort',
         'switch_args' : '<string>',
         'type' : ['string'],
@@ -790,7 +783,7 @@ def schema_design(cfg):
     }
 
     cfg['sc_priority'] = {
-        'help' : 'Optimization priority (timing, power, area)',
+        'help' : 'Optimization priority',
         'switch' : '-priority',
         'switch_args' : '<string>',
         'type' : ['string'],
@@ -813,29 +806,8 @@ def schema_design(cfg):
         'defvalue' : ['export']
     }
 
-    cfg['sc_cont'] = {
-        'help' : 'Continues from last completed stage',
-        'switch' : '-cont',
-        'switch_args' : '',
-        'type' : ['bool'],
-        'defvalue' : ['False']
-    }
-        
-    cfg['sc_verbose'] = {
-        'help' : 'Enables verbose printing to screen by EDA tools',
-        'switch' : '-verbose',
-        'switch_args' : '',
-        'type' : ['bool'],
-        'defvalue' : ['False']
-    }
-    
-    cfg['sc_lock'] = {
-        'help' : 'Switch to lock configuration from further modification',
-        'switch' : '-lock',
-        'switch_args' : '',
-        'type' : ['bool'],
-        'defvalue' : ['False']
-    }
+ 
+   
     
     cfg['sc_nickname'] = {
         'help' : 'Design nickname',
@@ -846,14 +818,14 @@ def schema_design(cfg):
     }
 
     cfg['sc_msg_trigger'] = {
-        'help' : 'Stage completion that triggers message to <sc_contact>',
+        'help' : 'Trigger for messaging to <sc_msg_contact>',
         'switch' : '-msg_trigger',
         'switch_args' : '<string>',
         'type' : ['string'],
         'defvalue' : []
     }
 
-    cfg['sc_ms_contact'] = {
+    cfg['sc_msg_contact'] = {
         'help' : 'Trigger event contact (phone#/email)',
         'switch' : '-msg_contact',
         'switch_args' : '<string>',
@@ -886,7 +858,7 @@ def schema_design(cfg):
     }
 
     cfg['sc_density'] = {
-        'help' : 'Target density for density driven floor-planning (percent)',
+        'help' : 'Target core density (percent)',
         'switch' : '-density',
         'switch_args' : '<int>',
         'type' : ['int'],
@@ -894,7 +866,7 @@ def schema_design(cfg):
     }
 
     cfg['sc_coremargin'] = {
-        'help' : 'Margin around core for density driven floor-planning (um)',
+        'help' : 'Core place and route halo margin (um)',
         'switch' : '-coremargin',
         'switch_args' : '<float>',
         'type' : ['float'],
@@ -902,7 +874,7 @@ def schema_design(cfg):
     }
 
     cfg['sc_aspectratio'] = {
-        'help' : 'Aspect ratio for density driven floor-planning',
+        'help' : 'Target aspect ratio',
         'switch' : '-aspectratio',
         'switch_args' : '<float>',
         'type' : ['float'],
@@ -950,7 +922,7 @@ def schema_mcmm(cfg):
 
     #Optimization Objectives
     cfg['sc_mcmm']['default']['objective'] = {
-        'help' : 'MMCM Objectives (setup, hold, leakge, dynamic,..)',
+        'help' : 'MMCM Objectives (setup, hold, ...)',
         'switch' : '-mcmm_objective',
         'switch_args' : '<name string>',
         'type' : ['string'],
