@@ -1,8 +1,9 @@
 {
     "sc_aspectratio": {
         "defvalue": [],
-        "help": "Aspect ratio for density driven floor-planning",
+        "help": "Target aspect ratio",
         "switch": "-aspectratio",
+        "switch_args": "<float>",
         "type": [
             "float"
         ],
@@ -14,6 +15,7 @@
         ],
         "help": "Name of build directory",
         "switch": "-build",
+        "switch_args": "<string>",
         "type": [
             "string"
         ],
@@ -26,6 +28,7 @@
         "hash": [],
         "help": "Loads configurations from a json file",
         "switch": "-cfgfile",
+        "switch_args": "<file>",
         "type": [
             "file"
         ],
@@ -33,8 +36,9 @@
     },
     "sc_clk": {
         "defvalue": [],
-        "help": "Clock defintion (<name period uncertainty>)",
+        "help": "Clock defintion",
         "switch": "-clk",
+        "switch_args": "<name period uncertainty>",
         "type": [
             "string",
             "float",
@@ -42,32 +46,11 @@
         ],
         "value": []
     },
-    "sc_cont": {
-        "defvalue": [
-            "False"
-        ],
-        "help": "Continues from last completed stage",
-        "switch": "-cont",
-        "type": [
-            "bool"
-        ],
-        "value": [
-            "False"
-        ]
-    },
-    "sc_contact": {
-        "defvalue": [],
-        "help": "Trigger event contact (phone#/email)",
-        "switch": "-contact",
-        "type": [
-            "string"
-        ],
-        "value": []
-    },
     "sc_coremargin": {
         "defvalue": [],
-        "help": "Margin around core for density driven floor-planning (um)",
+        "help": "Core place and route halo margin (um)",
         "switch": "-coremargin",
+        "switch_args": "<float>",
         "type": [
             "float"
         ],
@@ -75,8 +58,9 @@
     },
     "sc_coresize": {
         "defvalue": [],
-        "help": "Core size (x0 y0 x1 y1) for automated floor-planning (um)",
+        "help": "Target core size (x0 y0 x1 y1) (um)",
         "switch": "-coresize",
+        "switch_args": "<float float float float>",
         "type": [
             "float",
             "float",
@@ -89,6 +73,7 @@
         "defvalue": [],
         "help": "Custom EDA pass through variables",
         "switch": "-custom",
+        "switch_args": "<string>",
         "type": [
             "string"
         ],
@@ -98,8 +83,9 @@
         "defvalue": [
             "INFO"
         ],
-        "help": "Debug level (INFO/DEBUG/WARNING/ERROR/CRITICAL)",
+        "help": "Debug level (INFO/DEBUG/WARNING/ERROR)",
         "switch": "-debug",
+        "switch_args": "<string>",
         "type": [
             "string"
         ],
@@ -110,8 +96,9 @@
     "sc_def": {
         "defvalue": [],
         "hash": [],
-        "help": "User supplied hard-coded floorplan (DEF)",
+        "help": "Firm floorplan file (DEF)",
         "switch": "-def",
+        "switch_args": "<file>",
         "type": [
             "file"
         ],
@@ -121,6 +108,7 @@
         "defvalue": [],
         "help": "Define variables for Verilog preprocessor",
         "switch": "-D",
+        "switch_args": "<string>",
         "type": [
             "string"
         ],
@@ -128,8 +116,9 @@
     },
     "sc_density": {
         "defvalue": [],
-        "help": "Target density for density driven floor-planning (percent)",
+        "help": "Target core density (percent)",
         "switch": "-density",
+        "switch_args": "<int>",
         "type": [
             "int"
         ],
@@ -139,6 +128,7 @@
         "defvalue": [],
         "help": "Design top module name",
         "switch": "-design",
+        "switch_args": "<string>",
         "type": [
             "string"
         ],
@@ -146,8 +136,9 @@
     },
     "sc_diesize": {
         "defvalue": [],
-        "help": "Die size (x0 y0 x1 y1) for automated floor-planning (um)",
+        "help": "Target die size (x0 y0 x1 y1) (um)",
         "switch": "-diesize",
+        "switch_args": "<float float float float>",
         "type": [
             "float",
             "float",
@@ -160,8 +151,9 @@
         "defvalue": [
             "high"
         ],
-        "help": "Compilation effort (low,medium,high)",
+        "help": "Compilation effort",
         "switch": "-effort",
+        "switch_args": "<string>",
         "type": [
             "string"
         ],
@@ -169,107 +161,59 @@
             "high"
         ]
     },
+    "sc_env": {
+        "defvalue": [],
+        "help": "Required environment variables to set",
+        "switch": "-env",
+        "switch_args": "<varname value>",
+        "type": [
+            "string",
+            "file"
+        ],
+        "value": []
+    },
     "sc_floorplan": {
         "defvalue": [],
         "hash": [],
-        "help": "User supplied python based floorplaning script",
+        "help": "Floorplaning script/program",
         "switch": "-floorplan",
+        "switch_args": "<file>",
         "type": [
             "file"
         ],
         "value": []
     },
-    "sc_foundry": {
+    "sc_fpga_arch": {
         "defvalue": [],
-        "help": "Foundry name (eg: virtual, tsmc, gf, samsung)",
-        "switch": "-foundry",
+        "help": "FPGA architecture description file",
+        "switch": "-fpga_arch",
+        "switch_args": "<targetname file>",
         "type": [
-            "string"
+            "string",
+            "file"
         ],
         "value": []
-    },
-    "sc_grid": {
-        "defvalue": [],
-        "help": "Grid unit (in um)",
-        "switch": "-grid",
-        "type": [
-            "float"
-        ],
-        "value": []
-    },
-    "sc_gui": {
-        "defvalue": [
-            "False"
-        ],
-        "help": "Launches GUI at every stage",
-        "switch": "-gui",
-        "type": [
-            "bool"
-        ],
-        "value": [
-            "False"
-        ]
     },
     "sc_idir": {
         "defvalue": [],
         "hash": [],
-        "help": "Directory to search for inclodes",
+        "help": "Directory to search for includes",
         "switch": "-I",
+        "switch_args": "<dir>",
         "type": [
             "string"
         ],
-        "value": []
-    },
-    "sc_ipdir": {
-        "defvalue": [],
-        "help": "IP root directory",
-        "switch": "-ipdir",
-        "type": [
-            "string"
-        ],
-        "value": []
-    },
-    "sc_layer": {
-        "defvalue": [],
-        "help": "Metal stackup routing layer definitions",
-        "switch": "-layer",
-        "type": [
-            "string",
-            "string",
-            "float",
-            "float"
-        ],
-        "value": []
-    },
-    "sc_layermap": {
-        "defvalue": [],
-        "hash": [],
-        "help": "GDS layer map",
-        "switch": "-layermap",
-        "type": "string, string, int, int",
         "value": []
     },
     "sc_libext": {
         "defvalue": [],
         "help": "Extension for finding modules",
         "switch": "+libext",
+        "switch_args": "<ext>",
         "type": [
             "string"
         ],
         "value": []
-    },
-    "sc_lock": {
-        "defvalue": [
-            "False"
-        ],
-        "help": "Switch to lock configuration from further modification",
-        "switch": "-lock",
-        "type": [
-            "bool"
-        ],
-        "value": [
-            "False"
-        ]
     },
     "sc_macro": {
         "default": {
@@ -278,6 +222,7 @@
                 "hash": [],
                 "help": "Library ATPG file",
                 "switch": "-macro_atpg",
+                "switch_args": "<lib file>",
                 "type": [
                     "file"
                 ],
@@ -287,8 +232,9 @@
                 "default": {
                     "defvalue": [],
                     "hash": [],
-                    "help": "Library composite current source (ccs) model",
+                    "help": "Library composite current source model",
                     "switch": "-macro_ccs",
+                    "switch_args": "<lib file>",
                     "type": [
                         "file"
                     ],
@@ -301,6 +247,7 @@
                     "hash": [],
                     "help": "Library CCS compiled databse",
                     "switch": "-macro_ccsdb",
+                    "switch_args": "<lib vendor file>",
                     "type": [
                         "file"
                     ],
@@ -312,6 +259,7 @@
                 "hash": [],
                 "help": "Library CDL file",
                 "switch": "-macro_cdl",
+                "switch_args": "<lib file>",
                 "type": [
                     "file"
                 ],
@@ -322,7 +270,9 @@
                     "defvalue": [],
                     "help": "Library cell type list",
                     "switch": "-macro_cells",
+                    "switch_args": "<lib type name>",
                     "type": [
+                        "string",
                         "string"
                     ],
                     "value": []
@@ -331,8 +281,9 @@
             "datasheet": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Library datasheet (PDF, TXT, or HTML directory)",
+                "help": "Library datasheets (PDF, TXT, HTML)",
                 "switch": "-macro_datasheet",
+                "switch_args": "<lib path>",
                 "type": [
                     "file"
                 ],
@@ -342,6 +293,7 @@
                 "defvalue": [],
                 "help": "Library default driver cell",
                 "switch": "-macro_driver",
+                "switch_args": "<lib name>",
                 "type": [
                     "string"
                 ],
@@ -352,6 +304,7 @@
                 "hash": [],
                 "help": "Library GDS file",
                 "switch": "-macro_gds",
+                "switch_args": "<lib file>",
                 "type": [
                     "file"
                 ],
@@ -362,20 +315,24 @@
                 "hash": [],
                 "help": "Library layout exchange file (LEF)",
                 "switch": "-macro_lef",
+                "switch_args": "<lib file>",
                 "type": [
                     "file"
                 ],
                 "value": []
             },
             "libdb": {
-                "defvalue": [],
-                "hash": [],
-                "help": "Library layout compiled database",
-                "switch": "-macro_libdb",
-                "type": [
-                    "file"
-                ],
-                "value": []
+                "default": {
+                    "defvalue": [],
+                    "hash": [],
+                    "help": "Library layout compiled database",
+                    "switch": "-macro_libdb",
+                    "switch_args": "<lib vendor file>",
+                    "type": [
+                        "file"
+                    ],
+                    "value": []
+                }
             },
             "nldm": {
                 "default": {
@@ -383,6 +340,7 @@
                     "hash": [],
                     "help": "Library non-linear delay timing model",
                     "switch": "-macro_nldm",
+                    "switch_args": "<lib file>",
                     "type": [
                         "file"
                     ],
@@ -395,6 +353,7 @@
                     "hash": [],
                     "help": "Library NLDM compiled database",
                     "switch": "-macro_nldmdb",
+                    "switch_args": "<lib vendor file>",
                     "type": [
                         "file"
                     ],
@@ -405,6 +364,7 @@
                 "defvalue": [],
                 "help": "Library power rail metal layer",
                 "switch": "-macro_pgmetal",
+                "switch_args": "<lib metal-layer>",
                 "type": [
                     "string"
                 ],
@@ -415,6 +375,7 @@
                 "hash": [],
                 "help": "Library TCL setup file",
                 "switch": "-macro_setup",
+                "switch_args": "<lib file>",
                 "type": [
                     "file"
                 ],
@@ -424,8 +385,11 @@
                 "defvalue": [],
                 "help": "Library placement site",
                 "switch": "-macro_site",
+                "switch_args": "<lib site width height>",
                 "type": [
-                    "string"
+                    "string",
+                    "float",
+                    "float"
                 ],
                 "value": []
             },
@@ -434,6 +398,7 @@
                 "hash": [],
                 "help": "Library Spice file",
                 "switch": "-macro_spice",
+                "switch_args": "<lib file>",
                 "type": [
                     "file"
                 ],
@@ -443,6 +408,7 @@
                 "defvalue": [],
                 "help": "Library indentifier tags",
                 "switch": "-macro_tag",
+                "switch_args": "<lib tag>",
                 "type": [
                     "string"
                 ],
@@ -453,6 +419,7 @@
                 "hash": [],
                 "help": "Library userguide (PDF or TXT)",
                 "switch": "-macro_userguide",
+                "switch_args": "<lib file>",
                 "type": [
                     "file"
                 ],
@@ -463,6 +430,7 @@
                 "hash": [],
                 "help": "Library Verilog file",
                 "switch": "-macro_verilog",
+                "switch_args": "<lib file>",
                 "type": [
                     "file"
                 ],
@@ -473,6 +441,7 @@
                 "hash": [],
                 "help": "Library Transistor Threshold",
                 "switch": "-macro_vt",
+                "switch_args": "<lib vt-type>",
                 "type": [
                     "string"
                 ],
@@ -484,6 +453,7 @@
         "defvalue": [],
         "help": "Maximum fanout",
         "switch": "-maxfanout",
+        "switch_args": "<int>",
         "type": [
             "int"
         ],
@@ -493,6 +463,7 @@
         "defvalue": [],
         "help": "Maximum routing layer (integer)",
         "switch": "-maxlayer",
+        "switch_args": "<int>",
         "type": [
             "int"
         ],
@@ -502,35 +473,40 @@
         "default": {
             "constraints": {
                 "defvalue": [],
-                "help": "MMCM Constraints (SDC)",
+                "hash": [],
+                "help": "MMCM Constraints File (SDC)",
                 "switch": "-mcmm_constraints",
+                "switch_args": "<name file>",
                 "type": [
                     "file"
                 ],
                 "value": []
             },
-            "lib_corner": {
+            "libcorner": {
                 "defvalue": [],
                 "help": "MMCM Library corner name",
-                "switch": "-mcmm_lib_corner",
+                "switch": "-mcmm_libcorner",
+                "switch_args": "<name libcorner",
                 "type": [
                     "string"
                 ],
                 "value": []
             },
-            "objectives": {
+            "objective": {
                 "defvalue": [],
-                "help": "MMCM Objectives (setup, hold, leakge, dynamic,..)",
-                "switch": "-mcmm_objectives",
+                "help": "MMCM Objectives (setup, hold, ...)",
+                "switch": "-mcmm_objective",
+                "switch_args": "<name string>",
                 "type": [
                     "string"
                 ],
                 "value": []
             },
-            "rc_corner": {
+            "pexcorner": {
                 "defvalue": [],
                 "help": "MMCM Wire Parasticics (RC) corner name",
-                "switch": "-mcmm_rc_corner",
+                "switch": "-mcmm_pexcorner",
+                "switch_args": "<name pexcorner",
                 "type": [
                     "string"
                 ],
@@ -542,31 +518,29 @@
         "defvalue": [],
         "help": "Minimum routing layer (integer)",
         "switch": "-minlayer",
+        "switch_args": "<int>",
         "type": [
             "int"
         ],
         "value": []
     },
-    "sc_mode": {
-        "defvalue": [
-            "virtual"
-        ],
-        "help": "Implementation mode (virtual, asic, or fpga)",
-        "switch": "-mode",
+    "sc_msg_contact": {
+        "defvalue": [],
+        "help": "Trigger event contact (phone#/email)",
+        "switch": "-msg_contact",
+        "switch_args": "<string>",
         "type": [
             "string"
         ],
-        "value": [
-            "virtual"
-        ]
+        "value": []
     },
-    "sc_model": {
+    "sc_msg_trigger": {
         "defvalue": [],
-        "hash": [],
-        "help": "Device model file",
-        "switch": "-model",
+        "help": "Trigger for messaging to <sc_msg_contact>",
+        "switch": "-msg_trigger",
+        "switch_args": "<string>",
         "type": [
-            "file"
+            "string"
         ],
         "value": []
     },
@@ -575,6 +549,7 @@
         "hash": [],
         "help": "Non-default net routing file",
         "switch": "-ndr",
+        "switch_args": "<file>",
         "type": [
             "file"
         ],
@@ -584,26 +559,254 @@
         "defvalue": [],
         "help": "Design nickname",
         "switch": "-nickname",
+        "switch_args": "<string>",
         "type": [
             "string"
         ],
         "value": []
     },
-    "sc_node": {
+    "sc_pdk_display": {
+        "default": {
+            "default": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Custom design display configuration",
+                "switch": "-pdk_display",
+                "switch_args": "<stackup vendor file>",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            }
+        }
+    },
+    "sc_pdk_drm": {
         "defvalue": [],
-        "help": "Process node in nm (180, 90, 22, 12, 7 etc)",
-        "switch": "-node",
+        "hash": [],
+        "help": "Process Design Rule Manual (PDF)",
+        "switch": "-pdk_drm",
+        "switch_args": "<file>",
+        "type": [
+            "file"
+        ],
+        "value": []
+    },
+    "sc_pdk_foundry": {
+        "defvalue": [],
+        "help": "Foundry name",
+        "switch": "-pdk_foundry",
+        "switch_args": "<string>",
+        "type": [
+            "string"
+        ],
+        "value": []
+    },
+    "sc_pdk_guide": {
+        "defvalue": [],
+        "hash": [],
+        "help": "Process Manual (PDF)",
+        "switch": "-pdk_guide",
+        "switch_args": "<file>",
+        "type": [
+            "file"
+        ],
+        "value": []
+    },
+    "sc_pdk_init": {
+        "default": {
+            "default": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Custom design init file",
+                "switch": "-pdk_init",
+                "switch_args": "<stackup vendor file>",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            }
+        }
+    },
+    "sc_pdk_layermap": {
+        "default": {
+            "default": {
+                "defvalue": [],
+                "hash": [],
+                "help": "GDS layer map",
+                "switch": "-pdk_layermap",
+                "switch_args": "<stackup vendor file>",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            }
+        }
+    },
+    "sc_pdk_libs": {
+        "default": {
+            "default": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Custom library list file",
+                "switch": "-pdk_libs",
+                "switch_args": "<stackup vendor file>",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            }
+        }
+    },
+    "sc_pdk_models": {
+        "default": {
+            "defvalue": [],
+            "hash": [],
+            "help": "Device model directory (per vendor)",
+            "switch": "-pdk_models",
+            "switch_args": "<vendor file>",
+            "type": [
+                "file"
+            ],
+            "value": []
+        }
+    },
+    "sc_pdk_node": {
+        "defvalue": [],
+        "help": "Process node (in nm)",
+        "switch": "-pdk_node",
+        "switch_args": "<int>",
         "type": [
             "int"
         ],
         "value": []
     },
-    "sc_pdkdir": {
+    "sc_pdk_objmap": {
+        "default": {
+            "default": {
+                "defvalue": [],
+                "hash": [],
+                "help": "GDS object map",
+                "switch": "-pdk_objmap",
+                "switch_args": "<stackup vendor file>",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            }
+        }
+    },
+    "sc_pdk_pex": {
+        "default": {
+            "default": {
+                "defult": {
+                    "defvalue": [],
+                    "hash": [],
+                    "help": "PEX TCAD file (per stackup, corner)",
+                    "switch": "-pdk_pex",
+                    "switch_args": "<stackup corner vendor file>",
+                    "type": [
+                        "file"
+                    ],
+                    "value": []
+                }
+            }
+        }
+    },
+    "sc_pdk_pnrdir": {
+        "default": {
+            "default": {
+                "default": {
+                    "defvalue": [],
+                    "hash": [],
+                    "help": "Place and route technology directory",
+                    "switch": "-pdk_pnrdir",
+                    "switch_args": "<stackup corner vendor file>",
+                    "type": [
+                        "file"
+                    ],
+                    "value": []
+                }
+            }
+        }
+    },
+    "sc_pdk_pnrmap": {
+        "default": {
+            "default": {
+                "defvalue": [],
+                "hash": [],
+                "help": "Place and route layer mapping file",
+                "switch": "-pdk_pnrmap",
+                "switch_args": "<stackup vendor file>",
+                "type": [
+                    "file"
+                ],
+                "value": []
+            }
+        }
+    },
+    "sc_pdk_pnrpex": {
+        "default": {
+            "default": {
+                "default": {
+                    "defvalue": [],
+                    "hash": [],
+                    "help": "Place and route RC model file",
+                    "switch": "-pdk_pnrpex",
+                    "switch_args": "<stackup corner vendor file>",
+                    "type": [
+                        "file"
+                    ],
+                    "value": []
+                }
+            }
+        }
+    },
+    "sc_pdk_pnrtech": {
+        "default": {
+            "default": {
+                "default": {
+                    "defvalue": [],
+                    "hash": [],
+                    "help": "Place and route tehnology file",
+                    "switch": "-pdk_pnrtech",
+                    "switch_args": "<stackup corner vendor file>",
+                    "type": [
+                        "file"
+                    ],
+                    "value": []
+                }
+            }
+        }
+    },
+    "sc_pdk_process": {
         "defvalue": [],
-        "help": "PDK root directory",
-        "switch": "-pdkdir",
+        "help": "Process name",
+        "switch": "-pdk_process",
+        "switch_args": "<string>",
         "type": [
             "string"
+        ],
+        "value": []
+    },
+    "sc_pdk_tapmax": {
+        "defvalue": [],
+        "hash": [],
+        "help": "Tap cell max distance rule",
+        "switch": "-pdk_tapmax",
+        "switch_args": "<float>",
+        "type": [
+            "float"
+        ],
+        "value": []
+    },
+    "sc_pdk_tapoffset": {
+        "defvalue": [],
+        "hash": [],
+        "help": "Tap cell offset rule",
+        "switch": "-pdk_tapoffset",
+        "switch_args": "<float>",
+        "type": [
+            "float"
         ],
         "value": []
     },
@@ -611,8 +814,9 @@
         "defvalue": [
             "timing"
         ],
-        "help": "Optimization priority (timing, power, area)",
+        "help": "Optimization priority",
         "switch": "-priority",
+        "switch_args": "<string>",
         "type": [
             "string"
         ],
@@ -620,48 +824,22 @@
             "timing"
         ]
     },
-    "sc_process": {
-        "defvalue": [],
-        "help": "Process name",
-        "switch": "-process",
-        "type": [
-            "string"
-        ],
-        "value": []
-    },
-    "sc_rcfile": {
-        "defvalue": [],
-        "hash": [],
-        "help": "RC extraction file",
-        "switch": "-rcfile",
-        "type": [
-            "file"
-        ],
-        "value": []
-    },
     "sc_readscript": {
         "defvalue": [],
         "hash": [],
         "help": "Source file read script",
         "switch": "-f",
+        "switch_args": "<file>",
         "type": [
             "file"
         ],
         "value": []
     },
-    "sc_ref": {
-        "defvalue": [],
-        "help": "Reference methodology name",
-        "switch": "-ref",
-        "type": [
-            "string"
-        ],
-        "value": []
-    },
     "sc_remote": {
         "defvalue": [],
-        "help": "Name of remote server address (https://acme.com:8080)",
+        "help": "Remote server (https://acme.com:8080)",
         "switch": "-remote",
+        "switch_args": "<string>",
         "type": [
             "string"
         ],
@@ -670,22 +848,11 @@
     "sc_saif": {
         "defvalue": [],
         "hash": [],
-        "help": "Switching activity (SAIF) file for power analysis",
+        "help": "Switching activity (SAIF) file",
         "switch": "-saif",
+        "switch_args": "<file>",
         "type": [
             "file"
-        ],
-        "value": []
-    },
-    "sc_scenario": {
-        "defvalue": [],
-        "help": "Process, voltage, temp scenario ",
-        "switch": "-scenario",
-        "type": [
-            "string",
-            "float",
-            "int",
-            "string"
         ],
         "value": []
     },
@@ -696,15 +863,6 @@
         "switch": "None",
         "type": [
             "file"
-        ],
-        "value": []
-    },
-    "sc_stackup": {
-        "defvalue": [],
-        "help": "Metal stackup as named in the PDK",
-        "switch": "-stackup",
-        "type": [
-            "string"
         ],
         "value": []
     },
@@ -724,12 +882,9 @@
             "pi",
             "si",
             "drc",
-            "antenna",
-            "density",
             "erc",
             "lvs",
-            "tapeout",
-            "display"
+            "tapeout"
         ],
         "help": "List of all compilation stages",
         "switch": "-stages",
@@ -751,12 +906,9 @@
             "pi",
             "si",
             "drc",
-            "antenna",
-            "density",
             "erc",
             "lvs",
-            "tapeout",
-            "display"
+            "tapeout"
         ]
     },
     "sc_start": {
@@ -765,18 +917,20 @@
         ],
         "help": "Compilation starting stage",
         "switch": "-start",
+        "switch_args": "<stage>",
         "type": "string",
         "value": [
             "import"
         ]
     },
-    "sc_stdlib": {
+    "sc_stdcell": {
         "NangateOpenCellLibrary": {
             "atpg": {
                 "defvalue": [],
                 "hash": [],
                 "help": "Library ATPG file",
-                "switch": "-stdlib_atpg",
+                "switch": "-stdcell_atpg",
+                "switch_args": "<lib file>",
                 "type": [
                     "file"
                 ],
@@ -786,8 +940,9 @@
                 "default": {
                     "defvalue": [],
                     "hash": [],
-                    "help": "Library composite current source (ccs) model",
-                    "switch": "-stdlib_ccs",
+                    "help": "Library composite current source model",
+                    "switch": "-stdcell_ccs",
+                    "switch_args": "<lib file>",
                     "type": [
                         "file"
                     ],
@@ -799,7 +954,8 @@
                     "defvalue": [],
                     "hash": [],
                     "help": "Library CCS compiled databse",
-                    "switch": "-stdlib_ccsdb",
+                    "switch": "-stdcell_ccsdb",
+                    "switch_args": "<lib vendor file>",
                     "type": [
                         "file"
                     ],
@@ -810,7 +966,8 @@
                 "defvalue": [],
                 "hash": [],
                 "help": "Library CDL file",
-                "switch": "-stdlib_cdl",
+                "switch": "-stdcell_cdl",
+                "switch_args": "<lib file>",
                 "type": [
                     "file"
                 ],
@@ -820,8 +977,10 @@
                 "default": {
                     "defvalue": [],
                     "help": "Library cell type list",
-                    "switch": "-stdlib_cells",
+                    "switch": "-stdcell_cells",
+                    "switch_args": "<lib type name>",
                     "type": [
+                        "string",
                         "string"
                     ],
                     "value": []
@@ -830,8 +989,9 @@
             "datasheet": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Library datasheet (PDF, TXT, or HTML directory)",
-                "switch": "-stdlib_datasheet",
+                "help": "Library datasheets (PDF, TXT, HTML)",
+                "switch": "-stdcell_datasheet",
+                "switch_args": "<lib path>",
                 "type": [
                     "file"
                 ],
@@ -840,7 +1000,8 @@
             "driver": {
                 "defvalue": [],
                 "help": "Library default driver cell",
-                "switch": "-stdlib_driver",
+                "switch": "-stdcell_driver",
+                "switch_args": "<lib name>",
                 "type": [
                     "string"
                 ],
@@ -850,42 +1011,48 @@
                 "defvalue": [],
                 "hash": [],
                 "help": "Library GDS file",
-                "switch": "-stdlib_gds",
+                "switch": "-stdcell_gds",
+                "switch_args": "<lib file>",
                 "type": [
                     "file"
                 ],
                 "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/iplib/virtual/nangate45/NangateOpenCellLibrary/r1p0/gds/NangateOpenCellLibrary.gds"
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/foundry/virtual/nangate45/ip/NangateOpenCellLibrary/NangateOpenCellLibrary/r1p0/gds/NangateOpenCellLibrary.gds"
                 ]
             },
             "lef": {
                 "defvalue": [],
                 "hash": [],
                 "help": "Library layout exchange file (LEF)",
-                "switch": "-stdlib_lef",
+                "switch": "-stdcell_lef",
+                "switch_args": "<lib file>",
                 "type": [
                     "file"
                 ],
                 "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/iplib/virtual/nangate45/NangateOpenCellLibrary/r1p0/lef/NangateOpenCellLibrary.macro.lef"
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/foundry/virtual/nangate45/ip/NangateOpenCellLibrary/NangateOpenCellLibrary/r1p0/lef/NangateOpenCellLibrary.macro.lef"
                 ]
             },
             "libdb": {
-                "defvalue": [],
-                "hash": [],
-                "help": "Library layout compiled database",
-                "switch": "-stdlib_libdb",
-                "type": [
-                    "file"
-                ],
-                "value": []
+                "default": {
+                    "defvalue": [],
+                    "hash": [],
+                    "help": "Library layout compiled database",
+                    "switch": "-stdcell_libdb",
+                    "switch_args": "<lib vendor file>",
+                    "type": [
+                        "file"
+                    ],
+                    "value": []
+                }
             },
             "nldm": {
                 "default": {
                     "defvalue": [],
                     "hash": [],
                     "help": "Library non-linear delay timing model",
-                    "switch": "-stdlib_nldm",
+                    "switch": "-stdcell_nldm",
+                    "switch_args": "<lib file>",
                     "type": [
                         "file"
                     ],
@@ -895,12 +1062,13 @@
                     "defvalue": [],
                     "hash": [],
                     "help": "Library non-linear delay timing model",
-                    "switch": "-stdlib_nldm",
+                    "switch": "-stdcell_nldm",
+                    "switch_args": "<lib file>",
                     "type": [
                         "file"
                     ],
                     "value": [
-                        "/home/aolofsson/work/zeroasic/siliconcompiler/iplib/virtual/nangate45/NangateOpenCellLibrary/r1p0/lib/NangateOpenCellLibrary_typical.lib"
+                        "/home/aolofsson/work/zeroasic/siliconcompiler/foundry/virtual/nangate45/ip/NangateOpenCellLibrary/NangateOpenCellLibrary/r1p0/lib/NangateOpenCellLibrary_typical.lib"
                     ]
                 }
             },
@@ -909,7 +1077,8 @@
                     "defvalue": [],
                     "hash": [],
                     "help": "Library NLDM compiled database",
-                    "switch": "-stdlib_nldmdb",
+                    "switch": "-stdcell_nldmdb",
+                    "switch_args": "<lib vendor file>",
                     "type": [
                         "file"
                     ],
@@ -919,7 +1088,8 @@
             "pgmetal": {
                 "defvalue": [],
                 "help": "Library power rail metal layer",
-                "switch": "-stdlib_pgmetal",
+                "switch": "-stdcell_pgmetal",
+                "switch_args": "<lib metal-layer>",
                 "type": [
                     "string"
                 ],
@@ -929,7 +1099,8 @@
                 "defvalue": [],
                 "hash": [],
                 "help": "Library TCL setup file",
-                "switch": "-stdlib_setup",
+                "switch": "-stdcell_setup",
+                "switch_args": "<lib file>",
                 "type": [
                     "file"
                 ],
@@ -938,9 +1109,12 @@
             "site": {
                 "defvalue": [],
                 "help": "Library placement site",
-                "switch": "-stdlib_site",
+                "switch": "-stdcell_site",
+                "switch_args": "<lib site width height>",
                 "type": [
-                    "string"
+                    "string",
+                    "float",
+                    "float"
                 ],
                 "value": []
             },
@@ -948,7 +1122,8 @@
                 "defvalue": [],
                 "hash": [],
                 "help": "Library Spice file",
-                "switch": "-stdlib_spice",
+                "switch": "-stdcell_spice",
+                "switch_args": "<lib file>",
                 "type": [
                     "file"
                 ],
@@ -957,7 +1132,8 @@
             "tag": {
                 "defvalue": [],
                 "help": "Library indentifier tags",
-                "switch": "-stdlib_tag",
+                "switch": "-stdcell_tag",
+                "switch_args": "<lib tag>",
                 "type": [
                     "string"
                 ],
@@ -967,7 +1143,8 @@
                 "defvalue": [],
                 "hash": [],
                 "help": "Library userguide (PDF or TXT)",
-                "switch": "-stdlib_userguide",
+                "switch": "-stdcell_userguide",
+                "switch_args": "<lib file>",
                 "type": [
                     "file"
                 ],
@@ -977,7 +1154,8 @@
                 "defvalue": [],
                 "hash": [],
                 "help": "Library Verilog file",
-                "switch": "-stdlib_verilog",
+                "switch": "-stdcell_verilog",
+                "switch_args": "<lib file>",
                 "type": [
                     "file"
                 ],
@@ -987,7 +1165,8 @@
                 "defvalue": [],
                 "hash": [],
                 "help": "Library Transistor Threshold",
-                "switch": "-stdlib_vt",
+                "switch": "-stdcell_vt",
+                "switch_args": "<lib vt-type>",
                 "type": [
                     "string"
                 ],
@@ -999,7 +1178,8 @@
                 "defvalue": [],
                 "hash": [],
                 "help": "Library ATPG file",
-                "switch": "-stdlib_atpg",
+                "switch": "-stdcell_atpg",
+                "switch_args": "<lib file>",
                 "type": [
                     "file"
                 ],
@@ -1009,8 +1189,9 @@
                 "default": {
                     "defvalue": [],
                     "hash": [],
-                    "help": "Library composite current source (ccs) model",
-                    "switch": "-stdlib_ccs",
+                    "help": "Library composite current source model",
+                    "switch": "-stdcell_ccs",
+                    "switch_args": "<lib file>",
                     "type": [
                         "file"
                     ],
@@ -1022,7 +1203,8 @@
                     "defvalue": [],
                     "hash": [],
                     "help": "Library CCS compiled databse",
-                    "switch": "-stdlib_ccsdb",
+                    "switch": "-stdcell_ccsdb",
+                    "switch_args": "<lib vendor file>",
                     "type": [
                         "file"
                     ],
@@ -1033,7 +1215,8 @@
                 "defvalue": [],
                 "hash": [],
                 "help": "Library CDL file",
-                "switch": "-stdlib_cdl",
+                "switch": "-stdcell_cdl",
+                "switch_args": "<lib file>",
                 "type": [
                     "file"
                 ],
@@ -1043,8 +1226,10 @@
                 "default": {
                     "defvalue": [],
                     "help": "Library cell type list",
-                    "switch": "-stdlib_cells",
+                    "switch": "-stdcell_cells",
+                    "switch_args": "<lib type name>",
                     "type": [
+                        "string",
                         "string"
                     ],
                     "value": []
@@ -1053,8 +1238,9 @@
             "datasheet": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Library datasheet (PDF, TXT, or HTML directory)",
-                "switch": "-stdlib_datasheet",
+                "help": "Library datasheets (PDF, TXT, HTML)",
+                "switch": "-stdcell_datasheet",
+                "switch_args": "<lib path>",
                 "type": [
                     "file"
                 ],
@@ -1063,7 +1249,8 @@
             "driver": {
                 "defvalue": [],
                 "help": "Library default driver cell",
-                "switch": "-stdlib_driver",
+                "switch": "-stdcell_driver",
+                "switch_args": "<lib name>",
                 "type": [
                     "string"
                 ],
@@ -1073,7 +1260,8 @@
                 "defvalue": [],
                 "hash": [],
                 "help": "Library GDS file",
-                "switch": "-stdlib_gds",
+                "switch": "-stdcell_gds",
+                "switch_args": "<lib file>",
                 "type": [
                     "file"
                 ],
@@ -1083,28 +1271,33 @@
                 "defvalue": [],
                 "hash": [],
                 "help": "Library layout exchange file (LEF)",
-                "switch": "-stdlib_lef",
+                "switch": "-stdcell_lef",
+                "switch_args": "<lib file>",
                 "type": [
                     "file"
                 ],
                 "value": []
             },
             "libdb": {
-                "defvalue": [],
-                "hash": [],
-                "help": "Library layout compiled database",
-                "switch": "-stdlib_libdb",
-                "type": [
-                    "file"
-                ],
-                "value": []
+                "default": {
+                    "defvalue": [],
+                    "hash": [],
+                    "help": "Library layout compiled database",
+                    "switch": "-stdcell_libdb",
+                    "switch_args": "<lib vendor file>",
+                    "type": [
+                        "file"
+                    ],
+                    "value": []
+                }
             },
             "nldm": {
                 "default": {
                     "defvalue": [],
                     "hash": [],
                     "help": "Library non-linear delay timing model",
-                    "switch": "-stdlib_nldm",
+                    "switch": "-stdcell_nldm",
+                    "switch_args": "<lib file>",
                     "type": [
                         "file"
                     ],
@@ -1116,7 +1309,8 @@
                     "defvalue": [],
                     "hash": [],
                     "help": "Library NLDM compiled database",
-                    "switch": "-stdlib_nldmdb",
+                    "switch": "-stdcell_nldmdb",
+                    "switch_args": "<lib vendor file>",
                     "type": [
                         "file"
                     ],
@@ -1126,7 +1320,8 @@
             "pgmetal": {
                 "defvalue": [],
                 "help": "Library power rail metal layer",
-                "switch": "-stdlib_pgmetal",
+                "switch": "-stdcell_pgmetal",
+                "switch_args": "<lib metal-layer>",
                 "type": [
                     "string"
                 ],
@@ -1136,7 +1331,8 @@
                 "defvalue": [],
                 "hash": [],
                 "help": "Library TCL setup file",
-                "switch": "-stdlib_setup",
+                "switch": "-stdcell_setup",
+                "switch_args": "<lib file>",
                 "type": [
                     "file"
                 ],
@@ -1145,9 +1341,12 @@
             "site": {
                 "defvalue": [],
                 "help": "Library placement site",
-                "switch": "-stdlib_site",
+                "switch": "-stdcell_site",
+                "switch_args": "<lib site width height>",
                 "type": [
-                    "string"
+                    "string",
+                    "float",
+                    "float"
                 ],
                 "value": []
             },
@@ -1155,7 +1354,8 @@
                 "defvalue": [],
                 "hash": [],
                 "help": "Library Spice file",
-                "switch": "-stdlib_spice",
+                "switch": "-stdcell_spice",
+                "switch_args": "<lib file>",
                 "type": [
                     "file"
                 ],
@@ -1164,7 +1364,8 @@
             "tag": {
                 "defvalue": [],
                 "help": "Library indentifier tags",
-                "switch": "-stdlib_tag",
+                "switch": "-stdcell_tag",
+                "switch_args": "<lib tag>",
                 "type": [
                     "string"
                 ],
@@ -1174,7 +1375,8 @@
                 "defvalue": [],
                 "hash": [],
                 "help": "Library userguide (PDF or TXT)",
-                "switch": "-stdlib_userguide",
+                "switch": "-stdcell_userguide",
+                "switch_args": "<lib file>",
                 "type": [
                     "file"
                 ],
@@ -1184,7 +1386,8 @@
                 "defvalue": [],
                 "hash": [],
                 "help": "Library Verilog file",
-                "switch": "-stdlib_verilog",
+                "switch": "-stdcell_verilog",
+                "switch_args": "<lib file>",
                 "type": [
                     "file"
                 ],
@@ -1194,7 +1397,8 @@
                 "defvalue": [],
                 "hash": [],
                 "help": "Library Transistor Threshold",
-                "switch": "-stdlib_vt",
+                "switch": "-stdcell_vt",
+                "switch_args": "<lib vt-type>",
                 "type": [
                     "string"
                 ],
@@ -1208,6 +1412,7 @@
         ],
         "help": "Compilation ending stage",
         "switch": "-stop",
+        "switch_args": "<stage>",
         "type": [
             "string"
         ],
@@ -1217,150 +1422,33 @@
     },
     "sc_supplies": {
         "defvalue": [],
-        "help": "Supply voltages (<name pin voltage>)",
+        "help": "Power supply",
         "switch": "-supply",
+        "switch_args": "<name pin voltage>",
         "type": [
             "string",
             "string",
-            "float"
-        ],
-        "value": []
-    },
-    "sc_taprules": {
-        "defvalue": [],
-        "hash": [],
-        "help": "Tap cell rules <maxdistance offset>",
-        "switch": "-taprules",
-        "type": [
-            "float",
             "float"
         ],
         "value": []
     },
     "sc_target": {
         "defvalue": [],
-        "help": "Single name target (nangate45, asap7)",
+        "help": "Target library or device",
         "switch": "-target",
+        "switch_args": "<string>",
         "type": [
             "string"
         ],
         "value": []
     },
-    "sc_techfile": {
-        "defvalue": [],
-        "hash": [],
-        "help": "Place and route tehnology file",
-        "switch": "-techfile",
-        "type": [
-            "file"
-        ],
-        "value": []
-    },
-    "sc_time": {
-        "defvalue": [],
-        "help": "Time unit (1 ps)",
-        "switch": "-time",
-        "type": [
-            "int"
-        ],
-        "value": []
-    },
     "sc_tool": {
-        "antenna": {
-            "copy": {
-                "defvalue": [],
-                "help": "Stage copy-to-local option",
-                "switch": "-tool_copy",
-                "type": [
-                    "string"
-                ],
-                "value": []
-            },
-            "exe": {
-                "defvalue": [],
-                "help": "Stage executable",
-                "switch": "-tool_exe",
-                "type": [
-                    "string"
-                ],
-                "value": []
-            },
-            "format": {
-                "defvalue": [],
-                "help": "Stage configuration format",
-                "switch": "-tool_format",
-                "type": [
-                    "string"
-                ],
-                "value": []
-            },
-            "jobid": {
-                "defvalue": [
-                    "0"
-                ],
-                "help": "Stage job index",
-                "switch": "-tool_jobid",
-                "type": [
-                    "int"
-                ],
-                "value": [
-                    "0"
-                ]
-            },
-            "keymap": {
-                "defvalue": [],
-                "help": "Stage keyword translation",
-                "switch": "-tool_keymap",
-                "type": [
-                    "string",
-                    "string"
-                ],
-                "value": []
-            },
-            "np": {
-                "defvalue": [],
-                "help": "Stage thread parallelism",
-                "switch": "-tool_np",
-                "type": [
-                    "int"
-                ],
-                "value": []
-            },
-            "opt": {
-                "defvalue": [],
-                "help": "Stage executable options",
-                "switch": "-tool_opt",
-                "type": [
-                    "string"
-                ],
-                "value": []
-            },
-            "refdir": {
-                "defvalue": [],
-                "hash": [],
-                "help": "Stage reference Flow Directory",
-                "switch": "-tool_refdir",
-                "type": [
-                    "file"
-                ],
-                "value": []
-            },
-            "script": {
-                "defvalue": [],
-                "hash": [],
-                "help": "Stage entry point script",
-                "switch": "-tool_script",
-                "type": [
-                    "file"
-                ],
-                "value": []
-            }
-        },
         "cts": {
             "copy": {
                 "defvalue": [],
                 "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -1370,6 +1458,7 @@
                 "defvalue": [],
                 "help": "Stage executable",
                 "switch": "-tool_exe",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -1379,6 +1468,7 @@
                 "defvalue": [],
                 "help": "Stage configuration format",
                 "switch": "-tool_format",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -1390,6 +1480,7 @@
                 ],
                 "help": "Stage job index",
                 "switch": "-tool_jobid",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -1401,6 +1492,7 @@
                 "defvalue": [],
                 "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
+                "switch_args": "<stage string string>",
                 "type": [
                     "string",
                     "string"
@@ -1411,6 +1503,7 @@
                 "defvalue": [],
                 "help": "Stage thread parallelism",
                 "switch": "-tool_np",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -1420,6 +1513,7 @@
                 "defvalue": [],
                 "help": "Stage executable options",
                 "switch": "-tool_opt",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -1430,6 +1524,7 @@
                 "hash": [],
                 "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
+                "switch_args": "<stage dir>",
                 "type": [
                     "file"
                 ],
@@ -1440,188 +1535,19 @@
                 "hash": [],
                 "help": "Stage entry point script",
                 "switch": "-tool_script",
-                "type": [
-                    "file"
-                ],
-                "value": []
-            }
-        },
-        "density": {
-            "copy": {
-                "defvalue": [],
-                "help": "Stage copy-to-local option",
-                "switch": "-tool_copy",
-                "type": [
-                    "string"
-                ],
-                "value": []
-            },
-            "exe": {
-                "defvalue": [],
-                "help": "Stage executable",
-                "switch": "-tool_exe",
-                "type": [
-                    "string"
-                ],
-                "value": []
-            },
-            "format": {
-                "defvalue": [],
-                "help": "Stage configuration format",
-                "switch": "-tool_format",
-                "type": [
-                    "string"
-                ],
-                "value": []
-            },
-            "jobid": {
-                "defvalue": [
-                    "0"
-                ],
-                "help": "Stage job index",
-                "switch": "-tool_jobid",
-                "type": [
-                    "int"
-                ],
-                "value": [
-                    "0"
-                ]
-            },
-            "keymap": {
-                "defvalue": [],
-                "help": "Stage keyword translation",
-                "switch": "-tool_keymap",
-                "type": [
-                    "string",
-                    "string"
-                ],
-                "value": []
-            },
-            "np": {
-                "defvalue": [],
-                "help": "Stage thread parallelism",
-                "switch": "-tool_np",
-                "type": [
-                    "int"
-                ],
-                "value": []
-            },
-            "opt": {
-                "defvalue": [],
-                "help": "Stage executable options",
-                "switch": "-tool_opt",
-                "type": [
-                    "string"
-                ],
-                "value": []
-            },
-            "refdir": {
-                "defvalue": [],
-                "hash": [],
-                "help": "Stage reference Flow Directory",
-                "switch": "-tool_refdir",
+                "switch_args": "<stage file>",
                 "type": [
                     "file"
                 ],
                 "value": []
             },
-            "script": {
+            "vendor": {
                 "defvalue": [],
-                "hash": [],
-                "help": "Stage entry point script",
-                "switch": "-tool_script",
-                "type": [
-                    "file"
-                ],
-                "value": []
-            }
-        },
-        "display": {
-            "copy": {
-                "defvalue": [],
-                "help": "Stage copy-to-local option",
-                "switch": "-tool_copy",
+                "help": "Stage tool vendor",
+                "switch": "-tool_vendor",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
-                ],
-                "value": []
-            },
-            "exe": {
-                "defvalue": [],
-                "help": "Stage executable",
-                "switch": "-tool_exe",
-                "type": [
-                    "string"
-                ],
-                "value": []
-            },
-            "format": {
-                "defvalue": [],
-                "help": "Stage configuration format",
-                "switch": "-tool_format",
-                "type": [
-                    "string"
-                ],
-                "value": []
-            },
-            "jobid": {
-                "defvalue": [
-                    "0"
-                ],
-                "help": "Stage job index",
-                "switch": "-tool_jobid",
-                "type": [
-                    "int"
-                ],
-                "value": [
-                    "0"
-                ]
-            },
-            "keymap": {
-                "defvalue": [],
-                "help": "Stage keyword translation",
-                "switch": "-tool_keymap",
-                "type": [
-                    "string",
-                    "string"
-                ],
-                "value": []
-            },
-            "np": {
-                "defvalue": [],
-                "help": "Stage thread parallelism",
-                "switch": "-tool_np",
-                "type": [
-                    "int"
-                ],
-                "value": []
-            },
-            "opt": {
-                "defvalue": [],
-                "help": "Stage executable options",
-                "switch": "-tool_opt",
-                "type": [
-                    "string"
-                ],
-                "value": []
-            },
-            "refdir": {
-                "defvalue": [],
-                "hash": [],
-                "help": "Stage reference Flow Directory",
-                "switch": "-tool_refdir",
-                "type": [
-                    "file"
-                ],
-                "value": []
-            },
-            "script": {
-                "defvalue": [],
-                "hash": [],
-                "help": "Stage entry point script",
-                "switch": "-tool_script",
-                "type": [
-                    "file"
                 ],
                 "value": []
             }
@@ -1631,6 +1557,7 @@
                 "defvalue": [],
                 "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -1640,6 +1567,7 @@
                 "defvalue": [],
                 "help": "Stage executable",
                 "switch": "-tool_exe",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -1649,6 +1577,7 @@
                 "defvalue": [],
                 "help": "Stage configuration format",
                 "switch": "-tool_format",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -1660,6 +1589,7 @@
                 ],
                 "help": "Stage job index",
                 "switch": "-tool_jobid",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -1671,6 +1601,7 @@
                 "defvalue": [],
                 "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
+                "switch_args": "<stage string string>",
                 "type": [
                     "string",
                     "string"
@@ -1681,6 +1612,7 @@
                 "defvalue": [],
                 "help": "Stage thread parallelism",
                 "switch": "-tool_np",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -1690,6 +1622,7 @@
                 "defvalue": [],
                 "help": "Stage executable options",
                 "switch": "-tool_opt",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -1700,6 +1633,7 @@
                 "hash": [],
                 "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
+                "switch_args": "<stage dir>",
                 "type": [
                     "file"
                 ],
@@ -1710,8 +1644,19 @@
                 "hash": [],
                 "help": "Stage entry point script",
                 "switch": "-tool_script",
+                "switch_args": "<stage file>",
                 "type": [
                     "file"
+                ],
+                "value": []
+            },
+            "vendor": {
+                "defvalue": [],
+                "help": "Stage tool vendor",
+                "switch": "-tool_vendor",
+                "switch_args": "<stage string>",
+                "type": [
+                    "string"
                 ],
                 "value": []
             }
@@ -1721,6 +1666,7 @@
                 "defvalue": [],
                 "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -1730,6 +1676,7 @@
                 "defvalue": [],
                 "help": "Stage executable",
                 "switch": "-tool_exe",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -1739,6 +1686,7 @@
                 "defvalue": [],
                 "help": "Stage configuration format",
                 "switch": "-tool_format",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -1750,6 +1698,7 @@
                 ],
                 "help": "Stage job index",
                 "switch": "-tool_jobid",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -1761,6 +1710,7 @@
                 "defvalue": [],
                 "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
+                "switch_args": "<stage string string>",
                 "type": [
                     "string",
                     "string"
@@ -1771,6 +1721,7 @@
                 "defvalue": [],
                 "help": "Stage thread parallelism",
                 "switch": "-tool_np",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -1780,6 +1731,7 @@
                 "defvalue": [],
                 "help": "Stage executable options",
                 "switch": "-tool_opt",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -1790,6 +1742,7 @@
                 "hash": [],
                 "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
+                "switch_args": "<stage dir>",
                 "type": [
                     "file"
                 ],
@@ -1800,8 +1753,19 @@
                 "hash": [],
                 "help": "Stage entry point script",
                 "switch": "-tool_script",
+                "switch_args": "<stage file>",
                 "type": [
                     "file"
+                ],
+                "value": []
+            },
+            "vendor": {
+                "defvalue": [],
+                "help": "Stage tool vendor",
+                "switch": "-tool_vendor",
+                "switch_args": "<stage string>",
+                "type": [
+                    "string"
                 ],
                 "value": []
             }
@@ -1811,6 +1775,7 @@
                 "defvalue": [],
                 "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -1820,6 +1785,7 @@
                 "defvalue": [],
                 "help": "Stage executable",
                 "switch": "-tool_exe",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -1829,6 +1795,7 @@
                 "defvalue": [],
                 "help": "Stage configuration format",
                 "switch": "-tool_format",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -1840,6 +1807,7 @@
                 ],
                 "help": "Stage job index",
                 "switch": "-tool_jobid",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -1851,6 +1819,7 @@
                 "defvalue": [],
                 "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
+                "switch_args": "<stage string string>",
                 "type": [
                     "string",
                     "string"
@@ -1861,6 +1830,7 @@
                 "defvalue": [],
                 "help": "Stage thread parallelism",
                 "switch": "-tool_np",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -1870,6 +1840,7 @@
                 "defvalue": [],
                 "help": "Stage executable options",
                 "switch": "-tool_opt",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -1880,6 +1851,7 @@
                 "hash": [],
                 "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
+                "switch_args": "<stage dir>",
                 "type": [
                     "file"
                 ],
@@ -1890,8 +1862,19 @@
                 "hash": [],
                 "help": "Stage entry point script",
                 "switch": "-tool_script",
+                "switch_args": "<stage file>",
                 "type": [
                     "file"
+                ],
+                "value": []
+            },
+            "vendor": {
+                "defvalue": [],
+                "help": "Stage tool vendor",
+                "switch": "-tool_vendor",
+                "switch_args": "<stage string>",
+                "type": [
+                    "string"
                 ],
                 "value": []
             }
@@ -1901,6 +1884,7 @@
                 "defvalue": [],
                 "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -1910,6 +1894,7 @@
                 "defvalue": [],
                 "help": "Stage executable",
                 "switch": "-tool_exe",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -1919,6 +1904,7 @@
                 "defvalue": [],
                 "help": "Stage configuration format",
                 "switch": "-tool_format",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -1930,6 +1916,7 @@
                 ],
                 "help": "Stage job index",
                 "switch": "-tool_jobid",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -1941,6 +1928,7 @@
                 "defvalue": [],
                 "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
+                "switch_args": "<stage string string>",
                 "type": [
                     "string",
                     "string"
@@ -1951,6 +1939,7 @@
                 "defvalue": [],
                 "help": "Stage thread parallelism",
                 "switch": "-tool_np",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -1960,6 +1949,7 @@
                 "defvalue": [],
                 "help": "Stage executable options",
                 "switch": "-tool_opt",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -1970,6 +1960,7 @@
                 "hash": [],
                 "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
+                "switch_args": "<stage dir>",
                 "type": [
                     "file"
                 ],
@@ -1980,8 +1971,19 @@
                 "hash": [],
                 "help": "Stage entry point script",
                 "switch": "-tool_script",
+                "switch_args": "<stage file>",
                 "type": [
                     "file"
+                ],
+                "value": []
+            },
+            "vendor": {
+                "defvalue": [],
+                "help": "Stage tool vendor",
+                "switch": "-tool_vendor",
+                "switch_args": "<stage string>",
+                "type": [
+                    "string"
                 ],
                 "value": []
             }
@@ -1991,6 +1993,7 @@
                 "defvalue": [],
                 "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2000,6 +2003,7 @@
                 "defvalue": [],
                 "help": "Stage executable",
                 "switch": "-tool_exe",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2009,6 +2013,7 @@
                 "defvalue": [],
                 "help": "Stage configuration format",
                 "switch": "-tool_format",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2020,6 +2025,7 @@
                 ],
                 "help": "Stage job index",
                 "switch": "-tool_jobid",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -2031,6 +2037,7 @@
                 "defvalue": [],
                 "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
+                "switch_args": "<stage string string>",
                 "type": [
                     "string",
                     "string"
@@ -2041,6 +2048,7 @@
                 "defvalue": [],
                 "help": "Stage thread parallelism",
                 "switch": "-tool_np",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -2050,6 +2058,7 @@
                 "defvalue": [],
                 "help": "Stage executable options",
                 "switch": "-tool_opt",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2060,6 +2069,7 @@
                 "hash": [],
                 "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
+                "switch_args": "<stage dir>",
                 "type": [
                     "file"
                 ],
@@ -2070,8 +2080,19 @@
                 "hash": [],
                 "help": "Stage entry point script",
                 "switch": "-tool_script",
+                "switch_args": "<stage file>",
                 "type": [
                     "file"
+                ],
+                "value": []
+            },
+            "vendor": {
+                "defvalue": [],
+                "help": "Stage tool vendor",
+                "switch": "-tool_vendor",
+                "switch_args": "<stage string>",
+                "type": [
+                    "string"
                 ],
                 "value": []
             }
@@ -2081,6 +2102,7 @@
                 "defvalue": [],
                 "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2090,6 +2112,7 @@
                 "defvalue": [],
                 "help": "Stage executable",
                 "switch": "-tool_exe",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2099,6 +2122,7 @@
                 "defvalue": [],
                 "help": "Stage configuration format",
                 "switch": "-tool_format",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2110,6 +2134,7 @@
                 ],
                 "help": "Stage job index",
                 "switch": "-tool_jobid",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -2121,6 +2146,7 @@
                 "defvalue": [],
                 "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
+                "switch_args": "<stage string string>",
                 "type": [
                     "string",
                     "string"
@@ -2131,6 +2157,7 @@
                 "defvalue": [],
                 "help": "Stage thread parallelism",
                 "switch": "-tool_np",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -2140,6 +2167,7 @@
                 "defvalue": [],
                 "help": "Stage executable options",
                 "switch": "-tool_opt",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2150,6 +2178,7 @@
                 "hash": [],
                 "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
+                "switch_args": "<stage dir>",
                 "type": [
                     "file"
                 ],
@@ -2160,8 +2189,19 @@
                 "hash": [],
                 "help": "Stage entry point script",
                 "switch": "-tool_script",
+                "switch_args": "<stage file>",
                 "type": [
                     "file"
+                ],
+                "value": []
+            },
+            "vendor": {
+                "defvalue": [],
+                "help": "Stage tool vendor",
+                "switch": "-tool_vendor",
+                "switch_args": "<stage string>",
+                "type": [
+                    "string"
                 ],
                 "value": []
             }
@@ -2171,6 +2211,7 @@
                 "defvalue": [],
                 "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2180,6 +2221,7 @@
                 "defvalue": [],
                 "help": "Stage executable",
                 "switch": "-tool_exe",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2189,6 +2231,7 @@
                 "defvalue": [],
                 "help": "Stage configuration format",
                 "switch": "-tool_format",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2200,6 +2243,7 @@
                 ],
                 "help": "Stage job index",
                 "switch": "-tool_jobid",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -2211,6 +2255,7 @@
                 "defvalue": [],
                 "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
+                "switch_args": "<stage string string>",
                 "type": [
                     "string",
                     "string"
@@ -2221,6 +2266,7 @@
                 "defvalue": [],
                 "help": "Stage thread parallelism",
                 "switch": "-tool_np",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -2230,6 +2276,7 @@
                 "defvalue": [],
                 "help": "Stage executable options",
                 "switch": "-tool_opt",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2240,6 +2287,7 @@
                 "hash": [],
                 "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
+                "switch_args": "<stage dir>",
                 "type": [
                     "file"
                 ],
@@ -2250,8 +2298,19 @@
                 "hash": [],
                 "help": "Stage entry point script",
                 "switch": "-tool_script",
+                "switch_args": "<stage file>",
                 "type": [
                     "file"
+                ],
+                "value": []
+            },
+            "vendor": {
+                "defvalue": [],
+                "help": "Stage tool vendor",
+                "switch": "-tool_vendor",
+                "switch_args": "<stage string>",
+                "type": [
+                    "string"
                 ],
                 "value": []
             }
@@ -2261,6 +2320,7 @@
                 "defvalue": [],
                 "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2270,6 +2330,7 @@
                 "defvalue": [],
                 "help": "Stage executable",
                 "switch": "-tool_exe",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2279,6 +2340,7 @@
                 "defvalue": [],
                 "help": "Stage configuration format",
                 "switch": "-tool_format",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2290,6 +2352,7 @@
                 ],
                 "help": "Stage job index",
                 "switch": "-tool_jobid",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -2301,6 +2364,7 @@
                 "defvalue": [],
                 "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
+                "switch_args": "<stage string string>",
                 "type": [
                     "string",
                     "string"
@@ -2311,6 +2375,7 @@
                 "defvalue": [],
                 "help": "Stage thread parallelism",
                 "switch": "-tool_np",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -2320,6 +2385,7 @@
                 "defvalue": [],
                 "help": "Stage executable options",
                 "switch": "-tool_opt",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2330,6 +2396,7 @@
                 "hash": [],
                 "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
+                "switch_args": "<stage dir>",
                 "type": [
                     "file"
                 ],
@@ -2340,8 +2407,19 @@
                 "hash": [],
                 "help": "Stage entry point script",
                 "switch": "-tool_script",
+                "switch_args": "<stage file>",
                 "type": [
                     "file"
+                ],
+                "value": []
+            },
+            "vendor": {
+                "defvalue": [],
+                "help": "Stage tool vendor",
+                "switch": "-tool_vendor",
+                "switch_args": "<stage string>",
+                "type": [
+                    "string"
                 ],
                 "value": []
             }
@@ -2351,6 +2429,7 @@
                 "defvalue": [],
                 "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2360,6 +2439,7 @@
                 "defvalue": [],
                 "help": "Stage executable",
                 "switch": "-tool_exe",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2369,6 +2449,7 @@
                 "defvalue": [],
                 "help": "Stage configuration format",
                 "switch": "-tool_format",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2380,6 +2461,7 @@
                 ],
                 "help": "Stage job index",
                 "switch": "-tool_jobid",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -2391,6 +2473,7 @@
                 "defvalue": [],
                 "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
+                "switch_args": "<stage string string>",
                 "type": [
                     "string",
                     "string"
@@ -2401,6 +2484,7 @@
                 "defvalue": [],
                 "help": "Stage thread parallelism",
                 "switch": "-tool_np",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -2410,6 +2494,7 @@
                 "defvalue": [],
                 "help": "Stage executable options",
                 "switch": "-tool_opt",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2420,6 +2505,7 @@
                 "hash": [],
                 "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
+                "switch_args": "<stage dir>",
                 "type": [
                     "file"
                 ],
@@ -2430,8 +2516,19 @@
                 "hash": [],
                 "help": "Stage entry point script",
                 "switch": "-tool_script",
+                "switch_args": "<stage file>",
                 "type": [
                     "file"
+                ],
+                "value": []
+            },
+            "vendor": {
+                "defvalue": [],
+                "help": "Stage tool vendor",
+                "switch": "-tool_vendor",
+                "switch_args": "<stage string>",
+                "type": [
+                    "string"
                 ],
                 "value": []
             }
@@ -2441,6 +2538,7 @@
                 "defvalue": [],
                 "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2450,6 +2548,7 @@
                 "defvalue": [],
                 "help": "Stage executable",
                 "switch": "-tool_exe",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2459,6 +2558,7 @@
                 "defvalue": [],
                 "help": "Stage configuration format",
                 "switch": "-tool_format",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2470,6 +2570,7 @@
                 ],
                 "help": "Stage job index",
                 "switch": "-tool_jobid",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -2481,6 +2582,7 @@
                 "defvalue": [],
                 "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
+                "switch_args": "<stage string string>",
                 "type": [
                     "string",
                     "string"
@@ -2491,6 +2593,7 @@
                 "defvalue": [],
                 "help": "Stage thread parallelism",
                 "switch": "-tool_np",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -2500,6 +2603,7 @@
                 "defvalue": [],
                 "help": "Stage executable options",
                 "switch": "-tool_opt",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2510,6 +2614,7 @@
                 "hash": [],
                 "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
+                "switch_args": "<stage dir>",
                 "type": [
                     "file"
                 ],
@@ -2520,8 +2625,19 @@
                 "hash": [],
                 "help": "Stage entry point script",
                 "switch": "-tool_script",
+                "switch_args": "<stage file>",
                 "type": [
                     "file"
+                ],
+                "value": []
+            },
+            "vendor": {
+                "defvalue": [],
+                "help": "Stage tool vendor",
+                "switch": "-tool_vendor",
+                "switch_args": "<stage string>",
+                "type": [
+                    "string"
                 ],
                 "value": []
             }
@@ -2531,6 +2647,7 @@
                 "defvalue": [],
                 "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2540,6 +2657,7 @@
                 "defvalue": [],
                 "help": "Stage executable",
                 "switch": "-tool_exe",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2549,6 +2667,7 @@
                 "defvalue": [],
                 "help": "Stage configuration format",
                 "switch": "-tool_format",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2560,6 +2679,7 @@
                 ],
                 "help": "Stage job index",
                 "switch": "-tool_jobid",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -2571,6 +2691,7 @@
                 "defvalue": [],
                 "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
+                "switch_args": "<stage string string>",
                 "type": [
                     "string",
                     "string"
@@ -2581,6 +2702,7 @@
                 "defvalue": [],
                 "help": "Stage thread parallelism",
                 "switch": "-tool_np",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -2590,6 +2712,7 @@
                 "defvalue": [],
                 "help": "Stage executable options",
                 "switch": "-tool_opt",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2600,6 +2723,7 @@
                 "hash": [],
                 "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
+                "switch_args": "<stage dir>",
                 "type": [
                     "file"
                 ],
@@ -2610,8 +2734,19 @@
                 "hash": [],
                 "help": "Stage entry point script",
                 "switch": "-tool_script",
+                "switch_args": "<stage file>",
                 "type": [
                     "file"
+                ],
+                "value": []
+            },
+            "vendor": {
+                "defvalue": [],
+                "help": "Stage tool vendor",
+                "switch": "-tool_vendor",
+                "switch_args": "<stage string>",
+                "type": [
+                    "string"
                 ],
                 "value": []
             }
@@ -2621,6 +2756,7 @@
                 "defvalue": [],
                 "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2630,6 +2766,7 @@
                 "defvalue": [],
                 "help": "Stage executable",
                 "switch": "-tool_exe",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2639,6 +2776,7 @@
                 "defvalue": [],
                 "help": "Stage configuration format",
                 "switch": "-tool_format",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2650,6 +2788,7 @@
                 ],
                 "help": "Stage job index",
                 "switch": "-tool_jobid",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -2661,6 +2800,7 @@
                 "defvalue": [],
                 "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
+                "switch_args": "<stage string string>",
                 "type": [
                     "string",
                     "string"
@@ -2671,6 +2811,7 @@
                 "defvalue": [],
                 "help": "Stage thread parallelism",
                 "switch": "-tool_np",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -2680,6 +2821,7 @@
                 "defvalue": [],
                 "help": "Stage executable options",
                 "switch": "-tool_opt",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2690,6 +2832,7 @@
                 "hash": [],
                 "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
+                "switch_args": "<stage dir>",
                 "type": [
                     "file"
                 ],
@@ -2700,8 +2843,19 @@
                 "hash": [],
                 "help": "Stage entry point script",
                 "switch": "-tool_script",
+                "switch_args": "<stage file>",
                 "type": [
                     "file"
+                ],
+                "value": []
+            },
+            "vendor": {
+                "defvalue": [],
+                "help": "Stage tool vendor",
+                "switch": "-tool_vendor",
+                "switch_args": "<stage string>",
+                "type": [
+                    "string"
                 ],
                 "value": []
             }
@@ -2711,6 +2865,7 @@
                 "defvalue": [],
                 "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2720,6 +2875,7 @@
                 "defvalue": [],
                 "help": "Stage executable",
                 "switch": "-tool_exe",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2729,6 +2885,7 @@
                 "defvalue": [],
                 "help": "Stage configuration format",
                 "switch": "-tool_format",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2740,6 +2897,7 @@
                 ],
                 "help": "Stage job index",
                 "switch": "-tool_jobid",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -2751,6 +2909,7 @@
                 "defvalue": [],
                 "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
+                "switch_args": "<stage string string>",
                 "type": [
                     "string",
                     "string"
@@ -2761,6 +2920,7 @@
                 "defvalue": [],
                 "help": "Stage thread parallelism",
                 "switch": "-tool_np",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -2770,6 +2930,7 @@
                 "defvalue": [],
                 "help": "Stage executable options",
                 "switch": "-tool_opt",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2780,6 +2941,7 @@
                 "hash": [],
                 "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
+                "switch_args": "<stage dir>",
                 "type": [
                     "file"
                 ],
@@ -2790,8 +2952,19 @@
                 "hash": [],
                 "help": "Stage entry point script",
                 "switch": "-tool_script",
+                "switch_args": "<stage file>",
                 "type": [
                     "file"
+                ],
+                "value": []
+            },
+            "vendor": {
+                "defvalue": [],
+                "help": "Stage tool vendor",
+                "switch": "-tool_vendor",
+                "switch_args": "<stage string>",
+                "type": [
+                    "string"
                 ],
                 "value": []
             }
@@ -2801,6 +2974,7 @@
                 "defvalue": [],
                 "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2810,6 +2984,7 @@
                 "defvalue": [],
                 "help": "Stage executable",
                 "switch": "-tool_exe",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2819,6 +2994,7 @@
                 "defvalue": [],
                 "help": "Stage configuration format",
                 "switch": "-tool_format",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2830,6 +3006,7 @@
                 ],
                 "help": "Stage job index",
                 "switch": "-tool_jobid",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -2841,6 +3018,7 @@
                 "defvalue": [],
                 "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
+                "switch_args": "<stage string string>",
                 "type": [
                     "string",
                     "string"
@@ -2851,6 +3029,7 @@
                 "defvalue": [],
                 "help": "Stage thread parallelism",
                 "switch": "-tool_np",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -2860,6 +3039,7 @@
                 "defvalue": [],
                 "help": "Stage executable options",
                 "switch": "-tool_opt",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2870,6 +3050,7 @@
                 "hash": [],
                 "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
+                "switch_args": "<stage dir>",
                 "type": [
                     "file"
                 ],
@@ -2880,8 +3061,19 @@
                 "hash": [],
                 "help": "Stage entry point script",
                 "switch": "-tool_script",
+                "switch_args": "<stage file>",
                 "type": [
                     "file"
+                ],
+                "value": []
+            },
+            "vendor": {
+                "defvalue": [],
+                "help": "Stage tool vendor",
+                "switch": "-tool_vendor",
+                "switch_args": "<stage string>",
+                "type": [
+                    "string"
                 ],
                 "value": []
             }
@@ -2891,6 +3083,7 @@
                 "defvalue": [],
                 "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2900,6 +3093,7 @@
                 "defvalue": [],
                 "help": "Stage executable",
                 "switch": "-tool_exe",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2909,6 +3103,7 @@
                 "defvalue": [],
                 "help": "Stage configuration format",
                 "switch": "-tool_format",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2920,6 +3115,7 @@
                 ],
                 "help": "Stage job index",
                 "switch": "-tool_jobid",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -2931,6 +3127,7 @@
                 "defvalue": [],
                 "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
+                "switch_args": "<stage string string>",
                 "type": [
                     "string",
                     "string"
@@ -2941,6 +3138,7 @@
                 "defvalue": [],
                 "help": "Stage thread parallelism",
                 "switch": "-tool_np",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -2950,6 +3148,7 @@
                 "defvalue": [],
                 "help": "Stage executable options",
                 "switch": "-tool_opt",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2960,6 +3159,7 @@
                 "hash": [],
                 "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
+                "switch_args": "<stage dir>",
                 "type": [
                     "file"
                 ],
@@ -2970,8 +3170,19 @@
                 "hash": [],
                 "help": "Stage entry point script",
                 "switch": "-tool_script",
+                "switch_args": "<stage file>",
                 "type": [
                     "file"
+                ],
+                "value": []
+            },
+            "vendor": {
+                "defvalue": [],
+                "help": "Stage tool vendor",
+                "switch": "-tool_vendor",
+                "switch_args": "<stage string>",
+                "type": [
+                    "string"
                 ],
                 "value": []
             }
@@ -2981,6 +3192,7 @@
                 "defvalue": [],
                 "help": "Stage copy-to-local option",
                 "switch": "-tool_copy",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2990,6 +3202,7 @@
                 "defvalue": [],
                 "help": "Stage executable",
                 "switch": "-tool_exe",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -2999,6 +3212,7 @@
                 "defvalue": [],
                 "help": "Stage configuration format",
                 "switch": "-tool_format",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -3010,6 +3224,7 @@
                 ],
                 "help": "Stage job index",
                 "switch": "-tool_jobid",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -3021,6 +3236,7 @@
                 "defvalue": [],
                 "help": "Stage keyword translation",
                 "switch": "-tool_keymap",
+                "switch_args": "<stage string string>",
                 "type": [
                     "string",
                     "string"
@@ -3031,6 +3247,7 @@
                 "defvalue": [],
                 "help": "Stage thread parallelism",
                 "switch": "-tool_np",
+                "switch_args": "<stage int>",
                 "type": [
                     "int"
                 ],
@@ -3040,6 +3257,7 @@
                 "defvalue": [],
                 "help": "Stage executable options",
                 "switch": "-tool_opt",
+                "switch_args": "<stage string>",
                 "type": [
                     "string"
                 ],
@@ -3050,6 +3268,7 @@
                 "hash": [],
                 "help": "Stage reference Flow Directory",
                 "switch": "-tool_refdir",
+                "switch_args": "<stage dir>",
                 "type": [
                     "file"
                 ],
@@ -3060,61 +3279,43 @@
                 "hash": [],
                 "help": "Stage entry point script",
                 "switch": "-tool_script",
+                "switch_args": "<stage file>",
                 "type": [
                     "file"
+                ],
+                "value": []
+            },
+            "vendor": {
+                "defvalue": [],
+                "help": "Stage tool vendor",
+                "switch": "-tool_vendor",
+                "switch_args": "<stage string>",
+                "type": [
+                    "string"
                 ],
                 "value": []
             }
         }
     },
-    "sc_trigger": {
-        "defvalue": [],
-        "help": "Stage completion that triggers message to <sc_contact>",
-        "switch": "-trigger",
-        "type": [
-            "string"
-        ],
-        "value": []
-    },
     "sc_vcd": {
         "defvalue": [],
         "hash": [],
-        "help": "Value Change Dump (VCD) file for power analysis",
+        "help": "Value Change Dump (VCD) file",
         "switch": "-vcd",
+        "switch_args": "<file>",
         "type": [
             "file"
         ],
         "value": []
-    },
-    "sc_verbose": {
-        "defvalue": [
-            "False"
-        ],
-        "help": "Enables verbose printing to screen by EDA tools",
-        "switch": "-verbose",
-        "type": [
-            "bool"
-        ],
-        "value": [
-            "False"
-        ]
     },
     "sc_vlib": {
         "defvalue": [],
         "hash": [],
         "help": "Library file",
         "switch": "-v",
+        "switch_args": "<file>",
         "type": [
             "file"
-        ],
-        "value": []
-    },
-    "sc_wall": {
-        "defvalue": [],
-        "help": "Enable all lint style warnings",
-        "switch": "-Wall",
-        "type": [
-            "string"
         ],
         "value": []
     },
@@ -3122,6 +3323,7 @@
         "defvalue": [],
         "help": "Disables a warning -Woo-<message>",
         "switch": "-Wno",
+        "switch_args": "<string>",
         "type": [
             "string"
         ],
@@ -3132,6 +3334,7 @@
         "hash": [],
         "help": "Directory to search for modules",
         "switch": "-y",
+        "switch_args": "<dir>",
         "type": [
             "string"
         ],

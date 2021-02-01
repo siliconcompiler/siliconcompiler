@@ -6,7 +6,7 @@ import siliconcompiler as sc
 
 mychip = sc.Chip()
 scriptdir = os.path.dirname(os.path.realpath(__file__))
-
+#mychip.writecfg("default.json")
 
 ####################################################
 # Setup
@@ -18,13 +18,13 @@ ipdir = scriptdir + '/' + library + '/' + version
 outputfile = scriptdir + '/' + library + '.json'
 
 # timing
-mychip.set('sc_stdlib', library, 'nldm', 'typical', ipdir+'/lib/NangateOpenCellLibrary_typical.lib')
+mychip.add('sc_stdcell', library, 'nldm', 'typical', ipdir+'/lib/NangateOpenCellLibrary_typical.lib')
 
 # lef
-mychip.set('sc_stdlib', library, 'lef', ipdir+'/lef/NangateOpenCellLibrary.macro.lef')
+mychip.add('sc_stdcell', library, 'lef', ipdir+'/lef/NangateOpenCellLibrary.macro.lef')
 
 # gds
-mychip.set('sc_stdlib', library, 'gds', ipdir+'/gds/NangateOpenCellLibrary.gds')
+mychip.add('sc_stdcell', library, 'gds', ipdir+'/gds/NangateOpenCellLibrary.gds')
 
 ########################################################
 # Write JSON
