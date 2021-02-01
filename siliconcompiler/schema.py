@@ -107,7 +107,7 @@ def schema_pdk(cfg):
     cfg['sc_pdk_pex'] = {}
     cfg['sc_pdk_pex']['default'] = {}
     cfg['sc_pdk_pex']['default']['default'] = {}
-    cfg['sc_pdk_pex']['default']['default']['defult'] = {
+    cfg['sc_pdk_pex']['default']['default']['default'] = {
         'help' : 'PEX TCAD file (per stackup, corner)',
         'switch' : '-pdk_pex',
         'switch_args' : '<stackup corner vendor file>', 
@@ -237,6 +237,17 @@ def schema_pdk(cfg):
         'hash'   : []
     }
 
+    #stackup
+    cfg['sc_pdk_pnrlayer'] = {}
+    cfg['sc_pdk_pnrlayer']['default'] = {
+        'help' : 'Place and route layer mapping file',
+        'switch' : '-pdk_pnrmap',
+        'switch_args' : '<stackup vendor file>', 
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash'   : []
+    }
+
     cfg['sc_pdk_tapmax'] = {
         'help' : 'Tap cell max distance rule',
         'switch' : '-pdk_tapmax',
@@ -255,9 +266,6 @@ def schema_pdk(cfg):
         'hash' : []
     }
 
-    
-
-    
     return cfg
 
 ############################################
