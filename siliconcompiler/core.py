@@ -91,6 +91,13 @@ class Chip:
         return list(self.search(self.cfg, *args, mode='getkeys'))
 
     ####################################
+    # sc_stdcell, <dynamic>, nldm, <dynamic>, val (4)
+    # sc_pdk_pnrdir, <stackup>, <lib>, <vendor>, val(4)
+    # sc_stdcell, <dynamic>, lef, val (3)
+    # sc_pdk_display, <dynamic>, <dynamic>, val(2)
+    # sc_pdk_models, <dynamic>, val (2)
+    # sc_design, val (1)
+
     def add(self, *args, clear=False):
         '''Sets a value in the Chip configuration dictionary 
         '''
@@ -110,19 +117,36 @@ class Chip:
             all_args[-1] = [all_args[-1]]
 
         # Deepcopy library from default template if it doesn't exist
-        if param in ('sc_stdlib', 'sc_macro'):
-            key = all_args[1]
-            if not (key in self.cfg[param]):
-                self.cfg[param][key] = {}
-                self.cfg[param][key] = copy.deepcopy(self.cfg[param]['default'])
-        if (len(all_args) == 5):
-            view = all_args[2]
-            leaf = all_args[3]
-            if not (leaf in self.cfg[param][key][view]):
-                self.cfg[param][key][view][leaf] = {}
-                self.cfg[param][key][view][leaf] = copy.deepcopy(self.cfg[param]['default'][view]['default'])
-        return self.search(self.cfg, *all_args, mode=mode)
+        # Can't be done recursively since we have to copy from template
+        # piece by piece? Need to reach back and over to template into the right
+        # place in the structure. How to do that elegantly?
 
+        #Code for dynamically copying default sub trees where needed
+        if param in self.cfg.keys():
+            if len(all_args) > 2:
+                k1 = all_args[1]
+                if not (k1 in self.cfg[param]):
+                    self.cfg[param][k1] = {}
+                    self.cfg[param][k1] = copy.deepcopy(self.cfg[param]['default'])
+            if len(all_args) > 3:
+                k2 = all_args[2]
+                if len(self.cfg[param]['default']) > 1:
+                    view = k2
+                else:
+                    view = 'default'     
+                if not (k2 in self.cfg[param][k1]):
+                    self.cfg[param][k1][k2] = {}
+                    self.cfg[param][k1][k2] = copy.deepcopy(self.cfg[param]['default'][view])
+            if len(all_args) > 4:
+                k3 = all_args[3]
+                # If there is only one view, that view should be default
+                if not (k3 in self.cfg[param][k1][k2]):
+                    self.cfg[param][k1][k2][k3] = {}                    
+                    self.cfg[param][k1][k2][k3] = copy.deepcopy(self.cfg[param]['default'][view]['default'])
+                                               
+
+        return self.search(self.cfg, *all_args, mode=mode)
+    
     ##################################
     def search(self, cfg, *args, field='value', mode='get'):
         '''Recursively searches the nested dictionary for a key match
@@ -189,7 +213,6 @@ class Chip:
         keymap = {}
         
         #Create a dynamic keymap from string pairs
-        print(stage) 
         string_list = self.cfg['sc_tool'][stage]['keymap']['value']
         for string in string_list:
             k,v = string.split()
