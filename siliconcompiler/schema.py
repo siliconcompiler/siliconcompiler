@@ -11,11 +11,11 @@ def schema():
 
     cfg = schema_defaults(cfg)
     
-    cfg = schema_pdk_core(cfg)
+    cfg = schema_pdk(cfg)
 
     cfg = schema_pdk_custom(cfg)
 
-    cfg = schema_pdk_apr(cfg)
+    cfg = schema_pdk_pnr(cfg)
 
     cfg = schema_libs(cfg, 'stdcell')
 
@@ -23,8 +23,6 @@ def schema():
 
     cfg = schema_tools(cfg)
 
-    cfg = schema_setup(cfg)
-    
     cfg = schema_design(cfg)
 
     cfg = schema_mcmm(cfg)
@@ -123,8 +121,8 @@ def schema_defaults(cfg):
 # Technology setup
 #############################################
 
-def schema_pdk_core(cfg):
-    ''' Process Design Kit Core Setup
+def schema_pdk(cfg):
+    ''' Mandatory Process Design Technology Setup
     '''
       
     cfg['sc_pdkdir'] = {
@@ -161,7 +159,7 @@ def schema_pdk_core(cfg):
         'type' : ['int'],
         'defvalue' : []
     }
-
+    
     cfg['sc_pdkguide'] = {
         'help' : 'Process Manual (PDF)',
         'switch' : '-pdkguide',     
@@ -178,36 +176,62 @@ def schema_pdk_core(cfg):
         'hash'   : []
     }
     
-    cfg['sc_grid'] = {
-        'help' : 'Grid unit (in um)',
-        'switch' : '-grid',
-        'type' : ['float'],
-        'defvalue' : []
+    #vendor
+    cfg['sc_device_model'] = {}
+    cfg['sc_device_model']['default'] = {
+        'help' : 'Device model directory (per vendor)',
+        'switch' : '-device_model',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash'   : []
     }
 
-    cfg['sc_time'] = {
-        'help' : 'Time unit (1 ps)',
-        'switch' : '-time',
-        'type' : ['int'],
-        'defvalue' : []
+    #stackup, corner, vendor
+    cfg['sc_wire_model'] = {}
+    cfg['sc_wire_model']['default'] = {}
+    cfg['sc_wire_model']['default']['default'] = {}
+    cfg['sc_wire_model']['default']['default']['defult'] = {
+        'help' : 'Wire RC/PEX model file (per stackup, corner)',
+        'switch' : '-wire_model',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash'   : []
     }
 
-    # Per stackup
-    # Number of layers
-    # max layer
+    return cfg
 
-    cfg['sc_stackup'] = {
-        'help' : 'Metal stackup(s) as named in the PDK',
-        'switch' : '-stackup',
-        'type' : ['string'],
-        'defvalue' : []
+############################################
+# Custom Design Environment Setup
+#############################################
+
+def schema_pdk_custom(cfg):
+
+    cfg['sc_custom_display'] = {}
+    cfg['sc_custom_display']['default'] = {}
+    cfg['sc_custom_display']['default']['default'] = {
+        'help' : 'Custom design display configuration',
+        'switch' : '-custom_display',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash' : []
     }
 
-        
-    ##TODO: needs to be per stackup
-#Name             Purpose         Layer#    Data-Type
-#RX               drawing            1       0                     
-    cfg['sc_layermap'] = {
+    cfg['sc_custom_init'] = {}
+    cfg['sc_custom_init']['default'] = {}
+    cfg['sc_custom_init']['default']['default'] = {
+        'help' : 'Custom design init file',
+        'switch' : '-custom_init',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash' : []
+    }
+
+    #Name Purpose Layer#  Data-Type
+    #RX   drawing 1       0                     
+    #stackup, vendor
+    cfg['sc_custom_layermap'] = {}
+    cfg['sc_custom_layermap']['default'] = {}
+    cfg['sc_custom_layermap']['default']['default'] = {
         'help' : 'GDS layer map',
         'switch' : '-layermap',
         'type' : ['file'],
@@ -215,76 +239,38 @@ def schema_pdk_core(cfg):
         'hash' : []
     }
 
-    #Per stackup,
-
-#object name      subtype          layer name   Layer#  Datatype
-#layerBlockage    routing          M1           15      61 
-    cfg['sc_objmap'] = {
+    #objname   subtype name Layer#  Datatype
+    #m1block   routing M1   15      61 
+    #stackup, vendor
+    cfg['sc_custom_objectmap'] = {}
+    cfg['sc_custom_objectmap']['default'] = {}
+    cfg['sc_custom_objectmap']['default']['default'] = {
         'help' : 'GDS object map',
-        'switch' : '-objmap',
+        'switch' : '-objectmap',
         'type' : ['file'],
         'defvalue' : [],
         'hash' : []
     }
-       
-    cfg['sc_model'] = {
-        'help' : 'Device model file',
-        'switch' : '-model',
-        'type' : ['file'],
-        'defvalue' : [],
-        'hash'   : []
-    }
 
-    cfg['sc_rcfile'] = {
-        'help' : 'Wire model file',
-        'switch' : '-rcfile',
+    # stackup, vendor
+    cfg['sc_custom_libs'] = {}
+    cfg['sc_custom_libs']['default'] = {}
+    cfg['sc_custom_libs']['default']['default'] = {
+        'help' : 'Custom library list file',
+        'switch' : '-custom_libs',
         'type' : ['file'],
-        'defvalue' : [],
-        'hash'   : []
-    }
-
-    cfg['sc_tapmax'] = {
-        'help' : 'Tap cell max distance rule',
-        'switch' : '-tapmax',
-        'type' : ['float'],
         'defvalue' : [],
         'hash' : []
     }
-
-    cfg['sc_tapoffset'] = {
-        'help' : 'Tap cell offset rule',
-        'switch' : '-tapoffset',
-        'type' : ['float'],
-        'defvalue' : [],
-        'hash' : []
-    }
-    
     
     return cfg
-
-
-
-############################################
-# Custom Design Environment Setup
-#############################################
-# display (per technology)
-# libs (per stack)
-# init (per stack)
-# libinit (per lib)
-# tfdb (per lib)
-# techfile (per lib)
-# techfiledb (per lib)
-
-def schema_pdk_custom(cfg):
-
-  pass
 
                               
 ############################################
 # Automated Place and Route Setup
 #############################################
 
-def schema_pdk_apr(cfg):
+def schema_pdk_pnr(cfg):
     '''Automated Place and Route Setup
     Format1: cfg['sc_pnr_techdir']['libtag']['eda-vendor']
     Libtag would generally be the library track-height
@@ -331,6 +317,22 @@ def schema_pdk_apr(cfg):
         'hash'   : []
     }
 
+    cfg['sc_tapmax'] = {
+        'help' : 'Tap cell max distance rule',
+        'switch' : '-tapmax',
+        'type' : ['float'],
+        'defvalue' : [],
+        'hash' : []
+    }
+
+    cfg['sc_tapoffset'] = {
+        'help' : 'Tap cell offset rule',
+        'switch' : '-tapoffset',
+        'type' : ['float'],
+        'defvalue' : [],
+        'hash' : []
+    }
+    
     return cfg
 
 ############################################
