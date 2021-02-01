@@ -11,16 +11,20 @@ def schema():
 
     cfg = schema_defaults(cfg)
     
-    cfg = schema_setup(cfg)
+    cfg = schema_pdk_core(cfg)
 
-    cfg = schema_process(cfg)
+    cfg = schema_pdk_custom(cfg)
 
-    cfg = schema_libs(cfg, 'stdlib')
+    cfg = schema_pdk_apr(cfg)
+
+    cfg = schema_libs(cfg, 'stdcell')
 
     cfg = schema_libs(cfg, 'macro')
 
     cfg = schema_tools(cfg)
 
+    cfg = schema_setup(cfg)
+    
     cfg = schema_design(cfg)
 
     cfg = schema_mcmm(cfg)
@@ -112,81 +116,31 @@ def schema_defaults(cfg):
 
     return cfg
 
-############################################
-# General Setup
-#############################################
 
-def schema_setup(cfg):
-    '''Compilation setup method
-    '''
-    cfg['sc_cfgfile'] = {
-        'help' : 'Loads configurations from a json file',
-        'switch' : '-cfgfile',
-        'type' : ['file'],
-        'defvalue' : [],
-        'hash'   : []
-    }
 
-    cfg['sc_custom'] = {
-        'help' : 'Custom EDA pass through variables',
-        'switch' : '-custom',
-        'type' : ['string'],
-        'defvalue' : []
-    }
-    
-    cfg['sc_remote'] = {
-        'help' : 'Name of remote server address (https://acme.com:8080)',
-        'switch' : '-remote',
-        'type' : ['string'],
-        'defvalue' : []
-    }
-
-    cfg['sc_ref'] = {
-        'help' : 'Reference methodology name',
-        'switch' : '-ref',
-        'type' : ['string'],
-        'defvalue' : []
-    }
-
-    cfg['sc_pdkdir'] = {
-        'help' : 'PDK root directory',
-        'switch' : '-pdkdir',
-        'type' : ['string'],
-        'defvalue' : []
-    }
-    
-    cfg['sc_ipdir'] = {
-        'help' : 'IP root directory',
-        'switch' : '-ipdir',
-        'type' : ['string'],
-        'defvalue' : []
-    }
-    
-    cfg['sc_trigger'] = {
-        'help' : 'Stage completion that triggers message to <sc_contact>',
-        'switch' : '-trigger',
-        'type' : ['string'],
-        'defvalue' : []
-    }
-
-    cfg['sc_contact'] = {
-        'help' : 'Trigger event contact (phone#/email)',
-        'switch' : '-contact',
-        'type' : ['string'],
-        'defvalue' : []
-    }
-
-    return cfg
-    
 
 ############################################
 # Technology setup
 #############################################
 
-def schema_process(cfg):
-    ''' Process technology setup
+def schema_pdk_core(cfg):
+    ''' Process Design Kit Core Setup
     '''
       
+    cfg['sc_pdkdir'] = {
+        'help' : 'Root directory for PDK)',
+        'switch' : '-pdkroot',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+
+    cfg['sc_ipdir'] = {
+        'help' : 'Root directory fpr physical IP)',
+        'switch' : '-pdkroot',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+
     cfg['sc_foundry'] = {
         'help' : 'Foundry name (eg: virtual, tsmc, gf, samsung)',
         'switch' : '-foundry',
@@ -210,15 +164,15 @@ def schema_process(cfg):
 
     cfg['sc_pdkguide'] = {
         'help' : 'Process Manual (PDF)',
-        'switch' : '-'+group+'_userguide',     
+        'switch' : '-pdkguide',     
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
     }
 
-    cfg['sc_pdkguide'] = {
-        'help' : 'Process Manual (PDF)',
-        'switch' : '-'+group+'_userguide',     
+    cfg['sc_pdkdrm'] = {
+        'help' : 'Process Design Rule Manual (PDF)',
+        'switch' : '-pdkdrm',     
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
@@ -238,26 +192,55 @@ def schema_process(cfg):
         'defvalue' : []
     }
 
+    # Per stackup
+    # Number of layers
+    # max layer
+
     cfg['sc_stackup'] = {
-        'help' : 'Metal stackup as named in the PDK',
+        'help' : 'Metal stackup(s) as named in the PDK',
         'switch' : '-stackup',
         'type' : ['string'],
         'defvalue' : []
     }
 
-    cfg['sc_layer'] = {
-        'help' : 'Metal stackup routing layer definitions',
-        'switch' : '-layer',
-        'type' : ['string', 'string', 'float', 'float'],
-        'defvalue' : []
-    }
-    
+        
+    ##TODO: needs to be per stackup
+#Name             Purpose         Layer#    Data-Type
+#RX               drawing            1       0                     
     cfg['sc_layermap'] = {
         'help' : 'GDS layer map',
         'switch' : '-layermap',
-        'type' : 'string, string, int, int',
+        'type' : ['file'],
         'defvalue' : [],
         'hash' : []
+    }
+
+    #Per stackup,
+
+#object name      subtype          layer name   Layer#  Datatype
+#layerBlockage    routing          M1           15      61 
+    cfg['sc_objmap'] = {
+        'help' : 'GDS object map',
+        'switch' : '-objmap',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash' : []
+    }
+       
+    cfg['sc_model'] = {
+        'help' : 'Device model file',
+        'switch' : '-model',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash'   : []
+    }
+
+    cfg['sc_rcfile'] = {
+        'help' : 'Wire model file',
+        'switch' : '-rcfile',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash'   : []
     }
 
     cfg['sc_tapmax'] = {
@@ -275,78 +258,79 @@ def schema_process(cfg):
         'defvalue' : [],
         'hash' : []
     }
-
-
-    cfg['sc_minlayer'] = {
-        'help' : 'Minimum routing layer (integer)',
-        'switch' : '-minlayer',
-        'type' : ['int'],
-        'defvalue' : []
-    }
-
-    cfg['sc_maxlayer'] = {
-        'help' : 'Maximum routing layer (integer)',
-        'switch' : '-maxlayer',
-        'type' : ['int'],
-        'defvalue' : []
-    }
     
-    cfg['sc_maxfanout'] = {
-        'help' : 'Maximum fanout',
-        'switch' : '-maxfanout',
-        'type' : ['int'],
-        'defvalue' : []
+    
+    return cfg
+
+
+
+############################################
+# Custom Design Environment Setup
+#############################################
+# display (per technology)
+# libs (per stack)
+# init (per stack)
+# libinit (per lib)
+# tfdb (per lib)
+# techfile (per lib)
+# techfiledb (per lib)
+
+def schema_pdk_custom(cfg):
+
+  pass
+
+                              
+############################################
+# Automated Place and Route Setup
+#############################################
+
+def schema_pdk_apr(cfg):
+    '''Automated Place and Route Setup
+    Format1: cfg['sc_pnr_techdir']['libtag']['eda-vendor']
+    Libtag would generally be the library track-height
+
+    '''
+
+    cfg['sc_pnr_techdir'] = {}
+    cfg['sc_pnr_techdir']['default'] = {}    
+    cfg['sc_pnr_techdir']['default']['default'] = {
+        'help' : 'Place and route technology setup directory',
+        'switch' : '-pnr_techdir',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash'   : []
     }
 
-    cfg['sc_density'] = {
-        'help' : 'Target density for density driven floor-planning (percent)',
-        'switch' : '-density',
-        'type' : ['int'],
-        'defvalue' : []
-    }
-
-    cfg['sc_coremargin'] = {
-        'help' : 'Margin around core for density driven floor-planning (um)',
-        'switch' : '-coremargin',
-        'type' : ['float'],
-        'defvalue' : []
-    }
-
-    cfg['sc_aspectratio'] = {
-        'help' : 'Aspect ratio for density driven floor-planning',
-        'switch' : '-aspectratio',
-        'type' : ['float'],
-        'defvalue' : []
-    }
-
-    cfg['sc_techfile'] = {
+    cfg['sc_pnr_techfile'] = {}
+    cfg['sc_pnr_techfile']['default'] = {}    
+    cfg['sc_pnr_techfile']['default']['default'] = {
         'help' : 'Place and route tehnology file',
-        'switch' : '-techfile',
+        'switch' : '-pnr_techfile',
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
     }
 
+    cfg['sc_pnr_pexfile'] = {}
+    cfg['sc_pnr_pexfile']['default'] = {}    
+    cfg['sc_pnr_pexfile']['default'] = {
+        'help' : 'Place and route tehnology file',
+        'switch' : '-pnr_techfile',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash'   : []
+    }
     
-    cfg['sc_model'] = {
-        'help' : 'Device model file',
-        'switch' : '-model',
+    cfg['sc_pnr_layermap'] = {}
+    cfg['sc_pnr_layermap']['default'] = {}    
+    cfg['sc_pnr_layermap']['default']['default'] = {
+        'help' : 'Place and route layer mapping file',
+        'switch' : '-pnr_layermap',
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
     }
 
-    cfg['sc_rcfile'] = {
-        'help' : 'Wire model file',
-        'switch' : '-rcfile',
-        'type' : ['file'],
-        'defvalue' : [],
-        'hash'   : []
-    }
-
-    
-
-    
     return cfg
 
 ############################################
@@ -356,6 +340,7 @@ def schema_process(cfg):
 def schema_design(cfg):
     ''' Design setup schema
     '''
+
     # Mapping Target
     cfg['sc_target'] = {
         'help' : 'Single name target (nangate45, asap7)',
@@ -515,9 +500,108 @@ def schema_design(cfg):
         'hash'   : []
     }
 
+    cfg['sc_cfgfile'] = {
+        'help' : 'Loads configurations from a json file',
+        'switch' : '-cfgfile',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash'   : []
+    }
 
+    cfg['sc_custom'] = {
+        'help' : 'Custom EDA pass through variables',
+        'switch' : '-custom',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+    
+    cfg['sc_remote'] = {
+        'help' : 'Name of remote server address (https://acme.com:8080)',
+        'switch' : '-remote',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+
+    cfg['sc_ref'] = {
+        'help' : 'Reference methodology name',
+        'switch' : '-ref',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+
+    cfg['sc_pdkdir'] = {
+        'help' : 'PDK root directory',
+        'switch' : '-pdkdir',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+    
+    cfg['sc_ipdir'] = {
+        'help' : 'IP root directory',
+        'switch' : '-ipdir',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+    
+    cfg['sc_trigger'] = {
+        'help' : 'Stage completion that triggers message to <sc_contact>',
+        'switch' : '-trigger',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+
+    cfg['sc_contact'] = {
+        'help' : 'Trigger event contact (phone#/email)',
+        'switch' : '-contact',
+        'type' : ['string'],
+        'defvalue' : []
+    }
     
 
+    cfg['sc_minlayer'] = {
+        'help' : 'Minimum routing layer (integer)',
+        'switch' : '-minlayer',
+        'type' : ['int'],
+        'defvalue' : []
+    }
+
+    cfg['sc_maxlayer'] = {
+        'help' : 'Maximum routing layer (integer)',
+        'switch' : '-maxlayer',
+        'type' : ['int'],
+        'defvalue' : []
+    }
+    
+    cfg['sc_maxfanout'] = {
+        'help' : 'Maximum fanout',
+        'switch' : '-maxfanout',
+        'type' : ['int'],
+        'defvalue' : []
+    }
+
+ cfg['sc_density'] = {
+        'help' : 'Target density for density driven floor-planning (percent)',
+        'switch' : '-density',
+        'type' : ['int'],
+        'defvalue' : []
+    }
+
+    cfg['sc_coremargin'] = {
+        'help' : 'Margin around core for density driven floor-planning (um)',
+        'switch' : '-coremargin',
+        'type' : ['float'],
+        'defvalue' : []
+    }
+
+    cfg['sc_aspectratio'] = {
+        'help' : 'Aspect ratio for density driven floor-planning',
+        'switch' : '-aspectratio',
+        'type' : ['float'],
+        'defvalue' : []
+    }
+    
+
+    
     return cfg
 
 ############################################
@@ -560,6 +644,9 @@ def schema_mcmm(cfg):
         'type' : ['string'],
         'defvalue' : []
     }
+
+    
+
     
     return cfg
 
@@ -573,6 +660,15 @@ def schema_libs(cfg, group):
 
     cfg['sc_'+group]['default'] = {}
 
+    cfg['sc_'+group]['default']['userguide'] = {
+        'help' : 'Library userguide (PDF or TXT)',
+        'switch' : '-'+group+'_userguide',     
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash'   : []
+    }
+
+    
     # Userguide
     cfg['sc_'+group]['default']['userguide'] = {
         'help' : 'Library userguide (PDF or TXT)',
@@ -762,7 +858,6 @@ def schema_tools(cfg):
                       'pi',
                       'si',
                       'drc',
-                      'antenna',
                       'density',
                       'erc',                    
                       'lvs',
