@@ -90,20 +90,20 @@ class Chip:
 
         return list(self.search(self.cfg, *args, mode='getkeys'))
 
-    
     ####################################
-    #set2('sc_design', 'top')
-    #set2('sc_tool',   'stagename', 'exe',    'openroad')
-    #set2('sc_stdlib', 'libname',   'lef',    'libname.lef')
-    #set2('sc_stdlib', 'libname',   'timing', 'corner',     'libname.lib')
-       
-    def set(self, *args):
+    def add(self, *args, clear=False):
         '''Sets a value in the Chip configuration dictionary 
         '''
         self.logger.info('Setting config dictionary value: %s', args)
                 
         all_args = list(args)
         param = all_args[0]
+
+        #Option for clearing list before adding value
+        if clear:
+            mode = 'set'
+        else:
+            mode = 'add'
         
         # Convert val to list if not a list
         if type(all_args[-1]) != list:
@@ -121,7 +121,7 @@ class Chip:
             if not (leaf in self.cfg[param][key][view]):
                 self.cfg[param][key][view][leaf] = {}
                 self.cfg[param][key][view][leaf] = copy.deepcopy(self.cfg[param]['default'][view]['default'])
-        return self.search(self.cfg, *all_args, mode='set')
+        return self.search(self.cfg, *all_args, mode=mode)
 
     ##################################
     def search(self, cfg, *args, field='value', mode='get'):
@@ -142,7 +142,10 @@ class Chip:
         val = all_args[-1]
         if param in cfg.keys():
             #indicates leaf cell
-            if (mode=='set') & (len(all_args) == 2):
+            if (mode=='add') & (len(all_args) == 2):
+                cfg[param][field] = val
+                return cfg[param][field]
+            elif (mode=='set') & (len(all_args) == 2):
                 return cfg[param][field].extend(val)
             elif (len(all_args) == 1):
                 if(mode=='getkeys'):
