@@ -6,8 +6,8 @@ source ./sc_setup.tcl
 
 set scriptdir [file dirname [lindex $SC_SYN_SCRIPT 0]]
 
-set jobid         [lindex $SC_IMPORT_JOBID 0]
-set topmodule     [lindex $SC_DESIGN 0]
+set jobid         [dict get $sc_cfg sc_tool import jobid 0]
+set topmodule     [dict get $sc_cfg sc_design 0]
 set mainlib       [lindex $SC_LIB 0]
 
 #Inputs
