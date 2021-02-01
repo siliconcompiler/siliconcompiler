@@ -28,7 +28,7 @@ def cmdline():
     # Argument Parser
     
     parser = argparse.ArgumentParser(prog='sc',
-                                     formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=42),
+                                     formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=50),
                                      prefix_chars='-+',
                                      description="Silicon Compiler Collection (SC)")
 
@@ -37,74 +37,14 @@ def cmdline():
                         nargs='+',
                         help=def_cfg['sc_source']['help'])
 
-    # Auto generated source file arguments
-    for key1 in sorted(def_cfg):
-        print(key1)
-        #Library and macro pattern        
-        if key1 in ('sc_stdlib', 'sc_macro'):
-            for key2 in  def_cfg[key1]['default'].keys():
-                #Timing/power has a fixed structure with default as keyword for lib/corner
-                if 'default' in def_cfg[key1]['default'][key2]:   
-                    if key2 in ('cells'):
-                        metahelp = '<lib type cellname>'
-                    else:
-                        metahelp = '<lib type filepath>'
-                    parser.add_argument(def_cfg[key1]['default'][key2]['default']['switch'],
-                                        dest=key1+"_"+key2,
-                                        metavar=metahelp,
-                                        action='append',
-                                        help=def_cfg[key1]['default'][key2]['default']['help'],
-                                        default = argparse.SUPPRESS)
-                else:
-                    print(key1, key2, def_cfg[key1]['default'][key2]['type'])
-                    if (def_cfg[key1]['default'][key2]['type'][0] == 'file'): 
-                        metahelp = '<lib filepath>'
-                    else:
-                        metahelp = '<lib string>'
-                    parser.add_argument(def_cfg[key1]['default'][key2]['switch'],
-                                        dest=key1+"_"+key2,
-                                        metavar=metahelp,
-                                        action='append',
-                                        help=def_cfg[key1]['default'][key2]['help'],
-                                        default = argparse.SUPPRESS)        
-
-        #MCMM pattern
-        elif key1 in ('sc_mcmm'):
-            for key2 in def_cfg[key1]['default'].keys():
-                parser.add_argument(def_cfg[key1]['default'][key2]['switch'],
-                                    dest=key1+"_"+key2,
-                                    metavar='<mode ' + key2 + '>',
-                                    action='append',
-                                    help=def_cfg[key1]['default'][key2]['help'],
-                                    default = argparse.SUPPRESS)             
-        #Tool pattern
-        elif key1 in ('sc_tool'):
-            for key2 in def_cfg['sc_tool']['syn'].keys():
-                parser.add_argument(def_cfg[key1]['syn'][key2]['switch'],
-                                    dest=key1+"_"+key2,
-                                    metavar='<stage ' + key2 + '>',
-                                    action='append',
-                                    help=def_cfg[key1]['syn'][key2]['help'],
-                                    default = argparse.SUPPRESS)
-        #Command line on/off switches
-        elif def_cfg[key1]['type'] == "bool":
-            parser.add_argument(def_cfg[key1]['switch'],
-                                dest=key1,
-                                action='store_true',
-                                help=def_cfg[key1]['help'],
-                                default = argparse.SUPPRESS)
-        #Flat config structure pattern
-        elif key1 != "sc_source":
-            parser.add_argument(def_cfg[key1]['switch'],
-                                dest=key1,
-                                action='append',
-                                help=def_cfg[key1]['help'],
-                                default = argparse.SUPPRESS)
-                                
-
+    #Recursive argument adder
+    add_arg(def_cfg, parser)
+    
     #Parsing args and converting to dict
     cmdargs = vars(parser.parse_args())
 
+    print(cmdargs)
+    
     # Copying flat parse_args to nested cfg dict based on key type
     # Values are lists of varying legnth based on cfg parameter
     # stdlib, macro, tool has length 3 or 4 depending on type
@@ -124,7 +64,7 @@ def cmdline():
             cfg[param] = {}
 
         #Iterate over list since these are dynamic
-        if switch[1] in ('stdlib', 'macro', 'tool'):
+        if switch[1] in ('stdcell', 'macro', 'tool'):
             for val in all_vals:
                 if val[0] not in cfg[param]:
                         cfg[param][val[0]]={}
@@ -151,6 +91,40 @@ def cmdline():
 
     return cfg
 
+###########################
+def add_arg(cfg, parser, keys=None):
+    ''' Recursively add command line arguments from cfg dictionary
+    '''
+    if keys is None:
+        keys = []
+    for k,v in sorted(cfg.items()):
+        #No command line switches for these
+        if k in ('sc_source', 'sc_stages'):
+            pass
+        #Large number of stages, so minimizing the command lines
+        elif k in ('sc_tool'):
+            for k2 in cfg['sc_tool']['syn'].keys():
+                parser.add_argument(cfg[k]['syn'][k2]['switch'],
+                                    dest=k+"_"+k2,
+                                    metavar=cfg[k]['syn'][k2]['switch_args'],
+                                    action='append',
+                                    help=cfg[k]['syn'][k2]['help'],
+                                    default = argparse.SUPPRESS)
+        #All others
+        else:            
+            newkeys =  keys.copy()
+            newkeys.append(str(k))
+            if 'defvalue' in cfg[k].keys():
+                keystr = '_'.join(newkeys)                
+                parser.add_argument(cfg[k]['switch'],
+                                    metavar=cfg[k]['switch_args'],
+                                    dest=keystr,
+                                    action='append',
+                                    help=cfg[k]['help'],
+                                    default = argparse.SUPPRESS)
+            else:
+                newkeys.append(str(k))
+                add_arg(cfg[k], parser, keys=newkeys) 
 
 ###########################
 def main():
