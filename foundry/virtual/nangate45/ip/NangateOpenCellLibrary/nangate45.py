@@ -12,7 +12,7 @@ scriptdir = os.path.dirname(os.path.realpath(__file__))
 # Setup
 ####################################################
 
-library = 'NangateOpenCellLibrary'
+library = 'nangate45'
 version = 'r1p0'
 ipdir = scriptdir + '/' + library + '/' + version
 outputfile = scriptdir + '/' + library + '.json'

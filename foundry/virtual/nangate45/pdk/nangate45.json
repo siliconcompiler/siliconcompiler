@@ -215,6 +215,19 @@
         ],
         "value": []
     },
+    "sc_lock": {
+        "defvalue": [
+            "False"
+        ],
+        "help": "Locks the configuration dict from edit",
+        "switch": "None",
+        "type": [
+            "bool"
+        ],
+        "value": [
+            "False"
+        ]
+    },
     "sc_macro": {
         "default": {
             "atpg": {
@@ -281,7 +294,7 @@
             "datasheet": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Library datasheets (PDF, TXT, HTML)",
+                "help": "Library datasheets",
                 "switch": "-macro_datasheet",
                 "switch_args": "<lib path>",
                 "type": [
@@ -417,7 +430,7 @@
             "userguide": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Library userguide (PDF or TXT)",
+                "help": "Library userguide",
                 "switch": "-macro_userguide",
                 "switch_args": "<lib file>",
                 "type": [
@@ -583,7 +596,7 @@
     "sc_pdk_drm": {
         "defvalue": [],
         "hash": [],
-        "help": "Process Design Rule Manual (PDF)",
+        "help": "Process Design Rule Manual",
         "switch": "-pdk_drm",
         "switch_args": "<file>",
         "type": [
@@ -604,7 +617,7 @@
     "sc_pdk_guide": {
         "defvalue": [],
         "hash": [],
-        "help": "Process Manual (PDF)",
+        "help": "Process Manual",
         "switch": "-pdk_guide",
         "switch_args": "<file>",
         "type": [
@@ -735,24 +748,30 @@
         "3MA_3MB_2MC_2MD": {
             "defvalue": [],
             "hash": [],
-            "help": "Place and route layer mapping file",
-            "switch": "-pdk_pnrmap",
-            "switch_args": "<stackup vendor file>",
+            "help": "Place and route routing layer definitions",
+            "switch": "-pdk_pnrlayer",
+            "switch_args": "<layername X|Y width pitch>",
             "type": [
-                "file"
+                "string",
+                "string",
+                "float",
+                "float"
             ],
             "value": [
-                "/home/aolofsson/work/zeroasic/siliconcompiler/foundry/virtual/nangate45/pdk/metal10 Y 0.070  1.60"
+                "metal10 Y 0.070  1.60"
             ]
         },
         "default": {
             "defvalue": [],
             "hash": [],
-            "help": "Place and route layer mapping file",
-            "switch": "-pdk_pnrmap",
-            "switch_args": "<stackup vendor file>",
+            "help": "Place and route routing layer definitions",
+            "switch": "-pdk_pnrlayer",
+            "switch_args": "<layername X|Y width pitch>",
             "type": [
-                "file"
+                "string",
+                "string",
+                "float",
+                "float"
             ],
             "value": []
         }
@@ -1060,7 +1079,7 @@
             "datasheet": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Library datasheets (PDF, TXT, HTML)",
+                "help": "Library datasheets",
                 "switch": "-stdcell_datasheet",
                 "switch_args": "<lib path>",
                 "type": [
@@ -1196,7 +1215,7 @@
             "userguide": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Library userguide (PDF or TXT)",
+                "help": "Library userguide",
                 "switch": "-stdcell_userguide",
                 "switch_args": "<lib file>",
                 "type": [
