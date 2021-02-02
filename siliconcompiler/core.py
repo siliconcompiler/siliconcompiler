@@ -139,7 +139,12 @@ class Chip:
                     self.cfg[param][k1][k2] = copy.deepcopy(self.cfg[param]['default'][view])
             if len(all_args) > 4:
                 k3 = all_args[3]
+                if len(self.cfg[param]['default']) > 1:
+                    view = k2
+                else:
+                    view = 'default'  
                 # If there is only one view, that view should be default
+                print(k1,k2,k3)
                 if not (k3 in self.cfg[param][k1][k2]):
                     self.cfg[param][k1][k2][k3] = {}                    
                     self.cfg[param][k1][k2][k3] = copy.deepcopy(self.cfg[param]['default'][view]['default'])
@@ -722,13 +727,9 @@ class Chip:
                     sys.exit()
                 else:
                     self.logger.info('Setting design (topmodule) to %s', topmodule)
-                    self.cfg['sc_design']['value'] = topmodule
+                    self.cfg['sc_design']['value'].append(topmodule)
                     cmd = "cp verilator.v " + topmodule + ".v"
                     subprocess.run(cmd, shell=True)
-
-
-            if self.cfg['sc_gui']['value'] == "True":
-                webbrowser.open("https://google.com")
 
             #Updating jobid when complete
             self.cfg['sc_tool'][stage]['jobid']['value'] = [str(jobid)]
