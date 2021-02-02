@@ -245,13 +245,16 @@ class Chip:
             cfg = self.cfg        
         #Recursively going through dict to set abspaths for files
         for k, v in cfg.items():
+            #print(k,v)
             if isinstance(v, dict):
                 #indicates leaf cell
                 if 'value' in cfg[k].keys():
-                    #only do something if a file is found
+                    #only do something if type is file
                     if(cfg[k]['type'][-1] == 'file'):
                         for i, v in enumerate(cfg[k]['value']):
-                            cfg[k]['value'][i] = os.path.abspath(v)
+                            #Don't replace environment variables
+                            if not re.match('^\$',v):
+                                cfg[k]['value'][i] = os.path.abspath(v)
                 else:
                     self.abspath(cfg=cfg[k])
 
