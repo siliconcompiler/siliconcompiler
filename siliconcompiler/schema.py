@@ -73,7 +73,15 @@ def schema_pdk(cfg):
         'type' : ['int'],
         'defvalue' : []
     }
-    
+
+    cfg['sc_pdk_version'] = {
+        'help' : 'Process node version',
+        'switch' : '-pdk_version',
+        'switch_args' : '<string>',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+        
     cfg['sc_pdk_guide'] = {
         'help' : 'Process Manual',
         'switch' : '-pdk_guide',
@@ -92,16 +100,30 @@ def schema_pdk(cfg):
         'hash'   : []
     }
 
-    #vendor
-    cfg['sc_pdk_models'] = {}
-    cfg['sc_pdk_models']['default'] = {
-        'help' : 'Device model directory (per vendor)',
-        'switch' : '-pdk_models',
+    #stackup, type, tool,  
+    cfg['sc_pdk_femodels'] = {}
+    cfg['sc_pdk_femodels']['default'] = {}
+    cfg['sc_pdk_femodels']['default']['default'] = {}
+    cfg['sc_pdk_femodels']['default']['default']['default'] = {
+        'help' : 'Front end device model directory',
+        'switch' : '-pdk_femodels',
         'switch_args' : '<vendor file>',
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
     }
+    #stackup, tool
+    cfg['sc_pdk_bemodels'] = {}
+    cfg['sc_pdk_bemodels']['default'] = {}
+    cfg['sc_pdk_bemodels']['default']['default'] = {
+        'help' : 'Back end wire model directory',
+        'switch' : '-pdk_bemodels',
+        'switch_args' : '<vendor file>',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash'   : []
+    }
+    
 
     #stackup, corner, vendor
     cfg['sc_pdk_pex'] = {}
