@@ -75,7 +75,7 @@ def schema_pdk(cfg):
     }
     
     cfg['sc_pdk_guide'] = {
-        'help' : 'Process Manual (PDF)',
+        'help' : 'Process Manual',
         'switch' : '-pdk_guide',
         'switch_args' : '<file>',  
         'type' : ['file'],
@@ -84,7 +84,7 @@ def schema_pdk(cfg):
     }
 
     cfg['sc_pdk_drm'] = {
-        'help' : 'Process Design Rule Manual (PDF)',
+        'help' : 'Process Design Rule Manual',
         'switch' : '-pdk_drm',
         'switch_args' : '<file>',
         'type' : ['file'],
@@ -240,10 +240,10 @@ def schema_pdk(cfg):
     #stackup
     cfg['sc_pdk_pnrlayer'] = {}
     cfg['sc_pdk_pnrlayer']['default'] = {
-        'help' : 'Place and route layer mapping file',
-        'switch' : '-pdk_pnrmap',
-        'switch_args' : '<stackup vendor file>', 
-        'type' : ['file'],
+        'help' : 'Place and route routing layer definitions',
+        'switch' : '-pdk_pnrlayer',
+        'switch_args' : '<layername X|Y width pitch>', 
+        'type' : ['string', 'string', 'float', 'float'],
         'defvalue' : [],
         'hash'   : []
     }
@@ -280,7 +280,7 @@ def schema_libs(cfg, group):
 
     # Userguide
     cfg['sc_'+group]['default']['userguide'] = {
-        'help' : 'Library userguide (PDF or TXT)',
+        'help' : 'Library userguide',
         'switch' : '-'+group+'_userguide',
         'switch_args' : '<lib file>',     
         'type' : ['file'],
@@ -290,7 +290,7 @@ def schema_libs(cfg, group):
 
     # Datasheets
     cfg['sc_'+group]['default']['datasheet'] = {
-        'help' : 'Library datasheets (PDF, TXT, HTML)',
+        'help' : 'Library datasheets',
         'switch' : '-'+group+'_datasheet',
         'switch_args' : '<lib path>',  
         'type' : ['file'],
@@ -571,8 +571,16 @@ def schema_design(cfg):
 
     #Mandatory Inputs
     cfg['sc_target'] = {
-        'help' : 'Target library or device',
+        'help' : 'Target platform',
         'switch' : '-target',
+        'switch_args' : '<string>',        
+        'type' : ['string'],
+        'defvalue' : []
+    }
+
+    cfg['sc_target_lib'] = {
+        'help' : 'Target library/device',
+        'switch' : '-target_lib',
         'switch_args' : '<string>',        
         'type' : ['string'],
         'defvalue' : []
@@ -595,7 +603,7 @@ def schema_design(cfg):
         'type' : ['string', 'file'],
         'defvalue' : []
     }
-    
+
     cfg['sc_cfgfile'] = {
         'help' : 'Loads configurations from a json file',
         'switch' : '-cfgfile',
@@ -605,6 +613,13 @@ def schema_design(cfg):
         'hash'   : []
     }
 
+    cfg['sc_lock'] = {
+        'help' : 'Locks the configuration dict from edit',
+        'switch' : 'None',
+        'type' : ['bool'],
+        'defvalue' : ['False'],
+    }
+    
     cfg['sc_design'] = {
         'help' : 'Design top module name',
         'switch' : '-design',
