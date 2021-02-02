@@ -12,10 +12,13 @@ scriptdir = os.path.dirname(os.path.realpath(__file__))
 # Setup
 ####################################################
 
-library = 'nangate45'
+library = 'NangateOpenCellLibrary'
 version = 'r1p0'
 ipdir = scriptdir + '/' + library + '/' + version
 outputfile = scriptdir + '/' + library + '.json'
+
+#target lib
+mychip.add('sc_target_lib', library)
 
 # timing
 mychip.add('sc_stdcell', library, 'nldm', 'typical', ipdir+'/lib/NangateOpenCellLibrary_typical.lib')

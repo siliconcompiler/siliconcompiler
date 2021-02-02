@@ -33,8 +33,8 @@ mychip.add('sc_tool', 'import', 'opt', '--lint-only --debug')
 # syn
 mychip.add('sc_tool', 'syn', 'exe', 'yosys')
 mychip.add('sc_tool', 'syn', 'opt', '-c')
-mychip.add('sc_tool', stage, 'vendor', 'yosys')
-mychip.add('sc_tool', stage, 'script', 'sc_syn.tcl')
+mychip.add('sc_tool', 'syn', 'vendor', 'yosys')
+mychip.add('sc_tool', 'syn', 'script', 'sc_syn.tcl')
 
 # pnr
 for stage in ('floorplan', 'place', 'cts', 'route', 'signoff'):

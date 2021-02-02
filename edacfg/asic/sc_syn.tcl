@@ -4,11 +4,16 @@
 
 source ./sc_setup.tcl
 
-set scriptdir [file dirname [lindex $SC_SYN_SCRIPT 0]]
+set scriptdir [file dirname [dict get $sc_cfg sc_tool syn script 0]]
 
 set jobid         [dict get $sc_cfg sc_tool import jobid 0]
 set topmodule     [dict get $sc_cfg sc_design 0]
-set mainlib       [lindex $SC_LIB 0]
+set target_lib    [dict get $sc_cfg sc_target_lib 0]
+#TODO: fix to handle multiple libraries
+set library_file  [dict get $sc_cfg sc_stdcell $target_lib nldm typical 0]
+
+puts $target_lib
+puts $library_file
 
 #Inputs
 set input_verilog    "../../import/job$jobid/$topmodule.v"
@@ -30,11 +35,11 @@ yosys opt -purge
 # Technology Mapping
 ########################################################
 
-yosys dfflibmap -liberty $mainlib
+yosys dfflibmap -liberty $library_file
 
 yosys opt
 
-yosys abc -liberty $mainlib
+yosys abc -liberty $library_file
 
 ########################################################
 # Cleanup
