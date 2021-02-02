@@ -98,10 +98,10 @@ def add_arg(cfg, parser, keys=None):
     if keys is None:
         keys = []
     for k,v in sorted(cfg.items()):
-        #No command line switches for these
-        if k in ('sc_source', 'sc_stages'):
+        #No command line switches for these odd balls
+        if k in ('sc_source', 'sc_stages', 'sc_lock'):
             pass
-        #Large number of stages, so minimizing the command lines
+        #Optimizing command line switches for these
         elif k in ('sc_tool'):
             for k2 in cfg['sc_tool']['syn'].keys():
                 parser.add_argument(cfg[k]['syn'][k2]['switch'],
@@ -131,10 +131,9 @@ def main():
 
     scriptdir = os.path.dirname(os.path.abspath(__file__))
     rootdir = re.sub("siliconcompiler/siliconcompiler", "siliconcompiler", scriptdir, 1)
-    pdkcfg = rootdir + "/pdklib/virtual/nangate45/nangate45.json"
-    ipcfg = rootdir + "/iplib/virtual/nangate45/NangateOpenCellLibrary.json"
-    edacfg = rootdir + "/edalib/asic/sc_asicflow.json"
-
+    pdkcfg = rootdir + "/foundry/virtual/nangate45/pdk/nangate45.json"
+    ipcfg = rootdir + "/foundry/virtual/nangate45/ip/NangateOpenCellLibrary.json"
+    edacfg = rootdir + "/edacfg/asic/sc_asicflow.json"
 
     #Command line inputs, read once
     cmdlinecfg = cmdline()
