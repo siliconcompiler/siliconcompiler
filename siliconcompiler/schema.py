@@ -107,6 +107,7 @@ def schema_pdk(cfg):
         'type' : ['string'],
         'defvalue' : []
     }
+
     cfg['sc_pdk_pexcorner'] = {
         'help' : 'Process PEX Corner List',
         'switch' : '-pdk_pexcorner',
@@ -115,7 +116,6 @@ def schema_pdk(cfg):
         'defvalue' : []
     }
            
-
     cfg['sc_pdk_devicemodels'] = {}
     cfg['sc_pdk_devicemodels']['default'] = {}
     cfg['sc_pdk_devicemodels']['default']['default'] = {}
@@ -952,43 +952,65 @@ def schema_design(cfg):
 #############################################   
 
 def schema_mcmm(cfg):
-    
-    cfg['sc_mcmm'] = {}
-    cfg['sc_mcmm']['default'] = {}
 
-    #Library corner name (needs to match sc_stdlib)
-    cfg['sc_mcmm']['default']['libcorner'] = {
-        'help' : 'MMCM Library corner name',
+    cfg['sc_mcmm_libcorners'] = {
+        'help' : 'MMCM Lib Corner List (p_v_t)',
         'switch' : '-mcmm_libcorner',
-        'switch_args' : '<name libcorner',
+        'switch_args' : '<string>',
         'type' : ['string'],
         'defvalue' : []
     }
 
-    #Wire parastitics corner name
-    cfg['sc_mcmm']['default']['pexcorner'] = {
-        'help' : 'MMCM Wire Parasticics (RC) corner name',
+    cfg['sc_mcmm_pexcorners'] = {
+        'help' : 'MMCM PEX Corner List',
         'switch' : '-mcmm_pexcorner',
-        'switch_args' : '<name pexcorner',
+        'switch_args' : '<string>',
         'type' : ['string'],
         'defvalue' : []
     }
 
-    #Constraints
-    cfg['sc_mcmm']['default']['constraints'] = {
-        'help' : 'MMCM Constraints File (SDC)',
-        'switch' : '-mcmm_constraints',
-        'switch_args' : '<name file>',
+    cfg['sc_mcmm_scenario'] = {}
+    cfg['sc_mcmm_scenario']['default'] = {}
+    
+    cfg['sc_mcmm_scenario']['default']['libcorner'] = {
+        'help' : 'MMCM scenario libcorner',
+        'switch' : '-mcmm_scenario_libcorner',
+        'switch_args' : '<name libcorner>',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+
+    cfg['sc_mcmm_scenario']['default']['pexcorner'] = {
+        'help' : 'MMCM scenario pexcorner',
+        'switch' : '-mcmm_scenario_pexcorner',
+        'switch_args' : '<name pexcorner>',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+      
+    cfg['sc_mcmm_scenario']['default']['opcond'] = {
+        'help' : 'MMCM scenario operating condition',
+        'switch' : '-mcmm_scenario_opcond',
+        'switch_args' : '<name opcond>',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+        
+    cfg['sc_mcmm_scenario']['default']['constraints'] = {}
+    cfg['sc_mcmm_scenario']['default']['constraints']['default'] = {
+        'help' : 'MMCM scenario constraints',
+        'switch' : '-mcmm_scenario_constraints',
+        'switch_args' : '<name stage file>',
         'type' : ['file'],
         'hash' : [],
         'defvalue' : []
     }
 
-    #Optimization Objectives
-    cfg['sc_mcmm']['default']['objective'] = {
-        'help' : 'MMCM Objectives (setup, hold, ...)',
-        'switch' : '-mcmm_objective',
-        'switch_args' : '<name string>',
+    cfg['sc_mcmm_scenario']['default']['objectives'] = {}
+    cfg['sc_mcmm_scenario']['default']['objectives']['default'] = {
+        'help' : 'MMCM Objectives (setup, hold, power,...)',
+        'switch' : '-mcmm_scenario_objectives',
+        'switch_args' : '<name stage string>',
         'type' : ['string'],
         'defvalue' : []
     }
