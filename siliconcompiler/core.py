@@ -144,7 +144,7 @@ class Chip:
                 else:
                     view = 'default'  
                 # If there is only one view, that view should be default
-                print(k1,k2,k3)
+                #print(k1,k2,k3)
                 if not (k3 in self.cfg[param][k1][k2]):
                     self.cfg[param][k1][k2][k3] = {}                    
                     self.cfg[param][k1][k2][k3] = copy.deepcopy(self.cfg[param]['default'][view]['default'])
@@ -172,10 +172,10 @@ class Chip:
         val = all_args[-1]
         if param in cfg.keys():
             #indicates leaf cell
-            if (mode=='add') & (len(all_args) == 2):
+            if (mode=='set') & (len(all_args) == 2):
                 cfg[param][field] = val
                 return cfg[param][field]
-            elif (mode=='set') & (len(all_args) == 2):
+            elif (mode=='add') & (len(all_args) == 2):
                 return cfg[param][field].extend(val)
             elif (len(all_args) == 1):
                 if(mode=='getkeys'):
