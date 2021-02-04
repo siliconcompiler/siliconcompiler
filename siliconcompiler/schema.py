@@ -108,14 +108,7 @@ def schema_pdk(cfg):
         'defvalue' : []
     }
 
-    cfg['sc_pdk_pexcorner'] = {
-        'help' : 'Process PEX Corner List',
-        'switch' : '-pdk_pexcorner',
-        'switch_args' : '<name>',
-        'type' : ['string'],
-        'defvalue' : []
-    }
-           
+            
     cfg['sc_pdk_devicemodels'] = {}
     cfg['sc_pdk_devicemodels']['default'] = {}
     cfg['sc_pdk_devicemodels']['default']['default'] = {}
@@ -132,12 +125,39 @@ def schema_pdk(cfg):
     cfg['sc_pdk_pexmodels']['default'] = {}
     cfg['sc_pdk_pexmodels']['default']['default']= {}
     cfg['sc_pdk_pexmodels']['default']['default']['default'] = {
-        'help' : 'Back end PEX TCAD model directory',
+        'help' : 'Back end PEX TCAD model',
         'switch' : '-pdk_pexmodels',
         'switch_args' : '<stackup corner vendor file>',
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
+    }
+
+    ###############
+    # Layer Maps
+    ###############
+
+    cfg['sc_pdk_layermap'] = {}
+    cfg['sc_pdk_layermap']['default'] = {}
+
+    cfg['sc_pdk_layermap']['default']['streamout'] = {}
+    cfg['sc_pdk_layermap']['default']['streamout']['default'] = {
+        'help' : 'Layout streamout layermap',
+        'switch' : '-pdk_layermap_streamout',
+        'switch_args' : '<stackup tool file>', 
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash' : []
+    }
+
+    cfg['sc_pdk_layermap']['default']['streamin'] = {}
+    cfg['sc_pdk_layermap']['default']['streamin']['default'] = {
+        'help' : 'Layout streamin layermap',
+        'switch' : '-pdk_layermap_streamin',
+        'switch_args' : '<stackup tool file>', 
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash' : []
     }
     
     ###############
@@ -160,20 +180,6 @@ def schema_pdk(cfg):
     cfg['sc_pdk_init']['default']['default'] = {
         'help' : 'Custom design init file',
         'switch' : '-pdk_init',
-        'switch_args' : '<stackup vendor file>', 
-        'type' : ['file'],
-        'defvalue' : [],
-        'hash' : []
-    }
-
-    #Name Purpose Layer#  Data-Type
-    #RX   drawing 1       0                     
-    #stackup, vendor
-    cfg['sc_pdk_layermap'] = {}
-    cfg['sc_pdk_layermap']['default'] = {}
-    cfg['sc_pdk_layermap']['default']['default'] = {
-        'help' : 'GDS layer map',
-        'switch' : '-pdk_layermap',
         'switch_args' : '<stackup vendor file>', 
         'type' : ['file'],
         'defvalue' : [],
@@ -209,11 +215,11 @@ def schema_pdk(cfg):
     ###################
     # Place and Route
     ###################
-
+    
     cfg['sc_pdk_pnrtile'] = {
-        'help' : 'Place and route unit tile names',
+        'help' : 'Place and route unit tile names (7.5t, 9t)',
         'switch_args' : '<string>', 
-        'switch' : '-pdk_pnrtiles',
+        'switch' : '-pdk_pnrtile',
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
@@ -222,9 +228,10 @@ def schema_pdk(cfg):
     #stackup, lib, vendor
     cfg['sc_pdk_pnrdir'] = {}
     cfg['sc_pdk_pnrdir']['default'] = {}
-    cfg['sc_pdk_pnrdir']['default']['default'] = {
+    cfg['sc_pdk_pnrdir']['default']['default'] = {}
+    cfg['sc_pdk_pnrdir']['default']['default']['default'] = {
         'help' : 'Place and route technology directory',
-        'switch_args' : '<stackup vendor file>', 
+        'switch_args' : '<stackup lib vendor file>', 
         'switch' : '-pdk_pnrdir',
         'type' : ['file'],
         'defvalue' : [],
@@ -238,31 +245,18 @@ def schema_pdk(cfg):
     cfg['sc_pdk_pnrtech']['default']['default']['default'] = {
         'help' : 'Place and route tehnology file',
         'switch' : '-pdk_pnrtech',
-        'switch_args' : '<stackup corner vendor file>', 
+        'switch_args' : '<stackup lib vendor file>', 
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
     }
 
-    #stackup, corner, vendor
-    cfg['sc_pdk_pnrpex'] = {}
-    cfg['sc_pdk_pnrpex']['default'] = {}
-    cfg['sc_pdk_pnrpex']['default']['default'] = {}    
-    cfg['sc_pdk_pnrpex']['default']['default']['default'] = {
-        'help' : 'Place and route RC model file',
-        'switch' : '-pdk_pnrpex',
-        'switch_args' : '<stackup corner vendor file>', 
-        'type' : ['file'],
-        'defvalue' : [],
-        'hash'   : []
-    }
-    
     #stackup,vendor
     cfg['sc_pdk_pnrmap'] = {}
     cfg['sc_pdk_pnrmap']['default'] = {}    
     cfg['sc_pdk_pnrmap']['default']['default'] = {
-        'help' : 'Place and route layer mapping file',
-        'switch' : '-pdk_pnrmap',
+        'help' : 'Place and route layer gdsout mapping file',
+        'switch' : '-pdk_pnrgdsmap',
         'switch_args' : '<stackup vendor file>', 
         'type' : ['file'],
         'defvalue' : [],
@@ -989,10 +983,10 @@ def schema_mcmm(cfg):
     }
       
     cfg['sc_mcmm_scenario']['default']['opcond'] = {
-        'help' : 'MMCM scenario operating condition',
+        'help' : 'MMCM scenario operating condition and library',
         'switch' : '-mcmm_scenario_opcond',
-        'switch_args' : '<name opcond>',
-        'type' : ['string'],
+        'switch_args' : '<name opcond library>',
+        'type' : ['string', 'string'],
         'defvalue' : []
     }
         
