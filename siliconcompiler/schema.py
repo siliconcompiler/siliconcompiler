@@ -100,44 +100,46 @@ def schema_pdk(cfg):
         'hash'   : []
     }
 
-    #stackup, type, tool,  
-    cfg['sc_pdk_femodels'] = {}
-    cfg['sc_pdk_femodels']['default'] = {}
-    cfg['sc_pdk_femodels']['default']['default'] = {}
-    cfg['sc_pdk_femodels']['default']['default']['default'] = {
-        'help' : 'Front end device model directory',
-        'switch' : '-pdk_femodels',
-        'switch_args' : '<vendor file>',
+    cfg['sc_pdk_stackup'] = {
+        'help' : 'Process Metal Stackup',
+        'switch' : '-pdk_stackup',
+        'switch_args' : '<name>',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+    cfg['sc_pdk_pexcorner'] = {
+        'help' : 'Process PEX Corner List',
+        'switch' : '-pdk_pexcorner',
+        'switch_args' : '<name>',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+           
+
+    cfg['sc_pdk_devicemodels'] = {}
+    cfg['sc_pdk_devicemodels']['default'] = {}
+    cfg['sc_pdk_devicemodels']['default']['default'] = {}
+    cfg['sc_pdk_devicemodels']['default']['default']['default'] = {
+        'help' : 'Device model directory',
+        'switch' : '-pdk_devicemodels',
+        'switch_args' : '<stackup type vendor file>',
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
     }
-    #stackup, tool
-    cfg['sc_pdk_bemodels'] = {}
-    cfg['sc_pdk_bemodels']['default'] = {}
-    cfg['sc_pdk_bemodels']['default']['default'] = {
-        'help' : 'Back end wire model directory',
-        'switch' : '-pdk_bemodels',
-        'switch_args' : '<vendor file>',
+
+    cfg['sc_pdk_pexmodels'] = {}
+    cfg['sc_pdk_pexmodels']['default'] = {}
+    cfg['sc_pdk_pexmodels']['default']['default']= {}
+    cfg['sc_pdk_pexmodels']['default']['default']['default'] = {
+        'help' : 'Back end PEX TCAD model directory',
+        'switch' : '-pdk_pexmodels',
+        'switch_args' : '<stackup corner vendor file>',
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
     }
     
-
-    #stackup, corner, vendor
-    cfg['sc_pdk_pex'] = {}
-    cfg['sc_pdk_pex']['default'] = {}
-    cfg['sc_pdk_pex']['default']['default'] = {}
-    cfg['sc_pdk_pex']['default']['default']['default'] = {
-        'help' : 'PEX TCAD file (per stackup, corner)',
-        'switch' : '-pdk_pex',
-        'switch_args' : '<stackup corner vendor file>', 
-        'type' : ['file'],
-        'defvalue' : [],
-        'hash'   : []
-    }
-
     ###############
     # Custom Design
     ###############
@@ -207,14 +209,22 @@ def schema_pdk(cfg):
     ###################
     # Place and Route
     ###################
- 
+
+    cfg['sc_pdk_pnrtile'] = {
+        'help' : 'Place and route unit tile names',
+        'switch_args' : '<string>', 
+        'switch' : '-pdk_pnrtiles',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash'   : []
+    }
+    
     #stackup, lib, vendor
     cfg['sc_pdk_pnrdir'] = {}
     cfg['sc_pdk_pnrdir']['default'] = {}
-    cfg['sc_pdk_pnrdir']['default']['default'] = {}    
-    cfg['sc_pdk_pnrdir']['default']['default']['default'] = {
+    cfg['sc_pdk_pnrdir']['default']['default'] = {
         'help' : 'Place and route technology directory',
-        'switch_args' : '<stackup corner vendor file>', 
+        'switch_args' : '<stackup vendor file>', 
         'switch' : '-pdk_pnrdir',
         'type' : ['file'],
         'defvalue' : [],
@@ -320,6 +330,15 @@ def schema_libs(cfg, group):
         'hash'   : []
     }
 
+    # Operating condition (needed for mcmm)
+    cfg['sc_'+group]['default']['opcon'] = {
+        'help' : 'Library operating condition',
+        'switch' : '-'+group+'_opcon',
+        'switch_args' : '<lib string>',  
+        'type' : ['string'],
+        'defvalue' : []
+    }
+     
     # Non linear delay models (timing only)
     cfg['sc_'+group]['default']['nldm'] = {}
     cfg['sc_'+group]['default']['nldm']['default'] = {
