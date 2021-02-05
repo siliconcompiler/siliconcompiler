@@ -247,7 +247,7 @@
                     "hash": [],
                     "help": "Library composite current source model",
                     "switch": "-macro_ccs",
-                    "switch_args": "<lib file>",
+                    "switch_args": "<lib corner file>",
                     "type": [
                         "file"
                     ],
@@ -357,7 +357,7 @@
                     "hash": [],
                     "help": "Library non-linear delay timing model",
                     "switch": "-macro_nldm",
-                    "switch_args": "<lib file>",
+                    "switch_args": "<lib corner file>",
                     "type": [
                         "file"
                     ],
@@ -467,6 +467,16 @@
                 "switch_args": "<lib file>",
                 "type": [
                     "file"
+                ],
+                "value": []
+            },
+            "version": {
+                "defvalue": [],
+                "help": "Library release version",
+                "switch": "-macro_version",
+                "switch_args": "<lib version>",
+                "type": [
+                    "string"
                 ],
                 "value": []
             },
@@ -1060,7 +1070,7 @@
                     "hash": [],
                     "help": "Library composite current source model",
                     "switch": "-stdcells_ccs",
-                    "switch_args": "<lib file>",
+                    "switch_args": "<lib corner file>",
                     "type": [
                         "file"
                     ],
@@ -1170,7 +1180,7 @@
                     "hash": [],
                     "help": "Library non-linear delay timing model",
                     "switch": "-stdcells_nldm",
-                    "switch_args": "<lib file>",
+                    "switch_args": "<lib corner file>",
                     "type": [
                         "file"
                     ],
@@ -1280,6 +1290,16 @@
                 "switch_args": "<lib file>",
                 "type": [
                     "file"
+                ],
+                "value": []
+            },
+            "version": {
+                "defvalue": [],
+                "help": "Library release version",
+                "switch": "-stdcells_version",
+                "switch_args": "<lib version>",
+                "type": [
+                    "string"
                 ],
                 "value": []
             },
@@ -1439,7 +1459,7 @@
                     "file"
                 ],
                 "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edacfg/asic"
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/siliconcompiler/eda"
                 ]
             },
             "script": {
@@ -1452,7 +1472,7 @@
                     "file"
                 ],
                 "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edacfg/asic/sc_cts.tcl"
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/sc_cts.tcl"
                 ]
             },
             "vendor": {
@@ -1560,7 +1580,7 @@
                     "file"
                 ],
                 "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edacfg/asic"
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/siliconcompiler/eda"
                 ]
             },
             "script": {
@@ -1677,7 +1697,7 @@
                     "file"
                 ],
                 "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edacfg/asic"
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/siliconcompiler/eda"
                 ]
             },
             "script": {
@@ -1796,7 +1816,7 @@
                     "file"
                 ],
                 "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edacfg/asic"
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/siliconcompiler/eda"
                 ]
             },
             "script": {
@@ -1917,7 +1937,7 @@
                     "file"
                 ],
                 "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edacfg/asic"
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/siliconcompiler/eda"
                 ]
             },
             "script": {
@@ -1930,7 +1950,7 @@
                     "file"
                 ],
                 "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edacfg/asic/sc_floorplan.tcl"
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/sc_floorplan.tcl"
                 ]
             },
             "vendor": {
@@ -2042,7 +2062,7 @@
                     "file"
                 ],
                 "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edacfg/asic"
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/siliconcompiler/eda"
                 ]
             },
             "script": {
@@ -2159,7 +2179,7 @@
                     "file"
                 ],
                 "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edacfg/asic"
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/siliconcompiler/eda"
                 ]
             },
             "script": {
@@ -2276,7 +2296,7 @@
                     "file"
                 ],
                 "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edacfg/asic"
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/siliconcompiler/eda"
                 ]
             },
             "script": {
@@ -2393,7 +2413,7 @@
                     "file"
                 ],
                 "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edacfg/asic"
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/siliconcompiler/eda"
                 ]
             },
             "script": {
@@ -2510,7 +2530,7 @@
                     "file"
                 ],
                 "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edacfg/asic"
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/siliconcompiler/eda"
                 ]
             },
             "script": {
@@ -2631,7 +2651,7 @@
                     "file"
                 ],
                 "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edacfg/asic"
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/siliconcompiler/eda"
                 ]
             },
             "script": {
@@ -2644,7 +2664,7 @@
                     "file"
                 ],
                 "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edacfg/asic/sc_place.tcl"
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/sc_place.tcl"
                 ]
             },
             "vendor": {
@@ -2756,7 +2776,7 @@
                     "file"
                 ],
                 "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edacfg/asic"
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/siliconcompiler/eda"
                 ]
             },
             "script": {
@@ -2769,7 +2789,7 @@
                     "file"
                 ],
                 "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edacfg/asic/sc_route.tcl"
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/sc_route.tcl"
                 ]
             },
             "vendor": {
@@ -2877,7 +2897,7 @@
                     "file"
                 ],
                 "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edacfg/asic"
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/siliconcompiler/eda"
                 ]
             },
             "script": {
@@ -2998,7 +3018,7 @@
                     "file"
                 ],
                 "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edacfg/asic"
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/siliconcompiler/eda"
                 ]
             },
             "script": {
@@ -3011,7 +3031,7 @@
                     "file"
                 ],
                 "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edacfg/asic/sc_signoff.tcl"
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/sc_signoff.tcl"
                 ]
             },
             "vendor": {
@@ -3119,7 +3139,7 @@
                     "file"
                 ],
                 "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edacfg/asic"
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/siliconcompiler/eda"
                 ]
             },
             "script": {
@@ -3240,7 +3260,7 @@
                     "file"
                 ],
                 "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edacfg/asic"
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/siliconcompiler/eda"
                 ]
             },
             "script": {
@@ -3253,7 +3273,7 @@
                     "file"
                 ],
                 "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edacfg/asic/sc_syn.tcl"
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/sc_syn.tcl"
                 ]
             },
             "vendor": {
@@ -3361,7 +3381,7 @@
                     "file"
                 ],
                 "value": [
-                    "/home/aolofsson/work/zeroasic/siliconcompiler/edacfg/asic"
+                    "/home/aolofsson/work/zeroasic/siliconcompiler/siliconcompiler/eda"
                 ]
             },
             "script": {

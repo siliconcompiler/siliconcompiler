@@ -256,15 +256,17 @@
             },
             "ccsdb": {
                 "default": {
-                    "defvalue": [],
-                    "hash": [],
-                    "help": "Library CCS compiled databse",
-                    "switch": "-macro_ccsdb",
-                    "switch_args": "<lib vendor file>",
-                    "type": [
-                        "file"
-                    ],
-                    "value": []
+                    "default": {
+                        "defvalue": [],
+                        "hash": [],
+                        "help": "Library CCS compiled databse",
+                        "switch": "-macro_ccsdb",
+                        "switch_args": "<lib corner vendor file>",
+                        "type": [
+                            "file"
+                        ],
+                        "value": []
+                    }
                 }
             },
             "cdl": {
@@ -277,19 +279,6 @@
                     "file"
                 ],
                 "value": []
-            },
-            "cells": {
-                "default": {
-                    "defvalue": [],
-                    "help": "Library cell type list",
-                    "switch": "-macro_cells",
-                    "switch_args": "<lib type name>",
-                    "type": [
-                        "string",
-                        "string"
-                    ],
-                    "value": []
-                }
             },
             "datasheet": {
                 "defvalue": [],
@@ -312,6 +301,20 @@
                 ],
                 "value": []
             },
+            "exclude": {
+                "default": {
+                    "default": {
+                        "defvalue": [],
+                        "help": "Library cell exclude lists",
+                        "switch": "-macro_exclude",
+                        "switch_args": "<lib type stage>",
+                        "type": [
+                            "string"
+                        ],
+                        "value": []
+                    }
+                }
+            },
             "gds": {
                 "defvalue": [],
                 "hash": [],
@@ -323,6 +326,20 @@
                 ],
                 "value": []
             },
+            "include": {
+                "default": {
+                    "default": {
+                        "defvalue": [],
+                        "help": "Library cell include lists",
+                        "switch": "-macro_include",
+                        "switch_args": "<lib type stage>",
+                        "type": [
+                            "string"
+                        ],
+                        "value": []
+                    }
+                }
+            },
             "lef": {
                 "defvalue": [],
                 "hash": [],
@@ -333,19 +350,6 @@
                     "file"
                 ],
                 "value": []
-            },
-            "libdb": {
-                "default": {
-                    "defvalue": [],
-                    "hash": [],
-                    "help": "Library layout compiled database",
-                    "switch": "-macro_libdb",
-                    "switch_args": "<lib vendor file>",
-                    "type": [
-                        "file"
-                    ],
-                    "value": []
-                }
             },
             "nldm": {
                 "default": {
@@ -362,15 +366,17 @@
             },
             "nldmdb": {
                 "default": {
-                    "defvalue": [],
-                    "hash": [],
-                    "help": "Library NLDM compiled database",
-                    "switch": "-macro_nldmdb",
-                    "switch_args": "<lib vendor file>",
-                    "type": [
-                        "file"
-                    ],
-                    "value": []
+                    "default": {
+                        "defvalue": [],
+                        "hash": [],
+                        "help": "Library NLDM compiled database",
+                        "switch": "-macro_nldmdb",
+                        "switch_args": "<lib corner vendor file>",
+                        "type": [
+                            "file"
+                        ],
+                        "value": []
+                    }
                 }
             },
             "pgmetal": {
@@ -382,6 +388,21 @@
                     "string"
                 ],
                 "value": []
+            },
+            "pnrdb": {
+                "default": {
+                    "default": {
+                        "defvalue": [],
+                        "hash": [],
+                        "help": "Library layout compiled database",
+                        "switch": "-macro_pnrdb",
+                        "switch_args": "<lib vendor file>",
+                        "type": [
+                            "file"
+                        ],
+                        "value": []
+                    }
+                }
             },
             "setup": {
                 "defvalue": [],
@@ -482,44 +503,79 @@
         ],
         "value": []
     },
-    "sc_mcmm": {
+    "sc_mcmm_libcorners": {
+        "defvalue": [],
+        "help": "MMCM Lib Corner List (p_v_t)",
+        "switch": "-mcmm_libcorner",
+        "switch_args": "<string>",
+        "type": [
+            "string"
+        ],
+        "value": []
+    },
+    "sc_mcmm_pexcorners": {
+        "defvalue": [],
+        "help": "MMCM PEX Corner List",
+        "switch": "-mcmm_pexcorner",
+        "switch_args": "<string>",
+        "type": [
+            "string"
+        ],
+        "value": []
+    },
+    "sc_mcmm_scenario": {
         "default": {
             "constraints": {
-                "defvalue": [],
-                "hash": [],
-                "help": "MMCM Constraints File (SDC)",
-                "switch": "-mcmm_constraints",
-                "switch_args": "<name file>",
-                "type": [
-                    "file"
-                ],
-                "value": []
+                "default": {
+                    "defvalue": [],
+                    "hash": [],
+                    "help": "MMCM scenario constraints",
+                    "switch": "-mcmm_scenario_constraints",
+                    "switch_args": "<name stage file>",
+                    "type": [
+                        "file"
+                    ],
+                    "value": []
+                }
             },
             "libcorner": {
                 "defvalue": [],
-                "help": "MMCM Library corner name",
-                "switch": "-mcmm_libcorner",
-                "switch_args": "<name libcorner",
+                "help": "MMCM scenario libcorner",
+                "switch": "-mcmm_scenario_libcorner",
+                "switch_args": "<name libcorner>",
                 "type": [
                     "string"
                 ],
                 "value": []
             },
-            "objective": {
+            "objectives": {
+                "default": {
+                    "defvalue": [],
+                    "help": "MMCM Objectives (setup, hold, power,...)",
+                    "switch": "-mcmm_scenario_objectives",
+                    "switch_args": "<name stage string>",
+                    "type": [
+                        "string"
+                    ],
+                    "value": []
+                }
+            },
+            "opcond": {
                 "defvalue": [],
-                "help": "MMCM Objectives (setup, hold, ...)",
-                "switch": "-mcmm_objective",
-                "switch_args": "<name string>",
+                "help": "MMCM scenario operating condition and library",
+                "switch": "-mcmm_scenario_opcond",
+                "switch_args": "<name opcond library>",
                 "type": [
+                    "string",
                     "string"
                 ],
                 "value": []
             },
             "pexcorner": {
                 "defvalue": [],
-                "help": "MMCM Wire Parasticics (RC) corner name",
-                "switch": "-mcmm_pexcorner",
-                "switch_args": "<name pexcorner",
+                "help": "MMCM scenario pexcorner",
+                "switch": "-mcmm_scenario_pexcorner",
+                "switch_args": "<name pexcorner>",
                 "type": [
                     "string"
                 ],
@@ -578,6 +634,23 @@
         ],
         "value": []
     },
+    "sc_pdk_devicemodels": {
+        "default": {
+            "default": {
+                "default": {
+                    "defvalue": [],
+                    "hash": [],
+                    "help": "Device model directory",
+                    "switch": "-pdk_devicemodels",
+                    "switch_args": "<stackup type vendor file>",
+                    "type": [
+                        "file"
+                    ],
+                    "value": []
+                }
+            }
+        }
+    },
     "sc_pdk_display": {
         "default": {
             "default": {
@@ -612,7 +685,9 @@
         "type": [
             "string"
         ],
-        "value": []
+        "value": [
+            "virtual"
+        ]
     },
     "sc_pdk_guide": {
         "defvalue": [],
@@ -642,16 +717,31 @@
     },
     "sc_pdk_layermap": {
         "default": {
-            "default": {
-                "defvalue": [],
-                "hash": [],
-                "help": "GDS layer map",
-                "switch": "-pdk_layermap",
-                "switch_args": "<stackup vendor file>",
-                "type": [
-                    "file"
-                ],
-                "value": []
+            "streamin": {
+                "default": {
+                    "defvalue": [],
+                    "hash": [],
+                    "help": "Layout streamin layermap",
+                    "switch": "-pdk_layermap_streamin",
+                    "switch_args": "<stackup tool file>",
+                    "type": [
+                        "file"
+                    ],
+                    "value": []
+                }
+            },
+            "streamout": {
+                "default": {
+                    "defvalue": [],
+                    "hash": [],
+                    "help": "Layout streamout layermap",
+                    "switch": "-pdk_layermap_streamout",
+                    "switch_args": "<stackup tool file>",
+                    "type": [
+                        "file"
+                    ],
+                    "value": []
+                }
             }
         }
     },
@@ -670,19 +760,6 @@
             }
         }
     },
-    "sc_pdk_models": {
-        "default": {
-            "defvalue": [],
-            "hash": [],
-            "help": "Device model directory (per vendor)",
-            "switch": "-pdk_models",
-            "switch_args": "<vendor file>",
-            "type": [
-                "file"
-            ],
-            "value": []
-        }
-    },
     "sc_pdk_node": {
         "defvalue": [],
         "help": "Process node (in nm)",
@@ -691,9 +768,7 @@
         "type": [
             "int"
         ],
-        "value": [
-            "45"
-        ]
+        "value": []
     },
     "sc_pdk_objmap": {
         "default": {
@@ -710,14 +785,14 @@
             }
         }
     },
-    "sc_pdk_pex": {
+    "sc_pdk_pexmodels": {
         "default": {
             "default": {
                 "default": {
                     "defvalue": [],
                     "hash": [],
-                    "help": "PEX TCAD file (per stackup, corner)",
-                    "switch": "-pdk_pex",
+                    "help": "Back end PEX TCAD model",
+                    "switch": "-pdk_pexmodels",
                     "switch_args": "<stackup corner vendor file>",
                     "type": [
                         "file"
@@ -735,7 +810,7 @@
                     "hash": [],
                     "help": "Place and route technology directory",
                     "switch": "-pdk_pnrdir",
-                    "switch_args": "<stackup corner vendor file>",
+                    "switch_args": "<stackup lib vendor file>",
                     "type": [
                         "file"
                     ],
@@ -758,6 +833,25 @@
                 "float"
             ],
             "value": [
+                "metal1  X 0.095  0.19",
+                "metal1  Y 0.070  0.14",
+                "metal2  X 0.095  0.19",
+                "metal2  Y 0.070  0.14",
+                "metal3  X 0.095  0.19",
+                "metal3  Y 0.070  0.14",
+                "metal4  X 0.095  0.28",
+                "metal4  Y 0.070  0.28",
+                "metal5  X 0.095  0.28",
+                "metal5  Y 0.070  0.28",
+                "metal6  X 0.095  0.28",
+                "metal6  Y 0.070  0.28",
+                "metal7  X 0.095  0.80",
+                "metal7  Y 0.070  0.80",
+                "metal8  X 0.095  0.80",
+                "metal8  Y 0.070  0.80",
+                "metal9  X 0.095  1.60",
+                "metal9  Y 0.070  1.60",
+                "metal10 X 0.095  1.60",
                 "metal10 Y 0.070  1.60"
             ]
         },
@@ -781,30 +875,13 @@
             "default": {
                 "defvalue": [],
                 "hash": [],
-                "help": "Place and route layer mapping file",
-                "switch": "-pdk_pnrmap",
+                "help": "Place and route layer gdsout mapping file",
+                "switch": "-pdk_pnrgdsmap",
                 "switch_args": "<stackup vendor file>",
                 "type": [
                     "file"
                 ],
                 "value": []
-            }
-        }
-    },
-    "sc_pdk_pnrpex": {
-        "default": {
-            "default": {
-                "default": {
-                    "defvalue": [],
-                    "hash": [],
-                    "help": "Place and route RC model file",
-                    "switch": "-pdk_pnrpex",
-                    "switch_args": "<stackup corner vendor file>",
-                    "type": [
-                        "file"
-                    ],
-                    "value": []
-                }
             }
         }
     },
@@ -816,7 +893,7 @@
                     "hash": [],
                     "help": "Place and route tehnology file",
                     "switch": "-pdk_pnrtech",
-                    "switch_args": "<stackup corner vendor file>",
+                    "switch_args": "<stackup lib vendor file>",
                     "type": [
                         "file"
                     ],
@@ -827,7 +904,7 @@
                     "hash": [],
                     "help": "Place and route tehnology file",
                     "switch": "-pdk_pnrtech",
-                    "switch_args": "<stackup corner vendor file>",
+                    "switch_args": "<stackup lib vendor file>",
                     "type": [
                         "file"
                     ],
@@ -842,7 +919,7 @@
                     "hash": [],
                     "help": "Place and route tehnology file",
                     "switch": "-pdk_pnrtech",
-                    "switch_args": "<stackup corner vendor file>",
+                    "switch_args": "<stackup lib vendor file>",
                     "type": [
                         "file"
                     ],
@@ -857,7 +934,7 @@
                     "hash": [],
                     "help": "Place and route tehnology file",
                     "switch": "-pdk_pnrtech",
-                    "switch_args": "<stackup corner vendor file>",
+                    "switch_args": "<stackup lib vendor file>",
                     "type": [
                         "file"
                     ],
@@ -865,6 +942,17 @@
                 }
             }
         }
+    },
+    "sc_pdk_pnrtile": {
+        "defvalue": [],
+        "hash": [],
+        "help": "Place and route unit tile names (7.5t, 9t)",
+        "switch": "-pdk_pnrtile",
+        "switch_args": "<string>",
+        "type": [
+            "file"
+        ],
+        "value": []
     },
     "sc_pdk_process": {
         "defvalue": [],
@@ -876,6 +964,18 @@
         ],
         "value": [
             "nangate45"
+        ]
+    },
+    "sc_pdk_stackup": {
+        "defvalue": [],
+        "help": "Process Metal Stackup",
+        "switch": "-pdk_stackup",
+        "switch_args": "<name>",
+        "type": [
+            "string"
+        ],
+        "value": [
+            "3MA_3MB_2MC_2MD"
         ]
     },
     "sc_pdk_tapmax": {
@@ -899,6 +999,18 @@
             "float"
         ],
         "value": []
+    },
+    "sc_pdk_version": {
+        "defvalue": [],
+        "help": "Process node version",
+        "switch": "-pdk_version",
+        "switch_args": "<string>",
+        "type": [
+            "string"
+        ],
+        "value": [
+            "r1p0"
+        ]
     },
     "sc_priority": {
         "defvalue": [
@@ -1013,13 +1125,13 @@
             "import"
         ]
     },
-    "sc_stdcell": {
+    "sc_stdcells": {
         "default": {
             "atpg": {
                 "defvalue": [],
                 "hash": [],
                 "help": "Library ATPG file",
-                "switch": "-stdcell_atpg",
+                "switch": "-stdcells_atpg",
                 "switch_args": "<lib file>",
                 "type": [
                     "file"
@@ -1031,7 +1143,7 @@
                     "defvalue": [],
                     "hash": [],
                     "help": "Library composite current source model",
-                    "switch": "-stdcell_ccs",
+                    "switch": "-stdcells_ccs",
                     "switch_args": "<lib file>",
                     "type": [
                         "file"
@@ -1041,46 +1153,35 @@
             },
             "ccsdb": {
                 "default": {
-                    "defvalue": [],
-                    "hash": [],
-                    "help": "Library CCS compiled databse",
-                    "switch": "-stdcell_ccsdb",
-                    "switch_args": "<lib vendor file>",
-                    "type": [
-                        "file"
-                    ],
-                    "value": []
+                    "default": {
+                        "defvalue": [],
+                        "hash": [],
+                        "help": "Library CCS compiled databse",
+                        "switch": "-stdcells_ccsdb",
+                        "switch_args": "<lib corner vendor file>",
+                        "type": [
+                            "file"
+                        ],
+                        "value": []
+                    }
                 }
             },
             "cdl": {
                 "defvalue": [],
                 "hash": [],
                 "help": "Library CDL file",
-                "switch": "-stdcell_cdl",
+                "switch": "-stdcells_cdl",
                 "switch_args": "<lib file>",
                 "type": [
                     "file"
                 ],
                 "value": []
             },
-            "cells": {
-                "default": {
-                    "defvalue": [],
-                    "help": "Library cell type list",
-                    "switch": "-stdcell_cells",
-                    "switch_args": "<lib type name>",
-                    "type": [
-                        "string",
-                        "string"
-                    ],
-                    "value": []
-                }
-            },
             "datasheet": {
                 "defvalue": [],
                 "hash": [],
                 "help": "Library datasheets",
-                "switch": "-stdcell_datasheet",
+                "switch": "-stdcells_datasheet",
                 "switch_args": "<lib path>",
                 "type": [
                     "file"
@@ -1090,54 +1191,69 @@
             "driver": {
                 "defvalue": [],
                 "help": "Library default driver cell",
-                "switch": "-stdcell_driver",
+                "switch": "-stdcells_driver",
                 "switch_args": "<lib name>",
                 "type": [
                     "string"
                 ],
                 "value": []
             },
+            "exclude": {
+                "default": {
+                    "default": {
+                        "defvalue": [],
+                        "help": "Library cell exclude lists",
+                        "switch": "-stdcells_exclude",
+                        "switch_args": "<lib type stage>",
+                        "type": [
+                            "string"
+                        ],
+                        "value": []
+                    }
+                }
+            },
             "gds": {
                 "defvalue": [],
                 "hash": [],
                 "help": "Library GDS file",
-                "switch": "-stdcell_gds",
+                "switch": "-stdcells_gds",
                 "switch_args": "<lib file>",
                 "type": [
                     "file"
                 ],
                 "value": []
+            },
+            "include": {
+                "default": {
+                    "default": {
+                        "defvalue": [],
+                        "help": "Library cell include lists",
+                        "switch": "-stdcells_include",
+                        "switch_args": "<lib type stage>",
+                        "type": [
+                            "string"
+                        ],
+                        "value": []
+                    }
+                }
             },
             "lef": {
                 "defvalue": [],
                 "hash": [],
                 "help": "Library layout exchange file (LEF)",
-                "switch": "-stdcell_lef",
+                "switch": "-stdcells_lef",
                 "switch_args": "<lib file>",
                 "type": [
                     "file"
                 ],
                 "value": []
-            },
-            "libdb": {
-                "default": {
-                    "defvalue": [],
-                    "hash": [],
-                    "help": "Library layout compiled database",
-                    "switch": "-stdcell_libdb",
-                    "switch_args": "<lib vendor file>",
-                    "type": [
-                        "file"
-                    ],
-                    "value": []
-                }
             },
             "nldm": {
                 "default": {
                     "defvalue": [],
                     "hash": [],
                     "help": "Library non-linear delay timing model",
-                    "switch": "-stdcell_nldm",
+                    "switch": "-stdcells_nldm",
                     "switch_args": "<lib file>",
                     "type": [
                         "file"
@@ -1147,32 +1263,49 @@
             },
             "nldmdb": {
                 "default": {
-                    "defvalue": [],
-                    "hash": [],
-                    "help": "Library NLDM compiled database",
-                    "switch": "-stdcell_nldmdb",
-                    "switch_args": "<lib vendor file>",
-                    "type": [
-                        "file"
-                    ],
-                    "value": []
+                    "default": {
+                        "defvalue": [],
+                        "hash": [],
+                        "help": "Library NLDM compiled database",
+                        "switch": "-stdcells_nldmdb",
+                        "switch_args": "<lib corner vendor file>",
+                        "type": [
+                            "file"
+                        ],
+                        "value": []
+                    }
                 }
             },
             "pgmetal": {
                 "defvalue": [],
                 "help": "Library power rail metal layer",
-                "switch": "-stdcell_pgmetal",
+                "switch": "-stdcells_pgmetal",
                 "switch_args": "<lib metal-layer>",
                 "type": [
                     "string"
                 ],
                 "value": []
             },
+            "pnrdb": {
+                "default": {
+                    "default": {
+                        "defvalue": [],
+                        "hash": [],
+                        "help": "Library layout compiled database",
+                        "switch": "-stdcells_pnrdb",
+                        "switch_args": "<lib vendor file>",
+                        "type": [
+                            "file"
+                        ],
+                        "value": []
+                    }
+                }
+            },
             "setup": {
                 "defvalue": [],
                 "hash": [],
                 "help": "Library TCL setup file",
-                "switch": "-stdcell_setup",
+                "switch": "-stdcells_setup",
                 "switch_args": "<lib file>",
                 "type": [
                     "file"
@@ -1182,7 +1315,7 @@
             "site": {
                 "defvalue": [],
                 "help": "Library placement site",
-                "switch": "-stdcell_site",
+                "switch": "-stdcells_site",
                 "switch_args": "<lib site width height>",
                 "type": [
                     "string",
@@ -1195,7 +1328,7 @@
                 "defvalue": [],
                 "hash": [],
                 "help": "Library Spice file",
-                "switch": "-stdcell_spice",
+                "switch": "-stdcells_spice",
                 "switch_args": "<lib file>",
                 "type": [
                     "file"
@@ -1205,7 +1338,7 @@
             "tag": {
                 "defvalue": [],
                 "help": "Library indentifier tags",
-                "switch": "-stdcell_tag",
+                "switch": "-stdcells_tag",
                 "switch_args": "<lib tag>",
                 "type": [
                     "string"
@@ -1216,7 +1349,7 @@
                 "defvalue": [],
                 "hash": [],
                 "help": "Library userguide",
-                "switch": "-stdcell_userguide",
+                "switch": "-stdcells_userguide",
                 "switch_args": "<lib file>",
                 "type": [
                     "file"
@@ -1227,7 +1360,7 @@
                 "defvalue": [],
                 "hash": [],
                 "help": "Library Verilog file",
-                "switch": "-stdcell_verilog",
+                "switch": "-stdcells_verilog",
                 "switch_args": "<lib file>",
                 "type": [
                     "file"
@@ -1238,7 +1371,7 @@
                 "defvalue": [],
                 "hash": [],
                 "help": "Library Transistor Threshold",
-                "switch": "-stdcell_vt",
+                "switch": "-stdcells_vt",
                 "switch_args": "<lib vt-type>",
                 "type": [
                     "string"
@@ -1275,8 +1408,18 @@
     },
     "sc_target": {
         "defvalue": [],
-        "help": "Target library or device",
+        "help": "Target platform",
         "switch": "-target",
+        "switch_args": "<string>",
+        "type": [
+            "string"
+        ],
+        "value": []
+    },
+    "sc_target_lib": {
+        "defvalue": [],
+        "help": "Target library/device",
+        "switch": "-target_lib",
         "switch_args": "<string>",
         "type": [
             "string"
