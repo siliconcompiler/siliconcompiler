@@ -63,6 +63,9 @@ def nangate45_lib(chip, root):
     # gds
     chip.add('sc_stdcells',libname,'gds',libdir+'/gds/NangateOpenCellLibrary.gds')
 
+    # hard coded target lib
+    chip.add('sc_target_lib',libname)
+    
 #########################
 if __name__ == "__main__":    
 
