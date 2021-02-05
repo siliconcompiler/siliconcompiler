@@ -105,8 +105,9 @@ def add_arg(cfg, parser, keys=None):
     if keys is None:
         keys = []
     for k,v in sorted(cfg.items()):
+        #print(k,v)
         #No command line switches for these odd balls
-        if k in ('sc_source', 'sc_stages', 'sc_lock'):
+        if k in ('sc_source', 'sc_stages'):
             pass
         #Optimizing command line switches for these
         elif k in ('sc_tool'):
@@ -120,15 +121,24 @@ def add_arg(cfg, parser, keys=None):
         #All others
         else:            
             newkeys =  keys.copy()
-            newkeys.append(str(k))
-            if 'defvalue' in cfg[k].keys():
-                keystr = '_'.join(newkeys)                
-                parser.add_argument(cfg[k]['switch'],
-                                    metavar=cfg[k]['switch_args'],
-                                    dest=keystr,
-                                    action='append',
-                                    help=cfg[k]['help'],
-                                    default = argparse.SUPPRESS)
+            newkeys.append(str(k))            
+            if 'defvalue' in cfg[k].keys():                
+                keystr = '_'.join(newkeys)
+                if cfg[k]['type'][0] == 'bool': #scalar
+                    parser.add_argument(cfg[k]['switch'],
+                                        metavar=cfg[k]['switch_args'],
+                                        dest=keystr,
+                                        action='store_const',
+                                        const='True',
+                                        help=cfg[k]['help'],
+                                        default = argparse.SUPPRESS)
+                else:
+                    parser.add_argument(cfg[k]['switch'],
+                                        metavar=cfg[k]['switch_args'],
+                                        dest=keystr,
+                                        action='append',
+                                        help=cfg[k]['help'],
+                                        default = argparse.SUPPRESS)
             else:
                 newkeys.append(str(k))
                 add_arg(cfg[k], parser, keys=newkeys) 
@@ -141,9 +151,13 @@ def main():
     #Command line inputs, read once
     cmdlinecfg = cmdline()
 
+    if 'sc_quiet' in  cmdlinecfg.keys():
+        loglevel = "WARNING"
+    else:
+        loglevel = "DEBUG"
+        
     #Create one (or many...) instances of Chip class
-    mychip = sc.Chip()
-    mychip.writecfg("default.json")
+    mychip = sc.Chip(loglevel=loglevel)
 
     # Reading in user variables
     mychip.readenv()
