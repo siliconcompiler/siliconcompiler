@@ -660,7 +660,16 @@ def schema_design(cfg):
 
     cfg['sc_lock'] = {
         'help' : 'Locks the configuration dict from edit',
-        'switch' : 'None',
+        'switch' : '-lock',
+        'switch_args' : '',
+        'type' : ['bool'],
+        'defvalue' : ['False'],
+    }
+
+    cfg['sc_quiet'] = {
+        'help' : 'Supresses informational printing',
+        'switch' : '-quiet',
+        'switch_args' : '',
         'type' : ['bool'],
         'defvalue' : ['False'],
     }
@@ -873,9 +882,6 @@ def schema_design(cfg):
         'type' : ['string'],
         'defvalue' : ['export']
     }
-
- 
-   
     
     cfg['sc_nickname'] = {
         'help' : 'Design nickname',
