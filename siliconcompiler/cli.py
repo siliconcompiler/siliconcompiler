@@ -13,8 +13,9 @@ import importlib.resources
 #Shorten siliconcompiler as sc
 import siliconcompiler as sc
 from siliconcompiler.schema import schema
-from siliconcompiler.foundry.nangate45 import setup_nangate45_pdk,setup_nangate45_library
-from siliconcompiler.eda.openroad import setup_openroad
+from siliconcompiler.foundry.nangate45 import nangate45_pdk
+from siliconcompiler.foundry.nangate45 import nangate45_lib
+from siliconcompiler.eda.openroad import openroad
 
 ###########################
 def cmdline():
@@ -134,7 +135,9 @@ def add_arg(cfg, parser, keys=None):
 
 ###########################
 def main():
-
+    scriptdir = os.path.dirname(os.path.abspath(__file__))
+    root = re.sub('siliconcompiler/siliconcompiler','siliconcompiler', scriptdir)
+    
     #Command line inputs, read once
     cmdlinecfg = cmdline()
 
@@ -146,16 +149,17 @@ def main():
     mychip.readenv()
 
     # Loading presetvalues from the command line
-    if 'sc_target' in  cmdlinecfg.keys():        
-        target = cmdlinecfg['sc_target']['value']    
+    if 'sc_target' in  cmdlinecfg.keys():
+        target = cmdlinecfg['sc_target']['value'][0]
+        
         if target == 'nangate45':
-            setup_nangate45_pdk(mychip)
-            setup_nangate45_library(mychip)
-            setup_openroad(mychip)
+            nangate45_pdk(mychip, root+'/foundry/')
+            nangate45_lib(mychip, root+'/foundry/')
+            openroad(mychip)
         elif target == 'asap7':
-            setup_asap7_pdk(mychip)
-            setup_asap7_library(mychip)
-            setup_openroad(mychip)
+            asap7_pdk(mychip, root+'/foundry/')
+            asap7_lib(mychip, root+'/foundry/')
+            openroad(mychip)
     
     # Reading in config files specified at command line
     if 'sc_cfgfile' in  cmdlinecfg.keys():        
