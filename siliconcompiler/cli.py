@@ -13,6 +13,8 @@ import importlib.resources
 #Shorten siliconcompiler as sc
 import siliconcompiler as sc
 from siliconcompiler.schema import schema
+from siliconcompiler.foundry.nangate45 import setup_nangate45_pdk,setup_nangate45_library
+from siliconcompiler.eda.openroad import setup_openroad
 
 ###########################
 def cmdline():
@@ -43,8 +45,6 @@ def cmdline():
     #Parsing args and converting to dict
     cmdargs = vars(parser.parse_args())
 
-    print(cmdargs)
-    
     # Copying flat parse_args to nested cfg dict based on key type
     # Values are lists of varying legnth based on cfg parameter
     # stdlib, macro, tool has length 3 or 4 depending on type
@@ -89,6 +89,12 @@ def cmdline():
             else:
                 cfg[param]['value'].extend(all_vals)
 
+
+    # Checking for incomplete command lines
+    if (not 'sc_target' in cfg.keys()) & (not 'sc_cfgfile' in cfg.keys()):
+        print("ERROR: Either sc_target or sc_cfgfile must be provided")
+        sys.exit()
+        
     return cfg
 
 ###########################
@@ -129,26 +135,26 @@ def add_arg(cfg, parser, keys=None):
 ###########################
 def main():
 
-    scriptdir = os.path.dirname(os.path.abspath(__file__))
-    rootdir = re.sub("siliconcompiler/siliconcompiler", "siliconcompiler", scriptdir, 1)
-    pdkcfg = rootdir + "/foundry/virtual/nangate45/pdk/nangate45.json"
-    ipcfg = rootdir + "/foundry/virtual/nangate45/ip/NangateOpenCellLibrary.json"
-    edacfg = rootdir + "/edacfg/asic/sc_asicflow.json"
-
     #Command line inputs, read once
     cmdlinecfg = cmdline()
 
     #Create one (or many...) instances of Chip class
     mychip = sc.Chip()
-    
-    # Reading in default config files unless cfg file is set
-    if 'nangate45' in cmdlinecfg['sc_target']['value']:
-        mychip.readcfg(edacfg)
-        mychip.readcfg(pdkcfg)
-        mychip.readcfg(ipcfg)
-    
+    mychip.writecfg("default.json")
     # Reading in user variables
     mychip.readenv()
+
+    # Checking for built in targets
+    if 'sc_target' in  cmdlinecfg.keys():        
+        target = cmdlinecfg['sc_target']['value']
+        if target == 'nangate45':
+            setup_nangate45_pdk(mychip)
+            setup_nangate45_library(mychip)
+            setup_openroad(mychip)
+        elif target == 'asap7':
+            setup_asap7_pdk(mychip)
+            setup_asap7_library(mychip)
+            setup_openroad(mychip)
 
     # Reading in command line arguments
     mychip.mergecfg(cmdlinecfg)
