@@ -13,7 +13,7 @@ def schema():
     
     cfg = schema_pdk(cfg)
 
-    cfg = schema_libs(cfg, 'stdcell')
+    cfg = schema_libs(cfg, 'stdcells')
 
     cfg = schema_libs(cfg, 'macro')
 
@@ -303,6 +303,15 @@ def schema_libs(cfg, group):
     cfg['sc_'+group] = {}  
 
     cfg['sc_'+group]['default'] = {}
+    
+    # Version #
+    cfg['sc_'+group]['default']['version'] = {
+        'help' : 'Library release version',
+        'switch' : '-'+group+'_version',
+        'switch_args' : '<lib version>',     
+        'type' : ['string'],
+        'defvalue' : []
+    }
 
     # Userguide
     cfg['sc_'+group]['default']['userguide'] = {
@@ -324,21 +333,12 @@ def schema_libs(cfg, group):
         'hash'   : []
     }
 
-    # Operating condition (needed for mcmm)
-    cfg['sc_'+group]['default']['opcon'] = {
-        'help' : 'Library operating condition',
-        'switch' : '-'+group+'_opcon',
-        'switch_args' : '<lib string>',  
-        'type' : ['string'],
-        'defvalue' : []
-    }
-     
     # Non linear delay models (timing only)
     cfg['sc_'+group]['default']['nldm'] = {}
     cfg['sc_'+group]['default']['nldm']['default'] = {
         'help' : 'Library non-linear delay timing model',
         'switch' : '-'+group+'_nldm',
-        'switch_args' : '<lib file>',
+        'switch_args' : '<lib corner file>',
         'type' : ['file'],
         'defvalue' : [],
         'hash' : []
@@ -348,13 +348,11 @@ def schema_libs(cfg, group):
     cfg['sc_'+group]['default']['ccs']['default'] = {
         'help' : 'Library composite current source model',
         'switch' : '-'+group+'_ccs',
-        'switch_args' : '<lib file>',
+        'switch_args' : '<lib corner file>',
         'type' : ['file'],
         'defvalue' : [],
         'hash' : []
     }
-
-  
 
     cfg['sc_'+group]['default']['lef'] = {
         'help' : 'Library layout exchange file (LEF)',
@@ -364,7 +362,6 @@ def schema_libs(cfg, group):
         'defvalue' : [],
         'hash'   : []
     }
-
   
     cfg['sc_'+group]['default']['gds'] = {
         'help' : 'Library GDS file',
@@ -461,40 +458,53 @@ def schema_libs(cfg, group):
         'defvalue' : []
     }
 
-    #Cell lists are many and dynamic (so one more level of nesting)
-    cfg['sc_'+group]['default']['cells'] = {}
-    cfg['sc_'+group]['default']['cells']['default'] = {
-        'help' : 'Library cell type list',
-        'switch' : '-'+group+'_cells',
-        'switch_args' : '<lib type name>',
-        'type' : ['string', 'string'],
+    #Dont use cell lists
+    cfg['sc_'+group]['default']['exclude'] = {}
+    cfg['sc_'+group]['default']['exclude']['default'] = {}
+    cfg['sc_'+group]['default']['exclude']['default']['default'] = {
+        'help' : 'Library cell exclude lists',
+        'switch' : '-'+group+'_exclude',
+        'switch_args' : '<lib type stage>',
+        'type' : ['string'],
         'defvalue' : []
-    } 
+    }
+    cfg['sc_'+group]['default']['include'] = {}
+    cfg['sc_'+group]['default']['include']['default'] = {}
+    cfg['sc_'+group]['default']['include']['default']['default'] = {
+        'help' : 'Library cell include lists',
+        'switch' : '-'+group+'_include',
+        'switch_args' : '<lib type stage>',
+        'type' : ['string'],
+        'defvalue' : []
+    }
 
     #Vendor compiled databases
     cfg['sc_'+group]['default']['nldmdb'] = {}
-    cfg['sc_'+group]['default']['nldmdb']['default'] = {
+    cfg['sc_'+group]['default']['nldmdb']['default'] = {}
+    cfg['sc_'+group]['default']['nldmdb']['default']['default'] = {
         'help' : 'Library NLDM compiled database',
         'switch' : '-'+group+'_nldmdb',
-        'switch_args' : '<lib vendor file>',
+        'switch_args' : '<lib corner vendor file>',
         'type' : ['file'],
         'defvalue' : [],
         'hash' : []
     }
 
     cfg['sc_'+group]['default']['ccsdb'] = {}
-    cfg['sc_'+group]['default']['ccsdb']['default'] = {
+    cfg['sc_'+group]['default']['ccsdb']['default'] = {}
+    cfg['sc_'+group]['default']['ccsdb']['default']['default'] = {
         'help' : 'Library CCS compiled databse',
         'switch' : '-'+group+'_ccsdb',
-        'switch_args' : '<lib vendor file>',
+        'switch_args' : '<lib corner vendor file>',
         'type' : ['file'],
         'defvalue' : [],
         'hash' : []
     }
-    cfg['sc_'+group]['default']['libdb'] = {}
-    cfg['sc_'+group]['default']['libdb']['default'] = {
+    cfg['sc_'+group]['default']['pnrdb'] = {}
+    cfg['sc_'+group]['default']['pnrdb']['default'] = {}
+    cfg['sc_'+group]['default']['pnrdb']['default']['default'] = {
         'help' : 'Library layout compiled database',
-        'switch' : '-'+group+'_libdb',
+        'switch' : '-'+group+'_pnrdb',
         'switch_args' : '<lib vendor file>',    
         'type' : ['file'],
         'defvalue' : [],
