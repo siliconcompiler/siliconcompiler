@@ -1,8 +1,4 @@
 
-####################################################
-# BOILER PLATE
-####################################################
-
 import os
 import siliconcompiler as sc
 
@@ -10,7 +6,7 @@ import siliconcompiler as sc
 # PDK Setup
 ####################################################
 
-def nangate45_pdk(chip):
+def setup_nangate45_pdk(chip):
 
     process = 'nangate45'
     version = 'r1p0'
@@ -35,7 +31,7 @@ def nangate45_pdk(chip):
 ####################################################
 # Library Setup
 ####################################################
-def nangate45_library(chip):
+def setup_nangate45_library(chip):
     library = 'NangateOpenCellLibrary'
     version = 'r1p0'
     ipdir = ""
@@ -59,13 +55,10 @@ if __name__ == "__main__":
     # files
     fileroot = os.path.splitext(os.path.abspath(__file__))[0]
     jsonfile = fileroot + '.json'
-
     # create a chip instance
     chip = sc.Chip()
-    chip.writecfg('default.json')
     # load configuration
-    nangate45_pdk(chip)
-    nangate45_library(chip)
-    
+    setup_nangate45_pdk(chip)
+    setup_nangate45_library(chip)    
     # write out storage file
     chip.writecfg(jsonfile)
