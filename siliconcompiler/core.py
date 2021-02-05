@@ -687,10 +687,18 @@ class Chip:
                 #Write out CFG dictionary as TCL
                 self.writetcl(stage, "sc_setup.tcl")
 
-            #Adding tcl scripts to comamnd line
-            for value in self.cfg['sc_tool'][stage]['script']['value']:
-                cmd_fields.append(value)
-
+            #Copy scripts to local if they exist
+            #Changing execution link to local
+            if self.cfg['sc_tool'][stage]['copy']['value'] == "True":
+                shutil.copytree(self.cfg['sc_tool'][stage]['refdir']['value'],
+                                jobdir)
+                for value in self.cfg['sc_tool'][stage]['script']['value']:
+                    basename = os.path.basename(value)
+                    cmd_fields.append(jobdir+basename)
+            else:
+               for value in self.cfg['sc_tool'][stage]['script']['value']:
+                   cmd_fields.append(value)      
+           
             #Execute cmd if current stage is within range of start and stop
             logfile = exe + ".log"
             cmd_fields.append("> " + logfile)
