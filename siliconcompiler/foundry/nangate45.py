@@ -8,7 +8,7 @@ import siliconcompiler as sc
 # PDK Setup
 ####################################################
 
-def setup_nangate45_pdk(chip, root):
+def nangate45_pdk(chip, root):
 
     foundry = 'virtual'
     process = 'nangate45'
@@ -16,14 +16,14 @@ def setup_nangate45_pdk(chip, root):
     stackup = '10M'
     vendor = 'openroad'
     lib = '10t'
-    pdkdir = '/'.join([root, 
+    pdkdir = '/'.join([root,
                        foundry,
                        process,
                        'pdk',
                        version])
 
     # process name
-    chip.add('sc_pdk_foundry', 'virtual')
+    chip.add('sc_pdk_foundry', foundry)
     chip.add('sc_pdk_process', process)
     chip.add('sc_pdk_version', version)
     chip.add('sc_pdk_stackup', stackup)
@@ -38,13 +38,13 @@ def setup_nangate45_pdk(chip, root):
 ####################################################
 # Library Setup
 ####################################################
-def setup_nangate45_library(chip, root):
+def nangate45_lib(chip, root):
 
     foundry = 'virtual'
     process = 'nangate45'
     libname = 'NangateOpenCellLibrary'
     version = 'r1p0'
-    libdir = '/'.join([root, 
+    libdir = '/'.join([root,
                        foundry,
                        process,
                        'library',
@@ -76,8 +76,8 @@ if __name__ == "__main__":
     # create a chip instance
     chip = sc.Chip()
     # load configuration
-    setup_nangate45_pdk(chip, datadir)
-    setup_nangate45_library(chip, datadir)    
+    nangate45_pdk(chip, datadir)
+    nangate45_lib(chip, datadir)    
     # write out result
     chip.writecfg(output)
 

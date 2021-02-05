@@ -6,7 +6,7 @@ import siliconcompiler as sc
 # Setup
 ####################################################
 
-def setup_openroad(chip):
+def openroad(chip):
 
      #local variables
      edadir = ""
