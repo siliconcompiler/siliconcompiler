@@ -141,12 +141,13 @@ def main():
     #Create one (or many...) instances of Chip class
     mychip = sc.Chip()
     mychip.writecfg("default.json")
+
     # Reading in user variables
     mychip.readenv()
 
-    # Checking for built in targets
+    # Loading presetvalues from the command line
     if 'sc_target' in  cmdlinecfg.keys():        
-        target = cmdlinecfg['sc_target']['value']
+        target = cmdlinecfg['sc_target']['value']    
         if target == 'nangate45':
             setup_nangate45_pdk(mychip)
             setup_nangate45_library(mychip)
@@ -155,10 +156,15 @@ def main():
             setup_asap7_pdk(mychip)
             setup_asap7_library(mychip)
             setup_openroad(mychip)
-
-    # Reading in command line arguments
-    mychip.mergecfg(cmdlinecfg)
     
+    # Reading in config files specified at command line
+    if 'sc_cfgfile' in  cmdlinecfg.keys():        
+        for cfgfile in cmdlinecfg['sc_cfgfile']['value']:
+            chip.readcfg(cfgfile)
+        
+    # Override with command line arguments
+    mychip.mergecfg(cmdlinecfg)
+        
     #Resolve as absolute paths (should be a switch)
     mychip.abspath()
 
@@ -174,7 +180,6 @@ def main():
     all_stages = mychip.get('sc_stages')
     for stage in all_stages:
         mychip.run(stage)
-    
     
 #########################
 if __name__ == "__main__":    
