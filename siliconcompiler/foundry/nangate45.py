@@ -1,19 +1,26 @@
 
 import os
+import sys
+import re
 import siliconcompiler as sc
 
 ####################################################
 # PDK Setup
 ####################################################
 
-def setup_nangate45_pdk(chip):
+def setup_nangate45_pdk(chip, root):
 
+    foundry = 'virtual'
     process = 'nangate45'
     version = 'r1p0'
     stackup = '10M'
     vendor = 'openroad'
     lib = '10t'
-    pdkdir = ""
+    pdkdir = '/'.join([root, 
+                       foundry,
+                       process,
+                       'pdk',
+                       version])
 
     # process name
     chip.add('sc_pdk_foundry', 'virtual')
@@ -31,34 +38,47 @@ def setup_nangate45_pdk(chip):
 ####################################################
 # Library Setup
 ####################################################
-def setup_nangate45_library(chip):
-    library = 'NangateOpenCellLibrary'
+def setup_nangate45_library(chip, root):
+
+    foundry = 'virtual'
+    process = 'nangate45'
+    libname = 'NangateOpenCellLibrary'
     version = 'r1p0'
-    ipdir = ""
-    
+    libdir = '/'.join([root, 
+                       foundry,
+                       process,
+                       'library',
+                       libname,
+                       version])
+
     # version
-    chip.add('sc_stdcells',library,'version',version)
+    chip.add('sc_stdcells',libname,'version',version)
     
     # timing
-    chip.add('sc_stdcells',library,'nldm','typical',ipdir+'/lib/NangateOpenCellLibrary_typical.lib')
+    chip.add('sc_stdcells',libname,'nldm','typical',libdir+'/lib/NangateOpenCellLibrary_typical.lib')
     
     # lef
-    chip.add('sc_stdcells',library,'lef',ipdir+'/lef/NangateOpenCellLibrary.macro.lef')
+    chip.add('sc_stdcells',libname,'lef',libdir+'/lef/NangateOpenCellLibrary.macro.lef')
     
     # gds
-    chip.add('sc_stdcells',library,'gds',ipdir+'/gds/NangateOpenCellLibrary.gds')
-
+    chip.add('sc_stdcells',libname,'gds',libdir+'/gds/NangateOpenCellLibrary.gds')
 
 #########################
 if __name__ == "__main__":    
 
-    # files
-    fileroot = os.path.splitext(os.path.abspath(__file__))[0]
-    jsonfile = fileroot + '.json'
+    # File being executed
+    prefix = os.path.splitext(os.path.basename(__file__))[0]
+    output = prefix + '.json'
+    dirname = os.path.dirname(os.path.abspath(__file__))
+    datadir = re.sub('siliconcompiler/siliconcompiler','siliconcompiler', dirname)
+
+
     # create a chip instance
     chip = sc.Chip()
     # load configuration
-    setup_nangate45_pdk(chip)
-    setup_nangate45_library(chip)    
-    # write out storage file
-    chip.writecfg(jsonfile)
+    setup_nangate45_pdk(chip, datadir)
+    setup_nangate45_library(chip, datadir)    
+    # write out result
+    chip.writecfg(output)
+
+   
