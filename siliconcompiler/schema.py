@@ -993,7 +993,7 @@ def schema_mcmm(cfg):
     cfg['sc_mcmm_scenario']['default']['libcorner'] = {
         'help' : 'MMCM scenario libcorner',
         'switch' : '-mcmm_scenario_libcorner',
-        'switch_args' : '<name libcorner>',
+        'switch_args' : '<scenario libcorner>',
         'type' : ['string'],
         'defvalue' : []
     }
@@ -1001,7 +1001,7 @@ def schema_mcmm(cfg):
     cfg['sc_mcmm_scenario']['default']['pexcorner'] = {
         'help' : 'MMCM scenario pexcorner',
         'switch' : '-mcmm_scenario_pexcorner',
-        'switch_args' : '<name pexcorner>',
+        'switch_args' : '<scenario pexcorner>',
         'type' : ['string'],
         'defvalue' : []
     }
@@ -1009,26 +1009,24 @@ def schema_mcmm(cfg):
     cfg['sc_mcmm_scenario']['default']['opcond'] = {
         'help' : 'MMCM scenario operating condition and library',
         'switch' : '-mcmm_scenario_opcond',
-        'switch_args' : '<name opcond library>',
+        'switch_args' : '<scenario (opcond library)>',
         'type' : ['string', 'string'],
         'defvalue' : []
     }
         
-    cfg['sc_mcmm_scenario']['default']['constraints'] = {}
-    cfg['sc_mcmm_scenario']['default']['constraints']['default'] = {
+    cfg['sc_mcmm_scenario']['default']['constraints'] = {
         'help' : 'MMCM scenario constraints',
         'switch' : '-mcmm_scenario_constraints',
-        'switch_args' : '<name stage file>',
+        'switch_args' : '<scenario stage file>',
         'type' : ['file'],
         'hash' : [],
         'defvalue' : []
     }
 
-    cfg['sc_mcmm_scenario']['default']['objectives'] = {}
-    cfg['sc_mcmm_scenario']['default']['objectives']['default'] = {
+    cfg['sc_mcmm_scenario']['default']['objectives'] = {
         'help' : 'MMCM Objectives (setup, hold, power,...)',
         'switch' : '-mcmm_scenario_objectives',
-        'switch_args' : '<name stage string>',
+        'switch_args' : '<scenario stage objective>',
         'type' : ['string'],
         'defvalue' : []
     }

@@ -44,6 +44,8 @@ def nangate45_lib(chip, root):
     process = 'nangate45'
     libname = 'NangateOpenCellLibrary'
     version = 'r1p0'
+    corner = 'typical'
+    objectives = ['setup','hold']
     libdir = '/'.join([root,
                        foundry,
                        process,
@@ -69,8 +71,13 @@ def nangate45_lib(chip, root):
     # hard coded target lib
     chip.add('sc_target_lib',libname)
 
-    
-
+    # hard coded mcmm settings
+    chip.add('sc_mcmm_libcorners',corner)
+    chip.add('sc_mcmm_pexcorners',corner)
+    chip.add('sc_mcmm_scenario','nominal','libcorner', corner)
+    chip.add('sc_mcmm_scenario','nominal','pexcorner', corner)
+    chip.add('sc_mcmm_scenario','nominal','opcond', corner+" "+libname)
+    chip.add('sc_mcmm_scenario','nominal','objectives', objectives)
     
 #########################
 if __name__ == "__main__":    
