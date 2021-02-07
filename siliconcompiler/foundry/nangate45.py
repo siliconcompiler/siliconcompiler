@@ -29,9 +29,9 @@ def nangate45_pdk(chip, root):
     chip.add('sc_pdk_stackup', stackup)
     
     # PNR tech file
-    chip.add('sc_pdk_pnrtech',stackup,lib,vendor,
+    chip.add('sc_pdk_pnrtech',stackup, lib, vendor,
                pdkdir+'/pnr/nangate45.tech.lef')
-    
+
     # DRC
     chip.add('sc_tool','drc','script',pdkdir+'/drc/FreePDK45.lydrc')
 
@@ -63,8 +63,14 @@ def nangate45_lib(chip, root):
     # gds
     chip.add('sc_stdcells',libname,'gds',libdir+'/gds/NangateOpenCellLibrary.gds')
 
+    # site name
+    chip.add('sc_stdcells',libname,'site','FreePDK45_38x28_10R_NP_162NW_34O')
+    
     # hard coded target lib
     chip.add('sc_target_lib',libname)
+
+    
+
     
 #########################
 if __name__ == "__main__":    
