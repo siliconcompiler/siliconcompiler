@@ -381,7 +381,7 @@ class Chip:
                 read_args = json.load(f)
         elif abspath.endswith('.yaml'):
             with open(abspath, 'r') as f:
-                read_args = yaml.load(f)
+                read_args = yaml.load(f, Loader=yaml.FullLoader)
         elif abspath.endswith('.tcl'):
             read_args = self.readtcl(abspath)
         else:
