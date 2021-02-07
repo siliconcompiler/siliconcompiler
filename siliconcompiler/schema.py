@@ -630,7 +630,15 @@ def schema_design(cfg):
         'type' : ['string'],
         'defvalue' : []
     }
-    
+
+    cfg['sc_target_stackup'] = {
+        'help' : 'Target metal stackup',
+        'switch' : '-target_stackup',
+        'switch_args' : '<string>',        
+        'type' : ['string'],
+        'defvalue' : []
+    }
+        
     cfg['sc_source'] = {
         'help' : 'Source files (.v/.vh/.sv/.vhd)',
         'switch' : 'None',
