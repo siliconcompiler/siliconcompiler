@@ -127,7 +127,7 @@ def add_arg(cfg, parser, keys=None):
             newkeys.append(str(k))            
             if 'defvalue' in cfg[k].keys():                
                 keystr = '_'.join(newkeys)
-                if cfg[k]['type'][0] == 'bool': #scalar
+                if cfg[k]['type'][-1] == 'bool': #scalar
                     parser.add_argument(cfg[k]['switch'],
                                         metavar=cfg[k]['switch_args'],
                                         dest=keystr,
@@ -167,7 +167,7 @@ def main():
 
     # Loading presetvalues from the command line
     if 'sc_target' in  cmdlinecfg.keys():
-        target = cmdlinecfg['sc_target']['value'][0]
+        target = cmdlinecfg['sc_target']['value'][-1]
         if target in ('nangate45', 'asap7'):
             setup_verilator(mychip, root+'/eda/asic')
             setup_yosys(mychip, root+'/eda/asic')
