@@ -15,7 +15,10 @@ import siliconcompiler as sc
 from siliconcompiler.schema import schema
 from siliconcompiler.foundry.nangate45 import nangate45_pdk
 from siliconcompiler.foundry.nangate45 import nangate45_lib
-from siliconcompiler.eda.foss_eda import foss_eda
+from siliconcompiler.eda.verilator import setup_verilator
+from siliconcompiler.eda.yosys import setup_yosys
+from siliconcompiler.eda.openroad import setup_openroad
+from siliconcompiler.eda.klayout import setup_klayout
 
 ###########################
 def cmdline():
@@ -164,15 +167,18 @@ def main():
 
     # Loading presetvalues from the command line
     if 'sc_target' in  cmdlinecfg.keys():
-        target = cmdlinecfg['sc_target']['value'][0]        
-        if target == 'nangate45': 
-            nangate45_pdk(mychip, root+'/foundry/')
-            nangate45_lib(mychip, root+'/foundry/')
-            foss_eda(mychip, root+'/eda/asic')            
-        elif target == 'asap7':
-            asap7_pdk(mychip, root+'/foundry/')
-            asap7_lib(mychip, root+'/foundry/')
-            foss_eda(mychip, root+'/eda/asic')
+        target = cmdlinecfg['sc_target']['value'][0]
+        if target in ('nangate45', 'asap7'):
+            setup_verilator(mychip, root+'/eda/asic')
+            setup_yosys(mychip, root+'/eda/asic')
+            setup_openroad(mychip, root+'/eda/asic')
+            setup_klayout(mychip, root+'/eda/asic')            
+            if target == 'nangate45': 
+                nangate45_pdk(mychip, root+'/foundry/')
+                nangate45_lib(mychip, root+'/foundry/')
+            elif target == 'asap7':
+                asap7_pdk(mychip, root+'/foundry/')
+                asap7_lib(mychip, root+'/foundry/')
     
     # Reading in config files specified at command line
     if 'sc_cfgfile' in  cmdlinecfg.keys():        
