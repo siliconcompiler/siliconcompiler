@@ -259,7 +259,7 @@ class Chip:
                     self.abspath(cfg=cfg[k])
 
     ##################################
-    def printcfg (self, cfg, keys=None, f=None, prefix=""):
+    def printcfg (self,cfg,keys=None,f=None,mode="",prefix=""):
         '''Prints out flattened dictionary
         '''
         if keys is None:
@@ -268,15 +268,19 @@ class Chip:
             newkeys =  keys.copy()
             newkeys.append(k)
             if 'value' in cfg[k]:
-                lst = cfg[k]['value']
+                valstr = ' '.join(cfg[k]['value'])
                 keystr = ' '.join(newkeys)
-                for i in range(len(lst)):
-                    if f is None:
-                        print(prefix, keystr, i, lst[i])
-                    else:
-                        print(prefix, keystr, i, lst[i], file=f)
+                if(mode=="tcl"):
+                    outlst = [prefix,keystr,'[list ', valstr,']']
+                else:
+                    outlst = [prefix,keystr, valstr]
+                outstr = ' '.join(outlst)
+                if f is None:
+                    print(outstr)
+                else:
+                    print(outstr, file=f)
             else:
-                self.printcfg(cfg[k], keys=newkeys, f=f, prefix=prefix)
+                self.printcfg(cfg[k], keys=newkeys, f=f, mode=mode, prefix=prefix)
 
     ##################################
     def mergecfg(self, d2, d1=None):
@@ -446,7 +450,7 @@ class Chip:
             print("#############################################", file=f)
             print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
             print("#############################################", file=f)
-            self.printcfg(cfg, prefix="dict set sc_cfg", f=f)
+            self.printcfg(cfg, mode="tcl", prefix="dict set sc_cfg", f=f)
         f.close()  
 
     ##################################
