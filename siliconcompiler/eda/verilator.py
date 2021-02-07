@@ -7,9 +7,14 @@ import siliconcompiler as sc
 
 def setup_verilator(chip, root):
      
-    chip.add('sc_tool', 'import', 'exe', 'verilator')
-    chip.add('sc_tool', 'import', 'vendor', 'verilator')
-    chip.add('sc_tool', 'import', 'opt', '--lint-only --debug')
+    stage = 'import'
+        
+    chip.add('sc_tool', stage, 'np', '4')
+    chip.add('sc_tool', stage, 'format', 'tcl')
+    chip.add('sc_tool', stage, 'copy', 'False')
+    chip.add('sc_tool', stage, 'exe', 'verilator')
+    chip.add('sc_tool', stage, 'vendor', 'verilator')
+    chip.add('sc_tool', stage, 'opt', '--lint-only --debug')
   
 
 
