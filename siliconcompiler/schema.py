@@ -23,6 +23,8 @@ def schema():
 
     cfg = schema_mcmm(cfg)
 
+    cfg = schema_net(cfg)
+
     return cfg
 
 ############################################
@@ -827,14 +829,6 @@ def schema_design(cfg):
         'defvalue' : []
     }
     
-    cfg['sc_remote'] = {
-        'help' : 'Remote server (https://acme.com:8080)',
-        'switch' : '-remote',
-        'switch_args' : '<string>',
-        'type' : ['string'],
-        'defvalue' : []
-    }
-
     cfg['sc_debug'] = {
         'help' : 'Debug level (INFO/DEBUG/WARNING/ERROR)',
         'switch' : '-debug',
@@ -1023,6 +1017,69 @@ def schema_mcmm(cfg):
         'switch_args' : '<name stage string>',
         'type' : ['string'],
         'defvalue' : []
+    }
+
+    return cfg
+
+###############################################
+# Network Configuration for Remote Compute Jobs
+###############################################
+
+def schema_net(cfg):
+
+    # Remote IP address or hostname of a server which is running 'sc-server'
+    cfg['sc_remote'] = {
+        'help' : 'Remote server (https://acme.com:8080)',
+        'switch': '-remote',
+        'switch_args' : '<string>',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+
+    # Port number that the remote host is running 'sc-server' on.
+    cfg['sc_remote_port'] = {
+        'help': 'Port number which the remote \'sc-server\' instance is running on.',
+        'switch': '-remote_port',
+        'switch_args' : '<int>',
+        'type' : ['int'],
+        'defvalue' : [8080]
+    }
+
+    # NFS config: Username to use when copying file to remote compute storage.
+    cfg['sc_nfs_user'] = {
+        'help': 'Username to use when copying files to the remote compute storage host.',
+        'switch': '-nfs_user',
+        'switch_args' : '<string>',
+        'type' : ['string'],
+        'defvalue' : ['ubuntu']
+    }
+
+    # NFS config: Hostname to use for accessing shared remote compute storage.
+    cfg['sc_nfs_host'] = {
+        'help': 'Hostname or IP address where shared compute cluster storage can be accessed.',
+        'switch': '-nfs_host',
+        'switch_args' : '<string>',
+        'type' : ['string'],
+        'defvalue' : ['<default value excluded from Git>']
+    }
+
+    # NFS config: root filepath for shared NFS storage on the remote NFS host.
+    cfg['sc_nfs_mount'] = {
+        'help': 'Directory where shared NFS storage is mounted on the remote storage host.',
+        'switch': '-nfs_mount',
+        'switch_args' : '<string>',
+        'type' : ['string'],
+        'defvalue' : ['<default value excluded from Git>']
+    }
+
+    # NFS config: path to the SSH key file which will be used to access
+    # the remote storage host.
+    cfg['sc_nfs_key'] = {
+        'help': 'Key file used to send files to remote compute storage.',
+        'switch': '-nfs_key',
+        'switch_args' : '<string>',
+        'type' : ['string'],
+        'defvalue' : ['<default value excluded from Git>']
     }
 
     return cfg
