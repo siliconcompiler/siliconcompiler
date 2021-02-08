@@ -250,8 +250,7 @@ def schema_pdk(cfg):
     }
 
     cfg['sc_pdk_pnrlayer'] = {}
-    cfg['sc_pdk_pnrlayer']['default'] = {}
-    cfg['sc_pdk_pnrlayer']['default']['default'] = {
+    cfg['sc_pdk_pnrlayer']['default'] = {
         'help' : 'Place and route routing layer definitions',
         'switch' : '-pdk_pnrlayer',
         'switch_args' : '<stackup layername X|Y width pitch>', 
