@@ -19,9 +19,14 @@ def schema():
 
     cfg = schema_eda(cfg)
 
-    cfg = schema_design(cfg)
+    cfg = schema_design_rtl(cfg)
+    
+    cfg = schema_design_physical(cfg)
 
     cfg = schema_mcmm(cfg)
+
+    cfg = schema_options(cfg)
+
 
     return cfg
 
@@ -32,15 +37,21 @@ def schema():
 def schema_fpga(cfg):
     ''' FPGA Setup
     '''
-    cfg['sc_fpga_arch'] = {
-        'help' : 'FPGA architecture description file',
-        'switch' : '-fpga_arch',
-        'switch_args' : '<targetname file>',
+    cfg['sc_fpga_xml'] = {
+        'help' : 'FPGA architecture description file (xml)',
+        'long_help' : [
+            "line one.........................................................",
+            "line two.........................................................",
+            "line three......................................................."
+        ],
+        'switch' : '-fpga_xml',
+        'switch_args' : '<target file>',
         'type' : ['string', 'file'],
         'defvalue' : []
     }
 
     return cfg
+
 
 ############################################
 # PDK
@@ -108,34 +119,29 @@ def schema_pdk(cfg):
         'defvalue' : []
     }
 
-            
-    cfg['sc_pdk_devicemodels'] = {}
-    cfg['sc_pdk_devicemodels']['default'] = {}
-    cfg['sc_pdk_devicemodels']['default']['default'] = {}
-    cfg['sc_pdk_devicemodels']['default']['default']['default'] = {
+    cfg['sc_pdk_devicemodel'] = {}
+    cfg['sc_pdk_devicemodel']['default'] = {}
+    cfg['sc_pdk_devicemodel']['default']['default'] = {}
+    cfg['sc_pdk_devicemodel']['default']['default']['default'] = {
         'help' : 'Device model directory',
-        'switch' : '-pdk_devicemodels',
+        'switch' : '-pdk_devicemodel',
         'switch_args' : '<stackup type vendor file>',
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
     }
 
-    cfg['sc_pdk_pexmodels'] = {}
-    cfg['sc_pdk_pexmodels']['default'] = {}
-    cfg['sc_pdk_pexmodels']['default']['default']= {}
-    cfg['sc_pdk_pexmodels']['default']['default']['default'] = {
+    cfg['sc_pdk_pexmodel'] = {}
+    cfg['sc_pdk_pexmodel']['default'] = {}
+    cfg['sc_pdk_pexmodel']['default']['default']= {}
+    cfg['sc_pdk_pexmodel']['default']['default']['default'] = {
         'help' : 'Back end PEX TCAD model',
-        'switch' : '-pdk_pexmodels',
+        'switch' : '-pdk_pexmodel',
         'switch_args' : '<stackup corner vendor file>',
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
     }
-
-    ###############
-    # Layer Maps
-    ###############
 
     cfg['sc_pdk_layermap'] = {}
     cfg['sc_pdk_layermap']['default'] = {}
@@ -160,10 +166,6 @@ def schema_pdk(cfg):
         'hash' : []
     }
     
-    ###############
-    # Custom Design
-    ###############
-
     cfg['sc_pdk_display'] = {}
     cfg['sc_pdk_display']['default'] = {}
     cfg['sc_pdk_display']['default']['default'] = {
@@ -175,6 +177,17 @@ def schema_pdk(cfg):
         'hash' : []
     }
 
+    cfg['sc_pdk_clib'] = {}
+    cfg['sc_pdk_clib']['default'] = {}
+    cfg['sc_pdk_clib']['default']['default'] = {
+        'help' : 'Custom design library',
+        'switch' : '-pdk_clib',
+        'switch_args' : '<stackup vendor file>', 
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash' : []
+    }
+    
     cfg['sc_pdk_init'] = {}
     cfg['sc_pdk_init']['default'] = {}
     cfg['sc_pdk_init']['default']['default'] = {
@@ -186,9 +199,6 @@ def schema_pdk(cfg):
         'hash' : []
     }
 
-    #objname   subtype name Layer#  Datatype
-    #m1block   routing M1   15      61 
-    #stackup, vendor
     cfg['sc_pdk_objmap'] = {}
     cfg['sc_pdk_objmap']['default'] = {}
     cfg['sc_pdk_objmap']['default']['default'] = {
@@ -200,32 +210,10 @@ def schema_pdk(cfg):
         'hash' : []
     }
 
-    # stackup, vendor
-    cfg['sc_pdk_libs'] = {}
-    cfg['sc_pdk_libs']['default'] = {}
-    cfg['sc_pdk_libs']['default']['default'] = {
-        'help' : 'Custom library list file',
-        'switch' : '-pdk_libs',
-        'switch_args' : '<stackup vendor file>', 
-        'type' : ['file'],
-        'defvalue' : [],
-        'hash' : []
-    }
-
     ###################
     # Place and Route
     ###################
     
-    cfg['sc_pdk_pnrtile'] = {
-        'help' : 'Place and route unit tile names (7.5t, 9t)',
-        'switch_args' : '<string>', 
-        'switch' : '-pdk_pnrtile',
-        'type' : ['file'],
-        'defvalue' : [],
-        'hash'   : []
-    }
-    
-    #stackup, lib, vendor
     cfg['sc_pdk_pnrdir'] = {}
     cfg['sc_pdk_pnrdir']['default'] = {}
     cfg['sc_pdk_pnrdir']['default']['default'] = {}
@@ -238,7 +226,6 @@ def schema_pdk(cfg):
         'hash'   : []
     }
 
-    #stackup, lib, vendor
     cfg['sc_pdk_pnrtech'] = {}
     cfg['sc_pdk_pnrtech']['default'] = {}
     cfg['sc_pdk_pnrtech']['default']['default'] = {}
@@ -251,7 +238,6 @@ def schema_pdk(cfg):
         'hash'   : []
     }
 
-    #stackup,vendor
     cfg['sc_pdk_pnrmap'] = {}
     cfg['sc_pdk_pnrmap']['default'] = {}    
     cfg['sc_pdk_pnrmap']['default']['default'] = {
@@ -263,12 +249,12 @@ def schema_pdk(cfg):
         'hash'   : []
     }
 
-    #stackup
     cfg['sc_pdk_pnrlayer'] = {}
-    cfg['sc_pdk_pnrlayer']['default'] = {
+    cfg['sc_pdk_pnrlayer']['default'] = {}
+    cfg['sc_pdk_pnrlayer']['default']['default'] = {
         'help' : 'Place and route routing layer definitions',
         'switch' : '-pdk_pnrlayer',
-        'switch_args' : '<layername X|Y width pitch>', 
+        'switch_args' : '<stackup layername X|Y width pitch>', 
         'type' : ['string', 'string', 'float', 'float'],
         'defvalue' : [],
         'hash'   : []
@@ -610,35 +596,10 @@ def schema_eda(cfg):
 # Design Specific Parameters
 #############################################
 
-def schema_design(cfg):
-    ''' Design setup schema
+def schema_design_rtl(cfg):
+    ''' Design setup
     '''
 
-    #Mandatory Inputs
-    cfg['sc_target'] = {
-        'help' : 'Target platform',
-        'switch' : '-target',
-        'switch_args' : '<string>',        
-        'type' : ['string'],
-        'defvalue' : []
-    }
-
-    cfg['sc_target_lib'] = {
-        'help' : 'Target library/device',
-        'switch' : '-target_lib',
-        'switch_args' : '<string>',        
-        'type' : ['string'],
-        'defvalue' : []
-    }
-
-    cfg['sc_target_stackup'] = {
-        'help' : 'Target metal stackup',
-        'switch' : '-target_stackup',
-        'switch_args' : '<string>',        
-        'type' : ['string'],
-        'defvalue' : []
-    }
-        
     cfg['sc_source'] = {
         'help' : 'Source files (.v/.vh/.sv/.vhd)',
         'switch' : 'None',
@@ -646,42 +607,7 @@ def schema_design(cfg):
         'defvalue' : [],
         'hash'   : []
     }
-
-    
-    #Primary Options
-    cfg['sc_env'] = {
-        'help' : 'Required environment variables to set',
-        'switch' : '-env',
-        'switch_args' : '<varname value>',
-        'type' : ['string', 'file'],
-        'defvalue' : []
-    }
-
-    cfg['sc_cfgfile'] = {
-        'help' : 'Loads configurations from a json file',
-        'switch' : '-cfgfile',
-        'switch_args' : '<file>',
-        'type' : ['file'],
-        'defvalue' : [],
-        'hash'   : []
-    }
-
-    cfg['sc_lock'] = {
-        'help' : 'Locks the configuration dict from edit',
-        'switch' : '-lock',
-        'switch_args' : '',
-        'type' : ['bool'],
-        'defvalue' : ['False'],
-    }
-
-    cfg['sc_quiet'] = {
-        'help' : 'Supresses informational printing',
-        'switch' : '-quiet',
-        'switch_args' : '',
-        'type' : ['bool'],
-        'defvalue' : ['False'],
-    }
-    
+        
     cfg['sc_design'] = {
         'help' : 'Design top module name',
         'switch' : '-design',
@@ -698,7 +624,7 @@ def schema_design(cfg):
         'defvalue' : []
     }
 
-    cfg['sc_supplies'] = {
+    cfg['sc_supply'] = {
         'help' : 'Power supply',
         'switch' : '-supply',
         'switch_args' : '<name pin voltage>',
@@ -758,39 +684,45 @@ def schema_design(cfg):
         'hash'   : []
     }
 
-    cfg['sc_wno'] = {
-        'help' : 'Disables a warning -Woo-<message>',
-        'switch' : '-Wno',
-        'switch_args' : '<string>',
+    return cfg
+
+def schema_design_physical(cfg):
+    ''' Physical design parameters
+    '''
+
+    #Technology Mapping
+    cfg['sc_target'] = {
+        'help' : 'Target platform',
+        'switch' : '-target',
+        'switch_args' : '<string>',        
         'type' : ['string'],
         'defvalue' : []
     }
 
-    cfg['sc_diesize'] = {
-        'help' : 'Target die size (x0 y0 x1 y1) (um)',
-        'switch' : '-diesize',
-        'switch_args' : '<float float float float>',
-        'type' : ['float', 'float', 'float', 'float'],
+    cfg['sc_target_lib'] = {
+        'help' : 'Target library/device',
+        'switch' : '-target_lib',
+        'switch_args' : '<string>',        
+        'type' : ['string'],
         'defvalue' : []
     }
 
-    cfg['sc_coresize'] = {
-        'help' : 'Target core size (x0 y0 x1 y1) (um)',
-        'switch' : '-coresize',
-        'switch_args' : '<float float float float>',
-        'type' : ['float', 'float', 'float', 'float'],
+    cfg['sc_target_stackup'] = {
+        'help' : 'Target metal stackup',
+        'switch' : '-target_stackup',
+        'switch_args' : '<string>',        
+        'type' : ['string'],
         'defvalue' : []
     }
 
-    cfg['sc_floorplan'] = {
-        'help' : 'Floorplaning script/program',
-        'switch' : '-floorplan',
-        'switch_args' : '<file>',
-        'type' : ['file'],
-        'defvalue' : [],
-        'hash'   : []
+    cfg['sc_target_libarch'] = {
+        'help' : 'Target library architecture',
+        'switch' : '-target_libarch',
+        'switch_args' : '<string>',        
+        'type' : ['string'],
+        'defvalue' : []
     }
-    
+
     cfg['sc_def'] = {
         'help' : 'Firm floorplan file (DEF)',
         'switch' : '-def',
@@ -798,8 +730,8 @@ def schema_design(cfg):
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
-    }
-    
+     }
+
     cfg['sc_ndr'] = {
         'help' : 'Non-default net routing file',
         'switch' : '-ndr',
@@ -807,6 +739,55 @@ def schema_design(cfg):
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
+    }
+     
+    cfg['sc_minlayer'] = {
+        'help' : 'Minimum routing layer (integer)',
+        'switch' : '-minlayer',
+        'switch_args' : '<int>',
+        'type' : ['int'],
+        'defvalue' : []
+    }
+
+    cfg['sc_maxlayer'] = {
+        'help' : 'Maximum routing layer (integer)',
+        'switch' : '-maxlayer',
+        'switch_args' : '<int>',
+        'type' : ['int'],
+        'defvalue' : []
+    }
+    
+    cfg['sc_maxfanout'] = {
+        'help' : 'Maximum fanout',
+        'switch' : '-maxfanout',
+        'switch_args' : '<int>',
+        'type' : ['int'],
+        'defvalue' : []
+    }
+
+    #automated floorplanning
+    cfg['sc_coremargin'] = {
+        'help' : 'Core place and route halo margin (um)',
+        'switch' : '-coremargin',
+        'switch_args' : '<float>',
+        'type' : ['float'],
+        'defvalue' : []
+    }
+
+    cfg['sc_aspectratio'] = {
+        'help' : 'Target aspect ratio',
+        'switch' : '-aspectratio',
+        'switch_args' : '<float>',
+        'type' : ['float'],
+        'defvalue' : []
+    }
+
+    cfg['sc_density'] = {
+        'help' : 'Target core density (percent)',
+        'switch' : '-density',
+        'switch_args' : '<int>',
+        'type' : ['int'],
+        'defvalue' : []
     }
 
     cfg['sc_vcd'] = {
@@ -834,6 +815,115 @@ def schema_design(cfg):
         'type' : ['string'],
         'defvalue' : []
     }
+    
+    return cfg
+    
+############################################
+# MMCM Configuration
+#############################################   
+
+def schema_mcmm(cfg):
+
+    cfg['sc_mcmm_libcorner'] = {
+        'help' : 'MMCM Lib Corner List (p_v_t)',
+        'switch' : '-mcmm_libcorner',
+        'switch_args' : '<string>',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+
+    cfg['sc_mcmm_pexcorner'] = {
+        'help' : 'MMCM PEX Corner List',
+        'switch' : '-mcmm_pexcorner',
+        'switch_args' : '<string>',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+
+    cfg['sc_mcmm_scenario'] = {}
+    cfg['sc_mcmm_scenario']['default'] = {}
+    
+    cfg['sc_mcmm_scenario']['default']['libcorner'] = {
+        'help' : 'MMCM scenario libcorner',
+        'switch' : '-mcmm_scenario_libcorner',
+        'switch_args' : '<scenario libcorner>',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+
+    cfg['sc_mcmm_scenario']['default']['pexcorner'] = {
+        'help' : 'MMCM scenario pexcorner',
+        'switch' : '-mcmm_scenario_pexcorner',
+        'switch_args' : '<scenario pexcorner>',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+      
+    cfg['sc_mcmm_scenario']['default']['opcond'] = {
+        'help' : 'MMCM scenario operating condition and library',
+        'switch' : '-mcmm_scenario_opcond',
+        'switch_args' : '<scenario (opcond library)>',
+        'type' : ['string', 'string'],
+        'defvalue' : []
+    }
+        
+    cfg['sc_mcmm_scenario']['default']['constraints'] = {
+        'help' : 'MMCM scenario constraints',
+        'switch' : '-mcmm_scenario_constraints',
+        'switch_args' : '<scenario stage file>',
+        'type' : ['file'],
+        'hash' : [],
+        'defvalue' : []
+    }
+
+    cfg['sc_mcmm_scenario']['default']['objectives'] = {
+        'help' : 'MMCM Objectives (setup, hold, power,...)',
+        'switch' : '-mcmm_scenario_objectives',
+        'switch_args' : '<scenario stage objective>',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+
+    return cfg
+
+
+def schema_options(cfg):
+    ''' Run-time options
+    '''
+
+    cfg['sc_env'] = {
+        'help' : 'PDK imposed environment variables to set',
+        'switch' : '-env',
+        'switch_args' : '<varname value>',
+        'type' : ['string', 'file'],
+        'defvalue' : []
+    }
+
+    cfg['sc_cfgfile'] = {
+        'help' : 'Loads configurations from a json file',
+        'switch' : '-cfgfile',
+        'switch_args' : '<file>',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash'   : []
+    }
+
+    cfg['sc_lock'] = {
+        'help' : 'Locks the configuration dict from edit',
+        'switch' : '-lock',
+        'switch_args' : '',
+        'type' : ['bool'],
+        'defvalue' : ['False'],
+    }
+
+    cfg['sc_quiet'] = {
+        'help' : 'Supresses informational printing',
+        'switch' : '-quiet',
+        'switch_args' : '',
+        'type' : ['bool'],
+        'defvalue' : ['False'],
+    }
+    
     
     cfg['sc_remote'] = {
         'help' : 'Remote server (https://acme.com:8080)',
@@ -911,122 +1001,6 @@ def schema_design(cfg):
         'help' : 'Trigger event contact (phone#/email)',
         'switch' : '-msg_contact',
         'switch_args' : '<string>',
-        'type' : ['string'],
-        'defvalue' : []
-    }
-    
-    cfg['sc_minlayer'] = {
-        'help' : 'Minimum routing layer (integer)',
-        'switch' : '-minlayer',
-        'switch_args' : '<int>',
-        'type' : ['int'],
-        'defvalue' : []
-    }
-
-    cfg['sc_maxlayer'] = {
-        'help' : 'Maximum routing layer (integer)',
-        'switch' : '-maxlayer',
-        'switch_args' : '<int>',
-        'type' : ['int'],
-        'defvalue' : []
-    }
-    
-    cfg['sc_maxfanout'] = {
-        'help' : 'Maximum fanout',
-        'switch' : '-maxfanout',
-        'switch_args' : '<int>',
-        'type' : ['int'],
-        'defvalue' : []
-    }
-
-    cfg['sc_density'] = {
-        'help' : 'Target core density (percent)',
-        'switch' : '-density',
-        'switch_args' : '<int>',
-        'type' : ['int'],
-        'defvalue' : []
-    }
-
-    cfg['sc_coremargin'] = {
-        'help' : 'Core place and route halo margin (um)',
-        'switch' : '-coremargin',
-        'switch_args' : '<float>',
-        'type' : ['float'],
-        'defvalue' : []
-    }
-
-    cfg['sc_aspectratio'] = {
-        'help' : 'Target aspect ratio',
-        'switch' : '-aspectratio',
-        'switch_args' : '<float>',
-        'type' : ['float'],
-        'defvalue' : []
-    }
-    
-    return cfg
-
-############################################
-# MMCM Configuration
-#############################################   
-
-def schema_mcmm(cfg):
-
-    cfg['sc_mcmm_libcorners'] = {
-        'help' : 'MMCM Lib Corner List (p_v_t)',
-        'switch' : '-mcmm_libcorner',
-        'switch_args' : '<string>',
-        'type' : ['string'],
-        'defvalue' : []
-    }
-
-    cfg['sc_mcmm_pexcorners'] = {
-        'help' : 'MMCM PEX Corner List',
-        'switch' : '-mcmm_pexcorner',
-        'switch_args' : '<string>',
-        'type' : ['string'],
-        'defvalue' : []
-    }
-
-    cfg['sc_mcmm_scenario'] = {}
-    cfg['sc_mcmm_scenario']['default'] = {}
-    
-    cfg['sc_mcmm_scenario']['default']['libcorner'] = {
-        'help' : 'MMCM scenario libcorner',
-        'switch' : '-mcmm_scenario_libcorner',
-        'switch_args' : '<scenario libcorner>',
-        'type' : ['string'],
-        'defvalue' : []
-    }
-
-    cfg['sc_mcmm_scenario']['default']['pexcorner'] = {
-        'help' : 'MMCM scenario pexcorner',
-        'switch' : '-mcmm_scenario_pexcorner',
-        'switch_args' : '<scenario pexcorner>',
-        'type' : ['string'],
-        'defvalue' : []
-    }
-      
-    cfg['sc_mcmm_scenario']['default']['opcond'] = {
-        'help' : 'MMCM scenario operating condition and library',
-        'switch' : '-mcmm_scenario_opcond',
-        'switch_args' : '<scenario (opcond library)>',
-        'type' : ['string', 'string'],
-        'defvalue' : []
-    }
-        
-    cfg['sc_mcmm_scenario']['default']['constraints'] = {
-        'help' : 'MMCM scenario constraints',
-        'switch' : '-mcmm_scenario_constraints',
-        'switch_args' : '<scenario stage file>',
-        'type' : ['file'],
-        'hash' : [],
-        'defvalue' : []
-    }
-
-    cfg['sc_mcmm_scenario']['default']['objectives'] = {
-        'help' : 'MMCM Objectives (setup, hold, power,...)',
-        'switch' : '-mcmm_scenario_objectives',
-        'switch_args' : '<scenario stage objective>',
         'type' : ['string'],
         'defvalue' : []
     }
