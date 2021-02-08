@@ -72,8 +72,8 @@ def nangate45_lib(chip, root):
     chip.add('sc_target_lib',libname)
 
     # hard coded mcmm settings
-    chip.add('sc_mcmm_libcorners',corner)
-    chip.add('sc_mcmm_pexcorners',corner)
+    chip.add('sc_mcmm_libcorner',corner)
+    chip.add('sc_mcmm_pexcorner',corner)
     chip.add('sc_mcmm_scenario','nominal','libcorner', corner)
     chip.add('sc_mcmm_scenario','nominal','pexcorner', corner)
     chip.add('sc_mcmm_scenario','nominal','opcond', corner+" "+libname)

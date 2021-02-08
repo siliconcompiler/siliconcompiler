@@ -4,13 +4,12 @@
 
 source ./sc_setup.tcl
 
-set scriptdir [file dirname [dict get $sc_cfg sc_tool syn script 0]]
+set jobid         [dict get $sc_cfg sc_tool import jobid]
+set topmodule     [dict get $sc_cfg sc_design]
+set target_lib    [dict get $sc_cfg sc_target_lib]
 
-set jobid         [dict get $sc_cfg sc_tool import jobid 0]
-set topmodule     [dict get $sc_cfg sc_design 0]
-set target_lib    [dict get $sc_cfg sc_target_lib 0]
 #TODO: fix to handle multiple libraries
-set library_file  [dict get $sc_cfg sc_stdcells $target_lib nldm typical 0]
+set library_file  [dict get $sc_cfg sc_stdcells $target_lib nldm typical]
 
 puts $target_lib
 puts $library_file
