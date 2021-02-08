@@ -689,8 +689,7 @@ def schema_design_rtl(cfg):
 def schema_design_physical(cfg):
     ''' Physical design parameters
     '''
-
-    #Technology Mapping
+    
     cfg['sc_target'] = {
         'help' : 'Target platform',
         'switch' : '-target',
@@ -699,17 +698,17 @@ def schema_design_physical(cfg):
         'defvalue' : []
     }
 
-    cfg['sc_target_lib'] = {
-        'help' : 'Target library/device',
-        'switch' : '-target_lib',
+    cfg['sc_target_stackup'] = {
+        'help' : 'Target metal stackup',
+        'switch' : '-target_stackup',
         'switch_args' : '<string>',        
         'type' : ['string'],
         'defvalue' : []
     }
-
-    cfg['sc_target_stackup'] = {
-        'help' : 'Target metal stackup',
-        'switch' : '-target_stackup',
+    
+    cfg['sc_target_lib'] = {
+        'help' : 'Target library/device',
+        'switch' : '-target_lib',
         'switch_args' : '<string>',        
         'type' : ['string'],
         'defvalue' : []
@@ -723,6 +722,16 @@ def schema_design_physical(cfg):
         'defvalue' : []
     }
 
+    # custom pass through variables
+    cfg['sc_custom'] = {
+        'help' : 'Custom EDA pass through variables',
+        'switch' : '-custom',
+        'switch_args' : '<string>',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+
+    # floorplanning
     cfg['sc_def'] = {
         'help' : 'Firm floorplan file (DEF)',
         'switch' : '-def',
@@ -732,37 +741,13 @@ def schema_design_physical(cfg):
         'hash'   : []
      }
 
-    cfg['sc_ndr'] = {
-        'help' : 'Non-default net routing file',
-        'switch' : '-ndr',
+    cfg['sc_floorplan'] = {
+        'help' : 'Floorplaning script/program',
+        'switch' : '-floorplan',
         'switch_args' : '<file>',
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
-    }
-     
-    cfg['sc_minlayer'] = {
-        'help' : 'Minimum routing layer (integer)',
-        'switch' : '-minlayer',
-        'switch_args' : '<int>',
-        'type' : ['int'],
-        'defvalue' : []
-    }
-
-    cfg['sc_maxlayer'] = {
-        'help' : 'Maximum routing layer (integer)',
-        'switch' : '-maxlayer',
-        'switch_args' : '<int>',
-        'type' : ['int'],
-        'defvalue' : []
-    }
-    
-    cfg['sc_maxfanout'] = {
-        'help' : 'Maximum fanout',
-        'switch' : '-maxfanout',
-        'switch_args' : '<int>',
-        'type' : ['int'],
-        'defvalue' : []
     }
 
     #automated floorplanning
@@ -790,6 +775,57 @@ def schema_design_physical(cfg):
         'defvalue' : []
     }
 
+    cfg['sc_diesize'] = {
+        'help' : 'Target die size (x0 y0 x1 y1) (um)',
+        'switch' : '-diesize',
+        'switch_args' : '<float float float float>',
+        'type' : ['float', 'float', 'float', 'float'],
+        'defvalue' : []
+    }
+
+    cfg['sc_coresize'] = {
+        'help' : 'Target core size (x0 y0 x1 y1) (um)',
+        'switch' : '-coresize',
+        'switch_args' : '<float float float float>',
+        'type' : ['float', 'float', 'float', 'float'],
+        'defvalue' : []
+    }
+    
+    cfg['sc_ndr'] = {
+        'help' : 'Non-default net routing file',
+        'switch' : '-ndr',
+        'switch_args' : '<file>',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash'   : []
+    }
+ 
+    #designer options
+    cfg['sc_minlayer'] = {
+        'help' : 'Minimum routing layer (integer)',
+        'switch' : '-minlayer',
+        'switch_args' : '<int>',
+        'type' : ['int'],
+        'defvalue' : []
+    }
+
+    cfg['sc_maxlayer'] = {
+        'help' : 'Maximum routing layer (integer)',
+        'switch' : '-maxlayer',
+        'switch_args' : '<int>',
+        'type' : ['int'],
+        'defvalue' : []
+    }
+    
+    cfg['sc_maxfanout'] = {
+        'help' : 'Maximum fanout',
+        'switch' : '-maxfanout',
+        'switch_args' : '<int>',
+        'type' : ['int'],
+        'defvalue' : []
+    }
+   
+    #power
     cfg['sc_vcd'] = {
         'help' : 'Value Change Dump (VCD) file',
         'switch' : '-vcd',
@@ -806,14 +842,6 @@ def schema_design_physical(cfg):
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
-    }
-
-    cfg['sc_custom'] = {
-        'help' : 'Custom EDA pass through variables',
-        'switch' : '-custom',
-        'switch_args' : '<string>',
-        'type' : ['string'],
-        'defvalue' : []
     }
     
     return cfg
