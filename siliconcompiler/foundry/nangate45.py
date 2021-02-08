@@ -15,7 +15,7 @@ def nangate45_pdk(chip, root):
     version = 'r1p0'
     stackup = '10M'
     vendor = 'openroad'
-    lib = '10t'
+    libarch = '10t'
     pdkdir = '/'.join([root,
                        foundry,
                        process,
@@ -29,12 +29,16 @@ def nangate45_pdk(chip, root):
     chip.add('sc_pdk_stackup', stackup)
     
     # PNR tech file
-    chip.add('sc_pdk_pnrtech',stackup, lib, vendor,
+    chip.add('sc_pdk_pnrtech',stackup, libarch, vendor,
                pdkdir+'/pnr/nangate45.tech.lef')
 
     # DRC
     chip.add('sc_tool','drc','script',pdkdir+'/drc/FreePDK45.lydrc')
 
+    # hard coded target lib
+    chip.add('sc_target_stackup',chip.get('sc_pdk_stackup')[0])
+    
+    
 ####################################################
 # Library Setup
 ####################################################
@@ -43,6 +47,7 @@ def nangate45_lib(chip, root):
     foundry = 'virtual'
     process = 'nangate45'
     libname = 'NangateOpenCellLibrary'
+    libarch = '10t'
     version = 'r1p0'
     corner = 'typical'
     objectives = ['setup','hold']
@@ -70,6 +75,7 @@ def nangate45_lib(chip, root):
     
     # hard coded target lib
     chip.add('sc_target_lib',libname)
+    chip.add('sc_target_libarch',libarch)
 
     # hard coded mcmm settings
     chip.add('sc_mcmm_libcorner',corner)
