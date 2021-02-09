@@ -326,6 +326,15 @@ def schema_libs(cfg, group):
         'type' : ['string'],
         'defvalue' : []
     }
+
+    cfg[''+group]['default']['libheight'] = {
+        'help' : 'Library height (um)',
+        'switch' : '-'+group+'_libheight',
+        'switch_args' : '<lib libheight>',     
+        'type' : ['float'],
+        'defvalue' : []
+    }
+
     
     # Non linear delay models (timing only)
     cfg[''+group]['default']['nldm'] = {}
