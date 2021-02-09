@@ -36,6 +36,9 @@ class Server:
         # Use the config that was passed in.
         self.cfg = cmdlinecfg
 
+        # Set up a dictionary to track running jobs.
+        self.sc_jobs = {}
+
         # Create a minimal web server to process the 'remote_run' API call.
         self.app = web.Application()
         self.app.add_routes([
@@ -55,8 +58,25 @@ class Server:
 
         '''
 
-        # (Content in future commit)
-        pass
+        # Retrieve JSON config into a dictionary.
+        cfg = await request.json()
+        job_hash = request.match_info.get('job_hash', None)
+        if not job_hash:
+          return web.Response(text="Error: no job hash provided.")
+        stage = request.match_info.get('stage', None)
+        if not stage:
+          return web.Response(text="Error: no stage provided.")
+
+        # Issue an 'srun' command depending on the given config JSON.
+        sc_sources = ''
+        for filename in cfg['sc_source']['value']:
+          sc_sources += filename + " "
+        # (Non-blocking)
+        asyncio.create_task(self.remote_sc(job_hash, cfg['sc_design']['value'][0], cfg['sc_source']['value'], stage))
+
+        # Return a response to the client.
+        response_text = "Starting step: %s"%stage
+        return web.Response(text=response_text)
 
     ####################
     async def handle_get_results(self, request):
@@ -82,8 +102,53 @@ class Server:
 
         '''
 
-        # (Content in future commit)
-        pass
+        # Retrieve the job hash to look for.
+        job_hash = request.match_info.get('job_hash', None)
+        if not job_hash:
+            return web.Response(text="Error: no job hash provided.")
+        stage = request.match_info.get('stage', None)
+        if not stage:
+          return web.Response(text="Error: no stage provided.")
+
+        # Determine if the job is running.
+        if "%s_%s"%(job_hash, stage) in self.sc_jobs:
+            return web.Response(text="Job is currently running on the cluster.")
+        else:
+            return web.Response(text="Job has no running steps.")
+
+    ####################
+    async def remote_sc(self, job_hash, top_module, sc_sources, stage):
+        '''
+        Async method to delegate an 'sc' command to a slurm host,
+        and send an email notification when the job completes.
+
+        '''
+
+        # Mark the job hash as being busy.
+        self.sc_jobs["%s_%s"%(job_hash, stage)] = 'busy'
+
+        # Assemble the 'sc' command. The host must be running slurmctld.
+        # TODO: Avoid using a hardcoded $PATH variable for the compute node.
+        export_path  = '--export=PATH=/home/ubuntu/OpenROAD-flow-scripts/tools/build/OpenROAD/src'
+        export_path += ':/home/ubuntu/OpenROAD-flow-scripts/tools/build/TritonRoute'
+        export_path += ':/home/ubuntu/OpenROAD-flow-scripts/tools/build/yosys/bin'
+        export_path += ':/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin'
+        # TODO: Use slurmpy SDK?
+        srun_cmd = 'srun %s sc'%export_path
+        for src in sc_sources:
+            srun_cmd += ' ' + src
+        # TODO: Send JSON config instead of using subset of flags.
+        srun_cmd += ' -target nangate45 -design %s -build /nfs/sc_compute/%s/'%(top_module, job_hash)
+        srun_cmd += ' -start %s -stop %s'%(stage, stage)
+
+        # Create async subprocess shell, and block this thread until it finishes.
+        proc = await asyncio.create_subprocess_shell(srun_cmd)
+        await proc.wait()
+
+        # (Email notifications can be sent here using SES)
+
+        # Mark the job hash as being done.
+        sc_jobs.pop("%s_%s"%(job_hash, stage))
 
     ####################
     def writecfg(self, filename, mode="all"):
