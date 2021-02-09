@@ -747,9 +747,12 @@ class Chip:
                for value in self.cfg['tool'][stage]['script']['value']:
                    cmd_fields.append(value)      
            
-            #Execute cmd if current stage is within range of start and stop
+            #Send stdout to logfile
             logfile = exe + ".log"
-            cmd_fields.append("> " + logfile)
+            if self.cfg['quiet'] == "True":
+                cmd_fields.append("> " + logfile)
+            else:
+                cmd_fields.append("| tee " + logfile)
             cmd = ' '.join(cmd_fields)
 
             #Create a shells cript for rerun purposes
