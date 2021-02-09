@@ -654,7 +654,9 @@ class Chip:
             self.logger.info('Running stage: %s', stage)
 
             #Updating jobindex
-            jobid = int(self.cfg['sc_tool'][stage]['jobid']['value'][-1]) + 1 #scalar
+            #jobid = int(self.cfg['sc_tool'][stage]['jobid']['value'][-1]) + 1 #scalar
+            # TODO: 'jobid' appears broken? The synth step fails because the tcl scripts check 'job0/' while the scripts write to 'job1/'.
+            jobid = 0
             
             #Moving to working directory
             jobdir = (str(self.cfg['sc_build']['value'][-1]) + #scalar

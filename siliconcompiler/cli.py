@@ -233,7 +233,7 @@ def main():
     # Copy files and update config for running on a remote cluster if necessary.
     job_hash = mychip.cfg['sc_design']['value'][0] + '_' + mychip.cfg['sc_target']['value'][0]
     mychip.status['job_hash'] = job_hash
-    if mychip.cfg['sc_remote']['value'][0] != "":
+    if (len(mychip.cfg['sc_remote']['value']) > 0) and (mychip.cfg['sc_remote']['value'][0] != ""):
         # Re-name the given source files to match compute cluster storage.
         new_paths = []
         for filepath in mychip.cfg['sc_source']['value']:
@@ -253,7 +253,7 @@ def main():
     all_stages = mychip.get('sc_stages')
     for stage in all_stages:
         # Run each stage on the remote compute cluster if requested.
-        if mychip.cfg['sc_remote']['value'][0] != "":
+        if (len(mychip.cfg['sc_remote']['value']) > 0) and (mychip.cfg['sc_remote']['value'][0] != ""):
             mychip.remote_run(stage)
         # Run each stage on the local host if no remote server is specified.
         else:

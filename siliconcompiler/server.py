@@ -148,7 +148,7 @@ class Server:
         # (Email notifications can be sent here using SES)
 
         # Mark the job hash as being done.
-        sc_jobs.pop("%s_%s"%(job_hash, stage))
+        self.sc_jobs.pop("%s_%s"%(job_hash, stage))
 
     ####################
     def writecfg(self, filename, mode="all"):
