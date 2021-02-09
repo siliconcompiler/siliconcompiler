@@ -4,11 +4,11 @@
 
 source ./sc_setup.tcl
 
-set topmodule     [dict get $sc_cfg sc_design]
-set target_lib    [dict get $sc_cfg sc_target_lib]
+set topmodule     [dict get $sc_cfg design]
+set target_lib    [dict get $sc_cfg target_lib]
 
 #TODO: fix to handle multiple libraries
-set library_file  [dict get $sc_cfg sc_stdcells $target_lib nldm typical]
+set library_file  [dict get $sc_cfg stdcells $target_lib nldm typical]
 
 #Inputs
 set input_verilog   "inputs/$topmodule.v"

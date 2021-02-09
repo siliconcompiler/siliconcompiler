@@ -8,22 +8,22 @@ set last_stage "floorplan"
 source ./sc_setup.tcl
 
 # Setting script path to local or refdir
-set scriptdir [dict get $sc_cfg sc_tool $stage refdir]
+set scriptdir [dict get $sc_cfg tool $stage refdir]
 
-if {[dict get $sc_cfg sc_tool $stage copy] eq True} {
+if {[dict get $sc_cfg tool $stage copy] eq True} {
     set scriptdir "./"
 }
 
 #Massaging dict into simple local variables
-set stackup      [dict get $sc_cfg sc_target_stackup]
-set target_libs  [dict get $sc_cfg sc_target_lib]
-set libarch      [dict get $sc_cfg sc_target_libarch]
-set techlef      [dict get $sc_cfg sc_pdk_pnrtech $stackup $libarch openroad]
-set pnrlayers    [dict get $sc_cfg sc_pdk_pnrlayer $stackup]
-set jobid        [dict get $sc_cfg sc_tool $last_stage jobid]
+set stackup      [dict get $sc_cfg target_stackup]
+set target_libs  [dict get $sc_cfg target_lib]
+set libarch      [dict get $sc_cfg target_libarch]
+set techlef      [dict get $sc_cfg pdk_pnrtech $stackup $libarch openroad]
+set pnrlayers    [dict get $sc_cfg pdk_pnrlayer $stackup]
+set jobid        [dict get $sc_cfg tool $last_stage jobid]
 
-set topmodule    [dict get $sc_cfg sc_design]
-set coresize     [dict get $sc_cfg sc_coresize]
+set topmodule    [dict get $sc_cfg design]
+set coresize     [dict get $sc_cfg coresize]
 set corner       "typical"
 
 #Inputs
@@ -47,9 +47,9 @@ read_lef  $techlef
 ####################
 
 foreach lib $target_libs {
-    read_liberty [dict get $sc_cfg sc_stdcells $lib nldm $corner]
-    read_lef [dict get $sc_cfg sc_stdcells $lib lef]
-    set site [dict get $sc_cfg sc_stdcells $lib site]
+    read_liberty [dict get $sc_cfg stdcells $lib nldm $corner]
+    read_lef [dict get $sc_cfg stdcells $lib lef]
+    set site [dict get $sc_cfg stdcells $lib site]
 }
 
 

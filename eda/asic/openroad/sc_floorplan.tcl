@@ -7,29 +7,27 @@ set stage      "floorplan"
 source ./sc_setup.tcl
 
 # Setting script path to local or refdir
-set scriptdir [dict get $sc_cfg sc_tool $stage refdir]
-if {[dict get $sc_cfg sc_tool $stage copy] eq True} {
+set scriptdir [dict get $sc_cfg tool $stage refdir]
+if {[dict get $sc_cfg tool $stage copy] eq True} {
     set scriptdir "./"
 }
 
 #Massaging dict into simple local variables
-set stackup      [dict get $sc_cfg sc_target_stackup]
-set target_libs  [dict get $sc_cfg sc_target_lib]
-set libarch      [dict get $sc_cfg sc_target_libarch]
-set techlef      [dict get $sc_cfg sc_pdk_pnrtech $stackup $libarch openroad]
-set pnrlayers    [dict get $sc_cfg sc_pdk_pnrlayer $stackup]
+set stackup      [dict get $sc_cfg target_stackup]
+set target_libs  [dict get $sc_cfg target_lib]
+set libarch      [dict get $sc_cfg target_libarch]
+set topmodule    [dict get $sc_cfg design]
+set diesize      [dict get $sc_cfg diesize]
+set coresize     [dict get $sc_cfg coresize]
+set aspectratio  [dict get $sc_cfg aspectratio]
 
-set topmodule    [dict get $sc_cfg sc_design]
 set corner       "typical"
-set diesize      [dict get $sc_cfg sc_diesize]
-set coresize     [dict get $sc_cfg sc_coresize]
-set density      [dict get $sc_cfg sc_density]
-set coremargin   [dict get $sc_cfg sc_coremargin]
-set aspectratio  [dict get $sc_cfg sc_aspectratio]
+set techlef      [dict get $sc_cfg pdk_pnrtech $stackup $libarch openroad]
+set pnrlayers    [dict get $sc_cfg pdk_pnrlayer $stackup]
 
 #Inputs
 set input_verilog   "inputs/$topmodule.v"
-set input_def       [dict get $sc_cfg sc_def]
+set input_def       [dict get $sc_cfg def]
 
 #Outputs
 set output_verilog  "outputs/$topmodule.v"
@@ -54,9 +52,9 @@ close $outfile
 #Setup Libs
 ####################
 foreach lib $target_libs {
-    read_liberty [dict get $sc_cfg sc_stdcells $lib nldm $corner]
-    read_lef [dict get $sc_cfg sc_stdcells $lib lef]
-    set site [dict get $sc_cfg sc_stdcells $lib site]
+    read_liberty [dict get $sc_cfg stdcells $lib nldm $corner]
+    read_lef [dict get $sc_cfg stdcells $lib lef]
+    set site [dict get $sc_cfg stdcells $lib site]
 }
 
 ####################
@@ -73,9 +71,10 @@ link_design $topmodule
 if {[file exists $input_def]} {
     read_def $input_def
 } else {
-    if {[llength $sc_diesize] != "4"} {
+    if {[llength $diesize] != "4"} {
 	#1. get cell area
 	#2. calculate die area based on density
+	
     }
     #init floorplan
     initialize_floorplan -die_area $diesize \
