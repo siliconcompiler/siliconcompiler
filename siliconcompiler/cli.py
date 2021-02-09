@@ -230,6 +230,20 @@ def main():
     #Creating hashes for all sourced files
     #mychip.hash()
 
+    # Copy files and update config for running on a remote cluster if necessary.
+    job_hash = mychip.cfg['sc_design']['value'][0] + '_' + mychip.cfg['sc_target']['value'][0]
+    mychip.status['job_hash'] = job_hash
+    if mychip.cfg['sc_remote']['value'][0] != "":
+        # Re-name the given source files to match compute cluster storage.
+        new_paths = []
+        for filepath in mychip.cfg['sc_source']['value']:
+            filename = filepath[filepath.rfind('/')+1:]
+            new_paths.append('/nfs/sc_compute/' + job_hash + '/' + filename)
+        # Copy the source files to remote compute storage.
+        mychip.upload_sources_to_cluster()
+        # Rename the source file paths in the Chip's config JSON.
+        mychip.cfg['sc_source']['value'] = new_paths
+
     #Lock chip configuration
     mychip.lock()
     
@@ -238,7 +252,12 @@ def main():
 
     all_stages = mychip.get('sc_stages')
     for stage in all_stages:
-        mychip.run(stage)
+        # Run each stage on the remote compute cluster if requested.
+        if mychip.cfg['sc_remote']['value'][0] != "":
+            mychip.remote_run(stage)
+        # Run each stage on the local host if no remote server is specified.
+        else:
+            mychip.run(stage)
     
 #########################
 if __name__ == "__main__":    
