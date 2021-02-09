@@ -9,10 +9,11 @@ source ./sc_setup.tcl
 
 # Setting script path to local or refdir
 set scriptdir [dict get $sc_cfg tool $stage refdir]
-
 if {[dict get $sc_cfg tool $stage copy] eq True} {
     set scriptdir "./"
 }
+# Sourcing helper procedures
+source $scriptdir/sc_procedures.tcl
 
 #Massaging dict into simple local variables
 set stackup      [dict get $sc_cfg target_stackup]
