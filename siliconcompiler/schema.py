@@ -1093,4 +1093,44 @@ def server_schema():
 
     cfg = {}
 
+    cfg['sc_port'] = {
+        'help': 'Port number to run the server on.',
+        'switch': '-port',
+        'switch_args': '<int>',
+        'type': ['int'],
+        'defvalue': [8080]
+    }
+
+    cfg['sc_nfs_user'] = {
+        'help': 'Username to login to the remote storage host with.',
+        'switch': '-nfs_user',
+        'switch_args': '<string>',
+        'type': ['string'],
+        'defvalue': ['ubuntu']
+    }
+
+    cfg['sc_nfs_host'] = {
+        'help': 'Hostname or IP address where shared compute cluster storage can be accesed.',
+        'switch': '-nfs_host',
+        'switch_args': '<string>',
+        'type': ['string'],
+        'defvalue' : ['<default value excluded from Git>']
+    }
+
+    cfg['sc_nfs_mount'] = {
+        'help': 'Directory where shared NFS storage is mounted on individual slurm nodes.',
+        'switch': '-nfs_mount',
+        'switch_args': '<string>',
+        'type': ['string'],
+        'defvalue' : ['/nfs/sc_compute']
+    }
+
+    cfg['sc_nfs_mount'] = {
+        'help': 'Key file used to send files to shared compute cluster storage. Accepts a file path.',
+        'switch': '-nfs_key',
+        'switch_args': '<file>',
+        'type': ['file'],
+        'defvalue' : ['/nfs/sc_compute']
+    }
+
     return cfg

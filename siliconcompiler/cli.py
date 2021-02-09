@@ -103,11 +103,42 @@ def cmdline():
 def server_cmdline():
     '''
     Command-line parsing for sc-server variables.
+    TODO: It may be a good idea to merge with 'cmdline()' to reduce code duplication.
 
     '''
 
-    # (Content in future commit)
-    return {}
+    def_cfg = server_schema()
+
+    os.environ["COLUMNS"] = '100'
+
+    #Argument Parser
+    parser = argparse.ArgumentParser(prog='sc-server',
+                                     formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=50),
+                                     prefix_chars='-+',
+                                     description="Silicon Compiler Collection Remote Job Server (sc-server)")
+
+    #Recursive argument adder
+    add_arg(def_cfg, parser)
+
+    #Parsing args and converting to dict
+    cmdargs = vars(parser.parse_args())
+
+    # Generate nested cfg dictionary.
+    for key,all_vals in cmdargs.items():
+        switch = key.split('_')
+        param = switch[0] + "_" + switch[1]
+        if param not in def_cfg:
+            def_cfg[param] = {}
+
+        #(Omit checks for stdcell, maro, etc; server args are simple.)
+
+        if 'value' not in def_cfg[param]:
+            def_cfg[param] = {}
+            def_cfg[param]['value'] = all_vals
+        else:
+            def_cfg[param]['value'].extend(all_vals)
+
+    return def_cfg
 
 ###########################
 def add_arg(cfg, parser, keys=None):
