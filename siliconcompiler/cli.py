@@ -129,7 +129,7 @@ def add_arg(cfg, parser, keys=None):
                                         metavar=cfg[k]['switch_args'],
                                         dest=keystr,
                                         action='store_const',
-                                        const='True',
+                                        const=['True'],
                                         help=cfg[k]['help'],
                                         default = argparse.SUPPRESS)
                 else:
@@ -152,8 +152,8 @@ def main():
     #Command line inputs, read once
     cmdlinecfg = cmdline()
     
-    if 'quiet' in  cmdlinecfg.keys():
-        loglevel = "WARNING"
+    if 'debug' in  cmdlinecfg.keys():
+        loglevel = cmdlinecfg['debug']['value'][-1]
     else:
         loglevel = "DEBUG"
         
