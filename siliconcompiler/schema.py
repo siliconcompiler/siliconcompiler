@@ -1069,7 +1069,7 @@ def schema_net(cfg):
         'switch': '-nfs_mount',
         'switch_args' : '<string>',
         'type' : ['string'],
-        'defvalue' : ['<default value excluded from Git>']
+        'defvalue' : ['/nfs/sc_compute']
     }
 
     # NFS config: path to the SSH key file which will be used to access
@@ -1125,12 +1125,12 @@ def server_schema():
         'defvalue' : ['/nfs/sc_compute']
     }
 
-    cfg['sc_nfsmount'] = {
+    cfg['sc_nfskey'] = {
         'help': 'Key file used to send files to shared compute cluster storage. Accepts a file path.',
         'switch': '-nfs_key',
         'switch_args': '<file>',
         'type': ['file'],
-        'defvalue' : ['/nfs/sc_compute']
+        'defvalue' : ['<default value excluded from Git>']
     }
 
     return cfg
