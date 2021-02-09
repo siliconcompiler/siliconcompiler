@@ -749,7 +749,7 @@ class Chip:
            
             #Send stdout to logfile
             logfile = exe + ".log"
-            if self.cfg['quiet'] == "True":
+            if self.cfg['quiet']['value'][-1] == "True":
                 cmd_fields.append("> " + logfile)
             else:
                 cmd_fields.append("| tee " + logfile)
