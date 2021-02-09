@@ -781,7 +781,7 @@ class Chip:
 
         '''
         async with aiohttp.ClientSession() as session:
-            async with session.post("http://%s:8080/remote_run/%s/%s"%(self.cfg['sc_remote']['value'][0], self.status['job_hash'], stage), json=self.cfg) as resp:
+            async with session.post("http://%s:%d/remote_run/%s/%s"%(self.cfg['sc_remote']['value'][0], self.cfg['sc_remoteport']['value'][0], self.status['job_hash'], stage), json=self.cfg) as resp:
                 print(await resp.text())
 
     ###################################
@@ -793,7 +793,7 @@ class Chip:
         '''
 
         async with aiohttp.ClientSession() as session:
-            async with session.get("http://%s:8080/check_progress/%s/%s"%(self.cfg['sc_remote']['value'][0], self.status['job_hash'], stage)) as resp:
+            async with session.get("http://%s:%d/check_progress/%s/%s"%(self.cfg['sc_remote']['value'][0], self.cfg['sc_remoteport']['value'][0], self.status['job_hash'], stage)) as resp:
                 response = await resp.text()
                 return (response != "Job has no running steps.")
 
