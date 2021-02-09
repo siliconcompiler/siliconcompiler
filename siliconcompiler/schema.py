@@ -612,7 +612,7 @@ def schema_options(cfg):
         'help' : 'Vendor specific environment variables to set',
         'switch' : '-env',
         'switch_args' : '<varname value>',
-        'type' : ['string', 'file'],
+        'type' : ['string', 'string'],
         'defvalue' : []
     }
 
