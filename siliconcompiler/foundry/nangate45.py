@@ -72,6 +72,7 @@ def nangate45_lib(chip, root):
     process = 'nangate45'
     libname = 'NangateOpenCellLibrary'
     libarch = '10t'
+    libheight = '1.4'
     version = 'r1p0'
     corner = 'typical'
     objectives = ['setup','hold']
@@ -82,6 +83,15 @@ def nangate45_lib(chip, root):
                        libname,
                        version])
 
+
+    # hard coded target lib
+    chip.add('target_lib',libname)
+    chip.add('target_libarch',libarch)
+
+    #############################################
+    # Library Definition
+    #############################################
+    
     # version
     chip.add('stdcells',libname,'version',version)
     
@@ -96,10 +106,17 @@ def nangate45_lib(chip, root):
 
     # site name
     chip.add('stdcells',libname,'site','FreePDK45_38x28_10R_NP_162NW_34O')
+
+    # lib arch
+    chip.add('stdcells',libname,'libarch',libarch)
+
+    # lib height
+    chip.add('stdcells',libname,'libheight',libheight)
     
-    # hard coded target lib
-    chip.add('target_lib',libname)
-    chip.add('target_libarch',libarch)
+
+    #############################################
+    # MMCM Flow
+    #############################################
 
     # hard coded mcmm settings
     chip.add('mcmm_libcorner',corner)
@@ -108,11 +125,6 @@ def nangate45_lib(chip, root):
     chip.add('mcmm_scenario','nominal','pexcorner', corner)
     chip.add('mcmm_scenario','nominal','opcond', corner+" "+libname)
     chip.add('mcmm_scenario','nominal','objectives', objectives)
-
-    #defaukt floor-planning settings
-    chip.add('density', '30')
-    chip.add('coremargin', '1.0')
-    chip.add('aspectratio', '1')
     
 #########################
 if __name__ == "__main__":    
