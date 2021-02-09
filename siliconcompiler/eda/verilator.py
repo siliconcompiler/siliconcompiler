@@ -9,12 +9,12 @@ def setup_verilator(chip, root):
      
     stage = 'import'
         
-    chip.add('sc_tool', stage, 'np', '4')
-    chip.add('sc_tool', stage, 'format', 'tcl')
-    chip.add('sc_tool', stage, 'copy', 'False')
-    chip.add('sc_tool', stage, 'exe', 'verilator')
-    chip.add('sc_tool', stage, 'vendor', 'verilator')
-    chip.add('sc_tool', stage, 'opt', '--lint-only --debug')
+    chip.add('tool', stage, 'np', '4')
+    chip.add('tool', stage, 'format', 'tcl')
+    chip.add('tool', stage, 'copy', 'False')
+    chip.add('tool', stage, 'exe', 'verilator')
+    chip.add('tool', stage, 'vendor', 'verilator')
+    chip.add('tool', stage, 'opt', '--lint-only --debug')
   
 
 
