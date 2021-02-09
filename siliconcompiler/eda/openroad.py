@@ -16,7 +16,3 @@ def setup_openroad(chip, root):
           chip.add('sc_tool', stage, 'opt', '-no_init -exit')
           chip.add('sc_tool', stage, 'refdir', refdir)
           chip.add('sc_tool', stage, 'script', refdir + '/sc_'+stage+'.tcl')
-
-
-
-           

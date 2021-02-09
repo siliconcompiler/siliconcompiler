@@ -1,27 +1,61 @@
-########################################################
-# SC setup (!!DO NOT EDIT THIS SECTION!!)
-########################################################
+##############################################################
+# SC SETUP
+##############################################################
+
+set stage      "place"
+set last_stage "floorplan"
 
 source ./sc_setup.tcl
 
-set scriptdir [file dirname [lindex $SC_PLACE_SCRIPT 0]]
+# Setting script path to local or refdir
+set scriptdir [dict get $sc_cfg sc_tool $stage refdir]
 
-source -verbose $scriptdir/sc_procedures.tcl
-source -verbose $scriptdir/sc_process.tcl
-source -verbose $scriptdir/sc_library.tcl
+if {[dict get $sc_cfg sc_tool $stage copy] eq True} {
+    set scriptdir "./"
+}
 
-set jobid         [lindex $SC_FLOORPLAN_JOBID 0]
-set topmodule     [lindex $SC_DESIGN 0]
-set mainlib       [lindex $SC_LIB 0]
+#Massaging dict into simple local variables
+set stackup      [dict get $sc_cfg sc_target_stackup]
+set target_libs  [dict get $sc_cfg sc_target_lib]
+set libarch      [dict get $sc_cfg sc_target_libarch]
+set techlef      [dict get $sc_cfg sc_pdk_pnrtech $stackup $libarch openroad]
+set pnrlayers    [dict get $sc_cfg sc_pdk_pnrlayer $stackup]
+set jobid        [dict get $sc_cfg sc_tool $last_stage jobid]
+
+set topmodule    [dict get $sc_cfg sc_design]
+set coresize     [dict get $sc_cfg sc_coresize]
+set corner       "typical"
 
 #Inputs
-set input_verilog    "../../floorplan/job$jobid/$topmodule.v"
-set input_def        "../../floorplan/job$jobid/$topmodule.def"
-set input_sdc        [lindex $SC_CONSTRAINTS 0]
+set input_verilog   "inputs/$topmodule.v"
+set input_def       "inputs/$topmodule.def"
+set input_sdc       "inputs/$topmodule.sdc"
 
-################################################################
-# Read Inputs
-################################################################
+#Outputs
+set output_verilog  "outputs/$topmodule.v"
+set output_def      "outputs/$topmodule.def"
+set output_sdc      "outputs/$topmodule.sdc"
+
+####################
+#Setup Process
+####################
+
+read_lef  $techlef
+
+####################
+#Setup Libs
+####################
+
+foreach lib $target_libs {
+    read_liberty [dict get $sc_cfg sc_stdcells $lib nldm $corner]
+    read_lef [dict get $sc_cfg sc_stdcells $lib lef]
+    set site [dict get $sc_cfg sc_stdcells $lib site]
+}
+
+
+##################
+# Read Design
+##################
 
 #Read data from previous stage
 read_def $input_def
@@ -79,7 +113,7 @@ global_placement -disable_routability_driven -density 0.3
 sc_write_reports $topmodule
 
 ################################################################
-# Write Results
+# Outputs (def,verilog,sdc)
 ################################################################
 
 sc_write_outputs $topmodule

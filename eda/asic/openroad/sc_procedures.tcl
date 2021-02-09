@@ -1,4 +1,12 @@
+proc sc_read_inputs { root } {
 
+    read_def     "$root.def"
+
+    read_verilog "$root.v"
+    
+    read_sdc     "$root.sdc"
+
+}
 
 proc sc_write_outputs { root } {
 

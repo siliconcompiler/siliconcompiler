@@ -10,6 +10,7 @@ import hashlib
 import webbrowser
 import yaml
 import copy
+import shutil
 from collections import defaultdict
 
 from siliconcompiler.schema import schema
@@ -644,6 +645,7 @@ class Chip:
         #Looking up stage numbers
         stages = self.cfg['sc_stages']['value']
         current = stages.index(stage)
+        laststage = stages[current-1]
         start = stages.index(self.cfg['sc_start']['value'][-1]) #scalar
         stop = stages.index(self.cfg['sc_stop']['value'][-1]) #scalar
 
@@ -669,6 +671,9 @@ class Chip:
             os.makedirs(jobdir, exist_ok=True)
             self.logger.info('Entering workig directory %s', jobdir)
             os.chdir(jobdir)
+            # Creating standard directory structure
+            os.makedirs('outputs', exist_ok=True)
+            os.makedirs('reports', exist_ok=True)
 
             #Prepare tool command
             exe = self.cfg['sc_tool'][stage]['exe']['value'][-1] #scalar
@@ -688,9 +693,17 @@ class Chip:
                 for value in self.cfg['sc_source']['value']:
                     cmd_fields.append(value)
             else:
-                #Write out CFG dictionary as TCL
+                #Write out CFG dictionary as TCL/JSON
                 self.writetcl(stage, "sc_setup.tcl")
-
+                self.writecfg("sc_setup.json")
+                #Copy outputs from last stage
+                lastjobid = self.cfg['sc_tool'][laststage]['jobid']['value'][-1]
+                lastdir = '/'.join(['../../',                
+                                    stages[current-1],
+                                    'job'+lastjobid,
+                                    'outputs'])
+                shutil.copytree(lastdir, 'inputs')
+                
             #Copy scripts to local if they exist
             #Changing execution link to local
             if self.cfg['sc_tool'][stage]['copy']['value'] == "True":
@@ -743,7 +756,7 @@ class Chip:
                 else:
                     self.logger.info('Setting design (topmodule) to %s', topmodule)
                     self.cfg['sc_design']['value'].append(topmodule)
-                    cmd = "cp verilator.v " + topmodule + ".v"
+                    cmd = "cp verilator.v " + "outputs/" + topmodule + ".v"
                     subprocess.run(cmd, shell=True)
 
             #Updating jobid when complete

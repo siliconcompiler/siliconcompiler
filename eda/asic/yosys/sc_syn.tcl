@@ -4,21 +4,21 @@
 
 source ./sc_setup.tcl
 
-set jobid         [dict get $sc_cfg sc_tool import jobid]
 set topmodule     [dict get $sc_cfg sc_design]
 set target_lib    [dict get $sc_cfg sc_target_lib]
 
 #TODO: fix to handle multiple libraries
 set library_file  [dict get $sc_cfg sc_stdcells $target_lib nldm typical]
 
-puts $target_lib
-puts $library_file
-
 #Inputs
-set input_verilog    "../../import/job$jobid/$topmodule.v"
+set input_verilog   "inputs/$topmodule.v"
+set input_def       "inputs/$topmodule.def"
+set input_sdc       "inputs/$topmodule.sdc"
 
 #Outputs
-set output_verilog   "$topmodule.v"
+set output_verilog  "outputs/$topmodule.v"
+set output_def      "outputs/$topmodule.def"
+set output_sdc      "outputs/$topmodule.sdc"
 
 ########################################################
 # Technology Mapping

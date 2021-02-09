@@ -15,18 +15,19 @@ def schema():
 
     cfg = schema_libs(cfg, 'stdcells')
 
-    cfg = schema_libs(cfg, 'macro')
+    cfg = schema_libs(cfg, 'macros')
 
     cfg = schema_eda(cfg)
 
-    cfg = schema_design_rtl(cfg)
-    
-    cfg = schema_design_physical(cfg)
-
-    cfg = schema_mcmm(cfg)
-
     cfg = schema_options(cfg)
+    
+    cfg = schema_rtl(cfg)
 
+    cfg = schema_constraints(cfg)
+
+    cfg = schema_floorplan(cfg)
+    
+    cfg = schema_apr(cfg)
 
     return cfg
 
@@ -516,6 +517,7 @@ def schema_eda(cfg):
                       'route',
                       'signoff',
                       'export',
+                      'gdsview',
                       'lec',
                       'pex',
                       'sta',
@@ -590,12 +592,110 @@ def schema_eda(cfg):
 
     return cfg
 
-
 ############################################
-# Design Specific Parameters
+# Run-time Options
 #############################################
 
-def schema_design_rtl(cfg):
+def schema_options(cfg):
+    ''' Run-time options
+    '''
+
+    cfg['sc_env'] = {
+        'help' : 'Vendor specific environment variables to set',
+        'switch' : '-env',
+        'switch_args' : '<varname value>',
+        'type' : ['string', 'file'],
+        'defvalue' : []
+    }
+
+    cfg['sc_cfgfile'] = {
+        'help' : 'Loads configurations from a json file',
+        'switch' : '-cfgfile',
+        'switch_args' : '<file>',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash'   : []
+    }
+
+    cfg['sc_lock'] = {
+        'help' : 'Locks the configuration dict from edit',
+        'switch' : '-lock',
+        'switch_args' : '',
+        'type' : ['bool'],
+        'defvalue' : ['False'],
+    }
+
+    cfg['sc_quiet'] = {
+        'help' : 'Supresses informational printing',
+        'switch' : '-quiet',
+        'switch_args' : '',
+        'type' : ['bool'],
+        'defvalue' : ['False'],
+    }
+    
+    cfg['sc_remote'] = {
+        'help' : 'Remote server (https://acme.com:8080)',
+        'switch' : '-remote',
+        'switch_args' : '<string>',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+
+    cfg['sc_debug'] = {
+        'help' : 'Debug level (INFO/DEBUG/WARNING/ERROR)',
+        'switch' : '-debug',
+        'switch_args' : '<string>',
+        'type' : ['string'],
+        'defvalue' : ['INFO']
+    }
+
+    cfg['sc_build'] = {
+        'help' : 'Name of build directory',
+        'switch' : '-build',
+        'switch_args' : '<string>',
+        'type' : ['string'],
+        'defvalue' : ['build']
+    }
+
+    cfg['sc_start'] = {
+        'help' : 'Compilation starting stage',
+        'type' : 'string',
+        'switch' : '-start',
+        'switch_args' : '<stage>',
+        'defvalue' : ['import']
+    }
+
+    cfg['sc_stop'] = {
+        'help' : 'Compilation ending stage',
+        'switch' : '-stop',
+        'switch_args' : '<stage>',
+        'type' : ['string'],
+        'defvalue' : ['export']
+    }
+    
+    cfg['sc_msg_trigger'] = {
+        'help' : 'Trigger for messaging to <sc_msg_contact>',
+        'switch' : '-msg_trigger',
+        'switch_args' : '<string>',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+
+    cfg['sc_msg_contact'] = {
+        'help' : 'Trigger event contact (phone#/email)',
+        'switch' : '-msg_contact',
+        'switch_args' : '<string>',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+
+    return cfg
+
+############################################
+# RTL Import Setup
+#############################################
+
+def schema_rtl(cfg):
     ''' Design setup
     '''
 
@@ -615,6 +715,14 @@ def schema_design_rtl(cfg):
         'defvalue' : []
     }
 
+    cfg['sc_nickname'] = {
+        'help' : 'Design nickname',
+        'switch' : '-nickname',
+        'switch_args' : '<string>',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+    
     cfg['sc_clk'] = {
         'help' : 'Clock defintion',
         'switch' : '-clk',
@@ -685,7 +793,82 @@ def schema_design_rtl(cfg):
 
     return cfg
 
-def schema_design_physical(cfg):
+
+###########################
+# Floorplan Setup
+###########################
+
+def schema_floorplan(cfg):
+
+
+    # 1. Automatic floorplanning
+    cfg['sc_density'] = {
+        'help' : 'Target core density (percent)',
+        'switch' : '-density',
+        'switch_args' : '<int>',
+        'type' : ['int'],
+        'defvalue' : []
+    }
+
+    cfg['sc_coremargin'] = {
+        'help' : 'Core place and route halo margin (um)',
+        'switch' : '-coremargin',
+        'switch_args' : '<float>',
+        'type' : ['float'],
+        'defvalue' : []
+    }
+
+    cfg['sc_aspectratio'] = {
+        'help' : 'Target aspect ratio',
+        'switch' : '-aspectratio',
+        'switch_args' : '<float>',
+        'type' : ['float'],
+        'defvalue' : []
+    }
+
+    # 2. Spec driven floorplanning    
+    cfg['sc_diesize'] = {
+        'help' : 'Target die size (x0 y0 x1 y1) (um)',
+        'switch' : '-diesize',
+        'switch_args' : '<float float float float>',
+        'type' : ['float', 'float', 'float', 'float'],
+        'defvalue' : []
+    }
+
+    cfg['sc_coresize'] = {
+        'help' : 'Target core size (x0 y0 x1 y1) (um)',
+        'switch' : '-coresize',
+        'switch_args' : '<float float float float>',
+        'type' : ['float', 'float', 'float', 'float'],
+        'defvalue' : []
+    }
+    
+    # 3. Parametrized floorplanning
+    cfg['sc_floorplan'] = {
+        'help' : 'Floorplaning script/program',
+        'switch' : '-floorplan',
+        'switch_args' : '<file>',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash'   : []
+    }
+    
+    # #4. Hard coded DEF
+    cfg['sc_def'] = {
+        'help' : 'Firm floorplan file (DEF)',
+        'switch' : '-def',
+        'switch_args' : '<file>',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash'   : []
+     }
+
+    return cfg
+
+###########################
+# PNR Setup
+###########################
+def schema_apr(cfg):
     ''' Physical design parameters
     '''
     
@@ -730,66 +913,24 @@ def schema_design_physical(cfg):
         'defvalue' : []
     }
 
-    # floorplanning
-    cfg['sc_def'] = {
-        'help' : 'Firm floorplan file (DEF)',
-        'switch' : '-def',
-        'switch_args' : '<file>',
-        'type' : ['file'],
-        'defvalue' : [],
-        'hash'   : []
-     }
-
-    cfg['sc_floorplan'] = {
-        'help' : 'Floorplaning script/program',
-        'switch' : '-floorplan',
-        'switch_args' : '<file>',
-        'type' : ['file'],
-        'defvalue' : [],
-        'hash'   : []
+    #optimization priority
+    cfg['sc_effort'] = {
+        'help' : 'Compilation effort',
+        'switch' : '-effort',
+        'switch_args' : '<string>',
+        'type' : ['string'],
+        'defvalue' : ['high']
     }
 
-    #automated floorplanning
-    cfg['sc_coremargin'] = {
-        'help' : 'Core place and route halo margin (um)',
-        'switch' : '-coremargin',
-        'switch_args' : '<float>',
-        'type' : ['float'],
-        'defvalue' : []
+    cfg['sc_priority'] = {
+        'help' : 'Optimization priority',
+        'switch' : '-priority',
+        'switch_args' : '<string>',
+        'type' : ['string'],
+        'defvalue' : ['timing']
     }
 
-    cfg['sc_aspectratio'] = {
-        'help' : 'Target aspect ratio',
-        'switch' : '-aspectratio',
-        'switch_args' : '<float>',
-        'type' : ['float'],
-        'defvalue' : []
-    }
-
-    cfg['sc_density'] = {
-        'help' : 'Target core density (percent)',
-        'switch' : '-density',
-        'switch_args' : '<int>',
-        'type' : ['int'],
-        'defvalue' : []
-    }
-
-    cfg['sc_diesize'] = {
-        'help' : 'Target die size (x0 y0 x1 y1) (um)',
-        'switch' : '-diesize',
-        'switch_args' : '<float float float float>',
-        'type' : ['float', 'float', 'float', 'float'],
-        'defvalue' : []
-    }
-
-    cfg['sc_coresize'] = {
-        'help' : 'Target core size (x0 y0 x1 y1) (um)',
-        'switch' : '-coresize',
-        'switch_args' : '<float float float float>',
-        'type' : ['float', 'float', 'float', 'float'],
-        'defvalue' : []
-    }
-    
+    #routing options
     cfg['sc_ndr'] = {
         'help' : 'Non-default net routing file',
         'switch' : '-ndr',
@@ -799,7 +940,6 @@ def schema_design_physical(cfg):
         'hash'   : []
     }
  
-    #designer options
     cfg['sc_minlayer'] = {
         'help' : 'Minimum routing layer (integer)',
         'switch' : '-minlayer',
@@ -846,10 +986,10 @@ def schema_design_physical(cfg):
     return cfg
     
 ############################################
-# MMCM Configuration
+# Constraints
 #############################################   
 
-def schema_mcmm(cfg):
+def schema_constraints(cfg):
 
     cfg['sc_mcmm_libcorner'] = {
         'help' : 'MMCM Lib Corner List (p_v_t)',
@@ -913,123 +1053,3 @@ def schema_mcmm(cfg):
 
     return cfg
 
-
-def schema_options(cfg):
-    ''' Run-time options
-    '''
-
-    cfg['sc_env'] = {
-        'help' : 'PDK imposed environment variables to set',
-        'switch' : '-env',
-        'switch_args' : '<varname value>',
-        'type' : ['string', 'file'],
-        'defvalue' : []
-    }
-
-    cfg['sc_cfgfile'] = {
-        'help' : 'Loads configurations from a json file',
-        'switch' : '-cfgfile',
-        'switch_args' : '<file>',
-        'type' : ['file'],
-        'defvalue' : [],
-        'hash'   : []
-    }
-
-    cfg['sc_lock'] = {
-        'help' : 'Locks the configuration dict from edit',
-        'switch' : '-lock',
-        'switch_args' : '',
-        'type' : ['bool'],
-        'defvalue' : ['False'],
-    }
-
-    cfg['sc_quiet'] = {
-        'help' : 'Supresses informational printing',
-        'switch' : '-quiet',
-        'switch_args' : '',
-        'type' : ['bool'],
-        'defvalue' : ['False'],
-    }
-    
-    
-    cfg['sc_remote'] = {
-        'help' : 'Remote server (https://acme.com:8080)',
-        'switch' : '-remote',
-        'switch_args' : '<string>',
-        'type' : ['string'],
-        'defvalue' : []
-    }
-
-    cfg['sc_debug'] = {
-        'help' : 'Debug level (INFO/DEBUG/WARNING/ERROR)',
-        'switch' : '-debug',
-        'switch_args' : '<string>',
-        'type' : ['string'],
-        'defvalue' : ['INFO']
-    }
-
-    cfg['sc_build'] = {
-        'help' : 'Name of build directory',
-        'switch' : '-build',
-        'switch_args' : '<string>',
-        'type' : ['string'],
-        'defvalue' : ['build']
-    }
-
-    cfg['sc_effort'] = {
-        'help' : 'Compilation effort',
-        'switch' : '-effort',
-        'switch_args' : '<string>',
-        'type' : ['string'],
-        'defvalue' : ['high']
-    }
-
-    cfg['sc_priority'] = {
-        'help' : 'Optimization priority',
-        'switch' : '-priority',
-        'switch_args' : '<string>',
-        'type' : ['string'],
-        'defvalue' : ['timing']
-    }
-
-    cfg['sc_start'] = {
-        'help' : 'Compilation starting stage',
-        'type' : 'string',
-        'switch' : '-start',
-        'switch_args' : '<stage>',
-        'defvalue' : ['import']
-    }
-
-    cfg['sc_stop'] = {
-        'help' : 'Compilation ending stage',
-        'switch' : '-stop',
-        'switch_args' : '<stage>',
-        'type' : ['string'],
-        'defvalue' : ['export']
-    }
-    
-    cfg['sc_nickname'] = {
-        'help' : 'Design nickname',
-        'switch' : '-nickname',
-        'switch_args' : '<string>',
-        'type' : ['string'],
-        'defvalue' : []
-    }
-
-    cfg['sc_msg_trigger'] = {
-        'help' : 'Trigger for messaging to <sc_msg_contact>',
-        'switch' : '-msg_trigger',
-        'switch_args' : '<string>',
-        'type' : ['string'],
-        'defvalue' : []
-    }
-
-    cfg['sc_msg_contact'] = {
-        'help' : 'Trigger event contact (phone#/email)',
-        'switch' : '-msg_contact',
-        'switch_args' : '<string>',
-        'type' : ['string'],
-        'defvalue' : []
-    }
-
-    return cfg

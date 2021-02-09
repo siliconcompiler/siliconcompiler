@@ -29,14 +29,17 @@ def nangate45_pdk(chip, root):
     chip.add('sc_pdk_stackup', stackup)
    
     # DRC
-    chip.add('sc_tool','drc','script',pdkdir+'/drc/FreePDK45.lydrc')
+    chip.add('sc_tool','drc','script',pdkdir+'runsets/klayout/nangate45.lydrc/drc/nangate45.lydrc')
+
+    # DISPLAY
+    chip.add('sc_tool','gdsview','script',pdkdir+'setup/klayout/nangate45.lyt')
 
     # hard coded target lib
     chip.add('sc_target_stackup',chip.get('sc_pdk_stackup')[0])
 
     # PNR tech file
     chip.add('sc_pdk_pnrtech',stackup, libarch, vendor,
-               pdkdir+'/pnr/nangate45.tech.lef')
+               pdkdir+'/apr/nangate45.tech.lef')
 
     # Techlef Overrides
     chip.add('sc_pdk_pnrlayer',stackup, 'metal1 X 0.095 0.19')

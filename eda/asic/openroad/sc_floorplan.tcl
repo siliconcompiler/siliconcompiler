@@ -1,14 +1,14 @@
-##############
+##############################################################
 # SC SETUP
-##############
+##############################################################
+
+set stage      "floorplan"
 
 source ./sc_setup.tcl
 
 # Setting script path to local or refdir
-set scriptdir [dict get $sc_cfg sc_tool floorplan refdir]
-
-
-if {[dict get $sc_cfg sc_tool floorplan copy] eq True} {
+set scriptdir [dict get $sc_cfg sc_tool $stage refdir]
+if {[dict get $sc_cfg sc_tool $stage copy] eq True} {
     set scriptdir "./"
 }
 
@@ -18,28 +18,23 @@ set target_libs  [dict get $sc_cfg sc_target_lib]
 set libarch      [dict get $sc_cfg sc_target_libarch]
 set techlef      [dict get $sc_cfg sc_pdk_pnrtech $stackup $libarch openroad]
 set pnrlayers    [dict get $sc_cfg sc_pdk_pnrlayer $stackup]
-set corner       "typical"
 
-set jobid        [dict get $sc_cfg sc_tool import jobid]
 set topmodule    [dict get $sc_cfg sc_design]
-set target_libs  [dict get $sc_cfg sc_target_lib]
-set coresize     [dict get $sc_cfg sc_coresize]
+set corner       "typical"
 set diesize      [dict get $sc_cfg sc_diesize]
+set coresize     [dict get $sc_cfg sc_coresize]
 set density      [dict get $sc_cfg sc_density]
 set coremargin   [dict get $sc_cfg sc_coremargin]
 set aspectratio  [dict get $sc_cfg sc_aspectratio]
 
 #Inputs
-set input_verilog   "../../syn/job$jobid/$topmodule.v"
+set input_verilog   "inputs/$topmodule.v"
 set input_def       [dict get $sc_cfg sc_def]
 
 #Outputs
-set output_def       "$topmodule.def"
-set output_verilog   "$topmodule.v"
-
-########################################################
-# FLOORPLANNING
-########################################################
+set output_verilog  "outputs/$topmodule.v"
+set output_def      "outputs/$topmodule.def"
+set output_sdc      "outputs/$topmodule.sdc"
 
 ####################
 #Setup Process
@@ -70,25 +65,29 @@ foreach lib $target_libs {
 read_verilog $input_verilog
 link_design $topmodule
 
-####################
-#Setup Floorplan
-####################
+
+########################################################
+# FLOORPLANNING
+########################################################
 
 if {[file exists $input_def]} {
     read_def $input_def
 } else {
-    if {[llength $diesize] == 4} {
-	initialize_floorplan -die_area $diesize \
+    if {[llength $sc_diesize] != "4"} {
+	#1. get cell area
+	#2. calculate die area based on density
+    }
+    #init floorplan
+    initialize_floorplan -die_area $diesize \
 	    -core_area $coresize \
 	    -tracks ./sc_tracks.txt \
-	    -site $site
-    } else {
- 	initialize_floorplan -utilization $density  \
-	    -aspect_ratio $aspectratio \
-	    -core_space $coremargin\
-	    -tracks ./sc_tracks.txt \
-	    -site $site
-    }
+	    -site $site     
+    #TODO!!! Put these into schema
+    #randomize I/O placementa
+    io_placer -hor_layer "4" \
+	-ver_layer "3" \
+	-random
+    
 }
 
 remove_buffers
