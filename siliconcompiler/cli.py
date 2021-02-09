@@ -13,6 +13,7 @@ import importlib.resources
 #Shorten siliconcompiler as sc
 import siliconcompiler as sc
 from siliconcompiler.schema import schema
+from siliconcompiler.schema import server_schema
 from siliconcompiler.foundry.nangate45 import nangate45_pdk
 from siliconcompiler.foundry.nangate45 import nangate45_lib
 from siliconcompiler.eda.foss_eda import foss_eda
@@ -97,6 +98,16 @@ def cmdline():
         sys.exit()
         
     return cfg
+
+###########################
+def server_cmdline():
+    '''
+    Command-line parsing for sc-server variables.
+
+    '''
+
+    # (Content in future commit)
+    return {}
 
 ###########################
 def add_arg(cfg, parser, keys=None):

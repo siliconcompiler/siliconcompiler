@@ -1083,3 +1083,14 @@ def schema_net(cfg):
     }
 
     return cfg
+
+###########################
+
+def server_schema():
+    '''Method for defining Server configuration schema
+    All the keys defined in this dictionary are reserved words.
+    '''
+
+    cfg = {}
+
+    return cfg
