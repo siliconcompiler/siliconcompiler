@@ -55,6 +55,7 @@ foreach lib $target_libs {
     read_liberty [dict get $sc_cfg stdcells $lib nldm $corner]
     read_lef [dict get $sc_cfg stdcells $lib lef]
     set site [dict get $sc_cfg stdcells $lib site]
+    set libheight [dict get $sc_cfg stdcells $lib libheight]
 }
 
 ####################
@@ -62,7 +63,6 @@ foreach lib $target_libs {
 ####################
 read_verilog $input_verilog
 link_design $topmodule
-
 
 ########################################################
 # FLOORPLANNING
