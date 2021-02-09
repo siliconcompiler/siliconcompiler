@@ -38,7 +38,7 @@ def schema():
 def schema_fpga(cfg):
     ''' FPGA Setup
     '''
-    cfg['sc_fpga_xml'] = {
+    cfg['fpga_xml'] = {
         'help' : 'FPGA architecture description file (xml)',
         'long_help' : [
             "line one.........................................................",
@@ -62,7 +62,7 @@ def schema_pdk(cfg):
     ''' Process Design Kit Setup
     '''
          
-    cfg['sc_pdk_foundry'] = {
+    cfg['pdk_foundry'] = {
         'help' : 'Foundry name',
         'switch' : '-pdk_foundry',
         'switch_args' : '<string>',
@@ -70,7 +70,7 @@ def schema_pdk(cfg):
         'defvalue' : []
     }
 
-    cfg['sc_pdk_process'] = {
+    cfg['pdk_process'] = {
         'help' : 'Process name',
         'switch' : '-pdk_process',
         'switch_args' : '<string>',
@@ -78,7 +78,7 @@ def schema_pdk(cfg):
         'defvalue' : []
     }
 
-    cfg['sc_pdk_node'] = {
+    cfg['pdk_node'] = {
         'help' : 'Process node (in nm)',
         'switch' : '-pdk_node',
         'switch_args' : '<int>',
@@ -86,7 +86,7 @@ def schema_pdk(cfg):
         'defvalue' : []
     }
 
-    cfg['sc_pdk_version'] = {
+    cfg['pdk_version'] = {
         'help' : 'Process node version',
         'switch' : '-pdk_version',
         'switch_args' : '<string>',
@@ -94,7 +94,7 @@ def schema_pdk(cfg):
         'defvalue' : []
     }
         
-    cfg['sc_pdk_guide'] = {
+    cfg['pdk_guide'] = {
         'help' : 'Process Manual',
         'switch' : '-pdk_guide',
         'switch_args' : '<file>',  
@@ -103,7 +103,7 @@ def schema_pdk(cfg):
         'hash'   : []
     }
 
-    cfg['sc_pdk_drm'] = {
+    cfg['pdk_drm'] = {
         'help' : 'Process Design Rule Manual',
         'switch' : '-pdk_drm',
         'switch_args' : '<file>',
@@ -112,7 +112,7 @@ def schema_pdk(cfg):
         'hash'   : []
     }
 
-    cfg['sc_pdk_stackup'] = {
+    cfg['pdk_stackup'] = {
         'help' : 'Process Metal Stackup',
         'switch' : '-pdk_stackup',
         'switch_args' : '<name>',
@@ -120,10 +120,10 @@ def schema_pdk(cfg):
         'defvalue' : []
     }
 
-    cfg['sc_pdk_devicemodel'] = {}
-    cfg['sc_pdk_devicemodel']['default'] = {}
-    cfg['sc_pdk_devicemodel']['default']['default'] = {}
-    cfg['sc_pdk_devicemodel']['default']['default']['default'] = {
+    cfg['pdk_devicemodel'] = {}
+    cfg['pdk_devicemodel']['default'] = {}
+    cfg['pdk_devicemodel']['default']['default'] = {}
+    cfg['pdk_devicemodel']['default']['default']['default'] = {
         'help' : 'Device model directory',
         'switch' : '-pdk_devicemodel',
         'switch_args' : '<stackup type vendor file>',
@@ -132,10 +132,10 @@ def schema_pdk(cfg):
         'hash'   : []
     }
 
-    cfg['sc_pdk_pexmodel'] = {}
-    cfg['sc_pdk_pexmodel']['default'] = {}
-    cfg['sc_pdk_pexmodel']['default']['default']= {}
-    cfg['sc_pdk_pexmodel']['default']['default']['default'] = {
+    cfg['pdk_pexmodel'] = {}
+    cfg['pdk_pexmodel']['default'] = {}
+    cfg['pdk_pexmodel']['default']['default']= {}
+    cfg['pdk_pexmodel']['default']['default']['default'] = {
         'help' : 'Back end PEX TCAD model',
         'switch' : '-pdk_pexmodel',
         'switch_args' : '<stackup corner vendor file>',
@@ -144,11 +144,11 @@ def schema_pdk(cfg):
         'hash'   : []
     }
 
-    cfg['sc_pdk_layermap'] = {}
-    cfg['sc_pdk_layermap']['default'] = {}
+    cfg['pdk_layermap'] = {}
+    cfg['pdk_layermap']['default'] = {}
 
-    cfg['sc_pdk_layermap']['default']['streamout'] = {}
-    cfg['sc_pdk_layermap']['default']['streamout']['default'] = {
+    cfg['pdk_layermap']['default']['streamout'] = {}
+    cfg['pdk_layermap']['default']['streamout']['default'] = {
         'help' : 'Layout streamout layermap',
         'switch' : '-pdk_layermap_streamout',
         'switch_args' : '<stackup tool file>', 
@@ -157,8 +157,8 @@ def schema_pdk(cfg):
         'hash' : []
     }
 
-    cfg['sc_pdk_layermap']['default']['streamin'] = {}
-    cfg['sc_pdk_layermap']['default']['streamin']['default'] = {
+    cfg['pdk_layermap']['default']['streamin'] = {}
+    cfg['pdk_layermap']['default']['streamin']['default'] = {
         'help' : 'Layout streamin layermap',
         'switch' : '-pdk_layermap_streamin',
         'switch_args' : '<stackup tool file>', 
@@ -167,9 +167,9 @@ def schema_pdk(cfg):
         'hash' : []
     }
     
-    cfg['sc_pdk_display'] = {}
-    cfg['sc_pdk_display']['default'] = {}
-    cfg['sc_pdk_display']['default']['default'] = {
+    cfg['pdk_display'] = {}
+    cfg['pdk_display']['default'] = {}
+    cfg['pdk_display']['default']['default'] = {
         'help' : 'Custom design display configuration',
         'switch' : '-pdk_display',
         'switch_args' : '<stackup vendor file>', 
@@ -178,9 +178,9 @@ def schema_pdk(cfg):
         'hash' : []
     }
 
-    cfg['sc_pdk_clib'] = {}
-    cfg['sc_pdk_clib']['default'] = {}
-    cfg['sc_pdk_clib']['default']['default'] = {
+    cfg['pdk_clib'] = {}
+    cfg['pdk_clib']['default'] = {}
+    cfg['pdk_clib']['default']['default'] = {
         'help' : 'Custom design library',
         'switch' : '-pdk_clib',
         'switch_args' : '<stackup vendor file>', 
@@ -189,9 +189,9 @@ def schema_pdk(cfg):
         'hash' : []
     }
     
-    cfg['sc_pdk_init'] = {}
-    cfg['sc_pdk_init']['default'] = {}
-    cfg['sc_pdk_init']['default']['default'] = {
+    cfg['pdk_init'] = {}
+    cfg['pdk_init']['default'] = {}
+    cfg['pdk_init']['default']['default'] = {
         'help' : 'Custom design init file',
         'switch' : '-pdk_init',
         'switch_args' : '<stackup vendor file>', 
@@ -200,9 +200,9 @@ def schema_pdk(cfg):
         'hash' : []
     }
 
-    cfg['sc_pdk_objmap'] = {}
-    cfg['sc_pdk_objmap']['default'] = {}
-    cfg['sc_pdk_objmap']['default']['default'] = {
+    cfg['pdk_objmap'] = {}
+    cfg['pdk_objmap']['default'] = {}
+    cfg['pdk_objmap']['default']['default'] = {
         'help' : 'GDS object map',
         'switch' : '-pdk_objmap',
         'switch_args' : '<stackup vendor file>', 
@@ -215,10 +215,10 @@ def schema_pdk(cfg):
     # Place and Route
     ###################
     
-    cfg['sc_pdk_pnrdir'] = {}
-    cfg['sc_pdk_pnrdir']['default'] = {}
-    cfg['sc_pdk_pnrdir']['default']['default'] = {}
-    cfg['sc_pdk_pnrdir']['default']['default']['default'] = {
+    cfg['pdk_pnrdir'] = {}
+    cfg['pdk_pnrdir']['default'] = {}
+    cfg['pdk_pnrdir']['default']['default'] = {}
+    cfg['pdk_pnrdir']['default']['default']['default'] = {
         'help' : 'Place and route technology directory',
         'switch_args' : '<stackup lib vendor file>', 
         'switch' : '-pdk_pnrdir',
@@ -227,10 +227,10 @@ def schema_pdk(cfg):
         'hash'   : []
     }
 
-    cfg['sc_pdk_pnrtech'] = {}
-    cfg['sc_pdk_pnrtech']['default'] = {}
-    cfg['sc_pdk_pnrtech']['default']['default'] = {}
-    cfg['sc_pdk_pnrtech']['default']['default']['default'] = {
+    cfg['pdk_pnrtech'] = {}
+    cfg['pdk_pnrtech']['default'] = {}
+    cfg['pdk_pnrtech']['default']['default'] = {}
+    cfg['pdk_pnrtech']['default']['default']['default'] = {
         'help' : 'Place and route tehnology file',
         'switch' : '-pdk_pnrtech',
         'switch_args' : '<stackup lib vendor file>', 
@@ -239,9 +239,9 @@ def schema_pdk(cfg):
         'hash'   : []
     }
 
-    cfg['sc_pdk_pnrmap'] = {}
-    cfg['sc_pdk_pnrmap']['default'] = {}    
-    cfg['sc_pdk_pnrmap']['default']['default'] = {
+    cfg['pdk_pnrmap'] = {}
+    cfg['pdk_pnrmap']['default'] = {}    
+    cfg['pdk_pnrmap']['default']['default'] = {
         'help' : 'Place and route layer gdsout mapping file',
         'switch' : '-pdk_pnrgdsmap',
         'switch_args' : '<stackup vendor file>', 
@@ -250,8 +250,8 @@ def schema_pdk(cfg):
         'hash'   : []
     }
 
-    cfg['sc_pdk_pnrlayer'] = {}
-    cfg['sc_pdk_pnrlayer']['default'] = {
+    cfg['pdk_pnrlayer'] = {}
+    cfg['pdk_pnrlayer']['default'] = {
         'help' : 'Place and route routing layer definitions',
         'switch' : '-pdk_pnrlayer',
         'switch_args' : '<stackup layername X|Y width pitch>', 
@@ -260,7 +260,7 @@ def schema_pdk(cfg):
         'hash'   : []
     }
 
-    cfg['sc_pdk_tapmax'] = {
+    cfg['pdk_tapmax'] = {
         'help' : 'Tap cell max distance rule',
         'switch' : '-pdk_tapmax',
         'switch_args' : '<float>',     
@@ -269,7 +269,7 @@ def schema_pdk(cfg):
         'hash' : []
     }
 
-    cfg['sc_pdk_tapoffset'] = {
+    cfg['pdk_tapoffset'] = {
         'help' : 'Tap cell offset rule',
         'switch' : '-pdk_tapoffset',
         'switch_args' : '<float>',     
@@ -286,12 +286,12 @@ def schema_pdk(cfg):
 
 def schema_libs(cfg, group):
 
-    cfg['sc_'+group] = {}  
+    cfg[''+group] = {}  
 
-    cfg['sc_'+group]['default'] = {}
+    cfg[''+group]['default'] = {}
     
     # Version #
-    cfg['sc_'+group]['default']['version'] = {
+    cfg[''+group]['default']['version'] = {
         'help' : 'Library release version',
         'switch' : '-'+group+'_version',
         'switch_args' : '<lib version>',     
@@ -300,7 +300,7 @@ def schema_libs(cfg, group):
     }
 
     # Userguide
-    cfg['sc_'+group]['default']['userguide'] = {
+    cfg[''+group]['default']['userguide'] = {
         'help' : 'Library userguide',
         'switch' : '-'+group+'_userguide',
         'switch_args' : '<lib file>',     
@@ -310,7 +310,7 @@ def schema_libs(cfg, group):
     }
 
     # Datasheets
-    cfg['sc_'+group]['default']['datasheet'] = {
+    cfg[''+group]['default']['datasheet'] = {
         'help' : 'Library datasheets',
         'switch' : '-'+group+'_datasheet',
         'switch_args' : '<lib path>',  
@@ -319,9 +319,17 @@ def schema_libs(cfg, group):
         'hash'   : []
     }
 
+    cfg[''+group]['default']['libarch'] = {
+        'help' : 'Library architecture',
+        'switch' : '-'+group+'_libarch',
+        'switch_args' : '<lib libarch>',     
+        'type' : ['string'],
+        'defvalue' : []
+    }
+    
     # Non linear delay models (timing only)
-    cfg['sc_'+group]['default']['nldm'] = {}
-    cfg['sc_'+group]['default']['nldm']['default'] = {
+    cfg[''+group]['default']['nldm'] = {}
+    cfg[''+group]['default']['nldm']['default'] = {
         'help' : 'Library non-linear delay timing model',
         'switch' : '-'+group+'_nldm',
         'switch_args' : '<lib corner file>',
@@ -330,8 +338,8 @@ def schema_libs(cfg, group):
         'hash' : []
     }
 
-    cfg['sc_'+group]['default']['ccs'] = {}
-    cfg['sc_'+group]['default']['ccs']['default'] = {
+    cfg[''+group]['default']['ccs'] = {}
+    cfg[''+group]['default']['ccs']['default'] = {
         'help' : 'Library composite current source model',
         'switch' : '-'+group+'_ccs',
         'switch_args' : '<lib corner file>',
@@ -340,7 +348,7 @@ def schema_libs(cfg, group):
         'hash' : []
     }
 
-    cfg['sc_'+group]['default']['lef'] = {
+    cfg[''+group]['default']['lef'] = {
         'help' : 'Library layout exchange file (LEF)',
         'switch' : '-'+group+'_lef',
         'switch_args' : '<lib file>',     
@@ -349,7 +357,7 @@ def schema_libs(cfg, group):
         'hash'   : []
     }
   
-    cfg['sc_'+group]['default']['gds'] = {
+    cfg[''+group]['default']['gds'] = {
         'help' : 'Library GDS file',
         'switch' : '-'+group+'_gds',
         'switch_args' : '<lib file>',        
@@ -358,7 +366,7 @@ def schema_libs(cfg, group):
         'hash'   : []
     } 
 
-    cfg['sc_'+group]['default']['cdl'] = {
+    cfg[''+group]['default']['cdl'] = {
         'help' : 'Library CDL file',
         'switch' : '-'+group+'_cdl',
         'switch_args' : '<lib file>',
@@ -367,7 +375,7 @@ def schema_libs(cfg, group):
         'hash'   : []
     }
 
-    cfg['sc_'+group]['default']['spice'] = {
+    cfg[''+group]['default']['spice'] = {
         'help' : 'Library Spice file',
         'switch' : '-'+group+'_spice',
         'switch_args' : '<lib file>',
@@ -376,7 +384,7 @@ def schema_libs(cfg, group):
         'hash'   : []
     } 
 
-    cfg['sc_'+group]['default']['verilog'] = {
+    cfg[''+group]['default']['verilog'] = {
         'help' : 'Library Verilog file',
         'switch' : '-'+group+'_verilog',
         'switch_args' : '<lib file>',
@@ -385,7 +393,7 @@ def schema_libs(cfg, group):
         'hash'   : []
     }
 
-    cfg['sc_'+group]['default']['atpg'] = {
+    cfg[''+group]['default']['atpg'] = {
         'help' : 'Library ATPG file',
         'switch' : '-'+group+'_atpg',
         'switch_args' : '<lib file>',    
@@ -394,7 +402,7 @@ def schema_libs(cfg, group):
         'hash'   : []
     }
 
-    cfg['sc_'+group]['default']['setup'] = {
+    cfg[''+group]['default']['setup'] = {
         'help' : 'Library TCL setup file',
         'switch' : '-'+group+'_setup',
         'switch_args' : '<lib file>',    
@@ -403,7 +411,7 @@ def schema_libs(cfg, group):
         'hash'   : []
     } 
            
-    cfg['sc_'+group]['default']['site'] = {
+    cfg[''+group]['default']['site'] = {
         'help' : 'Library placement site',
         'switch' : '-'+group+'_site',
         'switch_args' : '<lib site width height>',     
@@ -411,7 +419,7 @@ def schema_libs(cfg, group):
         'defvalue' : []
     }
 
-    cfg['sc_'+group]['default']['pgmetal'] = {
+    cfg[''+group]['default']['pgmetal'] = {
         'help' : 'Library power rail metal layer',
         'switch' : '-'+group+'_pgmetal',
         'switch_args' : '<lib metal-layer>',
@@ -419,7 +427,7 @@ def schema_libs(cfg, group):
         'defvalue' : []
     }
 
-    cfg['sc_'+group]['default']['vt'] = {
+    cfg[''+group]['default']['vt'] = {
         'help' : 'Library Transistor Threshold',
         'switch' : '-'+group+'_vt',
         'switch_args' : '<lib vt-type>',
@@ -428,7 +436,7 @@ def schema_libs(cfg, group):
         'hash'   : []
     } 
 
-    cfg['sc_'+group]['default']['tag'] = {
+    cfg[''+group]['default']['tag'] = {
         'help' : 'Library indentifier tags',
         'switch' : '-'+group+'_tag',
         'switch_args' : '<lib tag>',
@@ -436,7 +444,7 @@ def schema_libs(cfg, group):
         'defvalue' : []
     }
 
-    cfg['sc_'+group]['default']['driver'] = {
+    cfg[''+group]['default']['driver'] = {
         'help' : 'Library default driver cell',
         'switch' : '-'+group+'_driver',
         'switch_args' : '<lib name>',
@@ -445,18 +453,18 @@ def schema_libs(cfg, group):
     }
 
     #Dont use cell lists
-    cfg['sc_'+group]['default']['exclude'] = {}
-    cfg['sc_'+group]['default']['exclude']['default'] = {}
-    cfg['sc_'+group]['default']['exclude']['default']['default'] = {
+    cfg[''+group]['default']['exclude'] = {}
+    cfg[''+group]['default']['exclude']['default'] = {}
+    cfg[''+group]['default']['exclude']['default']['default'] = {
         'help' : 'Library cell exclude lists',
         'switch' : '-'+group+'_exclude',
         'switch_args' : '<lib type stage>',
         'type' : ['string'],
         'defvalue' : []
     }
-    cfg['sc_'+group]['default']['include'] = {}
-    cfg['sc_'+group]['default']['include']['default'] = {}
-    cfg['sc_'+group]['default']['include']['default']['default'] = {
+    cfg[''+group]['default']['include'] = {}
+    cfg[''+group]['default']['include']['default'] = {}
+    cfg[''+group]['default']['include']['default']['default'] = {
         'help' : 'Library cell include lists',
         'switch' : '-'+group+'_include',
         'switch_args' : '<lib type stage>',
@@ -465,9 +473,9 @@ def schema_libs(cfg, group):
     }
 
     #Vendor compiled databases
-    cfg['sc_'+group]['default']['nldmdb'] = {}
-    cfg['sc_'+group]['default']['nldmdb']['default'] = {}
-    cfg['sc_'+group]['default']['nldmdb']['default']['default'] = {
+    cfg[''+group]['default']['nldmdb'] = {}
+    cfg[''+group]['default']['nldmdb']['default'] = {}
+    cfg[''+group]['default']['nldmdb']['default']['default'] = {
         'help' : 'Library NLDM compiled database',
         'switch' : '-'+group+'_nldmdb',
         'switch_args' : '<lib corner vendor file>',
@@ -476,9 +484,9 @@ def schema_libs(cfg, group):
         'hash' : []
     }
 
-    cfg['sc_'+group]['default']['ccsdb'] = {}
-    cfg['sc_'+group]['default']['ccsdb']['default'] = {}
-    cfg['sc_'+group]['default']['ccsdb']['default']['default'] = {
+    cfg[''+group]['default']['ccsdb'] = {}
+    cfg[''+group]['default']['ccsdb']['default'] = {}
+    cfg[''+group]['default']['ccsdb']['default']['default'] = {
         'help' : 'Library CCS compiled databse',
         'switch' : '-'+group+'_ccsdb',
         'switch_args' : '<lib corner vendor file>',
@@ -486,9 +494,9 @@ def schema_libs(cfg, group):
         'defvalue' : [],
         'hash' : []
     }
-    cfg['sc_'+group]['default']['pnrdb'] = {}
-    cfg['sc_'+group]['default']['pnrdb']['default'] = {}
-    cfg['sc_'+group]['default']['pnrdb']['default']['default'] = {
+    cfg[''+group]['default']['pnrdb'] = {}
+    cfg[''+group]['default']['pnrdb']['default'] = {}
+    cfg[''+group]['default']['pnrdb']['default']['default'] = {
         'help' : 'Library layout compiled database',
         'switch' : '-'+group+'_pnrdb',
         'switch_args' : '<lib vendor file>',    
@@ -505,7 +513,7 @@ def schema_libs(cfg, group):
 
 def schema_eda(cfg):
 
-    cfg['sc_stages'] = {
+    cfg['stages'] = {
         'help' : 'List of all compilation stages',
         'switch' : '-stages',
         'type' : ['string'],
@@ -529,66 +537,66 @@ def schema_eda(cfg):
                       'tapeout']
     }
 
-    cfg['sc_tool'] = {}
+    cfg['tool'] = {}
    
     # Defaults and config for all stages
-    for stage in cfg['sc_stages']['defvalue']:        
-        cfg['sc_tool'][stage] = {}
+    for stage in cfg['stages']['defvalue']:        
+        cfg['tool'][stage] = {}
         for key in ('exe', 'opt', 'refdir', 'script', 'copy', 'format', 'jobid', 'np', 'keymap','vendor'):
-            cfg['sc_tool'][stage][key] = {}
-            cfg['sc_tool'][stage][key]['switch'] = '-tool_'+key
+            cfg['tool'][stage][key] = {}
+            cfg['tool'][stage][key]['switch'] = '-tool_'+key
             
         # Help
-        cfg['sc_tool'][stage]['exe']['help'] = 'Stage executable'
-        cfg['sc_tool'][stage]['opt']['help'] = 'Stage executable options'
-        cfg['sc_tool'][stage]['refdir']['help'] = 'Stage reference Flow Directory'
-        cfg['sc_tool'][stage]['script']['help'] = 'Stage entry point script'
-        cfg['sc_tool'][stage]['copy']['help'] = 'Stage copy-to-local option'
-        cfg['sc_tool'][stage]['format']['help'] = 'Stage configuration format'
-        cfg['sc_tool'][stage]['jobid']['help'] = 'Stage job index'
-        cfg['sc_tool'][stage]['np']['help'] = 'Stage thread parallelism'
-        cfg['sc_tool'][stage]['keymap']['help'] = 'Stage keyword translation'
-        cfg['sc_tool'][stage]['vendor']['help'] = 'Stage tool vendor'
+        cfg['tool'][stage]['exe']['help'] = 'Stage executable'
+        cfg['tool'][stage]['opt']['help'] = 'Stage executable options'
+        cfg['tool'][stage]['refdir']['help'] = 'Stage reference Flow Directory'
+        cfg['tool'][stage]['script']['help'] = 'Stage entry point script'
+        cfg['tool'][stage]['copy']['help'] = 'Stage copy-to-local option'
+        cfg['tool'][stage]['format']['help'] = 'Stage configuration format'
+        cfg['tool'][stage]['jobid']['help'] = 'Stage job index'
+        cfg['tool'][stage]['np']['help'] = 'Stage thread parallelism'
+        cfg['tool'][stage]['keymap']['help'] = 'Stage keyword translation'
+        cfg['tool'][stage]['vendor']['help'] = 'Stage tool vendor'
 
         # Switch Args
-        cfg['sc_tool'][stage]['exe']['switch_args'] = '<stage string>'
-        cfg['sc_tool'][stage]['opt']['switch_args'] = '<stage string>'
-        cfg['sc_tool'][stage]['refdir']['switch_args'] = '<stage dir>'
-        cfg['sc_tool'][stage]['script']['switch_args'] = '<stage file>'
-        cfg['sc_tool'][stage]['copy']['switch_args'] = '<stage string>'
-        cfg['sc_tool'][stage]['format']['switch_args'] = '<stage string>'
-        cfg['sc_tool'][stage]['jobid']['switch_args'] = '<stage int>'
-        cfg['sc_tool'][stage]['np']['switch_args'] = '<stage int>'
-        cfg['sc_tool'][stage]['keymap']['switch_args'] = '<stage string string>'
-        cfg['sc_tool'][stage]['vendor']['switch_args'] = '<stage string>'        
+        cfg['tool'][stage]['exe']['switch_args'] = '<stage string>'
+        cfg['tool'][stage]['opt']['switch_args'] = '<stage string>'
+        cfg['tool'][stage]['refdir']['switch_args'] = '<stage dir>'
+        cfg['tool'][stage]['script']['switch_args'] = '<stage file>'
+        cfg['tool'][stage]['copy']['switch_args'] = '<stage string>'
+        cfg['tool'][stage]['format']['switch_args'] = '<stage string>'
+        cfg['tool'][stage]['jobid']['switch_args'] = '<stage int>'
+        cfg['tool'][stage]['np']['switch_args'] = '<stage int>'
+        cfg['tool'][stage]['keymap']['switch_args'] = '<stage string string>'
+        cfg['tool'][stage]['vendor']['switch_args'] = '<stage string>'        
 
         # Types
-        cfg['sc_tool'][stage]['exe']['type'] = ['string']
-        cfg['sc_tool'][stage]['opt']['type'] = ['string']
-        cfg['sc_tool'][stage]['refdir']['type'] = ['file']
-        cfg['sc_tool'][stage]['script']['type'] = ['file']
-        cfg['sc_tool'][stage]['copy']['type'] = ['string']
-        cfg['sc_tool'][stage]['format']['type'] = ['string']
-        cfg['sc_tool'][stage]['jobid']['type'] = ['int']
-        cfg['sc_tool'][stage]['np']['type'] = ['int']
-        cfg['sc_tool'][stage]['keymap']['type'] = ['string', 'string']
-        cfg['sc_tool'][stage]['vendor']['type'] = ['string']
+        cfg['tool'][stage]['exe']['type'] = ['string']
+        cfg['tool'][stage]['opt']['type'] = ['string']
+        cfg['tool'][stage]['refdir']['type'] = ['file']
+        cfg['tool'][stage]['script']['type'] = ['file']
+        cfg['tool'][stage]['copy']['type'] = ['string']
+        cfg['tool'][stage]['format']['type'] = ['string']
+        cfg['tool'][stage]['jobid']['type'] = ['int']
+        cfg['tool'][stage]['np']['type'] = ['int']
+        cfg['tool'][stage]['keymap']['type'] = ['string', 'string']
+        cfg['tool'][stage]['vendor']['type'] = ['string']
 
         # Hash
-        cfg['sc_tool'][stage]['refdir']['hash'] = []
-        cfg['sc_tool'][stage]['script']['hash'] = []
+        cfg['tool'][stage]['refdir']['hash'] = []
+        cfg['tool'][stage]['script']['hash'] = []
 
         # Default value
-        cfg['sc_tool'][stage]['exe']['defvalue'] = []
-        cfg['sc_tool'][stage]['opt']['defvalue'] = []
-        cfg['sc_tool'][stage]['refdir']['defvalue'] = []
-        cfg['sc_tool'][stage]['script']['defvalue'] = []
-        cfg['sc_tool'][stage]['copy']['defvalue'] = []
-        cfg['sc_tool'][stage]['format']['defvalue'] = []
-        cfg['sc_tool'][stage]['np']['defvalue'] = []
-        cfg['sc_tool'][stage]['keymap']['defvalue'] = []
-        cfg['sc_tool'][stage]['vendor']['defvalue'] = []
-        cfg['sc_tool'][stage]['jobid']['defvalue'] = ['0']
+        cfg['tool'][stage]['exe']['defvalue'] = []
+        cfg['tool'][stage]['opt']['defvalue'] = []
+        cfg['tool'][stage]['refdir']['defvalue'] = []
+        cfg['tool'][stage]['script']['defvalue'] = []
+        cfg['tool'][stage]['copy']['defvalue'] = []
+        cfg['tool'][stage]['format']['defvalue'] = []
+        cfg['tool'][stage]['np']['defvalue'] = []
+        cfg['tool'][stage]['keymap']['defvalue'] = []
+        cfg['tool'][stage]['vendor']['defvalue'] = []
+        cfg['tool'][stage]['jobid']['defvalue'] = ['0']
 
     return cfg
 
@@ -600,7 +608,7 @@ def schema_options(cfg):
     ''' Run-time options
     '''
 
-    cfg['sc_env'] = {
+    cfg['env'] = {
         'help' : 'Vendor specific environment variables to set',
         'switch' : '-env',
         'switch_args' : '<varname value>',
@@ -608,7 +616,7 @@ def schema_options(cfg):
         'defvalue' : []
     }
 
-    cfg['sc_cfgfile'] = {
+    cfg['cfgfile'] = {
         'help' : 'Loads configurations from a json file',
         'switch' : '-cfgfile',
         'switch_args' : '<file>',
@@ -617,7 +625,7 @@ def schema_options(cfg):
         'hash'   : []
     }
 
-    cfg['sc_lock'] = {
+    cfg['lock'] = {
         'help' : 'Locks the configuration dict from edit',
         'switch' : '-lock',
         'switch_args' : '',
@@ -625,7 +633,7 @@ def schema_options(cfg):
         'defvalue' : ['False'],
     }
 
-    cfg['sc_quiet'] = {
+    cfg['quiet'] = {
         'help' : 'Supresses informational printing',
         'switch' : '-quiet',
         'switch_args' : '',
@@ -633,7 +641,7 @@ def schema_options(cfg):
         'defvalue' : ['False'],
     }
     
-    cfg['sc_remote'] = {
+    cfg['remote'] = {
         'help' : 'Remote server (https://acme.com:8080)',
         'switch' : '-remote',
         'switch_args' : '<string>',
@@ -641,7 +649,7 @@ def schema_options(cfg):
         'defvalue' : []
     }
 
-    cfg['sc_debug'] = {
+    cfg['debug'] = {
         'help' : 'Debug level (INFO/DEBUG/WARNING/ERROR)',
         'switch' : '-debug',
         'switch_args' : '<string>',
@@ -649,7 +657,7 @@ def schema_options(cfg):
         'defvalue' : ['INFO']
     }
 
-    cfg['sc_build'] = {
+    cfg['build'] = {
         'help' : 'Name of build directory',
         'switch' : '-build',
         'switch_args' : '<string>',
@@ -657,7 +665,7 @@ def schema_options(cfg):
         'defvalue' : ['build']
     }
 
-    cfg['sc_start'] = {
+    cfg['start'] = {
         'help' : 'Compilation starting stage',
         'type' : 'string',
         'switch' : '-start',
@@ -665,7 +673,7 @@ def schema_options(cfg):
         'defvalue' : ['import']
     }
 
-    cfg['sc_stop'] = {
+    cfg['stop'] = {
         'help' : 'Compilation ending stage',
         'switch' : '-stop',
         'switch_args' : '<stage>',
@@ -673,15 +681,15 @@ def schema_options(cfg):
         'defvalue' : ['export']
     }
     
-    cfg['sc_msg_trigger'] = {
-        'help' : 'Trigger for messaging to <sc_msg_contact>',
+    cfg['msg_trigger'] = {
+        'help' : 'Trigger for messaging to <msg_contact>',
         'switch' : '-msg_trigger',
         'switch_args' : '<string>',
         'type' : ['string'],
         'defvalue' : []
     }
 
-    cfg['sc_msg_contact'] = {
+    cfg['msg_contact'] = {
         'help' : 'Trigger event contact (phone#/email)',
         'switch' : '-msg_contact',
         'switch_args' : '<string>',
@@ -699,7 +707,7 @@ def schema_rtl(cfg):
     ''' Design setup
     '''
 
-    cfg['sc_source'] = {
+    cfg['source'] = {
         'help' : 'Source files (.v/.vh/.sv/.vhd)',
         'switch' : 'None',
         'type' : ['file'],
@@ -707,7 +715,7 @@ def schema_rtl(cfg):
         'hash'   : []
     }
         
-    cfg['sc_design'] = {
+    cfg['design'] = {
         'help' : 'Design top module name',
         'switch' : '-design',
         'switch_args' : '<string>',
@@ -715,7 +723,7 @@ def schema_rtl(cfg):
         'defvalue' : []
     }
 
-    cfg['sc_nickname'] = {
+    cfg['nickname'] = {
         'help' : 'Design nickname',
         'switch' : '-nickname',
         'switch_args' : '<string>',
@@ -723,7 +731,7 @@ def schema_rtl(cfg):
         'defvalue' : []
     }
     
-    cfg['sc_clk'] = {
+    cfg['clk'] = {
         'help' : 'Clock defintion',
         'switch' : '-clk',
         'switch_args' : '<name period uncertainty>',
@@ -731,7 +739,7 @@ def schema_rtl(cfg):
         'defvalue' : []
     }
 
-    cfg['sc_supply'] = {
+    cfg['supply'] = {
         'help' : 'Power supply',
         'switch' : '-supply',
         'switch_args' : '<name pin voltage>',
@@ -739,7 +747,7 @@ def schema_rtl(cfg):
         'defvalue' : []
     }
     
-    cfg['sc_define'] = {
+    cfg['define'] = {
         'help' : 'Define variables for Verilog preprocessor',
         'switch' : '-D',
         'switch_args' : '<string>',
@@ -747,7 +755,7 @@ def schema_rtl(cfg):
         'defvalue' : []
     }
     
-    cfg['sc_ydir'] = {
+    cfg['ydir'] = {
         'help' : 'Directory to search for modules',
         'switch' : '-y',
         'switch_args' : '<dir>',
@@ -756,7 +764,7 @@ def schema_rtl(cfg):
         'hash'   : []
     }
 
-    cfg['sc_idir'] = {
+    cfg['idir'] = {
         'help' : 'Directory to search for includes',
         'switch' : '-I',
         'switch_args' : '<dir>',
@@ -765,7 +773,7 @@ def schema_rtl(cfg):
         'hash'   : []
     }
 
-    cfg['sc_vlib'] = {
+    cfg['vlib'] = {
         'help' : 'Library file',
         'switch' : '-v',
         'switch_args' : '<file>',
@@ -774,7 +782,7 @@ def schema_rtl(cfg):
         'hash'   : []
     }
 
-    cfg['sc_libext'] = {
+    cfg['libext'] = {
         'help' : 'Extension for finding modules',
         'switch' : '+libext',
         'switch_args' : '<ext>',
@@ -782,7 +790,7 @@ def schema_rtl(cfg):
         'defvalue' : []
     }
 
-    cfg['sc_readscript'] = {
+    cfg['readscript'] = {
         'help' : 'Source file read script',
         'switch' : '-f',
         'switch_args' : '<file>',
@@ -802,7 +810,7 @@ def schema_floorplan(cfg):
 
 
     # 1. Automatic floorplanning
-    cfg['sc_density'] = {
+    cfg['density'] = {
         'help' : 'Target core density (percent)',
         'switch' : '-density',
         'switch_args' : '<int>',
@@ -810,7 +818,7 @@ def schema_floorplan(cfg):
         'defvalue' : []
     }
 
-    cfg['sc_coremargin'] = {
+    cfg['coremargin'] = {
         'help' : 'Core place and route halo margin (um)',
         'switch' : '-coremargin',
         'switch_args' : '<float>',
@@ -818,7 +826,7 @@ def schema_floorplan(cfg):
         'defvalue' : []
     }
 
-    cfg['sc_aspectratio'] = {
+    cfg['aspectratio'] = {
         'help' : 'Target aspect ratio',
         'switch' : '-aspectratio',
         'switch_args' : '<float>',
@@ -827,7 +835,7 @@ def schema_floorplan(cfg):
     }
 
     # 2. Spec driven floorplanning    
-    cfg['sc_diesize'] = {
+    cfg['diesize'] = {
         'help' : 'Target die size (x0 y0 x1 y1) (um)',
         'switch' : '-diesize',
         'switch_args' : '<float float float float>',
@@ -835,7 +843,7 @@ def schema_floorplan(cfg):
         'defvalue' : []
     }
 
-    cfg['sc_coresize'] = {
+    cfg['coresize'] = {
         'help' : 'Target core size (x0 y0 x1 y1) (um)',
         'switch' : '-coresize',
         'switch_args' : '<float float float float>',
@@ -844,7 +852,7 @@ def schema_floorplan(cfg):
     }
     
     # 3. Parametrized floorplanning
-    cfg['sc_floorplan'] = {
+    cfg['floorplan'] = {
         'help' : 'Floorplaning script/program',
         'switch' : '-floorplan',
         'switch_args' : '<file>',
@@ -854,15 +862,15 @@ def schema_floorplan(cfg):
     }
     
     # #4. Hard coded DEF
-    cfg['sc_def'] = {
+    cfg['def'] = {
         'help' : 'Firm floorplan file (DEF)',
         'switch' : '-def',
         'switch_args' : '<file>',
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
-     }
-
+    }
+    
     return cfg
 
 ###########################
@@ -872,7 +880,7 @@ def schema_apr(cfg):
     ''' Physical design parameters
     '''
     
-    cfg['sc_target'] = {
+    cfg['target'] = {
         'help' : 'Target platform',
         'switch' : '-target',
         'switch_args' : '<string>',        
@@ -880,7 +888,7 @@ def schema_apr(cfg):
         'defvalue' : []
     }
 
-    cfg['sc_target_stackup'] = {
+    cfg['target_stackup'] = {
         'help' : 'Target metal stackup',
         'switch' : '-target_stackup',
         'switch_args' : '<string>',        
@@ -888,7 +896,7 @@ def schema_apr(cfg):
         'defvalue' : []
     }
     
-    cfg['sc_target_lib'] = {
+    cfg['target_lib'] = {
         'help' : 'Target library/device',
         'switch' : '-target_lib',
         'switch_args' : '<string>',        
@@ -896,7 +904,7 @@ def schema_apr(cfg):
         'defvalue' : []
     }
 
-    cfg['sc_target_libarch'] = {
+    cfg['target_libarch'] = {
         'help' : 'Target library architecture',
         'switch' : '-target_libarch',
         'switch_args' : '<string>',        
@@ -905,7 +913,7 @@ def schema_apr(cfg):
     }
 
     # custom pass through variables
-    cfg['sc_custom'] = {
+    cfg['custom'] = {
         'help' : 'Custom EDA pass through variables',
         'switch' : '-custom',
         'switch_args' : '<string>',
@@ -914,7 +922,7 @@ def schema_apr(cfg):
     }
 
     #optimization priority
-    cfg['sc_effort'] = {
+    cfg['effort'] = {
         'help' : 'Compilation effort',
         'switch' : '-effort',
         'switch_args' : '<string>',
@@ -922,7 +930,7 @@ def schema_apr(cfg):
         'defvalue' : ['high']
     }
 
-    cfg['sc_priority'] = {
+    cfg['priority'] = {
         'help' : 'Optimization priority',
         'switch' : '-priority',
         'switch_args' : '<string>',
@@ -931,7 +939,7 @@ def schema_apr(cfg):
     }
 
     #routing options
-    cfg['sc_ndr'] = {
+    cfg['ndr'] = {
         'help' : 'Non-default net routing file',
         'switch' : '-ndr',
         'switch_args' : '<file>',
@@ -940,7 +948,7 @@ def schema_apr(cfg):
         'hash'   : []
     }
  
-    cfg['sc_minlayer'] = {
+    cfg['minlayer'] = {
         'help' : 'Minimum routing layer (integer)',
         'switch' : '-minlayer',
         'switch_args' : '<int>',
@@ -948,7 +956,7 @@ def schema_apr(cfg):
         'defvalue' : []
     }
 
-    cfg['sc_maxlayer'] = {
+    cfg['maxlayer'] = {
         'help' : 'Maximum routing layer (integer)',
         'switch' : '-maxlayer',
         'switch_args' : '<int>',
@@ -956,7 +964,7 @@ def schema_apr(cfg):
         'defvalue' : []
     }
     
-    cfg['sc_maxfanout'] = {
+    cfg['maxfanout'] = {
         'help' : 'Maximum fanout',
         'switch' : '-maxfanout',
         'switch_args' : '<int>',
@@ -965,7 +973,7 @@ def schema_apr(cfg):
     }
    
     #power
-    cfg['sc_vcd'] = {
+    cfg['vcd'] = {
         'help' : 'Value Change Dump (VCD) file',
         'switch' : '-vcd',
         'switch_args' : '<file>',
@@ -974,7 +982,7 @@ def schema_apr(cfg):
         'hash'   : []
     }
 
-    cfg['sc_saif'] = {
+    cfg['saif'] = {
         'help' : 'Switching activity (SAIF) file',
         'switch' : '-saif',
         'switch_args' : '<file>',
@@ -991,7 +999,7 @@ def schema_apr(cfg):
 
 def schema_constraints(cfg):
 
-    cfg['sc_mcmm_libcorner'] = {
+    cfg['mcmm_libcorner'] = {
         'help' : 'MMCM Lib Corner List (p_v_t)',
         'switch' : '-mcmm_libcorner',
         'switch_args' : '<string>',
@@ -999,7 +1007,7 @@ def schema_constraints(cfg):
         'defvalue' : []
     }
 
-    cfg['sc_mcmm_pexcorner'] = {
+    cfg['mcmm_pexcorner'] = {
         'help' : 'MMCM PEX Corner List',
         'switch' : '-mcmm_pexcorner',
         'switch_args' : '<string>',
@@ -1007,10 +1015,10 @@ def schema_constraints(cfg):
         'defvalue' : []
     }
 
-    cfg['sc_mcmm_scenario'] = {}
-    cfg['sc_mcmm_scenario']['default'] = {}
+    cfg['mcmm_scenario'] = {}
+    cfg['mcmm_scenario']['default'] = {}
     
-    cfg['sc_mcmm_scenario']['default']['libcorner'] = {
+    cfg['mcmm_scenario']['default']['libcorner'] = {
         'help' : 'MMCM scenario libcorner',
         'switch' : '-mcmm_scenario_libcorner',
         'switch_args' : '<scenario libcorner>',
@@ -1018,7 +1026,7 @@ def schema_constraints(cfg):
         'defvalue' : []
     }
 
-    cfg['sc_mcmm_scenario']['default']['pexcorner'] = {
+    cfg['mcmm_scenario']['default']['pexcorner'] = {
         'help' : 'MMCM scenario pexcorner',
         'switch' : '-mcmm_scenario_pexcorner',
         'switch_args' : '<scenario pexcorner>',
@@ -1026,7 +1034,7 @@ def schema_constraints(cfg):
         'defvalue' : []
     }
       
-    cfg['sc_mcmm_scenario']['default']['opcond'] = {
+    cfg['mcmm_scenario']['default']['opcond'] = {
         'help' : 'MMCM scenario operating condition and library',
         'switch' : '-mcmm_scenario_opcond',
         'switch_args' : '<scenario (opcond library)>',
@@ -1034,7 +1042,7 @@ def schema_constraints(cfg):
         'defvalue' : []
     }
         
-    cfg['sc_mcmm_scenario']['default']['constraints'] = {
+    cfg['mcmm_scenario']['default']['constraints'] = {
         'help' : 'MMCM scenario constraints',
         'switch' : '-mcmm_scenario_constraints',
         'switch_args' : '<scenario stage file>',
@@ -1043,7 +1051,7 @@ def schema_constraints(cfg):
         'defvalue' : []
     }
 
-    cfg['sc_mcmm_scenario']['default']['objectives'] = {
+    cfg['mcmm_scenario']['default']['objectives'] = {
         'help' : 'MMCM Objectives (setup, hold, power,...)',
         'switch' : '-mcmm_scenario_objectives',
         'switch_args' : '<scenario stage objective>',
