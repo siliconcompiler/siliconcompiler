@@ -39,9 +39,9 @@ def cmdline():
                                      description="Silicon Compiler Collection (SC)")
 
     # Required positional source file argument
-    parser.add_argument('sc_source',
+    parser.add_argument('source',
                         nargs='+',
-                        help=def_cfg['sc_source']['help'])
+                        help=def_cfg['source']['help'])
 
     #Recursive argument adder
     add_arg(def_cfg, parser)
@@ -62,29 +62,32 @@ def cmdline():
     
     for key,all_vals in cmdargs.items():
        
-        switch = key.split('_')       
-        param = switch[0] + "_" + switch[1]
+        switch = key.split('_')
+        param = switch[0]
+        if len(switch) > 1 :
+            param = param + "_" + switch[1]            
+
         if param not in cfg:
             cfg[param] = {}
 
         #Iterate over list since these are dynamic
-        if switch[1] in ('stdcell', 'macro', 'tool'):
+        if switch[0] in ('stdcell', 'macro', 'tool'):
             for val in all_vals:
                 if val[0] not in cfg[param]:
                         cfg[param][val[0]]={}
-                if switch[2] not in cfg[param][val[0]].keys():
-                        cfg[param][val[0]][switch[2]] = {}
-                if switch[2] in ('timing', 'power', 'cells'):
-                    if val[1] not in cfg[param][val[0]][switch[2]].keys():
-                        cfg[param][val[0]][switch[2]][val[1]]={}
-                        cfg[param][val[0]][switch[2]][val[1]]['value'] = val[2]
+                if switch[1] not in cfg[param][val[0]].keys():
+                        cfg[param][val[0]][switch[1]] = {}
+                if switch[1] in ('timing', 'power', 'cells'):
+                    if val[1] not in cfg[param][val[0]][switch[1]].keys():
+                        cfg[param][val[0]][switch[1]][val[1]]={}
+                        cfg[param][val[0]][switch[1]][val[1]]['value'] = val[2]
                     else:
-                        cfg[param][val[0]][switch[2]][val[1]]['value'].extend(val[2])
+                        cfg[param][val[0]][switch[1]][val[1]]['value'].extend(val[2])
                 else:
-                    if 'value' not in cfg[param][val[0]][switch[2]].keys():
-                        cfg[param][val[0]][switch[2]]['value'] = val[1]
+                    if 'value' not in cfg[param][val[0]][switch[1]].keys():
+                        cfg[param][val[0]][switch[1]]['value'] = val[1]
                     else:
-                        cfg[param][val[0]][switch[2]]['value'].extend(val[1])
+                        cfg[param][val[0]][switch[1]]['value'].extend(val[1])
         else:
             if 'value' not in cfg:
                  cfg[param] = {}
@@ -92,12 +95,6 @@ def cmdline():
 
             else:
                 cfg[param]['value'].extend(all_vals)
-
-
-    # Checking for incomplete command lines
-    if (not 'sc_target' in cfg.keys()) & (not 'sc_cfgfile' in cfg.keys()):
-        print("ERROR: Either sc_target or sc_cfgfile must be provided")
-        sys.exit()
         
     return cfg
 
@@ -110,11 +107,11 @@ def add_arg(cfg, parser, keys=None):
     for k,v in sorted(cfg.items()):
         #print(k,v)
         #No command line switches for these odd balls
-        if k in ('sc_source', 'sc_stages'):
+        if k in ('source', 'stages'):
             pass
         #Optimizing command line switches for these
-        elif k in ('sc_tool'):
-            for k2 in cfg['sc_tool']['syn'].keys():
+        elif k in ('tool'):
+            for k2 in cfg['tool']['syn'].keys():
                 parser.add_argument(cfg[k]['syn'][k2]['switch'],
                                     dest=k+"_"+k2,
                                     metavar=cfg[k]['syn'][k2]['switch_args'],
@@ -148,13 +145,14 @@ def add_arg(cfg, parser, keys=None):
 
 ###########################
 def main():
+
     scriptdir = os.path.dirname(os.path.abspath(__file__))
     root = re.sub('siliconcompiler/siliconcompiler','siliconcompiler', scriptdir)
     
     #Command line inputs, read once
     cmdlinecfg = cmdline()
-
-    if 'sc_quiet' in  cmdlinecfg.keys():
+    
+    if 'quiet' in  cmdlinecfg.keys():
         loglevel = "WARNING"
     else:
         loglevel = "DEBUG"
@@ -166,8 +164,8 @@ def main():
     mychip.readenv()
 
     # Loading presetvalues from the command line
-    if 'sc_target' in  cmdlinecfg.keys():
-        target = cmdlinecfg['sc_target']['value'][-1]
+    if 'target' in  cmdlinecfg.keys():
+        target = cmdlinecfg['target']['value'][-1]
         if target in ('nangate45', 'asap7'):
             setup_verilator(mychip, root+'/eda/asic')
             setup_yosys(mychip, root+'/eda/asic')
@@ -181,8 +179,8 @@ def main():
                 asap7_lib(mychip, root+'/foundry/')
     
     # Reading in config files specified at command line
-    if 'sc_cfgfile' in  cmdlinecfg.keys():        
-        for cfgfile in cmdlinecfg['sc_cfgfile']['value']:
+    if 'cfgfile' in  cmdlinecfg.keys():        
+        for cfgfile in cmdlinecfg['cfgfile']['value']:
             chip.readcfg(cfgfile)
         
     # Override with command line arguments
@@ -190,6 +188,9 @@ def main():
         
     #Resolve as absolute paths (should be a switch)
     mychip.abspath()
+
+    #Checks settings and fills in missing values
+    #mychip.check()
 
     #Creating hashes for all sourced files
     #mychip.hash()
@@ -200,7 +201,7 @@ def main():
     #Printing out run-config
     mychip.writecfg("sc_setup.json")
 
-    all_stages = mychip.get('sc_stages')
+    all_stages = mychip.get('stages')
     for stage in all_stages:
         mychip.run(stage)
     

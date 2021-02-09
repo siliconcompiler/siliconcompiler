@@ -11,7 +11,8 @@ import webbrowser
 import yaml
 import copy
 import shutil
-from collections import defaultdict
+
+#from collections import defaultdict
 
 from siliconcompiler.schema import schema
 
@@ -58,7 +59,7 @@ class Chip:
         
         # Instance starts with all default stages in idle
         self.status = {}
-        for stage in self.cfg['sc_stages']['defvalue']:
+        for stage in self.cfg['stages']['defvalue']:
             self.status[stage] = ["idle"]
 
     ###################################
@@ -87,7 +88,7 @@ class Chip:
             list: List of Chip configuration values
 
         '''
-        self.logger.info('Retrieving config dictionary value: %s', args)
+        self.logger.info('Retrieving config dictionary keys: %s', args)
 
         return list(self.search(self.cfg, *args, mode='getkeys'))
 
@@ -220,7 +221,7 @@ class Chip:
         keymap = {}
         
         #Create a dynamic keymap from string pairs
-        string_list = self.cfg['sc_tool'][stage]['keymap']['value']
+        string_list = self.cfg['tool'][stage]['keymap']['value']
         for string in string_list:
             k,v = string.split()
             keymap[k]=v
@@ -320,14 +321,44 @@ class Chip:
             : Status (pending, running, done, or error)
 
         '''
-        
-        #1. All values of configuration
-        #2. If lengths match, check each item using foor loop
-        #legal values are (file|string), int, float
-        #if cfg['type'] == "int":
-        error = 1
-        return error
 
+        error = 1
+        
+        design = self.get('design')
+        target_libs = self.get('target_libs')
+        stackup = self.get('stackup')
+        libarch = self.get('target_libarch')
+        
+
+        
+        def_file = self.get('def')
+        diesize = self.get('diesize')
+        coresize = self.get('diesize')
+        aspectratio = self.get('aspectratio')
+        
+       
+        site = self.get('site')
+
+        #1. Check for missing combinations
+        #!(def | floorplan | (diesze & coresize)
+
+        
+        #1. Check for missing combinations
+        #!(def | floorplan | (diesze & coresize)
+        
+        # notechlef
+        # no site
+        # no targetlib        
+        # no libarch
+        # no stackup
+
+        #if no errors
+        
+        #Exit on error
+        error = 0
+        if error:
+            sys.exit()
+        
     ###################################
     def getstatus(self, stage, jobid):
         '''Gets status of a job for a specific compilaton stage
@@ -400,7 +431,7 @@ class Chip:
         else:
             self.logger.error('Trying to change configuration while locked')
 
-        if self.cfg['sc_lock']['value'] == "True":
+        if self.cfg['lock']['value'] == "True":
             self.cfg_locked = True
 
 
@@ -643,13 +674,13 @@ class Chip:
         cwd = os.getcwd()
 
         #Looking up stage numbers
-        stages = self.cfg['sc_stages']['value']
+        stages = self.cfg['stages']['value']
         current = stages.index(stage)
         laststage = stages[current-1]
-        start = stages.index(self.cfg['sc_start']['value'][-1]) #scalar
-        stop = stages.index(self.cfg['sc_stop']['value'][-1]) #scalar
+        start = stages.index(self.cfg['start']['value'][-1]) #scalar
+        stop = stages.index(self.cfg['stop']['value'][-1]) #scalar
 
-        if stage not in self.cfg['sc_stages']['value']:
+        if stage not in self.cfg['stages']['value']:
             self.logger.error('Illegal stage name %s', stage)
         elif (current < start) | (current > stop):
             self.logger.info('Skipping stage: %s', stage)
@@ -657,10 +688,10 @@ class Chip:
             self.logger.info('Running stage: %s', stage)
 
             #Updating jobindex
-            jobid = int(self.cfg['sc_tool'][stage]['jobid']['value'][-1]) + 1 #scalar
+            jobid = int(self.cfg['tool'][stage]['jobid']['value'][-1]) + 1 #scalar
             
             #Moving to working directory
-            jobdir = (str(self.cfg['sc_build']['value'][-1]) + #scalar
+            jobdir = (str(self.cfg['build']['value'][-1]) + #scalar
                       "/" +
                       str(stage) +
                       "/job" +
@@ -676,28 +707,28 @@ class Chip:
             os.makedirs('reports', exist_ok=True)
 
             #Prepare tool command
-            exe = self.cfg['sc_tool'][stage]['exe']['value'][-1] #scalar
+            exe = self.cfg['tool'][stage]['exe']['value'][-1] #scalar
             cmd_fields = [exe]
-            for opt in self.cfg['sc_tool'][stage]['opt']['value']:
+            for opt in self.cfg['tool'][stage]['opt']['value']:
                 cmd_fields.append(opt)
 
             if exe == "verilator":
-                for value in self.cfg['sc_ydir']['value']:
+                for value in self.cfg['ydir']['value']:
                     cmd_fields.append('-y ' + value)
-                for value in self.cfg['sc_vlib']['value']:
+                for value in self.cfg['vlib']['value']:
                     cmd_fields.append('-v ' + value)
-                for value in self.cfg['sc_idir']['value']:
+                for value in self.cfg['idir']['value']:
                     cmd_fields.append('-I ' + value)
-                for value in self.cfg['sc_define']['value']:
+                for value in self.cfg['define']['value']:
                     cmd_fields.append('-D ' + value)
-                for value in self.cfg['sc_source']['value']:
+                for value in self.cfg['source']['value']:
                     cmd_fields.append(value)
             else:
                 #Write out CFG dictionary as TCL/JSON
                 self.writetcl(stage, "sc_setup.tcl")
                 self.writecfg("sc_setup.json")
                 #Copy outputs from last stage
-                lastjobid = self.cfg['sc_tool'][laststage]['jobid']['value'][-1]
+                lastjobid = self.cfg['tool'][laststage]['jobid']['value'][-1]
                 lastdir = '/'.join(['../../',                
                                     stages[current-1],
                                     'job'+lastjobid,
@@ -706,14 +737,14 @@ class Chip:
                 
             #Copy scripts to local if they exist
             #Changing execution link to local
-            if self.cfg['sc_tool'][stage]['copy']['value'] == "True":
-                shutil.copytree(self.cfg['sc_tool'][stage]['refdir']['value'],
+            if self.cfg['tool'][stage]['copy']['value'] == "True":
+                shutil.copytree(self.cfg['tool'][stage]['refdir']['value'],
                                 jobdir)
-                for value in self.cfg['sc_tool'][stage]['script']['value']:
+                for value in self.cfg['tool'][stage]['script']['value']:
                     basename = os.path.basename(value)
                     cmd_fields.append(jobdir+basename)
             else:
-               for value in self.cfg['sc_tool'][stage]['script']['value']:
+               for value in self.cfg['tool'][stage]['script']['value']:
                    cmd_fields.append(value)      
            
             #Execute cmd if current stage is within range of start and stop
@@ -750,16 +781,16 @@ class Chip:
                             modules = modules + 1
                             topmodule = modmatch.group(1)
                 # Only setting sc_design when appropriate
-                if (modules > 1) & (self.cfg['sc_design']['value'] == ""):
+                if (modules > 1) & (self.cfg['design']['value'] == ""):
                     self.logger.error('Multiple modules found during import, but sc_design was not set')
                     sys.exit()
                 else:
                     self.logger.info('Setting design (topmodule) to %s', topmodule)
-                    self.cfg['sc_design']['value'].append(topmodule)
+                    self.cfg['design']['value'].append(topmodule)
                     cmd = "cp verilator.v " + "outputs/" + topmodule + ".v"
                     subprocess.run(cmd, shell=True)
 
             #Updating jobid when complete
-            self.cfg['sc_tool'][stage]['jobid']['value'] = [str(jobid)]
+            self.cfg['tool'][stage]['jobid']['value'] = [str(jobid)]
             #Return to CWD
             os.chdir(cwd)
