@@ -16,6 +16,6 @@ setup(
     version="0.0.0",
     packages=["siliconcompiler"],
     python_requires=">=3.6",
-    entry_points={"console_scripts": ["sc=siliconcompiler.__main__:main"]},
+    entry_points={"console_scripts": ["sc=siliconcompiler.__main__:main", "sc-server=siliconcompiler.server:main"]},
     
 )
