@@ -273,7 +273,7 @@ class Chip:
             newkeys =  keys.copy()
             newkeys.append(k)
             if 'value' in cfg[k]:
-                valstr = ' '.join(cfg[k]['value'])
+                valstr = ' '.join(str(val) for val in cfg[k]['value'])
                 keystr = ' '.join(newkeys)
                 if(mode=="tcl"):
                     outlst = [prefix,keystr,'[list ', valstr,']']
