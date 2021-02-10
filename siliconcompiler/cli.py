@@ -126,7 +126,10 @@ def server_cmdline():
     # Generate nested cfg dictionary.
     for key,all_vals in cmdargs.items():
         switch = key.split('_')
-        param = switch[0] + "_" + switch[1]
+        param = switch[0]
+        if len(switch) > 1 :
+            param = param + "_" + switch[1]
+
         if param not in def_cfg:
             def_cfg[param] = {}
 
@@ -238,18 +241,18 @@ def main():
     #mychip.hash()
 
     # Copy files and update config for running on a remote cluster if necessary.
-    job_hash = mychip.cfg['sc_design']['value'][0] + '_' + mychip.cfg['sc_target']['value'][0]
+    job_hash = mychip.cfg['design']['value'][0] + '_' + mychip.cfg['target']['value'][0]
     mychip.status['job_hash'] = job_hash
-    if (len(mychip.cfg['sc_remote']['value']) > 0) and (mychip.cfg['sc_remote']['value'][0] != ""):
+    if (len(mychip.cfg['remote']['value']) > 0) and (mychip.cfg['remote']['value'][0] != ""):
         # Re-name the given source files to match compute cluster storage.
         new_paths = []
-        for filepath in mychip.cfg['sc_source']['value']:
+        for filepath in mychip.cfg['source']['value']:
             filename = filepath[filepath.rfind('/')+1:]
-            new_paths.append(mychip.cfg['sc_nfsmount']['value'][0] + job_hash + '/' + filename)
+            new_paths.append(mychip.cfg['nfsmount']['value'][0] + '/' + job_hash + '/' + filename)
         # Copy the source files to remote compute storage.
         mychip.upload_sources_to_cluster()
         # Rename the source file paths in the Chip's config JSON.
-        mychip.cfg['sc_source']['value'] = new_paths
+        mychip.cfg['source']['value'] = new_paths
 
     #Lock chip configuration
     mychip.lock()
@@ -260,7 +263,7 @@ def main():
     all_stages = mychip.get('stages')
     for stage in all_stages:
         # Run each stage on the remote compute cluster if requested.
-        if (len(mychip.cfg['sc_remote']['value']) > 0) and (mychip.cfg['sc_remote']['value'][0] != ""):
+        if (len(mychip.cfg['remote']['value']) > 0) and (mychip.cfg['remote']['value'][0] != ""):
             mychip.remote_run(stage)
         # Run each stage on the local host if no remote server is specified.
         else:

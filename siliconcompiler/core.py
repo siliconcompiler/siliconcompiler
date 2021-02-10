@@ -1,5 +1,7 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
+import aiohttp
+import asyncio
 import subprocess
 import os
 import sys
@@ -7,6 +9,7 @@ import re
 import json
 import logging as log
 import hashlib
+import time
 import webbrowser
 import yaml
 import copy
@@ -688,7 +691,9 @@ class Chip:
             self.logger.info('Running stage: %s', stage)
 
             #Updating jobindex
-            jobid = int(self.cfg['tool'][stage]['jobid']['value'][-1]) + 1 #scalar
+            #jobid = int(self.cfg['tool'][stage]['jobid']['value'][-1]) + 1 #scalar
+            #TODO: flow won't work without this patch.
+            jobid = 0
             
             #Moving to working directory
             jobdir = (str(self.cfg['build']['value'][-1]) + #scalar
@@ -827,7 +832,7 @@ class Chip:
 
         '''
         async with aiohttp.ClientSession() as session:
-            async with session.post("http://%s:%d/remote_run/%s/%s"%(self.cfg['sc_remote']['value'][0], self.cfg['sc_remoteport']['value'][0], self.status['job_hash'], stage), json=self.cfg) as resp:
+            async with session.post("http://%s:%s/remote_run/%s/%s"%(self.cfg['remote']['value'][0], self.cfg['remoteport']['value'][0], self.status['job_hash'], stage), json=self.cfg) as resp:
                 print(await resp.text())
 
     ###################################
@@ -839,7 +844,7 @@ class Chip:
         '''
 
         async with aiohttp.ClientSession() as session:
-            async with session.get("http://%s:%d/check_progress/%s/%s"%(self.cfg['sc_remote']['value'][0], self.cfg['sc_remoteport']['value'][0], self.status['job_hash'], stage)) as resp:
+            async with session.get("http://%s:%s/check_progress/%s/%s"%(self.cfg['remote']['value'][0], self.cfg['remoteport']['value'][0], self.status['job_hash'], stage)) as resp:
                 response = await resp.text()
                 return (response != "Job has no running steps.")
 
@@ -854,21 +859,21 @@ class Chip:
         # Ensure that the destination directory exists.
         subprocess.run(['ssh',
                         '-i',
-                        self.cfg['sc_nfskey']['value'][0],
-                        '%s@%s'%(self.cfg['sc_nfsuser']['value'][0], self.cfg['sc_nfshost']['value'][0]),
+                        self.cfg['nfskey']['value'][0],
+                        '%s@%s'%(self.cfg['nfsuser']['value'][0], self.cfg['nfshost']['value'][0]),
                         'mkdir',
-                        '%s/%s'%(self.cfg['sc_nfsmount']['value'][0], self.status['job_hash'])])
+                        '%s/%s'%(self.cfg['nfsmount']['value'][0], self.status['job_hash'])])
 
         # Copy Verilog sources using scp.
-        for src in self.cfg['sc_source']['value']:
+        for src in self.cfg['source']['value']:
             subprocess.run(['scp',
                             '-i',
-                            self.cfg['sc_nfskey']['value'][0],
+                            self.cfg['nfskey']['value'][0],
                             src,
                             '%s@%s:%s/%s/%s'%(
-                                self.cfg['sc_nfsuser']['value'][0],
-                                self.cfg['sc_nfshost']['value'][0],
-                                self.cfg['sc_nfsmount']['value'][0],
+                                self.cfg['nfsuser']['value'][0],
+                                self.cfg['nfshost']['value'][0],
+                                self.cfg['nfsmount']['value'][0],
                                 self.status['job_hash'],
                                 src[src.rfind('/')+1:]
                             )])

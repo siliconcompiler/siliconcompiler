@@ -67,12 +67,17 @@ class Server:
         if not stage:
           return web.Response(text="Error: no stage provided.")
 
+        # Write JSON config to shared compute storage.
+        build_dir = '%s/%s'%(cfg['nfsmount']['value'][0], job_hash)
+        with open('%s/chip.json'%build_dir, 'w') as f:
+          f.write(json.dumps(cfg))
+
         # Issue an 'srun' command depending on the given config JSON.
         sc_sources = ''
-        for filename in cfg['sc_source']['value']:
+        for filename in cfg['source']['value']:
           sc_sources += filename + " "
         # (Non-blocking)
-        asyncio.create_task(self.remote_sc(job_hash, cfg['sc_design']['value'][0], cfg['sc_source']['value'], stage))
+        asyncio.create_task(self.remote_sc(job_hash, cfg['design']['value'][0], cfg['source']['value'], build_dir, stage))
 
         # Return a response to the client.
         response_text = "Starting step: %s"%stage
@@ -117,7 +122,8 @@ class Server:
             return web.Response(text="Job has no running steps.")
 
     ####################
-    async def remote_sc(self, job_hash, top_module, sc_sources, stage):
+    #async def remote_sc(self, job_hash, chip_cfg, stage):
+    async def remote_sc(self, job_hash, top_module, sc_sources, build_dir, stage):
         '''
         Async method to delegate an 'sc' command to a slurm host,
         and send an email notification when the job completes.
@@ -133,13 +139,14 @@ class Server:
         export_path += ':/home/ubuntu/OpenROAD-flow-scripts/tools/build/TritonRoute'
         export_path += ':/home/ubuntu/OpenROAD-flow-scripts/tools/build/yosys/bin'
         export_path += ':/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin'
+        # Send JSON config instead of using subset of flags.
         # TODO: Use slurmpy SDK?
+        #srun_cmd = 'srun %s sc - %s'%(export_path, chip_cfg)
         srun_cmd = 'srun %s sc'%export_path
         for src in sc_sources:
             srun_cmd += ' ' + src
-        # TODO: Send JSON config instead of using subset of flags.
         srun_cmd += ' -target nangate45 -design %s'%(top_module)
-        srun_cmd += ' -build %s/%s/'%(self.cfg['sc_nfsmount']['value'][0], job_hash)
+        srun_cmd += ' -build %s'%build_dir
         srun_cmd += ' -start %s -stop %s'%(stage, stage)
 
         # Create async subprocess shell, and block this thread until it finishes.
