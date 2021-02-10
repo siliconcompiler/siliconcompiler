@@ -1,5 +1,7 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
+import aiohttp
+import asyncio
 import subprocess
 import os
 import sys
@@ -7,6 +9,7 @@ import re
 import json
 import logging as log
 import hashlib
+import time
 import webbrowser
 import yaml
 import copy
@@ -270,7 +273,7 @@ class Chip:
             newkeys =  keys.copy()
             newkeys.append(k)
             if 'value' in cfg[k]:
-                valstr = ' '.join(cfg[k]['value'])
+                valstr = ' '.join(str(val) for val in cfg[k]['value'])
                 keystr = ' '.join(newkeys)
                 if(mode=="tcl"):
                     outlst = [prefix,keystr,'[list ', valstr,']']
@@ -688,7 +691,9 @@ class Chip:
             self.logger.info('Running stage: %s', stage)
 
             #Updating jobindex
-            jobid = int(self.cfg['tool'][stage]['jobid']['value'][-1]) + 1 #scalar
+            #jobid = int(self.cfg['tool'][stage]['jobid']['value'][-1]) + 1 #scalar
+            #TODO: flow won't work without this patch.
+            jobid = 0
             
             #Moving to working directory
             jobdir = (str(self.cfg['build']['value'][-1]) + #scalar
@@ -797,3 +802,80 @@ class Chip:
             self.cfg['tool'][stage]['jobid']['value'] = [str(jobid)]
             #Return to CWD
             os.chdir(cwd)
+
+    ###################################
+    def remote_run(self, stage):
+        '''Method to run a stage on a remote compute cluster.
+        Note that files will not be copied to the remote stage; typically
+        the source files will be copied into the cluster's storage before
+        calling this method.
+        If the "-remote" parameter was not passed in, this method
+        will print a warning and do nothing.
+
+        '''
+
+        # Ask the remote server to start processing the requested step.
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.request_remote_run(stage))
+
+        # Check the job's progress periodically until it finishes.
+        is_busy = True
+        while is_busy:
+          print("%s stage running. Please wait."%stage)
+          time.sleep(1)
+          is_busy = loop.run_until_complete(self.is_job_busy(self.status['job_hash'], stage))
+        print("%s stage completed!"%stage)
+
+    ###################################
+    async def request_remote_run(self, stage):
+        '''Helper method to make an async request to start a job stage.
+
+        '''
+        async with aiohttp.ClientSession() as session:
+            async with session.post("http://%s:%s/remote_run/%s/%s"%(self.cfg['remote']['value'][0], self.cfg['remoteport']['value'][0], self.status['job_hash'], stage), json=self.cfg) as resp:
+                print(await resp.text())
+
+    ###################################
+    async def is_job_busy(self, job_hash, stage):
+        '''Helper method to make an async request asking the remote server
+        whether a job is busy, or ready to accept a new step.
+        Returns True if the job is busy, False if not.
+
+        '''
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get("http://%s:%s/check_progress/%s/%s"%(self.cfg['remote']['value'][0], self.cfg['remoteport']['value'][0], self.status['job_hash'], stage)) as resp:
+                response = await resp.text()
+                return (response != "Job has no running steps.")
+
+    ###################################
+    def upload_sources_to_cluster(self):
+        '''Helper method to upload Verilog source files to a cloud compute
+        cluster's shared storage. Required before the cluster will be able
+        to run any job steps.
+
+        '''
+
+        # Ensure that the destination directory exists.
+        subprocess.run(['ssh',
+                        '-i',
+                        self.cfg['nfskey']['value'][0],
+                        '%s@%s'%(self.cfg['nfsuser']['value'][0], self.cfg['nfshost']['value'][0]),
+                        'mkdir',
+                        '%s/%s'%(self.cfg['nfsmount']['value'][0], self.status['job_hash'])])
+
+        # Copy Verilog sources using scp.
+        for src in self.cfg['source']['value']:
+            subprocess.run(['scp',
+                            '-i',
+                            self.cfg['nfskey']['value'][0],
+                            src,
+                            '%s@%s:%s/%s/%s'%(
+                                self.cfg['nfsuser']['value'][0],
+                                self.cfg['nfshost']['value'][0],
+                                self.cfg['nfsmount']['value'][0],
+                                self.status['job_hash'],
+                                src[src.rfind('/')+1:]
+                            )])
+
+        # TODO: Also upload .lib, .lef, etc files.
