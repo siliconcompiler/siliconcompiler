@@ -41,14 +41,15 @@ def schema_fpga(cfg):
     ''' FPGA Setup
     '''
     cfg['fpga_xml'] = {
-        'help' : 'FPGA architecture description file (xml)',
-        'long_help' : [
-            "line one.........................................................",
-            "line two.........................................................",
-            "line three......................................................."
-        ],
+        'short_help' : 'FPGA architecture description file (xml)',
+        'help' : ["The file provides XML-based architecture description for ",
+                  "the target FPGA architecture to be used in VTR allowing  ",
+                  "the user to describe a large number of hypothetical and  ",
+                  "commercial architectures.                                ",
+                  "[More information...](https://verilogtorouting.org)      "],
         'switch' : '-fpga_xml',
         'switch_args' : '<target file>',
+        'requirement' : 'fpga',
         'type' : ['string', 'file'],
         'defvalue' : []
     }
@@ -65,59 +66,109 @@ def schema_pdk(cfg):
     '''
          
     cfg['pdk_foundry'] = {
-        'help' : 'Foundry name',
+        'short_help' : 'Foundry name',
+        'help' : ["The name of the foundry. Example values include: tsmc,  ",
+                  "gf, samsung, intel, skywater, virtual. The virtual      ",
+                  "keyword is reserved for simulated processes that can't  ",
+                  "like nangate45 and asap7.                               "],
         'switch' : '-pdk_foundry',
         'switch_args' : '<string>',
+        'requirement' : 'asic',
         'type' : ['string'],
         'defvalue' : []
     }
 
     cfg['pdk_process'] = {
-        'help' : 'Process name',
+        'short_help' : 'Process name',
+        'help' : ["The official name of the process within a foundry. The   ",
+                  "name is case insensitive, but should otherwise match the ",
+                  "complete public process name from the foundry. Examples  ",
+                  "process names include 22FFL from Intel, 12LPPLUS from    ",
+                  "Globalfoundries, and 16FFC from TSMC.                    "],
         'switch' : '-pdk_process',
         'switch_args' : '<string>',
+        'requirement' : 'asic',
         'type' : ['string'],
         'defvalue' : []
     }
 
     cfg['pdk_node'] = {
-        'help' : 'Process node (in nm)',
+        'short_help' : 'Process node (in nm)',
+        'help' : ["An approximation of the relative minimum dimension       ",
+                  "of the process node. Not a required parameter but may be ",
+                  "used to select technology dependant synthesis and place  ",
+                  "and route optimization algorithms and recipes. Examples  ",
+                  "of nodes include 180nm, 130nm, 90nm, 65nm, 45m,32nm, 22nm",
+                  "15nm, 10nm, 7nm, 5nm                                     "],
         'switch' : '-pdk_node',
         'switch_args' : '<int>',
+        'requirement' : 'asic',
         'type' : ['int'],
         'defvalue' : []
     }
 
     cfg['pdk_version'] = {
-        'help' : 'Process node version',
+        'short_help' : 'Process node version',
+        'help' : ["The PDK version is an alphanumeric string provided by to ",
+                  "track changes in critical process design kit data shipped",
+                  "to foundry customers. Designers should manually or       ",
+                  "automatically verify that the PDK version is approved    ",
+                  "for new tapeouts.                                        "],
         'switch' : '-pdk_version',
         'switch_args' : '<string>',
+        'requirement' : 'asic',
         'type' : ['string'],
         'defvalue' : []
     }
         
     cfg['pdk_guide'] = {
-        'help' : 'Process Manual',
+        'short_help' : 'Process Guide',
+        'help' : ["All PDKs ship with extensive documeation, generally      ",
+                  "provided as PDFs. This first item in this parameter list ",
+                  "should be the the primary PDK usage guide, while the rest",
+                  "of the list would contain other important documents. The ",
+                  "variable's purpose to serve as a central record for the  ",
+                  "documents that can at times be hard to locate quickly in ",
+                  "in complex advanced node PDKs. Example use cases include ",
+                  "automatic PDF viewer launch of the document or static    ",
+                  "static HTML page construction with links to all docsl    "],
         'switch' : '-pdk_guide',
-        'switch_args' : '<file>',  
+        'switch_args' : '<file>',
+        'requirement' : 'optional',
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
     }
 
     cfg['pdk_drm'] = {
-        'help' : 'Process Design Rule Manual',
+        'short_help' : 'Process Design Rule Manual',
+        'help' : ["A PDK document that includes detailed information about  ",
+                  "all design rules to comply with in the design and        ",
+                  "layout of a chip.                                        "],
         'switch' : '-pdk_drm',
         'switch_args' : '<file>',
+        'requirement' : 'asic',
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
     }
 
     cfg['pdk_stackup'] = {
-        'help' : 'Process Metal Stackup',
+        'short_help' : 'Process Metal Stackup',
+        'help' : ["A list of all metal stackups offered in the process node ",
+                  "Older process nodes may only offer a single metal        ",
+                  "stackup, while advanced nodes offer a large but finite   ",
+                  "list of metal stacks with varying combinations of        ",
+                  "metal line widths and thicknesses. Stackup naming is     ",
+                  "unique to the foundry, but is generally a long string,   ",
+                  "or code. For example, a 10 metal stackup two 1x wide,    ",
+                  "four 2x wide, and 2 4x wide metals, might be identified  ",
+                  "as 2MA_4MB_2MC. Each stackup will come with its own set  ",
+                  "routing technology files and parasitic models specified  ",
+                  "in the pdk_pexmodel and pdk_pnrtech variables.           "],
         'switch' : '-pdk_stackup',
         'switch_args' : '<name>',
+        'requirement' : 'asic',
         'type' : ['string'],
         'defvalue' : []
     }
@@ -126,9 +177,18 @@ def schema_pdk(cfg):
     cfg['pdk_devicemodel']['default'] = {}
     cfg['pdk_devicemodel']['default']['default'] = {}
     cfg['pdk_devicemodel']['default']['default']['default'] = {
-        'help' : 'Device model directory',
+        'short_help' : 'Device model directory',
+        'help' : ["A dynamic structure of paths to various device models.   ",
+                  "The structure serves as a central access registry for    ",
+                  "models for different purpose and vendors. The nested     ",
+                  "dictionary order is [stackup][type][vendor]. For models  ",
+                  "that span all metal stackups, the model directory        ",
+                  "pointer can be trivially duplicated using a python for   ",
+                  "loop in the PDK setup file. Examples of model types      ",
+                  "include spice, aging, electromigration, radiation        "],
         'switch' : '-pdk_devicemodel',
         'switch_args' : '<stackup type vendor file>',
+        'requirement' : 'asic',
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
@@ -138,9 +198,19 @@ def schema_pdk(cfg):
     cfg['pdk_pexmodel']['default'] = {}
     cfg['pdk_pexmodel']['default']['default']= {}
     cfg['pdk_pexmodel']['default']['default']['default'] = {
-        'help' : 'Back end PEX TCAD model',
+        'short_help' : 'Back end PEX TCAD model',
+        'help' : ["A dynamic structure of paths to PDK parasitic models.    ",
+                  "Modern PDKs include encrypted parasitic models for each  ",
+                  "stackup offered, often with characterization across      ",
+                  "multiple statitical process corners. The nested          ",
+                  "dictionary order is [stackup][corner][vendor].           ",
+                  "The methodology for applying these models is described   ",
+                  "in the PDK docs. Within the digital place and route      ",
+                  "flows the pex models must be accessed through the        ",
+                  "pdk_pexmodel structure.                                  "],
         'switch' : '-pdk_pexmodel',
         'switch_args' : '<stackup corner vendor file>',
+        'requirement' : 'asic',
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
@@ -148,22 +218,32 @@ def schema_pdk(cfg):
 
     cfg['pdk_layermap'] = {}
     cfg['pdk_layermap']['default'] = {}
-
-    cfg['pdk_layermap']['default']['streamout'] = {}
-    cfg['pdk_layermap']['default']['streamout']['default'] = {
-        'help' : 'Layout streamout layermap',
+    cfg['pdk_layermap']['default']['default'] = {}
+    cfg['pdk_layermap']['default']['default']['streamout'] = {
+        'short_help' : 'Layout streamout layermap',
+        'help' : ["This structure contains pointers to the various layer    ",
+                  "mapping files needed to stream data out from binary      ",
+                  "databases to tapeout read GDSII datbases. The layer map  ",
+                  "supplied in the PDK on a per stackup basis and the       ",
+                  "nested dictionary order is [stackup][tool][streamout].   "],
         'switch' : '-pdk_layermap_streamout',
-        'switch_args' : '<stackup tool file>', 
+        'switch_args' : '<stackup tool file>',
+        'requirement' : 'asic',
         'type' : ['file'],
         'defvalue' : [],
         'hash' : []
     }
 
-    cfg['pdk_layermap']['default']['streamin'] = {}
-    cfg['pdk_layermap']['default']['streamin']['default'] = {
-        'help' : 'Layout streamin layermap',
+    cfg['pdk_layermap']['default']['default']['streamin'] = {
+        'short_help' : 'Layout streamin layermap',
+        'help' : ["This structure contains pointers to the various layer    ",
+                  "mapping files needed to stream data into binary          ",
+                  "databases. The layer map supplied in the PDK on a per    ",
+                  "stackup basis and the nested dictionary order is         ",
+                  "[stackup][tool][streamout].                              "],
         'switch' : '-pdk_layermap_streamin',
-        'switch_args' : '<stackup tool file>', 
+        'switch_args' : '<stackup tool file>',
+        'requirement' : 'asic',
         'type' : ['file'],
         'defvalue' : [],
         'hash' : []
@@ -172,9 +252,15 @@ def schema_pdk(cfg):
     cfg['pdk_display'] = {}
     cfg['pdk_display']['default'] = {}
     cfg['pdk_display']['default']['default'] = {
-        'help' : 'Custom design display configuration',
+        'short_help' : 'Custom design display configuration',
+        'help' : ["This structure contains a display configuration file     ",
+                  "for colors and pattern schemes for all layers in the     ",
+                  "PDK. The layer map supplied in the PDK on a per          ",
+                  "stackup basis and the nested dictionary order is         ",
+                  "[stackup][tool].                                         "],
         'switch' : '-pdk_display',
-        'switch_args' : '<stackup vendor file>', 
+        'switch_args' : '<stackup tool file>',
+        'requirement' : 'asic',
         'type' : ['file'],
         'defvalue' : [],
         'hash' : []
@@ -183,98 +269,108 @@ def schema_pdk(cfg):
     cfg['pdk_clib'] = {}
     cfg['pdk_clib']['default'] = {}
     cfg['pdk_clib']['default']['default'] = {
-        'help' : 'Custom design library',
+        'short_help' : 'Custom design library',
+        'help' : ["A file containing pointers to all custom cell libs.      ",
+                  "Examples include pcell libraries and pycell libs         ",
+                  "The file is supplied in the PDK on a per stackup basis   ",
+                  "and the nested dictionary order is [stackup][tool].      "],
         'switch' : '-pdk_clib',
-        'switch_args' : '<stackup vendor file>', 
+        'switch_args' : '<stackup vendor file>',
+        'requirement' : 'asic',
         'type' : ['file'],
         'defvalue' : [],
         'hash' : []
     }
     
-    cfg['pdk_init'] = {}
-    cfg['pdk_init']['default'] = {}
-    cfg['pdk_init']['default']['default'] = {
-        'help' : 'Custom design init file',
-        'switch' : '-pdk_init',
-        'switch_args' : '<stackup vendor file>', 
-        'type' : ['file'],
-        'defvalue' : [],
-        'hash' : []
-    }
-
-    cfg['pdk_objmap'] = {}
-    cfg['pdk_objmap']['default'] = {}
-    cfg['pdk_objmap']['default']['default'] = {
-        'help' : 'GDS object map',
-        'switch' : '-pdk_objmap',
-        'switch_args' : '<stackup vendor file>', 
-        'type' : ['file'],
-        'defvalue' : [],
-        'hash' : []
-    }
-
     ###################
     # Place and Route
     ###################
-    
-    cfg['pdk_pnrdir'] = {}
-    cfg['pdk_pnrdir']['default'] = {}
-    cfg['pdk_pnrdir']['default']['default'] = {}
-    cfg['pdk_pnrdir']['default']['default']['default'] = {
-        'help' : 'Place and route technology directory',
-        'switch_args' : '<stackup lib vendor file>', 
-        'switch' : '-pdk_pnrdir',
-        'type' : ['file'],
-        'defvalue' : [],
-        'hash'   : []
-    }
-
     cfg['pdk_pnrtech'] = {}
     cfg['pdk_pnrtech']['default'] = {}
     cfg['pdk_pnrtech']['default']['default'] = {}
     cfg['pdk_pnrtech']['default']['default']['default'] = {
-        'help' : 'Place and route tehnology file',
+        'short_help' : 'Place and route tehnology file',
+        'help' : ["Technology file for place and route tools. The file      ",
+                  "contains the necessary information needed to create DRC  ",
+                  "compliant automatically routed designs. The file is      ",
+                  "vendor specific with the most commonf format being LEF.  ",
+                  "The nested dictionary order is [stackup][libarch][tool], ",
+                  "where libarch stands for the library type, generally the ",
+                  "library height. For example a node might support 6 track,",
+                  "7.5 track and 9 track high libraries with libarch names  ",
+                  "of 6T, 7.5T, 9T                                          "],
         'switch' : '-pdk_pnrtech',
-        'switch_args' : '<stackup lib vendor file>', 
+        'switch_args' : '<stackup lib vendor file>',
+        'requirement' : 'digital',
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
     }
 
-    cfg['pdk_pnrmap'] = {}
-    cfg['pdk_pnrmap']['default'] = {}    
-    cfg['pdk_pnrmap']['default']['default'] = {
-        'help' : 'Place and route layer gdsout mapping file',
-        'switch' : '-pdk_pnrgdsmap',
-        'switch_args' : '<stackup vendor file>', 
+    cfg['pdk_pnrdir'] = {}
+    cfg['pdk_pnrdir']['default'] = {}
+    cfg['pdk_pnrdir']['default']['default'] = {}
+    cfg['pdk_pnrdir']['default']['default']['default'] = {
+        'short_help' : 'Place and route tool setup directory ',
+        'help' : ["Directory containing various setup files for place and   ",
+                  "route tools. These files are avaialble in the PDK  on a  ",
+                  "per tool and per stackup basis. The directory pointer    ",
+                  "is not required by all tools. when provided, the nested  ",
+                  "dictionary order is [stackup][libarch][tool], where      ",
+                  "libarch stands for the library type, generally the       ",
+                  "library height. For example a node might support 6       ",
+                  "track, 7.5 track and 9 track high libraries with         ",
+                  "libarch names of 6T, 7.5T, 9T                            "],
+        'switch' : '-pdk_pnrdir',
+        'switch_args' : '<stackup libarch tool file>', 
+        'requirement' : 'optional',
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
     }
 
+    
     cfg['pdk_pnrlayer'] = {}
     cfg['pdk_pnrlayer']['default'] = {
-        'help' : 'Place and route routing layer definitions',
+        'short_help' : 'Place and route routing layer definitions',
+        'help' : ["In experimental settings and for immature PDKs there may ",
+                  "be a need to override the design rules defined int he    ",
+                  "pdk_pnrtech file. This should be done using using        ",
+                  "pdk_pnrlayer.The layer definition is given as a tuple on ",
+                  "a per stackup basis. An hypothetical example of a valid  ",
+                  "layer definition would be metal1 X 0.5 1.0 for defining  ",
+                  "metal1 as a horizontal routing layer with a 0.5um width  ",
+                  "and 1.0um pitch grid.                                    "],
         'switch' : '-pdk_pnrlayer',
-        'switch_args' : '<stackup layername X|Y width pitch>', 
+        'switch_args' : '<stackup layername X|Y width pitch>',
+        'requirement' : 'optional',
         'type' : ['string', 'string', 'float', 'float'],
         'defvalue' : [],
         'hash'   : []
     }
 
     cfg['pdk_tapmax'] = {
-        'help' : 'Tap cell max distance rule',
+        'short_help' : 'Tap cell max distance rule',
+        'help' : ["Sets the maximum distance between tap cells for the place",
+                  "and route tool. This value is derived from the design    ",
+                  "rule manual and the methodology guides within the PDK.   "],
         'switch' : '-pdk_tapmax',
-        'switch_args' : '<float>',     
+        'switch_args' : '<float>',
+        'requirement' : 'digital',
         'type' : ['float'],
         'defvalue' : [],
         'hash' : []
     }
 
     cfg['pdk_tapoffset'] = {
-        'help' : 'Tap cell offset rule',
+        'short_help' : 'Tap cell offset rule',
+        'help' : ["Sets the offset from the edge of the block to place a tap",
+                  "cell for the place route tool. This value is derived from",
+                  "the design rule manual and the methodology guides within ",
+                  "the PDK.                                                 "],
         'switch' : '-pdk_tapoffset',
-        'switch_args' : '<float>',     
+        'switch_args' : '<float>',
+        'requirement' : 'digital',
         'type' : ['float'],
         'defvalue' : [],
         'hash' : []
@@ -294,7 +390,7 @@ def schema_libs(cfg, group):
     
     # Version #
     cfg[''+group]['default']['version'] = {
-        'help' : 'Library release version',
+        'short_help' : 'Library release version',
         'switch' : '-'+group+'_version',
         'switch_args' : '<lib version>',     
         'type' : ['string'],
@@ -303,7 +399,7 @@ def schema_libs(cfg, group):
 
     # Userguide
     cfg[''+group]['default']['userguide'] = {
-        'help' : 'Library userguide',
+        'short_help' : 'Library userguide',
         'switch' : '-'+group+'_userguide',
         'switch_args' : '<lib file>',     
         'type' : ['file'],
@@ -313,7 +409,7 @@ def schema_libs(cfg, group):
 
     # Datasheets
     cfg[''+group]['default']['datasheet'] = {
-        'help' : 'Library datasheets',
+        'short_help' : 'Library datasheets',
         'switch' : '-'+group+'_datasheet',
         'switch_args' : '<lib path>',  
         'type' : ['file'],
@@ -322,7 +418,7 @@ def schema_libs(cfg, group):
     }
 
     cfg[''+group]['default']['libarch'] = {
-        'help' : 'Library architecture',
+        'short_help' : 'Library architecture',
         'switch' : '-'+group+'_libarch',
         'switch_args' : '<lib libarch>',     
         'type' : ['string'],
@@ -330,7 +426,7 @@ def schema_libs(cfg, group):
     }
 
     cfg[''+group]['default']['libheight'] = {
-        'help' : 'Library height (um)',
+        'short_help' : 'Library height (um)',
         'switch' : '-'+group+'_libheight',
         'switch_args' : '<lib libheight>',     
         'type' : ['float'],
@@ -341,7 +437,7 @@ def schema_libs(cfg, group):
     # Non linear delay models (timing only)
     cfg[''+group]['default']['nldm'] = {}
     cfg[''+group]['default']['nldm']['default'] = {
-        'help' : 'Library non-linear delay timing model',
+        'short_help' : 'Library non-linear delay timing model',
         'switch' : '-'+group+'_nldm',
         'switch_args' : '<lib corner file>',
         'type' : ['file'],
@@ -351,7 +447,7 @@ def schema_libs(cfg, group):
 
     cfg[''+group]['default']['ccs'] = {}
     cfg[''+group]['default']['ccs']['default'] = {
-        'help' : 'Library composite current source model',
+        'short_help' : 'Library composite current source model',
         'switch' : '-'+group+'_ccs',
         'switch_args' : '<lib corner file>',
         'type' : ['file'],
@@ -360,7 +456,7 @@ def schema_libs(cfg, group):
     }
 
     cfg[''+group]['default']['lef'] = {
-        'help' : 'Library layout exchange file (LEF)',
+        'short_help' : 'Library layout exchange file (LEF)',
         'switch' : '-'+group+'_lef',
         'switch_args' : '<lib file>',     
         'type' : ['file'],
@@ -369,7 +465,7 @@ def schema_libs(cfg, group):
     }
   
     cfg[''+group]['default']['gds'] = {
-        'help' : 'Library GDS file',
+        'short_help' : 'Library GDS file',
         'switch' : '-'+group+'_gds',
         'switch_args' : '<lib file>',        
         'type' : ['file'],
@@ -378,7 +474,7 @@ def schema_libs(cfg, group):
     } 
 
     cfg[''+group]['default']['cdl'] = {
-        'help' : 'Library CDL file',
+        'short_help' : 'Library CDL file',
         'switch' : '-'+group+'_cdl',
         'switch_args' : '<lib file>',
         'type' : ['file'],
@@ -387,7 +483,7 @@ def schema_libs(cfg, group):
     }
 
     cfg[''+group]['default']['spice'] = {
-        'help' : 'Library Spice file',
+        'short_help' : 'Library Spice file',
         'switch' : '-'+group+'_spice',
         'switch_args' : '<lib file>',
         'type' : ['file'],
@@ -396,7 +492,7 @@ def schema_libs(cfg, group):
     } 
 
     cfg[''+group]['default']['verilog'] = {
-        'help' : 'Library Verilog file',
+        'short_help' : 'Library Verilog file',
         'switch' : '-'+group+'_verilog',
         'switch_args' : '<lib file>',
         'type' : ['file'],
@@ -405,7 +501,7 @@ def schema_libs(cfg, group):
     }
 
     cfg[''+group]['default']['atpg'] = {
-        'help' : 'Library ATPG file',
+        'short_help' : 'Library ATPG file',
         'switch' : '-'+group+'_atpg',
         'switch_args' : '<lib file>',    
         'type' : ['file'],
@@ -414,7 +510,7 @@ def schema_libs(cfg, group):
     }
 
     cfg[''+group]['default']['setup'] = {
-        'help' : 'Library TCL setup file',
+        'short_help' : 'Library TCL setup file',
         'switch' : '-'+group+'_setup',
         'switch_args' : '<lib file>',    
         'type' : ['file'],
@@ -423,7 +519,7 @@ def schema_libs(cfg, group):
     } 
            
     cfg[''+group]['default']['site'] = {
-        'help' : 'Library placement site',
+        'short_help' : 'Library placement site',
         'switch' : '-'+group+'_site',
         'switch_args' : '<lib site width height>',     
         'type' : ['string', 'float', 'float'],
@@ -431,7 +527,7 @@ def schema_libs(cfg, group):
     }
 
     cfg[''+group]['default']['pgmetal'] = {
-        'help' : 'Library power rail metal layer',
+        'short_help' : 'Library power rail metal layer',
         'switch' : '-'+group+'_pgmetal',
         'switch_args' : '<lib metal-layer>',
         'type' : ['string'],
@@ -439,7 +535,7 @@ def schema_libs(cfg, group):
     }
 
     cfg[''+group]['default']['vt'] = {
-        'help' : 'Library Transistor Threshold',
+        'short_help' : 'Library Transistor Threshold',
         'switch' : '-'+group+'_vt',
         'switch_args' : '<lib vt-type>',
         'type' : ['string'],
@@ -448,7 +544,7 @@ def schema_libs(cfg, group):
     } 
 
     cfg[''+group]['default']['tag'] = {
-        'help' : 'Library indentifier tags',
+        'short_help' : 'Library indentifier tags',
         'switch' : '-'+group+'_tag',
         'switch_args' : '<lib tag>',
         'type' : ['string'],
@@ -456,7 +552,7 @@ def schema_libs(cfg, group):
     }
 
     cfg[''+group]['default']['driver'] = {
-        'help' : 'Library default driver cell',
+        'short_help' : 'Library default driver cell',
         'switch' : '-'+group+'_driver',
         'switch_args' : '<lib name>',
         'type' : ['string'],
@@ -467,7 +563,7 @@ def schema_libs(cfg, group):
     cfg[''+group]['default']['exclude'] = {}
     cfg[''+group]['default']['exclude']['default'] = {}
     cfg[''+group]['default']['exclude']['default']['default'] = {
-        'help' : 'Library cell exclude lists',
+        'short_help' : 'Library cell exclude lists',
         'switch' : '-'+group+'_exclude',
         'switch_args' : '<lib type stage>',
         'type' : ['string'],
@@ -476,7 +572,7 @@ def schema_libs(cfg, group):
     cfg[''+group]['default']['include'] = {}
     cfg[''+group]['default']['include']['default'] = {}
     cfg[''+group]['default']['include']['default']['default'] = {
-        'help' : 'Library cell include lists',
+        'short_help' : 'Library cell include lists',
         'switch' : '-'+group+'_include',
         'switch_args' : '<lib type stage>',
         'type' : ['string'],
@@ -487,7 +583,7 @@ def schema_libs(cfg, group):
     cfg[''+group]['default']['nldmdb'] = {}
     cfg[''+group]['default']['nldmdb']['default'] = {}
     cfg[''+group]['default']['nldmdb']['default']['default'] = {
-        'help' : 'Library NLDM compiled database',
+        'short_help' : 'Library NLDM compiled database',
         'switch' : '-'+group+'_nldmdb',
         'switch_args' : '<lib corner vendor file>',
         'type' : ['file'],
@@ -498,7 +594,7 @@ def schema_libs(cfg, group):
     cfg[''+group]['default']['ccsdb'] = {}
     cfg[''+group]['default']['ccsdb']['default'] = {}
     cfg[''+group]['default']['ccsdb']['default']['default'] = {
-        'help' : 'Library CCS compiled databse',
+        'short_help' : 'Library CCS compiled databse',
         'switch' : '-'+group+'_ccsdb',
         'switch_args' : '<lib corner vendor file>',
         'type' : ['file'],
@@ -508,7 +604,7 @@ def schema_libs(cfg, group):
     cfg[''+group]['default']['pnrdb'] = {}
     cfg[''+group]['default']['pnrdb']['default'] = {}
     cfg[''+group]['default']['pnrdb']['default']['default'] = {
-        'help' : 'Library layout compiled database',
+        'short_help' : 'Library layout compiled database',
         'switch' : '-'+group+'_pnrdb',
         'switch_args' : '<lib vendor file>',    
         'type' : ['file'],
@@ -525,7 +621,7 @@ def schema_libs(cfg, group):
 def schema_eda(cfg):
 
     cfg['stages'] = {
-        'help' : 'List of all compilation stages',
+        'short_help' : 'List of all compilation stages',
         'switch' : '-stages',
         'type' : ['string'],
         'defvalue' : ['import',
@@ -557,17 +653,17 @@ def schema_eda(cfg):
             cfg['tool'][stage][key] = {}
             cfg['tool'][stage][key]['switch'] = '-tool_'+key
             
-        # Help
-        cfg['tool'][stage]['exe']['help'] = 'Stage executable'
-        cfg['tool'][stage]['opt']['help'] = 'Stage executable options'
-        cfg['tool'][stage]['refdir']['help'] = 'Stage reference Flow Directory'
-        cfg['tool'][stage]['script']['help'] = 'Stage entry point script'
-        cfg['tool'][stage]['copy']['help'] = 'Stage copy-to-local option'
-        cfg['tool'][stage]['format']['help'] = 'Stage configuration format'
-        cfg['tool'][stage]['jobid']['help'] = 'Stage job index'
-        cfg['tool'][stage]['np']['help'] = 'Stage thread parallelism'
-        cfg['tool'][stage]['keymap']['help'] = 'Stage keyword translation'
-        cfg['tool'][stage]['vendor']['help'] = 'Stage tool vendor'
+        # Short_Help
+        cfg['tool'][stage]['exe']['short_help'] = 'Stage executable'
+        cfg['tool'][stage]['opt']['short_help'] = 'Stage executable options'
+        cfg['tool'][stage]['refdir']['short_help'] = 'Stage reference Flow Directory'
+        cfg['tool'][stage]['script']['short_help'] = 'Stage entry point script'
+        cfg['tool'][stage]['copy']['short_help'] = 'Stage copy-to-local option'
+        cfg['tool'][stage]['format']['short_help'] = 'Stage configuration format'
+        cfg['tool'][stage]['jobid']['short_help'] = 'Stage job index'
+        cfg['tool'][stage]['np']['short_help'] = 'Stage thread parallelism'
+        cfg['tool'][stage]['keymap']['short_help'] = 'Stage keyword translation'
+        cfg['tool'][stage]['vendor']['short_help'] = 'Stage tool vendor'
 
         # Switch Args
         cfg['tool'][stage]['exe']['switch_args'] = '<stage string>'
@@ -620,7 +716,7 @@ def schema_options(cfg):
     '''
 
     cfg['env'] = {
-        'help' : 'Vendor specific environment variables to set',
+        'short_help' : 'Vendor specific environment variables to set',
         'switch' : '-env',
         'switch_args' : '<varname value>',
         'type' : ['string', 'string'],
@@ -628,7 +724,7 @@ def schema_options(cfg):
     }
 
     cfg['cfgfile'] = {
-        'help' : 'Loads configurations from a json file',
+        'short_help' : 'Loads configurations from a json file',
         'switch' : '-cfgfile',
         'switch_args' : '<file>',
         'type' : ['file'],
@@ -637,7 +733,7 @@ def schema_options(cfg):
     }
 
     cfg['lock'] = {
-        'help' : 'Locks the configuration dict from edit',
+        'short_help' : 'Locks the configuration dict from edit',
         'switch' : '-lock',
         'switch_args' : '',
         'type' : ['bool'],
@@ -645,7 +741,7 @@ def schema_options(cfg):
     }
 
     cfg['quiet'] = {
-        'help' : 'Supresses informational printing',
+        'short_help' : 'Supresses informational printing',
         'switch' : '-quiet',
         'switch_args' : '',
         'type' : ['bool'],
@@ -653,7 +749,7 @@ def schema_options(cfg):
     }
     
     cfg['debug'] = {
-        'help' : 'Debug level (INFO/DEBUG/WARNING/ERROR)',
+        'short_help' : 'Debug level (INFO/DEBUG/WARNING/ERROR)',
         'switch' : '-debug',
         'switch_args' : '<string>',
         'type' : ['string'],
@@ -661,7 +757,7 @@ def schema_options(cfg):
     }
 
     cfg['build'] = {
-        'help' : 'Name of build directory',
+        'short_help' : 'Name of build directory',
         'switch' : '-build',
         'switch_args' : '<string>',
         'type' : ['string'],
@@ -669,7 +765,7 @@ def schema_options(cfg):
     }
 
     cfg['start'] = {
-        'help' : 'Compilation starting stage',
+        'short_help' : 'Compilation starting stage',
         'type' : 'string',
         'switch' : '-start',
         'switch_args' : '<stage>',
@@ -677,7 +773,7 @@ def schema_options(cfg):
     }
 
     cfg['stop'] = {
-        'help' : 'Compilation ending stage',
+        'short_help' : 'Compilation ending stage',
         'switch' : '-stop',
         'switch_args' : '<stage>',
         'type' : ['string'],
@@ -685,7 +781,7 @@ def schema_options(cfg):
     }
     
     cfg['msg_trigger'] = {
-        'help' : 'Trigger for messaging to <msg_contact>',
+        'short_help' : 'Trigger for messaging to <msg_contact>',
         'switch' : '-msg_trigger',
         'switch_args' : '<string>',
         'type' : ['string'],
@@ -693,7 +789,7 @@ def schema_options(cfg):
     }
 
     cfg['msg_contact'] = {
-        'help' : 'Trigger event contact (phone#/email)',
+        'short_help' : 'Trigger event contact (phone#/email)',
         'switch' : '-msg_contact',
         'switch_args' : '<string>',
         'type' : ['string'],
@@ -711,7 +807,7 @@ def schema_rtl(cfg):
     '''
 
     cfg['source'] = {
-        'help' : 'Source files (.v/.vh/.sv/.vhd)',
+        'short_help' : 'Source files (.v/.vh/.sv/.vhd)',
         'switch' : 'None',
         'type' : ['file'],
         'defvalue' : [],
@@ -719,7 +815,7 @@ def schema_rtl(cfg):
     }
         
     cfg['design'] = {
-        'help' : 'Design top module name',
+        'short_help' : 'Design top module name',
         'switch' : '-design',
         'switch_args' : '<string>',
         'type' : ['string'],
@@ -727,7 +823,7 @@ def schema_rtl(cfg):
     }
 
     cfg['nickname'] = {
-        'help' : 'Design nickname',
+        'short_help' : 'Design nickname',
         'switch' : '-nickname',
         'switch_args' : '<string>',
         'type' : ['string'],
@@ -735,7 +831,7 @@ def schema_rtl(cfg):
     }
     
     cfg['clk'] = {
-        'help' : 'Clock defintion',
+        'short_help' : 'Clock defintion',
         'switch' : '-clk',
         'switch_args' : '<name period uncertainty>',
         'type' : ['string', 'float', 'float'],
@@ -743,7 +839,7 @@ def schema_rtl(cfg):
     }
 
     cfg['supply'] = {
-        'help' : 'Power supply',
+        'short_help' : 'Power supply',
         'switch' : '-supply',
         'switch_args' : '<name pin voltage>',
         'type' : ['string', 'string', 'float'],
@@ -751,7 +847,7 @@ def schema_rtl(cfg):
     }
     
     cfg['define'] = {
-        'help' : 'Define variables for Verilog preprocessor',
+        'short_help' : 'Define variables for Verilog preprocessor',
         'switch' : '-D',
         'switch_args' : '<string>',
         'type' : ['string'],
@@ -759,7 +855,7 @@ def schema_rtl(cfg):
     }
     
     cfg['ydir'] = {
-        'help' : 'Directory to search for modules',
+        'short_help' : 'Directory to search for modules',
         'switch' : '-y',
         'switch_args' : '<dir>',
         'type' : ['string'],
@@ -768,7 +864,7 @@ def schema_rtl(cfg):
     }
 
     cfg['idir'] = {
-        'help' : 'Directory to search for includes',
+        'short_help' : 'Directory to search for includes',
         'switch' : '-I',
         'switch_args' : '<dir>',
         'type' : ['string'],
@@ -777,7 +873,7 @@ def schema_rtl(cfg):
     }
 
     cfg['vlib'] = {
-        'help' : 'Library file',
+        'short_help' : 'Library file',
         'switch' : '-v',
         'switch_args' : '<file>',
         'type' : ['file'],
@@ -786,7 +882,7 @@ def schema_rtl(cfg):
     }
 
     cfg['libext'] = {
-        'help' : 'Extension for finding modules',
+        'short_help' : 'Extension for finding modules',
         'switch' : '+libext',
         'switch_args' : '<ext>',
         'type' : ['string'],
@@ -794,7 +890,7 @@ def schema_rtl(cfg):
     }
 
     cfg['readscript'] = {
-        'help' : 'Source file read script',
+        'short_help' : 'Source file read script',
         'switch' : '-f',
         'switch_args' : '<file>',
         'type' : ['file'],
@@ -814,7 +910,7 @@ def schema_floorplan(cfg):
 
     # 1. Automatic floorplanning
     cfg['density'] = {
-        'help' : 'Target core density (percent)',
+        'short_help' : 'Target core density (percent)',
         'switch' : '-density',
         'switch_args' : '<int>',
         'type' : ['int'],
@@ -822,7 +918,7 @@ def schema_floorplan(cfg):
     }
 
     cfg['coremargin'] = {
-        'help' : 'Core place and route halo margin (um)',
+        'short_help' : 'Core place and route halo margin (um)',
         'switch' : '-coremargin',
         'switch_args' : '<float>',
         'type' : ['float'],
@@ -830,7 +926,7 @@ def schema_floorplan(cfg):
     }
 
     cfg['aspectratio'] = {
-        'help' : 'Target aspect ratio',
+        'short_help' : 'Target aspect ratio',
         'switch' : '-aspectratio',
         'switch_args' : '<float>',
         'type' : ['float'],
@@ -839,7 +935,7 @@ def schema_floorplan(cfg):
 
     # 2. Spec driven floorplanning    
     cfg['diesize'] = {
-        'help' : 'Target die size (x0 y0 x1 y1) (um)',
+        'short_help' : 'Target die size (x0 y0 x1 y1) (um)',
         'switch' : '-diesize',
         'switch_args' : '<float float float float>',
         'type' : ['float', 'float', 'float', 'float'],
@@ -847,7 +943,7 @@ def schema_floorplan(cfg):
     }
 
     cfg['coresize'] = {
-        'help' : 'Target core size (x0 y0 x1 y1) (um)',
+        'short_help' : 'Target core size (x0 y0 x1 y1) (um)',
         'switch' : '-coresize',
         'switch_args' : '<float float float float>',
         'type' : ['float', 'float', 'float', 'float'],
@@ -856,7 +952,7 @@ def schema_floorplan(cfg):
     
     # 3. Parametrized floorplanning
     cfg['floorplan'] = {
-        'help' : 'Floorplaning script/program',
+        'short_help' : 'Floorplaning script/program',
         'switch' : '-floorplan',
         'switch_args' : '<file>',
         'type' : ['file'],
@@ -866,7 +962,7 @@ def schema_floorplan(cfg):
     
     # #4. Hard coded DEF
     cfg['def'] = {
-        'help' : 'Firm floorplan file (DEF)',
+        'short_help' : 'Firm floorplan file (DEF)',
         'switch' : '-def',
         'switch_args' : '<file>',
         'type' : ['file'],
@@ -884,7 +980,7 @@ def schema_apr(cfg):
     '''
     
     cfg['target'] = {
-        'help' : 'Target platform',
+        'short_help' : 'Target platform',
         'switch' : '-target',
         'switch_args' : '<string>',        
         'type' : ['string'],
@@ -892,7 +988,7 @@ def schema_apr(cfg):
     }
 
     cfg['target_stackup'] = {
-        'help' : 'Target metal stackup',
+        'short_help' : 'Target metal stackup',
         'switch' : '-target_stackup',
         'switch_args' : '<string>',        
         'type' : ['string'],
@@ -900,7 +996,7 @@ def schema_apr(cfg):
     }
     
     cfg['target_lib'] = {
-        'help' : 'Target library/device',
+        'short_help' : 'Target library/device',
         'switch' : '-target_lib',
         'switch_args' : '<string>',        
         'type' : ['string'],
@@ -908,7 +1004,7 @@ def schema_apr(cfg):
     }
 
     cfg['target_libarch'] = {
-        'help' : 'Target library architecture',
+        'short_help' : 'Target library architecture',
         'switch' : '-target_libarch',
         'switch_args' : '<string>',        
         'type' : ['string'],
@@ -917,7 +1013,7 @@ def schema_apr(cfg):
 
     # custom pass through variables
     cfg['custom'] = {
-        'help' : 'Custom EDA pass through variables',
+        'short_help' : 'Custom EDA pass through variables',
         'switch' : '-custom',
         'switch_args' : '<string>',
         'type' : ['string'],
@@ -926,7 +1022,7 @@ def schema_apr(cfg):
 
     #optimization priority
     cfg['effort'] = {
-        'help' : 'Compilation effort',
+        'short_help' : 'Compilation effort',
         'switch' : '-effort',
         'switch_args' : '<string>',
         'type' : ['string'],
@@ -934,7 +1030,7 @@ def schema_apr(cfg):
     }
 
     cfg['priority'] = {
-        'help' : 'Optimization priority',
+        'short_help' : 'Optimization priority',
         'switch' : '-priority',
         'switch_args' : '<string>',
         'type' : ['string'],
@@ -943,7 +1039,7 @@ def schema_apr(cfg):
 
     #routing options
     cfg['ndr'] = {
-        'help' : 'Non-default net routing file',
+        'short_help' : 'Non-default net routing file',
         'switch' : '-ndr',
         'switch_args' : '<file>',
         'type' : ['file'],
@@ -952,7 +1048,7 @@ def schema_apr(cfg):
     }
  
     cfg['minlayer'] = {
-        'help' : 'Minimum routing layer (integer)',
+        'short_help' : 'Minimum routing layer (integer)',
         'switch' : '-minlayer',
         'switch_args' : '<int>',
         'type' : ['int'],
@@ -960,7 +1056,7 @@ def schema_apr(cfg):
     }
 
     cfg['maxlayer'] = {
-        'help' : 'Maximum routing layer (integer)',
+        'short_help' : 'Maximum routing layer (integer)',
         'switch' : '-maxlayer',
         'switch_args' : '<int>',
         'type' : ['int'],
@@ -968,7 +1064,7 @@ def schema_apr(cfg):
     }
     
     cfg['maxfanout'] = {
-        'help' : 'Maximum fanout',
+        'short_help' : 'Maximum fanout',
         'switch' : '-maxfanout',
         'switch_args' : '<int>',
         'type' : ['int'],
@@ -977,7 +1073,7 @@ def schema_apr(cfg):
    
     #power
     cfg['vcd'] = {
-        'help' : 'Value Change Dump (VCD) file',
+        'short_help' : 'Value Change Dump (VCD) file',
         'switch' : '-vcd',
         'switch_args' : '<file>',
         'type' : ['file'],
@@ -986,7 +1082,7 @@ def schema_apr(cfg):
     }
 
     cfg['saif'] = {
-        'help' : 'Switching activity (SAIF) file',
+        'short_help' : 'Switching activity (SAIF) file',
         'switch' : '-saif',
         'switch_args' : '<file>',
         'type' : ['file'],
@@ -1003,7 +1099,7 @@ def schema_apr(cfg):
 def schema_constraints(cfg):
 
     cfg['mcmm_libcorner'] = {
-        'help' : 'MMCM Lib Corner List (p_v_t)',
+        'short_help' : 'MMCM Lib Corner List (p_v_t)',
         'switch' : '-mcmm_libcorner',
         'switch_args' : '<string>',
         'type' : ['string'],
@@ -1011,7 +1107,7 @@ def schema_constraints(cfg):
     }
 
     cfg['mcmm_pexcorner'] = {
-        'help' : 'MMCM PEX Corner List',
+        'short_help' : 'MMCM PEX Corner List',
         'switch' : '-mcmm_pexcorner',
         'switch_args' : '<string>',
         'type' : ['string'],
@@ -1022,7 +1118,7 @@ def schema_constraints(cfg):
     cfg['mcmm_scenario']['default'] = {}
     
     cfg['mcmm_scenario']['default']['libcorner'] = {
-        'help' : 'MMCM scenario libcorner',
+        'short_help' : 'MMCM scenario libcorner',
         'switch' : '-mcmm_scenario_libcorner',
         'switch_args' : '<scenario libcorner>',
         'type' : ['string'],
@@ -1030,7 +1126,7 @@ def schema_constraints(cfg):
     }
 
     cfg['mcmm_scenario']['default']['pexcorner'] = {
-        'help' : 'MMCM scenario pexcorner',
+        'short_help' : 'MMCM scenario pexcorner',
         'switch' : '-mcmm_scenario_pexcorner',
         'switch_args' : '<scenario pexcorner>',
         'type' : ['string'],
@@ -1038,7 +1134,7 @@ def schema_constraints(cfg):
     }
       
     cfg['mcmm_scenario']['default']['opcond'] = {
-        'help' : 'MMCM scenario operating condition and library',
+        'short_help' : 'MMCM scenario operating condition and library',
         'switch' : '-mcmm_scenario_opcond',
         'switch_args' : '<scenario (opcond library)>',
         'type' : ['string', 'string'],
@@ -1046,7 +1142,7 @@ def schema_constraints(cfg):
     }
         
     cfg['mcmm_scenario']['default']['constraints'] = {
-        'help' : 'MMCM scenario constraints',
+        'short_help' : 'MMCM scenario constraints',
         'switch' : '-mcmm_scenario_constraints',
         'switch_args' : '<scenario stage file>',
         'type' : ['file'],
@@ -1055,7 +1151,7 @@ def schema_constraints(cfg):
     }
 
     cfg['mcmm_scenario']['default']['objectives'] = {
-        'help' : 'MMCM Objectives (setup, hold, power,...)',
+        'short_help' : 'MMCM Objectives (setup, hold, power,...)',
         'switch' : '-mcmm_scenario_objectives',
         'switch_args' : '<scenario stage objective>',
         'type' : ['string'],
@@ -1072,7 +1168,7 @@ def schema_net(cfg):
 
     # Remote IP address or hostname of a server which is running 'sc-server'
     cfg['remote'] = {
-        'help' : 'Remote server (https://acme.com:8080)',
+        'short_help' : 'Remote server (https://acme.com:8080)',
         'switch': '-remote',
         'switch_args' : '<string>',
         'type' : ['string'],
@@ -1081,7 +1177,7 @@ def schema_net(cfg):
 
     # Port number that the remote host is running 'sc-server' on.
     cfg['remoteport'] = {
-        'help': 'Port number which the remote \'sc-server\' instance is running on.',
+        'short_help': 'Port number which the remote \'sc-server\' instance is running on.',
         'switch': '-remote_port',
         'switch_args' : '<int>',
         'type' : ['int'],
@@ -1090,7 +1186,7 @@ def schema_net(cfg):
 
     # NFS config: Username to use when copying file to remote compute storage.
     cfg['nfsuser'] = {
-        'help': 'Username to use when copying files to the remote compute storage host.',
+        'short_help': 'Username to use when copying files to the remote compute storage host.',
         'switch': '-nfs_user',
         'switch_args' : '<string>',
         'type' : ['string'],
@@ -1099,7 +1195,7 @@ def schema_net(cfg):
 
     # NFS config: Hostname to use for accessing shared remote compute storage.
     cfg['nfshost'] = {
-        'help': 'Hostname or IP address where shared compute cluster storage can be accessed.',
+        'short_help': 'Hostname or IP address where shared compute cluster storage can be accessed.',
         'switch': '-nfs_host',
         'switch_args' : '<string>',
         'type' : ['string'],
@@ -1108,7 +1204,7 @@ def schema_net(cfg):
 
     # NFS config: root filepath for shared NFS storage on the remote NFS host.
     cfg['nfsmount'] = {
-        'help': 'Directory where shared NFS storage is mounted on the remote storage host.',
+        'short_help': 'Directory where shared NFS storage is mounted on the remote storage host.',
         'switch': '-nfs_mount',
         'switch_args' : '<string>',
         'type' : ['string'],
@@ -1118,7 +1214,7 @@ def schema_net(cfg):
     # NFS config: path to the SSH key file which will be used to access
     # the remote storage host.
     cfg['nfskey'] = {
-        'help': 'Key file used to send files to remote compute storage.',
+        'short_help': 'Key file used to send files to remote compute storage.',
         'switch': '-nfs_key',
         'switch_args' : '<file>',
         'type' : ['file'],
@@ -1139,7 +1235,7 @@ def server_schema():
     cfg = {}
 
     cfg['port'] = {
-        'help': 'Port number to run the server on.',
+        'short_help': 'Port number to run the server on.',
         'switch': '-port',
         'switch_args': '<int>',
         'type': ['int'],
@@ -1147,7 +1243,7 @@ def server_schema():
     }
 
     cfg['nfsuser'] = {
-        'help': 'Username to login to the remote storage host with.',
+        'short_help': 'Username to login to the remote storage host with.',
         'switch': '-nfs_user',
         'switch_args': '<string>',
         'type': ['string'],
@@ -1155,7 +1251,7 @@ def server_schema():
     }
 
     cfg['nfshost'] = {
-        'help': 'Hostname or IP address where shared compute cluster storage can be accesed.',
+        'short_help': 'Hostname or IP address where shared compute cluster storage can be accesed.',
         'switch': '-nfs_host',
         'switch_args': '<string>',
         'type': ['string'],
@@ -1163,7 +1259,7 @@ def server_schema():
     }
 
     cfg['nfsmount'] = {
-        'help': 'Directory where shared NFS storage is mounted on individual slurm nodes.',
+        'short_help': 'Directory where shared NFS storage is mounted on individual slurm nodes.',
         'switch': '-nfs_mount',
         'switch_args': '<string>',
         'type': ['string'],
@@ -1171,7 +1267,7 @@ def server_schema():
     }
 
     cfg['nfskey'] = {
-        'help': 'Key file used to send files to shared compute cluster storage. Accepts a file path.',
+        'short_help': 'Key file used to send files to shared compute cluster storage. Accepts a file path.',
         'switch': '-nfs_key',
         'switch_args': '<file>',
         'type': ['file'],
