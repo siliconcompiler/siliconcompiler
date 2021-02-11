@@ -1181,7 +1181,7 @@ def schema_net(cfg):
         'switch': '-remote_port',
         'switch_args' : '<int>',
         'type' : ['int'],
-        'defvalue' : [8080]
+        'defvalue' : ['8080']
     }
 
     # NFS config: Username to use when copying file to remote compute storage.
@@ -1199,7 +1199,7 @@ def schema_net(cfg):
         'switch': '-nfs_host',
         'switch_args' : '<string>',
         'type' : ['string'],
-        'defvalue' : ['<default value excluded from Git>']
+        'defvalue' : []
     }
 
     # NFS config: root filepath for shared NFS storage on the remote NFS host.
@@ -1218,7 +1218,7 @@ def schema_net(cfg):
         'switch': '-nfs_key',
         'switch_args' : '<file>',
         'type' : ['file'],
-        'defvalue' : ['<default value excluded from Git>']
+        'defvalue' : []
     }
 
     return cfg
@@ -1239,7 +1239,7 @@ def server_schema():
         'switch': '-port',
         'switch_args': '<int>',
         'type': ['int'],
-        'defvalue': [8080]
+        'defvalue': ['8080']
     }
 
     cfg['nfsuser'] = {
@@ -1255,7 +1255,7 @@ def server_schema():
         'switch': '-nfs_host',
         'switch_args': '<string>',
         'type': ['string'],
-        'defvalue' : ['<default value excluded from Git>']
+        'defvalue' : []
     }
 
     cfg['nfsmount'] = {
@@ -1271,7 +1271,7 @@ def server_schema():
         'switch': '-nfs_key',
         'switch_args': '<file>',
         'type': ['file'],
-        'defvalue' : ['<default value excluded from Git>']
+        'defvalue' : []
     }
 
     return cfg
