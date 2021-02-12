@@ -33,9 +33,9 @@ def schema():
 
     return cfg
 
-############################################
+###############################################################################
 # FPGA
-#############################################
+###############################################################################
 
 def schema_fpga(cfg):
     ''' FPGA Setup
@@ -57,9 +57,9 @@ def schema_fpga(cfg):
     return cfg
 
 
-############################################
+###############################################################################
 # PDK
-#############################################
+###############################################################################
 
 def schema_pdk(cfg):
     ''' Process Design Kit Setup
@@ -282,9 +282,7 @@ def schema_pdk(cfg):
         'hash' : []
     }
     
-    ###################
     # Place and Route
-    ###################
     cfg['pdk_pnrtech'] = {}
     cfg['pdk_pnrtech']['default'] = {}
     cfg['pdk_pnrtech']['default']['default'] = {}
@@ -301,7 +299,7 @@ def schema_pdk(cfg):
                   "of 6T, 7.5T, 9T                                          "],
         'switch' : '-pdk_pnrtech',
         'switch_args' : '<stackup lib vendor file>',
-        'requirement' : 'digital',
+        'requirement' : 'apr',
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
@@ -356,7 +354,7 @@ def schema_pdk(cfg):
                   "rule manual and the methodology guides within the PDK.   "],
         'switch' : '-pdk_tapmax',
         'switch_args' : '<float>',
-        'requirement' : 'digital',
+        'requirement' : 'apr',
         'type' : ['float'],
         'defvalue' : [],
         'hash' : []
@@ -370,7 +368,7 @@ def schema_pdk(cfg):
                   "the PDK.                                                 "],
         'switch' : '-pdk_tapoffset',
         'switch_args' : '<float>',
-        'requirement' : 'digital',
+        'requirement' : 'apr',
         'type' : ['float'],
         'defvalue' : [],
         'hash' : []
@@ -378,9 +376,9 @@ def schema_pdk(cfg):
 
     return cfg
 
-############################################
+###############################################################################
 # Library Configuration
-#############################################   
+###############################################################################
 
 def schema_libs(cfg, group):
 
@@ -434,27 +432,27 @@ def schema_libs(cfg, group):
 
     cfg[''+group]['default']['libarch'] = {
         'short_help' : 'Library architecture',
-        'help' : ["A name/tag used to identify the library type for place and",
-                  "route technology setup. Libarch must match up with the    ",
-                  "name used in the pdk_pnrtech structure. The libarch is a  ",
-                  "unique a string that identifies the library height or     ",
-                  "performance class of the library. Mixing of libarchs in a ",
-                  "flat place and route block is not allowed.                "],
+        'help' : ["A name/tag used to identify the library type for place   ",
+                  "and route technology setup. Libarch must match up with   ",
+                  "the name used in the pdk_pnrtech structure. The libarch  ",
+                  "is a unique a string that identifies the library height  ",
+                  "or performance class of the library. Mixing of libarchs  ",
+                  "in a flat place and route block is not allowed.          "],
         'switch' : '-'+group+'_libarch',
         'switch_args' : '<lib libarch>',
-        'requirement' : 'digital',
+        'requirement' : 'apr',
         'type' : ['string'],
         'defvalue' : []
     }
 
     cfg[''+group]['default']['libheight'] = {
         'short_help' : 'Library height',
-        'help' : ["The height of the library cells in (um). The value is     ",
-                  "automatically extracted from the technology file from the ",
-                  "pdk_pnrtech structure.                                    "], 
+        'help' : ["The height of the library cells in (um). The value is    ",
+                  "automatically extracted from the technology file from the",
+                  "pdk_pnrtech structure.                                   "], 
         'switch' : '-'+group+'_libheight',
         'switch_args' : '<lib libheight>',
-        'requirement' : 'digital',
+        'requirement' : 'apr',
         'type' : ['float'],
         'defvalue' : []
     }
@@ -462,14 +460,14 @@ def schema_libs(cfg, group):
     cfg[''+group]['default']['nldm'] = {}
     cfg[''+group]['default']['nldm']['default'] = {
         'short_help' : 'Library non-linear delay timing model',
-        'help' : ["A non-linear delay model in the liberty format. The file  ",
-                  "specifies timinga and logic functions to mapt the design  ",
-                  "to. The structure order is [library]['nldm'][corner]. The ",
-                  "corner is used to define scenarios and must be the        ",
-                  "same as those used int he mcmm_scenario structure.        "],
+        'help' : ["A non-linear delay model in the liberty format. The file ",
+                  "specifies timinga and logic functions to mapt the design ",
+                  "to. The structure order is [library]['nldm'][corner]. The",
+                  "corner is used to define scenarios and must be the       ",
+                  "same as those used int he mcmm_scenario structure.       "],
         'switch' : '-'+group+'_nldm',
         'switch_args' : '<lib corner file>',
-        'requirement' : 'digital',
+        'requirement' : 'apr',
         'type' : ['file'],
         'defvalue' : [],
         'hash' : []
@@ -478,12 +476,12 @@ def schema_libs(cfg, group):
     cfg[''+group]['default']['ccs'] = {}
     cfg[''+group]['default']['ccs']['default'] = {
         'short_help' : 'Library composite current source model',
-        'help' : ["A composite current source model for the library. The     ",
-                  "model is more accurate than the NLDM model and recommended",
-                  "at advanced nodes, but is significantly larger than the   ",
-                  "nldm model and should only be used when accuracy is an    ",
-                  "absolute requirement. When available, ccs models should   ",
-                  "always be used for signoff timing checks.                 "],
+        'help' : ["A composite current source model for the library. It is  ",
+                  "is more accurate than the NLDM model and recommended at  ",
+                  "advanced nodes, but is significantly larger than the nldm",
+                  "model and should only be used when accuracy is an        ",
+                  "absolute requirement. When available, ccs models should  ",
+                  "always be used for signoff timing checks.                "],
         'switch' : '-'+group+'_ccs',
         'switch_args' : '<lib corner file>',
         'requirement' : 'optional',
@@ -494,9 +492,9 @@ def schema_libs(cfg, group):
 
     cfg[''+group]['default']['lef'] = {
         'short_help' : 'Library layout exchange file (LEF)',
-        'help' : ["An abstracted view of library cells that gives complete   ",
-                  "information about the cell place and route boundary, pin  ",
-                  "positions, pin metals, and metal routing blockages.       "],
+        'help' : ["An abstracted view of library cells that gives complete  ",
+                  "information about the cell place and route boundary, pin ",
+                  "positions, pin metals, and metal routing blockages.      "],
         'switch' : '-'+group+'_lef',
         'switch_args' : '<lib file>',
         'requirement' : 'asic',
@@ -507,13 +505,13 @@ def schema_libs(cfg, group):
   
     cfg[''+group]['default']['gds'] = {
         'short_help' : 'Library GDS file',
-        'help' : ["The complete mask layout of the library cells ready to be "
-                  "merged with the rest of the design for tapeout. In some   "
-                  "cases, the GDS merge happens at the foundry, so inclusion "
-                  "of a GDS file is optional. In all cases, where the GDS    "
-                  "files are available, they should specified here to enable "
-                  "gds stream out/merge during the automated place and route "
-                  "and chip assembly process.                                "],
+        'help' : ["The complete mask layout of the library cells ready to be"
+                  "merged with the rest of the design for tapeout. In some  "
+                  "cases, the GDS merge happens at the foundry, so inclusion"
+                  "of a GDS file is optional. In all cases, where the GDS   "
+                  "files are available, they should specified here to enable"
+                  "gds stream out/merge during the automated place and route"
+                  "and chip assembly process.                               "],
         'switch' : '-'+group+'_gds',
         'switch_args' : '<lib file>',
         'requirement' : 'optional',
@@ -524,11 +522,12 @@ def schema_libs(cfg, group):
 
     cfg[''+group]['default']['cdl'] = {
         'short_help' : 'Library CDL netlist file',
-        'help' : ["The CDL file contains the netlists use for layout versus  ",
-                  "schematic (LVS) checks. In some cases, the GDS merge      ",
-                  "happens at the foundry, so inclusion of a CDL file is     ",
-                  "optional. In all cases, where the CDL files are available,",
-                  "they should specified here to enable LVS checks pre tapout"],
+        'help' : ["The CDL file contains the netlists use for layout versus ",
+                  "schematic (LVS) checks. In some cases, the GDS merge     ",
+                  "happens at the foundry, so inclusion of a CDL file is    ",
+                  "optional. In all cases, where the CDL files are          ",
+                  "available they should specified here to enable LVS checks",
+                  "pre tapout                                               "],
         'switch' : '-'+group+'_cdl',
         'switch_args' : '<lib file>',
         'requirement' : 'optional',
@@ -539,8 +538,8 @@ def schema_libs(cfg, group):
 
     cfg[''+group]['default']['spice'] = {
         'short_help' : 'Library spice file',
-        'help' : ["The spice file contains the netlists use for circuit      ",
-                  "simulation.                                               "],
+        'help' : ["The spice file contains the netlists use for circuit     ",
+                  "simulation.                                              "],
         'switch' : '-'+group+'_spice',
         'switch_args' : '<lib file>',
         'requirement' : 'optional',
@@ -551,8 +550,8 @@ def schema_libs(cfg, group):
 
     cfg[''+group]['default']['hdl'] = {
         'short_help' : 'Library high level description language file',
-        'help' : ["A bit exact or high level verilog model for all cells in  ",
-                  "the library. The file can be VHDL (.vhd) or Verilog (.v)  "],
+        'help' : ["A bit exact or high level verilog model for all cells in ",
+                  "the library. The file can be VHDL (.vhd) or Verilog (.v) "],
         'switch' : '-'+group+'_hdl',
         'switch_args' : '<lib file>',
         'requirement' : 'asic',
@@ -574,10 +573,10 @@ def schema_libs(cfg, group):
 
     cfg[''+group]['default']['pgmetal'] = {
         'short_help' : 'Library power rail metal layer',
-        'help' : ["The variable specifies the top metal layer used for power ",
-                  "and ground routing. The parameter can be used to guide    ",
-                  "standard cell power grid hookup within automated place and",
-                  "route tools                                               "],
+        'help' : ["The variable specifies the top metal layer used for power",
+                  "and ground routing. The parameter can be used to guide   ",
+                  "standard cell power grid hookup within automated place   ",
+                  "and route tools                                          "],
         'switch' : '-'+group+'_pgmetal',
         'switch_args' : '<lib metal-layer>',
         'requirement' : 'optional',
@@ -587,14 +586,14 @@ def schema_libs(cfg, group):
 
     cfg[''+group]['default']['vt'] = {
         'short_help' : 'Library transistor threshold',
-        'help' : ["The variable specifies the voltage threshold type of the  ",
-                  "library. The value is extracted automatically if found in ",
-                  "the default_threshold_voltage_group within the nldm timing",
-                  "model. For older technologies with only one vt group, it  "
-                  "is recommended to set the value to rvt or svt"],
+        'help' : ["The variable specifies the voltage threshold type of the ",
+                  "library. The value is extracted automatically if found in",
+                  "the default_threshold_voltage_group within the nldm      ",
+                  "timing model. For older technologies with only one vt    ",
+                  "group, it is recommended to set the value to rvt or svt  "],
         'switch' : '-'+group+'_vt',
         'switch_args' : '<lib vt-type>',
-        'requirement' : 'digital',
+        'requirement' : 'apr',
         'type' : ['string'],
         'defvalue' : [],
         'hash'   : []
@@ -602,10 +601,11 @@ def schema_libs(cfg, group):
 
     cfg[''+group]['default']['tag'] = {
         'short_help' : 'Library indentifier tags',
-        'help' : ["An arbitraty set of tags that can be used by the designer or",
-                  "EDA tools for optimization purposes. The tags are meant to  ",
-                  "cover features not currently supported by built in EDA      ",
-                  "optimization flows. Multiple tags per library is supported. "],
+        'help' : ["An arbitraty set of tags that can be used by the designer",
+                  "or EDA tools for optimization purposes. The tags are     ",
+                  "meant to cover features not currently supported by built ",
+                  "in EDA optimization flows. Multiple tags per library is  ",
+                  "supported.                                               "],
         'switch' : '-'+group+'_tag',
         'switch_args' : '<lib tag>',
         'requirement' : 'optional',
@@ -615,14 +615,14 @@ def schema_libs(cfg, group):
 
     cfg[''+group]['default']['driver'] = {
         'short_help' : 'Library default driver cell',
-        'help' : ["The name of a library cell that can be used as the default  ",
-                  "driver for block timing constraints. The cell should be     ",
-                  "strong enough to drive a block input from another block     ",
-                  "including wire capacitance. In cases, where the actual      ",
-                  "drive is known, the actual driver cell should be used.      "],
+        'help' : ["The name of a library cell to be used as the default     ",
+                  "driver for block timing constraints. The cell should be  ",
+                  "strong enough to drive a block input from another block  ",
+                  "including wire capacitance. In cases, where the actual   ",
+                  "drive is known, the actual driver cell should be used.   "],
         'switch' : '-'+group+'_driver',
         'switch_args' : '<lib name>',
-        'requirement' : 'digital',
+        'requirement' : 'apr',
         'type' : ['string'],
         'defvalue' : []
     }
@@ -631,9 +631,9 @@ def schema_libs(cfg, group):
     cfg[''+group]['default']['exclude'] = {}
     cfg[''+group]['default']['exclude']['default'] = {
         'short_help' : 'Library cell exclude lists',
-        'help' : ["Lists of cells to exclude for specific stages within the    ",
-                  "an implementation flow. The structure of the dictionary is  ",
-                  "['exclude'][stage] = <list>.                                "],
+        'help' : ["Lists of cells to exclude for specific stages within the ",
+                  "an implementation flow. The structure of the dictionary  ",
+                  "is ['exclude'][stage] = <list>.                          "],
         'switch' : '-'+group+'_exclude',
         'switch_args' : '<lib type stage>',
         'requirement' : 'optional',
@@ -643,9 +643,9 @@ def schema_libs(cfg, group):
     cfg[''+group]['default']['include'] = {}
     cfg[''+group]['default']['include']['default'] = {
         'short_help' : 'Library cell include lists',
-        'help' : ["Lists of cells to include for specific stages within the    ",
-                  "an implementation flow. The structure of the dictionary is  ",
-                  "['include'][stage] = <list>.                                "],
+        'help' : ["Lists of cells to include for specific stages within the ",
+                  "an implementation flow. The structure of the dictionary  ",
+                  "is ['include'][stage] = <list>.                          "],
         'switch' : '-'+group+'_include',
         'switch_args' : '<lib type stage>',
         'requirement' : 'optional',
@@ -657,9 +657,9 @@ def schema_libs(cfg, group):
     cfg[''+group]['default']['config'] = {}
     cfg[''+group]['default']['config']['default'] = {
         'short_help' : 'Library EDA setup file',
-        'help' : ["A list of configuration files used to set up automated      ",
-                  "place and route flows for specific EDA tools. The format of ",
-                  "the variable is ['config']['tool'] = <filename>             "],
+        'help' : ["A list of configuration files used to set up automated   ",
+                  "place and route flows for specific EDA tools. The format ",
+                  "of the variable is ['config']['tool'] = <filename>       "],
         'switch' : '-'+group+'_setup',
         'switch_args' : '<lib file>',
         'requirement' : 'optional',
@@ -673,7 +673,7 @@ def schema_libs(cfg, group):
     cfg[''+group]['default']['nldmdb']['default'] = {}
     cfg[''+group]['default']['nldmdb']['default']['default'] = {
         'short_help' : 'Library NLDM compiled database',
-        'help' : ["A binary compiled ndlm file for a specific EDA tool.        "],
+        'help' : ["A binary compiled ndlm file for a specific EDA tool.     "],
         'switch' : '-'+group+'_nldmdb',
         'switch_args' : '<lib corner vendor file>',
         'requirement' : 'optional',
@@ -686,8 +686,8 @@ def schema_libs(cfg, group):
     cfg[''+group]['default']['ccsdb']['default'] = {}
     cfg[''+group]['default']['ccsdb']['default']['default'] = {
         'short_help' : 'Library CCS compiled databse',
-        'help' : ["A binary compiled ccs file for a specific EDA tool. The     ",
-                  "dictionary format is ['ccsdb']['corner']['tool'] = <file>   "],
+        'help' : ["A binary compiled ccs file for a specific EDA tool. The  ",
+                  "dictionary format is ['ccsdb']['corner']['tool'] = <file>"],
         'switch' : '-'+group+'_ccsdb',
         'switch_args' : '<lib corner vendor file>',
         'requirement' : 'optional',
@@ -698,8 +698,9 @@ def schema_libs(cfg, group):
     cfg[''+group]['default']['libdb'] = {}
     cfg[''+group]['default']['libdb']['default'] = {
         'short_help' : 'Library layout compiled database',
-        'help' : ["A binary compiled library layout database for a specific EDA", 
-                  "tool. The dictionary format is ['libdb']['tool'] = <file>   "],
+        'help' : ["A binary compiled library layout database for a specific ", 
+                  "EDA tool. The dictionary format is:                      ",
+                  "['libdb']['tool'] = <file>                               "],
         'switch' : '-'+group+'_libdb',
         'switch_args' : '<lib vendor file>',
         'requirement' : 'optional',
@@ -710,16 +711,22 @@ def schema_libs(cfg, group):
     
     return cfg
 
-############################################
-# EDA Configuration
-#############################################
+###############################################################################
+# EDA Tool Configuration
+###############################################################################
 
 def schema_eda(cfg):
 
     cfg['stages'] = {
         'short_help' : 'List of all compilation stages',
+        'help' : ["A complete list of all stages included in fully automated",
+                  "RTL to GDSII tapeout implementationa and verificatio flow",
+                  "Stages can be added and skipped during flows, but not    ", 
+                  "removed from the list as it would break the compiler.    "],
         'switch' : '-stages',
-        'type' : ['string'],
+        'switch_args' : '<string>',
+        'requirement' : 'all',
+        'type' : ['string'],        
         'defvalue' : ['import',
                       'syn',
                       'floorplan',
@@ -745,22 +752,79 @@ def schema_eda(cfg):
     # Defaults and config for all stages
     for stage in cfg['stages']['defvalue']:        
         cfg['tool'][stage] = {}
-        for key in ('exe', 'opt', 'refdir', 'script', 'copy', 'format', 'jobid', 'np', 'keymap','vendor'):
+        for key in ('exe', 'opt', 'refdir', 'script', 'copy',
+                    'format', 'jobid', 'np', 'keymap','vendor'):
             cfg['tool'][stage][key] = {}
             cfg['tool'][stage][key]['switch'] = '-tool_'+key
             
-        # Short_Help
+        # Short Help
         cfg['tool'][stage]['exe']['short_help'] = 'Stage executable'
         cfg['tool'][stage]['opt']['short_help'] = 'Stage executable options'
-        cfg['tool'][stage]['refdir']['short_help'] = 'Stage reference Flow Directory'
+        cfg['tool'][stage]['refdir']['short_help'] = 'Stage reference flow dir'
         cfg['tool'][stage]['script']['short_help'] = 'Stage entry point script'
         cfg['tool'][stage]['copy']['short_help'] = 'Stage copy-to-local option'
-        cfg['tool'][stage]['format']['short_help'] = 'Stage configuration format'
+        cfg['tool'][stage]['format']['short_help'] = 'Stage config format'
         cfg['tool'][stage]['jobid']['short_help'] = 'Stage job index'
         cfg['tool'][stage]['np']['short_help'] = 'Stage thread parallelism'
         cfg['tool'][stage]['keymap']['short_help'] = 'Stage keyword translation'
         cfg['tool'][stage]['vendor']['short_help'] = 'Stage tool vendor'
 
+        # Long Help
+        cfg['tool'][stage]['exe']['help'] = [
+            "The name of the executable. Can be the full env path to  ",
+            "the excutable or the simple name if the search path has  ",
+            "already been set up in the working environment.          "]
+
+        cfg['tool'][stage]['opt']['help'] = [
+            "A list of command line options for the executable. For   ",
+            "multiple argument options, enter each argument and value ",
+            "as one list entry. Foe example, the argument pair        ",
+            "-c 5 would be entered as one string \'-c 5\'             "]
+
+        cfg['tool'][stage]['refdir']['help'] = [
+            "The directory containing the reference scripts used in   ",
+            "by the stage executable.                                 "]
+
+        cfg['tool'][stage]['script']['help'] = [
+            "The top level reference script to called by the stage    ",
+            "executable                                               "]
+
+        cfg['tool'][stage]['copy']['help'] = [
+            "Specifes that the reference script directory shoulld be  ",
+            "copied and run from the local run directory. This option ",
+            "is set automatically set when the -remote option is set  "]
+        
+        cfg['tool'][stage]['format']['help'] = [
+            "Specifes that format of the configuration file for the   ",
+            "stage. Valid formats are tcl, yaml, and json. The format ",
+            "used is dictated by the executable for the stage.        "]
+
+        cfg['tool'][stage]['jobid']['help'] = [
+            "A dynamic variable that keeeps track of results to pass  ",
+            "foward to the next stage of the implementation pipeline  ",
+            "in cases where multiple jobs are run for one stage and a ",
+            "progrematic selection if made to choose the best result, ",
+            "the variable is use to point to a job which may or may   ",
+            "not be the last job launched"]
+        
+        cfg['tool'][stage]['keymap']['help'] = [
+            "The keymap is used to performs a key to key translation  ",
+            "within the writcfg step before a configuration is written",
+            "out to a json, tcl, or yaml file to be used to drive the ",
+            "stage execution flow. In cases where there is a one to   ",
+            "one correlation between the features of the sc_cfg and   ",
+            "the tool configuration, this keymap can be used to avoid ",
+            "the need for stub scripts that translate the sc_cfg to   ",
+            "the native eda tool reference flow scripts               "]
+
+        cfg['tool'][stage]['vendor']['help'] = [
+            "The vendor argument is used for selecting eda specific   ",
+            "technology setup varaibales from the PDK and libraries   ",
+            "which generallly support multiple vendors for each       ",
+            "implementation stage                                     "]
+
+        
+        
         # Switch Args
         cfg['tool'][stage]['exe']['switch_args'] = '<stage string>'
         cfg['tool'][stage]['opt']['switch_args'] = '<stage string>'
@@ -785,6 +849,19 @@ def schema_eda(cfg):
         cfg['tool'][stage]['keymap']['type'] = ['string', 'string']
         cfg['tool'][stage]['vendor']['type'] = ['string']
 
+        # Requirement
+        cfg['tool'][stage]['exe']['requirement'] = ['all']
+        cfg['tool'][stage]['opt']['requirement'] = ['optional']
+        cfg['tool'][stage]['refdir']['requirement'] = ['optional']
+        cfg['tool'][stage]['script']['requirement'] = ['optional']
+        cfg['tool'][stage]['copy']['requirement'] = ['optional']
+        cfg['tool'][stage]['format']['requirement'] = ['optional']
+        cfg['tool'][stage]['jobid']['requirement'] = ['all']
+        cfg['tool'][stage]['np']['requirement'] = ['all']
+        cfg['tool'][stage]['keymap']['requirmenet'] = ['optional']
+        cfg['tool'][stage]['vendor']['requirement'] = ['all']
+
+        
         # Hash
         cfg['tool'][stage]['refdir']['hash'] = []
         cfg['tool'][stage]['script']['hash'] = []
