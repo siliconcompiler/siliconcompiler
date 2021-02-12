@@ -42,7 +42,7 @@ def cmdline():
     # Required positional source file argument
     parser.add_argument('source',
                         nargs='+',
-                        help=def_cfg['source']['short_help'])
+                        help='\n'.join(def_cfg['source']['help']))
 
     #Recursive argument adder
     add_arg(def_cfg, parser)
@@ -161,7 +161,7 @@ def add_arg(cfg, parser, keys=None):
                                     dest=k+"_"+k2,
                                     metavar=cfg[k]['syn'][k2]['switch_args'],
                                     action='append',
-                                    help=cfg[k]['syn'][k2]['short_help'],
+                                    help='\n'.join(cfg[k]['syn'][k2]['help']),
                                     default = argparse.SUPPRESS)
         #All others
         else:            
@@ -175,14 +175,14 @@ def add_arg(cfg, parser, keys=None):
                                         dest=keystr,
                                         action='store_const',
                                         const=['True'],
-                                        help=cfg[k]['short_help'],
+                                        help='\n'.join(cfg[k]['help']),
                                         default = argparse.SUPPRESS)
                 else:
                     parser.add_argument(cfg[k]['switch'],
                                         metavar=cfg[k]['switch_args'],
                                         dest=keystr,
                                         action='append',
-                                        help=cfg[k]['short_help'],
+                                        help='\n'.join(cfg[k]['help']),
                                         default = argparse.SUPPRESS)
             else:
                 newkeys.append(str(k))
