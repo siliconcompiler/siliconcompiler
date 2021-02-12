@@ -275,12 +275,19 @@ class Chip:
             if 'value' in cfg[k]:
                 keystr = ' '.join(newkeys)
                 if(mode=='doc'):
-                    valstr = '\n'.join(cfg[k]['help'])
-                    outlst = [keystr,
-                              '\n',
-                              valstr,
-                              '\n']
-                    outstr = ' '.join(outlst)
+                    #create two columns
+                    outlst = []
+                    for i in range(len(cfg[k]['help'])):
+                        if i==0:
+                            col0 = "{: <20}".format(newkeys[0])
+                        elif len(newkeys)>i:
+                            col0 = "{: <20}".format("<"+newkeys[i]+">")
+                        else:
+                            col0 = "{: <20}".format("")
+                        col1 = cfg[k]['help'][i]
+                        valstr = col0 + col1
+                        outlst.append(valstr)
+                    outstr = '\n'.join(outlst)
                 elif (mode=='tcl'):
                     valstr = ' '.join(cfg[k]['value'])
                     outlst = [prefix,keystr,'[list ', valstr,']']
@@ -290,9 +297,9 @@ class Chip:
                     outlst = [prefix,keystr, valstr]
                     outstr = ' '.join(outlst)
                 if f is None:
-                    print(outstr)
+                    print(outstr+'\n')
                 else:
-                    print(outstr, file=f)
+                    print(outstr+'\n', file=f)
             else:
                 self.printcfg(cfg[k], keys=newkeys, f=f, mode=mode, prefix=prefix)
 
