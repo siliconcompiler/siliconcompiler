@@ -241,9 +241,10 @@ def main():
     #mychip.hash()
 
     # Copy files and update config for running on a remote cluster if necessary.
-    job_hash = mychip.cfg['source']['value'][0] + '_' + mychip.cfg['target']['value'][0]
-    mychip.status['job_hash'] = job_hash
     if (len(mychip.cfg['remote']['value']) > 0) and (mychip.cfg['remote']['value'][0] != ""):
+        # TODO: Generate a job hash based on design name after the 'import' step.
+        job_hash = mychip.cfg['target']['value'][0]
+        mychip.status['job_hash'] = job_hash
         # Re-name the given source files to match compute cluster storage.
         new_paths = []
         for filepath in mychip.cfg['source']['value']:
