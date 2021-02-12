@@ -30,7 +30,7 @@ def cmdline():
     '''
     def_cfg = schema()
 
-    os.environ["COLUMNS"] = '100'
+    os.environ["COLUMNS"] = '80'
 
     # Argument Parser
     
