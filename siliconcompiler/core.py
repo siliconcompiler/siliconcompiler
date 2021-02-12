@@ -780,21 +780,24 @@ class Chip:
                 subprocess.run(cmd, shell=True)
                 #hack: extracting topmodule from concatenated verilator files
                 modules = 0
-                with open("verilator.v", "r") as open_file:
-                    for line in open_file:
-                        modmatch = re.match('^module\s+(\w+)', line)
-                        if modmatch:
-                            modules = modules + 1
-                            topmodule = modmatch.group(1)
-                # Only setting sc_design when appropriate
-                if (modules > 1) & (self.cfg['design']['value'] == ""):
-                    self.logger.error('Multiple modules found during import, but sc_design was not set')
-                    sys.exit()
+                if(len(self.cfg['design']['value']) < 1):
+                    with open("verilator.v", "r") as open_file:
+                        for line in open_file:
+                            modmatch = re.match('^module\s+(\w+)', line)
+                            if modmatch:
+                                modules = modules + 1
+                                topmodule = modmatch.group(1)
+                                # Only setting sc_design when appropriate
+                    if (modules > 1) & (self.cfg['design']['value'] == ""):
+                        self.logger.error('Multiple modules found during import, but sc_design was not set')
+                        sys.exit()
+                    else:
+                        self.logger.info('Setting design (topmodule) to %s', topmodule)
+                        self.cfg['design']['value'].append(topmodule)
                 else:
-                    self.logger.info('Setting design (topmodule) to %s', topmodule)
-                    self.cfg['design']['value'].append(topmodule)
-                    cmd = "cp verilator.v " + "outputs/" + topmodule + ".v"
-                    subprocess.run(cmd, shell=True)
+                    topmodule = self.cfg['design']['value'][-1]
+                cmd = "cp verilator.v " + "outputs/" + topmodule + ".v"
+                subprocess.run(cmd, shell=True)
 
             #Updating jobid when complete
             self.cfg['tool'][stage]['jobid']['value'] = [str(jobid)]
