@@ -273,7 +273,7 @@ class Chip:
             newkeys =  keys.copy()
             newkeys.append(k)
             if 'value' in cfg[k]:
-                valstr = ' '.join(str(val) for val in cfg[k]['value'])
+                valstr = ' '.join(cfg[k]['value'])
                 keystr = ' '.join(newkeys)
                 if(mode=="tcl"):
                     outlst = [prefix,keystr,'[list ', valstr,']']
@@ -691,9 +691,7 @@ class Chip:
             self.logger.info('Running stage: %s', stage)
 
             #Updating jobindex
-            #jobid = int(self.cfg['tool'][stage]['jobid']['value'][-1]) + 1 #scalar
-            #TODO: flow won't work without this patch.
-            jobid = 0
+            jobid = int(self.cfg['tool'][stage]['jobid']['value'][-1]) + 1 #scalar
             
             #Moving to working directory
             jobdir = (str(self.cfg['build']['value'][-1]) + #scalar
