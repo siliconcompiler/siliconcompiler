@@ -621,12 +621,24 @@ def schema_libs(cfg, group):
                   "including wire capacitance. In cases, where the actual   ",
                   "drive is known, the actual driver cell should be used.   "],
         'switch' : '-'+group+'_driver',
-        'switch_args' : '<lib name>',
+        'switch_args' : '<lib drivername>',
         'requirement' : 'apr',
         'type' : ['string'],
         'defvalue' : []
     }
 
+    cfg[''+group]['default']['site'] = {
+        'short_help' : 'Library primary site/tile name for place and route. ',
+        'help' : ["Provides the primary site name within the library to use ",
+                  "for placement. Value can generally be automatically      ",
+                  "inferred from the lef file if only one site is specified "],
+        'switch' : '-'+group+'_site',
+        'switch_args' : '<lib sitename>',
+        'requirement' : 'optional',
+        'type' : ['string'],
+        'defvalue' : []
+    }
+    
     #Dont use cell lists
     cfg[''+group]['default']['exclude'] = {}
     cfg[''+group]['default']['exclude']['default'] = {
@@ -1211,67 +1223,108 @@ def schema_rtl(cfg):
 
 def schema_floorplan(cfg):
 
-
     # 1. Automatic floorplanning
     cfg['density'] = {
-        'short_help' : 'Target core density (percent)',
         'switch' : '-density',
         'switch_args' : '<int>',
         'type' : ['int'],
-        'defvalue' : []
+        'requirement' : ['optional'],
+        'defvalue' : [],
+        'short_help' : 'Target core density (percent)',
+        'help' : ["Provides a target density based on the total design cell",
+                  "area reported after synthesis. This number is used when ",
+                  "no diesize or floorplan is supplied. Any number between ",
+                  "1 and 100 is legal, but values above 50 may fail due to ",
+                  "area/congestion issues during apr.                      "]
     }
 
     cfg['coremargin'] = {
-        'short_help' : 'Core place and route halo margin (um)',
         'switch' : '-coremargin',
         'switch_args' : '<float>',
         'type' : ['float'],
-        'defvalue' : []
+        'requirement' : ['optional'],
+        'defvalue' : [],
+        'short_help' : 'Core place and route halo margin (um)',        
+        'help' : ["Sets the halo/margin between the apr core cell area to  ",
+                  "use for automated floorplaning setup. The value is      ",
+                  "specified in microns and is only used when no diesize or",
+                  "floorplan is supplied                                   "]
     }
 
     cfg['aspectratio'] = {
-        'short_help' : 'Target aspect ratio',
         'switch' : '-aspectratio',
         'switch_args' : '<float>',
         'type' : ['float'],
-        'defvalue' : []
+        'requirement' : ['optional'],
+        'defvalue' : ['1'],
+        'short_help' : 'Target aspect ratio',
+        'help' : ["The aspect ratio to use for automated floor-planning and",
+                  "specifes the height to width ratio of the block. Values "
+                  "below 0.1 and above 10 shuld be avoided as they will    ",
+                  "likekly fail to converd during apr. The ideal aspect    ",
+                  "ratio for the vast majhority of designs is 1.           "]
     }
 
     # 2. Spec driven floorplanning    
     cfg['diesize'] = {
-        'short_help' : 'Target die size (x0 y0 x1 y1) (um)',
         'switch' : '-diesize',
         'switch_args' : '<float float float float>',
         'type' : ['float', 'float', 'float', 'float'],
-        'defvalue' : []
+        'requirement' : ['optional'],
+        'defvalue' : [],
+        'short_help' : 'Target die size (x0 y0 x1 y1) (um)',
+        'help' : ["Provides the outer boundary of the physical design. The ",
+                  "number is provded as a tuple (x0 y0 x1 y1), where x0,y0 ",
+                  "species the lower left corner of the block and x1,y1    ",
+                  "specifies the upper right corner of. Only rectangular   ",
+                  "blocks are supported with the diesize parameter. All    ",
+                  "values are specified in microns.                        "]
     }
 
     cfg['coresize'] = {
-        'short_help' : 'Target core size (x0 y0 x1 y1) (um)',
         'switch' : '-coresize',
         'switch_args' : '<float float float float>',
         'type' : ['float', 'float', 'float', 'float'],
-        'defvalue' : []
+        'requirement' : ['optional'],
+        'defvalue' : [],
+        'short_help' : 'Target core size (x0 y0 x1 y1) (um)',
+        'help' : ["Provides the core cell boundary for place and route.The ",
+                  "number is provded as a tuple (x0 y0 x1 y1), where x0,y0 ",
+                  "species the lower left corner of the block and x1,y1    ",
+                  "specifies the upper right corner of. Only rectangular   ",
+                  "blocks are supported with the diesize parameter. All    ",
+                  "values are specified in microns.                        "]
     }
     
     # 3. Parametrized floorplanning
     cfg['floorplan'] = {
-        'short_help' : 'Floorplaning script/program',
         'switch' : '-floorplan',
         'switch_args' : '<file>',
         'type' : ['file'],
+        'requirement' : ['optional'],
         'defvalue' : [],
-        'hash'   : []
+        'hash'   : [],
+        'short_help' : 'Floorplaning script/program',
+        'help' : ["Provides a parametrized floorplan to be used during the ",
+                  "floorplan to create a fixed DEF file for placement.     ",
+                  "Files with a .py suffix are processed by the sc, while  ",
+                  "all other fils are passed through to the floorplanning  ",
+                  "tool as is.                                             "]
     }
     
     # #4. Hard coded DEF
     cfg['def'] = {
-        'short_help' : 'Firm floorplan file (DEF)',
         'switch' : '-def',
         'switch_args' : '<file>',
         'type' : ['file'],
+        'requirement' : ['optional'],
         'defvalue' : [],
-        'hash'   : []
+        'hash'   : [],
+        'short_help' : 'Firm floorplan file (DEF)',
+        'help' : ["Provides a hard coded DEF file that takes the place of  ",
+                  "the floorplanning stage. The DEF file should be complete",
+                  "and have all the features needed to enable cell         ",
+                  "placement"]
     }
     
     return cfg
