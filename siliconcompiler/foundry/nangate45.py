@@ -75,7 +75,7 @@ def nangate45_lib(chip, root):
     libheight = '1.4'
     version = 'r1p0'
     corner = 'typical'
-    objectives = ['setup','hold']
+    objectives = ['setup']
     libdir = '/'.join([root,
                        foundry,
                        process,
@@ -123,8 +123,12 @@ def nangate45_lib(chip, root):
     chip.add('mcmm_pexcorner',corner)
     chip.add('mcmm_scenario','nominal','libcorner', corner)
     chip.add('mcmm_scenario','nominal','pexcorner', corner)
-    chip.add('mcmm_scenario','nominal','opcond', corner+" "+libname)
-    chip.add('mcmm_scenario','nominal','objectives', objectives)
+    chip.add('mcmm_scenario','nominal','objectives', 'syn',  'setup')
+    chip.add('mcmm_scenario','nominal','objectives', 'place', 'setup')
+    objectives = ['setup', 'hold']
+    for stage in ('cts','route','signoff'):
+        chip.add('mcmm_scenario','nominal', 'objectives', stage, objectives)
+    
     
 #########################
 if __name__ == "__main__":    

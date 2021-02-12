@@ -1520,63 +1520,95 @@ def schema_apr(cfg):
 def schema_constraints(cfg):
 
     cfg['mcmm_libcorner'] = {
-        'short_help' : 'MMCM Lib Corner List (p_v_t)',
         'switch' : '-mcmm_libcorner',
         'switch_args' : '<string>',
         'type' : ['string'],
-        'defvalue' : []
+        'requirement' : 'apr',
+        'defvalue' : [],
+        'short_help' : 'MCMM Lib Corner List (p_v_t)',
+        'help' : ["A complete list of the corners supported by the library",
+                  "The list would include all combinations of process,    ",
+                  "voltage, and temperature which have nldm views         "]
     }
 
     cfg['mcmm_pexcorner'] = {
-        'short_help' : 'MMCM PEX Corner List',
         'switch' : '-mcmm_pexcorner',
         'switch_args' : '<string>',
         'type' : ['string'],
-        'defvalue' : []
+        'requirement' : 'apr',
+        'defvalue' : [],
+        'short_help' : 'MCMM PEX Corner List',
+        'help' : ["A complete list of the pex corners supported by the PDK"]
+        
     }
 
     cfg['mcmm_scenario'] = {}
     cfg['mcmm_scenario']['default'] = {}
     
     cfg['mcmm_scenario']['default']['libcorner'] = {
-        'short_help' : 'MMCM scenario libcorner',
         'switch' : '-mcmm_scenario_libcorner',
         'switch_args' : '<scenario libcorner>',
         'type' : ['string'],
-        'defvalue' : []
+        'requirement' : 'apr',
+        'defvalue' : [],
+        'short_help' : 'MCMM scenario libcorner',
+        'help' : ["Provides the exact libcorner name for accessing the  ",
+                  "target timing views needed for mcmm                  "]
     }
 
     cfg['mcmm_scenario']['default']['pexcorner'] = {
-        'short_help' : 'MMCM scenario pexcorner',
+        'short_help' : 'MCMM scenario pexcorner',
         'switch' : '-mcmm_scenario_pexcorner',
         'switch_args' : '<scenario pexcorner>',
         'type' : ['string'],
-        'defvalue' : []
+        'requirement' : 'apr',
+        'defvalue' : [],
+        'help' : ["Provides the exact pexcorner name for the accessing  ",
+                  "the pdk_pexmodel                                     "]
     }
-      
-    cfg['mcmm_scenario']['default']['opcond'] = {
-        'short_help' : 'MMCM scenario operating condition and library',
-        'switch' : '-mcmm_scenario_opcond',
-        'switch_args' : '<scenario (opcond library)>',
-        'type' : ['string', 'string'],
-        'defvalue' : []
-    }
-        
-    cfg['mcmm_scenario']['default']['constraints'] = {
-        'short_help' : 'MMCM scenario constraints',
-        'switch' : '-mcmm_scenario_constraints',
-        'switch_args' : '<scenario stage file>',
-        'type' : ['file'],
-        'hash' : [],
-        'defvalue' : []
-    }
-
-    cfg['mcmm_scenario']['default']['objectives'] = {
-        'short_help' : 'MMCM Objectives (setup, hold, power,...)',
-        'switch' : '-mcmm_scenario_objectives',
-        'switch_args' : '<scenario stage objective>',
+    
+    cfg['mcmm_scenario']['default']['mode'] = {
+        'switch' : '-mcmm_scenario_mode',
+        'switch_args' : '<scenario mode>',
         'type' : ['string'],
-        'defvalue' : []
+        'requirement' : 'apr',
+        'defvalue' : [],
+        'short_help' : 'MCMM scenario mode name',
+        'help' : ["Provides the exact pexcorner name for the accessing  ",
+                  "the pdk_pexmodel                                     "]
+    }
+    
+    cfg['mcmm_scenario']['default']['constraints'] = {}
+    cfg['mcmm_scenario']['default']['constraints']['default'] = {
+        'short_help' : 'MCMM scenario constraints',
+        'switch' : '-mcmm_scenario_constraints',
+        'switch_args' : '<scenario constraints stage file>',
+        'type' : ['file'],
+        'requirement' : 'optional',
+        'hash' : [],
+        'defvalue' : [],
+        'help' : ["Provides scenario specific constraints. If none are  ",
+                  "supplied default constraints are generated based on  ",
+                  "the clk parameter. The constraints can be applied on ",
+                  "per stage basis to allow for tighetening margins as  ",
+                  "the design getes more refined throught he apr flow   "]
+        }
+
+    cfg['mcmm_scenario']['default']['objectives'] = {}
+    cfg['mcmm_scenario']['default']['objectives']['default'] = {
+        'switch' : '-mcmm_scenario_objectives',
+        'switch_args' : '<scenario objective stage name>',
+        'type' : ['string'],
+        'requirement' : 'apr',
+        'defvalue' : [],
+        'short_help' : 'MCMM objectives',
+        'help' : ["Provides taget objectives for a scenario on a per    ",
+                  "basis. Valid objectives must align with the syn and  ",
+                  "apr tools, but generally include setup, hold, power. ",
+                  "Per stage objectives is supported to emable skipping ",
+                  "of certain objectives like until the deisgn has the  ",
+                  "necessary steps done, for example deferring the hold ",
+                  "fix objective until after cts.                       "]
     }
 
     return cfg
