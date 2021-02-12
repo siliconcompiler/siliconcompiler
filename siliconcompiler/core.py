@@ -273,13 +273,22 @@ class Chip:
             newkeys =  keys.copy()
             newkeys.append(k)
             if 'value' in cfg[k]:
-                valstr = ' '.join(cfg[k]['value'])
                 keystr = ' '.join(newkeys)
-                if(mode=="tcl"):
+                if(mode=='doc'):
+                    valstr = '\n'.join(cfg[k]['help'])
+                    outlst = [keystr,
+                              '\n',
+                              valstr,
+                              '\n']
+                    outstr = ' '.join(outlst)
+                elif (mode=='tcl'):
+                    valstr = ' '.join(cfg[k]['value'])
                     outlst = [prefix,keystr,'[list ', valstr,']']
+                    outstr = ' '.join(outlst)
                 else:
+                    valstr = ' '.join(cfg[k]['value'])
                     outlst = [prefix,keystr, valstr]
-                outstr = ' '.join(outlst)
+                    outstr = ' '.join(outlst)
                 if f is None:
                     print(outstr)
                 else:
