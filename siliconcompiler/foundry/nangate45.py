@@ -37,31 +37,31 @@ def nangate45_pdk(chip, root):
     # hard coded target lib
     chip.add('target_stackup',chip.get('pdk_stackup')[0])
 
-    # PNR tech file
-    chip.add('pdk_pnrtech',stackup, libarch, vendor,
+    # APR tech file
+    chip.add('pdk_aprtech',stackup, libarch, vendor,
                pdkdir+'/apr/nangate45.tech.lef')
 
     # Techlef Overrides
-    chip.add('pdk_pnrlayer',stackup, 'metal1 X 0.095 0.19')
-    chip.add('pdk_pnrlayer',stackup, 'metal1 Y 0.07  0.14')
-    chip.add('pdk_pnrlayer',stackup, 'metal2 X 0.095 0.19')
-    chip.add('pdk_pnrlayer',stackup, 'metal2 Y 0.07  0.14')
-    chip.add('pdk_pnrlayer',stackup, 'metal3 X 0.095 0.19')
-    chip.add('pdk_pnrlayer',stackup, 'metal3 Y 0.07  0.14')
-    chip.add('pdk_pnrlayer',stackup, 'metal4 X 0.095 0.28')
-    chip.add('pdk_pnrlayer',stackup, 'metal4 Y 0.07  0.28')
-    chip.add('pdk_pnrlayer',stackup, 'metal5 X 0.095 0.28')
-    chip.add('pdk_pnrlayer',stackup, 'metal5 Y 0.07  0.28')
-    chip.add('pdk_pnrlayer',stackup, 'metal6 X 0.095 0.28')
-    chip.add('pdk_pnrlayer',stackup, 'metal6 Y 0.07  0.28')
-    chip.add('pdk_pnrlayer',stackup, 'metal7 X 0.095 0.8')
-    chip.add('pdk_pnrlayer',stackup, 'metal7 Y 0.07  0.8')
-    chip.add('pdk_pnrlayer',stackup, 'metal8 X 0.095 0.8')
-    chip.add('pdk_pnrlayer',stackup, 'metal8 Y 0.07  0.8')
-    chip.add('pdk_pnrlayer',stackup, 'metal9 X 0.095 1.6')
-    chip.add('pdk_pnrlayer',stackup, 'metal9 Y 0.07  1.6')
-    chip.add('pdk_pnrlayer',stackup, 'metal10 X 0.095 1.6')
-    chip.add('pdk_pnrlayer',stackup, 'metal10 Y 0.07 1.6')
+    chip.add('pdk_aprlayer',stackup, 'metal1 X 0.095 0.19')
+    chip.add('pdk_aprlayer',stackup, 'metal1 Y 0.07  0.14')
+    chip.add('pdk_aprlayer',stackup, 'metal2 X 0.095 0.19')
+    chip.add('pdk_aprlayer',stackup, 'metal2 Y 0.07  0.14')
+    chip.add('pdk_aprlayer',stackup, 'metal3 X 0.095 0.19')
+    chip.add('pdk_aprlayer',stackup, 'metal3 Y 0.07  0.14')
+    chip.add('pdk_aprlayer',stackup, 'metal4 X 0.095 0.28')
+    chip.add('pdk_aprlayer',stackup, 'metal4 Y 0.07  0.28')
+    chip.add('pdk_aprlayer',stackup, 'metal5 X 0.095 0.28')
+    chip.add('pdk_aprlayer',stackup, 'metal5 Y 0.07  0.28')
+    chip.add('pdk_aprlayer',stackup, 'metal6 X 0.095 0.28')
+    chip.add('pdk_aprlayer',stackup, 'metal6 Y 0.07  0.28')
+    chip.add('pdk_aprlayer',stackup, 'metal7 X 0.095 0.8')
+    chip.add('pdk_aprlayer',stackup, 'metal7 Y 0.07  0.8')
+    chip.add('pdk_aprlayer',stackup, 'metal8 X 0.095 0.8')
+    chip.add('pdk_aprlayer',stackup, 'metal8 Y 0.07  0.8')
+    chip.add('pdk_aprlayer',stackup, 'metal9 X 0.095 1.6')
+    chip.add('pdk_aprlayer',stackup, 'metal9 Y 0.07  1.6')
+    chip.add('pdk_aprlayer',stackup, 'metal10 X 0.095 1.6')
+    chip.add('pdk_aprlayer',stackup, 'metal10 Y 0.07 1.6')
     
 ####################################################
 # Library Setup
