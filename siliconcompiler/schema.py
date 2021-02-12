@@ -165,7 +165,7 @@ def schema_pdk(cfg):
                   "four 2x wide, and 2 4x wide metals, might be identified  ",
                   "as 2MA_4MB_2MC. Each stackup will come with its own set  ",
                   "routing technology files and parasitic models specified  ",
-                  "in the pdk_pexmodel and pdk_pnrtech variables.           "],
+                  "in the pdk_pexmodel and pdk_aprtech variables.           "],
         'switch' : '-pdk_stackup',
         'switch_args' : '<name>',
         'requirement' : 'asic',
@@ -283,10 +283,10 @@ def schema_pdk(cfg):
     }
     
     # Place and Route
-    cfg['pdk_pnrtech'] = {}
-    cfg['pdk_pnrtech']['default'] = {}
-    cfg['pdk_pnrtech']['default']['default'] = {}
-    cfg['pdk_pnrtech']['default']['default']['default'] = {
+    cfg['pdk_aprtech'] = {}
+    cfg['pdk_aprtech']['default'] = {}
+    cfg['pdk_aprtech']['default']['default'] = {}
+    cfg['pdk_aprtech']['default']['default']['default'] = {
         'short_help' : 'Place and route tehnology file',
         'help' : ["Technology file for place and route tools. The file      ",
                   "contains the necessary information needed to create DRC  ",
@@ -297,7 +297,7 @@ def schema_pdk(cfg):
                   "library height. For example a node might support 6 track,",
                   "7.5 track and 9 track high libraries with libarch names  ",
                   "of 6T, 7.5T, 9T                                          "],
-        'switch' : '-pdk_pnrtech',
+        'switch' : '-pdk_aprtech',
         'switch_args' : '<stackup lib vendor file>',
         'requirement' : 'apr',
         'type' : ['file'],
@@ -305,10 +305,10 @@ def schema_pdk(cfg):
         'hash'   : []
     }
 
-    cfg['pdk_pnrdir'] = {}
-    cfg['pdk_pnrdir']['default'] = {}
-    cfg['pdk_pnrdir']['default']['default'] = {}
-    cfg['pdk_pnrdir']['default']['default']['default'] = {
+    cfg['pdk_aprdir'] = {}
+    cfg['pdk_aprdir']['default'] = {}
+    cfg['pdk_aprdir']['default']['default'] = {}
+    cfg['pdk_aprdir']['default']['default']['default'] = {
         'short_help' : 'Place and route tool setup directory ',
         'help' : ["Directory containing various setup files for place and   ",
                   "route tools. These files are avaialble in the PDK  on a  ",
@@ -319,7 +319,7 @@ def schema_pdk(cfg):
                   "library height. For example a node might support 6       ",
                   "track, 7.5 track and 9 track high libraries with         ",
                   "libarch names of 6T, 7.5T, 9T                            "],
-        'switch' : '-pdk_pnrdir',
+        'switch' : '-pdk_aprdir',
         'switch_args' : '<stackup libarch tool file>', 
         'requirement' : 'optional',
         'type' : ['file'],
@@ -328,18 +328,18 @@ def schema_pdk(cfg):
     }
 
     
-    cfg['pdk_pnrlayer'] = {}
-    cfg['pdk_pnrlayer']['default'] = {
+    cfg['pdk_aprlayer'] = {}
+    cfg['pdk_aprlayer']['default'] = {
         'short_help' : 'Place and route routing layer definitions',
         'help' : ["In experimental settings and for immature PDKs there may ",
                   "be a need to override the design rules defined int he    ",
-                  "pdk_pnrtech file. This should be done using using        ",
-                  "pdk_pnrlayer.The layer definition is given as a tuple on ",
+                  "pdk_aprtech file. This should be done using using        ",
+                  "pdk_aprlayer.The layer definition is given as a tuple on ",
                   "a per stackup basis. An hypothetical example of a valid  ",
                   "layer definition would be metal1 X 0.5 1.0 for defining  ",
                   "metal1 as a horizontal routing layer with a 0.5um width  ",
                   "and 1.0um pitch grid.                                    "],
-        'switch' : '-pdk_pnrlayer',
+        'switch' : '-pdk_aprlayer',
         'switch_args' : '<stackup layername X|Y width pitch>',
         'requirement' : 'optional',
         'type' : ['string', 'string', 'float', 'float'],
@@ -434,7 +434,7 @@ def schema_libs(cfg, group):
         'short_help' : 'Library architecture',
         'help' : ["A name/tag used to identify the library type for place   ",
                   "and route technology setup. Libarch must match up with   ",
-                  "the name used in the pdk_pnrtech structure. The libarch  ",
+                  "the name used in the pdk_aprtech structure. The libarch  ",
                   "is a unique a string that identifies the library height  ",
                   "or performance class of the library. Mixing of libarchs  ",
                   "in a flat place and route block is not allowed.          "],
@@ -449,7 +449,7 @@ def schema_libs(cfg, group):
         'short_help' : 'Library height',
         'help' : ["The height of the library cells in (um). The value is    ",
                   "automatically extracted from the technology file from the",
-                  "pdk_pnrtech structure.                                   "], 
+                  "pdk_aprtech structure.                                   "], 
         'switch' : '-'+group+'_libheight',
         'switch_args' : '<lib libheight>',
         'requirement' : 'apr',
@@ -782,7 +782,7 @@ def schema_eda(cfg):
         cfg['tool'][stage]['opt']['switch'] = '-tool_opt'
         cfg['tool'][stage]['opt']['switch_args'] = '<stage string>'
         cfg['tool'][stage]['opt']['type'] = ['string']
-        cfg['tool'][stage]['opt']['requirement'] = ['optional']
+        cfg['tool'][stage]['opt']['requirement'] = 'optional'
         cfg['tool'][stage]['opt']['defvalue'] = []
         cfg['tool'][stage]['opt']['short_help'] = 'Stage executable options'
         cfg['tool'][stage]['opt']['help'] = [
@@ -796,7 +796,7 @@ def schema_eda(cfg):
         cfg['tool'][stage]['refdir']['switch'] = '-tool_refdir'
         cfg['tool'][stage]['refdir']['switch_args'] = '<stage dir>'
         cfg['tool'][stage]['refdir']['type'] = ['file']
-        cfg['tool'][stage]['refdir']['requirement'] = ['optional']
+        cfg['tool'][stage]['refdir']['requirement'] = 'optional'
         cfg['tool'][stage]['refdir']['hash'] = []
         cfg['tool'][stage]['refdir']['defvalue'] = []
         cfg['tool'][stage]['refdir']['short_help'] = 'Stage reference flow dir'
@@ -809,7 +809,7 @@ def schema_eda(cfg):
         cfg['tool'][stage]['script']['switch'] = '-tool_script'
         cfg['tool'][stage]['script']['switch_args'] = '<stage file>'
         cfg['tool'][stage]['script']['type'] = ['file']
-        cfg['tool'][stage]['script']['requirement'] = ['optional']
+        cfg['tool'][stage]['script']['requirement'] = 'optional'
         cfg['tool'][stage]['script']['hash'] = []
         cfg['tool'][stage]['script']['defvalue'] = []
         cfg['tool'][stage]['script']['short_help'] = 'Stage entry point script'
@@ -822,7 +822,7 @@ def schema_eda(cfg):
         cfg['tool'][stage]['copy']['switch'] = '-tool_copy'
         cfg['tool'][stage]['copy']['switch_args'] = '<stage string>'
         cfg['tool'][stage]['copy']['type'] = ['bool']
-        cfg['tool'][stage]['copy']['requirement'] = ['optional']
+        cfg['tool'][stage]['copy']['requirement'] = 'optional'
         cfg['tool'][stage]['copy']['defvalue'] = []
         cfg['tool'][stage]['copy']['short_help'] = 'Stage copy-to-local option'
         cfg['tool'][stage]['copy']['help'] = [
@@ -879,7 +879,7 @@ def schema_eda(cfg):
         cfg['tool'][stage]['keymap']['switch'] = '-tool_keymap'
         cfg['tool'][stage]['keymap']['switch_args'] = '<stage string string>'
         cfg['tool'][stage]['keymap']['type'] = ['string', 'string']
-        cfg['tool'][stage]['keymap']['requirmenet'] = ['optional']
+        cfg['tool'][stage]['keymap']['requirmenet'] = 'optional'
         cfg['tool'][stage]['keymap']['defvalue'] = []
         cfg['tool'][stage]['keymap']['short_help'] = 'Stage keyword translation'
         cfg['tool'][stage]['keymap']['help'] = [
@@ -920,7 +920,7 @@ def schema_options(cfg):
         'switch' : '-env',
         'switch_args' : '<varname value>',
         'type' : ['string', 'string'],
-        'requirement' : ['optional'],
+        'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Vendor specific environment variables to set',
         'help' : ["EDA tools and reference flows often require environment  ",
@@ -932,7 +932,7 @@ def schema_options(cfg):
         'switch' : '-cfgfile',
         'switch_args' : '<file>',
         'type' : ['file'],
-        'requirement' : ['optional'],
+        'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
         'short_help' : 'Loads configurations from a json file',
@@ -952,7 +952,7 @@ def schema_options(cfg):
         'switch' : '-lock',
         'switch_args' : '',
         'type' : ['bool'],
-        'requirement' : ['optional'],
+        'requirement' : 'optional',
         'defvalue' : ['False'],
         'short_help' : 'Prevents further configuation mods',
         'help' : ["The lock switch can be used to prevent unintented        ",
@@ -969,7 +969,7 @@ def schema_options(cfg):
         'switch' : '-quiet',
         'switch_args' : '',
         'type' : ['bool'],
-        'requirement' : ['optional'],
+        'requirement' : 'optional',
         'defvalue' : ['False'],
         'short_help' : 'Supresses informational printing',
         'help' : ["By default, the sc will log extensive info to the display",
@@ -981,7 +981,7 @@ def schema_options(cfg):
         'switch' : '-debug',
         'switch_args' : '<string>',
         'type' : ['string'],
-        'requirement' : ['optional'],
+        'requirement' : 'optional',
         'defvalue' : ['INFO'],
         'short_help' : 'Debug level (INFO/DEBUG/WARNING/ERROR)',
         'help' : ["The debug param provides explicit control over the level ",
@@ -992,7 +992,7 @@ def schema_options(cfg):
         'switch' : '-build',
         'switch_args' : '<string>',
         'type' : ['string'],
-        'requirement' : ['optional'],
+        'requirement' : 'optional',
         'defvalue' : ['build'],
         'short_help' : 'Name of build directory',
         'help' : ["By default, the flow is completed in the local directory ",
@@ -1032,7 +1032,7 @@ def schema_options(cfg):
         'switch_args' : '<stage>',
         'type' : ['string'],
         'defvalue' : [],
-        'requirement' : ['optional'],
+        'requirement' : 'optional',
         'short_help' : 'Compilation skip stages',
         'help' : ["In some older technologies it may be possible to skip    "
                   "some of the stages in the flow. The skip variable lists  ",
@@ -1043,7 +1043,7 @@ def schema_options(cfg):
         'switch' : '-msg_trigger',
         'switch_args' : '<string>',
         'type' : ['string'],
-        'requirement' : ['optional'],
+        'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Trigger for messaging to <msg_contact>',
         'help' : ["A list of stages after which to messages a recipient.    ",
@@ -1056,7 +1056,7 @@ def schema_options(cfg):
         'switch' : '-msg_contact',
         'switch_args' : '<string>',
         'type' : ['string'],
-        'requirement' : ['optional'],
+        'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Trigger event contact (phone#/email)',
         'help' : ["A list of phone numbers or email addreses to message on  ",
@@ -1092,7 +1092,7 @@ def schema_rtl(cfg):
         'switch' : '-design',
         'switch_args' : '<string>',
         'type' : ['string'],
-        'requirement' : ['optional'],
+        'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Design top module name',
         'help' : ["The top level design name to synthesize. Required in all "
@@ -1104,7 +1104,7 @@ def schema_rtl(cfg):
         'switch' : '-nickname',
         'switch_args' : '<string>',
         'type' : ['string'],
-        'requirement' : ['optional'],
+        'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Design nickname',
         'help' : ["An alias for the top level design name. Can be useful in ",
@@ -1117,7 +1117,7 @@ def schema_rtl(cfg):
         'switch' : '-clk',
         'switch_args' : '<name path period uncertainty>',
         'type' : ['string', "string", 'float', 'float'],
-        'requirement' : ['optional'],
+        'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Clock defintion',
         'help' : ["A complete clock definition specifying the name of the   ",
@@ -1131,7 +1131,7 @@ def schema_rtl(cfg):
         'switch' : '-supply',
         'switch_args' : '<name pin voltage>',
         'type' : ['string', 'string', 'float'],
-        'requirement' : ['optional'],
+        'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Power supply',
         'help' : ["A complete power supply definition specifying the supply ",
@@ -1144,7 +1144,7 @@ def schema_rtl(cfg):
         'switch' : '-D',
         'switch_args' : '<string>',
         'type' : ['string'],
-        'requirement' : ['optional'],
+        'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Define variables for Verilog preprocessor',
         'help' : ["Sets a preprocessor symbol for verilog source imports.   "]
@@ -1154,7 +1154,7 @@ def schema_rtl(cfg):
         'switch' : '-y',
         'switch_args' : '<dir>',
         'type' : ['string'],
-        'requirement' : ['optional'],
+        'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
         'short_help' : 'Directory to search for modules',
@@ -1167,7 +1167,7 @@ def schema_rtl(cfg):
         'switch' : '-I',
         'switch_args' : '<dir>',
         'type' : ['string'],
-        'requirement' : ['optional'],
+        'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
         'short_help' : 'Directory to search for includes',
@@ -1180,7 +1180,7 @@ def schema_rtl(cfg):
         'switch' : '-v',
         'switch_args' : '<file>',
         'type' : ['file'],
-        'requirement' : ['optional'],
+        'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
         'short_help' : 'Library file',
@@ -1192,7 +1192,7 @@ def schema_rtl(cfg):
         'switch' : '+libext',
         'switch_args' : '<ext>',
         'type' : ['string'],
-        'requirement' : ['optional'],
+        'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Extension for finding modules',
         'help' : ["Specify the file extensions that should be used for     ",
@@ -1206,7 +1206,7 @@ def schema_rtl(cfg):
         'switch' : '-f',
         'switch_args' : '<file>',
         'type' : ['file'],
-        'requirement' : ['optional'],
+        'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
         'short_help' : 'Parse source code options from a file              ',
@@ -1223,12 +1223,21 @@ def schema_rtl(cfg):
 
 def schema_floorplan(cfg):
 
+    cfg['target_stackup'] = {
+        'switch' : '-target_stackup',
+        'switch_args' : '<string>',        
+        'type' : ['string'],
+        'requirement' : 'asic',
+        'defvalue' : [],
+        'short_help' : 'Target metal stackup',
+    }
+    
     # 1. Automatic floorplanning
     cfg['density'] = {
         'switch' : '-density',
         'switch_args' : '<int>',
         'type' : ['int'],
-        'requirement' : ['optional'],
+        'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Target core density (percent)',
         'help' : ["Provides a target density based on the total design cell",
@@ -1242,7 +1251,7 @@ def schema_floorplan(cfg):
         'switch' : '-coremargin',
         'switch_args' : '<float>',
         'type' : ['float'],
-        'requirement' : ['optional'],
+        'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Core place and route halo margin (um)',        
         'help' : ["Sets the halo/margin between the apr core cell area to  ",
@@ -1255,7 +1264,7 @@ def schema_floorplan(cfg):
         'switch' : '-aspectratio',
         'switch_args' : '<float>',
         'type' : ['float'],
-        'requirement' : ['optional'],
+        'requirement' : 'optional',
         'defvalue' : ['1'],
         'short_help' : 'Target aspect ratio',
         'help' : ["The aspect ratio to use for automated floor-planning and",
@@ -1270,7 +1279,7 @@ def schema_floorplan(cfg):
         'switch' : '-diesize',
         'switch_args' : '<float float float float>',
         'type' : ['float', 'float', 'float', 'float'],
-        'requirement' : ['optional'],
+        'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Target die size (x0 y0 x1 y1) (um)',
         'help' : ["Provides the outer boundary of the physical design. The ",
@@ -1285,7 +1294,7 @@ def schema_floorplan(cfg):
         'switch' : '-coresize',
         'switch_args' : '<float float float float>',
         'type' : ['float', 'float', 'float', 'float'],
-        'requirement' : ['optional'],
+        'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Target core size (x0 y0 x1 y1) (um)',
         'help' : ["Provides the core cell boundary for place and route.The ",
@@ -1301,7 +1310,7 @@ def schema_floorplan(cfg):
         'switch' : '-floorplan',
         'switch_args' : '<file>',
         'type' : ['file'],
-        'requirement' : ['optional'],
+        'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
         'short_help' : 'Floorplaning script/program',
@@ -1317,7 +1326,7 @@ def schema_floorplan(cfg):
         'switch' : '-def',
         'switch_args' : '<file>',
         'type' : ['file'],
-        'requirement' : ['optional'],
+        'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
         'short_help' : 'Firm floorplan file (DEF)',
@@ -1330,121 +1339,176 @@ def schema_floorplan(cfg):
     return cfg
 
 ###########################
-# PNR Setup
+# APR Setup
 ###########################
 def schema_apr(cfg):
     ''' Physical design parameters
     '''
     
     cfg['target'] = {
-        'short_help' : 'Target platform',
         'switch' : '-target',
         'switch_args' : '<string>',        
         'type' : ['string'],
-        'defvalue' : []
-    }
-
-    cfg['target_stackup'] = {
-        'short_help' : 'Target metal stackup',
-        'switch' : '-target_stackup',
-        'switch_args' : '<string>',        
-        'type' : ['string'],
-        'defvalue' : []
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Target platform',
+        'help' : ["Provides a string name for choosing a physical mapping  ",
+                  "target for the design. Like in compilers like gcc, only ",
+                  "targets that are pre-baked into the compiler suppored.  ",
+                  "Custom targets can be configured through a combination  ",
+                  "of command line switches and config files. The target   ",                  
+                  "parameter is included for conveneince, enabling cool    ",
+                  "single line commands like sc -target asap hello_world.v ",
+                  "Specifying the target parameter causes a number of PDK  ",
+                  "PDK and library variables to be set automatically set   ",
+                  "based ont he specific target specified.                 ",                 
+                  "The targets currently supported are:                    ",
+                  "asap7: A virtual PDK for 7nm with apr support           ",
+                  "[More...](//http://asap.asu.edu/asap/                   ",
+                  "freepdk45: A virtual PDK for 45nm with apr support      ",
+                  "[More...](https://github.com/cornell-brg/freepdk-45nm   "]
     }
     
     cfg['target_lib'] = {
-        'short_help' : 'Target library/device',
         'switch' : '-target_lib',
         'switch_args' : '<string>',        
         'type' : ['string'],
-        'defvalue' : []
+        'defvalue' : [],
+        'requirement' : 'apr',
+        'short_help' : 'Target library/device',
+        'help' : ["Provides a list of library names to use for synthesis   ",
+                  "and automated place and route.                          "]
     }
 
     cfg['target_libarch'] = {
-        'short_help' : 'Target library architecture',
         'switch' : '-target_libarch',
         'switch_args' : '<string>',        
         'type' : ['string'],
-        'defvalue' : []
+        'defvalue' : [],
+        'requirement' : 'apr',
+        'short_help' : 'Target library architecture',
+        'help' : ["Specifies the target library architecture to use. The   ",
+                  "name is used to identify the technology file for must   ",
+                  "match the pdk name and library name exactly.            "]
     }
 
     # custom pass through variables
     cfg['custom'] = {
-        'short_help' : 'Custom EDA pass through variables',
         'switch' : '-custom',
         'switch_args' : '<string>',
         'type' : ['string'],
-        'defvalue' : []
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Custom EDA pass through variables',
+        'help' : ["Specifies a custom variable to pass through directly to "
+                  "the EDA run scripts. The value is a space separated     "
+                  "string with the first value indicating the varibale.    "
+                  "For example -custom MYMODE 2 would result in tcl code   "
+                  "being generated as \'set MYMODE 2\'                     "]
     }
 
     #optimization priority
     cfg['effort'] = {
-        'short_help' : 'Compilation effort',
         'switch' : '-effort',
         'switch_args' : '<string>',
         'type' : ['string'],
-        'defvalue' : ['high']
+        'requirement' : 'apr',
+        'defvalue' : ['high'],
+        'short_help' : 'Compilation effort',
+        'help' : ["Specifies the effort for the synthesis and place and    "
+                  "route efforts. Supported values are low, medium , high. "]
     }
 
     cfg['priority'] = {
-        'short_help' : 'Optimization priority',
         'switch' : '-priority',
         'switch_args' : '<string>',
         'type' : ['string'],
-        'defvalue' : ['timing']
+        'requirement' : 'optional',
+        'defvalue' : ['timing'],
+        'short_help' : 'Optimization priority',
+        'help' : ["An optional parameter for tools that support tiered     ",
+                  "optimization functions. For example, congestion might   ",
+                  "be assigned higher priority than timing in some stages. ",
+                  "The optimization priority string must matcht the EDA    ",
+                  "value exactly.                                          "]
     }
-
     #routing options
     cfg['ndr'] = {
-        'short_help' : 'Non-default net routing file',
         'switch' : '-ndr',
         'switch_args' : '<file>',
         'type' : ['file'],
+        'requirement' : 'optional',
         'defvalue' : [],
-        'hash'   : []
+        'hash'   : [],
+        'short_help' : 'Non-default net routing file',
+        'help' : ["A file containing a list of nets with non-default width ",
+                  "and spacing, with one net per line and no wildcards     ",
+                  "The formaat is <netname width space>                    ",
+                  "The netname should include the full herarhcy from the   ",
+                  "root module while width space should be specified in the",
+                  "resolution specified in the technology file.            "]
     }
  
     cfg['minlayer'] = {
-        'short_help' : 'Minimum routing layer (integer)',
         'switch' : '-minlayer',
         'switch_args' : '<int>',
         'type' : ['int'],
-        'defvalue' : []
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Minimum routing layer (integer)',
+        'help' :  ["The minimum layer to be used for automated place and   ",
+                  "route. The layer can be supplied as an integer with 1   ",
+                  "specifying the first routing layer in apr_techfile.     "]
     }
 
     cfg['maxlayer'] = {
-        'short_help' : 'Maximum routing layer (integer)',
         'switch' : '-maxlayer',
         'switch_args' : '<int>',
         'type' : ['int'],
-        'defvalue' : []
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Maximum routing layer (integer)',
+        'help' : ["The maximum layer to be used for automated place and    ",
+                  "route. The layer can be supplied as an integer with 1   ",
+                  "specifying the first routing layer in apr_techfile.     "]
     }
     
     cfg['maxfanout'] = {
-        'short_help' : 'Maximum fanout',
         'switch' : '-maxfanout',
         'switch_args' : '<int>',
         'type' : ['int'],
-        'defvalue' : []
+        'requirement' : 'apr',
+        'defvalue' : ['64'],
+        'short_help' : 'Maximum fanout',
+        'help' : ["A max fanout rule to be applied during synthesis and apr",
+                  "The value has a default of 64.                          "]
     }
    
+
+
     #power
     cfg['vcd'] = {
-        'short_help' : 'Value Change Dump (VCD) file',
         'switch' : '-vcd',
         'switch_args' : '<file>',
         'type' : ['file'],
+        'requirement' : 'optional',
         'defvalue' : [],
-        'hash'   : []
+        'hash'   : [],
+        'short_help' : 'Value Change Dump (VCD) file',
+        'help' : ["A digital simulation trace that can be used to model   "
+                  "the peak and average power consumption of a design.    "]
     }
 
     cfg['saif'] = {
-        'short_help' : 'Switching activity (SAIF) file',
         'switch' : '-saif',
         'switch_args' : '<file>',
         'type' : ['file'],
+        'requirement' : 'optional',
         'defvalue' : [],
-        'hash'   : []
+        'hash'   : [],
+        'short_help' : 'Switching activity (SAIF) file',
+        'help' : ["A simulat trace containing the toggle counts that can  ",
+                  "be used for coarse statisttical power estimation.      "]
     }
     
     return cfg
