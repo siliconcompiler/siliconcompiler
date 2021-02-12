@@ -391,8 +391,14 @@ def schema_libs(cfg, group):
     # Version #
     cfg[''+group]['default']['version'] = {
         'short_help' : 'Library release version',
+        'help' : ["The library version is an alphanumeric string provided by",
+                  "the vendor to track changes in critical library data     ",
+                  "shipped to the library customer. Designers should        ",
+                  "manually or automatically verify that the library version",
+                  "is approved for tapeout                                  "],
         'switch' : '-'+group+'_version',
-        'switch_args' : '<lib version>',     
+        'switch_args' : '<lib version>',
+        'requirement' : 'asic',
         'type' : ['string'],
         'defvalue' : []
     }
@@ -400,8 +406,13 @@ def schema_libs(cfg, group):
     # Userguide
     cfg[''+group]['default']['userguide'] = {
         'short_help' : 'Library userguide',
+        'help' : ["The main documentation guide outlining how to use the IP ",
+                  "successfully in ASIC design. If more than one document is",
+                  "provided, the list should be ordered from most to least  ",
+                  "important.                                               "],
         'switch' : '-'+group+'_userguide',
-        'switch_args' : '<lib file>',     
+        'switch_args' : '<lib file>',
+        'requirement' : 'asic',
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
@@ -410,8 +421,12 @@ def schema_libs(cfg, group):
     # Datasheets
     cfg[''+group]['default']['datasheet'] = {
         'short_help' : 'Library datasheets',
+        'help' : ["A complete collection of datasheets for the library. The ",
+                  "documentation can be provided as a single collated PDF or",
+                  "as one HTML file per cell                                "],
         'switch' : '-'+group+'_datasheet',
-        'switch_args' : '<lib path>',  
+        'switch_args' : '<lib path>',
+        'requirement' : 'asic',
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
@@ -419,27 +434,42 @@ def schema_libs(cfg, group):
 
     cfg[''+group]['default']['libarch'] = {
         'short_help' : 'Library architecture',
+        'help' : ["A name/tag used to identify the library type for place and",
+                  "route technology setup. Libarch must match up with the    ",
+                  "name used in the pdk_pnrtech structure. The libarch is a  ",
+                  "unique a string that identifies the library height or     ",
+                  "performance class of the library. Mixing of libarchs in a ",
+                  "flat place and route block is not allowed.                "],
         'switch' : '-'+group+'_libarch',
-        'switch_args' : '<lib libarch>',     
+        'switch_args' : '<lib libarch>',
+        'requirement' : 'digital',
         'type' : ['string'],
         'defvalue' : []
     }
 
     cfg[''+group]['default']['libheight'] = {
-        'short_help' : 'Library height (um)',
+        'short_help' : 'Library height',
+        'help' : ["The height of the library cells in (um). The value is     ",
+                  "automatically extracted from the technology file from the ",
+                  "pdk_pnrtech structure.                                    "], 
         'switch' : '-'+group+'_libheight',
-        'switch_args' : '<lib libheight>',     
+        'switch_args' : '<lib libheight>',
+        'requirement' : 'digital',
         'type' : ['float'],
         'defvalue' : []
     }
-
     
-    # Non linear delay models (timing only)
     cfg[''+group]['default']['nldm'] = {}
     cfg[''+group]['default']['nldm']['default'] = {
         'short_help' : 'Library non-linear delay timing model',
+        'help' : ["A non-linear delay model in the liberty format. The file  ",
+                  "specifies timinga and logic functions to mapt the design  ",
+                  "to. The structure order is [library]['nldm'][corner]. The ",
+                  "corner is used to define scenarios and must be the        ",
+                  "same as those used int he mcmm_scenario structure.        "],
         'switch' : '-'+group+'_nldm',
         'switch_args' : '<lib corner file>',
+        'requirement' : 'digital',
         'type' : ['file'],
         'defvalue' : [],
         'hash' : []
@@ -448,8 +478,15 @@ def schema_libs(cfg, group):
     cfg[''+group]['default']['ccs'] = {}
     cfg[''+group]['default']['ccs']['default'] = {
         'short_help' : 'Library composite current source model',
+        'help' : ["A composite current source model for the library. The     ",
+                  "model is more accurate than the NLDM model and recommended",
+                  "at advanced nodes, but is significantly larger than the   ",
+                  "nldm model and should only be used when accuracy is an    ",
+                  "absolute requirement. When available, ccs models should   ",
+                  "always be used for signoff timing checks.                 "],
         'switch' : '-'+group+'_ccs',
         'switch_args' : '<lib corner file>',
+        'requirement' : 'optional',
         'type' : ['file'],
         'defvalue' : [],
         'hash' : []
@@ -457,8 +494,12 @@ def schema_libs(cfg, group):
 
     cfg[''+group]['default']['lef'] = {
         'short_help' : 'Library layout exchange file (LEF)',
+        'help' : ["An abstracted view of library cells that gives complete   ",
+                  "information about the cell place and route boundary, pin  ",
+                  "positions, pin metals, and metal routing blockages.       "],
         'switch' : '-'+group+'_lef',
-        'switch_args' : '<lib file>',     
+        'switch_args' : '<lib file>',
+        'requirement' : 'asic',
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
@@ -466,35 +507,55 @@ def schema_libs(cfg, group):
   
     cfg[''+group]['default']['gds'] = {
         'short_help' : 'Library GDS file',
+        'help' : ["The complete mask layout of the library cells ready to be "
+                  "merged with the rest of the design for tapeout. In some   "
+                  "cases, the GDS merge happens at the foundry, so inclusion "
+                  "of a GDS file is optional. In all cases, where the GDS    "
+                  "files are available, they should specified here to enable "
+                  "gds stream out/merge during the automated place and route "
+                  "and chip assembly process.                                "],
         'switch' : '-'+group+'_gds',
-        'switch_args' : '<lib file>',        
+        'switch_args' : '<lib file>',
+        'requirement' : 'optional',
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
     } 
 
     cfg[''+group]['default']['cdl'] = {
-        'short_help' : 'Library CDL file',
+        'short_help' : 'Library CDL netlist file',
+        'help' : ["The CDL file contains the netlists use for layout versus  ",
+                  "schematic (LVS) checks. In some cases, the GDS merge      ",
+                  "happens at the foundry, so inclusion of a CDL file is     ",
+                  "optional. In all cases, where the CDL files are available,",
+                  "they should specified here to enable LVS checks pre tapout"],
         'switch' : '-'+group+'_cdl',
         'switch_args' : '<lib file>',
+        'requirement' : 'optional',
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
     }
 
     cfg[''+group]['default']['spice'] = {
-        'short_help' : 'Library Spice file',
+        'short_help' : 'Library spice file',
+        'help' : ["The spice file contains the netlists use for circuit      ",
+                  "simulation.                                               "],
         'switch' : '-'+group+'_spice',
         'switch_args' : '<lib file>',
+        'requirement' : 'optional',
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
     } 
 
-    cfg[''+group]['default']['verilog'] = {
-        'short_help' : 'Library Verilog file',
-        'switch' : '-'+group+'_verilog',
+    cfg[''+group]['default']['hdl'] = {
+        'short_help' : 'Library high level description language file',
+        'help' : ["A bit exact or high level verilog model for all cells in  ",
+                  "the library. The file can be VHDL (.vhd) or Verilog (.v)  "],
+        'switch' : '-'+group+'_hdl',
         'switch_args' : '<lib file>',
+        'requirement' : 'asic',
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
@@ -502,42 +563,38 @@ def schema_libs(cfg, group):
 
     cfg[''+group]['default']['atpg'] = {
         'short_help' : 'Library ATPG file',
+        'help' : ["Logical model used for ATPG based chip test methods.     "],
         'switch' : '-'+group+'_atpg',
-        'switch_args' : '<lib file>',    
+        'switch_args' : '<lib file>',
+        'requirement' : 'optional',
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
-    }
-
-    cfg[''+group]['default']['setup'] = {
-        'short_help' : 'Library TCL setup file',
-        'switch' : '-'+group+'_setup',
-        'switch_args' : '<lib file>',    
-        'type' : ['file'],
-        'defvalue' : [],
-        'hash'   : []
-    } 
-           
-    cfg[''+group]['default']['site'] = {
-        'short_help' : 'Library placement site',
-        'switch' : '-'+group+'_site',
-        'switch_args' : '<lib site width height>',     
-        'type' : ['string', 'float', 'float'],
-        'defvalue' : []
     }
 
     cfg[''+group]['default']['pgmetal'] = {
         'short_help' : 'Library power rail metal layer',
+        'help' : ["The variable specifies the top metal layer used for power ",
+                  "and ground routing. The parameter can be used to guide    ",
+                  "standard cell power grid hookup within automated place and",
+                  "route tools                                               "],
         'switch' : '-'+group+'_pgmetal',
         'switch_args' : '<lib metal-layer>',
+        'requirement' : 'optional',
         'type' : ['string'],
         'defvalue' : []
     }
 
     cfg[''+group]['default']['vt'] = {
-        'short_help' : 'Library Transistor Threshold',
+        'short_help' : 'Library transistor threshold',
+        'help' : ["The variable specifies the voltage threshold type of the  ",
+                  "library. The value is extracted automatically if found in ",
+                  "the default_threshold_voltage_group within the nldm timing",
+                  "model. For older technologies with only one vt group, it  "
+                  "is recommended to set the value to rvt or svt"],
         'switch' : '-'+group+'_vt',
         'switch_args' : '<lib vt-type>',
+        'requirement' : 'digital',
         'type' : ['string'],
         'defvalue' : [],
         'hash'   : []
@@ -545,47 +602,81 @@ def schema_libs(cfg, group):
 
     cfg[''+group]['default']['tag'] = {
         'short_help' : 'Library indentifier tags',
+        'help' : ["An arbitraty set of tags that can be used by the designer or",
+                  "EDA tools for optimization purposes. The tags are meant to  ",
+                  "cover features not currently supported by built in EDA      ",
+                  "optimization flows. Multiple tags per library is supported. "],
         'switch' : '-'+group+'_tag',
         'switch_args' : '<lib tag>',
+        'requirement' : 'optional',
         'type' : ['string'],
         'defvalue' : []
     }
 
     cfg[''+group]['default']['driver'] = {
         'short_help' : 'Library default driver cell',
+        'help' : ["The name of a library cell that can be used as the default  ",
+                  "driver for block timing constraints. The cell should be     ",
+                  "strong enough to drive a block input from another block     ",
+                  "including wire capacitance. In cases, where the actual      ",
+                  "drive is known, the actual driver cell should be used.      "],
         'switch' : '-'+group+'_driver',
         'switch_args' : '<lib name>',
+        'requirement' : 'digital',
         'type' : ['string'],
         'defvalue' : []
     }
 
     #Dont use cell lists
     cfg[''+group]['default']['exclude'] = {}
-    cfg[''+group]['default']['exclude']['default'] = {}
-    cfg[''+group]['default']['exclude']['default']['default'] = {
+    cfg[''+group]['default']['exclude']['default'] = {
         'short_help' : 'Library cell exclude lists',
+        'help' : ["Lists of cells to exclude for specific stages within the    ",
+                  "an implementation flow. The structure of the dictionary is  ",
+                  "['exclude'][stage] = <list>.                                "],
         'switch' : '-'+group+'_exclude',
         'switch_args' : '<lib type stage>',
+        'requirement' : 'optional',
         'type' : ['string'],
         'defvalue' : []
     }
     cfg[''+group]['default']['include'] = {}
-    cfg[''+group]['default']['include']['default'] = {}
-    cfg[''+group]['default']['include']['default']['default'] = {
+    cfg[''+group]['default']['include']['default'] = {
         'short_help' : 'Library cell include lists',
+        'help' : ["Lists of cells to include for specific stages within the    ",
+                  "an implementation flow. The structure of the dictionary is  ",
+                  "['include'][stage] = <list>.                                "],
         'switch' : '-'+group+'_include',
         'switch_args' : '<lib type stage>',
+        'requirement' : 'optional',
         'type' : ['string'],
         'defvalue' : []
     }
 
+    #Vendor specific config
+    cfg[''+group]['default']['config'] = {}
+    cfg[''+group]['default']['config']['default'] = {
+        'short_help' : 'Library EDA setup file',
+        'help' : ["A list of configuration files used to set up automated      ",
+                  "place and route flows for specific EDA tools. The format of ",
+                  "the variable is ['config']['tool'] = <filename>             "],
+        'switch' : '-'+group+'_setup',
+        'switch_args' : '<lib file>',
+        'requirement' : 'optional',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash'   : []
+    } 
+    
     #Vendor compiled databases
     cfg[''+group]['default']['nldmdb'] = {}
     cfg[''+group]['default']['nldmdb']['default'] = {}
     cfg[''+group]['default']['nldmdb']['default']['default'] = {
         'short_help' : 'Library NLDM compiled database',
+        'help' : ["A binary compiled ndlm file for a specific EDA tool.        "],
         'switch' : '-'+group+'_nldmdb',
         'switch_args' : '<lib corner vendor file>',
+        'requirement' : 'optional',
         'type' : ['file'],
         'defvalue' : [],
         'hash' : []
@@ -595,18 +686,23 @@ def schema_libs(cfg, group):
     cfg[''+group]['default']['ccsdb']['default'] = {}
     cfg[''+group]['default']['ccsdb']['default']['default'] = {
         'short_help' : 'Library CCS compiled databse',
+        'help' : ["A binary compiled ccs file for a specific EDA tool. The     ",
+                  "dictionary format is ['ccsdb']['corner']['tool'] = <file>   "],
         'switch' : '-'+group+'_ccsdb',
         'switch_args' : '<lib corner vendor file>',
+        'requirement' : 'optional',
         'type' : ['file'],
         'defvalue' : [],
         'hash' : []
     }
-    cfg[''+group]['default']['pnrdb'] = {}
-    cfg[''+group]['default']['pnrdb']['default'] = {}
-    cfg[''+group]['default']['pnrdb']['default']['default'] = {
+    cfg[''+group]['default']['libdb'] = {}
+    cfg[''+group]['default']['libdb']['default'] = {
         'short_help' : 'Library layout compiled database',
-        'switch' : '-'+group+'_pnrdb',
-        'switch_args' : '<lib vendor file>',    
+        'help' : ["A binary compiled library layout database for a specific EDA", 
+                  "tool. The dictionary format is ['libdb']['tool'] = <file>   "],
+        'switch' : '-'+group+'_libdb',
+        'switch_args' : '<lib vendor file>',
+        'requirement' : 'optional',
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : []
