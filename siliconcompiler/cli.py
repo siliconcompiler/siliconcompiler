@@ -241,7 +241,7 @@ def main():
     #mychip.hash()
 
     # Copy files and update config for running on a remote cluster if necessary.
-    job_hash = mychip.cfg['design']['value'][0] + '_' + mychip.cfg['target']['value'][0]
+    job_hash = mychip.cfg['source']['value'][0] + '_' + mychip.cfg['target']['value'][0]
     mychip.status['job_hash'] = job_hash
     if (len(mychip.cfg['remote']['value']) > 0) and (mychip.cfg['remote']['value'][0] != ""):
         # Re-name the given source files to match compute cluster storage.
