@@ -735,7 +735,6 @@ def schema_eda(cfg):
                       'route',
                       'signoff',
                       'export',
-                      'gdsview',
                       'lec',
                       'pex',
                       'sta',
@@ -744,6 +743,7 @@ def schema_eda(cfg):
                       'drc',
                       'erc',                    
                       'lvs',
+                      'gdsview',
                       'tapeout']
     }
 
@@ -905,28 +905,51 @@ def schema_options(cfg):
     '''
 
     cfg['env'] = {
-        'short_help' : 'Vendor specific environment variables to set',
         'switch' : '-env',
         'switch_args' : '<varname value>',
         'type' : ['string', 'string'],
-        'defvalue' : []
+        'requirement' : ['optional'],
+        'defvalue' : [],
+        'short_help' : 'Vendor specific environment variables to set',
+        'help' : ["EDA tools and reference flows often require environment  ",
+                  "variables to be set. These variables can be manageed     ",
+                  "externally or passed in through this variable.           "],
     }
 
-    cfg['cfgfile'] = {
-        'short_help' : 'Loads configurations from a json file',
+    cfg['cfgfile'] = {        
         'switch' : '-cfgfile',
         'switch_args' : '<file>',
         'type' : ['file'],
+        'requirement' : ['optional'],
         'defvalue' : [],
-        'hash'   : []
+        'hash'   : [],
+        'short_help' : 'Loads configurations from a json file',
+        'help' : ["All parameters can be set at the command line, but with  ",
+                  "over 100 comfiguration parameters available in SC, the   ",
+                  "preferred method for non trivial use cases is to create  ",
+                  "a cfg file using the SC python API. The cfg file can be  ",
+                  "passed in throught he -cfgfile switch at the commmand    ",
+                  "There is no restruction on the number of cfgfiles that   ",
+                  "can be passed in. Parameters in the cfgfile are appended ",
+                  "to the existing list. In cases where a single entry is   ",
+                  "expected such as in the case of <design> the last entered",
+                  "value is used                                            "]
     }
 
     cfg['lock'] = {
-        'short_help' : 'Locks the configuration dict from edit',
         'switch' : '-lock',
         'switch_args' : '',
         'type' : ['bool'],
+        'requirement' : ['optional'],
         'defvalue' : ['False'],
+        'short_help' : 'Prevents further configuation mods',
+        'help' : ["The lock switch can be used to prevent unintented        ",
+                  "updates to the chip configuration. For example, a team   ",
+                  "might converge on a golden reference methodology and will",
+                  "have a company policy to not allow designers to deviate  ",
+                  "from that golden reference. After the lock switch has    ",
+                  "been set, the configuration is in read only mode until   ",
+                  "the end of the program"]
     }
 
     cfg['quiet'] = {
@@ -934,55 +957,98 @@ def schema_options(cfg):
         'switch' : '-quiet',
         'switch_args' : '',
         'type' : ['bool'],
+        'requirement' : ['optional'],
         'defvalue' : ['False'],
+        'short_help' : 'Supresses informational printing',
+        'help' : ["By default, the sc will log extensive info to the display",
+                  "This can be turned off using the -quiet param. Warnings  ",
+                  "and errors are always logged."]
     }
     
     cfg['debug'] = {
-        'short_help' : 'Debug level (INFO/DEBUG/WARNING/ERROR)',
         'switch' : '-debug',
         'switch_args' : '<string>',
         'type' : ['string'],
-        'defvalue' : ['INFO']
+        'requirement' : ['optional'],
+        'defvalue' : ['INFO'],
+        'short_help' : 'Debug level (INFO/DEBUG/WARNING/ERROR)',
+        'help' : ["The debug param provides explicit control over the level ",
+                  "of debug information printed.                            "]
     }
 
     cfg['build'] = {
-        'short_help' : 'Name of build directory',
         'switch' : '-build',
         'switch_args' : '<string>',
         'type' : ['string'],
-        'defvalue' : ['build']
+        'requirement' : ['optional'],
+        'defvalue' : ['build'],
+        'short_help' : 'Name of build directory',
+        'help' : ["By default, the flow is completed in the local directory ",
+                  "named \'build\'. To change the name of the build dir     ",
+                  "the user can specify an alternate directory path.        "]
     }
 
     cfg['start'] = {
-        'short_help' : 'Compilation starting stage',
-        'type' : 'string',
         'switch' : '-start',
         'switch_args' : '<stage>',
-        'defvalue' : ['import']
+        'type' : 'string',
+        'requirement' : ['all'],
+        'defvalue' : ['import'],
+        'short_help' : 'Compilation starting stage',
+        'help' : ["The start parameter specifies the starting stage of the  ",
+                  "flow. This would generally be the import stage but could ",
+                  "be any one of the stages within the stages parameter. For",
+                  "example, if a previous job was stopped at syn a job can  ",
+                  "be continued from that point by specifying -start place  "]
     }
 
     cfg['stop'] = {
-        'short_help' : 'Compilation ending stage',
         'switch' : '-stop',
         'switch_args' : '<stage>',
         'type' : ['string'],
-        'defvalue' : ['export']
+        'defvalue' : ['export'],
+        'requirement' : ['all'],
+        'short_help' : 'Compilation ending stage',
+        'help' : ["The stop parameter specifies the stopping stage of the   ",
+                  "flow. The value entered is inclusive, so if for example  ",
+                  "the -stop syn is entered, the flow stops after syn has   ",
+                  "been completed.                                          "]
     }
-    
+
+    cfg['skip'] = {
+        'switch' : '-skip',
+        'switch_args' : '<stage>',
+        'type' : ['string'],
+        'defvalue' : [],
+        'requirement' : ['optional'],
+        'short_help' : 'Compilation skip stages',
+        'help' : ["In some older technologies it may be possible to skip    "
+                  "some of the stages in the flow. The skip variable lists  ",
+                  "the stages to be skipped during execution                "]
+    }
+
     cfg['msg_trigger'] = {
-        'short_help' : 'Trigger for messaging to <msg_contact>',
         'switch' : '-msg_trigger',
         'switch_args' : '<string>',
         'type' : ['string'],
-        'defvalue' : []
+        'requirement' : ['optional'],
+        'defvalue' : [],
+        'short_help' : 'Trigger for messaging to <msg_contact>',
+        'help' : ["A list of stages after which to messages a recipient.    ",
+                  "For example if values of syn, place, cts are entered     ",
+                  "separate messages would be sent after the completion of  ",
+                  "the syn, place, and cts stages.                          "]
     }
 
     cfg['msg_contact'] = {
-        'short_help' : 'Trigger event contact (phone#/email)',
         'switch' : '-msg_contact',
         'switch_args' : '<string>',
         'type' : ['string'],
-        'defvalue' : []
+        'requirement' : ['optional'],
+        'defvalue' : [],
+        'short_help' : 'Trigger event contact (phone#/email)',
+        'help' : ["A list of phone numbers or email addreses to message on  ",
+                  "a trigger event within the msg_trigger param.            "]
     }
 
     return cfg
@@ -996,99 +1062,148 @@ def schema_rtl(cfg):
     '''
 
     cfg['source'] = {
-        'short_help' : 'Source files (.v/.vh/.sv/.vhd)',
         'switch' : 'None',
         'type' : ['file'],
-        'defvalue' : [],
-        'hash'   : []
+        'requirement' : ['all'],
+        'defvalue' : [],        
+        'hash'   : [],
+        'short_help' : 'Source files (.v/.vh/.sv/.vhd)',
+        'help' : ["A list of souroce files to read in for ellaboration. The ",
+                  "files are read in order from first to last entered. File ",
+                  "type is inferred from the file suffix:                   ",
+                  "(*.v, *.vh) = verilog                                    ",
+                  "(*.sv) = systemverilog                                   ",
+                  "(*.vhd) = vhdl                                           "]
     }
         
     cfg['design'] = {
-        'short_help' : 'Design top module name',
         'switch' : '-design',
         'switch_args' : '<string>',
         'type' : ['string'],
-        'defvalue' : []
+        'requirement' : ['optional'],
+        'defvalue' : [],
+        'short_help' : 'Design top module name',
+        'help' : ["The top level design name to synthesize. Required in all "
+                  "non-trivial designs with more than one source module     "
+                  "specified.                                               "]
     }
 
     cfg['nickname'] = {
-        'short_help' : 'Design nickname',
         'switch' : '-nickname',
         'switch_args' : '<string>',
         'type' : ['string'],
-        'defvalue' : []
-    }
+        'requirement' : ['optional'],
+        'defvalue' : [],
+        'short_help' : 'Design nickname',
+        'help' : ["An alias for the top level design name. Can be useful in ",
+                  "for top level designs with long and confusing names. The ",
+                  "nickname is used in all file prefixes.                   "]
+        }
+    
     
     cfg['clk'] = {
-        'short_help' : 'Clock defintion',
         'switch' : '-clk',
-        'switch_args' : '<name period uncertainty>',
-        'type' : ['string', 'float', 'float'],
-        'defvalue' : []
+        'switch_args' : '<name path period uncertainty>',
+        'type' : ['string', "string", 'float', 'float'],
+        'requirement' : ['optional'],
+        'defvalue' : [],
+        'short_help' : 'Clock defintion',
+        'help' : ["A complete clock definition specifying the name of the   ",
+                  "clock, the name of the clock port, or the full hierachy  ",
+                  "path to the generated internal clock, the clock frequency",
+                  "and the clock uncertainty (jitter). The definition can be",
+                  "used to drive constraints for implementation and signoff."]
     }
 
     cfg['supply'] = {
-        'short_help' : 'Power supply',
         'switch' : '-supply',
         'switch_args' : '<name pin voltage>',
         'type' : ['string', 'string', 'float'],
-        'defvalue' : []
+        'requirement' : ['optional'],
+        'defvalue' : [],
+        'short_help' : 'Power supply',
+        'help' : ["A complete power supply definition specifying the supply ",
+                  "name, t he power name, and the voltage.The definition can",
+                  "be used to drive constraints for implementation and      ",
+                  "signoff.                                                 "]
     }
     
     cfg['define'] = {
-        'short_help' : 'Define variables for Verilog preprocessor',
         'switch' : '-D',
         'switch_args' : '<string>',
         'type' : ['string'],
-        'defvalue' : []
+        'requirement' : ['optional'],
+        'defvalue' : [],
+        'short_help' : 'Define variables for Verilog preprocessor',
+        'help' : ["Sets a preprocessor symbol for verilog source imports.   "]
     }
     
     cfg['ydir'] = {
-        'short_help' : 'Directory to search for modules',
         'switch' : '-y',
         'switch_args' : '<dir>',
         'type' : ['string'],
+        'requirement' : ['optional'],
         'defvalue' : [],
-        'hash'   : []
+        'hash'   : [],
+        'short_help' : 'Directory to search for modules',
+        'help' : ["Provides a search paths to look for modules found in the",
+                  "the source list. The import engine will look for modules",
+                  "inside files with the specified +libext+ param suffix   "]
     }
 
     cfg['idir'] = {
-        'short_help' : 'Directory to search for includes',
         'switch' : '-I',
         'switch_args' : '<dir>',
         'type' : ['string'],
+        'requirement' : ['optional'],
         'defvalue' : [],
-        'hash'   : []
+        'hash'   : [],
+        'short_help' : 'Directory to search for includes',
+        'help' : ["Provides a search paths to look for files included in   ",
+                  "the design using the `include statement.                "]
+
     }
 
     cfg['vlib'] = {
-        'short_help' : 'Library file',
         'switch' : '-v',
         'switch_args' : '<file>',
         'type' : ['file'],
+        'requirement' : ['optional'],
         'defvalue' : [],
-        'hash'   : []
+        'hash'   : [],
+        'short_help' : 'Library file',
+        'help' : ["Declares a source code file where modules are not       ",
+                  "interpreted as root modules                             "]
     }
 
     cfg['libext'] = {
-        'short_help' : 'Extension for finding modules',
         'switch' : '+libext',
         'switch_args' : '<ext>',
         'type' : ['string'],
-        'defvalue' : []
+        'requirement' : ['optional'],
+        'defvalue' : [],
+        'short_help' : 'Extension for finding modules',
+        'help' : ["Specify the file extensions that should be used for     ",
+                  "finding modules. For example, if -y is specified as     "
+                  "/home/$USER/mylib and '.v' is specified as libext       ",
+                  "then all the files /home/$USER/mylib/*.v will be added  ",
+                  "to the module search                                    "]
     }
 
-    cfg['readscript'] = {
-        'short_help' : 'Source file read script',
+    cfg['cmdfile'] = {
         'switch' : '-f',
         'switch_args' : '<file>',
         'type' : ['file'],
+        'requirement' : ['optional'],
         'defvalue' : [],
-        'hash'   : []
+        'hash'   : [],
+        'short_help' : 'Parse source code options from a file              ',
+        'help' : ["Read the specified file, and act as if all text inside  ",
+                  "it was specified as command line parameters. Supported  ",
+                  "by most simulators including Icarus and Verilator       "]
     }
 
     return cfg
-
 
 ###########################
 # Floorplan Setup
