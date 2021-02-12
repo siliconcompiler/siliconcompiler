@@ -340,7 +340,7 @@ def schema_pdk(cfg):
                   "metal1 as a horizontal routing layer with a 0.5um width  ",
                   "and 1.0um pitch grid.                                    "],
         'switch' : '-pdk_aprlayer',
-        'switch_args' : '<stackup layername X|Y width pitch>',
+        'switch_args' : '<stackup layer X|Y w p>',
         'requirement' : 'optional',
         'type' : ['string', 'string', 'float', 'float'],
         'defvalue' : [],
@@ -505,12 +505,12 @@ def schema_libs(cfg, group):
   
     cfg[''+group]['default']['gds'] = {
         'short_help' : 'Library GDS file',
-        'help' : ["The complete mask layout of the library cells ready to be"
-                  "merged with the rest of the design for tapeout. In some  "
-                  "cases, the GDS merge happens at the foundry, so inclusion"
-                  "of a GDS file is optional. In all cases, where the GDS   "
-                  "files are available, they should specified here to enable"
-                  "gds stream out/merge during the automated place and route"
+        'help' : ["The complete mask layout of the library cells ready to be",
+                  "merged with the rest of the design for tapeout. In some  ",
+                  "cases, the GDS merge happens at the foundry, so inclusion",
+                  "of a GDS file is optional. In all cases, where the GDS   ",
+                  "files are available, they should specified here to enable",
+                  "gds stream out/merge during the automated place and route",
                   "and chip assembly process.                               "],
         'switch' : '-'+group+'_gds',
         'switch_args' : '<lib file>',
@@ -1034,7 +1034,7 @@ def schema_options(cfg):
         'defvalue' : [],
         'requirement' : 'optional',
         'short_help' : 'Compilation skip stages',
-        'help' : ["In some older technologies it may be possible to skip    "
+        'help' : ["In some older technologies it may be possible to skip    ",
                   "some of the stages in the flow. The skip variable lists  ",
                   "the stages to be skipped during execution                "]
     }
@@ -1095,8 +1095,8 @@ def schema_rtl(cfg):
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Design top module name',
-        'help' : ["The top level design name to synthesize. Required in all "
-                  "non-trivial designs with more than one source module     "
+        'help' : ["The top level design name to synthesize. Required in all ",
+                  "non-trivial designs with more than one source module     ",
                   "specified.                                               "]
     }
 
@@ -1196,7 +1196,7 @@ def schema_rtl(cfg):
         'defvalue' : [],
         'short_help' : 'Extension for finding modules',
         'help' : ["Specify the file extensions that should be used for     ",
-                  "finding modules. For example, if -y is specified as     "
+                  "finding modules. For example, if -y is specified as     ",
                   "/home/$USER/mylib and '.v' is specified as libext       ",
                   "then all the files /home/$USER/mylib/*.v will be added  ",
                   "to the module search                                    "]
@@ -1230,6 +1230,9 @@ def schema_floorplan(cfg):
         'requirement' : 'asic',
         'defvalue' : [],
         'short_help' : 'Target metal stackup',
+        'help' : ["Specifies the target stackup to use in the design. The  ",
+                  "name must match a value defined in the pdk_stackup      ",
+                  "exactly.                                                "]
     }
     
     # 1. Automatic floorplanning
@@ -1268,7 +1271,7 @@ def schema_floorplan(cfg):
         'defvalue' : ['1'],
         'short_help' : 'Target aspect ratio',
         'help' : ["The aspect ratio to use for automated floor-planning and",
-                  "specifes the height to width ratio of the block. Values "
+                  "specifes the height to width ratio of the block. Values ",
                   "below 0.1 and above 10 shuld be avoided as they will    ",
                   "likekly fail to converd during apr. The ideal aspect    ",
                   "ratio for the vast majhority of designs is 1.           "]
@@ -1400,10 +1403,10 @@ def schema_apr(cfg):
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Custom EDA pass through variables',
-        'help' : ["Specifies a custom variable to pass through directly to "
-                  "the EDA run scripts. The value is a space separated     "
-                  "string with the first value indicating the varibale.    "
-                  "For example -custom MYMODE 2 would result in tcl code   "
+        'help' : ["Specifies a custom variable to pass through directly to ",
+                  "the EDA run scripts. The value is a space separated     ",
+                  "string with the first value indicating the varibale.    ",
+                  "For example -custom MYMODE 2 would result in tcl code   ",
                   "being generated as \'set MYMODE 2\'                     "]
     }
 
@@ -1415,7 +1418,7 @@ def schema_apr(cfg):
         'requirement' : 'apr',
         'defvalue' : ['high'],
         'short_help' : 'Compilation effort',
-        'help' : ["Specifies the effort for the synthesis and place and    "
+        'help' : ["Specifies the effort for the synthesis and place and    ",
                   "route efforts. Supported values are low, medium , high. "]
     }
 
@@ -1495,7 +1498,7 @@ def schema_apr(cfg):
         'defvalue' : [],
         'hash'   : [],
         'short_help' : 'Value Change Dump (VCD) file',
-        'help' : ["A digital simulation trace that can be used to model   "
+        'help' : ["A digital simulation trace that can be used to model   ",
                   "the peak and average power consumption of a design.    "]
     }
 
@@ -1519,8 +1522,8 @@ def schema_apr(cfg):
 
 def schema_constraints(cfg):
 
-    cfg['mcmm_libcorner'] = {
-        'switch' : '-mcmm_libcorner',
+    cfg['mcmm_cornerlist'] = {
+        'switch' : '-mcmm_cornerlist',
         'switch_args' : '<string>',
         'type' : ['string'],
         'requirement' : 'apr',
@@ -1531,8 +1534,8 @@ def schema_constraints(cfg):
                   "voltage, and temperature which have nldm views         "]
     }
 
-    cfg['mcmm_pexcorner'] = {
-        'switch' : '-mcmm_pexcorner',
+    cfg['mcmm_pexlist'] = {
+        'switch' : '-mcmm_pexlist',
         'switch_args' : '<string>',
         'type' : ['string'],
         'requirement' : 'apr',
@@ -1546,8 +1549,8 @@ def schema_constraints(cfg):
     cfg['mcmm_scenario']['default'] = {}
     
     cfg['mcmm_scenario']['default']['libcorner'] = {
-        'switch' : '-mcmm_scenario_libcorner',
-        'switch_args' : '<scenario libcorner>',
+        'switch' : '-mcmm_libcorner',
+        'switch_args' : '<scenario corner>',
         'type' : ['string'],
         'requirement' : 'apr',
         'defvalue' : [],
@@ -1558,8 +1561,8 @@ def schema_constraints(cfg):
 
     cfg['mcmm_scenario']['default']['pexcorner'] = {
         'short_help' : 'MCMM scenario pexcorner',
-        'switch' : '-mcmm_scenario_pexcorner',
-        'switch_args' : '<scenario pexcorner>',
+        'switch' : '-mcmm_pexcorner',
+        'switch_args' : '<scenario corner>',
         'type' : ['string'],
         'requirement' : 'apr',
         'defvalue' : [],
@@ -1568,7 +1571,7 @@ def schema_constraints(cfg):
     }
     
     cfg['mcmm_scenario']['default']['mode'] = {
-        'switch' : '-mcmm_scenario_mode',
+        'switch' : '-mcmm_mode',
         'switch_args' : '<scenario mode>',
         'type' : ['string'],
         'requirement' : 'apr',
@@ -1577,12 +1580,12 @@ def schema_constraints(cfg):
         'help' : ["Provides the exact pexcorner name for the accessing  ",
                   "the pdk_pexmodel                                     "]
     }
-    
-    cfg['mcmm_scenario']['default']['constraints'] = {}
-    cfg['mcmm_scenario']['default']['constraints']['default'] = {
+    cfg['mcmm_constraints'] = {}
+    cfg['mcmm_constraints']['default'] = {}
+    cfg['mcmm_constraints']['default']['default'] = {
         'short_help' : 'MCMM scenario constraints',
-        'switch' : '-mcmm_scenario_constraints',
-        'switch_args' : '<scenario constraints stage file>',
+        'switch' : '-mcmm_constraints',
+        'switch_args' : '<scenario stage file>',
         'type' : ['file'],
         'requirement' : 'optional',
         'hash' : [],
@@ -1594,21 +1597,22 @@ def schema_constraints(cfg):
                   "the design getes more refined throught he apr flow   "]
         }
 
-    cfg['mcmm_scenario']['default']['objectives'] = {}
-    cfg['mcmm_scenario']['default']['objectives']['default'] = {
-        'switch' : '-mcmm_scenario_objectives',
-        'switch_args' : '<scenario objective stage name>',
+    cfg['mcmm_goals'] = {}
+    cfg['mcmm_goals']['default'] = {}
+    cfg['mcmm_goals']['default']['default'] = {
+        'switch' : '-mcmm_goals',
+        'switch_args' : '<scenario stage string>',
         'type' : ['string'],
         'requirement' : 'apr',
         'defvalue' : [],
-        'short_help' : 'MCMM objectives',
-        'help' : ["Provides taget objectives for a scenario on a per    ",
-                  "basis. Valid objectives must align with the syn and  ",
+        'short_help' : 'MCMM goals',
+        'help' : ["Provides taget goals for a scenario on a per stage   ",
+                  "basis. Valid goals must align with the syn and apr   ",
                   "apr tools, but generally include setup, hold, power. ",
-                  "Per stage objectives is supported to emable skipping ",
-                  "of certain objectives like until the deisgn has the  ",
-                  "necessary steps done, for example deferring the hold ",
-                  "fix objective until after cts.                       "]
+                  "Per stage goals is supported to emable skipping of   ",
+                  "certain goals like until the deisgn has the necessary",
+                  "steps done, for example deferring the hold fix       ",
+                  "objective until after cts.                           "]
     }
 
     return cfg
@@ -1625,7 +1629,8 @@ def schema_net(cfg):
         'switch': '-remote',
         'switch_args' : '<string>',
         'type' : ['string'],
-        'defvalue' : []
+        'defvalue' : [],
+        'help' : ["TBD"]
     }
 
     # Port number that the remote host is running 'sc-server' on.
@@ -1634,7 +1639,8 @@ def schema_net(cfg):
         'switch': '-remote_port',
         'switch_args' : '<int>',
         'type' : ['int'],
-        'defvalue' : ['8080']
+        'defvalue' : ['8080'],
+        'help' : ["TBD"]
     }
 
     # NFS config: Username to use when copying file to remote compute storage.
@@ -1643,7 +1649,8 @@ def schema_net(cfg):
         'switch': '-nfs_user',
         'switch_args' : '<string>',
         'type' : ['string'],
-        'defvalue' : ['ubuntu']
+        'defvalue' : ['ubuntu'],
+        'help' : ["TBD"]
     }
 
     # NFS config: Hostname to use for accessing shared remote compute storage.
@@ -1652,7 +1659,8 @@ def schema_net(cfg):
         'switch': '-nfs_host',
         'switch_args' : '<string>',
         'type' : ['string'],
-        'defvalue' : []
+        'defvalue' : [],
+        'help' : ["TBD"]
     }
 
     # NFS config: root filepath for shared NFS storage on the remote NFS host.
@@ -1661,7 +1669,8 @@ def schema_net(cfg):
         'switch': '-nfs_mount',
         'switch_args' : '<string>',
         'type' : ['string'],
-        'defvalue' : ['/nfs/sc_compute']
+        'defvalue' : ['/nfs/sc_compute'],
+        'help' : ["TBD"]
     }
 
     # NFS config: path to the SSH key file which will be used to access
@@ -1671,7 +1680,8 @@ def schema_net(cfg):
         'switch': '-nfs_key',
         'switch_args' : '<file>',
         'type' : ['file'],
-        'defvalue' : []
+        'defvalue' : [],
+        'help' : ["TBD"]
     }
 
     return cfg
@@ -1692,7 +1702,8 @@ def server_schema():
         'switch': '-port',
         'switch_args': '<int>',
         'type': ['int'],
-        'defvalue': ['8080']
+        'defvalue': ['8080'],
+        'help' : ["TBD"]
     }
 
     cfg['nfsuser'] = {
@@ -1700,7 +1711,8 @@ def server_schema():
         'switch': '-nfs_user',
         'switch_args': '<string>',
         'type': ['string'],
-        'defvalue': ['ubuntu']
+        'defvalue': ['ubuntu'],
+        'help' : ["TBD"]
     }
 
     cfg['nfshost'] = {
@@ -1708,7 +1720,8 @@ def server_schema():
         'switch': '-nfs_host',
         'switch_args': '<string>',
         'type': ['string'],
-        'defvalue' : []
+        'defvalue' : [],
+        'help' : ["TBD"]
     }
 
     cfg['nfsmount'] = {
@@ -1716,7 +1729,8 @@ def server_schema():
         'switch': '-nfs_mount',
         'switch_args': '<string>',
         'type': ['string'],
-        'defvalue' : ['/nfs/sc_compute']
+        'defvalue' : ['/nfs/sc_compute'],
+        'help' : ["TBD"]
     }
 
     cfg['nfskey'] = {
@@ -1724,7 +1738,8 @@ def server_schema():
         'switch': '-nfs_key',
         'switch_args': '<file>',
         'type': ['file'],
-        'defvalue' : []
+        'defvalue' : [],
+        'help' : ["TBD"]
     }
 
     return cfg
