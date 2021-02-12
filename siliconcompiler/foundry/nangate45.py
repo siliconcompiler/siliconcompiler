@@ -119,15 +119,15 @@ def nangate45_lib(chip, root):
     #############################################
 
     # hard coded mcmm settings
-    chip.add('mcmm_libcorner',corner)
-    chip.add('mcmm_pexcorner',corner)
+    chip.add('mcmm_cornerlist',corner)
+    chip.add('mcmm_pexlist',corner)
     chip.add('mcmm_scenario','nominal','libcorner', corner)
     chip.add('mcmm_scenario','nominal','pexcorner', corner)
-    chip.add('mcmm_scenario','nominal','objectives', 'syn',  'setup')
-    chip.add('mcmm_scenario','nominal','objectives', 'place', 'setup')
-    objectives = ['setup', 'hold']
+    chip.add('mcmm_goals','nominal','syn',  'setup')
+    chip.add('mcmm_goals','nominal','place', 'setup')
+    all_goals = ['setup', 'hold']
     for stage in ('cts','route','signoff'):
-        chip.add('mcmm_scenario','nominal', 'objectives', stage, objectives)
+        chip.add('mcmm_goals','nominal', stage, all_goals)
     
     
 #########################
