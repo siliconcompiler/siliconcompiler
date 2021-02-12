@@ -754,85 +754,90 @@ def schema_eda(cfg):
         cfg['tool'][stage] = {}
         # Exe
         cfg['tool'][stage]['exe'] = {}
-        cfg['tool'][stage]['exe']['short_help'] = 'Stage executable'
-        cfg['tool'][stage]['exe']['help'] = [
-            "The name of the executable. Can be the full env path to  ",
-            "the excutable or the simple name if the search path has  ",
-            "already been set up in the working environment.          "]
         cfg['tool'][stage]['exe']['switch'] = '-tool_exe'
         cfg['tool'][stage]['exe']['switch_args'] = '<stage string>'
         cfg['tool'][stage]['exe']['type'] = ['string']
         cfg['tool'][stage]['exe']['requirement'] = ['all']
         cfg['tool'][stage]['exe']['defvalue'] = []
+        cfg['tool'][stage]['exe']['short_help'] = 'Stage executable'
+        cfg['tool'][stage]['exe']['help'] = [
+            "The name of the executable. Can be the full env path to  ",
+            "the excutable or the simple name if the search path has  ",
+            "already been set up in the working environment.          "]
 
         #opt  
         cfg['tool'][stage]['opt'] = {}
+        cfg['tool'][stage]['opt']['switch'] = '-tool_opt'
+        cfg['tool'][stage]['opt']['switch_args'] = '<stage string>'
+        cfg['tool'][stage]['opt']['type'] = ['string']
+        cfg['tool'][stage]['opt']['requirement'] = ['optional']
+        cfg['tool'][stage]['opt']['defvalue'] = []
         cfg['tool'][stage]['opt']['short_help'] = 'Stage executable options'
         cfg['tool'][stage]['opt']['help'] = [
             "A list of command line options for the executable. For   ",
             "multiple argument options, enter each argument and value ",
             "as one list entry. Foe example, the argument pair        ",
             "-c 5 would be entered as one string \'-c 5\'             "]
-        cfg['tool'][stage]['opt']['switch'] = '-tool_opt'
-        cfg['tool'][stage]['opt']['switch_args'] = '<stage string>'
-        cfg['tool'][stage]['opt']['type'] = ['string']
-        cfg['tool'][stage]['opt']['requirement'] = ['optional']
-        cfg['tool'][stage]['opt']['defvalue'] = []
 
         #refdir
-        cfg['tool'][stage]['refdir'] = {}
-        cfg['tool'][stage]['refdir']['short_help'] = 'Stage reference flow dir'
-        cfg['tool'][stage]['refdir']['help'] = [
-            "The directory containing the reference scripts used in   ",
-            "by the stage executable.                                 "]
+        cfg['tool'][stage]['refdir'] = {}        
         cfg['tool'][stage]['refdir']['switch'] = '-tool_refdir'
         cfg['tool'][stage]['refdir']['switch_args'] = '<stage dir>'
         cfg['tool'][stage]['refdir']['type'] = ['file']
         cfg['tool'][stage]['refdir']['requirement'] = ['optional']
         cfg['tool'][stage]['refdir']['hash'] = []
         cfg['tool'][stage]['refdir']['defvalue'] = []
+        cfg['tool'][stage]['refdir']['short_help'] = 'Stage reference flow dir'
+        cfg['tool'][stage]['refdir']['help'] = [
+            "The directory containing the reference scripts used in   ",
+            "by the stage executable.                                 "]
 
         #script
-        cfg['tool'][stage]['script'] = {}
-        cfg['tool'][stage]['script']['short_help'] = 'Stage entry point script'
-        cfg['tool'][stage]['script']['help'] = [
-            "The top level reference script to called by the stage    ",
-            "executable                                               "]
+        cfg['tool'][stage]['script'] = {}        
         cfg['tool'][stage]['script']['switch'] = '-tool_script'
         cfg['tool'][stage]['script']['switch_args'] = '<stage file>'
         cfg['tool'][stage]['script']['type'] = ['file']
         cfg['tool'][stage]['script']['requirement'] = ['optional']
         cfg['tool'][stage]['script']['hash'] = []
         cfg['tool'][stage]['script']['defvalue'] = []
+        cfg['tool'][stage]['script']['short_help'] = 'Stage entry point script'
+        cfg['tool'][stage]['script']['help'] = [
+            "The top level reference script to called by the stage    ",
+            "executable                                               "]
 
         #copy
         cfg['tool'][stage]['copy'] = {}
-        cfg['tool'][stage]['copy']['short_help'] = 'Stage copy-to-local option'
-        cfg['tool'][stage]['copy']['help'] = [
-            "Specifes that the reference script directory should be   ",
-            "copied and run from the local run directory. This option ",
-            "is set automatically set when the -remote option is set  "]
         cfg['tool'][stage]['copy']['switch'] = '-tool_copy'
         cfg['tool'][stage]['copy']['switch_args'] = '<stage string>'
         cfg['tool'][stage]['copy']['type'] = ['bool']
         cfg['tool'][stage]['copy']['requirement'] = ['optional']
         cfg['tool'][stage]['copy']['defvalue'] = []
+        cfg['tool'][stage]['copy']['short_help'] = 'Stage copy-to-local option'
+        cfg['tool'][stage]['copy']['help'] = [
+            "Specifes that the reference script directory should be   ",
+            "copied and run from the local run directory. This option ",
+            "is set automatically set when the -remote option is set  "]
 
         #format
         cfg['tool'][stage]['format'] = {}
-        cfg['tool'][stage]['format']['short_help'] = 'Stage config format'
-        cfg['tool'][stage]['format']['help'] = [
-            "Specifes that format of the configuration file for the   ",
-            "stage. Valid formats are tcl, yaml, and json. The format ",
-            "used is dictated by the executable for the stage.        "]
         cfg['tool'][stage]['format']['switch'] = '-tool_format'
         cfg['tool'][stage]['format']['switch_args'] = '<stage string>'
         cfg['tool'][stage]['format']['type'] = ['string']
         cfg['tool'][stage]['format']['requirement'] = ['all']
         cfg['tool'][stage]['format']['defvalue'] = []
+        cfg['tool'][stage]['format']['short_help'] = 'Stage config format'
+        cfg['tool'][stage]['format']['help'] = [
+            "Specifes that format of the configuration file for the   ",
+            "stage. Valid formats are tcl, yaml, and json. The format ",
+            "used is dictated by the executable for the stage.        "]
         
         #jobid
         cfg['tool'][stage]['jobid'] = {}
+        cfg['tool'][stage]['jobid']['switch'] = '-tool_jobid'
+        cfg['tool'][stage]['jobid']['switch_args'] = '<stage int>'
+        cfg['tool'][stage]['jobid']['type'] = ['int']
+        cfg['tool'][stage]['jobid']['requirement'] = ['all']
+        cfg['tool'][stage]['jobid']['defvalue'] = ['0']
         cfg['tool'][stage]['jobid']['short_help'] = 'Stage job index'
         cfg['tool'][stage]['jobid']['help'] = [
             "A dynamic variable that keeeps track of results to pass  ",
@@ -841,14 +846,14 @@ def schema_eda(cfg):
             "progrematic selection if made to choose the best result, ",
             "the variable is use to point to a job which may or may   ",
             "not be the last job launched"]
-        cfg['tool'][stage]['jobid']['switch'] = '-tool_jobid'
-        cfg['tool'][stage]['jobid']['switch_args'] = '<stage int>'
-        cfg['tool'][stage]['jobid']['type'] = ['int']
-        cfg['tool'][stage]['jobid']['requirement'] = ['all']
-        cfg['tool'][stage]['jobid']['defvalue'] = ['0']
-
+        
         #np
         cfg['tool'][stage]['np'] = {}
+        cfg['tool'][stage]['np']['switch'] = '-tool_np'
+        cfg['tool'][stage]['np']['switch_args'] = '<stage int>'
+        cfg['tool'][stage]['np']['type'] = ['int']
+        cfg['tool'][stage]['np']['requirement'] = ['all']
+        cfg['tool'][stage]['np']['defvalue'] = []
         cfg['tool'][stage]['np']['short_help'] = 'Stage thread parallelism'
         cfg['tool'][stage]['np']['help'] = [
             "The thread parallelism to use on a per stage basis.      ",
@@ -856,14 +861,14 @@ def schema_eda(cfg):
             "parallelize workloads on a multi-core single node CPU.   ",
             "Job parallelization across multiple machines need to be  ",
             "explicitly specified at the program level.               "]
-        cfg['tool'][stage]['np']['switch'] = '-tool_np'
-        cfg['tool'][stage]['np']['switch_args'] = '<stage int>'
-        cfg['tool'][stage]['np']['type'] = ['int']
-        cfg['tool'][stage]['np']['requirement'] = ['all']
-        cfg['tool'][stage]['np']['defvalue'] = []
         
         #keymap
         cfg['tool'][stage]['keymap'] = {}
+        cfg['tool'][stage]['keymap']['switch'] = '-tool_keymap'
+        cfg['tool'][stage]['keymap']['switch_args'] = '<stage string string>'
+        cfg['tool'][stage]['keymap']['type'] = ['string', 'string']
+        cfg['tool'][stage]['keymap']['requirmenet'] = ['optional']
+        cfg['tool'][stage]['keymap']['defvalue'] = []
         cfg['tool'][stage]['keymap']['short_help'] = 'Stage keyword translation'
         cfg['tool'][stage]['keymap']['help'] = [
             "The keymap is used to performs a key to key translation  ",
@@ -874,25 +879,20 @@ def schema_eda(cfg):
             "the tool configuration, this keymap can be used to avoid ",
             "the need for stub scripts that translate the sc_cfg to   ",
             "the native eda tool reference flow scripts               "]
-        cfg['tool'][stage]['keymap']['switch'] = '-tool_keymap'
-        cfg['tool'][stage]['keymap']['switch_args'] = '<stage string string>'
-        cfg['tool'][stage]['keymap']['type'] = ['string', 'string']
-        cfg['tool'][stage]['keymap']['requirmenet'] = ['optional']
-        cfg['tool'][stage]['keymap']['defvalue'] = []
         
         #vendor
         cfg['tool'][stage]['vendor'] = {}
+        cfg['tool'][stage]['vendor']['switch'] = '-tool_vendor'
+        cfg['tool'][stage]['vendor']['switch_args'] = '<stage string>'   
+        cfg['tool'][stage]['vendor']['type'] = ['string']
+        cfg['tool'][stage]['vendor']['requirement'] = ['all']
+        cfg['tool'][stage]['vendor']['defvalue'] = []
         cfg['tool'][stage]['vendor']['short_help'] = 'Stage tool vendor'
         cfg['tool'][stage]['vendor']['help'] = [
             "The vendor argument is used for selecting eda specific   ",
             "technology setup varaibales from the PDK and libraries   ",
             "which generallly support multiple vendors for each       ",
             "implementation stage                                     "]
-        cfg['tool'][stage]['vendor']['switch'] = '-tool_vendor'
-        cfg['tool'][stage]['vendor']['switch_args'] = '<stage string>'   
-        cfg['tool'][stage]['vendor']['type'] = ['string']
-        cfg['tool'][stage]['vendor']['requirement'] = ['all']
-        cfg['tool'][stage]['vendor']['defvalue'] = []
         
     return cfg
 
