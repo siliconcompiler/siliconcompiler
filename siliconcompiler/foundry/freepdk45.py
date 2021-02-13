@@ -12,7 +12,7 @@ def freepdk45_pdk(chip, root):
 
     foundry = 'virtual'
     process = 'freepdk45'
-    version = 'r1p0'
+    rev = 'r1p0'
     stackup = '10M'
     vendor = 'openroad'
     libarch = '10t'
@@ -20,12 +20,12 @@ def freepdk45_pdk(chip, root):
                        foundry,
                        process,
                        'pdk',
-                       version])
+                       rev])
 
     # process name
     chip.add('pdk_foundry', foundry)
     chip.add('pdk_process', process)
-    chip.add('pdk_version', version)
+    chip.add('pdk_rev', rev)
     chip.add('pdk_stackup', stackup)
    
     # DRC
@@ -73,7 +73,7 @@ def nangate45_lib(chip, root):
     libname = 'NangateOpenCellLibrary'
     libarch = '10t'
     height = '1.4'
-    version = 'r1p0'
+    rev = 'r1p0'
     corner = 'typical'
     objectives = ['setup']
     libdir = '/'.join([root,
@@ -81,7 +81,7 @@ def nangate45_lib(chip, root):
                        process,
                        'libraries',
                        libname,
-                       version])
+                       rev])
 
 
     # hard coded target lib
@@ -92,8 +92,8 @@ def nangate45_lib(chip, root):
     # Library Definition
     #############################################
     
-    # version
-    chip.add('stdcells',libname,'version',version)
+    # rev
+    chip.add('stdcells',libname,'rev',rev)
     
     # timing
     chip.add('stdcells',libname,'nldm','typical',libdir+'/lib/NangateOpenCellLibrary_typical.lib')

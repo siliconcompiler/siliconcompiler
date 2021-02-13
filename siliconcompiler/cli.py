@@ -9,6 +9,7 @@ import re
 import json
 import sys
 import importlib.resources
+from argparse import RawTextHelpFormatter
 
 #Shorten siliconcompiler as sc
 import siliconcompiler as sc
@@ -35,10 +36,12 @@ def cmdline():
     # Argument Parser
     
     parser = argparse.ArgumentParser(prog='sc',
-                                     formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=50),
+                                     formatter_class =lambda prog: RawTextHelpFormatter(prog, indent_increment=1, max_help_position=22),
                                      prefix_chars='-+',
                                      description="Silicon Compiler Collection (SC)")
 
+    
+    #formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=50),
     # Required positional source file argument
     parser.add_argument('source',
                         nargs='+',
@@ -157,11 +160,16 @@ def add_arg(cfg, parser, keys=None):
         #Optimizing command line switches for these
         elif k in ('tool'):
             for k2 in cfg['tool']['syn'].keys():
+                helpstr = cfg[k]['syn'][k2]['short_help']
+                helpstr = ('-- ' +  helpstr + ' --' +
+                           '\n\n' +
+                           '\n'.join(cfg[k]['syn'][k2]['help']) +
+                           '\n\n') 
                 parser.add_argument(cfg[k]['syn'][k2]['switch'],
                                     dest=k+"_"+k2,
                                     metavar=cfg[k]['syn'][k2]['switch_args'],
                                     action='append',
-                                    help='\n'.join(cfg[k]['syn'][k2]['help']),
+                                    help=helpstr,
                                     default = argparse.SUPPRESS)
         #All others
         else:            
@@ -169,20 +177,25 @@ def add_arg(cfg, parser, keys=None):
             newkeys.append(str(k))            
             if 'defvalue' in cfg[k].keys():                
                 keystr = '_'.join(newkeys)
+                helpstr = cfg[k]['short_help']
+                helpstr = ('-- ' +  helpstr + ' --' +
+                           '\n\n' +
+                           '\n'.join(cfg[k]['help']) +
+                           '\n\n') 
                 if cfg[k]['type'][-1] == 'bool': #scalar
                     parser.add_argument(cfg[k]['switch'],
                                         metavar=cfg[k]['switch_args'],
                                         dest=keystr,
                                         action='store_const',
                                         const=['True'],
-                                        help='\n'.join(cfg[k]['help']),
+                                        help=helpstr,
                                         default = argparse.SUPPRESS)
                 else:
                     parser.add_argument(cfg[k]['switch'],
                                         metavar=cfg[k]['switch_args'],
                                         dest=keystr,
                                         action='append',
-                                        help='\n'.join(cfg[k]['help']),
+                                        help=helpstr,
                                         default = argparse.SUPPRESS)
             else:
                 newkeys.append(str(k))
