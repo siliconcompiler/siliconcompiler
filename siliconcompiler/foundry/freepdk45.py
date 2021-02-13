@@ -8,10 +8,10 @@ import siliconcompiler as sc
 # PDK Setup
 ####################################################
 
-def nangate45_pdk(chip, root):
+def freepdk45_pdk(chip, root):
 
     foundry = 'virtual'
-    process = 'nangate45'
+    process = 'freepdk45'
     version = 'r1p0'
     stackup = '10M'
     vendor = 'openroad'
@@ -29,17 +29,17 @@ def nangate45_pdk(chip, root):
     chip.add('pdk_stackup', stackup)
    
     # DRC
-    chip.add('tool','drc','script',pdkdir+'runsets/klayout/nangate45.lydrc/drc/nangate45.lydrc')
+    chip.add('tool','drc','script',pdkdir+'runsets/klayout/freepdk45.lydrc')
 
     # DISPLAY
-    chip.add('tool','gdsview','script',pdkdir+'setup/klayout/nangate45.lyt')
+    chip.add('tool','gdsview','script',pdkdir+'setup/klayout/freepdk45.lyt')
 
     # hard coded target lib
     chip.add('target_stackup',chip.get('pdk_stackup')[0])
 
     # APR tech file
     chip.add('pdk_aprtech',stackup, libarch, vendor,
-               pdkdir+'/apr/nangate45.tech.lef')
+               pdkdir+'/apr/freepdk45.tech.lef')
 
     # Techlef Overrides
     chip.add('pdk_aprlayer',stackup, 'metal1 X 0.095 0.19')
@@ -69,10 +69,10 @@ def nangate45_pdk(chip, root):
 def nangate45_lib(chip, root):
 
     foundry = 'virtual'
-    process = 'nangate45'
+    process = 'freepdk45'
     libname = 'NangateOpenCellLibrary'
     libarch = '10t'
-    libheight = '1.4'
+    height = '1.4'
     version = 'r1p0'
     corner = 'typical'
     objectives = ['setup']
@@ -111,7 +111,7 @@ def nangate45_lib(chip, root):
     chip.add('stdcells',libname,'libarch',libarch)
 
     # lib height
-    chip.add('stdcells',libname,'libheight',libheight)
+    chip.add('stdcells',libname,'height',height)
     
 
     #############################################
@@ -143,7 +143,7 @@ if __name__ == "__main__":
     # create a chip instance
     chip = sc.Chip()
     # load configuration
-    nangate45_pdk(chip, datadir)
+    freepdk45_pdk(chip, datadir)
     nangate45_lib(chip, datadir)    
     # write out result
     chip.writecfg(output)

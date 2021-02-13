@@ -14,8 +14,8 @@ import importlib.resources
 import siliconcompiler as sc
 from siliconcompiler.schema import schema
 from siliconcompiler.schema import server_schema
-from siliconcompiler.foundry.nangate45 import nangate45_pdk
-from siliconcompiler.foundry.nangate45 import nangate45_lib
+from siliconcompiler.foundry.freepdk45 import freepdk45_pdk
+from siliconcompiler.foundry.freepdk45 import nangate45_lib
 from siliconcompiler.eda.verilator import setup_verilator
 from siliconcompiler.eda.yosys import setup_yosys
 from siliconcompiler.eda.openroad import setup_openroad
@@ -211,17 +211,20 @@ def main():
     # Loading presetvalues from the command line
     if 'target' in  cmdlinecfg.keys():
         target = cmdlinecfg['target']['value'][-1]
-        if target in ('nangate45', 'asap7'):
+        if target in ('freepdk45', 'asap7'):
             setup_verilator(mychip, root+'/eda/asic')
             setup_yosys(mychip, root+'/eda/asic')
             setup_openroad(mychip, root+'/eda/asic')
             setup_klayout(mychip, root+'/eda/asic')            
-            if target == 'nangate45': 
-                nangate45_pdk(mychip, root+'/foundry/')
+            if target == 'freepdk45': 
+                freepdk45_pdk(mychip, root+'/foundry/')
                 nangate45_lib(mychip, root+'/foundry/')
             elif target == 'asap7':
                 asap7_pdk(mychip, root+'/foundry/')
                 asap7_lib(mychip, root+'/foundry/')
+        else:
+            self.logger.error('Target platform is not defined: %s', target)       
+            sys.exit()    
     
     # Reading in config files specified at command line
     if 'cfgfile' in  cmdlinecfg.keys():        
