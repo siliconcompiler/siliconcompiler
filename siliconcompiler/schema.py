@@ -771,7 +771,7 @@ def schema_eda(cfg):
         cfg['tool'][stage]['exe']['type'] = ['string']
         cfg['tool'][stage]['exe']['requirement'] = ['all']
         cfg['tool'][stage]['exe']['defvalue'] = []
-        cfg['tool'][stage]['exe']['short_help'] = 'Stage Executable'
+        cfg['tool'][stage]['exe']['short_help'] = 'Executable'
         cfg['tool'][stage]['exe']['help'] = [
             "The name of the executable. Can be the full env path to  ",
             "the excutable or the simple name if the search path has  ",
@@ -784,7 +784,7 @@ def schema_eda(cfg):
         cfg['tool'][stage]['opt']['type'] = ['string']
         cfg['tool'][stage]['opt']['requirement'] = 'optional'
         cfg['tool'][stage]['opt']['defvalue'] = []
-        cfg['tool'][stage]['opt']['short_help'] = 'Stage Executable Options'
+        cfg['tool'][stage]['opt']['short_help'] = 'Executable Options'
         cfg['tool'][stage]['opt']['help'] = [
             "A list of command line options for the executable. For   ",
             "multiple argument options, enter each argument and value ",
@@ -799,7 +799,7 @@ def schema_eda(cfg):
         cfg['tool'][stage]['refdir']['requirement'] = 'optional'
         cfg['tool'][stage]['refdir']['hash'] = []
         cfg['tool'][stage]['refdir']['defvalue'] = []
-        cfg['tool'][stage]['refdir']['short_help'] = 'Stage Reference Dir'
+        cfg['tool'][stage]['refdir']['short_help'] = 'Reference Directory'
         cfg['tool'][stage]['refdir']['help'] = [
             "The directory containing the reference scripts used in   ",
             "by the stage executable.                                 "]
@@ -812,7 +812,7 @@ def schema_eda(cfg):
         cfg['tool'][stage]['script']['requirement'] = 'optional'
         cfg['tool'][stage]['script']['hash'] = []
         cfg['tool'][stage]['script']['defvalue'] = []
-        cfg['tool'][stage]['script']['short_help'] = 'Stage Root Script'
+        cfg['tool'][stage]['script']['short_help'] = 'Root Reference Script'
         cfg['tool'][stage]['script']['help'] = [
             "The top level reference script to called by the stage    ",
             "executable                                               "]
@@ -824,7 +824,7 @@ def schema_eda(cfg):
         cfg['tool'][stage]['copy']['type'] = ['bool']
         cfg['tool'][stage]['copy']['requirement'] = 'optional'
         cfg['tool'][stage]['copy']['defvalue'] = []
-        cfg['tool'][stage]['copy']['short_help'] = 'Stage Copy Option'
+        cfg['tool'][stage]['copy']['short_help'] = 'Copy Local Option'
         cfg['tool'][stage]['copy']['help'] = [
             "Specifes that the reference script directory should be   ",
             "copied and run from the local run directory. This option ",
@@ -837,7 +837,7 @@ def schema_eda(cfg):
         cfg['tool'][stage]['format']['type'] = ['string']
         cfg['tool'][stage]['format']['requirement'] = ['all']
         cfg['tool'][stage]['format']['defvalue'] = []
-        cfg['tool'][stage]['format']['short_help'] = 'Stage Config Format'
+        cfg['tool'][stage]['format']['short_help'] = 'Script Format'
         cfg['tool'][stage]['format']['help'] = [
             "Specifes that format of the configuration file for the   ",
             "stage. Valid formats are tcl, yaml, and json. The format ",
@@ -850,7 +850,7 @@ def schema_eda(cfg):
         cfg['tool'][stage]['jobid']['type'] = ['int']
         cfg['tool'][stage]['jobid']['requirement'] = ['all']
         cfg['tool'][stage]['jobid']['defvalue'] = ['0']
-        cfg['tool'][stage]['jobid']['short_help'] = 'Stage Job Index'
+        cfg['tool'][stage]['jobid']['short_help'] = 'Job Index'
         cfg['tool'][stage]['jobid']['help'] = [
             "A dynamic variable that keeeps track of results to pass  ",
             "foward to the next stage of the implementation pipeline  ",
@@ -866,7 +866,7 @@ def schema_eda(cfg):
         cfg['tool'][stage]['np']['type'] = ['int']
         cfg['tool'][stage]['np']['requirement'] = ['all']
         cfg['tool'][stage]['np']['defvalue'] = []
-        cfg['tool'][stage]['np']['short_help'] = 'Stage Thread Parallelism'
+        cfg['tool'][stage]['np']['short_help'] = 'Thread Parallelism'
         cfg['tool'][stage]['np']['help'] = [
             "The thread parallelism to use on a per stage basis.      ",
             "This information is intended for the EDA tools to use to ",
@@ -881,7 +881,7 @@ def schema_eda(cfg):
         cfg['tool'][stage]['keymap']['type'] = ['string', 'string']
         cfg['tool'][stage]['keymap']['requirmenet'] = 'optional'
         cfg['tool'][stage]['keymap']['defvalue'] = []
-        cfg['tool'][stage]['keymap']['short_help'] = 'Stage Keymap'
+        cfg['tool'][stage]['keymap']['short_help'] = 'Script Keymap'
         cfg['tool'][stage]['keymap']['help'] = [
             "The keymap is used to performs a key to key translation  ",
             "within the writcfg step before a configuration is written",
@@ -899,7 +899,7 @@ def schema_eda(cfg):
         cfg['tool'][stage]['vendor']['type'] = ['string']
         cfg['tool'][stage]['vendor']['requirement'] = ['all']
         cfg['tool'][stage]['vendor']['defvalue'] = []
-        cfg['tool'][stage]['vendor']['short_help'] = 'Stage Tool Vendor'
+        cfg['tool'][stage]['vendor']['short_help'] = 'Tool Vendor'
         cfg['tool'][stage]['vendor']['help'] = [
             "The vendor argument is used for selecting eda specific   ",
             "technology setup varaibales from the PDK and libraries   ",
@@ -1224,8 +1224,8 @@ def schema_rtl(cfg):
 
 def schema_floorplan(cfg):
 
-    cfg['target_stackup'] = {
-        'switch' : '-target_stackup',
+    cfg['stackup'] = {
+        'switch' : '-stackup',
         'switch_args' : '<>',        
         'type' : ['string'],
         'requirement' : 'asic',
@@ -1384,8 +1384,8 @@ def schema_apr(cfg):
                   "and automated place and route.                          "]
     }
 
-    cfg['target_arch'] = {
-        'switch' : '-target_arch',
+    cfg['libarch'] = {
+        'switch' : '-libarch',
         'switch_args' : '<str>',        
         'type' : ['string'],
         'defvalue' : [],
@@ -1581,9 +1581,9 @@ def schema_constraints(cfg):
         'help' : ["Provides the exact pexcorner name for the accessing  ",
                   "the pdk_pexmodel                                     "]
     }
-    cfg['mcmm_constraints'] = {}
-    cfg['mcmm_constraints']['default'] = {}
-    cfg['mcmm_constraints']['default']['default'] = {
+    cfg['mcmm_constr'] = {}
+    cfg['mcmm_constr']['default'] = {}
+    cfg['mcmm_constr']['default']['default'] = {
         'switch' : '-mcmm_constr',
         'switch_args' : '<>',
         'type' : ['file'],

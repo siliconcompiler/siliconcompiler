@@ -35,7 +35,7 @@ def freepdk45_pdk(chip, root):
     chip.add('tool','gdsview','script',pdkdir+'setup/klayout/freepdk45.lyt')
 
     # hard coded target lib
-    chip.add('target_stackup',chip.get('pdk_stackup')[0])
+    chip.add('stackup',chip.get('pdk_stackup')[0])
 
     # APR tech file
     chip.add('pdk_aprtech',stackup, arch, vendor,
@@ -86,7 +86,7 @@ def nangate45_lib(chip, root):
 
     # hard coded target lib
     chip.add('target_lib',libname)
-    chip.add('target_arch',arch)
+    chip.add('libarch',arch)
 
     #############################################
     # Library Definition

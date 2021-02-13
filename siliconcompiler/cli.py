@@ -36,7 +36,7 @@ def cmdline():
     # Argument Parser
     
     parser = argparse.ArgumentParser(prog='sc',
-                                     formatter_class =lambda prog: RawTextHelpFormatter(prog, indent_increment=1, max_help_position=22),
+                                     formatter_class =lambda prog: RawTextHelpFormatter(prog, indent_increment=1, max_help_position=23),
                                      prefix_chars='-+',
                                      description="Silicon Compiler Collection (SC)")
 
