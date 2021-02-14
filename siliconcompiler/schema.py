@@ -707,13 +707,13 @@ def schema_libs(cfg, group):
         'defvalue' : [],
         'hash' : []
     }
-    cfg[group]['default']['libdb'] = {}
-    cfg[group]['default']['libdb']['default'] = {
+    cfg[group]['default']['laydb'] = {}
+    cfg[group]['default']['laydb']['default'] = {
         'short_help' : 'Library Layout Compiled Database',
         'help' : ["A binary compiled library layout database for a specific ", 
                   "EDA tool. The dictionary format is:                      ",
-                  "['libdb']['tool'] = <file>                               "],
-        'switch' : '-'+group+'_libdb',
+                  "['laydb']['tool'] = <file>                               "],
+        'switch' : '-'+group+'_laydb',
         'switch_args' : '<>',
         'requirement' : 'optional',
         'type' : ['file'],
@@ -1394,6 +1394,17 @@ def schema_apr(cfg):
         'help' : ["Specifies the target library architecture to use. The   ",
                   "name is used to identify the technology file for must   ",
                   "match the pdk name and library name exactly.            "]
+    }
+
+    cfg['delaymodel'] = {
+        'switch' : '-delaymodel',
+        'switch_args' : '<str>',        
+        'type' : ['string'],
+        'defvalue' : [],
+        'requirement' : 'apr',
+        'short_help' : 'Target Library Delay Model',
+        'help' : ["Specifies the delay model to use for the target libs.   ",
+                  "Supported values are nldm and ccs.                      "]
     }
 
     # custom pass through variables
