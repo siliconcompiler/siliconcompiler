@@ -219,14 +219,14 @@ def schema_pdk(cfg):
     cfg['pdk_layermap'] = {}
     cfg['pdk_layermap']['default'] = {}
     cfg['pdk_layermap']['default']['default'] = {}
-    cfg['pdk_layermap']['default']['default']['streamout'] = {
-        'short_help' : 'Layout Streamout Layermap',
+    cfg['pdk_layermap']['default']['default']['default'] = {
+        'short_help' : 'Layout Layermap',
         'help' : ["This structure contains pointers to the various layer    ",
-                  "mapping files needed to stream data out from binary      ",
-                  "databases to tapeout read GDSII datbases. The layer map  ",
-                  "supplied in the PDK on a per stackup basis and the       ",
-                  "nested dictionary order is [stackup][tool][streamout].   "],
-        'switch' : '-pdk_streamout',
+                  "mapping files needed to map layer names that are not     ",
+                  "always matched up. The source and destination can be a   ",
+                  "format ike GDSII or an EDA tool. The dictionary format is",
+                  "['pdk_layermap']['stackup']['src']['dst']                "],      
+        'switch' : '-pdk_layermap',
         'switch_args' : '<>',
         'requirement' : 'asic',
         'type' : ['file'],
@@ -234,21 +234,6 @@ def schema_pdk(cfg):
         'hash' : []
     }
 
-    cfg['pdk_layermap']['default']['default']['streamin'] = {
-        'short_help' : 'Layout Streamin Layermap',
-        'help' : ["This structure contains pointers to the various layer    ",
-                  "mapping files needed to stream data into binary          ",
-                  "databases. The layer map supplied in the PDK on a per    ",
-                  "stackup basis and the nested dictionary order is         ",
-                  "[stackup][tool][streamout].                              "],
-        'switch' : '-pdk_streamin',
-        'switch_args' : '<>',
-        'requirement' : 'asic',
-        'type' : ['file'],
-        'defvalue' : [],
-        'hash' : []
-    }
-    
     cfg['pdk_display'] = {}
     cfg['pdk_display']['default'] = {}
     cfg['pdk_display']['default']['default'] = {
@@ -292,11 +277,12 @@ def schema_pdk(cfg):
                   "contains the necessary information needed to create DRC  ",
                   "compliant automatically routed designs. The file is      ",
                   "vendor specific with the most commonf format being LEF.  ",
-                  "The nested dictionary order is [stackup][arch][tool], ",
-                  "where arch stands for the library type, generally the ",
+                  "The nested dictionary order is [stackup][arch][type],    ",
+                  "where arch stands for the library type, generally the    ",
                   "library height. For example a node might support 6 track,",
-                  "7.5 track and 9 track high libraries with arch names  ",
-                  "of 6T, 7.5T, 9T                                          "],
+                  "7.5 track and 9 track high libraries with arch names     ",
+                  "of 6T, 7.5T, 9T. The type of tech file can be lef, tf,   ",
+                  "ndm                                                      "]
         'switch' : '-pdk_aprtech',
         'switch_args' : '<>',
         'requirement' : 'apr',
