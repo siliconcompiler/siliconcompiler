@@ -635,26 +635,16 @@ def schema_libs(cfg, group):
         'defvalue' : []
     }
     
-    #Dont use cell lists
-    cfg[group]['default']['exclude'] = {}
-    cfg[group]['default']['exclude']['default'] = {
-        'short_help' : 'Library Cell Exclude Lists',
-        'help' : ["Lists of cells to exclude for specific stages within the ",
-                  "an implementation flow. The structure of the dictionary  ",
-                  "is ['exclude'][stage] = <list>.                          "],
-        'switch' : '-'+group+'_exclude',
-        'switch_args' : '<>',
-        'requirement' : 'optional',
-        'type' : ['string'],
-        'defvalue' : []
-    }
-    cfg[group]['default']['include'] = {}
-    cfg[group]['default']['include']['default'] = {
-        'short_help' : 'Library Cell Include Lists',
-        'help' : ["Lists of cells to include for specific stages within the ",
-                  "an implementation flow. The structure of the dictionary  ",
-                  "is ['include'][stage] = <list>.                          "],
-        'switch' : '-'+group+'_include',
+    #Cell lists
+    cfg[group]['default']['cells'] = {}
+    cfg[group]['default']['cells']['default'] = {
+        'short_help' : 'Library Cell Lists',
+        'help' : ["A named group of cells. For exampl, a configuration      ",
+                  "of ['mylib']['cells']['dontuse'] = \'*del*\' would mark  ",
+                  "all the cell names that include \'del\' in the name as   ",
+                  "dontuse. Alternatively each one of \'del\' cells could be",
+                  "entereted as a list                                      "],
+        'switch' : '-'+group+'_cells',
         'switch_args' : '<>',
         'requirement' : 'optional',
         'type' : ['string'],
