@@ -177,8 +177,40 @@ class Chip:
                 cfg[param] = copy.deepcopy(cfg['default'])
             all_args.pop(0)
             return self.search(cfg[param], *all_args, field=field, mode=mode)
-        
 
+    ##################################
+    def prune(self, cfg=None):  
+        '''Prunes all empty branches from cfg
+        '''
+
+        #10 should be enough for anyone...
+        max_depth = 10
+
+        if cfg is None:
+            cfg = copy.deepcopy(self.cfg)
+
+        #Looping over one time per level to guarantee removal of all
+        #stale branches, not eleagnt, but stupid-simple. fast enough!
+        for i in range(max_depth):
+            #Loop through all keys starting at the top
+            for k in list(cfg.keys()):
+                #removing all default/template keys
+                if k == 'default':
+                    del cfg[k]
+                #delete all keys with empty/default values
+                elif 'value' in cfg[k].keys():
+                    if ((not cfg[k]['value']) or
+                        (cfg[k]['value'] == cfg[k]['defvalue'])):
+                        del cfg[k]
+                #removing stale branches
+                elif not cfg[k]:
+                    cfg.pop(k)
+                #keep traversing tree
+                else:
+                    self.prune(cfg=cfg[k])
+
+        return cfg
+    
     ##################################
     def slice(self, key1, key2, cfg=None, result=None):
         '''Returns list of all vals matchinng key1 and key2
@@ -426,7 +458,7 @@ class Chip:
 
 
     ##################################
-    def writecfg(self, filename):
+    def writecfg(self, filename, mode=None):
         '''Writes out the current Chip configuration dictionary to a file
 
         Args:
@@ -441,17 +473,22 @@ class Chip:
 
         # Create option to only write out a dict with values set
         # value!=defvalue and not empty
-       
+
+        if mode == 'prune':
+            cfg = self.prune(self.cfg)
+        else:
+            cfg = self.cfg
+
         # Write out configuration based on file type
         if not os.path.exists(os.path.dirname(filepath)):
             os.makedirs(os.path.dirname(filepath))
             
         if filepath.endswith('.json'):
             with open(filepath, 'w') as f:
-                print(json.dumps(self.cfg, sort_keys=True, indent=4), file=f)
+                print(json.dumps(cfg, sort_keys=True, indent=4), file=f)
         elif filepath.endswith('.yaml'):
             with open(filepath, 'w') as f:
-                print(yaml.dump(self.cfg, sort_keys=True, indent=4), file=f)
+                print(yaml.dump(cfg, sort_keys=True, indent=4), file=f)
         else:
             self.logger.error('File format not recognized %s', filepath)
     ##################################
