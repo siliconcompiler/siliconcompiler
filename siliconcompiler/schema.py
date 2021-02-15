@@ -637,13 +637,14 @@ def schema_libs(cfg, group):
     
     #Cell lists
     cfg[group]['default']['cells'] = {}
-    cfg[group]['default']['cells']['default'] = {
+    cfg[group]['default']['cells']['default'] = {}
+    cfg[group]['default']['cells']['default']['default'] = {
         'short_help' : 'Library Cell Lists',
-        'help' : ["A named group of cells. For exampl, a configuration      ",
-                  "of ['mylib']['cells']['dontuse'] = \'*del*\' would mark  ",
-                  "all the cell names that include \'del\' in the name as   ",
-                  "dontuse. Alternatively each one of \'del\' cells could be",
-                  "entereted as a list                                      "],
+        'help' : ["A named group of cells. For example, a configuration     ",
+                  "of ['mylib']['cells']['syn']['dontuse'] = \'*del*\'      ",
+                  "would mark all the cell names that include \'del\' in the",
+                  "name as dontuse during the syn stage. Alternatively each ",
+                  "one of the \'del\' cells could be entereted as a list.   "],
         'switch' : '-'+group+'_cells',
         'switch_args' : '<>',
         'requirement' : 'optional',
@@ -689,13 +690,8 @@ def schema_libs(cfg, group):
 
 def schema_eda(cfg):
 
-    cfg['stages'] = {
-        'short_help' : 'List of All Compilation Stages',
-        'help' : ["A complete list of all stages included in fully automated",
-                  "RTL to GDSII tapeout implementationa and verificatio flow",
-                  "Stages can be added and skipped during flows, but not    ", 
-                  "removed from the list as it would break the compiler.    "],
-        'switch' : '-stages',
+    cfg['compile_stages'] = {
+        'switch' : '-compile_stages',
         'switch_args' : '<str>',
         'requirement' : 'all',
         'type' : ['string'],        
@@ -706,23 +702,56 @@ def schema_eda(cfg):
                       'cts',
                       'route',
                       'signoff',
-                      'export',
-                      'lec',
+                      'export'],
+        'short_help' : 'List of Compilation Stages',
+        'help' : ["A complete list of all stages included in fully automated",
+                  "RTL to GDSII compilation. Compilation flow is controlled ",
+                  "with the -start, -stop, -cont switches and by adding     ",
+                  "values to the list."]
+    }
+
+    cfg['dv_stages'] = {
+        'switch' : '-dv_stages',
+        'switch_args' : '<str>',
+        'requirement' : 'all',
+        'type' : ['string'],        
+        'defvalue' : ['lec',
                       'pex',
                       'sta',
                       'pi',
                       'si',
                       'drc',
                       'erc',                    
-                      'lvs',
-                      'gdsview',
-                      'tapeout']
+                      'lvs'],
+        'short_help' : 'List of Verification Stages',
+        'help' : ["A complete list of all verification stages.              ",
+                  "The verification flow is controlled with the -start,     ",
+                  "-stop, -cont switches and by expanding the list.         "]
     }
 
+    cfg['view_stages'] = {
+        'switch' : '-view_stages',
+        'switch_args' : '<str>',
+        'requirement' : 'all',
+        'type' : ['string'],        
+        'defvalue' : ['dashboard',
+                      'defview',
+                      'gdsview'],
+        'short_help' : 'List of Interactive Viewer Stages',
+        'help' : ["A complete list of all interactive viewer stages.        ",
+                  "The verification flow is controlled with the -start,     ",
+                  "-stop, -cont switches and by expanding the list.         "]
+    }
+
+    #Concatenated list
+    all_stages = (cfg['compile_stages']['defvalue'] +
+                  cfg['view_stages']['defvalue'] +
+                  cfg['dv_stages']['defvalue'])
+    
     cfg['tool'] = {}
    
     # Defaults and config for all stages
-    for stage in cfg['stages']['defvalue']:        
+    for stage in all_stages:        
         cfg['tool'][stage] = {}
         # Exe
         cfg['tool'][stage]['exe'] = {}

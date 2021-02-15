@@ -62,7 +62,9 @@ class Chip:
         
         # Instance starts with all default stages in idle
         self.status = {}
-        for stage in self.cfg['stages']['defvalue']:
+        all_stages = (self.cfg['compile_stages']['defvalue'] +
+                      self.cfg['dv_stages']['defvalue'])
+        for stage in all_stages:
             self.status[stage] = ["idle"]
 
     ###################################
@@ -662,13 +664,14 @@ class Chip:
         cwd = os.getcwd()
 
         #Looking up stage numbers
-        stages = self.cfg['stages']['value']
+        stages = (self.cfg['compile_stages']['value'] +
+                  self.cfg['dv_stages']['value'])
         current = stages.index(stage)
         laststage = stages[current-1]
         start = stages.index(self.cfg['start']['value'][-1]) #scalar
         stop = stages.index(self.cfg['stop']['value'][-1]) #scalar
 
-        if stage not in self.cfg['stages']['value']:
+        if stage not in stages:
             self.logger.error('Illegal stage name %s', stage)
         elif (current < start) | (current > stop):
             self.logger.info('Skipping stage: %s', stage)

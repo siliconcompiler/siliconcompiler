@@ -155,14 +155,14 @@ def add_arg(cfg, parser, keys=None):
     for k,v in sorted(cfg.items()):
         #print(k,v)
         #No command line switches for these odd balls
-        if k in ('source', 'stages'):
+        if k in ('source'):
             pass
         #Optimizing command line switches for these
         elif k in ('tool'):
             for k2 in cfg['tool']['syn'].keys():
                 helpstr = cfg[k]['syn'][k2]['short_help']
-                helpstr = ('-- ' +  helpstr + ' --' +
-                           '\n\n' +
+                helpstr = (helpstr +
+                           '\n' +
                            '\n'.join(cfg[k]['syn'][k2]['help']) +
                            '\n\n') 
                 parser.add_argument(cfg[k]['syn'][k2]['switch'],
@@ -178,8 +178,8 @@ def add_arg(cfg, parser, keys=None):
             if 'defvalue' in cfg[k].keys():                
                 keystr = '_'.join(newkeys)
                 helpstr = cfg[k]['short_help']
-                helpstr = ('-- ' +  helpstr + ' --' +
-                           '\n\n' +
+                helpstr = (helpstr +
+                           '\n' +
                            '\n'.join(cfg[k]['help']) +
                            '\n\n') 
                 if cfg[k]['type'][-1] == 'bool': #scalar
@@ -276,7 +276,7 @@ def main():
     #Printing out run-config
     mychip.writecfg("sc_setup.json")
 
-    all_stages = mychip.get('stages')
+    all_stages = mychip.get('compile_stages')
     for stage in all_stages:
         # Run each stage on the remote compute cluster if requested.
         if (len(mychip.cfg['remote']['value']) > 0) and (mychip.cfg['remote']['value'][0] != ""):
