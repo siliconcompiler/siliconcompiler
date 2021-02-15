@@ -431,7 +431,7 @@ class Chip:
 
         Args:
             filename (string): Output filename. File-suffix indicates format
-                               (json, yaml, tcl)
+                               (json, yaml)
 
         '''
 
@@ -444,10 +444,15 @@ class Chip:
             os.makedirs(os.path.dirname(filepath))
         
         # Write out configuration based on file type
+
         if filepath.endswith('.json'):
             with open(filepath, 'w') as f:
                 print(json.dumps(self.cfg, sort_keys=True, indent=4), file=f)
-
+        elif filepath.endswith('.yaml'):
+            with open(filepath, 'w') as f:
+                print(yaml.dump(self.cfg, sort_keys=True, indent=4), file=f)
+        else:
+            self.logger.error('File format not recognized %s', filepath)
     ##################################
     def writetcl(self, stage, filename, cfg=None):
         '''Writes out the Chip cfg dictionary in TCL format
