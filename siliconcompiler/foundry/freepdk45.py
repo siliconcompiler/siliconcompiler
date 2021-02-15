@@ -15,7 +15,7 @@ def freepdk45_pdk(chip, root):
     rev = 'r1p0'
     stackup = '10M'
     vendor = 'openroad'
-    arch = '10t'
+    libtype = '10t'
     pdkdir = '/'.join([root,
                        foundry,
                        process,
@@ -38,7 +38,7 @@ def freepdk45_pdk(chip, root):
     chip.add('stackup',chip.get('pdk_stackup')[0])
 
     # APR tech file
-    chip.add('pdk_aprtech',stackup, arch, vendor,
+    chip.add('pdk_aprtech',stackup, libtype, vendor,
                pdkdir+'/apr/freepdk45.tech.lef')
 
     # Techlef Overrides
@@ -71,7 +71,7 @@ def nangate45_lib(chip, root):
     foundry = 'virtual'
     process = 'freepdk45'
     libname = 'NangateOpenCellLibrary'
-    arch = '10t'
+    libtype = '10t'
     height = '1.4'
     rev = 'r1p0'
     corner = 'typical'
@@ -86,7 +86,7 @@ def nangate45_lib(chip, root):
 
     # hard coded target lib
     chip.add('target_lib',libname)
-    chip.add('libarch',arch)
+    chip.add('libtype',libtype)
 
     #############################################
     # Library Definition
@@ -96,7 +96,7 @@ def nangate45_lib(chip, root):
     chip.add('stdcells',libname,'rev',rev)
     
     # timing
-    chip.add('stdcells',libname,'nldm','typical',libdir+'/lib/NangateOpenCellLibrary_typical.lib')
+    chip.add('stdcells',libname,'nldm','typical','lib',libdir+'/lib/NangateOpenCellLibrary_typical.lib')
     
     # lef
     chip.add('stdcells',libname,'lef',libdir+'/lef/NangateOpenCellLibrary.macro.lef')
@@ -108,7 +108,7 @@ def nangate45_lib(chip, root):
     chip.add('stdcells',libname,'site','FreePDK45_38x28_10R_NP_162NW_34O')
 
     # lib arch
-    chip.add('stdcells',libname,'arch',arch)
+    chip.add('stdcells',libname,'libtype',libtype)
 
     # lib height
     chip.add('stdcells',libname,'height',height)

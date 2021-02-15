@@ -52,7 +52,7 @@ close $outfile
 #Setup Libs
 ####################
 foreach lib $target_libs {
-    read_liberty [dict get $sc_cfg stdcells $lib nldm $corner]
+    read_liberty [dict get $sc_cfg stdcells $lib nldm $corner lib]
     read_lef [dict get $sc_cfg stdcells $lib lef]
     set site [dict get $sc_cfg stdcells $lib site]
     set libheight [dict get $sc_cfg stdcells $lib libheight]
