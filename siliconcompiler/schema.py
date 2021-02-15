@@ -9,18 +9,23 @@ def schema():
 
     cfg = {}
 
+    #FPGA Group
     cfg = schema_fpga(cfg)
-    
+
+    #PDK Group
     cfg = schema_pdk(cfg)
 
+    #LIBS Group
     cfg = schema_libs(cfg, 'stdcells')
 
     cfg = schema_libs(cfg, 'macros')
 
+    #EDA Group
     cfg = schema_eda(cfg)
 
+    #Design Group
     cfg = schema_options(cfg)
-    
+
     cfg = schema_rtl(cfg)
 
     cfg = schema_constraints(cfg)
@@ -29,6 +34,7 @@ def schema():
     
     cfg = schema_apr(cfg)
 
+    #Network Group    
     cfg = schema_net(cfg)
 
     return cfg
@@ -173,10 +179,10 @@ def schema_pdk(cfg):
         'defvalue' : []
     }
 
-    cfg['pdk_model'] = {}
-    cfg['pdk_model']['default'] = {}
-    cfg['pdk_model']['default']['default'] = {}
-    cfg['pdk_model']['default']['default']['default'] = {
+    cfg['pdk_devmodel'] = {}
+    cfg['pdk_devmodel']['default'] = {}
+    cfg['pdk_devmodel']['default']['default'] = {}
+    cfg['pdk_devmodel']['default']['default']['default'] = {
         'short_help' : 'Device Model',
         'help' : ["A dynamic structure of paths to various device models.   ",
                   "The structure serves as a central access registry for    ",
@@ -186,7 +192,7 @@ def schema_pdk(cfg):
                   "pointer can be trivially duplicated using a python for   ",
                   "loop in the PDK setup file. Examples of model types      ",
                   "include spice, aging, electromigration, radiation        "],
-        'switch' : '-pdk_model',
+        'switch' : '-pdk_devmodel',
         'switch_args' : '<>',
         'requirement' : 'asic',
         'type' : ['file'],
@@ -272,23 +278,24 @@ def schema_pdk(cfg):
     cfg['pdk_aprtech']['default'] = {}
     cfg['pdk_aprtech']['default']['default'] = {}
     cfg['pdk_aprtech']['default']['default']['default'] = {
-        'short_help' : 'Place and Route Tehnology File',
-        'help' : ["Technology file for place and route tools. The file      ",
-                  "contains the necessary information needed to create DRC  ",
-                  "compliant automatically routed designs. The file is      ",
-                  "vendor specific with the most commonf format being LEF.  ",
-                  "The nested dictionary order is [stackup][arch][type],    ",
-                  "where arch stands for the library type, generally the    ",
-                  "library height. For example a node might support 6 track,",
-                  "7.5 track and 9 track high libraries with arch names     ",
-                  "of 6T, 7.5T, 9T. The type of tech file can be lef, tf,   ",
-                  "ndm                                                      "]
         'switch' : '-pdk_aprtech',
         'switch_args' : '<>',
         'requirement' : 'apr',
         'type' : ['file'],
         'defvalue' : [],
-        'hash'   : []
+        'hash'   : [],
+        'short_help' : 'Place and Route Tehnology File',
+        'help' : ["Technology file for place and route tools. The file      ",
+                  "contains the necessary information needed to create DRC  ",
+                  "compliant automatically routed designs. The file is      ",
+                  "vendor specific with the most commonf format being LEF.  ",
+                  "The nested dictionary order is [stackup][libtype][format]",
+                  "where libtype stands for the library type, generally the ",
+                  "library height. For example a node might support 6 track,",
+                  "7.5 track and 9 track high libraries with libtype names  ",
+                  "of 6T, 7.5T, 9T. The type of tech file can be lef, tf,or ",
+                  "ndm.                                                     "]
+        
     }
 
     cfg['pdk_aprdir'] = {}
@@ -300,11 +307,11 @@ def schema_pdk(cfg):
                   "route tools. These files are avaialble in the PDK  on a  ",
                   "per tool and per stackup basis. The directory pointer    ",
                   "is not required by all tools. when provided, the nested  ",
-                  "dictionary order is [stackup][arch][tool], where      ",
-                  "arch stands for the library type, generally the       ",
-                  "library height. For example a node might support 6       ",
-                  "track, 7.5 track and 9 track high libraries with         ",
-                  "arch names of 6T, 7.5T, 9T                            "],
+                  "dictionary order is [stackup][libtype][tool], where the  ",
+                  "the library species a common unifying property of a set  "
+                  "of libraries (like libheight). For example a node might  ",
+                  "support 10 and 14 track high libraries, with libtypes    ",
+                  "being 10t and 14t                                        "],
         'switch' : '-pdk_aprdir',
         'switch_args' : '<>', 
         'requirement' : 'optional',
@@ -416,15 +423,15 @@ def schema_libs(cfg, group):
         'hash'   : []
     }
 
-    cfg[group]['default']['arch'] = {
-        'short_help' : 'Library Architecture',
+    cfg[group]['default']['libtype'] = {
+        'short_help' : 'Library Type',
         'help' : ["A name/tag used to identify the library type for place   ",
-                  "and route technology setup. Arch must match up with   ",
-                  "the name used in the pdk_aprtech structure. The arch  ",
+                  "and route technology setup. Libtype must match up with   ",
+                  "the name used in the pdk_aprtech structure. Libtype is a ",
                   "is a unique a string that identifies the library height  ",
-                  "or performance class of the library. Mixing of archs  ",
+                  "or performance class of the library. Mixing of libtypes  ",
                   "in a flat place and route block is not allowed.          "],
-        'switch' : '-'+group+'_arch',
+        'switch' : '-'+group+'_libtype',
         'switch_args' : '<>',
         'requirement' : 'apr',
         'type' : ['string'],
@@ -443,9 +450,11 @@ def schema_libs(cfg, group):
         'defvalue' : []
     }
     
+    
     cfg[group]['default']['nldm'] = {}
-    cfg[group]['default']['nldm']['default'] = {
-        'short_help' : 'Library Non-Linear Delay Model File',
+    cfg[group]['default']['nldm']['default'] = {}
+    cfg[group]['default']['nldm']['default']['default'] = {
+        'short_help' : 'Library Non-Linear Delay Model',
         'help' : ["A non-linear delay model in the liberty format. The file ",
                   "specifies timinga and logic functions to mapt the design ",
                   "to. The structure order is [library]['nldm'][corner]. The",
@@ -460,7 +469,8 @@ def schema_libs(cfg, group):
     }
 
     cfg[group]['default']['ccs'] = {}
-    cfg[group]['default']['ccs']['default'] = {
+    cfg[group]['default']['ccs']['default'] = {}
+    cfg[group]['default']['ccs']['default']['default']= {
         'short_help' : 'Library Composite Current Source Model File',
         'help' : ["A composite current source model for the library. It is  ",
                   "is more accurate than the NLDM model and recommended at  ",
@@ -666,39 +676,13 @@ def schema_libs(cfg, group):
         'hash'   : []
     } 
     
-    #Vendor compiled databases
-    cfg[group]['default']['nldmdb'] = {}
-    cfg[group]['default']['nldmdb']['default'] = {}
-    cfg[group]['default']['nldmdb']['default']['default'] = {
-        'short_help' : 'Library NLDM Compiled Database',
-        'help' : ["A binary compiled ndlm file for a specific EDA tool.     "],
-        'switch' : '-'+group+'_nldmdb',
-        'switch_args' : '<>',
-        'requirement' : 'optional',
-        'type' : ['file'],
-        'defvalue' : [],
-        'hash' : []
-    }
-
-    cfg[group]['default']['ccsdb'] = {}
-    cfg[group]['default']['ccsdb']['default'] = {}
-    cfg[group]['default']['ccsdb']['default']['default'] = {
-        'short_help' : 'Library CCS Compiled Databse',
-        'help' : ["A binary compiled ccs file for a specific EDA tool. The  ",
-                  "dictionary format is ['ccsdb']['corner']['tool'] = <file>"],
-        'switch' : '-'+group+'_ccsdb',
-        'switch_args' : '<>',
-        'requirement' : 'optional',
-        'type' : ['file'],
-        'defvalue' : [],
-        'hash' : []
-    }
+    #Compiled Layout Database
     cfg[group]['default']['laydb'] = {}
     cfg[group]['default']['laydb']['default'] = {
         'short_help' : 'Library Layout Compiled Database',
         'help' : ["A binary compiled library layout database for a specific ", 
                   "EDA tool. The dictionary format is:                      ",
-                  "['laydb']['tool'] = <file>                               "],
+                  "['laydb']['format'] = <file>                             "],
         'switch' : '-'+group+'_laydb',
         'switch_args' : '<>',
         'requirement' : 'optional',
@@ -1370,14 +1354,14 @@ def schema_apr(cfg):
                   "and automated place and route.                          "]
     }
 
-    cfg['libarch'] = {
-        'switch' : '-libarch',
+    cfg['libtype'] = {
+        'switch' : '-libtype',
         'switch_args' : '<str>',        
         'type' : ['string'],
         'defvalue' : [],
         'requirement' : 'apr',
-        'short_help' : 'Target Library Architecture',
-        'help' : ["Specifies the target library architecture to use. The   ",
+        'short_help' : 'Target Library Type',
+        'help' : ["Specifies the target library type. The                  ",
                   "name is used to identify the technology file for must   ",
                   "match the pdk name and library name exactly.            "]
     }
