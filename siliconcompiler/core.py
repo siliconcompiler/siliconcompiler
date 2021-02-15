@@ -407,7 +407,7 @@ class Chip:
                 read_args = json.load(f)
         elif abspath.endswith('.yaml'):
             with open(abspath, 'r') as f:
-                read_args = yaml.load(f, Loader=yaml.FullLoader)
+                read_args = yaml.load(f, Loader=yaml.SafeLoader)
         elif abspath.endswith('.tcl'):
             read_args = self.readtcl(abspath)
         else:
@@ -439,12 +439,13 @@ class Chip:
 
         self.logger.info('Writing configuration to file %s', filepath)
 
-        # Resolve path and make directory if it doesn't exist
+        # Create option to only write out a dict with values set
+        # value!=defvalue and not empty
+       
+        # Write out configuration based on file type
         if not os.path.exists(os.path.dirname(filepath)):
             os.makedirs(os.path.dirname(filepath))
-        
-        # Write out configuration based on file type
-
+            
         if filepath.endswith('.json'):
             with open(filepath, 'w') as f:
                 print(json.dumps(self.cfg, sort_keys=True, indent=4), file=f)
