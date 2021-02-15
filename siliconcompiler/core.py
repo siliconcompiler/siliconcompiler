@@ -96,67 +96,34 @@ class Chip:
         return list(self.search(self.cfg, *args, mode='getkeys'))
 
     ####################################
-    # sc_stdcell, <dynamic>, nldm, <dynamic>, val (4)
-    # sc_pdk_pnrdir, <stackup>, <lib>, <vendor>, val(4)
-    # sc_stdcell, <dynamic>, lef, val (3)
-    # sc_pdk_display, <dynamic>, <dynamic>, val(2)
-    # sc_pdk_models, <dynamic>, val (2)
-    # sc_design, val (1)
+    def add(self, *args):
+        '''Sets a value in the Chip configuration dictionary 
+        '''
+        self.logger.info('Adding config dictionary value: %s', args)
+                
+        all_args = list(args)
+        param = all_args[0]
+        
+        # Convert val to list if not a list
+        if type(all_args[-1]) != list:
+            all_args[-1] = [all_args[-1]]
 
-    def add(self, *args, clear=False):
+        return self.search(self.cfg, *all_args, mode='add')
+
+    ####################################
+    def set(self, *args):
         '''Sets a value in the Chip configuration dictionary 
         '''
         self.logger.info('Setting config dictionary value: %s', args)
                 
         all_args = list(args)
         param = all_args[0]
-
-        #Option for clearing list before adding value
-        if clear:
-            mode = 'set'
-        else:
-            mode = 'add'
-        
+    
         # Convert val to list if not a list
         if type(all_args[-1]) != list:
             all_args[-1] = [all_args[-1]]
 
-        # Deepcopy library from default template if it doesn't exist
-        # Can't be done recursively since we have to copy from template
-        # piece by piece? Need to reach back and over to template into the right
-        # place in the structure. How to do that elegantly?
-
-        #Code for dynamically copying default sub trees where needed
-        if param in self.cfg.keys():
-            if len(all_args) > 2:
-                k1 = all_args[1]
-                if not (k1 in self.cfg[param]):
-                    self.cfg[param][k1] = {}
-                    self.cfg[param][k1] = copy.deepcopy(self.cfg[param]['default'])
-            if len(all_args) > 3:
-                k2 = all_args[2]
-                if not (k2 in self.cfg[param][k1]):
-                    if len(self.cfg[param]['default']) > 1:
-                        view = k2
-                    else:
-                        view = 'default'  
-                    self.cfg[param][k1][k2] = {}
-                    self.cfg[param][k1][k2] = copy.deepcopy(self.cfg[param]['default'][view])
-            if len(all_args) > 4:
-                k3 = all_args[3]
-                if len(self.cfg[param]['default']) > 1:
-                    view = k2
-                else:
-                    view = 'default'  
-                # If there is only one view, that view should be default
-                #print(k1,k2,k3)
-                if not (k3 in self.cfg[param][k1][k2]):
-                    self.cfg[param][k1][k2][k3] = {}                    
-                    self.cfg[param][k1][k2][k3] = copy.deepcopy(self.cfg[param]['default'][view]['default'])
-        else:
-            self.logger.error('Parameter is not valid: %s', param)        
-
-        return self.search(self.cfg, *all_args, mode=mode)
+        return self.search(self.cfg, *all_args, mode='set')
     
     ##################################
     def search(self, cfg, *args, field='value', mode='get'):
@@ -175,23 +142,40 @@ class Chip:
         all_args = list(args)
         param = all_args[0]
         val = all_args[-1]
-        if param in cfg.keys():
-            #indicates leaf cell
-            if (mode=='set') & (len(all_args) == 2):
-                cfg[param][field] = val
-                return cfg[param][field]
-            elif (mode=='add') & (len(all_args) == 2):
-                return cfg[param][field].extend(val)
-            elif (len(all_args) == 1):
-                if(mode=='getkeys'):
-                    return cfg[param].keys()
+        
+        #set/add leaf cell (all_args=(param,val))
+        #print(mode, all_args)
+        if ((mode in ('set', 'add')) & (len(all_args) == 2)):
+            #making an 'instance' of default if not found
+            if not (param in cfg):
+                if not ('default' in cfg):
+                    self.logger.error('Search failed, \'%s\' is not a valid key', param)
                 else:
-                    return cfg[param][field]
+                    cfg[param] = copy.deepcopy(cfg['default'])
+            #setting or extending value based on set/get mode
+            if not (field in cfg[param]):
+                self.logger.error('Search failed, \'%s\' is not a valid leaf cell key', param)
+            if(mode=='set'):
+                cfg[param][field] = val
             else:
-                all_args.pop(0)
-                return self.search(cfg[param], *all_args, field=field, mode=mode)
+                cfg[param][field].extend(val)
+            return cfg[param][field]
+        #get leaf cell (all_args=param)
+        elif (len(all_args) == 1):
+            if(mode=='getkeys'):
+                return cfg[param].keys()
+            else:
+                if not (field in cfg[param]):
+                    self.logger.error('Key error, leaf param not found %s', field)
+                return cfg[param][field]
+        #if not leaf cell descend tree
         else:
-            self.logger.error('Param %s not found in dictionary', param)  
+            ##copying in default tree for dynamic trees
+            if not (param in cfg):                
+                cfg[param] = copy.deepcopy(cfg['default'])
+            all_args.pop(0)
+            return self.search(cfg[param], *all_args, field=field, mode=mode)
+        
 
     ##################################
     def slice(self, key1, key2, cfg=None, result=None):
@@ -328,13 +312,12 @@ class Chip:
                 d1[k] = d2[k].copy()
     
     ###################################
-    def check(self):
+    def check(self, group=None):
         '''Checks all values set in Chip configuration for legality.
         Also checks for missing values.
 
         Args:
-            stage (string): Stage name to get status for
-            jobid (int): Job index
+            group (string): fpga, pdk, libs, eda, design
 
         Returns:
             : Status (pending, running, done, or error)
@@ -342,29 +325,15 @@ class Chip:
         '''
 
         error = 1
-        
-        design = self.get('design')
-        target_libs = self.get('target_libs')
-        stackup = self.get('stackup')
-        libarch = self.get('target_libarch')
-        
 
-        
-        def_file = self.get('def')
-        diesize = self.get('diesize')
-        coresize = self.get('diesize')
-        aspectratio = self.get('aspectratio')
-        
-       
-        site = self.get('site')
+        #-check 
+        #
 
-        #1. Check for missing combinations
-        #!(def | floorplan | (diesze & coresize)
 
         
         #1. Check for missing combinations
         #!(def | floorplan | (diesze & coresize)
-        
+
         # notechlef
         # no site
         # no targetlib        
