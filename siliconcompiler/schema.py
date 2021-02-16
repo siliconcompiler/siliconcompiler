@@ -637,14 +637,13 @@ def schema_libs(cfg, group):
     
     #Cell lists
     cfg[group]['default']['cells'] = {}
-    cfg[group]['default']['cells']['default'] = {}
-    cfg[group]['default']['cells']['default']['default'] = {
+    cfg[group]['default']['cells']['default'] = {
         'short_help' : 'Library Cell Lists',
         'help' : ["A named group of cells. For example, a configuration     ",
-                  "of ['mylib']['cells']['syn']['dontuse'] = \'*del*\'      ",
-                  "would mark all the cell names that include \'del\' in the",
-                  "name as dontuse during the syn stage. Alternatively each ",
-                  "one of the \'del\' cells could be entereted as a list.   "],
+                  "of ['mylib']['cells']['dontuse'] = \'*del*\' would mark  ",
+                  "all the cell names that include \'del\' in the nam as    ",
+                  "dontuse. Alternatively each one of the \'del\' cells     ",
+                  "could be entereted as a list.                            "],
         'switch' : '-'+group+'_cells',
         'switch_args' : '<>',
         'requirement' : 'optional',
@@ -1523,32 +1522,12 @@ def schema_apr(cfg):
 
 def schema_constraints(cfg):
 
-    cfg['mcmm_cornerlist'] = {
-        'switch' : '-mcmm_cornerlist',
-        'switch_args' : '<>',
-        'type' : ['string'],
-        'requirement' : 'apr',
-        'defvalue' : [],
-        'short_help' : 'MCMM Library Corner List',
-        'help' : ["A complete list of the corners supported by the library",
-                  "The list would include all combinations of process,    ",
-                  "voltage, and temperature which have nldm views         "]
-    }
-
-    cfg['mcmm_pexlist'] = {
-        'switch' : '-mcmm_pexlist',
-        'switch_args' : '<str>',
-        'type' : ['string'],
-        'requirement' : 'apr',
-        'defvalue' : [],
-        'short_help' : 'MCMM PEX Corner List',
-        'help' : ["A complete list of the pex corners supported by the PDK"]
-        
-    }
-
     cfg['mcmm_scenario'] = {}
+
+    #Scenario Name
     cfg['mcmm_scenario']['default'] = {}
-    
+
+    #Scenario Libcorner
     cfg['mcmm_scenario']['default']['libcorner'] = {
         'switch' : '-mcmm_libcorner',
         'switch_args' : '<>',
@@ -1560,6 +1539,7 @@ def schema_constraints(cfg):
                   "target timing views needed for mcmm                  "]
     }
 
+    #Scenario Pexcorner
     cfg['mcmm_scenario']['default']['pexcorner'] = {
         'switch' : '-mcmm_pexcorner',
         'switch_args' : '<>',
@@ -1571,6 +1551,7 @@ def schema_constraints(cfg):
                   "the pdk_pexmodel                                     "]
     }
     
+    #Scenario  Mnemonic Name
     cfg['mcmm_scenario']['default']['mode'] = {
         'switch' : '-mcmm_mode',
         'switch_args' : '<>',
@@ -1581,10 +1562,10 @@ def schema_constraints(cfg):
         'help' : ["Provides the exact pexcorner name for the accessing  ",
                   "the pdk_pexmodel                                     "]
     }
-    cfg['mcmm_constr'] = {}
-    cfg['mcmm_constr']['default'] = {}
-    cfg['mcmm_constr']['default']['default'] = {
-        'switch' : '-mcmm_constr',
+
+    #Scenario Constrints files
+    cfg['mcmm_scenario']['default']['constraints'] = {
+        'switch' : '-mcmm_constraints',
         'switch_args' : '<>',
         'type' : ['file'],
         'requirement' : 'optional',
@@ -1597,23 +1578,18 @@ def schema_constraints(cfg):
                   "per stage basis to allow for tighetening margins as  ",
                   "the design getes more refined throught he apr flow   "]
         }
-
-    cfg['mcmm_goals'] = {}
-    cfg['mcmm_goals']['default'] = {}
-    cfg['mcmm_goals']['default']['default'] = {
+    #Goals/Objectives
+    cfg['mcmm_scenario']['default']['goals'] = {
         'switch' : '-mcmm_goals',
         'switch_args' : '<>',
         'type' : ['string'],
         'requirement' : 'apr',
         'defvalue' : [],
         'short_help' : 'MCMM Goals',
-        'help' : ["Provides taget goals for a scenario on a per stage   ",
-                  "basis. Valid goals must align with the syn and apr   ",
-                  "apr tools, but generally include setup, hold, power. ",
-                  "Per stage goals is supported to emable skipping of   ",
-                  "certain goals like until the deisgn has the necessary",
-                  "steps done, for example deferring the hold fix       ",
-                  "objective until after cts.                           "]
+        'help' : ["Provides taget goals for a scenario aligned with the ",
+                  "optimization capabilitis of the synthesis and apr    "
+                  "tool. Goals generally include objectives like meeting"
+                  "setup and hold goals and minimize power.             "]
     }
 
     return cfg
