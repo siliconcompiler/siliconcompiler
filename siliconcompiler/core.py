@@ -108,7 +108,8 @@ class Chip:
         
         # Convert val to list if not a list
         if type(all_args[-1]) != list:
-            all_args[-1] = [all_args[-1]]
+            
+            all_args[-1] = [str(all_args[-1])]
 
         return self.search(self.cfg, *all_args, mode='add')
 
@@ -179,19 +180,20 @@ class Chip:
             return self.search(cfg[param], *all_args, field=field, mode=mode)
 
     ##################################
-    def prune(self, cfg=None):  
+    def prune(self, cfg=None, top=True):  
         '''Prunes all empty branches from cfg
         '''
 
         #10 should be enough for anyone...
-        max_depth = 10
-
+        maxdepth = 10
+        i=0
+        
         if cfg is None:
             cfg = copy.deepcopy(self.cfg)
 
-        #Looping over one time per level to guarantee removal of all
-        #stale branches, not eleagnt, but stupid-simple. fast enough!
-        for i in range(max_depth):
+        #When at top of tree loop maxdepth times to make sure all stale
+        #branches have been removed, not eleagnt, but stupid-simple
+        while(i < maxdepth):
             #Loop through all keys starting at the top
             for k in list(cfg.keys()):
                 #removing all default/template keys
@@ -207,8 +209,11 @@ class Chip:
                     cfg.pop(k)
                 #keep traversing tree
                 else:
-                    self.prune(cfg=cfg[k])
-
+                    self.prune(cfg=cfg[k], top=False)
+            if(top):
+                i+=1
+            else:
+                break
         return cfg
     
     ##################################
@@ -234,28 +239,25 @@ class Chip:
         return result
 
     ##################################
-    def rename(self, cfg, stage):
+    def rename(self, cfg, keymap):
         '''Creates a copy of the dictionary with renamed primary keys
         '''
 
         cfgout =  {}
-        keymap = {}
+        keydict = {}
         
         #Create a dynamic keymap from string pairs
-        string_list = self.cfg['tool'][stage]['keymap']['value']
-        for string in string_list:
+        for string in keymap:
             k,v = string.split()
-            keymap[k]=v
-
+            keydict[k]=v
         #Cycle through all primary params and rename keys
-        for key in cfg:        
+        for key in cfg:
             if key in keymap:
-                newkey = keymap[key]
+                cfgout[keydict[key]] = cfg[key].copy()
                 self.logger.info('Keymap renaming from %s to %s', key, newkey)
             else:
-                newkey = key
-            cfgout[newkey] = cfg[key].copy() 
-    
+                cfgout[key] = cfg[key].copy() 
+
         return cfgout
     
     ##################################
@@ -282,7 +284,7 @@ class Chip:
                     self.abspath(cfg=cfg[k])
 
     ##################################
-    def printcfg (self,cfg,keys=None,f=None,mode="",prefix=""):
+    def printcfg (self, cfg, keys=None, f=None, mode="", field='value', prefix=""):
         '''Prints out flattened dictionary
         '''
         if keys is None:
@@ -292,26 +294,12 @@ class Chip:
             newkeys.append(k)
             if 'value' in cfg[k]:
                 keystr = ' '.join(newkeys)
-                if(mode=='doc'):
-                    #create two columns
-                    outlst = []
-                    for i in range(len(cfg[k]['help'])):
-                        if i==0:
-                            col0 = "{: <20}".format(newkeys[0])
-                        elif len(newkeys)>i:
-                            col0 = "{: <20}".format("<"+newkeys[i]+">")
-                        else:
-                            col0 = "{: <20}".format("")
-                        col1 = cfg[k]['help'][i]
-                        valstr = col0 + col1
-                        outlst.append(valstr)
-                    outstr = '\n'.join(outlst)
-                elif (mode=='tcl'):
-                    valstr = ' '.join(cfg[k]['value'])
+                if (mode=='tcl'):
+                    valstr = ' '.join(cfg[k][field])
                     outlst = [prefix,keystr,'[list ', valstr,']']
                     outstr = ' '.join(outlst)
                 else:
-                    valstr = ' '.join(cfg[k]['value'])
+                    valstr = ' '.join(cfg[k][field])
                     outlst = [prefix,keystr, valstr]
                     outstr = ' '.join(outlst)
                 if f is None:
@@ -319,7 +307,7 @@ class Chip:
                 else:
                     print(outstr+'\n', file=f)
             else:
-                self.printcfg(cfg[k], keys=newkeys, f=f, mode=mode, prefix=prefix)
+                self.printcfg(cfg[k], keys=newkeys, f=f, mode=mode, field=field, prefix=prefix)
 
     ##################################
     def mergecfg(self, d2, d1=None):
@@ -491,8 +479,9 @@ class Chip:
                 print(yaml.dump(cfg, sort_keys=True, indent=4), file=f)
         else:
             self.logger.error('File format not recognized %s', filepath)
+            
     ##################################
-    def writetcl(self, stage, filename, cfg=None):
+    def writetcl(self, filename, cfg=None, keymap=[]):
         '''Writes out the Chip cfg dictionary in TCL format
 
         Args:
@@ -505,11 +494,12 @@ class Chip:
         self.logger.info('Writing configuration in TCL format: %s', filepath)
         
         if cfg is None:
-            cfg = self.cfg
+            cfg = self.prune()            
 
-        #Creating a copy of cfg with name remap based on stage
-        cfg = self.rename(cfg, stage)
-        
+        #Renaming keys/attribute names before printing
+        if(keymap):
+            cfg = self.rename(cfg, keymap)
+            
         # Writing out file
         with open(filepath, 'w') as f:
             print("#############################################", file=f)
