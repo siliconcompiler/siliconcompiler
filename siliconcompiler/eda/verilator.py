@@ -5,7 +5,7 @@ import siliconcompiler as sc
 # Setup
 ####################################################
 
-def setup_verilator(chip, root):
+def setup_verilator(chip):
      
     stage = 'import'
         

@@ -225,7 +225,7 @@ def main():
     if 'target' in  cmdlinecfg.keys():
         target = cmdlinecfg['target']['value'][-1]
         if target in ('freepdk45', 'asap7'):
-            setup_verilator(mychip, root+'/eda/asic')
+            setup_verilator(mychip)
             setup_yosys(mychip, root+'/eda/asic')
             setup_openroad(mychip, root+'/eda/asic')
             setup_klayout(mychip, root+'/eda/asic')            
