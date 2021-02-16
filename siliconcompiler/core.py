@@ -12,8 +12,8 @@ import hashlib
 import time
 import webbrowser
 import yaml
-import copy
 import shutil
+import copy
 
 #from collections import defaultdict
 
@@ -704,9 +704,12 @@ class Chip:
         start = stages.index(self.cfg['start']['value'][-1]) #scalar
         stop = stages.index(self.cfg['stop']['value'][-1]) #scalar
 
+        #Check if stage should be explicitly skipped
+        skip = stage in self.cfg['skip']['value']
+        
         if stage not in stages:
             self.logger.error('Illegal stage name %s', stage)
-        elif (current < start) | (current > stop):
+        elif (current < start) | (current > stop) | skip:
             self.logger.info('Skipping stage: %s', stage)
         else:
             self.logger.info('Running stage: %s', stage)
@@ -749,7 +752,7 @@ class Chip:
                     cmd_fields.append(value)
             else:
                 #Write out CFG dictionary as TCL/JSON
-                self.writetcl(stage, "sc_setup.tcl")
+                self.writetcl("sc_setup.tcl")
                 self.writecfg("sc_setup.json")
                 #Copy outputs from last stage
                 lastjobid = self.cfg['tool'][laststage]['jobid']['value'][-1]
@@ -757,16 +760,19 @@ class Chip:
                                     stages[current-1],
                                     'job'+lastjobid,
                                     'outputs'])
-                shutil.copytree(lastdir, 'inputs')
+                if (os.path.isdir(lastdir)):
+                    shutil.copytree(lastdir, 'inputs')
                 
             #Copy scripts to local if they exist
             #Changing execution link to local
-            if self.cfg['tool'][stage]['copy']['value'] == "True":
-                shutil.copytree(self.cfg['tool'][stage]['refdir']['value'],
-                                jobdir)
+            if self.cfg['tool'][stage]['copy']['value'][0] == "True":
+                print("COPYLOCAL")
+                shutil.copytree(self.cfg['tool'][stage]['refdir']['value'][0],
+                                ".",
+                                dirs_exist_ok=True)
+                #TODO: add support for abs paths (subtract refdir path)
                 for value in self.cfg['tool'][stage]['script']['value']:
-                    basename = os.path.basename(value)
-                    cmd_fields.append(jobdir+basename)
+                    cmd_fields.append(value)
             else:
                for value in self.cfg['tool'][stage]['script']['value']:
                    cmd_fields.append(value)      
