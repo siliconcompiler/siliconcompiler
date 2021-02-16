@@ -1142,7 +1142,7 @@ def schema_rtl(cfg):
     cfg['ydir'] = {
         'switch' : '-y',
         'switch_args' : '<dir>',
-        'type' : ['string'],
+        'type' : ['file'],
         'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
@@ -1155,7 +1155,7 @@ def schema_rtl(cfg):
     cfg['idir'] = {
         'switch' : '-I',
         'switch_args' : '<dir>',
-        'type' : ['string'],
+        'type' : ['file'],
         'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
