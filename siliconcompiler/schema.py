@@ -76,7 +76,7 @@ def schema_pdk(cfg):
         'help' : ["The name of the foundry. Example values include: tsmc,  ",
                   "gf, samsung, intel, skywater, virtual. The virtual      ",
                   "keyword is reserved for simulated processes that can't  ",
-                  "like nangate45 and asap7.                               "],
+                  "manufactured like freepdk45 and asap7.                  "],
         'switch' : '-pdk_foundry',
         'switch_args' : '<str>',
         'requirement' : 'asic',
@@ -86,7 +86,7 @@ def schema_pdk(cfg):
 
     cfg['pdk_process'] = {
         'short_help' : 'Process Name',
-        'help' : ["The official name of the process within a foundry. The   ",
+        'help' : ["The official public name of the foundry process. The     ",
                   "name is case insensitive, but should otherwise match the ",
                   "complete public process name from the foundry. Examples  ",
                   "process names include 22FFL from Intel, 12LPPLUS from    ",
@@ -102,7 +102,7 @@ def schema_pdk(cfg):
         'short_help' : 'Process Node',
         'help' : ["An approximation of the relative minimum dimension       ",
                   "of the process node. Not a required parameter but may be ",
-                  "used to select technology dependant synthesis and place  ",
+                  "used to select technology dependent synthesis and place  ",
                   "and route optimization algorithms and recipes. Examples  ",
                   "of nodes include 180nm, 130nm, 90nm, 65nm, 45m,32nm, 22nm",
                   "15nm, 10nm, 7nm, 5nm                                     "],
@@ -129,7 +129,7 @@ def schema_pdk(cfg):
         
     cfg['pdk_guide'] = {
         'short_help' : 'Process Guide',
-        'help' : ["All PDKs ship with extensive documeation, generally      ",
+        'help' : ["All PDKs ship with extensive documentation, generally      ",
                   "provided as PDFs. This first item in this parameter list ",
                   "should be the the primary PDK usage guide, while the rest",
                   "of the list would contain other important documents. The ",
@@ -137,7 +137,7 @@ def schema_pdk(cfg):
                   "documents that can at times be hard to locate quickly in ",
                   "in complex advanced node PDKs. Example use cases include ",
                   "automatic PDF viewer launch of the document or static    ",
-                  "static HTML page construction with links to all docsl    "],
+                  "static HTML page construction with links to all docs    "],
         'switch' : '-pdk_guide',
         'switch_args' : '<file>',
         'requirement' : 'optional',
@@ -204,11 +204,11 @@ def schema_pdk(cfg):
     cfg['pdk_pexmodel']['default'] = {}
     cfg['pdk_pexmodel']['default']['default']= {}
     cfg['pdk_pexmodel']['default']['default']['default'] = {
-        'short_help' : 'Parastic Extraction TCAD Model',
+        'short_help' : 'Parasitic Extraction TCAD Model',
         'help' : ["A dynamic structure of paths to PDK parasitic models.    ",
                   "Modern PDKs include encrypted parasitic models for each  ",
                   "stackup offered, often with characterization across      ",
-                  "multiple statitical process corners. The nested          ",
+                  "multiple statistical process corners. The nested          ",
                   "dictionary order is [stackup][corner][vendor].           ",
                   "The methodology for applying these models is described   ",
                   "in the PDK docs. Within the digital place and route      ",
@@ -262,7 +262,7 @@ def schema_pdk(cfg):
     cfg['pdk_clib']['default']['default'] = {
         'short_help' : 'Custom Design Library',
         'help' : ["A file containing pointers to all custom cell libs.      ",
-                  "Examples include pcell libraries and pycell libs         ",
+                  "Examples include pcell libraries and pcell libs         ",
                   "The file is supplied in the PDK on a per stackup basis   ",
                   "and the nested dictionary order is [stackup][tool].      "],
         'switch' : '-pdk_clib',
@@ -284,11 +284,11 @@ def schema_pdk(cfg):
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : [],
-        'short_help' : 'Place and Route Tehnology File',
+        'short_help' : 'Place and Route Technology File',
         'help' : ["Technology file for place and route tools. The file      ",
                   "contains the necessary information needed to create DRC  ",
                   "compliant automatically routed designs. The file is      ",
-                  "vendor specific with the most commonf format being LEF.  ",
+                  "vendor specific with the most common format being LEF.  ",
                   "The nested dictionary order is [stackup][libtype][format]",
                   "where libtype stands for the library type, generally the ",
                   "library height. For example a node might support 6 track,",
@@ -456,7 +456,7 @@ def schema_libs(cfg, group):
     cfg[group]['default']['nldm']['default']['default'] = {
         'short_help' : 'Library Non-Linear Delay Model',
         'help' : ["A non-linear delay model in the liberty format. The file ",
-                  "specifies timinga and logic functions to mapt the design ",
+                  "specifies timing and logic functions to map the design ",
                   "to. The structure order is [library]['nldm'][corner]. The",
                   "corner is used to define scenarios and must be the       ",
                   "same as those used int he mcmm_scenario structure.       "],
@@ -596,8 +596,8 @@ def schema_libs(cfg, group):
     } 
 
     cfg[group]['default']['tag'] = {
-        'short_help' : 'Library Indentifier Tags',
-        'help' : ["An arbitraty set of tags that can be used by the designer",
+        'short_help' : 'Library Identifier Tags',
+        'help' : ["An arbitrary set of tags that can be used by the designer",
                   "or EDA tools for optimization purposes. The tags are     ",
                   "meant to cover features not currently supported by built ",
                   "in EDA optimization flows. Multiple tags per library is  ",
@@ -641,9 +641,9 @@ def schema_libs(cfg, group):
         'short_help' : 'Library Cell Lists',
         'help' : ["A named group of cells. For example, a configuration     ",
                   "of ['mylib']['cells']['dontuse'] = \'*del*\' would mark  ",
-                  "all the cell names that include \'del\' in the nam as    ",
+                  "all the cell names that include \'del\' in the name as    ",
                   "dontuse. Alternatively each one of the \'del\' cells     ",
-                  "could be entereted as a list.                            "],
+                  "could be entered as a list.                            "],
         'switch' : '-'+group+'_cells',
         'switch_args' : '<>',
         'requirement' : 'optional',
@@ -762,7 +762,7 @@ def schema_eda(cfg):
         cfg['tool'][stage]['exe']['short_help'] = 'Executable'
         cfg['tool'][stage]['exe']['help'] = [
             "The name of the executable. Can be the full env path to  ",
-            "the excutable or the simple name if the search path has  ",
+            "the executable or the simple name if the search path has  ",
             "already been set up in the working environment.          "]
 
         #opt  
@@ -814,7 +814,7 @@ def schema_eda(cfg):
         cfg['tool'][stage]['copy']['defvalue'] = []
         cfg['tool'][stage]['copy']['short_help'] = 'Copy Local Option'
         cfg['tool'][stage]['copy']['help'] = [
-            "Specifes that the reference script directory should be   ",
+            "Specifies that the reference script directory should be   ",
             "copied and run from the local run directory. This option ",
             "is set automatically set when the -remote option is set  "]
 
@@ -827,7 +827,7 @@ def schema_eda(cfg):
         cfg['tool'][stage]['format']['defvalue'] = []
         cfg['tool'][stage]['format']['short_help'] = 'Script Format'
         cfg['tool'][stage]['format']['help'] = [
-            "Specifes that format of the configuration file for the   ",
+            "Specifies that format of the configuration file for the   ",
             "stage. Valid formats are tcl, yaml, and json. The format ",
             "used is dictated by the executable for the stage.        "]
         
@@ -841,9 +841,9 @@ def schema_eda(cfg):
         cfg['tool'][stage]['jobid']['short_help'] = 'Job Index'
         cfg['tool'][stage]['jobid']['help'] = [
             "A dynamic variable that keeeps track of results to pass  ",
-            "foward to the next stage of the implementation pipeline  ",
+            "forward to the next stage of the implementation pipeline  ",
             "in cases where multiple jobs are run for one stage and a ",
-            "progrematic selection if made to choose the best result, ",
+            "programmatic selection if made to choose the best result, ",
             "the variable is use to point to a job which may or may   ",
             "not be the last job launched"]
         
@@ -867,12 +867,12 @@ def schema_eda(cfg):
         cfg['tool'][stage]['keymap']['switch'] = '-tool_keymap'
         cfg['tool'][stage]['keymap']['switch_args'] = '<>'
         cfg['tool'][stage]['keymap']['type'] = ['string', 'string']
-        cfg['tool'][stage]['keymap']['requirmenet'] = 'optional'
+        cfg['tool'][stage]['keymap']['requirement'] = 'optional'
         cfg['tool'][stage]['keymap']['defvalue'] = []
         cfg['tool'][stage]['keymap']['short_help'] = 'Script Keymap'
         cfg['tool'][stage]['keymap']['help'] = [
             "The keymap is used to performs a key to key translation  ",
-            "within the writcfg step before a configuration is written",
+            "within the writecfg step before a configuration is written",
             "out to a json, tcl, or yaml file to be used to drive the ",
             "stage execution flow. In cases where there is a one to   ",
             "one correlation between the features of the sc_cfg and   ",
@@ -890,8 +890,8 @@ def schema_eda(cfg):
         cfg['tool'][stage]['vendor']['short_help'] = 'Tool Vendor'
         cfg['tool'][stage]['vendor']['help'] = [
             "The vendor argument is used for selecting eda specific   ",
-            "technology setup varaibales from the PDK and libraries   ",
-            "which generallly support multiple vendors for each       ",
+            "technology setup variables from the PDK and libraries   ",
+            "which generally support multiple vendors for each       ",
             "implementation stage                                     "]
         
     return cfg
@@ -912,7 +912,7 @@ def schema_options(cfg):
         'defvalue' : [],
         'short_help' : 'Vendor Environment Variables',
         'help' : ["EDA tools and reference flows often require environment  ",
-                  "variables to be set. These variables can be manageed     ",
+                  "variables to be set. These variables can be managed     ",
                   "externally or passed in through this variable.           "],
     }
 
@@ -925,11 +925,11 @@ def schema_options(cfg):
         'hash'   : [],
         'short_help' : 'Compiler Configuration File',
         'help' : ["All parameters can be set at the command line, but with  ",
-                  "over 100 comfiguration parameters available in SC, the   ",
+                  "over 100 configuration parameters available in SC, the   ",
                   "preferred method for non trivial use cases is to create  ",
                   "a cfg file using the SC python API. The cfg file can be  ",
-                  "passed in throught he -cfgfile switch at the commmand    ",
-                  "There is no restruction on the number of cfgfiles that   ",
+                  "passed in through he -cfgfile switch at the command    ",
+                  "There is no restriction on the number of cfgfiles that   ",
                   "can be passed in. Parameters in the cfgfile are appended ",
                   "to the existing list. In cases where a single entry is   ",
                   "expected such as in the case of <design> the last entered",
@@ -943,7 +943,7 @@ def schema_options(cfg):
         'requirement' : 'optional',
         'defvalue' : ['False'],
         'short_help' : 'Configuration File Lock',
-        'help' : ["The lock switch can be used to prevent unintented        ",
+        'help' : ["The lock switch can be used to prevent unintended        ",
                   "updates to the chip configuration. For example, a team   ",
                   "might converge on a golden reference methodology and will",
                   "have a company policy to not allow designers to deviate  ",
@@ -959,7 +959,7 @@ def schema_options(cfg):
         'type' : ['bool'],
         'requirement' : 'optional',
         'defvalue' : ['False'],
-        'short_help' : 'Supresses informational printing',
+        'short_help' : 'Suppress informational printing',
         'help' : ["By default, the sc will log extensive info to the display",
                   "This can be turned off using the -quiet param. Warnings  ",
                   "and errors are always logged."]
@@ -1048,7 +1048,7 @@ def schema_options(cfg):
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Message Contact Information',
-        'help' : ["A list of phone numbers or email addreses to message on  ",
+        'help' : ["A list of phone numbers or email addresses to message on  ",
                   "a trigger event within the msg_trigger param.            "]
     }
 
@@ -1069,11 +1069,11 @@ def schema_rtl(cfg):
         'defvalue' : [],        
         'hash'   : [],
         'short_help' : 'Source files',
-        'help' : ["A list of souroce files to read in for ellaboration. The ",
+        'help' : ["A list of source files to read in for elaboration. The ",
                   "files are read in order from first to last entered. File ",
                   "type is inferred from the file suffix:                   ",
                   "(*.v, *.vh) = verilog                                    ",
-                  "(*.sv) = systemverilog                                   ",
+                  "(*.sv) = system verilog                                   ",
                   "(*.vhd) = vhdl                                           "]
     }
         
@@ -1108,9 +1108,9 @@ def schema_rtl(cfg):
         'type' : ['string', "string", 'float', 'float'],
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Clock Defintion',
+        'short_help' : 'Clock Definition',
         'help' : ["A complete clock definition specifying the name of the   ",
-                  "clock, the name of the clock port, or the full hierachy  ",
+                  "clock, the name of the clock port, or the full hierarchy  ",
                   "path to the generated internal clock, the clock frequency",
                   "and the clock uncertainty (jitter). The definition can be",
                   "used to drive constraints for implementation and signoff."]
@@ -1234,7 +1234,7 @@ def schema_floorplan(cfg):
         'short_help' : 'Design Target Core Density',
         'help' : ["Provides a target density based on the total design cell",
                   "area reported after synthesis. This number is used when ",
-                  "no diesize or floorplan is supplied. Any number between ",
+                  "no die size or floorplan is supplied. Any number between ",
                   "1 and 100 is legal, but values above 50 may fail due to ",
                   "area/congestion issues during apr.                      "]
     }
@@ -1247,7 +1247,7 @@ def schema_floorplan(cfg):
         'defvalue' : [],
         'short_help' : 'Design Place and Route Core Margin',        
         'help' : ["Sets the halo/margin between the apr core cell area to  ",
-                  "use for automated floorplaning setup. The value is      ",
+                  "use for automated floorplanning setup. The value is      ",
                   "specified in microns and is only used when no diesize or",
                   "floorplan is supplied                                   "]
     }
@@ -1260,10 +1260,10 @@ def schema_floorplan(cfg):
         'defvalue' : ['1'],
         'short_help' : 'Design Layout Aspect Ratio',
         'help' : ["The aspect ratio to use for automated floor-planning and",
-                  "specifes the height to width ratio of the block. Values ",
-                  "below 0.1 and above 10 shuld be avoided as they will    ",
-                  "likekly fail to converd during apr. The ideal aspect    ",
-                  "ratio for the vast majhority of designs is 1.           "]
+                  "specifies the height to width ratio of the block. Values ",
+                  "below 0.1 and above 10 should be avoided as they will    ",
+                  "likely fail to convert during apr. The ideal aspect    ",
+                  "ratio for the vast majority of designs is 1.           "]
     }
 
     # 2. Spec driven floorplanning    
@@ -1275,7 +1275,7 @@ def schema_floorplan(cfg):
         'defvalue' : [],
         'short_help' : 'Target Die Size',
         'help' : ["Provides the outer boundary of the physical design. The ",
-                  "number is provded as a tuple (x0 y0 x1 y1), where x0,y0 ",
+                  "number is provided as a tuple (x0 y0 x1 y1), where x0,y0 ",
                   "species the lower left corner of the block and x1,y1    ",
                   "specifies the upper right corner of. Only rectangular   ",
                   "blocks are supported with the diesize parameter. All    ",
@@ -1290,14 +1290,14 @@ def schema_floorplan(cfg):
         'defvalue' : [],
         'short_help' : 'Target Core Size',
         'help' : ["Provides the core cell boundary for place and route.The ",
-                  "number is provded as a tuple (x0 y0 x1 y1), where x0,y0 ",
+                  "number is provided as a tuple (x0 y0 x1 y1), where x0,y0 ",
                   "species the lower left corner of the block and x1,y1    ",
                   "specifies the upper right corner of. Only rectangular   ",
                   "blocks are supported with the diesize parameter. All    ",
                   "values are specified in microns.                        "]
     }
     
-    # 3. Parametrized floorplanning
+    # 3. Parameterized floorplanning
     cfg['floorplan'] = {
         'switch' : '-floorplan',
         'switch_args' : '<file>',
@@ -1305,11 +1305,11 @@ def schema_floorplan(cfg):
         'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
-        'short_help' : 'Floorplaning Script',
-        'help' : ["Provides a parametrized floorplan to be used during the ",
+        'short_help' : 'Floorplanning Script',
+        'help' : ["Provides a parameterized floorplan to be used during the ",
                   "floorplan to create a fixed DEF file for placement.     ",
                   "Files with a .py suffix are processed by the sc, while  ",
-                  "all other fils are passed through to the floorplanning  ",
+                  "all other files are passed through to the floorplanning  ",
                   "tool as is.                                             "]
     }
     
@@ -1346,14 +1346,14 @@ def schema_apr(cfg):
         'short_help' : 'Target compilation platform',
         'help' : ["Provides a string name for choosing a physical mapping  ",
                   "target for the design. Like in compilers like gcc, only ",
-                  "targets that are pre-baked into the compiler suppored.  ",
+                  "targets that are pre-baked into the compiler supported.  ",
                   "Custom targets can be configured through a combination  ",
                   "of command line switches and config files. The target   ",                  
-                  "parameter is included for conveneince, enabling cool    ",
+                  "parameter is included for convenience, enabling cool    ",
                   "single line commands like sc -target asap hello_world.v ",
                   "Specifying the target parameter causes a number of PDK  ",
                   "PDK and library variables to be set automatically set   ",
-                  "based ont he specific target specified.                 ",                 
+                  "based on he specific target specified.                 ",                 
                   "The targets currently supported are:                    ",
                   "asap7: A virtual PDK for 7nm with apr support           ",
                   "[More...](//http://asap.asu.edu/asap/                   ",
@@ -1405,7 +1405,7 @@ def schema_apr(cfg):
         'short_help' : 'Custom EDA Pass-through Parameters',
         'help' : ["Specifies a custom variable to pass through directly to ",
                   "the EDA run scripts. The value is a space separated     ",
-                  "string with the first value indicating the varibale.    ",
+                  "string with the first value indicating the variable.    ",
                   "For example -custom MYMODE 2 would result in tcl code   ",
                   "being generated as \'set MYMODE 2\'                     "]
     }
@@ -1432,7 +1432,7 @@ def schema_apr(cfg):
         'help' : ["An optional parameter for tools that support tiered     ",
                   "optimization functions. For example, congestion might   ",
                   "be assigned higher priority than timing in some stages. ",
-                  "The optimization priority string must matcht the EDA    ",
+                  "The optimization priority string must match the EDA    ",
                   "value exactly.                                          "]
     }
     #routing options
@@ -1446,8 +1446,8 @@ def schema_apr(cfg):
         'short_help' : 'Non-default Net Routing File',
         'help' : ["A file containing a list of nets with non-default width ",
                   "and spacing, with one net per line and no wildcards     ",
-                  "The formaat is <netname width space>                    ",
-                  "The netname should include the full herarhcy from the   ",
+                  "The format is <netname width space>                    ",
+                  "The netname should include the full hierarchy from the   ",
                   "root module while width space should be specified in the",
                   "resolution specified in the technology file.            "]
     }
@@ -1510,8 +1510,8 @@ def schema_apr(cfg):
         'defvalue' : [],
         'hash'   : [],
         'short_help' : 'Switching activity File',
-        'help' : ["A simulat trace containing the toggle counts that can  ",
-                  "be used for coarse statisttical power estimation.      "]
+        'help' : ["A simulated trace containing the toggle counts that can  ",
+                  "be used for coarse statistical power estimation.      "]
     }
     
     return cfg
@@ -1563,7 +1563,7 @@ def schema_constraints(cfg):
                   "the pdk_pexmodel                                     "]
     }
 
-    #Scenario Constrints files
+    #Scenario Constraints files
     cfg['mcmm_scenario']['default']['constraints'] = {
         'switch' : '-mcmm_constraints',
         'switch_args' : '<>',
@@ -1575,8 +1575,8 @@ def schema_constraints(cfg):
         'help' : ["Provides scenario specific constraints. If none are  ",
                   "supplied default constraints are generated based on  ",
                   "the clk parameter. The constraints can be applied on ",
-                  "per stage basis to allow for tighetening margins as  ",
-                  "the design getes more refined throught he apr flow   "]
+                  "per stage basis to allow for tightening margins as  ",
+                  "the design gets more refined through he apr flow   "]
         }
     #Goals/Objectives
     cfg['mcmm_scenario']['default']['goals'] = {
@@ -1586,8 +1586,8 @@ def schema_constraints(cfg):
         'requirement' : 'apr',
         'defvalue' : [],
         'short_help' : 'MCMM Goals',
-        'help' : ["Provides taget goals for a scenario aligned with the ",
-                  "optimization capabilitis of the synthesis and apr    "
+        'help' : ["Provides target goals for a scenario aligned with the ",
+                  "optimization capabilities of the synthesis and apr    "
                   "tool. Goals generally include objectives like meeting"
                   "setup and hold goals and minimize power.             "]
     }
@@ -1600,7 +1600,7 @@ def schema_constraints(cfg):
 
 def schema_net(cfg):
 
-    # Remote IP address/hostname running sc-server app
+    # Remote IP address/host name running sc-server app
     cfg['remote'] = {
         'short_help' : 'Remote server (https://acme.com:8080)',
         'switch': '-remote',
@@ -1632,7 +1632,7 @@ def schema_net(cfg):
 
     # NFS config: Hostname to use for accessing shared remote compute storage.
     cfg['nfshost'] = {
-        'short_help': 'Hostname or IP address for shared storate.',
+        'short_help': 'Hostname or IP address for shared storage.',
         'switch': '-nfs_host',
         'switch_args' : '<str>',
         'type' : ['string'],
