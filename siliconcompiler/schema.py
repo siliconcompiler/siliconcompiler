@@ -47,17 +47,22 @@ def schema_fpga(cfg):
     ''' FPGA Setup
     '''
     cfg['fpga_xml'] = {
-        'short_help' : 'FPGA Architecture Description',
-        'help' : ["The file provides XML-based architecture description for ",
-                  "the target FPGA architecture to be used in VTR allowing  ",
-                  "the user to describe a large number of hypothetical and  ",
-                  "commercial architectures.                                ",
-                  "[More information...](https://verilogtorouting.org)      "],
         'switch' : '-fpga_xml',
         'switch_args' : '<>',
         'requirement' : 'fpga',
         'type' : ['string', 'file'],
-        'defvalue' : []
+        'defvalue' : [],
+        'short_help' : 'FPGA Architecture Description',
+        'help' : ["Provides XML-based architecture description for the target",
+                  "FPGA architecture to be used in VTR, allowing a user to   ",
+                  "describe a large number of hypothetical and commercial    ",
+                  "architectures.                                            ",
+                  "[More information...](https://verilogtorouting.org)       ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -fpga_xml myfpga.xml                                 ",
+                  "api:  chip.set('fpga_xml', 'myfpga.xml')                  ",
+                  "dict: cfg['fpga_xml'] = ['myfpga.xml']                    "]
     }
 
     return cfg
@@ -72,205 +77,275 @@ def schema_pdk(cfg):
     '''
          
     cfg['pdk_foundry'] = {
-        'short_help' : 'Foundry Name',
-        'help' : ["The name of the foundry. Example values include: tsmc,  ",
-                  "gf, samsung, intel, skywater, virtual. The virtual      ",
-                  "keyword is reserved for simulated processes that can't  ",
-                  "manufactured like freepdk45 and asap7.                  "],
         'switch' : '-pdk_foundry',
         'switch_args' : '<str>',
         'requirement' : 'asic',
         'type' : ['string'],
-        'defvalue' : []
+        'defvalue' : [],
+        'short_help' : 'Foundry Name',
+        'help' : ["The name of the foundry. For example: intel, gf, tsmc,    ",
+                  "samsung, skywater, virtual. The \'virtual\' keyword is    ",
+                  "reserved for simulated non-manufacturable processes like  ",
+                  "freepdk45 and asap7.                                      ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -pdk_foundry virtual                                 ",
+                  "api:  chip.set('pdk_foundry', 'virtual')                  ",
+                  "dict: cfg['pdk_foundry'] = ['virtual']                    "]
     }
 
     cfg['pdk_process'] = {
-        'short_help' : 'Process Name',
-        'help' : ["The official public name of the foundry process. The     ",
-                  "name is case insensitive, but should otherwise match the ",
-                  "complete public process name from the foundry. Examples  ",
-                  "process names include 22FFL from Intel, 12LPPLUS from    ",
-                  "Globalfoundries, and 16FFC from TSMC.                    "],
         'switch' : '-pdk_process',
         'switch_args' : '<str>',
         'requirement' : 'asic',
         'type' : ['string'],
-        'defvalue' : []
+        'defvalue' : [],
+        'short_help' : 'Process Name',
+        'help' : ["The official public name of the foundry process. The      ",
+                  "name is case insensitive, but should otherwise match the  ",
+                  "complete public process name from the foundry. Example    ",
+                  "process names include 22FFL from Intel, 12LPPLUS from     ",
+                  "Globalfoundries, and 16FFC from TSMC.                     ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -pdk_process asap7                                   ",
+                  "api:  chip.set('pdk_process', 'asap7')                    ",
+                  "dict: cfg['pdk_process'] = ['asap7']                      "]
     }
 
     cfg['pdk_node'] = {
-        'short_help' : 'Process Node',
-        'help' : ["An approximation of the relative minimum dimension       ",
-                  "of the process node. Not a required parameter but may be ",
-                  "used to select technology dependent synthesis and place  ",
-                  "and route optimization algorithms and recipes. Examples  ",
-                  "of nodes include 180nm, 130nm, 90nm, 65nm, 45m,32nm, 22nm",
-                  "15nm, 10nm, 7nm, 5nm                                     "],
         'switch' : '-pdk_node',
         'switch_args' : '<num>',
         'requirement' : 'asic',
         'type' : ['int'],
-        'defvalue' : []
+        'defvalue' : [],
+        'short_help' : 'Process Node',
+        'help' : ["An approximate relative minimum dimension of the process  ",
+                  "node. A required parameter in some reference flows that   ",
+                  "leverage the value to drive technology dependent synthesis",
+                  "and automated place & route optimization. Node examples   ",
+                  "include 180nm, 130nm, 90nm, 65nm, 45nm, 32nm, 22nm, 14nm, ",
+                  "10nm, 7nm, 5nm, 3nm. The value entered implies nanometers.",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -pdk_node 130                                        ",
+                  "api:  chip.set('pdk_node', '130')                         ",
+                  "dict: cfg['pdk_node'] = ['130']                           "]
     }
 
     cfg['pdk_rev'] = {
-        'short_help' : 'Process Node Rev',
-        'help' : ["The PDK rev is an alphanumeric string provided by to ",
-                  "track changes in critical process design kit data shipped",
-                  "to foundry customers. Designers should manually or       ",
-                  "automatically verify that the PDK rev is approved    ",
-                  "for new tapeouts.                                        "],
         'switch' : '-pdk_rev',
         'switch_args' : '<str>',
         'requirement' : 'asic',
         'type' : ['string'],
-        'defvalue' : []
-    }
-        
-    cfg['pdk_guide'] = {
-        'short_help' : 'Process Guide',
-        'help' : ["All PDKs ship with extensive documentation, generally      ",
-                  "provided as PDFs. This first item in this parameter list ",
-                  "should be the the primary PDK usage guide, while the rest",
-                  "of the list would contain other important documents. The ",
-                  "variable's purpose to serve as a central record for the  ",
-                  "documents that can at times be hard to locate quickly in ",
-                  "in complex advanced node PDKs. Example use cases include ",
-                  "automatic PDF viewer launch of the document or static    ",
-                  "static HTML page construction with links to all docs    "],
-        'switch' : '-pdk_guide',
-        'switch_args' : '<file>',
-        'requirement' : 'optional',
-        'type' : ['file'],
         'defvalue' : [],
-        'hash'   : []
+        'short_help' : 'Process Revision',
+        'help' : ["An alphanumeric string specifying the revision  of the    ",
+                  "current PDK. Verification of correct PDK and IP revisions ",
+                  "is an ASIC tapeout requirement in all commercial          ",
+                  "foundries.                                                ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -pdk_rev 1.0                                         ",
+                  "api:  chip.set('pdk_rev', '1.0')                          ",
+                  "dict: cfg['pdk_rev'] = ['1.0']                            "]
     }
 
     cfg['pdk_drm'] = {
-        'short_help' : 'Process Design Rule Manual',
-        'help' : ["A PDK document that includes detailed information about  ",
-                  "all design rules to comply with in the design and        ",
-                  "layout of a chip.                                        "],
         'switch' : '-pdk_drm',
         'switch_args' : '<file>',
         'requirement' : 'asic',
         'type' : ['file'],
         'defvalue' : [],
-        'hash'   : []
+        'hash'   : [],
+        'short_help' : 'Process Design Rule Manual',
+        'help' : ["A PDK document that includes complete information about   ",
+                  "all physical and electrical design rules to comply with in",
+                  "the design and layout of the chip. In cases where the user",
+                  "guides and design rules are combined into a single        ",
+                  "document, the pdk_doc parameter can be left blank.        ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -pdk_drm asap7_drm.pdf                               ",
+                  "api:  chip.set('pdk_drm', 'asap7_drm.pdf')                ",
+                  "dict: cfg['pdk_drm'] = ['asap7_drm.pdf']                  "]
+    }
+    
+    cfg['pdk_doc'] = {
+        'switch' : '-pdk_doc',
+        'switch_args' : '<file>',
+        'requirement' : 'optional',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash'   : [],
+        'short_help' : 'Process Documents',
+        'help' : ["A list of critical PDK designer documents provided by the ",
+                  "foundry entered in order of priority. The first item in   ",
+                  "the list should be the the primary PDK user guide, while  ",
+                  "the rest of the list would contain other important        ",
+                  "documents. The list purpose is to serve as a central      ",
+                  "record for all must-read PDK documents.                   ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -pdk_doc asap7_userguide.pdf                         ",
+                  "api:  chip.set('pdk_doc', 'asap7_userguide.pdf')          ",
+                  "dict: cfg['pdk_doc'] = ['asap7_userguide.pdf']            "]
     }
 
+ 
+
     cfg['pdk_stackup'] = {
-        'short_help' : 'Process Metal Stackup',
-        'help' : ["A list of all metal stackups offered in the process node ",
-                  "Older process nodes may only offer a single metal        ",
-                  "stackup, while advanced nodes offer a large but finite   ",
-                  "list of metal stacks with varying combinations of        ",
-                  "metal line widths and thicknesses. Stackup naming is     ",
-                  "unique to the foundry, but is generally a long string,   ",
-                  "or code. For example, a 10 metal stackup two 1x wide,    ",
-                  "four 2x wide, and 2 4x wide metals, might be identified  ",
-                  "as 2MA_4MB_2MC. Each stackup will come with its own set  ",
-                  "routing technology files and parasitic models specified  ",
-                  "in the pdk_pexmodel and pdk_aprtech variables.           "],
         'switch' : '-pdk_stackup',
         'switch_args' : '<>',
         'requirement' : 'asic',
         'type' : ['string'],
-        'defvalue' : []
+        'defvalue' : [],
+        'short_help' : 'Process Metal Stackups',
+        'help' : ["A list of all metal stackups offered in the process node  ",
+                  "Older process nodes may only offer a single metal         ",
+                  "stackup, while advanced nodes offer a large but finite    ",
+                  "list of metal stacks with varying combinations of metal   ",
+                  "line pitches and thicknesses. Stackup naming is unqiue to ",
+                  "to a foundry, but is generally a long string or code. For ",
+                  "example, a 10 metal stackup two 1x wide, four 2x wide, and",
+                  "4x wide metals, might be identified as 2MA4MB2MC. Each    ",
+                  "stackup will come with its own set of routing technology  ",
+                  "files and parasitic models specified in the pdk_pexmodel  ",
+                  "and pdk_aprtech parameters.                               ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -pdk_stackup 2MA4MB2MC                               ",
+                  "api:  chip.set('pdk_stackup', '2MA4MB2MC')                ",
+                  "dict: cfg['pdk_stackup'] = ['2MA4MB2MC']                  "]
     }
 
     cfg['pdk_devmodel'] = {}
     cfg['pdk_devmodel']['default'] = {}
     cfg['pdk_devmodel']['default']['default'] = {}
     cfg['pdk_devmodel']['default']['default']['default'] = {
-        'short_help' : 'Device Model',
-        'help' : ["A dynamic structure of paths to various device models.   ",
-                  "The structure serves as a central access registry for    ",
-                  "models for different purpose and vendors. The nested     ",
-                  "dictionary order is [stackup][type][vendor]. For models  ",
-                  "that span all metal stackups, the model directory        ",
-                  "pointer can be trivially duplicated using a python for   ",
-                  "loop in the PDK setup file. Examples of model types      ",
-                  "include spice, aging, electromigration, radiation        "],
         'switch' : '-pdk_devmodel',
         'switch_args' : '<>',
         'requirement' : 'asic',
         'type' : ['file'],
         'defvalue' : [],
-        'hash'   : []
+        'hash'   : [],
+        'short_help' : 'Device Models',
+        'help' : ["A dynamic dictionary of filepaths for all PDK device      ",
+                  "models. The structure serves as a central access registry ",
+                  "for models for different purpose and tools. The format for",
+                  "the dictionary is [stackup][type][tool]. Examples of      ",
+                  "device model types include spice, aging, electromigration,",
+                  "radiation. An example of a spice tool is xyce.            ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -pdk_devmodel '2MA4MB2MC spice xyce asap7.sp'        ",
+                  "api: chip.set('pdk_devmodel','2MA4MB2MC', 'spice', 'xyce',",
+                  "              'asap7.sp')                                 ",
+                  "dict: cfg['pdk_devmodel']['2MA4MB2MC']['spice']['xyce'] = ",
+                  "      ['asap7.sp']                                        "]
     }
 
     cfg['pdk_pexmodel'] = {}
     cfg['pdk_pexmodel']['default'] = {}
     cfg['pdk_pexmodel']['default']['default']= {}
     cfg['pdk_pexmodel']['default']['default']['default'] = {
-        'short_help' : 'Parasitic Extraction TCAD Model',
-        'help' : ["A dynamic structure of paths to PDK parasitic models.    ",
-                  "Modern PDKs include encrypted parasitic models for each  ",
-                  "stackup offered, often with characterization across      ",
-                  "multiple statistical process corners. The nested          ",
-                  "dictionary order is [stackup][corner][vendor].           ",
-                  "The methodology for applying these models is described   ",
-                  "in the PDK docs. Within the digital place and route      ",
-                  "flows the pex models must be accessed through the        ",
-                  "pdk_pexmodel structure.                                  "],
         'switch' : '-pdk_pexmodel',
         'switch_args' : '<>',
         'requirement' : 'asic',
         'type' : ['file'],
         'defvalue' : [],
-        'hash'   : []
+        'hash'   : [],
+        'short_help' : 'Parasitic Extraction TCAD Models',
+        'help' : ["A dynamic dictionary of filepaths for all PDK wire TCAD   ",
+                  "models. The structure serves as a central access registry ",
+                  "for models for different purpose and tools. The format for",
+                  "the dictionary is [stackup][corner][tool]. Examples of    ",
+                  "RC extraction corners include: min, max, nominal. An      ",
+                  "example of an extraction tool is FastCap.                 ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -pdk_pexmodel '2MA4MB2MC max fastcap wire.mod'       ",
+                  "api: chip.set('pdk_pexmodel','2MA4MB2MC','max','fastcap', ",
+                  "              'wire.mod')                                 ",
+                  "dict: cfg['pdk_pexmodel']['2MA4MB2MC']['max']['fastcap']= ",
+                  "      ['wire.mod']                                        "]
     }
 
     cfg['pdk_layermap'] = {}
     cfg['pdk_layermap']['default'] = {}
     cfg['pdk_layermap']['default']['default'] = {}
     cfg['pdk_layermap']['default']['default']['default'] = {
-        'short_help' : 'Layout Layermap',
-        'help' : ["This structure contains pointers to the various layer    ",
-                  "mapping files needed to map layer names that are not     ",
-                  "always matched up. The source and destination can be a   ",
-                  "format ike GDSII or an EDA tool. The dictionary format is",
-                  "['pdk_layermap']['stackup']['src']['dst']                "],      
         'switch' : '-pdk_layermap',
         'switch_args' : '<>',
         'requirement' : 'asic',
         'type' : ['file'],
         'defvalue' : [],
-        'hash' : []
+        'hash' : [],
+        'short_help' : 'Mask Layer Maps',
+        'help' : ["A dynamic dictionary of filepaths describing input/output ",
+                  "mapping for streaming layout data from one format to      ",
+                  "another. A foundry PDK will include an official layer list",
+                  "for all user entered and generated layers supported in the",
+                  "GDS accepted by the foundry for processing, but there is  ",
+                  "currently no standardized layer definition format that can",
+                  "be read and written by all EDA tools. To ensure mask layer",
+                  "matching, key/value type mapping files are needed to      ",
+                  "convert EDA databases to/from GDS and to convert betweeen ",
+                  "different types of EDA databases. The format for the      ",
+                  "the dictionary is [stackup][src][dst].                    ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -pdk_layermap '2MA4MB2MC libtool gds asap7.map'      ",
+                  "api: chip.set('pdk_layermap','2MA4MB2MC','libtool','gds', ",
+                  "              'asap7.map')                                ",
+                  "dict: cfg['pdk_layermap']['2MA4MB2MC']['libtool']['gds']= ",
+                  "      ['asap7.map']                                       "]
     }
 
     cfg['pdk_display'] = {}
     cfg['pdk_display']['default'] = {}
     cfg['pdk_display']['default']['default'] = {
-        'short_help' : 'Custom Design Display Configuration',
-        'help' : ["This structure contains a display configuration file     ",
-                  "for colors and pattern schemes for all layers in the     ",
-                  "PDK. The layer map supplied in the PDK on a per          ",
-                  "stackup basis and the nested dictionary order is         ",
-                  "[stackup][tool].                                         "],
         'switch' : '-pdk_display',
         'switch_args' : '<>',
         'requirement' : 'asic',
         'type' : ['file'],
         'defvalue' : [],
-        'hash' : []
+        'hash' : [],
+        'short_help' : 'Display Configurations',
+        'help' : ["A dynamic dictionary of display configuration files       ",
+                  "describing colors and pattern schemes for all layers in   ",
+                  "the PDK. The display configuration file is entered on a   ",
+                  "stackup and per tool basis, with the dictionary format    ",
+                  "being [stackup][tool].                                    ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -pdk_display '2MA4MB2MC klayout display.cfg'         ",
+                  "api: chip.set('pdk_display','2MA4MB2MC','klayout',        ",
+                  "              'display.cfg')                              ",
+                  "dict: cfg['pdk_display']['2MA4MB2MC']['klayout'] =        ",
+                  "      ['display.cfg']                                     "]
     }
 
-    cfg['pdk_clib'] = {}
-    cfg['pdk_clib']['default'] = {}
-    cfg['pdk_clib']['default']['default'] = {
-        'short_help' : 'Custom Design Library',
-        'help' : ["A file containing pointers to all custom cell libs.      ",
-                  "Examples include pcell libraries and pcell libs         ",
-                  "The file is supplied in the PDK on a per stackup basis   ",
-                  "and the nested dictionary order is [stackup][tool].      "],
+    cfg['pdk_lib'] = {}
+    cfg['pdk_lib']['default'] = {}
+    cfg['pdk_lib']['default']['default'] = {
         'switch' : '-pdk_clib',
         'switch_args' : '<>',
         'requirement' : 'asic',
         'type' : ['file'],
         'defvalue' : [],
-        'hash' : []
+        'hash' : [],
+        'short_help' : 'Custom Design Libraries',
+        'help' : ["A dynamic dictionary of filepaths to all primitive cell   ",
+                  "libraries supported by the PDK. The filepaths are entered ",
+                  "on a per stackup basis with the format: [stackup][tool].  ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -pdk_lib '2MA4MB2MC oa /disk/asap7/oa/devlib'        ",
+                  "api: chip.set('pdk_lib','2MA4MB2MC','oa',                 ",
+                  "              '/disk/asap7/oa/devlib')                    ",
+                  "dict: cfg['pdk_lib']['2MA4MB2MC']['oa'] =                 ",
+                  "      ['/disk/asap7/oa/devlib']                           "]
     }
     
     # Place and Route
@@ -284,87 +359,84 @@ def schema_pdk(cfg):
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : [],
-        'short_help' : 'Place and Route Technology File',
-        'help' : ["Technology file for place and route tools. The file      ",
-                  "contains the necessary information needed to create DRC  ",
-                  "compliant automatically routed designs. The file is      ",
-                  "vendor specific with the most common format being LEF.  ",
-                  "The nested dictionary order is [stackup][libtype][format]",
-                  "where libtype stands for the library type, generally the ",
-                  "library height. For example a node might support 6 track,",
-                  "7.5 track and 9 track high libraries with libtype names  ",
-                  "of 6T, 7.5T, 9T. The type of tech file can be lef, tf,or ",
-                  "ndm.                                                     "]
-        
+        'short_help' : 'Place and Route Technology Files',
+        'help' : ["A dynamic dictionary of paths to technology files         ",
+                  "containing the design rule and setup information needed to",
+                  "enable DRC clean automated placement a routing. The nested",
+                  "dictionary format is is [stackup][libtype][format], where ",
+                  "libtype generally indicates the height of the standard    ",
+                  "cell library supported by the PDK. For example with       ",
+                  "support for 9 and 12 track libraries might have libtypes  ",
+                  "called 9t and 12t                                         ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -pdk_aprtech '2MA4MB2MC 12t openroad asap_tech.lef'  ",
+                  "api: chip.set('pdk_aprtech','2MA4MB2MC','12t','lef',      ",
+                  "              'asap_tech.lef')                            ",
+                  "dict: cfg['pdk_aprtech']['2MA4MB2MC']['12t']['lef']=      ",
+                  "      ['asap_tech.lef']                                   "]
     }
 
-    cfg['pdk_aprdir'] = {}
-    cfg['pdk_aprdir']['default'] = {}
-    cfg['pdk_aprdir']['default']['default'] = {}
-    cfg['pdk_aprdir']['default']['default']['default'] = {
-        'short_help' : 'Place and Route Setup Directory ',
-        'help' : ["Directory containing various setup files for place and   ",
-                  "route tools. These files are avaialble in the PDK  on a  ",
-                  "per tool and per stackup basis. The directory pointer    ",
-                  "is not required by all tools. when provided, the nested  ",
-                  "dictionary order is [stackup][libtype][tool], where the  ",
-                  "the library species a common unifying property of a set  "
-                  "of libraries (like libheight). For example a node might  ",
-                  "support 10 and 14 track high libraries, with libtypes    ",
-                  "being 10t and 14t                                        "],
-        'switch' : '-pdk_aprdir',
-        'switch_args' : '<>', 
-        'requirement' : 'optional',
-        'type' : ['file'],
-        'defvalue' : [],
-        'hash'   : []
-    }
-
-    
+       
     cfg['pdk_aprlayer'] = {}
     cfg['pdk_aprlayer']['default'] = {
-        'short_help' : 'Place and Route Layer Definitions',
-        'help' : ["In experimental settings and for immature PDKs there may ",
-                  "be a need to override the design rules defined int he    ",
-                  "pdk_aprtech file. This should be done using using        ",
-                  "pdk_aprlayer.The layer definition is given as a tuple on ",
-                  "a per stackup basis. An hypothetical example of a valid  ",
-                  "layer definition would be metal1 X 0.5 1.0 for defining  ",
-                  "metal1 as a horizontal routing layer with a 0.5um width  ",
-                  "and 1.0um pitch grid.                                    "],
         'switch' : '-pdk_aprlayer',
         'switch_args' : '<>',
         'requirement' : 'optional',
         'type' : ['string', 'string', 'float', 'float'],
         'defvalue' : [],
-        'hash'   : []
+        'hash'   : [],
+        'short_help' : 'Place and Route Layer Definitions',
+        'help' : ["A optional list of metal layer definitions. Generally, all",
+                  "APR setup rules would be read from the pdk_aprtec file,   ",
+                  "but there are cases when these rules should be overriden  ",
+                  "with non-minimal design rules. The list enables per layer ",
+                  "routing rule definitions, entered as a tuple of the format",
+                  "'metalname preferred-dir width pitch'. The values are     ",
+                  "entered on a per stackup basis with X denoting horizontal ",
+                  "direction, Y denoting vertical direction, and the width   ",
+                  "and pitch entered in micrometers.                         ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -pdk_aprlayer 'm1 X 0.5 1.0'                         ",
+                  "api: chip.set('pdk_aprlayer','m1 X 0.5 1.0')              ",
+                  "dict: cfg['pdk_aprlayer'] = ['m1 X 0.5 1.0']              "]
     }
 
-    cfg['pdk_tapmax'] = {
-        'short_help' : 'Tap Cell Max Distance Rule',
-        'help' : ["Sets the maximum distance between tap cells for the place",
-                  "and route tool. This value is derived from the design    ",
-                  "rule manual and the methodology guides within the PDK.   "],
+    cfg['pdk_tapmax'] = {       
         'switch' : '-pdk_tapmax',
-        'switch_args' : '<>',
+        'switch_args' : '<num>',
         'requirement' : 'apr',
         'type' : ['float'],
         'defvalue' : [],
-        'hash' : []
+        'hash' : [],
+        'short_help' : 'Tap Cell Max Distance Rule',
+        'help' : ["Specifies the maximum distance allowed between tap cells  ",
+                  "in the PDK. The value is required for automated place and ",
+                  "route and is entered in micrometers.                      ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -pdk_tapmax 100                                      ",
+                  "api: chip.set('pdk_tapmax','100')                         ",
+                  "dict: cfg['pdk_tapmax'] = ['100']                         "]
     }
 
     cfg['pdk_tapoffset'] = {
-        'short_help' : 'Tap Cell Offset Rule',
-        'help' : ["Sets the offset from the edge of the block to place a tap",
-                  "cell for the place route tool. This value is derived from",
-                  "the design rule manual and the methodology guides within ",
-                  "the PDK.                                                 "],
         'switch' : '-pdk_tapoffset',
         'switch_args' : '<num>',
         'requirement' : 'apr',
         'type' : ['float'],
         'defvalue' : [],
-        'hash' : []
+        'hash' : [],
+        'short_help' : 'Tap Cell Offset Rule',
+        'help' : ["Specifies the offset from the edge of the block to place  ",
+                  "a tap cell grid. The value is required for automated place",
+                  "and route and is entered in micrometers.                  ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -pdk_tapoffset 0                                     ",
+                  "api: chip.set('pdk_tapoffset','0')                        ",
+                  "dict: cfg['pdk_tapoffset'] = ['0']                        "]
     }
 
     return cfg
@@ -1253,17 +1325,22 @@ def schema_floorplan(cfg):
     }
 
     cfg['aspectratio'] = {
-        'switch' : '-aspecratio',
+        'switch' : '-aspectratio',
         'switch_args' : '<num>',
         'type' : ['float'],
         'requirement' : 'optional',
         'defvalue' : ['1'],
         'short_help' : 'Design Layout Aspect Ratio',
-        'help' : ["The aspect ratio to use for automated floor-planning and",
-                  "specifies the height to width ratio of the block. Values ",
-                  "below 0.1 and above 10 should be avoided as they will    ",
-                  "likely fail to convert during apr. The ideal aspect    ",
-                  "ratio for the vast majority of designs is 1.           "]
+        'help' : ["Specifies the height to width ratio of the block for     ",
+                  "automated floor-planning. Values below 0.1 and above 10  "
+                  "should be avoided as they will likely fail to converge   ",
+                  "during placement and routing. The ideal aspect ratiio for",
+                  "most designs is 1.                                       ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -aspectratio 2.0                                    ",
+                  "set:  chip.set('aspectratio', '2.0')                     ",
+                  "dict: cfg['aspectratio'] = ['2.0']                       "]
     }
 
     # 2. Spec driven floorplanning    
@@ -1275,7 +1352,7 @@ def schema_floorplan(cfg):
         'defvalue' : [],
         'short_help' : 'Target Die Size',
         'help' : ["Provides the outer boundary of the physical design. The ",
-                  "number is provided as a tuple (x0 y0 x1 y1), where x0,y0 ",
+                  "number is provided as a tuple (x0 y0 x1 y1), where x0,y0",
                   "species the lower left corner of the block and x1,y1    ",
                   "specifies the upper right corner of. Only rectangular   ",
                   "blocks are supported with the diesize parameter. All    ",
