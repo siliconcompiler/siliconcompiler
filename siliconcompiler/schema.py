@@ -139,7 +139,7 @@ def schema_pdk(cfg):
         'requirement' : 'asic',
         'type' : ['string'],
         'defvalue' : [],
-        'short_help' : 'Process Revision',
+        'short_help' : 'Process Release Revision',
         'help' : ["An alphanumeric string specifying the revision  of the    ",
                   "current PDK. Verification of correct PDK and IP revisions ",
                   "is an ASIC tapeout requirement in all commercial          ",
@@ -181,10 +181,9 @@ def schema_pdk(cfg):
         'short_help' : 'Process Documents',
         'help' : ["A list of critical PDK designer documents provided by the ",
                   "foundry entered in order of priority. The first item in   ",
-                  "the list should be the the primary PDK user guide, while  ",
-                  "the rest of the list would contain other important        ",
-                  "documents. The list purpose is to serve as a central      ",
-                  "record for all must-read PDK documents.                   ",
+                  "the list should be the primary PDK user guide. The        ",
+                  "purpose of the list is to serve as a central record for   ",
+                  "all must-read PDK documents.                              ",
                   "                                                          ",
                   "Examples:                                                 ",
                   "cli: -pdk_doc asap7_userguide.pdf                         ",
@@ -348,7 +347,6 @@ def schema_pdk(cfg):
                   "      ['/disk/asap7/oa/devlib']                           "]
     }
     
-    # Place and Route
     cfg['pdk_aprtech'] = {}
     cfg['pdk_aprtech']['default'] = {}
     cfg['pdk_aprtech']['default']['default'] = {}
@@ -429,8 +427,8 @@ def schema_pdk(cfg):
         'defvalue' : [],
         'hash' : [],
         'short_help' : 'Tap Cell Offset Rule',
-        'help' : ["Specifies the offset from the edge of the block to place  ",
-                  "a tap cell grid. The value is required for automated place",
+        'help' : ["Specifies the offset from the edge of the block to the    ",
+                  "tap cell grid. The value is required for automated place  ",
                   "and route and is entered in micrometers.                  ",
                   "                                                          ",
                   "Examples:                                                 ",
@@ -451,306 +449,425 @@ def schema_libs(cfg, group):
 
     cfg[group]['default'] = {}
     
-    # Rev #
     cfg[group]['default']['rev'] = {
-        'short_help' : 'Library Release Rev',
-        'help' : ["The library rev is an alphanumeric string provided by",
-                  "the vendor to track changes in critical library data     ",
-                  "shipped to the library customer. Designers should        ",
-                  "manually or automatically verify that the library rev",
-                  "is approved for tapeout                                  "],
         'switch' : '-'+group+'_rev',
         'switch_args' : '<>',
         'requirement' : 'asic',
         'type' : ['string'],
-        'defvalue' : []
+        'defvalue' : [],
+        'short_help' : 'Library Release Revision',
+        'help' : ["A dynamic dictionary specifying an alphanumeric revision  ",
+                  "string on a per library basis. Verification of correct PDK",
+                  "and IP revisions is an ASIC tapeout requirement in all    ",
+                  "commercial foundries.                                     ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -"+group+"_rev 'mylib 1.0'                           ",
+                  "api: chip.set('"+group+"','mylib','rev','1.0')            ",
+                  "dict: cfg['"+group+"']['mylib']['rev'] = ['1.0']          "]
     }
 
-    # user guide
-    cfg[group]['default']['guide'] = {
-        'short_help' : 'Library User Guide',
-        'help' : ["The main documentation guide outlining how to use the IP ",
-                  "successfully in ASIC design. If more than one document is",
-                  "provided, the list should be ordered from most to least  ",
-                  "important.                                               "],
-        'switch' : '-'+group+'_guide',
+    cfg[group]['default']['doc'] = {
+        'switch' : '-'+group+'_doc',
         'switch_args' : '<>',
         'requirement' : 'asic',
         'type' : ['file'],
         'defvalue' : [],
-        'hash'   : []
+        'hash'   : [],
+        'short_help' : 'Library Documentation',
+        'help' : ["A list of critical library documents entered in order of  ",
+                  "importance. The first item in thelist should be the       ",
+                  "primary library user guide. The purpose of the list is to ",
+                  "serve as a central record for all must-read PDK documents.",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -"+group+"_doc 'mylib mylib_guide.pdf'               ",
+                  "api: chip.set('"+group+"','mylib','doc','mylib_guide.pdf')",
+                  "dict: cfg['"+group+"']['mylib']['doc']=['mylib_guide.pdf']"]
     }
 
-    # Datasheets
     cfg[group]['default']['ds'] = {
-        'short_help' : 'Library Datasheets',
-        'help' : ["A complete collection of datasheets for the library. The ",
-                  "documentation can be provided as a single collated PDF or",
-                  "as one HTML file per cell                                "],
         'switch' : '-'+group+'_ds',
         'switch_args' : '<>',
-        'requirement' : 'asic',
+        'requirement' : 'optional',
         'type' : ['file'],
         'defvalue' : [],
-        'hash'   : []
+        'hash'   : [],
+        'short_help' : 'Library Datasheets',
+        'help' : ["A complete collection of datasheets for the library. The  ",
+                  "documentation can be provied as a PDF or as a filepath to ",
+                  "a directory with one HTMl file per cell. This parameter   ",
+                  "is optional for libraries where the datsheet is merged    ",
+                  "within the library integration document.                  ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -"+group+"_ds 'mylib mylib_ds.pdf'                   ",
+                  "api: chip.set('"+group+"','mylib','ds','mylib_ds.pdf')    ",
+                  "dict: cfg['"+group+"']['mylib']['ds'] = ['mylib_ds.pdf']  "]
     }
 
     cfg[group]['default']['libtype'] = {
-        'short_help' : 'Library Type',
-        'help' : ["A name/tag used to identify the library type for place   ",
-                  "and route technology setup. Libtype must match up with   ",
-                  "the name used in the pdk_aprtech structure. Libtype is a ",
-                  "is a unique a string that identifies the library height  ",
-                  "or performance class of the library. Mixing of libtypes  ",
-                  "in a flat place and route block is not allowed.          "],
         'switch' : '-'+group+'_libtype',
         'switch_args' : '<>',
-        'requirement' : 'apr',
+        'requirement' : 'asic',
         'type' : ['string'],
-        'defvalue' : []
+        'defvalue' : [],
+        'short_help' : 'Library Type',
+        'help' : ["Libtype is a a unique string that identifies the row      ",
+                  "height or performance class of the library for APR. The   ",
+                  "libtype must match up with the name used in the           ",
+                  "pdk_aprtech dictionary. Mixing of libtypes in a flat place",
+                  "and route block is not allowed.                           ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -"+group+"_libtype 'mylib 12t'                       ",
+                  "api: chip.set('"+group+"','mylib','libtype','12t')        ",
+                  "dict: cfg['"+group+"']['mylib']['libtype'] = ['12t']      "]
     }
 
-    cfg[group]['default']['height'] = {
-        'short_help' : 'Library Height',
-        'help' : ["The height of the library cells in (um). The value is    ",
-                  "automatically extracted from the technology file from the",
-                  "pdk_aprtech structure.                                   "], 
-        'switch' : '-'+group+'_height',
+    cfg[group]['default']['size'] = {
+        'switch' : '-'+group+'_size',
         'switch_args' : '<>',
         'requirement' : 'apr',
-        'type' : ['float'],
-        'defvalue' : []
+        'type' : ['float', 'float'],
+        'defvalue' : [],
+        'short_help' : 'Library Height',
+        'help' : ["Specifies the height and width of a unit cell. Values are ",
+                  "entered as width heigh tuplest. The value can usually be  ",
+                  "extracted automatically from the layout library but is    ",
+                  "included in the schema to simplify the process of creating",
+                  "parametrized floorplans. The parameter can be ommitted for",
+                  "macro libraries that lack the concept of a unit cell.     ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -"+group+"_size 'mylib 0.1 0.5'                      ",
+                  "api: chip.set('"+group+"','mylib','size','0.1 0.5')       ",
+                  "dict: cfg['"+group+"']['mylib']['size'] = ['0.1 0.5']     "]
     }
     
     
     cfg[group]['default']['nldm'] = {}
     cfg[group]['default']['nldm']['default'] = {}
     cfg[group]['default']['nldm']['default']['default'] = {
-        'short_help' : 'Library Non-Linear Delay Model',
-        'help' : ["A non-linear delay model in the liberty format. The file ",
-                  "specifies timing and logic functions to map the design ",
-                  "to. The structure order is [library]['nldm'][corner]. The",
-                  "corner is used to define scenarios and must be the       ",
-                  "same as those used int he mcmm_scenario structure.       "],
         'switch' : '-'+group+'_nldm',
         'switch_args' : '<>',
         'requirement' : 'apr',
         'type' : ['file'],
         'defvalue' : [],
-        'hash' : []
+        'hash' : [],
+        'short_help' : 'Library Non-Linear Delay Model',
+        'help' : ["A dynamic dictionary of paths to non-linear delay model   ",
+                  "files specified in the liberty format. The NLDM files are ",
+                  "specified on a per lib, per corner, and per format        ",
+                  "basis with dictionary structure being:                    ",
+                  "['libname']['nldm']['cornername']['format']               ",
+                  "The format is driven by EDA tool requirements. Examples   ",
+                  "of legal formats includ: lib, lib.gz, lib.bz2, and ldb.   ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -"+group+"_nldm 'mylib ttt lib mylib.lib'            ",
+                  "api: chip.set('"+group+"','mylib','nldm','ttt','lib',     ", 
+                  "              'mylib.lib')                                ",
+                  "dict: cfg['"+group+"']['mylib']['nldm']['ttt']['lib'] =   ",
+                  "         ['mylib.lib']                                    "]
     }
 
+    
     cfg[group]['default']['ccs'] = {}
     cfg[group]['default']['ccs']['default'] = {}
     cfg[group]['default']['ccs']['default']['default']= {
-        'short_help' : 'Library Composite Current Source Model File',
-        'help' : ["A composite current source model for the library. It is  ",
-                  "is more accurate than the NLDM model and recommended at  ",
-                  "advanced nodes, but is significantly larger than the nldm",
-                  "model and should only be used when accuracy is an        ",
-                  "absolute requirement. When available, ccs models should  ",
-                  "always be used for signoff timing checks.                "],
         'switch' : '-'+group+'_ccs',
         'switch_args' : '<>',
         'requirement' : 'optional',
         'type' : ['file'],
         'defvalue' : [],
-        'hash' : []
+        'hash' : [],
+        'short_help' : 'Library Composite Current Source Model File',
+        'help' : ["A dynamic dictionary of paths to composite current source ",
+                  "models. CCS models are more acccurate than NLDM models    ",
+                  "and are required for signoff at advanced nodes, but are   ",
+                  "significantly larger and slower. The CCS files are        ",
+                  "specified on a per lib, per corner, and per format basis  ",
+                  "with dictionary structure being:                          ",
+                  "['libname']['ccs']['cornername']['format']                ",
+                  "The format is driven by EDA tool requirements. Examples   ",
+                  "of legal formats includ: lib, lib.gz, lib.bz2, and ldb.   ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -"+group+"_ccs 'mylib ttt lib mylib_ccs.lib'         ",
+                  "api: chip.set('"+group+"','mylib','ccs','ttt','lib',      ", 
+                  "              'mylib_ccs.lib')                            ",
+                  "dict: cfg['"+group+"']['mylib']['ccs']['ttt']['lib'] =    ",
+                  "         ['mylib_ccs.lib']                                "]
     }
 
     cfg[group]['default']['lef'] = {
-        'short_help' : 'Library LEF File',
-        'help' : ["An abstracted view of library cells that gives complete  ",
-                  "information about the cell place and route boundary, pin ",
-                  "positions, pin metals, and metal routing blockages.      "],
         'switch' : '-'+group+'_lef',
         'switch_args' : '<>',
         'requirement' : 'asic',
         'type' : ['file'],
         'defvalue' : [],
-        'hash'   : []
+        'hash'   : [],
+        'short_help' : 'Library LEF Files',
+        'help' : ["An abstracted view of library cells that gives complete   ",
+                  "information about the cell place and route boundary, pin  ",
+                  "positions, pin metals, and metal routing blockages.       ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -"+group+"_lef 'mylib mylib.lef'                     ",
+                  "api: chip.set('"+group+"','mylib','lef','mylib.lef'       ",
+                  "dict: cfg['"+group+"']['mylib']['lef'] = ['mylib.lef']    "]
     }
   
     cfg[group]['default']['gds'] = {
-        'short_help' : 'Library GDS File',
-        'help' : ["The complete mask layout of the library cells ready to be",
-                  "merged with the rest of the design for tapeout. In some  ",
-                  "cases, the GDS merge happens at the foundry, so inclusion",
-                  "of a GDS file is optional. In all cases, where the GDS   ",
-                  "files are available, they should specified here to enable",
-                  "gds stream out/merge during the automated place and route",
-                  "and chip assembly process.                               "],
         'switch' : '-'+group+'_gds',
         'switch_args' : '<>',
         'requirement' : 'optional',
         'type' : ['file'],
         'defvalue' : [],
-        'hash'   : []
+        'hash'   : [],
+        'short_help' : 'Library GDS Files',
+        'help' : ["The complete mask layout of the library cells ready to be ",
+                  "merged with the rest of the design for tapeout. In some   ",
+                  "cases, the GDS merge happens at the foundry, so inclusion ",
+                  "of a GDS file is optional. In all cases, where the GDS    ",
+                  "files are available, they should specified here to enable ",
+                  "gds stream out/merge during the automated place and route ",
+                  "and chip assembly process.                                "
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -"+group+"_gds 'mylib mylib.gds'                     ",
+                  "api: chip.set('"+group+"','mylib','gds','mylib.gds'       ",
+                  "dict: cfg['"+group+"']['mylib']['gds'] = ['mylib.gds']    "]
     } 
 
     cfg[group]['default']['cdl'] = {
-        'short_help' : 'Library CDL Netlist File',
-        'help' : ["The CDL file contains the netlists use for layout versus ",
-                  "schematic (LVS) checks. In some cases, the GDS merge     ",
-                  "happens at the foundry, so inclusion of a CDL file is    ",
-                  "optional. In all cases, where the CDL files are          ",
-                  "available they should specified here to enable LVS checks",
-                  "pre tapout                                               "],
         'switch' : '-'+group+'_cdl',
         'switch_args' : '<>',
         'requirement' : 'optional',
         'type' : ['file'],
         'defvalue' : [],
-        'hash'   : []
+        'hash'   : [],
+         'short_help' : 'Library CDL Netlist Filesx',
+        'help' : ["Files containing the netlists used for layout versus      ",
+                  "schematic (LVS) checks. In some cases, the GDS merge      ",
+                  "happens at the foundry, so inclusion of a CDL file is     ",
+                  "optional. In all cases, where the CDL files are           ",
+                  "available they should specified here to enable LVS checks ",
+                  "pre tapout                                                ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -"+group+"_cdl 'mylib mylib.cdl'                     ",
+                  "api: chip.set('"+group+"','mylib','cdl','mylib.cdl'       ",
+                  "dict: cfg['"+group+"']['mylib']['cdl'] = ['mylib.cdl']    "]
     }
 
     cfg[group]['default']['spice'] = {
-        'short_help' : 'Library Spice Netlist File',
-        'help' : ["The spice file contains the netlists use for circuit     ",
-                  "simulation.                                              "],
         'switch' : '-'+group+'_spice',
         'switch_args' : '<>',
         'requirement' : 'optional',
         'type' : ['file'],
         'defvalue' : [],
-        'hash'   : []
-    } 
+        'hash'   : [],
+        'short_help' : 'Library Spice Netlist Files',
+        'help' : ["Files containing the library spice netlists used for      ",
+                  "circuit simulation.                                       ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -"+group+"_spice 'mylib mylib.sp'                    ",
+                  "api: chip.set('"+group+"','mylib','spice','mylib.sp'      ",
+                  "dict: cfg['"+group+"']['mylib']['spice'] = ['mylib.sp']   "]
+    }
 
     cfg[group]['default']['hdl'] = {
-        'short_help' : 'Library HDL Model File',
-        'help' : ["A bit exact or high level verilog model for all cells in ",
-                  "the library. The file can be VHDL (.vhd) or Verilog (.v) "],
         'switch' : '-'+group+'_hdl',
         'switch_args' : '<>',
         'requirement' : 'asic',
         'type' : ['file'],
         'defvalue' : [],
-        'hash'   : []
+        'hash'   : [],
+        'short_help' : 'Library HDL Model Files',
+        'help' : ["Digital HDL models of the library cells, modeled in VHDL  ",
+                  "or verilog for use in funcational simulations.            ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -"+group+"_hdl 'mylib mylib.v'                       ",
+                  "api: chip.set('"+group+"','mylib','hdl','mylib.v'         ",
+                  "dict: cfg['"+group+"']['mylib']['hdl'] = ['mylib.v']      "]
     }
 
     cfg[group]['default']['atpg'] = {
-        'short_help' : 'Library ATPG File',
-        'help' : ["Logical model used for ATPG based chip test methods.     "],
         'switch' : '-'+group+'_atpg',
         'switch_args' : '<>',
         'requirement' : 'optional',
         'type' : ['file'],
         'defvalue' : [],
-        'hash'   : []
+        'hash'   : [],
+        'short_help' : 'Library ATPG Files',
+        'help' : ["Library models used for ATPG based automated faultd based ",
+                  "post manufacturing testing.                               ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -"+group+"_atpg 'mylib mylib.atpg'                   ",
+                  "api: chip.set('"+group+"','mylib','atpg','mylib.atpg')    ",
+                  "dict: cfg['"+group+"']['mylib']['atpg'] = ['mylib.atpg']  "]
     }
 
     cfg[group]['default']['rails'] = {
-        'short_help' : 'Library Power Rail Metal Layer',
-        'help' : ["The variable specifies the top metal layer used for power",
-                  "and ground routing. The parameter can be used to guide   ",
-                  "standard cell power grid hookup within automated place   ",
-                  "and route tools                                          "],
         'switch' : '-'+group+'_rails',
         'switch_args' : '<>',
         'requirement' : 'optional',
         'type' : ['string'],
-        'defvalue' : []
+        'defvalue' : [],
+        'short_help' : 'Library Power/Ground Rails Metal Layer',
+        'help' : ["Specifies the top metal layer used for power and ground   ",
+                  "routing within the library. The parameter can be used to  ",
+                  "guide cell power grid hookup by APR tools.                ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -"+group+"_rails 'mylib m1'                          ",
+                  "api: chip.set('"+group+"','mylib','rails','m1')           ",
+                  "dict: cfg['"+group+"']['mylib']['rails'] = ['m1']         "]
+                  
     }
 
     cfg[group]['default']['vt'] = {
-        'short_help' : 'Library Transistor Threshold',
-        'help' : ["The variable specifies the voltage threshold type of the ",
-                  "library. The value is extracted automatically if found in",
-                  "the default_threshold_voltage_group within the nldm      ",
-                  "timing model. For older technologies with only one vt    ",
-                  "group, it is recommended to set the value to rvt or svt  "],
         'switch' : '-'+group+'_vt',
         'switch_args' : '<>',
         'requirement' : 'apr',
         'type' : ['string'],
         'defvalue' : [],
-        'hash'   : []
+        'hash'   : [],
+        'short_help' : 'Library Transistor Threshold',
+        'help' : ["The variable specifies the voltage threshold type of the  ",
+                  "library. The value is extracted automatically if found in ",
+                  "the default_threshold_voltage_group within the nldm/ccs   ",
+                  "model. For older technologies with only one vt group, it  ",
+                  "the value can be set to an arbitrary string (eg: svt)     ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -"+group+"_vt 'mylib lvt'                            ",
+                  "api: chip.set('"+group+"','mylib','vt','lvt')             ",
+                  "dict: cfg['"+group+"']['mylib']['vt'] = ['lvt']           "]
     } 
 
     cfg[group]['default']['tag'] = {
-        'short_help' : 'Library Identifier Tags',
-        'help' : ["An arbitrary set of tags that can be used by the designer",
-                  "or EDA tools for optimization purposes. The tags are     ",
-                  "meant to cover features not currently supported by built ",
-                  "in EDA optimization flows. Multiple tags per library is  ",
-                  "supported.                                               "],
         'switch' : '-'+group+'_tag',
         'switch_args' : '<>',
         'requirement' : 'optional',
         'type' : ['string'],
-        'defvalue' : []
+        'defvalue' : [],
+        'short_help' : 'Library Identifier Tags',
+        'help' : ["Marks a library with a set of tags that can be used by   ",
+                  "the designer and EDA tools for optimization purposes. The",
+                  "tags are meant to cover features not currently supported ",
+                  "by built in EDA optimization flows, but which can be     ",
+                  "queried through EDA tool TCL commands and lists. The     ",
+                  "example below demonstrates tagging the whole library as  ",
+                  "virtual.                                                 ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -"+group+"_tag 'mylib virtual'                      ",
+                  "api: chip.set('"+group+"','mylib','tag','virtual')       ",
+                  "dict: cfg['"+group+"']['mylib']['tag'] = ['virtual']     "]
     }
 
     cfg[group]['default']['driver'] = {
+        'switch' : '-'+group+'_driver',
+        'switch_args' : '<>',
+        'requirement' : 'apr',
+        'type' : ['string'],
+        'defvalue' : [],
         'short_help' : 'Library Default Driver Cell',
         'help' : ["The name of a library cell to be used as the default     ",
                   "driver for block timing constraints. The cell should be  ",
                   "strong enough to drive a block input from another block  ",
                   "including wire capacitance. In cases, where the actual   ",
-                  "drive is known, the actual driver cell should be used.   "],
-        'switch' : '-'+group+'_driver',
-        'switch_args' : '<>',
-        'requirement' : 'apr',
-        'type' : ['string'],
-        'defvalue' : []
+                  "drive is known, the actual driver cell should be used.   ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -"+group+"_driver 'mylib BUFX1'                     ",
+                  "api: chip.set('"+group+"','mylib','driver','BUFX1')      ",
+                  "dict: cfg['"+group+"']['mylib']['driver'] = ['BUFX1']    "]
     }
 
     cfg[group]['default']['site'] = {
-        'short_help' : 'Library Place and Route Site/Tile',
-        'help' : ["Provides the primary site name within the library to use ",
-                  "for placement. Value can generally be automatically      ",
-                  "inferred from the lef file if only one site is specified "],
         'switch' : '-'+group+'_site',
         'switch_args' : '<>',
         'requirement' : 'optional',
         'type' : ['string'],
-        'defvalue' : []
+        'defvalue' : [],
+        'short_help' : 'Library Site/Tile Name',
+        'help' : ["Provides the primary site name within the library to use ",
+                  "for placement. Value can generally be automatically      ",
+                  "inferred from the provided library lef file.             ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -"+group+"_site 'mylib mylibsc7p5'                  ",
+                  "api: chip.set('"+group+"','mylib','site','mylibsc7p5')   ",
+                  "dict: cfg['"+group+"']['mylib']['site']=['mylibsc7p5']   "]
     }
     
-    #Cell lists
     cfg[group]['default']['cells'] = {}
     cfg[group]['default']['cells']['default'] = {
-        'short_help' : 'Library Cell Lists',
-        'help' : ["A named group of cells. For example, a configuration     ",
-                  "of ['mylib']['cells']['dontuse'] = \'*del*\' would mark  ",
-                  "all the cell names that include \'del\' in the name as    ",
-                  "dontuse. Alternatively each one of the \'del\' cells     ",
-                  "could be entered as a list.                            "],
         'switch' : '-'+group+'_cells',
         'switch_args' : '<>',
         'requirement' : 'optional',
         'type' : ['string'],
-        'defvalue' : []
+        'defvalue' : [],
+        'short_help' : 'Library Cell Lists',
+        'help' : ["A named list of cells grouped by a property that can be   ",
+                  "accessed directly by the designer and EDA tools. The      ",
+                  "example below shows how all cells containing the string   ",
+                  "'eco' could be marked as dont use for the tool.           ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -"+group+"_cells 'mylib dontuse *eco*'               ",
+                  "api: chip.set('"+group+"','mylib','cells','dontuse',      ",
+                  "              '*eco*')                                    ",
+                  "dict: cfg['"+group+"']['mylib']['cells']['dontuse'] =     ", 
+                  "      ['*eco*']                                           "]
     }
 
-    #Vendor specific config
-    cfg[group]['default']['config'] = {}
-    cfg[group]['default']['config']['default'] = {
-        'short_help' : 'Library EDA Setup File',
-        'help' : ["A list of configuration files used to set up automated   ",
-                  "place and route flows for specific EDA tools. The format ",
-                  "of the variable is ['config']['tool'] = <filename>       "],
+    cfg[group]['default']['setup'] = {}
+    cfg[group]['default']['setup']['default'] = {
         'switch' : '-'+group+'_setup',
         'switch_args' : '<>',
         'requirement' : 'optional',
         'type' : ['file'],
         'defvalue' : [],
-        'hash'   : []
+        'hash'   : [],
+        'short_help' : 'Library Setup Files',
+        'help' : ["A list of setup files for use by specific EDA tools. The  ",
+                  "files are specified on a per EDA tool basis.              ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -"+group+"_setup 'mylib openroad mylib.tcl'          ",
+                  "api: chip.set('"+group+"','mylib','setup','openroad',     ",
+                  "              'mylib.tcl')                                ",
+                  "dict: cfg['"+group+"']['mylib']['setup']['openroad'] =    ",
+                  "         ['mylib.tcl']                                    "]
     } 
     
-    #Compiled Layout Database
     cfg[group]['default']['laydb'] = {}
     cfg[group]['default']['laydb']['default'] = {
-        'short_help' : 'Library Layout Compiled Database',
-        'help' : ["A binary compiled library layout database for a specific ", 
-                  "EDA tool. The dictionary format is:                      ",
-                  "['laydb']['format'] = <file>                             "],
         'switch' : '-'+group+'_laydb',
         'switch_args' : '<>',
         'requirement' : 'optional',
         'type' : ['file'],
         'defvalue' : [],
-        'hash'   : []
+        'hash'   : [],
+         'short_help' : 'Library Layout Database',
+        'help' : ["A dynamic dictionary with filepaths to compiled library   ",
+                  "layout database specified on a per format basis. Example  ",
+                  "formats include oa, mw, ndm.                              ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -"+group+"_laydb 'mylib oa /disk/myliblib'           ",
+                  "api: chip.set('"+group+"','mylib','laydb','oa',           ",
+                  "              '/disk/myliblib')                           ",
+                  "dict: cfg['"+group+"']['mylib']['laydb']['oa'] =          ",
+                  "         ['/disk/myliblib']                               "]
     }
     
     return cfg
