@@ -162,9 +162,9 @@ def add_arg(cfg, parser, keys=None):
             for k2 in cfg['tool']['syn'].keys():
                 helpstr = cfg[k]['syn'][k2]['short_help']
                 helpstr = (helpstr +
-                           '\n' +
+                           '\n\n' +
                            '\n'.join(cfg[k]['syn'][k2]['help']) +
-                           '\n\n') 
+                           "\n\n---------------------------------------------------------\n") 
                 parser.add_argument(cfg[k]['syn'][k2]['switch'],
                                     dest=k+"_"+k2,
                                     metavar=cfg[k]['syn'][k2]['switch_args'],
@@ -179,9 +179,9 @@ def add_arg(cfg, parser, keys=None):
                 keystr = '_'.join(newkeys)
                 helpstr = cfg[k]['short_help']
                 helpstr = (helpstr +
-                           '\n' +
+                           '\n\n' +
                            '\n'.join(cfg[k]['help']) +
-                           '\n\n') 
+                           "\n\n---------------------------------------------------------\n") 
                 if cfg[k]['type'][-1] == 'bool': #scalar
                     parser.add_argument(cfg[k]['switch'],
                                         metavar=cfg[k]['switch_args'],
