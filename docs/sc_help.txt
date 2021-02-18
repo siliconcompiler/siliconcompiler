@@ -1,0 +1,1567 @@
+usage: sc [-h] [-aspectratio <num>] [-build <str>] [-cfgfile <file>]
+          [-clock <>] [-f <file>] [-compile_stages <str>] [-coremargin <num>]
+          [-coresize <>] [-custom <str>] [-debug <str>] [-def <file>]
+          [-D <str>] [-delaymodel <str>] [-density <num>] [-design <str>]
+          [-diesize <>] [-dv_stages <str>] [-effort <str>] [-env <>]
+          [-floorplan <file>] [-fpga_xml <>] [-I <dir>] [+libext <ext>]
+          [-lock] [-macros_atpg <>] [-macros_ccs <>] [-macros_cdl <>]
+          [-macros_cells <>] [-macros_doc <>] [-macros_driver <>]
+          [-macros_ds <>] [-macros_gds <>] [-macros_hdl <>] [-macros_laydb <>]
+          [-macros_lef <>] [-macros_libtype <>] [-macros_nldm <>]
+          [-macros_rails <>] [-macros_rev <>] [-macros_setup <>]
+          [-macros_site <>] [-macros_size <>] [-macros_spice <>]
+          [-macros_tag <>] [-macros_vt <>] [-maxfanout <num>]
+          [-maxlayer <num>] [-mcmm_constraint <>] [-mcmm_goal <>]
+          [-mcmm_libcorner <>] [-mcmm_mode <>] [-mcmm_pexcorner <>]
+          [-minlayer <num>] [-msg_contact <str>] [-msg_trigger <str>]
+          [-ndr <file>] [-nickname <str>] [-pdk_aprlayer <>] [-pdk_aprtech <>]
+          [-pdk_devmodel <>] [-pdk_display <>] [-pdk_doc <file>]
+          [-pdk_drm <file>] [-pdk_foundry <str>] [-pdk_layermap <>]
+          [-pdk_clib <>] [-pdk_node <num>] [-pdk_pexmodel <>]
+          [-pdk_process <str>] [-pdk_rev <str>] [-pdk_stackup <>]
+          [-pdk_tapmax <num>] [-pdk_tapoffset <num>] [-priority <str>]
+          [-quiet] [-skip <stage>] [-stackup <>] [-start <stage>]
+          [-stdcells_atpg <>] [-stdcells_ccs <>] [-stdcells_cdl <>]
+          [-stdcells_cells <>] [-stdcells_doc <>] [-stdcells_driver <>]
+          [-stdcells_ds <>] [-stdcells_gds <>] [-stdcells_hdl <>]
+          [-stdcells_laydb <>] [-stdcells_lef <>] [-stdcells_libtype <>]
+          [-stdcells_nldm <>] [-stdcells_rails <>] [-stdcells_rev <>]
+          [-stdcells_setup <>] [-stdcells_site <>] [-stdcells_size <>]
+          [-stdcells_spice <>] [-stdcells_tag <>] [-stdcells_vt <>]
+          [-stop <stage>] [-supply <>] [-target <str>] [-target_lib <str>]
+          [-tool_exe <>] [-tool_opt <>] [-tool_refdir <>] [-tool_script <>]
+          [-tool_copy <>] [-tool_format <>] [-tool_jobid <>] [-tool_np <>]
+          [-tool_keymap <>] [-tool_vendor <>] [-vcd <file>]
+          [-view_stages <str>] [-v <file>] [-y <dir>]
+          source [source ...]
+
+-----------------------------------------------------------------------
+Silicon Compiler Collection (SC)                                       
+                                                                      
+The SC architecture describes the command line and API arguments that  
+form the basis of a foundry and eda agnostic silicon compilation flow  
+Short switch arguments are specified as <type>, where type can be      
+str, file, num, bool. Some switches have compelx inputs in which case  
+the argument type is specified as <> and tha description is found in   
+the switch help paragraph. Complete documentation can be found at in   
+user manual. A few examples are included here to demonstrate simple use
+cases.                                                                 
+                                                                       
+Examples:                                                              
+$ sc 'hello_world.v' -target freepdk45'                                
+$ sc 'my_riscv_cpu.v' -target asap7 -design my_riscv_cpu               
+$ sc 'my_tpu.v' -cfgfile my_tpu_setup.json                             
+                                                                       
+-----------------------------------------------------------------------
+
+positional arguments:
+ source                A list of source files to read in for elaboration. The   
+                       files are read in order from first to last entered. File 
+                       type is inferred from the file suffix:                   
+                                                                                
+                       (*.v, *.vh) = Verilog                                    
+                       (*.sv)      = SystemVerilog                              
+                       (*.vhd)     = Vhdl                                       
+                                                                                
+                       Examples:                                                
+                       cli: 'hello_world.v'                                     
+                       api: chip.add('source','hello_world.v')                  
+
+optional arguments:
+ -h, --help            show this help message and exit
+ -aspectratio <num>    Design Layout Aspect Ratio
+                       
+                       Specifies the height to width ratio of the block for     
+                       automated floor-planning. Values below 0.1 and above 10  
+                       should be avoided as they will likely fail to converge   
+                       during placement and routing. The ideal aspect ratiio for
+                       most designs is 1.                                       
+                                                                                
+                       Examples:                                                
+                       cli: -aspectratio 2.0                                    
+                       api:  chip.set('aspectratio', '2.0')                     
+                       
+                       ---------------------------------------------------------
+ -build <str>          Build Directory Name
+                       
+                       By default, compilation is done in the local './build'   
+                       directory. The build parameter enables setting an        
+                       alternate compilation directory path.                    
+                                                                                
+                       Examples:                                                
+                       cli: -build './build_the_future'                         
+                       api: chip.set('build','./build_the_future')              
+                       
+                       ---------------------------------------------------------
+ -cfgfile <file>       Compiler Configuration File
+                       
+                       All parameters can be set at the command line, but with  
+                       over 100 configuration parameters available, the         
+                       preferred method for non trivial use cases is to create  
+                       a cfg file using the API. The cfg file can then be passed
+                       in through he -cfgfile switch at the command line. There 
+                       is no restriction on the number of cfgfiles that can be  
+                       be passed in. but it should be noted that the cfgfile are
+                       appended to the existing list and configuration list.    
+                                                                                
+                       Examples:                                                
+                       cli: -cfgfile 'mypdk.json'                               
+                       api: chip.set('cfgfile','mypdk.json)                     
+                       
+                       ---------------------------------------------------------
+ -clock <>             Clock Definitions
+                       
+                       A complete clock definition specifying the name of the   
+                       clock, the name of the clock port, or the full hierarchy 
+                       path to the generated internal clock, the clock frequency
+                       and the clock uncertainty (jitter). The definition can be
+                       used to drive constraints for implementation and signoff.
+                       Clock period and clock jitter are specified in           
+                       nanoseconds.                                             
+                                                                                
+                       Examples:                                                
+                       cli: -clock 'clk top.pll.clkout 10.0 0.1'                
+                       api: chip.add('clock','clk top.pll.clkout 10.0 0.1')     
+                       
+                       ---------------------------------------------------------
+ -f <file>             Verilog Command Line Options File
+                       
+                       Read the specified file, and act as if all text inside   
+                       it was specified as command line parameters. Supported   
+                       by most verilog simulators including Icarus and Verilator
+                                                                                
+                       Examples:                                                
+                       cli: -f readscript.cmd                                   
+                       api: chip.set('cmdfile','readscript.cmd')                
+                       
+                       ---------------------------------------------------------
+ -compile_stages <str>
+                       List of Compilation Stages
+                       
+                       A complete list of all stages included in fully automated
+                       RTL to GDSII compilation. Compilation flow is controlled 
+                       with the -start, -stop, -cont switches and by adding     
+                       values to the list. The list must be ordered to enable   
+                       default automated compilation from the first entry to the
+                       last entry in the list. Inserting stages in the middle of
+                       the list is only possible by overwriting the whole list. 
+                       The example below demonstrates adding a tapeout stage    
+                       at the end of the compile_stages list.                   
+                                                                                
+                       Examples:                                                
+                       cli: -compile_stages 'tapeout'                           
+                       api:  chip.add('compile_stages', 'tapeout')              
+                       
+                       ---------------------------------------------------------
+ -coremargin <num>     Design Place and Route Core Margin
+                       
+                       Sets the halo/margin between the apr core cell area to   
+                       use for automated floorplanning setup. The value is      
+                       specified in microns and is only used when no diesize or 
+                       floorplan is supplied.                                   
+                                                                                
+                       Examples:                                                
+                       cli: -coremargin 1                                       
+                       api: chip.set('coremargin', '1')                         
+                       
+                       ---------------------------------------------------------
+ -coresize <>          Target Core Size
+                       
+                       Provides the core cell boundary for place and route.The  
+                       number is provided as a tuple (x0 y0 x1 y1), where x0,y0 
+                       species the lower left corner of the block and x1,y1     
+                       specifies the upper right corner of. Only rectangular    
+                       blocks are supported with the diesize parameter. All     
+                       values are specified in microns.                         
+                                                                                
+                       Examples:                                                
+                       cli: -coresize '0 0 90 90'                               
+                       api:  chip.set('coresize', '0 0 90 90')                  
+                       
+                       ---------------------------------------------------------
+ -custom <str>         Custom Pass Through Parameters
+                       
+                       Specifies a custom variable to pass through directly to  
+                       the EDA run scripts. The value is a space separated      
+                       string with the first value indicating the variable and  
+                       the remaining strings assigned as a list.                
+                                                                                
+                       Examples:                                                
+                       cli: -custom 'SYNMODE lowpower'                          
+                       api:  chip.add('custom', 'SYNMODE lowpower')             
+                       
+                       ---------------------------------------------------------
+ -debug <str>          Debug Level
+                       
+                       The debug param provides explicit control over the level 
+                       of debug logging printed. Valid entries include INFO,    
+                       DEBUG, WARNING, ERROR. The default value is WARNING.     
+                                                                                
+                       Examples:                                                
+                       cli: -debug INFO                                         
+                       api: chip.set('debug','INFO')                            
+                       
+                       ---------------------------------------------------------
+ -def <file>           DEF Floorplan
+                       
+                       Provides a hard coded DEF file to be used during the     
+                       place stage. The DEF file should be complete and have all
+                       the features needed to enable cell placement             
+                                                                                
+                       Examples:                                                
+                       cli: -def 'myplan.def'                                   
+                       api:  chip.add('def', 'myplan.def')                      
+                       
+                       ---------------------------------------------------------
+ -D <str>              Verilog Preprocessor Define Symbols
+                       
+                       Sets a preprocessor symbol for verilog source imports.   
+                                                                                
+                       Examples:                                                
+                       cli: -D'CFG_ASIC=1'                                      
+                       api: chip.add('define','CFG_ASIC=1')                     
+                       
+                       ---------------------------------------------------------
+ -delaymodel <str>     Target Library Delay Model
+                       
+                       Specifies the delay model to use for the target libs.    
+                       Supported values are nldm and ccs.                       
+                                                                                
+                       Examples:                                                
+                       cli: -delaymodel 'nldm'                                  
+                       api:  chip.set('delaymodel', 'nldm')                     
+                       
+                       ---------------------------------------------------------
+ -density <num>        Design Target Core Density
+                       
+                       Provides a target density based on the total design cell 
+                       area reported after synthesis. This number is used when  
+                       no die size or floorplan is supplied. Any number between 
+                       1 and 100 is legal, but values above 50 may fail due to  
+                       area/congestion issues during apr.                       
+                                                                                
+                       Examples:                                                
+                       cli: -density 30                                         
+                       api: chip.set('density', '30')                           
+                       
+                       ---------------------------------------------------------
+ -design <str>         Design Top Module Name
+                       
+                       The name of the top level design to compile. Required in 
+                       all non-single-module designs.                           
+                                                                                
+                       Examples:                                                
+                       cli: -design 'hello_world'                               
+                       api: chip.set('design','hello_world')                    
+                       
+                       ---------------------------------------------------------
+ -diesize <>           Target Die Size
+                       
+                       Provides the outer boundary of the physical design. The  
+                       number is provided as a tuple (x0 y0 x1 y1), where x0, y0
+                       species the lower left corner of the block and x1, y1    
+                       specifies the upper right corner. Only rectangular       
+                       blocks are supported with the diesize parameter. All     
+                       values are specified in microns.                         
+                                                                                
+                       Examples:                                                
+                       cli: -diesize '0 0 100 100'                              
+                       api:  chip.set('diesize', '0 0 100 100')                 
+                       
+                       ---------------------------------------------------------
+ -dv_stages <str>      List of Verification Stages
+                       
+                       A complete list of all verification stages. Verification 
+                       flow is controlled with the -start, -stop, -cont switches
+                       and by expanding the list. The list must be ordered to   
+                       enable default automated verification from the first     
+                       entry to the last entry in the list. Inserting stages in 
+                       the middle of the list is only possible by overwriting   
+                       the whole list. The example below demonstrates adding an 
+                       archive stage at the end of the dv_stages list           
+                                                                                
+                       Examples:                                                
+                       cli: -dv_stages 'archive'                                
+                       api:  chip.add('dv_stages', 'archive')                   
+                       
+                       ---------------------------------------------------------
+ -effort <str>         Compilation Effort
+                       
+                       Specifies the effort for the synthesis and place and     
+                       route efforts. Supported values are low, medium , high.  
+                       The default effort is set to high,                       
+                                                                                
+                       Examples:                                                
+                       cli: -effort 'high'                                      
+                       api:  chip.set('effort', 'high')                         
+                       
+                       ---------------------------------------------------------
+ -env <>               Environment Variables
+                       
+                       Certain EDA tools and reference flows require environment
+                       variables to be set. These variables can be managed      
+                       externally or specified through the env variable.        
+                                                                                
+                       Examples:                                                
+                       cli: -env '$PDK_HOME /disk/mypdk'                        
+                       api: chip.set('env','$PDK_HOME /disk/mypdk')             
+                       
+                       ---------------------------------------------------------
+ -floorplan <file>     Floorplanning Script
+                       
+                       Provides a parameterized floorplan to be used during the 
+                       floorplan stage of compilation to generate a fixed DEF   
+                       ready for use by the place stage.                        
+                                                                                
+                       Examples:                                                
+                       cli: -floorplan 'myplan.py'                              
+                       api:  chip.add('floorplan', 'myplan.py')                 
+                       
+                       ---------------------------------------------------------
+ -fpga_xml <>          FPGA Architecture Description
+                       
+                       Provides XML-based architecture description for the      
+                       target FPGA architecture to be used in VTR, allowing a   
+                       user to describe a large number of hypothetical and      
+                       commercial architectures.                                
+                       [More information...](https://verilogtorouting.org)      
+                                                                                
+                       Examples:                                                
+                       cli: -fpga_xml myfpga.xml                                
+                       api:  chip.set('fpga_xml', 'myfpga.xml')                 
+                       
+                       ---------------------------------------------------------
+ -I <dir>              Verilog Include File Search Directories
+                       
+                       Provides a search paths to look for files included in    
+                       the design using the `include statement.                 
+                                                                                
+                       Examples:                                                
+                       cli: -I'./mylib'                                         
+                       api: chip.add('idir','./mylib')                          
+                       
+                       ---------------------------------------------------------
+ +libext <ext>         Verilog Module Search File Extensions
+                       
+                       Specifes the file extensions that should be used for     
+                       finding modules. For example, if -y is specified as ./lib
+                       and '.v' is specified as libext then the files ./lib/*.v 
+                       will be searched for module matches.                     
+                                                                                
+                       Examples:                                                
+                       cli: +libext+sv                                          
+                       api: chip.add('vlib','sv')                               
+                       
+                       ---------------------------------------------------------
+ -lock                 Configuration File Lock
+                       
+                       The boolean lock switch can be used to prevent unintended
+                       updates to the chip configuration. For example, a team   
+                       might converge on a golden reference methodology and will
+                       have a company policy to not allow designers to deviate  
+                       from that golden reference. After the lock switch has    
+                       been set, the current configuration is in read only mode 
+                       until the end of the compilation                         
+                                                                                
+                       Examples:                                                
+                       cli: -lock                                               
+                       api: chip.set('lock','True')                             
+                       
+                       ---------------------------------------------------------
+ -macros_atpg <>       Library ATPG Files
+                       
+                       Library models used for ATPG based automated faultd based
+                       post manufacturing testing.                              
+                                                                                
+                       Examples:                                                
+                       cli: -macros_atpg 'mylib mylib.atpg'                  
+                       api: chip.set('macros','mylib','atpg','mylib.atpg')   
+                       
+                       ---------------------------------------------------------
+ -macros_ccs <>        Library Composite Current Source Model File
+                       
+                       A dynamic dictionary of paths to composite current source
+                       models. CCS models are more acccurate than NLDM models   
+                       and are required for signoff at advanced nodes, but are  
+                       significantly larger and slower. The CCS files are       
+                       specified on a per lib, per corner, and per format basis 
+                       with dictionary structure being:                         
+                       ['libname']['ccs']['cornername']['format']               
+                       The format is driven by EDA tool requirements. Examples  
+                       of legal formats includ: lib, lib.gz, lib.bz2, and ldb.  
+                                                                                
+                       Examples:                                                
+                       cli: -macros_ccs 'mylib ttt lib mylib_ccs.lib'        
+                       api: chip.set('macros','mylib','ccs','ttt','lib',     
+                                     'mylib_ccs.lib')                           
+                       
+                       ---------------------------------------------------------
+ -macros_cdl <>        Library CDL Netlist Filesx
+                       
+                       Files containing the netlists used for layout versus     
+                       schematic (LVS) checks. In some cases, the GDS merge     
+                       happens at the foundry, so inclusion of a CDL file is    
+                       optional. In all cases, where the CDL files are          
+                       available they should specified here to enable LVS checks
+                       pre tapout                                               
+                                                                                
+                       Examples:                                                
+                       cli: -macros_cdl 'mylib mylib.cdl'                    
+                       api: chip.set('macros','mylib','cdl','mylib.cdl'      
+                       
+                       ---------------------------------------------------------
+ -macros_cells <>      Library Cell Lists
+                       
+                       A named list of cells grouped by a property that can be  
+                       accessed directly by the designer and EDA tools. The     
+                       example below shows how all cells containing the string  
+                       'eco' could be marked as dont use for the tool.          
+                                                                                
+                       Examples:                                                
+                       cli: -macros_cells 'mylib dontuse *eco*'              
+                       api: chip.set('macros','mylib','cells','dontuse',     
+                                     '*eco*')                                   
+                       
+                       ---------------------------------------------------------
+ -macros_doc <>        Library Documentation
+                       
+                       A list of critical library documents entered in order of 
+                       importance. The first item in thelist should be the      
+                       primary library user guide. The purpose of the list is to
+                       serve as a central record for all must-read PDK documents
+                                                                                
+                       Examples:                                                
+                       cli: -macros_doc 'mylib mylib_guide.pdf'              
+                       api: chip.set('macros','mylib','doc',                 
+                                     'mylib_guide.pdf')                         
+                       
+                       ---------------------------------------------------------
+ -macros_driver <>     Library Default Driver Cell
+                       
+                       The name of a library cell to be used as the default     
+                       driver for block timing constraints. The cell should be  
+                       strong enough to drive a block input from another block  
+                       including wire capacitance. In cases, where the actual   
+                       drive is known, the actual driver cell should be used.   
+                                                                                
+                       Examples:                                                
+                       cli: -macros_driver 'mylib BUFX1'                     
+                       api: chip.set('macros','mylib','driver','BUFX1')      
+                       
+                       ---------------------------------------------------------
+ -macros_ds <>         Library Datasheets
+                       
+                       A complete collection of datasheets for the library. The 
+                       documentation can be provied as a PDF or as a filepath to
+                       a directory with one HTMl file per cell. This parameter  
+                       is optional for libraries where the datsheet is merged   
+                       within the library integration document.                 
+                                                                                
+                       Examples:                                                
+                       cli: -macros_ds 'mylib mylib_ds.pdf'                  
+                       api: chip.set('macros','mylib','ds','mylib_ds.pdf')   
+                       
+                       ---------------------------------------------------------
+ -macros_gds <>        Library GDS Files
+                       
+                       The complete mask layout of the library cells ready to be
+                       merged with the rest of the design for tapeout. In some  
+                       cases, the GDS merge happens at the foundry, so inclusion
+                       of a GDS file is optional. In all cases, where the GDS   
+                       files are available, they should specified here to enable
+                       gds stream out/merge during the automated place and route
+                       and chip assembly process.                               
+                                                                                
+                       Examples:                                                
+                       cli: -macros_gds 'mylib mylib.gds'                    
+                       api: chip.set('macros','mylib','gds','mylib.gds'      
+                       
+                       ---------------------------------------------------------
+ -macros_hdl <>        Library HDL Model Files
+                       
+                       Digital HDL models of the library cells, modeled in VHDL 
+                       or verilog for use in funcational simulations.           
+                                                                                
+                       Examples:                                                
+                       cli: -macros_hdl 'mylib mylib.v'                      
+                       api: chip.set('macros','mylib','hdl','mylib.v'        
+                       
+                       ---------------------------------------------------------
+ -macros_laydb <>      Library Layout Database
+                       
+                       A dynamic dictionary with filepaths to compiled library  
+                       layout database specified on a per format basis. Example 
+                       formats include oa, mw, ndm.                             
+                                                                                
+                       Examples:                                                
+                       cli: -macros_laydb 'mylib oa /disk/myliblib'          
+                       api: chip.set('macros','mylib','laydb','oa',          
+                                     '/disk/myliblib')                          
+                       
+                       ---------------------------------------------------------
+ -macros_lef <>        Library LEF Files
+                       
+                       An abstracted view of library cells that gives complete  
+                       information about the cell place and route boundary, pin 
+                       positions, pin metals, and metal routing blockages.      
+                                                                                
+                       Examples:                                                
+                       cli: -macros_lef 'mylib mylib.lef'                    
+                       api: chip.set('macros','mylib','lef','mylib.lef'      
+                       
+                       ---------------------------------------------------------
+ -macros_libtype <>    Library Type
+                       
+                       Libtype is a a unique string that identifies the row     
+                       height or performance class of the library for APR. The  
+                       libtype must match up with the name used in the          
+                       pdk_aprtech dictionary. Mixing of libtypes in a flat     
+                       place and route block is not allowed.                    
+                                                                                
+                       Examples:                                                
+                       cli: -macros_libtype 'mylib 12t'                      
+                       api: chip.set('macros','mylib','libtype','12t')       
+                       
+                       ---------------------------------------------------------
+ -macros_nldm <>       Library Non-Linear Delay Model
+                       
+                       A dynamic dictionary of paths to non-linear delay model  
+                       files specified in the liberty format. The NLDM files are
+                       specified on a per lib, per corner, and per format       
+                       basis with dictionary structure being:                   
+                       ['libname']['nldm']['cornername']['format']              
+                       The format is driven by EDA tool requirements. Examples  
+                       of legal formats includ: lib, lib.gz, lib.bz2, and ldb.  
+                                                                                
+                       Examples:                                                
+                       cli: -macros_nldm 'mylib ttt lib mylib.lib'           
+                       api: chip.set('macros','mylib','nldm','ttt','lib',    
+                                     'mylib.lib')                               
+                       
+                       ---------------------------------------------------------
+ -macros_rails <>      Library Power/Ground Rails Metal Layer
+                       
+                       Specifies the top metal layer used for power and ground  
+                       routing within the library. The parameter can be used to 
+                       guide cell power grid hookup by APR tools.               
+                                                                                
+                       Examples:                                                
+                       cli: -macros_rails 'mylib m1'                         
+                       api: chip.set('macros','mylib','rails','m1')          
+                       
+                       ---------------------------------------------------------
+ -macros_rev <>        Library Release Revision
+                       
+                       A dynamic dictionary specifying an alphanumeric revision 
+                       string on a per library basis. Verification of correct   
+                       PDK and IP revisions is an ASIC tapeout requirement in   
+                       all commercial foundries.                                
+                                                                                
+                       Examples:                                                
+                       cli: -macros_rev 'mylib 1.0'                          
+                       api: chip.set('macros','mylib','rev','1.0')           
+                       
+                       ---------------------------------------------------------
+ -macros_setup <>      Library Setup Files
+                       
+                       A list of setup files for use by specific EDA tools. The 
+                       files are specified on a per EDA tool basis.             
+                                                                                
+                       Examples:                                                
+                       cli: -macros_setup 'mylib openroad mylib.tcl'         
+                       api: chip.set('macros','mylib','setup','openroad',    
+                                     'mylib.tcl')                               
+                       
+                       ---------------------------------------------------------
+ -macros_site <>       Library Site/Tile Name
+                       
+                       Provides the primary site name within the library to use 
+                       for placement. Value can generally be automatically      
+                       inferred from the provided library lef file.             
+                                                                                
+                       Examples:                                                
+                       cli: -macros_site 'mylib mylibsc7p5'                  
+                       api: chip.set('macros','mylib','site','mylibsc7p5')   
+                       
+                       ---------------------------------------------------------
+ -macros_size <>       Library Height
+                       
+                       Specifies the height and width of a unit cell. Values are
+                       entered as width heigh tuplest. The value can usually be 
+                       extracted automatically from the layout library but is   
+                       included in the schema to simplify the process of        
+                       creating parametrized floorplans. The parameter can be   
+                       omitted for macro libraries that lack the concept of a   
+                       unit cell.                                               
+                                                                                
+                       Examples:                                                
+                       cli: -macros_size 'mylib 0.1 0.5'                     
+                       api: chip.set('macros','mylib','size','0.1 0.5')      
+                       
+                       ---------------------------------------------------------
+ -macros_spice <>      Library Spice Netlist Files
+                       
+                       Files containing the library spice netlists used for     
+                       circuit simulation.                                      
+                                                                                
+                       Examples:                                                
+                       cli: -macros_spice 'mylib mylib.sp'                   
+                       api: chip.set('macros','mylib','spice','mylib.sp'     
+                       
+                       ---------------------------------------------------------
+ -macros_tag <>        Library Identifier Tags
+                       
+                       Marks a library with a set of tags that can be used by   
+                       the designer and EDA tools for optimization purposes. The
+                       tags are meant to cover features not currently supported 
+                       by built in EDA optimization flows, but which can be     
+                       queried through EDA tool TCL commands and lists. The     
+                       example below demonstrates tagging the whole library as  
+                       virtual.                                                 
+                                                                                
+                       Examples:                                                
+                       cli: -macros_tag 'mylib virtual'                      
+                       api: chip.set('macros','mylib','tag','virtual')       
+                       
+                       ---------------------------------------------------------
+ -macros_vt <>         Library Transistor Threshold
+                       
+                       The variable specifies the voltage threshold type of the 
+                       library. The value is extracted automatically if found in
+                       the default_threshold_voltage_group within the nldm/ccs  
+                       model. For older technologies with only one vt group, it 
+                       the value can be set to an arbitrary string (eg: svt)    
+                                                                                
+                       Examples:                                                
+                       cli: -macros_vt 'mylib lvt'                           
+                       api: chip.set('macros','mylib','vt','lvt')            
+                       
+                       ---------------------------------------------------------
+ -maxfanout <num>      Maximum fanout
+                       
+                       A max fanout rule to be applied during synthesis and    
+                       apr. The value has a default of 64.                     
+                                                                               
+                       Examples:                                               
+                       cli: -maxfanout 32                                      
+                       api:  chip.add('maxfanout', '32')                       
+                       
+                       ---------------------------------------------------------
+ -maxlayer <num>       Maximum Routing Layer
+                       
+                       The maximum layer to be used for automated place and    
+                       route. The layer can be supplied as an integer with 1   
+                       specifying the first routing layer in the apr_techfile. 
+                       Alternatively the layer can be a string that matches    
+                       a layer hardcoded in the pdk_aprtech file. Designers    
+                       wishing to use the same setup across multiple process   
+                       nodes should use the integer approach. For processes    
+                       with ambigous starting routing layers, exact strings    
+                       should be used.                                         
+                                                                               
+                       Examples:                                               
+                       cli: -maxlayer 6                                        
+                       api:  chip.add('maxlayer', '6')                         
+                       
+                       ---------------------------------------------------------
+ -mcmm_constraint <>   MCMM Timing Constraints Files
+                       
+                       Provides scenario specific constraints. If none are     
+                       supplied default constraints are generated based on     
+                       the clk parameter. The constraints can be applied on    
+                       per stage basis to allow for tightening margins as      
+                       the design gets more refined through he apr flow        
+                                                                               
+                       Examples:                                               
+                       cli: -mcmm_constraints 'worst hello_world.sdc'          
+                       api: chip.add('mcmm','worst', 'constraint',             
+                                     'hello_world.sdc')                        
+                       
+                       ---------------------------------------------------------
+ -mcmm_goal <>         MCMM Goals
+                       
+                       Provides target goals for a scenario aligned with the  
+                       optimization capabilities of the synthesis and apr     
+                       tool. Goals generally include objectives like meeting  
+                       setup and hold goals and minimize power.               
+                                                                              
+                       Examples:                                              
+                       cli: -mcmm_goal 'worst goal setup'                     
+                       api: chip.add('mcmm','worst', 'goal', 'setup'          
+                       
+                       ---------------------------------------------------------
+ -mcmm_libcorner <>    MCMM Library Corner Name
+                       
+                       A dynamic dictionary that connects the scenario name with
+                       a library corner name that can be used to access the     
+                       'stdcells' library timing models of the 'target_libs'    
+                       The 'libcorner' value must match the corner specified in 
+                       the 'stdcells' dictionary exactly. The format for the    
+                       dictionary ia [scenarioname]['libcorner'].               
+                                                                                
+                       Examples:                                                
+                       cli: -mcmm_libcorner 'worst ttt'                         
+                       api: chip.set('mcmm','worst', 'ttt)                      
+                       
+                       ---------------------------------------------------------
+ -mcmm_mode <>         MCMM Mode Name
+                       
+                       A dynamic dictionary that connects the scenario name with
+                       a named mode that can be used to drive analys.           
+                                                                                
+                       Examples:                                                
+                       cli: -mcmm_mode 'worst test'                             
+                       api: chip.set('mcmm','worst','mode', 'test')             
+                       
+                       ---------------------------------------------------------
+ -mcmm_pexcorner <>    MCMM PEX Corner Name
+                       
+                       A dynamic dictionary that connects the scenario name with
+                       a RC extraction corner name that can be used to access   
+                       the 'pdd_pexmodel' models. The 'pexcorner' value must    
+                       match the value 'stdcells' dictionary exactly. The format
+                       for the dictionary ia [scenarioname]['pexcorner'].       
+                                                                                
+                       Examples:                                                
+                       cli: -mcmm_pexcorner ' worst max'                        
+                       api: chip.set('mcmm','worst','pexcorner, 'max')          
+                       
+                       ---------------------------------------------------------
+ -minlayer <num>       Minimum routing layer
+                       
+                       The minimum layer to be used for automated place and    
+                       route. The layer can be supplied as an integer with 1   
+                       specifying the first routing layer in the apr_techfile. 
+                       Alternatively the layer can be a string that matches    
+                       a layer hardcoded in the pdk_aprtech file. Designers    
+                       wishing to use the same setup across multiple process   
+                       nodes should use the integer approach. For processes    
+                       with ambigous starting routing layers, exact strings    
+                       should be used.                                         
+                                                                               
+                       Examples:                                               
+                       cli: -minlayer '2'                                      
+                       api:  chip.add('minlayer', '2')                         
+                       
+                       ---------------------------------------------------------
+ -msg_contact <str>    Message Contact Information
+                       
+                       A list of phone numbers or email addresses to message on 
+                       a trigger event within the msg_trigger param.            
+                                                                                
+                       Examples:                                                
+                       cli: -msg_contact 'wile.e.coyote@acme.com'               
+                       api: chip.set('msg_contact','wile.e.coyote@acme.com')    
+                       
+                       ---------------------------------------------------------
+ -msg_trigger <str>    Message Trigger
+                       
+                       A list of stages after which to messages a recipient.    
+                       For example if values of syn, place, cts are entered     
+                       separate messages would be sent after the completion of  
+                       the syn, place, and cts stages.                          
+                                                                                
+                       Examples:                                                
+                       cli: -msg_trigger 'export'                               
+                       api: chip.set('msg_trigger','export')                    
+                       
+                       ---------------------------------------------------------
+ -ndr <file>           Non-default Net Routing File
+                       
+                       A file containing a list of nets with non-default width  
+                       and spacing, with one net per line and no wildcards      
+                       The format is <netname width space>                      
+                       The netname should include the full hierarchy from the   
+                       root module while width space should be specified in the 
+                       resolution specified in the technology file.             
+                                                                                
+                       Examples:                                                
+                       cli: -priority 'myndr.txt'                               
+                       api:  chip.add('ndr', 'myndr.txt')                       
+                       
+                       ---------------------------------------------------------
+ -nickname <str>       Design Nickname
+                       
+                       An alias for the top level design name. Can be useful    
+                       when top level designs have long and confusing names. The
+                       nickname is used in all output file prefixes.            
+                                                                                
+                       Examples:                                                
+                       cli: -nickname 'top'                                     
+                       api: chip.set('nickname','top')                          
+                       
+                       ---------------------------------------------------------
+ -pdk_aprlayer <>      Place and Route Layer Definitions
+                       
+                       A optional list of metal layer definitions. Generally,   
+                       all APR setup rules would be read from the pdk_aprtec    
+                       file but there are cases when these rules should be      
+                       overriden with non-minimal design rules. The list enables
+                       per layer routing rule definitions, entered as a tuple of
+                       with format 'metalname preferred-dir width pitch'. The   
+                       values are entered on a per stackup basis with X denoting
+                       horizontal direction, Y denoting vertical direction, and 
+                       the width and pitch entered in micrometers.              
+                                                                                
+                       Examples:                                                
+                       cli: -pdk_aprlayer 'm1 X 0.5 1.0'                        
+                       api: chip.set('pdk_aprlayer','m1 X 0.5 1.0')             
+                       
+                       ---------------------------------------------------------
+ -pdk_aprtech <>       Place and Route Technology Files
+                       
+                       A dynamic dictionary of paths to technology files       
+                       containing the design rule and setup information needed 
+                       to enable DRC clean automated placement a routing. The  
+                       nested dictionary format is [stackup][libtype][format], 
+                       where libtype generally indicates the height of the     
+                       standard cell library supported by the PDK. For example 
+                       with support for 9 and 12 track libraries might have    
+                       libtypes called 9t and 12t.                             
+                                                                               
+                       Examples:                                               
+                       cli: -pdk_aprtech '2MA4MB2MC 12t openroad asap_tech.lef'
+                       api: chip.set('pdk_aprtech','2MA4MB2MC','12t','lef',    
+                                     'asap_tech.lef')                          
+                       
+                       ---------------------------------------------------------
+ -pdk_devmodel <>      Device Models
+                       
+                       A dynamic dictionary of filepaths for all PDK device     
+                       models. The structure serves as a central access registry
+                       for models for different purpose and tools. The format   
+                       for the dictionary is [stackup][type][tool]. Examples of 
+                       device model types include spice, aging, electromigration
+                       ,radiation. An example of a spice tool is xyce.          
+                                                                                
+                       Examples:                                                
+                       cli: -pdk_devmodel '2MA4MB2MC spice xyce asap7.sp'       
+                       api: chip.set('pdk_devmodel','2MA4MB2MC','spice','xyce', 
+                                     'asap7.sp')                                
+                       
+                       ---------------------------------------------------------
+ -pdk_display <>       Display Configurations
+                       
+                       A dynamic dictionary of display configuration files      
+                       describing colors and pattern schemes for all layers in  
+                       the PDK. The display configuration file is entered on a  
+                       stackup and per tool basis, with the dictionary format   
+                       being [stackup][tool].                                   
+                                                                                
+                       Examples:                                                
+                       cli: -pdk_display '2MA4MB2MC klayout display.cfg'        
+                       api: chip.set('pdk_display','2MA4MB2MC','klayout',       
+                                     'display.cfg')                             
+                       
+                       ---------------------------------------------------------
+ -pdk_doc <file>       Process Documents
+                       
+                       A list of critical PDK designer documents provided by   
+                       the foundry entered in order of priority. The first item
+                       in the list should be the primary PDK user guide. The   
+                       purpose of the list is to serve as a central record for 
+                       all must-read PDK documents.                            
+                                                                               
+                       Examples:                                               
+                       cli: -pdk_doc asap7_userguide.pdf                       
+                       api:  chip.set('pdk_doc', 'asap7_userguide.pdf')        
+                       
+                       ---------------------------------------------------------
+ -pdk_drm <file>       Process Design Rule Manual
+                       
+                       A PDK document that includes complete information about 
+                       all physical and electrical design rules to comply with 
+                       in the design and layout of the chip. In cases where the
+                       user guides and design rules are combined into a single 
+                       document, the pdk_doc parameter can be left blank.      
+                                                                               
+                       Examples:                                               
+                       cli: -pdk_drm asap7_drm.pdf                             
+                       api:  chip.set('pdk_drm', 'asap7_drm.pdf')              
+                       
+                       ---------------------------------------------------------
+ -pdk_foundry <str>    Foundry Name
+                       
+                       The name of the foundry. For example: intel, gf, tsmc,   
+                       samsung, skywater, virtual. The 'virtual' keyword is   
+                       reserved for simulated non-manufacturable processes like 
+                       freepdk45 and asap7.                                     
+                                                                                
+                       Examples:                                                
+                       cli: -pdk_foundry virtual                                
+                       api:  chip.set('pdk_foundry', 'virtual')                 
+                       
+                       ---------------------------------------------------------
+ -pdk_layermap <>      Mask Layer Maps
+                       
+                       A dynamic dictionary of filepaths describing input/output
+                       mapping for streaming layout data from one format to     
+                       another. A foundry PDK will include an official layer    
+                       list for all user entered and generated layers supported 
+                       in the GDS accepted by the foundry for processing, but   
+                       there is no standardized layer definition format that can
+                       be read and written by all EDA tools. To ensure mask     
+                       layer matching, key/value type mapping files are needed  
+                       to convert EDA databases to/from GDS and to convert      
+                       between different types of EDA databases. The format for 
+                       the dictionary is [stackup][src][dst].                   
+                                                                                
+                       Examples:                                                
+                       cli: -pdk_layermap '2MA4MB2MC libtool gds asap7.map'     
+                       api: chip.set('pdk_layermap','2MA4MB2MC','libtool','gds',
+                                     'asap7.map')                               
+                       
+                       ---------------------------------------------------------
+ -pdk_clib <>          Custom Design Libraries
+                       
+                       A dynamic dictionary of filepaths to all primitive cell  
+                       libraries supported by the PDK. The filepaths are entered
+                       on a per stackup basis with the format: [stackup][tool]. 
+                                                                                
+                       Examples:                                                
+                       cli: -pdk_lib '2MA4MB2MC oa /disk/asap7/oa/devlib'       
+                       api: chip.set('pdk_lib','2MA4MB2MC','oa',                
+                                     '/disk/asap7/oa/devlib')                   
+                       
+                       ---------------------------------------------------------
+ -pdk_node <num>       Process Node
+                       
+                       An approximate relative minimum dimension of the process
+                       node. A required parameter in some reference flows that 
+                       leverage the value to drive technology dependent        
+                       synthesis and APR optimization. Node examples include   
+                       180nm, 130nm, 90nm, 65nm, 45nm, 32nm, 22nm, 14nm, 10nm, 
+                       7nm, 5nm, 3nm. The value entered implies nanometers.    
+                                                                               
+                       Examples:                                               
+                       cli: -pdk_node 130                                      
+                       api:  chip.set('pdk_node', '130')                       
+                       
+                       ---------------------------------------------------------
+ -pdk_pexmodel <>      Parasitic Extraction TCAD Models
+                       
+                       A dynamic dictionary of filepaths for all PDK wire TCAD  
+                       models. The structure serves as a central access registry
+                       for models for different purpose and tools. The format   
+                       for the dictionary is [stackup][corner][tool]. Examples  
+                       of RC extraction corners include: min, max, nominal. An  
+                       example of an extraction tool is FastCap.                
+                                                                                
+                       Examples:                                                
+                       cli: -pdk_pexmodel '2MA4MB2MC max fastcap wire.mod'      
+                       api: chip.set('pdk_pexmodel','2MA4MB2MC','max','fastcap',
+                                     'wire.mod')                                
+                       
+                       ---------------------------------------------------------
+ -pdk_process <str>    Process Name
+                       
+                       The official public name of the foundry process. The     
+                       name is case insensitive, but should otherwise match the 
+                       complete public process name from the foundry. Example   
+                       process names include 22FFL from Intel, 12LPPLUS from    
+                       Globalfoundries, and 16FFC from TSMC.                    
+                                                                                
+                       Examples:                                                
+                       cli: -pdk_process asap7                                  
+                       api:  chip.set('pdk_process', 'asap7')                   
+                       
+                       ---------------------------------------------------------
+ -pdk_rev <str>        Process Release Revision
+                       
+                       An alphanumeric string specifying the revision  of the   
+                       current PDK. Verification of correct PDK and IP revisions
+                       revisions is an ASIC tapeout requirement in all          
+                       commercial foundries.                                    
+                                                                                
+                       Examples:                                                
+                       cli: -pdk_rev 1.0                                        
+                       api:  chip.set('pdk_rev', '1.0')                         
+                       
+                       ---------------------------------------------------------
+ -pdk_stackup <>       Process Metal Stackups
+                       
+                       A list of all metal stackups offered in the process node 
+                       Older process nodes may only offer a single metal        
+                       stackup, while advanced nodes offer a large but finite   
+                       list of metal stacks with varying combinations of metal  
+                       line pitches and thicknesses. Stackup naming is unqiue   
+                       to a foundry, but is generally a long string or code. For
+                       example, a 10 metal stackup two 1x wide, four 2x wide,   
+                       and 4x wide metals, might be identified as 2MA4MB2MC.    
+                       Each stackup will come with its own set of routing       
+                       technology files and parasitic models specified in the   
+                       pdk_pexmodel and pdk_aprtech parameters.                 
+                                                                                
+                       Examples:                                                
+                       cli: -pdk_stackup 2MA4MB2MC                              
+                       api:  chip.set('pdk_stackup', '2MA4MB2MC')               
+                       
+                       ---------------------------------------------------------
+ -pdk_tapmax <num>     Tap Cell Max Distance Rule
+                       
+                       Specifies the maximum distance allowed between tap cells 
+                       in the PDK. The value is required for automated place and
+                       route and is entered in micrometers.                     
+                                                                                
+                       Examples:                                                
+                       cli: -pdk_tapmax 100                                     
+                       api: chip.set('pdk_tapmax','100')                        
+                       
+                       ---------------------------------------------------------
+ -pdk_tapoffset <num>  Tap Cell Offset Rule
+                       
+                       Specifies the offset from the edge of the block to the   
+                       tap cell grid. The value is required for automated place 
+                       and route and is entered in micrometers.                 
+                                                                                
+                       Examples:                                                
+                       cli: -pdk_tapoffset 0                                    
+                       api: chip.set('pdk_tapoffset','0')                       
+                       
+                       ---------------------------------------------------------
+ -priority <str>       Optimization Priority
+                       
+                       An optional parameter for tools that support tiered      
+                       optimization functions. For example, congestion might    
+                       be assigned higher priority than timing in some stages.  
+                       The optimization priority string must match the EDA tool 
+                       value exactly.                                           
+                                                                                
+                       Examples:                                                
+                       cli: -priority 'timing'                                  
+                       api:  chip.set('priority', 'timing')                     
+                       
+                       ---------------------------------------------------------
+ -quiet                Suppress informational printing
+                       
+                       Modern EDA tools print significant content to the screen.
+                       The -quiet option forces all stage prints into a per job 
+                       log file.                                                
+                                                                                
+                       Examples:                                                
+                       cli: -quiet                                              
+                       api: chip.set('quiet','True')                            
+                       
+                       ---------------------------------------------------------
+ -skip <stage>         Compilation Skip Stages
+                       
+                       In some older technologies it may be possible to skip    
+                       some of the stages in the standard flow defined by the   
+                       'compile_stages' and 'dv_stages' lists. The skip variable
+                       lists the stages to be skipped during execution.         
+                                                                                
+                       Examples:                                                
+                       cli: -skip 'import'                                      
+                       api: chip.set('skip','import')                           
+                       
+                       ---------------------------------------------------------
+ -stackup <>           Design Metal Stackup
+                       
+                       Specifies the target stackup to use in the design. The   
+                       name must match a value defined in the pdk_stackup list. 
+                                                                                
+                       Examples:                                                
+                       cli: -stackup '2MA4MB2MC'                                
+                       api: chip.set('stackup', '2MA4MB2MC')                    
+                       
+                       ---------------------------------------------------------
+ -start <stage>        Compilation Start Stage
+                       
+                       The start parameter specifies the starting stage of the  
+                       flow. This would generally be the import stage but could 
+                       be any one of the stages within the stages parameter. For
+                       example, if a previous job was stopped at syn a job can  
+                       be continued from that point by specifying -start place  
+                                                                                
+                       Examples:                                                
+                       cli: -start 'place'                                      
+                       api: chip.set('start','place')                           
+                       
+                       ---------------------------------------------------------
+ -stdcells_atpg <>     Library ATPG Files
+                       
+                       Library models used for ATPG based automated faultd based
+                       post manufacturing testing.                              
+                                                                                
+                       Examples:                                                
+                       cli: -stdcells_atpg 'mylib mylib.atpg'                  
+                       api: chip.set('stdcells','mylib','atpg','mylib.atpg')   
+                       
+                       ---------------------------------------------------------
+ -stdcells_ccs <>      Library Composite Current Source Model File
+                       
+                       A dynamic dictionary of paths to composite current source
+                       models. CCS models are more acccurate than NLDM models   
+                       and are required for signoff at advanced nodes, but are  
+                       significantly larger and slower. The CCS files are       
+                       specified on a per lib, per corner, and per format basis 
+                       with dictionary structure being:                         
+                       ['libname']['ccs']['cornername']['format']               
+                       The format is driven by EDA tool requirements. Examples  
+                       of legal formats includ: lib, lib.gz, lib.bz2, and ldb.  
+                                                                                
+                       Examples:                                                
+                       cli: -stdcells_ccs 'mylib ttt lib mylib_ccs.lib'        
+                       api: chip.set('stdcells','mylib','ccs','ttt','lib',     
+                                     'mylib_ccs.lib')                           
+                       
+                       ---------------------------------------------------------
+ -stdcells_cdl <>      Library CDL Netlist Filesx
+                       
+                       Files containing the netlists used for layout versus     
+                       schematic (LVS) checks. In some cases, the GDS merge     
+                       happens at the foundry, so inclusion of a CDL file is    
+                       optional. In all cases, where the CDL files are          
+                       available they should specified here to enable LVS checks
+                       pre tapout                                               
+                                                                                
+                       Examples:                                                
+                       cli: -stdcells_cdl 'mylib mylib.cdl'                    
+                       api: chip.set('stdcells','mylib','cdl','mylib.cdl'      
+                       
+                       ---------------------------------------------------------
+ -stdcells_cells <>    Library Cell Lists
+                       
+                       A named list of cells grouped by a property that can be  
+                       accessed directly by the designer and EDA tools. The     
+                       example below shows how all cells containing the string  
+                       'eco' could be marked as dont use for the tool.          
+                                                                                
+                       Examples:                                                
+                       cli: -stdcells_cells 'mylib dontuse *eco*'              
+                       api: chip.set('stdcells','mylib','cells','dontuse',     
+                                     '*eco*')                                   
+                       
+                       ---------------------------------------------------------
+ -stdcells_doc <>      Library Documentation
+                       
+                       A list of critical library documents entered in order of 
+                       importance. The first item in thelist should be the      
+                       primary library user guide. The purpose of the list is to
+                       serve as a central record for all must-read PDK documents
+                                                                                
+                       Examples:                                                
+                       cli: -stdcells_doc 'mylib mylib_guide.pdf'              
+                       api: chip.set('stdcells','mylib','doc',                 
+                                     'mylib_guide.pdf')                         
+                       
+                       ---------------------------------------------------------
+ -stdcells_driver <>   Library Default Driver Cell
+                       
+                       The name of a library cell to be used as the default     
+                       driver for block timing constraints. The cell should be  
+                       strong enough to drive a block input from another block  
+                       including wire capacitance. In cases, where the actual   
+                       drive is known, the actual driver cell should be used.   
+                                                                                
+                       Examples:                                                
+                       cli: -stdcells_driver 'mylib BUFX1'                     
+                       api: chip.set('stdcells','mylib','driver','BUFX1')      
+                       
+                       ---------------------------------------------------------
+ -stdcells_ds <>       Library Datasheets
+                       
+                       A complete collection of datasheets for the library. The 
+                       documentation can be provied as a PDF or as a filepath to
+                       a directory with one HTMl file per cell. This parameter  
+                       is optional for libraries where the datsheet is merged   
+                       within the library integration document.                 
+                                                                                
+                       Examples:                                                
+                       cli: -stdcells_ds 'mylib mylib_ds.pdf'                  
+                       api: chip.set('stdcells','mylib','ds','mylib_ds.pdf')   
+                       
+                       ---------------------------------------------------------
+ -stdcells_gds <>      Library GDS Files
+                       
+                       The complete mask layout of the library cells ready to be
+                       merged with the rest of the design for tapeout. In some  
+                       cases, the GDS merge happens at the foundry, so inclusion
+                       of a GDS file is optional. In all cases, where the GDS   
+                       files are available, they should specified here to enable
+                       gds stream out/merge during the automated place and route
+                       and chip assembly process.                               
+                                                                                
+                       Examples:                                                
+                       cli: -stdcells_gds 'mylib mylib.gds'                    
+                       api: chip.set('stdcells','mylib','gds','mylib.gds'      
+                       
+                       ---------------------------------------------------------
+ -stdcells_hdl <>      Library HDL Model Files
+                       
+                       Digital HDL models of the library cells, modeled in VHDL 
+                       or verilog for use in funcational simulations.           
+                                                                                
+                       Examples:                                                
+                       cli: -stdcells_hdl 'mylib mylib.v'                      
+                       api: chip.set('stdcells','mylib','hdl','mylib.v'        
+                       
+                       ---------------------------------------------------------
+ -stdcells_laydb <>    Library Layout Database
+                       
+                       A dynamic dictionary with filepaths to compiled library  
+                       layout database specified on a per format basis. Example 
+                       formats include oa, mw, ndm.                             
+                                                                                
+                       Examples:                                                
+                       cli: -stdcells_laydb 'mylib oa /disk/myliblib'          
+                       api: chip.set('stdcells','mylib','laydb','oa',          
+                                     '/disk/myliblib')                          
+                       
+                       ---------------------------------------------------------
+ -stdcells_lef <>      Library LEF Files
+                       
+                       An abstracted view of library cells that gives complete  
+                       information about the cell place and route boundary, pin 
+                       positions, pin metals, and metal routing blockages.      
+                                                                                
+                       Examples:                                                
+                       cli: -stdcells_lef 'mylib mylib.lef'                    
+                       api: chip.set('stdcells','mylib','lef','mylib.lef'      
+                       
+                       ---------------------------------------------------------
+ -stdcells_libtype <>  Library Type
+                       
+                       Libtype is a a unique string that identifies the row     
+                       height or performance class of the library for APR. The  
+                       libtype must match up with the name used in the          
+                       pdk_aprtech dictionary. Mixing of libtypes in a flat     
+                       place and route block is not allowed.                    
+                                                                                
+                       Examples:                                                
+                       cli: -stdcells_libtype 'mylib 12t'                      
+                       api: chip.set('stdcells','mylib','libtype','12t')       
+                       
+                       ---------------------------------------------------------
+ -stdcells_nldm <>     Library Non-Linear Delay Model
+                       
+                       A dynamic dictionary of paths to non-linear delay model  
+                       files specified in the liberty format. The NLDM files are
+                       specified on a per lib, per corner, and per format       
+                       basis with dictionary structure being:                   
+                       ['libname']['nldm']['cornername']['format']              
+                       The format is driven by EDA tool requirements. Examples  
+                       of legal formats includ: lib, lib.gz, lib.bz2, and ldb.  
+                                                                                
+                       Examples:                                                
+                       cli: -stdcells_nldm 'mylib ttt lib mylib.lib'           
+                       api: chip.set('stdcells','mylib','nldm','ttt','lib',    
+                                     'mylib.lib')                               
+                       
+                       ---------------------------------------------------------
+ -stdcells_rails <>    Library Power/Ground Rails Metal Layer
+                       
+                       Specifies the top metal layer used for power and ground  
+                       routing within the library. The parameter can be used to 
+                       guide cell power grid hookup by APR tools.               
+                                                                                
+                       Examples:                                                
+                       cli: -stdcells_rails 'mylib m1'                         
+                       api: chip.set('stdcells','mylib','rails','m1')          
+                       
+                       ---------------------------------------------------------
+ -stdcells_rev <>      Library Release Revision
+                       
+                       A dynamic dictionary specifying an alphanumeric revision 
+                       string on a per library basis. Verification of correct   
+                       PDK and IP revisions is an ASIC tapeout requirement in   
+                       all commercial foundries.                                
+                                                                                
+                       Examples:                                                
+                       cli: -stdcells_rev 'mylib 1.0'                          
+                       api: chip.set('stdcells','mylib','rev','1.0')           
+                       
+                       ---------------------------------------------------------
+ -stdcells_setup <>    Library Setup Files
+                       
+                       A list of setup files for use by specific EDA tools. The 
+                       files are specified on a per EDA tool basis.             
+                                                                                
+                       Examples:                                                
+                       cli: -stdcells_setup 'mylib openroad mylib.tcl'         
+                       api: chip.set('stdcells','mylib','setup','openroad',    
+                                     'mylib.tcl')                               
+                       
+                       ---------------------------------------------------------
+ -stdcells_site <>     Library Site/Tile Name
+                       
+                       Provides the primary site name within the library to use 
+                       for placement. Value can generally be automatically      
+                       inferred from the provided library lef file.             
+                                                                                
+                       Examples:                                                
+                       cli: -stdcells_site 'mylib mylibsc7p5'                  
+                       api: chip.set('stdcells','mylib','site','mylibsc7p5')   
+                       
+                       ---------------------------------------------------------
+ -stdcells_size <>     Library Height
+                       
+                       Specifies the height and width of a unit cell. Values are
+                       entered as width heigh tuplest. The value can usually be 
+                       extracted automatically from the layout library but is   
+                       included in the schema to simplify the process of        
+                       creating parametrized floorplans. The parameter can be   
+                       omitted for macro libraries that lack the concept of a   
+                       unit cell.                                               
+                                                                                
+                       Examples:                                                
+                       cli: -stdcells_size 'mylib 0.1 0.5'                     
+                       api: chip.set('stdcells','mylib','size','0.1 0.5')      
+                       
+                       ---------------------------------------------------------
+ -stdcells_spice <>    Library Spice Netlist Files
+                       
+                       Files containing the library spice netlists used for     
+                       circuit simulation.                                      
+                                                                                
+                       Examples:                                                
+                       cli: -stdcells_spice 'mylib mylib.sp'                   
+                       api: chip.set('stdcells','mylib','spice','mylib.sp'     
+                       
+                       ---------------------------------------------------------
+ -stdcells_tag <>      Library Identifier Tags
+                       
+                       Marks a library with a set of tags that can be used by   
+                       the designer and EDA tools for optimization purposes. The
+                       tags are meant to cover features not currently supported 
+                       by built in EDA optimization flows, but which can be     
+                       queried through EDA tool TCL commands and lists. The     
+                       example below demonstrates tagging the whole library as  
+                       virtual.                                                 
+                                                                                
+                       Examples:                                                
+                       cli: -stdcells_tag 'mylib virtual'                      
+                       api: chip.set('stdcells','mylib','tag','virtual')       
+                       
+                       ---------------------------------------------------------
+ -stdcells_vt <>       Library Transistor Threshold
+                       
+                       The variable specifies the voltage threshold type of the 
+                       library. The value is extracted automatically if found in
+                       the default_threshold_voltage_group within the nldm/ccs  
+                       model. For older technologies with only one vt group, it 
+                       the value can be set to an arbitrary string (eg: svt)    
+                                                                                
+                       Examples:                                                
+                       cli: -stdcells_vt 'mylib lvt'                           
+                       api: chip.set('stdcells','mylib','vt','lvt')            
+                       
+                       ---------------------------------------------------------
+ -stop <stage>         Compilation Stop Stage
+                       
+                       The stop parameter specifies the stopping stage of the   
+                       flow. The value entered is inclusive, so if for example  
+                       the -stop syn is entered, the flow stops after syn has   
+                       been completed.                                          
+                                                                                
+                       Examples:                                                
+                       cli: -stop 'route'                                       
+                       api: chip.set('stop','route')                            
+                       
+                       ---------------------------------------------------------
+ -supply <>            Power Supplies
+                       
+                       A complete power supply definition specifying the supply 
+                       name, the net name, and the voltage.The definition can   
+                       be used to drive constraints for implementation and      
+                       signoff. Supply values specified in Volts.               
+                                                                                
+                       Examples:                                                
+                       cli: -supply 'vdd vdd 0.9'                               
+                       api: chip.add('supply','vdd vdd 0.9')                    
+                       
+                       ---------------------------------------------------------
+ -target <str>         Target compilation platform
+                       
+                       Provides a string name for choosing a physical mapping   
+                       target for the design. Like in compilers like gcc, only  
+                       targets that are pre-baked into the compiler supported.  
+                       Custom targets can be configured through a combination   
+                       of command line switches and config files. The target    
+                       parameter is included for convenience, enabling cool     
+                       single line commands like sc -target asap hello_world.v  
+                       Specifying the target parameter causes a number of PDK   
+                       PDK and library variables to be set automatically set    
+                       based on he specific target specified. Currently, the    
+                       following native targets are supported:                  
+                                                                                
+                       asap7: Virtual 7nm PDK with multiple VT libraries        
+                       freepdk45: Virtual 45nm PDK with a single VT library     
+                                                                                
+                       Examples:                                                
+                       cli: -target 'freepdk45'                                 
+                       api:  chip.set('target', 'freepdk45')                    
+                       
+                       ---------------------------------------------------------
+ -target_lib <str>     Target Libraries
+                       
+                       Provides a list of library names to use for synthesis    
+                       and automated place and route.                           
+                                                                                
+                       Examples:                                                
+                       cli: -target_lib 'asap7sc7p5t_lvt'                       
+                       api:  chip.add('target_lib', 'asap7sc7p5t_lvt')          
+                       
+                       ---------------------------------------------------------
+ -tool_exe <>          Executable Name
+                       
+                       The name of the exuctable tool or the full path to the   
+                       executable specified on a per stage basis.               
+                                                                                
+                       Examples:                                                
+                       cli: -tool_exe 'place openroad'                          
+                       api:  chip.set('tool','place','exe','openroad')          
+                       
+                       ---------------------------------------------------------
+ -tool_opt <>          Executable Options
+                       
+                       A list of command line options for the executable. For   
+                       multiple argument options, enter each argument and value 
+                       as a one list entry, specified on a per stage basis.     
+                       Command line values must be enclosed in quotes.          
+                                                                                
+                       Examples:                                                
+                       cli: -tool_opt 'place -no_init'                          
+                       api:  chip.set('tool','place','opt','-no_init')          
+                       
+                       ---------------------------------------------------------
+ -tool_refdir <>       Reference Directory
+                       
+                       A path to a directory containing compilation scripts     
+                       used by the executable specified on a per stage basis.   
+                                                                                
+                       Examples:                                                
+                       cli: -tool_refdir 'place ./myrefdir'               
+                       api: chip.set('tool','place','refdir','./myrefdir')
+                       
+                       ---------------------------------------------------------
+ -tool_script <>       Entry point Script
+                       
+                       Path to the entry point compilation script called by the 
+                       executable specified on a per stage basis.               
+                                                                                
+                       Examples:                                                
+                       cli: -tool_script 'place ./myrefdir/place.tcl'           
+                       api: chip.set('tool','place','refdir',                   
+                                     './myrefdir/place.tcl')                    
+                       
+                       ---------------------------------------------------------
+ -tool_copy <>         Copy Local Option
+                       
+                       Specifies that the reference script directory should be  
+                       copied and run from the local run directory. The option  
+                       specified on a per stage basis.                          
+                                                                                
+                       Examples:                                                
+                       cli: -tool_copy 'place True'                             
+                       api: chip.set('tool','place','copy','True')              
+                       
+                       ---------------------------------------------------------
+ -tool_format <>       Script Format
+                       
+                       Specifies that format of the configuration file for the  
+                       stage. Valid formats are tcl, yaml, and json. The format 
+                       used is dictated by the executable for the stage and     
+                       specified on a per stage basis.                          
+                                                                                
+                       Examples:                                                
+                       cli: -tool_format 'place tcl'                            
+                       api: chip.set('tool','place','format','tcl')             
+                       
+                       ---------------------------------------------------------
+ -tool_jobid <>        Job Index
+                       
+                       A dynamic variable that keeeps track of results to pass  
+                       forward to the next stage of the implementation pipeline 
+                       in cases where multiple jobs are run for one stage and a 
+                       programmatic selection if made to choose the best result 
+                       the variable can be used to point to a job which may not 
+                       be the last job launched. Job IDs are tracked on a per   
+                       stage basis.                                             
+                                                                                
+                       Examples:                                                
+                       cli: -tool_jobid 'place 5'                               
+                       api: chip.set('tool','place','jobid','5')                
+                       
+                       ---------------------------------------------------------
+ -tool_np <>           Thread Parallelism
+                       
+                       Specifies the level of CPU thread parallelism to enable  
+                       on a per stage basis. This information is intended for   
+                       the EDA tools to use to parallelize workloads on a       
+                       multi-core single node CPU. Job parallelization across   
+                       multiple machines can be explicitly specified using      
+                       custom compilation scripts.                              
+                                                                                
+                       Examples:                                                
+                       cli: -tool_np 'drc 64'                                   
+                       api: chip.set('tool','drc','np','64')                    
+                       
+                       ---------------------------------------------------------
+ -tool_keymap <>       Script Keymap
+                       
+                       The keymap is used to translate the schema keys when     
+                       writing out the configuration to a TCL, JSON, or YAML    
+                       file to be loaded by an EDA tool. Keymaps are specific to
+                       each EDA tool and specified on a per stage basis.        
+                                                                                
+                       Examples:                                                
+                       cli: -tool_keymap 'place design design_name'             
+                       api: chip.set('tool','place','design', 'design_name')    
+                       
+                       ---------------------------------------------------------
+ -tool_vendor <>       Tool Vendor
+                       
+                       The vendor argument is used for selecting eda specific   
+                       technology setup variables from the PDK and libraries    
+                       which generally support multiple vendors for each        
+                       implementation stage                                     
+                                                                                
+                       Examples:                                                
+                       cli: -tool_vendor 'place vendor openroad'                
+                       api: chip.set('tool','place','vendor', 'openroad')       
+                       
+                       ---------------------------------------------------------
+ -vcd <file>           Value Change Dump File
+                       
+                       A digital simulation trace that can be used to model    
+                       the peak and average power consumption of a design.     
+                                                                               
+                       Examples:                                               
+                       cli: -vcd mytrace.vcd                                   
+                       api:  chip.add('vcd', 'mytrace.vcd')                    
+                       
+                       ---------------------------------------------------------
+ -view_stages <str>    List of Interactive Viewer Stages
+                       
+                       A complete list of all interactive viewer stages. The    
+                       viewer stages are not meant to be executed as a pipeline,
+                       but serves as a central record for documenting tools and 
+                       options for display tools.                               
+                                                                                
+                       Examples:                                                
+                       cli: -view_stages 'scopeview'                            
+                       api:  chip.add('view_stages', 'scopeview')               
+                       
+                       ---------------------------------------------------------
+ -v <file>             Verilog Library Files
+                       
+                       Declares source files to be read in, for which modules   
+                       are not to be interpreted as root modules.               
+                                                                                
+                       Examples:                                                
+                       cli: -v'./mylib.v'                                       
+                       api: chip.add('vlib','./mylib.v')                        
+                       
+                       ---------------------------------------------------------
+ -y <dir>              Verilog Module Search Directories
+                       
+                       Provides a search paths to look for modules found in the 
+                       the source list. The import engine will look for modules 
+                       inside files with the specified +libext+ param suffix    
+                                                                                
+                       Examples:                                                
+                       cli: -y './mylib'                                        
+                       api: chip.add('ydir','./mylib')                          
+                       
+                       ---------------------------------------------------------
