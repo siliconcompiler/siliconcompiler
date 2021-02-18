@@ -988,7 +988,7 @@ def schema_eda(cfg):
         cfg['tool'][stage]['copy'] = {}
         cfg['tool'][stage]['copy']['switch'] = '-tool_copy'
         cfg['tool'][stage]['copy']['switch_args'] = '<>'
-        cfg['tool'][stage]['copy']['type'] = ['bool']
+        cfg['tool'][stage]['copy']['type'] = ['string']
         cfg['tool'][stage]['copy']['requirement'] = 'optional'
         cfg['tool'][stage]['copy']['defvalue'] = []
         cfg['tool'][stage]['copy']['short_help'] = 'Copy Local Option'
@@ -1106,19 +1106,6 @@ def schema_eda(cfg):
 def schema_options(cfg):
     ''' Run-time options
     '''
-
-    cfg['env'] = {
-        'switch' : '-env',
-        'switch_args' : '<>',
-        'type' : ['string', 'string'],
-        'requirement' : 'optional',
-        'defvalue' : [],
-        'short_help' : 'Vendor Environment Variables',
-        'help' : ["EDA tools and reference flows often require environment  ",
-                  "variables to be set. These variables can be managed     ",
-                  "externally or passed in through this variable.           "],
-    }
-
     cfg['cfgfile'] = {        
         'switch' : '-cfgfile',
         'switch_args' : '<file>',
@@ -1127,18 +1114,37 @@ def schema_options(cfg):
         'defvalue' : [],
         'hash'   : [],
         'short_help' : 'Compiler Configuration File',
-        'help' : ["All parameters can be set at the command line, but with  ",
-                  "over 100 configuration parameters available in SC, the   ",
-                  "preferred method for non trivial use cases is to create  ",
-                  "a cfg file using the SC python API. The cfg file can be  ",
-                  "passed in through he -cfgfile switch at the command    ",
-                  "There is no restriction on the number of cfgfiles that   ",
-                  "can be passed in. Parameters in the cfgfile are appended ",
-                  "to the existing list. In cases where a single entry is   ",
-                  "expected such as in the case of <design> the last entered",
-                  "value is used                                            "]
+        'help' : ["All parameters can be set at the command line, but with   ",
+                  "over 100 configuration parameters available, the          ",
+                  "preferred method for non trivial use cases is to create   ",
+                  "a cfg file using the API. The cfg file can then be passed ",
+                  "in through he -cfgfile switch at the command line. There  ",
+                  "is no restriction on the number of cfgfiles that can be   ",
+                  "be passed in. but it should be noted that the cfgfile are ",
+                  "appended to the existing list and configuration list.     ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -cfgfile 'mypdk.json'                                ",
+                  "api: chip.set('cfgfile','mypdk.json)                      "]
     }
 
+    cfg['env'] = {
+        'switch' : '-env',
+        'switch_args' : '<>',
+        'type' : ['string', 'string'],
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Environment Variables',
+        'help' : ["Certain EDA tools and reference flows require environment ",
+                  "variables to be set. These variables can be managed       ",
+                  "externally or specified through the env variable.         ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -env '$PDK_HOME /disk/mypdk'                         ",
+                  "api: chip.set('env','$PDK_HOME /disk/mypdk')              "]
+    }
+
+  
     cfg['lock'] = {
         'switch' : '-lock',
         'switch_args' : '',
@@ -1146,13 +1152,17 @@ def schema_options(cfg):
         'requirement' : 'optional',
         'defvalue' : ['False'],
         'short_help' : 'Configuration File Lock',
-        'help' : ["The lock switch can be used to prevent unintended        ",
-                  "updates to the chip configuration. For example, a team   ",
-                  "might converge on a golden reference methodology and will",
-                  "have a company policy to not allow designers to deviate  ",
-                  "from that golden reference. After the lock switch has    ",
-                  "been set, the configuration is in read only mode until   ",
-                  "the end of the program"]
+        'help' : ["The boolean lock switch can be used to prevent unintended ",
+                  "updates to the chip configuration. For example, a team    ",
+                  "might converge on a golden reference methodology and will ",
+                  "have a company policy to not allow designers to deviate   ",
+                  "from that golden reference. After the lock switch has     ",
+                  "been set, the current configuration is in read only mode  ",
+                  "until the end of the compilation                          ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -lock                                                ",
+                  "api: chip.set('lock','True')                              "]
     }
 
     cfg['quiet'] = {
@@ -1163,9 +1173,13 @@ def schema_options(cfg):
         'requirement' : 'optional',
         'defvalue' : ['False'],
         'short_help' : 'Suppress informational printing',
-        'help' : ["By default, the sc will log extensive info to the display",
-                  "This can be turned off using the -quiet param. Warnings  ",
-                  "and errors are always logged."]
+        'help' : ["Modern EDA tools print significant content to the screen. ",
+                  "The -quiet option forces all stage prints into a per job  ",
+                  "log file.                                                 ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -quiet                                               ",
+                  "api: chip.set('quiet','True')                             "]
     }
     
     cfg['debug'] = {
@@ -1173,11 +1187,15 @@ def schema_options(cfg):
         'switch_args' : '<str>',
         'type' : ['string'],
         'requirement' : 'optional',
-        'defvalue' : ['INFO'],
+        'defvalue' : ['WARNING'],
         'short_help' : 'Debug Level',
-        'help' : ["The debug param provides explicit control over the level ",
-                  "of debug information printed. Valid entries include      ",
-                  "INFO, DEBUG, WARNING, ERROR                              "]
+        'help' : ["The debug param provides explicit control over the level  ",
+                  "of debug logging printed. Valid entries include INFO,     ",
+                  "DEBUG, WARNING, ERROR. The default value is WARNING.      ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -debug INFO                                          ",
+                  "api: chip.set('debug','INFO')                             "]
     }
 
     cfg['build'] = {
@@ -1187,9 +1205,13 @@ def schema_options(cfg):
         'requirement' : 'optional',
         'defvalue' : ['build'],
         'short_help' : 'Build Directory Name',
-        'help' : ["By default, the flow is completed in the local directory ",
-                  "named \'build\'. To change the name of the build dir     ",
-                  "the user can specify an alternate directory path.        "]
+        'help' : ["By default, compilation is done in the local './build'    ",
+                  "directory. The build parameter enables setting an         ",
+                  "alternate compilation directory path.                     ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -build './build_the_future'                          ",
+                  "api: chip.set('build','./build_the_future')               "]
     }
 
     cfg['start'] = {
@@ -1199,11 +1221,15 @@ def schema_options(cfg):
         'requirement' : ['all'],
         'defvalue' : ['import'],
         'short_help' : 'Compilation Start Stage',
-        'help' : ["The start parameter specifies the starting stage of the  ",
-                  "flow. This would generally be the import stage but could ",
-                  "be any one of the stages within the stages parameter. For",
-                  "example, if a previous job was stopped at syn a job can  ",
-                  "be continued from that point by specifying -start place  "]
+        'help' : ["The start parameter specifies the starting stage of the   ",
+                  "flow. This would generally be the import stage but could  ",
+                  "be any one of the stages within the stages parameter. For ",
+                  "example, if a previous job was stopped at syn a job can   ",
+                  "be continued from that point by specifying -start place   ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -start 'place'                                       ",
+                  "api: chip.set('start','place')                            "]
     }
 
     cfg['stop'] = {
@@ -1213,10 +1239,15 @@ def schema_options(cfg):
         'defvalue' : ['export'],
         'requirement' : ['all'],
         'short_help' : 'Compilation Stop Stage',
-        'help' : ["The stop parameter specifies the stopping stage of the   ",
-                  "flow. The value entered is inclusive, so if for example  ",
-                  "the -stop syn is entered, the flow stops after syn has   ",
-                  "been completed.                                          "]
+        'help' : ["The stop parameter specifies the stopping stage of the    ",
+                  "flow. The value entered is inclusive, so if for example   ",
+                  "the -stop syn is entered, the flow stops after syn has    ",
+                  "been completed.                                           ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -stop 'route'                                        ",
+                  "api: chip.set('stop','route')                             "]
+                  
     }
 
     cfg['skip'] = {
@@ -1226,9 +1257,14 @@ def schema_options(cfg):
         'defvalue' : [],
         'requirement' : 'optional',
         'short_help' : 'Compilation Skip Stages',
-        'help' : ["In some older technologies it may be possible to skip    ",
-                  "some of the stages in the flow. The skip variable lists  ",
-                  "the stages to be skipped during execution                "]
+        'help' : ["In some older technologies it may be possible to skip     ",
+                  "some of the stages in the standard flow defined by the    ",
+                  "'compile_stages' and 'dv_stages' lists. The skip variable ",
+                  "lists the stages to be skipped during execution.          ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -skip 'import'                                       ",
+                  "api: chip.set('skip','import')                            "]
     }
 
     cfg['msg_trigger'] = {
@@ -1238,10 +1274,14 @@ def schema_options(cfg):
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Message Trigger',
-        'help' : ["A list of stages after which to messages a recipient.    ",
-                  "For example if values of syn, place, cts are entered     ",
-                  "separate messages would be sent after the completion of  ",
-                  "the syn, place, and cts stages.                          "]
+        'help' : ["A list of stages after which to messages a recipient.     ",
+                  "For example if values of syn, place, cts are entered      ",
+                  "separate messages would be sent after the completion of   ",
+                  "the syn, place, and cts stages.                           ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -msg_trigger 'export'                                ",
+                  "api: chip.set('msg_trigger','export')                     "]
     }
 
     cfg['msg_contact'] = {
@@ -1252,7 +1292,11 @@ def schema_options(cfg):
         'defvalue' : [],
         'short_help' : 'Message Contact Information',
         'help' : ["A list of phone numbers or email addresses to message on  ",
-                  "a trigger event within the msg_trigger param.            "]
+                  "a trigger event within the msg_trigger param.             ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -msg_contact 'wile.e.coyote@acme.com'                ",
+                  "api: chip.set('msg_contact','wile.e.coyote@acme.com')     "]
     }
 
     return cfg
