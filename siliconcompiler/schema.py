@@ -1315,13 +1315,18 @@ def schema_rtl(cfg):
         'requirement' : ['all'],
         'defvalue' : [],        
         'hash'   : [],
-        'short_help' : 'Source files',
-        'help' : ["A list of source files to read in for elaboration. The ",
-                  "files are read in order from first to last entered. File ",
-                  "type is inferred from the file suffix:                   ",
-                  "(*.v, *.vh) = verilog                                    ",
-                  "(*.sv) = system verilog                                   ",
-                  "(*.vhd) = vhdl                                           "]
+        'short_help' : 'Source File List',
+        'help' : ["A list of source files to read in for elaboration. The    ",
+                  "files are read in order from first to last entered. File  ",
+                  "type is inferred from the file suffix:                    ",
+                  "                                                          ",
+                  "(*.v, *.vh) = Verilog                                     ",
+                  "(*.sv)      = SystemVerilog                               ",
+                  "(*.vhd)     = Vhdl                                        ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: 'hello_world.v'                                      ",
+                  "api: chip.add('source','hello_world.v')                   "]
     }
         
     cfg['design'] = {
@@ -1330,10 +1335,13 @@ def schema_rtl(cfg):
         'type' : ['string'],
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Design Top Module name',
-        'help' : ["The top level design name to synthesize. Required in all ",
-                  "non-trivial designs with more than one source module     ",
-                  "specified.                                               "]
+        'short_help' : 'Design Top Module Name',
+        'help' : ["The name of the top level design to compile. Required in  ",
+                  "all non-single-module designs.                            ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -design 'hello_world'                                ",
+                  "api: chip.set('design','hello_world')                     "]
     }
 
     cfg['nickname'] = {
@@ -1343,24 +1351,33 @@ def schema_rtl(cfg):
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Design Nickname',
-        'help' : ["An alias for the top level design name. Can be useful in ",
-                  "for top level designs with long and confusing names. The ",
-                  "nickname is used in all file prefixes.                   "]
+        'help' : ["An alias for the top level design name. Can be useful when",
+                  "top level designs have long and confusing names. The      ",
+                  "nickname is used in all output file prefixes.             ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -nickname 'top'                                      ",
+                  "api: chip.set('nickname','top')                           "]
         }
     
     
-    cfg['clk'] = {
-        'switch' : '-clk',
+    cfg['clock'] = {
+        'switch' : '-clock',
         'switch_args' : '<>',
         'type' : ['string', "string", 'float', 'float'],
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Clock Definition',
-        'help' : ["A complete clock definition specifying the name of the   ",
+        'short_help' : 'Clock Definitions',
+        'help' : ["A complete clock definition specifying the name of the    ",
                   "clock, the name of the clock port, or the full hierarchy  ",
-                  "path to the generated internal clock, the clock frequency",
-                  "and the clock uncertainty (jitter). The definition can be",
-                  "used to drive constraints for implementation and signoff."]
+                  "path to the generated internal clock, the clock frequency ",
+                  "and the clock uncertainty (jitter). The definition can be ",
+                  "used to drive constraints for implementation and signoff. ",
+                  "Clock period and clock jitter are specified in nanosecons.",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -clock 'clk top.pll.clkout 10.0 0.1'                 ",
+                  "api: chip.add('clock','clk top.pll.clkout 10.0 0.1')      "]
     }
 
     cfg['supply'] = {
@@ -1369,11 +1386,15 @@ def schema_rtl(cfg):
         'type' : ['string', 'string', 'float'],
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Power Supply',
-        'help' : ["A complete power supply definition specifying the supply ",
-                  "name, t he power name, and the voltage.The definition can",
-                  "be used to drive constraints for implementation and      ",
-                  "signoff.                                                 "]
+        'short_help' : 'Power Supplies',
+        'help' : ["A complete power supply definition specifying the supply  ",
+                  "name, the net name, and the voltage.The definition can    ",
+                  "be used to drive constraints for implementation and       ",
+                  "signoff. Supply values specified in Volts.                ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -supply 'vdd vdd 0.9'                                ",
+                  "api: chip.add('supply','vdd vdd 0.9')                     "]
     }
     
     cfg['define'] = {
@@ -1383,7 +1404,11 @@ def schema_rtl(cfg):
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Verilog Preprocessor Define Symbols',
-        'help' : ["Sets a preprocessor symbol for verilog source imports.   "]
+        'help' : ["Sets a preprocessor symbol for verilog source imports.    ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -D'CFG_ASIC=1'                                       ",
+                  "api: chip.add('define','CFG_ASIC=1')                      "]
     }
     
     cfg['ydir'] = {
@@ -1393,10 +1418,14 @@ def schema_rtl(cfg):
         'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
-        'short_help' : 'Verilog Module Search Directory',
-        'help' : ["Provides a search paths to look for modules found in the",
-                  "the source list. The import engine will look for modules",
-                  "inside files with the specified +libext+ param suffix   "]
+        'short_help' : 'Verilog Module Search Directories',
+        'help' : ["Provides a search paths to look for modules found in the  ",
+                  "the source list. The import engine will look for modules  ",
+                  "inside files with the specified +libext+ param suffix     ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -y './mylib'                                         ",
+                  "api: chip.add('ydir','./mylib')                           "]
     }
 
     cfg['idir'] = {
@@ -1406,10 +1435,13 @@ def schema_rtl(cfg):
         'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
-        'short_help' : 'Verilog Include File Search Directory',
-        'help' : ["Provides a search paths to look for files included in   ",
-                  "the design using the `include statement.                "]
-
+        'short_help' : 'Verilog Include File Search Directories',
+        'help' : ["Provides a search paths to look for files included in     ",
+                  "the design using the `include statement.                  ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -I'./mylib'                                          ",
+                  "api: chip.add('idir','./mylib')                           "]
     }
 
     cfg['vlib'] = {
@@ -1419,9 +1451,13 @@ def schema_rtl(cfg):
         'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
-        'short_help' : 'Verilog Library file',
-        'help' : ["Declares a source code file where modules are not       ",
-                  "interpreted as root modules                             "]
+        'short_help' : 'Verilog Library Files',
+        'help' : ["Declares source files to be read in, for which modules are",
+                  "not to be interpreted as root modules.                    ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -v'./mylib.v'                                        ",
+                  "api: chip.add('vlib','./mylib.v')                         "]
     }
 
     cfg['libext'] = {
@@ -1430,12 +1466,15 @@ def schema_rtl(cfg):
         'type' : ['string'],
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Verilog Module Search File Extension',
-        'help' : ["Specify the file extensions that should be used for     ",
-                  "finding modules. For example, if -y is specified as     ",
-                  "/home/$USER/mylib and '.v' is specified as libext       ",
-                  "then all the files /home/$USER/mylib/*.v will be added  ",
-                  "to the module search                                    "]
+        'short_help' : 'Verilog Module Search File Extensions',
+        'help' : ["Specifes the file extensions that should be used for      ",
+                  "finding modules. For example, if -y is specified as ./lib ",
+                  "and '.v' is specified as libext then the files ./lib/*.v  ",
+                  "will be searched for module matches.                      ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: +libext+sv                                           ",
+                  "api: chip.add('vlib','sv')                                "]
     }
 
     cfg['cmdfile'] = {
@@ -1446,9 +1485,13 @@ def schema_rtl(cfg):
         'defvalue' : [],
         'hash'   : [],
         'short_help' : 'Verilog Command Line Options File',
-        'help' : ["Read the specified file, and act as if all text inside  ",
-                  "it was specified as command line parameters. Supported  ",
-                  "by most simulators including Icarus and Verilator       "]
+        'help' : ["Read the specified file, and act as if all text inside    ",
+                  "it was specified as command line parameters. Supported    ",
+                  "by most verilog simulators including Icarus and Verilator ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -f readscript.cmd                                    ",
+                  "api: chip.set('cmdfile','readscript.cmd')                 "]
     }
 
     return cfg
@@ -1466,9 +1509,12 @@ def schema_floorplan(cfg):
         'requirement' : 'asic',
         'defvalue' : [],
         'short_help' : 'Design Metal Stackup',
-        'help' : ["Specifies the target stackup to use in the design. The  ",
-                  "name must match a value defined in the pdk_stackup      ",
-                  "exactly.                                                "]
+        'help' : ["Specifies the target stackup to use in the design. The    ",
+                  "name must match a value defined in the pdk_stackup list.  ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -stackup '2MA4MB2MC'                                 ",
+                  "api: chip.set('stackup', '2MA4MB2MC')                     "]
     }
     
     # 1. Automatic floorplanning
@@ -1479,11 +1525,15 @@ def schema_floorplan(cfg):
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Design Target Core Density',
-        'help' : ["Provides a target density based on the total design cell",
-                  "area reported after synthesis. This number is used when ",
-                  "no die size or floorplan is supplied. Any number between ",
-                  "1 and 100 is legal, but values above 50 may fail due to ",
-                  "area/congestion issues during apr.                      "]
+        'help' : ["Provides a target density based on the total design cell  ",
+                  "area reported after synthesis. This number is used when   ",
+                  "no die size or floorplan is supplied. Any number between  ",
+                  "1 and 100 is legal, but values above 50 may fail due to   ",
+                  "area/congestion issues during apr.                        ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -density 30                                          ",
+                  "api: chip.set('density', '30')                            "]
     }
 
     cfg['coremargin'] = {
@@ -1493,10 +1543,14 @@ def schema_floorplan(cfg):
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Design Place and Route Core Margin',        
-        'help' : ["Sets the halo/margin between the apr core cell area to  ",
+        'help' : ["Sets the halo/margin between the apr core cell area to   ",
                   "use for automated floorplanning setup. The value is      ",
-                  "specified in microns and is only used when no diesize or",
-                  "floorplan is supplied                                   "]
+                  "specified in microns and is only used when no diesize or ",
+                  "floorplan is supplied.                                   ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -coremargin 1                                       ",
+                  "api: chip.set('coremargin', '1')                         "]
     }
 
     cfg['aspectratio'] = {
@@ -1514,8 +1568,7 @@ def schema_floorplan(cfg):
                   "                                                         ",
                   "Examples:                                                ",
                   "cli: -aspectratio 2.0                                    ",
-                  "set:  chip.set('aspectratio', '2.0')                     ",
-                  "dict: cfg['aspectratio'] = ['2.0']                       "]
+                  "set:  chip.set('aspectratio', '2.0')                     "]
     }
 
     # 2. Spec driven floorplanning    
@@ -1526,12 +1579,16 @@ def schema_floorplan(cfg):
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Target Die Size',
-        'help' : ["Provides the outer boundary of the physical design. The ",
-                  "number is provided as a tuple (x0 y0 x1 y1), where x0,y0",
-                  "species the lower left corner of the block and x1,y1    ",
-                  "specifies the upper right corner of. Only rectangular   ",
-                  "blocks are supported with the diesize parameter. All    ",
-                  "values are specified in microns.                        "]
+        'help' : ["Provides the outer boundary of the physical design. The  ",
+                  "number is provided as a tuple (x0 y0 x1 y1), where x0, y0",
+                  "species the lower left corner of the block and x1, y1    ",
+                  "specifies the upper right corner. Only rectangular       ",
+                  "blocks are supported with the diesize parameter. All     ",
+                  "values are specified in microns.                         ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -diesize '0 0 100 100'                              ",
+                  "set:  chip.set('diesize', '0 0 100 100')                 "]
     }
 
     cfg['coresize'] = {
@@ -1541,12 +1598,16 @@ def schema_floorplan(cfg):
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Target Core Size',
-        'help' : ["Provides the core cell boundary for place and route.The ",
+        'help' : ["Provides the core cell boundary for place and route.The  ",
                   "number is provided as a tuple (x0 y0 x1 y1), where x0,y0 ",
-                  "species the lower left corner of the block and x1,y1    ",
-                  "specifies the upper right corner of. Only rectangular   ",
-                  "blocks are supported with the diesize parameter. All    ",
-                  "values are specified in microns.                        "]
+                  "species the lower left corner of the block and x1,y1     ",
+                  "specifies the upper right corner of. Only rectangular    ",
+                  "blocks are supported with the diesize parameter. All     ",
+                  "values are specified in microns.                         ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -coresize '0 0 90 90'                               ",
+                  "set:  chip.set('coresize', '0 0 90 90')                  "]
     }
     
     # 3. Parameterized floorplanning
@@ -1559,10 +1620,12 @@ def schema_floorplan(cfg):
         'hash'   : [],
         'short_help' : 'Floorplanning Script',
         'help' : ["Provides a parameterized floorplan to be used during the ",
-                  "floorplan to create a fixed DEF file for placement.     ",
-                  "Files with a .py suffix are processed by the sc, while  ",
-                  "all other files are passed through to the floorplanning  ",
-                  "tool as is.                                             "]
+                  "floorplan stage of compilation to generate a fixed DEF   ",
+                  "ready for use by the place stage.                        ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -floorplan 'myplan.py'                              ",
+                  "set:  chip.add('floorplan', 'myplan.py')                 "]
     }
     
     # #4. Hard coded DEF
@@ -1574,10 +1637,13 @@ def schema_floorplan(cfg):
         'defvalue' : [],
         'hash'   : [],
         'short_help' : 'DEF Floorplan',
-        'help' : ["Provides a hard coded DEF file that takes the place of  ",
-                  "the floorplanning stage. The DEF file should be complete",
-                  "and have all the features needed to enable cell         ",
-                  "placement"]
+        'help' : ["Provides a hard coded DEF file to be used during the     ",
+                  "place stage. The DEF file should be complete and have all",
+                  "the features needed to enable cell placement             ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -def 'myplan.def'                                   ",
+                  "set:  chip.add('def', 'myplan.def')                      "]
     }
     
     return cfg
