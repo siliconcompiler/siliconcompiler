@@ -37,7 +37,8 @@ def cmdline():
 
     sc_description = '\n'.join([
     "-----------------------------------------------------------------------",
-    "Silicon Compiler Collection (SC)                                       ",       "                                                                      ",
+    "Silicon Compiler Collection (SC)                                       ",
+    "                                                                       ",
     "The SC architecture describes the command line and API arguments that  ",
     "form the basis of a foundry and eda agnostic silicon compilation flow  ",
     "Short switch arguments are specified as <type>, where type can be      ",
