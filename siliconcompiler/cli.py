@@ -34,11 +34,32 @@ def cmdline():
     os.environ["COLUMNS"] = '80'
 
     # Argument Parser
+
+    sc_description = '\n'.join([
+    "-----------------------------------------------------------------------",
+    "Silicon Compiler Collection (SC)                                       ",       "                                                                      ",
+    "The SC architecture describes the command line and API arguments that  ",
+    "form the basis of a foundry and eda agnostic silicon compilation flow  ",
+    "Short switch arguments are specified as <type>, where type can be      ",
+    "str, file, num, bool. Some switches have compelx inputs in which case  ",
+    "the argument type is specified as <> and tha description is found in   ",
+    "the switch help paragraph. Complete documentation can be found at in   ",
+    "user manual. A few examples are included here to demonstrate simple use",
+    "cases.                                                                 ",
+    "                                                                       ",
+    "Examples:                                                              ",
+    "$ sc 'hello_world.v' -target freepdk45'                                ",
+    "$ sc 'my_riscv_cpu.v' -target asap7 -design my_riscv_cpu               ",
+    "$ sc 'my_tpu.v' -cfgfile my_tpu_setup.json                             ",
+    "                                                                       ",  
+    "-----------------------------------------------------------------------"])
+
+    
     
     parser = argparse.ArgumentParser(prog='sc',
                                      formatter_class =lambda prog: RawTextHelpFormatter(prog, indent_increment=1, max_help_position=23),
                                      prefix_chars='-+',
-                                     description="Silicon Compiler Collection (SC)")
+                                     description=sc_description)
 
     
     #formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=50),
