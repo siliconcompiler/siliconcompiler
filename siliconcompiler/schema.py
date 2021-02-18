@@ -61,8 +61,7 @@ def schema_fpga(cfg):
                   "                                                          ",
                   "Examples:                                                 ",
                   "cli: -fpga_xml myfpga.xml                                 ",
-                  "api:  chip.set('fpga_xml', 'myfpga.xml')                  ",
-                  "dict: cfg['fpga_xml'] = ['myfpga.xml']                    "]
+                  "api:  chip.set('fpga_xml', 'myfpga.xml')                  "]
     }
 
     return cfg
@@ -90,8 +89,7 @@ def schema_pdk(cfg):
                   "                                                          ",
                   "Examples:                                                 ",
                   "cli: -pdk_foundry virtual                                 ",
-                  "api:  chip.set('pdk_foundry', 'virtual')                  ",
-                  "dict: cfg['pdk_foundry'] = ['virtual']                    "]
+                  "api:  chip.set('pdk_foundry', 'virtual')                  "]
     }
 
     cfg['pdk_process'] = {
@@ -109,8 +107,7 @@ def schema_pdk(cfg):
                   "                                                          ",
                   "Examples:                                                 ",
                   "cli: -pdk_process asap7                                   ",
-                  "api:  chip.set('pdk_process', 'asap7')                    ",
-                  "dict: cfg['pdk_process'] = ['asap7']                      "]
+                  "api:  chip.set('pdk_process', 'asap7')                    "]
     }
 
     cfg['pdk_node'] = {
@@ -129,8 +126,7 @@ def schema_pdk(cfg):
                   "                                                          ",
                   "Examples:                                                 ",
                   "cli: -pdk_node 130                                        ",
-                  "api:  chip.set('pdk_node', '130')                         ",
-                  "dict: cfg['pdk_node'] = ['130']                           "]
+                  "api:  chip.set('pdk_node', '130')                         "]
     }
 
     cfg['pdk_rev'] = {
@@ -147,8 +143,7 @@ def schema_pdk(cfg):
                   "                                                          ",
                   "Examples:                                                 ",
                   "cli: -pdk_rev 1.0                                         ",
-                  "api:  chip.set('pdk_rev', '1.0')                          ",
-                  "dict: cfg['pdk_rev'] = ['1.0']                            "]
+                  "api:  chip.set('pdk_rev', '1.0')                          "]
     }
 
     cfg['pdk_drm'] = {
@@ -167,8 +162,7 @@ def schema_pdk(cfg):
                   "                                                          ",
                   "Examples:                                                 ",
                   "cli: -pdk_drm asap7_drm.pdf                               ",
-                  "api:  chip.set('pdk_drm', 'asap7_drm.pdf')                ",
-                  "dict: cfg['pdk_drm'] = ['asap7_drm.pdf']                  "]
+                  "api:  chip.set('pdk_drm', 'asap7_drm.pdf')                "]
     }
     
     cfg['pdk_doc'] = {
@@ -187,8 +181,7 @@ def schema_pdk(cfg):
                   "                                                          ",
                   "Examples:                                                 ",
                   "cli: -pdk_doc asap7_userguide.pdf                         ",
-                  "api:  chip.set('pdk_doc', 'asap7_userguide.pdf')          ",
-                  "dict: cfg['pdk_doc'] = ['asap7_userguide.pdf']            "]
+                  "api:  chip.set('pdk_doc', 'asap7_userguide.pdf')          "]
     }
 
  
@@ -214,8 +207,7 @@ def schema_pdk(cfg):
                   "                                                          ",
                   "Examples:                                                 ",
                   "cli: -pdk_stackup 2MA4MB2MC                               ",
-                  "api:  chip.set('pdk_stackup', '2MA4MB2MC')                ",
-                  "dict: cfg['pdk_stackup'] = ['2MA4MB2MC']                  "]
+                  "api:  chip.set('pdk_stackup', '2MA4MB2MC')                "]
     }
 
     cfg['pdk_devmodel'] = {}
@@ -239,9 +231,7 @@ def schema_pdk(cfg):
                   "Examples:                                                 ",
                   "cli: -pdk_devmodel '2MA4MB2MC spice xyce asap7.sp'        ",
                   "api: chip.set('pdk_devmodel','2MA4MB2MC', 'spice', 'xyce',",
-                  "              'asap7.sp')                                 ",
-                  "dict: cfg['pdk_devmodel']['2MA4MB2MC']['spice']['xyce'] = ",
-                  "      ['asap7.sp']                                        "]
+                  "              'asap7.sp')                                 "]
     }
 
     cfg['pdk_pexmodel'] = {}
@@ -265,9 +255,7 @@ def schema_pdk(cfg):
                   "Examples:                                                 ",
                   "cli: -pdk_pexmodel '2MA4MB2MC max fastcap wire.mod'       ",
                   "api: chip.set('pdk_pexmodel','2MA4MB2MC','max','fastcap', ",
-                  "              'wire.mod')                                 ",
-                  "dict: cfg['pdk_pexmodel']['2MA4MB2MC']['max']['fastcap']= ",
-                  "      ['wire.mod']                                        "]
+                  "              'wire.mod')                                 "]
     }
 
     cfg['pdk_layermap'] = {}
@@ -296,9 +284,7 @@ def schema_pdk(cfg):
                   "Examples:                                                 ",
                   "cli: -pdk_layermap '2MA4MB2MC libtool gds asap7.map'      ",
                   "api: chip.set('pdk_layermap','2MA4MB2MC','libtool','gds', ",
-                  "              'asap7.map')                                ",
-                  "dict: cfg['pdk_layermap']['2MA4MB2MC']['libtool']['gds']= ",
-                  "      ['asap7.map']                                       "]
+                  "              'asap7.map')                                "]
     }
 
     cfg['pdk_display'] = {}
@@ -320,9 +306,7 @@ def schema_pdk(cfg):
                   "Examples:                                                 ",
                   "cli: -pdk_display '2MA4MB2MC klayout display.cfg'         ",
                   "api: chip.set('pdk_display','2MA4MB2MC','klayout',        ",
-                  "              'display.cfg')                              ",
-                  "dict: cfg['pdk_display']['2MA4MB2MC']['klayout'] =        ",
-                  "      ['display.cfg']                                     "]
+                  "              'display.cfg')                              "]
     }
 
     cfg['pdk_lib'] = {}
@@ -342,9 +326,7 @@ def schema_pdk(cfg):
                   "Examples:                                                 ",
                   "cli: -pdk_lib '2MA4MB2MC oa /disk/asap7/oa/devlib'        ",
                   "api: chip.set('pdk_lib','2MA4MB2MC','oa',                 ",
-                  "              '/disk/asap7/oa/devlib')                    ",
-                  "dict: cfg['pdk_lib']['2MA4MB2MC']['oa'] =                 ",
-                  "      ['/disk/asap7/oa/devlib']                           "]
+                  "              '/disk/asap7/oa/devlib')                    "]
     }
     
     cfg['pdk_aprtech'] = {}
@@ -370,9 +352,7 @@ def schema_pdk(cfg):
                   "Examples:                                                 ",
                   "cli: -pdk_aprtech '2MA4MB2MC 12t openroad asap_tech.lef'  ",
                   "api: chip.set('pdk_aprtech','2MA4MB2MC','12t','lef',      ",
-                  "              'asap_tech.lef')                            ",
-                  "dict: cfg['pdk_aprtech']['2MA4MB2MC']['12t']['lef']=      ",
-                  "      ['asap_tech.lef']                                   "]
+                  "              'asap_tech.lef')                            "]
     }
 
        
@@ -397,8 +377,7 @@ def schema_pdk(cfg):
                   "                                                          ",
                   "Examples:                                                 ",
                   "cli: -pdk_aprlayer 'm1 X 0.5 1.0'                         ",
-                  "api: chip.set('pdk_aprlayer','m1 X 0.5 1.0')              ",
-                  "dict: cfg['pdk_aprlayer'] = ['m1 X 0.5 1.0']              "]
+                  "api: chip.set('pdk_aprlayer','m1 X 0.5 1.0')              "]
     }
 
     cfg['pdk_tapmax'] = {       
@@ -415,8 +394,7 @@ def schema_pdk(cfg):
                   "                                                          ",
                   "Examples:                                                 ",
                   "cli: -pdk_tapmax 100                                      ",
-                  "api: chip.set('pdk_tapmax','100')                         ",
-                  "dict: cfg['pdk_tapmax'] = ['100']                         "]
+                  "api: chip.set('pdk_tapmax','100')                         "]
     }
 
     cfg['pdk_tapoffset'] = {
@@ -433,8 +411,7 @@ def schema_pdk(cfg):
                   "                                                          ",
                   "Examples:                                                 ",
                   "cli: -pdk_tapoffset 0                                     ",
-                  "api: chip.set('pdk_tapoffset','0')                        ",
-                  "dict: cfg['pdk_tapoffset'] = ['0']                        "]
+                  "api: chip.set('pdk_tapoffset','0')                        "]
     }
 
     return cfg
@@ -463,8 +440,7 @@ def schema_libs(cfg, group):
                   "                                                          ",
                   "Examples:                                                 ",
                   "cli: -"+group+"_rev 'mylib 1.0'                           ",
-                  "api: chip.set('"+group+"','mylib','rev','1.0')            ",
-                  "dict: cfg['"+group+"']['mylib']['rev'] = ['1.0']          "]
+                  "api: chip.set('"+group+"','mylib','rev','1.0')            "]
     }
 
     cfg[group]['default']['doc'] = {
@@ -482,8 +458,7 @@ def schema_libs(cfg, group):
                   "                                                          ",
                   "Examples:                                                 ",
                   "cli: -"+group+"_doc 'mylib mylib_guide.pdf'               ",
-                  "api: chip.set('"+group+"','mylib','doc','mylib_guide.pdf')",
-                  "dict: cfg['"+group+"']['mylib']['doc']=['mylib_guide.pdf']"]
+                  "api: chip.set('"+group+"','mylib','doc','mylib_guide.pdf')"]
     }
 
     cfg[group]['default']['ds'] = {
@@ -502,8 +477,7 @@ def schema_libs(cfg, group):
                   "                                                          ",
                   "Examples:                                                 ",
                   "cli: -"+group+"_ds 'mylib mylib_ds.pdf'                   ",
-                  "api: chip.set('"+group+"','mylib','ds','mylib_ds.pdf')    ",
-                  "dict: cfg['"+group+"']['mylib']['ds'] = ['mylib_ds.pdf']  "]
+                  "api: chip.set('"+group+"','mylib','ds','mylib_ds.pdf')    "]
     }
 
     cfg[group]['default']['libtype'] = {
@@ -521,8 +495,7 @@ def schema_libs(cfg, group):
                   "                                                          ",
                   "Examples:                                                 ",
                   "cli: -"+group+"_libtype 'mylib 12t'                       ",
-                  "api: chip.set('"+group+"','mylib','libtype','12t')        ",
-                  "dict: cfg['"+group+"']['mylib']['libtype'] = ['12t']      "]
+                  "api: chip.set('"+group+"','mylib','libtype','12t')        "]
     }
 
     cfg[group]['default']['size'] = {
@@ -541,8 +514,7 @@ def schema_libs(cfg, group):
                   "                                                          ",
                   "Examples:                                                 ",
                   "cli: -"+group+"_size 'mylib 0.1 0.5'                      ",
-                  "api: chip.set('"+group+"','mylib','size','0.1 0.5')       ",
-                  "dict: cfg['"+group+"']['mylib']['size'] = ['0.1 0.5']     "]
+                  "api: chip.set('"+group+"','mylib','size','0.1 0.5')       "]
     }
     
     
@@ -567,9 +539,7 @@ def schema_libs(cfg, group):
                   "Examples:                                                 ",
                   "cli: -"+group+"_nldm 'mylib ttt lib mylib.lib'            ",
                   "api: chip.set('"+group+"','mylib','nldm','ttt','lib',     ", 
-                  "              'mylib.lib')                                ",
-                  "dict: cfg['"+group+"']['mylib']['nldm']['ttt']['lib'] =   ",
-                  "         ['mylib.lib']                                    "]
+                  "              'mylib.lib')                                "]
     }
 
     
@@ -596,9 +566,7 @@ def schema_libs(cfg, group):
                   "Examples:                                                 ",
                   "cli: -"+group+"_ccs 'mylib ttt lib mylib_ccs.lib'         ",
                   "api: chip.set('"+group+"','mylib','ccs','ttt','lib',      ", 
-                  "              'mylib_ccs.lib')                            ",
-                  "dict: cfg['"+group+"']['mylib']['ccs']['ttt']['lib'] =    ",
-                  "         ['mylib_ccs.lib']                                "]
+                  "              'mylib_ccs.lib')                            "]
     }
 
     cfg[group]['default']['lef'] = {
@@ -615,8 +583,7 @@ def schema_libs(cfg, group):
                   "                                                          ",
                   "Examples:                                                 ",
                   "cli: -"+group+"_lef 'mylib mylib.lef'                     ",
-                  "api: chip.set('"+group+"','mylib','lef','mylib.lef'       ",
-                  "dict: cfg['"+group+"']['mylib']['lef'] = ['mylib.lef']    "]
+                  "api: chip.set('"+group+"','mylib','lef','mylib.lef'       "]
     }
   
     cfg[group]['default']['gds'] = {
@@ -637,8 +604,7 @@ def schema_libs(cfg, group):
                   "                                                          ",
                   "Examples:                                                 ",
                   "cli: -"+group+"_gds 'mylib mylib.gds'                     ",
-                  "api: chip.set('"+group+"','mylib','gds','mylib.gds'       ",
-                  "dict: cfg['"+group+"']['mylib']['gds'] = ['mylib.gds']    "]
+                  "api: chip.set('"+group+"','mylib','gds','mylib.gds'       "]
     } 
 
     cfg[group]['default']['cdl'] = {
@@ -658,8 +624,7 @@ def schema_libs(cfg, group):
                   "                                                          ",
                   "Examples:                                                 ",
                   "cli: -"+group+"_cdl 'mylib mylib.cdl'                     ",
-                  "api: chip.set('"+group+"','mylib','cdl','mylib.cdl'       ",
-                  "dict: cfg['"+group+"']['mylib']['cdl'] = ['mylib.cdl']    "]
+                  "api: chip.set('"+group+"','mylib','cdl','mylib.cdl'       "]
     }
 
     cfg[group]['default']['spice'] = {
@@ -675,8 +640,7 @@ def schema_libs(cfg, group):
                   "                                                          ",
                   "Examples:                                                 ",
                   "cli: -"+group+"_spice 'mylib mylib.sp'                    ",
-                  "api: chip.set('"+group+"','mylib','spice','mylib.sp'      ",
-                  "dict: cfg['"+group+"']['mylib']['spice'] = ['mylib.sp']   "]
+                  "api: chip.set('"+group+"','mylib','spice','mylib.sp'      "]
     }
 
     cfg[group]['default']['hdl'] = {
@@ -692,8 +656,7 @@ def schema_libs(cfg, group):
                   "                                                          ",
                   "Examples:                                                 ",
                   "cli: -"+group+"_hdl 'mylib mylib.v'                       ",
-                  "api: chip.set('"+group+"','mylib','hdl','mylib.v'         ",
-                  "dict: cfg['"+group+"']['mylib']['hdl'] = ['mylib.v']      "]
+                  "api: chip.set('"+group+"','mylib','hdl','mylib.v'         "]
     }
 
     cfg[group]['default']['atpg'] = {
@@ -709,8 +672,7 @@ def schema_libs(cfg, group):
                   "                                                          ",
                   "Examples:                                                 ",
                   "cli: -"+group+"_atpg 'mylib mylib.atpg'                   ",
-                  "api: chip.set('"+group+"','mylib','atpg','mylib.atpg')    ",
-                  "dict: cfg['"+group+"']['mylib']['atpg'] = ['mylib.atpg']  "]
+                  "api: chip.set('"+group+"','mylib','atpg','mylib.atpg')    "]
     }
 
     cfg[group]['default']['rails'] = {
@@ -726,9 +688,7 @@ def schema_libs(cfg, group):
                   "                                                          ",
                   "Examples:                                                 ",
                   "cli: -"+group+"_rails 'mylib m1'                          ",
-                  "api: chip.set('"+group+"','mylib','rails','m1')           ",
-                  "dict: cfg['"+group+"']['mylib']['rails'] = ['m1']         "]
-                  
+                  "api: chip.set('"+group+"','mylib','rails','m1')           "]
     }
 
     cfg[group]['default']['vt'] = {
@@ -747,8 +707,7 @@ def schema_libs(cfg, group):
                   "                                                          ",
                   "Examples:                                                 ",
                   "cli: -"+group+"_vt 'mylib lvt'                            ",
-                  "api: chip.set('"+group+"','mylib','vt','lvt')             ",
-                  "dict: cfg['"+group+"']['mylib']['vt'] = ['lvt']           "]
+                  "api: chip.set('"+group+"','mylib','vt','lvt')             "]
     } 
 
     cfg[group]['default']['tag'] = {
@@ -768,8 +727,7 @@ def schema_libs(cfg, group):
                   "                                                         ",
                   "Examples:                                                ",
                   "cli: -"+group+"_tag 'mylib virtual'                      ",
-                  "api: chip.set('"+group+"','mylib','tag','virtual')       ",
-                  "dict: cfg['"+group+"']['mylib']['tag'] = ['virtual']     "]
+                  "api: chip.set('"+group+"','mylib','tag','virtual')       "]
     }
 
     cfg[group]['default']['driver'] = {
@@ -787,8 +745,7 @@ def schema_libs(cfg, group):
                   "                                                         ",
                   "Examples:                                                ",
                   "cli: -"+group+"_driver 'mylib BUFX1'                     ",
-                  "api: chip.set('"+group+"','mylib','driver','BUFX1')      ",
-                  "dict: cfg['"+group+"']['mylib']['driver'] = ['BUFX1']    "]
+                  "api: chip.set('"+group+"','mylib','driver','BUFX1')      "]
     }
 
     cfg[group]['default']['site'] = {
@@ -804,8 +761,7 @@ def schema_libs(cfg, group):
                   "                                                         ",
                   "Examples:                                                ",
                   "cli: -"+group+"_site 'mylib mylibsc7p5'                  ",
-                  "api: chip.set('"+group+"','mylib','site','mylibsc7p5')   ",
-                  "dict: cfg['"+group+"']['mylib']['site']=['mylibsc7p5']   "]
+                  "api: chip.set('"+group+"','mylib','site','mylibsc7p5')   "]
     }
     
     cfg[group]['default']['cells'] = {}
@@ -824,9 +780,7 @@ def schema_libs(cfg, group):
                   "Examples:                                                 ",
                   "cli: -"+group+"_cells 'mylib dontuse *eco*'               ",
                   "api: chip.set('"+group+"','mylib','cells','dontuse',      ",
-                  "              '*eco*')                                    ",
-                  "dict: cfg['"+group+"']['mylib']['cells']['dontuse'] =     ", 
-                  "      ['*eco*']                                           "]
+                  "              '*eco*')                                    "]
     }
 
     cfg[group]['default']['setup'] = {}
@@ -844,9 +798,7 @@ def schema_libs(cfg, group):
                   "Examples:                                                 ",
                   "cli: -"+group+"_setup 'mylib openroad mylib.tcl'          ",
                   "api: chip.set('"+group+"','mylib','setup','openroad',     ",
-                  "              'mylib.tcl')                                ",
-                  "dict: cfg['"+group+"']['mylib']['setup']['openroad'] =    ",
-                  "         ['mylib.tcl']                                    "]
+                  "              'mylib.tcl')                                "]
     } 
     
     cfg[group]['default']['laydb'] = {}
@@ -865,9 +817,7 @@ def schema_libs(cfg, group):
                   "Examples:                                                 ",
                   "cli: -"+group+"_laydb 'mylib oa /disk/myliblib'           ",
                   "api: chip.set('"+group+"','mylib','laydb','oa',           ",
-                  "              '/disk/myliblib')                           ",
-                  "dict: cfg['"+group+"']['mylib']['laydb']['oa'] =          ",
-                  "         ['/disk/myliblib']                               "]
+                  "              '/disk/myliblib')                           "]
     }
     
     return cfg
@@ -892,10 +842,19 @@ def schema_eda(cfg):
                       'signoff',
                       'export'],
         'short_help' : 'List of Compilation Stages',
-        'help' : ["A complete list of all stages included in fully automated",
-                  "RTL to GDSII compilation. Compilation flow is controlled ",
-                  "with the -start, -stop, -cont switches and by adding     ",
-                  "values to the list."]
+        'help' : ["A complete list of all stages included in fully automated ",
+                  "RTL to GDSII compilation. Compilation flow is controlled  ",
+                  "with the -start, -stop, -cont switches and by adding      ",
+                  "values to the list. The list must be ordered to enable    ",
+                  "default automated compilation from the first entry to the ",
+                  "last entry in the list. Inserting stages in the middle of ",
+                  "the list is only possible by overwriting the whole list.  ",
+                  "The example below demonstrates adding a tapeout stage     ",
+                  "at the end of the compile_stages list.                    ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -compile_stages 'tapeout'                            ",
+                  "api:  chip.add('compile_stages', 'tapeout')               "]
     }
 
     cfg['dv_stages'] = {
@@ -912,9 +871,18 @@ def schema_eda(cfg):
                       'erc',                    
                       'lvs'],
         'short_help' : 'List of Verification Stages',
-        'help' : ["A complete list of all verification stages.              ",
-                  "The verification flow is controlled with the -start,     ",
-                  "-stop, -cont switches and by expanding the list.         "]
+        'help' : ["A complete list of all verification stages. Verification  ",
+                  "flow is controlled with the -start, -stop, -cont switches ",
+                  "and by expanding the list. The list must be ordered to    ",
+                  "enable default automated verification from the first entry",
+                  "to the last entry in the list. Inserting stages in the    ",
+                  "middle of the list is only possible by overwriting the    ",
+                  "whole list. The example below demonstrates adding an      ",
+                  "archive stage at the end of the dv_stages list            ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -dv_stages 'archive'                                 ",
+                  "api:  chip.add('dv_stages', 'archive')                    "]
     }
 
     cfg['view_stages'] = {
@@ -926,21 +894,27 @@ def schema_eda(cfg):
                       'defview',
                       'gdsview'],
         'short_help' : 'List of Interactive Viewer Stages',
-        'help' : ["A complete list of all interactive viewer stages.        ",
-                  "The verification flow is controlled with the -start,     ",
-                  "-stop, -cont switches and by expanding the list.         "]
+        'help' : ["A complete list of all interactive viewer stages. The     ",
+                  "viewer stages are not meant to be executed as a pipeline, ",
+                  "but serves as a central record for documenting tools and  ",
+                  "options for display tools.                                ",
+                  "                                                          ",
+                  "Examples:                                                 ",
+                  "cli: -view_stages 'scopeview'                             ",
+                  "api:  chip.add('view_stages', 'scopeview')                "]
     }
 
     #Concatenated list
     all_stages = (cfg['compile_stages']['defvalue'] +
-                  cfg['view_stages']['defvalue'] +
-                  cfg['dv_stages']['defvalue'])
+                  cfg['dv_stages']['defvalue'] +
+                  cfg['view_stages']['defvalue'])
     
     cfg['tool'] = {}
    
     # Defaults and config for all stages
     for stage in all_stages:        
         cfg['tool'][stage] = {}
+
         # Exe
         cfg['tool'][stage]['exe'] = {}
         cfg['tool'][stage]['exe']['switch'] = '-tool_exe'
@@ -948,11 +922,14 @@ def schema_eda(cfg):
         cfg['tool'][stage]['exe']['type'] = ['string']
         cfg['tool'][stage]['exe']['requirement'] = ['all']
         cfg['tool'][stage]['exe']['defvalue'] = []
-        cfg['tool'][stage]['exe']['short_help'] = 'Executable'
+        cfg['tool'][stage]['exe']['short_help'] = 'Executable Name'
         cfg['tool'][stage]['exe']['help'] = [
-            "The name of the executable. Can be the full env path to  ",
-            "the executable or the simple name if the search path has  ",
-            "already been set up in the working environment.          "]
+            "The name of the exuctable tool or the full path to the   ",
+            "executable specified on a per stage basis.               ",
+            "                                                         ",
+            "Examples:                                                ",
+            "cli: -tool_exe 'place openroad'                          ",
+            "api:  chip.set('tool','place','exe','openroad')          "]
 
         #opt  
         cfg['tool'][stage]['opt'] = {}
@@ -965,8 +942,12 @@ def schema_eda(cfg):
         cfg['tool'][stage]['opt']['help'] = [
             "A list of command line options for the executable. For   ",
             "multiple argument options, enter each argument and value ",
-            "as one list entry. Foe example, the argument pair        ",
-            "-c 5 would be entered as one string \'-c 5\'             "]
+            "as a one list entry, specified on a per stage basis.     ",
+            "Command line values must be enclosed in quotes.          ",
+            "                                                         ",
+            "Examples:                                                ",
+            "cli: -tool_opt 'place -no_init'                          ",
+            "api:  chip.set('tool','place','opt','-no_init')          "]
 
         #refdir
         cfg['tool'][stage]['refdir'] = {}        
@@ -978,8 +959,12 @@ def schema_eda(cfg):
         cfg['tool'][stage]['refdir']['defvalue'] = []
         cfg['tool'][stage]['refdir']['short_help'] = 'Reference Directory'
         cfg['tool'][stage]['refdir']['help'] = [
-            "The directory containing the reference scripts used in   ",
-            "by the stage executable.                                 "]
+            "A path to a directory containing compilation scripts     ",
+            "used by the executable specified on a per stage basis.   ",
+            "                                                         ",
+            "Examples:                                                ",
+                  "cli: -tool_refdir 'place ./myrefdir'               ",
+                  "api: chip.set('tool','place','refdir','./myrefdir')"]
 
         #script
         cfg['tool'][stage]['script'] = {}        
@@ -989,10 +974,15 @@ def schema_eda(cfg):
         cfg['tool'][stage]['script']['requirement'] = 'optional'
         cfg['tool'][stage]['script']['hash'] = []
         cfg['tool'][stage]['script']['defvalue'] = []
-        cfg['tool'][stage]['script']['short_help'] = 'Root Reference Script'
+        cfg['tool'][stage]['script']['short_help'] = 'Entry point Script'
         cfg['tool'][stage]['script']['help'] = [
-            "The top level reference script to called by the stage    ",
-            "executable                                               "]
+            "Path to the entry point compilation script called by the ",
+            "executable specified on a per stage basis.               ",
+            "                                                         ",
+            "Examples:                                                ",
+            "cli: -tool_script 'place ./myrefdir/place.tcl'           ",
+            "api: chip.set('tool','place','refdir',                   ",
+            "              './myrefdir/place.tcl')                    "]
 
         #copy
         cfg['tool'][stage]['copy'] = {}
@@ -1003,9 +993,13 @@ def schema_eda(cfg):
         cfg['tool'][stage]['copy']['defvalue'] = []
         cfg['tool'][stage]['copy']['short_help'] = 'Copy Local Option'
         cfg['tool'][stage]['copy']['help'] = [
-            "Specifies that the reference script directory should be   ",
-            "copied and run from the local run directory. This option ",
-            "is set automatically set when the -remote option is set  "]
+            "Specifies that the reference script directory should be  ",
+            "copied and run from the local run directory. The option  ",
+            "specified on a per stage basis.                          ",
+            "                                                         ",
+            "Examples:                                                ",
+            "cli: -tool_copy 'place True'                             ",
+            "api: chip.set('tool','place','copy','True')              "]
 
         #format
         cfg['tool'][stage]['format'] = {}
@@ -1016,9 +1010,14 @@ def schema_eda(cfg):
         cfg['tool'][stage]['format']['defvalue'] = []
         cfg['tool'][stage]['format']['short_help'] = 'Script Format'
         cfg['tool'][stage]['format']['help'] = [
-            "Specifies that format of the configuration file for the   ",
+            "Specifies that format of the configuration file for the  ",
             "stage. Valid formats are tcl, yaml, and json. The format ",
-            "used is dictated by the executable for the stage.        "]
+            "used is dictated by the executable for the stage and     ",
+            "specified on a per stage basis.                          ",
+            "                                                         ",
+            "Examples:                                                ",
+            "cli: -tool_format 'place tcl'                            ",
+            "api: chip.set('tool','place','format','tcl')             "]
         
         #jobid
         cfg['tool'][stage]['jobid'] = {}
@@ -1030,13 +1029,18 @@ def schema_eda(cfg):
         cfg['tool'][stage]['jobid']['short_help'] = 'Job Index'
         cfg['tool'][stage]['jobid']['help'] = [
             "A dynamic variable that keeeps track of results to pass  ",
-            "forward to the next stage of the implementation pipeline  ",
+            "forward to the next stage of the implementation pipeline ",
             "in cases where multiple jobs are run for one stage and a ",
-            "programmatic selection if made to choose the best result, ",
-            "the variable is use to point to a job which may or may   ",
-            "not be the last job launched"]
+            "programmatic selection if made to choose the best result ",
+            "the variable can be used to point to a job which may not ",
+            "be the last job launched. Job IDs are tracked on a per   ",
+            "stage basis.                                             ",
+            "                                                         ",
+            "Examples:                                                ",
+            "cli: -tool_jobid 'place 5'                               ",
+            "api: chip.set('tool','place','jobid','5')                "]
         
-        #np
+        #parallelism
         cfg['tool'][stage]['np'] = {}
         cfg['tool'][stage]['np']['switch'] = '-tool_np'
         cfg['tool'][stage]['np']['switch_args'] = '<>'
@@ -1045,11 +1049,17 @@ def schema_eda(cfg):
         cfg['tool'][stage]['np']['defvalue'] = []
         cfg['tool'][stage]['np']['short_help'] = 'Thread Parallelism'
         cfg['tool'][stage]['np']['help'] = [
-            "The thread parallelism to use on a per stage basis.      ",
-            "This information is intended for the EDA tools to use to ",
-            "parallelize workloads on a multi-core single node CPU.   ",
-            "Job parallelization across multiple machines need to be  ",
-            "explicitly specified at the program level.               "]
+            "Specifies the level of CPU thread parallelism to enable  ",
+            "on a per stage basis. This information is intended for   ",
+            "the EDA tools to use to parallelize workloads on a       ",
+            "multi-core single node CPU. Job parallelization across   ",
+            "multiple machines can be explicitly specified using      ",
+            "custom compilation scripts.                              ",
+            "                                                         ",
+            "Examples:                                                ",
+            "cli: -tool_np 'drc 64'                                   ",
+            "api: chip.set('tool','drc','np','64')                    "]
+
         
         #keymap
         cfg['tool'][stage]['keymap'] = {}
@@ -1060,14 +1070,14 @@ def schema_eda(cfg):
         cfg['tool'][stage]['keymap']['defvalue'] = []
         cfg['tool'][stage]['keymap']['short_help'] = 'Script Keymap'
         cfg['tool'][stage]['keymap']['help'] = [
-            "The keymap is used to performs a key to key translation  ",
-            "within the writecfg step before a configuration is written",
-            "out to a json, tcl, or yaml file to be used to drive the ",
-            "stage execution flow. In cases where there is a one to   ",
-            "one correlation between the features of the sc_cfg and   ",
-            "the tool configuration, this keymap can be used to avoid ",
-            "the need for stub scripts that translate the sc_cfg to   ",
-            "the native eda tool reference flow scripts               "]
+            "The keymap is used to translate the schema keys when     ",
+            "writing out the configuration to a TCL, JSON, or YAML    ",
+            "file to be loaded by an EDA tool. Keymaps are specific to",
+            "each EDA tool and specified on a per stage basis.        ",
+            "                                                         ",
+            "Examples:                                                ",
+            "cli: -tool_keymap 'place design design_name'             ",
+            "api: chip.set('tool','place','design', 'design_name')    "]
         
         #vendor
         cfg['tool'][stage]['vendor'] = {}
@@ -1079,9 +1089,13 @@ def schema_eda(cfg):
         cfg['tool'][stage]['vendor']['short_help'] = 'Tool Vendor'
         cfg['tool'][stage]['vendor']['help'] = [
             "The vendor argument is used for selecting eda specific   ",
-            "technology setup variables from the PDK and libraries   ",
-            "which generally support multiple vendors for each       ",
-            "implementation stage                                     "]
+            "technology setup variables from the PDK and libraries    ",
+            "which generally support multiple vendors for each        ",
+            "implementation stage                                     ",
+            "                                                         ",
+            "Examples:                                                ",
+            "cli: -tool_vendor 'place vendor openroad'                ",
+            "api: chip.set('tool','place','vendor', 'openroad')       "]
         
     return cfg
 
