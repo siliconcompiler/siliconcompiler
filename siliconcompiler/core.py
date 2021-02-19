@@ -295,6 +295,14 @@ class Chip:
             if 'value' in cfg[k]:
                 keystr = ' '.join(newkeys)
                 if (mode=='tcl'):
+                    #replace $VAR with env(VAR)
+                    for i, val in enumerate(cfg[k][field]):
+                        m = re.match('\$(\w+)(.*)', val)
+                        if m:
+                            cfg[k][field][i] = ('$env(' +
+                                                m.group(1) +
+                                                ')' +
+                                                m.group(2))
                     valstr = ' '.join(cfg[k][field])
                     outlst = [prefix,keystr,'[list ', valstr,']']
                     outstr = ' '.join(outlst)

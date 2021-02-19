@@ -966,7 +966,7 @@ def schema_eda(cfg):
                   "cli: -tool_refdir 'place ./myrefdir'               ",
                   "api: chip.set('tool','place','refdir','./myrefdir')"]
 
-        #script
+        #entry point script
         cfg['tool'][stage]['script'] = {}
         cfg['tool'][stage]['script']['switch'] = '-tool_script'
         cfg['tool'][stage]['script']['switch_args'] = '<>'

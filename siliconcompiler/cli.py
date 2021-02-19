@@ -227,7 +227,10 @@ def add_arg(cfg, parser, keys=None):
 def main():
 
     scriptdir = os.path.dirname(os.path.abspath(__file__))
-    root = re.sub('siliconcompiler/siliconcompiler','siliconcompiler', scriptdir)
+    reporoot = re.sub('siliconcompiler/siliconcompiler',
+                      'siliconcompiler',
+                      scriptdir)
+    os.environ["SC_ROOT"] = reporoot
     
     #Command line inputs, read once
     cmdlinecfg = cmdline()
@@ -241,22 +244,22 @@ def main():
     mychip = sc.Chip(loglevel=loglevel)
 
     # Reading in user variables
-    mychip.readenv()
+    #mychip.readenv()
 
-    # Loading presetvalues from the command line
+    # Loading preset values from the command line
     if 'target' in  cmdlinecfg.keys():
         target = cmdlinecfg['target']['value'][-1]
         if target in ('freepdk45', 'asap7'):
             setup_verilator(mychip)
-            setup_yosys(mychip, root+'/eda/asic')
-            setup_openroad(mychip, root+'/eda/asic')
-            setup_klayout(mychip, root+'/eda/asic')            
+            setup_yosys(mychip, '$SC_ROOT/eda/asic')
+            setup_openroad(mychip, '$SC_ROOT/eda/asic')
+            setup_klayout(mychip, '$SC_ROOT/eda/asic')            
             if target == 'freepdk45': 
-                freepdk45_pdk(mychip, root+'/foundry/')
-                nangate45_lib(mychip, root+'/foundry/')
+                freepdk45_pdk(mychip, '$SC_ROOT/foundry/')
+                nangate45_lib(mychip, '$SC_ROOT/foundry/')
             elif target == 'asap7':
-                asap7_pdk(mychip, root+'/foundry/')
-                asap7_lib(mychip, root+'/foundry/')
+                asap7_pdk(mychip, '$SC_ROOT/foundry/')
+                asap7_lib(mychip, '$SC_ROOT/foundry/')
         else:
             self.logger.error('Target platform is not defined: %s', target)       
             sys.exit()    
