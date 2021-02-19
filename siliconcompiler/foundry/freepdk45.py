@@ -30,13 +30,10 @@ def freepdk45_pdk(chip, root):
    
     # DRC
     chip.add('tool','drc','script',pdkdir+'runsets/klayout/freepdk45.lydrc')
-
     # DISPLAY
     chip.add('tool','gdsview','script',pdkdir+'setup/klayout/freepdk45.lyt')
-
     # hard coded target lib
     chip.add('stackup',chip.get('pdk_stackup')[0])
-
     # APR tech file
     chip.add('pdk_aprtech',stackup, libtype, vendor,
                pdkdir+'/apr/freepdk45.tech.lef')
@@ -72,7 +69,7 @@ def nangate45_lib(chip, root):
     process = 'freepdk45'
     libname = 'NangateOpenCellLibrary'
     libtype = '10t'
-    height = '1.4'
+    size = '0.19 1.4'
     rev = 'r1p0'
     corner = 'typical'
     objectives = ['setup']
@@ -83,53 +80,35 @@ def nangate45_lib(chip, root):
                        libname,
                        rev])
 
-
-    # hard coded target lib
-    chip.add('target_lib',libname)
-    chip.add('libtype',libtype)
-
-    #############################################
-    # Library Definition
-    #############################################
-    
     # rev
-    chip.add('stdcells',libname,'rev',rev)
-    
+    chip.add('stdcells',libname,'rev',rev)    
     # timing
-    chip.add('stdcells',libname,'nldm','typical','lib',libdir+'/lib/NangateOpenCellLibrary_typical.lib')
-    
+    chip.add('stdcells',libname,'nldm','typical','lib',
+             libdir+'/lib/NangateOpenCellLibrary_typical.lib')
     # lef
-    chip.add('stdcells',libname,'lef',libdir+'/lef/NangateOpenCellLibrary.macro.lef')
-    
+    chip.add('stdcells',libname,'lef',
+             libdir+'/lef/NangateOpenCellLibrary.macro.lef')    
     # gds
-    chip.add('stdcells',libname,'gds',libdir+'/gds/NangateOpenCellLibrary.gds')
-
+    chip.add('stdcells',libname,'gds',
+             libdir+'/gds/NangateOpenCellLibrary.gds')
     # site name
-    chip.add('stdcells',libname,'site','FreePDK45_38x28_10R_NP_162NW_34O')
-
+    chip.add('stdcells',libname,'site',
+             'FreePDK45_38x28_10R_NP_162NW_34O')
     # lib arch
     chip.add('stdcells',libname,'libtype',libtype)
 
-    # lib height
-    chip.add('stdcells',libname,'height',height)
+    # lib site/tile/size
+    chip.add('stdcells',libname,'size',size)
     
-
-    #############################################
-    # MMCM Flow
-    #############################################
-
     # hard coded mcmm settings
-    chip.add('mcmm_cornerlist',corner)
-    chip.add('mcmm_pexlist',corner)
-    chip.add('mcmm_scenario','nominal','libcorner', corner)
-    chip.add('mcmm_scenario','nominal','pexcorner', corner)
-    chip.add('mcmm_goals','nominal','syn',  'setup')
-    chip.add('mcmm_goals','nominal','place', 'setup')
-    all_goals = ['setup', 'hold']
-    for stage in ('cts','route','signoff'):
-        chip.add('mcmm_goals','nominal', stage, all_goals)
+    chip.add('mcmm','worst','libcorner', corner)
+    chip.add('mcmm','worst','pexcorner', corner)
+    chip.add('mcmm','worst','mode', 'func')
+    chip.add('mcmm','worst','goal', ['setup','hold'])
     
-    
+    # hard coded target lib
+    chip.add('target_lib',libname)
+
 #########################
 if __name__ == "__main__":    
 
