@@ -35,7 +35,7 @@ def schema():
     cfg = schema_apr(cfg)
 
     #Network Group
-    #cfg = schema_net(cfg)
+    cfg = schema_net(cfg)
 
     return cfg
 
