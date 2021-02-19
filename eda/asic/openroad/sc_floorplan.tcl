@@ -13,21 +13,21 @@ if {[dict get $sc_cfg tool $stage copy] eq True} {
 }
 
 #Massaging dict into simple local variables
-set stackup      [dict get $sc_cfg target_stackup]
+set stackup      [dict get $sc_cfg stackup]
 set target_libs  [dict get $sc_cfg target_lib]
-set libarch      [dict get $sc_cfg target_libarch]
+set mainlib      [lindex $target_libs 0]
+set libarch      [dict get $sc_cfg stdcells $mainlib libtype]
+set techlef      [dict get $sc_cfg pdk_aprtech $stackup $libarch openroad]
 set topmodule    [dict get $sc_cfg design]
+set corner       "typical"
 set diesize      [dict get $sc_cfg diesize]
 set coresize     [dict get $sc_cfg coresize]
-set aspectratio  [dict get $sc_cfg aspectratio]
 
-set corner       "typical"
-set techlef      [dict get $sc_cfg pdk_pnrtech $stackup $libarch openroad]
-set pnrlayers    [dict get $sc_cfg pdk_pnrlayer $stackup]
 
 #Inputs
 set input_verilog   "inputs/$topmodule.v"
-set input_def       [dict get $sc_cfg def]
+set input_def       "inputs/$topmodule.def"
+set input_sdc       "inputs/$topmodule.sdc"
 
 #Outputs
 set output_verilog  "outputs/$topmodule.v"
@@ -38,6 +38,7 @@ set output_sdc      "outputs/$topmodule.sdc"
 #Setup Process
 ####################
 read_lef  $techlef
+set pnrlayers    [dict get $sc_cfg pdk_aprlayer $stackup]
 
 set outfile [open "sc_tracks.txt" w]
 #loop through list one tuple4 at a time
@@ -55,7 +56,6 @@ foreach lib $target_libs {
     read_liberty [dict get $sc_cfg stdcells $lib nldm $corner lib]
     read_lef [dict get $sc_cfg stdcells $lib lef]
     set site [dict get $sc_cfg stdcells $lib site]
-    set libheight [dict get $sc_cfg stdcells $lib libheight]
 }
 
 ####################

@@ -16,15 +16,12 @@ if {[dict get $sc_cfg tool $stage copy] eq True} {
 source $scriptdir/sc_procedures.tcl
 
 #Massaging dict into simple local variables
-set stackup      [dict get $sc_cfg target_stackup]
+set stackup      [dict get $sc_cfg stackup]
 set target_libs  [dict get $sc_cfg target_lib]
-set libarch      [dict get $sc_cfg target_libarch]
-set techlef      [dict get $sc_cfg pdk_pnrtech $stackup $libarch openroad]
-set pnrlayers    [dict get $sc_cfg pdk_pnrlayer $stackup]
-set jobid        [dict get $sc_cfg tool $last_stage jobid]
-
+set mainlib      [lindex $target_libs 0]
+set libarch      [dict get $sc_cfg stdcells $mainlib libtype]
+set techlef      [dict get $sc_cfg pdk_aprtech $stackup $libarch openroad]
 set topmodule    [dict get $sc_cfg design]
-set coresize     [dict get $sc_cfg coresize]
 set corner       "typical"
 
 #Inputs
@@ -37,39 +34,26 @@ set output_verilog  "outputs/$topmodule.v"
 set output_def      "outputs/$topmodule.def"
 set output_sdc      "outputs/$topmodule.sdc"
 
-####################
 #Setup Process
-####################
 
 read_lef  $techlef
 
-####################
 #Setup Libs
-####################
-
 foreach lib $target_libs {
     read_liberty [dict get $sc_cfg stdcells $lib nldm $corner lib]
     read_lef [dict get $sc_cfg stdcells $lib lef]
     set site [dict get $sc_cfg stdcells $lib site]
 }
 
-
-##################
 # Read Design
-##################
-
-#Read data from previous stage
 read_def $input_def
 
+# Read SDC
 if {[file exists $input_sdc]} {
     read_sdc $input_sdc
 }
 
-################################################################
 # Global Placement
-################################################################
-
-## What to put for density???
 global_placement -disable_routability_driven -density 0.3
 
 #-disable_routability_driven -density $SC_DENSITY
