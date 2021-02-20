@@ -1066,7 +1066,7 @@ def schema_eda(cfg):
         cfg['tool'][stage]['cache']['switch_args'] = '<>'
         cfg['tool'][stage]['cache']['type'] = ['file']
         cfg['tool'][stage]['cache']['requirement'] = ['optional']
-        cfg['tool'][stage]['cache']['defvalue'] = []
+        cfg['tool'][stage]['cache']['defvalue'] = ['.']
         cfg['tool'][stage]['cache']['short_help'] = 'Cache Directory Name'
         cfg['tool'][stage]['cache']['help'] = [
             "Specifies a writeable shared cache directory to be used  ",
