@@ -20,6 +20,8 @@ from siliconcompiler.eda.verilator import setup_verilator
 from siliconcompiler.eda.yosys import setup_yosys
 from siliconcompiler.eda.openroad import setup_openroad
 from siliconcompiler.eda.klayout import setup_klayout
+from siliconcompiler.client import remote_run
+from siliconcompiler.client import upload_sources_to_cluster
 
 ###########################
 def cmdline():
@@ -246,7 +248,7 @@ def main():
             filename = filepath[filepath.rfind('/')+1:]
             new_paths.append(mychip.cfg['nfsmount']['value'][0] + '/' + job_hash + '/' + filename)
         # Copy the source files to remote compute storage.
-        mychip.upload_sources_to_cluster()
+        upload_sources_to_cluster(mychip)
         # Rename the source file paths in the Chip's config JSON.
         mychip.cfg['source']['value'] = new_paths
 
@@ -260,7 +262,7 @@ def main():
     for stage in all_stages:
         # Run each stage on the remote compute cluster if requested.
         if (len(mychip.cfg['remote']['value']) > 0) and (mychip.cfg['remote']['value'][0] != ""):
-            mychip.remote_run(stage)
+            remote_run(mychip, stage)
         # Run each stage on the local host if no remote server is specified.
         else:
             mychip.run(stage)
