@@ -14,6 +14,22 @@ def remote_run(chip, stage):
 
     '''
 
+    #Looking up stage numbers
+    stages = chip.cfg['stages']['value']
+    current = stages.index(stage)
+    laststage = stages[current-1]
+    start = stages.index(chip.cfg['start']['value'][-1]) #scalar
+    stop = stages.index(chip.cfg['stop']['value'][-1]) #scalar
+
+    if stage not in chip.cfg['stages']['value']:
+        chip.logger.error('Illegal stage name %s', stage)
+        return
+    elif (current < start) | (current > stop):
+        chip.logger.info('Skipping stage: %s', stage)
+        return
+    else:
+        chip.logger.info('Running stage: %s', stage)
+
     # Ask the remote server to start processing the requested step.
     loop = asyncio.get_event_loop()
     loop.run_until_complete(request_remote_run(chip, stage))
@@ -69,6 +85,12 @@ def upload_sources_to_cluster(chip):
 
     '''
 
+    # Rename source files in the config dict; the 'import' step already
+    # ran and collected the sources into a single 'verilator.v' file.
+    # TODO: This bypasses the 'lock' call, which should probably be avoided.
+    # TODO: Use 'jobid' config value, and maybe move this?
+    self.cfg['source']['value'] = ['%s/%s/import/job1/verilator.v'%(self.cfg['nfsmount']['value'][0], self.status['job_hash'])]
+
     # Ensure that the destination directory exists.
     subprocess.run(['ssh',
                     '-i',
@@ -78,17 +100,16 @@ def upload_sources_to_cluster(chip):
                     '%s/%s'%(chip.cfg['nfsmount']['value'][0], chip.status['job_hash'])])
 
     # Copy Verilog sources using scp.
-    for src in chip.cfg['source']['value']:
-        subprocess.run(['scp',
-                        '-i',
-                        chip.cfg['nfskey']['value'][0],
-                        src,
-                        '%s@%s:%s/%s/%s'%(
-                            chip.cfg['nfsuser']['value'][0],
-                            chip.cfg['nfshost']['value'][0],
-                            chip.cfg['nfsmount']['value'][0],
-                            chip.status['job_hash'],
-                            src[src.rfind('/')+1:]
-                        )])
+    subprocess.run(['scp',
+                    '-i',
+                    self.cfg['nfskey']['value'][0],
+                    '-rp',
+                    '%s/import'%self.cfg['build']['value'][0],
+                    '%s@%s:%s/%s'%(
+                        self.cfg['nfsuser']['value'][0],
+                        self.cfg['nfshost']['value'][0],
+                        self.cfg['nfsmount']['value'][0],
+                        self.status['job_hash']
+                    )])
 
     # TODO: Also upload .lib, .lef, etc files.

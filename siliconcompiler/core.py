@@ -831,6 +831,17 @@ class Chip:
                         self.cfg['design']['value'].append(topmodule)
                 else:
                     topmodule = self.cfg['design']['value'][-1]
+                # Remove "`line" annotations with local absolute file paths
+                # if the 'remote' option is defined.
+                if (len(self.cfg['remote']['value']) > 0) and (self.cfg['remote']['value'][0] != ""):
+                    cmd = "mv verilator.v " + "verilator_pre.v"
+                    subprocess.run(cmd, shell=True)
+                    with open("verilator.v", "w") as wf:
+                        with open("verilator_pre.v", "r") as rf:
+                            for line in rf:
+                                if line[:5] != '`line':
+                                    wf.write(line)
+                # Copy the linted Verilog code into the output directory.
                 cmd = "cp verilator.v " + "outputs/" + topmodule + ".v"
                 subprocess.run(cmd, shell=True)
 

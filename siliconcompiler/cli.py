@@ -224,7 +224,7 @@ def main():
     # Reading in config files specified at command line
     if 'cfgfile' in  cmdlinecfg.keys():        
         for cfgfile in cmdlinecfg['cfgfile']['value']:
-            chip.readcfg(cfgfile)
+            mychip.readcfg(cfgfile)
         
     # Override with command line arguments
     mychip.mergecfg(cmdlinecfg)
@@ -238,19 +238,9 @@ def main():
     #Creating hashes for all sourced files
     #mychip.hash()
 
-    # Copy files and update config for running on a remote cluster if necessary.
+    # Create a 'job hash'. TODO: Don't use 'design' config; it may not exist.
     job_hash = mychip.cfg['design']['value'][0] + '_' + mychip.cfg['target']['value'][0]
     mychip.status['job_hash'] = job_hash
-    if (len(mychip.cfg['remote']['value']) > 0) and (mychip.cfg['remote']['value'][0] != ""):
-        # Re-name the given source files to match compute cluster storage.
-        new_paths = []
-        for filepath in mychip.cfg['source']['value']:
-            filename = filepath[filepath.rfind('/')+1:]
-            new_paths.append(mychip.cfg['nfsmount']['value'][0] + '/' + job_hash + '/' + filename)
-        # Copy the source files to remote compute storage.
-        upload_sources_to_cluster(mychip)
-        # Rename the source file paths in the Chip's config JSON.
-        mychip.cfg['source']['value'] = new_paths
 
     #Lock chip configuration
     mychip.lock()
@@ -260,8 +250,12 @@ def main():
 
     all_stages = mychip.get('compile_stages')
     for stage in all_stages:
+        if stage == 'import':
+            mychip.run(stage)
+            if (len(mychip.cfg['remote']['value']) > 0) and (mychip.cfg['remote']['value'][0] != ""):
+                upload_sources_to_cluster(mychip)
         # Run each stage on the remote compute cluster if requested.
-        if (len(mychip.cfg['remote']['value']) > 0) and (mychip.cfg['remote']['value'][0] != ""):
+        elif (len(mychip.cfg['remote']['value']) > 0) and (mychip.cfg['remote']['value'][0] != ""):
             remote_run(mychip, stage)
         # Run each stage on the local host if no remote server is specified.
         else:

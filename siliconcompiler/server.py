@@ -67,6 +67,8 @@ class Server:
         if not stage:
           return web.Response(text="Error: no stage provided.")
 
+        # Remove 'remote' JSON config value to run locally on compute node.
+        cfg['remote']['value'] = []
         # Write JSON config to shared compute storage.
         build_dir = '%s/%s'%(cfg['nfsmount']['value'][0], job_hash)
         with open('%s/chip.json'%build_dir, 'w') as f:
