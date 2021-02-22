@@ -1,7 +1,9 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
-from aiohttp import web
+import aiohttp
 import asyncio
+import subprocess
+import time
 
 ###################################
 def remote_run(chip, stage):
@@ -15,13 +17,16 @@ def remote_run(chip, stage):
     '''
 
     #Looking up stage numbers
-    stages = chip.cfg['stages']['value']
+    stages = (chip.cfg['compile_stages']['value'] +
+              chip.cfg['dv_stages']['value'])
     current = stages.index(stage)
     laststage = stages[current-1]
     start = stages.index(chip.cfg['start']['value'][-1]) #scalar
     stop = stages.index(chip.cfg['stop']['value'][-1]) #scalar
+    #Check if stage should be explicitly skipped
+    skip = stage in chip.cfg['skip']['value']
 
-    if stage not in chip.cfg['stages']['value']:
+    if stage not in stages:
         chip.logger.error('Illegal stage name %s', stage)
         return
     elif (current < start) | (current > stop):
@@ -89,7 +94,7 @@ def upload_sources_to_cluster(chip):
     # ran and collected the sources into a single 'verilator.v' file.
     # TODO: This bypasses the 'lock' call, which should probably be avoided.
     # TODO: Use 'jobid' config value, and maybe move this?
-    self.cfg['source']['value'] = ['%s/%s/import/job1/verilator.v'%(self.cfg['nfsmount']['value'][0], self.status['job_hash'])]
+    chip.cfg['source']['value'] = ['%s/%s/import/job1/verilator.v'%(chip.cfg['nfsmount']['value'][0], chip.status['job_hash'])]
 
     # Ensure that the destination directory exists.
     subprocess.run(['ssh',
@@ -102,14 +107,14 @@ def upload_sources_to_cluster(chip):
     # Copy Verilog sources using scp.
     subprocess.run(['scp',
                     '-i',
-                    self.cfg['nfskey']['value'][0],
+                    chip.cfg['nfskey']['value'][0],
                     '-rp',
-                    '%s/import'%self.cfg['build']['value'][0],
+                    '%s/import'%chip.cfg['build']['value'][0],
                     '%s@%s:%s/%s'%(
-                        self.cfg['nfsuser']['value'][0],
-                        self.cfg['nfshost']['value'][0],
-                        self.cfg['nfsmount']['value'][0],
-                        self.status['job_hash']
+                        chip.cfg['nfsuser']['value'][0],
+                        chip.cfg['nfshost']['value'][0],
+                        chip.cfg['nfsmount']['value'][0],
+                        chip.status['job_hash']
                     )])
 
     # TODO: Also upload .lib, .lef, etc files.
