@@ -107,12 +107,6 @@ def upload_sources_to_cluster(chip):
 
     '''
 
-    # Rename source files in the config dict; the 'import' step already
-    # ran and collected the sources into a single 'verilator.v' file.
-    # TODO: This bypasses the 'lock' call, which should probably be avoided.
-    # TODO: Use 'jobid' config value, and maybe move this?
-    chip.cfg['source']['value'] = ['%s/%s/import/job1/verilator.v'%(chip.cfg['nfsmount']['value'][0], chip.status['job_hash'])]
-
     # Zip the 'import' directory.
     subprocess.run(['zip',
                     '-r',
@@ -123,28 +117,3 @@ def upload_sources_to_cluster(chip):
     # Upload the archive to the 'import' server endpoint.
     loop = asyncio.get_event_loop()
     loop.run_until_complete(upload_import_dir(chip))
-
-    '''
-    # Ensure that the destination directory exists.
-    subprocess.run(['ssh',
-                    '-i',
-                    chip.cfg['nfskey']['value'][0],
-                    '%s@%s'%(chip.cfg['nfsuser']['value'][0], chip.cfg['nfshost']['value'][0]),
-                    'mkdir',
-                    '%s/%s'%(chip.cfg['nfsmount']['value'][0], chip.status['job_hash'])])
-
-    # Copy Verilog sources using scp.
-    subprocess.run(['scp',
-                    '-i',
-                    chip.cfg['nfskey']['value'][0],
-                    '-rp',
-                    '%s/import'%chip.cfg['build']['value'][0],
-                    '%s@%s:%s/%s'%(
-                        chip.cfg['nfsuser']['value'][0],
-                        chip.cfg['nfshost']['value'][0],
-                        chip.cfg['nfsmount']['value'][0],
-                        chip.status['job_hash']
-                    )])
-
-    # TODO: Also upload .lib, .lef, etc files.
-    '''

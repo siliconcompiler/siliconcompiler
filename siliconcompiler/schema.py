@@ -2009,45 +2009,4 @@ def schema_net(cfg):
         'help' : ["TBD"]
     }
 
-    # NFS config: Username to use when copying file to remote compute storage.
-    cfg['nfsuser'] = {
-        'short_help': 'Remote server user name.',
-        'switch': '-nfs_user',
-        'switch_args' : '<str>',
-        'type' : ['string'],
-        'defvalue' : ['ubuntu'],
-        'help' : ["TBD"]
-    }
-
-    # NFS config: Hostname to use for accessing shared remote compute storage.
-    cfg['nfshost'] = {
-        'short_help': 'Hostname or IP address for shared storage.',
-        'switch': '-nfs_host',
-        'switch_args' : '<str>',
-        'type' : ['string'],
-        'defvalue' : [],
-        'help' : ["TBD"]
-    }
-
-    # NFS config: root filepath for shared NFS storage on the remote NFS host.
-    cfg['nfsmount'] = {
-        'short_help': 'Directory of mounted shared NFS storage.',
-        'switch': '-nfs_mount',
-        'switch_args' : '<str>',
-        'type' : ['string'],
-        'defvalue' : ['/nfs/sc_compute'],
-        'help' : ["TBD"]
-    }
-
-    # NFS config: path to the SSH key file which will be used to access
-    # the remote storage host.
-    cfg['nfskey'] = {
-        'short_help': 'Key-file used for remote connection.',
-        'switch': '-nfs_key',
-        'switch_args' : '<file>',
-        'type' : ['file'],
-        'defvalue' : [],
-        'help' : ["TBD"]
-    }
-
     return cfg

@@ -69,10 +69,14 @@ class Server:
           return web.Response(text="Error: no stage provided.")
 
         # Reset 'build' directory in NFS storage.
-        build_dir = '%s/%s'%(cfg['nfsmount']['value'][0], job_hash)
+        build_dir = '%s/%s'%(self.cfg['nfsmount']['value'][0], job_hash)
         cfg['build']['value'] = [build_dir]
         # Remove 'remote' JSON config value to run locally on compute node.
         cfg['remote']['value'] = []
+        # Rename source files in the config dict; the 'import' step already
+        # ran and collected the sources into a single 'verilator.v' file.
+        # TODO: Use 'jobid'
+        cfg['source']['value'] = ['%s/%s/import/job1/verilator.v'%(self.cfg['nfsmount']['value'][0], job_hash)]
         # Write JSON config to shared compute storage.
         with open('%s/chip.json'%build_dir, 'w') as f:
           f.write(json.dumps(cfg))
