@@ -95,19 +95,34 @@ class Server:
         which the server extracts into shared compute cluster storage in
         preparation for running a remote job stage.
 
-        The file archive's type is inferred from its extension. Only .zip and
-        .tar[.gz/.bz2/etc] are currently supported.
+        TODO: Infer file type from file extension. Currently only supports .zip
 
         '''
 
-        # Get the archive file and job hash values.
+        # Get the job hash value.
+        job_hash = request.match_info.get('job_hash', None)
+        if not job_hash:
+          return web.Response(text="Error: no job hash provided.")
+        # Receive and write the archive file.
         reader = await request.multipart()
         while True:
             part = await reader.next()
             if part is None:
                 break
-            # TODO: Does this iterate over all fields, or just multipart ones?
-            print(part)
+            if part.name == 'import':
+                with open('%s/%s/import.zip'%(self.cfg['nfsmount']['value'][0], job_hash), 'wb') as f:
+                    while True:
+                        chunk = await part.read_chunk()
+                        if not chunk:
+                            break
+                        f.write(chunk)
+
+        # Un-zip the archive file.
+        # TODO: Break up line if this works well.
+        subprocess.run(['unzip', '%s/%s/import.zip'%(self.cfg['nfsmount']['value'][0], job_hash)], cwd='%s/%s'%(self.cfg['nfsmount']['value'][0], job_hash))
+
+        # Done.
+        return web.Response(text="Successfully imported project %s."%job_hash)
 
     ####################
     async def handle_get_results(self, request):

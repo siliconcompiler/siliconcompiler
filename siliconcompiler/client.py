@@ -93,7 +93,7 @@ async def upload_import_dir(chip):
                                         chip.cfg['remote']['value'][0],
                                         chip.cfg['remoteport']['value'][0],
                                         chip.status['job_hash']),
-                                    data=f) \
+                                    data={'import': f}) \
             as resp:
                 print(await resp.text())
 
