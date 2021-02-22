@@ -43,6 +43,7 @@ class Server:
         self.app = web.Application()
         self.app.add_routes([
             web.post('/remote_run/{job_hash}/{stage}', self.handle_remote_run),
+            web.post('/import/{job_hash}', self.handle_import),
             web.get('/get_results/{job_hash}.zip', self.handle_get_results),
             web.get('/check_progress/{job_hash}/{stage}', self.handle_check_progress),
         ])
@@ -86,6 +87,27 @@ class Server:
         # Return a response to the client.
         response_text = "Starting step: %s"%stage
         return web.Response(text=response_text)
+
+    ####################
+    async def handle_import(self, request):
+        '''
+        API handler for 'import' requests. Accepts a file archive upload,
+        which the server extracts into shared compute cluster storage in
+        preparation for running a remote job stage.
+
+        The file archive's type is inferred from its extension. Only .zip and
+        .tar[.gz/.bz2/etc] are currently supported.
+
+        '''
+
+        # Get the archive file and job hash values.
+        reader = await request.multipart()
+        while True:
+            part = await reader.next()
+            if part is None:
+                break
+            # TODO: Does this iterate over all fields, or just multipart ones?
+            print(part)
 
     ####################
     async def handle_get_results(self, request):

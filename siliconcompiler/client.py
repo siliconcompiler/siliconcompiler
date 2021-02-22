@@ -2,6 +2,7 @@
 
 import aiohttp
 import asyncio
+import os
 import subprocess
 import time
 
@@ -81,6 +82,22 @@ async def is_job_busy(chip, stage):
             return (response != "Job has no running steps.")
 
 ###################################
+async def upload_import_dir(chip):
+    '''Helper method to make an async request uploading the post-import
+    files to the remote compute cluster.
+    '''
+
+    async with aiohttp.ClientSession() as session:
+        with open('%s/import.zip'%(chip.cfg['build']['value'][0]), 'rb') as f:
+            async with session.post("http://%s:%s/import/%s"%(
+                                        chip.cfg['remote']['value'][0],
+                                        chip.cfg['remoteport']['value'][0],
+                                        chip.status['job_hash']),
+                                    data=f) \
+            as resp:
+                print(await resp.text())
+
+###################################
 def upload_sources_to_cluster(chip):
     '''Helper method to upload Verilog source files to a cloud compute
     cluster's shared storage. Required before the cluster will be able
@@ -96,6 +113,18 @@ def upload_sources_to_cluster(chip):
     # TODO: Use 'jobid' config value, and maybe move this?
     chip.cfg['source']['value'] = ['%s/%s/import/job1/verilator.v'%(chip.cfg['nfsmount']['value'][0], chip.status['job_hash'])]
 
+    # Zip the 'import' directory.
+    subprocess.run(['zip',
+                    '-r',
+                    'import.zip',
+                    'import'],
+                   cwd='%s/%s'%(os.environ["SC_ROOT"], chip.cfg['build']['value'][0]))
+
+    # Upload the archive to the 'import' server endpoint.
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(upload_import_dir(chip))
+
+    '''
     # Ensure that the destination directory exists.
     subprocess.run(['ssh',
                     '-i',
@@ -118,3 +147,4 @@ def upload_sources_to_cluster(chip):
                     )])
 
     # TODO: Also upload .lib, .lef, etc files.
+    '''
