@@ -103,6 +103,7 @@ class Server:
         job_hash = request.match_info.get('job_hash', None)
         if not job_hash:
           return web.Response(text="Error: no job hash provided.")
+        job_root = '%s/%s'%(self.cfg['nfsmount']['value'][0], job_hash)
         # Receive and write the archive file.
         reader = await request.multipart()
         while True:
@@ -110,7 +111,7 @@ class Server:
             if part is None:
                 break
             if part.name == 'import':
-                with open('%s/%s/import.zip'%(self.cfg['nfsmount']['value'][0], job_hash), 'wb') as f:
+                with open('%s/import.zip'%(job_root), 'wb') as f:
                     while True:
                         chunk = await part.read_chunk()
                         if not chunk:
@@ -118,8 +119,7 @@ class Server:
                         f.write(chunk)
 
         # Un-zip the archive file.
-        # TODO: Break up line if this works well.
-        subprocess.run(['unzip', '-o', '%s/%s/import.zip'%(self.cfg['nfsmount']['value'][0], job_hash)], cwd='%s/%s'%(self.cfg['nfsmount']['value'][0], job_hash))
+        subprocess.run(['unzip', '-o', '%s/import.zip'%(job_root)], cwd=job_root)
 
         # Done.
         return web.Response(text="Successfully imported project %s."%job_hash)
