@@ -67,10 +67,12 @@ class Server:
         if not stage:
           return web.Response(text="Error: no stage provided.")
 
+        # Reset 'build' directory in NFS storage.
+        build_dir = '%s/%s'%(cfg['nfsmount']['value'][0], job_hash)
+        cfg['build']['value'] = [build_dir]
         # Remove 'remote' JSON config value to run locally on compute node.
         cfg['remote']['value'] = []
         # Write JSON config to shared compute storage.
-        build_dir = '%s/%s'%(cfg['nfsmount']['value'][0], job_hash)
         with open('%s/chip.json'%build_dir, 'w') as f:
           f.write(json.dumps(cfg))
 
@@ -143,13 +145,7 @@ class Server:
         export_path += ':/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin'
         # Send JSON config instead of using subset of flags.
         # TODO: Use slurmpy SDK?
-        #srun_cmd = 'srun %s sc - %s'%(export_path, chip_cfg)
-        srun_cmd = 'srun %s sc'%export_path
-        for src in sc_sources:
-            srun_cmd += ' ' + src
-        srun_cmd += ' -target nangate45 -design %s'%(top_module)
-        srun_cmd += ' -build %s'%build_dir
-        srun_cmd += ' -start %s -stop %s'%(stage, stage)
+        srun_cmd = 'srun %s sc /dev/null -cfgfile %s/chip.json'%(export_path, build_dir)
 
         # Create async subprocess shell, and block this thread until it finishes.
         proc = await asyncio.create_subprocess_shell(srun_cmd)
