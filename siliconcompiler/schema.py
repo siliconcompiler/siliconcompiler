@@ -1923,9 +1923,28 @@ def schema_constraints(cfg):
                   "                                                         ",
                   "Examples:                                                ",
                   "cli: -mcmm_libcorner 'worst ttt'                         ",
-                  "api: chip.set('mcmm','worst', 'ttt)                      "]
+                  "api: chip.set('mcmm','worst','libcorner', 'ttt)          "]
     }
 
+    cfg['mcmm']['default']['opcond'] = {
+        'switch' : '-mcmm_opcond',
+        'switch_args' : '<>',
+        'type' : ['string'],
+        'requirement' : 'apr',
+        'defvalue' : [],
+        'short_help' : 'MCMM Operating Condition',
+        'help' : ["A dynamic dictionary that connects the scenario name with",
+                  "a operating condition within the 'stdcells' found in the ",
+                  "library timing models of the 'target_libs'. The 'opcond' ",
+                  "value must match the corner specified in the timing model",
+                  "The dictionary format is [scenarioname]['opcond'].       ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -mcmm_opcond 'worst typical_1.0'                    ",
+                  "api: chip.set('mcmm', 'worst', 'opcond','typical_1.0')   "]
+    }
+
+    
     cfg['mcmm']['default']['pexcorner'] = {
         'switch' : '-mcmm_pexcorner',
         'switch_args' : '<>',
