@@ -145,7 +145,9 @@ class Server:
         export_path += ':/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin'
         # Send JSON config instead of using subset of flags.
         # TODO: Use slurmpy SDK?
-        srun_cmd = 'srun %s sc /dev/null -cfgfile %s/chip.json'%(export_path, build_dir)
+        srun_cmd  = 'srun %s sc /dev/null '%(export_path)
+        srun_cmd += '-cfgfile %s/chip.json '%(build_dir)
+        srun_cmd += '-start %s -stop %s'%(stage, stage)
 
         # Create async subprocess shell, and block this thread until it finishes.
         proc = await asyncio.create_subprocess_shell(srun_cmd)
