@@ -1717,6 +1717,21 @@ def schema_apr(cfg):
                   "api:  chip.add('target_lib', 'asap7sc7p5t_lvt')          "]
     }
 
+    cfg['macro_lib'] = {
+        'switch' : '-macro_lib',
+        'switch_args' : '<str>',
+        'type' : ['string'],
+        'defvalue' : [],
+        'requirement' : 'apr',
+        'short_help' : 'Macro Libraries',
+        'help' : ["Provides a list of macro libraries to be linked in during",
+                  "synthesis and place and route.                           ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -macro_lib 'sram64x1024'                            ",
+                  "api:  chip.add('macro_lib', 'sram64x1024')               "]
+    }
+    
     cfg['delaymodel'] = {
         'switch' : '-delaymodel',
         'switch_args' : '<str>',
