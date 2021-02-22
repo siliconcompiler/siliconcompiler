@@ -119,7 +119,7 @@ class Server:
 
         # Un-zip the archive file.
         # TODO: Break up line if this works well.
-        subprocess.run(['unzip', '%s/%s/import.zip'%(self.cfg['nfsmount']['value'][0], job_hash)], cwd='%s/%s'%(self.cfg['nfsmount']['value'][0], job_hash))
+        subprocess.run(['unzip', '-o', '%s/%s/import.zip'%(self.cfg['nfsmount']['value'][0], job_hash)], cwd='%s/%s'%(self.cfg['nfsmount']['value'][0], job_hash))
 
         # Done.
         return web.Response(text="Successfully imported project %s."%job_hash)
@@ -327,6 +327,11 @@ def server_cmdline():
             def_cfg[param]['value'] = all_vals
         else:
             def_cfg[param]['value'].extend(all_vals)
+
+    # Ensure that the default 'value' fields exist.
+    for key in def_cfg:
+        if (not 'value' in def_cfg[key]) and ('defvalue' in def_cfg[key]):
+            def_cfg[key]['value'] = def_cfg[key]['defvalue']
 
     return def_cfg
 
