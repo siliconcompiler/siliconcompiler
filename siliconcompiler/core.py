@@ -95,7 +95,12 @@ class Chip:
         '''
         self.logger.info('Retrieving config dictionary keys: %s', args)
 
-        return list(self.search(self.cfg, *args, mode='getkeys'))
+        keys = list(self.search(self.cfg, *args, mode='getkeys'))
+
+        if 'default' in keys:
+            keys.remove('default')
+        
+        return keys
 
     ####################################
     def add(self, *args):
