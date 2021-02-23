@@ -517,56 +517,62 @@ def schema_libs(cfg, group):
                   "api: chip.set('"+group+"','mylib','size','0.1 0.5')      "]
     }
 
-
-    cfg[group]['default']['nldm'] = {}
-    cfg[group]['default']['nldm']['default'] = {}
-    cfg[group]['default']['nldm']['default']['default'] = {
-        'switch' : '-'+group+'_nldm',
+    #Corners
+    cfg[group]['default']['corner'] = {}
+    cfg[group]['default']['corner']['default'] = {}
+    cfg[group]['default']['corner']['default']['check'] = {
+        'switch' : '-'+group+'_corner',
         'switch_args' : '<>',
-        'requirement' : 'apr',
-        'type' : ['file'],
+        'requirement' : 'asic',
+        'type' : ['string'],
         'defvalue' : [],
         'hash' : [],
-        'short_help' : 'Library Non-Linear Delay Model',
-        'help' : ["A dynamic dictionary of paths to non-linear delay model  ",
-                  "files specified in the liberty format. The NLDM files are",
-                  "specified on a per lib, per corner, and per format       ",
-                  "basis with dictionary structure being:                   ",
-                  "['libname']['nldm']['cornername']['format']              ",
-                  "The format is driven by EDA tool requirements. Examples  ",
-                  "of legal formats includ: lib, lib.gz, lib.bz2, and ldb.  ",
+        'short_help' : 'Library Corner Checks',
+        'help' : ["A dynamic dictionary of recommended per corner checks to ",
+                  "to perform during mcmm optimization and STA signoff. The ",
+                  "names used in the 'mcmm' scenarios must align with the   ",
+                  "'check' names used in this dictionary. The purpose of the",
+                  "dictionary is to serve as a serve as a central record for",
+                  "the PDK/Library recommended corner methodology and all   ",
+                  "PVT timing corners supported. Standard 'check' names     ",
+                  "include setup, hold, power, noise, reliability but can be",
+                  "extended based on eda support and methodology. The format",
+                  "for the dictionary is:                                   ",
+                  "['libname']['corner']['cornername']['check']             ",
+                  "models can be of type CCS or NLDM. CCS models are more   ",
                   "                                                         ",
                   "Examples:                                                ",
-                  "cli: -"+group+"_nldm 'mylib ttt lib mylib.lib'           ",
-                  "api: chip.set('"+group+"','mylib','nldm','ttt','lib',    ",
-                  "              'mylib.lib')                               "]
+                  "cli: -"+group+"_corner 'mylib ss_1.0v_125c setup'        ",
+                  "api: chip.set('"+group+"','mylib','corner',              ",
+                  "               'ss_1.0v_125c setup', mylib_ccs.lib')     "]
     }
-
-
-    cfg[group]['default']['ccs'] = {}
-    cfg[group]['default']['ccs']['default'] = {}
-    cfg[group]['default']['ccs']['default']['default']= {
-        'switch' : '-'+group+'_ccs',
+    
+    #Timing
+    cfg[group]['default']['timing'] = {}
+    cfg[group]['default']['timing']['default'] = {}
+    cfg[group]['default']['timing']['default']['default'] = {}
+    cfg[group]['default']['timing']['default']['default']['default'] = {
+        'switch' : '-'+group+'_timing',
         'switch_args' : '<>',
-        'requirement' : 'optional',
+        'requirement' : 'asic',
         'type' : ['file'],
         'defvalue' : [],
         'hash' : [],
-        'short_help' : 'Library Composite Current Source Model File',
-        'help' : ["A dynamic dictionary of paths to composite current source",
-                  "models. CCS models are more acccurate than NLDM models   ",
-                  "and are required for signoff at advanced nodes, but are  ",
-                  "significantly larger and slower. The CCS files are       ",
+        'short_help' : 'Library Timing Model Files',
+        'help' : ["A dynamic dictionary of paths to timing models. Timing   ",
+                  "models can be of type CCS or NLDM. CCS models are more   ",
+                  "accurate and are required for signoff at advanced nodes, ",
+                  "but are significantly larger and slower. Timing files are",
                   "specified on a per lib, per corner, and per format basis ",
                   "with dictionary structure being:                         ",
-                  "['libname']['ccs']['cornername']['format']               ",
+                  "['libname']['timing']['corner']['type']['format']        ",
                   "The format is driven by EDA tool requirements. Examples  ",
                   "of legal formats includ: lib, lib.gz, lib.bz2, and ldb.  ",
                   "                                                         ",
                   "Examples:                                                ",
-                  "cli: -"+group+"_ccs 'mylib ttt lib mylib_ccs.lib'        ",
-                  "api: chip.set('"+group+"','mylib','ccs','ttt','lib',     ",
-                  "              'mylib_ccs.lib')                           "]
+                  "cli: -"+group+"_timing 'mylib tt ccs lib mylib_tt.lib'   ",
+                  "api: chip.set('"+group+"','mylib','timing', 'tt',        ",
+                  "              'ccs', 'lib', mylib_ccs.lib')              "]
     }
 
     cfg[group]['default']['lef'] = {
@@ -2017,22 +2023,22 @@ def schema_constraints(cfg):
                   "              'hello_world.sdc')                        "]
     }
 
-    cfg['mcmm']['default']['goal'] = {
-        'switch' : '-mcmm_goal',
+    cfg['mcmm']['default']['check'] = {
+        'switch' : '-mcmm_check',
         'switch_args' : '<>',
         'type' : ['string'],
         'requirement' : 'apr',
         'defvalue' : [],
-        'short_help' : 'MCMM Goals',
-        'help' : ["Provides target goals for a scenario aligned with the  ",
-                  "optimization capabilities of the synthesis and apr     ",
-                  "tool. Goals generally include objectives like meeting  ",
-                  "setup and hold goals and minimize power. Standard goal:",
-                  "names include setup, hold, active_power, standby_power.",
+        'short_help' : 'MCMM Checks',
+        'help' : ["Provides a list of checks for a scenario aligned with  ",
+                  "the optimization capabilities of the synthesis and apr ",
+                  "tool. Checks generally include objectives like meeting ",
+                  "setup and hold goals and minimize power. Standard check",
+                  "names include setup, hold, power, noise, reliability   ",
                   "                                                       ",
                   "Examples:                                              ",
-                  "cli: -mcmm_goal 'worst goal setup'                     ",
-                  "api: chip.add('mcmm','worst', 'goal', 'setup'          "]
+                  "cli: -mcmm_check 'worst check setup'                   ",
+                  "api: chip.add('mcmm','worst', 'check', 'setup'         "]
     }
 
     return cfg

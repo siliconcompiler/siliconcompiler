@@ -83,7 +83,7 @@ def nangate45_lib(chip, root):
     # rev
     chip.add('stdcells',libname,'rev',rev)    
     # timing
-    chip.add('stdcells',libname,'nldm','typical','lib',
+    chip.add('stdcells',libname,'timing', 'typical', 'nldm', 'lib',
              libdir+'/lib/NangateOpenCellLibrary_typical.lib')
     # lef
     chip.add('stdcells',libname,'lef',
@@ -104,7 +104,7 @@ def nangate45_lib(chip, root):
     chip.add('mcmm','worst','libcorner', corner)
     chip.add('mcmm','worst','pexcorner', corner)
     chip.add('mcmm','worst','mode', 'func')
-    chip.add('mcmm','worst','goal', ['setup','hold'])
+    chip.add('mcmm','worst','check', ['setup','hold'])
     
     # hard coded target lib
     chip.add('target_lib',libname)

@@ -227,10 +227,9 @@ def add_arg(cfg, parser, keys=None):
 def main():
 
     scriptdir = os.path.dirname(os.path.abspath(__file__))
-    reporoot = re.sub('siliconcompiler/siliconcompiler',
-                      'siliconcompiler',
-                      scriptdir)
-    os.environ["SC_ROOT"] = reporoot
+    os.environ["SC_ROOT"] = re.sub('siliconcompiler/siliconcompiler',
+                                   'siliconcompiler',
+                                   scriptdir)
     
     #Command line inputs, read once
     cmdlinecfg = cmdline()
