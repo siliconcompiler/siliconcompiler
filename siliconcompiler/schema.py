@@ -1041,14 +1041,14 @@ def schema_eda(cfg):
             "api: chip.set('tool','place','jobid','5')                "]
 
         #parallelism
-        cfg['tool'][stage]['np'] = {}
-        cfg['tool'][stage]['np']['switch'] = '-tool_np'
-        cfg['tool'][stage]['np']['switch_args'] = '<>'
-        cfg['tool'][stage]['np']['type'] = ['int']
-        cfg['tool'][stage]['np']['requirement'] = ['all']
-        cfg['tool'][stage]['np']['defvalue'] = []
-        cfg['tool'][stage]['np']['short_help'] = 'Thread Parallelism'
-        cfg['tool'][stage]['np']['help'] = [
+        cfg['tool'][stage]['threads'] = {}
+        cfg['tool'][stage]['threads']['switch'] = '-tool_threads'
+        cfg['tool'][stage]['threads']['switch_args'] = '<>'
+        cfg['tool'][stage]['threads']['type'] = ['int']
+        cfg['tool'][stage]['threads']['requirement'] = ['all']
+        cfg['tool'][stage]['threads']['defvalue'] = []
+        cfg['tool'][stage]['threads']['short_help'] = 'Job Parallelism'
+        cfg['tool'][stage]['threads']['help'] = [
             "Specifies the level of CPU thread parallelism to enable  ",
             "on a per stage basis. This information is intended for   ",
             "the EDA tools to use to parallelize workloads on a       ",
@@ -1057,8 +1057,8 @@ def schema_eda(cfg):
             "custom compilation scripts.                              ",
             "                                                         ",
             "Examples:                                                ",
-            "cli: -tool_np 'drc 64'                                   ",
-            "api: chip.set('tool','drc','np','64')                    "]
+            "cli: -tool_threads 'drc 64'                              ",
+            "api: chip.set('tool','drc','threads','64')               "]
 
         #cache
         cfg['tool'][stage]['cache'] = {}
@@ -1077,6 +1077,25 @@ def schema_eda(cfg):
             "Examples:                                                ",
             "cli: -tool_cache 'syn ./disk1/edacache'                  ",
             "api: chip.set('tool','syn','cache','./disk1/edacache')   "]
+
+        #warnings
+        cfg['tool'][stage]['warnoff'] = {}
+        cfg['tool'][stage]['warnoff']['switch'] = '-tool_warnoff'
+        cfg['tool'][stage]['warnoff']['switch_args'] = '<>'
+        cfg['tool'][stage]['warnoff']['type'] = ['file']
+        cfg['tool'][stage]['warnoff']['requirement'] = ['optional']
+        cfg['tool'][stage]['warnoff']['defvalue'] = ['.']
+        cfg['tool'][stage]['warnoff']['short_help']='Warning Filter'
+        cfg['tool'][stage]['warnoff']['help'] = [
+            "Specifies a list of EDA warnings for which printing      ",
+            "should be supressed. Generally this is done on a per     ",
+            "design/node bases after review has determined that       ",
+            "warning can be safely ignored                            ",
+            "                                                         ",
+            "Examples:                                                ",
+            "cli: -tool_warnoff 'import COMBDLY'                      ",
+            "api: chip.set('tool','import','warnoff','COMBDLY')       "]
+        
         
         #keymap
         cfg['tool'][stage]['keymap'] = {}
@@ -2008,7 +2027,8 @@ def schema_constraints(cfg):
         'help' : ["Provides target goals for a scenario aligned with the  ",
                   "optimization capabilities of the synthesis and apr     ",
                   "tool. Goals generally include objectives like meeting  ",
-                  "setup and hold goals and minimize power.               ",
+                  "setup and hold goals and minimize power. Standard goal:",
+                  "names include setup, hold, active_power, standby_power.",
                   "                                                       ",
                   "Examples:                                              ",
                   "cli: -mcmm_goal 'worst goal setup'                     ",
