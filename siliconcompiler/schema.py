@@ -1066,7 +1066,7 @@ def schema_eda(cfg):
         cfg['tool'][stage]['cache']['switch_args'] = '<>'
         cfg['tool'][stage]['cache']['type'] = ['file']
         cfg['tool'][stage]['cache']['requirement'] = ['optional']
-        cfg['tool'][stage]['cache']['defvalue'] = ['.']
+        cfg['tool'][stage]['cache']['defvalue'] = []
         cfg['tool'][stage]['cache']['short_help'] = 'Cache Directory Name'
         cfg['tool'][stage]['cache']['help'] = [
             "Specifies a writeable shared cache directory to be used  ",
@@ -1082,7 +1082,7 @@ def schema_eda(cfg):
         cfg['tool'][stage]['warnoff'] = {}
         cfg['tool'][stage]['warnoff']['switch'] = '-tool_warnoff'
         cfg['tool'][stage]['warnoff']['switch_args'] = '<>'
-        cfg['tool'][stage]['warnoff']['type'] = ['file']
+        cfg['tool'][stage]['warnoff']['type'] = ['string']
         cfg['tool'][stage]['warnoff']['requirement'] = ['optional']
         cfg['tool'][stage]['warnoff']['defvalue'] = ['.']
         cfg['tool'][stage]['warnoff']['short_help']='Warning Filter'
