@@ -8,7 +8,7 @@ def setup_openroad(chip, root):
      refdir = root + '/openroad'
      
      for stage in ('floorplan', 'place', 'cts', 'route', 'signoff'):
-          chip.add('tool', stage, 'np', '4')
+          chip.add('tool', stage, 'threads', '4')
           chip.add('tool', stage, 'format', 'tcl')
           chip.add('tool', stage, 'copy', 'False')
           chip.add('tool', stage, 'vendor', 'openroad')
