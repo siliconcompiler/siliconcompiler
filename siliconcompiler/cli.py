@@ -278,7 +278,7 @@ def main():
     #mychip.check()
 
     #Creating hashes for all sourced files
-    #mychip.hash()
+    mychip.hash()
 
     # Copy files and update config for running on a remote cluster if necessary.
     job_hash = mychip.cfg['design']['value'][0] + '_' + mychip.cfg['target']['value'][0]
