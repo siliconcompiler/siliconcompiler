@@ -250,12 +250,8 @@ def main():
 
     all_stages = mychip.get('compile_stages')
     for stage in all_stages:
-        if stage == 'import':
-            mychip.run(stage)
-            if (len(mychip.cfg['remote']['value']) > 0) and (mychip.cfg['remote']['value'][0] != ""):
-                upload_sources_to_cluster(mychip)
         # Run each stage on the remote compute cluster if requested.
-        elif (len(mychip.cfg['remote']['value']) > 0) and (mychip.cfg['remote']['value'][0] != ""):
+        if (len(mychip.cfg['remote']['value']) > 0) and (mychip.cfg['remote']['value'][0] != ""):
             remote_run(mychip, stage)
         # Run each stage on the local host if no remote server is specified.
         else:

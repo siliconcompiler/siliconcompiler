@@ -36,6 +36,12 @@ def remote_run(chip, stage):
     else:
         chip.logger.info('Running stage: %s', stage)
 
+    # Run the import stage locally, and upload sources to shared storage.
+    if stage == 'import':
+        chip.run(stage)
+        upload_sources_to_cluster(chip)
+        return
+
     # Ask the remote server to start processing the requested step.
     loop = asyncio.get_event_loop()
     loop.run_until_complete(request_remote_run(chip, stage))
