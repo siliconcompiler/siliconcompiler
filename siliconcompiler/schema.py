@@ -361,7 +361,6 @@ def schema_pdk(cfg):
         'requirement' : 'optional',
         'type' : ['string', 'string', 'float', 'float'],
         'defvalue' : [],
-        'hash'   : [],
         'short_help' : 'Place and Route Layer Definitions',
         'help' : ["A optional list of metal layer definitions. Generally,   ",
                   "all APR setup rules would be read from the pdk_aprtec    ",
