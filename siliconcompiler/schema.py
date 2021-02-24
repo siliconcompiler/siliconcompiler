@@ -1295,7 +1295,7 @@ def schema_options(cfg):
         'switch_args' : '',
         'type' : ['bool'],
         'requirement' : 'optional',
-        'defvalue' : ['False'],
+        'defvalue' : ['false'],
         'short_help' : 'Configuration File Lock',
         'help' : ["The boolean lock switch can be used to prevent unintended",
                   "updates to the chip configuration. For example, a team   ",
@@ -1316,7 +1316,7 @@ def schema_options(cfg):
         'switch_args' : '',
         'type' : ['bool'],
         'requirement' : 'optional',
-        'defvalue' : ['False'],
+        'defvalue' : ['false'],
         'short_help' : 'Suppress informational printing',
         'help' : ["Modern EDA tools print significant content to the screen.",
                   "The -quiet option forces all stage prints into a per job ",
@@ -1446,6 +1446,42 @@ def schema_options(cfg):
                   "api: chip.set('msg_contact','wile.e.coyote@acme.com')    "]
     }
 
+    cfg['dft'] = {
+        'switch' : '-dft',
+        'switch_args' : '',
+        'type' : ['bool'],
+        'requirement' : 'optional',
+        'defvalue' : ['false'],
+        'short_help' : 'Design For Test Mode',
+        'help' : ["Enables DFT and scan insertion. It is the designer's     ",
+                  "responsibility to ensure that the RTL is scan and DFT    ",
+                  "ready with the minimum hooks for scan chain and/or MBIST.",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -dft                                                ",
+                  "api: chip.set('dft','true')                              "]
+    }
+
+    cfg['optmode'] = {
+        'switch' : '-O',
+        'switch_args' : '<str>',
+        'type' : ['string'],
+        'requirement' : 'optional',
+        'defvalue' : ['O0'],
+        'short_help' : 'Compiler Optimization Mode',
+        'help' : ["The compiler has modes to prioritize run time and ppa.   ",
+                  "Modes include:                                           ",
+                  "                                                         ",
+                  " (0) = Exploration mode for debugging setup              ",
+                  " (1) = Higher effort and better PPA than O0              ",
+                  " (2) = Higher effort and better PPA than O1              ",
+                  " (3) = Experimental highest effortm, may be unstable     ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -O3                                                 ",
+                  "api: chip.set('optmode','0')                             "]
+    }
+    
     return cfg
 
 ############################################
