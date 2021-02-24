@@ -1,12 +1,12 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
+import argparse
 from aiohttp import web
 import asyncio
 import json
 import logging as log
+import os
 import subprocess
-
-from siliconcompiler.cli import server_cmdline
 
 class Server:
     """
@@ -43,6 +43,7 @@ class Server:
         self.app = web.Application()
         self.app.add_routes([
             web.post('/remote_run/{job_hash}/{stage}', self.handle_remote_run),
+            web.post('/import/{job_hash}', self.handle_import),
             web.get('/get_results/{job_hash}.zip', self.handle_get_results),
             web.get('/check_progress/{job_hash}/{stage}', self.handle_check_progress),
         ])
@@ -67,8 +68,16 @@ class Server:
         if not stage:
           return web.Response(text="Error: no stage provided.")
 
+        # Reset 'build' directory in NFS storage.
+        build_dir = '%s/%s'%(self.cfg['nfsmount']['value'][0], job_hash)
+        cfg['build']['value'] = [build_dir]
+        # Remove 'remote' JSON config value to run locally on compute node.
+        cfg['remote']['value'] = []
+        # Rename source files in the config dict; the 'import' step already
+        # ran and collected the sources into a single 'verilator.v' file.
+        # TODO: Use 'jobid'
+        cfg['source']['value'] = ['%s/%s/import/job1/verilator.v'%(self.cfg['nfsmount']['value'][0], job_hash)]
         # Write JSON config to shared compute storage.
-        build_dir = '%s/%s'%(cfg['nfsmount']['value'][0], job_hash)
         with open('%s/chip.json'%build_dir, 'w') as f:
           f.write(json.dumps(cfg))
 
@@ -82,6 +91,42 @@ class Server:
         # Return a response to the client.
         response_text = "Starting step: %s"%stage
         return web.Response(text=response_text)
+
+    ####################
+    async def handle_import(self, request):
+        '''
+        API handler for 'import' requests. Accepts a file archive upload,
+        which the server extracts into shared compute cluster storage in
+        preparation for running a remote job stage.
+
+        TODO: Infer file type from file extension. Currently only supports .zip
+
+        '''
+
+        # Get the job hash value.
+        job_hash = request.match_info.get('job_hash', None)
+        if not job_hash:
+          return web.Response(text="Error: no job hash provided.")
+        job_root = '%s/%s'%(self.cfg['nfsmount']['value'][0], job_hash)
+        # Receive and write the archive file.
+        reader = await request.multipart()
+        while True:
+            part = await reader.next()
+            if part is None:
+                break
+            if part.name == 'import':
+                with open('%s/import.zip'%(job_root), 'wb') as f:
+                    while True:
+                        chunk = await part.read_chunk()
+                        if not chunk:
+                            break
+                        f.write(chunk)
+
+        # Un-zip the archive file.
+        subprocess.run(['unzip', '-o', '%s/import.zip'%(job_root)], cwd=job_root)
+
+        # Done.
+        return web.Response(text="Successfully imported project %s."%job_hash)
 
     ####################
     async def handle_get_results(self, request):
@@ -141,13 +186,9 @@ class Server:
         export_path += ':/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin'
         # Send JSON config instead of using subset of flags.
         # TODO: Use slurmpy SDK?
-        #srun_cmd = 'srun %s sc - %s'%(export_path, chip_cfg)
-        srun_cmd = 'srun %s sc'%export_path
-        for src in sc_sources:
-            srun_cmd += ' ' + src
-        srun_cmd += ' -target nangate45 -design %s'%(top_module)
-        srun_cmd += ' -build %s'%build_dir
-        srun_cmd += ' -start %s -stop %s'%(stage, stage)
+        srun_cmd  = 'srun %s sc /dev/null '%(export_path)
+        srun_cmd += '-cfgfile %s/chip.json '%(build_dir)
+        srun_cmd += '-start %s -stop %s'%(stage, stage)
 
         # Create async subprocess shell, and block this thread until it finishes.
         proc = await asyncio.create_subprocess_shell(srun_cmd)
@@ -167,6 +208,140 @@ class Server:
 
         # TODO
         pass
+
+###############################################
+# Configuration schema for `sc-server`
+###############################################
+
+def server_schema():
+    '''Method for defining Server configuration schema
+    All the keys defined in this dictionary are reserved words.
+    '''
+
+    cfg = {}
+
+    cfg['port'] = {
+        'short_help': 'Port number to run the server on.',
+        'switch': '-port',
+        'switch_args': '<num>',
+        'type': ['int'],
+        'defvalue': ['8080'],
+        'help' : ["TBD"]
+    }
+
+    cfg['nfsuser'] = {
+        'short_help': 'Username on remote storage host.',
+        'switch': '-nfs_user',
+        'switch_args': '<str>',
+        'type': ['string'],
+        'defvalue': ['ubuntu'],
+        'help' : ["TBD"]
+    }
+
+    cfg['nfshost'] = {
+        'short_help': 'Hostname or IP address for shared storage.',
+        'switch': '-nfs_host',
+        'switch_args': '<str>',
+        'type': ['string'],
+        'defvalue' : [],
+        'help' : ["TBD"]
+    }
+
+    cfg['nfsmount'] = {
+        'short_help': 'Directory of mounted shared NFS storage.',
+        'switch': '-nfs_mount',
+        'switch_args': '<str>',
+        'type': ['string'],
+        'defvalue' : ['/nfs/sc_compute'],
+        'help' : ["TBD"]
+    }
+
+    cfg['nfskey'] = {
+        'short_help': 'Key-file used for remote connection.',
+        'switch': '-nfs_key',
+        'switch_args': '<file>',
+        'type': ['file'],
+        'defvalue' : [],
+        'help' : ["TBD"]
+    }
+
+    return cfg
+
+###############################################
+# Helper method to parse sc-server command-line args.
+###############################################
+
+def server_cmdline():
+    '''
+    Command-line parsing for sc-server variables.
+    TODO: It may be a good idea to merge with 'cmdline()' to reduce code duplication.
+
+    '''
+
+    def_cfg = server_schema()
+
+    os.environ["COLUMNS"] = '100'
+
+    #Argument Parser
+    parser = argparse.ArgumentParser(prog='sc-server',
+                                     formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=50),
+                                     prefix_chars='-+',
+                                     description="Silicon Compiler Collection Remote Job Server (sc-server)")
+
+    # Add supported schema arguments to the parser.
+    for k,v in sorted(def_cfg.items()):
+        keystr = '_'.join(str(k))
+        helpstr = (def_cfg[k]['short_help'] +
+                   '\n\n' +
+                   '\n'.join(def_cfg[k]['help']) +
+                   '\n\n---------------------------------------------------------\n')
+        if def_cfg[k]['type'][-1] == 'bool': #scalar
+            parser.add_argument(def_cfg[k]['switch'],
+                                metavar=def_cfg[k]['switch_args'],
+                                dest=keystr,
+                                action='store_const',
+                                const=['True'],
+                                help=helpstr,
+                                default = argparse.SUPPRESS)
+        else:
+            parser.add_argument(def_cfg[k]['switch'],
+                                metavar=def_cfg[k]['switch_args'],
+                                dest=keystr,
+                                action='append',
+                                help=helpstr,
+                                default = argparse.SUPPRESS)
+
+    #Parsing args and converting to dict
+    cmdargs = vars(parser.parse_args())
+
+    # Generate nested cfg dictionary.
+    for key,all_vals in cmdargs.items():
+        switch = key.split('_')
+        param = switch[0]
+        if len(switch) > 1 :
+            param = param + "_" + switch[1]
+
+        if param not in def_cfg:
+            def_cfg[param] = {}
+
+        #(Omit checks for stdcell, maro, etc; server args are simple.)
+
+        if 'value' not in def_cfg[param]:
+            def_cfg[param] = {}
+            def_cfg[param]['value'] = all_vals
+        else:
+            def_cfg[param]['value'].extend(all_vals)
+
+    # Ensure that the default 'value' fields exist.
+    for key in def_cfg:
+        if (not 'value' in def_cfg[key]) and ('defvalue' in def_cfg[key]):
+            def_cfg[key]['value'] = def_cfg[key]['defvalue']
+
+    return def_cfg
+
+###############################################
+# Main method to run the sc-server application.
+###############################################
 
 def main():
     #Command line inputs and default 'server_schema' config values.

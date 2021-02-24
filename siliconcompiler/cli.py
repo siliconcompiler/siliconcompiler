@@ -14,13 +14,14 @@ from argparse import RawTextHelpFormatter
 #Shorten siliconcompiler as sc
 import siliconcompiler as sc
 from siliconcompiler.schema import schema
-from siliconcompiler.schema import server_schema
 from siliconcompiler.foundry.freepdk45 import freepdk45_pdk
 from siliconcompiler.foundry.freepdk45 import nangate45_lib
 from siliconcompiler.eda.verilator import setup_verilator
 from siliconcompiler.eda.yosys import setup_yosys
 from siliconcompiler.eda.openroad import setup_openroad
 from siliconcompiler.eda.klayout import setup_klayout
+from siliconcompiler.client import remote_run
+from siliconcompiler.client import upload_sources_to_cluster
 
 ###########################
 def cmdline():
@@ -125,63 +126,18 @@ def cmdline():
     return cfg
 
 ###########################
-def server_cmdline():
-    '''
-    Command-line parsing for sc-server variables.
-    TODO: It may be a good idea to merge with 'cmdline()' to reduce code duplication.
-
-    '''
-
-    def_cfg = server_schema()
-
-    os.environ["COLUMNS"] = '100'
-
-    #Argument Parser
-    parser = argparse.ArgumentParser(prog='sc-server',
-                                     formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=50),
-                                     prefix_chars='-+',
-                                     description="Silicon Compiler Collection Remote Job Server (sc-server)")
-
-    #Recursive argument adder
-    add_arg(def_cfg, parser)
-
-    #Parsing args and converting to dict
-    cmdargs = vars(parser.parse_args())
-
-    # Generate nested cfg dictionary.
-    for key,all_vals in cmdargs.items():
-        switch = key.split('_')
-        param = switch[0]
-        if len(switch) > 1 :
-            param = param + "_" + switch[1]
-
-        if param not in def_cfg:
-            def_cfg[param] = {}
-
-        #(Omit checks for stdcell, maro, etc; server args are simple.)
-
-        if 'value' not in def_cfg[param]:
-            def_cfg[param] = {}
-            def_cfg[param]['value'] = all_vals
-        else:
-            def_cfg[param]['value'].extend(all_vals)
-
-    return def_cfg
-
-###########################
 def add_arg(cfg, parser, keys=None):
     ''' Recursively add command line arguments from cfg dictionary
     '''
     if keys is None:
         keys = []
     for k,v in sorted(cfg.items()):
-        #print(k,v)
         #No command line switches for these odd balls
         if k in ('source'):
             pass
         #Optimizing command line switches for these
-        elif k in ('tool'):
-            for k2 in cfg['tool']['syn'].keys():
+        elif k in ('tool', 'metric'):
+            for k2 in cfg[k]['syn'].keys():
                 helpstr = cfg[k]['syn'][k2]['short_help']
                 helpstr = (helpstr +
                            '\n\n' +
@@ -266,7 +222,7 @@ def main():
     # Reading in config files specified at command line
     if 'cfgfile' in  cmdlinecfg.keys():        
         for cfgfile in cmdlinecfg['cfgfile']['value']:
-            chip.readcfg(cfgfile)
+            mychip.readcfg(cfgfile)
         
     # Override with command line arguments
     mychip.mergecfg(cmdlinecfg)
@@ -280,19 +236,9 @@ def main():
     #Creating hashes for all sourced files
     mychip.hash()
 
-    # Copy files and update config for running on a remote cluster if necessary.
+    # Create a 'job hash'. TODO: Don't use 'design' config; it may not exist.
     job_hash = mychip.cfg['design']['value'][0] + '_' + mychip.cfg['target']['value'][0]
     mychip.status['job_hash'] = job_hash
-    if (len(mychip.cfg['remote']['value']) > 0) and (mychip.cfg['remote']['value'][0] != ""):
-        # Re-name the given source files to match compute cluster storage.
-        new_paths = []
-        for filepath in mychip.cfg['source']['value']:
-            filename = filepath[filepath.rfind('/')+1:]
-            new_paths.append(mychip.cfg['nfsmount']['value'][0] + '/' + job_hash + '/' + filename)
-        # Copy the source files to remote compute storage.
-        mychip.upload_sources_to_cluster()
-        # Rename the source file paths in the Chip's config JSON.
-        mychip.cfg['source']['value'] = new_paths
 
     #Lock chip configuration
     mychip.lock()
@@ -304,7 +250,7 @@ def main():
     for stage in all_stages:
         # Run each stage on the remote compute cluster if requested.
         if (len(mychip.cfg['remote']['value']) > 0) and (mychip.cfg['remote']['value'][0] != ""):
-            mychip.remote_run(stage)
+            remote_run(mychip, stage)
         # Run each stage on the local host if no remote server is specified.
         else:
             mychip.run(stage)

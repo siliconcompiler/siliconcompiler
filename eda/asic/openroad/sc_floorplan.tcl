@@ -23,7 +23,6 @@ set corner       "typical"
 set diesize      [dict get $sc_cfg diesize]
 set coresize     [dict get $sc_cfg coresize]
 
-
 #Inputs
 set input_verilog   "inputs/$topmodule.v"
 set input_def       "inputs/$topmodule.def"
