@@ -761,8 +761,8 @@ class Chip:
             #Copy scripts to local if they exist
             #Changing execution link to local
             if schema_istrue(self.cfg['tool'][stage]['copy']['value']):
-                
-                shutil.copytree(self.cfg['tool'][stage]['refdir']['value'][0],
+                dirpath=schema_path(self.cfg['tool'][stage]['refdir']['value'][-1])
+                shutil.copytree(dirpath,
                                 ".",
                                 dirs_exist_ok=True)
                 for value in self.cfg['tool'][stage]['script']['value']:
