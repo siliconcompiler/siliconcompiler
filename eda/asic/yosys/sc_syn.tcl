@@ -8,7 +8,7 @@ set topmodule    [dict get $sc_cfg design]
 set target_lib   [dict get $sc_cfg target_lib]
 
 #TODO: fix to handle multiple libraries
-set library_file [dict get $sc_cfg stdcells $target_lib timing typical nldm lib]
+set library_file [dict get $sc_cfg stdcells $target_lib model typical nldm lib]
 
 #Inputs
 set input_verilog   "inputs/$topmodule.v"

@@ -516,17 +516,37 @@ def schema_libs(cfg, group):
                   "cli: -"+group+"_size 'mylib 0.1 0.5'                     ",
                   "api: chip.set('"+group+"','mylib','size','0.1 0.5')      "]
     }
+    ###############################
+    #Models (Timing, Power, Noise)
+    ###############################
 
-    #Corners
-    cfg[group]['default']['corner'] = {}
-    cfg[group]['default']['corner']['default'] = {}
-    cfg[group]['default']['corner']['default']['check'] = {
-        'switch' : '-'+group+'_corner',
+    cfg[group]['default']['model'] = {}
+    cfg[group]['default']['model']['default'] = {}
+
+    #Operating Conditions (per corner)
+    cfg[group]['default']['model']['default']['opcond'] = {
+        'switch' : '-'+group+'_opcond',
         'switch_args' : '<>',
         'requirement' : 'asic',
         'type' : ['string'],
         'defvalue' : [],
-        'hash' : [],
+        'short_help' : 'Library Operating Condition',
+        'help' : ["Specifies the default operating condition to use for     ",
+                  "mcmm optimization and signoff on a per corner basis.     ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -"+group+"_opcond 'mylib ss_1.0v_125c WORST'        ",
+                  "api: chip.set('"+group+"','mylib','ss_1.0v_125c',        ",
+                  "               'opcond', 'WORST')                        "]
+    }
+        
+    #Checks To Do (per corner)
+    cfg[group]['default']['model']['default']['check'] = {
+        'switch' : '-'+group+'_check',
+        'switch_args' : '<>',
+        'requirement' : 'asic',
+        'type' : ['string'],
+        'defvalue' : [],
         'short_help' : 'Library Corner Checks',
         'help' : ["A dynamic dictionary of recommended per corner checks to ",
                   "to perform during mcmm optimization and STA signoff. The ",
@@ -536,45 +556,101 @@ def schema_libs(cfg, group):
                   "the PDK/Library recommended corner methodology and all   ",
                   "PVT timing corners supported. Standard 'check' names     ",
                   "include setup, hold, power, noise, reliability but can be",
-                  "extended based on eda support and methodology. The format",
-                  "for the dictionary is:                                   ",
-                  "['libname']['corner']['cornername']['check']             ",
-                  "models can be of type CCS or NLDM. CCS models are more   ",
+                  "extended based on eda support and methodology.           ",
                   "                                                         ",
                   "Examples:                                                ",
-                  "cli: -"+group+"_corner 'mylib ss_1.0v_125c setup'        ",
-                  "api: chip.set('"+group+"','mylib','corner',              ",
-                  "               'ss_1.0v_125c setup', mylib_ccs.lib')     "]
+                  "cli: -"+group+"_check 'mylib ss_1.0v_125c setup'         ",
+                  "api: chip.add('"+group+"','mylib','ss_1.0v_125c','check' ",
+                  "              'setup'                                    "]
     }
-    
-    #Timing
-    cfg[group]['default']['timing'] = {}
-    cfg[group]['default']['timing']['default'] = {}
-    cfg[group]['default']['timing']['default']['default'] = {}
-    cfg[group]['default']['timing']['default']['default']['default'] = {
-        'switch' : '-'+group+'_timing',
+        
+    #NLDM
+    cfg[group]['default']['model']['default']['nldm'] = {}
+    cfg[group]['default']['model']['default']['nldm']['default'] = {        
+        'switch' : '-'+group+'_nldm',
         'switch_args' : '<>',
         'requirement' : 'asic',
         'type' : ['file'],
         'defvalue' : [],
         'hash' : [],
-        'short_help' : 'Library Timing Model Files',
-        'help' : ["A dynamic dictionary of paths to timing models. Timing   ",
-                  "models can be of type CCS or NLDM. CCS models are more   ",
-                  "accurate and are required for signoff at advanced nodes, ",
-                  "but are significantly larger and slower. Timing files are",
-                  "specified on a per lib, per corner, and per format basis ",
-                  "with dictionary structure being:                         ",
-                  "['libname']['timing']['corner']['type']['format']        ",
+        'short_help' : 'Library NLDM Timing Model Files',
+        'help' : ["A dynamic dictionary of paths to NLDM models. Timing     ",
+                  "files are specified on a per lib, per corner, and per    ",
+                  "format basis with dictionary structure being:            ",
+                  "['libname']['model']['corner']['nldm']['format']         ",
                   "The format is driven by EDA tool requirements. Examples  ",
                   "of legal formats includ: lib, lib.gz, lib.bz2, and ldb.  ",
                   "                                                         ",
                   "Examples:                                                ",
-                  "cli: -"+group+"_timing 'mylib tt ccs lib mylib_tt.lib'   ",
-                  "api: chip.set('"+group+"','mylib','timing', 'tt',        ",
-                  "              'ccs', 'lib', mylib_ccs.lib')              "]
+                  "cli: -"+group+"_nldm 'mylib tt lib mylib_tt.lib'         ",
+                  "api: chip.set('"+group+"','mylib','model, 'tt',          ",
+                  "              'nlsm', 'lib', mylib_tt.lib')              "]
     }
 
+    #CCS
+    cfg[group]['default']['model']['default']['ccs'] = {}
+    cfg[group]['default']['model']['default']['ccs']['default'] = {        
+        'switch' : '-'+group+'_ccs',
+        'switch_args' : '<>',
+        'requirement' : 'asic',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash' : [],
+        'short_help' : 'Library CCS Timing Model Files',
+        'help' : ["A dynamic dictionary of paths to CCS models. Timing      ",
+                  "files are specified on a per lib, per corner, and per    ",
+                  "format basis with dictionary structure being:            ",
+                  "['libname']['model']['corner']['ccs']['format']          ",
+                  "The format is driven by EDA tool requirements. Examples  ",
+                  "of legal formats includ: lib, lib.gz, lib.bz2, and ldb.  ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -"+group+"_nldm 'mylib tt lib mylib_tt.lib'         ",
+                  "api: chip.set('"+group+"','mylib','model, 'tt',          ",
+                  "              'nlsm', 'lib', mylib_ccs.lib')             "]
+    }
+
+    #AOCV
+    cfg[group]['default']['model']['default']['aocv'] = {        
+        'switch' : '-'+group+'_aocv',
+        'switch_args' : '<>',
+        'requirement' : 'asic',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash' : [],
+        'short_help' : 'Library AOCV Timing Model Files',
+        'help' : ["A dynamic dictionary of paths to AOCV models. Timing     ",
+                  "files are specified on a per lib, per corner, and per    ",
+                  "format basis with dictionary structure being:            ",
+                  "['libname']['model']['corner']['aocv']                   ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -"+group+"_aocv 'mylib tt mylib_tt.aocv'            ",
+                  "api: chip.set('"+group+"','mylib','model, 'tt',          ",
+                  "              'aocv', mylib_tt.aocv')                    "]
+    }
+
+    #APL
+    cfg[group]['default']['model']['default']['apl'] = {}
+    cfg[group]['default']['model']['default']['apl']['default'] = {        
+        'switch' : '-'+group+'_apl',
+        'switch_args' : '<>',
+        'requirement' : 'asic',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash' : [],
+        'short_help' : 'Library APL Power Model Files',
+        'help' : ["A dynamic dictionary of paths to APL models. Power       ",
+                  "files are specified on a per lib, per corner, and per    ",
+                  "format basis with dictionary structure being:            ",
+                  "['libname']['model']['corner']['apl']['type']            ",
+                  "Examples:                                                ",
+                  "cli: -"+group+"_apl 'mylib tt mylib_tt.cdev'             ",
+                  "api: chip.set('"+group+"','mylib','model, 'tt',          ",
+                  "              'apl', 'cdev', mylib_tt.cdev')             "]
+    }
+
+    #LEF
     cfg[group]['default']['lef'] = {
         'switch' : '-'+group+'_lef',
         'switch_args' : '<>',
@@ -592,6 +668,7 @@ def schema_libs(cfg, group):
                   "api: chip.set('"+group+"','mylib','lef','mylib.lef'      "]
     }
 
+    #GDS
     cfg[group]['default']['gds'] = {
         'switch' : '-'+group+'_gds',
         'switch_args' : '<>',

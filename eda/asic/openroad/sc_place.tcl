@@ -40,7 +40,7 @@ read_lef  $techlef
 
 #Setup Libs
 foreach lib $target_libs {
-    read_liberty [dict get $sc_cfg stdcells $lib timing typical nldm lib]
+    read_liberty [dict get $sc_cfg stdcells $lib model typical nldm lib]
     read_lef [dict get $sc_cfg stdcells $lib lef]
     set site [dict get $sc_cfg stdcells $lib site]
 }

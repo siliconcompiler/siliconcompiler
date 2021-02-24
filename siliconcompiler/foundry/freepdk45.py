@@ -30,13 +30,16 @@ def freepdk45_pdk(chip, root):
    
     # DRC
     chip.add('tool','drc','script',pdkdir+'runsets/klayout/freepdk45.lydrc')
+
     # DISPLAY
     chip.add('tool','gdsview','script',pdkdir+'setup/klayout/freepdk45.lyt')
+
     # hard coded target lib
     chip.add('stackup',chip.get('pdk_stackup')[0])
+
     # APR tech file
     chip.add('pdk_aprtech',stackup, libtype, vendor,
-               pdkdir+'/apr/freepdk45.tech.lef')
+             pdkdir+'/apr/freepdk45.tech.lef')
 
     # Techlef Overrides
     chip.add('pdk_aprlayer',stackup, 'metal1 X 0.095 0.19')
@@ -82,9 +85,11 @@ def nangate45_lib(chip, root):
 
     # rev
     chip.add('stdcells',libname,'rev',rev)    
+
     # timing
-    chip.add('stdcells',libname,'timing', 'typical', 'nldm', 'lib',
+    chip.add('stdcells',libname, 'model', 'typical', 'nldm', 'lib',
              libdir+'/lib/NangateOpenCellLibrary_typical.lib')
+    
     # lef
     chip.add('stdcells',libname,'lef',
              libdir+'/lef/NangateOpenCellLibrary.macro.lef')    
