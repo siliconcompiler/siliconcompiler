@@ -15,9 +15,9 @@ import yaml
 import shutil
 import copy
 
-#from collections import defaultdict
-
 from siliconcompiler.schema import schema
+from siliconcompiler.schema import schema_path
+from siliconcompiler.schema import schema_istrue
 
 class Chip:
     """
@@ -573,20 +573,12 @@ class Chip:
         #Recursively going through dict
         for k, v in cfg.items():
             if isinstance(v, dict):
-                #indicates leaf cell
+                #indicates leaf cell/file to act on
                 if 'hash' in cfg[k].keys():
+                    #clear out old values (do comp?)
                     cfg[k]['hash'] = []
                     for i, v in enumerate(cfg[k]['value']):
-                        #resolve dollar signs in path
-                        #!Make this a separate function
-                        var = re.match('^\$(\w+)(.+)', v)
-                        if var:
-                            varpath = os.getenv(var.group(1))
-                            relpath = var.group(2)
-                            filename = varpath + relpath
-                        else:
-                            filename = v
-                        #check if actually file
+                        filename = schema_path(v)
                         if os.path.isfile(filename):
                             sha256_hash = hashlib.sha256()
                             with open(filename, "rb") as f:
@@ -731,7 +723,6 @@ class Chip:
             if os.path.isdir(jobdir):
                 os.system("rm -rf " +  jobdir)
             os.makedirs(jobdir, exist_ok=True)
-            self.logger.info('Entering workig directory %s', jobdir)
             os.chdir(jobdir)
             # Creating standard directory structure
             os.makedirs('outputs', exist_ok=True)
@@ -769,7 +760,7 @@ class Chip:
                 
             #Copy scripts to local if they exist
             #Changing execution link to local
-            if self.cfg['tool'][stage]['copy']['value'][0] == "True":
+            if schema_istrue(self.cfg['tool'][stage]['copy']['value']):
                 
                 shutil.copytree(self.cfg['tool'][stage]['refdir']['value'][0],
                                 ".",
