@@ -29,10 +29,10 @@ def freepdk45_pdk(chip, root):
     chip.add('pdk_stackup', stackup)
    
     # DRC
-    chip.add('tool','drc','script',pdkdir+'runsets/klayout/freepdk45.lydrc')
+    chip.add('tool','drc','script',pdkdir+'/runsets/klayout/freepdk45.lydrc')
 
     # DISPLAY
-    chip.add('tool','gdsview','script',pdkdir+'setup/klayout/freepdk45.lyt')
+    chip.add('tool','gdsview','script',pdkdir+'/setup/klayout/freepdk45.lyt')
 
     # hard coded target lib
     chip.add('stackup',chip.get('pdk_stackup')[0])
