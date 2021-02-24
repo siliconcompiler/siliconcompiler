@@ -152,7 +152,6 @@ class Chip:
         val = all_args[-1]
         
         #set/add leaf cell (all_args=(param,val))
-        #print(mode, all_args)
         if ((mode in ('set', 'add')) & (len(all_args) == 2)):
             #making an 'instance' of default if not found
             if not (param in cfg):
@@ -531,28 +530,6 @@ class Chip:
         '''
         return(1)
 
-    ##################################
-    def writemake(self, cfg, filename):
-        '''Writes out the Chip cfg dictionary in Make format
-
-        Args:
-            cfg (dict): Dictionary to print out in Make format
-            filename (string): Output filename.
-
-        '''
-        pass
-    
-    
-    ##################################
-    def readmake(self, filename):
-        '''Reads in the a Chip configuration in in Make format
-
-        Args:
-            filename (string): Input filename.
-
-        '''
-        return(1)
-
     
     ##################################
     def lock(self):
@@ -577,9 +554,7 @@ class Chip:
                     cfg[k]['value'] = cfg[k]['defvalue'].copy()
                 else:
                     self.reset(cfg=cfg[k])
-        
-   
-                    
+
     ##################################
     def sync(self, stage, jobid):
         '''Waits for jobs for the stage and jobid specified to complete
@@ -587,25 +562,41 @@ class Chip:
 
         '''
     ##################################
-    def hash(self):
+    def hash(self, cfg=None):
         '''Creates hashes for all files sourced by Chip class
 
         '''
-        #TODO: modify to run on directory recursively if found
-        #don't follow links
-        #for root, dirs, files in os.walk(directory):
-        #read files
-        for key in self.cfg:
-            if self.cfg[key]['type'] == "file":
-                for filename in self.cfg[key]['value']:
-                    if os.path.isfile(filename):
-                        sha256_hash = hashlib.sha256()
-                        with open(filename, "rb") as f:
-                            for byte_block in iter(lambda: f.read(4096), b""):
-                                sha256_hash.update(byte_block)
-                            hash_value = sha256_hash.hexdigest()
-                            self.cfg[key]['hash'].append(hash_value)
+        if cfg is None:
+            self.logger.info('Computing hash values for all files')
+            cfg = self.cfg
 
+        #Recursively going through dict
+        for k, v in cfg.items():
+            if isinstance(v, dict):
+                #indicates leaf cell
+                if 'hash' in cfg[k].keys():
+                    cfg[k]['hash'] = []
+                    for i, v in enumerate(cfg[k]['value']):
+                        #resolve dollar signs in path
+                        #!Make this a separate function
+                        var = re.match('^\$(\w+)(.+)', v)
+                        if var:
+                            varpath = os.getenv(var.group(1))
+                            relpath = var.group(2)
+                            filename = varpath + relpath
+                        else:
+                            filename = v
+                        #check if actually file
+                        if os.path.isfile(filename):
+                            sha256_hash = hashlib.sha256()
+                            with open(filename, "rb") as f:
+                                for byte_block in iter(lambda: f.read(4096), b""):
+                                    sha256_hash.update(byte_block)
+                            hash_value = sha256_hash.hexdigest()
+                            cfg[k]['hash'].append(hash_value)
+                else:
+                    self.hash(cfg=cfg[k])
+        
     ##################################
     def compare(self, file1, file2):
         '''Compares Chip configurations contained in two different json files
@@ -779,11 +770,10 @@ class Chip:
             #Copy scripts to local if they exist
             #Changing execution link to local
             if self.cfg['tool'][stage]['copy']['value'][0] == "True":
-                print("COPYLOCAL")
+                
                 shutil.copytree(self.cfg['tool'][stage]['refdir']['value'][0],
                                 ".",
                                 dirs_exist_ok=True)
-                #TODO: add support for abs paths (subtract refdir path)
                 for value in self.cfg['tool'][stage]['script']['value']:
                     cmd_fields.append(value)
             else:
@@ -827,7 +817,7 @@ class Chip:
                             if modmatch:
                                 modules = modules + 1
                                 topmodule = modmatch.group(1)
-                                # Only setting sc_design when appropriate
+                    # Only setting sc_design when appropriate
                     if (modules > 1) & (self.cfg['design']['value'] == ""):
                         self.logger.error('Multiple modules found during import, but sc_design was not set')
                         sys.exit()
@@ -920,3 +910,4 @@ class Chip:
                             )])
 
         # TODO: Also upload .lib, .lef, etc files.
+
