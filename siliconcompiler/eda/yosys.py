@@ -9,7 +9,7 @@ def setup_yosys(chip, root):
 
      chip.add('tool', stage, 'threads', '4')
      chip.add('tool', stage, 'format', 'tcl')
-     chip.add('tool', stage, 'copy', 'False')
+     chip.add('tool', stage, 'copy', 'false')
      chip.add('tool', stage, 'vendor', 'yosys')
      chip.add('tool', stage, 'exe', 'yosys')
      chip.add('tool', stage, 'opt', '-c')

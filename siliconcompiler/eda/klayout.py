@@ -11,7 +11,7 @@ def setup_klayout(chip, root):
      for stage in (['export', 'gdsview']):
           chip.add('tool', stage, 'threads', '4')
           chip.add('tool', stage, 'format', 'tcl')
-          chip.add('tool', stage, 'copy', 'False')
+          chip.add('tool', stage, 'copy', 'false')
           chip.add('tool', stage, 'vendor', 'klayout')
           chip.add('tool', stage, 'exe', 'klayout') 
           chip.add('tool', stage, 'refdir', refdir)

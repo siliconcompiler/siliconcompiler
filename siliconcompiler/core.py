@@ -773,7 +773,7 @@ class Chip:
            
             #Send stdout to logfile
             logfile = exe + ".log"
-            if self.cfg['quiet']['value'][-1] == "True":
+            if schema_istrue(self.cfg['quiet']['value']):
                 cmd_fields.append("> " + logfile)
             else:
                 cmd_fields.append("| tee " + logfile)

@@ -60,8 +60,8 @@ def schema_path(value):
 def schema_istrue(value):
     ''' Checks schema boolean string and returns Python True/False
     '''
-    boolean = value[-1].upper()
-    if boolean == "TRUE":
+    boolean = value[-1].lower()
+    if boolean == "true":
         return True
     else:
         return False
@@ -1108,7 +1108,7 @@ def schema_eda(cfg):
             "                                                         ",
             "Examples:                                                ",
             "cli: -tool_copy 'place True'                             ",
-            "api: chip.set('tool','place','copy','True')              "]
+            "api: chip.set('tool','place','copy','true')              "]
 
         #format
         cfg['tool'][stage]['format'] = {}
@@ -1307,7 +1307,7 @@ def schema_options(cfg):
                   "                                                         ",
                   "Examples:                                                ",
                   "cli: -lock                                               ",
-                  "api: chip.set('lock','True')                             "]
+                  "api: chip.set('lock','true')                             "]
     }
 
     cfg['quiet'] = {
@@ -1324,7 +1324,7 @@ def schema_options(cfg):
                   "                                                         ",
                   "Examples:                                                ",
                   "cli: -quiet                                              ",
-                  "api: chip.set('quiet','True')                            "]
+                  "api: chip.set('quiet','true')                            "]
     }
 
     cfg['debug'] = {
