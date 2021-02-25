@@ -520,16 +520,6 @@ class Chip:
             self.printcfg(cfg, mode="tcl", prefix="dict set sc_cfg", f=f)
         f.close()  
 
-    ##################################
-    def readtcl(self, filename):
-        '''Reads in the a Chip configuration in in TCL format
-
-        Args:
-            filename (string): Input filename.
-
-        '''
-        return(1)
-
     
     ##################################
     def lock(self):
@@ -668,12 +658,48 @@ class Chip:
           error = subprocess.run(cmd, shell=True)
       
     ###################################
-    def metrics(self):
-        '''Displays the metrics of all jobs in a web browser
+    def metrics(self, stage):
+        '''Extract metrics on a per stage basis from logs.
+        Likely strategy for implementtion includes.
 
-         Args:
-            stage: The stage to report on (eg. cts)
-            jobid: Index of job to report on (1, 2, etc)
+        1. Directly From Tools (or qor file)
+        instance count
+        register count
+        runtime
+        peak memory
+        
+
+
+        set hold_tns [get_timing -hold_tns]
+        set hold_wns [get_timing -hold_wns]
+        set setup_tns [get_timing -setup_tns]
+        set setup_wns [get_timing -setup_wns]
+        set power [get_power -type dynamic]
+        set leakage [get_power -type leakage]
+        set area [get_cells -type area]
+        set cells [get_cells -type count]
+        set cells [get_drv -type total/drc/]
+        
+        cfg['real'][stage]['area'] =
+        cfg['real'][stage]['count'] =
+        cfg['real'][stage]['density'] =
+        cfg['real'][stage]['power'] =
+        cfg['real'][stage]['leakage'] =
+        cfg['real'][stage]['hold_tns'] =
+        cfg['real'][stage]['hold_wns'] =
+        cfg['real'][stage]['setup_tns'] =
+        cfg['real'][stage]['setup_wns'] =
+        cfg['real'][stage]['drv'] =
+        cfg['real'][stage]['reports'] =
+
+        2. From log files
+        cfg['real'][stage]['warnings'] =
+        cfg['real'][stage]['errors'] =
+
+        3. In Python/slurm
+        cfg['real'][stage]['runtime'] =        
+        cfg['real'][stage]['memory'] =         
+
         '''
         pass
 

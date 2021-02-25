@@ -1480,6 +1480,24 @@ def schema_metrics(cfg, group):
             "cli: -"+group+"memory 'place 0.1'                        ",
             "api: chip.set('metric','place',',memory', '0.1')         "]
 
+        #QOR files
+        cfg[group][stage]['qorfile'] = {}
+        cfg[group][stage]['qorfile']['switch'] = '-'+group+'_qorfile'
+        cfg[group][stage]['qorfile']['switch_args'] = '<>'
+        cfg[group][stage]['qorfile']['type'] = ['file']
+        cfg[group][stage]['qorfile']['requirement'] = 'optional'
+        cfg[group][stage]['qorfile']['defvalue'] = []
+        cfg[group][stage]['qorfile']['hash'] = []
+        cfg[group][stage]['qorfile']['short_help'] = 'QOR Result Files'
+        cfg[group][stage]['qorfile']['help'] = [
+            "List of files that contain the information used to       ",
+            "populate the metric values                               ",
+            "                                                         ",
+            "Examples:                                                ",
+            "cli: -"+group+"qorfile 'place mydesign_qor.rpt'          ",
+            "api: chip.set('metric','place','qorfile',                ", 
+            "              'mydesign_qor.rpt')                        "]
+
     return cfg
 
 ###########################################################################
