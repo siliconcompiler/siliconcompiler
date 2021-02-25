@@ -18,24 +18,20 @@ def schema():
 
     #LIBS Group
     cfg = schema_libs(cfg, 'stdcells')
-
     cfg = schema_libs(cfg, 'macros')
 
     #EDA Group
     cfg = schema_eda(cfg)
 
-    #Tracking Metrics
-    cfg = schema_metrics(cfg)
+    #Metrics Group
+    cfg = schema_metrics(cfg, 'goal')    
+    cfg = schema_metrics(cfg, 'real')
 
     #Design Group
     cfg = schema_options(cfg)
-
     cfg = schema_rtl(cfg)
-
     cfg = schema_constraints(cfg)
-
     cfg = schema_floorplan(cfg)
-
     cfg = schema_apr(cfg)
 
     #Network Group
@@ -1251,237 +1247,237 @@ def schema_eda(cfg):
 # Metrics to Track 
 ###########################################################################
 
-def schema_metrics(cfg):
+def schema_metrics(cfg, group):
 
-    cfg['metric'] = {}
+    cfg[group] = {}
 
     for stage in cfg['compile_stages']['defvalue']:
 
-        cfg['metric'][stage] = {}
+        cfg[group][stage] = {}
 
         #area
-        cfg['metric'][stage]['area'] = {}
-        cfg['metric'][stage]['area']['switch'] = '-metric_area'
-        cfg['metric'][stage]['area']['switch_args'] = '<>'
-        cfg['metric'][stage]['area']['type'] = ['metric']
-        cfg['metric'][stage]['area']['requirement'] = 'optional'
-        cfg['metric'][stage]['area']['defvalue'] = []
-        cfg['metric'][stage]['area']['short_help'] = 'Cell Area Metric'
-        cfg['metric'][stage]['area']['help'] = [
+        cfg[group][stage]['area'] = {}
+        cfg[group][stage]['area']['switch'] = '-'+group+'_area'
+        cfg[group][stage]['area']['switch_args'] = '<>'
+        cfg[group][stage]['area']['type'] = ['metric']
+        cfg[group][stage]['area']['requirement'] = 'optional'
+        cfg[group][stage]['area']['defvalue'] = []
+        cfg[group][stage]['area']['short_help'] = 'Cell Area Metric'
+        cfg[group][stage]['area']['help'] = [
             "Metric tracking the total cell area on a per stage basis ",
             "specifed in um^2.                                        ",
             "                                                         ",
             "Examples:                                                ",
-            "cli: -metric_area 'place 10000'                          ",
+            "cli: -"+group+"area 'place 10000'                        ",
             "api: chip.set('metric','place',',area', '10000')         "]
 
         #cells
-        cfg['metric'][stage]['cells'] = {}
-        cfg['metric'][stage]['cells']['switch'] = '-metric_cells'
-        cfg['metric'][stage]['cells']['switch_args'] = '<>'
-        cfg['metric'][stage]['cells']['type'] = ['metric']
-        cfg['metric'][stage]['cells']['requirement'] = 'optional'
-        cfg['metric'][stage]['cells']['defvalue'] = []
-        cfg['metric'][stage]['cells']['short_help'] = 'Total Cells Metric'
-        cfg['metric'][stage]['cells']['help'] = [
+        cfg[group][stage]['cells'] = {}
+        cfg[group][stage]['cells']['switch'] = '-'+group+'_cells'
+        cfg[group][stage]['cells']['switch_args'] = '<>'
+        cfg[group][stage]['cells']['type'] = ['metric']
+        cfg[group][stage]['cells']['requirement'] = 'optional'
+        cfg[group][stage]['cells']['defvalue'] = []
+        cfg[group][stage]['cells']['short_help'] = 'Total Cells Metric'
+        cfg[group][stage]['cells']['help'] = [
             "Metric tracking the total number of cells in the design  ",
             "on a per stage basis.                                    ",
             "                                                         ",
             "Examples:                                                ",
-            "cli: -metric_cells 'syn 1000'                            ",
+            "cli: -"+group+"cells 'syn 1000'                          ",
             "api: chip.set('metric','place',',cells', '1000')         "]
 
         #density
-        cfg['metric'][stage]['density'] = {}
-        cfg['metric'][stage]['density']['switch'] = '-metric_density'
-        cfg['metric'][stage]['density']['switch_args'] = '<>'
-        cfg['metric'][stage]['density']['type'] = ['metric']
-        cfg['metric'][stage]['density']['requirement'] = 'optional'
-        cfg['metric'][stage]['density']['defvalue'] = []
-        cfg['metric'][stage]['density']['short_help'] = 'Density Metric'
-        cfg['metric'][stage]['density']['help'] = [
+        cfg[group][stage]['density'] = {}
+        cfg[group][stage]['density']['switch'] = '-'+group+'_density'
+        cfg[group][stage]['density']['switch_args'] = '<>'
+        cfg[group][stage]['density']['type'] = ['metric']
+        cfg[group][stage]['density']['requirement'] = 'optional'
+        cfg[group][stage]['density']['defvalue'] = []
+        cfg[group][stage]['density']['short_help'] = 'Density Metric'
+        cfg[group][stage]['density']['help'] = [
             "Metric tracking the effective density of the design on a ",
             "per stage basis, expressed in %%.                        ",
             "                                                         ",
             "Examples:                                                ",
-            "cli: -metric_density 'place 80'                          ",
+            "cli: -"+group+"density 'place 80'                        ",
             "api: chip.set('metric','place',',density', '80')         "]
 
         #power
-        cfg['metric'][stage]['power'] = {}
-        cfg['metric'][stage]['power']['switch'] = '-metric_power'
-        cfg['metric'][stage]['power']['switch_args'] = '<>'
-        cfg['metric'][stage]['power']['type'] = ['metric']
-        cfg['metric'][stage]['power']['requirement'] = 'optional'
-        cfg['metric'][stage]['power']['defvalue'] = []
-        cfg['metric'][stage]['power']['short_help'] = 'Active Power Metric'
-        cfg['metric'][stage]['power']['help'] = [
+        cfg[group][stage]['power'] = {}
+        cfg[group][stage]['power']['switch'] = '-'+group+'_power'
+        cfg[group][stage]['power']['switch_args'] = '<>'
+        cfg[group][stage]['power']['type'] = ['metric']
+        cfg[group][stage]['power']['requirement'] = 'optional'
+        cfg[group][stage]['power']['defvalue'] = []
+        cfg[group][stage]['power']['short_help'] = 'Active Power Metric'
+        cfg[group][stage]['power']['help'] = [
             "Metric tracking the dynamic power of the design on a per ",
             "based on the setup configuration and power vectors (VCD) ",
             "                                                         ",
             "Examples:                                                ",
-            "cli: -metric_power 'place 0.001'                         ",
+            "cli: -"+group+"power 'place 0.001'                       ",
             "api: chip.set('metric','place',',power', '0.001')        "]
 
         #leakage
-        cfg['metric'][stage]['leakage'] = {}
-        cfg['metric'][stage]['leakage']['switch'] = '-metric_leakage'
-        cfg['metric'][stage]['leakage']['switch_args'] = '<>'
-        cfg['metric'][stage]['leakage']['type'] = ['metric']
-        cfg['metric'][stage]['leakage']['requirement'] = 'optional'
-        cfg['metric'][stage]['leakage']['defvalue'] = []
-        cfg['metric'][stage]['leakage']['short_help'] = 'Leakage Metric'
-        cfg['metric'][stage]['leakage']['help'] = [
+        cfg[group][stage]['leakage'] = {}
+        cfg[group][stage]['leakage']['switch'] = '-'+group+'_leakage'
+        cfg[group][stage]['leakage']['switch_args'] = '<>'
+        cfg[group][stage]['leakage']['type'] = ['metric']
+        cfg[group][stage]['leakage']['requirement'] = 'optional'
+        cfg[group][stage]['leakage']['defvalue'] = []
+        cfg[group][stage]['leakage']['short_help'] = 'Leakage Metric'
+        cfg[group][stage]['leakage']['help'] = [
             "Metric tracking the leakage of the design on a per stage ",
             "basis based on the MCMM setup, tracked in Watts.         ",
             "                                                         ",
             "Examples:                                                ",
-            "cli: -metric_leakage 'place 0.001'                       ",
+            "cli: -"+group+"leakage 'place 0.001'                     ",
             "api: chip.set('metric','place',',leakage', '0.001')      "]
         
         
         #total negative hold slack
-        cfg['metric'][stage]['hold_tns'] = {}
-        cfg['metric'][stage]['hold_tns']['switch'] = '-metric_hold_tns'
-        cfg['metric'][stage]['hold_tns']['switch_args'] = '<>'
-        cfg['metric'][stage]['hold_tns']['type'] = ['metric']
-        cfg['metric'][stage]['hold_tns']['requirement'] = 'optional'
-        cfg['metric'][stage]['hold_tns']['defvalue'] = []
-        cfg['metric'][stage]['hold_tns']['short_help'] = 'Hold TNS Metric'
-        cfg['metric'][stage]['hold_tns']['help'] = [
+        cfg[group][stage]['hold_tns'] = {}
+        cfg[group][stage]['hold_tns']['switch'] = '-'+group+'_hold_tns'
+        cfg[group][stage]['hold_tns']['switch_args'] = '<>'
+        cfg[group][stage]['hold_tns']['type'] = ['metric']
+        cfg[group][stage]['hold_tns']['requirement'] = 'optional'
+        cfg[group][stage]['hold_tns']['defvalue'] = []
+        cfg[group][stage]['hold_tns']['short_help'] = 'Hold TNS Metric'
+        cfg[group][stage]['hold_tns']['help'] = [
             "Metric tracking the total negative hold slack on a pere  ",
             "stage basis, specified in nanoseconds                    ",
             "                                                         ",
             "Examples:                                                ",
-            "cli: -metric_hold_tns 'place 5'                          ",
+            "cli: -"+group+"hold_tns 'place 5'                        ",
             "api: chip.set('metric','place',',hold_tns', '5')         "]
 
         #worst negative hold slack
-        cfg['metric'][stage]['hold_wns'] = {}
-        cfg['metric'][stage]['hold_wns']['switch'] = '-metric_hold_wns'
-        cfg['metric'][stage]['hold_wns']['switch_args'] = '<>'
-        cfg['metric'][stage]['hold_wns']['type'] = ['metric']
-        cfg['metric'][stage]['hold_wns']['requirement'] = 'optional'
-        cfg['metric'][stage]['hold_wns']['defvalue'] = []
-        cfg['metric'][stage]['hold_wns']['short_help'] = 'Hold WNS Metric'
-        cfg['metric'][stage]['hold_wns']['help'] = [
+        cfg[group][stage]['hold_wns'] = {}
+        cfg[group][stage]['hold_wns']['switch'] = '-'+group+'_hold_wns'
+        cfg[group][stage]['hold_wns']['switch_args'] = '<>'
+        cfg[group][stage]['hold_wns']['type'] = ['metric']
+        cfg[group][stage]['hold_wns']['requirement'] = 'optional'
+        cfg[group][stage]['hold_wns']['defvalue'] = []
+        cfg[group][stage]['hold_wns']['short_help'] = 'Hold WNS Metric'
+        cfg[group][stage]['hold_wns']['help'] = [
             "Metric tracking the total negative hold slack on a per   ",
             "stage basis, specified in nanoseconds.                   ",
             "                                                         ",
             "Examples:                                                ",
-            "cli: -metric_hold_wns 'place 0.1'                        ",
+            "cli: -"+group+"hold_wns 'place 0.1'                      ",
             "api: chip.set('metric','place',',hold_wns', '0.1')       "]
 
         #total negative setup slack
-        cfg['metric'][stage]['setup_tns'] = {}
-        cfg['metric'][stage]['setup_tns']['switch'] = '-metric_setup_tns'
-        cfg['metric'][stage]['setup_tns']['switch_args'] = '<>'
-        cfg['metric'][stage]['setup_tns']['type'] = ['metric']
-        cfg['metric'][stage]['setup_tns']['requirement'] = 'optional'
-        cfg['metric'][stage]['setup_tns']['defvalue'] = []
-        cfg['metric'][stage]['setup_tns']['short_help'] = 'Setup TNS Metric'
-        cfg['metric'][stage]['setup_tns']['help'] = [
+        cfg[group][stage]['setup_tns'] = {}
+        cfg[group][stage]['setup_tns']['switch'] = '-'+group+'_setup_tns'
+        cfg[group][stage]['setup_tns']['switch_args'] = '<>'
+        cfg[group][stage]['setup_tns']['type'] = ['metric']
+        cfg[group][stage]['setup_tns']['requirement'] = 'optional'
+        cfg[group][stage]['setup_tns']['defvalue'] = []
+        cfg[group][stage]['setup_tns']['short_help'] = 'Setup TNS Metric'
+        cfg[group][stage]['setup_tns']['help'] = [
             "Metric tracking the total negative setup slack on a pere  ",
             "stage basis, specified in nanoseconds                     ",
             "                                                          ",
             "Examples:                                                 ",
-            "cli: -metric_setup_tns 'place 5'                          ",
+            "cli: -"+group+"setup_tns 'place 5'                        ",
             "api: chip.set('metric','place',',setup_tns', '5')         "]
 
         #worst negative setup slack
-        cfg['metric'][stage]['setup_wns'] = {}
-        cfg['metric'][stage]['setup_wns']['switch'] = '-metric_setup_wns'
-        cfg['metric'][stage]['setup_wns']['switch_args'] = '<>'
-        cfg['metric'][stage]['setup_wns']['type'] = ['metric']
-        cfg['metric'][stage]['setup_wns']['requirement'] = 'optional'
-        cfg['metric'][stage]['setup_wns']['defvalue'] = []
-        cfg['metric'][stage]['setup_wns']['short_help'] = 'Setup WNS Metric'
-        cfg['metric'][stage]['setup_wns']['help'] = [
+        cfg[group][stage]['setup_wns'] = {}
+        cfg[group][stage]['setup_wns']['switch'] = '-'+group+'_setup_wns'
+        cfg[group][stage]['setup_wns']['switch_args'] = '<>'
+        cfg[group][stage]['setup_wns']['type'] = ['metric']
+        cfg[group][stage]['setup_wns']['requirement'] = 'optional'
+        cfg[group][stage]['setup_wns']['defvalue'] = []
+        cfg[group][stage]['setup_wns']['short_help'] = 'Setup WNS Metric'
+        cfg[group][stage]['setup_wns']['help'] = [
             "Metric tracking the total negative setup slack on a per  ",
             "stage basis, specified in nanoseconds.                   ",
             "                                                         ",
             "Examples:                                                ",
-            "cli: -metric_setup_wns 'place 0.1'                       ",
+            "cli: -"+group+"setup_wns 'place 0.1'                     ",
             "api: chip.set('metric','place',',setup_wns', '0.1')      "]
 
         #drv
-        cfg['metric'][stage]['drv'] = {}
-        cfg['metric'][stage]['drv']['switch'] = '-metric_drv'
-        cfg['metric'][stage]['drv']['switch_args'] = '<>'
-        cfg['metric'][stage]['drv']['type'] = ['metric']
-        cfg['metric'][stage]['drv']['requirement'] = 'optional'
-        cfg['metric'][stage]['drv']['defvalue'] = []
-        cfg['metric'][stage]['drv']['short_help'] = 'DRV Metric'
-        cfg['metric'][stage]['drv']['help'] = [
+        cfg[group][stage]['drv'] = {}
+        cfg[group][stage]['drv']['switch'] = '-'+group+'_drv'
+        cfg[group][stage]['drv']['switch_args'] = '<>'
+        cfg[group][stage]['drv']['type'] = ['metric']
+        cfg[group][stage]['drv']['requirement'] = 'optional'
+        cfg[group][stage]['drv']['defvalue'] = []
+        cfg[group][stage]['drv']['short_help'] = 'DRV Metric'
+        cfg[group][stage]['drv']['help'] = [
             "Metric tracking the total number of design rule         ",
             "violations on a per stage basis.                        ",
             "                                                        ",
             "Examples:                                               ",
-            "cli: -metric_drv 'place 0'                              ",
+            "cli: -"+group+"drv 'place 0'                              ",
             "api: chip.set('metric','place',',drv', '')              "]
         
         #warnings
-        cfg['metric'][stage]['warnings'] = {}
-        cfg['metric'][stage]['warnings']['switch'] = '-metric_warnings'
-        cfg['metric'][stage]['warnings']['switch_args'] = '<>'
-        cfg['metric'][stage]['warnings']['type'] = ['metric']
-        cfg['metric'][stage]['warnings']['requirement'] = 'optional'
-        cfg['metric'][stage]['warnings']['defvalue'] = []
-        cfg['metric'][stage]['warnings']['short_help'] = 'Warnings Metric'
-        cfg['metric'][stage]['warnings']['help'] = [
+        cfg[group][stage]['warnings'] = {}
+        cfg[group][stage]['warnings']['switch'] = '-'+group+'_warnings'
+        cfg[group][stage]['warnings']['switch_args'] = '<>'
+        cfg[group][stage]['warnings']['type'] = ['metric']
+        cfg[group][stage]['warnings']['requirement'] = 'optional'
+        cfg[group][stage]['warnings']['defvalue'] = []
+        cfg[group][stage]['warnings']['short_help'] = 'Warnings Metric'
+        cfg[group][stage]['warnings']['help'] = [
             "Metric tracking the total number of warnings on a per    ",
             "stage basis.                                             ",
             "                                                         ",
             "Examples:                                                ",
-            "cli: -metric_warnings 'place 100'                        ",
+            "cli: -"+group+"warnings 'place 100'                      ",
             "api: chip.set('metric','place',',warnings', '100')       "]
 
         #errors
-        cfg['metric'][stage]['errors'] = {}
-        cfg['metric'][stage]['errors']['switch'] = '-metric_errors'
-        cfg['metric'][stage]['errors']['switch_args'] = '<>'
-        cfg['metric'][stage]['errors']['type'] = ['metric']
-        cfg['metric'][stage]['errors']['requirement'] = 'optional'
-        cfg['metric'][stage]['errors']['defvalue'] = []
-        cfg['metric'][stage]['errors']['short_help'] = 'Errors Metric'
-        cfg['metric'][stage]['errors']['help'] = [
+        cfg[group][stage]['errors'] = {}
+        cfg[group][stage]['errors']['switch'] = '-'+group+'_errors'
+        cfg[group][stage]['errors']['switch_args'] = '<>'
+        cfg[group][stage]['errors']['type'] = ['metric']
+        cfg[group][stage]['errors']['requirement'] = 'optional'
+        cfg[group][stage]['errors']['defvalue'] = []
+        cfg[group][stage]['errors']['short_help'] = 'Errors Metric'
+        cfg[group][stage]['errors']['help'] = [
             "Metric tracking the total number of errors on a per stage",
             "basis.                                                   ",
             "                                                         ",
             "Examples:                                                ",
-            "cli: -metric_errors 'place 0'                            ",
+            "cli: -"+group+"errors 'place 0'                          ",
             "api: chip.set('metric','place',',errors', '0')           "]
         
         #runtime
-        cfg['metric'][stage]['runtime'] = {}
-        cfg['metric'][stage]['runtime']['switch'] = '-metric_runtime'
-        cfg['metric'][stage]['runtime']['switch_args'] = '<>'
-        cfg['metric'][stage]['runtime']['type'] = ['metric']
-        cfg['metric'][stage]['runtime']['requirement'] = 'optional'
-        cfg['metric'][stage]['runtime']['defvalue'] = []
-        cfg['metric'][stage]['runtime']['short_help'] = 'Runtime Metric'
-        cfg['metric'][stage]['runtime']['help'] = [
+        cfg[group][stage]['runtime'] = {}
+        cfg[group][stage]['runtime']['switch'] = '-'+group+'_runtime'
+        cfg[group][stage]['runtime']['switch_args'] = '<>'
+        cfg[group][stage]['runtime']['type'] = ['metric']
+        cfg[group][stage]['runtime']['requirement'] = 'optional'
+        cfg[group][stage]['runtime']['defvalue'] = []
+        cfg[group][stage]['runtime']['short_help'] = 'Runtime Metric'
+        cfg[group][stage]['runtime']['help'] = [
             "Metric tracking the total run time on a per stage basis, ",
             "specified in HR:MIN:SEC                                  ",
             "                                                         ",
             "Examples:                                                ",
-            "cli: -metric_runtime 'place 0.1'                         ",
+            "cli: -"+group+"runtime 'place 0.1'                       ",
             "api: chip.set('metric','place',',runtime', '0.1')        "]
 
         #memory
-        cfg['metric'][stage]['memory'] = {}
-        cfg['metric'][stage]['memory']['switch'] = '-metric_memory'
-        cfg['metric'][stage]['memory']['switch_args'] = '<>'
-        cfg['metric'][stage]['memory']['type'] = ['metric']
-        cfg['metric'][stage]['memory']['requirement'] = 'optional'
-        cfg['metric'][stage]['memory']['defvalue'] = []
-        cfg['metric'][stage]['memory']['short_help'] = 'Memory Footprint Metric'
-        cfg['metric'][stage]['memory']['help'] = [
+        cfg[group][stage]['memory'] = {}
+        cfg[group][stage]['memory']['switch'] = '-'+group+'_memory'
+        cfg[group][stage]['memory']['switch_args'] = '<>'
+        cfg[group][stage]['memory']['type'] = ['metric']
+        cfg[group][stage]['memory']['requirement'] = 'optional'
+        cfg[group][stage]['memory']['defvalue'] = []
+        cfg[group][stage]['memory']['short_help'] = 'Memory Footprint Metric'
+        cfg[group][stage]['memory']['help'] = [
             "Metric tracking the peak memory usage on a per stage     ",
             "basis, specified in MB.                                  ",
             "                                                         ",
             "Examples:                                                ",
-            "cli: -metric_memory 'place 0.1'                          ",
+            "cli: -"+group+"memory 'place 0.1'                        ",
             "api: chip.set('metric','place',',memory', '0.1')         "]
 
     return cfg

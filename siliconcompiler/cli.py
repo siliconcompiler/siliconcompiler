@@ -132,11 +132,12 @@ def add_arg(cfg, parser, keys=None):
     if keys is None:
         keys = []
     for k,v in sorted(cfg.items()):
+        #print(k)
         #No command line switches for these odd balls
         if k in ('source'):
             pass
         #Optimizing command line switches for these
-        elif k in ('tool', 'metric'):
+        elif k in ('tool', 'goal', 'real'):
             for k2 in cfg[k]['syn'].keys():
                 helpstr = cfg[k]['syn'][k2]['short_help']
                 helpstr = (helpstr +
