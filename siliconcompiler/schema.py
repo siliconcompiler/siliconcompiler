@@ -44,7 +44,8 @@ def schema():
 ###############################################################################
 
 def schema_path(filename):
-    ''' Resolves file paths using SCPATH
+    ''' Resolves file paths using SCPATH and resolve environment variables
+    denoted by $
     '''
 
     #Resolve absolute path usign SCPATH    
@@ -54,6 +55,13 @@ def schema_path(filename):
         if os.path.exists(abspath):
             filename = abspath
             break
+    #Replace $ Variables
+    varmatch = re.match('^\$(\w+)(.*)', filename)
+    if varmatch:
+        var = varmatch.group(1)
+        varpath = os.getenv(var)
+        relpath = varmatch.group(2)
+        filename = varpath + relpath
 
     return filename
             
