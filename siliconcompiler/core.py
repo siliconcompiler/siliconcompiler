@@ -43,6 +43,19 @@ class Chip:
 
         '''
 
+        # Set Environment Variable if not already set
+        scriptdir = os.path.dirname(os.path.abspath(__file__))
+        rootdir =  re.sub('siliconcompiler/siliconcompiler',
+                          'siliconcompiler',
+                          scriptdir)
+        if os.getenv('SCPATH') == None:
+            os.environ['SCPATH'] = rootdir
+        elif not re.match(rootdir,os.environ['SCPATH']):  
+            os.environ['SCPATH'] = rootdir + " " + str(os.environ['SCPATH'])
+        # Adding current working directory to search path
+        # don't duplicate if running out of install dir
+        if not re.match(rootdir,str(os.getcwd())):   
+            os.environ['SCPATH'] = os.getcwd() + " " + os.environ['SCPATH']            
         # Initialize logger
         self.logger = log.getLogger()
         self.handler = log.StreamHandler()
@@ -59,6 +72,9 @@ class Chip:
         
         # Instance starts unlocked
         self.cfg_locked = False
+
+        #Use built-in target
+        self.builtin_target = False
         
         # Instance starts with all default stages in idle
         self.status = {}
@@ -271,7 +287,9 @@ class Chip:
         #Setting initial dict so user doesn't have to
         if cfg is None:
             self.logger.info('Creating absolute file paths')
-            cfg = self.cfg        
+            cfg = copy.deepcopy(self.cfg)
+        #List of paths to search for files in to resolve
+        scpaths = str(os.environ['SCPATH']).split()
         #Recursively going through dict to set abspaths for files
         for k, v in cfg.items():
             #print(k,v)
@@ -281,12 +299,12 @@ class Chip:
                     #only do something if type is file
                     if(cfg[k]['type'][-1] == 'file'):
                         for i, v in enumerate(cfg[k]['value']):
-                            #Don't replace environment variables
-                            if not re.match('^\$',v):
-                                cfg[k]['value'][i] = os.path.abspath(v)
+                            #Look for relative paths in search path
+                            cfg[k]['value'][i] = schema_path(v)
                 else:
                     self.abspath(cfg=cfg[k])
-
+        return cfg
+    
     ##################################
     def printcfg (self, cfg, keys=None, f=None, mode="", field='value', prefix=""):
         '''Prints out flattened dictionary
@@ -505,8 +523,12 @@ class Chip:
         
         self.logger.info('Writing configuration in TCL format: %s', filepath)
         
+        #Prune CFG before writing out result
         if cfg is None:
-            cfg = self.prune()            
+            cfg = self.prune()
+
+        #Resolve absolute paths (to simplify eda tcl code)
+        cfg = self.abspath(cfg)
 
         #Renaming keys/attribute names before printing
         if(keymap):
@@ -661,46 +683,14 @@ class Chip:
     def metrics(self, stage):
         '''Extract metrics on a per stage basis from logs.
         Likely strategy for implementtion includes.
-
-        1. Directly From Tools (or qor file)
-        instance count
-        register count
-        runtime
-        peak memory
-        
-
-
-        set hold_tns [get_timing -hold_tns]
-        set hold_wns [get_timing -hold_wns]
-        set setup_tns [get_timing -setup_tns]
-        set setup_wns [get_timing -setup_wns]
-        set power [get_power -type dynamic]
-        set leakage [get_power -type leakage]
-        set area [get_cells -type area]
-        set cells [get_cells -type count]
-        set cells [get_drv -type total/drc/]
-        
-        cfg['real'][stage]['area'] =
-        cfg['real'][stage]['count'] =
-        cfg['real'][stage]['density'] =
-        cfg['real'][stage]['power'] =
-        cfg['real'][stage]['leakage'] =
-        cfg['real'][stage]['hold_tns'] =
-        cfg['real'][stage]['hold_wns'] =
-        cfg['real'][stage]['setup_tns'] =
-        cfg['real'][stage]['setup_wns'] =
-        cfg['real'][stage]['drv'] =
-        cfg['real'][stage]['reports'] =
-
-        2. From log files
-        cfg['real'][stage]['warnings'] =
-        cfg['real'][stage]['errors'] =
-
-        3. In Python/slurm
-        cfg['real'][stage]['runtime'] =        
-        cfg['real'][stage]['memory'] =         
-
         '''
+
+        #1. Look at vendor platform
+        #2. Based on target platform load wrapper
+        #3. In wrapper load proprietary modules
+        
+        vendor = self.cfg['tool'][stage]['vendor']['value'][-1]
+
         pass
 
     ###################################
@@ -761,12 +751,16 @@ class Chip:
                 cmd_fields.append(opt)
 
             if exe == "verilator":
+                #Adding launch dir to search path
+                #This is needed since verilator defaults to -y .
+                #and we we are moving directory to a temp
+                cmd_fields.append('-I' + cwd)
                 for value in self.cfg['ydir']['value']:
                     cmd_fields.append('-y ' + value)
                 for value in self.cfg['vlib']['value']:
-                    cmd_fields.append('-v ' + value)
+                    cmd_fields.append('-v ' + value)                    
                 for value in self.cfg['idir']['value']:
-                    cmd_fields.append('-I ' + value)
+                    cmd_fields.append('-I' + value)
                 for value in self.cfg['define']['value']:
                     cmd_fields.append('-D ' + value)
                 for value in self.cfg['source']['value']:
@@ -787,12 +781,13 @@ class Chip:
             #Copy scripts to local if they exist
             #Changing execution link to local
             if schema_istrue(self.cfg['tool'][stage]['copy']['value']):
-                dirpath=schema_path(self.cfg['tool'][stage]['refdir']['value'][-1])
+                dirpath = schema_path(self.cfg['tool'][stage]['refdir']['value'][-1])
                 shutil.copytree(dirpath,
                                 ".",
                                 dirs_exist_ok=True)
                 for value in self.cfg['tool'][stage]['script']['value']:
-                    cmd_fields.append(value)
+                    abspath = schema_path(value)
+                    cmd_fields.append(abspath)
             else:
                for value in self.cfg['tool'][stage]['script']['value']:
                    cmd_fields.append(value)      

@@ -183,11 +183,6 @@ def add_arg(cfg, parser, keys=None):
 ###########################
 def main():
 
-    scriptdir = os.path.dirname(os.path.abspath(__file__))
-    os.environ["SC_ROOT"] = re.sub('siliconcompiler/siliconcompiler',
-                                   'siliconcompiler',
-                                   scriptdir)
-    
     #Command line inputs, read once
     cmdlinecfg = cmdline()
     
@@ -206,18 +201,19 @@ def main():
     if 'target' in  cmdlinecfg.keys():
         target = cmdlinecfg['target']['value'][-1]
         if target in ('freepdk45', 'asap7'):
+            mychip.builtin_target = True
             setup_verilator(mychip)
-            setup_yosys(mychip, '$SC_ROOT/eda/asic')
-            setup_openroad(mychip, '$SC_ROOT/eda/asic')
-            setup_klayout(mychip, '$SC_ROOT/eda/asic')            
+            setup_yosys(mychip)
+            setup_openroad(mychip)
+            setup_klayout(mychip)            
             if target == 'freepdk45': 
-                freepdk45_pdk(mychip, '$SC_ROOT/foundry/')
-                nangate45_lib(mychip, '$SC_ROOT/foundry/')
+                freepdk45_pdk(mychip)
+                nangate45_lib(mychip)
             elif target == 'asap7':
-                asap7_pdk(mychip, '$SC_ROOT/foundry/')
-                asap7_lib(mychip, '$SC_ROOT/foundry/')
+                asap7_pdk(mychip)
+                asap7_lib(mychip)
         else:
-            self.logger.error('Target platform is not defined: %s', target)       
+            self.logger.error('Target platform is not defined: %s', target)
             sys.exit()    
     
     # Reading in config files specified at command line
@@ -229,7 +225,7 @@ def main():
     mychip.mergecfg(cmdlinecfg)
         
     #Resolve as absolute paths (should be a switch)
-    mychip.abspath()
+    #mychip.abspath()
 
     #Checks settings and fills in missing values
     #mychip.check()

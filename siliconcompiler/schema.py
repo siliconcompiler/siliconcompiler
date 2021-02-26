@@ -40,22 +40,23 @@ def schema():
     return cfg
 
 ###############################################################################
-# UTILITY FUNCRIONS
+# UTILITY FUNCTIONS TIED TO SC SPECIFICATIONS
 ###############################################################################
 
-def schema_path(value):
-    ''' Resolves filep paths starting with environment vars, ie '$'
+def schema_path(filename):
+    ''' Resolves file paths using SCPATH
     '''
-    varmatch = re.match('^\$(\w+)(.+)', value)
-    if varmatch:
-        varpath = os.getenv(varmatch.group(1))
-        relpath = varmatch.group(2)
-        filename = varpath + relpath
-    else:
-        filename = value
-        
-    return filename
 
+    #Resolve absolute path usign SCPATH    
+    scpaths = str(os.environ['SCPATH']).split()
+    for searchdir in scpaths:        
+        abspath = searchdir + "/" + filename
+        if os.path.exists(abspath):
+            filename = abspath
+            break
+
+    return filename
+            
 def schema_istrue(value):
     ''' Checks schema boolean string and returns Python True/False
     '''
