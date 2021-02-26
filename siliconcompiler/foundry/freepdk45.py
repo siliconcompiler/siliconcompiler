@@ -2,13 +2,12 @@
 import os
 import sys
 import re
-import siliconcompiler as sc
 
 ####################################################
 # PDK Setup
 ####################################################
 
-def freepdk45_pdk(chip, root):
+def freepdk45_pdk(chip):
 
     foundry = 'virtual'
     process = 'freepdk45'
@@ -16,12 +15,12 @@ def freepdk45_pdk(chip, root):
     stackup = '10M'
     vendor = 'openroad'
     libtype = '10t'
-    pdkdir = '/'.join([root,
+    pdkdir = '/'.join(["foundry",
                        foundry,
                        process,
                        'pdk',
                        rev])
-
+    
     # process name
     chip.add('pdk_foundry', foundry)
     chip.add('pdk_process', process)
@@ -29,10 +28,12 @@ def freepdk45_pdk(chip, root):
     chip.add('pdk_stackup', stackup)
    
     # DRC
-    chip.add('tool','drc','script',pdkdir+'/runsets/klayout/freepdk45.lydrc')
+    chip.add('tool','drc','script',
+             pdkdir+'/runsets/klayout/freepdk45.lydrc')
 
     # DISPLAY
-    chip.add('tool','gdsview','script',pdkdir+'/setup/klayout/freepdk45.lyt')
+    chip.add('tool','gdsview','script',
+             pdkdir+'/setup/klayout/freepdk45.lyt')
 
     # hard coded target lib
     chip.add('stackup',chip.get('pdk_stackup')[0])
@@ -66,7 +67,7 @@ def freepdk45_pdk(chip, root):
 ####################################################
 # Library Setup
 ####################################################
-def nangate45_lib(chip, root):
+def nangate45_lib(chip):
 
     foundry = 'virtual'
     process = 'freepdk45'
@@ -76,7 +77,7 @@ def nangate45_lib(chip, root):
     rev = 'r1p0'
     corner = 'typical'
     objectives = ['setup']
-    libdir = '/'.join([root,
+    libdir = '/'.join(["foundry",
                        foundry,
                        process,
                        'libraries',
@@ -120,15 +121,12 @@ if __name__ == "__main__":
     # File being executed
     prefix = os.path.splitext(os.path.basename(__file__))[0]
     output = prefix + '.json'
-    dirname = os.path.dirname(os.path.abspath(__file__))
-    datadir = re.sub('siliconcompiler/siliconcompiler','siliconcompiler', dirname)
-
 
     # create a chip instance
     chip = sc.Chip()
     # load configuration
-    freepdk45_pdk(chip, datadir)
-    nangate45_lib(chip, datadir)    
+    freepdk45_pdk(chip)
+    nangate45_lib(chip)    
     # write out result
     chip.writecfg(output)
 

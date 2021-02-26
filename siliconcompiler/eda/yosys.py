@@ -1,15 +1,12 @@
 
-import os
-import siliconcompiler as sc
+def setup_yosys(chip):
 
-def setup_yosys(chip, root):
-
-     refdir = root + '/yosys'
+     refdir = 'eda/yosys'
      stage = 'syn'
 
      chip.add('tool', stage, 'threads', '4')
      chip.add('tool', stage, 'format', 'tcl')
-     chip.add('tool', stage, 'copy', 'false')
+     chip.add('tool', stage, 'copy', 'true')
      chip.add('tool', stage, 'vendor', 'yosys')
      chip.add('tool', stage, 'exe', 'yosys')
      chip.add('tool', stage, 'opt', '-c')
