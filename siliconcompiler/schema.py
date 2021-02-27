@@ -2,6 +2,7 @@
 
 import re
 import os
+import textwrap
 
 def schema():
     '''Method for defining Chip configuration schema
@@ -45,7 +46,7 @@ def schema():
 
 def schema_path(filename):
     ''' Resolves file paths using SCPATH and resolve environment variables
-    denoted by $
+    starting with $
     '''
 
     #Resolve absolute path usign SCPATH    
@@ -74,6 +75,33 @@ def schema_istrue(value):
     else:
         return False
 
+def schema_help(cfg, mode='short_help', format="txt", width=80):
+    ''' Prints out help for a leaf cell
+    '''
+
+    
+    if format == "md":
+        string = "### " + cfg['short_help'] +" ###"
+    else:
+        string = cfg['short_help']
+        
+    if mode != 'short_help':
+        descr = ""
+        example = "\n\n"
+        for line in cfg['help']:
+            line = re.sub("\s\s+", " ", line)
+            if re.match('^(Examples|cli|api)', line):
+                example = example + line + "\n"
+            else:
+                descr = descr + line
+        descr = textwrap.fill(descr, width=width)
+        string = string + " \n" + descr + example
+        
+    return string
+
+    pass
+    
+    
 ###############################################################################
 # FPGA
 ###############################################################################
@@ -88,19 +116,19 @@ def schema_fpga(cfg):
         'type' : ['string', 'file'],
         'defvalue' : [],
         'short_help' : 'FPGA Architecture Description',
-        'help' : ["Provides XML-based architecture description for the      ",
-                  "target FPGA architecture to be used in VTR, allowing a   ",
-                  "user to describe a large number of hypothetical and      ",
-                  "commercial architectures.                                ",
-                  "[More information...](https://verilogtorouting.org)      ",
-                  "                                                         ",
-                  "Examples:                                                ",
-                  "cli: -fpga_xml myfpga.xml                                ",
-                  "api:  chip.set('fpga_xml', 'myfpga.xml')                 "]
+        'help' : [
+            "Provides XML-based architecture description for the target FPGA ",
+            "architecture to be used in VTR, allowing a user to describe a   ",
+            "large number of hypothetical and commercial architectures.      ",
+            "[More information...](https://verilogtorouting.org)             ",
+            "                                                                ",
+            "Examples:                                                       ",
+            "cli: -fpga_xml myfpga.xml                                       ",
+            "api:  chip.set('fpga_xml', 'myfpga.xml')                        "
+            ]
     }
 
     return cfg
-
 
 ###############################################################################
 # PDK
@@ -117,14 +145,16 @@ def schema_pdk(cfg):
         'type' : ['string'],
         'defvalue' : [],
         'short_help' : 'Foundry Name',
-        'help' : ["The name of the foundry. For example: intel, gf, tsmc,   ",
-                  "samsung, skywater, virtual. The \'virtual\' keyword is   ",
-                  "reserved for simulated non-manufacturable processes like ",
-                  "freepdk45 and asap7.                                     ",
-                  "                                                         ",
-                  "Examples:                                                ",
-                  "cli: -pdk_foundry virtual                                ",
-                  "api:  chip.set('pdk_foundry', 'virtual')                 "]
+        'help' :[
+            "The name of the foundry. For example: intel, gf, tsmc,   ",
+            "samsung, skywater, virtual. The \'virtual\' keyword is   ",
+            "reserved for simulated non-manufacturable processes like ",
+            "freepdk45 and asap7.                                     ",
+            "                                                         ",
+            "Examples:                                                ",
+            "cli: -pdk_foundry virtual                                ",
+            "api:  chip.set('pdk_foundry', 'virtual')                 "
+        ]
     }
 
     cfg['pdk_process'] = {
