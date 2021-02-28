@@ -118,7 +118,7 @@ def upload_sources_to_cluster(chip):
                     '-r',
                     'import.zip',
                     'import'],
-                   cwd='%s/%s'%(os.environ["SC_ROOT"], chip.cfg['build']['value'][0]))
+                    cwd=chip.cfg['build']['value'][0])
 
     # Upload the archive to the 'import' server endpoint.
     loop = asyncio.get_event_loop()

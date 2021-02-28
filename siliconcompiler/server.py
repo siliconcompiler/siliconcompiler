@@ -115,6 +115,10 @@ class Server:
             if part is None:
                 break
             if part.name == 'import':
+                # Create the working directory for the given 'job hash' UUID.
+                subprocess.run(['mkdir', '-p', job_root])
+
+                # Receive and write the zipped 'import' directory.
                 with open('%s/import.zip'%(job_root), 'wb') as f:
                     while True:
                         chunk = await part.read_chunk()
