@@ -14,12 +14,7 @@ from argparse import RawTextHelpFormatter
 #Shorten siliconcompiler as sc
 import siliconcompiler as sc
 from siliconcompiler.schema import schema
-from siliconcompiler.foundry.freepdk45 import freepdk45_pdk
-from siliconcompiler.foundry.freepdk45 import nangate45_lib
-from siliconcompiler.eda.verilator import setup_verilator
-from siliconcompiler.eda.yosys import setup_yosys
-from siliconcompiler.eda.openroad import setup_openroad
-from siliconcompiler.eda.klayout import setup_klayout
+from siliconcompiler.setup import setup_open
 from siliconcompiler.client import remote_run
 from siliconcompiler.client import upload_sources_to_cluster
 
@@ -202,19 +197,13 @@ def main():
         target = cmdlinecfg['target']['value'][-1]
         if target in ('freepdk45', 'asap7'):
             mychip.builtin_target = True
-            setup_verilator(mychip)
-            setup_yosys(mychip)
-            setup_openroad(mychip)
-            setup_klayout(mychip)            
-            if target == 'freepdk45': 
-                freepdk45_pdk(mychip)
-                nangate45_lib(mychip)
-            elif target == 'asap7':
-                asap7_pdk(mychip)
-                asap7_lib(mychip)
+            setup_open(mychip, target)
         else:
-            self.logger.error('Target platform is not defined: %s', target)
-            sys.exit()    
+            if os.getenv('SCPATH') == None:
+                self.logger.error('Environment variable $SCPATH has not been set, \
+                required closed targets')
+                sys.exit()
+            setup_closed(mychip, target)
     
     # Reading in config files specified at command line
     if 'cfgfile' in  cmdlinecfg.keys():        
