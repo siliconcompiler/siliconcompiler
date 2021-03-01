@@ -180,7 +180,8 @@ def main():
 
     #Command line inputs, read once
     cmdlinecfg = cmdline()
-    
+
+    #Control debug level from the command line
     if 'debug' in  cmdlinecfg.keys():
         loglevel = cmdlinecfg['debug']['value'][-1]
     else:
@@ -188,9 +189,6 @@ def main():
         
     #Create one (or many...) instances of Chip class
     mychip = sc.Chip(loglevel=loglevel)
-
-    # Reading in user variables
-    #mychip.readenv()
 
     # Loading preset values from the command line
     if 'target' in  cmdlinecfg.keys():
@@ -203,6 +201,7 @@ def main():
                 self.logger.error('Environment variable $SCPATH has not been set, \
                 required closed targets')
                 sys.exit()
+            from setup_closed import setup_closed
             setup_closed(mychip, target)
     
     # Reading in config files specified at command line
@@ -210,7 +209,7 @@ def main():
         for cfgfile in cmdlinecfg['cfgfile']['value']:
             mychip.readcfg(cfgfile)
         
-    # Override with command line arguments
+    #Override cfg with command line args
     mychip.mergecfg(cmdlinecfg)
         
     #Resolve as absolute paths (should be a switch)
@@ -229,9 +228,6 @@ def main():
     #Lock chip configuration
     mychip.lock()
     
-    #Printing out run-config
-    mychip.writecfg("sc_setup.json")
-
     all_stages = mychip.get('compile_stages')
     for stage in all_stages:
         # Run each stage on the remote compute cluster if requested.
