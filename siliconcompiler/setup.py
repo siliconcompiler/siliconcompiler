@@ -102,16 +102,3 @@ def setup_cmd(chip,stage):
     return cmd
 
    
-############################
-# Post Process Command
-############################
-
-def post_cmd(chip,stage, vendor):
-    vendor = chip.cfg['tool'][stage]['vendor']['value'][-1]
-    tool  = chip.cfg['tool'][stage]['exe']['value'][-1]
-    module = importlib.import_module('.'+tool,
-                                     package="eda." + vendor)
-    
-    post_process = getattr(module,"post_process")
-    post_process(chip,stage)
-    
