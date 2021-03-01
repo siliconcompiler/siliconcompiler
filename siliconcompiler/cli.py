@@ -14,8 +14,8 @@ from argparse import RawTextHelpFormatter
 
 #Shorten siliconcompiler as sc
 import siliconcompiler as sc
+from siliconcompiler.setup  import find_target
 from siliconcompiler.schema import schema
-from siliconcompiler.setup import setup_open
 from siliconcompiler.client import remote_run
 
 ###########################
@@ -188,54 +188,46 @@ def main():
         loglevel = "DEBUG"
         
     #Create one (or many...) instances of Chip class
-    mychip = sc.Chip(loglevel=loglevel)
+    chip = sc.Chip(loglevel=loglevel)
 
-    # Loading preset values from the command line
+    # Loading target specific module settings
     if 'target' in  cmdlinecfg.keys():
         target = cmdlinecfg['target']['value'][-1]
-        if target in ('freepdk45', 'asap7'):
-            mychip.builtin_target = True
-            setup_open(mychip, target)
-        else:
-            if os.getenv('SCPATH') == None:
-                self.logger.error('Environment variable $SCPATH has not been set, \
-                required closed targets')
-                sys.exit()
-            from setup_closed import setup_closed
-            setup_closed(mychip, target)
-    
+        chip.add('target', target)
+        find_target(chip)
+        
     # Reading in config files specified at command line
     if 'cfgfile' in  cmdlinecfg.keys():        
         for cfgfile in cmdlinecfg['cfgfile']['value']:
-            mychip.readcfg(cfgfile)
+            chip.readcfg(cfgfile)
         
     #Override cfg with command line args
-    mychip.mergecfg(cmdlinecfg)
+    chip.mergecfg(cmdlinecfg)
         
     #Resolve as absolute paths (should be a switch)
-    #mychip.abspath()
+    #chip.abspath()
 
     #Checks settings and fills in missing values
-    #mychip.check()
+    #chip.check()
 
     #Creating hashes for all sourced files
-    mychip.hash()
+    chip.hash()
 
     # Create a 'job hash'.
     job_hash = uuid.uuid4().hex
-    mychip.status['job_hash'] = job_hash
+    chip.status['job_hash'] = job_hash
 
     #Lock chip configuration
-    mychip.lock()
+    chip.lock()
     
-    all_stages = mychip.get('compile_stages')
+    all_stages = chip.get('compile_stages')
     for stage in all_stages:
         # Run each stage on the remote compute cluster if requested.
-        if len(mychip.cfg['remote']['value']) > 0:
-            remote_run(mychip, stage)
+        if len(chip.cfg['remote']['value']) > 0:
+            remote_run(chip, stage)
         # Run each stage on the local host if no remote server is specified.
         else:
-            mychip.run(stage)
+            chip.run(stage)
     
 #########################
 if __name__ == "__main__":    
