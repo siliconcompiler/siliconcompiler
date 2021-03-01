@@ -840,7 +840,7 @@ class Chip:
                     topmodule = self.cfg['design']['value'][-1]
                 # Remove "`line" annotations with local absolute file paths
                 # if the 'remote' option is defined.
-                if (len(self.cfg['remote']['value']) > 0) and (self.cfg['remote']['value'][0] != ""):
+                if len(self.cfg['remote']['value']) > 0:
                     cmd = "mv verilator.v " + "verilator_pre.v"
                     subprocess.run(cmd, shell=True)
                     with open("verilator.v", "w") as wf:

@@ -8,6 +8,7 @@ import os
 import re
 import json
 import sys
+import uuid
 import importlib.resources
 from argparse import RawTextHelpFormatter
 
@@ -16,7 +17,6 @@ import siliconcompiler as sc
 from siliconcompiler.schema import schema
 from siliconcompiler.setup import setup_open
 from siliconcompiler.client import remote_run
-from siliconcompiler.client import upload_sources_to_cluster
 
 ###########################
 def cmdline():
@@ -222,8 +222,8 @@ def main():
     #Creating hashes for all sourced files
     mychip.hash()
 
-    # Create a 'job hash'. TODO: Don't use 'design' config; it may not exist.
-    job_hash = mychip.cfg['design']['value'][0] + '_' + mychip.cfg['target']['value'][0]
+    # Create a 'job hash'.
+    job_hash = uuid.uuid4().hex
     mychip.status['job_hash'] = job_hash
 
     #Lock chip configuration
@@ -235,7 +235,7 @@ def main():
     all_stages = mychip.get('compile_stages')
     for stage in all_stages:
         # Run each stage on the remote compute cluster if requested.
-        if (len(mychip.cfg['remote']['value']) > 0) and (mychip.cfg['remote']['value'][0] != ""):
+        if len(mychip.cfg['remote']['value']) > 0:
             remote_run(mychip, stage)
         # Run each stage on the local host if no remote server is specified.
         else:
