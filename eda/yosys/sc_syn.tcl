@@ -19,6 +19,7 @@ set input_sdc       "inputs/$topmodule.sdc"
 set output_verilog  "outputs/$topmodule.v"
 set output_def      "outputs/$topmodule.def"
 set output_sdc      "outputs/$topmodule.sdc"
+set output_blif      "outputs/$topmodule.blif"
 
 ########################################################
 # Technology Mapping
@@ -55,4 +56,4 @@ yosys clean
 ########################################################
 
 yosys write_verilog -noattr -noexpr -nohex -nodec $output_verilog
-
+yosys write_blif $output_blif
