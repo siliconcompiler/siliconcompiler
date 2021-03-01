@@ -7,9 +7,10 @@ import siliconcompiler as sc
 ################################
 
 def setup_tool(chip, stage):
-     
+    ''' Sets up default settings on a per stage basis
+    '''
     chip.add('tool', stage, 'threads', '4')
-    chip.add('tool', stage, 'format', 'tcl')
+    chip.add('tool', stage, 'format', 'cmdline')
     chip.add('tool', stage, 'copy', 'false')
     chip.add('tool', stage, 'exe', 'verilator')
     chip.add('tool', stage, 'vendor', 'verilator')
@@ -20,6 +21,9 @@ def setup_tool(chip, stage):
 ################################
 
 def setup_options(chip,stage):
+    ''' Per tool/stage function that returns a dynamic options string based on
+    the dictionary settings.
+    '''
 
     #Get default opptions from setup
     options = chip.get('tool', stage, 'opt')
@@ -50,9 +54,13 @@ def setup_options(chip,stage):
 # Pre and Post Run Commands
 ################################
 def pre_process(chip,stage):
+    ''' Tool specific function to run before stage execution
+    '''
     pass
 
 def post_process(chip,stage):
+    ''' Tool specific function to run after stage execution
+    '''
     pass
 
 
