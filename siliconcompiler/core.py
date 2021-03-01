@@ -14,6 +14,7 @@ import webbrowser
 import yaml
 import shutil
 import copy
+import importlib
 
 from siliconcompiler.schema import schema
 from siliconcompiler.schema import schema_path
@@ -709,16 +710,25 @@ class Chip:
 
         cwd = os.getcwd()
 
-        #Looking up stage numbers
+        # Stage Control
+        vendor = self.cfg['tool'][stage]['vendor']['value'][-1]
+        tool = self.cfg['tool'][stage]['exe']['value'][-1]
+        refdir = schema_path(self.cfg['tool'][stage]['refdir']['value'][-1])
+        
         stages = (self.cfg['compile_stages']['value'] +
                   self.cfg['dv_stages']['value'])
         current = stages.index(stage)
         laststage = stages[current-1]
         start = stages.index(self.cfg['start']['value'][-1]) #scalar
         stop = stages.index(self.cfg['stop']['value'][-1]) #scalar
-
-        #Check if stage should be explicitly skipped
         skip = stage in self.cfg['skip']['value']
+
+        #####################
+        # Dynamic Module Load
+        #####################    
+
+        module = importlib.import_module('.'+tool,
+                                         package="eda." + vendor)
         
         if stage not in stages:
             self.logger.error('Illegal stage name %s', stage)
@@ -728,8 +738,7 @@ class Chip:
             self.logger.info('Running stage: %s', stage)
 
             #Updating jobindex
-            jobid = int(self.cfg['tool'][stage]['jobid']['value'][-1]) + 1 #scalar
-            
+            jobid = int(self.cfg['tool'][stage]['jobid']['value'][-1]) + 1 #scalar            
             #Moving to working directory
             jobdir = (str(self.cfg['build']['value'][-1]) + #scalar
                       "/" +
@@ -741,16 +750,20 @@ class Chip:
             if os.path.isdir(jobdir):
                 os.system("rm -rf " +  jobdir)
             os.makedirs(jobdir, exist_ok=True)
+
+            #Changedir
             os.chdir(jobdir)
+
+            #make output directories (hardcoded)
             os.makedirs('outputs', exist_ok=True)
             os.makedirs('reports', exist_ok=True)
 
-            #Implrt stage is special
-            if stage != "import":
-                #Write out CFG dictionary as TCL/JSON
-                self.writetcl("sc_setup.tcl")
-                self.writecfg("sc_setup.json")
-                #Copy outputs from last stage
+            #Create Logcal copuesLocal configuration files
+            self.writetcl("sc_setup.tcl")
+            self.writecfg("sc_setup.json")
+            
+            #Copy outputs from last stage unless import                        
+            if stage != "import":              
                 lastjobid = self.cfg['tool'][laststage]['jobid']['value'][-1]
                 lastdir = '/'.join(['../../',                
                                     stages[current-1],
@@ -758,72 +771,51 @@ class Chip:
                                     'outputs'])
                 shutil.copytree(lastdir, 'inputs')
                 
-            #Copy scripts for local option
+            #Copy Reference Scripts
             if schema_istrue(self.cfg['tool'][stage]['copy']['value']):
-                dirpath = schema_path(self.cfg['tool'][stage]['refdir']['value'][-1])
-                shutil.copytree(dirpath,
+                shutil.copytree(refdir,
                                 ".",
                                 dirs_exist_ok=True)
-          
             
-            #Create Run Command
-            cmd = setup_cmd(self,stage)
+           
+            #####################
+            # Pre Process
+            #####################
 
-            #Create a run scrript
+            pre_process = getattr(module,"pre_process")
+            pre_process(self,stage)
+
+            #####################
+            # Run Executable
+            #####################
+
+            cmd = setup_cmd(self,stage)
             with open("run.sh", 'w') as f:
                 print("#!/bin/bash", file=f)
                 print(cmd, file=f)
             f.close()
             os.chmod("run.sh", 0o755)
-
-            #run command
+            
             self.logger.info('%s', cmd)
             error = subprocess.run(cmd, shell=True)
             if error.returncode:
-                self.logger.error('Command failed. See log file %s', os.path.abspath(logfile))
+                self.logger.error('Command failed. See log file %s',
+                                  os.path.abspath(logfile))
                 sys.exit()
 
-            #Post process (only for verilator for now)
-            #TODO: Cleanup, add post run script?
-            exe = self.cfg['tool'][stage]['exe']['value'][-1] #scalar
-            if exe == "verilator":
-                #hack: use the --debug feature in verilator to output .vpp files
-                #hack: workaround yosys parser error
-                cmd = ('grep -h -v \`begin_keywords obj_dir/*.vpp > verilator.v')
-                subprocess.run(cmd, shell=True)
-                #hack: extracting topmodule from concatenated verilator files
-                modules = 0
-                if(len(self.cfg['design']['value']) < 1):
-                    with open("verilator.v", "r") as open_file:
-                        for line in open_file:
-                            modmatch = re.match('^module\s+(\w+)', line)
-                            if modmatch:
-                                modules = modules + 1
-                                topmodule = modmatch.group(1)
-                    # Only setting sc_design when appropriate
-                    if (modules > 1) & (self.cfg['design']['value'] == ""):
-                        self.logger.error('Multiple modules found during import, but sc_design was not set')
-                        sys.exit()
-                    else:
-                        self.logger.info('Setting design (topmodule) to %s', topmodule)
-                        self.cfg['design']['value'].append(topmodule)
-                else:
-                    topmodule = self.cfg['design']['value'][-1]
-                # Remove "`line" annotations with local absolute file paths
-                # if the 'remote' option is defined.
-                if len(self.cfg['remote']['value']) > 0:
-                    cmd = "mv verilator.v " + "verilator_pre.v"
-                    subprocess.run(cmd, shell=True)
-                    with open("verilator.v", "w") as wf:
-                        with open("verilator_pre.v", "r") as rf:
-                            for line in rf:
-                                if line[:5] != '`line':
-                                    wf.write(line)
-                # Copy the linted Verilog code into the output directory.
-                cmd = "cp verilator.v " + "outputs/" + topmodule + ".v"
-                subprocess.run(cmd, shell=True)
+            #####################
+            # Post Process
+            #####################        
+            
+            post_process = getattr(module,"post_process")
+            post_process(self,stage)
+
+            #####################
+            # Finish
+            #####################        
 
             #Updating jobid when complete
             self.cfg['tool'][stage]['jobid']['value'] = [str(jobid)]
+
             #Return to CWD
             os.chdir(cwd)

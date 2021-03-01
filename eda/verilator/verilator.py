@@ -1,6 +1,5 @@
 import os
-import siliconcompiler as sc
-
+import subprocess
 
 ################################
 # Setup Verilator
@@ -14,6 +13,8 @@ def setup_tool(chip, stage):
     chip.add('tool', stage, 'copy', 'false')
     chip.add('tool', stage, 'exe', 'verilator')
     chip.add('tool', stage, 'vendor', 'verilator')
+    chip.add('tool', stage, 'refdir', '')
+    chip.add('tool', stage, 'script', '')
     chip.add('tool', stage, 'opt', '--lint-only --debug')
   
 ################################
@@ -61,7 +62,34 @@ def pre_process(chip,stage):
 def post_process(chip,stage):
     ''' Tool specific function to run after stage execution
     '''
-    pass
+
+    # filtering out debug garbage
+    subprocess.run('grep -h -v \`begin_keywords obj_dir/*.vpp > verilator.v',
+                   shell=True)
+                   
+    # setting top module of design
+    modules = 0
+    if(len(chip.cfg['design']['value']) < 1):
+        with open("verilator.v", "r") as open_file:
+            for line in open_file:
+                modmatch = re.match('^module\s+(\w+)', line)
+                if modmatch:
+                    modules = modules + 1
+                    topmodule = modmatch.group(1)
+        # Only setting design when possible
+        if (modules > 1) & (chip.cfg['design']['value'] == ""):
+            chip.logger.error('Multiple modules found during import, \
+            but sc_design was not set')
+            sys.exit()
+        else:
+            chip.logger.info('Setting design (topmodule) to %s', topmodule)
+            chip.cfg['design']['value'].append(topmodule)
+    else:
+        topmodule = chip.cfg['design']['value'][-1]
+
+    # Creating file for handoff to synthesis  
+    subprocess.run("cp verilator.v " + "outputs/" + topmodule + ".v",
+                   shell=True)
 
 
 

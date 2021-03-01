@@ -65,18 +65,6 @@ def setup_stage(chip, stage, vendor):
 # Runtime Options
 ############################
 
-def find_options(chip, stage):
-    vendor = chip.cfg['tool'][stage]['vendor']['value'][-1]
-    tool  = chip.cfg['tool'][stage]['exe']['value'][-1]
-    module = importlib.import_module('.'+tool,
-                                     package="eda." + vendor)
-    setup_options = getattr(module,"setup_options")
-    options = setup_options(chip,stage)
-    return options
-
-############################
-# Setup Run Command
-############################
 def setup_cmd(chip,stage):
 
     #Set Executable
@@ -84,7 +72,14 @@ def setup_cmd(chip,stage):
     cmd_fields = [exe]
 
     #Dynamically generate options
-    options = find_options(chip,stage)
+    vendor = chip.cfg['tool'][stage]['vendor']['value'][-1]
+    tool  = chip.cfg['tool'][stage]['exe']['value'][-1]
+    module = importlib.import_module('.'+tool,
+                                     package="eda." + vendor)
+    setup_options = getattr(module,"setup_options")
+    options = setup_options(chip,stage)
+
+    #Add options to cmd list
     cmd_fields.extend(options)        
 
     #Resolve Paths
@@ -107,3 +102,16 @@ def setup_cmd(chip,stage):
     return cmd
 
    
+############################
+# Post Process Command
+############################
+
+def post_cmd(chip,stage, vendor):
+    vendor = chip.cfg['tool'][stage]['vendor']['value'][-1]
+    tool  = chip.cfg['tool'][stage]['exe']['value'][-1]
+    module = importlib.import_module('.'+tool,
+                                     package="eda." + vendor)
+    
+    post_process = getattr(module,"post_process")
+    post_process(chip,stage)
+    

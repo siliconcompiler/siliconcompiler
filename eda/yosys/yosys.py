@@ -16,3 +16,16 @@ def setup_options(chip,stage):
 
      options = chip.get('tool', stage, 'opt')
      return options
+
+################################
+# Pre and Post Run Commands
+################################
+def pre_process(chip,stage):
+    ''' Tool specific function to run before stage execution
+    '''
+    pass
+
+def post_process(chip,stage):
+    ''' Tool specific function to run after stage execution
+    '''
+    pass
