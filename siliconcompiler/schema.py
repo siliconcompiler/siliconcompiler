@@ -78,7 +78,6 @@ def schema_istrue(value):
 def schema_help(cfg, mode='short_help', format="txt", width=80):
     ''' Prints out help for a leaf cell
     '''
-
     
     if format == "md":
         string = "### " + cfg['short_help'] +" ###"
@@ -128,6 +127,7 @@ def schema_fpga(cfg):
             ]
     }
 
+    
     return cfg
 
 ###############################################################################
@@ -1546,6 +1546,22 @@ def schema_metrics(cfg, group):
 def schema_options(cfg):
     ''' Run-time options
     '''
+    
+    cfg['mode'] = {
+        'switch' : '-mode',
+        'switch_args' : '<file>',
+        'type' : ['file'],
+        'requirement' : 'optional',
+        'defvalue' : ['asic'],
+        'hash'   : [],
+        'short_help' : 'Compiler Mode',
+        'help' : ["Sets the compilation flow to 'fpga' or 'asic. The default",
+                  "is 'asic'                                                ",
+                  "Examples:                                                ",
+                  "cli: -mode 'fpga'                                        ",
+                  "api: chip.set('mode,'fpga')                              "]
+    }
+    
     cfg['cfgfile'] = {
         'switch' : '-cfgfile',
         'switch_args' : '<file>',
