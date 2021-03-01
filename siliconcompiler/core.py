@@ -705,12 +705,10 @@ class Chip:
         state and the function cal returns to main.
         '''
 
-        #Hard coded directory structure is
-        #sc_build/stage/job{id}
+        #####################
+        # Run Setup
+        ##################### 
 
-        cwd = os.getcwd()
-
-        # Stage Control
         vendor = self.cfg['tool'][stage]['vendor']['value'][-1]
         tool = self.cfg['tool'][stage]['exe']['value'][-1]
         refdir = schema_path(self.cfg['tool'][stage]['refdir']['value'][-1])
@@ -730,6 +728,10 @@ class Chip:
         module = importlib.import_module('.'+tool,
                                          package="eda." + vendor)
         
+        #####################
+        # Conditional Execution
+        #####################    
+
         if stage not in stages:
             self.logger.error('Illegal stage name %s', stage)
         elif (current < start) | (current > stop) | skip:
@@ -738,7 +740,8 @@ class Chip:
             self.logger.info('Running stage: %s', stage)
 
             #Updating jobindex
-            jobid = int(self.cfg['tool'][stage]['jobid']['value'][-1]) + 1 #scalar            
+            jobid = int(self.cfg['tool'][stage]['jobid']['value'][-1]) + 1
+
             #Moving to working directory
             jobdir = (str(self.cfg['build']['value'][-1]) + #scalar
                       "/" +
@@ -750,11 +753,10 @@ class Chip:
             if os.path.isdir(jobdir):
                 os.system("rm -rf " +  jobdir)
             os.makedirs(jobdir, exist_ok=True)
-
-            #Changedir
+            cwd = os.getcwd()
             os.chdir(jobdir)
 
-            #make output directories (hardcoded)
+            #make output directories
             os.makedirs('outputs', exist_ok=True)
             os.makedirs('reports', exist_ok=True)
 
@@ -777,7 +779,6 @@ class Chip:
                                 ".",
                                 dirs_exist_ok=True)
             
-           
             #####################
             # Pre Process
             #####################
@@ -790,6 +791,7 @@ class Chip:
             #####################
 
             cmd = setup_cmd(self,stage)
+
             with open("run.sh", 'w') as f:
                 print("#!/bin/bash", file=f)
                 print(cmd, file=f)
@@ -798,6 +800,7 @@ class Chip:
             
             self.logger.info('%s', cmd)
             error = subprocess.run(cmd, shell=True)
+
             if error.returncode:
                 self.logger.error('Command failed. See log file %s',
                                   os.path.abspath(logfile))
@@ -807,12 +810,9 @@ class Chip:
             # Post Process
             #####################        
             
+            #run tool specific post process
             post_process = getattr(module,"post_process")
             post_process(self,stage)
-
-            #####################
-            # Finish
-            #####################        
 
             #Updating jobid when complete
             self.cfg['tool'][stage]['jobid']['value'] = [str(jobid)]
