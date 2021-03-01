@@ -7,7 +7,7 @@ import siliconcompiler
 ####################################################
 # Library Setup
 ####################################################
-def setup_freepdk45_libs(chip):
+def setup_libs(chip):
 
     foundry = 'virtual'
     process = 'freepdk45'
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     # create a chip instance
     chip = siliconcompiler.Chip()
     # load configuration
-    setup_freepdk45_libs(chip)
+    setup_libs(chip)
     # write out result
     chip.writecfg(output)
 

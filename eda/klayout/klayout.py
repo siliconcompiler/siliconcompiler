@@ -1,5 +1,5 @@
 
-def setup_klayout(chip):
+def setup_tool(chip, stage):
 
      refdir = 'eda/klayout'
      
@@ -13,5 +13,11 @@ def setup_klayout(chip):
           if stage == 'gdsview':               
                chip.add('tool', stage, 'opt', '-nn')
           elif stage == 'export':               
-               chip.add('tool', stage, 'opt', '-rm')   
+               chip.add('tool', stage, 'opt', '-rm')
+          
 
+
+def setup_options(chip,stage):
+     
+     options = chip.get('tool', stage, 'opt')
+     return options

@@ -2,13 +2,12 @@
 import os
 import sys
 import re
-import siliconcompiler
 
 ####################################################
 # PDK Setup
 ####################################################
 
-def setup_freepdk45_pdk(chip):
+def setup_pdk(chip):
 
     foundry = 'virtual'
     process = 'freepdk45'
@@ -75,7 +74,7 @@ if __name__ == "__main__":
     # create a chip instance
     chip = siliconcompiler.Chip()
     # load configuration
-    setup_freepdk45_pdk(chip)
+    setup_pdk(chip)
     # write out result
     chip.writecfg(output)
 

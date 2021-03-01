@@ -1,8 +1,7 @@
 
-def setup_yosys(chip):
+def setup_tool(chip, stage):
 
      refdir = 'eda/yosys'
-     stage = 'syn'
 
      chip.add('tool', stage, 'threads', '4')
      chip.add('tool', stage, 'format', 'tcl')
@@ -13,4 +12,7 @@ def setup_yosys(chip):
      chip.add('tool', stage, 'refdir', refdir)
      chip.add('tool', stage, 'script', refdir + '/sc_syn.tcl')
    
-           
+def setup_options(chip,stage):
+
+     options = chip.get('tool', stage, 'opt')
+     return options
