@@ -10,11 +10,11 @@ proc sc_read_inputs { root } {
 
 proc sc_write_outputs { root } {
 
-    write_def     "$root.def"
+    write_def     "output/$root.def"
 
-    write_verilog "$root.v"
+    write_verilog "output/$root.v"
     
-    write_sdc     "$root.sdc"
+    write_sdc     "output/$root.sdc"
 
 }
 

@@ -90,10 +90,18 @@ if {[file exists $input_def]} {
 
 remove_buffers
 
-#################
-# Write Output
-#################
+################################################################
+# Reporting
+################################################################
 
-write_def $output_def
+report_tns
+report_wns
+report_design_area
 
+################################################################
+# Outputs (def,verilog,sdc)
+################################################################
 
+write_def     "outputs/$topmodule.def"
+write_verilog "outputs/$topmodule.v"
+write_sdc     "outputs/$topmodule.sdc"

@@ -95,10 +95,15 @@ global_placement -disable_routability_driven -density 0.3
 # Reporting
 ################################################################
 
-sc_write_reports $topmodule
+report_tns
+report_wns
+report_design_area
 
 ################################################################
 # Outputs (def,verilog,sdc)
 ################################################################
 
-sc_write_outputs $topmodule
+write_def     "outputs/$topmodule.def"
+write_verilog "outputs/$topmodule.v"
+write_sdc     "outputs/$topmodule.sdc"
+
