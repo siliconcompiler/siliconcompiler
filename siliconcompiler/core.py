@@ -18,6 +18,7 @@ import copy
 from siliconcompiler.schema import schema
 from siliconcompiler.schema import schema_path
 from siliconcompiler.schema import schema_istrue
+from siliconcompiler.setup  import setup_cmd
 
 class Chip:
     """
@@ -736,36 +737,16 @@ class Chip:
                       "/job" +
                       str(jobid))
 
+            #Creating Temporary Working Dir
             if os.path.isdir(jobdir):
                 os.system("rm -rf " +  jobdir)
             os.makedirs(jobdir, exist_ok=True)
             os.chdir(jobdir)
-            # Creating standard directory structure
             os.makedirs('outputs', exist_ok=True)
             os.makedirs('reports', exist_ok=True)
 
-            #Prepare tool command
-            exe = self.cfg['tool'][stage]['exe']['value'][-1] #scalar
-            cmd_fields = [exe]
-            for opt in self.cfg['tool'][stage]['opt']['value']:
-                cmd_fields.append(opt)
-
-            if exe == "verilator":
-                #Adding launch dir to search path
-                #This is needed since verilator defaults to -y .
-                #and we we are moving directory to a temp
-                cmd_fields.append('-I' + cwd)
-                for value in self.cfg['ydir']['value']:
-                    cmd_fields.append('-y ' + value)
-                for value in self.cfg['vlib']['value']:
-                    cmd_fields.append('-v ' + value)                    
-                for value in self.cfg['idir']['value']:
-                    cmd_fields.append('-I' + value)
-                for value in self.cfg['define']['value']:
-                    cmd_fields.append('-D ' + value)
-                for value in self.cfg['source']['value']:
-                    cmd_fields.append(value)
-            else:
+            #Implrt stage is special
+            if stage != "import":
                 #Write out CFG dictionary as TCL/JSON
                 self.writetcl("sc_setup.tcl")
                 self.writecfg("sc_setup.json")
@@ -775,32 +756,20 @@ class Chip:
                                     stages[current-1],
                                     'job'+lastjobid,
                                     'outputs'])
-                if (os.path.isdir(lastdir)):
-                    shutil.copytree(lastdir, 'inputs')
+                shutil.copytree(lastdir, 'inputs')
                 
-            #Copy scripts to local if they exist
-            #Changing execution link to local
+            #Copy scripts for local option
             if schema_istrue(self.cfg['tool'][stage]['copy']['value']):
                 dirpath = schema_path(self.cfg['tool'][stage]['refdir']['value'][-1])
                 shutil.copytree(dirpath,
                                 ".",
                                 dirs_exist_ok=True)
-                for value in self.cfg['tool'][stage]['script']['value']:
-                    abspath = schema_path(value)
-                    cmd_fields.append(abspath)
-            else:
-               for value in self.cfg['tool'][stage]['script']['value']:
-                   cmd_fields.append(value)      
-           
-            #Send stdout to logfile
-            logfile = exe + ".log"
-            if schema_istrue(self.cfg['quiet']['value']):
-                cmd_fields.append("> " + logfile)
-            else:
-                cmd_fields.append("| tee " + logfile)
-            cmd = ' '.join(cmd_fields)
+          
+            
+            #Create Run Command
+            cmd = setup_cmd(self,stage)
 
-            #Create a shells cript for rerun purposes
+            #Create a run scrript
             with open("run.sh", 'w') as f:
                 print("#!/bin/bash", file=f)
                 print(cmd, file=f)
@@ -815,6 +784,8 @@ class Chip:
                 sys.exit()
 
             #Post process (only for verilator for now)
+            #TODO: Cleanup, add post run script?
+            exe = self.cfg['tool'][stage]['exe']['value'][-1] #scalar
             if exe == "verilator":
                 #hack: use the --debug feature in verilator to output .vpp files
                 #hack: workaround yosys parser error
