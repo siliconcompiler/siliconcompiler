@@ -41,6 +41,8 @@ yosys opt
 
 yosys abc -liberty $library_file
 
+yosys stat -liberty $library_file
+
 ########################################################
 # Cleanup
 ########################################################
