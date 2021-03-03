@@ -193,9 +193,11 @@ def main():
     # Loading target specific module settings
     if 'target' in  cmdlinecfg.keys():
         target = cmdlinecfg['target']['value'][-1]
-        chip.add('target', target)
-        find_target(chip)
-        
+    else:
+        target = "freepdk45"
+    chip.add('target', target)
+    find_target(chip)
+    
     # Reading in config files specified at command line
     if 'cfgfile' in  cmdlinecfg.keys():        
         for cfgfile in cmdlinecfg['cfgfile']['value']:
