@@ -1,5 +1,7 @@
 import os
 import subprocess
+import re
+from siliconcompiler.schema import schema_istrue
 
 ################################
 # Setup Verilator
@@ -8,6 +10,7 @@ import subprocess
 def setup_tool(chip, stage):
     ''' Sets up default settings on a per stage basis
     '''
+
     chip.add('tool', stage, 'threads', '4')
     chip.add('tool', stage, 'format', 'cmdline')
     chip.add('tool', stage, 'copy', 'false')
@@ -34,6 +37,8 @@ def setup_options(chip,stage):
     cwd = os.getcwd()    
     options.append('-I' + cwd + "/../../../")
 
+    #Source Level Controls
+
     for value in chip.cfg['ydir']['value']:
         options.append('-y ' + value)
 
@@ -46,8 +51,21 @@ def setup_options(chip,stage):
     for value in chip.cfg['define']['value']:
         options.append('-D ' + value)
 
+    for value in chip.cfg['cmdfile']['value']:
+        options.append('-f ' + value)
+        
     for value in chip.cfg['source']['value']:
         options.append(value)
+
+    #Relax Linting
+    supress_warnings = ['-Wno-UNOPTFLAT',
+                        '-Wno-SELRANGE',
+                        '-Wno-WIDTH',
+                        '-Wno-fatal']
+    
+    if schema_istrue(chip.cfg['relax']['value']):
+        for value in supress_warnings:
+            options.append(value)
 
     return options
 
@@ -64,7 +82,7 @@ def post_process(chip,stage):
     '''
 
     # filtering out debug garbage
-    subprocess.run('grep -h -v \`begin_keywords obj_dir/*.vpp > verilator.v',
+    subprocess.run('egrep -h -v "\`begin_keywords" obj_dir/*.vpp > verilator.v',
                    shell=True)
                    
     # setting top module of design
