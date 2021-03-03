@@ -1793,6 +1793,23 @@ def schema_options(cfg):
                   "api: chip.set('optmode','0')                             "]
     }
     
+    cfg['relax'] = {
+        'switch' : '-relax',
+        'switch_args' : '<str>',
+        'type' : ['bool'],
+        'requirement' : 'optional',
+        'defvalue' : ['false'],
+        'short_help' : 'RTL Linting Relaxed Mode',
+        'help' : ["Specifies that tools should be lenient and supress some  ",
+                  "warnigns that may or may not indicate design issues. The ",
+                  "default is to enforce strict checks for all stages.      ",
+                  "Examples:                                                ",
+                  "cli: -relax                                              ",
+                  "api: chip.set('relax','true')                            "]
+    }
+
+
+    
     return cfg
 
 ############################################
