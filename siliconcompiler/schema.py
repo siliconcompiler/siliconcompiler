@@ -11,6 +11,9 @@ def schema():
 
     cfg = {}
 
+    #Basic Options and Modes
+    cfg = schema_options(cfg)
+
     #FPGA Group
     cfg = schema_fpga(cfg)
 
@@ -18,23 +21,31 @@ def schema():
     cfg = schema_pdk(cfg)
 
     #LIBS Group
-    cfg = schema_libs(cfg, 'stdcells')
-    cfg = schema_libs(cfg, 'macros')
+    cfg = schema_libs(cfg, 'stdcell')
+    cfg = schema_libs(cfg, 'macro')
 
-    #EDA Group
-    cfg = schema_eda(cfg)
-
-    #Metrics Group
-    cfg = schema_metrics(cfg, 'goal')    
-    cfg = schema_metrics(cfg, 'real')
+    #Flow Setup (from schema_options)
+    all_steps = (cfg['design_steps']['defvalue'] +
+                 cfg['signoff_steps']['defvalue'] +
+                 cfg['view_steps']['defvalue'] +
+                 cfg['mfg_steps']['defvalue'])
+        
+    for step in all_steps:
+        cfg = schema_flow(cfg, step)
+        
+    #Metrics for design and signoff steps    
+    for step in (cfg['design_steps']['defvalue'] +
+                 ['wafertest'] +
+                 ['finaltest']):
+        cfg = schema_metrics(cfg, 'goal', step)    
+        cfg = schema_metrics(cfg, 'real', step)
 
     #Design Group
-    cfg = schema_options(cfg)
-    cfg = schema_rtl(cfg)
+    cfg = schema_design(cfg)
     cfg = schema_constraints(cfg)
     cfg = schema_floorplan(cfg)
     cfg = schema_apr(cfg)
-
+    
     #Network Group
     cfg = schema_net(cfg)
 
@@ -505,6 +516,50 @@ def schema_libs(cfg, group):
                   "api: chip.set('"+group+"','mylib','rev','1.0')           "]
     }
 
+    cfg[group]['default']['origin'] = {
+        'switch' : '-'+group+'_origin',
+        'switch_args' : '<>',
+        'requirement' : 'asic',
+        'type' : ['string'],
+        'defvalue' : [],
+        'short_help' : 'Library Origin',
+        'help' : ["Record specifying the library origin.                    ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -"+group+"_coo 'mylib public'                       ",
+                  "api: chip.set('"+group+"','mylib','coo','US')            "]
+    }
+
+    cfg[group]['default']['distribution'] = {
+        'switch' : '-'+group+'_distribution',
+        'switch_args' : '<>',
+        'requirement' : 'asic',
+        'type' : ['string'],
+        'defvalue' : [],
+        'short_help' : 'Library Distribution Restrictions',
+        'help' : ["Specifies all restrictions associated with the library.  ",
+                  "                                                         ",             
+                  "Examples:                                                ",
+                  "cli: -"+group+"_distribution 'mylib none'                ",
+                  "api: chip.set('"+group+"',                               ",
+                  "              'mylib','distribution','none')             "]
+    }
+
+    cfg[group]['default']['license'] = {
+        'switch' : '-'+group+'_license',
+        'switch_args' : '<>',
+        'requirement' : 'asic',
+        'type' : ['string'],
+        'defvalue' : [],
+        'short_help' : 'Library License',
+        'help' : ["Specifies the technology license for the library         ",
+                  "                                                         ",
+                  "Examples:                                                ",                  
+                  "cli: -"+group+"_license 'mylib MIT'                      ",
+                  "api: chip.set('"+group+"',                               ",
+                  "              'mylib','license','public')                "]
+    }
+    
     cfg[group]['default']['doc'] = {
         'switch' : '-'+group+'_doc',
         'switch_args' : '<>',
@@ -970,573 +1025,521 @@ def schema_libs(cfg, group):
     return cfg
 
 ###############################################################################
-# EDA Tool Configuration
+# Flow Configuration
 ###############################################################################
 
-def schema_eda(cfg):
+def schema_flow(cfg, step):
 
-    cfg['compile_stages'] = {
-        'switch' : '-compile_stages',
-        'switch_args' : '<str>',
-        'requirement' : 'all',
+    if not 'flow' in cfg:
+        cfg['flow'] = {}    
+    cfg['flow'][step] = {}
+
+    # exe
+    cfg['flow'][step]['exe'] = {}
+    cfg['flow'][step]['exe']['switch'] = '-flow_exe'
+    cfg['flow'][step]['exe']['switch_args'] = '<>'
+    cfg['flow'][step]['exe']['type'] = ['string']
+    cfg['flow'][step]['exe']['requirement'] = ['all']
+    cfg['flow'][step]['exe']['defvalue'] = []
+    cfg['flow'][step]['exe']['short_help'] = 'Executable Name'
+    cfg['flow'][step]['exe']['help'] = [
+        "The name of the exuctable step or the full path to the   ",
+        "executable specified on a per stage basis.                    ",
+        "                                                              ",
+        "Examples:                                                     ",
+        "cli: -flow_exe 'place openroad'                               ",
+        "api:  chip.set('flow', 'place', 'exe', 'openroad')            "]
+    
+    # exe version
+    cfg['flow'][step]['version'] = {}
+    cfg['flow'][step]['version']['switch'] = '-flow_version'
+    cfg['flow'][step]['version']['switch_args'] = '<>'
+    cfg['flow'][step]['version']['type'] = ['string']
+    cfg['flow'][step]['version']['requirement'] = ['all']
+    cfg['flow'][step]['version']['defvalue'] = []
+    cfg['flow'][step]['version']['short_help'] = 'Executable Version'
+    cfg['flow'][step]['version']['help'] = [
+        "The version of the exuctable step to use in compilation. ",
+        "Mismatch betweent the step specifed and the step         ",
+        "avalable results in an error.                            ",
+        "                                                         ",
+        "Examples:                                                ",
+        "cli: -flow_version 'place 1.0'                           ",
+        "api:  chip.set('flow', 'place', 'version', '1.0')        "]
+    
+    #opt
+    cfg['flow'][step]['opt'] = {}
+    cfg['flow'][step]['opt']['switch'] = '-flow_opt'
+    cfg['flow'][step]['opt']['switch_args'] = '<>'
+    cfg['flow'][step]['opt']['type'] = ['string']
+    cfg['flow'][step]['opt']['requirement'] = 'optional'
+    cfg['flow'][step]['opt']['defvalue'] = []
+    cfg['flow'][step]['opt']['short_help'] = 'Executable Options'
+    cfg['flow'][step]['opt']['help'] = [
+        "A list of command line options for the executable. For   ",
+        "multiple argument options, enter each argument and value ",
+        "as a one list entry, specified on a per stage basis.     ",
+        "Command line values must be enclosed in quotes.          ",
+        "                                                         ",
+        "Examples:                                                ",
+        "cli: -flow_opt 'place -no_init'                          ",
+        "api:  chip.set('flow', 'place', 'opt', '-no_init')       "]
+    
+    #refdir
+    cfg['flow'][step]['refdir'] = {}
+    cfg['flow'][step]['refdir']['switch'] = '-flow_refdir'
+    cfg['flow'][step]['refdir']['switch_args'] = '<>'
+    cfg['flow'][step]['refdir']['type'] = ['file']
+    cfg['flow'][step]['refdir']['requirement'] = 'optional'
+    cfg['flow'][step]['refdir']['hash'] = []
+    cfg['flow'][step]['refdir']['defvalue'] = []
+    cfg['flow'][step]['refdir']['short_help'] = 'Reference Directory'
+    cfg['flow'][step]['refdir']['help'] = [
+        "A path to a directory containing compilation scripts     ",
+        "used by the executable specified on a per stage basis.   ",
+        "                                                         ",
+        "Examples:                                                ",
+        "cli: -flow_refdir 'place ./myrefdir'                     ",
+        "api: chip.set('flow', 'place', 'refdir', './myrefdir')   "]
+    
+    #entry point script
+    cfg['flow'][step]['script'] = {}
+    cfg['flow'][step]['script']['switch'] = '-flow_script'
+    cfg['flow'][step]['script']['switch_args'] = '<>'
+    cfg['flow'][step]['script']['type'] = ['file']
+    cfg['flow'][step]['script']['requirement'] = 'optional'
+    cfg['flow'][step]['script']['hash'] = []
+    cfg['flow'][step]['script']['defvalue'] = []
+    cfg['flow'][step]['script']['short_help'] = 'Entry point Script'
+    cfg['flow'][step]['script']['help'] = [
+        "Path to the entry point compilation script called by the ",
+        "executable specified on a per stage basis.               ",
+        "                                                         ",
+        "Examples:                                                ",
+        "cli: -step_script 'place ./myrefdir/place.tcl'           ",
+        "api: chip.set(group,'place','refdir',                   ",
+        "              './myrefdir/place.tcl')                    "]
+    
+    #copy
+    cfg['flow'][step]['copy'] = {}
+    cfg['flow'][step]['copy']['switch'] = '-flow_copy'
+    cfg['flow'][step]['copy']['switch_args'] = '<>'
+    cfg['flow'][step]['copy']['type'] = ['string']
+    cfg['flow'][step]['copy']['requirement'] = 'optional'
+    cfg['flow'][step]['copy']['defvalue'] = []
+    cfg['flow'][step]['copy']['short_help'] = 'Copy Local Option'
+    cfg['flow'][step]['copy']['help'] = [
+        "Specifies that the reference script directory should be  ",
+        "copied and run from the local run directory. The option  ",
+        "specified on a per stage basis.                          ",
+        "                                                         ",
+        "Examples:                                                ",
+        "cli: -flow_copy 'place true'                             ",
+        "api: chip.set('flow','place','copy','true')              "]
+    
+    #script format
+    cfg['flow'][step]['format'] = {}
+    cfg['flow'][step]['format']['switch'] = '-flow_format'
+    cfg['flow'][step]['format']['switch_args'] = '<>'
+    cfg['flow'][step]['format']['type'] = ['string']
+    cfg['flow'][step]['format']['requirement'] = ['all']
+    cfg['flow'][step]['format']['defvalue'] = []
+    cfg['flow'][step]['format']['short_help'] = 'Script Format'
+    cfg['flow'][step]['format']['help'] = [
+        "Specifies that format of the configuration file for the  ",
+        "stage. Valid formats are tcl, yaml, and json. The format ",
+        "used is dictated by the executable for the stage and     ",
+        "specified on a per stage basis.                          ",
+        "                                                         ",
+        "Examples:                                                ",
+        "cli: -flow_format 'place tcl'                            ",
+        "api: chip.set('flow','place','format','tcl')             "]
+    
+    #jobid
+    cfg['flow'][step]['jobid'] = {}
+    cfg['flow'][step]['jobid']['switch'] = '-flow_jobid'
+    cfg['flow'][step]['jobid']['switch_args'] = '<>'
+    cfg['flow'][step]['jobid']['type'] = ['int']
+    cfg['flow'][step]['jobid']['requirement'] = ['all']
+    cfg['flow'][step]['jobid']['defvalue'] = ['0']
+    cfg['flow'][step]['jobid']['short_help'] = 'Job Index'
+    cfg['flow'][step]['jobid']['help'] = [
+        "A dynamic variable that keeeps track of results to pass  ",
+        "forward to the next stage of the implementation pipeline ",
+        "in cases where multiple jobs are run for one stage and a ",
+        "programmatic selection if made to choose the best result ",
+        "the variable can be used to point to a job which may not ",
+        "be the last job launched. Job IDs are tracked on a per   ",
+        "stage basis.                                             ",
+        "                                                         ",
+        "Examples:                                                ",
+        "cli: -flow_jobid 'place 5'                               ",
+        "api: chip.set('flow', 'place', 'jobid', '5')             "]
+    
+    #parallelism
+    cfg['flow'][step]['threads'] = {}
+    cfg['flow'][step]['threads']['switch'] = '-flow_threads'
+    cfg['flow'][step]['threads']['switch_args'] = '<>'
+    cfg['flow'][step]['threads']['type'] = ['int']
+    cfg['flow'][step]['threads']['requirement'] = ['all']
+    cfg['flow'][step]['threads']['defvalue'] = []
+    cfg['flow'][step]['threads']['short_help'] = 'Job Parallelism'
+    cfg['flow'][step]['threads']['help'] = [
+        "Specifies the level of CPU thread parallelism to enable  ",
+        "on a per stage basis. This information is intended for   ",
+        "the EDA steps to use to parallelize workloads on a       ",
+        "multi-core single node CPU. Job parallelization across   ",
+        "multiple machines can be explicitly specified using      ",
+        "custom compilation scripts.                              ",
+        "                                                         ",
+        "Examples:                                                ",
+        "cli: -flow_threads 'drc 64'                              ",
+        "api: chip.set('flow', 'drc', 'threads', '64')            "]
+    
+    #cache
+    cfg['flow'][step]['cache'] = {}
+    cfg['flow'][step]['cache']['switch'] = '-flow_cache'
+    cfg['flow'][step]['cache']['switch_args'] = '<>'
+    cfg['flow'][step]['cache']['type'] = ['file']
+    cfg['flow'][step]['cache']['requirement'] = ['optional']
+    cfg['flow'][step]['cache']['defvalue'] = []
+    cfg['flow'][step]['cache']['short_help'] = 'Cache Directory Name'
+    cfg['flow'][step]['cache']['help'] = [
+        "Specifies a writeable shared cache directory to be used  ",
+        "for storage of processed design and library data. The    ",
+        "purpose of caching is to save runtime and disk space     ",
+        "in future runs.                                          ",
+        "                                                         ",
+        "Examples:                                                ",
+        "cli: -step_cache 'syn ./disk1/edacache'                  ",
+        "api: chip.set(group,'syn','cache','./disk1/edacache')   "]
+    
+    #warnings
+    cfg['flow'][step]['warnoff'] = {}
+    cfg['flow'][step]['warnoff']['switch'] = '-flow_warnoff'
+    cfg['flow'][step]['warnoff']['switch_args'] = '<>'
+    cfg['flow'][step]['warnoff']['type'] = ['string']
+    cfg['flow'][step]['warnoff']['requirement'] = ['optional']
+    cfg['flow'][step]['warnoff']['defvalue'] = ['.']
+    cfg['flow'][step]['warnoff']['short_help']='Warning Filter'
+    cfg['flow'][step]['warnoff']['help'] = [
+        "Specifies a list of EDA warnings for which printing      ",
+        "should be supressed. Generally this is done on a per     ",
+        "design/node bases after review has determined that       ",
+        "warning can be safely ignored                            ",
+        "                                                         ",
+        "Examples:                                                ",
+        "cli: -flow_warnoff 'import COMBDLY'                      ",
+        "api: chip.set('flow', 'import', 'warnoff', 'COMBDLY')    "]
+    
+    
+    #keymap
+    cfg['flow'][step]['keymap'] = {}
+    cfg['flow'][step]['keymap']['switch'] = '-flow_keymap'
+    cfg['flow'][step]['keymap']['switch_args'] = '<>'
+    cfg['flow'][step]['keymap']['type'] = ['string', 'string']
+    cfg['flow'][step]['keymap']['requirement'] = 'optional'
+    cfg['flow'][step]['keymap']['defvalue'] = []
+    cfg['flow'][step]['keymap']['short_help'] = 'Script Keymap'
+    cfg['flow'][step]['keymap']['help'] = [
+        "The keymap is used to translate the schema keys when     ",
+        "writing out the configuration to a TCL, JSON, or YAML    ",
+        "file to be loaded by an EDA step. Keymaps are specific to",
+        "each EDA step and specified on a per stage basis.        ",
+        "                                                         ",
+        "Examples:                                                ",
+        "cli: -flow_keymap 'place design design_name'             ",
+        "api: chip.set('flow','place','design', 'design_name')    "]
+    
+    #vendor
+    cfg['flow'][step]['vendor'] = {}
+    cfg['flow'][step]['vendor']['switch'] = '-flow_vendor'
+    cfg['flow'][step]['vendor']['switch_args'] = '<>'
+    cfg['flow'][step]['vendor']['type'] = ['string']
+    cfg['flow'][step]['vendor']['requirement'] = ['all']
+    cfg['flow'][step]['vendor']['defvalue'] = []
+    cfg['flow'][step]['vendor']['short_help'] = 'Step Vendor'
+    cfg['flow'][step]['vendor']['help'] = [
+        "The vendor argument is used for selecting eda specific   ",
+        "technology setup variables from the PDK and libraries    ",
+        "which generally support multiple vendors for each        ",
+        "implementation stage                                     ",
+        "                                                         ",
+        "Examples:                                                ",
+        "cli: -flow_vendor 'place vendor openroad'                ",
+        "api: chip.set('flow','place','vendor', 'openroad')       "]
+    
+    #signature
+    cfg['flow'][step]['signature'] = {
+        'switch' : '-flow_signature',
+        'switch_args' : '<>',
+        'requirement' : 'optional',
         'type' : ['string'],
-        'defvalue' : ['import',
-                      'syn',
-                      'floorplan',
-                      'place',
-                      'cts',
-                      'route',
-                      'signoff',
-                      'export'],
-        'short_help' : 'List of Compilation Stages',
-        'help' : ["A complete list of all stages included in fully automated",
-                  "RTL to GDSII compilation. Compilation flow is controlled ",
-                  "with the -start, -stop, -cont switches and by adding     ",
-                  "values to the list. The list must be ordered to enable   ",
-                  "default automated compilation from the first entry to the",
-                  "last entry in the list. Inserting stages in the middle of",
-                  "the list is only possible by overwriting the whole list. ",
-                  "The example below demonstrates adding a tapeout stage    ",
-                  "at the end of the compile_stages list.                   ",
-                  "                                                         ",
-                  "Examples:                                                ",
-                  "cli: -compile_stages 'tapeout'                           ",
-                  "api:  chip.add('compile_stages', 'tapeout')              "]
-    }
-
-    cfg['dv_stages'] = {
-        'switch' : '-dv_stages',
-        'switch_args' : '<str>',
-        'requirement' : 'all',
-        'type' : ['string'],
-        'defvalue' : ['lec',
-                      'pex',
-                      'sta',
-                      'pi',
-                      'si',
-                      'drc',
-                      'erc',
-                      'lvs'],
-        'short_help' : 'List of Verification Stages',
-        'help' : ["A complete list of all verification stages. Verification ",
-                  "flow is controlled with the -start, -stop, -cont switches",
-                  "and by expanding the list. The list must be ordered to   ",
-                  "enable default automated verification from the first     ",
-                  "entry to the last entry in the list. Inserting stages in ",
-                  "the middle of the list is only possible by overwriting   ",
-                  "the whole list. The example below demonstrates adding an ",
-                  "archive stage at the end of the dv_stages list           ",
-                  "                                                         ",
-                  "Examples:                                                ",
-                  "cli: -dv_stages 'archive'                                ",
-                  "api:  chip.add('dv_stages', 'archive')                   "]
-    }
-
-    cfg['view_stages'] = {
-        'switch' : '-view_stages',
-        'switch_args' : '<str>',
-        'requirement' : 'all',
-        'type' : ['string'],
-        'defvalue' : ['dashboard',
-                      'defview',
-                      'gdsview'],
-        'short_help' : 'List of Interactive Viewer Stages',
-        'help' : ["A complete list of all interactive viewer stages. The    ",
-                  "viewer stages are not meant to be executed as a pipeline,",
-                  "but serves as a central record for documenting tools and ",
-                  "options for display tools.                               ",
-                  "                                                         ",
-                  "Examples:                                                ",
-                  "cli: -view_stages 'scopeview'                            ",
-                  "api:  chip.add('view_stages', 'scopeview')               "]
-    }
-
-    #Concatenated list
-    all_stages = (cfg['compile_stages']['defvalue'] +
-                  cfg['dv_stages']['defvalue'] +
-                  cfg['view_stages']['defvalue'])
-
-    cfg['tool'] = {}
-
-    # Defaults and config for all stages
-    for stage in all_stages:
-        cfg['tool'][stage] = {}
-
-        # Exe
-        cfg['tool'][stage]['exe'] = {}
-        cfg['tool'][stage]['exe']['switch'] = '-tool_exe'
-        cfg['tool'][stage]['exe']['switch_args'] = '<>'
-        cfg['tool'][stage]['exe']['type'] = ['string']
-        cfg['tool'][stage]['exe']['requirement'] = ['all']
-        cfg['tool'][stage]['exe']['defvalue'] = []
-        cfg['tool'][stage]['exe']['short_help'] = 'Executable Name'
-        cfg['tool'][stage]['exe']['help'] = [
-            "The name of the exuctable tool or the full path to the   ",
-            "executable specified on a per stage basis.               ",
+        'defvalue' : [],
+        'short_help' : 'Step Signature',
+        'help' : [
+            "A hashed approval signature on a per stage basis.        ",
             "                                                         ",
             "Examples:                                                ",
-            "cli: -tool_exe 'place openroad'                          ",
-            "api:  chip.set('tool','place','exe','openroad')          "]
-
-        #opt
-        cfg['tool'][stage]['opt'] = {}
-        cfg['tool'][stage]['opt']['switch'] = '-tool_opt'
-        cfg['tool'][stage]['opt']['switch_args'] = '<>'
-        cfg['tool'][stage]['opt']['type'] = ['string']
-        cfg['tool'][stage]['opt']['requirement'] = 'optional'
-        cfg['tool'][stage]['opt']['defvalue'] = []
-        cfg['tool'][stage]['opt']['short_help'] = 'Executable Options'
-        cfg['tool'][stage]['opt']['help'] = [
-            "A list of command line options for the executable. For   ",
-            "multiple argument options, enter each argument and value ",
-            "as a one list entry, specified on a per stage basis.     ",
-            "Command line values must be enclosed in quotes.          ",
-            "                                                         ",
-            "Examples:                                                ",
-            "cli: -tool_opt 'place -no_init'                          ",
-            "api:  chip.set('tool','place','opt','-no_init')          "]
-
-        #refdir
-        cfg['tool'][stage]['refdir'] = {}
-        cfg['tool'][stage]['refdir']['switch'] = '-tool_refdir'
-        cfg['tool'][stage]['refdir']['switch_args'] = '<>'
-        cfg['tool'][stage]['refdir']['type'] = ['file']
-        cfg['tool'][stage]['refdir']['requirement'] = 'optional'
-        cfg['tool'][stage]['refdir']['hash'] = []
-        cfg['tool'][stage]['refdir']['defvalue'] = []
-        cfg['tool'][stage]['refdir']['short_help'] = 'Reference Directory'
-        cfg['tool'][stage]['refdir']['help'] = [
-            "A path to a directory containing compilation scripts     ",
-            "used by the executable specified on a per stage basis.   ",
-            "                                                         ",
-            "Examples:                                                ",
-                  "cli: -tool_refdir 'place ./myrefdir'               ",
-                  "api: chip.set('tool','place','refdir','./myrefdir')"]
-
-        #entry point script
-        cfg['tool'][stage]['script'] = {}
-        cfg['tool'][stage]['script']['switch'] = '-tool_script'
-        cfg['tool'][stage]['script']['switch_args'] = '<>'
-        cfg['tool'][stage]['script']['type'] = ['file']
-        cfg['tool'][stage]['script']['requirement'] = 'optional'
-        cfg['tool'][stage]['script']['hash'] = []
-        cfg['tool'][stage]['script']['defvalue'] = []
-        cfg['tool'][stage]['script']['short_help'] = 'Entry point Script'
-        cfg['tool'][stage]['script']['help'] = [
-            "Path to the entry point compilation script called by the ",
-            "executable specified on a per stage basis.               ",
-            "                                                         ",
-            "Examples:                                                ",
-            "cli: -tool_script 'place ./myrefdir/place.tcl'           ",
-            "api: chip.set('tool','place','refdir',                   ",
-            "              './myrefdir/place.tcl')                    "]
-
-        #copy
-        cfg['tool'][stage]['copy'] = {}
-        cfg['tool'][stage]['copy']['switch'] = '-tool_copy'
-        cfg['tool'][stage]['copy']['switch_args'] = '<>'
-        cfg['tool'][stage]['copy']['type'] = ['string']
-        cfg['tool'][stage]['copy']['requirement'] = 'optional'
-        cfg['tool'][stage]['copy']['defvalue'] = []
-        cfg['tool'][stage]['copy']['short_help'] = 'Copy Local Option'
-        cfg['tool'][stage]['copy']['help'] = [
-            "Specifies that the reference script directory should be  ",
-            "copied and run from the local run directory. The option  ",
-            "specified on a per stage basis.                          ",
-            "                                                         ",
-            "Examples:                                                ",
-            "cli: -tool_copy 'place True'                             ",
-            "api: chip.set('tool','place','copy','true')              "]
-
-        #format
-        cfg['tool'][stage]['format'] = {}
-        cfg['tool'][stage]['format']['switch'] = '-tool_format'
-        cfg['tool'][stage]['format']['switch_args'] = '<>'
-        cfg['tool'][stage]['format']['type'] = ['string']
-        cfg['tool'][stage]['format']['requirement'] = ['all']
-        cfg['tool'][stage]['format']['defvalue'] = []
-        cfg['tool'][stage]['format']['short_help'] = 'Script Format'
-        cfg['tool'][stage]['format']['help'] = [
-            "Specifies that format of the configuration file for the  ",
-            "stage. Valid formats are tcl, yaml, and json. The format ",
-            "used is dictated by the executable for the stage and     ",
-            "specified on a per stage basis.                          ",
-            "                                                         ",
-            "Examples:                                                ",
-            "cli: -tool_format 'place tcl'                            ",
-            "api: chip.set('tool','place','format','tcl')             "]
-
-        #jobid
-        cfg['tool'][stage]['jobid'] = {}
-        cfg['tool'][stage]['jobid']['switch'] = '-tool_jobid'
-        cfg['tool'][stage]['jobid']['switch_args'] = '<>'
-        cfg['tool'][stage]['jobid']['type'] = ['int']
-        cfg['tool'][stage]['jobid']['requirement'] = ['all']
-        cfg['tool'][stage]['jobid']['defvalue'] = ['0']
-        cfg['tool'][stage]['jobid']['short_help'] = 'Job Index'
-        cfg['tool'][stage]['jobid']['help'] = [
-            "A dynamic variable that keeeps track of results to pass  ",
-            "forward to the next stage of the implementation pipeline ",
-            "in cases where multiple jobs are run for one stage and a ",
-            "programmatic selection if made to choose the best result ",
-            "the variable can be used to point to a job which may not ",
-            "be the last job launched. Job IDs are tracked on a per   ",
-            "stage basis.                                             ",
-            "                                                         ",
-            "Examples:                                                ",
-            "cli: -tool_jobid 'place 5'                               ",
-            "api: chip.set('tool','place','jobid','5')                "]
-
-        #parallelism
-        cfg['tool'][stage]['threads'] = {}
-        cfg['tool'][stage]['threads']['switch'] = '-tool_threads'
-        cfg['tool'][stage]['threads']['switch_args'] = '<>'
-        cfg['tool'][stage]['threads']['type'] = ['int']
-        cfg['tool'][stage]['threads']['requirement'] = ['all']
-        cfg['tool'][stage]['threads']['defvalue'] = []
-        cfg['tool'][stage]['threads']['short_help'] = 'Job Parallelism'
-        cfg['tool'][stage]['threads']['help'] = [
-            "Specifies the level of CPU thread parallelism to enable  ",
-            "on a per stage basis. This information is intended for   ",
-            "the EDA tools to use to parallelize workloads on a       ",
-            "multi-core single node CPU. Job parallelization across   ",
-            "multiple machines can be explicitly specified using      ",
-            "custom compilation scripts.                              ",
-            "                                                         ",
-            "Examples:                                                ",
-            "cli: -tool_threads 'drc 64'                              ",
-            "api: chip.set('tool','drc','threads','64')               "]
-
-        #cache
-        cfg['tool'][stage]['cache'] = {}
-        cfg['tool'][stage]['cache']['switch'] = '-tool_cache'
-        cfg['tool'][stage]['cache']['switch_args'] = '<>'
-        cfg['tool'][stage]['cache']['type'] = ['file']
-        cfg['tool'][stage]['cache']['requirement'] = ['optional']
-        cfg['tool'][stage]['cache']['defvalue'] = []
-        cfg['tool'][stage]['cache']['short_help'] = 'Cache Directory Name'
-        cfg['tool'][stage]['cache']['help'] = [
-            "Specifies a writeable shared cache directory to be used  ",
-            "for storage of processed design and library data. The    ",
-            "purpose of caching is to save runtime and disk space     ",
-            "in future runs.                                          ",
-            "                                                         ",
-            "Examples:                                                ",
-            "cli: -tool_cache 'syn ./disk1/edacache'                  ",
-            "api: chip.set('tool','syn','cache','./disk1/edacache')   "]
-
-        #warnings
-        cfg['tool'][stage]['warnoff'] = {}
-        cfg['tool'][stage]['warnoff']['switch'] = '-tool_warnoff'
-        cfg['tool'][stage]['warnoff']['switch_args'] = '<>'
-        cfg['tool'][stage]['warnoff']['type'] = ['string']
-        cfg['tool'][stage]['warnoff']['requirement'] = ['optional']
-        cfg['tool'][stage]['warnoff']['defvalue'] = ['.']
-        cfg['tool'][stage]['warnoff']['short_help']='Warning Filter'
-        cfg['tool'][stage]['warnoff']['help'] = [
-            "Specifies a list of EDA warnings for which printing      ",
-            "should be supressed. Generally this is done on a per     ",
-            "design/node bases after review has determined that       ",
-            "warning can be safely ignored                            ",
-            "                                                         ",
-            "Examples:                                                ",
-            "cli: -tool_warnoff 'import COMBDLY'                      ",
-            "api: chip.set('tool','import','warnoff','COMBDLY')       "]
-        
-        
-        #keymap
-        cfg['tool'][stage]['keymap'] = {}
-        cfg['tool'][stage]['keymap']['switch'] = '-tool_keymap'
-        cfg['tool'][stage]['keymap']['switch_args'] = '<>'
-        cfg['tool'][stage]['keymap']['type'] = ['string', 'string']
-        cfg['tool'][stage]['keymap']['requirement'] = 'optional'
-        cfg['tool'][stage]['keymap']['defvalue'] = []
-        cfg['tool'][stage]['keymap']['short_help'] = 'Script Keymap'
-        cfg['tool'][stage]['keymap']['help'] = [
-            "The keymap is used to translate the schema keys when     ",
-            "writing out the configuration to a TCL, JSON, or YAML    ",
-            "file to be loaded by an EDA tool. Keymaps are specific to",
-            "each EDA tool and specified on a per stage basis.        ",
-            "                                                         ",
-            "Examples:                                                ",
-            "cli: -tool_keymap 'place design design_name'             ",
-            "api: chip.set('tool','place','design', 'design_name')    "]
-
-        #vendor
-        cfg['tool'][stage]['vendor'] = {}
-        cfg['tool'][stage]['vendor']['switch'] = '-tool_vendor'
-        cfg['tool'][stage]['vendor']['switch_args'] = '<>'
-        cfg['tool'][stage]['vendor']['type'] = ['string']
-        cfg['tool'][stage]['vendor']['requirement'] = ['all']
-        cfg['tool'][stage]['vendor']['defvalue'] = []
-        cfg['tool'][stage]['vendor']['short_help'] = 'Tool Vendor'
-        cfg['tool'][stage]['vendor']['help'] = [
-            "The vendor argument is used for selecting eda specific   ",
-            "technology setup variables from the PDK and libraries    ",
-            "which generally support multiple vendors for each        ",
-            "implementation stage                                     ",
-            "                                                         ",
-            "Examples:                                                ",
-            "cli: -tool_vendor 'place vendor openroad'                ",
-            "api: chip.set('tool','place','vendor', 'openroad')       "]
-
+            "cli: -flow_signature 'signoff <hash>'                    ",
+            "api: chip.set('flow','signoff, 'signature', <hash>)      "]
+    }        
+    
+    #date
+    cfg['flow'][step]['date'] = {}
+    cfg['flow'][step]['date']['switch'] = '-flow_date'
+    cfg['flow'][step]['date']['switch_args'] = '<>'
+    cfg['flow'][step]['date']['type'] = ['string']
+    cfg['flow'][step]['date']['requirement'] = ['all']
+    cfg['flow'][step]['date']['defvalue'] = []
+    cfg['flow'][step]['date']['short_help'] = 'Step Date'
+    cfg['flow'][step]['date']['help'] = [
+        "A date stamp on a per stage basis updated at runtime in  ",
+        "coordination with jobid.                                 ",
+        "                                                         ",
+        "Examples:                                                ",
+        "cli: -flow_date 'signoff date Mon Mar 1 16:12:14 2021'   ",
+        "api: chip.set('flow','signoff, 'date',                   ", 
+        "              ' Mon Mar 1 16:12:14 2021'                 "]
+    
+    #author
+    cfg['flow'][step]['author'] = {}
+    cfg['flow'][step]['author']['switch'] = '-flow_author'
+    cfg['flow'][step]['author']['switch_args'] = '<>'
+    cfg['flow'][step]['author']['type'] = ['string']
+    cfg['flow'][step]['author']['requirement'] = ['all']
+    cfg['flow'][step]['author']['defvalue'] = []
+    cfg['flow'][step]['author']['short_help'] = 'Step Author'
+    cfg['flow'][step]['author']['help'] = [
+        "A author record on a per stage basis.                      ",
+        "                                                           ",
+        "Examples:                                                  ",
+        "cli: -flow_author 'syn author, wilecoyote@acme.com'        ",
+        "api: chip.set('flow','syn, 'author', 'wilecoyote@acme.com' "]
+    
     return cfg
 
 ###########################################################################
 # Metrics to Track 
 ###########################################################################
 
-def schema_metrics(cfg, group):
+def schema_metrics(cfg, group, step):
 
-    cfg[group] = {}
+    if not group in cfg:
+        cfg[group] = {}    
+    cfg[group][step] = {}
 
-    for stage in cfg['compile_stages']['defvalue']:
-
-        cfg[group][stage] = {}
-
-        #area
-        cfg[group][stage]['area'] = {}
-        cfg[group][stage]['area']['switch'] = '-'+group+'_area'
-        cfg[group][stage]['area']['switch_args'] = '<>'
-        cfg[group][stage]['area']['type'] = ['metric']
-        cfg[group][stage]['area']['requirement'] = 'optional'
-        cfg[group][stage]['area']['defvalue'] = []
-        cfg[group][stage]['area']['short_help'] = 'Cell Area Metric'
-        cfg[group][stage]['area']['help'] = [
-            "Metric tracking the total cell area on a per stage basis ",
-            "specifed in um^2.                                        ",
-            "                                                         ",
-            "Examples:                                                ",
-            "cli: -"+group+"area 'place 10000'                        ",
-            "api: chip.set('metric','place',',area', '10000')         "]
-
-        #cells
-        cfg[group][stage]['cells'] = {}
-        cfg[group][stage]['cells']['switch'] = '-'+group+'_cells'
-        cfg[group][stage]['cells']['switch_args'] = '<>'
-        cfg[group][stage]['cells']['type'] = ['metric']
-        cfg[group][stage]['cells']['requirement'] = 'optional'
-        cfg[group][stage]['cells']['defvalue'] = []
-        cfg[group][stage]['cells']['short_help'] = 'Total Cells Metric'
-        cfg[group][stage]['cells']['help'] = [
-            "Metric tracking the total number of cells in the design  ",
-            "on a per stage basis.                                    ",
-            "                                                         ",
-            "Examples:                                                ",
-            "cli: -"+group+"cells 'syn 1000'                          ",
-            "api: chip.set('metric','place',',cells', '1000')         "]
-
-        #density
-        cfg[group][stage]['density'] = {}
-        cfg[group][stage]['density']['switch'] = '-'+group+'_density'
-        cfg[group][stage]['density']['switch_args'] = '<>'
-        cfg[group][stage]['density']['type'] = ['metric']
-        cfg[group][stage]['density']['requirement'] = 'optional'
-        cfg[group][stage]['density']['defvalue'] = []
-        cfg[group][stage]['density']['short_help'] = 'Density Metric'
-        cfg[group][stage]['density']['help'] = [
-            "Metric tracking the effective density of the design on a ",
-            "per stage basis, expressed in %%.                        ",
-            "                                                         ",
-            "Examples:                                                ",
-            "cli: -"+group+"density 'place 80'                        ",
-            "api: chip.set('metric','place',',density', '80')         "]
-
-        #power
-        cfg[group][stage]['power'] = {}
-        cfg[group][stage]['power']['switch'] = '-'+group+'_power'
-        cfg[group][stage]['power']['switch_args'] = '<>'
-        cfg[group][stage]['power']['type'] = ['metric']
-        cfg[group][stage]['power']['requirement'] = 'optional'
-        cfg[group][stage]['power']['defvalue'] = []
-        cfg[group][stage]['power']['short_help'] = 'Active Power Metric'
-        cfg[group][stage]['power']['help'] = [
-            "Metric tracking the dynamic power of the design on a per ",
-            "based on the setup configuration and power vectors (VCD) ",
-            "                                                         ",
-            "Examples:                                                ",
-            "cli: -"+group+"power 'place 0.001'                       ",
-            "api: chip.set('metric','place',',power', '0.001')        "]
-
-        #leakage
-        cfg[group][stage]['leakage'] = {}
-        cfg[group][stage]['leakage']['switch'] = '-'+group+'_leakage'
-        cfg[group][stage]['leakage']['switch_args'] = '<>'
-        cfg[group][stage]['leakage']['type'] = ['metric']
-        cfg[group][stage]['leakage']['requirement'] = 'optional'
-        cfg[group][stage]['leakage']['defvalue'] = []
-        cfg[group][stage]['leakage']['short_help'] = 'Leakage Metric'
-        cfg[group][stage]['leakage']['help'] = [
-            "Metric tracking the leakage of the design on a per stage ",
-            "basis based on the MCMM setup, tracked in Watts.         ",
-            "                                                         ",
-            "Examples:                                                ",
-            "cli: -"+group+"leakage 'place 0.001'                     ",
-            "api: chip.set('metric','place',',leakage', '0.001')      "]
-        
-        
-        #total negative hold slack
-        cfg[group][stage]['hold_tns'] = {}
-        cfg[group][stage]['hold_tns']['switch'] = '-'+group+'_hold_tns'
-        cfg[group][stage]['hold_tns']['switch_args'] = '<>'
-        cfg[group][stage]['hold_tns']['type'] = ['metric']
-        cfg[group][stage]['hold_tns']['requirement'] = 'optional'
-        cfg[group][stage]['hold_tns']['defvalue'] = []
-        cfg[group][stage]['hold_tns']['short_help'] = 'Hold TNS Metric'
-        cfg[group][stage]['hold_tns']['help'] = [
-            "Metric tracking the total negative hold slack on a pere  ",
-            "stage basis, specified in nanoseconds                    ",
-            "                                                         ",
-            "Examples:                                                ",
-            "cli: -"+group+"hold_tns 'place 5'                        ",
-            "api: chip.set('metric','place',',hold_tns', '5')         "]
-
-        #worst negative hold slack
-        cfg[group][stage]['hold_wns'] = {}
-        cfg[group][stage]['hold_wns']['switch'] = '-'+group+'_hold_wns'
-        cfg[group][stage]['hold_wns']['switch_args'] = '<>'
-        cfg[group][stage]['hold_wns']['type'] = ['metric']
-        cfg[group][stage]['hold_wns']['requirement'] = 'optional'
-        cfg[group][stage]['hold_wns']['defvalue'] = []
-        cfg[group][stage]['hold_wns']['short_help'] = 'Hold WNS Metric'
-        cfg[group][stage]['hold_wns']['help'] = [
-            "Metric tracking the total negative hold slack on a per   ",
-            "stage basis, specified in nanoseconds.                   ",
-            "                                                         ",
-            "Examples:                                                ",
-            "cli: -"+group+"hold_wns 'place 0.1'                      ",
-            "api: chip.set('metric','place',',hold_wns', '0.1')       "]
-
-        #total negative setup slack
-        cfg[group][stage]['setup_tns'] = {}
-        cfg[group][stage]['setup_tns']['switch'] = '-'+group+'_setup_tns'
-        cfg[group][stage]['setup_tns']['switch_args'] = '<>'
-        cfg[group][stage]['setup_tns']['type'] = ['metric']
-        cfg[group][stage]['setup_tns']['requirement'] = 'optional'
-        cfg[group][stage]['setup_tns']['defvalue'] = []
-        cfg[group][stage]['setup_tns']['short_help'] = 'Setup TNS Metric'
-        cfg[group][stage]['setup_tns']['help'] = [
-            "Metric tracking the total negative setup slack on a pere  ",
-            "stage basis, specified in nanoseconds                     ",
-            "                                                          ",
-            "Examples:                                                 ",
-            "cli: -"+group+"setup_tns 'place 5'                        ",
-            "api: chip.set('metric','place',',setup_tns', '5')         "]
-
-        #worst negative setup slack
-        cfg[group][stage]['setup_wns'] = {}
-        cfg[group][stage]['setup_wns']['switch'] = '-'+group+'_setup_wns'
-        cfg[group][stage]['setup_wns']['switch_args'] = '<>'
-        cfg[group][stage]['setup_wns']['type'] = ['metric']
-        cfg[group][stage]['setup_wns']['requirement'] = 'optional'
-        cfg[group][stage]['setup_wns']['defvalue'] = []
-        cfg[group][stage]['setup_wns']['short_help'] = 'Setup WNS Metric'
-        cfg[group][stage]['setup_wns']['help'] = [
-            "Metric tracking the total negative setup slack on a per  ",
-            "stage basis, specified in nanoseconds.                   ",
-            "                                                         ",
-            "Examples:                                                ",
-            "cli: -"+group+"setup_wns 'place 0.1'                     ",
-            "api: chip.set('metric','place',',setup_wns', '0.1')      "]
-
-        #drv
-        cfg[group][stage]['drv'] = {}
-        cfg[group][stage]['drv']['switch'] = '-'+group+'_drv'
-        cfg[group][stage]['drv']['switch_args'] = '<>'
-        cfg[group][stage]['drv']['type'] = ['metric']
-        cfg[group][stage]['drv']['requirement'] = 'optional'
-        cfg[group][stage]['drv']['defvalue'] = []
-        cfg[group][stage]['drv']['short_help'] = 'DRV Metric'
-        cfg[group][stage]['drv']['help'] = [
-            "Metric tracking the total number of design rule         ",
-            "violations on a per stage basis.                        ",
-            "                                                        ",
-            "Examples:                                               ",
-            "cli: -"+group+"drv 'place 0'                              ",
-            "api: chip.set('metric','place',',drv', '')              "]
-        
-        #warnings
-        cfg[group][stage]['warnings'] = {}
-        cfg[group][stage]['warnings']['switch'] = '-'+group+'_warnings'
-        cfg[group][stage]['warnings']['switch_args'] = '<>'
-        cfg[group][stage]['warnings']['type'] = ['metric']
-        cfg[group][stage]['warnings']['requirement'] = 'optional'
-        cfg[group][stage]['warnings']['defvalue'] = []
-        cfg[group][stage]['warnings']['short_help'] = 'Warnings Metric'
-        cfg[group][stage]['warnings']['help'] = [
-            "Metric tracking the total number of warnings on a per    ",
-            "stage basis.                                             ",
-            "                                                         ",
-            "Examples:                                                ",
-            "cli: -"+group+"warnings 'place 100'                      ",
-            "api: chip.set('metric','place',',warnings', '100')       "]
-
-        #errors
-        cfg[group][stage]['errors'] = {}
-        cfg[group][stage]['errors']['switch'] = '-'+group+'_errors'
-        cfg[group][stage]['errors']['switch_args'] = '<>'
-        cfg[group][stage]['errors']['type'] = ['metric']
-        cfg[group][stage]['errors']['requirement'] = 'optional'
-        cfg[group][stage]['errors']['defvalue'] = []
-        cfg[group][stage]['errors']['short_help'] = 'Errors Metric'
-        cfg[group][stage]['errors']['help'] = [
-            "Metric tracking the total number of errors on a per stage",
-            "basis.                                                   ",
-            "                                                         ",
-            "Examples:                                                ",
-            "cli: -"+group+"errors 'place 0'                          ",
-            "api: chip.set('metric','place',',errors', '0')           "]
-        
-        #runtime
-        cfg[group][stage]['runtime'] = {}
-        cfg[group][stage]['runtime']['switch'] = '-'+group+'_runtime'
-        cfg[group][stage]['runtime']['switch_args'] = '<>'
-        cfg[group][stage]['runtime']['type'] = ['metric']
-        cfg[group][stage]['runtime']['requirement'] = 'optional'
-        cfg[group][stage]['runtime']['defvalue'] = []
-        cfg[group][stage]['runtime']['short_help'] = 'Runtime Metric'
-        cfg[group][stage]['runtime']['help'] = [
-            "Metric tracking the total run time on a per stage basis, ",
-            "specified in HR:MIN:SEC                                  ",
-            "                                                         ",
-            "Examples:                                                ",
-            "cli: -"+group+"runtime 'place 0.1'                       ",
-            "api: chip.set('metric','place',',runtime', '0.1')        "]
-
-        #memory
-        cfg[group][stage]['memory'] = {}
-        cfg[group][stage]['memory']['switch'] = '-'+group+'_memory'
-        cfg[group][stage]['memory']['switch_args'] = '<>'
-        cfg[group][stage]['memory']['type'] = ['metric']
-        cfg[group][stage]['memory']['requirement'] = 'optional'
-        cfg[group][stage]['memory']['defvalue'] = []
-        cfg[group][stage]['memory']['short_help'] = 'Memory Footprint Metric'
-        cfg[group][stage]['memory']['help'] = [
-            "Metric tracking the peak memory usage on a per stage     ",
-            "basis, specified in MB.                                  ",
-            "                                                         ",
-            "Examples:                                                ",
-            "cli: -"+group+"memory 'place 0.1'                        ",
-            "api: chip.set('metric','place',',memory', '0.1')         "]
-
-        #QOR files
-        cfg[group][stage]['qorfile'] = {}
-        cfg[group][stage]['qorfile']['switch'] = '-'+group+'_qorfile'
-        cfg[group][stage]['qorfile']['switch_args'] = '<>'
-        cfg[group][stage]['qorfile']['type'] = ['file']
-        cfg[group][stage]['qorfile']['requirement'] = 'optional'
-        cfg[group][stage]['qorfile']['defvalue'] = []
-        cfg[group][stage]['qorfile']['hash'] = []
-        cfg[group][stage]['qorfile']['short_help'] = 'QOR Result Files'
-        cfg[group][stage]['qorfile']['help'] = [
-            "List of files that contain the information used to       ",
-            "populate the metric values                               ",
-            "                                                         ",
-            "Examples:                                                ",
-            "cli: -"+group+"qorfile 'place mydesign_qor.rpt'          ",
-            "api: chip.set('metric','place','qorfile',                ", 
-            "              'mydesign_qor.rpt')                        "]
-
+    #area
+    cfg[group][step]['area'] = {}
+    cfg[group][step]['area']['switch'] = '-'+group+'_area'
+    cfg[group][step]['area']['switch_args'] = '<>'
+    cfg[group][step]['area']['type'] = ['metric']
+    cfg[group][step]['area']['requirement'] = 'optional'
+    cfg[group][step]['area']['defvalue'] = []
+    cfg[group][step]['area']['short_help'] = 'Cell Area Metric'
+    cfg[group][step]['area']['help'] = [
+        "Metric tracking the total cell area on a per stage basis ",
+        "specifed in um^2.                                        ",
+        "                                                         ",
+        "Examples:                                                ",
+        "cli: -"+group+"area 'place 10000'                        ",
+        "api: chip.set('metric','place',',area', '10000')         "]
+    
+    #power
+    cfg[group][step]['power'] = {}
+    cfg[group][step]['power']['switch'] = '-'+group+'_power'
+    cfg[group][step]['power']['switch_args'] = '<>'
+    cfg[group][step]['power']['type'] = ['metric']
+    cfg[group][step]['power']['requirement'] = 'optional'
+    cfg[group][step]['power']['defvalue'] = []
+    cfg[group][step]['power']['short_help'] = 'Active Power Metric'
+    cfg[group][step]['power']['help'] = [
+        "Metric tracking the dynamic power of the design on a per ",
+        "based on the setup configuration and power vectors (VCD) ",
+        "                                                         ",
+        "Examples:                                                ",
+        "cli: -"+group+"power 'place 0.001'                       ",
+        "api: chip.set('metric','place',',power', '0.001')        "]
+    
+    #leakage
+    cfg[group][step]['leakage'] = {}
+    cfg[group][step]['leakage']['switch'] = '-'+group+'_leakage'
+    cfg[group][step]['leakage']['switch_args'] = '<>'
+    cfg[group][step]['leakage']['type'] = ['metric']
+    cfg[group][step]['leakage']['requirement'] = 'optional'
+    cfg[group][step]['leakage']['defvalue'] = []
+    cfg[group][step]['leakage']['short_help'] = 'Leakage Metric'
+    cfg[group][step]['leakage']['help'] = [
+        "Metric tracking the leakage of the design on a per stage ",
+        "basis based on the MCMM setup, tracked in Watts.         ",
+        "                                                         ",
+        "Examples:                                                ",
+        "cli: -"+group+"leakage 'place 0.001'                     ",
+        "api: chip.set('metric','place',',leakage', '0.001')      "]
+    
+    
+    #total negative hold slack
+    cfg[group][step]['hold_tns'] = {}
+    cfg[group][step]['hold_tns']['switch'] = '-'+group+'_hold_tns'
+    cfg[group][step]['hold_tns']['switch_args'] = '<>'
+    cfg[group][step]['hold_tns']['type'] = ['metric']
+    cfg[group][step]['hold_tns']['requirement'] = 'optional'
+    cfg[group][step]['hold_tns']['defvalue'] = []
+    cfg[group][step]['hold_tns']['short_help'] = 'Hold TNS Metric'
+    cfg[group][step]['hold_tns']['help'] = [
+        "Metric tracking the total negative hold slack on a pere  ",
+        "stage basis, specified in nanoseconds                    ",
+        "                                                         ",
+        "Examples:                                                ",
+        "cli: -"+group+"hold_tns 'place 5'                        ",
+        "api: chip.set('metric','place',',hold_tns', '5')         "]
+    
+    #worst negative hold slack
+    cfg[group][step]['hold_wns'] = {}
+    cfg[group][step]['hold_wns']['switch'] = '-'+group+'_hold_wns'
+    cfg[group][step]['hold_wns']['switch_args'] = '<>'
+    cfg[group][step]['hold_wns']['type'] = ['metric']
+    cfg[group][step]['hold_wns']['requirement'] = 'optional'
+    cfg[group][step]['hold_wns']['defvalue'] = []
+    cfg[group][step]['hold_wns']['short_help'] = 'Hold WNS Metric'
+    cfg[group][step]['hold_wns']['help'] = [
+        "Metric tracking the total negative hold slack on a per   ",
+        "stage basis, specified in nanoseconds.                   ",
+        "                                                         ",
+        "Examples:                                                ",
+        "cli: -"+group+"hold_wns 'place 0.1'                      ",
+        "api: chip.set('metric','place',',hold_wns', '0.1')       "]
+    
+    #total negative setup slack
+    cfg[group][step]['setup_tns'] = {}
+    cfg[group][step]['setup_tns']['switch'] = '-'+group+'_setup_tns'
+    cfg[group][step]['setup_tns']['switch_args'] = '<>'
+    cfg[group][step]['setup_tns']['type'] = ['metric']
+    cfg[group][step]['setup_tns']['requirement'] = 'optional'
+    cfg[group][step]['setup_tns']['defvalue'] = []
+    cfg[group][step]['setup_tns']['short_help'] = 'Setup TNS Metric'
+    cfg[group][step]['setup_tns']['help'] = [
+        "Metric tracking the total negative setup slack on a pere  ",
+        "stage basis, specified in nanoseconds                     ",
+        "                                                          ",
+        "Examples:                                                 ",
+        "cli: -"+group+"setup_tns 'place 5'                        ",
+        "api: chip.set('metric','place',',setup_tns', '5')         "]
+    
+    #worst negative setup slack
+    cfg[group][step]['setup_wns'] = {}
+    cfg[group][step]['setup_wns']['switch'] = '-'+group+'_setup_wns'
+    cfg[group][step]['setup_wns']['switch_args'] = '<>'
+    cfg[group][step]['setup_wns']['type'] = ['metric']
+    cfg[group][step]['setup_wns']['requirement'] = 'optional'
+    cfg[group][step]['setup_wns']['defvalue'] = []
+    cfg[group][step]['setup_wns']['short_help'] = 'Setup WNS Metric'
+    cfg[group][step]['setup_wns']['help'] = [
+        "Metric tracking the total negative setup slack on a per  ",
+        "stage basis, specified in nanoseconds.                   ",
+        "                                                         ",
+        "Examples:                                                ",
+        "cli: -"+group+"setup_wns 'place 0.1'                     ",
+        "api: chip.set('metric','place',',setup_wns', '0.1')      "]
+    
+    #drv
+    cfg[group][step]['drv'] = {}
+    cfg[group][step]['drv']['switch'] = '-'+group+'_drv'
+    cfg[group][step]['drv']['switch_args'] = '<>'
+    cfg[group][step]['drv']['type'] = ['metric']
+    cfg[group][step]['drv']['requirement'] = 'optional'
+    cfg[group][step]['drv']['defvalue'] = []
+    cfg[group][step]['drv']['short_help'] = 'DRV Metric'
+    cfg[group][step]['drv']['help'] = [
+        "Metric tracking the total number of design rule         ",
+        "violations on a per stage basis.                        ",
+        "                                                        ",
+        "Examples:                                               ",
+        "cli: -"+group+"drv 'place 0'                              ",
+        "api: chip.set('metric','place',',drv', '')              "]
+    
+    #warnings
+    cfg[group][step]['warnings'] = {}
+    cfg[group][step]['warnings']['switch'] = '-'+group+'_warnings'
+    cfg[group][step]['warnings']['switch_args'] = '<>'
+    cfg[group][step]['warnings']['type'] = ['metric']
+    cfg[group][step]['warnings']['requirement'] = 'optional'
+    cfg[group][step]['warnings']['defvalue'] = []
+    cfg[group][step]['warnings']['short_help'] = 'Warnings Metric'
+    cfg[group][step]['warnings']['help'] = [
+        "Metric tracking the total number of warnings on a per    ",
+        "stage basis.                                             ",
+        "                                                         ",
+        "Examples:                                                ",
+        "cli: -"+group+"warnings 'place 100'                      ",
+        "api: chip.set('metric','place',',warnings', '100')       "]
+    
+    #errors
+    cfg[group][step]['errors'] = {}
+    cfg[group][step]['errors']['switch'] = '-'+group+'_errors'
+    cfg[group][step]['errors']['switch_args'] = '<>'
+    cfg[group][step]['errors']['type'] = ['metric']
+    cfg[group][step]['errors']['requirement'] = 'optional'
+    cfg[group][step]['errors']['defvalue'] = []
+    cfg[group][step]['errors']['short_help'] = 'Errors Metric'
+    cfg[group][step]['errors']['help'] = [
+        "Metric tracking the total number of errors on a per stage",
+        "basis.                                                   ",
+        "                                                         ",
+        "Examples:                                                ",
+        "cli: -"+group+"errors 'place 0'                          ",
+        "api: chip.set('metric','place',',errors', '0')           "]
+    
+    #runtime
+    cfg[group][step]['runtime'] = {}
+    cfg[group][step]['runtime']['switch'] = '-'+group+'_runtime'
+    cfg[group][step]['runtime']['switch_args'] = '<>'
+    cfg[group][step]['runtime']['type'] = ['metric']
+    cfg[group][step]['runtime']['requirement'] = 'optional'
+    cfg[group][step]['runtime']['defvalue'] = []
+    cfg[group][step]['runtime']['short_help'] = 'Runtime Metric'
+    cfg[group][step]['runtime']['help'] = [
+        "Metric tracking the total run time on a per stage basis, ",
+        "specified in HR:MIN:SEC                                  ",
+        "                                                         ",
+        "Examples:                                                ",
+        "cli: -"+group+"runtime 'place 0.1'                       ",
+        "api: chip.set('metric','place',',runtime', '0.1')        "]
+    
+    #memory
+    cfg[group][step]['memory'] = {}
+    cfg[group][step]['memory']['switch'] = '-'+group+'_memory'
+    cfg[group][step]['memory']['switch_args'] = '<>'
+    cfg[group][step]['memory']['type'] = ['metric']
+    cfg[group][step]['memory']['requirement'] = 'optional'
+    cfg[group][step]['memory']['defvalue'] = []
+    cfg[group][step]['memory']['short_help'] = 'Memory Footprint Metric'
+    cfg[group][step]['memory']['help'] = [
+        "Metric tracking the peak memory usage on a per stage     ",
+        "basis, specified in MB.                                  ",
+        "                                                         ",
+        "Examples:                                                ",
+        "cli: -"+group+"memory 'place 0.1'                        ",
+        "api: chip.set('metric','place',',memory', '0.1')         "]
+    
+    #report files
+    cfg[group][step]['report'] = {}
+    cfg[group][step]['report']['switch'] = '-'+group+'_report'
+    cfg[group][step]['report']['switch_args'] = '<>'
+    cfg[group][step]['report']['type'] = ['file']
+    cfg[group][step]['report']['requirement'] = 'optional'
+    cfg[group][step]['report']['defvalue'] = []
+    cfg[group][step]['report']['hash'] = []
+    cfg[group][step]['report']['short_help'] = 'QOR Result Files'
+    cfg[group][step]['report']['help'] = [
+        "List of files that contain the information used to       ",
+        "populate the metric values                               ",
+        "                                                         ",
+        "Examples:                                                ",
+        "cli: -"+group+"report 'place mydesign_qor.rpt'           ",
+        "api: chip.set('metric','place','report',                 ", 
+        "              'mydesign.rpt')                            "]
+    
     return cfg
 
 ###########################################################################
@@ -1799,7 +1802,7 @@ def schema_options(cfg):
         'type' : ['bool'],
         'requirement' : 'optional',
         'defvalue' : ['false'],
-        'short_help' : 'RTL Linting Relaxed Mode',
+        'short_help' : 'Relaxed RTL Linting',
         'help' : ["Specifies that tools should be lenient and supress some  ",
                   "warnigns that may or may not indicate design issues. The ",
                   "default is to enforce strict checks for all stages.      ",
@@ -1808,16 +1811,129 @@ def schema_options(cfg):
                   "api: chip.set('relax','true')                            "]
     }
 
+    cfg['compact'] = {
+        'switch' : '-compact',
+        'switch_args' : '<str>',
+        'type' : ['bool'],
+        'requirement' : 'optional',
+        'defvalue' : ['false'],
+        'short_help' : ' Compact Archive',
+        'help' : ["Deletes all non-essential files at the end of each step  ",
+                  "and creates a 'zip' archive of the job folder.           ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -compact                                            ",
+                  "api: chip.set('compact','true')                          "]
+    }
 
     
+    cfg['design_steps'] = {
+        'switch' : '-compile_stages',
+        'switch_args' : '<str>',
+        'requirement' : 'all',
+        'type' : ['string'],
+        'defvalue' : ['import',
+                      'syn',
+                      'floorplan',
+                      'place',
+                      'cts',
+                      'route',
+                      'dfm',
+                      'export'],
+        'short_help' : 'List of Compilation Stages',
+        'help' : ["A complete list of all stages included in fully automated",
+                  "RTL to GDSII compilation. Compilation flow is controlled ",
+                  "with the -start, -stop, -cont switches and by adding     ",
+                  "values to the list. The list must be ordered to enable   ",
+                  "default automated compilation from the first entry to the",
+                  "last entry in the list. Inserting stages in the middle of",
+                  "the list is only possible by overwriting the whole list. ",
+                  "The example below demonstrates adding a tapeout stage    ",
+                  "at the end of the compile_stages list.                   ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -compile_stages 'tapeout'                           ",
+                  "api:  chip.add('compile_stages', 'tapeout')              "]
+    }
+
+    cfg['signoff_steps'] = {
+        'switch' : '-dv_stages',
+        'switch_args' : '<str>',
+        'requirement' : 'all',
+        'type' : ['string'],
+        'defvalue' : ['lec',
+                      'pex',
+                      'sta',
+                      'pi',
+                      'si',
+                      'drc',
+                      'erc',
+                      'lvs'],
+        'short_help' : 'List of Verification Stages',
+        'help' : ["A complete list of all verification stages. Verification ",
+                  "flow is controlled with the -start, -stop, -cont switches",
+                  "and by expanding the list. The list must be ordered to   ",
+                  "enable default automated verification from the first     ",
+                  "entry to the last entry in the list. Inserting stages in ",
+                  "the middle of the list is only possible by overwriting   ",
+                  "the whole list. The example below demonstrates adding an ",
+                  "archive stage at the end of the dv_stages list           ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -dv_stages 'archive'                                ",
+                  "api:  chip.add('dv_stages', 'archive')                   "]
+    }
+
+    cfg['view_steps'] = {
+        'switch' : '-view_stages',
+        'switch_args' : '<str>',
+        'requirement' : 'all',
+        'type' : ['string'],
+        'defvalue' : ['defview',
+                      'gdsview'],
+        'short_help' : 'List of Interactive Viewer Stages',
+        'help' : ["A complete list of all interactive viewer stages. The    ",
+                  "viewer stages are not meant to be executed as a pipeline,",
+                  "but serves as a central record for documenting tools and ",
+                  "options for display tools.                               ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -view_stages 'scopeview'                            ",
+                  "api:  chip.add('view_stages', 'scopeview')               "]
+    }
+    
+
+    cfg['mfg_steps'] = {
+        'switch' : '-mfg_stages',
+        'switch_args' : '<str>',
+        'requirement' : 'all',
+        'type' : ['string'],
+        'defvalue' : ['maskprep',
+                      'mask',
+                      'foundry',
+                      'bump',
+                      'wafertest',
+                      'assembly',                      
+                      'program',
+                      'finaltest'
+        ],
+        'short_help' : 'List of Manufacturing Stages',
+        'help' : ["A complete list of all steps in the manufacturing flow.  ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -mfg_stages 'dice'                                  ",
+                  "api:  chip.add('mfg_stages', 'dice')                     "]
+    }
+    
+
     return cfg
 
 ############################################
-# RTL Import Setup
+# Design Setup
 #############################################
 
-def schema_rtl(cfg):
-    ''' Design setup
+def schema_design(cfg):
+    ''' Design Sources
     '''
 
     cfg['source'] = {
@@ -1840,6 +1956,64 @@ def schema_rtl(cfg):
                   "api: chip.add('source','hello_world.v')                  "]
     }
 
+    cfg['doc'] = {
+        'switch' : '-doc',
+        'switch_args' : '<file>',
+        'type' : ['file'],
+        'requirement' : ['all'],
+        'defvalue' : [],
+        'hash'   : [],
+        'short_help' : 'Design Documentation File List',
+        'help' : ["A list of design documents. Files are read in order from ",
+                  "first to last.                                           ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -doc 'design_spec.pdf'                              ",
+                  "api: chip.add('doc','design_spec.pdf')                   "]
+    }
+
+    cfg['version'] = {
+        'switch' : '-version',
+        'switch_args' : '<str>',
+        'type' : ['file'],
+        'requirement' : ['all'],
+        'defvalue' : [],
+        'short_help' : 'Design Version',
+        'help' : ["Specifies the version of the design.                     ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -version '1.0'                                      ",
+                  "api: chip.add('version','1.0')                           "]
+    }
+
+    cfg['distribution'] = {
+        'switch' : '-distribution',
+        'switch_args' : '<str>',
+        'type' : ['file'],
+        'requirement' : ['all'],
+        'defvalue' : [],
+        'short_help' : 'Distribution Restriction Statement',
+        'help' : ["Specifies all restrictions associated with the design.   ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -distribution 'DISTRIBUTION A ...'                  ",
+                  "api: chip.add('distribrution','DISTRIBUTION A ...')      "]
+    }
+    
+    cfg['license'] = {
+        'switch' : '-license',
+        'switch_args' : '<str>',
+        'type' : ['file'],
+        'requirement' : ['all'],
+        'defvalue' : [],
+        'short_help' : 'Design License',
+        'help' : ["Specifies the technology license for the source code.    ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -license MIT                                        ",
+                  "api: chip.add('license','MIT')                           "]
+    }
+  
     cfg['design'] = {
         'switch' : '-design',
         'switch_args' : '<str>',
@@ -1871,6 +2045,19 @@ def schema_rtl(cfg):
                   "api: chip.set('nickname','top')                          "]
         }
 
+    cfg['origin'] = {
+        'switch' : '-origin',
+        'switch_args' : '<str>',
+        'type' : ['string'],
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Design Origin',
+        'help' : ["Record of design source origin.                          ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -origin unknown                                     ",
+                  "api: chip.set('origin','unknown')                        "]
+        }
 
     cfg['clock'] = {
         'switch' : '-clock',
