@@ -28,67 +28,67 @@ def find_target(chip):
         setup_libs(chip)
 
         # EDA Flow is hard coded for builtin
-        for stage in (['import']):
-            setup_stage(chip, stage, "verilator")
+        for step in (['import']):
+            setup_step(chip, step, "verilator")
 
-        for stage in (['syn']):
-            setup_stage(chip, stage, "yosys")
+        for step in (['syn']):
+            setup_step(chip, step, "yosys")
 
-        for stage in (['floorplan', 'place', 'cts', 'route', 'signoff']):
+        for step in (['floorplan', 'place', 'cts', 'route', 'dfm']):
             if chip.cfg['mode'] == 'fpga' :
-                setup_stage(chip, stage, "vpr")
+                setup_step(chip, step, "vpr")
             else:
-                setup_stage(chip, stage, "openroad")
+                setup_step(chip, step, "openroad")
 
-        for stage in (['export']):
+        for step in (['export']):
             if chip.cfg['mode'] == 'fpga' :
-                setup_stage(chip, stage, "vpr")
+                setup_step(chip, step, "vpr")
             else:
-                setup_stage(chip, stage, "klayout")
+                setup_step(chip, step, "klayout")
     else:
         if os.getenv('SCPATH') == None:
             chip.logger.error('Environment variable $SCPATH has \
             not been set, required for closed targets')
             sys.exit()
-        module = importlib.import_module(target)
+        module = importlib.import_module("setup_target")
         setup_target = getattr(module,"setup_target")
-        setup_target(chip)
+        setup_target(chip, target)
 
 #helper fucntion
-def setup_stage(chip, stage, vendor):
+def setup_step(chip, step, vendor):
     edadir = "eda." + vendor
     module = importlib.import_module('.'+vendor, package=edadir)
     setup_tool = getattr(module,"setup_tool")
-    setup_tool(chip,stage)
+    setup_tool(chip,step)
 
 #############################
 # Runtime Options
 ############################
 
-def setup_cmd(chip,stage):
+def setup_cmd(chip,step):
 
     #Set Executable
-    exe = chip.cfg['tool'][stage]['exe']['value'][-1] #scalar
+    exe = chip.cfg['flow'][step]['exe']['value'][-1] #scalar
     cmd_fields = [exe]
 
     #Dynamically generate options
-    vendor = chip.cfg['tool'][stage]['vendor']['value'][-1]
-    tool  = chip.cfg['tool'][stage]['exe']['value'][-1]
+    vendor = chip.cfg['flow'][step]['vendor']['value'][-1]
+    tool  = chip.cfg['flow'][step]['exe']['value'][-1]
     module = importlib.import_module('.'+tool,
                                      package="eda." + vendor)
     setup_options = getattr(module,"setup_options")
-    options = setup_options(chip,stage)
+    options = setup_options(chip,step)
 
     #Add options to cmd list
     cmd_fields.extend(options)        
 
     #Resolve Paths
-    if schema_istrue(chip.cfg['tool'][stage]['copy']['value']):
-        for value in chip.cfg['tool'][stage]['script']['value']:
+    if schema_istrue(chip.cfg['flow'][step]['copy']['value']):
+        for value in chip.cfg['flow'][step]['script']['value']:
             abspath = schema_path(value)
             cmd_fields.append(abspath)
     else:
-        for value in chip.cfg['tool'][stage]['script']['value']:
+        for value in chip.cfg['flow'][step]['script']['value']:
             cmd_fields.append(value)      
 
     #Piping to log file

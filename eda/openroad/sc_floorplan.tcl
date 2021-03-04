@@ -2,13 +2,13 @@
 # SC SETUP
 ##############################################################
 
-set stage      "floorplan"
+set step      "floorplan"
 
 source ./sc_setup.tcl
 
 # Setting script path to local or refdir
-set scriptdir [dict get $sc_cfg tool $stage refdir]
-if {[dict get $sc_cfg tool $stage copy] eq True} {
+set scriptdir [dict get $sc_cfg flow $step refdir]
+if {[dict get $sc_cfg flow $step copy] eq True} {
     set scriptdir "./"
 }
 
@@ -16,7 +16,7 @@ if {[dict get $sc_cfg tool $stage copy] eq True} {
 set stackup      [dict get $sc_cfg stackup]
 set target_libs  [dict get $sc_cfg target_lib]
 set mainlib      [lindex $target_libs 0]
-set libarch      [dict get $sc_cfg stdcells $mainlib libtype]
+set libarch      [dict get $sc_cfg stdcell $mainlib libtype]
 set techlef      [dict get $sc_cfg pdk_aprtech $stackup $libarch openroad]
 set topmodule    [dict get $sc_cfg design]
 set corner       "typical"
@@ -52,9 +52,9 @@ close $outfile
 #Setup Libs
 ####################
 foreach lib $target_libs {
-    read_liberty [dict get $sc_cfg stdcells $lib model typical nldm lib]
-    read_lef [dict get $sc_cfg stdcells $lib lef]
-    set site [dict get $sc_cfg stdcells $lib site]
+    read_liberty [dict get $sc_cfg stdcell $lib model typical nldm lib]
+    read_lef [dict get $sc_cfg stdcell $lib lef]
+    set site [dict get $sc_cfg stdcell $lib site]
 }
 
 ####################

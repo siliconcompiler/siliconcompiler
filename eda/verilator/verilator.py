@@ -7,30 +7,30 @@ from siliconcompiler.schema import schema_istrue
 # Setup Verilator
 ################################
 
-def setup_tool(chip, stage):
-    ''' Sets up default settings on a per stage basis
+def setup_tool(chip, step):
+    ''' Sets up default settings on a per step basis
     '''
 
-    chip.add('tool', stage, 'threads', '4')
-    chip.add('tool', stage, 'format', 'cmdline')
-    chip.add('tool', stage, 'copy', 'false')
-    chip.add('tool', stage, 'exe', 'verilator')
-    chip.add('tool', stage, 'vendor', 'verilator')
-    chip.add('tool', stage, 'refdir', '')
-    chip.add('tool', stage, 'script', '')
-    chip.add('tool', stage, 'opt', '--lint-only --debug')
+    chip.add('flow', step, 'threads', '4')
+    chip.add('flow', step, 'format', 'cmdline')
+    chip.add('flow', step, 'copy', 'false')
+    chip.add('flow', step, 'exe', 'verilator')
+    chip.add('flow', step, 'vendor', 'verilator')
+    chip.add('flow', step, 'refdir', '')
+    chip.add('flow', step, 'script', '')
+    chip.add('flow', step, 'opt', '--lint-only --debug')
   
 ################################
 # Set Verilator Runtime Options
 ################################
 
-def setup_options(chip,stage):
-    ''' Per tool/stage function that returns a dynamic options string based on
+def setup_options(chip,step):
+    ''' Per tool/step function that returns a dynamic options string based on
     the dictionary settings.
     '''
 
     #Get default opptions from setup
-    options = chip.get('tool', stage, 'opt')
+    options = chip.get('flow', step, 'opt')
 
     #Include cwd in search path (verilator default)
 
@@ -72,13 +72,13 @@ def setup_options(chip,stage):
 ################################
 # Pre and Post Run Commands
 ################################
-def pre_process(chip,stage):
-    ''' Tool specific function to run before stage execution
+def pre_process(chip,step):
+    ''' Tool specific function to run before step execution
     '''
     pass
 
-def post_process(chip,stage):
-    ''' Tool specific function to run after stage execution
+def post_process(chip,step):
+    ''' Tool specific function to run after step execution
     '''
 
     # filtering out debug garbage

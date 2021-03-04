@@ -1,31 +1,31 @@
 
-def setup_tool(chip, stage):
+def setup_tool(chip, step):
 
      refdir = 'eda/yosys'
 
-     chip.add('tool', stage, 'threads', '4')
-     chip.add('tool', stage, 'format', 'tcl')
-     chip.add('tool', stage, 'copy', 'true')
-     chip.add('tool', stage, 'vendor', 'yosys')
-     chip.add('tool', stage, 'exe', 'yosys')
-     chip.add('tool', stage, 'opt', '-c')
-     chip.add('tool', stage, 'refdir', refdir)
-     chip.add('tool', stage, 'script', refdir + '/sc_syn.tcl')
+     chip.add('flow', step, 'threads', '4')
+     chip.add('flow', step, 'format', 'tcl')
+     chip.add('flow', step, 'copy', 'true')
+     chip.add('flow', step, 'vendor', 'yosys')
+     chip.add('flow', step, 'exe', 'yosys')
+     chip.add('flow', step, 'opt', '-c')
+     chip.add('flow', step, 'refdir', refdir)
+     chip.add('flow', step, 'script', refdir + '/sc_syn.tcl')
    
-def setup_options(chip,stage):
+def setup_options(chip,step):
 
-     options = chip.get('tool', stage, 'opt')
+     options = chip.get('flow', step, 'opt')
      return options
 
 ################################
 # Pre and Post Run Commands
 ################################
-def pre_process(chip,stage):
-    ''' Tool specific function to run before stage execution
+def pre_process(chip,step):
+    ''' Tool specific function to run before step execution
     '''
     pass
 
-def post_process(chip,stage):
-    ''' Tool specific function to run after stage execution
+def post_process(chip,step):
+    ''' Tool specific function to run after step execution
     '''
     pass

@@ -25,26 +25,26 @@ def setup_libs(chip):
                        rev])
 
     # rev
-    chip.add('stdcells',libname,'rev',rev)    
+    chip.add('stdcell',libname,'rev',rev)    
 
     # timing
-    chip.add('stdcells',libname, 'model', 'typical', 'nldm', 'lib',
+    chip.add('stdcell',libname, 'model', 'typical', 'nldm', 'lib',
              libdir+'/lib/NangateOpenCellLibrary_typical.lib')
     
     # lef
-    chip.add('stdcells',libname,'lef',
+    chip.add('stdcell',libname,'lef',
              libdir+'/lef/NangateOpenCellLibrary.macro.lef')    
     # gds
-    chip.add('stdcells',libname,'gds',
+    chip.add('stdcell',libname,'gds',
              libdir+'/gds/NangateOpenCellLibrary.gds')
     # site name
-    chip.add('stdcells',libname,'site',
+    chip.add('stdcell',libname,'site',
              'FreePDK45_38x28_10R_NP_162NW_34O')
     # lib arch
-    chip.add('stdcells',libname,'libtype',libtype)
+    chip.add('stdcell',libname,'libtype',libtype)
 
     # lib site/tile/size
-    chip.add('stdcells',libname,'size',size)
+    chip.add('stdcell',libname,'size',size)
     
     # hard coded mcmm settings
     chip.add('mcmm','worst','libcorner', corner)

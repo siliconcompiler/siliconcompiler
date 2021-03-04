@@ -1972,18 +1972,18 @@ def schema_design(cfg):
                   "api: chip.add('doc','design_spec.pdf')                   "]
     }
 
-    cfg['version'] = {
-        'switch' : '-version',
+    cfg['rev'] = {
+        'switch' : '-rev',
         'switch_args' : '<str>',
         'type' : ['file'],
         'requirement' : ['all'],
         'defvalue' : [],
-        'short_help' : 'Design Version',
-        'help' : ["Specifies the version of the design.                     ",
-                  "                                                         ",
-                  "Examples:                                                ",
-                  "cli: -version '1.0'                                      ",
-                  "api: chip.add('version','1.0')                           "]
+        'short_help' : 'Design Revision',
+        'help' : ["Specifies the rev of the design.                     ",
+                  "                                                     ",
+                  "Examples:                                            ",
+                  "cli: -rev '1.0'                                      ",
+                  "api: chip.add('rev','1.0')                           "]
     }
 
     cfg['distribution'] = {

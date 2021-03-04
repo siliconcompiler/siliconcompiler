@@ -93,7 +93,7 @@ def cmdline():
             cfg[param] = {}
 
         #Iterate over list since these are dynamic
-        if switch[0] in ('stdcell', 'macro', 'tool'):
+        if switch[0] in ('stdcell', 'macro', 'step'):
             for val in all_vals:
                 if val[0] not in cfg[param]:
                         cfg[param][val[0]]={}
@@ -132,16 +132,16 @@ def add_arg(cfg, parser, keys=None):
         if k in ('source'):
             pass
         #Optimizing command line switches for these
-        elif k in ('tool', 'goal', 'real'):
-            for k2 in cfg[k]['syn'].keys():
-                helpstr = cfg[k]['syn'][k2]['short_help']
+        elif k in ('flow', 'goal', 'real'):
+            for k2 in cfg[k]['import'].keys():
+                helpstr = cfg[k]['import'][k2]['short_help']
                 helpstr = (helpstr +
                            '\n\n' +
-                           '\n'.join(cfg[k]['syn'][k2]['help']) +
+                           '\n'.join(cfg[k]['import'][k2]['help']) +
                            "\n\n---------------------------------------------------------\n") 
-                parser.add_argument(cfg[k]['syn'][k2]['switch'],
+                parser.add_argument(cfg[k]['import'][k2]['switch'],
                                     dest=k+"_"+k2,
-                                    metavar=cfg[k]['syn'][k2]['switch_args'],
+                                    metavar=cfg[k]['import'][k2]['switch_args'],
                                     action='append',
                                     help=helpstr,
                                     default = argparse.SUPPRESS)
@@ -222,7 +222,7 @@ def main():
     #Lock chip configuration
     chip.lock()
     
-    all_stages = chip.get('compile_stages')
+    all_stages = chip.get('design_steps')
     for stage in all_stages:
         # Run each stage on the remote compute cluster if requested.
         if len(chip.cfg['remote']['value']) > 0:

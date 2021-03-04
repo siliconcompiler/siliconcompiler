@@ -28,11 +28,11 @@ def setup_pdk(chip):
     chip.add('pdk_stackup', stackup)
    
     # DRC
-    chip.add('tool','drc','script',
+    chip.add('flow','drc','script',
              pdkdir+'/runsets/klayout/freepdk45.lydrc')
 
     # DISPLAY
-    chip.add('tool','gdsview','script',
+    chip.add('flow','gdsview','script',
              pdkdir+'/setup/klayout/freepdk45.lyt')
 
     # hard coded target lib

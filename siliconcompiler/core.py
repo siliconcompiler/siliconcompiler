@@ -34,7 +34,7 @@ class Chip:
     Attributes
     ----------
     cfg (dict): Configuration dictionary
-    status (dict) : Stage and job ID based status dictionary
+    status (dict) : Step and job ID based status dictionary
 
     """
 
@@ -78,12 +78,12 @@ class Chip:
         #Use built-in target
         self.builtin_target = False
         
-        # Instance starts with all default stages in idle
+        # Instance starts with all default steps in idle
         self.status = {}
-        all_stages = (self.cfg['compile_stages']['defvalue'] +
-                      self.cfg['dv_stages']['defvalue'])
-        for stage in all_stages:
-            self.status[stage] = ["idle"]
+        all_steps = (self.cfg['design_steps']['defvalue'] +
+                      self.cfg['signoff_steps']['defvalue'])
+        for step in all_steps:
+            self.status[step] = ["idle"]
 
     ###################################
     def get(self, *args):
@@ -402,11 +402,11 @@ class Chip:
             sys.exit()
         
     ###################################
-    def getstatus(self, stage, jobid):
-        '''Gets status of a job for a specific compilaton stage
+    def getstatus(self, step, jobid):
+        '''Gets status of a job for a specific compilaton step
 
         Args:
-            stage (string): Stage name to get status for
+            step (string): Step name to get status for
             jobid (int): Job index
 
         Returns:
@@ -414,7 +414,7 @@ class Chip:
 
         '''
 
-        return self.status[stage][jobid]
+        return self.status[step][jobid]
 
     #################################
     def readenv(self):
@@ -570,8 +570,8 @@ class Chip:
                     self.reset(cfg=cfg[k])
 
     ##################################
-    def sync(self, stage, jobid):
-        '''Waits for jobs for the stage and jobid specified to complete
+    def sync(self, step, jobid):
+        '''Waits for jobs for the step and jobid specified to complete
         Much work to do here!!
 
         '''
@@ -657,15 +657,15 @@ class Chip:
 
 
     ###################################
-    def summary(self, stage, jobid, filename=None):
-        '''Creates a summary dictionary of the results of the specified stage
+    def summary(self, step, jobid, filename=None):
+        '''Creates a summary dictionary of the results of the specified step
         and jobid
 
          Args:
-            stage: The stage to report on (eg. cts)
+            step: The step to report on (eg. cts)
             jobid: Index of job to report on (1, 2, etc)
         '''
-        return stage
+        return step
 
     ###################################
     def display(self, *args, index=0):
@@ -682,8 +682,8 @@ class Chip:
           error = subprocess.run(cmd, shell=True)
       
     ###################################
-    def metrics(self, stage):
-        '''Extract metrics on a per stage basis from logs.
+    def metrics(self, step):
+        '''Extract metrics on a per step basis from logs.
         Likely strategy for implementtion includes.
         '''
 
@@ -691,13 +691,13 @@ class Chip:
         #2. Based on target platform load wrapper
         #3. In wrapper load proprietary modules
         
-        vendor = self.cfg['tool'][stage]['vendor']['value'][-1]
+        vendor = self.cfg['flow'][step]['vendor']['value'][-1]
 
         pass
 
     ###################################
-    def run(self, stage):
-        '''The common execution method for all compilation stages compilation
+    def run(self, step):
+        '''The common execution method for all compilation steps compilation
         flow. The job executes on the local machine by default, but can be
         execute as a remote job as well. If executed in synthconorus mode, the
         run command waits at the end of the function call before returning to
@@ -709,17 +709,17 @@ class Chip:
         # Run Setup
         ##################### 
 
-        vendor = self.cfg['tool'][stage]['vendor']['value'][-1]
-        tool = self.cfg['tool'][stage]['exe']['value'][-1]
-        refdir = schema_path(self.cfg['tool'][stage]['refdir']['value'][-1])
+        vendor = self.cfg['flow'][step]['vendor']['value'][-1]
+        tool = self.cfg['flow'][step]['exe']['value'][-1]
+        refdir = schema_path(self.cfg['flow'][step]['refdir']['value'][-1])
         
-        stages = (self.cfg['compile_stages']['value'] +
-                  self.cfg['dv_stages']['value'])
-        current = stages.index(stage)
-        laststage = stages[current-1]
-        start = stages.index(self.cfg['start']['value'][-1]) #scalar
-        stop = stages.index(self.cfg['stop']['value'][-1]) #scalar
-        skip = stage in self.cfg['skip']['value']
+        steps = (self.cfg['design_steps']['value'] +
+                 self.cfg['signoff_steps']['value'])
+        current = steps.index(step)
+        laststep = steps[current-1]
+        start = steps.index(self.cfg['start']['value'][-1]) #scalar
+        stop = steps.index(self.cfg['stop']['value'][-1]) #scalar
+        skip = step in self.cfg['skip']['value']
 
         #####################
         # Dynamic Module Load
@@ -732,20 +732,20 @@ class Chip:
         # Conditional Execution
         #####################    
 
-        if stage not in stages:
-            self.logger.error('Illegal stage name %s', stage)
+        if step not in steps:
+            self.logger.error('Illegal step name %s', step)
         elif (current < start) | (current > stop) | skip:
-            self.logger.info('Skipping stage: %s', stage)
+            self.logger.info('Skipping step: %s', step)
         else:
-            self.logger.info('Running stage: %s', stage)
+            self.logger.info('Running step: %s', step)
 
             #Updating jobindex
-            jobid = int(self.cfg['tool'][stage]['jobid']['value'][-1]) + 1
+            jobid = int(self.cfg['flow'][step]['jobid']['value'][-1]) + 1
 
             #Moving to working directory
             jobdir = (str(self.cfg['build']['value'][-1]) + #scalar
                       "/" +
-                      str(stage) +
+                      str(step) +
                       "/job" +
                       str(jobid))
 
@@ -764,17 +764,17 @@ class Chip:
             self.writetcl("sc_setup.tcl")
             self.writecfg("sc_setup.json")
             
-            #Copy outputs from last stage unless import                        
-            if stage != "import":              
-                lastjobid = self.cfg['tool'][laststage]['jobid']['value'][-1]
+            #Copy outputs from last step unless import                        
+            if step != "import":              
+                lastjobid = self.cfg['flow'][laststep]['jobid']['value'][-1]
                 lastdir = '/'.join(['../../',                
-                                    stages[current-1],
+                                    steps[current-1],
                                     'job'+lastjobid,
                                     'outputs'])
                 shutil.copytree(lastdir, 'inputs')
                 
             #Copy Reference Scripts
-            if schema_istrue(self.cfg['tool'][stage]['copy']['value']):
+            if schema_istrue(self.cfg['flow'][step]['copy']['value']):
                 shutil.copytree(refdir,
                                 ".",
                                 dirs_exist_ok=True)
@@ -784,13 +784,13 @@ class Chip:
             #####################
 
             pre_process = getattr(module,"pre_process")
-            pre_process(self,stage)
+            pre_process(self,step)
 
             #####################
             # Run Executable
             #####################
 
-            cmd = setup_cmd(self,stage)
+            cmd = setup_cmd(self,step)
 
             with open("run.sh", 'w') as f:
                 print("#!/bin/bash", file=f)
@@ -812,10 +812,10 @@ class Chip:
             
             #run tool specific post process
             post_process = getattr(module,"post_process")
-            post_process(self,stage)
+            post_process(self,step)
 
             #Updating jobid when complete
-            self.cfg['tool'][stage]['jobid']['value'] = [str(jobid)]
+            self.cfg['flow'][step]['jobid']['value'] = [str(jobid)]
 
             #Return to CWD
             os.chdir(cwd)
