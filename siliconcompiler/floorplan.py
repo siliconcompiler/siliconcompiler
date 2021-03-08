@@ -6,26 +6,30 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 
+from siliconcompiler.leflib import define_lef
+from siliconcompiler.deflib import define_def
+
 class Floorplan:
     """
     Chip Layout Class
     """
+
     def __init__(self):
         '''
         Init method for Chip object
         '''
-        layout = {} 
-        layout["version"] = "5.8"
-        layout["dividerchar"] = "/"
-        layout["busbitchar"] = "[]"
-        layout["design"] = ""
-        layout["diearea"] = []
-        layout["track"] = {}
-        layout["component"] = {}
-        layout["pin"] = {}
-        layout["net"] = {}
-        layout["net"] = {}
-            
+
+        #Setup LEF-DEF Database
+        layout = define_lef()        
+        layout = define_def(layout)
+
+    def readlef(self):
+        '''
+        Read Lef file
+        '''
+        logging.info('Placing a keepout area')
+        pass   
+        
     def writejson(self, filename):
         '''
         Write JSOn File
@@ -51,7 +55,7 @@ class Floorplan:
         logging.info('Adding diearea to floorplan')
         pass
 
-    def addrow(self, site, x, y, orientation, numx, numy, stepx, stepy):
+    def addrow(self, name, site, x, y, orientation, numx, numy, stepx, stepy):
         '''
         Adding a placement row
         '''
@@ -88,6 +92,8 @@ class Floorplan:
         logging.info('Placing a keepout area')
         pass
 
+ 
+    
     
 
 #############################
@@ -96,10 +102,7 @@ def snap2grid (val, grid):
     logging.debug('Executing fp.snap2grid', val,grid)
     return(grid * math.ceil(val/grid))
 
-#####################
-# Place Blockage
-def blockage (name, box, metal):
-    logging.debug('Executing fp.cell', name, x, y, orientation)
+
 
 #####################
 #Place a list of pins
