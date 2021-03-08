@@ -126,7 +126,82 @@ class Def:
             else:
                 values.append(tok.value)
 
+########################################################################
+def define_def(lefdef):
 
+    #DESIGN
+    lefdef["design"] = []
+    
+    #DIEAREA
+    lefdef["diearea"] = []
+    
+    #ROWS
+    lefdef["row"]['default'] = {}
+    lefdef["row"]['default'] = {
+        'site' : "",
+        'x' : "",
+        'y' : "",
+        'orientation' : "",
+        'numx' : "",
+        'numy' : "",
+        'stepx' : "",
+        'stepy' : ""
+    }
+
+    #TRACKS (hidden name)
+    lefdef["track"]['default'] = {}
+    lefdef["track"]['default'] = {
+        'layer' : "",
+        'direction' : "",
+        'start' : "",
+        'step' : "",
+        'total' : ""
+    }
+
+    #COMPONENTS (instance name driven)
+    lefdef["component"]['default'] = {}
+    lefdef["component"]['default'] = {
+        'cell' : "",
+        'x' : "",
+        'y' : "",
+        'status' : "",
+        'direction' : "",
+        'halo' : ""
+    }
+    
+    #PINS
+    lefdef["pin"]['default'] = {}
+    lefdef["pin"]['default'] = {
+        'net' : "",
+        'special' : "",
+        'placement' : "",
+        'direction' : "",
+        'port' : []
+    }
+
+    #SPECIALNETS
+    lefdef["specialnet"]['default'] = {}
+    lefdef["specialnet"]['default'] = {
+        'connections' : [],
+        'shield' : [],
+        'use' : "",
+        'fixed' : [],
+        'routed' : []
+    }
+
+    #NETS
+    lefdef["net"]['default'] = {}
+    lefdef["net"]['default'] = {
+        'connections' : [],
+        'shield' : [],
+        'use' : "",
+        'fixed' : [],
+        'routed' : []
+    }
+
+    return lefdef
+
+                
 ####################################################
 #FOOFOO TESTING
 ####################################################
