@@ -4,13 +4,54 @@ import math
 import logging
 import numpy as np
 import matplotlib.pyplot as plt
-from   matplotlib.patches import Rectangle
+from matplotlib.patches import Rectangle
 
-#####################
-# Create diearea
-# Orientation = (N,S,W,E,FN,FS,FW,FE)
-def diearea (box):
-    logging.debug('Executing fp.diearea', box, libheight)
+class Floorplan:
+    """
+    Chip Layout Class
+    """
+    def __init__(self):
+        '''
+        Init method for Chip object
+        '''
+        self.version = "5.8"
+        self.dividerchar = "/"
+        self.busbitchars = "[]"
+        self.design = []
+        self.diearea = []
+        self.row = []
+        self.track = []
+        self.component = []
+        self.pin = []
+        self.net = []
+            
+    def writedef(self, filename):
+        '''
+        Write DEF File
+        '''
+        logging.info('Write DEF %s', filename)
+        pass
+
+    def diearea(self, *args):
+        '''
+        Specifies the die area of the design. If two points are defined, 
+        specifies two corners of the bounding rectangle for the design. If
+        more than two points are defined, specifies the points of a 
+        polygon that forms the die area. All points are integers, 
+        specified as DEF database units.
+        '''
+        logging.info('Adding diearea')
+        pass
+
+    def addrow(self, site, x, y, step ):
+        '''
+        Add a placement row.
+        '''
+        logging.info('Adding row to floorplan')
+        pass
+#ROW ROW_0 FreePDK45_38x28_10R_NP_162NW_34O 20140 22400 FS DO 422 BY 1 STEP 380 0 ;
+    
+
 
 #####################
 # Place Rows 
@@ -91,9 +132,7 @@ def pinlist (pinlist, side, block_w, block_h, offset, pinwidth, pindepth, pinhal
         x1 = x1 + xincr
         y1 = y1 + yincr
 
-#####################
-def writedef(filename):
-    logging.debug('Writing DEF to:', filename)
+
 
 #####################
 # Plot the design
