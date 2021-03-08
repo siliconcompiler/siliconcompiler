@@ -14,17 +14,25 @@ class Floorplan:
         '''
         Init method for Chip object
         '''
-        self.version = "5.8"
-        self.dividerchar = "/"
-        self.busbitchars = "[]"
-        self.design = []
-        self.diearea = []
-        self.row = []
-        self.track = []
-        self.component = []
-        self.pin = []
-        self.net = []
+        layout = {} 
+        layout["version"] = "5.8"
+        layout["dividerchar"] = "/"
+        layout["busbitchar"] = "[]"
+        layout["design"] = ""
+        layout["diearea"] = []
+        layout["track"] = {}
+        layout["component"] = {}
+        layout["pin"] = {}
+        layout["net"] = {}
+        layout["net"] = {}
             
+    def writejson(self, filename):
+        '''
+        Write JSOn File
+        '''
+        logging.info('Write JSON %s', filename)
+        pass
+
     def writedef(self, filename):
         '''
         Write DEF File
@@ -40,40 +48,47 @@ class Floorplan:
         polygon that forms the die area. All points are integers, 
         specified as DEF database units.
         '''
-        logging.info('Adding diearea')
+        logging.info('Adding diearea to floorplan')
         pass
 
-    def addrow(self, site, x, y, step ):
+    def addrow(self, site, x, y, orientation, numx, numy, stepx, stepy):
         '''
-        Add a placement row.
+        Adding a placement row
         '''
-        logging.info('Adding row to floorplan')
+        logging.info('Adding  row to floorplan')
         pass
-#ROW ROW_0 FreePDK45_38x28_10R_NP_162NW_34O 20140 22400 FS DO 422 BY 1 STEP 380 0 ;
+
+    def addtrack(self, layer, direction, start, step, total):
+        '''
+        Add a routing track
+        '''
+        logging.info('Placing tracks')
+        pass
     
+    
+    def placepin(self, pin, net, x, y, box, layer,
+               direction=None, use="signal", fixed=True):
+        '''
+        Place pin
+        '''
+        logging.info('Placing a pin')
+        pass
 
+    def placecell(self):
+        '''
+        Place a cell
+        '''
+        logging.info('Placing a cell')
+        pass
 
-#####################
-# Place Rows 
-# Orientation = (N,S,W,E,FN,FS,FW,FE)
-def rows (box, libheight):
-    logging.debug('Executing fp.rows', box, libheight)
+    def placekeepout(self):
+        '''
+        Place a keepout area
+        '''
+        logging.info('Placing a keepout area')
+        pass
 
-####################
-# Place a pin
-def pin (name, box, metal):
-    logging.debug('Executing fp.pin', name, box, metal)
-
-#####################
-# Place Wire
-def wire (name, box, metal):
-    logging.debug('Executing fp.wire', name, box, metal)
-
-#####################
-# Place Cell
-# Orientation=(N,S,W,E,FN,FS,FW,FE)
-def cell (name, x, y, orientation):
-    logging.debug('Executing fp.cell', name, x, y, orientation)
+    
 
 #############################
 #Snaps value to routing grid
