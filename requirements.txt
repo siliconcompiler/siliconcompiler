@@ -4,3 +4,5 @@
 matplotlib >= 3.3
 numpy >= 1.19
 ply >= 3.11
+aiohttp >= 3.7.4.post0
+PyYAML >= 5.4.1
