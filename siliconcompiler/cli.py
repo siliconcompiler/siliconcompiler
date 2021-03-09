@@ -14,7 +14,7 @@ from argparse import RawTextHelpFormatter
 
 #Shorten siliconcompiler as sc
 import siliconcompiler as sc
-from siliconcompiler.setup  import find_target
+from siliconcompiler.setup  import setup_target
 from siliconcompiler.schema import schema
 from siliconcompiler.client import remote_run
 
@@ -196,7 +196,7 @@ def main():
     else:
         target = "freepdk45"
     chip.add('target', target)
-    find_target(chip)
+    setup_target(chip)
     
     # Reading in config files specified at command line
     if 'cfgfile' in  cmdlinecfg.keys():        

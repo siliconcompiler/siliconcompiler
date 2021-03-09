@@ -6,7 +6,7 @@ from siliconcompiler.schema import schema_path
 #############################
 #Initial Setup
 ############################
-def find_target(chip):
+def setup_target(chip):
     ''' Finds the target setup files based on a single string name.
     A select set of built targets can be set, otherwise the target
     is search using the SCPATH environment variable.
@@ -27,7 +27,7 @@ def find_target(chip):
         setup_libs = getattr(module,"setup_libs")
         setup_libs(chip)
 
-        # EDA Flow is hard coded for builtin
+        # EDA Flow is hard coded?
         for step in (['import']):
             setup_step(chip, step, "verilator")
 
@@ -50,7 +50,7 @@ def find_target(chip):
             chip.logger.error('Environment variable $SCPATH has \
             not been set, required for closed targets')
             sys.exit()
-        module = importlib.import_module("setup_target")
+        module = importlib.import_module("external_target")
         setup_target = getattr(module,"setup_target")
         setup_target(chip, target)
 
