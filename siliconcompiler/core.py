@@ -16,10 +16,11 @@ import shutil
 import copy
 import importlib
 
-from siliconcompiler.schema import schema
+from siliconcompiler.schema import schema_cfg
+from siliconcompiler.schema import schema_layout
 from siliconcompiler.schema import schema_path
 from siliconcompiler.schema import schema_istrue
-from siliconcompiler.setup  import setup_cmd
+from siliconcompiler.setup import setup_cmd
 
 class Chip:
     """
@@ -67,7 +68,7 @@ class Chip:
         self.logger.setLevel(str(loglevel))
        
         # Create a default dict 
-        self.cfg = schema()
+        self.cfg = schema_cfg()
 
         # Copy 'defvalue' to 'value'
         self.reset()
@@ -84,6 +85,9 @@ class Chip:
                       self.cfg['signoff_steps']['defvalue'])
         for step in all_steps:
             self.status[step] = ["idle"]
+
+        # Setup Layout
+        layout = schema_layout()        
 
     ###################################
     def get(self, *args):

@@ -7,44 +7,49 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 
 from siliconcompiler.leflib import define_lef
+from siliconcompiler.leflib import read_lef
 from siliconcompiler.deflib import define_def
+from siliconcompiler.deflib import read_def
 
-class Floorplan:
+class Chip:
     """
     Chip Layout Class
     """
 
-    def __init__(self):
+    def __init__(self, techlef):
         '''
         Init method for Chip object
         '''
 
         #Setup LEF-DEF Database
-        layout = define_lef()        
-        layout = define_def(layout)
+        layout = {}
+        define_lef(layout)        
+        define_def(layout)
 
-    def readlef(self):
+        #Read lef  
+        read_lef(layout, techlef)
+        
+
+    def set(self, filename):     
+    #TODO
+        
+        
+    def load(self, filename):
         '''
         Read Lef file
         '''
-        logging.info('Placing a keepout area')
-        pass   
-        
-    def writejson(self, filename):
-        '''
-        Write JSOn File
-        '''
-        logging.info('Write JSON %s', filename)
+        logging.info('Read LEF file')
         pass
 
-    def writedef(self, filename):
+    def save(self, filename):
         '''
-        Write DEF File
+        Write DEF or JSON File
         '''
         logging.info('Write DEF %s', filename)
+
         pass
 
-    def diearea(self, *args):
+    def set_diearea(self, *args):
         '''
         Specifies the die area of the design. If two points are defined, 
         specifies two corners of the bounding rectangle for the design. If
@@ -52,25 +57,24 @@ class Floorplan:
         polygon that forms the die area. All points are integers, 
         specified as DEF database units.
         '''
-        logging.info('Adding diearea to floorplan')
+        logging.info('Set diearea to floorplan')
         pass
 
-    def addrow(self, name, site, x, y, orientation, numx, numy, stepx, stepy):
+    def place_row(self, name, site, x, y, orientation, numx, numy, stepx, stepy):
         '''
         Adding a placement row
         '''
         logging.info('Adding  row to floorplan')
         pass
 
-    def addtrack(self, layer, direction, start, step, total):
+    def place_track(self, layer, direction, start, step, total):
         '''
         Add a routing track
         '''
         logging.info('Placing tracks')
         pass
-    
-    
-    def placepin(self, pin, net, x, y, box, layer,
+     
+    def place_pin(self, pin, net, x, y, box, layer,
                direction=None, use="signal", fixed=True):
         '''
         Place pin
@@ -78,14 +82,14 @@ class Floorplan:
         logging.info('Placing a pin')
         pass
 
-    def placecell(self):
+    def place_cell(self):
         '''
         Place a cell
         '''
         logging.info('Placing a cell')
         pass
 
-    def placekeepout(self):
+    def place_keepout(self):
         '''
         Place a keepout area
         '''

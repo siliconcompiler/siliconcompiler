@@ -163,64 +163,6 @@ class Lef:
 
         return(lef)
 
-
-####################################################
-#Defaults
-####################################################
-def define_lef():
-
-    lef = {}
-    
-    #GLOBAL VARIABLES
-    lef["version"] = ""
-    lef["busbitchars"] = ""
-    lef["units"] = ""
-    lef["manufacturinggrid"] = ""
-    
-    #SITE
-    lef["site"] = {}
-    lef["site"]['default'] = {
-        'symmetry' : "",
-        'class' : "",
-        'width' : "",
-        'height' : ""
-    }
-    
-    #ROUTING LAYERS
-    lef["layer"] = {}
-    lef["layer"]['default'] = {
-        'number' : "",
-        'direction' : "",
-        'type' : "",
-        'width' : "",
-        'pitch' : "",
-        'spacing' : "",
-        'minwidth' : "",
-        'maxwidth' : "",
-        'antennaarearatio' : "",
-        'antennadiffarearatio'  : ""
-    }
-
-    #MACROS
-    lef["macro"] = {}
-    lef["macro"]['default'] = {
-        'class' : "",
-        'site' : "",
-        'width' : "",
-        'height' : "",
-        'origin' : "",
-        'symmetry' : ""
-    }
-    lef["macro"]['default']['pin'] = {}
-    lef["macro"]['default']['pin']['default'] = {
-        'direction' : '',
-        'use' : '',
-        'shape' : '',
-        'port' : []
-    }
-
-    return lef
-
 ####################################################
 #FOOFOO TESTING
 ####################################################

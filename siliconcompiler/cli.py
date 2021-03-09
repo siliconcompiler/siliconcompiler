@@ -15,7 +15,7 @@ from argparse import RawTextHelpFormatter
 #Shorten siliconcompiler as sc
 import siliconcompiler as sc
 from siliconcompiler.setup  import setup_target
-from siliconcompiler.schema import schema
+from siliconcompiler.schema import schema_cfg
 from siliconcompiler.client import remote_run
 
 ###########################
@@ -25,7 +25,7 @@ def cmdline():
     This is outside of the class since this can be called 
 
     '''
-    def_cfg = schema()
+    def_cfg = schema_cfg()
 
     os.environ["COLUMNS"] = '80'
 

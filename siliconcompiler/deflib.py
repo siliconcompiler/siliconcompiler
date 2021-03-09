@@ -126,90 +126,157 @@ class Def:
             else:
                 values.append(tok.value)
 
-########################################################################
-def define_def(lefdef):
+###################
+# Write DEF
+###################
 
-    #DESIGN
-    lefdef["design"] = []
+def write_def(lefdef, filename):
+    '''
+    Write DEF File
+    '''
+    logging.info('Write DEF %s', filename)
+    EOT=";"
     
-    #DIEAREA
-    lefdef["diearea"] = []
-    
-    #ROWS
-    lefdef["row"]['default'] = {}
-    lefdef["row"]['default'] = {
-        'site' : "",
-        'x' : "",
-        'y' : "",
-        'orientation' : "",
-        'numx' : "",
-        'numy' : "",
-        'stepx' : "",
-        'stepy' : ""
-    }
+    with open(filename, 'w') as f:
+        print("#############################################", file=f)
+        print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
+        print("#############################################", file=f)
 
-    #TRACKS (hidden name)
-    lefdef["track"]['default'] = {}
-    lefdef["track"]['default'] = {
-        'layer' : "",
-        'direction' : "",
-        'start' : "",
-        'step' : "",
-        'total' : ""
-    }
+        #setup
+        print("VERSION ",lefdef["version"], EOT, file=f)
+        print("DIVIDERCHAR ",lefdef["dividerchar"], EOT, file=f)
+        print("BUSBITCHARS ",lefdef["busbitchars"], EOT, file=f)
+        print("DESIGN ",lefdef["design"], EOT, file=f)
+        print("TECHNOLOGY ",lefdef["technology"], EOT, file=f)
+        print("UNITS DISTANCE MICRONS ",lefdef["units"], EOT, file=f)
+        print("\n", file=f)
 
-    #COMPONENTS (instance name driven)
-    lefdef["component"]['default'] = {}
-    lefdef["component"]['default'] = {
-        'cell' : "",
-        'x' : "",
-        'y' : "",
-        'status' : "",
-        'direction' : "",
-        'halo' : ""
-    }
-    
-    #PINS
-    lefdef["pin"]['default'] = {}
-    lefdef["pin"]['default'] = {
-        'net' : "",
-        'special' : "",
-        'placement' : "",
-        'direction' : "",
-        'port' : []
-    }
+        #properties
+        for key,val in lefdef["property"].items():
+            print(key, val, EOT, file=f)
 
-    #SPECIALNETS
-    lefdef["specialnet"]['default'] = {}
-    lefdef["specialnet"]['default'] = {
-        'connections' : [],
-        'shield' : [],
-        'use' : "",
-        'fixed' : [],
-        'routed' : []
-    }
+        #diearea
+        print("DIEAREA", file=f)
+        for val in lefdef["diearea"]:
+            print(" ( "+val+ " ) ", file=f)
+        print(EOT, file=f)
 
-    #NETS
-    lefdef["net"]['default'] = {}
-    lefdef["net"]['default'] = {
-        'connections' : [],
-        'shield' : [],
-        'use' : "",
-        'fixed' : [],
-        'routed' : []
-    }
+        #row
+        for k in lefdef["row"].keys():
+            print("ROW ",
+                  k, " ",
+                  lefdef["row"][k]["site"], " ",
+                  lefdef["row"][k]["x"], " ",
+                  lefdef["row"][k]["y"], " ",
+                  lefdef["row"][k]["orientation"], " ",
+                  lefdef["row"][k]["numx"], " ",
+                  lefdef["row"][k]["numy"], " ",
+                  lefdef["row"][k]["stepx"], " ",
+                  lefdef["row"][k]["stepy"], " ",
+                  EOT,
+                  file=f)
 
-    return lefdef
+        #track
+        for k in lefdef["track"].keys():
+            print("TRACKS ",
+                  k, " ",
+                  lefdef["track"][k]["layer"], " ",
+                  lefdef["track"][k]["direction"], " ",
+                  lefdef["track"][k]["start"], " ",
+                  lefdef["track"][k]["step"], " ",
+                  lefdef["track"][k]["total"], " ",
+                  EOT,
+                  file=f)
 
-                
-####################################################
-#FOOFOO TESTING
-####################################################
-if(False):
-    from pathlib import Path
-    defdata = Path('test/complete.5.8.def').read_text()
+        #via
+        print("VIAS ", len(lefdef["via"]), EOT, file=f)
+        for k in lefdef["via"].keys():
+            print("VIA ",
+                  k, " ",
+                  #TODO
+                  EOT,
+                  file=f)
+        
+        #non default routing
+        print("NONDEFAULTRULES ", len(lefdef["via"]), EOT, file=f)
+        for k in lefdef["ndr"].keys():
+              print("NONDEFAULTRULESVIA ",
+                    k, " ",
+                    #TODO
+                    EOT,
+                    file=f)  
+
+
+        #components
+        print("COMPONENTS ", len(lefdef["component"]), EOT, file=f)
+        for inst in lefdef["component"].keys():
+            print("- ",
+                  inst, " ",
+                  lefdef["component"][inst]["cell"], " + ",
+                  lefdef["component"][inst]["status"], " (",
+                  lefdef["component"][k]["x"], " ",
+                  lefdef["component"][k]["y"], " ) ",
+                  lefdef["component"][k]["orientation"], " ",
+                  EOT,
+                  file=f)
+        print("END COMPONENTS", file=f)
+
+        #pins
+        print("PINS ", len(lefdef["pin"]), EOT, file=f)
+        for pin in lefdef["pin"].keys():
+            print("- ",
+                  pin, 
+                  " + NET ", lefdef["pin"][pin]["net"],
+                  " + DIRECTION ", lefdef["pin"][pin]["direction"],
+                  " + USE ", lefdef["pin"][pin]["use"],
+                  file=f)
+            for port in lefdef["pin"][pin].keys():
+              print("PORT ",
+                    "+ LAYER ", lefdef["pin"][pin][port]['layer'],
+                    " ( ", lefdef["pin"][pin][port]['box'][0],
+                    " ) ", lefdef["pin"][pin][port]['box'][1],
+                    " ( ", lefdef["pin"][pin][port]['box'][2],
+                    " ) ", lefdef["pin"][pin][port]['box'][3],
+                    " + ", lefdef["pin"][pin][port]['status'],
+                    " ( ", lefdef["pin"][pin][port]['point'][0],
+                    "   ", lefdef["pin"][pin][port]['point'][1],
+                    " ) ", lefdef["pin"][pin][port]['oreintation'],
+                    EOT,
+                    file=f)
+        print("END PINS", file=f)
+
+
+        #blockages
+        #TODO
+
+        #SPECIALNETS
+        #TODO
+
+        #11. NETS
+        print("NETS ", len(lefdef["nets"]), EOT, file=f)
+        for net in lefdef["net"].keys():
+            print("- ",
+                  net,
+                  file=f)
+            for conn in lefdef["nets"][net]['connnection']:   
+              print(" ( ", lefdef["nets"][net]['connnection']['inst'],
+                    " ", lefdef["nets"][net]['connnection']['pin'],
+                    " ) ",
+                    file=f)
+            print("USE ",
+                  lefdef["nets"][net]['use'],
+                  EOT, file=f)
+
+
+        print("END NETS", file=f)
+        print("END DESIGN", file=f)
+                  
+###################
+# Read DEF
+###################
+def read_def(lefdef, filename):
     mydef = Def()
     mydef.parse(defdata)
-
-
+    
+    return lefdef
 

@@ -4,7 +4,10 @@ import re
 import os
 import textwrap
 
-def schema():
+###############################################################################
+# CHIP CONFIGURATION
+###############################################################################
+def schema_cfg():
     '''Method for defining Chip configuration schema
     All the keys defined in this dictionary are reserved words.
     '''
@@ -50,6 +53,22 @@ def schema():
     cfg = schema_net(cfg)
 
     return cfg
+
+###############################################################################
+# CHIP LAYOUT
+###############################################################################
+def schema_layout():
+    
+    layout = {}
+
+    layout = schema_lef(layout)
+
+    layout = schema_def(layout)
+
+    return layout
+
+
+
 
 ###############################################################################
 # UTILITY FUNCTIONS TIED TO SC SPECIFICATIONS
@@ -2724,3 +2743,154 @@ def schema_net(cfg):
     }
 
     return cfg
+
+###############################################
+# LEF/DEF
+###############################################
+
+def schema_lef(layout):
+
+    #GLOBAL VARIABLES
+    layout["version"] = ""
+    layout["busbitchars"] = "[]"
+    layout["dividerchar"] = "/"
+    layout["units"] = ""
+    layout["manufacturinggrid"] = ""
+
+    #SITE
+    layout["site"] = {}
+    layout["site"]['default'] = {
+        'symmetry' : "",
+        'class' : "",
+        'width' : "",
+        'height' : ""
+    }
+    
+    #ROUTING LAYERS
+    layout["layer"] = {}
+    layout["layer"]['default'] = {
+        'number' : "",
+        'direction' : "",
+        'type' : "",
+        'width' : "",
+        'pitch' : "",
+        'spacing' : "",
+        'minwidth' : "",
+        'maxwidth' : "",
+        'antennaarearatio' : "",
+        'antennadiffarearatio'  : ""
+    }
+
+    #MACROS
+    layout["macro"] = {}
+    layout["macro"]['default'] = {
+        'class' : "",
+        'site' : "",
+        'width' : "",
+        'height' : "",
+        'origin' : "",
+        'symmetry' : ""
+    }
+    layout["macro"]['default']['pin'] = {}
+    layout["macro"]['default']['pin']['default'] = {
+        'direction' : '',
+        'use' : '',
+        'shape' : '',
+        'port' : []
+    }
+
+
+    return layout
+
+def schema_def(layout):
+
+    #DESIGN
+    layout["design"] = []
+    
+    #DIEAREA
+    #Arrray of points, kept as tuple arrray b/c order
+    #is critical    
+    layout["diearea"] = []
+    
+    #ROWS
+    layout["row"] = {}    
+    layout["row"]['default'] = {
+        'site' : "",
+        'x' : "",
+        'y' : "",
+        'orientation' : "",
+        'numx' : "",
+        'numy' : "",
+        'stepx' : "",
+        'stepy' : ""
+    }
+
+    #TRACKS (hidden name)
+    layout["track"] = {}
+    layout["track"]['default'] = {
+        'layer' : "",
+        'direction' : "",
+        'start' : "",
+        'step' : "",
+        'total' : ""
+    }
+
+    #COMPONENTS (instance name driven)
+    layout["component"] ={}
+    layout["component"]['default'] = {
+        'cell' : "",
+        'x' : "",
+        'y' : "",
+        'status' : "",
+        'orientation' : "",
+        'halo' : ""
+    }
+
+    #VIA
+    layout["via"] = {}
+    layout["via"]['default'] = {
+        'net' : "",
+        'special' : "",
+        'placement' : "",
+        'direction' : "",
+        'port' : []
+    }
+
+    
+    #PINS
+    layout["pin"] = {}
+    layout["pin"]['default'] = {
+        'net' : "",
+        'direction' : "",
+        'use' : "",
+    }
+    layout["pin"]['default']['port'] = {}
+    layout["pin"]['default']['port']['default'] = {
+        'layer' : "",
+        'box' : [],
+        'status' : "",
+        'point' : "",
+        'orientation' : "",
+     }
+    
+
+    #SPECIALNETS
+    layout["specialnet"] = {}
+    layout["specialnet"]['default'] = {
+        'connections' : [],
+        'shield' : [],
+        'use' : "",
+        'fixed' : [],
+        'routed' : []
+    }
+
+    #NETS
+    layout["net"] = {}
+    layout["net"]['default'] = {
+        'shield' : [],
+        'use' : "",
+        'fixed' : [],
+        'routed' : []
+    }
+   
+    return layout
