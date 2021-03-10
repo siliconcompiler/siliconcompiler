@@ -63,7 +63,7 @@ def cmdline():
     # Required positional source file argument
     parser.add_argument('source',
                         nargs='+',
-                        help='\n'.join(def_cfg['source']['help']))
+                        help=def_cfg['source']['short_help'])
 
     #Recursive argument adder
     add_arg(def_cfg, parser)
@@ -81,7 +81,8 @@ def cmdline():
     #destination is the nested cfg dictionary
 
     cfg= {}
-    
+    #TODO: implement with switch
+   
     for key,all_vals in cmdargs.items():
        
         switch = key.split('_')
@@ -124,6 +125,8 @@ def cmdline():
 def add_arg(cfg, parser, keys=None):
     ''' Recursively add command line arguments from cfg dictionary
     '''
+    #TODO: fix properly with command line check
+    longhelp = False
     if keys is None:
         keys = []
     for k,v in sorted(cfg.items()):
@@ -135,10 +138,11 @@ def add_arg(cfg, parser, keys=None):
         elif k in ('flow', 'goal', 'real'):
             for k2 in cfg[k]['import'].keys():
                 helpstr = cfg[k]['import'][k2]['short_help']
-                helpstr = (helpstr +
-                           '\n\n' +
-                           '\n'.join(cfg[k]['import'][k2]['help']) +
-                           "\n\n---------------------------------------------------------\n") 
+                if longhelp:
+                    helpstr = (helpstr +
+                               '\n\n' +
+                               '\n'.join(cfg[k]['import'][k2]['help']) +
+                               "\n\n---------------------------------------------------------\n")                    
                 parser.add_argument(cfg[k]['import'][k2]['switch'],
                                     dest=k+"_"+k2,
                                     metavar=cfg[k]['import'][k2]['switch_args'],
@@ -152,10 +156,11 @@ def add_arg(cfg, parser, keys=None):
             if 'defvalue' in cfg[k].keys():                
                 keystr = '_'.join(newkeys)
                 helpstr = cfg[k]['short_help']
-                helpstr = (helpstr +
-                           '\n\n' +
-                           '\n'.join(cfg[k]['help']) +
-                           "\n\n---------------------------------------------------------\n") 
+                if longhelp:
+                    helpstr = (helpstr +
+                               '\n\n' +
+                               '\n'.join(cfg[k]['help']) +
+                               "\n\n---------------------------------------------------------\n") 
                 if cfg[k]['type'][-1] == 'bool': #scalar
                     parser.add_argument(cfg[k]['switch'],
                                         metavar=cfg[k]['switch_args'],
@@ -222,8 +227,8 @@ def main():
     #Lock chip configuration
     chip.lock()
     
-    all_stages = chip.get('design_steps')
-    for stage in all_stages:
+    all_steps = chip.get('design_steps')
+    for stage in all_steps:
         # Run each stage on the remote compute cluster if requested.
         if len(chip.cfg['remote']['value']) > 0:
             remote_run(chip, stage)
