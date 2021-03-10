@@ -201,8 +201,17 @@ def main():
     else:
         target = "freepdk45"
     chip.add('target', target)
+
+    # Need to set mode before running setup_target, because setup_target hardcodes
+    # the flow based on mode. TODO: maybe there's a cleaner way to handle this?
+    if 'mode' in cmdlinecfg.keys():
+        mode = cmdlinecfg['mode']['value'][-1]
+    else:
+        mode = 'asic'
+    chip.set('mode', mode)
+
     setup_target(chip)
-    
+
     # Reading in config files specified at command line
     if 'cfgfile' in  cmdlinecfg.keys():        
         for cfgfile in cmdlinecfg['cfgfile']['value']:

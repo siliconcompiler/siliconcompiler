@@ -35,14 +35,14 @@ def setup_target(chip):
             setup_step(chip, step, "yosys")
 
         for step in (['floorplan', 'place', 'cts', 'route', 'dfm']):
-            if chip.cfg['mode'] == 'fpga' :
-                setup_step(chip, step, "vpr")
+            if chip.get('mode')[-1] == 'fpga':
+                setup_step(chip, step, "nextpnr")
             else:
                 setup_step(chip, step, "openroad")
 
         for step in (['export']):
-            if chip.cfg['mode'] == 'fpga' :
-                setup_step(chip, step, "vpr")
+            if chip.get('mode')[-1] == 'fpga':
+                setup_step(chip, step, "icepack")
             else:
                 setup_step(chip, step, "klayout")
     else:
