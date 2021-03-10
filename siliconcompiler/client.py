@@ -18,8 +18,8 @@ def remote_run(chip, stage):
     '''
 
     #Looking up stage numbers
-    stages = (chip.cfg['compile_stages']['value'] +
-              chip.cfg['dv_stages']['value'])
+    stages = (chip.cfg['compile_steps']['value'] +
+              chip.cfg['dv_steps']['value'])
     current = stages.index(stage)
     laststage = stages[current-1]
     start = stages.index(chip.cfg['start']['value'][-1]) #scalar
