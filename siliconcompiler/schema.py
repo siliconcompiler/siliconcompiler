@@ -549,28 +549,13 @@ def schema_libs(cfg, group):
                   "api: chip.set('"+group+"','mylib','coo','US')            "]
     }
 
-    cfg[group]['default']['distribution'] = {
-        'switch' : '-'+group+'_distribution',
-        'switch_args' : '<>',
-        'requirement' : 'asic',
-        'type' : ['string'],
-        'defvalue' : [],
-        'short_help' : 'Library Distribution Restrictions',
-        'help' : ["Specifies all restrictions associated with the library.  ",
-                  "                                                         ",             
-                  "Examples:                                                ",
-                  "cli: -"+group+"_distribution 'mylib none'                ",
-                  "api: chip.set('"+group+"',                               ",
-                  "              'mylib','distribution','none')             "]
-    }
-
     cfg[group]['default']['license'] = {
         'switch' : '-'+group+'_license',
         'switch_args' : '<>',
         'requirement' : 'asic',
-        'type' : ['string'],
+        'type' : ['file'],
         'defvalue' : [],
-        'short_help' : 'Library License',
+        'short_help' : 'Library License File',
         'help' : ["Specifies the technology license for the library         ",
                   "                                                         ",
                   "Examples:                                                ",                  
@@ -1584,8 +1569,8 @@ def schema_options(cfg):
                   "api: chip.set('mode,'fpga')                              "]
     }
     
-    cfg['cfgfile'] = {
-        'switch' : '-cfgfile',
+    cfg['cfg'] = {
+        'switch' : '-cfg',
         'switch_args' : '<file>',
         'type' : ['file'],
         'requirement' : 'optional',
@@ -1602,8 +1587,8 @@ def schema_options(cfg):
                   "appended to the existing list and configuration list.    ",
                   "                                                         ",
                   "Examples:                                                ",
-                  "cli: -cfgfile 'mypdk.json'                               ",
-                  "api: chip.set('cfgfile','mypdk.json)                     "]
+                  "cli: -cfg 'mypdk.json'                                   ",
+                  "api: chip.set('cfg','mypdk.json)                         "]
     }
 
     cfg['env'] = {
@@ -1696,14 +1681,14 @@ def schema_options(cfg):
 
     cfg['start'] = {
         'switch' : '-start',
-        'switch_args' : '<stage>',
+        'switch_args' : '<step>',
         'type' : 'string',
         'requirement' : ['all'],
         'defvalue' : ['import'],
         'short_help' : 'Compilation Start Stage',
         'help' : ["The start parameter specifies the starting stage of the  ",
                   "flow. This would generally be the import stage but could ",
-                  "be any one of the stages within the stages parameter. For",
+                  "be any one of the steps within the steps parameter. For",
                   "example, if a previous job was stopped at syn a job can  ",
                   "be continued from that point by specifying -start place  ",
                   "                                                         ",
@@ -1714,7 +1699,7 @@ def schema_options(cfg):
 
     cfg['stop'] = {
         'switch' : '-stop',
-        'switch_args' : '<stage>',
+        'switch_args' : '<step>',
         'type' : ['string'],
         'defvalue' : ['export'],
         'requirement' : ['all'],
@@ -1732,15 +1717,15 @@ def schema_options(cfg):
 
     cfg['skip'] = {
         'switch' : '-skip',
-        'switch_args' : '<stage>',
+        'switch_args' : '<step>',
         'type' : ['string'],
         'defvalue' : [],
         'requirement' : 'optional',
-        'short_help' : 'Compilation Skip Stages',
+        'short_help' : 'Compilation Skip Steps',
         'help' : ["In some older technologies it may be possible to skip    ",
-                  "some of the stages in the standard flow defined by the   ",
-                  "'compile_stages' and 'dv_stages' lists. The skip variable",
-                  "lists the stages to be skipped during execution.         ",
+                  "some of the steps in the standard flow defined by the   ",
+                  "'compile_steps' and 'dv_steps' lists. The skip variable",
+                  "lists the steps to be skipped during execution.         ",
                   "                                                         ",
                   "Examples:                                                ",
                   "cli: -skip 'import'                                      ",
@@ -1754,10 +1739,10 @@ def schema_options(cfg):
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Message Trigger',
-        'help' : ["A list of stages after which to messages a recipient.    ",
+        'help' : ["A list of steps after which to messages a recipient.    ",
                   "For example if values of syn, place, cts are entered     ",
                   "separate messages would be sent after the completion of  ",
-                  "the syn, place, and cts stages.                          ",
+                  "the syn, place, and cts steps.                          ",
                   "                                                         ",
                   "Examples:                                                ",
                   "cli: -msg_trigger 'export'                               ",
@@ -1824,30 +1809,30 @@ def schema_options(cfg):
         'short_help' : 'Relaxed RTL Linting',
         'help' : ["Specifies that tools should be lenient and supress some  ",
                   "warnigns that may or may not indicate design issues. The ",
-                  "default is to enforce strict checks for all stages.      ",
+                  "default is to enforce strict checks for all steps.      ",
                   "Examples:                                                ",
                   "cli: -relax                                              ",
                   "api: chip.set('relax','true')                            "]
     }
 
-    cfg['compact'] = {
+    cfg['minimize'] = {
         'switch' : '-compact',
         'switch_args' : '<str>',
         'type' : ['bool'],
         'requirement' : 'optional',
         'defvalue' : ['false'],
-        'short_help' : ' Compact Archive',
+        'short_help' : 'Minimize storage by only keeping essential files',
         'help' : ["Deletes all non-essential files at the end of each step  ",
                   "and creates a 'zip' archive of the job folder.           ",
                   "                                                         ",
                   "Examples:                                                ",
-                  "cli: -compact                                            ",
-                  "api: chip.set('compact','true')                          "]
+                  "cli: -minimize                                           ",
+                  "api: chip.set('minimize','true')                         "]
     }
 
     
     cfg['design_steps'] = {
-        'switch' : '-compile_stages',
+        'switch' : '-compile_steps',
         'switch_args' : '<str>',
         'requirement' : 'all',
         'type' : ['string'],
@@ -1859,24 +1844,24 @@ def schema_options(cfg):
                       'route',
                       'dfm',
                       'export'],
-        'short_help' : 'List of Compilation Stages',
-        'help' : ["A complete list of all stages included in fully automated",
+        'short_help' : 'List of Compilation Steps',
+        'help' : ["A complete list of all steps included in fully automated",
                   "RTL to GDSII compilation. Compilation flow is controlled ",
                   "with the -start, -stop, -cont switches and by adding     ",
                   "values to the list. The list must be ordered to enable   ",
                   "default automated compilation from the first entry to the",
-                  "last entry in the list. Inserting stages in the middle of",
+                  "last entry in the list. Inserting steps in the middle of",
                   "the list is only possible by overwriting the whole list. ",
                   "The example below demonstrates adding a tapeout stage    ",
-                  "at the end of the compile_stages list.                   ",
+                  "at the end of the compile_steps list.                   ",
                   "                                                         ",
                   "Examples:                                                ",
-                  "cli: -compile_stages 'tapeout'                           ",
-                  "api:  chip.add('compile_stages', 'tapeout')              "]
+                  "cli: -compile_steps 'tapeout'                           ",
+                  "api:  chip.add('compile_steps', 'tapeout')              "]
     }
 
     cfg['signoff_steps'] = {
-        'switch' : '-dv_stages',
+        'switch' : '-dv_steps',
         'switch_args' : '<str>',
         'requirement' : 'all',
         'type' : ['string'],
@@ -1888,42 +1873,42 @@ def schema_options(cfg):
                       'drc',
                       'erc',
                       'lvs'],
-        'short_help' : 'List of Verification Stages',
-        'help' : ["A complete list of all verification stages. Verification ",
+        'short_help' : 'List of Verification Steps',
+        'help' : ["A complete list of all verification steps. Verification ",
                   "flow is controlled with the -start, -stop, -cont switches",
                   "and by expanding the list. The list must be ordered to   ",
                   "enable default automated verification from the first     ",
-                  "entry to the last entry in the list. Inserting stages in ",
+                  "entry to the last entry in the list. Inserting steps in ",
                   "the middle of the list is only possible by overwriting   ",
                   "the whole list. The example below demonstrates adding an ",
-                  "archive stage at the end of the dv_stages list           ",
+                  "archive stage at the end of the dv_steps list           ",
                   "                                                         ",
                   "Examples:                                                ",
-                  "cli: -dv_stages 'archive'                                ",
-                  "api:  chip.add('dv_stages', 'archive')                   "]
+                  "cli: -dv_steps 'archive'                                ",
+                  "api:  chip.add('dv_steps', 'archive')                   "]
     }
 
     cfg['view_steps'] = {
-        'switch' : '-view_stages',
+        'switch' : '-view_steps',
         'switch_args' : '<str>',
         'requirement' : 'all',
         'type' : ['string'],
         'defvalue' : ['defview',
                       'gdsview'],
-        'short_help' : 'List of Interactive Viewer Stages',
-        'help' : ["A complete list of all interactive viewer stages. The    ",
-                  "viewer stages are not meant to be executed as a pipeline,",
+        'short_help' : 'List of Interactive Viewer Steps',
+        'help' : ["A complete list of all interactive viewer steps. The    ",
+                  "viewer steps are not meant to be executed as a pipeline,",
                   "but serves as a central record for documenting tools and ",
                   "options for display tools.                               ",
                   "                                                         ",
                   "Examples:                                                ",
-                  "cli: -view_stages 'scopeview'                            ",
-                  "api:  chip.add('view_stages', 'scopeview')               "]
+                  "cli: -view_steps 'scopeview'                            ",
+                  "api:  chip.add('view_steps', 'scopeview')               "]
     }
     
 
     cfg['mfg_steps'] = {
-        'switch' : '-mfg_stages',
+        'switch' : '-mfg_steps',
         'switch_args' : '<str>',
         'requirement' : 'all',
         'type' : ['string'],
@@ -1936,12 +1921,12 @@ def schema_options(cfg):
                       'program',
                       'finaltest'
         ],
-        'short_help' : 'List of Manufacturing Stages',
+        'short_help' : 'List of Manufacturing Steps',
         'help' : ["A complete list of all steps in the manufacturing flow.  ",
                   "                                                         ",
                   "Examples:                                                ",
-                  "cli: -mfg_stages 'dice'                                  ",
-                  "api:  chip.add('mfg_stages', 'dice')                     "]
+                  "cli: -mfg_steps 'dice'                                  ",
+                  "api:  chip.add('mfg_steps', 'dice')                     "]
     }
     
 
@@ -2005,32 +1990,18 @@ def schema_design(cfg):
                   "api: chip.add('rev','1.0')                           "]
     }
 
-    cfg['distribution'] = {
-        'switch' : '-distribution',
-        'switch_args' : '<str>',
-        'type' : ['file'],
-        'requirement' : ['all'],
-        'defvalue' : [],
-        'short_help' : 'Distribution Restriction Statement',
-        'help' : ["Specifies all restrictions associated with the design.   ",
-                  "                                                         ",
-                  "Examples:                                                ",
-                  "cli: -distribution 'DISTRIBUTION A ...'                  ",
-                  "api: chip.add('distribrution','DISTRIBUTION A ...')      "]
-    }
-    
     cfg['license'] = {
         'switch' : '-license',
         'switch_args' : '<str>',
         'type' : ['file'],
         'requirement' : ['all'],
         'defvalue' : [],
-        'short_help' : 'Design License',
+        'short_help' : 'Design License File',
         'help' : ["Specifies the technology license for the source code.    ",
                   "                                                         ",
                   "Examples:                                                ",
-                  "cli: -license MIT                                        ",
-                  "api: chip.add('license','MIT')                           "]
+                  "cli: -license LICENSE                                    ",
+                  "api: chip.add('license','LICENSE')                       "]
     }
   
     cfg['design'] = {
@@ -2489,7 +2460,7 @@ def schema_apr(cfg):
         'short_help' : 'Optimization Priority',
         'help' : ["An optional parameter for tools that support tiered      ",
                   "optimization functions. For example, congestion might    ",
-                  "be assigned higher priority than timing in some stages.  ",
+                  "be assigned higher priority than timing in some steps.  ",
                   "The optimization priority string must match the EDA tool ",
                   "value exactly.                                           ",
                   "                                                         ",
