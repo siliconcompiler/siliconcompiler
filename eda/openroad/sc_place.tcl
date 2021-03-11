@@ -41,7 +41,14 @@ read_lef  $techlef
 #Setup Libs
 foreach lib $target_libs {
     read_liberty [dict get $sc_cfg stdcell $lib model typical nldm lib]
-    read_lef [dict get $sc_cfg stdcell $lib lef]
+    # Correct for polygonal pin sizes in nangate45 liberty.
+    if  {$lib eq "NangateOpenCellLibrary"} {
+        set target_lef [dict get $sc_cfg stdcell $lib lef]
+        regsub -all {\.lef} $target_lef .mod.lef target_lef
+        read_lef $target_lef
+    } else {
+        read_lef [dict get $sc_cfg stdcell $lib lef]
+    }
     set site [dict get $sc_cfg stdcell $lib site]
 }
 
@@ -54,6 +61,7 @@ if {[file exists $input_sdc]} {
 }
 
 # Global Placement
+#global_placement -disable_routability_driven -density 0.3 -skip_initial_place
 global_placement -disable_routability_driven -density 0.3
 
 #-disable_routability_driven -density $SC_DENSITY
@@ -65,7 +73,22 @@ global_placement -disable_routability_driven -density 0.3
 ################################################################
 
 
-#estimate_parasitics -placement
+set_wire_rc -layer metal3
+estimate_parasitics -placement
+
+set buffer_cell [get_lib_cell [lindex "BUF_X1 A Z" 0]]
+set_dont_use "FILLCELL_X1 AOI211_X1 OAI211_X1"
+
+set_max_fanout 100 [current_design]
+repair_design -max_wire_length 1000 -buffer_cell $buffer_cell
+
+# Detail placement.
+#set_placement_padding -global
+    #-left $::env(CELL_PAD_IN_SITES_DETAIL_PLACEMENT) \
+    -right $::env(CELL_PAD_IN_SITES_DETAIL_PLACEMENT)
+#detailed_placement
+#optimize_mirroring
+#check_placement -verbose
 
 #set buffer_cell [get_lib_cell [lindex $::env(MIN_BUF_CELL_AND_PORTS) 0]]
 

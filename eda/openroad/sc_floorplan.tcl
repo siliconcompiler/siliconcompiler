@@ -53,7 +53,14 @@ close $outfile
 ####################
 foreach lib $target_libs {
     read_liberty [dict get $sc_cfg stdcell $lib model typical nldm lib]
-    read_lef [dict get $sc_cfg stdcell $lib lef]
+    # Correct for polygonal pin sizes in nangate45 liberty.
+    if  {$lib eq "NangateOpenCellLibrary"} {
+        set target_lef [dict get $sc_cfg stdcell $lib lef]
+        regsub -all {\.lef} $target_lef .mod.lef target_lef
+        read_lef $target_lef
+    } else {
+        read_lef [dict get $sc_cfg stdcell $lib lef]
+    }
     set site [dict get $sc_cfg stdcell $lib site]
 }
 
@@ -85,6 +92,12 @@ if {[file exists $input_def]} {
     io_placer -hor_layer "4" \
 	-ver_layer "3" \
 	-random
+    # Tapcell insertion.
+    tapcell \
+      -endcap_cpp "2" \
+      -distance 120 \
+      -tapcell_master "FILLCELL_X1" \
+      -endcap_master "FILLCELL_X1"
     
 }
 
