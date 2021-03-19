@@ -3,6 +3,8 @@
 ########################################################
 
 source ./sc_setup.tcl
+source ./sc_syn_ice40.tcl
+source ./sc_syn_openfpga.tcl
 set step syn
 
 # Setting script path to local or refdir
@@ -29,6 +31,8 @@ set input_verilog   "inputs/$topmodule.v"
 set input_def       "inputs/$topmodule.def"
 set input_sdc       "inputs/$topmodule.sdc"
 
+# TODO: the original OpenFPGA synth script used read_verilog with -nolatches. Is
+# that a flag we might want here?
 yosys read_verilog $input_verilog
 
 if {$mode eq "asic"} {
@@ -76,10 +80,13 @@ if {$mode eq "asic"} {
     yosys write_blif $output_blif
 } else {
     # FPGA
-    # TODO: should we explicitly check for mode == 'fpga'? how to handle error otherwise?
+    # TODO: some ideas to clean this up:
+    # - Switch on target instead of mode to choose between FPGA backends
+    # - Refactor asic script into own procedure
+    # - Don't hardcode LUT size
+    # - Do we need to handle being passed an invalid mode/target?
 
-    set output_json "outputs/$topmodule.json"
+    syn_openfpga $topmodule 6
 
-    # Use built-in ice40 synthesis command: http://yosyshq.net/yosys/cmd_synth_ice40.html
-    yosys synth_ice40 -top $topmodule -json $output_json
+    # syn_ice40 $topmodule
 }

@@ -34,15 +34,19 @@ def setup_target(chip):
         for step in (['syn']):
             setup_step(chip, step, "yosys")
 
+        # TODO: need a way to choose between FPGA backends if we want to support
+        # both
         for step in (['floorplan', 'place', 'cts', 'route', 'dfm']):
             if chip.get('mode')[-1] == 'fpga':
-                setup_step(chip, step, "nextpnr")
+                # setup_step(chip, step, "nextpnr")
+                setup_step(chip, step, "openfpga")
             else:
                 setup_step(chip, step, "openroad")
 
         for step in (['export']):
             if chip.get('mode')[-1] == 'fpga':
-                setup_step(chip, step, "icepack")
+                # setup_step(chip, step, "icepack")
+                setup_step(chip, step, "openfpga")
             else:
                 setup_step(chip, step, "klayout")
     else:

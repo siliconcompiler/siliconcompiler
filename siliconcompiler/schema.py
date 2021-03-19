@@ -157,7 +157,43 @@ def schema_fpga(cfg):
             ]
     }
 
-    
+    cfg['openfpga_xml'] = {
+        'switch' : '-openfpga_xml',
+        'switch_args' : '<>',
+        'requirement' : 'fpga',
+        'type' : ['string', 'file'],
+        'defvalue' : [],
+        'short_help' : 'OpenFPGA Architecture Description',
+        'help' : [
+            "Provides XML-based architecture description for the target FPGA  ",
+            "architecture to be used by OpenFPGA, allowing a user to describe ",
+            "a large number of hypothetical and commercial architectures.     ",
+            "[More information...](https://openfpga.readthedocs.io/en/master/manual/arch_lang/generality/#openfpga-architecture-description-file)",
+            "                                                                 ",
+            "Examples:                                                        ",
+            "cli: -openfpga_xml myfpga.xml                                    ",
+            "api:  chip.set('openfpga_xml', 'myfpga.xml)'                     "
+            ]
+    }
+
+    cfg['openfpga_simsettings'] = {
+        'switch' : '-openfpga_simsettings',
+        'switch_args' : '<>',
+        'requirement' : 'fpga',
+        'type' : ['string', 'file'],
+        'defvalue' : [],
+        'short_help' : 'OpenFPGA Simulation Settings',
+        'help' : [
+            "Provides XML-based description of simulation settings to be used ",
+            "by OpenFPGA.                                                     ",
+            "[More information...](https://openfpga.readthedocs.io/en/master/manual/arch_lang/simulation_setting/)",
+            "                                                                 ",
+            "Examples:                                                        ",
+            "cli: -openfpga_simsettings sim.xml                              ",
+            "api:  chip.set('openfpga_simsettings', 'sim.xml')                "
+            ]
+    }
+
     return cfg
 
 ###############################################################################
