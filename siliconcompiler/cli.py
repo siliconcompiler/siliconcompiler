@@ -85,6 +85,8 @@ def cmdline():
     for key,all_vals in cmdargs.items():
        
         switch = key.split('_')
+        assert len(switch) <= 2, "CLI switches must not have more than 1 underscore"
+
         param = switch[0]
         if len(switch) > 1 :
             param = param + "_" + switch[1]            
