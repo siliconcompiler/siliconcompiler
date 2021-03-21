@@ -1,0 +1,9 @@
+on: [workflow_dispatch]
+
+jobs:
+  gcd_test_job:
+    runs-on: self-hosted
+    name: 'GCD test build'
+    steps:
+      - uses: sc_actions_test
+      - run: ./examples/gcd/test.sh
