@@ -14,7 +14,22 @@ def setup_target(chip):
 
     target = chip.cfg['target']['value'][-1]
 
-    if target in ('freepdk45', 'asap7', 'skywater130'):            
+    asic_targets = ('freepdk45', 'asap7', 'skywater130')
+    fpga_targets = ('opefpga', 'ice40')
+
+    if target in asic_targets:
+
+        chip.cfg['mode']['value'] = ['asic']
+
+        chip.cfg['design_flow']['value'] = ['import',
+                                            'syn',
+                                            'floorplan',
+                                            'place',
+                                            'cts',
+                                            'route',
+                                            'dfm',
+                                            'export']
+        
         #Dynamic PDK Module Setup
         pdkdir = "foundry.virtual." + target + ".pdk"
         module = importlib.import_module('.sc_pdk', package=pdkdir)
@@ -27,24 +42,32 @@ def setup_target(chip):
         setup_libs = getattr(module,"setup_libs")
         setup_libs(chip)
 
-        # EDA Flow is hard coded?
-        for step in (['import']):
-            setup_step(chip, step, "verilator")
-
-        for step in (['syn']):
-            setup_step(chip, step, "yosys")
+        setup_step(chip, 'import', "verilator")
+        setup_step(chip, 'syn', "yosys")
+        setup_step(chip, 'export', "klayout")
 
         for step in (['floorplan', 'place', 'cts', 'route', 'dfm']):
-            if chip.cfg['mode'] == 'fpga' :
-                setup_step(chip, step, "vpr")
-            else:
-                setup_step(chip, step, "openroad")
+            setup_step(chip, step, "openroad")
+       
+    elif target in fpga_targets:
+        
+        chip.cfg['mode']['value'] = ['fpga']
+        
+        chip.cfg['design_flow']['value'] = ['import',
+                                            'syn',
+                                            'floorplan',
+                                            'place',
+                                            'route',
+                                            'export']
 
-        for step in (['export']):
-            if chip.cfg['mode'] == 'fpga' :
-                setup_step(chip, step, "vpr")
+        setup_step(chip, 'import', 'verilator')
+        setup_step(chip, 'syn', 'yosys')
+
+        for step in (['floorplan', 'place', 'route', 'export']):
+            if target == 'ice40' :
+                setup_step(chip, step, "nextpnr")
             else:
-                setup_step(chip, step, "klayout")
+                setup_step(chip, step, "vpr")
     else:
         if os.getenv('SCPATH') == None:
             chip.logger.error('Environment variable $SCPATH has \
