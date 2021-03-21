@@ -86,7 +86,9 @@ def cmdline():
         # ['stdcells'][lib]['lef']
         # ['flow'][step]['exe']
         # ['goal'][step]['hold_tns']
-        m = re.match('(stdcells|macro|flow|real|goal)_(.*)', key)        
+        m = re.match('(stdcells|macro|flow|real|goal)_(.*)', key)
+        #TODO: need to do this properly with search function to populate
+        # param when not found!
         if m:
             param0 = m.group(1)
             param2 = m.group(2)            
@@ -137,16 +139,16 @@ def add_arg(cfg, parser, keys=None):
             pass
         #Optimizing command line switches for these
         elif k in ('flow', 'goal', 'real'):
-            for k2 in cfg[k]['import'].keys():
-                helpstr = cfg[k]['import'][k2]['short_help']
+            for k2 in cfg[k]['default'].keys():
+                helpstr = cfg[k]['default'][k2]['short_help']
                 if longhelp:
                     helpstr = (helpstr +
                                '\n\n' +
-                               '\n'.join(cfg[k]['import'][k2]['help']) +
+                               '\n'.join(cfg[k]['default'][k2]['help']) +
                                "\n\n---------------------------------------------------------\n")                    
-                parser.add_argument(cfg[k]['import'][k2]['switch'],
+                parser.add_argument(cfg[k]['default'][k2]['switch'],
                                     dest=k+"_"+k2,
-                                    metavar=cfg[k]['import'][k2]['switch_args'],
+                                    metavar=cfg[k]['default'][k2]['switch_args'],
                                     action='append',
                                     help=helpstr,
                                     default = argparse.SUPPRESS)
@@ -228,7 +230,7 @@ def main():
     #Lock chip configuration
     chip.lock()
     
-    all_steps = chip.get('design_steps')
+    all_steps = chip.get('design_flow')
     for stage in all_steps:
         # Run each stage on the remote compute cluster if requested.
         if len(chip.cfg['remote']['value']) > 0:
