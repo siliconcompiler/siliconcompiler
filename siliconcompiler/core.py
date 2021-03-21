@@ -81,8 +81,8 @@ class Chip:
         
         # Instance starts with all default steps in idle
         self.status = {}
-        all_steps = (self.cfg['design_steps']['defvalue'] +
-                      self.cfg['signoff_steps']['defvalue'])
+        all_steps = (self.cfg['design_flow']['defvalue'] +
+                      self.cfg['signoff_flow']['defvalue'])
         for step in all_steps:
             self.status[step] = ["idle"]
 
@@ -222,6 +222,7 @@ class Chip:
         while(i < maxdepth):
             #Loop through all keys starting at the top
             for k in list(cfg.keys()):
+                #print(k)
                 #removing all default/template keys
                 if k == 'default':
                     del cfg[k]
@@ -717,12 +718,12 @@ class Chip:
         tool = self.cfg['flow'][step]['exe']['value'][-1]
         refdir = schema_path(self.cfg['flow'][step]['refdir']['value'][-1])
         
-        steps = (self.cfg['design_steps']['value'] +
-                 self.cfg['signoff_steps']['value'])
-        current = steps.index(step)
-        laststep = steps[current-1]
-        start = steps.index(self.cfg['start']['value'][-1]) #scalar
-        stop = steps.index(self.cfg['stop']['value'][-1]) #scalar
+        steplist = (self.cfg['design_flow']['value'] +
+                 self.cfg['signoff_flow']['value'])
+        stepindex = steplist.index(step)
+        laststep = steplist[stepindex-1]
+        start = steplist.index(self.cfg['start']['value'][-1]) #scalar
+        stop = steplist.index(self.cfg['stop']['value'][-1]) #scalar
         skip = step in self.cfg['skip']['value']
 
         #####################
@@ -736,9 +737,9 @@ class Chip:
         # Conditional Execution
         #####################    
 
-        if step not in steps:
+        if step not in steplist:
             self.logger.error('Illegal step name %s', step)
-        elif (current < start) | (current > stop) | skip:
+        elif (stepindex < start) | (stepindex > stop) | skip:
             self.logger.info('Skipping step: %s', step)
         else:
             self.logger.info('Running step: %s', step)
@@ -765,14 +766,14 @@ class Chip:
             os.makedirs('reports', exist_ok=True)
 
             #Create Logcal copuesLocal configuration files
-            self.writetcl("sc_setup.tcl")
             self.writecfg("sc_setup.json")
+            self.writetcl("sc_setup.tcl")
             
             #Copy outputs from last step unless import                        
-            if step != "import":              
+            if stepindex > 0:              
                 lastjobid = self.cfg['flow'][laststep]['jobid']['value'][-1]
                 lastdir = '/'.join(['../../',                
-                                    steps[current-1],
+                                    steplist[stepindex-1],
                                     'job'+lastjobid,
                                     'outputs'])
                 shutil.copytree(lastdir, 'inputs')
