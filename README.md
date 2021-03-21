@@ -1,5 +1,12 @@
 # Silicon Compiler Collection (SCC)
 
+## Introduction
+
+* schema.py defines the silicon compiler architecture
+* core.py defines the python user API for accessing the schema
+* setup.py defines a set of pre-configured targets for FPGAs and ASICs
+* cli.py is the command line silicon compiler
+
 ## Pre-Requisites
 
 * verilator: front end parsing
