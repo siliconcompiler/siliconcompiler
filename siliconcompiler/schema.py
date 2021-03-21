@@ -1346,7 +1346,7 @@ def schema_metrics(cfg, group, step):
         "specifed in um^2.                                        ",
         "                                                         ",
         "Examples:                                                ",
-        "cli: -"+group+"area 'place 10000'                        ",
+        "cli: -"+group+"_area 'place 10000'                        ",
         "api: chip.set('metric','place',',area', '10000')         "]
     
     #power
@@ -1362,7 +1362,7 @@ def schema_metrics(cfg, group, step):
         "based on the setup configuration and power vectors (VCD) ",
         "                                                         ",
         "Examples:                                                ",
-        "cli: -"+group+"power 'place 0.001'                       ",
+        "cli: -"+group+"_power 'place 0.001'                       ",
         "api: chip.set('metric','place',',power', '0.001')        "]
     
     #leakage
@@ -1378,7 +1378,7 @@ def schema_metrics(cfg, group, step):
         "basis based on the MCMM setup, tracked in Watts.         ",
         "                                                         ",
         "Examples:                                                ",
-        "cli: -"+group+"leakage 'place 0.001'                     ",
+        "cli: -"+group+"_leakage 'place 0.001'                     ",
         "api: chip.set('metric','place',',leakage', '0.001')      "]
     
     
@@ -1395,7 +1395,7 @@ def schema_metrics(cfg, group, step):
         "stage basis, specified in nanoseconds                    ",
         "                                                         ",
         "Examples:                                                ",
-        "cli: -"+group+"hold_tns 'place 5'                        ",
+        "cli: -"+group+"_hold_tns 'place 5'                        ",
         "api: chip.set('metric','place',',hold_tns', '5')         "]
     
     #worst negative hold slack
@@ -1411,7 +1411,7 @@ def schema_metrics(cfg, group, step):
         "stage basis, specified in nanoseconds.                   ",
         "                                                         ",
         "Examples:                                                ",
-        "cli: -"+group+"hold_wns 'place 0.1'                      ",
+        "cli: -"+group+"_hold_wns 'place 0.1'                      ",
         "api: chip.set('metric','place',',hold_wns', '0.1')       "]
     
     #total negative setup slack
@@ -1427,7 +1427,7 @@ def schema_metrics(cfg, group, step):
         "stage basis, specified in nanoseconds                     ",
         "                                                          ",
         "Examples:                                                 ",
-        "cli: -"+group+"setup_tns 'place 5'                        ",
+        "cli: -"+group+"_setup_tns 'place 5'                        ",
         "api: chip.set('metric','place',',setup_tns', '5')         "]
     
     #worst negative setup slack
@@ -1443,7 +1443,7 @@ def schema_metrics(cfg, group, step):
         "stage basis, specified in nanoseconds.                   ",
         "                                                         ",
         "Examples:                                                ",
-        "cli: -"+group+"setup_wns 'place 0.1'                     ",
+        "cli: -"+group+"_setup_wns 'place 0.1'                     ",
         "api: chip.set('metric','place',',setup_wns', '0.1')      "]
     
     #drv
@@ -1459,7 +1459,7 @@ def schema_metrics(cfg, group, step):
         "violations on a per stage basis.                        ",
         "                                                        ",
         "Examples:                                               ",
-        "cli: -"+group+"drv 'place 0'                              ",
+        "cli: -"+group+"_drv 'place 0'                              ",
         "api: chip.set('metric','place',',drv', '')              "]
     
     #warnings
@@ -1475,7 +1475,7 @@ def schema_metrics(cfg, group, step):
         "stage basis.                                             ",
         "                                                         ",
         "Examples:                                                ",
-        "cli: -"+group+"warnings 'place 100'                      ",
+        "cli: -"+group+"_warnings 'place 100'                      ",
         "api: chip.set('metric','place',',warnings', '100')       "]
     
     #errors
@@ -1491,7 +1491,7 @@ def schema_metrics(cfg, group, step):
         "basis.                                                   ",
         "                                                         ",
         "Examples:                                                ",
-        "cli: -"+group+"errors 'place 0'                          ",
+        "cli: -"+group+"_errors 'place 0'                          ",
         "api: chip.set('metric','place',',errors', '0')           "]
     
     #runtime
@@ -1507,7 +1507,7 @@ def schema_metrics(cfg, group, step):
         "specified in HR:MIN:SEC                                  ",
         "                                                         ",
         "Examples:                                                ",
-        "cli: -"+group+"runtime 'place 0.1'                       ",
+        "cli: -"+group+"_runtime 'place 0.1'                       ",
         "api: chip.set('metric','place',',runtime', '0.1')        "]
     
     #memory
@@ -1523,7 +1523,7 @@ def schema_metrics(cfg, group, step):
         "basis, specified in MB.                                  ",
         "                                                         ",
         "Examples:                                                ",
-        "cli: -"+group+"memory 'place 0.1'                        ",
+        "cli: -"+group+"_memory 'place 0.1'                        ",
         "api: chip.set('metric','place',',memory', '0.1')         "]
     
     #report files
@@ -1540,7 +1540,7 @@ def schema_metrics(cfg, group, step):
         "populate the metric values                               ",
         "                                                         ",
         "Examples:                                                ",
-        "cli: -"+group+"report 'place mydesign_qor.rpt'           ",
+        "cli: -"+group+"_report 'place mydesign_qor.rpt'           ",
         "api: chip.set('metric','place','report',                 ", 
         "              'mydesign.rpt')                            "]
     
