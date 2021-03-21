@@ -76,49 +76,50 @@ def cmdline():
     # stdlib, macro, tool has length 3 or 4 depending on type
     # (timing, cells, power has length 4)
     # Format is "key(s) val"
-
-    #scalars, list, lists of lists need to be treated
-    #destination is the nested cfg dictionary
+    # scalars, list, lists of lists need to be treated
+    # destination is the nested cfg dictionary
 
     cfg= {}
-    #TODO: implement with switch
-   
+
     for key,all_vals in cmdargs.items():
-       
-        switch = key.split('_')
-        param = switch[0]
-        if len(switch) > 1 :
-            param = param + "_" + switch[1]            
-
-        if param not in cfg:
-            cfg[param] = {}
-
-        #Iterate over list since these are dynamic
-        if switch[0] in ('stdcell', 'macro', 'step'):
-            for val in all_vals:
-                if val[0] not in cfg[param]:
-                        cfg[param][val[0]]={}
-                if switch[1] not in cfg[param][val[0]].keys():
-                        cfg[param][val[0]][switch[1]] = {}
-                if switch[1] in ('timing', 'power', 'cells'):
-                    if val[1] not in cfg[param][val[0]][switch[1]].keys():
-                        cfg[param][val[0]][switch[1]][val[1]]={}
-                        cfg[param][val[0]][switch[1]][val[1]]['value'] = val[2]
+        # Nested parameters
+        # ['stdcells'][lib]['lef']
+        # ['flow'][step]['exe']
+        # ['goal'][step]['hold_tns']
+        m = re.match('(stdcells|macro|flow|real|goal)_(.*)', key)        
+        if m:
+            param0 = m.group(1)
+            param2 = m.group(2)            
+            if param0 not in cfg:
+                cfg[param0] = {}
+            for entry in all_vals:
+                #splitting command line tuple inputs
+                val = entry.split(' ')
+                if val[0] not in cfg[param0]:
+                    cfg[param0][val[0]]={}
+                if param2 not in cfg[param0][val[0]].keys():
+                    cfg[param0][val[0]][param2] = {}
+                if param2 in ('timing', 'power', 'cells'):
+                    if val[1] not in cfg[param0][val[0]][param2].keys():
+                        cfg[param0][val[0]][param2][val[1]]={}
+                        cfg[param0][val[0]][param2][val[1]]['value'] = [val[2]]
                     else:
-                        cfg[param][val[0]][switch[1]][val[1]]['value'].extend(val[2])
+                        cfg[param0][val[0]][param2][val[1]]['value'].extend(val[2])
                 else:
-                    if 'value' not in cfg[param][val[0]][switch[1]].keys():
-                        cfg[param][val[0]][switch[1]]['value'] = val[1]
+                    if 'value' not in cfg[param0][val[0]][param2].keys():
+                        cfg[param0][val[0]][param2]['value'] = [val[1]]
                     else:
-                        cfg[param][val[0]][switch[1]]['value'].extend(val[1])
+                        cfg[param0][val[0]][param2]['value'].extend(val[1])
+        
         else:
+            #Flat parameters
             if 'value' not in cfg:
-                 cfg[param] = {}
-                 cfg[param]['value'] = all_vals
+                 cfg[key] = {}
+                 cfg[key]['value'] = all_vals
 
             else:
-                cfg[param]['value'].extend(all_vals)
-        
+                cfg[key]['value'].extend(all_vals)
+
     return cfg
 
 ###########################
