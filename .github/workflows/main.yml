@@ -1,4 +1,4 @@
-on: [workflow_dispatch]
+on: [push]
 
 jobs:
   gcd_test_job:
