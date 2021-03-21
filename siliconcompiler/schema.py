@@ -28,20 +28,11 @@ def schema_cfg():
     cfg = schema_libs(cfg, 'macro')
 
     #Flow Setup (from schema_options)
-    all_steps = (cfg['design_steps']['defvalue'] +
-                 cfg['signoff_steps']['defvalue'] +
-                 cfg['view_steps']['defvalue'] +
-                 cfg['mfg_steps']['defvalue'])
+    cfg = schema_flow(cfg, 'default')
         
-    for step in all_steps:
-        cfg = schema_flow(cfg, step)
-        
-    #Metrics for design and signoff steps    
-    for step in (cfg['design_steps']['defvalue'] +
-                 ['wafertest'] +
-                 ['finaltest']):
-        cfg = schema_metrics(cfg, 'goal', step)    
-        cfg = schema_metrics(cfg, 'real', step)
+    #Metrics for design and signoff steps
+    cfg = schema_metrics(cfg, 'goal', 'default')
+    cfg = schema_metrics(cfg, 'real', 'default')    
 
     #Design Group
     cfg = schema_design(cfg)
@@ -66,8 +57,6 @@ def schema_layout():
     layout = schema_def(layout)
 
     return layout
-
-
 
 
 ###############################################################################
@@ -1809,14 +1798,14 @@ def schema_options(cfg):
         'short_help' : 'Relaxed RTL Linting',
         'help' : ["Specifies that tools should be lenient and supress some  ",
                   "warnigns that may or may not indicate design issues. The ",
-                  "default is to enforce strict checks for all steps.      ",
+                  "default is to enforce strict checks for all steps.       ",
                   "Examples:                                                ",
                   "cli: -relax                                              ",
                   "api: chip.set('relax','true')                            "]
     }
 
-    cfg['minimize'] = {
-        'switch' : '-compact',
+    cfg['clean'] = {
+        'switch' : '-clean',
         'switch_args' : '<str>',
         'type' : ['bool'],
         'requirement' : 'optional',
@@ -1826,53 +1815,39 @@ def schema_options(cfg):
                   "and creates a 'zip' archive of the job folder.           ",
                   "                                                         ",
                   "Examples:                                                ",
-                  "cli: -minimize                                           ",
-                  "api: chip.set('minimize','true')                         "]
+                  "cli: -clean                                              ",
+                  "api: chip.set('clean','true')                            "]
     }
 
     
-    cfg['design_steps'] = {
-        'switch' : '-compile_steps',
+    cfg['design_flow'] = {
+        'switch' : '-design_flow',
         'switch_args' : '<str>',
         'requirement' : 'all',
         'type' : ['string'],
-        'defvalue' : ['import',
-                      'syn',
-                      'floorplan',
-                      'place',
-                      'cts',
-                      'route',
-                      'dfm',
-                      'export'],
+        'defvalue' : [],
         'short_help' : 'List of Compilation Steps',
         'help' : ["A complete list of all steps included in fully automated",
                   "RTL to GDSII compilation. Compilation flow is controlled ",
                   "with the -start, -stop, -cont switches and by adding     ",
                   "values to the list. The list must be ordered to enable   ",
                   "default automated compilation from the first entry to the",
-                  "last entry in the list. Inserting steps in the middle of",
+                  "last entry in the list. Inserting steps in the middle of ",
                   "the list is only possible by overwriting the whole list. ",
                   "The example below demonstrates adding a tapeout stage    ",
-                  "at the end of the compile_steps list.                   ",
+                  "at the end of the compile_steps list.                    ",
                   "                                                         ",
                   "Examples:                                                ",
-                  "cli: -compile_steps 'tapeout'                           ",
-                  "api:  chip.add('compile_steps', 'tapeout')              "]
+                  "cli: -design_flow 'export'                               ",
+                  "api:  chip.add('design_flow', 'export')                  "]
     }
 
-    cfg['signoff_steps'] = {
+    cfg['signoff_flow'] = {
         'switch' : '-dv_steps',
         'switch_args' : '<str>',
         'requirement' : 'all',
         'type' : ['string'],
-        'defvalue' : ['lec',
-                      'pex',
-                      'sta',
-                      'pi',
-                      'si',
-                      'drc',
-                      'erc',
-                      'lvs'],
+        'defvalue' : [],
         'short_help' : 'List of Verification Steps',
         'help' : ["A complete list of all verification steps. Verification ",
                   "flow is controlled with the -start, -stop, -cont switches",
@@ -1884,49 +1859,22 @@ def schema_options(cfg):
                   "archive stage at the end of the dv_steps list           ",
                   "                                                         ",
                   "Examples:                                                ",
-                  "cli: -dv_steps 'archive'                                ",
-                  "api:  chip.add('dv_steps', 'archive')                   "]
+                  "cli: -dv_steps 'lvs'                                     ",
+                  "api:  chip.add('dv_steps', 'lvs')                        "]
     }
 
-    cfg['view_steps'] = {
-        'switch' : '-view_steps',
-        'switch_args' : '<str>',
-        'requirement' : 'all',
-        'type' : ['string'],
-        'defvalue' : ['defview',
-                      'gdsview'],
-        'short_help' : 'List of Interactive Viewer Steps',
-        'help' : ["A complete list of all interactive viewer steps. The    ",
-                  "viewer steps are not meant to be executed as a pipeline,",
-                  "but serves as a central record for documenting tools and ",
-                  "options for display tools.                               ",
-                  "                                                         ",
-                  "Examples:                                                ",
-                  "cli: -view_steps 'scopeview'                            ",
-                  "api:  chip.add('view_steps', 'scopeview')               "]
-    }
-    
-
-    cfg['mfg_steps'] = {
+    cfg['mfg_flow'] = {
         'switch' : '-mfg_steps',
         'switch_args' : '<str>',
         'requirement' : 'all',
         'type' : ['string'],
-        'defvalue' : ['maskprep',
-                      'mask',
-                      'foundry',
-                      'bump',
-                      'wafertest',
-                      'assembly',                      
-                      'program',
-                      'finaltest'
-        ],
+        'defvalue' : [],
         'short_help' : 'List of Manufacturing Steps',
         'help' : ["A complete list of all steps in the manufacturing flow.  ",
                   "                                                         ",
                   "Examples:                                                ",
-                  "cli: -mfg_steps 'dice'                                  ",
-                  "api:  chip.add('mfg_steps', 'dice')                     "]
+                  "cli: -mfg_steps 'maskprep'                               ",
+                  "api:  chip.add('mfg_steps', 'maskprep')                  "]
     }
     
 
