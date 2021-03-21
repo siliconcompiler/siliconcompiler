@@ -237,6 +237,9 @@ def schema_pdk(cfg):
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],        
         'short_help' : 'Process Design Rule Manual',
         'help' : ["A PDK document that includes complete information about ",
                   "all physical and electrical design rules to comply with ",
@@ -256,6 +259,9 @@ def schema_pdk(cfg):
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Process Documents',
         'help' : ["A list of critical PDK designer documents provided by   ",
                   "the foundry entered in order of priority. The first item",
@@ -302,6 +308,9 @@ def schema_pdk(cfg):
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Device Models',
         'help' : ["A dynamic dictionary of filepaths for all PDK device     ",
                   "models. The structure serves as a central access registry",
@@ -326,6 +335,9 @@ def schema_pdk(cfg):
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Parasitic Extraction TCAD Models',
         'help' : ["A dynamic dictionary of filepaths for all PDK wire TCAD  ",
                   "models. The structure serves as a central access registry",
@@ -350,6 +362,9 @@ def schema_pdk(cfg):
         'type' : ['file'],
         'defvalue' : [],
         'hash' : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Mask Layer Maps',
         'help' : ["A dynamic dictionary of filepaths describing input/output",
                   "mapping for streaming layout data from one format to     ",
@@ -378,6 +393,9 @@ def schema_pdk(cfg):
         'type' : ['file'],
         'defvalue' : [],
         'hash' : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Display Configurations',
         'help' : ["A dynamic dictionary of display configuration files      ",
                   "describing colors and pattern schemes for all layers in  ",
@@ -400,6 +418,9 @@ def schema_pdk(cfg):
         'type' : ['file'],
         'defvalue' : [],
         'hash' : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Custom Design Libraries',
         'help' : ["A dynamic dictionary of filepaths to all primitive cell  ",
                   "libraries supported by the PDK. The filepaths are entered",
@@ -421,6 +442,9 @@ def schema_pdk(cfg):
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Place and Route Technology Files',
         'help' : ["A dynamic dictionary of paths to technology files       ",
                   "containing the design rule and setup information needed ",
@@ -467,7 +491,6 @@ def schema_pdk(cfg):
         'requirement' : 'apr',
         'type' : ['float'],
         'defvalue' : [],
-        'hash' : [],
         'short_help' : 'Tap Cell Max Distance Rule',
         'help' : ["Specifies the maximum distance allowed between tap cells ",
                   "in the PDK. The value is required for automated place and",
@@ -484,7 +507,6 @@ def schema_pdk(cfg):
         'requirement' : 'apr',
         'type' : ['float'],
         'defvalue' : [],
-        'hash' : [],
         'short_help' : 'Tap Cell Offset Rule',
         'help' : ["Specifies the offset from the edge of the block to the   ",
                   "tap cell grid. The value is required for automated place ",
@@ -560,6 +582,9 @@ def schema_libs(cfg, group):
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Library Documentation',
         'help' : ["A list of critical library documents entered in order of ",
                   "importance. The first item in thelist should be the      ",
@@ -579,6 +604,9 @@ def schema_libs(cfg, group):
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Library Datasheets',
         'help' : ["A complete collection of datasheets for the library. The ",
                   "documentation can be provied as a PDF or as a filepath to",
@@ -685,6 +713,9 @@ def schema_libs(cfg, group):
         'type' : ['file'],
         'defvalue' : [],
         'hash' : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Library NLDM Timing Model Files',
         'help' : ["A dynamic dictionary of paths to NLDM models. Timing     ",
                   "files are specified on a per lib, per corner, and per    ",
@@ -708,6 +739,9 @@ def schema_libs(cfg, group):
         'type' : ['file'],
         'defvalue' : [],
         'hash' : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Library CCS Timing Model Files',
         'help' : ["A dynamic dictionary of paths to CCS models. Timing      ",
                   "files are specified on a per lib, per corner, and per    ",
@@ -730,6 +764,9 @@ def schema_libs(cfg, group):
         'type' : ['file'],
         'defvalue' : [],
         'hash' : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Library AOCV Timing Model Files',
         'help' : ["A dynamic dictionary of paths to AOCV models. Timing     ",
                   "files are specified on a per lib, per corner, and per    ",
@@ -751,6 +788,9 @@ def schema_libs(cfg, group):
         'type' : ['file'],
         'defvalue' : [],
         'hash' : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Library APL Power Model Files',
         'help' : ["A dynamic dictionary of paths to APL models. Power       ",
                   "files are specified on a per lib, per corner, and per    ",
@@ -770,6 +810,9 @@ def schema_libs(cfg, group):
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Library LEF Files',
         'help' : ["An abstracted view of library cells that gives complete  ",
                   "information about the cell place and route boundary, pin ",
@@ -788,6 +831,9 @@ def schema_libs(cfg, group):
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Library GDS Files',
         'help' : ["The complete mask layout of the library cells ready to be",
                   "merged with the rest of the design for tapeout. In some  ",
@@ -809,6 +855,9 @@ def schema_libs(cfg, group):
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
          'short_help' : 'Library CDL Netlist Filesx',
         'help' : ["Files containing the netlists used for layout versus     ",
                   "schematic (LVS) checks. In some cases, the GDS merge     ",
@@ -829,6 +878,9 @@ def schema_libs(cfg, group):
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Library Spice Netlist Files',
         'help' : ["Files containing the library spice netlists used for     ",
                   "circuit simulation.                                      ",
@@ -845,6 +897,9 @@ def schema_libs(cfg, group):
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Library HDL Model Files',
         'help' : ["Digital HDL models of the library cells, modeled in VHDL ",
                   "or verilog for use in funcational simulations.           ",
@@ -861,6 +916,9 @@ def schema_libs(cfg, group):
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Library ATPG Files',
         'help' : ["Library models used for ATPG based automated faultd based",
                   "post manufacturing testing.                              ",
@@ -893,6 +951,9 @@ def schema_libs(cfg, group):
         'type' : ['string'],
         'defvalue' : [],
         'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Library Transistor Threshold',
         'help' : ["The variable specifies the voltage threshold type of the ",
                   "library. The value is extracted automatically if found in",
@@ -986,6 +1047,9 @@ def schema_libs(cfg, group):
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Library Setup Files',
         'help' : ["A list of setup files for use by specific EDA tools. The ",
                   "files are specified on a per EDA tool basis.             ",
@@ -1004,7 +1068,10 @@ def schema_libs(cfg, group):
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : [],
-         'short_help' : 'Library Layout Database',
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
+        'short_help' : 'Library Layout Database',
         'help' : ["A dynamic dictionary with filepaths to compiled library  ",
                   "layout database specified on a per format basis. Example ",
                   "formats include oa, mw, ndm.                             ",
@@ -1028,231 +1095,247 @@ def schema_flow(cfg, step):
     cfg['flow'][step] = {}
 
     # exe
-    cfg['flow'][step]['exe'] = {}
-    cfg['flow'][step]['exe']['switch'] = '-flow_exe'
-    cfg['flow'][step]['exe']['switch_args'] = '<>'
-    cfg['flow'][step]['exe']['type'] = ['string']
-    cfg['flow'][step]['exe']['requirement'] = ['all']
-    cfg['flow'][step]['exe']['defvalue'] = []
-    cfg['flow'][step]['exe']['short_help'] = 'Executable Name'
-    cfg['flow'][step]['exe']['help'] = [
-        "The name of the exuctable step or the full path to the   ",
-        "executable specified on a per stage basis.                    ",
-        "                                                              ",
-        "Examples:                                                     ",
-        "cli: -flow_exe 'place openroad'                               ",
-        "api:  chip.set('flow', 'place', 'exe', 'openroad')            "]
+    cfg['flow'][step]['exe'] = {
+        'switch' : '-flow_exe',
+        'switch_args' : '<>',
+        'type' : 'string',
+        'requirement' : 'all',
+        'defvalue' : [],
+        'short_help' : 'Executable Name',
+        'help' : ["The name of the exuctable step or the full path to the   ",
+                  "executable specified on a per stage basis.               ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -flow_exe 'place openroad'                          ",
+                  "api:  chip.set('flow', 'place', 'exe', 'openroad')       "]
+    }
     
-    # exe version
-    cfg['flow'][step]['version'] = {}
-    cfg['flow'][step]['version']['switch'] = '-flow_version'
-    cfg['flow'][step]['version']['switch_args'] = '<>'
-    cfg['flow'][step]['version']['type'] = ['string']
-    cfg['flow'][step]['version']['requirement'] = ['all']
-    cfg['flow'][step]['version']['defvalue'] = []
-    cfg['flow'][step]['version']['short_help'] = 'Executable Version'
-    cfg['flow'][step]['version']['help'] = [
-        "The version of the exuctable step to use in compilation. ",
-        "Mismatch betweent the step specifed and the step         ",
-        "avalable results in an error.                            ",
-        "                                                         ",
-        "Examples:                                                ",
-        "cli: -flow_version 'place 1.0'                           ",
-        "api:  chip.set('flow', 'place', 'version', '1.0')        "]
+    # exe version    
+    cfg['flow'][step]['version'] = {
+        'switch' : '-flow_version',
+        'switch_args' : '<>',
+        'type' : ['string'],
+        'requirement' : ['all'],
+        'defvalue' : [],
+        'short_help' : 'Executable Version',
+        'help' : [
+            "The version of the exuctable step to use in compilation. ",
+            "Mismatch betweent the step specifed and the step         ",
+            "avalable results in an error.                            ",
+            "                                                         ",
+            "Examples:                                                ",
+            "cli: -flow_version 'place 1.0'                           ",
+            "api:  chip.set('flow', 'place', 'version', '1.0')        "]
+    }
     
     #opt
-    cfg['flow'][step]['opt'] = {}
-    cfg['flow'][step]['opt']['switch'] = '-flow_opt'
-    cfg['flow'][step]['opt']['switch_args'] = '<>'
-    cfg['flow'][step]['opt']['type'] = ['string']
-    cfg['flow'][step]['opt']['requirement'] = 'optional'
-    cfg['flow'][step]['opt']['defvalue'] = []
-    cfg['flow'][step]['opt']['short_help'] = 'Executable Options'
-    cfg['flow'][step]['opt']['help'] = [
-        "A list of command line options for the executable. For   ",
-        "multiple argument options, enter each argument and value ",
-        "as a one list entry, specified on a per stage basis.     ",
-        "Command line values must be enclosed in quotes.          ",
-        "                                                         ",
-        "Examples:                                                ",
-        "cli: -flow_opt 'place -no_init'                          ",
-        "api:  chip.set('flow', 'place', 'opt', '-no_init')       "]
+    cfg['flow'][step]['opt'] = {
+        'switch' : '-flow_opt',
+        'switch_args' : '<>',
+        'type' : ['string'],
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Executable Options',
+        'help' : [
+            "A list of command line options for the executable. For   ",
+            "multiple argument options, enter each argument and value ",
+            "as a one list entry, specified on a per stage basis.     ",
+            "Command line values must be enclosed in quotes.          ",
+            "                                                         ",
+            "Examples:                                                ",
+            "cli: -flow_opt 'place -no_init'                          ",
+            "api:  chip.set('flow', 'place', 'opt', '-no_init')       "]
+    }
     
     #refdir
-    cfg['flow'][step]['refdir'] = {}
-    cfg['flow'][step]['refdir']['switch'] = '-flow_refdir'
-    cfg['flow'][step]['refdir']['switch_args'] = '<>'
-    cfg['flow'][step]['refdir']['type'] = ['file']
-    cfg['flow'][step]['refdir']['requirement'] = 'optional'
-    cfg['flow'][step]['refdir']['hash'] = []
-    cfg['flow'][step]['refdir']['defvalue'] = []
-    cfg['flow'][step]['refdir']['short_help'] = 'Reference Directory'
-    cfg['flow'][step]['refdir']['help'] = [
-        "A path to a directory containing compilation scripts     ",
-        "used by the executable specified on a per stage basis.   ",
-        "                                                         ",
-        "Examples:                                                ",
-        "cli: -flow_refdir 'place ./myrefdir'                     ",
-        "api: chip.set('flow', 'place', 'refdir', './myrefdir')   "]
+    cfg['flow'][step]['refdir'] = {
+        'switch' : '-flow_refdir',
+        'switch_args' : '<>',
+        'type' : ['file'],
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Reference Directory',
+        'help' : [
+            "A path to a directory containing compilation scripts     ",
+            "used by the executable specified on a per stage basis.   ",
+            "                                                         ",
+            "Examples:                                                ",
+            "cli: -flow_refdir 'place ./myrefdir'                     ",
+            "api: chip.set('flow', 'place', 'refdir', './myrefdir')   "]
+    }
     
     #entry point script
-    cfg['flow'][step]['script'] = {}
-    cfg['flow'][step]['script']['switch'] = '-flow_script'
-    cfg['flow'][step]['script']['switch_args'] = '<>'
-    cfg['flow'][step]['script']['type'] = ['file']
-    cfg['flow'][step]['script']['requirement'] = 'optional'
-    cfg['flow'][step]['script']['hash'] = []
-    cfg['flow'][step]['script']['defvalue'] = []
-    cfg['flow'][step]['script']['short_help'] = 'Entry point Script'
-    cfg['flow'][step]['script']['help'] = [
-        "Path to the entry point compilation script called by the ",
-        "executable specified on a per stage basis.               ",
-        "                                                         ",
-        "Examples:                                                ",
-        "cli: -step_script 'place ./myrefdir/place.tcl'           ",
-        "api: chip.set(group,'place','refdir',                   ",
-        "              './myrefdir/place.tcl')                    "]
-    
+    cfg['flow'][step]['script'] = {
+        'switch' : '-flow_script',
+        'switch_args' : '<>',
+        'requirement' : 'optional',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash' : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],   
+        'short_help' : 'Entry Point script',
+        'help' : [
+            "Path to the entry point compilation script called by the ",
+            "executable specified on a per stage basis.               ",
+            "                                                         ",
+            "Examples:                                                ",
+            "cli: -step_script 'place ./myrefdir/place.tcl'           ",
+            "api: chip.set(group,'place','refdir',                   ",
+            "              './myrefdir/place.tcl')                    "]
+    }
+
     #copy
-    cfg['flow'][step]['copy'] = {}
-    cfg['flow'][step]['copy']['switch'] = '-flow_copy'
-    cfg['flow'][step]['copy']['switch_args'] = '<>'
-    cfg['flow'][step]['copy']['type'] = ['string']
-    cfg['flow'][step]['copy']['requirement'] = 'optional'
-    cfg['flow'][step]['copy']['defvalue'] = []
-    cfg['flow'][step]['copy']['short_help'] = 'Copy Local Option'
-    cfg['flow'][step]['copy']['help'] = [
-        "Specifies that the reference script directory should be  ",
-        "copied and run from the local run directory. The option  ",
-        "specified on a per stage basis.                          ",
-        "                                                         ",
-        "Examples:                                                ",
-        "cli: -flow_copy 'place true'                             ",
-        "api: chip.set('flow','place','copy','true')              "]
+    cfg['flow'][step]['copy'] = {
+        'switch' : '-flow_copy',
+        'switch_args' : '<>',
+        'type' : ['bool'],
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Copy Local Option',
+        'help' : [
+            "Specifies that the reference script directory should be  ",
+            "copied and run from the local run directory. The option  ",
+            "specified on a per stage basis.                          ",
+            "                                                         ",
+            "Examples:                                                ",
+            "cli: -flow_copy 'place true'                             ",
+            "api: chip.set('flow','place','copy','true')              "]
+    }
     
     #script format
-    cfg['flow'][step]['format'] = {}
-    cfg['flow'][step]['format']['switch'] = '-flow_format'
-    cfg['flow'][step]['format']['switch_args'] = '<>'
-    cfg['flow'][step]['format']['type'] = ['string']
-    cfg['flow'][step]['format']['requirement'] = ['all']
-    cfg['flow'][step]['format']['defvalue'] = []
-    cfg['flow'][step]['format']['short_help'] = 'Script Format'
-    cfg['flow'][step]['format']['help'] = [
-        "Specifies that format of the configuration file for the  ",
-        "stage. Valid formats are tcl, yaml, and json. The format ",
-        "used is dictated by the executable for the stage and     ",
-        "specified on a per stage basis.                          ",
-        "                                                         ",
-        "Examples:                                                ",
-        "cli: -flow_format 'place tcl'                            ",
-        "api: chip.set('flow','place','format','tcl')             "]
+    cfg['flow'][step]['format'] = {
+        'switch' : '-flow_format',
+        'switch_args' : '<>',
+        'type' : ['string'],
+        'requirement' : ['all'],
+        'defvalue' : [],
+        'short_help' : 'Script Format',
+        'help' : [
+            "Specifies that format of the configuration file for the  ",
+            "stage. Valid formats are tcl, yaml, json, cmdline.       ",
+            "The format used is dictated by the executable for the    ",
+            "stage and specified on a per stage basis.                ",
+            "                                                         ",
+            "Examples:                                                ",
+            "cli: -flow_format 'place tcl'                            ",
+            "api: chip.set('flow','place','format','tcl')             "]
+    }
     
     #jobid
-    cfg['flow'][step]['jobid'] = {}
-    cfg['flow'][step]['jobid']['switch'] = '-flow_jobid'
-    cfg['flow'][step]['jobid']['switch_args'] = '<>'
-    cfg['flow'][step]['jobid']['type'] = ['int']
-    cfg['flow'][step]['jobid']['requirement'] = ['all']
-    cfg['flow'][step]['jobid']['defvalue'] = ['0']
-    cfg['flow'][step]['jobid']['short_help'] = 'Job Index'
-    cfg['flow'][step]['jobid']['help'] = [
-        "A dynamic variable that keeeps track of results to pass  ",
-        "forward to the next stage of the implementation pipeline ",
-        "in cases where multiple jobs are run for one stage and a ",
-        "programmatic selection if made to choose the best result ",
-        "the variable can be used to point to a job which may not ",
-        "be the last job launched. Job IDs are tracked on a per   ",
-        "stage basis.                                             ",
-        "                                                         ",
-        "Examples:                                                ",
-        "cli: -flow_jobid 'place 5'                               ",
-        "api: chip.set('flow', 'place', 'jobid', '5')             "]
+    cfg['flow'][step]['jobid'] = {
+        'switch' : '-flow_jobid',
+        'switch_args' : '<>',
+        'type' : ['int'],
+        'requirement' : ['all'],
+        'defvalue' : ['0'],
+        'short_help' : 'Job Index',
+        'help' : [
+            "A dynamic variable that keeeps track of results to pass  ",
+            "forward to the next stage of the implementation pipeline ",
+            "in cases where multiple jobs are run for one stage and a ",
+            "programmatic selection if made to choose the best result ",
+            "the variable can be used to point to a job which may not ",
+            "be the last job launched. Job IDs are tracked on a per   ",
+            "stage basis.                                             ",
+            "                                                         ",
+            "Examples:                                                ",
+            "cli: -flow_jobid 'place 5'                               ",
+            "api: chip.set('flow', 'place', 'jobid', '5')             "]
+    }
     
     #parallelism
-    cfg['flow'][step]['threads'] = {}
-    cfg['flow'][step]['threads']['switch'] = '-flow_threads'
-    cfg['flow'][step]['threads']['switch_args'] = '<>'
-    cfg['flow'][step]['threads']['type'] = ['int']
-    cfg['flow'][step]['threads']['requirement'] = ['all']
-    cfg['flow'][step]['threads']['defvalue'] = []
-    cfg['flow'][step]['threads']['short_help'] = 'Job Parallelism'
-    cfg['flow'][step]['threads']['help'] = [
-        "Specifies the level of CPU thread parallelism to enable  ",
-        "on a per stage basis. This information is intended for   ",
-        "the EDA steps to use to parallelize workloads on a       ",
-        "multi-core single node CPU. Job parallelization across   ",
-        "multiple machines can be explicitly specified using      ",
-        "custom compilation scripts.                              ",
-        "                                                         ",
-        "Examples:                                                ",
-        "cli: -flow_threads 'drc 64'                              ",
-        "api: chip.set('flow', 'drc', 'threads', '64')            "]
+    cfg['flow'][step]['threads'] = {
+        'switch' : '-flow_threads',
+        'switch_args' : '<>',
+        'type' : ['int'],
+        'requirement' : ['all'],
+        'defvalue' : [],
+        'short_help' : 'Job Parallelism',
+        'help' : [
+            "Specifies the level of CPU thread parallelism to enable  ",
+            "on a per stage basis. This information is intended for   ",
+            "the EDA steps to use to parallelize workloads on a       ",
+            "multi-core single node CPU. Job parallelization across   ",
+            "multiple machines can be explicitly specified using      ",
+            "custom compilation scripts.                              ",
+            "                                                         ",
+            "Examples:                                                ",
+            "cli: -flow_threads 'drc 64'                              ",
+            "api: chip.set('flow', 'drc', 'threads', '64')            "]
+    }
     
     #cache
-    cfg['flow'][step]['cache'] = {}
-    cfg['flow'][step]['cache']['switch'] = '-flow_cache'
-    cfg['flow'][step]['cache']['switch_args'] = '<>'
-    cfg['flow'][step]['cache']['type'] = ['file']
-    cfg['flow'][step]['cache']['requirement'] = ['optional']
-    cfg['flow'][step]['cache']['defvalue'] = []
-    cfg['flow'][step]['cache']['short_help'] = 'Cache Directory Name'
-    cfg['flow'][step]['cache']['help'] = [
-        "Specifies a writeable shared cache directory to be used  ",
-        "for storage of processed design and library data. The    ",
-        "purpose of caching is to save runtime and disk space     ",
-        "in future runs.                                          ",
-        "                                                         ",
-        "Examples:                                                ",
-        "cli: -step_cache 'syn ./disk1/edacache'                  ",
-        "api: chip.set(group,'syn','cache','./disk1/edacache')   "]
+    cfg['flow'][step]['cache'] = {
+        'switch' : '-flow_cache',
+        'switch_args' : '<>',
+        'type' : ['file'],
+        'requirement' : ['optional'],
+        'defvalue' : [],
+        'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],  
+        'short_help' : 'Cache Directory Name',
+        'help' : [
+            "Specifies a writeable shared cache directory to be used  ",
+            "for storage of processed design and library data. The    ",
+            "purpose of caching is to save runtime and disk space     ",
+            "in future runs.                                          ",
+            "                                                         ",
+            "Examples:                                                ",
+            "cli: -step_cache 'syn ./disk1/edacache'                  ",
+            "api: chip.set(group,'syn','cache','./disk1/edacache')   "]
+    }
     
     #warnings
-    cfg['flow'][step]['warnoff'] = {}
-    cfg['flow'][step]['warnoff']['switch'] = '-flow_warnoff'
-    cfg['flow'][step]['warnoff']['switch_args'] = '<>'
-    cfg['flow'][step]['warnoff']['type'] = ['string']
-    cfg['flow'][step]['warnoff']['requirement'] = ['optional']
-    cfg['flow'][step]['warnoff']['defvalue'] = ['.']
-    cfg['flow'][step]['warnoff']['short_help']='Warning Filter'
-    cfg['flow'][step]['warnoff']['help'] = [
-        "Specifies a list of EDA warnings for which printing      ",
-        "should be supressed. Generally this is done on a per     ",
-        "design/node bases after review has determined that       ",
-        "warning can be safely ignored                            ",
-        "                                                         ",
-        "Examples:                                                ",
-        "cli: -flow_warnoff 'import COMBDLY'                      ",
-        "api: chip.set('flow', 'import', 'warnoff', 'COMBDLY')    "]
-    
+    cfg['flow'][step]['warnoff'] = {
+        'switch' : '-flow_warnoff',
+        'switch_args' : '<>',
+        'type' : ['string'],
+        'requirement' : ['optional'],
+        'defvalue' : [],
+        'short_help' : 'Warning Filter',
+        'help' : [
+            "Specifies a list of EDA warnings for which printing      ",
+            "should be supressed. Generally this is done on a per     ",
+            "design/node bases after review has determined that       ",
+            "warning can be safely ignored                            ",
+            "                                                         ",
+            "Examples:                                                ",
+            "cli: -flow_warnoff 'import COMBDLY'                      ",
+            "api: chip.add('flow', 'import', 'warnoff', 'COMBDLY')    "]
+    }
     
     #keymap
-    cfg['flow'][step]['keymap'] = {}
-    cfg['flow'][step]['keymap']['switch'] = '-flow_keymap'
-    cfg['flow'][step]['keymap']['switch_args'] = '<>'
-    cfg['flow'][step]['keymap']['type'] = ['string', 'string']
-    cfg['flow'][step]['keymap']['requirement'] = 'optional'
-    cfg['flow'][step]['keymap']['defvalue'] = []
-    cfg['flow'][step]['keymap']['short_help'] = 'Script Keymap'
-    cfg['flow'][step]['keymap']['help'] = [
-        "The keymap is used to translate the schema keys when     ",
-        "writing out the configuration to a TCL, JSON, or YAML    ",
-        "file to be loaded by an EDA step. Keymaps are specific to",
-        "each EDA step and specified on a per stage basis.        ",
-        "                                                         ",
-        "Examples:                                                ",
-        "cli: -flow_keymap 'place design design_name'             ",
-        "api: chip.set('flow','place','design', 'design_name')    "]
-    
+    cfg['flow'][step]['keymap'] = {
+        'switch' : '-flow_keymap',
+        'switch_args' : '<>',
+        'type' : ['string', 'string'],
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Script Keymap',
+        'help' : [
+            "The keymap is used to translate the schema keys when     ",
+            "writing out the configuration to a TCL, JSON, or YAML    ",
+            "file to be loaded by an EDA step. Keymaps are specific to",
+            "each EDA step and specified on a per stage basis.        ",
+            "                                                         ",
+            "Examples:                                                ",
+            "cli: -flow_keymap 'place design design_name'             ",
+            "api: chip.add('flow','place','design', 'design_name')    "]
+    }
+        
     #vendor
-    cfg['flow'][step]['vendor'] = {}
-    cfg['flow'][step]['vendor']['switch'] = '-flow_vendor'
-    cfg['flow'][step]['vendor']['switch_args'] = '<>'
-    cfg['flow'][step]['vendor']['type'] = ['string']
-    cfg['flow'][step]['vendor']['requirement'] = ['all']
-    cfg['flow'][step]['vendor']['defvalue'] = []
-    cfg['flow'][step]['vendor']['short_help'] = 'Step Vendor'
-    cfg['flow'][step]['vendor']['help'] = [
+    cfg['flow'][step]['vendor'] = {
+        'switch' : '-flow_vendor',
+        'switch_args' : '<>',
+        'type' : ['string'],
+        'requirement' : 'all',
+        'defvalue' : [],
+        'short_help' : 'Step Vendor',
+        'help' : [
         "The vendor argument is used for selecting eda specific   ",
         "technology setup variables from the PDK and libraries    ",
         "which generally support multiple vendors for each        ",
@@ -1261,6 +1344,7 @@ def schema_flow(cfg, step):
         "Examples:                                                ",
         "cli: -flow_vendor 'place vendor openroad'                ",
         "api: chip.set('flow','place','vendor', 'openroad')       "]
+    }
     
     #signature
     cfg['flow'][step]['signature'] = {
@@ -1279,36 +1363,38 @@ def schema_flow(cfg, step):
     }        
     
     #date
-    cfg['flow'][step]['date'] = {}
-    cfg['flow'][step]['date']['switch'] = '-flow_date'
-    cfg['flow'][step]['date']['switch_args'] = '<>'
-    cfg['flow'][step]['date']['type'] = ['string']
-    cfg['flow'][step]['date']['requirement'] = ['all']
-    cfg['flow'][step]['date']['defvalue'] = []
-    cfg['flow'][step]['date']['short_help'] = 'Step Date'
-    cfg['flow'][step]['date']['help'] = [
-        "A date stamp on a per stage basis updated at runtime in  ",
-        "coordination with jobid.                                 ",
-        "                                                         ",
-        "Examples:                                                ",
-        "cli: -flow_date 'signoff date Mon Mar 1 16:12:14 2021'   ",
-        "api: chip.set('flow','signoff, 'date',                   ", 
-        "              ' Mon Mar 1 16:12:14 2021'                 "]
-    
+    cfg['flow'][step]['date'] = {
+        'switch' : '-flow_date',
+        'switch_args' : '<>',
+        'type' : ['string'],
+        'requirement' : 'all',
+        'defvalue' : [],
+        'short_help' : 'Step Date',
+        'help' : [
+            "A date stamp on a per stage basis updated at runtime in  ",
+            "coordination with jobid.                                 ",
+            "                                                         ",
+            "Examples:                                                ",
+            "cli: -flow_date 'signoff date Mon Mar 1 16:12:14 2021'   ",
+            "api: chip.set('flow','signoff, 'date',                   ", 
+            "              ' Mon Mar 1 16:12:14 2021'                 "]
+
+    }
     #author
-    cfg['flow'][step]['author'] = {}
-    cfg['flow'][step]['author']['switch'] = '-flow_author'
-    cfg['flow'][step]['author']['switch_args'] = '<>'
-    cfg['flow'][step]['author']['type'] = ['string']
-    cfg['flow'][step]['author']['requirement'] = ['all']
-    cfg['flow'][step]['author']['defvalue'] = []
-    cfg['flow'][step]['author']['short_help'] = 'Step Author'
-    cfg['flow'][step]['author']['help'] = [
-        "A author record on a per stage basis.                      ",
-        "                                                           ",
-        "Examples:                                                  ",
-        "cli: -flow_author 'syn author, wilecoyote@acme.com'        ",
-        "api: chip.set('flow','syn, 'author', 'wilecoyote@acme.com' "]
+    cfg['flow'][step]['author'] = {
+        'switch' : '-flow_author',
+        'switch_args' : '<>',
+        'type' : ['string'],
+        'requirement' : 'all',
+        'defvalue' : [],
+        'short_help' : 'Step Author',
+        'help' : [
+            "A author record on a per stage basis.                      ",
+            "                                                           ",
+            "Examples:                                                  ",
+            "cli: -flow_author 'syn author, wilecoyote@acme.com'        ",
+            "api: chip.set('flow','syn, 'author', 'wilecoyote@acme.com' "]
+    }
     
     return cfg
 
@@ -1550,6 +1636,9 @@ def schema_options(cfg):
         'requirement' : 'optional',
         'defvalue' : ['asic'],
         'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Compiler Mode',
         'help' : ["Sets the compilation flow to 'fpga' or 'asic. The default",
                   "is 'asic'                                                ",
@@ -1565,6 +1654,9 @@ def schema_options(cfg):
         'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Compiler Configuration File',
         'help' : ["All parameters can be set at the command line, but with  ",
                   "over 100 configuration parameters available, the         ",
@@ -1894,6 +1986,9 @@ def schema_design(cfg):
         'requirement' : ['all'],
         'defvalue' : [],
         'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Source File List',
         'help' : ["A list of source files to read in for elaboration. The   ",
                   "files are read in order from first to last entered. File ",
@@ -1915,6 +2010,9 @@ def schema_design(cfg):
         'requirement' : ['all'],
         'defvalue' : [],
         'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Design Documentation File List',
         'help' : ["A list of design documents. Files are read in order from ",
                   "first to last.                                           ",
@@ -2055,6 +2153,9 @@ def schema_design(cfg):
         'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Verilog Module Search Directories',
         'help' : ["Provides a search paths to look for modules found in the ",
                   "the source list. The import engine will look for modules ",
@@ -2072,6 +2173,9 @@ def schema_design(cfg):
         'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Verilog Include File Search Directories',
         'help' : ["Provides a search paths to look for files included in    ",
                   "the design using the `include statement.                 ",
@@ -2088,6 +2192,9 @@ def schema_design(cfg):
         'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Verilog Library Files',
         'help' : ["Declares source files to be read in, for which modules   ",
                   "are not to be interpreted as root modules.               ",
@@ -2121,6 +2228,9 @@ def schema_design(cfg):
         'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Verilog Command Line Options File',
         'help' : ["Read the specified file, and act as if all text inside   ",
                   "it was specified as command line parameters. Supported   ",
@@ -2255,6 +2365,9 @@ def schema_floorplan(cfg):
         'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Floorplanning Script',
         'help' : ["Provides a parameterized floorplan to be used during the ",
                   "floorplan stage of compilation to generate a fixed DEF   ",
@@ -2273,6 +2386,9 @@ def schema_floorplan(cfg):
         'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'DEF Floorplan',
         'help' : ["Provides a hard coded DEF file to be used during the     ",
                   "place stage. The DEF file should be complete and have all",
@@ -2424,6 +2540,9 @@ def schema_apr(cfg):
         'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Non-default Net Routing File',
         'help' : ["A file containing a list of nets with non-default width  ",
                   "and spacing, with one net per line and no wildcards      ",
@@ -2503,6 +2622,9 @@ def schema_apr(cfg):
         'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'short_help' : 'Value Change Dump File',
         'help' : ["A digital simulation trace that can be used to model    ",
                   "the peak and average power consumption of a design.     ",
@@ -2601,6 +2723,9 @@ def schema_constraints(cfg):
         'type' : ['file'],
         'requirement' : 'optional',
         'hash' : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
         'defvalue' : [],
         'short_help' : 'MCMM Timing Constraints Files',
         'help' : ["Provides scenario specific constraints. If none are     ",
