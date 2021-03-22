@@ -22,7 +22,14 @@ set mainlib      [lindex $target_libs 0]
 set libarch      [dict get $sc_cfg stdcell $mainlib libtype]
 set techlef      [dict get $sc_cfg pdk_aprtech $stackup $libarch openroad]
 set topmodule    [dict get $sc_cfg design]
+# TODO: Put in config dictionary instead of hardcoding.
 set corner       "typical"
+set gp_density   0.3
+set max_fanout   100
+set max_wire_len 1000
+set buf_lib_cell "BUF_X1 A Z"
+set dont_use     "FILCELL_X1 AOI211_X1 OAI211_X1"
+set parasitics_layer metal3
 
 #Inputs
 set input_verilog   "inputs/$topmodule.v"
@@ -41,7 +48,14 @@ read_lef  $techlef
 #Setup Libs
 foreach lib $target_libs {
     read_liberty [dict get $sc_cfg stdcell $lib model typical nldm lib]
-    read_lef [dict get $sc_cfg stdcell $lib lef]
+    # Correct for polygonal pin sizes in nangate45 liberty.
+    if  {$lib eq "NangateOpenCellLibrary"} {
+        set target_lef [dict get $sc_cfg stdcell $lib lef]
+        regsub -all {\.lef} $target_lef .mod.lef target_lef
+        read_lef $target_lef
+    } else {
+        read_lef [dict get $sc_cfg stdcell $lib lef]
+    }
     set site [dict get $sc_cfg stdcell $lib site]
 }
 
@@ -54,7 +68,8 @@ if {[file exists $input_sdc]} {
 }
 
 # Global Placement
-global_placement -disable_routability_driven -density 0.3
+#global_placement -disable_routability_driven -density 0.3 -skip_initial_place
+global_placement -disable_routability_driven -density $gp_density
 
 #-disable_routability_driven -density $SC_DENSITY
 #-pad_left $::env(CELL_PAD_IN_SITES_GLOBAL_PLACEMENT) \
@@ -65,7 +80,24 @@ global_placement -disable_routability_driven -density 0.3
 ################################################################
 
 
-#estimate_parasitics -placement
+set_wire_rc -layer $parasitics_layer
+estimate_parasitics -placement
+
+set buffer_cell [get_lib_cell [lindex $buf_lib_cell 0]]
+set_dont_use $dont_use
+
+set_max_fanout $max_fanout [current_design]
+repair_design -max_wire_length $max_wire_len -buffer_cell $buffer_cell
+
+# TODO: OpenROAD appears to perform detailed placement after the CTS step.
+# Is that right? I thought that CTS at least needed a legalized design.
+# Detail placement.
+#set_placement_padding -global
+    #-left $::env(CELL_PAD_IN_SITES_DETAIL_PLACEMENT) \
+    #-right $::env(CELL_PAD_IN_SITES_DETAIL_PLACEMENT)
+#detailed_placement
+#optimize_mirroring
+#check_placement -verbose
 
 #set buffer_cell [get_lib_cell [lindex $::env(MIN_BUF_CELL_AND_PORTS) 0]]
 
