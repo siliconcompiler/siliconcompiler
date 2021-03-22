@@ -5,5 +5,5 @@ jobs:
     runs-on: self-hosted
     name: 'GCD test build'
     steps:
-      - uses: actions/siliconcompiler@sc_actions_test
+      - uses: WRansohoff/siliconcompiler@sc_actions_test
       - run: ./examples/gcd/test.sh
