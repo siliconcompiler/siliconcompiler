@@ -15,7 +15,7 @@ def setup_target(chip):
     target = chip.cfg['target']['value'][-1]
 
     asic_targets = ('freepdk45', 'asap7', 'skywater130')
-    fpga_targets = ('opefpga', 'ice40')
+    fpga_targets = ('openfpga', 'ice40')
 
     if target in asic_targets:
 
