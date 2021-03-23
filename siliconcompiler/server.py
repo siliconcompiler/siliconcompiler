@@ -7,6 +7,7 @@ import json
 import logging as log
 import os
 import subprocess
+import shutil
 
 class Server:
     """
@@ -44,9 +45,15 @@ class Server:
         self.app.add_routes([
             web.post('/remote_run/{job_hash}/{stage}', self.handle_remote_run),
             web.post('/import/{job_hash}', self.handle_import),
-            web.get('/get_results/{job_hash}.zip', self.handle_get_results),
             web.get('/check_progress/{job_hash}/{stage}', self.handle_check_progress),
+            web.get('/delete_job/{job_hash}', self.handle_delete_job),
         ])
+        # TODO: Put zip files in a different directory.
+        # And for security reasons, this is not a good public-facing solution.
+        # There's no access control on which files can be downloaded.
+        # As discussed, a focus on security and access controls will
+        # require a more mature server framework based on e.g. apache/nginx/etc.
+        self.app.router.add_static('/get_results/', self.cfg['nfsmount']['value'][0])
 
         # Start the async server.
         web.run_app(self.app)
@@ -133,18 +140,35 @@ class Server:
         return web.Response(text="Successfully imported project %s."%job_hash)
 
     ####################
-    async def handle_get_results(self, request):
+    async def handle_delete_job(self, request):
         '''
-        API handler for 'get_results' requests. Currently serves a zip file
-        containing logs from each step in the flow. In the future, it will
-        probably return a web page containing an SVG render of the floorplan.
+        API handler for 'delete_job' requests. Delete a job from shared
+        cloud compute storage.
 
         '''
 
-        # TODO: Previously, this zipped the logs from the job and returned that.
-        # But the new implementation should copy the entire directory structure
-        # from the compute cluster into a local directory.
-        pass
+        # Retrieve the job hash to look for.
+        job_hash = request.match_info.get('job_hash', None)
+        if not job_hash:
+            return web.Response(text="Error: no job hash provided.")
+
+        # Determine if the job is running.
+        for job in self.sc_jobs:
+          if job_hash in job:
+            return web.Response(text="Error: job is still running.")
+
+        # Delete job hash directory, only if it exists.
+        # TODO: This assumes no malicious input.
+        # Again, we will need a more mature server framework to implement
+        # good access control and security policies for a public-facing service.
+        if not '..' in job_hash:
+          build_dir = '%s/%s'%(self.cfg['nfsmount']['value'][0], job_hash)
+          if os.path.exists(build_dir):
+            #print('Deleting: %s'%build_dir)
+            shutil.rmtree(build_dir)
+          if os.path.exists('%s.zip'%build_dir):
+            #print('Deleting: %s.zip'%build_dir)
+            os.remove('%s.zip'%build_dir)
 
     ####################
     async def handle_check_progress(self, request):
@@ -171,7 +195,6 @@ class Server:
             return web.Response(text="Job has no running steps.")
 
     ####################
-    #async def remote_sc(self, job_hash, chip_cfg, stage):
     async def remote_sc(self, job_hash, top_module, sc_sources, build_dir, stage):
         '''
         Async method to delegate an 'sc' command to a slurm host,
@@ -191,7 +214,7 @@ class Server:
         # Send JSON config instead of using subset of flags.
         # TODO: Use slurmpy SDK?
         srun_cmd  = 'srun %s sc /dev/null '%(export_path)
-        srun_cmd += '-cfgfile %s/chip.json '%(build_dir)
+        srun_cmd += '-cfg %s/chip.json '%(build_dir)
         srun_cmd += '-start %s -stop %s'%(stage, stage)
 
         # Create async subprocess shell, and block this thread until it finishes.
@@ -199,6 +222,14 @@ class Server:
         await proc.wait()
 
         # (Email notifications can be sent here using SES)
+
+        # Create a single-file archive as part of the 'export' step.
+        if stage == 'export':
+            subprocess.run(['zip',
+                            '-r',
+                            '%s.zip'%job_hash,
+                            '%s'%job_hash],
+                           cwd=self.cfg['nfsmount']['value'][0])
 
         # Mark the job hash as being done.
         self.sc_jobs.pop("%s_%s"%(job_hash, stage))
@@ -294,7 +325,7 @@ def server_cmdline():
 
     # Add supported schema arguments to the parser.
     for k,v in sorted(def_cfg.items()):
-        keystr = '_'.join(str(k))
+        keystr = str(k)
         helpstr = (def_cfg[k]['short_help'] +
                    '\n\n' +
                    '\n'.join(def_cfg[k]['help']) +
