@@ -42,12 +42,12 @@ def setup_target(chip):
         setup_libs = getattr(module,"setup_libs")
         setup_libs(chip)
 
-        setup_step(chip, 'import', "verilator")
-        setup_step(chip, 'syn', "yosys")
-        setup_step(chip, 'export', "klayout")
+        setup_step(chip, 'import', 'verilator', 'verilator')
+        setup_step(chip, 'syn', 'yosys', 'yosys')
+        setup_step(chip, 'export', 'klayout', 'klayout')
 
         for step in (['floorplan', 'place', 'cts', 'route', 'dfm']):
-            setup_step(chip, step, "openroad")
+            setup_step(chip, step, 'openroad', 'openroad')
        
     elif target in fpga_targets:
         
@@ -60,14 +60,25 @@ def setup_target(chip):
                                             'route',
                                             'export']
 
-        setup_step(chip, 'import', 'verilator')
-        setup_step(chip, 'syn', 'yosys')
-
         for step in (['floorplan', 'place', 'route', 'export']):
             if target == 'ice40' :
-                setup_step(chip, step, "nextpnr")
-            else:
-                setup_step(chip, step, "vpr")
+                chip.cfg['design_flow']['value'] = ['import',
+                                                    'syn',
+                                                    'apr',
+                                                    'export']
+                setup_step(chip, 'import', 'verilator', 'verilator')
+                setup_step(chip, 'syn', 'yosys', 'yosys')
+                setup_step(chip, 'apr', 'nextpnr', 'nextpnr-ice40')
+                setup_step(chip, 'export', 'icepack', 'icepack')
+            else:                
+                chip.cfg['design_flow']['value'] = ['import',
+                                                    'syn',
+                                                    'floorplan',
+                                                    'place',
+                                                    'route',
+                                                    'export']
+                
+                setup_step(chip, step, 'vpr', 'vpr')
     else:
         if os.getenv('SCPATH') == None:
             chip.logger.error('Environment variable $SCPATH has \
@@ -78,11 +89,11 @@ def setup_target(chip):
         setup_target(chip, target)
 
 #helper fucntion
-def setup_step(chip, step, vendor):
+def setup_step(chip, step, vendor, tool):
     edadir = "eda." + vendor
     module = importlib.import_module('.'+vendor, package=edadir)
     setup_tool = getattr(module,"setup_tool")
-    setup_tool(chip,step)
+    setup_tool(chip, step, tool)
 
 #############################
 # Runtime Options
@@ -100,7 +111,7 @@ def setup_cmd(chip,step):
     module = importlib.import_module('.'+tool,
                                      package="eda." + vendor)
     setup_options = getattr(module,"setup_options")
-    options = setup_options(chip,step)
+    options = setup_options(chip, step, tool)
 
     #Add options to cmd list
     cmd_fields.extend(options)        
