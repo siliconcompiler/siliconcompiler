@@ -3,6 +3,8 @@
 ########################################################
 
 source ./sc_setup.tcl
+source ./sc_syn_ice40.tcl
+source ./sc_syn_openfpga.tcl
 set step syn
 
 # Setting script path to local or refdir
@@ -12,57 +14,69 @@ if {[dict get $sc_cfg flow $step copy] eq True} {
 }
 
 set topmodule    [dict get $sc_cfg design]
-set target_lib   [dict get $sc_cfg target_lib]
 
-#TODO: fix to handle multiple libraries
-set library_file [dict get $sc_cfg stdcell $target_lib model typical nldm lib]
+set mode [dict get $sc_cfg mode]
+set target [dict get $sc_cfg target]
 
 #Inputs
 set input_verilog   "inputs/$topmodule.v"
 set input_def       "inputs/$topmodule.def"
 set input_sdc       "inputs/$topmodule.sdc"
 
-#Outputs
-set output_verilog  "outputs/$topmodule.v"
-set output_def      "outputs/$topmodule.def"
-set output_sdc      "outputs/$topmodule.sdc"
-set output_blif      "outputs/$topmodule.blif"
-
-########################################################
-# Technology Mapping
-########################################################
-
 yosys read_verilog $input_verilog
 
-yosys synth "-flatten" -top $topmodule 
+if {$mode eq "asic"} {
+    set target_lib   [dict get $sc_cfg target_lib]
+    #TODO: fix to handle multiple libraries
+    set library_file [dict get $sc_cfg stdcell $target_lib model typical nldm lib]
 
-yosys opt -purge
+    #Outputs
+    set output_verilog  "outputs/$topmodule.v"
+    set output_def      "outputs/$topmodule.def"
+    set output_sdc      "outputs/$topmodule.sdc"
+    set output_blif      "outputs/$topmodule.blif"
 
-########################################################
-# Technology Mapping
-########################################################
+    ########################################################
+    # Technology Mapping
+    ########################################################
 
-yosys dfflibmap -liberty $library_file
+    yosys synth "-flatten" -top $topmodule
 
-yosys opt
+    yosys opt -purge
 
-yosys abc -liberty $library_file
+    ########################################################
+    # Technology Mapping
+    ########################################################
 
-yosys stat -liberty $library_file
+    yosys dfflibmap -liberty $library_file
 
-########################################################
-# Cleanup
-########################################################
+    yosys opt
 
-yosys setundef -zero
+    yosys abc -liberty $library_file
 
-yosys splitnets
+    yosys stat -liberty $library_file
 
-yosys clean
+    ########################################################
+    # Cleanup
+    ########################################################
 
-########################################################
-# Write Netlist
-########################################################
+    yosys setundef -zero
 
-yosys write_verilog -noattr -noexpr -nohex -nodec $output_verilog
-yosys write_blif $output_blif
+    yosys splitnets
+
+    yosys clean
+
+    ########################################################
+    # Write Netlist
+    ########################################################
+
+    yosys write_verilog -noattr -noexpr -nohex -nodec $output_verilog
+    yosys write_blif $output_blif
+} else {
+    # FPGA mode
+    if {$target eq "ice40"} {
+        syn_ice40 $topmodule
+    } elseif {$target eq "openfpga"} {
+        syn_openfpga $topmodule
+    }
+}
