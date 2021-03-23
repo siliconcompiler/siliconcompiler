@@ -100,7 +100,7 @@ class Chip:
             list: List of Chip configuration values
 
         '''
-        self.logger.info('Retrieving config dictionary value: %s', args)
+        self.logger.debug('Reading config dictionary value: %s', args)
 
         return self.search(self.cfg, *args, mode='get')
 
@@ -115,7 +115,7 @@ class Chip:
             list: List of Chip configuration values
 
         '''
-        self.logger.info('Retrieving config dictionary keys: %s', args)
+        self.logger.debug('Retrieving config dictionary keys: %s', args)
 
         keys = list(self.search(self.cfg, *args, mode='getkeys'))
 
@@ -128,7 +128,7 @@ class Chip:
     def add(self, *args):
         '''Sets a value in the Chip configuration dictionary 
         '''
-        self.logger.info('Adding config dictionary value: %s', args)
+        self.logger.debug('Adding config dictionary value: %s', args)
                 
         all_args = list(args)
         param = all_args[0]
@@ -144,7 +144,7 @@ class Chip:
     def set(self, *args):
         '''Sets a value in the Chip configuration dictionary 
         '''
-        self.logger.info('Setting config dictionary value: %s', args)
+        self.logger.debug('Setting config dictionary value: %s', args)
                 
         all_args = list(args)
         param = all_args[0]
@@ -207,7 +207,7 @@ class Chip:
 
     ##################################
     def prune(self, cfg=None, top=True):  
-        '''Prunes all empty branches from cfg
+        '''Prunes all empty branches from cfg. Modifies the original config
         '''
 
         #10 should be enough for anyone...
@@ -216,6 +216,8 @@ class Chip:
         
         if cfg is None:
             cfg = copy.deepcopy(self.cfg)
+        else:
+            cfg = copy.deepcopy(cfg)
 
         #When at top of tree loop maxdepth times to make sure all stale
         #branches have been removed, not eleagnt, but stupid-simple
@@ -254,7 +256,7 @@ class Chip:
         # #1.init list
         # #2.select key1 sub tree
         if result is None:
-            self.logger.info('Retrieving dictionary slice from %s and %s:', key1, key2)
+            self.logger.debug('Retrieving dictionary slice from %s and %s:', key1, key2)
             result = []
             cfg = cfg[key1]
         for k,v in cfg.items():
@@ -281,7 +283,7 @@ class Chip:
         for key in cfg:
             if key in keymap:
                 cfgout[keydict[key]] = cfg[key].copy()
-                self.logger.info('Keymap renaming from %s to %s', key, newkey)
+                self.logger.debug('Keymap renaming from %s to %s', key, newkey)
             else:
                 cfgout[key] = cfg[key].copy() 
 
@@ -293,7 +295,7 @@ class Chip:
         '''
         #Setting initial dict so user doesn't have to
         if cfg is None:
-            self.logger.info('Creating absolute file paths')
+            self.logger.debug('Creating absolute file paths')
             cfg = copy.deepcopy(self.cfg)
         #List of paths to search for files in to resolve
         scpaths = str(os.environ['SCPATH']).split()
@@ -313,38 +315,55 @@ class Chip:
         return cfg
     
     ##################################
-    def printcfg (self, cfg, keys=None, f=None, mode="", field='value', prefix=""):
-        '''Prints out flattened dictionary
+    def printcfg (self, cfg, keys=None, file=None, mode="", field='value', prefix=""):
+        '''Prints out flattened dictionary in various formats. Formats supported
+        include tcl, csv, md
         '''
         if keys is None:
             keys = []
         for k in cfg:
             newkeys =  keys.copy()
             newkeys.append(k)
-            if 'value' in cfg[k]:
-                keystr = ' '.join(newkeys)
-                if (mode=='tcl'):
-                    #replace $VAR with env(VAR)
+            #detect leaf cell
+            if 'defvalue' in cfg[k]:               
+                if mode=='tcl':
                     for i, val in enumerate(cfg[k][field]):
+                        #replace $VAR with env(VAR) for tcl
                         m = re.match('\$(\w+)(.*)', val)
                         if m:
                             cfg[k][field][i] = ('$env(' +
                                                 m.group(1) +
                                                 ')' +
                                                 m.group(2))
+                    #create a TCL dict
+                    keystr = ' '.join(newkeys)
                     valstr = ' '.join(cfg[k][field])
-                    outlst = [prefix,keystr,'[list ', valstr,']']
+                    outlst = [prefix,
+                              keystr,
+                              '[list ',
+                              valstr,']']
                     outstr = ' '.join(outlst)
-                else:
+                    outstr = outstr + '\n'
+                elif mode == 'md':
+                    #create a comma separated file
+                    keystr = ' '.join(newkeys)
                     valstr = ' '.join(cfg[k][field])
-                    outlst = [prefix,keystr, valstr]
-                    outstr = ' '.join(outlst)
-                if f is None:
-                    print(outstr+'\n')
+                    typestr = ' '.join(cfg[k]['type'])
+                    defstr  = ' '.join(cfg[k]['defvalue'])
+                    outlst = [keystr,
+                              cfg[k]['short_help'],
+                              typestr,
+                              cfg[k]['requirement'],
+                              defstr,
+                              valstr]                        
+                    outstr = " | {: <42} | {: <30} | {: <15} | {: <8} | {: <10}|".format(*outlst)
+                #print out content
+                if file is None:
+                    print(outstr)
                 else:
-                    print(outstr+'\n', file=f)
+                    print(outstr, file=file)
             else:
-                self.printcfg(cfg[k], keys=newkeys, f=f, mode=mode, field=field, prefix=prefix)
+                self.printcfg(cfg[k], keys=newkeys, file=file, mode=mode, field=field, prefix=prefix)
 
     ##################################
     def mergecfg(self, d2, d1=None):
@@ -429,7 +448,7 @@ class Chip:
         read as $env(SC_FOUNDRY).
         '''
 
-        self.logger.info('Reading environment variables')
+        self.logger.debug('Reading environment variables')
         
         #TODO: Complete later
         for key in self.cfg.keys():
@@ -456,7 +475,7 @@ class Chip:
 
         abspath = os.path.abspath(filename)
 
-        self.logger.info('Reading configuration file %s', abspath)
+        self.logger.debug('Reading configuration file %s', abspath)
 
         #Read arguments from file based on file type
         if abspath.endswith('.json'):
@@ -481,75 +500,69 @@ class Chip:
         if self.cfg['lock']['value'] == "True":
             self.cfg_locked = True
 
-
     ##################################
-    def writecfg(self, filename, mode=None):
+    def writecfg(self, filename, cfg=None, prune=True, abspath=False, keymap=[]):
         '''Writes out the current Chip configuration dictionary to a file
 
         Args:
             filename (string): Output filename. File-suffix indicates format
-                               (json, yaml)
+                               (json, yaml, csv, md)
 
         '''
 
         filepath = os.path.abspath(filename)
-
         self.logger.info('Writing configuration to file %s', filepath)
 
-        # Create option to only write out a dict with values set
-        # value!=defvalue and not empty
-
-        if mode == 'prune':
-            cfg = self.prune(self.cfg)
-        else:
-            cfg = self.cfg
-
-        # Write out configuration based on file type
         if not os.path.exists(os.path.dirname(filepath)):
             os.makedirs(os.path.dirname(filepath))
+
+        #use self if no argument is specified
+        if cfg is None:
+            cfg = copy.deepcopy(self.cfg)
+        else:
+            cfg = copy.deepcopy(cfg)
+
+        #prune if option is set
+        if prune:
+            cfg = self.prune()
+
+        #rename parameters as needed
+        if keymap:
+            cfg = self.rename(cfg, keymap)
+
+        #resolve absolute paths
+        if abspath:
+            cfg = self.abspath(cfg)
             
+        # Write out configuration based on file type
         if filepath.endswith('.json'):
             with open(filepath, 'w') as f:
                 print(json.dumps(cfg, sort_keys=True, indent=4), file=f)
         elif filepath.endswith('.yaml'):
             with open(filepath, 'w') as f:
                 print(yaml.dump(cfg, sort_keys=True, indent=4), file=f)
+        elif filepath.endswith('.tcl'):
+            with open(filepath, 'w') as f:
+                print("#############################################", file=f)
+                print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
+                print("#############################################", file=f)
+                self.printcfg(cfg, mode="tcl", prefix="dict set sc_cfg", file=f)
+        elif filepath.endswith('.md'):
+            with open(filepath, 'w') as f:
+                outlst = ['param', 'desription', 'type', 'required', 'default', 'value']
+                outstr = " | {: <42} | {: <30} | {: <15} | {: <8} | {: <10}|".format(*outlst)
+                print(outstr, file=f)
+                outlist = [44*'-',
+                           32*'-',
+                           17*'-',
+                           10*'-',
+                           11*'-']
+                outstr = " |" + '|'.join(outlist) + "|"
+                print(outstr, file=f)
+                self.printcfg(cfg, mode='md', field='requirement' , file=f)  
         else:
             self.logger.error('File format not recognized %s', filepath)
             
-    ##################################
-    def writetcl(self, filename, cfg=None, keymap=[]):
-        '''Writes out the Chip cfg dictionary in TCL format
-
-        Args:
-            cfg (dict): Dictionary to print out in TCL format
-            filename (string): Output filename.
-
-        '''
-        filepath = os.path.abspath(filename)
-        
-        self.logger.info('Writing configuration in TCL format: %s', filepath)
-        
-        #Prune CFG before writing out result
-        if cfg is None:
-            cfg = self.prune()
-
-        #Resolve absolute paths (to simplify eda tcl code)
-        cfg = self.abspath(cfg)
-
-        #Renaming keys/attribute names before printing
-        if(keymap):
-            cfg = self.rename(cfg, keymap)
-            
-        # Writing out file
-        with open(filepath, 'w') as f:
-            print("#############################################", file=f)
-            print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
-            print("#############################################", file=f)
-            self.printcfg(cfg, mode="tcl", prefix="dict set sc_cfg", f=f)
-        f.close()  
-
-    
     ##################################
     def lock(self):
         '''Locks the Chip configuration to prevent unwarranted configuration
@@ -565,7 +578,7 @@ class Chip:
         '''
         #Setting initial dict so user doesn't have to
         if cfg is None:
-            self.logger.info('Loading default values into Chip configuration')
+            self.logger.debug('Loading default values into Chip configuration')
             cfg = self.cfg
         for k, v in cfg.items():            
             if isinstance(v, dict):
@@ -586,7 +599,7 @@ class Chip:
 
         '''
         if cfg is None:
-            self.logger.info('Computing hash values for all files')
+            self.logger.debug('Computing hash values for all files')
             cfg = self.cfg
 
         #Recursively going through dict
@@ -767,7 +780,7 @@ class Chip:
 
             #Create Logcal copuesLocal configuration files
             self.writecfg("sc_setup.json")
-            self.writetcl("sc_setup.tcl")
+            self.writecfg("sc_setup.tcl", abspath=True)
             
             #Copy outputs from last step unless import                        
             if stepindex > 0:              
