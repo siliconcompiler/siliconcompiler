@@ -549,15 +549,15 @@ class Chip:
                 self.printcfg(cfg, mode="tcl", prefix="dict set sc_cfg", file=f)
         elif filepath.endswith('.md'):
             with open(filepath, 'w') as f:
-                outlst = ['param', 'desription', 'type', 'required', 'default', 'value']
-                outstr = " | {: <42} | {: <30} | {: <15} | {: <8} | {: <10}|".format(*outlst)
+                outlist = ['param', 'desription', 'type', 'required', 'default', 'value']
+                outstr = " | {: <42} | {: <30} | {: <15} | {: <8} | {: <10}|".format(*outlist)
                 print(outstr, file=f)
-                outlist = [44*'-',
-                           32*'-',
-                           17*'-',
-                           10*'-',
-                           11*'-']
-                outstr = " |" + '|'.join(outlist) + "|"
+                outlist = [':----',
+                          ':----',
+                          ':----',
+                          ':----',
+                          ':----']
+                outstr = " | {: <42} | {: <30} | {: <15} | {: <8} | {: <10}|".format(*outlist)
                 print(outstr, file=f)
                 self.printcfg(cfg, mode='md', field='requirement' , file=f)  
         else:
