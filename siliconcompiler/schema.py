@@ -131,9 +131,9 @@ def schema_fpga(cfg):
         'switch' : '-fpga_xml',
         'switch_args' : '<>',
         'requirement' : 'fpga',
-        'type' : ['string', 'file'],
+        'type' : ['str', 'file'],
         'defvalue' : [],
-        'short_help' : 'FPGA Architecture Description',
+        'short_help' : 'FPGA Architecture File',
         'help' : [
             "Provides XML-based architecture description for the target FPGA ",
             "architecture to be used in VTR, allowing a user to describe a   ",
@@ -161,7 +161,7 @@ def schema_pdk(cfg):
         'switch' : '-pdk_foundry',
         'switch_args' : '<str>',
         'requirement' : 'asic',
-        'type' : ['string'],
+        'type' : ['str'],
         'defvalue' : [],
         'short_help' : 'Foundry Name',
         'help' :[
@@ -180,7 +180,7 @@ def schema_pdk(cfg):
         'switch' : '-pdk_process',
         'switch_args' : '<str>',
         'requirement' : 'asic',
-        'type' : ['string'],
+        'type' : ['str'],
         'defvalue' : [],
         'short_help' : 'Process Name',
         'help' : ["The official public name of the foundry process. The     ",
@@ -198,7 +198,7 @@ def schema_pdk(cfg):
         'switch' : '-pdk_node',
         'switch_args' : '<num>',
         'requirement' : 'asic',
-        'type' : ['int'],
+        'type' : ['num'],
         'defvalue' : [],
         'short_help' : 'Process Node',
         'help' : ["An approximate relative minimum dimension of the process",
@@ -217,9 +217,9 @@ def schema_pdk(cfg):
         'switch' : '-pdk_rev',
         'switch_args' : '<str>',
         'requirement' : 'asic',
-        'type' : ['string'],
+        'type' : ['str'],
         'defvalue' : [],
-        'short_help' : 'Process Release Revision',
+        'short_help' : 'Process Revision',
         'help' : ["An alphanumeric string specifying the revision  of the   ",
                   "current PDK. Verification of correct PDK and IP revisions",
                   "revisions is an ASIC tapeout requirement in all          ",
@@ -278,7 +278,7 @@ def schema_pdk(cfg):
         'switch' : '-pdk_stackup',
         'switch_args' : '<>',
         'requirement' : 'asic',
-        'type' : ['string'],
+        'type' : ['str'],
         'defvalue' : [],
         'short_help' : 'Process Metal Stackups',
         'help' : ["A list of all metal stackups offered in the process node ",
@@ -338,7 +338,7 @@ def schema_pdk(cfg):
         'date'   : [],
         'author' : [],
         'signature' : [],
-        'short_help' : 'Parasitic Extraction TCAD Models',
+        'short_help' : 'Parasitic TCAD Models',
         'help' : ["A dynamic dictionary of filepaths for all PDK wire TCAD  ",
                   "models. The structure serves as a central access registry",
                   "for models for different purpose and tools. The format   ",
@@ -445,7 +445,7 @@ def schema_pdk(cfg):
         'date'   : [],
         'author' : [],
         'signature' : [],
-        'short_help' : 'Place and Route Technology Files',
+        'short_help' : 'APR Technology File',
         'help' : ["A dynamic dictionary of paths to technology files       ",
                   "containing the design rule and setup information needed ",
                   "to enable DRC clean automated placement a routing. The  ",
@@ -467,9 +467,9 @@ def schema_pdk(cfg):
         'switch' : '-pdk_aprlayer',
         'switch_args' : '<>',
         'requirement' : 'optional',
-        'type' : ['string', 'string', 'float', 'float'],
+        'type' : ['str', 'str', 'num', 'num'],
         'defvalue' : [],
-        'short_help' : 'Place and Route Layer Definitions',
+        'short_help' : 'APR Layer Definitions',
         'help' : ["A optional list of metal layer definitions. Generally,   ",
                   "all APR setup rules would be read from the pdk_aprtec    ",
                   "file but there are cases when these rules should be      ",
@@ -489,7 +489,7 @@ def schema_pdk(cfg):
         'switch' : '-pdk_tapmax',
         'switch_args' : '<num>',
         'requirement' : 'apr',
-        'type' : ['float'],
+        'type' : ['num'],
         'defvalue' : [],
         'short_help' : 'Tap Cell Max Distance Rule',
         'help' : ["Specifies the maximum distance allowed between tap cells ",
@@ -505,7 +505,7 @@ def schema_pdk(cfg):
         'switch' : '-pdk_tapoffset',
         'switch_args' : '<num>',
         'requirement' : 'apr',
-        'type' : ['float'],
+        'type' : ['num'],
         'defvalue' : [],
         'short_help' : 'Tap Cell Offset Rule',
         'help' : ["Specifies the offset from the edge of the block to the   ",
@@ -533,9 +533,9 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+'_rev',
         'switch_args' : '<>',
         'requirement' : 'asic',
-        'type' : ['string'],
+        'type' : ['str'],
         'defvalue' : [],
-        'short_help' : 'Library Release Revision',
+        'short_help' :  group.capitalize() + ' Release Revision',
         'help' : ["A dynamic dictionary specifying an alphanumeric revision ",
                   "string on a per library basis. Verification of correct   ",
                   "PDK and IP revisions is an ASIC tapeout requirement in   ",
@@ -550,9 +550,9 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+'_origin',
         'switch_args' : '<>',
         'requirement' : 'asic',
-        'type' : ['string'],
+        'type' : ['str'],
         'defvalue' : [],
-        'short_help' : 'Library Origin',
+        'short_help' :  group.capitalize() + ' Origin',
         'help' : ["Record specifying the library origin.                    ",
                   "                                                         ",
                   "Examples:                                                ",
@@ -566,7 +566,7 @@ def schema_libs(cfg, group):
         'requirement' : 'asic',
         'type' : ['file'],
         'defvalue' : [],
-        'short_help' : 'Library License File',
+        'short_help' :  group.capitalize() + ' License File',
         'help' : ["Specifies the technology license for the library         ",
                   "                                                         ",
                   "Examples:                                                ",                  
@@ -585,7 +585,7 @@ def schema_libs(cfg, group):
         'date'   : [],
         'author' : [],
         'signature' : [],
-        'short_help' : 'Library Documentation',
+        'short_help' :  group.capitalize() + ' Documentation',
         'help' : ["A list of critical library documents entered in order of ",
                   "importance. The first item in thelist should be the      ",
                   "primary library user guide. The purpose of the list is to",
@@ -607,7 +607,7 @@ def schema_libs(cfg, group):
         'date'   : [],
         'author' : [],
         'signature' : [],
-        'short_help' : 'Library Datasheets',
+        'short_help' :  group.capitalize() + ' Datasheets',
         'help' : ["A complete collection of datasheets for the library. The ",
                   "documentation can be provied as a PDF or as a filepath to",
                   "a directory with one HTMl file per cell. This parameter  ",
@@ -623,9 +623,9 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+'_libtype',
         'switch_args' : '<>',
         'requirement' : 'asic',
-        'type' : ['string'],
+        'type' : ['str'],
         'defvalue' : [],
-        'short_help' : 'Library Type',
+        'short_help' :  group.capitalize() + ' Type',
         'help' : ["Libtype is a a unique string that identifies the row     ",
                   "height or performance class of the library for APR. The  ",
                   "libtype must match up with the name used in the          ",
@@ -641,9 +641,9 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+'_size',
         'switch_args' : '<>',
         'requirement' : 'apr',
-        'type' : ['float', 'float'],
+        'type' : ['num', 'num'],
         'defvalue' : [],
-        'short_help' : 'Library Height',
+        'short_help' :  group.capitalize() + ' Height',
         'help' : ["Specifies the height and width of a unit cell. Values are",
                   "entered as width heigh tuplest. The value can usually be ",
                   "extracted automatically from the layout library but is   ",
@@ -668,9 +668,9 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+'_opcond',
         'switch_args' : '<>',
         'requirement' : 'asic',
-        'type' : ['string'],
+        'type' : ['str'],
         'defvalue' : [],
-        'short_help' : 'Library Operating Condition',
+        'short_help' : group.capitalize() + ' Operating Condition',
         'help' : ["Specifies the default operating condition to use for     ",
                   "mcmm optimization and signoff on a per corner basis.     ",
                   "                                                         ",
@@ -685,9 +685,9 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+'_check',
         'switch_args' : '<>',
         'requirement' : 'asic',
-        'type' : ['string'],
+        'type' : ['str'],
         'defvalue' : [],
-        'short_help' : 'Library Corner Checks',
+        'short_help' : group.capitalize() + ' Corner Checks',
         'help' : ["A dynamic dictionary of recommended per corner checks to ",
                   "to perform during mcmm optimization and STA signoff. The ",
                   "names used in the 'mcmm' scenarios must align with the   ",
@@ -716,7 +716,7 @@ def schema_libs(cfg, group):
         'date'   : [],
         'author' : [],
         'signature' : [],
-        'short_help' : 'Library NLDM Timing Model Files',
+        'short_help' : group.capitalize() + ' NLDM Timing Model',
         'help' : ["A dynamic dictionary of paths to NLDM models. Timing     ",
                   "files are specified on a per lib, per corner, and per    ",
                   "format basis with dictionary structure being:            ",
@@ -742,7 +742,7 @@ def schema_libs(cfg, group):
         'date'   : [],
         'author' : [],
         'signature' : [],
-        'short_help' : 'Library CCS Timing Model Files',
+        'short_help' : group.capitalize() + ' CCS Timing Model',
         'help' : ["A dynamic dictionary of paths to CCS models. Timing      ",
                   "files are specified on a per lib, per corner, and per    ",
                   "format basis with dictionary structure being:            ",
@@ -767,7 +767,7 @@ def schema_libs(cfg, group):
         'date'   : [],
         'author' : [],
         'signature' : [],
-        'short_help' : 'Library AOCV Timing Model Files',
+        'short_help' : group.capitalize() + ' AOCV Timing Model',
         'help' : ["A dynamic dictionary of paths to AOCV models. Timing     ",
                   "files are specified on a per lib, per corner, and per    ",
                   "format basis with dictionary structure being:            ",
@@ -791,7 +791,7 @@ def schema_libs(cfg, group):
         'date'   : [],
         'author' : [],
         'signature' : [],
-        'short_help' : 'Library APL Power Model Files',
+        'short_help' : group.capitalize() + ' APL Power Model',
         'help' : ["A dynamic dictionary of paths to APL models. Power       ",
                   "files are specified on a per lib, per corner, and per    ",
                   "format basis with dictionary structure being:            ",
@@ -813,7 +813,7 @@ def schema_libs(cfg, group):
         'date'   : [],
         'author' : [],
         'signature' : [],
-        'short_help' : 'Library LEF Files',
+        'short_help' : group.capitalize() + ' LEF',
         'help' : ["An abstracted view of library cells that gives complete  ",
                   "information about the cell place and route boundary, pin ",
                   "positions, pin metals, and metal routing blockages.      ",
@@ -834,7 +834,7 @@ def schema_libs(cfg, group):
         'date'   : [],
         'author' : [],
         'signature' : [],
-        'short_help' : 'Library GDS Files',
+        'short_help' : group.capitalize() + ' GDS',
         'help' : ["The complete mask layout of the library cells ready to be",
                   "merged with the rest of the design for tapeout. In some  ",
                   "cases, the GDS merge happens at the foundry, so inclusion",
@@ -858,7 +858,7 @@ def schema_libs(cfg, group):
         'date'   : [],
         'author' : [],
         'signature' : [],
-         'short_help' : 'Library CDL Netlist Filesx',
+         'short_help' : group.capitalize() + ' CDL Netlist',
         'help' : ["Files containing the netlists used for layout versus     ",
                   "schematic (LVS) checks. In some cases, the GDS merge     ",
                   "happens at the foundry, so inclusion of a CDL file is    ",
@@ -881,7 +881,7 @@ def schema_libs(cfg, group):
         'date'   : [],
         'author' : [],
         'signature' : [],
-        'short_help' : 'Library Spice Netlist Files',
+        'short_help' : group.capitalize() + ' Spice Netlist',
         'help' : ["Files containing the library spice netlists used for     ",
                   "circuit simulation.                                      ",
                   "                                                         ",
@@ -900,7 +900,7 @@ def schema_libs(cfg, group):
         'date'   : [],
         'author' : [],
         'signature' : [],
-        'short_help' : 'Library HDL Model Files',
+        'short_help' : group.capitalize() + ' HDL Model',
         'help' : ["Digital HDL models of the library cells, modeled in VHDL ",
                   "or verilog for use in funcational simulations.           ",
                   "                                                         ",
@@ -919,7 +919,7 @@ def schema_libs(cfg, group):
         'date'   : [],
         'author' : [],
         'signature' : [],
-        'short_help' : 'Library ATPG Files',
+        'short_help' : group.capitalize() + ' ATPG Model',
         'help' : ["Library models used for ATPG based automated faultd based",
                   "post manufacturing testing.                              ",
                   "                                                         ",
@@ -932,9 +932,9 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+'_rails',
         'switch_args' : '<>',
         'requirement' : 'optional',
-        'type' : ['string'],
+        'type' : ['str'],
         'defvalue' : [],
-        'short_help' : 'Library Power/Ground Rails Metal Layer',
+        'short_help' : group.capitalize() + ' Power/Ground Layer',
         'help' : ["Specifies the top metal layer used for power and ground  ",
                   "routing within the library. The parameter can be used to ",
                   "guide cell power grid hookup by APR tools.               ",
@@ -948,13 +948,13 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+'_vt',
         'switch_args' : '<>',
         'requirement' : 'apr',
-        'type' : ['string'],
+        'type' : ['str'],
         'defvalue' : [],
         'hash'   : [],
         'date'   : [],
         'author' : [],
         'signature' : [],
-        'short_help' : 'Library Transistor Threshold',
+        'short_help' : group.capitalize() + ' Threshold Tag',
         'help' : ["The variable specifies the voltage threshold type of the ",
                   "library. The value is extracted automatically if found in",
                   "the default_threshold_voltage_group within the nldm/ccs  ",
@@ -970,9 +970,9 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+'_tag',
         'switch_args' : '<>',
         'requirement' : 'optional',
-        'type' : ['string'],
+        'type' : ['str'],
         'defvalue' : [],
-        'short_help' : 'Library Identifier Tags',
+        'short_help' : group.capitalize() + ' Identifier Tags',
         'help' : ["Marks a library with a set of tags that can be used by   ",
                   "the designer and EDA tools for optimization purposes. The",
                   "tags are meant to cover features not currently supported ",
@@ -990,9 +990,9 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+'_driver',
         'switch_args' : '<>',
         'requirement' : 'apr',
-        'type' : ['string'],
+        'type' : ['str'],
         'defvalue' : [],
-        'short_help' : 'Library Default Driver Cell',
+        'short_help' : group.capitalize() + ' Default Driver Cell',
         'help' : ["The name of a library cell to be used as the default     ",
                   "driver for block timing constraints. The cell should be  ",
                   "strong enough to drive a block input from another block  ",
@@ -1008,9 +1008,9 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+'_site',
         'switch_args' : '<>',
         'requirement' : 'optional',
-        'type' : ['string'],
+        'type' : ['str'],
         'defvalue' : [],
-        'short_help' : 'Library Site/Tile Name',
+        'short_help' : group.capitalize() + ' Site/Tile Name',
         'help' : ["Provides the primary site name within the library to use ",
                   "for placement. Value can generally be automatically      ",
                   "inferred from the provided library lef file.             ",
@@ -1025,9 +1025,9 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+'_cells',
         'switch_args' : '<>',
         'requirement' : 'optional',
-        'type' : ['string'],
+        'type' : ['str'],
         'defvalue' : [],
-        'short_help' : 'Library Cell Lists',
+        'short_help' : group.capitalize() + ' Cell Lists',
         'help' : ["A named list of cells grouped by a property that can be  ",
                   "accessed directly by the designer and EDA tools. The     ",
                   "example below shows how all cells containing the string  ",
@@ -1050,7 +1050,7 @@ def schema_libs(cfg, group):
         'date'   : [],
         'author' : [],
         'signature' : [],
-        'short_help' : 'Library Setup Files',
+        'short_help' : group.capitalize() + ' Setup Files',
         'help' : ["A list of setup files for use by specific EDA tools. The ",
                   "files are specified on a per EDA tool basis.             ",
                   "                                                         ",
@@ -1071,7 +1071,7 @@ def schema_libs(cfg, group):
         'date'   : [],
         'author' : [],
         'signature' : [],
-        'short_help' : 'Library Layout Database',
+        'short_help' : group.capitalize() + ' Layout Database',
         'help' : ["A dynamic dictionary with filepaths to compiled library  ",
                   "layout database specified on a per format basis. Example ",
                   "formats include oa, mw, ndm.                             ",
@@ -1098,7 +1098,7 @@ def schema_flow(cfg, step):
     cfg['flow'][step]['exe'] = {
         'switch' : '-flow_exe',
         'switch_args' : '<>',
-        'type' : 'string',
+        'type' : ['str'],
         'requirement' : 'all',
         'defvalue' : [],
         'short_help' : 'Executable Name',
@@ -1114,8 +1114,8 @@ def schema_flow(cfg, step):
     cfg['flow'][step]['version'] = {
         'switch' : '-flow_version',
         'switch_args' : '<>',
-        'type' : ['string'],
-        'requirement' : ['all'],
+        'type' : ['str'],
+        'requirement' : 'all',
         'defvalue' : [],
         'short_help' : 'Executable Version',
         'help' : [
@@ -1132,7 +1132,7 @@ def schema_flow(cfg, step):
     cfg['flow'][step]['opt'] = {
         'switch' : '-flow_opt',
         'switch_args' : '<>',
-        'type' : ['string'],
+        'type' : ['str'],
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Executable Options',
@@ -1208,8 +1208,8 @@ def schema_flow(cfg, step):
     cfg['flow'][step]['format'] = {
         'switch' : '-flow_format',
         'switch_args' : '<>',
-        'type' : ['string'],
-        'requirement' : ['all'],
+        'type' : ['str'],
+        'requirement' : 'all',
         'defvalue' : [],
         'short_help' : 'Script Format',
         'help' : [
@@ -1227,8 +1227,8 @@ def schema_flow(cfg, step):
     cfg['flow'][step]['jobid'] = {
         'switch' : '-flow_jobid',
         'switch_args' : '<>',
-        'type' : ['int'],
-        'requirement' : ['all'],
+        'type' : ['num'],
+        'requirement' : 'all',
         'defvalue' : ['0'],
         'short_help' : 'Job Index',
         'help' : [
@@ -1249,8 +1249,8 @@ def schema_flow(cfg, step):
     cfg['flow'][step]['threads'] = {
         'switch' : '-flow_threads',
         'switch_args' : '<>',
-        'type' : ['int'],
-        'requirement' : ['all'],
+        'type' : ['num'],
+        'requirement' : 'all',
         'defvalue' : [],
         'short_help' : 'Job Parallelism',
         'help' : [
@@ -1271,7 +1271,7 @@ def schema_flow(cfg, step):
         'switch' : '-flow_cache',
         'switch_args' : '<>',
         'type' : ['file'],
-        'requirement' : ['optional'],
+        'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
         'date'   : [],
@@ -1293,8 +1293,8 @@ def schema_flow(cfg, step):
     cfg['flow'][step]['warnoff'] = {
         'switch' : '-flow_warnoff',
         'switch_args' : '<>',
-        'type' : ['string'],
-        'requirement' : ['optional'],
+        'type' : ['str'],
+        'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Warning Filter',
         'help' : [
@@ -1312,7 +1312,7 @@ def schema_flow(cfg, step):
     cfg['flow'][step]['keymap'] = {
         'switch' : '-flow_keymap',
         'switch_args' : '<>',
-        'type' : ['string', 'string'],
+        'type' : ['str', 'str'],
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Script Keymap',
@@ -1331,7 +1331,7 @@ def schema_flow(cfg, step):
     cfg['flow'][step]['vendor'] = {
         'switch' : '-flow_vendor',
         'switch_args' : '<>',
-        'type' : ['string'],
+        'type' : ['str'],
         'requirement' : 'all',
         'defvalue' : [],
         'short_help' : 'Step Vendor',
@@ -1351,7 +1351,7 @@ def schema_flow(cfg, step):
         'switch' : '-flow_signature',
         'switch_args' : '<>',
         'requirement' : 'optional',
-        'type' : ['string'],
+        'type' : ['str'],
         'defvalue' : [],
         'short_help' : 'Step Signature',
         'help' : [
@@ -1366,7 +1366,7 @@ def schema_flow(cfg, step):
     cfg['flow'][step]['date'] = {
         'switch' : '-flow_date',
         'switch_args' : '<>',
-        'type' : ['string'],
+        'type' : ['str'],
         'requirement' : 'all',
         'defvalue' : [],
         'short_help' : 'Step Date',
@@ -1384,7 +1384,7 @@ def schema_flow(cfg, step):
     cfg['flow'][step]['author'] = {
         'switch' : '-flow_author',
         'switch_args' : '<>',
-        'type' : ['string'],
+        'type' : ['str'],
         'requirement' : 'all',
         'defvalue' : [],
         'short_help' : 'Step Author',
@@ -1412,10 +1412,10 @@ def schema_metrics(cfg, group, step):
     cfg[group][step]['area'] = {}
     cfg[group][step]['area']['switch'] = '-'+group+'_area'
     cfg[group][step]['area']['switch_args'] = '<>'
-    cfg[group][step]['area']['type'] = ['metric']
+    cfg[group][step]['area']['type'] = ['num']
     cfg[group][step]['area']['requirement'] = 'optional'
     cfg[group][step]['area']['defvalue'] = []
-    cfg[group][step]['area']['short_help'] = 'Cell Area Metric'
+    cfg[group][step]['area']['short_help'] = 'Cell Area ' + group.capitalize()
     cfg[group][step]['area']['help'] = [
         "Metric tracking the total cell area on a per stage basis ",
         "specifed in um^2.                                        ",
@@ -1428,10 +1428,10 @@ def schema_metrics(cfg, group, step):
     cfg[group][step]['power'] = {}
     cfg[group][step]['power']['switch'] = '-'+group+'_power'
     cfg[group][step]['power']['switch_args'] = '<>'
-    cfg[group][step]['power']['type'] = ['metric']
+    cfg[group][step]['power']['type'] = ['num']
     cfg[group][step]['power']['requirement'] = 'optional'
     cfg[group][step]['power']['defvalue'] = []
-    cfg[group][step]['power']['short_help'] = 'Active Power Metric'
+    cfg[group][step]['power']['short_help'] = 'Active Power ' + group.capitalize()
     cfg[group][step]['power']['help'] = [
         "Metric tracking the dynamic power of the design on a per ",
         "based on the setup configuration and power vectors (VCD) ",
@@ -1444,10 +1444,10 @@ def schema_metrics(cfg, group, step):
     cfg[group][step]['leakage'] = {}
     cfg[group][step]['leakage']['switch'] = '-'+group+'_leakage'
     cfg[group][step]['leakage']['switch_args'] = '<>'
-    cfg[group][step]['leakage']['type'] = ['metric']
+    cfg[group][step]['leakage']['type'] = ['num']
     cfg[group][step]['leakage']['requirement'] = 'optional'
     cfg[group][step]['leakage']['defvalue'] = []
-    cfg[group][step]['leakage']['short_help'] = 'Leakage Metric'
+    cfg[group][step]['leakage']['short_help'] = 'Leakage ' + group.capitalize()
     cfg[group][step]['leakage']['help'] = [
         "Metric tracking the leakage of the design on a per stage ",
         "basis based on the MCMM setup, tracked in Watts.         ",
@@ -1461,10 +1461,10 @@ def schema_metrics(cfg, group, step):
     cfg[group][step]['hold_tns'] = {}
     cfg[group][step]['hold_tns']['switch'] = '-'+group+'_hold_tns'
     cfg[group][step]['hold_tns']['switch_args'] = '<>'
-    cfg[group][step]['hold_tns']['type'] = ['metric']
+    cfg[group][step]['hold_tns']['type'] = ['num']
     cfg[group][step]['hold_tns']['requirement'] = 'optional'
     cfg[group][step]['hold_tns']['defvalue'] = []
-    cfg[group][step]['hold_tns']['short_help'] = 'Hold TNS Metric'
+    cfg[group][step]['hold_tns']['short_help'] = 'Hold TNS ' + group.capitalize()
     cfg[group][step]['hold_tns']['help'] = [
         "Metric tracking the total negative hold slack on a pere  ",
         "stage basis, specified in nanoseconds                    ",
@@ -1477,10 +1477,10 @@ def schema_metrics(cfg, group, step):
     cfg[group][step]['hold_wns'] = {}
     cfg[group][step]['hold_wns']['switch'] = '-'+group+'_hold_wns'
     cfg[group][step]['hold_wns']['switch_args'] = '<>'
-    cfg[group][step]['hold_wns']['type'] = ['metric']
+    cfg[group][step]['hold_wns']['type'] = ['num']
     cfg[group][step]['hold_wns']['requirement'] = 'optional'
     cfg[group][step]['hold_wns']['defvalue'] = []
-    cfg[group][step]['hold_wns']['short_help'] = 'Hold WNS Metric'
+    cfg[group][step]['hold_wns']['short_help'] = 'Hold WNS ' + group.capitalize()
     cfg[group][step]['hold_wns']['help'] = [
         "Metric tracking the total negative hold slack on a per   ",
         "stage basis, specified in nanoseconds.                   ",
@@ -1493,10 +1493,10 @@ def schema_metrics(cfg, group, step):
     cfg[group][step]['setup_tns'] = {}
     cfg[group][step]['setup_tns']['switch'] = '-'+group+'_setup_tns'
     cfg[group][step]['setup_tns']['switch_args'] = '<>'
-    cfg[group][step]['setup_tns']['type'] = ['metric']
+    cfg[group][step]['setup_tns']['type'] = ['num']
     cfg[group][step]['setup_tns']['requirement'] = 'optional'
     cfg[group][step]['setup_tns']['defvalue'] = []
-    cfg[group][step]['setup_tns']['short_help'] = 'Setup TNS Metric'
+    cfg[group][step]['setup_tns']['short_help'] = 'Setup TNS ' + group.capitalize()
     cfg[group][step]['setup_tns']['help'] = [
         "Metric tracking the total negative setup slack on a pere  ",
         "stage basis, specified in nanoseconds                     ",
@@ -1509,10 +1509,10 @@ def schema_metrics(cfg, group, step):
     cfg[group][step]['setup_wns'] = {}
     cfg[group][step]['setup_wns']['switch'] = '-'+group+'_setup_wns'
     cfg[group][step]['setup_wns']['switch_args'] = '<>'
-    cfg[group][step]['setup_wns']['type'] = ['metric']
+    cfg[group][step]['setup_wns']['type'] = ['num']
     cfg[group][step]['setup_wns']['requirement'] = 'optional'
     cfg[group][step]['setup_wns']['defvalue'] = []
-    cfg[group][step]['setup_wns']['short_help'] = 'Setup WNS Metric'
+    cfg[group][step]['setup_wns']['short_help'] = 'Setup WNS ' + group.capitalize()
     cfg[group][step]['setup_wns']['help'] = [
         "Metric tracking the total negative setup slack on a per  ",
         "stage basis, specified in nanoseconds.                   ",
@@ -1525,10 +1525,10 @@ def schema_metrics(cfg, group, step):
     cfg[group][step]['drv'] = {}
     cfg[group][step]['drv']['switch'] = '-'+group+'_drv'
     cfg[group][step]['drv']['switch_args'] = '<>'
-    cfg[group][step]['drv']['type'] = ['metric']
+    cfg[group][step]['drv']['type'] = ['num']
     cfg[group][step]['drv']['requirement'] = 'optional'
     cfg[group][step]['drv']['defvalue'] = []
-    cfg[group][step]['drv']['short_help'] = 'DRV Metric'
+    cfg[group][step]['drv']['short_help'] = 'DRV ' + group.capitalize()
     cfg[group][step]['drv']['help'] = [
         "Metric tracking the total number of design rule         ",
         "violations on a per stage basis.                        ",
@@ -1541,10 +1541,10 @@ def schema_metrics(cfg, group, step):
     cfg[group][step]['warnings'] = {}
     cfg[group][step]['warnings']['switch'] = '-'+group+'_warnings'
     cfg[group][step]['warnings']['switch_args'] = '<>'
-    cfg[group][step]['warnings']['type'] = ['metric']
+    cfg[group][step]['warnings']['type'] = ['num']
     cfg[group][step]['warnings']['requirement'] = 'optional'
     cfg[group][step]['warnings']['defvalue'] = []
-    cfg[group][step]['warnings']['short_help'] = 'Warnings Metric'
+    cfg[group][step]['warnings']['short_help'] = 'Warnings ' + group.capitalize()
     cfg[group][step]['warnings']['help'] = [
         "Metric tracking the total number of warnings on a per    ",
         "stage basis.                                             ",
@@ -1557,10 +1557,10 @@ def schema_metrics(cfg, group, step):
     cfg[group][step]['errors'] = {}
     cfg[group][step]['errors']['switch'] = '-'+group+'_errors'
     cfg[group][step]['errors']['switch_args'] = '<>'
-    cfg[group][step]['errors']['type'] = ['metric']
+    cfg[group][step]['errors']['type'] = ['num']
     cfg[group][step]['errors']['requirement'] = 'optional'
     cfg[group][step]['errors']['defvalue'] = []
-    cfg[group][step]['errors']['short_help'] = 'Errors Metric'
+    cfg[group][step]['errors']['short_help'] = 'Errors ' + group.capitalize()
     cfg[group][step]['errors']['help'] = [
         "Metric tracking the total number of errors on a per stage",
         "basis.                                                   ",
@@ -1573,10 +1573,10 @@ def schema_metrics(cfg, group, step):
     cfg[group][step]['runtime'] = {}
     cfg[group][step]['runtime']['switch'] = '-'+group+'_runtime'
     cfg[group][step]['runtime']['switch_args'] = '<>'
-    cfg[group][step]['runtime']['type'] = ['metric']
+    cfg[group][step]['runtime']['type'] = ['num']
     cfg[group][step]['runtime']['requirement'] = 'optional'
     cfg[group][step]['runtime']['defvalue'] = []
-    cfg[group][step]['runtime']['short_help'] = 'Runtime Metric'
+    cfg[group][step]['runtime']['short_help'] = 'Runtime ' + group.capitalize()
     cfg[group][step]['runtime']['help'] = [
         "Metric tracking the total run time on a per stage basis, ",
         "specified in HR:MIN:SEC                                  ",
@@ -1589,10 +1589,10 @@ def schema_metrics(cfg, group, step):
     cfg[group][step]['memory'] = {}
     cfg[group][step]['memory']['switch'] = '-'+group+'_memory'
     cfg[group][step]['memory']['switch_args'] = '<>'
-    cfg[group][step]['memory']['type'] = ['metric']
+    cfg[group][step]['memory']['type'] = ['num']
     cfg[group][step]['memory']['requirement'] = 'optional'
     cfg[group][step]['memory']['defvalue'] = []
-    cfg[group][step]['memory']['short_help'] = 'Memory Footprint Metric'
+    cfg[group][step]['memory']['short_help'] = 'Memory Footprint ' + group.capitalize()
     cfg[group][step]['memory']['help'] = [
         "Metric tracking the peak memory usage on a per stage     ",
         "basis, specified in MB.                                  ",
@@ -1609,7 +1609,7 @@ def schema_metrics(cfg, group, step):
     cfg[group][step]['report']['requirement'] = 'optional'
     cfg[group][step]['report']['defvalue'] = []
     cfg[group][step]['report']['hash'] = []
-    cfg[group][step]['report']['short_help'] = 'QOR Result Files'
+    cfg[group][step]['report']['short_help'] = 'QOR Result ' + group.capitalize()
     cfg[group][step]['report']['help'] = [
         "List of files that contain the information used to       ",
         "populate the metric values                               ",
@@ -1639,7 +1639,7 @@ def schema_options(cfg):
         'date'   : [],
         'author' : [],
         'signature' : [],
-        'short_help' : 'Compiler Mode',
+        'short_help' : 'Compilation Mode',
         'help' : ["Sets the compilation flow to 'fpga' or 'asic. The default",
                   "is 'asic'                                                ",
                   "Examples:                                                ",
@@ -1657,7 +1657,7 @@ def schema_options(cfg):
         'date'   : [],
         'author' : [],
         'signature' : [],
-        'short_help' : 'Compiler Configuration File',
+        'short_help' : 'Configuration File',
         'help' : ["All parameters can be set at the command line, but with  ",
                   "over 100 configuration parameters available, the         ",
                   "preferred method for non trivial use cases is to create  ",
@@ -1675,7 +1675,7 @@ def schema_options(cfg):
     cfg['env'] = {
         'switch' : '-env',
         'switch_args' : '<>',
-        'type' : ['string', 'string'],
+        'type' : ['str', 'str'],
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Environment Variables',
@@ -1716,7 +1716,7 @@ def schema_options(cfg):
         'type' : ['bool'],
         'requirement' : 'optional',
         'defvalue' : ['false'],
-        'short_help' : 'Suppress informational printing',
+        'short_help' : 'Quiet execution',
         'help' : ["Modern EDA tools print significant content to the screen.",
                   "The -quiet option forces all stage prints into a per job ",
                   "log file.                                                ",
@@ -1729,7 +1729,7 @@ def schema_options(cfg):
     cfg['debug'] = {
         'switch' : '-debug',
         'switch_args' : '<str>',
-        'type' : ['string'],
+        'type' : ['str'],
         'requirement' : 'optional',
         'defvalue' : ['WARNING'],
         'short_help' : 'Debug Level',
@@ -1745,10 +1745,10 @@ def schema_options(cfg):
     cfg['build'] = {
         'switch' : '-build',
         'switch_args' : '<str>',
-        'type' : ['string'],
+        'type' : ['str'],
         'requirement' : 'optional',
         'defvalue' : ['build'],
-        'short_help' : 'Build Directory Name',
+        'short_help' : 'Build Directory',
         'help' : ["By default, compilation is done in the local './build'   ",
                   "directory. The build parameter enables setting an        ",
                   "alternate compilation directory path.                    ",
@@ -1763,10 +1763,10 @@ def schema_options(cfg):
     cfg['start'] = {
         'switch' : '-start',
         'switch_args' : '<step>',
-        'type' : 'string',
-        'requirement' : ['all'],
+        'type' : ['str'],
+        'requirement' : 'all',
         'defvalue' : ['import'],
-        'short_help' : 'Compilation Start Stage',
+        'short_help' : 'Compilation Start Step',
         'help' : ["The start parameter specifies the starting stage of the  ",
                   "flow. This would generally be the import stage but could ",
                   "be any one of the steps within the steps parameter. For",
@@ -1781,10 +1781,10 @@ def schema_options(cfg):
     cfg['stop'] = {
         'switch' : '-stop',
         'switch_args' : '<step>',
-        'type' : ['string'],
+        'type' : ['str'],
         'defvalue' : ['export'],
-        'requirement' : ['all'],
-        'short_help' : 'Compilation Stop Stage',
+        'requirement' : 'all',
+        'short_help' : 'Compilation Stop Step',
         'help' : ["The stop parameter specifies the stopping stage of the   ",
                   "flow. The value entered is inclusive, so if for example  ",
                   "the -stop syn is entered, the flow stops after syn has   ",
@@ -1799,7 +1799,7 @@ def schema_options(cfg):
     cfg['skip'] = {
         'switch' : '-skip',
         'switch_args' : '<step>',
-        'type' : ['string'],
+        'type' : ['str'],
         'defvalue' : [],
         'requirement' : 'optional',
         'short_help' : 'Compilation Skip Steps',
@@ -1816,7 +1816,7 @@ def schema_options(cfg):
     cfg['msg_trigger'] = {
         'switch' : '-msg_trigger',
         'switch_args' : '<str>',
-        'type' : ['string'],
+        'type' : ['str'],
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Message Trigger',
@@ -1833,10 +1833,10 @@ def schema_options(cfg):
     cfg['msg_contact'] = {
         'switch' : '-msg_contact',
         'switch_args' : '<str>',
-        'type' : ['string'],
+        'type' : ['str'],
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Message Contact Information',
+        'short_help' : 'Message Contact',
         'help' : ["A list of phone numbers or email addresses to message on ",
                   "a trigger event within the msg_trigger param.            ",
                   "                                                         ",
@@ -1851,7 +1851,7 @@ def schema_options(cfg):
         'type' : ['bool'],
         'requirement' : 'optional',
         'defvalue' : ['false'],
-        'short_help' : 'Design For Test Mode',
+        'short_help' : 'Design For Test Option',
         'help' : ["Enables DFT and scan insertion. It is the designer's     ",
                   "responsibility to ensure that the RTL is scan and DFT    ",
                   "ready with the minimum hooks for scan chain and/or MBIST.",
@@ -1864,10 +1864,10 @@ def schema_options(cfg):
     cfg['optmode'] = {
         'switch' : '-O',
         'switch_args' : '<str>',
-        'type' : ['string'],
+        'type' : ['str'],
         'requirement' : 'optional',
         'defvalue' : ['O0'],
-        'short_help' : 'Compiler Optimization Mode',
+        'short_help' : 'Optimization Mode',
         'help' : ["The compiler has modes to prioritize run time and ppa.   ",
                   "Modes include:                                           ",
                   "                                                         ",
@@ -1902,7 +1902,7 @@ def schema_options(cfg):
         'type' : ['bool'],
         'requirement' : 'optional',
         'defvalue' : ['false'],
-        'short_help' : 'Minimize storage by only keeping essential files',
+        'short_help' : 'Keep essential files only',
         'help' : ["Deletes all non-essential files at the end of each step  ",
                   "and creates a 'zip' archive of the job folder.           ",
                   "                                                         ",
@@ -1916,9 +1916,9 @@ def schema_options(cfg):
         'switch' : '-design_flow',
         'switch_args' : '<str>',
         'requirement' : 'all',
-        'type' : ['string'],
+        'type' : ['str'],
         'defvalue' : [],
-        'short_help' : 'List of Compilation Steps',
+        'short_help' : 'Compilation Steps',
         'help' : ["A complete list of all steps included in fully automated",
                   "RTL to GDSII compilation. Compilation flow is controlled ",
                   "with the -start, -stop, -cont switches and by adding     ",
@@ -1938,9 +1938,9 @@ def schema_options(cfg):
         'switch' : '-dv_steps',
         'switch_args' : '<str>',
         'requirement' : 'all',
-        'type' : ['string'],
+        'type' : ['str'],
         'defvalue' : [],
-        'short_help' : 'List of Verification Steps',
+        'short_help' : 'Verification Steps',
         'help' : ["A complete list of all verification steps. Verification ",
                   "flow is controlled with the -start, -stop, -cont switches",
                   "and by expanding the list. The list must be ordered to   ",
@@ -1959,9 +1959,9 @@ def schema_options(cfg):
         'switch' : '-mfg_steps',
         'switch_args' : '<str>',
         'requirement' : 'all',
-        'type' : ['string'],
+        'type' : ['str'],
         'defvalue' : [],
-        'short_help' : 'List of Manufacturing Steps',
+        'short_help' : 'Manufacturing Steps',
         'help' : ["A complete list of all steps in the manufacturing flow.  ",
                   "                                                         ",
                   "Examples:                                                ",
@@ -1983,13 +1983,13 @@ def schema_design(cfg):
     cfg['source'] = {
         'switch' : 'None',
         'type' : ['file'],
-        'requirement' : ['all'],
+        'requirement' : 'all',
         'defvalue' : [],
         'hash'   : [],
         'date'   : [],
         'author' : [],
         'signature' : [],
-        'short_help' : 'Source File List',
+        'short_help' : 'Design Source Files',
         'help' : ["A list of source files to read in for elaboration. The   ",
                   "files are read in order from first to last entered. File ",
                   "type is inferred from the file suffix:                   ",
@@ -2007,13 +2007,13 @@ def schema_design(cfg):
         'switch' : '-doc',
         'switch_args' : '<file>',
         'type' : ['file'],
-        'requirement' : ['all'],
+        'requirement' : 'all',
         'defvalue' : [],
         'hash'   : [],
         'date'   : [],
         'author' : [],
         'signature' : [],
-        'short_help' : 'Design Documentation File List',
+        'short_help' : 'Design Documentation',
         'help' : ["A list of design documents. Files are read in order from ",
                   "first to last.                                           ",
                   "                                                         ",
@@ -2026,7 +2026,7 @@ def schema_design(cfg):
         'switch' : '-rev',
         'switch_args' : '<str>',
         'type' : ['file'],
-        'requirement' : ['all'],
+        'requirement' : 'all',
         'defvalue' : [],
         'short_help' : 'Design Revision',
         'help' : ["Specifies the rev of the design.                     ",
@@ -2040,7 +2040,7 @@ def schema_design(cfg):
         'switch' : '-license',
         'switch_args' : '<str>',
         'type' : ['file'],
-        'requirement' : ['all'],
+        'requirement' : 'all',
         'defvalue' : [],
         'short_help' : 'Design License File',
         'help' : ["Specifies the technology license for the source code.    ",
@@ -2053,7 +2053,7 @@ def schema_design(cfg):
     cfg['design'] = {
         'switch' : '-design',
         'switch_args' : '<str>',
-        'type' : ['string'],
+        'type' : ['str'],
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Design Top Module Name',
@@ -2068,7 +2068,7 @@ def schema_design(cfg):
     cfg['nickname'] = {
         'switch' : '-nickname',
         'switch_args' : '<str>',
-        'type' : ['string'],
+        'type' : ['str'],
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Design Nickname',
@@ -2084,7 +2084,7 @@ def schema_design(cfg):
     cfg['origin'] = {
         'switch' : '-origin',
         'switch_args' : '<str>',
-        'type' : ['string'],
+        'type' : ['str'],
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Design Origin',
@@ -2098,10 +2098,10 @@ def schema_design(cfg):
     cfg['clock'] = {
         'switch' : '-clock',
         'switch_args' : '<>',
-        'type' : ['string', "string", 'float', 'float'],
+        'type' : ['str', 'str', 'num', 'num'],
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Clock Definitions',
+        'short_help' : 'Design Clocks',
         'help' : ["A complete clock definition specifying the name of the   ",
                   "clock, the name of the clock port, or the full hierarchy ",
                   "path to the generated internal clock, the clock frequency",
@@ -2118,10 +2118,10 @@ def schema_design(cfg):
     cfg['supply'] = {
         'switch' : '-supply',
         'switch_args' : '<>',
-        'type' : ['string', 'string', 'float'],
+        'type' : ['str', 'str', 'num'],
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Power Supplies',
+        'short_help' : 'Design Power Supplies',
         'help' : ["A complete power supply definition specifying the supply ",
                   "name, the net name, and the voltage.The definition can   ",
                   "be used to drive constraints for implementation and      ",
@@ -2135,10 +2135,10 @@ def schema_design(cfg):
     cfg['define'] = {
         'switch' : '-D',
         'switch_args' : '<str>',
-        'type' : ['string'],
+        'type' : ['str'],
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Verilog Preprocessor Define Symbols',
+        'short_help' : 'Verilog Preprocessor Symbols',
         'help' : ["Sets a preprocessor symbol for verilog source imports.   ",
                   "                                                         ",
                   "Examples:                                                ",
@@ -2156,7 +2156,7 @@ def schema_design(cfg):
         'date'   : [],
         'author' : [],
         'signature' : [],
-        'short_help' : 'Verilog Module Search Directories',
+        'short_help' : 'Verilog Module Search Paths',
         'help' : ["Provides a search paths to look for modules found in the ",
                   "the source list. The import engine will look for modules ",
                   "inside files with the specified +libext+ param suffix    ",
@@ -2176,7 +2176,7 @@ def schema_design(cfg):
         'date'   : [],
         'author' : [],
         'signature' : [],
-        'short_help' : 'Verilog Include File Search Directories',
+        'short_help' : 'Verilog Include Search Paths',
         'help' : ["Provides a search paths to look for files included in    ",
                   "the design using the `include statement.                 ",
                   "                                                         ",
@@ -2195,7 +2195,7 @@ def schema_design(cfg):
         'date'   : [],
         'author' : [],
         'signature' : [],
-        'short_help' : 'Verilog Library Files',
+        'short_help' : 'Verilog Library',
         'help' : ["Declares source files to be read in, for which modules   ",
                   "are not to be interpreted as root modules.               ",
                   "                                                         ",
@@ -2207,10 +2207,10 @@ def schema_design(cfg):
     cfg['libext'] = {
         'switch' : '+libext',
         'switch_args' : '<ext>',
-        'type' : ['string'],
+        'type' : ['str'],
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Verilog Module Search File Extensions',
+        'short_help' : 'Verilog File Extensions',
         'help' : ["Specifes the file extensions that should be used for     ",
                   "finding modules. For example, if -y is specified as ./lib",
                   "and '.v' is specified as libext then the files ./lib/*.v ",
@@ -2231,7 +2231,7 @@ def schema_design(cfg):
         'date'   : [],
         'author' : [],
         'signature' : [],
-        'short_help' : 'Verilog Command Line Options File',
+        'short_help' : 'Verilog Options File',
         'help' : ["Read the specified file, and act as if all text inside   ",
                   "it was specified as command line parameters. Supported   ",
                   "by most verilog simulators including Icarus and Verilator",
@@ -2252,10 +2252,10 @@ def schema_floorplan(cfg):
     cfg['stackup'] = {
         'switch' : '-stackup',
         'switch_args' : '<>',
-        'type' : ['string'],
+        'type' : ['str'],
         'requirement' : 'asic',
         'defvalue' : [],
-        'short_help' : 'Design Metal Stackup',
+        'short_help' : 'Metal Stackup',
         'help' : ["Specifies the target stackup to use in the design. The   ",
                   "name must match a value defined in the pdk_stackup list. ",
                   "                                                         ",
@@ -2268,10 +2268,10 @@ def schema_floorplan(cfg):
     cfg['density'] = {
         'switch' : '-density',
         'switch_args' : '<num>',
-        'type' : ['int'],
+        'type' : ['num'],
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Design Target Core Density',
+        'short_help' : 'Target Core Density',
         'help' : ["Provides a target density based on the total design cell ",
                   "area reported after synthesis. This number is used when  ",
                   "no die size or floorplan is supplied. Any number between ",
@@ -2286,10 +2286,10 @@ def schema_floorplan(cfg):
     cfg['coremargin'] = {
         'switch' : '-coremargin',
         'switch_args' : '<num>',
-        'type' : ['float'],
+        'type' : ['num'],
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Design Place and Route Core Margin',
+        'short_help' : 'APR Block Core Margin',
         'help' : ["Sets the halo/margin between the apr core cell area to   ",
                   "use for automated floorplanning setup. The value is      ",
                   "specified in microns and is only used when no diesize or ",
@@ -2303,10 +2303,10 @@ def schema_floorplan(cfg):
     cfg['aspectratio'] = {
         'switch' : '-aspectratio',
         'switch_args' : '<num>',
-        'type' : ['float'],
+        'type' : ['num'],
         'requirement' : 'optional',
         'defvalue' : ['1'],
-        'short_help' : 'Design Layout Aspect Ratio',
+        'short_help' : 'APR Block Aspect Ratio',
         'help' : ["Specifies the height to width ratio of the block for     ",
                   "automated floor-planning. Values below 0.1 and above 10  ",
                   "should be avoided as they will likely fail to converge   ",
@@ -2322,7 +2322,7 @@ def schema_floorplan(cfg):
     cfg['diesize'] = {
         'switch' : '-diesize',
         'switch_args' : '<>',
-        'type' : ['float', 'float', 'float', 'float'],
+        'type' : ['num', 'num', 'num', 'num'],
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Target Die Size',
@@ -2341,7 +2341,7 @@ def schema_floorplan(cfg):
     cfg['coresize'] = {
         'switch' : '-coresize',
         'switch_args' : '<>',
-        'type' : ['float', 'float', 'float', 'float'],
+        'type' : ['num', 'num', 'num', 'num'],
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Target Core Size',
@@ -2411,10 +2411,10 @@ def schema_apr(cfg):
     cfg['target'] = {
         'switch' : '-target',
         'switch_args' : '<str>',
-        'type' : ['string'],
+        'type' : ['str'],
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Target compilation platform',
+        'short_help' : 'Target Platform',
         'help' : ["Provides a string name for choosing a physical mapping   ",
                   "target for the design. Like in compilers like gcc, only  ",
                   "targets that are pre-baked into the compiler supported.  ",
@@ -2438,7 +2438,7 @@ def schema_apr(cfg):
     cfg['target_lib'] = {
         'switch' : '-target_lib',
         'switch_args' : '<str>',
-        'type' : ['string'],
+        'type' : ['str'],
         'defvalue' : [],
         'requirement' : 'apr',
         'short_help' : 'Target Libraries',
@@ -2453,7 +2453,7 @@ def schema_apr(cfg):
     cfg['macro_lib'] = {
         'switch' : '-macro_lib',
         'switch_args' : '<str>',
-        'type' : ['string'],
+        'type' : ['str'],
         'defvalue' : [],
         'requirement' : 'apr',
         'short_help' : 'Macro Libraries',
@@ -2468,7 +2468,7 @@ def schema_apr(cfg):
     cfg['delaymodel'] = {
         'switch' : '-delaymodel',
         'switch_args' : '<str>',
-        'type' : ['string'],
+        'type' : ['str'],
         'defvalue' : [],
         'requirement' : 'apr',
         'short_help' : 'Target Library Delay Model',
@@ -2484,10 +2484,10 @@ def schema_apr(cfg):
     cfg['custom'] = {
         'switch' : '-custom',
         'switch_args' : '<str>',
-        'type' : ['string'],
+        'type' : ['str'],
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Custom Pass Through Parameters',
+        'short_help' : 'Custom EDA Parameters',
         'help' : ["Specifies a custom variable to pass through directly to  ",
                   "the EDA run scripts. The value is a space separated      ",
                   "string with the first value indicating the variable and  ",
@@ -2502,7 +2502,7 @@ def schema_apr(cfg):
     cfg['effort'] = {
         'switch' : '-effort',
         'switch_args' : '<str>',
-        'type' : ['string'],
+        'type' : ['str'],
         'requirement' : 'apr',
         'defvalue' : ['high'],
         'short_help' : 'Compilation Effort',
@@ -2518,7 +2518,7 @@ def schema_apr(cfg):
     cfg['priority'] = {
         'switch' : '-priority',
         'switch_args' : '<str>',
-        'type' : ['string'],
+        'type' : ['str'],
         'requirement' : 'optional',
         'defvalue' : ['timing'],
         'short_help' : 'Optimization Priority',
@@ -2543,7 +2543,7 @@ def schema_apr(cfg):
         'date'   : [],
         'author' : [],
         'signature' : [],
-        'short_help' : 'Non-default Net Routing File',
+        'short_help' : 'Non-default Routing',
         'help' : ["A file containing a list of nets with non-default width  ",
                   "and spacing, with one net per line and no wildcards      ",
                   "The format is <netname width space>                      ",
@@ -2559,7 +2559,7 @@ def schema_apr(cfg):
     cfg['minlayer'] = {
         'switch' : '-minlayer',
         'switch_args' : '<num>',
-        'type' : ['string'],
+        'type' : ['str'],
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Minimum routing layer',
@@ -2581,7 +2581,7 @@ def schema_apr(cfg):
     cfg['maxlayer'] = {
         'switch' : '-maxlayer',
         'switch_args' : '<num>',
-        'type' : ['string'],
+        'type' : ['str'],
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Maximum Routing Layer',
@@ -2603,10 +2603,10 @@ def schema_apr(cfg):
     cfg['maxfanout'] = {
         'switch' : '-maxfanout',
         'switch_args' : '<num>',
-        'type' : ['int'],
+        'type' : ['num'],
         'requirement' : 'apr',
         'defvalue' : ['64'],
-        'short_help' : 'Maximum fanout',
+        'short_help' : 'Maximum Fanout',
         'help' : ["A max fanout rule to be applied during synthesis and    ",
                   "apr. The value has a default of 64.                     ",
                   "                                                        ",
@@ -2649,7 +2649,7 @@ def schema_constraints(cfg):
     cfg['mcmm']['default']['libcorner'] = {
         'switch' : '-mcmm_libcorner',
         'switch_args' : '<>',
-        'type' : ['string'],
+        'type' : ['str'],
         'requirement' : 'apr',
         'defvalue' : [],
         'short_help' : 'MCMM Library Corner Name',
@@ -2668,7 +2668,7 @@ def schema_constraints(cfg):
     cfg['mcmm']['default']['opcond'] = {
         'switch' : '-mcmm_opcond',
         'switch_args' : '<>',
-        'type' : ['string'],
+        'type' : ['str'],
         'requirement' : 'apr',
         'defvalue' : [],
         'short_help' : 'MCMM Operating Condition',
@@ -2687,7 +2687,7 @@ def schema_constraints(cfg):
     cfg['mcmm']['default']['pexcorner'] = {
         'switch' : '-mcmm_pexcorner',
         'switch_args' : '<>',
-        'type' : ['string'],
+        'type' : ['str'],
         'requirement' : 'apr',
         'defvalue' : [],
         'short_help' : 'MCMM PEX Corner Name',
@@ -2705,7 +2705,7 @@ def schema_constraints(cfg):
     cfg['mcmm']['default']['mode'] = {
         'switch' : '-mcmm_mode',
         'switch_args' : '<>',
-        'type' : ['string'],
+        'type' : ['str'],
         'requirement' : 'apr',
         'defvalue' : [],
         'short_help' : 'MCMM Mode Name',
@@ -2727,7 +2727,7 @@ def schema_constraints(cfg):
         'author' : [],
         'signature' : [],
         'defvalue' : [],
-        'short_help' : 'MCMM Timing Constraints Files',
+        'short_help' : 'MCMM Timing Constraints',
         'help' : ["Provides scenario specific constraints. If none are     ",
                   "supplied default constraints are generated based on     ",
                   "the clk parameter. The constraints can be applied on    ",
@@ -2743,7 +2743,7 @@ def schema_constraints(cfg):
     cfg['mcmm']['default']['check'] = {
         'switch' : '-mcmm_check',
         'switch_args' : '<>',
-        'type' : ['string'],
+        'type' : ['str'],
         'requirement' : 'apr',
         'defvalue' : [],
         'short_help' : 'MCMM Checks',
@@ -2770,18 +2770,20 @@ def schema_net(cfg):
     cfg['remote'] = {
         'switch': '-remote',
         'switch_args' : '<str>',
-        'type' : ['string'],
+        'type' : ['str'],
+        'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Remote server (https://acme.com:8080)',
+        'short_help' : 'Remote Server Address',
         'help' : ["TBD"]
     }
 
     # Port number that the remote host is running 'sc-server' on.
     cfg['remoteport'] = {
-        'short_help': 'Port number used by sc-server.',
+        'short_help': 'Remove Server Port',
         'switch': '-remote_port',
         'switch_args' : '<num>',
-        'type' : ['int'],
+        'type' : ['num'],
+        'requirement' : 'optional',
         'defvalue' : ['8080'],
         'help' : ["TBD"]
     }
