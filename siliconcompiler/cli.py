@@ -197,15 +197,7 @@ def main():
         
     #Create one (or many...) instances of Chip class
     chip = sc.Chip(loglevel=loglevel)
-
-    # Loading target specific module settings
-    if 'target' in  cmdlinecfg.keys():
-        target = cmdlinecfg['target']['value'][-1]
-    else:
-        target = "freepdk45"
-    chip.add('target', target)
-    setup_target(chip)
-    
+   
     # Reading in config files specified at command line
     if 'cfgfile' in  cmdlinecfg.keys():        
         for cfgfile in cmdlinecfg['cfgfile']['value']:
@@ -213,6 +205,10 @@ def main():
         
     #Override cfg with command line args
     chip.mergecfg(cmdlinecfg)
+
+    #Setup target if specified
+    if len(chip.cfg['target']['value']) > 0:
+        setup_target(chip)
         
     #Resolve as absolute paths (should be a switch)
     #chip.abspath()
