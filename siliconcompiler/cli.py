@@ -47,7 +47,7 @@ def cmdline():
     "Examples:                                                              ",
     "$ sc 'hello_world.v' -target freepdk45'                                ",
     "$ sc 'my_riscv_cpu.v' -target asap7 -design my_riscv_cpu               ",
-    "$ sc 'my_tpu.v' -cfgfile my_tpu_setup.json                             ",
+    "$ sc 'my_tpu.v' -cfg my_tpu_setup.json                                 ",
     "                                                                       ",  
     "-----------------------------------------------------------------------"])
 
@@ -199,8 +199,8 @@ def main():
     chip = sc.Chip(loglevel=loglevel)
    
     # Reading in config files specified at command line
-    if 'cfgfile' in  cmdlinecfg.keys():        
-        for cfgfile in cmdlinecfg['cfgfile']['value']:
+    if 'cfg' in  cmdlinecfg.keys():
+        for cfgfile in cmdlinecfg['cfg']['value']:
             chip.readcfg(cfgfile)
         
     #Override cfg with command line args
