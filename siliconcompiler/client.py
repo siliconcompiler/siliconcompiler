@@ -18,8 +18,8 @@ def remote_run(chip, stage):
     '''
 
     #Looking up stage numbers
-    stages = (chip.cfg['compile_steps']['value'] +
-              chip.cfg['dv_steps']['value'])
+    stages = (chip.cfg['design_flow']['value'] +
+              chip.cfg['signoff_flow']['value'])
     current = stages.index(stage)
     laststage = stages[current-1]
     start = stages.index(chip.cfg['start']['value'][-1]) #scalar
@@ -53,6 +53,29 @@ def remote_run(chip, stage):
       time.sleep(1)
       is_busy = loop.run_until_complete(is_job_busy(chip, stage))
     print("%s stage completed!"%stage)
+
+
+    # Increment the stage's jobid value.
+    next_id = str(int(chip.cfg['flow'][stage]['jobid']['value'][-1])+1)
+    chip.cfg['flow'][stage]['jobid']['value'] = [next_id]
+
+    # Fetch the remote archive after the export stage.
+    # TODO: Use aiohttp client methods, but wget is simpler for accessing
+    # a server endpoint that returns a file object.
+    if stage == 'export':
+        subprocess.run(['wget',
+                        "http://%s:%s/get_results/%s.zip"%(
+                            chip.cfg['remote']['value'][0],
+                            chip.cfg['remoteport']['value'][0],
+                            chip.status['job_hash'])])
+        # Unzip the result and run klayout to display the GDS file.
+        subprocess.run(['unzip', '%s.zip'%chip.status['job_hash']])
+        gds_loc = '%s/export/job%s/outputs/%s.gds'%(
+            chip.status['job_hash'],
+            next_id,
+            chip.cfg['design']['value'][0],
+        )
+        subprocess.run(['klayout', gds_loc])
 
 ###################################
 async def request_remote_run(chip, stage):
