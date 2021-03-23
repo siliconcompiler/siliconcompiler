@@ -1,9 +1,10 @@
 import sys
+import os
 import importlib
 from siliconcompiler.schema import schema_istrue
 from siliconcompiler.schema import schema_path
 
-#############################
+############################
 #Initial Setup
 ############################
 def setup_target(chip):
@@ -80,12 +81,8 @@ def setup_target(chip):
                 
                 setup_step(chip, step, 'vpr', 'vpr')
     else:
-        if os.getenv('SCPATH') == None:
-            chip.logger.error('Environment variable $SCPATH has \
-            not been set, required for closed targets')
-            sys.exit()
-        module = importlib.import_module("external_target")
-        setup_target = getattr(module,"setup_target")
+        module = importlib.import_module('sc_target')
+        setup_target = getattr(module, "setup_target")
         setup_target(chip, target)
 
 #helper fucntion
