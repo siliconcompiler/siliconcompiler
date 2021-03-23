@@ -742,7 +742,7 @@ class Chip:
         # Dynamic Module Load
         #####################    
 
-        module = importlib.import_module('.'+tool,
+        module = importlib.import_module('.'+vendor,
                                          package="eda." + vendor)
         
         #####################
