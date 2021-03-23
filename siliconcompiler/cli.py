@@ -193,7 +193,7 @@ def main():
     if 'debug' in  cmdlinecfg.keys():
         loglevel = cmdlinecfg['debug']['value'][-1]
     else:
-        loglevel = "DEBUG"
+        loglevel = "INFO"
         
     #Create one (or many...) instances of Chip class
     chip = sc.Chip(loglevel=loglevel)
