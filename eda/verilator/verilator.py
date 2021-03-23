@@ -10,7 +10,7 @@ from siliconcompiler.schema import schema_istrue
 def setup_tool(chip, step, tool):
     ''' Sets up default settings on a per step basis
     '''
-
+    
     chip.add('flow', step, 'threads', '4')
     chip.add('flow', step, 'format', 'cmdline')
     chip.add('flow', step, 'copy', 'false')
@@ -18,8 +18,7 @@ def setup_tool(chip, step, tool):
     chip.add('flow', step, 'vendor', 'verilator')
     chip.add('flow', step, 'refdir', '')
     chip.add('flow', step, 'script', '')
-    chip.add('flow', step, 'opt', '--lint-only --debug')
-  
+        
 ################################
 # Set Verilator Runtime Options
 ################################
@@ -30,6 +29,19 @@ def setup_options(chip, step, tool):
     '''
 
     #Get default opptions from setup
+    #TODO: add options for:
+    #sc/scc
+    #clk
+    #-stats --stats-vars -profile-cfuncs
+    #-trace --trace-structs
+    #-CFLAGS
+    #-O3
+    #
+    if step == 'import':
+        chip.add('flow', step, 'opt', '--lint-only --debug')
+    else:
+        chip.add('flow', step, 'opt', '--cc')
+    
     options = chip.get('flow', step, 'opt')
 
     #Include cwd in search path (verilator default)
