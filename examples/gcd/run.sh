@@ -1,4 +1,4 @@
-x#!/bin/sh
+#!/bin/sh
 sc examples/gcd/gcd.v \
    -target "freepdk45" \
    -diesize "0 0 100.13 100.8" \

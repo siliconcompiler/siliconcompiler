@@ -230,8 +230,7 @@ class Chip:
                     del cfg[k]
                 #delete all keys with empty/default values
                 elif 'value' in cfg[k].keys():
-                    if ((not cfg[k]['value']) or
-                        (cfg[k]['value'] == cfg[k]['defvalue'])):
+                    if not cfg[k]['value']:
                         del cfg[k]
                 #removing stale branches
                 elif not cfg[k]:
