@@ -54,31 +54,25 @@ def setup_target(chip):
         
         chip.cfg['mode']['value'] = ['fpga']
         
-        chip.cfg['design_flow']['value'] = ['import',
-                                            'syn',
-                                            'floorplan',
-                                            'place',
-                                            'route',
-                                            'export']
-
-        for step in (['floorplan', 'place', 'route', 'export']):
-            if target == 'ice40' :
-                chip.cfg['design_flow']['value'] = ['import',
-                                                    'syn',
-                                                    'apr',
-                                                    'export']
-                setup_step(chip, 'import', 'verilator', 'verilator')
-                setup_step(chip, 'syn', 'yosys', 'yosys')
-                setup_step(chip, 'apr', 'nextpnr', 'nextpnr-ice40')
-                setup_step(chip, 'export', 'icepack', 'icepack')
-            else:                
-                chip.cfg['design_flow']['value'] = ['import',
-                                                    'syn',
-                                                    'floorplan',
-                                                    'place',
-                                                    'route',
-                                                    'export']
-                
+        if target == 'ice40' :
+            chip.cfg['design_flow']['value'] = ['import',
+                                                'syn',
+                                                'apr',
+                                                'export']
+            setup_step(chip, 'import', 'verilator', 'verilator')
+            setup_step(chip, 'syn', 'yosys', 'yosys')
+            setup_step(chip, 'apr', 'nextpnr', 'nextpnr-ice40')
+            setup_step(chip, 'export', 'icepack', 'icepack')
+        else:
+            chip.cfg['design_flow']['value'] = ['import',
+                                                'syn',
+                                                'floorplan',
+                                                'place',
+                                                'route',
+                                                'export']
+            setup_step(chip, 'import', 'verilator', 'verilator')
+            setup_step(chip, 'syn', 'yosys', 'yosys')
+            for step in (['floorplan', 'place', 'route', 'export']):
                 setup_step(chip, step, 'vpr', 'vpr')
     else:
         module = importlib.import_module('sc_target')
