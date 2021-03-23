@@ -108,7 +108,7 @@ def setup_cmd(chip,step):
     #Dynamically generate options
     vendor = chip.cfg['flow'][step]['vendor']['value'][-1]
     tool  = chip.cfg['flow'][step]['exe']['value'][-1]
-    module = importlib.import_module('.'+tool,
+    module = importlib.import_module('.'+vendor,
                                      package="eda." + vendor)
     setup_options = getattr(module,"setup_options")
     options = setup_options(chip, step, tool)
