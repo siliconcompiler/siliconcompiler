@@ -146,6 +146,24 @@ def schema_fpga(cfg):
             ]
     }
 
+    cfg['fpga_vendor'] = {
+        'switch' : '-fpga_vendor',
+        'switch_args' : '<>',
+        'requirement' : 'fpga',
+        'type' : ['str', 'file'],
+        'defvalue' : [],
+        'short_help' : 'FPGA Vendor',
+        'help' : [
+            "Specifies name of the FPGA vendor",
+            "                                                                ",
+            "Examples:                                                       ",
+            "cli: -fpga_vendor openfpga                                      ",
+            "api:  chip.set('fpga_vendor', 'openfpga')                       "
+            ]
+    }
+
+    
+    
     
     return cfg
 
@@ -1688,6 +1706,18 @@ def schema_options(cfg):
                   "api: chip.set('env','$PDK_HOME /disk/mypdk')             "]
     }
 
+    cfg['scpath'] = {
+        'switch' : '-scpath',
+        'switch_args' : '<>',
+        'type' : ['file'],
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Search path',
+        'help' : ["Specifies python modules paths for target import.        ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -scpath '/home/sclib/foundry/intel                  "]
+    }
 
     cfg['lock'] = {
         'switch' : '-lock',
