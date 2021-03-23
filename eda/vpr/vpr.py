@@ -1,5 +1,8 @@
+################################
+# Tool Setup
+################################
 
-def setup_toool(chip, stage):
+def setup_toool(chip, stage, tool):
 
      refdir = 'eda/vpr/'
 
@@ -18,7 +21,7 @@ def setup_toool(chip, stage):
           #ignore stages withh echo
           chip.add('tool', stage, 'exe', 'echo')
           
-def setup_options(chip,stage):
+def setup_options(chip, stage, tool):
 
      arch = chip.get('fpga_arch')
      topmodule = chip.get('design')     
@@ -26,3 +29,17 @@ def setup_options(chip,stage):
      options = arch + blif
 
      return options
+
+################################
+# Pre/Post Processing
+################################
+
+def pre_process(chip, step, tool):
+    ''' Tool specific function to run before step execution
+    '''
+    pass
+
+def post_process(chip, step, tool):
+    ''' Tool specific function to run after step execution
+    '''
+    pass

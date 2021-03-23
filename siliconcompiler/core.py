@@ -801,7 +801,7 @@ class Chip:
             #####################
 
             pre_process = getattr(module,"pre_process")
-            pre_process(self,step)
+            pre_process(self,step, tool)
 
             #####################
             # Run Executable
@@ -829,7 +829,7 @@ class Chip:
             
             #run tool specific post process
             post_process = getattr(module,"post_process")
-            post_process(self,step)
+            post_process(self, step, tool)
 
             #Updating jobid when complete
             self.cfg['flow'][step]['jobid']['value'] = [str(jobid)]

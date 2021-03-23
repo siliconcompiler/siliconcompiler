@@ -1,5 +1,5 @@
 
-def setup_tool(chip, step):
+def setup_tool(chip, step, tool):
 
      refdir = 'eda/yosys'
 
@@ -12,7 +12,7 @@ def setup_tool(chip, step):
      chip.add('flow', step, 'refdir', refdir)
      chip.add('flow', step, 'script', refdir + '/sc_syn.tcl')
    
-def setup_options(chip,step):
+def setup_options(chip, step, tool):
 
      options = chip.get('flow', step, 'opt')
      return options
@@ -20,12 +20,12 @@ def setup_options(chip,step):
 ################################
 # Pre and Post Run Commands
 ################################
-def pre_process(chip,step):
+def pre_process(chip, step, tool):
     ''' Tool specific function to run before step execution
     '''
     pass
 
-def post_process(chip,step):
+def post_process(chip, step, tool):
     ''' Tool specific function to run after step execution
     '''
     pass
