@@ -162,9 +162,6 @@ def schema_fpga(cfg):
             ]
     }
 
-    
-    
-    
     return cfg
 
 ###############################################################################
@@ -2270,6 +2267,29 @@ def schema_design(cfg):
                   "cli: -f readscript.cmd                                   ",
                   "api: chip.set('cmdfile','readscript.cmd')                "]
     }
+
+    cfg['constraint'] = {
+        'switch' : '-constraint',
+        'switch_args' : '<file>',
+        'type' : ['file'],
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
+        'short_help' : 'Design Constraint Files',
+        'help' : ["List of default constraints for the design to use during ",
+                  "compilation. Types of constraints include timing (SDC)   ",
+                  "and pin mappings for FPGAs. More than one file can be    ",
+                  "supplied. Timing constraints are global and sourced in   ",
+                  "all MCMM scenarios.                                      ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -constaint 'top.sdc'                                ",
+                  "api: chip.add('constraint','top.sdc')                    "]
+    }
+    
 
     return cfg
 
