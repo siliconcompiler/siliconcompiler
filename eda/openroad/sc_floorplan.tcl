@@ -22,6 +22,14 @@ set topmodule    [dict get $sc_cfg design]
 set corner       "typical"
 set diesize      [dict get $sc_cfg diesize]
 set coresize     [dict get $sc_cfg coresize]
+# TODO: Retrieve from dictionary instead of hardcoding.
+# Horizontal / Vertical I/O layers.
+set io_hlayer    "4"
+set io_vlayer    "3"
+# Tapcell values.
+set endcap_cpp   "2"
+set tapcell_dist 120
+set tapcell_fill "FILLCELL_X1"
 
 #Inputs
 set input_verilog   "inputs/$topmodule.v"
@@ -53,7 +61,14 @@ close $outfile
 ####################
 foreach lib $target_libs {
     read_liberty [dict get $sc_cfg stdcell $lib model typical nldm lib]
-    read_lef [dict get $sc_cfg stdcell $lib lef]
+    # Correct for polygonal pin sizes in nangate45 liberty.
+    if  {$lib eq "NangateOpenCellLibrary"} {
+        set target_lef [dict get $sc_cfg stdcell $lib lef]
+        regsub -all {\.lef} $target_lef .mod.lef target_lef
+        read_lef $target_lef
+    } else {
+        read_lef [dict get $sc_cfg stdcell $lib lef]
+    }
     set site [dict get $sc_cfg stdcell $lib site]
 }
 
@@ -82,9 +97,15 @@ if {[file exists $input_def]} {
 	    -site $site     
     #TODO!!! Put these into schema
     #randomize I/O placementa
-    io_placer -hor_layer "4" \
-	-ver_layer "3" \
+    io_placer -hor_layer $io_hlayer \
+	-ver_layer $io_vlayer \
 	-random
+    # Tapcell insertion.
+    tapcell \
+      -endcap_cpp $endcap_cpp \
+      -distance $tapcell_dist \
+      -tapcell_master $tapcell_fill \
+      -endcap_master $tapcell_fill
     
 }
 
