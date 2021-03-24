@@ -8,13 +8,13 @@ def setup_tool(chip, step, tool):
      chip.add('flow', step, 'copy', 'true')
      chip.add('flow', step, 'vendor', 'yosys')
      chip.add('flow', step, 'exe', 'yosys')
-     chip.add('flow', step, 'opt', '-c')
+     chip.add('flow', step, 'option', '-c')
      chip.add('flow', step, 'refdir', refdir)
      chip.add('flow', step, 'script', refdir + '/sc_syn.tcl')
    
 def setup_options(chip, step, tool):
 
-     options = chip.get('flow', step, 'opt')
+     options = chip.get('flow', step, 'option')
      return options
 
 ################################

@@ -38,11 +38,11 @@ def setup_options(chip, step, tool):
     #-O3
     #
     if step == 'import':
-        chip.add('flow', step, 'opt', '--lint-only --debug')
+        chip.add('flow', step, 'option', '--lint-only --debug')
     else:
-        chip.add('flow', step, 'opt', '--cc')
+        chip.add('flow', step, 'option', '--cc')
     
-    options = chip.get('flow', step, 'opt')
+    options = chip.get('flow', step, 'option')
 
     #Include cwd in search path (verilator default)
 

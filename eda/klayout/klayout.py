@@ -14,9 +14,9 @@ def setup_tool(chip, step, tool):
           chip.add('flow', step, 'exe', 'klayout') 
           chip.add('flow', step, 'refdir', refdir)
           if step == 'gdsview':               
-               chip.add('flow', step, 'opt', '-nn')
+               chip.add('flow', step, 'option', '-nn')
           elif step == 'export':               
-               chip.add('flow', step, 'opt', '-rm')
+               chip.add('flow', step, 'option', '-rm')
           
 def setup_options(chip,step , tool):
      

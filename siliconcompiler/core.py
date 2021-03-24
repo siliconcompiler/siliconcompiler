@@ -15,6 +15,8 @@ import yaml
 import shutil
 import copy
 import importlib
+import glob
+
 
 from siliconcompiler.schema import schema_cfg
 from siliconcompiler.schema import schema_layout
@@ -45,20 +47,36 @@ class Chip:
         Init method for Chip object
 
         '''
-
+        
         # Set Environment Variable if not already set
         scriptdir = os.path.dirname(os.path.abspath(__file__))
         rootdir =  re.sub('siliconcompiler/siliconcompiler',
                           'siliconcompiler',
                           scriptdir)
-        if os.getenv('SCPATH') == None:
+
+        #get foundries and fpga companies dynamically
+        paths = []
+        paths.extend(glob.glob(rootdir+'/fpga/*'))
+        paths.extend(glob.glob(rootdir+'/foundry/*'))
+
+        # adding install directory to search path
+        if os.getenv('SCPATH') == None:            
             os.environ['SCPATH'] = rootdir
-        elif not re.match(rootdir,os.environ['SCPATH']):  
-            os.environ['SCPATH'] = rootdir + " " + str(os.environ['SCPATH'])
+
         # Adding current working directory to search path
         # don't duplicate if running out of install dir
-        if not re.match(rootdir,str(os.getcwd())):   
-            os.environ['SCPATH'] = os.getcwd() + " " + os.environ['SCPATH']            
+        if not re.match(str(os.getcwd()), rootdir):   
+            os.environ['SCPATH'] = os.getcwd() + " " + os.environ['SCPATH']
+
+        # Adding built-in target paths
+        for item in paths:
+            if os.path.isdir(item):
+                if not re.match(item, os.environ['SCPATH'],):
+                    os.environ['SCPATH'] = item + " " + os.environ['SCPATH']
+
+        #Adding module search path 
+        sys.path.append(os.environ['SCPATH'])
+                    
         # Initialize logger
         self.logger = log.getLogger()
         self.handler = log.StreamHandler()

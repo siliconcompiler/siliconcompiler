@@ -1147,7 +1147,7 @@ def schema_flow(cfg, step):
     }
     
     #opt
-    cfg['flow'][step]['opt'] = {
+    cfg['flow'][step]['option'] = {
         'switch' : '-flow_opt',
         'switch_args' : '<>',
         'type' : ['str'],
@@ -1161,8 +1161,8 @@ def schema_flow(cfg, step):
             "Command line values must be enclosed in quotes.          ",
             "                                                         ",
             "Examples:                                                ",
-            "cli: -flow_opt 'place -no_init'                          ",
-            "api:  chip.set('flow', 'place', 'opt', '-no_init')       "]
+            "cli: -flow_option 'place -no_init'                       ",
+            "api:  chip.add('flow', 'place', 'option', '-no_init')    "]
     }
     
     #refdir
