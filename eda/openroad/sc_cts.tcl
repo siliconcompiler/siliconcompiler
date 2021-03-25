@@ -29,8 +29,6 @@ set cts_buf      "BUF_X4"
 set fillcells    "FILLCELL_X1 FILLCELL_X2 FILLCELL_X4 FILLCELL_X8 FILLCELL_X16 FILLCELL_X32"
 set max_slew     1e-9
 set max_cap      1e-9
-set sqr_cap      1e-9
-set sqr_res      1e-9
 set wire_unit    20
 set parasitics_layer metal3
 
@@ -76,9 +74,7 @@ read_sdc $input_sdc
 repair_clock_inverters
 
 configure_cts_characterization -max_slew $max_slew \
-                               -max_cap $max_cap \
-                               -sqr_cap $sqr_cap \
-                               -sqr_res $sqr_res \
+                               -max_cap $max_cap
 
 # Run CTS
 clock_tree_synthesis -buf_list "$cts_buf" \
@@ -102,7 +98,7 @@ optimize_mirroring
 check_placement -verbose
 
 estimate_parasitics -placement
-repair_hold_violations -buffer_cell "$cts_buf"
+repair_timing -hold
 
 ################################################################
 # Reporting

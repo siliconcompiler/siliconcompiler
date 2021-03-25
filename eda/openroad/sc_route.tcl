@@ -47,6 +47,7 @@ set output_verilog  "outputs/$topmodule.v"
 set output_tmp_def  "outputs/$topmodule\_tmp.def"
 set output_lef      "outputs/merged.lef"
 set output_def      "outputs/$topmodule.def"
+set output_drc      "outputs/$topmodule.drc"
 set output_sdc      "outputs/$topmodule.sdc"
 set output_guide    "outputs/$topmodule.guide"
 
@@ -96,10 +97,19 @@ exec ./mergeLef.py --inputLef \
                    $pdklef \
                    --outputLef $output_lef
 
-exec TritonRoute -lef $output_lef \
-                 -guide $output_guide \
-                 -def $output_tmp_def \
-                 -output $output_def
+set param_file [open "route.params" "w"]
+puts $param_file "lef:./$output_lef
+def:./$output_tmp_def
+guide:./$output_guide
+output:./$output_def
+outputDRC:./$output_drc
+verbose:1"
+close $param_file
+
+set param_filepath [file normalize "route.params"]
+puts $param_filepath
+
+detailed_route -param $param_filepath
 
 
 ################################################################
