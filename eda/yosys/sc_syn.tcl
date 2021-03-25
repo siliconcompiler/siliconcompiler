@@ -79,8 +79,6 @@ if {$mode eq "asic"} {
     if {$target eq "ice40"} {
         syn_ice40 $topmodule
     } elseif {$target eq "openfpga"} {
-        # TODO: use LUT size inferred from XML
-        set lutsize 6
-        syn_openfpga $topmodule $lutsize
+        syn_openfpga $topmodule
     }
 }

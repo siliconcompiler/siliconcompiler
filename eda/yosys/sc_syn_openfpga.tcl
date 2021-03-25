@@ -1,7 +1,9 @@
 # Yosys synthesis script for OpenFPGA
 # Based on https://github.com/lnis-uofu/OpenFPGA/blob/master/openfpga_flow/misc/ys_tmpl_yosys_vpr_flow.ys
 
-proc syn_openfpga {topmodule lut_size} {
+proc syn_openfpga {topmodule} {
+    source fpga_lutsize.tcl
+
     set output_blif "outputs/$topmodule.blif"
 
     # Technology mapping
@@ -14,7 +16,7 @@ proc syn_openfpga {topmodule lut_size} {
     yosys clean
 
     # LUT mapping
-    yosys abc -lut $lut_size
+    yosys abc -lut $lutsize
 
     # Check
     yosys synth -run check
