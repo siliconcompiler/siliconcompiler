@@ -66,14 +66,10 @@ def setup_target(chip):
         else:
             chip.cfg['design_flow']['value'] = ['import',
                                                 'syn',
-                                                'floorplan',
-                                                'place',
-                                                'route',
-                                                'export']
+                                                'apr']
             setup_step(chip, 'import', 'verilator', 'verilator')
             setup_step(chip, 'syn', 'yosys', 'yosys')
-            for step in (['floorplan', 'place', 'route', 'export']):
-                setup_step(chip, step, 'vpr', 'vpr')
+            setup_step(chip, 'apr', 'openfpga', 'openfpga')
     else:
         module = importlib.import_module('sc_target')
         setup_target = getattr(module, "setup_target")

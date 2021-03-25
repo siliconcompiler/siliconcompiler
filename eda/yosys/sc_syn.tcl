@@ -23,6 +23,8 @@ set input_verilog   "inputs/$topmodule.v"
 set input_def       "inputs/$topmodule.def"
 set input_sdc       "inputs/$topmodule.sdc"
 
+# TODO: the original OpenFPGA synth script used read_verilog with -nolatches. Is
+# that a flag we might want here?
 yosys read_verilog $input_verilog
 
 if {$mode eq "asic"} {
@@ -77,6 +79,8 @@ if {$mode eq "asic"} {
     if {$target eq "ice40"} {
         syn_ice40 $topmodule
     } elseif {$target eq "openfpga"} {
-        syn_openfpga $topmodule
+        # TODO: use LUT size inferred from XML
+        set lutsize 6
+        syn_openfpga $topmodule $lutsize
     }
 }
