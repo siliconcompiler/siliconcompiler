@@ -1,22 +1,21 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
+import unittest
+
 from pathlib import Path
-from leflib import *
-from deflib import *
+from siliconcompiler.leflib import *
+from siliconcompiler.deflib import *
 
-#LEF TEST
-lefdata = Path('../third_party/pdklib/virtual/nangate45/r1p0/pnr/nangate45.tech.lef').read_text()
+# TODO: test that parsing results are correct
 
-mylef = Lef()
+class TestLefDef(unittest.TestCase):
 
-lef = mylef.parse(lefdata)
+    def test_lef(self):
+        lefdata = Path('asic/virtual/freepdk45/pdk/r1p0/apr/freepdk45.tech.lef').read_text()
+        mylef = Lef()
+        lef = mylef.parse(lefdata)
 
-#DEF TEST
-
-defdata = Path('test/complete.5.8.def').read_text()
-
-mydef = Def()
-
-mydef.parse(defdata)
-
-
+    def test_def(self):
+        defdata = Path('siliconcompiler/test/complete.5.8.def').read_text()
+        mydef = Def()
+        mydef.parse(defdata)
