@@ -58,7 +58,6 @@ def schema_layout():
 
     return layout
 
-
 ###############################################################################
 # UTILITY FUNCTIONS TIED TO SC SPECIFICATIONS
 ###############################################################################
@@ -94,31 +93,6 @@ def schema_istrue(value):
     else:
         return False
 
-def schema_help(cfg, mode='short_help', format="txt", width=80):
-    ''' Prints out help for a leaf cell
-    '''
-    
-    if format == "md":
-        string = "### " + cfg['short_help'] +" ###"
-    else:
-        string = cfg['short_help']
-        
-    if mode != 'short_help':
-        descr = ""
-        example = "\n\n"
-        for line in cfg['help']:
-            line = re.sub("\s\s+", " ", line)
-            if re.match('^(Examples|cli|api)', line):
-                example = example + line + "\n"
-            else:
-                descr = descr + line
-        descr = textwrap.fill(descr, width=width)
-        string = string + " \n" + descr + example
-        
-    return string
-
-    pass
-    
     
 ###############################################################################
 # FPGA
@@ -149,7 +123,7 @@ def schema_fpga(cfg):
     cfg['fpga_vendor'] = {
         'switch' : '-fpga_vendor',
         'switch_args' : '<>',
-        'requirement' : 'fpga',
+        'requirement' : 'optional',
         'type' : ['str', 'file'],
         'defvalue' : [],
         'short_help' : 'FPGA Vendor',
@@ -161,6 +135,23 @@ def schema_fpga(cfg):
             "api:  chip.set('fpga_vendor', 'openfpga')                       "
             ]
     }
+
+    cfg['fpga_device'] = {
+        'switch' : '-fpga_device',
+        'switch_args' : '<>',
+        'requirement' : 'optional',
+        'type' : ['str', 'file'],
+        'defvalue' : [],
+        'short_help' : 'FPGA Device Name',
+        'help' : [
+            "Specifies Name of the Target Device",
+            "                                                                ",
+            "Examples:                                                       ",
+            "cli: -fpga_device fpga64k                                       ",
+            "api:  chip.set('fpga_device', 'fpga64k')                        "
+            ]
+    }
+    
 
     return cfg
 
@@ -270,7 +261,7 @@ def schema_pdk(cfg):
     cfg['pdk_doc'] = {
         'switch' : '-pdk_doc',
         'switch_args' : '<file>',
-        'requirement' : 'optional',
+        'requirement' : 'asic',
         'type' : ['file'],
         'defvalue' : [],
         'hash'   : [],
@@ -750,7 +741,7 @@ def schema_libs(cfg, group):
     cfg[group]['default']['model']['default']['ccs']['default'] = {        
         'switch' : '-'+group+'_ccs',
         'switch_args' : '<>',
-        'requirement' : 'asic',
+        'requirement' : 'optional',
         'type' : ['file'],
         'defvalue' : [],
         'hash' : [],
@@ -775,7 +766,7 @@ def schema_libs(cfg, group):
     cfg[group]['default']['model']['default']['aocv'] = {        
         'switch' : '-'+group+'_aocv',
         'switch_args' : '<>',
-        'requirement' : 'asic',
+        'requirement' : 'optional',
         'type' : ['file'],
         'defvalue' : [],
         'hash' : [],
@@ -799,7 +790,7 @@ def schema_libs(cfg, group):
     cfg[group]['default']['model']['default']['apl']['default'] = {        
         'switch' : '-'+group+'_apl',
         'switch_args' : '<>',
-        'requirement' : 'asic',
+        'requirement' : 'optional',
         'type' : ['file'],
         'defvalue' : [],
         'hash' : [],
@@ -959,28 +950,6 @@ def schema_libs(cfg, group):
                   "api: chip.set('"+group+"','mylib','rails','m1')          "]
     }
 
-    cfg[group]['default']['vt'] = {
-        'switch' : '-'+group+'_vt',
-        'switch_args' : '<>',
-        'requirement' : 'apr',
-        'type' : ['str'],
-        'defvalue' : [],
-        'hash'   : [],
-        'date'   : [],
-        'author' : [],
-        'signature' : [],
-        'short_help' : group.capitalize() + ' Threshold Tag',
-        'help' : ["The variable specifies the voltage threshold type of the ",
-                  "library. The value is extracted automatically if found in",
-                  "the default_threshold_voltage_group within the nldm/ccs  ",
-                  "model. For older technologies with only one vt group, it ",
-                  "the value can be set to an arbitrary string (eg: svt)    ",
-                  "                                                         ",
-                  "Examples:                                                ",
-                  "cli: -"+group+"_vt 'mylib lvt'                           ",
-                  "api: chip.set('"+group+"','mylib','vt','lvt')            "]
-    }
-
     cfg[group]['default']['tag'] = {
         'switch' : '-'+group+'_tag',
         'switch_args' : '<>',
@@ -1004,7 +973,7 @@ def schema_libs(cfg, group):
     cfg[group]['default']['driver'] = {
         'switch' : '-'+group+'_driver',
         'switch_args' : '<>',
-        'requirement' : 'apr',
+        'requirement' : 'asic',
         'type' : ['str'],
         'defvalue' : [],
         'short_help' : group.capitalize() + ' Default Driver Cell',
@@ -1791,8 +1760,8 @@ def schema_options(cfg):
         'switch' : '-start',
         'switch_args' : '<step>',
         'type' : ['str'],
-        'requirement' : 'all',
-        'defvalue' : ['import'],
+        'requirement' : 'optional',
+        'defvalue' : [],
         'short_help' : 'Compilation Start Step',
         'help' : ["The start parameter specifies the starting stage of the  ",
                   "flow. This would generally be the import stage but could ",
@@ -1809,8 +1778,8 @@ def schema_options(cfg):
         'switch' : '-stop',
         'switch_args' : '<step>',
         'type' : ['str'],
-        'defvalue' : ['export'],
-        'requirement' : 'all',
+        'defvalue' : [],
+        'requirement' : 'optional',
         'short_help' : 'Compilation Stop Step',
         'help' : ["The stop parameter specifies the stopping stage of the   ",
                   "flow. The value entered is inclusive, so if for example  ",
@@ -1964,7 +1933,7 @@ def schema_options(cfg):
     cfg['signoff_flow'] = {
         'switch' : '-dv_steps',
         'switch_args' : '<str>',
-        'requirement' : 'all',
+        'requirement' : 'optional',
         'type' : ['str'],
         'defvalue' : [],
         'short_help' : 'Verification Steps',
@@ -1985,7 +1954,7 @@ def schema_options(cfg):
     cfg['mfg_flow'] = {
         'switch' : '-mfg_steps',
         'switch_args' : '<str>',
-        'requirement' : 'all',
+        'requirement' : 'optional',
         'type' : ['str'],
         'defvalue' : [],
         'short_help' : 'Manufacturing Steps',
