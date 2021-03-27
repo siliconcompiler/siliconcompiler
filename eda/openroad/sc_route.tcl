@@ -98,10 +98,8 @@ exec ./mergeLef.py --inputLef \
                    --outputLef $output_lef
 
 set param_file [open "route.params" "w"]
-puts $param_file "lef:./$output_lef
-def:./$output_tmp_def
-guide:./$output_guide
-output:./$output_def
+puts $param_file \
+"guide:./$output_guide
 outputDRC:./$output_drc
 verbose:1"
 close $param_file
@@ -123,6 +121,6 @@ sc_write_reports $topmodule
 ################################################################
 
 #sc_write_outputs $topmodule
-#write_def $output_def
+write_def $output_def
 write_verilog $output_verilog
 write_sdc $output_sdc
