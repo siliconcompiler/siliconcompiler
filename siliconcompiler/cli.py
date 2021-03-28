@@ -148,7 +148,7 @@ def add_arg(cfg, parser, keys=None):
                                "\n\n---------------------------------------------------------\n")                    
                 parser.add_argument(cfg[k]['default'][k2]['switch'],
                                     dest=k+"_"+k2,
-                                    metavar=cfg[k]['default'][k2]['switch_args'],
+                                    metavar='',
                                     action='append',
                                     help=helpstr,
                                     default = argparse.SUPPRESS)
@@ -166,7 +166,7 @@ def add_arg(cfg, parser, keys=None):
                                "\n\n---------------------------------------------------------\n") 
                 if cfg[k]['type'][-1] == 'bool': #scalar
                     parser.add_argument(cfg[k]['switch'],
-                                        metavar=cfg[k]['switch_args'],
+                                        metavar='',
                                         dest=keystr,
                                         action='store_const',
                                         const=['True'],
@@ -174,7 +174,7 @@ def add_arg(cfg, parser, keys=None):
                                         default = argparse.SUPPRESS)
                 else:
                     parser.add_argument(cfg[k]['switch'],
-                                        metavar=cfg[k]['switch_args'],
+                                        metavar='',
                                         dest=keystr,
                                         action='append',
                                         help=helpstr,
