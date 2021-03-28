@@ -94,18 +94,32 @@ class Chip:
         # Instance starts unlocked
         self.cfg_locked = False
 
-        #Use built-in target
-        self.builtin_target = False
-        
-        # Instance starts with all default steps in idle
-        self.status = {}
-        all_steps = (self.cfg['design_flow']['defvalue'] +
-                      self.cfg['signoff_flow']['defvalue'])
-        for step in all_steps:
-            self.status[step] = ["idle"]
-
         # Setup Layout
         layout = schema_layout()        
+
+    ###################################
+    def loadtarget(self, name):
+        '''Loading config values based on a named target. sys.path
+        is searched for a module named 'sc_target'. The user will need
+        to set the SCPATH environment variable to ensure non-built in paths
+        can be found
+
+        Args:
+            names (string): A string consisting of three alphanumeric
+        strings separated by '_'
+
+        '''
+        if len(chip.cfg['target']['value']) < 1 :
+            self.logger.error('Trying to load target, but target has not been set yet.')
+            sys.exit()
+        else:
+            target = chip.cfg['target']['value'][-1]            
+            self.logger.debug('Loading configgiration for target %s', target)            
+
+        import sc_target
+        module = importlib.import_module('sc_target')
+        find_target = getattr(module, "find_target")
+        find_target(self, target)
 
     ###################################
     def get(self, *args):
@@ -367,13 +381,13 @@ class Chip:
                     valstr = ' '.join(cfg[k][field])
                     typestr = ' '.join(cfg[k]['type'])
                     defstr  = ' '.join(cfg[k]['defvalue'])
-                    outlst = [keystr,
+                    outlst = [cfg[k]['param_help'],
                               cfg[k]['short_help'],
                               typestr,
                               cfg[k]['requirement'],
                               defstr,
-                              valstr]                        
-                    outstr = " | {: <42} | {: <30} | {: <15} | {: <8} | {: <10}|".format(*outlst)
+                              valstr]
+                    outstr = " | {: <45} | {: <30} | {: <15} | {: <10} | {: <10}|".format(*outlst)
                 #print out content
                 if file is None:
                     print(outstr)
@@ -567,14 +581,14 @@ class Chip:
         elif filepath.endswith('.md'):
             with open(filepath, 'w') as f:
                 outlist = ['param', 'desription', 'type', 'required', 'default', 'value']
-                outstr = " | {: <42} | {: <30} | {: <15} | {: <8} | {: <10}|".format(*outlist)
+                outstr = " | {: <45} | {: <30} | {: <15} | {: <10} | {: <10}|".format(*outlist)
                 print(outstr, file=f)
                 outlist = [':----',
                           ':----',
                           ':----',
                           ':----',
                           ':----']
-                outstr = " | {: <42} | {: <30} | {: <15} | {: <8} | {: <10}|".format(*outlist)
+                outstr = " | {: <45} | {: <30} | {: <15} | {: <10} | {: <10}|".format(*outlist)
                 print(outstr, file=f)
                 self.printcfg(cfg, mode='md', field='requirement' , file=f)  
         else:
