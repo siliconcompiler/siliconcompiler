@@ -1610,23 +1610,35 @@ def schema_options(cfg):
         'param_help' : "'target' <str>",
         'help' : """
         Provides a string name for choosing a physical mapping target for the
-        design. Like in compilers like gcc, only targets that are pre-baked into
-        the compiler supported. Custom targets can be configured through a 
-        combination of command line switches and config files. The target 
-        parameter is included for convenience, enabling efficient single line
-        commands like 'sc -target asap hello_world.v'. Specifying the target 
-        parameter causes a number of PDK and library variables to be set 
-        automatically set based on he specific target specified. Currently, the
-        following native targets are natively supported: 1.) asap7, a virtual 
-        7nm PDK with multiple VT libraries, 2.) freepdk45, a virtual 45nm PDK 
-        with a single VT library.
+        design. The target should be one of the following formats.
+
+        1.) A single word target found in the targetmap list (freepdk45, asap7)
+        2.) For ASICs, a quad of format "foundry_process_lib_edaflow"
+        3.) For FPGAs, a quad of format "vendor_device_board_edaflow"
 
         Examples:
         cli: -target 'freepdk45'
         api:  chip.set('target', 'freepdk45')
         """
     }
-
+    cfg['targetmap']={}
+    cfg['targetmap']['default'] = {
+        'switch' : '-targetmap',
+        'type' : ['str'],
+        'requirement' : 'optional',
+        'defvalue' : [],        
+        'short_help' : 'Target Platform Name Map',
+        'param_help' : "'targetmap' alias <str>",
+        'help' : """
+        Provides name alias for complete target description. The alias is shorthand
+        for a complete quad field target.
+        
+        Examples:
+        cli: -targetmap 'freepdk45 virtual_freepdk45_nangate45_openeda'
+        api:  chip.add('targetmap','freepdk45','virtual_freepdk45_nangate45_openeda')
+        """
+    }
+    
     cfg['cfg'] = {
         'switch' : '-cfg',
         'type' : ['file'],
