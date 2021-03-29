@@ -33,10 +33,10 @@ def schema_cfg():
     # Designer's Choice
     cfg = schema_design(cfg)
     cfg = schema_mcmm(cfg)
-
+    
     # Designer Run options
     cfg = schema_options(cfg)
-
+    
     return cfg
 
 ###############################################################################
@@ -61,7 +61,8 @@ def schema_path(filename):
     starting with $
     '''
 
-    #Resolve absolute path usign SCPATH    
+    #Resolve absolute path usign SCPATH
+    #list is read left to right
     scpaths = str(os.environ['SCPATH']).split()
     for searchdir in scpaths:        
         abspath = searchdir + "/" + filename
@@ -662,7 +663,6 @@ def schema_libs(cfg, group):
     #Models (Timing, Power, Noise)
     ###############################
 
-    cfg[group]['default'] = {}
     cfg[group]['default']['default'] = {}
 
     #Operating Conditions (per corner)
@@ -741,7 +741,7 @@ def schema_libs(cfg, group):
         'author' : [],
         'signature' : [],
         'short_help' : group.capitalize() + ' CCS Timing Model',
-        'param_help' : "'"+group+"' libname corner 'ccs' type <file>",
+        'param_help' : "'"+group+"' libname  corner 'ccs' type <file>",
         'help' :
         "Filepaths to CCS models. Timing files are specified on a per lib,   "\
         "per corner, and per format basis. The format is driven by EDA tool  "\
@@ -764,7 +764,7 @@ def schema_libs(cfg, group):
         'author' : [],
         'signature' : [],
         'short_help' : group.capitalize() + ' AOCV Timing Model',
-        'param_help' : "'"+group+"' libname corner 'aocv' <file>",
+        'param_help' : "'"+group+"' libname  corner 'aocv' <file>",
         'help' :
         "Filepaths to AOCV models. Timing files are specified on a per lib   "\
         "and per corner basis.                                               "\
@@ -786,7 +786,7 @@ def schema_libs(cfg, group):
         'author' : [],
         'signature' : [],
         'short_help' : group.capitalize() + ' APL Power Model',
-        'param_help' : "'"+group+"' libname corner 'apl' type <file>",
+        'param_help' : "'"+group+"' libname 'model' corner 'apl' type <file>",
         'help' :
         "Filepaths to APL power models. Power files are specified on a per   "\
         "lib, per corner, and per format basis                               "\
@@ -1613,29 +1613,12 @@ def schema_options(cfg):
         design. The target should be one of the following formats.
 
         1.) A single word target found in the targetmap list (freepdk45, asap7)
-        2.) For ASICs, a quad of format "foundry_process_lib_edaflow"
-        3.) For FPGAs, a quad of format "vendor_device_board_edaflow"
+        2.) For ASICs, a quad of format "process_lib_dataflow"
+        3.) For FPGAs, a quad of format "device_edaflow"
 
         Examples:
         cli: -target 'freepdk45'
         api:  chip.set('target', 'freepdk45')
-        """
-    }
-    cfg['targetmap']={}
-    cfg['targetmap']['default'] = {
-        'switch' : '-targetmap',
-        'type' : ['str'],
-        'requirement' : 'optional',
-        'defvalue' : [],        
-        'short_help' : 'Target Platform Name Map',
-        'param_help' : "'targetmap' alias <str>",
-        'help' : """
-        Provides name alias for complete target description. The alias is shorthand
-        for a complete quad field target.
-        
-        Examples:
-        cli: -targetmap 'freepdk45 virtual_freepdk45_nangate45_openeda'
-        api:  chip.add('targetmap','freepdk45','virtual_freepdk45_nangate45_openeda')
         """
     }
     
@@ -1828,38 +1811,38 @@ def schema_options(cfg):
         """
     }
     
-    cfg['msg_event'] = {
-        'switch' : '-msg_event',
+    cfg['msgevent'] = {
+        'switch' : '-msgevent',
         'type' : ['str'],
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Message Event',
-        'param_help' : "'msg_event' <str>",
+        'param_help' : "'msgevent' <str>",
         'help' : """
         A list of steps after which to notify a recipient. For example if 
         values of syn, place, cts are entered separate messages would be sent 
         after the completion of the syn, place, and cts steps.
 
         Examples:
-        cli: -msg_event 'export'
-        api: chip.set('msg_event','export')
+        cli: -msgevent 'export'
+        api: chip.set('msgevent','export')
         """
     }
 
-    cfg['msg_contact'] = {
-        'switch' : '-msg_contact',
+    cfg['msgcontact'] = {
+        'switch' : '-msgcontact',
         'type' : ['str'],
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Message Contact',
-        'param_help' : "'msg_contact' <str>",
+        'param_help' : "'msgcontact' <str>",
         'help' : """
         A list of phone numbers or email addresses to message on a event event
         within the msg_event param.
         
         Examples:
-        cli: -msg_contact 'wile.e.coyote@acme.com'
-        api: chip.set('msg_contact','wile.e.coyote@acme.com')
+        cli: -msgcontact 'wile.e.coyote@acme.com'
+        api: chip.set('msgcontact','wile.e.coyote@acme.com')
         """
     }
 
@@ -1918,73 +1901,26 @@ def schema_options(cfg):
         """
     }
     
-    cfg['flow_design'] = {
-        'switch' : '-flow_design',
+    cfg['steps'] = {
+        'switch' : '-steps',
         'requirement' : 'all',
         'type' : ['str'],
         'defvalue' : [],
-        'short_help' : 'Compilation Flow',
-        'param_help' : "'flow_design' <str>",
+        'short_help' : 'Compilation Steps',
+        'param_help' : "'steps' <str>",
         'help' : """
-        A complete list of all steps included in fully automated RTL to GDSII 
-        compilation. Compilation flow is controlled with the -start, -stop, 
-        -cont switches and by adding values to the list. The list must be 
-        ordered to enable default automated compilation from the first entry 
-        to the last entry in the list. Inserting steps in the middle of the 
-        list is only possible by overwriting the whole list. The example below 
-        demonstrates adding a tapeout step at the end of the compile_steps list.
+        A complete list of all steps included in the compilation process.
+        Compilation flow is controlled with the -start, -stop, -cont switches 
+        and by adding values to the list. The list must be ordered to enable 
+        default automated compilation from the first entry to the last entry 
+        in the list. 
 
         Examples:
-        cli: -flow_design 'export'
-        api:  chip.add('flow_design', 'export')
+        cli: -steps 'export'
+        api:  chip.add('steps', 'export')
         """
-        
     }
 
-    cfg['flow_signoff'] = {
-        'switch' : '-flow_signoff',
-        'requirement' : 'optional',
-        'type' : ['str'],
-        'defvalue' : [],
-        'short_help' : 'Signoff Flow',
-        'param_help' : "'flow_signoff' <str>",
-        'help' : """
-        A complete list of all verification steps. Verification flow is 
-        controlled with the -start, -stop, -cont switches nd by expanding the 
-        list. The list must be ordered to enable default automated verification 
-        from the first entry to the last entry in the list. Inserting steps in 
-        the middle of the list is only possible by overwriting the whole list. 
-        The example below demonstrates adding an archive step at the end of the 
-        dv_steps list
-
-        Examples:
-        cli: -flow_signoff 'lvs'
-        api:  chip.add('flow_signoff', 'lvs')
-        """        
-    }
-
-    cfg['flow_mfg'] = {
-        'switch' : '-flow_mfg',
-        'requirement' : 'optional',
-        'type' : ['str'],
-        'defvalue' : [],
-        'short_help' : 'Manufacturing Steps',
-        'param_help' : "'flow_mfg' <str>",
-        'help' : """
-        A complete list of all manufacturing steps. Manufacturing flow is 
-        controlled with the -start, -stop, -cont switches and by expanding the 
-        list. The list must be ordered to enable default automated verification 
-        from the first entry to the last entry in the list. Inserting steps in 
-        the middle of the list is only possible by overwriting the whole list. 
-        The example below demonstrates adding an archive step at the end of the 
-        dv_steps list
-
-        Examples:
-        cli: -flow_mfg 'maskprep'
-        api:  chip.add('flow_mfg', 'maskprep')
-        """        
-    }
-    
     # Remote IP address/host name running sc-server app
     cfg['remote'] = {
         'switch': '-remote',
@@ -2005,12 +1941,12 @@ def schema_options(cfg):
     
     # Port number that the remote host is running 'sc-server' on.
     cfg['remoteport'] = {
-        'switch': '-remote_port',
+        'switch': '-remoteport',
         'type' : ['num'],
         'requirement' : 'remote',
         'defvalue' : ['8080'],
         'short_help': 'Remove Server Port',
-        'param_help' : "'remote' <str>",
+        'param_help' : "'remoteport' <str>",
         'help' : """
         Sets the server port to be used in communicating with the remote host.
 
@@ -2496,12 +2432,11 @@ def schema_asic(cfg):
         'switch' : '-asic_maxfanout',
         'type' : ['num'],
         'requirement' : 'asic',
-        'defvalue' : ['64'],
+        'defvalue' : [],
         'short_help' : 'Maximum Fanout',
         'param_help' : "'asic' 'maxfanout' <str>",
         'help' : """
         A max fanout rule to be applied during synthesis and apr.
-        The value has a default of 64.
         
         Examples:
         cli: -asic_maxfanout 32
