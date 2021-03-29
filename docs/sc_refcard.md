@@ -66,7 +66,7 @@
  | 'asic' 'ndr' <str>                            | Non-default Routing            | file            |            |           |
  | 'asic' 'minlayer' <str>                       | Minimum routing layer          | str             | asic       |           |
  | 'asic' 'maxlayer' <str>                       | Maximum Routing Layer          | str             | asic       |           |
- | 'asic' 'maxfanout' <str>                      | Maximum Fanout                 | num             | asic       | 64        |
+ | 'asic' 'maxfanout' <str>                      | Maximum Fanout                 | num             | asic       |           |
  | 'asic' 'stackup' <str>                        | Metal Stackup                  | str             | asic       |           |
  | 'asic' 'density' <num>                        | Target Core Density            | num             | !diesize   |           |
  | 'asic' 'coremargin' <num>                     | Block Core Margin              | num             | density    |           |
@@ -74,12 +74,19 @@
  | 'asic' 'diesize' <num num num num>            | Target Die Size                | num num num num | !density   |           |
  | 'asic' 'coresize' <num num num num>           | Target Core Size               | num num num num | diesize    |           |
  | 'asic' 'floorplan' <file>                     | Floorplanning Script           | file            | optional   |           |
+ | 'stdcell' libname 'rev' <str>                 | Stdcell Release Revision       | str             | asic       |           |
+ | 'stdcell' libname 'origin' <str>              | Stdcell Origin                 | str             | asic       |           |
+ | 'stdcell' libname 'license' <file>            | Stdcell License File           | file            | asic       |           |
+ | 'stdcell' libname 'doc' <file>                | Stdcell Documentation          | file            | asic       |           |
+ | 'stdcell' libname 'datasheet' <file>          | Stdcell Datasheets             | file            | optional   |           |
+ | 'stdcell' libname 'libtype' <str>             | Stdcell Type                   | str             | asic       |           |
+ | 'stdcell' libname 'size' <num num>            | Stdcell Size                   | num num         | apr        |           |
  | 'stdcell' libname corner 'opcond' <str>       | Stdcell Operating Condition    | str             | asic       |           |
  | 'stdcell' libname corner 'check' <str>        | Stdcell Corner Checks          | str             | asic       |           |
  | 'stdcell' libname corner 'nldm' type <file>   | Stdcell NLDM Timing Model      | file            | asic       |           |
- | 'stdcell' libname corner 'ccs' type <file>    | Stdcell CCS Timing Model       | file            | optional   |           |
- | 'stdcell' libname corner 'aocv' <file>        | Stdcell AOCV Timing Model      | file            | optional   |           |
- | 'stdcell' libname corner 'apl' type <file>    | Stdcell APL Power Model        | file            | optional   |           |
+ | 'stdcell' libname  corner 'ccs' type <file>   | Stdcell CCS Timing Model       | file            | optional   |           |
+ | 'stdcell' libname  corner 'aocv' <file>       | Stdcell AOCV Timing Model      | file            | optional   |           |
+ | 'stdcell' libname 'model' corner 'apl' type <file> | Stdcell APL Power Model        | file            | optional   |           |
  | 'stdcell' libname 'lef' <file>                | Stdcell LEF                    | file            | asic       |           |
  | 'stdcell' libname 'gds' <file>                | Stdcell GDS                    | file            | optional   |           |
  | 'stdcell' libname 'cdl' <file>                | Stdcell CDL Netlist            | file            | optional   |           |
@@ -92,12 +99,19 @@
  | 'stdcell' libname 'site' <str>                | Stdcell Site/Tile Name         | str             | optional   |           |
  | 'stdcell' libname 'cells' celltype <str>      | Stdcell Cell Lists             | str             | optional   |           |
  | 'stdcell' libname 'laydb' type <file>         | Stdcell Layout Database        | file            | optional   |           |
+ | 'macro' libname 'rev' <str>                   | Macro Release Revision         | str             | asic       |           |
+ | 'macro' libname 'origin' <str>                | Macro Origin                   | str             | asic       |           |
+ | 'macro' libname 'license' <file>              | Macro License File             | file            | asic       |           |
+ | 'macro' libname 'doc' <file>                  | Macro Documentation            | file            | asic       |           |
+ | 'macro' libname 'datasheet' <file>            | Macro Datasheets               | file            | optional   |           |
+ | 'macro' libname 'libtype' <str>               | Macro Type                     | str             | asic       |           |
+ | 'macro' libname 'size' <num num>              | Macro Size                     | num num         | apr        |           |
  | 'macro' libname corner 'opcond' <str>         | Macro Operating Condition      | str             | asic       |           |
  | 'macro' libname corner 'check' <str>          | Macro Corner Checks            | str             | asic       |           |
  | 'macro' libname corner 'nldm' type <file>     | Macro NLDM Timing Model        | file            | asic       |           |
- | 'macro' libname corner 'ccs' type <file>      | Macro CCS Timing Model         | file            | optional   |           |
- | 'macro' libname corner 'aocv' <file>          | Macro AOCV Timing Model        | file            | optional   |           |
- | 'macro' libname corner 'apl' type <file>      | Macro APL Power Model          | file            | optional   |           |
+ | 'macro' libname  corner 'ccs' type <file>     | Macro CCS Timing Model         | file            | optional   |           |
+ | 'macro' libname  corner 'aocv' <file>         | Macro AOCV Timing Model        | file            | optional   |           |
+ | 'macro' libname 'model' corner 'apl' type <file> | Macro APL Power Model          | file            | optional   |           |
  | 'macro' libname 'lef' <file>                  | Macro LEF                      | file            | asic       |           |
  | 'macro' libname 'gds' <file>                  | Macro GDS                      | file            | optional   |           |
  | 'macro' libname 'cdl' <file>                  | Macro CDL Netlist              | file            | optional   |           |
@@ -145,13 +159,11 @@
  | 'start' <str>                                 | Compilation Start Step         | str             | optional   |           |
  | 'stop' <str>                                  | Compilation Stop Step          | str             | optional   |           |
  | 'skip' <str>                                  | Compilation Skip Steps         | str             | optional   |           |
- | 'msg_event' <str>                             | Message Event                  | str             | optional   |           |
- | 'msg_contact' <str>                           | Message Contact                | str             | optional   |           |
+ | 'msgevent' <str>                              | Message Event                  | str             | optional   |           |
+ | 'msgcontact' <str>                            | Message Contact                | str             | optional   |           |
  | 'optmode' <str>                               | Optimization Mode              | str             | optional   | O0        |
  | 'relax' <bool>                                | Relaxed RTL Linting            | bool            | optional   | false     |
  | 'clean' <bool>                                | Keep essential files only      | bool            | optional   | false     |
- | 'flow_design' <str>                           | Compilation Flow               | str             | all        |           |
- | 'flow_signoff' <str>                          | Signoff Flow                   | str             | optional   |           |
- | 'flow_mfg' <str>                              | Manufacturing Steps            | str             | optional   |           |
+ | 'steps' <str>                                 | Compilation Steps              | str             | all        |           |
  | 'remote' <str>                                | Remote Server Address          | str             | optional   |           |
- | 'remote' <str>                                | Remove Server Port             | num             | remote     | 8080      |
+ | 'remoteport' <str>                            | Remove Server Port             | num             | remote     | 8080      |
