@@ -9,6 +9,6 @@ import siliconcompiler as sc
 mychip = sc.Chip()
 
 # Reading in default config files unless cfg file is set
-mychip.writecfg("mychip.md", prune=False)
+mychip.writecfg("docs/sc_refcard.md", prune=False)
 
 
