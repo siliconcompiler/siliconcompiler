@@ -13,8 +13,7 @@ import importlib.resources
 from argparse import RawTextHelpFormatter
 
 #Shorten siliconcompiler as sc
-import siliconcompiler as sc
-from siliconcompiler.setup  import setup_target
+import siliconcompiler
 from siliconcompiler.schema import schema_cfg
 from siliconcompiler.client import remote_run
 
@@ -67,7 +66,7 @@ def cmdline():
 
     #Recursive argument adder
     add_arg(def_cfg, parser)
-    
+
     #Parsing args and converting to dict
     cmdargs = vars(parser.parse_args())
 
@@ -83,9 +82,11 @@ def cmdline():
 
     for key,all_vals in cmdargs.items():
         # Nested parameters
-        # ['stdcells'][lib]['lef']
-        # ['flow'][step]['exe']
-        # ['goal'][step]['hold_tns']
+        # ['asic']['diesize']
+        # ['pdk']['rev']
+        # ['stdcells'][libname]['lef']
+        # ['flow'][stepname]['exe']
+        # ['goal'][stepname]['hold_tns']
         m = re.match('(stdcells|macro|flow|real|goal)_(.*)', key)
         #TODO: need to do this properly with search function to populate
         # param when not found!
@@ -114,14 +115,27 @@ def cmdline():
                         cfg[param0][val[0]][param2]['value'].extend(val[1])
         
         else:
-            #Flat parameters
-            if 'value' not in cfg:
-                 cfg[key] = {}
-                 cfg[key]['value'] = all_vals
+            #TODO: buggy and ugly, fix all of this properly!
+            m = re.match('(pdk|asic|fpga)_(.*)', key)
+            if m:
+                param0 =  m.group(1)
+                param2 =  m.group(2)
 
+                if param0 not in cfg:
+                    cfg[param0]={}
+                if param2 not in cfg[param0]:
+                    cfg[param0][param2] = {}
+                if 'value' not in cfg[param0][param2]:
+                    cfg[param0][param2]['value'] = all_vals                    
+                else:
+                    cfg[param0][param2]['value'].extend(all_vals)
             else:
-                cfg[key]['value'].extend(all_vals)
-
+                if 'value' not in cfg:
+                    cfg[key] = {}
+                    cfg[key]['value'] = all_vals                    
+                else:
+                    cfg[key]['value'].extend(all_vals)
+                    
     return cfg
 
 ###########################
@@ -138,32 +152,39 @@ def add_arg(cfg, parser, keys=None):
         if k in ('source'):
             pass
         #Optimizing command line switches for these
+        #These all have steps
+        #dict: 'flow' step 'exe' <str>
+        #cli: -flow_exe "step <str>"
         elif k in ('flow', 'goal', 'real'):
             for k2 in cfg[k]['default'].keys():
                 helpstr = cfg[k]['default'][k2]['short_help']
-                if longhelp:
-                    helpstr = (helpstr +
-                               '\n\n' +
-                               '\n'.join(cfg[k]['default'][k2]['help']) +
-                               "\n\n---------------------------------------------------------\n")                    
                 parser.add_argument(cfg[k]['default'][k2]['switch'],
                                     dest=k+"_"+k2,
                                     metavar='',
                                     action='append',
                                     help=helpstr,
                                     default = argparse.SUPPRESS)
+        
+        #dict: 'pdk' 'foundry <str>
+        #cli: -pdk_foundry "<str>"
+        elif k in ('asic', 'fpga', 'pdk'):
+             for k2 in cfg[k].keys():
+                #Watch out for nesting (like in devicemodel)                
+                if 'switch' in cfg[k][k2].keys():
+                    helpstr = cfg[k][k2]['short_help']
+                    parser.add_argument(cfg[k][k2]['switch'],
+                                        dest=k+"_"+k2,
+                                        metavar='',
+                                        action='append',
+                                        help=helpstr,
+                                        default = argparse.SUPPRESS)
         #All others
         else:            
             newkeys =  keys.copy()
             newkeys.append(str(k))            
-            if 'defvalue' in cfg[k].keys():                
+            if 'switch' in cfg[k].keys():                
                 keystr = '_'.join(newkeys)
                 helpstr = cfg[k]['short_help']
-                if longhelp:
-                    helpstr = (helpstr +
-                               '\n\n' +
-                               '\n'.join(cfg[k]['help']) +
-                               "\n\n---------------------------------------------------------\n") 
                 if cfg[k]['type'][-1] == 'bool': #scalar
                     parser.add_argument(cfg[k]['switch'],
                                         metavar='',
@@ -196,25 +217,31 @@ def main():
         loglevel = "INFO"
         
     #Create one (or many...) instances of Chip class
-    chip = sc.Chip(loglevel=loglevel)
-   
+    chip = siliconcompiler.Chip(loglevel=loglevel)
+
+    # Automagical demo defaults for single arrgument compile
+    if ('cfg' in cmdlinecfg.keys()) & (not 'target' in cmdlinecfg.keys()):  
+        self.logger.info('No target specified, setting to target %s', target)        
+        chip.cfg['pdk']['foundry']['value'][0] = 'virtual'
+        chip.cfg['pdk']['process']['value'][0] = 'freepdk45'
+        chip.cfg['mode']['value'][0] = 'asic'
+        
     # Reading in config files specified at command line
     if 'cfg' in  cmdlinecfg.keys():
         for cfgfile in cmdlinecfg['cfg']['value']:
             chip.readcfg(cfgfile)
-        
-    #Override cfg with command line args
-    chip.mergecfg(cmdlinecfg)
 
-    #Setup target if specified
-    if len(chip.cfg['target']['value']) > 0:
-        setup_target(chip)
-        
-    #Resolve as absolute paths (should be a switch)
-    #chip.abspath()
+    #Load target
+    if len(cmdlinecfg['target']['value']) > 0:
+        chip.target(cmdlinecfg['target']['value'][0])
+
+    #Override cfg with command line args
+    chip.mergecfg(cmdlinecfg)   
+
+    #Resolve absolute paths
 
     #Checks settings and fills in missing values
-    #chip.check()
+    chip.check()
 
     #Creating hashes for all sourced files
     chip.hash()
@@ -225,8 +252,9 @@ def main():
 
     #Lock chip configuration
     chip.lock()
-    
-    all_steps = chip.get('design_flow')
+
+    # Running compilation pipeline
+    all_steps = chip.get('steps')
     for stage in all_steps:
         # Run each stage on the remote compute cluster if requested.
         if len(chip.cfg['remote']['value']) > 0:
