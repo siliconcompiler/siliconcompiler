@@ -16,12 +16,12 @@ if {[dict get $sc_cfg flow $stage copy] eq True} {
 # Sourcing helper procedures
 source $scriptdir/sc_procedures.tcl
 
-set stackup      [dict get $sc_cfg stackup]
+set stackup      [dict get $sc_cfg asic stackup]
 set topmodule    [dict get $sc_cfg design]
-set target_libs  [dict get $sc_cfg target_lib]
+set target_libs  [dict get $sc_cfg asic targetlib]
 set mainlib      [lindex $target_libs 0]
 set libarch      [dict get $sc_cfg stdcell $mainlib libtype]
-set techlef      [dict get $sc_cfg pdk_aprtech $stackup $libarch openroad]
+set techlef      [dict get $sc_cfg pdk aprtech $stackup $libarch openroad]
 # TODO: Make these schema config values, and where to put lut/sol files.
 # (These are some default freepdk45 OpenROAD values.)
 set clock_nets   "clk"
@@ -50,7 +50,7 @@ set output_sdc      "outputs/$topmodule.sdc"
 read_lef $techlef
 # Setup libraries.
 foreach lib $target_libs {
-    read_liberty [dict get $sc_cfg stdcell $lib model typical nldm lib]
+    read_liberty [dict get $sc_cfg stdcell $lib typical nldm lib]
     # Correct for polygonal pin sizes in nangate45 liberty.
     if  {$lib eq "NangateOpenCellLibrary"} {
         set target_lef [dict get $sc_cfg stdcell $lib lef]

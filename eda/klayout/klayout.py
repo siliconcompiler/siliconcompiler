@@ -4,7 +4,7 @@ import os
 # Tool Setup
 ################################
 
-def setup_tool(chip, step, tool):
+def setup_tool(chip, step):
 
      refdir = 'eda/klayout'
      
@@ -20,7 +20,7 @@ def setup_tool(chip, step, tool):
           elif step == 'export':               
                chip.add('flow', step, 'option', '-zz')
           
-def setup_options(chip,step , tool):
+def setup_options(chip,step):
      
      options = chip.get('flow', step, 'option')
      return options
@@ -28,13 +28,13 @@ def setup_options(chip,step , tool):
 ################################
 # Pre/Post Processing
 ################################
-def pre_process(chip, step, tool):
+def pre_process(chip, step):
     ''' Tool specific function to run before step execution
     '''
     sc_paths = os.getenv('SCPATH').split(' ')
     sc_path = ''
     for path in sc_paths:
-      if chip.cfg['pdk_foundry']['value'][-1] in path:
+      if chip.cfg['pdk']['foundry']['value'][-1] in path:
         sc_path = path
     sc_root = sc_path[:sc_path.find('/foundry')]
     foundry_path = '%s/%s/pdk/%s'%(
@@ -74,7 +74,7 @@ def pre_process(chip, step, tool):
          chip.add('flow', step, 'option', '-rm')
          chip.add('flow', step, 'option', 'def2gds.py')
 
-def post_process(chip, step, tool):
+def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
     pass

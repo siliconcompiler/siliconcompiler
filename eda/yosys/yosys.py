@@ -1,11 +1,11 @@
 import os
 import defusedxml.ElementTree as ET
 
-def setup_tool(chip, step, tool):
-
+def setup_tool(chip, step):
+     chip.logger.debug("Setting up Yosys")     
+     
      refdir = 'eda/yosys'
 
-     chip.add('flow', step, 'threads', '4')
      chip.add('flow', step, 'format', 'tcl')
      chip.add('flow', step, 'copy', 'true')
      chip.add('flow', step, 'vendor', 'yosys')
@@ -14,7 +14,7 @@ def setup_tool(chip, step, tool):
      chip.add('flow', step, 'refdir', refdir)
      chip.add('flow', step, 'script', refdir + '/sc_syn.tcl')
    
-def setup_options(chip, step, tool):
+def setup_options(chip, step):
 
      options = chip.get('flow', step, 'option')
      return options
@@ -22,7 +22,7 @@ def setup_options(chip, step, tool):
 ################################
 # Pre and Post Run Commands
 ################################
-def pre_process(chip, step, tool):
+def pre_process(chip, step):
     ''' Tool specific function to run before step execution
     '''
 
@@ -50,7 +50,7 @@ def pre_process(chip, step, tool):
         with open('fpga_lutsize.tcl', 'w') as f:
             f.write('set lutsize ' + str(lut_size))
 
-def post_process(chip, step, tool):
+def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
     pass

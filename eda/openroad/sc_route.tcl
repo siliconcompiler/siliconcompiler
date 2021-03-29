@@ -17,12 +17,12 @@ if {[dict get $sc_cfg flow $stage copy] eq True} {
 source $scriptdir/sc_procedures.tcl
 
 #Massaging dict into simple local variables
-set stackup      [dict get $sc_cfg stackup]
-set target_libs  [dict get $sc_cfg target_lib]
+set stackup      [dict get $sc_cfg asic stackup]
+set target_libs  [dict get $sc_cfg asic targetlib]
 set mainlib      [lindex $target_libs 0]
 set libarch      [dict get $sc_cfg stdcell $mainlib libtype]
 set pdklef       [dict get $sc_cfg stdcell $mainlib lef]
-set techlef      [dict get $sc_cfg pdk_aprtech $stackup $libarch openroad]
+set techlef      [dict get $sc_cfg pdk aprtech $stackup $libarch openroad]
 set topmodule    [dict get $sc_cfg design]
 # TODO: Fetch from config dictionary instead of hardcoding.
 set groute_min_layer 2
@@ -59,7 +59,7 @@ set output_guide    "outputs/$topmodule.guide"
 read_lef $techlef
 # Setup libraries.
 foreach lib $target_libs {
-    read_liberty [dict get $sc_cfg stdcell $lib model typical nldm lib]
+    read_liberty [dict get $sc_cfg stdcell $lib typical nldm lib]
     # Correct for polygonal pin sizes in nangate45 liberty.
     if  {$lib eq "NangateOpenCellLibrary"} {
         set target_lef [dict get $sc_cfg stdcell $lib lef]

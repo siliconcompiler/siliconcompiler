@@ -28,15 +28,15 @@ set input_sdc       "inputs/$topmodule.sdc"
 yosys read_verilog $input_verilog
 
 if {$mode eq "asic"} {
-    set target_lib   [dict get $sc_cfg target_lib]
+    set targetlib   [dict get $sc_cfg asic targetlib]
     #TODO: fix to handle multiple libraries
-    set library_file [dict get $sc_cfg stdcell $target_lib model typical nldm lib]
+    set library_file [dict get $sc_cfg stdcell $targetlib typical nldm lib]
 
     #Outputs
     set output_verilog  "outputs/$topmodule.v"
     set output_def      "outputs/$topmodule.def"
     set output_sdc      "outputs/$topmodule.sdc"
-    set output_blif      "outputs/$topmodule.blif"
+    set output_blif     "outputs/$topmodule.blif"
 
     ########################################################
     # Technology Mapping

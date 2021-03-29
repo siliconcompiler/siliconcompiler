@@ -7,9 +7,10 @@ from siliconcompiler.schema import schema_istrue
 # Setup Verilator
 ################################
 
-def setup_tool(chip, step, tool):
+def setup_tool(chip, step):
     ''' Sets up default settings on a per step basis
     '''
+    chip.logger.debug("Setting up Verilator")
     
     chip.add('flow', step, 'threads', '4')
     chip.add('flow', step, 'format', 'cmdline')
@@ -23,7 +24,7 @@ def setup_tool(chip, step, tool):
 # Set Verilator Runtime Options
 ################################
 
-def setup_options(chip, step, tool):
+def setup_options(chip, step):
     ''' Per tool/step function that returns a dynamic options string based on
     the dictionary settings.
     '''
@@ -84,12 +85,12 @@ def setup_options(chip, step, tool):
 ################################
 # Pre and Post Run Commands
 ################################
-def pre_process(chip, step, tool):
+def pre_process(chip, step):
     ''' Tool specific function to run before step execution
     '''
     pass
 
-def post_process(chip, step, tool):
+def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
 

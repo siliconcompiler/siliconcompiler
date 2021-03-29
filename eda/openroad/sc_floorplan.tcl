@@ -13,15 +13,15 @@ if {[dict get $sc_cfg flow $step copy] eq True} {
 }
 
 #Massaging dict into simple local variables
-set stackup      [dict get $sc_cfg stackup]
-set target_libs  [dict get $sc_cfg target_lib]
+set stackup      [dict get $sc_cfg asic stackup]
+set target_libs  [dict get $sc_cfg asic targetlib]
 set mainlib      [lindex $target_libs 0]
 set libarch      [dict get $sc_cfg stdcell $mainlib libtype]
-set techlef      [dict get $sc_cfg pdk_aprtech $stackup $libarch openroad]
+set techlef      [dict get $sc_cfg pdk aprtech $stackup $libarch openroad]
 set topmodule    [dict get $sc_cfg design]
 set corner       "typical"
-set diesize      [dict get $sc_cfg diesize]
-set coresize     [dict get $sc_cfg coresize]
+set diesize      [dict get $sc_cfg asic diesize]
+set coresize     [dict get $sc_cfg asic coresize]
 # TODO: Retrieve from dictionary instead of hardcoding.
 # Horizontal / Vertical I/O layers.
 set io_hlayer    "4"
@@ -45,7 +45,7 @@ set output_sdc      "outputs/$topmodule.sdc"
 #Setup Process
 ####################
 read_lef  $techlef
-set pnrlayers    [dict get $sc_cfg pdk_aprlayer $stackup]
+set pnrlayers    [dict get $sc_cfg pdk aprlayer $stackup]
 
 set outfile [open "sc_tracks.txt" w]
 #loop through list one tuple4 at a time
@@ -60,7 +60,7 @@ close $outfile
 #Setup Libs
 ####################
 foreach lib $target_libs {
-    read_liberty [dict get $sc_cfg stdcell $lib model typical nldm lib]
+    read_liberty [dict get $sc_cfg stdcell $lib typical nldm lib]
     # Correct for polygonal pin sizes in nangate45 liberty.
     if  {$lib eq "NangateOpenCellLibrary"} {
         set target_lef [dict get $sc_cfg stdcell $lib lef]
