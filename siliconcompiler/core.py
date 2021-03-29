@@ -48,35 +48,35 @@ class Chip:
 
         '''
         
+        # Create a default dict 
+        self.cfg = schema_cfg()
+
         # Set Environment Variable if not already set
         scriptdir = os.path.dirname(os.path.abspath(__file__))
         rootdir =  re.sub('siliconcompiler/siliconcompiler',
                           'siliconcompiler',
                           scriptdir)
 
-        #get foundries and fpga companies dynamically
-        paths = []
-        paths.extend(glob.glob(rootdir+'/fpga/*'))
-        paths.extend(glob.glob(rootdir+'/foundry/*'))
 
-        # adding install directory to search path
-        if os.getenv('SCPATH') == None:            
-            os.environ['SCPATH'] = rootdir
-
+        #Setup Search Paths
+        #environment paths have highest priority
+        scpaths = str(os.environ['SCPATH']).split()
+        scpaths.append(rootdir)
+        
         # Adding current working directory to search path
         # don't duplicate if running out of install dir
-        if not re.match(str(os.getcwd()), rootdir):   
-            os.environ['SCPATH'] = os.getcwd() + " " + os.environ['SCPATH']
+        if not re.match(str(os.getcwd()), rootdir):
+            scpaths.extend(os.getcwd())
 
-        # Adding built-in target paths
-        for item in paths:
+        # Setting up SCPATH for rest of tools
+        for item in scpaths:
             if os.path.isdir(item):
                 if not re.match(item, os.environ['SCPATH'],):
-                    os.environ['SCPATH'] = item + " " + os.environ['SCPATH']
+                    os.environ['SCPATH'] = os.environ['SCPATH'] + " " + item
 
-        #Adding module search path 
+        #Adding module search path
         sys.path.append(os.environ['SCPATH'])
-                    
+
         # Initialize logger
         self.logger = log.getLogger()
         self.handler = log.StreamHandler()
@@ -84,12 +84,13 @@ class Chip:
         self.handler.setFormatter(self.formatter)
         self.logger.addHandler(self.handler)
         self.logger.setLevel(str(loglevel))
-       
-        # Create a default dict 
-        self.cfg = schema_cfg()
 
         # Copy 'defvalue' to 'value'
         self.reset()
+
+        # Status placeholder dictionary
+        # TODO, should be defined!
+        self.status =  {}
         
         # Instance starts unlocked
         self.cfg_locked = False
@@ -98,9 +99,10 @@ class Chip:
         layout = schema_layout()        
 
     ###################################
-    def loadtarget(self, name):
+    def target(self, name):
         '''Loading config values based on a named target. sys.path
-        is searched for a module named 'sc_target'. The user will need
+        is searched for a module named 'sc_target, which takes the target
+        'name' as an argument,. The user will need
         to set the SCPATH environment variable to ensure non-built in paths
         can be found
 
@@ -109,18 +111,63 @@ class Chip:
         strings separated by '_'
 
         '''
-        if len(chip.cfg['target']['value']) < 1 :
-            self.logger.error('Trying to load target, but target has not been set yet.')
-            sys.exit()
+
+        #Selecting fpga or asic mode
+        mode = self.cfg['mode']['value'][-1]
+            
+        # Checking that target is the right format
+        # <process>-<lib>
+        # <process>-<lib>-<eda>
+        # <device>
+        # <device>-<eda>
+        
+        targetlist = name.split('_')
+        
+        #Handling slight ASIC/FPGA differences
+        if mode == 'asic':
+            platform = targetlist[0]
+            library = targetlist[0] + "_libs"
+            #enable single name targets
+            if len(targetlist) > 1:
+                libname = targetlist[1]
+            else:
+                libname = targetlist[0]
+            maxargs  =  3
         else:
-            target = chip.cfg['target']['value'][-1]            
-            self.logger.debug('Loading configgiration for target %s', target)            
+            platform = targetlist[0]
+            maxargs = 2
 
-        import sc_target
-        module = importlib.import_module('sc_target')
-        find_target = getattr(module, "find_target")
-        find_target(self, target)
+        #Include a default target for ease of use
+        if  len(targetlist) == maxargs:
+            edaflow = "eda_" + targetlist[2]
+        else:
+            edaflow = "eda_default"
 
+        self.writecfg("sc_setup.json")
+        #self.writecfg("sc_setup.tcl")
+            
+        #Load Platform (PDK or FPGA)
+        packdir = mode+".targets"
+        self.logger.debug("Loading platform module %s from %s", platform, packdir)        
+        module = importlib.import_module('.'+platform, package=packdir)
+        setup_platform = getattr(module,"setup_platform")
+        setup_platform(self)
+
+        #Load Library
+        if mode == 'asic':
+            packdir = mode+".targets"
+            self.logger.debug("Loading library module %s from %s", library, packdir)        
+            module = importlib.import_module('.'+library, package=packdir)
+            setup_libs = getattr(module,"setup_libs")
+            setup_libs(self, name=libname)
+        
+        #Load EDA
+        packdir = "eda.targets"
+        self.logger.debug("Loading EDA module %s from %s", edaflow, packdir)        
+        module = importlib.import_module('.'+edaflow, package=packdir)
+        setup_eda = getattr(module,"setup_eda")
+        setup_eda(self, name=platform)
+        
     ###################################
     def get(self, *args):
         '''Gets value in the Chip configuration dictionary
@@ -204,7 +251,6 @@ class Chip:
         all_args = list(args)
         param = all_args[0]
         val = all_args[-1]
-        
         #set/add leaf cell (all_args=(param,val))
         if ((mode in ('set', 'add')) & (len(all_args) == 2)):
             #making an 'instance' of default if not found
@@ -232,7 +278,7 @@ class Chip:
         #if not leaf cell descend tree
         else:
             ##copying in default tree for dynamic trees
-            if not (param in cfg):                
+            if not (param in cfg):
                 cfg[param] = copy.deepcopy(cfg['default'])
             all_args.pop(0)
             return self.search(cfg[param], *all_args, field=field, mode=mode)
@@ -332,12 +378,13 @@ class Chip:
         scpaths = str(os.environ['SCPATH']).split()
         #Recursively going through dict to set abspaths for files
         for k, v in cfg.items():
-            #print(k,v)
+            #print("abspath", k,v)
             if isinstance(v, dict):
                 #indicates leaf cell
                 if 'value' in cfg[k].keys():
+                    #print("dict=",cfg[k])
                     #only do something if type is file
-                    if(cfg[k]['type'][-1] == 'file'):
+                    if cfg[k]['type'][-1] in  ('file', 'dir'):
                         for i, v in enumerate(cfg[k]['value']):
                             #Look for relative paths in search path
                             cfg[k]['value'][i] = schema_path(v)
@@ -762,14 +809,13 @@ class Chip:
         tool = self.cfg['flow'][step]['exe']['value'][-1]
         refdir = schema_path(self.cfg['flow'][step]['refdir']['value'][-1])
         
-        steplist = (self.cfg['design_flow']['value'] +
-                 self.cfg['signoff_flow']['value'])
+        steplist = self.cfg['steps']['value']
         stepindex = steplist.index(step)
         laststep = steplist[stepindex-1]
         start = steplist.index(self.cfg['start']['value'][-1]) #scalar
         stop = steplist.index(self.cfg['stop']['value'][-1]) #scalar
         skip = step in self.cfg['skip']['value']
-
+        
         #####################
         # Dynamic Module Load
         #####################    
@@ -792,7 +838,7 @@ class Chip:
             jobid = int(self.cfg['flow'][step]['jobid']['value'][-1]) + 1
 
             #Moving to working directory
-            jobdir = (str(self.cfg['build']['value'][-1]) + #scalar
+            jobdir = (str(self.cfg['dir']['value'][-1]) + #scalar
                       "/" +
                       str(step) +
                       "/job" +
@@ -833,13 +879,13 @@ class Chip:
             #####################
 
             pre_process = getattr(module,"pre_process")
-            pre_process(self,step, tool)
+            pre_process(self,step)
 
             #####################
             # Run Executable
             #####################
 
-            cmd = setup_cmd(self,step)
+            cmd = self.getcmd(step)
 
             with open("run.sh", 'w') as f:
                 print("#!/bin/bash", file=f)
@@ -861,10 +907,47 @@ class Chip:
             
             #run tool specific post process
             post_process = getattr(module,"post_process")
-            post_process(self, step, tool)
+            post_process(self, step)
 
             #Updating jobid when complete
             self.cfg['flow'][step]['jobid']['value'] = [str(jobid)]
 
             #Return to CWD
             os.chdir(cwd)
+
+    ###################################
+    def getcmd(self,step):
+
+        #Set Executable
+        exe = self.cfg['flow'][step]['exe']['value'][-1] #scalar
+        cmd_fields = [exe]
+
+        #Dynamically generate options
+        vendor = self.cfg['flow'][step]['vendor']['value'][-1]
+        tool  = self.cfg['flow'][step]['exe']['value'][-1]
+        module = importlib.import_module('.'+vendor,
+                                         package="eda." + vendor)
+        setup_options = getattr(module,"setup_options")
+        options = setup_options(self, step)
+
+        #Add options to cmd list
+        cmd_fields.extend(options)        
+
+        #Resolve Paths
+        if schema_istrue(self.cfg['flow'][step]['copy']['value']):
+            for value in self.cfg['flow'][step]['script']['value']:
+                abspath = schema_path(value)
+                cmd_fields.append(abspath)
+        else:
+            for value in self.cfg['flow'][step]['script']['value']:
+                cmd_fields.append(value)      
+
+        #Piping to log file
+        logfile = exe + ".log"
+        if schema_istrue(self.cfg['quiet']['value']):
+            cmd_fields.append("> " + logfile)
+        else:
+            cmd_fields.append("| tee " + logfile)
+        cmd = ' '.join(cmd_fields)
+
+        return cmd
