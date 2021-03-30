@@ -8,7 +8,7 @@ import defusedxml.ElementTree as ET
 
 OPENFPGA_SCRIPT = 'openfpga_script.openfpga'
 
-def setup_tool(chip, step, tool):
+def setup_tool(chip, step):
     ''' Sets up default settings on a per step basis
     '''
 
@@ -27,8 +27,8 @@ def setup_tool(chip, step, tool):
 # Set OpenFPGA Runtime Options
 ################################
 
-def setup_options(chip, step, tool):
-    ''' Per tool/step function that returns a dynamic options string based on
+def setup_options(chip, step):
+    ''' Per step function that returns a dynamic options string based on
     the dictionary settings.
     '''
 
@@ -39,7 +39,7 @@ def setup_options(chip, step, tool):
 # Pre and Post Run Commands
 ################################
 
-def pre_process(chip, step, tool):
+def pre_process(chip, step):
     '''Tool specific function to run before step execution that fills out shell
     script template
 
@@ -85,7 +85,7 @@ def pre_process(chip, step, tool):
     with open(OPENFPGA_SCRIPT, 'w') as f:
         f.write(tmpl.safe_substitute(tmpl_vars))
 
-def post_process(chip, step, tool):
+def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
     pass

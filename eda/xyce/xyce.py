@@ -2,7 +2,7 @@
 # Tool Setup
 ################################
 
-def setup_tool(chip, step, tool):
+def setup_tool(chip, step):
 
      refdir = 'eda/xyce'
 
@@ -14,7 +14,7 @@ def setup_tool(chip, step, tool):
      chip.add('flow', step, 'option', '')
      chip.add('flow', step, 'refdir', refdir)
    
-def setup_options(chip, step, tool):
+def setup_options(chip, step):
 
      options = chip.get('flow', step, 'opt')
      return options
@@ -22,12 +22,12 @@ def setup_options(chip, step, tool):
 ################################
 # Pre and Post Run Commands
 ################################
-def pre_process(chip, step, tool):
+def pre_process(chip, step):
     ''' Tool specific function to run before step execution
     '''
     pass
 
-def post_process(chip, step, tool):
+def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
     pass

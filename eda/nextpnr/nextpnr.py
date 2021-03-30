@@ -4,7 +4,7 @@ import os
 # Setup NextPNR
 ################################
 
-def setup_tool(chip, step, tool):
+def setup_tool(chip, step):
     ''' Sets up default settings on a per step basis
     '''
 
@@ -24,7 +24,7 @@ def setup_tool(chip, step, tool):
 # Set NextPNR Runtime Options
 ################################
 
-def setup_options(chip, step, tool):
+def setup_options(chip, step):
     ''' Per tool/step function that returns a dynamic options string based on
     the dictionary settings.
     '''
@@ -49,12 +49,12 @@ def setup_options(chip, step, tool):
 
     return options
 
-def pre_process(chip, step, tool):
+def pre_process(chip, step):
     ''' Tool specific function to run before step execution
     '''
     pass
 
-def post_process(chip, step, tool):
+def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
     pass
