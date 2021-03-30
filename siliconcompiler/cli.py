@@ -231,12 +231,12 @@ def main():
         for cfgfile in cmdlinecfg['cfg']['value']:
             chip.readcfg(cfgfile)
 
+    #Override cfg with command line args
+    chip.mergecfg(cmdlinecfg)
+
     #Load target
     if len(cmdlinecfg['target']['value']) > 0:
         chip.target(cmdlinecfg['target']['value'][0])
-
-    #Override cfg with command line args
-    chip.mergecfg(cmdlinecfg)   
 
     #Resolve absolute paths
 
