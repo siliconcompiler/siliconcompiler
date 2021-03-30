@@ -26,7 +26,8 @@ def pre_process(chip, step):
     ''' Tool specific function to run before step execution
     '''
 
-    if chip.get('target')[-1] == 'openfpga':
+    targetlist = chip.get('target')[-1].split('_')
+    if targetlist[0] == 'openfpga':
         # Synthesis for OpenFPGA/VPR needs to know the size of the LUTs in the
         # FPGA architecture. We infer this from the VPR architecture file, then
         # dump it to a TCL file imported by the synthesis script.
@@ -34,7 +35,7 @@ def pre_process(chip, step):
         # https://github.com/lnis-uofu/OpenFPGA/blob/c393ee695975c98342b8708c5bee19b677f4a062/openfpga_flow/scripts/run_fpga_flow.py#L473
 
         lut_size = None
-        for arch_file in chip.get('fpga_xml'):
+        for arch_file in chip.get('fpga', 'xml'):
             tree = ET.parse(make_abs_path(arch_file))
             root = tree.getroot()
             if root.tag == 'architecture':

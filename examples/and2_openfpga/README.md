@@ -24,9 +24,7 @@ directory.
 
 ## Acknowledgements
 
-The source files in this directory are copied directly from
-[OpenFPGA](https://github.com/lnis-uofu/OpenFPGA):
+The source file (`and2.v`) in this directory is copied directly from an
+[OpenFPGA example](https://github.com/lnis-uofu/OpenFPGA/blob/master/openfpga_flow/benchmarks/micro_benchmark/and2/and2.v).
 
-- [`and2.v`](https://github.com/lnis-uofu/OpenFPGA/blob/master/openfpga_flow/benchmarks/micro_benchmark/and2/and2.v)
-- [`k6_frac_N10_40nm_openfpga.xml`](https://github.com/lnis-uofu/OpenFPGA/blob/master/openfpga_flow/openfpga_arch/k6_N10_40nm_openfpga.xml)
-- [`k6_frac_N10_40nm_vpr.xml`](https://github.com/lnis-uofu/OpenFPGA/blob/master/openfpga_flow/vpr_arch/k6_frac_N10_tileable_40nm.xml)
+
