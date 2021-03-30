@@ -2,6 +2,7 @@
 import os
 import sys
 import re
+import siliconcompiler
 
 ####################################################
 # PDK Setup
@@ -27,16 +28,7 @@ def setup_platform(chip):
     chip.add('pdk','rev', rev)
     chip.add('pdk','stackup', stackup)
    
-    # DRC
-    chip.add('flow','drc','script',
-             pdkdir+'/runsets/klayout/freepdk45.lydrc')
-
-    # DISPLAY
-    chip.add('flow','gdsview','script',
-             pdkdir+'/setup/klayout/freepdk45.lyt')
-
-    # hard coded target lib
-    chip.add('asic', 'stackup', stackup)
+ 
 
     # APR tech file
     chip.add('pdk','aprtech',stackup, libtype, edavendor,
@@ -64,6 +56,9 @@ def setup_platform(chip):
     chip.add('pdk','aprlayer',stackup, 'metal10 X 0.095 1.6')
     chip.add('pdk','aprlayer',stackup, 'metal10 Y 0.07 1.6')
 
+    
+    # hard coded target lib!!
+    chip.add('asic', 'stackup', stackup)
 
 ####################################################
 # Library Setup
@@ -127,7 +122,8 @@ if __name__ == "__main__":
     # create a chip instance
     chip = siliconcompiler.Chip()
     # load configuration
-    setup_pdk(chip)
+    setup_platform(chip)
+    setup_libs(chip)
     # write out result
     chip.writecfg(output)
 
