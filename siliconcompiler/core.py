@@ -113,11 +113,17 @@ class Chip:
         
         targetlist = name.split('_')
         platform = targetlist[0]
-      
+
         #Load Platform (PDK or FPGA)
-        packdir = mode+".targets"
-        self.logger.debug("Loading platform module %s from %s", platform, packdir)        
-        module = importlib.import_module('.'+platform, package=packdir)
+        try:
+            packdir = "asic.targets"
+            self.logger.debug("Loading platform module %s from %s", platform, packdir)
+            module = importlib.import_module('.'+platform, package=packdir)
+        except ImportError:
+            packdir = "fpga.targets"
+            self.logger.debug("Loading platform module %s from %s", platform, packdir)
+            module = importlib.import_module('.'+platform, package=packdir)
+
         setup_platform = getattr(module,"setup_platform")
         setup_platform(self)
 
