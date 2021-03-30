@@ -100,15 +100,7 @@ class Chip:
 
     ###################################
     def target(self, name):
-        '''Loading config values based on a named target. sys.path
-        is searched for a module named 'sc_target, which takes the target
-        'name' as an argument,. The user will need
-        to set the SCPATH environment variable to ensure non-built in paths
-        can be found
-
-        Args:
-            names (string): A string consisting of three alphanumeric
-        strings separated by '_'
+        '''Loading config values based on a named target. 
 
         '''
 
@@ -116,36 +108,16 @@ class Chip:
         mode = self.cfg['mode']['value'][-1]
             
         # Checking that target is the right format
-        # <process>-<lib>
-        # <process>-<lib>-<eda>
-        # <device>
-        # <device>-<eda>
+        # <process/device>
+        # <process/device>_<eda>
         
         targetlist = name.split('_')
-        
-        #Handling slight ASIC/FPGA differences
-        if mode == 'asic':
-            platform = targetlist[0]
-            library = targetlist[0] + "_libs"
-            #enable single name targets
-            if len(targetlist) > 1:
-                libname = targetlist[1]
-            else:
-                libname = targetlist[0]
-            maxargs  =  3
+        platform = targetlist[0]
+        if  len(targetlist) == 2:
+            edaflow = targetlist[1]
         else:
-            platform = targetlist[0]
-            maxargs = 2
+            edaflow = mode
 
-        #Include a default target for ease of use
-        if  len(targetlist) == maxargs:
-            edaflow = "eda_" + targetlist[2]
-        else:
-            edaflow = "eda_default"
-
-        self.writecfg("sc_setup.json")
-        #self.writecfg("sc_setup.tcl")
-            
         #Load Platform (PDK or FPGA)
         packdir = mode+".targets"
         self.logger.debug("Loading platform module %s from %s", platform, packdir)        
@@ -153,14 +125,11 @@ class Chip:
         setup_platform = getattr(module,"setup_platform")
         setup_platform(self)
 
-        #Load Library
+        #Load library target definitions for ASICs
         if mode == 'asic':
-            packdir = mode+".targets"
-            self.logger.debug("Loading library module %s from %s", library, packdir)        
-            module = importlib.import_module('.'+library, package=packdir)
             setup_libs = getattr(module,"setup_libs")
-            setup_libs(self, name=libname)
-        
+            setup_libs(self)
+
         #Load EDA
         packdir = "eda.targets"
         self.logger.debug("Loading EDA module %s from %s", edaflow, packdir)        
