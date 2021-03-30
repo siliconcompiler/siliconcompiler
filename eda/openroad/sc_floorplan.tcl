@@ -60,7 +60,7 @@ close $outfile
 #Setup Libs
 ####################
 foreach lib $target_libs {
-    read_liberty [dict get $sc_cfg stdcell $lib typical nldm lib]
+    read_liberty [dict get $sc_cfg stdcell $lib model typical nldm lib]
     # Correct for polygonal pin sizes in nangate45 liberty.
     if  {$lib eq "NangateOpenCellLibrary"} {
         set target_lef [dict get $sc_cfg stdcell $lib lef]

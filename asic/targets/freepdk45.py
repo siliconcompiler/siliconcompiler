@@ -84,7 +84,7 @@ def setup_libs(chip, vendor=None):
     chip.add('stdcell',libname,'rev',rev)    
 
     # timing
-    chip.add('stdcell',libname, 'typical', 'nldm', 'lib',
+    chip.add('stdcell',libname, 'model', 'typical', 'nldm', 'lib',
              libdir+'/lib/NangateOpenCellLibrary_typical.lib')
 
     # lef

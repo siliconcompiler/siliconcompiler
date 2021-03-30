@@ -663,33 +663,35 @@ def schema_libs(cfg, group):
     #Models (Timing, Power, Noise)
     ###############################
 
-    cfg[group]['default']['default'] = {}
+    cfg[group]['default']['model'] = {}
+    cfg[group]['default']['model']['default'] = {}
 
     #Operating Conditions (per corner)
-    cfg[group]['default']['default']['opcond'] = {
+    cfg[group]['default']['model']['default']['opcond'] = {
         'switch' : '-'+group+"_opcond",
         'requirement' : 'asic',
         'type' : ['str'],
         'defvalue' : [],
         'short_help' : group.capitalize() + ' Operating Condition',
-        'param_help' : "'"+group+"' libname corner 'opcond' <str>",
+        'param_help' : "'"+group+"' libname 'model' corner 'opcond' <str>",
         'help' :
         "The default operating condition to use for mcmm optimization and    "\
         "signoff on a per corner basis.                                      "\
         "                                                                    "\
         "Examples:                                                           "\
-        "cli: -"+group+"_opcond 'mylib  ss_1.0v_125c WORST'                  "\
-        "api: chip.add('"+group+"','mylib','ss_1.0v_125c','opcond', 'WORST') "
+        "cli: -"+group+"_opcond 'mylib model ss_1.0v_125c WORST'             "\
+        "api: chip.add('"+group+"','mylib', 'model', 'ss_1.0v_125c',         "\
+        "               'opcond', 'WORST')                                   "
     }
         
     #Checks To Do (per corner)
-    cfg[group]['default']['default']['check'] = {
+    cfg[group]['default']['model']['default']['check'] = {
         'switch' : '-'+group+"_check",
         'requirement' : 'asic',
         'type' : ['str'],
         'defvalue' : [],
         'short_help' : group.capitalize() + ' Corner Checks',
-        'param_help' : "'"+group+"' libname corner 'check' <str>",
+        'param_help' : "'"+group+"' libname 'model' corner 'check' <str>",
         'help' :
         "Per corner checks to perform during optimization and STA signoff.   "\
         "Names used in the 'mcmm' scenarios must align with the 'check' names"\
@@ -701,13 +703,14 @@ def schema_libs(cfg, group):
         "                                                                    "\
         "                                                                    "\
         "Examples:                                                           "\
-        "cli: -"+group+"_check 'mylib ss_1.0v_125c setup'                    "\
-        "api: chip.add('"+group+"','mylib','ss_1.0v_125c','check', 'setup'   "\
+        "cli: -"+group+"_check 'mylib model ss_1.0v_125c setup'              "\
+        "api: chip.add('"+group+"','mylib','model', 'ss_1.0v_125c','check',  "\
+        "               'setup')                                             "
     }
         
     #NLDM
-    cfg[group]['default']['default']['nldm'] = {}
-    cfg[group]['default']['default']['nldm']['default'] = {        
+    cfg[group]['default']['model']['default']['nldm'] = {}
+    cfg[group]['default']['model']['default']['nldm']['default'] = {        
         'switch' : '-'+group+"_nldm",
         'requirement' : 'asic',
         'type' : ['file'],
@@ -717,7 +720,7 @@ def schema_libs(cfg, group):
         'author' : [],
         'signature' : [],
         'short_help' : group.capitalize() + ' NLDM Timing Model',
-        'param_help' : "'"+group+"' libname corner 'nldm' type <file>",
+        'param_help' : "'"+group+"' libname 'model' corner 'nldm' type <file>",
         'help' :
         "Filepaths to NLDM models. Timing files are specified on a per lib,  "\
         "per corner, and per format basis. The format is driven by EDA tool  "\
@@ -725,13 +728,14 @@ def schema_libs(cfg, group):
         "lib.bz2, and ldb.                                                   "\
         "                                                                    "\
         "Examples:                                                           "\
-        "cli: -"+group+"_nldm 'mylib tt lib mylib_tt.lib'                    "\
-        "api: chip.add('"+group+"','mylib','tt','nldm','lib','mylib_tt.lib') "
+        "cli: -"+group+"_nldm 'mylib model tt lib mylib_tt.lib'              "\
+        "api: chip.add('"+group+"','mylib', 'model', 'tt','nldm','lib',      "\
+        "              'mylib_tt.lib')                                       "
     }
 
     #CCS
-    cfg[group]['default']['default']['ccs'] = {}
-    cfg[group]['default']['default']['ccs']['default'] = {        
+    cfg[group]['default']['model']['default']['ccs'] = {}
+    cfg[group]['default']['model']['default']['ccs']['default'] = {        
         'switch' : '-'+group+"_ccs",
         'requirement' : 'optional',
         'type' : ['file'],
@@ -741,7 +745,7 @@ def schema_libs(cfg, group):
         'author' : [],
         'signature' : [],
         'short_help' : group.capitalize() + ' CCS Timing Model',
-        'param_help' : "'"+group+"' libname  corner 'ccs' type <file>",
+        'param_help' : "'"+group+"' libname 'model' corner 'ccs' type <file>",
         'help' :
         "Filepaths to CCS models. Timing files are specified on a per lib,   "\
         "per corner, and per format basis. The format is driven by EDA tool  "\
@@ -749,12 +753,13 @@ def schema_libs(cfg, group):
         "and ldb.                                                            "\
         "                                                                    "\
         "Examples:                                                           "\
-        "cli: -"+group+"_ccs 'mylib tt lib mylib_tt.lib'                     "\
-        "api: chip.add('"+group+"','mylib','tt','ccs','lib','mylib_tt.lib')  "
+        "cli: -"+group+"_ccs 'mylib model tt lib mylib_tt.lib'               "\
+        "api: chip.add('"+group+"','mylib', 'model', 'tt','ccs','lib',       "\
+        "              'mylib_tt.lib')                                       "
     }
     
     #AOCV
-    cfg[group]['default']['default']['aocv'] = {        
+    cfg[group]['default']['model']['default']['aocv'] = {        
         'switch' : '-'+group+"_aocv",
         'requirement' : 'optional',
         'type' : ['file'],
@@ -764,19 +769,20 @@ def schema_libs(cfg, group):
         'author' : [],
         'signature' : [],
         'short_help' : group.capitalize() + ' AOCV Timing Model',
-        'param_help' : "'"+group+"' libname  corner 'aocv' <file>",
+        'param_help' : "'"+group+"' libname 'model' corner 'aocv' <file>",
         'help' :
         "Filepaths to AOCV models. Timing files are specified on a per lib   "\
         "and per corner basis.                                               "\
         "                                                                    "\
         "Examples:                                                           "\
-        "cli: -"+group+"_aocv 'mylib tt mylib_tt.aocv'                       "\
-        "api: chip.add('"+group+"','mylib','tt','aocv', mylib_tt.aocv')      "
+        "cli: -"+group+"_aocv 'mylib model tt mylib_tt.aocv'                 "\
+        "api: chip.add('"+group+"','mylib','model', 'tt','aocv',             "\
+        "              mylib_tt.aocv')                                       "
     }
 
     #APL
-    cfg[group]['default']['default']['apl'] = {}
-    cfg[group]['default']['default']['apl']['default'] = {        
+    cfg[group]['default']['model']['default']['apl'] = {}
+    cfg[group]['default']['model']['default']['apl']['default'] = {        
         'switch' : '-'+group+"_apl",
         'requirement' : 'optional',
         'type' : ['file'],
@@ -792,8 +798,9 @@ def schema_libs(cfg, group):
         "lib, per corner, and per format basis                               "\
         "                                                                    "\
         "Examples:                                                           "\
-        "cli: -"+group+"_apl 'mylib tt mylib_tt.cdev'                        "\
-        "api: chip.add('"+group+"','mylib','tt','apl','cdev', mylib_tt.cdev')"
+        "cli: -"+group+"_apl 'mylib model tt mylib_tt.cdev'                  "\
+        "api: chip.add('"+group+"','mylib', 'model', 'tt','apl','cdev',      "\
+        "               mylib_tt.cdev')                                      " 
     }
 
     #LEF
