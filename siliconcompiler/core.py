@@ -113,11 +113,7 @@ class Chip:
         
         targetlist = name.split('_')
         platform = targetlist[0]
-        if  len(targetlist) == 2:
-            edaflow = targetlist[1]
-        else:
-            edaflow = mode
-
+      
         #Load Platform (PDK or FPGA)
         packdir = mode+".targets"
         self.logger.debug("Loading platform module %s from %s", platform, packdir)        
@@ -126,6 +122,12 @@ class Chip:
         setup_platform(self)
 
         #Load library target definitions for ASICs
+        mode = self.cfg['mode']['value'][-1]
+        if  len(targetlist) == 2:
+            edaflow = targetlist[1]
+        else:
+            edaflow = mode
+
         if mode == 'asic':
             setup_libs = getattr(module,"setup_libs")
             setup_libs(self)

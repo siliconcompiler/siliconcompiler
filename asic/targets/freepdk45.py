@@ -22,13 +22,15 @@ def setup_platform(chip):
                        'pdk',
                        rev])
     
+
+    #if you are calling this file, you are in asic mode
+    chip.set('mode','asic')
+
     # process name
     chip.add('pdk','foundry', foundry)
     chip.add('pdk','process', process)
     chip.add('pdk','rev', rev)
     chip.add('pdk','stackup', stackup)
-   
- 
 
     # APR tech file
     chip.add('pdk','aprtech',stackup, libtype, edavendor,
