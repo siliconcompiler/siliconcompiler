@@ -63,6 +63,59 @@ def setup_platform(chip):
     chip.add('pdk','aprlayer',stackup, 'metal9 Y 0.07  1.6')
     chip.add('pdk','aprlayer',stackup, 'metal10 X 0.095 1.6')
     chip.add('pdk','aprlayer',stackup, 'metal10 Y 0.07 1.6')
+
+
+####################################################
+# Library Setup
+####################################################
+def setup_libs(chip, vendor=None):
+ 
+    foundry = 'virtual'
+    process = 'freepdk45'
+    libname = 'NangateOpenCellLibrary'
+    libtype = '10t'
+    size = '0.19 1.4'
+    rev = 'r1p0'
+    corner = 'typical'
+    objectives = ['setup']
+    libdir = '/'.join(["asic",
+                       foundry,
+                       process,
+                       'libs',
+                       libname,
+                       rev])
+    
+    # rev
+    chip.add('stdcell',libname,'rev',rev)    
+
+    # timing
+    chip.add('stdcell',libname, 'typical', 'nldm', 'lib',
+             libdir+'/lib/NangateOpenCellLibrary_typical.lib')
+
+    # lef
+    chip.add('stdcell',libname,'lef',
+             libdir+'/lef/NangateOpenCellLibrary.macro.lef')    
+    # gds
+    chip.add('stdcell',libname,'gds',
+             libdir+'/gds/NangateOpenCellLibrary.gds')
+    # site name
+    chip.add('stdcell',libname,'site',
+             'FreePDK45_38x28_10R_NP_162NW_34O')
+    # lib arch
+    chip.add('stdcell',libname,'libtype',libtype)
+
+    # lib site/tile/size
+    chip.add('stdcell',libname,'size',size)
+
+    # hard coded mcmm settings (only one corner!)
+    chip.add('mcmm','worst','libcorner', corner)
+    chip.add('mcmm','worst','pexcorner', corner)
+    chip.add('mcmm','worst','mode', 'func')
+    chip.add('mcmm','worst','check', ['setup','hold'])
+
+    # hard coded target lib (only one library!)
+    chip.add('asic', 'targetlib',libname)
+
     
 #########################
 if __name__ == "__main__":    
