@@ -5,16 +5,19 @@ import siliconcompiler
 ####################################################
 # EDA Setup
 ####################################################
-def setup_eda(chip, target=None):
+def setup_eda(chip, name=None):
     chip.logger.debug("Setting up an FPGA compilation flow'")     
 
 
-    if target == 'ice40':    
+    if name == 'ice40':
         # Define Compilation Steps
         chip.cfg['steps']['value'] = ['import',
                                       'syn',
                                       'apr',
                                       'export']
+
+        chip.cfg['start']['value'] = [chip.cfg['steps']['value'][0]]
+        chip.cfg['stop']['value'] = [chip.cfg['steps']['value'][-1]]
 
         for step in chip.cfg['steps']['value']:         
             if step == 'import':

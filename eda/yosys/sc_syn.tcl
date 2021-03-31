@@ -76,9 +76,12 @@ if {$mode eq "asic"} {
     yosys write_blif $output_blif
 } else {
     # FPGA mode
-    if {$target eq "ice40"} {
+    set targetlist [split $target "_"]
+    set platform [lindex $targetlist 0]
+
+    if {$platform eq "ice40"} {
         syn_ice40 $topmodule
-    } elseif {$target eq "openfpga"} {
+    } elseif {$platform eq "openfpga"} {
         syn_openfpga $topmodule
     }
 }
