@@ -1689,6 +1689,23 @@ def schema_options(cfg):
         """
     }
 
+    cfg['hash'] = {
+        'switch' : '-hash',
+        'type' : ['bool'],
+        'requirement' : 'optional',
+        'defvalue' : ['NONE'],
+        'short_help' : 'Hash Files',
+        'param_help' : "'hash' <str>",
+        'help' : """
+        The switch controls how/if setup files and source files are hashed
+        during compilation. Valid entries include NONE, ALL, USED.
+
+        Examples:
+        cli: -hash ALL
+        api: chip.set('hash','ALL')
+        """
+    }
+    
     cfg['lock'] = {
         'switch' : '-lock',
         'type' : ['bool'],

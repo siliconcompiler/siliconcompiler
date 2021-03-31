@@ -651,28 +651,33 @@ class Chip:
         '''Creates hashes for all files sourced by Chip class
 
         '''
+
         if cfg is None:
-            self.logger.debug('Computing hash values for all files')
+            self.logger.info('Computing hash values for all files')
             cfg = self.cfg
 
-        #Recursively going through dict
-        for k, v in cfg.items():
-            if isinstance(v, dict):
-                #indicates leaf cell/file to act on
-                if 'hash' in cfg[k].keys():
-                    #clear out old values (do comp?)
-                    cfg[k]['hash'] = []
-                    for i, v in enumerate(cfg[k]['value']):
-                        filename = schema_path(v)
-                        if os.path.isfile(filename):
-                            sha256_hash = hashlib.sha256()
-                            with open(filename, "rb") as f:
-                                for byte_block in iter(lambda: f.read(4096), b""):
-                                    sha256_hash.update(byte_block)
-                            hash_value = sha256_hash.hexdigest()
-                            cfg[k]['hash'].append(hash_value)
-                else:
-                    self.hash(cfg=cfg[k])
+        #checking to see how much hashing to do
+        hashmode = self.cfg['hash']['value'][-1]   
+        if hashmode != 'NONE':
+            #Recursively going through dict
+            for k, v in cfg.items():
+                if isinstance(v, dict):
+                    #indicates leaf cell/file to act on
+                    if 'hash' in cfg[k].keys():
+                        #clear out old values (do comp?)
+                        cfg[k]['hash'] = []
+                        for i, v in enumerate(cfg[k]['value']):
+                            filename = schema_path(v)
+                            self.logger.debug('Computing hash value for %s', filename)
+                            if os.path.isfile(filename):
+                                sha256_hash = hashlib.sha256()
+                                with open(filename, "rb") as f:
+                                    for byte_block in iter(lambda: f.read(4096), b""):
+                                        sha256_hash.update(byte_block)
+                                hash_value = sha256_hash.hexdigest()
+                                cfg[k]['hash'].append(hash_value)
+                    else:
+                        self.hash(cfg=cfg[k], mode=mode)
         
     ##################################
     def compare(self, file1, file2):
