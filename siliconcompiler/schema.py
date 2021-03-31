@@ -63,7 +63,7 @@ def schema_path(filename):
 
     #Resolve absolute path usign SCPATH
     #list is read left to right
-    scpaths = str(os.environ['SCPATH']).split()
+    scpaths = str(os.environ['SCPATH']).split(':')
     for searchdir in scpaths:        
         abspath = searchdir + "/" + filename
         if os.path.exists(abspath):
@@ -1728,21 +1728,21 @@ def schema_options(cfg):
         """
     }
 
-    cfg['debug'] = {
-        'switch' : '-debug',
+    cfg['loglevel'] = {
+        'switch' : '-loglevel',
         'type' : ['str'],
         'requirement' : 'optional',
         'defvalue' : ['WARNING'],
-        'short_help' : 'Debug Level',
-        'param_help' : "'debug' <str>",
+        'short_help' : 'Logging Level',
+        'param_help' : "'loglevel' <str>",
         'help' : """
         The debug param provides explicit control over the level of debug 
         logging printed. Valid entries include INFO, DEBUG, WARNING, ERROR. The
         default value is WARNING.
 
         Examples:
-        cli: -debug INFO
-        api: chip.set('debug','INFO')
+        cli: -loglevel INFO
+        api: chip.set('loglevel','INFO')
         """
     }
 

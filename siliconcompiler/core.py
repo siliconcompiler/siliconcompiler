@@ -47,36 +47,11 @@ class Chip:
         Init method for Chip object
 
         '''
-        
-        # Create a default dict 
+
+        # Create a default dict ("spec")
         self.cfg = schema_cfg()
-
-        # Set Environment Variable if not already set
-        scriptdir = os.path.dirname(os.path.abspath(__file__))
-        rootdir =  re.sub('siliconcompiler/siliconcompiler',
-                          'siliconcompiler',
-                          scriptdir)
-
-
-        #Setup Search Paths
-        #environment paths have highest priority
-        scpaths = str(os.environ['SCPATH']).split()
-        scpaths.append(rootdir)
+        self.layout = schema_layout()
         
-        # Adding current working directory to search path
-        # don't duplicate if running out of install dir
-        if not re.match(str(os.getcwd()), rootdir):
-            scpaths.extend(os.getcwd())
-
-        # Setting up SCPATH for rest of tools
-        for item in scpaths:
-            if os.path.isdir(item):
-                if not re.match(item, os.environ['SCPATH'],):
-                    os.environ['SCPATH'] = os.environ['SCPATH'] + " " + item
-
-        #Adding module search path
-        sys.path.append(os.environ['SCPATH'])
-
         # Initialize logger
         self.logger = log.getLogger()
         self.handler = log.StreamHandler()
@@ -84,7 +59,33 @@ class Chip:
         self.handler.setFormatter(self.formatter)
         self.logger.addHandler(self.handler)
         self.logger.setLevel(str(loglevel))
+        
+        # Set Environment Variable if not already set
+        scriptdir = os.path.dirname(os.path.abspath(__file__))
+        rootdir =  re.sub('siliconcompiler/siliconcompiler',
+                          'siliconcompiler',
+                          scriptdir)
 
+        #Getting environment path (highest priority)
+        scpaths = str(os.environ['SCPATH']).split(':')
+
+        #Add the root Path        
+        scpaths.append(rootdir)
+        
+        # Adding current working directory if not
+        # working out of rootdir
+        if not re.match(str(os.getcwd()), rootdir):
+            scpaths.append(os.getcwd())
+
+        # Writing back global SCPATH
+        os.environ['SCPATH'] = ':'.join(scpaths)
+
+        #Adding scpath to python search path
+        sys.path.extend(scpaths)
+
+        self.logger.debug("Python search path set to %s", sys.path)
+        self.logger.debug("SC search path set to %s", os.environ['SCPATH'])     
+        
         # Copy 'defvalue' to 'value'
         self.reset()
 
@@ -94,9 +95,6 @@ class Chip:
         
         # Instance starts unlocked
         self.cfg_locked = False
-
-        # Setup Layout
-        layout = schema_layout()        
 
     ###################################
     def target(self, name):

@@ -211,8 +211,8 @@ def main():
     cmdlinecfg = cmdline()
 
     #Control debug level from the command line
-    if 'debug' in  cmdlinecfg.keys():
-        loglevel = cmdlinecfg['debug']['value'][-1]
+    if 'loglevel' in  cmdlinecfg.keys():
+        loglevel = cmdlinecfg['loglevel']['value'][-1]
     else:
         loglevel = "INFO"
         
