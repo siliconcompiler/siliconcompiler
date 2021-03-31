@@ -651,14 +651,12 @@ class Chip:
         '''Creates hashes for all files sourced by Chip class
 
         '''
-
-        if cfg is None:
-            self.logger.info('Computing hash values for all files')
-            cfg = self.cfg
-
         #checking to see how much hashing to do
         hashmode = self.cfg['hash']['value'][-1]   
         if hashmode != 'NONE':
+            if cfg is None:
+                self.logger.info('Computing file hashes with mode %s', hashmode)
+                cfg = self.cfg
             #Recursively going through dict
             for k, v in cfg.items():
                 if isinstance(v, dict):
@@ -677,7 +675,7 @@ class Chip:
                                 hash_value = sha256_hash.hexdigest()
                                 cfg[k]['hash'].append(hash_value)
                     else:
-                        self.hash(cfg=cfg[k], mode=mode)
+                        self.hash(cfg=cfg[k])
         
     ##################################
     def compare(self, file1, file2):

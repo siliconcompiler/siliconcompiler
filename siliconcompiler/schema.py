@@ -1691,7 +1691,7 @@ def schema_options(cfg):
 
     cfg['hash'] = {
         'switch' : '-hash',
-        'type' : ['bool'],
+        'type' : ['str'],
         'requirement' : 'optional',
         'defvalue' : ['NONE'],
         'short_help' : 'Hash Files',
