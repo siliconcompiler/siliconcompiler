@@ -57,7 +57,7 @@ def pre_process(chip, step):
     vpr_arch_file = None
     openfpga_arch_file = None
 
-    for arch_file in chip.get('fpga_xml'):
+    for arch_file in chip.get('fpga', 'xml'):
         path = make_abs_path(arch_file)
         root_tag = ET.parse(path).getroot().tag
         if root_tag == 'architecture':
