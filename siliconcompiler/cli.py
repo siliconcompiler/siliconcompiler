@@ -209,8 +209,8 @@ def main():
 
     #Command line inputs, read once
     cmdlinecfg = cmdline()
-
-    #Control debug level from the command line
+    
+    #Special Command line control for setting up logging
     if 'loglevel' in  cmdlinecfg.keys():
         loglevel = cmdlinecfg['loglevel']['value'][-1]
     else:
@@ -219,23 +219,29 @@ def main():
     #Create one (or many...) instances of Chip class
     chip = siliconcompiler.Chip(loglevel=loglevel)
 
-    # Automagical demo defaults for single arrgument compile
-    if ('cfg' in cmdlinecfg.keys()) & (not 'target' in cmdlinecfg.keys()):  
-        self.logger.info('No target specified, setting to target %s', target)        
-        chip.cfg['pdk']['foundry']['value'][0] = 'virtual'
-        chip.cfg['pdk']['process']['value'][0] = 'freepdk45'
-        chip.cfg['mode']['value'][0] = 'asic'
+    # 1. Automagical command line values
+    print(cmdlinecfg)
+    if len(cmdlinecfg['target']['value']) > 0:
+        chip.set('target', cmdlinecfg['target']['value'][0])
+    elif 'cfg' in cmdlinecfg.keys():
+        self.logger.info('No target specified, setting to %s','freepdk45')
+        chip.set('target', 'freepdk45_asic')
+        chip.set('pdk', 'foundry', 'virtual')
+        chip.set('pdk', 'process', 'freepdk45')
+        chip.set('mode', 'asic')
         
-    # Reading in config files specified at command line
+    if 'optmode' in cmdlinecfg.keys():
+        chip.set('optmode', cmdlinecfg['optmode']['value'][-1])
+        
+    # 2. Reading in config files specified at command line
     if 'cfg' in  cmdlinecfg.keys():
         for cfgfile in cmdlinecfg['cfg']['value']:
             chip.readcfg(cfgfile)
 
-    #Load target
-    if len(cmdlinecfg['target']['value']) > 0:
-        chip.target(cmdlinecfg['target']['value'][0])
+    # 3. Load target
+    chip.target()
 
-    #Override cfg with command line args
+    # 4. Override cfg with command line args
     chip.mergecfg(cmdlinecfg)   
 
     #Resolve absolute paths

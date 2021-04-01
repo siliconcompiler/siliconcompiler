@@ -97,19 +97,19 @@ class Chip:
         self.cfg_locked = False
 
     ###################################
-    def target(self, name):
+    def target(self):
         '''Loading config values based on a named target. 
 
         '''
 
         #Selecting fpga or asic mode
-        mode = self.cfg['mode']['value'][-1]
+        mode = self.get('mode')
             
         # Checking that target is the right format
         # <process/device>
         # <process/device>_<eda>
-        
-        targetlist = name.split('_')
+
+        targetlist = self.get('target')
         platform = targetlist[0]
 
         #Load Platform (PDK or FPGA)
@@ -125,7 +125,8 @@ class Chip:
         setup_platform = getattr(module,"setup_platform")
         setup_platform(self)
 
-        #Load library target definitions for ASICs
+        # Load library target definitions for ASICs
+        # Note the default fpga/asic flow when eda is left out in target name
         mode = self.cfg['mode']['value'][-1]
         if  len(targetlist) == 2:
             edaflow = targetlist[1]
@@ -136,7 +137,7 @@ class Chip:
             setup_libs = getattr(module,"setup_libs")
             setup_libs(self)
             setup_design = getattr(module,"setup_design")
-            setup_design(self)
+            setup_design(self,self.get('optmode'))
 
         #Load EDA
         packdir = "eda.targets"
