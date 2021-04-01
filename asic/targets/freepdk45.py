@@ -58,10 +58,6 @@ def setup_platform(chip):
     chip.add('pdk','aprlayer',stackup, 'metal10 X 0.095 1.6')
     chip.add('pdk','aprlayer',stackup, 'metal10 Y 0.07 1.6')
 
-    
-    # hard coded target lib!!
-    chip.add('asic', 'stackup', stackup)
-
 ####################################################
 # Library Setup
 ####################################################
@@ -86,7 +82,7 @@ def setup_libs(chip, vendor=None):
     chip.add('stdcell',libname,'rev',rev)    
 
     # timing
-    chip.add('stdcell',libname, 'model', 'typical', 'nldm', 'lib',
+    chip.add('stdcell',libname, 'model', corner, 'nldm', 'lib',
              libdir+'/lib/NangateOpenCellLibrary_typical.lib')
 
     # lef
@@ -104,15 +100,18 @@ def setup_libs(chip, vendor=None):
     # lib site/tile/size
     chip.add('stdcell',libname,'size',size)
 
+#########################
+def setup_design(chip):
+
+    chip.add('asic', 'stackup', chip.get('pdk', 'stackup')[0])
+    chip.add('asic', 'targetlib', chip.getkeys('stdcell'))
+
+    corner = 'typical'
     # hard coded mcmm settings (only one corner!)
     chip.add('mcmm','worst','libcorner', corner)
     chip.add('mcmm','worst','pexcorner', corner)
     chip.add('mcmm','worst','mode', 'func')
     chip.add('mcmm','worst','check', ['setup','hold'])
-
-    # hard coded target lib (only one library!)
-    chip.add('asic', 'targetlib',libname)
-
     
 #########################
 if __name__ == "__main__":    
