@@ -28,12 +28,14 @@ def setup_eda(chip, name=None):
                 vendor = 'nextpnr'
             elif step == 'export':
                 vendor = 'icepack'
+
             #Load per step EDA setup scripts
-            packdir = "eda." + vendor    
-            module = importlib.import_module('.'+vendor, package=packdir)
+            packdir = "eda." + vendor
+            modulename = '.'+vendor+'_setup'    
+            module = importlib.import_module(modulename, package=packdir)
             setup_tool = getattr(module,'setup_tool')
             setup_tool(chip, step)
-        
+
 #########################
 if __name__ == "__main__":    
 

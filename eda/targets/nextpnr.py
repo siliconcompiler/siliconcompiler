@@ -29,6 +29,8 @@ def setup_eda(chip, name=None):
 
         #Load per step EDA setup scripts
         packdir = "eda." + vendor
-        module = importlib.import_module('.'+vendor, package=packdir)
+        modulename = '.'+vendor+'_setup'    
+        module = importlib.import_module(modulename, package=packdir)
         setup_tool = getattr(module,'setup_tool')
         setup_tool(chip, step)
+       
