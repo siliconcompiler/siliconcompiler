@@ -109,7 +109,8 @@ class Chip:
         # <process/device>
         # <process/device>_<eda>
 
-        targetlist = self.get('target')
+        
+        targetlist = str(self.get('target')[0]).split('_')
         platform = targetlist[0]
 
         #Load Platform (PDK or FPGA)
