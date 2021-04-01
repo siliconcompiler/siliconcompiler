@@ -269,9 +269,7 @@ class Chip:
         
         if cfg is None:
             cfg = copy.deepcopy(self.cfg)
-        else:
-            cfg = copy.deepcopy(cfg)
-
+      
         #When at top of tree loop maxdepth times to make sure all stale
         #branches have been removed, not eleagnt, but stupid-simple
         while(i < maxdepth):
@@ -290,7 +288,7 @@ class Chip:
                     cfg.pop(k)
                 #keep traversing tree
                 else:
-                    self.prune(cfg=cfg[k], top=False)
+                    self.prune(cfg[k], top=False)
             if(top):
                 i+=1
             else:
@@ -320,37 +318,9 @@ class Chip:
         return result
 
     ##################################
-    def rename(self, cfg, keymap):
-        '''Creates a copy of the dictionary with renamed primary keys
-        '''
-
-        cfgout =  {}
-        keydict = {}
-        
-        #Create a dynamic keymap from string pairs
-        for string in keymap:
-            k,v = string.split()
-            keydict[k]=v
-        #Cycle through all primary params and rename keys
-        for key in cfg:
-            if key in keymap:
-                cfgout[keydict[key]] = cfg[key].copy()
-                self.logger.debug('Keymap renaming from %s to %s', key, newkey)
-            else:
-                cfgout[key] = cfg[key].copy() 
-
-        return cfgout
-    
-    ##################################
-    def abspath(self,cfg=None):
+    def abspath(self, cfg):
         '''Resolves all configuration paths to be absolute paths
         '''
-        #Setting initial dict so user doesn't have to
-        if cfg is None:
-            self.logger.debug('Creating absolute file paths')
-            cfg = copy.deepcopy(self.cfg)
-        #List of paths to search for files in to resolve
-        scpaths = str(os.environ['SCPATH']).split()
         #Recursively going through dict to set abspaths for files
         for k, v in cfg.items():
             #print("abspath", k,v)
@@ -364,8 +334,7 @@ class Chip:
                             #Look for relative paths in search path
                             cfg[k]['value'][i] = schema_path(v)
                 else:
-                    self.abspath(cfg=cfg[k])
-        return cfg
+                    self.abspath(cfg[k])
     
     ##################################
     def printcfg (self, cfg, keys=None, file=None, mode="", field='value', prefix=""):
@@ -554,7 +523,7 @@ class Chip:
             self.cfg_locked = True
 
     ##################################
-    def writecfg(self, filename, cfg=None, prune=True, abspath=False, keymap=[]):
+    def writecfg(self, filename, prune=True, abspath=False, keymap=[]):
         '''Writes out the current Chip configuration dictionary to a file
 
         Args:
@@ -569,37 +538,29 @@ class Chip:
         if not os.path.exists(os.path.dirname(filepath)):
             os.makedirs(os.path.dirname(filepath))
 
-        #use self if no argument is specified
-        if cfg is None:
-            cfg = copy.deepcopy(self.cfg)
-        else:
-            cfg = copy.deepcopy(cfg)
-
-        #prune if option is set
+        #prune cfg if option set
         if prune:
-            cfg = self.prune()
-
-        #rename parameters as needed
-        if keymap:
-            cfg = self.rename(cfg, keymap)
-
+            cfgcopy = self.prune()
+        else:
+            cfgcopy = copy.deepcopy(self.cfg)
+            
         #resolve absolute paths
         if abspath:
-            cfg = self.abspath(cfg)
+            self.abspath(cfgcopy)
             
         # Write out configuration based on file type
         if filepath.endswith('.json'):
             with open(filepath, 'w') as f:
-                print(json.dumps(cfg, sort_keys=True, indent=4), file=f)
+                print(json.dumps(cfgcopy, sort_keys=True, indent=4), file=f)
         elif filepath.endswith('.yaml'):
             with open(filepath, 'w') as f:
-                print(yaml.dump(cfg, sort_keys=True, indent=4), file=f)
+                print(yaml.dump(cfgcopy, sort_keys=True, indent=4), file=f)
         elif filepath.endswith('.tcl'):
             with open(filepath, 'w') as f:
                 print("#############################################", file=f)
                 print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
                 print("#############################################", file=f)
-                self.printcfg(cfg, mode="tcl", prefix="dict set sc_cfg", file=f)
+                self.printcfg(cfgcopy, mode="tcl", prefix="dict set sc_cfg", file=f)
         elif filepath.endswith('.md'):
             with open(filepath, 'w') as f:
                 outlist = ['param', 'desription', 'type', 'required', 'default', 'value']
@@ -612,7 +573,7 @@ class Chip:
                           ':----']
                 outstr = " | {: <45} | {: <30} | {: <15} | {: <10} | {: <10}|".format(*outlist)
                 print(outstr, file=f)
-                self.printcfg(cfg, mode='md', field='requirement' , file=f)  
+                self.printcfg(cfgcopy, mode='md', field='requirement' , file=f)  
         else:
             self.logger.error('File format not recognized %s', filepath)
             
@@ -797,9 +758,9 @@ class Chip:
         #####################
         # Dynamic Module Load
         #####################    
-
-        module = importlib.import_module('.'+vendor,
-                                         package="eda." + vendor)
+        packdir = "eda." + vendor
+        modulename = '.'+vendor+'_setup'
+        module = importlib.import_module(modulename, package=packdir)
         
         #####################
         # Conditional Execution
@@ -860,11 +821,43 @@ class Chip:
             pre_process(self,step)
 
             #####################
-            # Run Executable
+            # Generate CMD
             #####################
 
-            cmd = self.getcmd(step)
+            #Set Executable
+            exe = self.cfg['flow'][step]['exe']['value'][-1] #scalar
+            cmd_fields = [exe]
+            
+            #Dynamically generate options
+            setup_options = getattr(module,"setup_options")
+            options = setup_options(self, step)
+            
+            #Add options to cmd list
+            cmd_fields.extend(options)        
 
+            #Resolve Paths
+            if schema_istrue(self.cfg['flow'][step]['copy']['value']):
+                for value in self.cfg['flow'][step]['script']['value']:
+                    abspath = schema_path(value)
+                cmd_fields.append(abspath)
+            else:
+                for value in self.cfg['flow'][step]['script']['value']:
+                    cmd_fields.append(value)      
+
+            #Piping to log file
+            logfile = exe + ".log"
+            if schema_istrue(self.cfg['quiet']['value']):
+                cmd_fields.append("> " + logfile)
+            else:
+                cmd_fields.append("| tee " + logfile)
+
+            #Final command line
+            cmd = ' '.join(cmd_fields)
+
+            #####################
+            # Run Executable
+            #####################
+            
             with open("run.sh", 'w') as f:
                 print("#!/bin/bash", file=f)
                 print(cmd, file=f)
@@ -893,39 +886,3 @@ class Chip:
             #Return to CWD
             os.chdir(cwd)
 
-    ###################################
-    def getcmd(self,step):
-
-        #Set Executable
-        exe = self.cfg['flow'][step]['exe']['value'][-1] #scalar
-        cmd_fields = [exe]
-
-        #Dynamically generate options
-        vendor = self.cfg['flow'][step]['vendor']['value'][-1]
-        tool  = self.cfg['flow'][step]['exe']['value'][-1]
-        module = importlib.import_module('.'+vendor,
-                                         package="eda." + vendor)
-        setup_options = getattr(module,"setup_options")
-        options = setup_options(self, step)
-
-        #Add options to cmd list
-        cmd_fields.extend(options)        
-
-        #Resolve Paths
-        if schema_istrue(self.cfg['flow'][step]['copy']['value']):
-            for value in self.cfg['flow'][step]['script']['value']:
-                abspath = schema_path(value)
-                cmd_fields.append(abspath)
-        else:
-            for value in self.cfg['flow'][step]['script']['value']:
-                cmd_fields.append(value)      
-
-        #Piping to log file
-        logfile = exe + ".log"
-        if schema_istrue(self.cfg['quiet']['value']):
-            cmd_fields.append("> " + logfile)
-        else:
-            cmd_fields.append("| tee " + logfile)
-        cmd = ' '.join(cmd_fields)
-
-        return cmd
