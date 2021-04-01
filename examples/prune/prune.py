@@ -13,5 +13,5 @@ design = 'hello_world'
 # Inserting value into configuration
 chip.add('design', design)
 chip.writecfg('all.json')
-chip.writecfg('prune.json', mode='prune')
+chip.writecfg('prune.json')
 
