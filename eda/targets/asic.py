@@ -6,7 +6,6 @@ import siliconcompiler
 # EDA Setup
 ####################################################
 def setup_eda(chip, name=None):
-    chip.logger.debug("Setting up EDA 'eda_default.py'")     
 
     # Define Compilation Flow
     chip.cfg['steps']['value'] = ['import',
@@ -18,7 +17,6 @@ def setup_eda(chip, name=None):
                                   'dfm',
                                   'export']
     
-
     chip.cfg['start']['value'] = ['import']
     chip.cfg['stop']['value'] = ['export']
         
@@ -34,10 +32,9 @@ def setup_eda(chip, name=None):
             vendor = 'openroad'
             
         #load module dynamically on each step
-        #see sys.path
-
-        packdir = "eda." + vendor    
-        module = importlib.import_module('.'+vendor, package=packdir)
+        packdir = "eda." + vendor
+        modulename = '.'+vendor+'_setup'    
+        module = importlib.import_module(modulename, package=packdir)
         setup_tool = getattr(module,'setup_tool')
         setup_tool(chip, step)
         
@@ -51,6 +48,6 @@ if __name__ == "__main__":
     # create a chip instance
     chip = siliconcompiler.Chip()
     # load configuration
-    setup_eda(chip, 'syn')
+    setup_eda(chip)
     # write out result
     chip.writecfg(output)
