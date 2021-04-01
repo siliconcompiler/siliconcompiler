@@ -31,21 +31,20 @@ def setup_options(chip,step):
 def pre_process(chip, step):
     ''' Tool specific function to run before step execution
     '''
-    sc_paths = os.getenv('SCPATH').split(' ')
-    sc_path = ''
+    sc_paths = os.getenv('SCPATH').split(':')
+    sc_root = ''
     for path in sc_paths:
-      if chip.cfg['pdk']['foundry']['value'][-1] in path:
-        sc_path = path
-    sc_root = sc_path[:sc_path.find('/foundry')]
-    foundry_path = '%s/%s/pdk/%s'%(
+      if 'siliconcompiler' in path:
+        sc_root = path
+    sc_path = sc_root + '/asic'
+    foundry_path = '%s/%s/%s/pdk/r1p0'%(
         sc_path,
-        chip.cfg['target']['value'][-1],
-        chip.cfg['pdk_rev']['value'][-1])
-    lefs_path = '%s/%s/libs/%s/%s/lef'%(
+        chip.cfg['pdk']['foundry']['value'][-1],
+        chip.cfg['target']['value'][-1])
+    lefs_path = '%s/%s/%s/libs/NangateOpenCellLibrary/r1p0/lef'%(
         sc_path,
-        chip.cfg['target']['value'][-1],
-        chip.cfg['target_lib']['value'][0],
-        chip.cfg['pdk_rev']['value'][-1])
+        chip.cfg['pdk']['foundry']['value'][-1],
+        chip.cfg['target']['value'][-1])
     tech_file = '%s/setup/klayout/%s.lyt'%(
         foundry_path,
         chip.cfg['target']['value'][-1])
@@ -63,7 +62,7 @@ def pre_process(chip, step):
          chip.add('flow', step, 'option', '-rd')
          chip.add('flow', step, 'option', 'in_gds=%s/%s'%(
              sc_root,
-             chip.cfg['stdcell'][chip.cfg['target_lib']['value'][0]]['gds']['value'][-1]))
+             chip.cfg['stdcell']['NangateOpenCellLibrary']['gds']['value'][-1]))
          chip.add('flow', step, 'option', '-rd')
          chip.add('flow', step, 'option', 'out_gds=outputs/%s.gds'%(
              chip.cfg['design']['value'][-1]))
