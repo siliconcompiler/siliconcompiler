@@ -1883,11 +1883,12 @@ def schema_options(cfg):
         (0) = Exploration mode for debugging setup           
         (1) = Higher effort and better PPA than O0           
         (2) = Higher effort and better PPA than O1           
-        (3) = Experimental highest effortm, may be unstable  
+        (3) = Signoff qualtiy. Better PPA and higher run times than O2
+        (4) = Experimental highest effort, may be unstable.   
                                                               
         Examples:                                             
         cli: -O3                                              
-        api: chip.set('optmode','0')                          
+        api: chip.set('optmode','3')                          
         """
     }
     
