@@ -65,6 +65,9 @@ class Chip:
                           'siliconcompiler',
                           scriptdir)
 
+        # Set SCPATH to an empty string if it does not exist.
+        if not 'SCPATH' in os.environ:
+            os.environ['SCPATH'] = ''
         #Getting environment path (highest priority)
         scpaths = str(os.environ['SCPATH']).split(':')
 
