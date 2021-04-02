@@ -4,7 +4,6 @@ sc examples/gcd/gcd.v \
    -target "freepdk45" \
    -asic_diesize "0 0 100.13 100.8" \
    -asic_coresize "10.07 11.2 90.25 91" \
-   -stop "place" \
    -loglevel "INFO" \
    -design gcd \
    -quiet
