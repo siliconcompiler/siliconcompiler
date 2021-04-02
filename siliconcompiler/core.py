@@ -16,7 +16,7 @@ import shutil
 import copy
 import importlib
 import glob
-
+import pandas
 
 from siliconcompiler.schema import schema_cfg
 from siliconcompiler.schema import schema_layout
@@ -695,7 +695,7 @@ class Chip:
 
 
     ###################################
-    def summary(self, jobid, filename=None):
+    def summary(self):
         '''Creates a summary dictionary of the results of the specified step
         and jobid
 
@@ -703,7 +703,25 @@ class Chip:
             step: The step to report on (eg. cts)
             jobid: Index of job to report on (1, 2, etc)
         '''
-        return step
+        print("\nSUMMARY:")
+        data = []
+        steps = []
+        for step in self.get('steps'):
+            steps.append(step)
+            jobid = self.get('flow', step, 'jobid')[-1]
+            row = []
+            metrics = []
+            for metric in self.getkeys('real', 'step', jobid):
+                metrics.append(metric)
+                row.append(str(self.get('real', step, jobid, metric)[-1]))
+            data.append(row)
+
+        pandas.set_option('display.max_rows', 500)
+        pandas.set_option('display.max_columns', 500)
+        pandas.set_option('display.width', 1000)
+        pandas.set_option('colheader_justify', 'center')
+        df = pandas.DataFrame(data, steps, metrics)
+        print(df)
 
     ###################################
     def display(self, *args, index=0):
@@ -757,17 +775,34 @@ class Chip:
         start = steplist.index(self.cfg['start']['value'][-1]) #scalar
         stop = steplist.index(self.cfg['stop']['value'][-1]) #scalar
         skip = step in self.cfg['skip']['value']
+
+          
+        #####################
+        # Update Jobid
+        #####################
+        
+        jobid = int(self.cfg['flow'][step]['jobid']['value'][-1])
+        jobid = jobid + 1
+        self.cfg['flow'][step]['jobid']['value'] = str(jobid)
         
         #####################
-        # Dynamic Module Load
-        #####################    
+        # Dynamic EDA setup
+        #####################
+        
         packdir = "eda." + vendor
         modulename = '.'+vendor+'_setup'
         module = importlib.import_module(modulename, package=packdir)
-        
+
         #####################
+        # Init Metrics Table
+        #####################
+        
+        for metric in self.getkeys('real', step, str(jobid)):
+            self.add('real', step, str(jobid), metric, 0)
+        
+        ########################
         # Conditional Execution
-        #####################    
+        ########################    
 
         if step not in steplist:
             self.logger.error('Illegal step name %s', step)
@@ -775,9 +810,6 @@ class Chip:
             self.logger.info('Skipping step: %s', step)
         else:
             self.logger.info('Running step: %s', step)
-
-            #Updating jobindex
-            jobid = int(self.cfg['flow'][step]['jobid']['value'][-1]) + 1
 
             #Moving to working directory
             jobdir = (str(self.cfg['dir']['value'][-1]) + #scalar
@@ -882,9 +914,6 @@ class Chip:
             #run tool specific post process
             post_process = getattr(module,"post_process")
             post_process(self, step)
-
-            #Updating jobid when complete
-            self.cfg['flow'][step]['jobid']['value'] = [str(jobid)]
 
             #Return to CWD
             os.chdir(cwd)

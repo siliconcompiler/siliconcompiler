@@ -147,7 +147,7 @@ def add_arg(cfg, parser, keys=None):
     if keys is None:
         keys = []
     for k,v in sorted(cfg.items()):
-        print(k)
+        #print(k)
         #No command line switches for these odd balls
         if k in ('source'):
             pass
@@ -165,9 +165,9 @@ def add_arg(cfg, parser, keys=None):
                                     help=helpstr,
                                     default = argparse.SUPPRESS)
         elif k in ('goal', 'real'):
-            for k2 in cfg[k]['default']['default'].keys():
-                helpstr = cfg[k]['default']['default'][k2]['short_help']
-                parser.add_argument(cfg[k]['default']['default'][k2]['switch'],
+            for k2 in cfg[k]['default']['1'].keys():
+                helpstr = cfg[k]['default']['1'][k2]['short_help']
+                parser.add_argument(cfg[k]['default']['1'][k2]['switch'],
                                     dest=k+"_"+k2,
                                     metavar='',
                                     action='append',
@@ -229,7 +229,6 @@ def main():
     chip = siliconcompiler.Chip(loglevel=loglevel)
 
     # 1. Automagical command line values
-    print(cmdlinecfg)
     if len(cmdlinecfg['target']['value']) > 0:
         chip.set('target', cmdlinecfg['target']['value'][0])
     elif 'cfg' in cmdlinecfg.keys():
@@ -277,7 +276,11 @@ def main():
         # Run each stage on the local host if no remote server is specified.
         else:
             chip.run(stage)
-    
+
+    # Print Summary
+    chip.summary()
+
+            
 #########################
 if __name__ == "__main__":    
     sys.exit(main())

@@ -1390,11 +1390,11 @@ def schema_metrics(cfg, group, step):
     if not group in cfg:
         cfg[group] = {}    
 
-    cfg[group][step] = {}            # per step
-    cfg[group][step]['default'] = {} # per jobid
+    cfg[group][step] = {}      # per step
+    cfg[group][step]['1'] = {} # per jobid
 
     #area
-    cfg[group][step]['default']['area'] = {
+    cfg[group][step]['1']['area'] = {
         'switch' : '-'+group+'_area',
         'type' : ['num'],
         'requirement' : 'optional',
@@ -1410,7 +1410,7 @@ def schema_metrics(cfg, group, step):
         "api: chip.set('"+group+"','place', '1', 'area', '10000')        "
     }    
 
-    cfg[group][step]['default']['power'] = {
+    cfg[group][step]['1']['power'] = {
         'switch' : '-'+group+'_power',
         'type' : ['num'],
         'requirement' : 'optional',
@@ -1427,7 +1427,7 @@ def schema_metrics(cfg, group, step):
         "api: chip.set('"+group+"','place', '1', 'power', '0.001')       "
     }    
 
-    cfg[group][step]['default']['leakage'] = {
+    cfg[group][step]['1']['leakage'] = {
         'switch' : '-'+group+'_leakage',
         'type' : ['num'],
         'requirement' : 'optional',
@@ -1444,7 +1444,7 @@ def schema_metrics(cfg, group, step):
     }    
 
     
-    cfg[group][step]['default']['hold_tns'] = {
+    cfg[group][step]['1']['hold_tns'] = {
         'switch' : '-'+group+'_hold_tns',
         'type' : ['num'],
         'requirement' : 'optional',
@@ -1460,7 +1460,7 @@ def schema_metrics(cfg, group, step):
         "api: chip.set('"+group+"','place', '1','hold_tns', '0')         "
     }    
 
-    cfg[group][step]['default']['hold_wns'] = {
+    cfg[group][step]['1']['hold_wns'] = {
         'switch' : '-'+group+'_hold_wns',
         'type' : ['num'],
         'requirement' : 'optional',
@@ -1476,7 +1476,7 @@ def schema_metrics(cfg, group, step):
         "api: chip.set('"+group+"','place','1','hold_wns', '0')          "
     }    
 
-    cfg[group][step]['default']['setup_tns'] = {
+    cfg[group][step]['1']['setup_tns'] = {
         'switch' : '-'+group+'_setup_tns',
         'type' : ['num'],
         'requirement' : 'optional',
@@ -1492,7 +1492,7 @@ def schema_metrics(cfg, group, step):
         "api: chip.set('"+group+"','place','1','setup_tns', '0')         "
     }    
 
-    cfg[group][step]['default']['setup_wns'] = {
+    cfg[group][step]['1']['setup_wns'] = {
         'switch' : '-'+group+'_setup_wns',
         'type' : ['num'],
         'requirement' : 'optional',
@@ -1508,7 +1508,7 @@ def schema_metrics(cfg, group, step):
         "api: chip.set('"+group+"','place','1','setup_wns','0')          "
     }    
 
-    cfg[group][step]['default']['drv'] = {
+    cfg[group][step]['1']['drv'] = {
         'switch' : '-'+group+'_drv',
         'type' : ['num'],
         'requirement' : 'optional',
@@ -1524,7 +1524,7 @@ def schema_metrics(cfg, group, step):
         "api: chip.set('"+group+"','place','1','drv', '0')               "
     }    
 
-    cfg[group][step]['default']['warnings'] = {
+    cfg[group][step]['1']['warnings'] = {
         'switch' : '-'+group+'_warnings',
         'type' : ['num'],
         'requirement' : 'optional',
@@ -1539,7 +1539,7 @@ def schema_metrics(cfg, group, step):
         "api: chip.set('"+group+"','place','1','warnings', '0')           "
     }
     
-    cfg[group][step]['default']['errors'] = {
+    cfg[group][step]['1']['errors'] = {
         'switch' : '-'+group+'_errors',
         'type' : ['num'],
         'requirement' : 'optional',
@@ -1554,7 +1554,7 @@ def schema_metrics(cfg, group, step):
         "api: chip.set('"+group+"','place','1','errors', '0')            "
     }
 
-    cfg[group][step]['default']['runtime'] = {
+    cfg[group][step]['1']['runtime'] = {
         'switch' : '-'+group+'_runtime',
         'type' : ['num'],
         'requirement' : 'optional',
@@ -1569,7 +1569,7 @@ def schema_metrics(cfg, group, step):
         "api: chip.set('"+group+"','place','1','runtime', '0')           "
     }
     
-    cfg[group][step]['default']['memory'] = {
+    cfg[group][step]['1']['memory'] = {
         'switch' : '-'+group+'_memory',
         'type' : ['num'],
         'requirement' : 'optional',
