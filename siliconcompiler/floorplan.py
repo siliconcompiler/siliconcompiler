@@ -11,7 +11,7 @@ from siliconcompiler.leflib import read_lef
 from siliconcompiler.deflib import define_def
 from siliconcompiler.deflib import read_def
 
-class Chip:
+class Floorplan:
     """
     Chip Layout Class
     """
