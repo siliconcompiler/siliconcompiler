@@ -695,7 +695,7 @@ class Chip:
 
 
     ###################################
-    def summary(self):
+    def summary(self, filename=None):
         '''Creates a summary dictionary of the results of the specified step
         and jobid
 
@@ -721,7 +721,8 @@ class Chip:
         pandas.set_option('display.width', 1000)
         pandas.set_option('colheader_justify', 'center')
         df = pandas.DataFrame(data, steps, metrics)
-        print(df)
+        if filename is None:
+            print(df)
 
     ###################################
     def display(self, *args, index=0):
