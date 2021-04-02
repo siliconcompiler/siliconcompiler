@@ -147,7 +147,7 @@ def add_arg(cfg, parser, keys=None):
     if keys is None:
         keys = []
     for k,v in sorted(cfg.items()):
-        #print(k)
+        print(k)
         #No command line switches for these odd balls
         if k in ('source'):
             pass
@@ -155,10 +155,19 @@ def add_arg(cfg, parser, keys=None):
         #These all have steps
         #dict: 'flow' step 'exe' <str>
         #cli: -flow_exe "step <str>"
-        elif k in ('flow', 'goal', 'real'):
+        elif k in ('flow'):
             for k2 in cfg[k]['default'].keys():
                 helpstr = cfg[k]['default'][k2]['short_help']
                 parser.add_argument(cfg[k]['default'][k2]['switch'],
+                                    dest=k+"_"+k2,
+                                    metavar='',
+                                    action='append',
+                                    help=helpstr,
+                                    default = argparse.SUPPRESS)
+        elif k in ('goal', 'real'):
+            for k2 in cfg[k]['default']['default'].keys():
+                helpstr = cfg[k]['default']['default'][k2]['short_help']
+                parser.add_argument(cfg[k]['default']['default'][k2]['switch'],
                                     dest=k+"_"+k2,
                                     metavar='',
                                     action='append',

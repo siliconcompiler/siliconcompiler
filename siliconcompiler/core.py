@@ -381,7 +381,7 @@ class Chip:
                               cfg[k]['requirement'],
                               defstr,
                               valstr]
-                    outstr = " | {: <45} | {: <30} | {: <15} | {: <10} | {: <10}|".format(*outlst)
+                    outstr = " | {: <52} | {: <30} | {: <15} | {: <10} | {: <10}|".format(*outlst)
                 #print out content
                 if file is None:
                     print(outstr)
@@ -567,14 +567,14 @@ class Chip:
         elif filepath.endswith('.md'):
             with open(filepath, 'w') as f:
                 outlist = ['param', 'desription', 'type', 'required', 'default', 'value']
-                outstr = " | {: <45} | {: <30} | {: <15} | {: <10} | {: <10}|".format(*outlist)
+                outstr = " | {: <52} | {: <30} | {: <15} | {: <10} | {: <10}|".format(*outlist)
                 print(outstr, file=f)
                 outlist = [':----',
                           ':----',
                           ':----',
                           ':----',
                           ':----']
-                outstr = " | {: <45} | {: <30} | {: <15} | {: <10} | {: <10}|".format(*outlist)
+                outstr = " | {: <52} | {: <30} | {: <15} | {: <10} | {: <10}|".format(*outlist)
                 print(outstr, file=f)
                 self.printcfg(cfgcopy, mode='md', field='requirement' , file=f)  
         else:
@@ -695,7 +695,7 @@ class Chip:
 
 
     ###################################
-    def summary(self, step, jobid, filename=None):
+    def summary(self, jobid, filename=None):
         '''Creates a summary dictionary of the results of the specified step
         and jobid
 
