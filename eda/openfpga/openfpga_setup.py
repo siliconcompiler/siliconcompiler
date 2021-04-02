@@ -21,7 +21,7 @@ def setup_tool(chip, step):
     chip.add('flow', step, 'refdir', refdir)
     chip.add('flow', step, 'option', '-batch -f ' + OPENFPGA_SCRIPT)
     chip.add('flow', step, 'exe', 'openfpga')
-    chip.add('flow', step, 'copy', 'false')
+    chip.add('flow', step, 'copy', 'true')
 
 ################################
 # Set OpenFPGA Runtime Options
