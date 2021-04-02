@@ -711,17 +711,17 @@ class Chip:
             row = []
             metrics = []
             for metric in self.getkeys('real', 'step', jobid):
-                metrics.append(metric)
-                row.append(str(self.get('real', step, jobid, metric)[-1]))
+                metrics.append(" " + metric)
+                row.append(" " + str(self.get('real', step, jobid, metric)[-1]))
             data.append(row)
+
 
         pandas.set_option('display.max_rows', 500)
         pandas.set_option('display.max_columns', 500)
         pandas.set_option('display.width', 1000)
-        pandas.set_option('colheader_justify', 'center')
         df = pandas.DataFrame(data, steps, metrics)
         if filename is None:
-            print(df)
+            print(df.to_string())
 
     ###################################
     def display(self, *args, index=0):

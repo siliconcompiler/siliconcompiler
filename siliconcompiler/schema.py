@@ -1578,7 +1578,9 @@ def schema_metrics(cfg, group, step):
         'short_help' : 'Total Runtime ' + group.capitalize(),
         'param_help' : "'"+group+"' step 'jobid' 'runtime' <num>",
         'help' : 
-        "Metric tracking the total runtime on a per step basis.          "\
+        "Metric tracking the total runtime on a per step basis. Time     "\
+        "recorded as wall clock time in seconds, with value displayed as "\
+        "hr:min:sec                                                      "\
         "                                                                "\
         "Examples:                                                       "\
         "cli: -"+group+"_runtime 'place 1 0'                             "\
@@ -1594,6 +1596,8 @@ def schema_metrics(cfg, group, step):
         'param_help' : "'"+group+"' step 'jobid' 'memory' <num>",
         'help' : 
         "Metric tracking the total memory on a per step and per jobid   "\
+        "Value record as bytes, displayed with standard units:          "\
+        "K,M,G,T,P,E for Kilo, Mega, Giga, Tera, Peta, Exa              "\
         "basis.                                                         "\
         "Examples:                                                      "\
         "cli: -"+group+"_memory 'place 1 0'                             "\
