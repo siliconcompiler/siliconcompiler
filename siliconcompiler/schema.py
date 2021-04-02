@@ -1393,7 +1393,23 @@ def schema_metrics(cfg, group, step):
     cfg[group][step] = {}      # per step
     cfg[group][step]['1'] = {} # per jobid
 
-    #area
+    cfg[group][step]['1']['instances'] = {
+        'switch' : '-'+group+'_instances',
+        'type' : ['num'],
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Total Cell Instances ' + group.capitalize(),
+        'param_help' : "'"+group+"' step 'jobid' 'instances' <num>",
+        'help' : 
+        "Metric tracking the total number of cell instances on a per step"\
+        "and per jobid basis. In the case of FPGAs, the it represents    "\
+        "the number of LUTs.                                             "\
+        "                                                                "\
+        "Examples:                                                       "\
+        "cli: -"+group+"_instances 'place 1 100'                         "\
+        "api: chip.set('"+group+"','place', '1', 'instances', '100')     "
+    }    
+    
     cfg[group][step]['1']['area'] = {
         'switch' : '-'+group+'_area',
         'type' : ['num'],
