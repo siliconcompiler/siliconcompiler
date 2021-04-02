@@ -109,7 +109,6 @@ class Chip:
         # <process/device>
         # <process/device>_<eda>
 
-        
         targetlist = str(self.get('target')[0]).split('_')
         platform = targetlist[0]
 
@@ -138,7 +137,7 @@ class Chip:
             setup_libs = getattr(module,"setup_libs")
             setup_libs(self)
             setup_design = getattr(module,"setup_design")
-            setup_design(self,self.get('optmode'))
+            setup_design(self,self.get('optmode')[0])
 
         #Load EDA
         packdir = "eda.targets"
@@ -843,7 +842,7 @@ class Chip:
             if schema_istrue(self.cfg['flow'][step]['copy']['value']):
                 for value in self.cfg['flow'][step]['script']['value']:
                     abspath = schema_path(value)
-                cmd_fields.append(abspath)
+                    cmd_fields.append(abspath)
             else:
                 for value in self.cfg['flow'][step]['script']['value']:
                     cmd_fields.append(value)      
