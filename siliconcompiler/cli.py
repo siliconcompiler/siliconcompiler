@@ -231,7 +231,7 @@ def main():
         chip.set('mode', 'asic')
         
     if 'optmode' in cmdlinecfg.keys():
-        chip.set('optmode', cmdlinecfg['optmode']['value'][-1])
+        chip.set('optmode', cmdlinecfg['optmode']['value'])
         
     # 2. Reading in config files specified at command line
     if 'cfg' in  cmdlinecfg.keys():
