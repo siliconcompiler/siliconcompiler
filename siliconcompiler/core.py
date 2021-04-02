@@ -22,7 +22,6 @@ from siliconcompiler.schema import schema_cfg
 from siliconcompiler.schema import schema_layout
 from siliconcompiler.schema import schema_path
 from siliconcompiler.schema import schema_istrue
-from siliconcompiler.setup import setup_cmd
 
 class Chip:
     """
