@@ -1,4 +1,4 @@
-on: [pull_request, pull_request_review]
+on: [push, pull_request, pull_request_review]
 
 jobs:
   gcd_test_job:
