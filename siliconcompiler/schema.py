@@ -1389,197 +1389,199 @@ def schema_metrics(cfg, group, step):
 
     if not group in cfg:
         cfg[group] = {}    
-    cfg[group][step] = {}
+
+    cfg[group][step] = {}            # per step
+    cfg[group][step]['default'] = {} # per jobid
 
     #area
-    cfg[group][step]['area'] = {
+    cfg[group][step]['default']['area'] = {
         'switch' : '-'+group+'_area',
         'type' : ['num'],
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Cell Area ' + group.capitalize(),
-        'param_help' : "'"+group+"' step 'area' <num>",
+        'param_help' : "'"+group+"' step 'jobid' 'area' <num>",
         'help' : 
-        "Metric tracking the total cell area on a per step basis specifed"\
-        "in um^2.                                                        "\
+        "Metric tracking the total cell area on a per step and per jobid "\
+        "basis specified in um^2.                                        "\
         "                                                                "\
         "Examples:                                                       "\
-        "cli: -"+group+"_area 'place 10000'                              "\
-        "api: chip.set('"+group+"','place','area', '10000')              "
+        "cli: -"+group+"_area 'place 1 10000'                            "\
+        "api: chip.set('"+group+"','place', '1', 'area', '10000')        "
     }    
 
-    cfg[group][step]['power'] = {
+    cfg[group][step]['default']['power'] = {
         'switch' : '-'+group+'_power',
         'type' : ['num'],
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Active Power ' + group.capitalize(),
-        'param_help' : "'"+group+"' step 'power' <num>",
+        'param_help' : "'"+group+"' step 'jobid' 'power' <num>",
         'help' : 
         "Metric tracking the dynamic power of the design on a per step   "\
-        "basis calculated based on setup config and VCD stimulus.        "\
-        "Metric unit is Watts.                                           "\
+        "and per jobid basis calculated based on setup config and VCD    "\
+        "stimulus. Metric unit is Watts.                                 "\
         "                                                                "\
         "Examples:                                                       "\
-        "cli: -"+group+"_power 'place 0.001'                             "\
-        "api: chip.set('"+group+"','place','power', '0.001')             "
+        "cli: -"+group+"_power 'place 1 0.001'                           "\
+        "api: chip.set('"+group+"','place', '1', 'power', '0.001')       "
     }    
 
-    cfg[group][step]['leakage'] = {
+    cfg[group][step]['default']['leakage'] = {
         'switch' : '-'+group+'_leakage',
         'type' : ['num'],
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Leakage ' + group.capitalize(),
-        'param_help' : "'"+group+"' step 'leakage' <num>",
+        'param_help' : "'"+group+"' step 'jobid' 'leakage' <num>",
         'help' : 
-        "Metric tracking the leakage of the design on a per step basus.  "\
-        "Calcualted based on MCMM setup. Metric unit is Watts.           "\
-        "                                                                "\
+        "Metric tracking the leakage of the design on a per step and per "\
+        "jobid basis. Calculated based on MCMM setup. Metric unit is     "\
+        "Watts.                                                          "\
         "Examples:                                                       "\
-        "cli: -"+group+"_power 'place 1e-6'                              "\
-        "api: chip.set('"+group+"','place','leakage', '1e-6')            "
+        "cli: -"+group+"_power 'place 1 1e-6'                            "\
+        "api: chip.set('"+group+"','place', '1','leakage', '1e-6')       "
     }    
 
     
-    cfg[group][step]['hold_tns'] = {
+    cfg[group][step]['default']['hold_tns'] = {
         'switch' : '-'+group+'_hold_tns',
         'type' : ['num'],
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Hold TNS ' + group.capitalize(),
-        'param_help' : "'"+group+"' step 'hold_tns' <num>",
+        'param_help' : "'"+group+"' step 'jobid' 'hold_tns' <num>",
         'help' : 
         "Metric tracking the total negative hold slack (TNS) on a per    "\
-        "step basis. Metric unit is nanoseconds.                         "\
+        "step and per jobid basis. Metric unit is nanoseconds.           "\
         "                                                                "\
         "Examples:                                                       "\
-        "cli: -"+group+"_hold_tns 'place 0'                              "\
-        "api: chip.set('"+group+"','place','hold_tns', '0')              "
+        "cli: -"+group+"_hold_tns 'place 1 0'                            "\
+        "api: chip.set('"+group+"','place', '1','hold_tns', '0')         "
     }    
 
-    cfg[group][step]['hold_wns'] = {
+    cfg[group][step]['default']['hold_wns'] = {
         'switch' : '-'+group+'_hold_wns',
         'type' : ['num'],
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Hold WNS ' + group.capitalize(),
-        'param_help' : "'"+group+"' step 'hold_wns' <num>",
+        'param_help' : "'"+group+"' step 'jobid' 'hold_wns' <num>",
         'help' : 
         "Metric tracking the worst negative hold slack (TNS) on a per    "\
-        "step basis. Metric unit is nanoseconds.                         "\
+        "step and per jobid basis. Metric unit is nanoseconds.           "\
         "                                                                "\
         "Examples:                                                       "\
-        "cli: -"+group+"_hold_wns 'place 0'                              "\
-        "api: chip.set('"+group+"','place','hold_wns', '0')              "
+        "cli: -"+group+"_hold_wns 'place 1 0'                            "\
+        "api: chip.set('"+group+"','place','1','hold_wns', '0')          "
     }    
 
-    cfg[group][step]['setup_tns'] = {
+    cfg[group][step]['default']['setup_tns'] = {
         'switch' : '-'+group+'_setup_tns',
         'type' : ['num'],
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Setup TNS ' + group.capitalize(),
-        'param_help' : "'"+group+"' step 'setup_tns' <num>",
+        'param_help' : "'"+group+"' step 'jobid' 'setup_tns' <num>",
         'help' : 
         "Metric tracking the total negative setup slack (TNS) on a per   "\
-        "step basis. Metric unit is nanoseconds.                         "\
+        "step and per jobid basis. Metric unit is nanoseconds.           "\
         "                                                                "\
         "Examples:                                                       "\
-        "cli: -"+group+"_setup_tns 'place 0'                             "\
-        "api: chip.set('"+group+"','place','setup_tns', '0')             "
+        "cli: -"+group+"_setup_tns 'place 1 0'                           "\
+        "api: chip.set('"+group+"','place','1','setup_tns', '0')         "
     }    
 
-    cfg[group][step]['setup_wns'] = {
+    cfg[group][step]['default']['setup_wns'] = {
         'switch' : '-'+group+'_setup_wns',
         'type' : ['num'],
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Setup WNS ' + group.capitalize(),
-        'param_help' : "'"+group+"' step 'setup_wns' <num>",
+        'param_help' : "'"+group+"' step 'jobid' 'setup_wns' <num>",
         'help' : 
         "Metric tracking the worst negative setup slack (TNS) on a per   "\
-        "step basis. Metric unit is nanoseconds.                         "\
+        "step and per jobid basis. Metric unit is nanoseconds.           "\
         "                                                                "\
         "Examples:                                                       "\
-        "cli: -"+group+"_setup_wns 'place 0'                             "\
-        "api: chip.set('"+group+"','place','setup_wns','0')              "
+        "cli: -"+group+"_setup_wns 'place 1 0'                           "\
+        "api: chip.set('"+group+"','place','1','setup_wns','0')          "
     }    
 
-    cfg[group][step]['drv'] = {
+    cfg[group][step]['default']['drv'] = {
         'switch' : '-'+group+'_drv',
         'type' : ['num'],
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Design Rule Violations ' + group.capitalize(),
-        'param_help' : "'"+group+"' step 'drv' <num>",
+        'param_help' : "'"+group+"' step 'jobid' 'drv' <num>",
         'help' : 
         "Metric tracking the total number of design rule violations on a "\
-        "per step basis.                                                 "\
+        "per step and per jobid basis.                                   "\
         "                                                                "\
         "Examples:                                                       "\
-        "cli: -"+group+"_drv 'place 0'                                   "\
-        "api: chip.set('"+group+"','place','drv', '0')                   "
+        "cli: -"+group+"_drv 'place 1 0'                                 "\
+        "api: chip.set('"+group+"','place','1','drv', '0')               "
     }    
 
-    cfg[group][step]['warnings'] = {
+    cfg[group][step]['default']['warnings'] = {
         'switch' : '-'+group+'_warnings',
         'type' : ['num'],
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Total Warnings ' + group.capitalize(),
-        'param_help' : "'"+group+"' step 'warnings' <num>",
+        'param_help' : "'"+group+"' step 'jobid' 'warnings' <num>",
         'help' : 
-        "Metric tracking the total number of warnings on a per step basis."\
-        "                                                                 "\
+        "Metric tracking the total number of warnings on a per and per    "\
+        "jobid basis.                                                     "\
         "Examples:                                                        "\
-        "cli: -"+group+"_warnings 'place 0'                               "\
-        "api: chip.set('"+group+"','place','warnings', '0')               "
+        "cli: -"+group+"_warnings 'place 1 0'                             "\
+        "api: chip.set('"+group+"','place','1','warnings', '0')           "
     }
     
-    cfg[group][step]['errors'] = {
+    cfg[group][step]['default']['errors'] = {
         'switch' : '-'+group+'_errors',
         'type' : ['num'],
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Total Errors ' + group.capitalize(),
-        'param_help' : "'"+group+"' step 'errors' <num>",
+        'param_help' : "'"+group+"' step 'jobid' 'errors' <num>",
         'help' : 
-        "Metric tracking the total number of errors on a per step basis. "\
-        "                                                                "\
+        "Metric tracking the total number of errors on a per step and    "\
+        "per jobid basis.                                                "\
         "Examples:                                                       "\
-        "cli: -"+group+"_errors 'place 0'                                "\
-        "api: chip.set('"+group+"','place','errors', '0')                "
+        "cli: -"+group+"_errors 'place 1 0'                              "\
+        "api: chip.set('"+group+"','place','1','errors', '0')            "
     }
 
-    cfg[group][step]['runtime'] = {
+    cfg[group][step]['default']['runtime'] = {
         'switch' : '-'+group+'_runtime',
         'type' : ['num'],
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Total Runtime ' + group.capitalize(),
-        'param_help' : "'"+group+"' step 'runtime' <num>",
+        'param_help' : "'"+group+"' step 'jobid' 'runtime' <num>",
         'help' : 
         "Metric tracking the total runtime on a per step basis.          "\
         "                                                                "\
         "Examples:                                                       "\
-        "cli: -"+group+"_runtime 'place 0'                               "\
-        "api: chip.set('"+group+"','place','runtime', '0')               "
+        "cli: -"+group+"_runtime 'place 1 0'                             "\
+        "api: chip.set('"+group+"','place','1','runtime', '0')           "
     }
     
-    cfg[group][step]['memory'] = {
+    cfg[group][step]['default']['memory'] = {
         'switch' : '-'+group+'_memory',
         'type' : ['num'],
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Total Memory ' + group.capitalize(),
-        'param_help' : "'"+group+"' step 'memory' <num>",
+        'param_help' : "'"+group+"' step 'jobid' 'memory' <num>",
         'help' : 
-        "Metric tracking the total memory on a per step basis.          "\
-        "                                                               "\
+        "Metric tracking the total memory on a per step and per jobid   "\
+        "basis.                                                         "\
         "Examples:                                                      "\
-        "cli: -"+group+"_memory 'place 0'                               "\
-        "api: chip.set('"+group+"','place','memory', '0')               "
+        "cli: -"+group+"_memory 'place 1 0'                             "\
+        "api: chip.set('"+group+"','place','1','memory', '0')           "
     }
     
     return cfg
