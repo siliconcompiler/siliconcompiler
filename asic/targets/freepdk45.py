@@ -27,17 +27,17 @@ def setup_platform(chip):
     chip.set('mode','asic')
 
     # process name
-    chip.add('pdk','foundry', foundry)
-    chip.add('pdk','process', process)
-    chip.add('pdk','rev', rev)
-    chip.add('pdk','stackup', stackup)
+    chip.set('pdk','foundry', foundry)
+    chip.set('pdk','process', process)
+    chip.set('pdk','rev', rev)
+    chip.set('pdk','stackup', stackup)
 
     # APR tech file
-    chip.add('pdk','aprtech',stackup, libtype, edavendor,
+    chip.set('pdk','aprtech',stackup, libtype, edavendor,
              pdkdir+'/apr/freepdk45.tech.lef')
 
     # Techlef Overrides
-    chip.add('pdk','aprlayer',stackup, 'metal1 X 0.095 0.19')
+    chip.set('pdk','aprlayer',stackup, 'metal1 X 0.095 0.19')
     chip.add('pdk','aprlayer',stackup, 'metal1 Y 0.07  0.14')
     chip.add('pdk','aprlayer',stackup, 'metal2 X 0.095 0.19')
     chip.add('pdk','aprlayer',stackup, 'metal2 Y 0.07  0.14')
@@ -79,39 +79,39 @@ def setup_libs(chip, vendor=None):
                        rev])
     
     # rev
-    chip.add('stdcell',libname,'rev',rev)    
+    chip.set('stdcell',libname,'rev',rev)    
 
     # timing
-    chip.add('stdcell',libname, 'model', corner, 'nldm', 'lib',
+    chip.set('stdcell',libname, 'model', corner, 'nldm', 'lib',
              libdir+'/lib/NangateOpenCellLibrary_typical.lib')
 
     # lef
-    chip.add('stdcell',libname,'lef',
+    chip.set('stdcell',libname,'lef',
              libdir+'/lef/NangateOpenCellLibrary.macro.lef')    
     # gds
-    chip.add('stdcell',libname,'gds',
+    chip.set('stdcell',libname,'gds',
              libdir+'/gds/NangateOpenCellLibrary.gds')
     # site name
-    chip.add('stdcell',libname,'site',
+    chip.set('stdcell',libname,'site',
              'FreePDK45_38x28_10R_NP_162NW_34O')
     # lib arch
-    chip.add('stdcell',libname,'libtype',libtype)
+    chip.set('stdcell',libname,'libtype',libtype)
 
     # lib site/tile/size
-    chip.add('stdcell',libname,'size',size)
+    chip.set('stdcell',libname,'size',size)
 
 #########################
 def setup_design(chip, optmode):
 
-    chip.add('asic', 'stackup', chip.get('pdk', 'stackup')[0])
-    chip.add('asic', 'targetlib', chip.getkeys('stdcell'))
+    chip.set('asic', 'stackup', chip.get('pdk', 'stackup')[0])
+    chip.set('asic', 'targetlib', chip.getkeys('stdcell'))
 
     corner = 'typical'
     # hard coded mcmm settings (only one corner!)
-    chip.add('mcmm','worst','libcorner', corner)
-    chip.add('mcmm','worst','pexcorner', corner)
-    chip.add('mcmm','worst','mode', 'func')
-    chip.add('mcmm','worst','check', ['setup','hold'])
+    chip.set('mcmm','worst','libcorner', corner)
+    chip.set('mcmm','worst','pexcorner', corner)
+    chip.set('mcmm','worst','mode', 'func')
+    chip.set('mcmm','worst','check', ['setup','hold'])
     
 #########################
 if __name__ == "__main__":    
