@@ -1,4 +1,5 @@
 import os
+import re
 
 ################################
 # Tool Setup
@@ -31,11 +32,10 @@ def setup_options(chip,step):
 def pre_process(chip, step):
     ''' Tool specific function to run before step execution
     '''
-    sc_paths = os.getenv('SCPATH').split(':')
-    sc_root = ''
-    for path in sc_paths:
-      if 'siliconcompiler' in path:
-        sc_root = path
+    scriptdir = os.path.dirname(os.path.abspath(__file__))
+    sc_root   =  re.sub('siliconcompiler/eda/klayout',
+                        'siliconcompiler',
+                        scriptdir)
     sc_path = sc_root + '/asic'
     foundry_path = '%s/%s/%s/pdk/r1p0'%(
         sc_path,
