@@ -765,20 +765,23 @@ class Chip:
         '''
 
         #####################
+        # Dynamic EDA setup
+        #####################
+        vendor = self.cfg['flow'][step]['vendor']['value'][-1]
+        packdir = "eda." + vendor
+        modulename = '.'+vendor+'_setup'
+        module = importlib.import_module(modulename, package=packdir)
+        
+        #####################
         # Run Setup
         ##################### 
-
-        vendor = self.cfg['flow'][step]['vendor']['value'][-1]
-        tool = self.cfg['flow'][step]['exe']['value'][-1]
-        refdir = schema_path(self.cfg['flow'][step]['refdir']['value'][-1])
-        
         steplist = self.cfg['steps']['value']
         stepindex = steplist.index(step)
         laststep = steplist[stepindex-1]
         start = steplist.index(self.cfg['start']['value'][-1]) #scalar
         stop = steplist.index(self.cfg['stop']['value'][-1]) #scalar
         skip = step in self.cfg['skip']['value']
-
+        skipall = bool(self.cfg['skipall']['value'][-1] =='true')
           
         #####################
         # Update Jobid
@@ -787,14 +790,6 @@ class Chip:
         jobid = int(self.cfg['flow'][step]['jobid']['value'][-1])
         jobid = jobid + 1
         self.cfg['flow'][step]['jobid']['value'] = str(jobid)
-        
-        #####################
-        # Dynamic EDA setup
-        #####################
-        
-        packdir = "eda." + vendor
-        modulename = '.'+vendor+'_setup'
-        module = importlib.import_module(modulename, package=packdir)
 
         #####################
         # Init Metrics Table
@@ -802,122 +797,125 @@ class Chip:
         
         for metric in self.getkeys('real', step, str(jobid)):
             self.add('real', step, str(jobid), metric, 0)
-        
+
+        #####################
+        # Setting up Directory
+        #####################
+
+        #Moving to working directory
+        jobdir = (str(self.cfg['dir']['value'][-1]) + #scalar
+                  "/" +
+                  str(step) +
+                  "/job" +
+                  str(jobid))
+
+        #Creating Temporary Working Dir
+        if os.path.isdir(jobdir):
+            os.system("rm -rf " +  jobdir)
+        os.makedirs(jobdir, exist_ok=True)
+        cwd = os.getcwd()
+        os.chdir(jobdir)
+
+        #make output directories
+        os.makedirs('outputs', exist_ok=True)
+        os.makedirs('reports', exist_ok=True)
+
+        #Create Logcal copuesLocal configuration files
+        self.writecfg("sc_setup.json")
+        self.writecfg("sc_setup.tcl", abspath=True)
+
+        #Copy outputs from last step unless import                        
+        if stepindex > 0:              
+            lastjobid = self.cfg['flow'][laststep]['jobid']['value'][-1]
+            lastdir = '/'.join(['../../',                
+                                steplist[stepindex-1],
+                                'job'+lastjobid,
+                                'outputs'])
+            shutil.copytree(lastdir, 'inputs')
+
+        #Copy Reference Scripts
+        refdir = schema_path(self.cfg['flow'][step]['refdir']['value'][-1])
+        if schema_istrue(self.cfg['flow'][step]['copy']['value']):
+            shutil.copytree(refdir,
+                            ".",
+                            dirs_exist_ok=True)
+
+        #####################
+        # Tool Pre Process
+        #####################
+
+        pre_process = getattr(module,"pre_process")
+        pre_process(self,step)
+
+        #####################
+        # Generate CMD
+        #####################
+
+        #Set Executable
+        exe = self.cfg['flow'][step]['exe']['value'][-1] #scalar
+        cmd_fields = [exe]
+
+        #Dynamically generate options
+        setup_options = getattr(module,"setup_options")
+        options = setup_options(self, step)
+
+        #Add options to cmd list
+        cmd_fields.extend(options)        
+
+        #Resolve Paths
+        if schema_istrue(self.cfg['flow'][step]['copy']['value']):
+            for value in self.cfg['flow'][step]['script']['value']:
+                abspath = schema_path(value)
+                cmd_fields.append(abspath)
+        else:
+            for value in self.cfg['flow'][step]['script']['value']:
+                cmd_fields.append(value)      
+
+        #Piping to log file
+        logfile = exe + ".log"
+        if schema_istrue(self.cfg['quiet']['value']):
+            cmd_fields.append("> " + logfile)
+        else:
+            cmd_fields.append("| tee " + logfile)
+
+        #Final command line
+        cmd = ' '.join(cmd_fields)
+
+        #Create run file
+        with open("run.sh", 'w') as f:
+            print("#!/bin/bash", file=f)
+            print(cmd, file=f)
+        f.close()
+        os.chmod("run.sh", 0o755)
+
         ########################
         # Conditional Execution
         ########################    
 
         if step not in steplist:
             self.logger.error('Illegal step name %s', step)
-        elif (stepindex < start) | (stepindex > stop) | skip:
+            sys.exit()            
+        if (stepindex < start) | (stepindex > stop) | skip | skipall:
             self.logger.info('Skipping step: %s', step)
         else:
             self.logger.info('Running step: %s', step)
 
-            #Moving to working directory
-            jobdir = (str(self.cfg['dir']['value'][-1]) + #scalar
-                      "/" +
-                      str(step) +
-                      "/job" +
-                      str(jobid))
-
-            #Creating Temporary Working Dir
-            if os.path.isdir(jobdir):
-                os.system("rm -rf " +  jobdir)
-            os.makedirs(jobdir, exist_ok=True)
-            cwd = os.getcwd()
-            os.chdir(jobdir)
-
-            #make output directories
-            os.makedirs('outputs', exist_ok=True)
-            os.makedirs('reports', exist_ok=True)
-
-            #Create Logcal copuesLocal configuration files
-            self.writecfg("sc_setup.json")
-            self.writecfg("sc_setup.tcl", abspath=True)
-            
-            #Copy outputs from last step unless import                        
-            if stepindex > 0:              
-                lastjobid = self.cfg['flow'][laststep]['jobid']['value'][-1]
-                lastdir = '/'.join(['../../',                
-                                    steplist[stepindex-1],
-                                    'job'+lastjobid,
-                                    'outputs'])
-                shutil.copytree(lastdir, 'inputs')
-                
-            #Copy Reference Scripts
-            if schema_istrue(self.cfg['flow'][step]['copy']['value']):
-                shutil.copytree(refdir,
-                                ".",
-                                dirs_exist_ok=True)
-            
-            #####################
-            # Pre Process
-            #####################
-
-            pre_process = getattr(module,"pre_process")
-            pre_process(self,step)
-
-            #####################
-            # Generate CMD
-            #####################
-
-            #Set Executable
-            exe = self.cfg['flow'][step]['exe']['value'][-1] #scalar
-            cmd_fields = [exe]
-            
-            #Dynamically generate options
-            setup_options = getattr(module,"setup_options")
-            options = setup_options(self, step)
-            
-            #Add options to cmd list
-            cmd_fields.extend(options)        
-
-            #Resolve Paths
-            if schema_istrue(self.cfg['flow'][step]['copy']['value']):
-                for value in self.cfg['flow'][step]['script']['value']:
-                    abspath = schema_path(value)
-                    cmd_fields.append(abspath)
-            else:
-                for value in self.cfg['flow'][step]['script']['value']:
-                    cmd_fields.append(value)      
-
-            #Piping to log file
-            logfile = exe + ".log"
-            if schema_istrue(self.cfg['quiet']['value']):
-                cmd_fields.append("> " + logfile)
-            else:
-                cmd_fields.append("| tee " + logfile)
-
-            #Final command line
-            cmd = ' '.join(cmd_fields)
-
-            #####################
-            # Run Executable
-            #####################
-            
-            with open("run.sh", 'w') as f:
-                print("#!/bin/bash", file=f)
-                print(cmd, file=f)
-            f.close()
-            os.chmod("run.sh", 0o755)
-            
+            # Run Command
             self.logger.info('%s', cmd)
             error = subprocess.run(cmd, shell=True)
 
+            # Exit on error
             if error.returncode:
                 self.logger.error('Command failed. See log file %s',
                                   os.path.abspath(logfile))
                 sys.exit()
 
-            #####################
-            # Post Process
-            #####################        
-            
-            #run tool specific post process
+            # Post process
             post_process = getattr(module,"post_process")
             post_process(self, step)
-
-            #Return to CWD
-            os.chdir(cwd)
+         
+        ########################
+        # Return to $CWD
+        ########################       
+        os.chdir(cwd)
 
