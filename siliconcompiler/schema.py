@@ -1856,6 +1856,23 @@ def schema_options(cfg):
         api: chip.set('skip','dfm')
         """
     }
+
+    cfg['skipall'] = {
+        'switch' : '-skipall',
+        'type' : ['bool'],
+        'defvalue' : ['false'],
+        'requirement' : 'optional',
+        'short_help' : 'Skip All Steps',
+        'param_help' : "'skipall' <bool>",
+        'help' : """
+        Skip all steps. Useful for initial bringup.
+
+        Examples:
+        cli: -skipall
+        api: chip.set('skipall','true')
+        """
+    }
+    
     
     cfg['msgevent'] = {
         'switch' : '-msgevent',
