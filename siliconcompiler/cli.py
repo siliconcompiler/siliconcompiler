@@ -228,31 +228,28 @@ def main():
     #Create one (or many...) instances of Chip class
     chip = siliconcompiler.Chip(loglevel=loglevel)
 
-    # 1. Automagical command line values
-    if len(cmdlinecfg['target']['value']) > 0:
-        chip.set('target', cmdlinecfg['target']['value'][0])
-    elif 'cfg' in cmdlinecfg.keys():
-        self.logger.info('No target specified, setting to %s','freepdk45')
-        chip.set('target', 'freepdk45_asic')
-        chip.set('pdk', 'foundry', 'virtual')
-        chip.set('pdk', 'process', 'freepdk45')
-        chip.set('mode', 'asic')
-        
-    if 'optmode' in cmdlinecfg.keys():
-        chip.set('optmode', cmdlinecfg['optmode']['value'])
-        
-    # 2. Reading in config files specified at command line
-    if 'cfg' in  cmdlinecfg.keys():
+    # Checing for illegal combination
+    if ('target' in cmdlinecfg.keys()) & ('cfg' in cmdlinecfg.keys()):
+        chip.logger.error("Options -target and -cfg are mutually exlusive")
+        sys.exit()
+    # Reading in config files specified at command line
+    elif 'cfg' in  cmdlinecfg.keys():
         for cfgfile in cmdlinecfg['cfg']['value']:
             chip.readcfg(cfgfile)
-
-    # 3. Load target
-    chip.target()
+    # Reading in automated target
+    else:
+        if 'target' in cmdlinecfg.keys():
+            chip.set('target', cmdlinecfg['target']['value'][0])
+        else:
+            chip.logger.info('No target set, setting to %s','freepdk45')
+            chip.set('target', 'freepdk45_asic')
+        if 'optmode' in cmdlinecfg.keys():
+            chip.set('optmode', cmdlinecfg['optmode']['value'])
+        #Load values based on target name
+        chip.target()
 
     # 4. Override cfg with command line args
     chip.mergecfg(cmdlinecfg)   
-
-    #Resolve absolute paths
 
     #Checks settings and fills in missing values
     chip.check()
