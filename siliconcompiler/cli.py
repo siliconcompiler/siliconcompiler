@@ -199,7 +199,7 @@ def add_arg(cfg, parser, keys=None):
                                         metavar='',
                                         dest=keystr,
                                         action='store_const',
-                                        const=['True'],
+                                        const=['true'],
                                         help=helpstr,
                                         default = argparse.SUPPRESS)
                 else:
