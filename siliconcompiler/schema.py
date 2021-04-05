@@ -1424,8 +1424,25 @@ def schema_metrics(cfg, group, step):
         "Examples:                                                       "\
         "cli: -"+group+"_area 'place 1 10000'                            "\
         "api: chip.set('"+group+"','place', '1', 'area', '10000')        "
-    }    
+    }
 
+    cfg[group][step]['1']['density'] = {
+        'switch' : '-'+group+'_density',
+        'type' : ['num'],
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Cell Density ' + group.capitalize(),
+        'param_help' : "'"+group+"' step 'jobid' 'density' <num>",
+        'help' : 
+        "Metric tracking the density calculated as the ratio of cell area"\
+        "devided by the total core area available for placement. Value   "\
+        "specied as a percentage (%)                                     "\
+        "                                                                "\
+        "Examples:                                                       "\
+        "cli: -"+group+"_density 'place 1 50'                            "\
+        "api: chip.set('"+group+"','place', '1', 'density', '50')        "
+    } 
+    
     cfg[group][step]['1']['power'] = {
         'switch' : '-'+group+'_power',
         'type' : ['num'],
