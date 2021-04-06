@@ -31,6 +31,16 @@ PINS {{ layout.pin | length }} ;
 {% endfor %}
 END PINS
 
+COMPONENTS {{ layout.component | length }} ;
+{% for name, c in layout.component.items() %}
+   - {{ name }} {{ c.cell }}
+      {% if c.status %}
+      + {{ c.status | upper }} ( {{c.x }} {{ c.y }} ) {{ c.orientation }}
+      {% endif %}
+      + HALO {{ c.halo | join(' ') }} ;
+{% endfor %}
+END COMPONENTS
+
 END DESIGN
 """
 
@@ -71,6 +81,7 @@ class Floorplan:
         # TODO: come up with cleaner way to handle defaults
         old_layout = self.chip.layout
         del self.chip.layout['pin']['default']
+        del self.chip.layout['component']['default']
 
         tmpl = env.from_string(DEF_TEMPLATE)
         with open(filename, 'w') as f:
@@ -232,6 +243,39 @@ class Floorplan:
             x1 += xincr
             y1 += yincr
 
+    def place_macro(self, instance_name, macro_name, pos, orientation,
+                    halo=(0, 0, 0, 0), fixed=True, units='relative'):
+        '''
+        Place macro
+
+        Parameters:
+        - name: name of macro instance in design
+        - macro_name: name of macro in library
+        - pos: position of macro as tuple of 2 numbers
+        - orientation: orientation of macro (as LEF/DEF orientation)
+        - halo: halo around macro as tuple (left bottom right top)
+        - fixed: whether or not macro is fixed
+        - units: whether to use technology-independent ('relative') or absolute
+          ('absolute') units
+        '''
+        logging.debug('Placing macro: %s', instance_name)
+
+        self._validate_orientation(orientation)
+        self._validate_units(units)
+
+        x, y = self._scale(pos, units)
+        halo = self._scale(halo, units)
+
+        component = {
+            'cell': macro_name,
+            'x': x,
+            'y': y,
+            'status': 'fixed' if fixed else None,
+            'orientation': orientation.upper(),
+            'halo': halo,
+        }
+        self.chip.layout['component'][instance_name] = component
+
     def _scale(self, val, units):
         if isinstance(val, list):
             return [self._scale(item, units) for item in val]
@@ -269,5 +313,7 @@ if __name__ == '__main__':
     fp.place_pinlist(pins[n:2*n], 'e', width, depth, 'metal1')
     fp.place_pinlist(pins[2*n:3*n], 'w', width, depth, 'metal1')
     fp.place_pinlist(pins[3*n:4*n], 's', width, depth, 'metal1')
+
+    fp.place_macro('myram', 'RAM', (25, 25), 'N')
 
     fp.save('test.def')
