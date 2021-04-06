@@ -2711,14 +2711,43 @@ def schema_asic(cfg):
 
 ############################################
 # Constraints
-#############################################
+############################################
 
 def schema_mcmm(cfg):
 
     cfg['mcmm'] = {}
-
     cfg['mcmm']['default'] = {}
 
+    cfg['mcmm']['default']['voltage'] = {
+        'switch' : '-mcmm_voltage',
+        'type' : ['num'],
+        'requirement' : 'asic',
+        'defvalue' : [],
+        'short_help' : 'MCMM Voltage',
+        'param_help' : "'mcmm' scenario 'voltage' <num>",
+        'help' : ["Specifies the on chip primary core operating voltage.    ",
+                  "Value specified in Volts.                                ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -mcmm_voltage 'worst 0.9'                           ",
+                  "api: chip.set('mcmm','worst','voltage', '0.9')           "]
+    }
+
+    cfg['mcmm']['default']['temperature'] = {
+        'switch' : '-mcmm_temperature',
+        'type' : ['num'],
+        'requirement' : 'asic',
+        'defvalue' : [],
+        'short_help' : 'MCMM Temperature',
+        'param_help' : "'mcmm' scenario 'temperature' <num>                 ",
+        'help' : ["Specifies the on chip temperature.                       ",
+                  "Value specified in degrees Celsius.                      ",
+                  "                                                         ",
+                  "Examples:                                                ",
+                  "cli: -mcmm_temperature 'worst 125'                       ",
+                  "api: chip.set('mcmm','worst','temperature', '125')       "]
+    }
+    
     cfg['mcmm']['default']['libcorner'] = {
         'switch' : '-mcmm_libcorner',
         'type' : ['str'],
