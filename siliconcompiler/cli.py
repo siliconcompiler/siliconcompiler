@@ -165,9 +165,9 @@ def add_arg(cfg, parser, keys=None):
                                     help=helpstr,
                                     default = argparse.SUPPRESS)
         elif k in ('goal', 'real'):
-            for k2 in cfg[k]['default']['1'].keys():
-                helpstr = cfg[k]['default']['1'][k2]['short_help']
-                parser.add_argument(cfg[k]['default']['1'][k2]['switch'],
+            for k2 in cfg[k]['default']['default'].keys():
+                helpstr = cfg[k]['default']['default'][k2]['short_help']
+                parser.add_argument(cfg[k]['default']['default'][k2]['switch'],
                                     dest=k+"_"+k2,
                                     metavar='',
                                     action='append',
@@ -265,19 +265,11 @@ def main():
     chip.lock()
 
     # Running compilation pipeline
-    all_steps = chip.get('steps')
-    for stage in all_steps:
-        # Run each stage on the remote compute cluster if requested.
-        if len(chip.cfg['remote']['value']) > 0:
-            remote_run(chip, stage)
-        # Run each stage on the local host if no remote server is specified.
-        else:
-            chip.run(stage)
-
+    chip.run()
+    
     # Print Summary
     chip.summary()
-
-            
+        
 #########################
 if __name__ == "__main__":    
     sys.exit(main())
