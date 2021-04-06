@@ -891,21 +891,18 @@ class Chip:
                     print(cmd, file=f)
                 f.close()
                 os.chmod("run.sh", 0o755)
-
-                #branch point for remote?
+                #####################
+                # Execute
+                #####################
                 if remote:
+                    self.logger.info('Remote server call')
                     pass
                 else:
-
-                    #####################
                     # Tool Pre Process
-                    #####################  
                     pre_process = getattr(module,"pre_process")
                     pre_process(self,step)
 
-                    #####################
-                    # Executable
-                    #####################
+                    # Tool Executable
                     self.logger.info('%s', cmd)
                     error = subprocess.run(cmd, shell=True)
                     if error.returncode:
@@ -913,9 +910,7 @@ class Chip:
                                           os.path.abspath(logfile))
                         sys.exit()
 
-                    #####################
                     # Tool Post Process
-                    #####################
                     post_process = getattr(module,"post_process")
                     post_process(self, step)
 
