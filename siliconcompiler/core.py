@@ -468,22 +468,6 @@ class Chip:
         return self.status[step][jobid]
 
     #################################
-    def readenv(self):
-        '''Reads Chip environment variables and copies them to the current
-        configuration. Environment variables are assumed to be the upper case
-        of the Chip parameters. For example, the parameter sc_foundry will be
-        read as $env(SC_FOUNDRY).
-        '''
-
-        self.logger.debug('Reading environment variables')
-        
-        #TODO: Complete later
-        for key in self.cfg.keys():
-            var = os.getenv(key.upper())
-            if var != None:
-                self.cfg[key]['value'] = var
-
-    #################################
     def readcfg(self, filename):
         '''Reads a json formatted config file into the Chip current Chip
         configuration
@@ -708,12 +692,20 @@ class Chip:
         print("\nSUMMARY:")
         data = []
         steps = []
-        for step in self.get('steps'):
+
+        steplist = self.get('steps')
+        start = self.get('start')[-1]
+        stop = self.get('stop')[-1]
+        startindex = steplist.index(start)
+        stopindex = steplist.index(stop)
+
+        for stepindex in range(startindex, stopindex + 1):
+            step = steplist[stepindex]
             steps.append(step)
             jobid = self.get('flow', step, 'jobid')[-1]
             row = []
             metrics = []
-            for metric in self.getkeys('real', 'step', jobid):
+            for metric in self.getkeys('real', step, jobid):
                 metrics.append(" " + metric)
                 row.append(" " + str(self.get('real', step, jobid, metric)[-1]))
             data.append(row)
@@ -739,23 +731,10 @@ class Chip:
           filename = self.search(self.cfg, *args )
           cmd = EDITOR + " " + filename[index]
           error = subprocess.run(cmd, shell=True)
-      
+    
     ###################################
-    def metrics(self, step):
-        '''Extract metrics on a per step basis from logs.
-        Likely strategy for implementtion includes.
-        '''
+    def run(self, start=None, stop=None, jobid=None):
 
-        #1. Look at vendor platform
-        #2. Based on target platform load wrapper
-        #3. In wrapper load proprietary modules
-        
-        vendor = self.cfg['flow'][step]['vendor']['value'][-1]
-
-        pass
-
-    ###################################
-    def run(self, step):
         '''The common execution method for all compilation steps compilation
         flow. The job executes on the local machine by default, but can be
         execute as a remote job as well. If executed in synthconorus mode, the
@@ -763,159 +742,195 @@ class Chip:
         main. If the job is executed in async mode, flags are set in the Class
         state and the function cal returns to main.
         '''
+               
+        ###########################
+        # Function Setup
+        ###########################
 
-        #####################
-        # Dynamic EDA setup
-        #####################
-        vendor = self.cfg['flow'][step]['vendor']['value'][-1]
-        packdir = "eda." + vendor
-        modulename = '.'+vendor+'_setup'
-        module = importlib.import_module(modulename, package=packdir)
-        
-        #####################
-        # Run Setup
-        ##################### 
+        remote = len(self.cfg['remote']['value']) > 0
         steplist = self.cfg['steps']['value']
-        stepindex = steplist.index(step)
-        laststep = steplist[stepindex-1]
-        start = steplist.index(self.cfg['start']['value'][-1]) #scalar
-        stop = steplist.index(self.cfg['stop']['value'][-1]) #scalar
-        skip = step in self.cfg['skip']['value']
-        skipall = bool(self.cfg['skipall']['value'][-1] =='true')
-          
-        #####################
-        # Update Jobid
-        #####################
+        buildroot = str(self.cfg['dir']['value'][-1])
         
-        jobid = int(self.cfg['flow'][step]['jobid']['value'][-1])
-        jobid = jobid + 1
-        self.cfg['flow'][step]['jobid']['value'] = str(jobid)
+        if start is None:
+            start = self.get('start')[-1]
+        if stop is None:
+            stop = self.get('stop')[-1]
 
-        #####################
-        # Init Metrics Table
-        #####################
+        startindex = steplist.index(start)
+        stopindex = steplist.index(stop)
         
-        for metric in self.getkeys('real', step, str(jobid)):
-            self.add('real', step, str(jobid), metric, 0)
+        ###########################
+        # Execute pipeline
+        ###########################
+        for stepindex in range(startindex, stopindex + 1):
+                        
+            #Get current working directory
+            cwd = os.getcwd()
 
-        #####################
-        # Setting up Directory
-        #####################
+            #step lookup
+            step = steplist[stepindex]
+            laststep = steplist[stepindex-1]           
+            importstep = (stepindex==0)
 
-        #Moving to working directory
-        jobdir = (str(self.cfg['dir']['value'][-1]) + #scalar
-                  "/" +
-                  str(step) +
-                  "/job" +
-                  str(jobid))
-
-        #Creating Temporary Working Dir
-        if os.path.isdir(jobdir):
-            os.system("rm -rf " +  jobdir)
-        os.makedirs(jobdir, exist_ok=True)
-        cwd = os.getcwd()
-        os.chdir(jobdir)
-
-        #make output directories
-        os.makedirs('outputs', exist_ok=True)
-        os.makedirs('reports', exist_ok=True)
-
-        #Create Logcal copuesLocal configuration files
-        self.writecfg("sc_setup.json")
-        self.writecfg("sc_setup.tcl", abspath=True)
-
-        #Copy outputs from last step unless import                        
-        if stepindex > 0:              
-            lastjobid = self.cfg['flow'][laststep]['jobid']['value'][-1]
-            lastdir = '/'.join(['../../',                
-                                steplist[stepindex-1],
-                                'job'+lastjobid,
-                                'outputs'])
-            shutil.copytree(lastdir, 'inputs')
-
-        #Copy Reference Scripts
-        refdir = schema_path(self.cfg['flow'][step]['refdir']['value'][-1])
-        if schema_istrue(self.cfg['flow'][step]['copy']['value']):
-            shutil.copytree(refdir,
-                            ".",
-                            dirs_exist_ok=True)
-
-        #####################
-        # Tool Pre Process
-        #####################
-
-        pre_process = getattr(module,"pre_process")
-        pre_process(self,step)
-
-        #####################
-        # Generate CMD
-        #####################
-
-        #Set Executable
-        exe = self.cfg['flow'][step]['exe']['value'][-1] #scalar
-        cmd_fields = [exe]
-
-        #Dynamically generate options
-        setup_options = getattr(module,"setup_options")
-        options = setup_options(self, step)
-
-        #Add options to cmd list
-        cmd_fields.extend(options)        
-
-        #Resolve Paths
-        if schema_istrue(self.cfg['flow'][step]['copy']['value']):
-            for value in self.cfg['flow'][step]['script']['value']:
-                abspath = schema_path(value)
-                cmd_fields.append(abspath)
-        else:
-            for value in self.cfg['flow'][step]['script']['value']:
-                cmd_fields.append(value)      
-
-        #Piping to log file
-        logfile = exe + ".log"
-        if schema_istrue(self.cfg['quiet']['value']):
-            cmd_fields.append("> " + logfile)
-        else:
-            cmd_fields.append("| tee " + logfile)
-
-        #Final command line
-        cmd = ' '.join(cmd_fields)
-
-        #Create run file
-        with open("run.sh", 'w') as f:
-            print("#!/bin/bash", file=f)
-            print(cmd, file=f)
-        f.close()
-        os.chmod("run.sh", 0o755)
-
-        ########################
-        # Conditional Execution
-        ########################    
-
-        if step not in steplist:
-            self.logger.error('Illegal step name %s', step)
-            sys.exit()            
-        if (stepindex < start) | (stepindex > stop) | skip | skipall:
-            self.logger.info('Skipping step: %s', step)
-        else:
-            self.logger.info('Running step: %s', step)
-
-            # Run Command
-            self.logger.info('%s', cmd)
-            error = subprocess.run(cmd, shell=True)
-
-            # Exit on error
-            if error.returncode:
-                self.logger.error('Command failed. See log file %s',
-                                  os.path.abspath(logfile))
+            if step not in steplist:
+                self.logger.error('Illegal step name %s', step)
                 sys.exit()
+            
+            #####################
+            # Job-id
+            #####################
+            
+            #Automated increment
+            if (jobid is None ) | importstep:        
+                jobid = int(self.cfg['flow'][step]['jobid']['value'][-1])
+                jobid = jobid + 1
+                self.cfg['flow'][step]['jobid']['value'] = str(jobid)
+            #external increment
+            else:
+                self.cfg['flow'][step]['jobid']['value'] = str(jobid)
+            
+            #####################
+            # Dynamic EDA setup
+            #####################
+            
+            vendor = self.cfg['flow'][step]['vendor']['value'][-1]
+            packdir = "eda." + vendor
+            modulename = '.'+vendor+'_setup'
+            module = importlib.import_module(modulename, package=packdir)
+        
+            #####################
+            # Init Metrics Table
+            #####################
+            for metric in self.getkeys('real', step, 'default'):
+                self.add('real', step, str(jobid), metric, int(0))
 
-            # Post process
-            post_process = getattr(module,"post_process")
-            post_process(self, step)
-         
-        ########################
-        # Return to $CWD
-        ########################       
-        os.chdir(cwd)
+            ################################
+            # Build Directory Setup
+            ################################
+                      
+            # Import job directory only runs once, so no index
+            if stepindex==0:
+                jobdir = buildroot + '/import/job'
+            else:
+                 jobdir = '/'.join([buildroot,
+                                   step,
+                                   "job"+str(jobid)])
+                 
+            #####################
+            # Execution
+            #####################
+            if ((stepindex < startindex) |
+                (stepindex > stopindex) |
+                (step in self.cfg['skip']['value']) |
+                (self.cfg['skipall']['value'][-1] =='true')):
+                self.logger.info('Skipping step: %s', step)
+            elif (stepindex==0) & (jobid > 1):  
+                self.logger.info('Skipping import step, already run')
+            else:
+                self.logger.info("Running step '%s' with jobid '%s'", step, jobid)  
 
+                # Copying in Files
+                if os.path.isdir(jobdir):
+                    shutil.rmtree(jobdir)
+                os.makedirs(jobdir, exist_ok=True)
+                os.chdir(jobdir)
+                os.makedirs('outputs', exist_ok=True)
+                os.makedirs('reports', exist_ok=True)
+                # First stage after import always copies from same place
+                if stepindex==0:
+                    pass
+                elif stepindex == 1:
+                    shutil.copytree("../../import/job/outputs", 'inputs')
+                else:
+                    lastjobid = self.get('flow', laststep, 'jobid')[-1]
+                    lastdir = '/'.join(['../../',                
+                                        steplist[stepindex-1],
+                                        'job'+lastjobid,
+                                        'outputs'])
+                    shutil.copytree(lastdir, 'inputs')
+                
+           
+                #Copy Reference Scripts
+                refdir = schema_path(self.cfg['flow'][step]['refdir']['value'][-1])
+                if schema_istrue(self.cfg['flow'][step]['copy']['value']):
+                    shutil.copytree(refdir,
+                                    ".",
+                                    dirs_exist_ok=True)
+                
+                #####################
+                # Setup Step Options
+                #####################
+                
+                setup_options = getattr(module,"setup_options")
+                options = setup_options(self, step)
+
+                #####################
+                # Save CFG locally
+                #####################
+
+                self.writecfg("sc_setup.json")
+                self.writecfg("sc_setup.yaml")
+                self.writecfg("sc_setup.tcl", abspath=True)
+                
+                #####################
+                # Tool Pre Process
+                #####################
+                
+                pre_process = getattr(module,"pre_process")
+                pre_process(self,step)
+
+                #####################
+                # Generate CMD
+                #####################
+
+                #Set Executable
+                exe = self.cfg['flow'][step]['exe']['value'][-1] #scalar
+                cmd_fields = [exe]
+
+                #Add options to cmd list
+                cmd_fields.extend(options)        
+
+                #Resolve Paths
+                if schema_istrue(self.cfg['flow'][step]['copy']['value']):
+                    for value in self.cfg['flow'][step]['script']['value']:
+                        abspath = schema_path(value)
+                        cmd_fields.append(abspath)
+                else:
+                    for value in self.cfg['flow'][step]['script']['value']:
+                        cmd_fields.append(value)      
+
+                #Piping to log file
+                logfile = exe + ".log"
+                if schema_istrue(self.cfg['quiet']['value']):
+                    cmd_fields.append("> " + logfile)
+                else:
+                    cmd_fields.append("| tee " + logfile)
+
+                #Final command line
+                cmd = ' '.join(cmd_fields)
+
+                #Create run file
+                with open("run.sh", 'w') as f:
+                    print("#!/bin/bash", file=f)
+                    print(cmd, file=f)
+                f.close()
+                os.chmod("run.sh", 0o755)
+
+                # Run Command
+                self.logger.info('%s', cmd)
+                error = subprocess.run(cmd, shell=True)
+                # Exit on error
+                if error.returncode:
+                    self.logger.error('Command failed. See log file %s',
+                                      os.path.abspath(logfile))
+                    sys.exit()
+                # Post process
+                post_process = getattr(module,"post_process")
+                post_process(self, step)
+
+            ########################
+            # Return to $CWD
+            ########################       
+            os.chdir(cwd)
+
+ 
