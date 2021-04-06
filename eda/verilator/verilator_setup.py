@@ -38,17 +38,17 @@ def setup_options(chip, step):
     #-CFLAGS
     #-O3
     #
-    if step == 'import':
-        chip.add('flow', step, 'option', '--lint-only --debug')
-    else:
-        chip.add('flow', step, 'option', '--cc')
-    
+
     options = chip.get('flow', step, 'option')
+    
+    if step == 'import':
+        options.append('--lint-only --debug')
+    else:
+        options.append('--cc')
 
+    print(os.getcwd())
     #Include cwd in search path (verilator default)
-
-    cwd = os.getcwd()    
-    options.append('-I' + cwd + "/../../../")
+    options.append('-I' + "../../../")
 
     #Source Level Controls
 
@@ -80,6 +80,10 @@ def setup_options(chip, step):
         for value in supress_warnings:
             options.append(value)
 
+
+    #Wite back options tp cfg
+    chip.set('flow', step, 'option', options)
+            
     return options
 
 ################################
