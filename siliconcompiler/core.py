@@ -731,7 +731,7 @@ class Chip:
           filename = self.search(self.cfg, *args )
           cmd = EDITOR + " " + filename[index]
           error = subprocess.run(cmd, shell=True)
-    
+
     ###################################
     def run(self, start=None, stop=None, jobid=None):
 
@@ -744,13 +744,14 @@ class Chip:
         '''
                
         ###########################
-        # Function Setup
+        # Run Setup
         ###########################
 
         remote = len(self.cfg['remote']['value']) > 0
         steplist = self.cfg['steps']['value']
         buildroot = str(self.cfg['dir']['value'][-1])
-        
+        cwd = os.getcwd()
+         
         if start is None:
             start = self.get('start')[-1]
         if stop is None:
@@ -764,13 +765,17 @@ class Chip:
         ###########################
         for stepindex in range(startindex, stopindex + 1):
                         
-            #Get current working directory
-            cwd = os.getcwd()
-
             #step lookup
             step = steplist[stepindex]
             laststep = steplist[stepindex-1]           
             importstep = (stepindex==0)
+
+            if stepindex==0:
+                jobdir = buildroot + '/import/job'
+            else:
+                jobdir = '/'.join([buildroot,
+                                   step,
+                                   "job"+str(jobid)])
 
             if step not in steplist:
                 self.logger.error('Illegal step name %s', step)
@@ -780,14 +785,10 @@ class Chip:
             # Job-id
             #####################
             
-            #Automated increment
             if (jobid is None ) | importstep:        
                 jobid = int(self.cfg['flow'][step]['jobid']['value'][-1])
                 jobid = jobid + 1
-                self.cfg['flow'][step]['jobid']['value'] = str(jobid)
-            #external increment
-            else:
-                self.cfg['flow'][step]['jobid']['value'] = str(jobid)
+            self.set('flow', step, 'jobid', str(jobid))
             
             #####################
             # Dynamic EDA setup
@@ -802,20 +803,8 @@ class Chip:
             # Init Metrics Table
             #####################
             for metric in self.getkeys('real', step, 'default'):
-                self.add('real', step, str(jobid), metric, int(0))
+                self.add('real', step, str(jobid), metric, 0)
 
-            ################################
-            # Build Directory Setup
-            ################################
-                      
-            # Import job directory only runs once, so no index
-            if stepindex==0:
-                jobdir = buildroot + '/import/job'
-            else:
-                 jobdir = '/'.join([buildroot,
-                                   step,
-                                   "job"+str(jobid)])
-                 
             #####################
             # Execution
             #####################
@@ -849,7 +838,6 @@ class Chip:
                                         'outputs'])
                     shutil.copytree(lastdir, 'inputs')
                 
-           
                 #Copy Reference Scripts
                 refdir = schema_path(self.cfg['flow'][step]['refdir']['value'][-1])
                 if schema_istrue(self.cfg['flow'][step]['copy']['value']):
@@ -858,26 +846,12 @@ class Chip:
                                     dirs_exist_ok=True)
                 
                 #####################
-                # Setup Step Options
-                #####################
-                
-                setup_options = getattr(module,"setup_options")
-                options = setup_options(self, step)
-
-                #####################
                 # Save CFG locally
                 #####################
 
                 self.writecfg("sc_setup.json")
                 self.writecfg("sc_setup.yaml")
                 self.writecfg("sc_setup.tcl", abspath=True)
-                
-                #####################
-                # Tool Pre Process
-                #####################
-                
-                pre_process = getattr(module,"pre_process")
-                pre_process(self,step)
 
                 #####################
                 # Generate CMD
@@ -888,6 +862,8 @@ class Chip:
                 cmd_fields = [exe]
 
                 #Add options to cmd list
+                setup_options = getattr(module,"setup_options")
+                options = setup_options(self, step)
                 cmd_fields.extend(options)        
 
                 #Resolve Paths
@@ -916,17 +892,32 @@ class Chip:
                 f.close()
                 os.chmod("run.sh", 0o755)
 
-                # Run Command
-                self.logger.info('%s', cmd)
-                error = subprocess.run(cmd, shell=True)
-                # Exit on error
-                if error.returncode:
-                    self.logger.error('Command failed. See log file %s',
-                                      os.path.abspath(logfile))
-                    sys.exit()
-                # Post process
-                post_process = getattr(module,"post_process")
-                post_process(self, step)
+                #branch point for remote?
+                if remote:
+                    pass
+                else:
+
+                    #####################
+                    # Tool Pre Process
+                    #####################  
+                    pre_process = getattr(module,"pre_process")
+                    pre_process(self,step)
+
+                    #####################
+                    # Executable
+                    #####################
+                    self.logger.info('%s', cmd)
+                    error = subprocess.run(cmd, shell=True)
+                    if error.returncode:
+                        self.logger.error('Command failed. See log file %s',
+                                          os.path.abspath(logfile))
+                        sys.exit()
+
+                    #####################
+                    # Tool Post Process
+                    #####################
+                    post_process = getattr(module,"post_process")
+                    post_process(self, step)
 
             ########################
             # Return to $CWD
