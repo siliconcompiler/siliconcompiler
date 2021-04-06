@@ -46,7 +46,6 @@ def setup_options(chip, step):
     else:
         options.append('--cc')
 
-    print(os.getcwd())
     #Include cwd in search path (verilator default)
     options.append('-I' + "../../../")
 
