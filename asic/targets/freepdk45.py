@@ -101,7 +101,7 @@ def setup_libs(chip, vendor=None):
     chip.set('stdcell',libname,'size',size)
 
 #########################
-def setup_design(chip, optmode):
+def setup_design(chip):
 
     chip.set('asic', 'stackup', chip.get('pdk', 'stackup')[0])
     chip.set('asic', 'targetlib', chip.getkeys('stdcell'))

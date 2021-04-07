@@ -139,7 +139,7 @@ class Chip:
             setup_libs = getattr(module,"setup_libs")
             setup_libs(self)
             setup_design = getattr(module,"setup_design")
-            setup_design(self,self.get('optmode')[0])
+            setup_design(self)
 
         #Load EDA
         packdir = "eda.targets"
