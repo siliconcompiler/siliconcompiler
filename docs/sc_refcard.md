@@ -17,7 +17,9 @@
  | 'flow' step 'signature' <str>                        | Step Signature                 | str             | optional   |           |
  | 'flow' step 'date' <str>                             | Step Date                      | str             | all        |           |
  | 'flow' step 'author' <str>                           | Step Author                    | str             | all        |           |
+ | 'goal' step 'jobid' 'instances' <num>                | Total Cell Instances Goal      | num             | optional   |           |
  | 'goal' step 'jobid' 'area' <num>                     | Cell Area Goal                 | num             | optional   |           |
+ | 'goal' step 'jobid' 'density' <num>                  | Cell Density Goal              | num             | optional   |           |
  | 'goal' step 'jobid' 'power' <num>                    | Active Power Goal              | num             | optional   |           |
  | 'goal' step 'jobid' 'leakage' <num>                  | Leakage Goal                   | num             | optional   |           |
  | 'goal' step 'jobid' 'hold_tns' <num>                 | Hold TNS Goal                  | num             | optional   |           |
@@ -29,7 +31,9 @@
  | 'goal' step 'jobid' 'errors' <num>                   | Total Errors Goal              | num             | optional   |           |
  | 'goal' step 'jobid' 'runtime' <num>                  | Total Runtime Goal             | num             | optional   |           |
  | 'goal' step 'jobid' 'memory' <num>                   | Total Memory Goal              | num             | optional   |           |
+ | 'real' step 'jobid' 'instances' <num>                | Total Cell Instances Real      | num             | optional   |           |
  | 'real' step 'jobid' 'area' <num>                     | Cell Area Real                 | num             | optional   |           |
+ | 'real' step 'jobid' 'density' <num>                  | Cell Density Real              | num             | optional   |           |
  | 'real' step 'jobid' 'power' <num>                    | Active Power Real              | num             | optional   |           |
  | 'real' step 'jobid' 'leakage' <num>                  | Leakage Real                   | num             | optional   |           |
  | 'real' step 'jobid' 'hold_tns' <num>                 | Hold TNS Real                  | num             | optional   |           |
@@ -74,6 +78,7 @@
  | 'asic' 'diesize' <num num num num>                   | Target Die Size                | num num num num | !density   |           |
  | 'asic' 'coresize' <num num num num>                  | Target Core Size               | num num num num | diesize    |           |
  | 'asic' 'floorplan' <file>                            | Floorplanning Script           | file            | optional   |           |
+ | 'asic' 'def' <file>                                  | Harc coded DEF floorplan       | file            | optional   |           |
  | 'stdcell' libname 'rev' <str>                        | Stdcell Release Revision       | str             | asic       |           |
  | 'stdcell' libname 'origin' <str>                     | Stdcell Origin                 | str             | asic       |           |
  | 'stdcell' libname 'license' <file>                   | Stdcell License File           | file            | asic       |           |
@@ -133,6 +138,7 @@
  | 'origin' <str>                                       | Design Origin                  | str             | optional   |           |
  | 'clock' <str str num num>                            | Design Clocks                  | str str num num | optional   |           |
  | 'supply' <str str num>                               | Design Power Supplies          | str str num     | optional   |           |
+ | 'ground' <str str num>                               | Design Power Supplies          | str str         | optional   |           |
  | 'define' <str>                                       | Verilog Preprocessor Symbols   | str             | optional   |           |
  | 'ydir' <dir>                                         | Verilog Module Search Paths    | dir             | optional   |           |
  | 'idir' <dir>                                         | Verilog Include Search Paths   | dir             | optional   |           |
@@ -141,6 +147,10 @@
  | 'cmdfile' <file>                                     | Verilog Options File           | file            | optional   |           |
  | 'constraint' <file>                                  | Design Constraint Files        | file            | optional   |           |
  | 'vcd' <file>                                         | Value Change Dump File         | file            | optional   |           |
+ | 'spef' <file>                                        | SPEF File                      | file            | optional   |           |
+ | 'sdf' <file>                                         | SDF File                       | file            | optional   |           |
+ | 'mcmm' scenario 'voltage' <num>                      | MCMM Voltage                   | num             | asic       |           |
+ | 'mcmm' scenario 'temperature' <num>                  | MCMM Temperature               | num             | asic       |           |
  | 'mcmm' scenario 'libcorner' <str>                    | MCMM Library Corner Name       | str             | asic       |           |
  | 'mcmm' scenario 'opcond' <str>                       | MCMM Operating Condition       | str             | asic       |           |
  | 'mcmm' scenario 'pexcorner' <str>                    | MCMM PEX Corner Name           | str             | asic       |           |
@@ -160,6 +170,7 @@
  | 'start' <str>                                        | Compilation Start Step         | str             | optional   |           |
  | 'stop' <str>                                         | Compilation Stop Step          | str             | optional   |           |
  | 'skip' <str>                                         | Compilation Skip Steps         | str             | optional   |           |
+ | 'skipall' <bool>                                     | Skip All Steps                 | bool            | optional   | false     |
  | 'msgevent' <str>                                     | Message Event                  | str             | optional   |           |
  | 'msgcontact' <str>                                   | Message Contact                | str             | optional   |           |
  | 'optmode' <str>                                      | Optimization Mode              | str             | optional   | O0        |

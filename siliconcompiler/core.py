@@ -517,7 +517,7 @@ class Chip:
             self.cfg_locked = True
 
     ##################################
-    def writecfg(self, filename, prune=True, abspath=False, keymap=[]):
+    def writecfg(self, filename, cfg=None, prune=True, abspath=False, keymap=[]):
         '''Writes out the current Chip configuration dictionary to a file
 
         Args:
@@ -532,8 +532,12 @@ class Chip:
         if not os.path.exists(os.path.dirname(filepath)):
             os.makedirs(os.path.dirname(filepath))
 
+        
+            
         #prune cfg if option set
-        if prune:
+        if cfg is not None:
+            cfgcopy = copy.deepcopy(cfg)
+        elif prune:
             cfgcopy = self.prune()
         else:
             cfgcopy = copy.deepcopy(self.cfg)
@@ -548,7 +552,11 @@ class Chip:
                 print(json.dumps(cfgcopy, sort_keys=True, indent=4), file=f)
         elif filepath.endswith('.yaml'):
             with open(filepath, 'w') as f:
-                print(yaml.dump(cfgcopy, sort_keys=True, indent=4), file=f)
+                print("#############################################", file=f)
+                print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
+                print("#############################################", file=f)
+                print(yaml.dump(cfgcopy, Dumper=YamlIndentDumper, default_flow_style=False), file=f)
+                #print(yaml.dump(cfgcopy, sort_keys=True, indent=4), file=f)
         elif filepath.endswith('.tcl'):
             with open(filepath, 'w') as f:
                 print("#############################################", file=f)
@@ -561,10 +569,10 @@ class Chip:
                 outstr = " | {: <52} | {: <30} | {: <15} | {: <10} | {: <10}|".format(*outlist)
                 print(outstr, file=f)
                 outlist = [':----',
-                          ':----',
-                          ':----',
-                          ':----',
-                          ':----']
+                           ':----',
+                           ':----',
+                           ':----',
+                           ':----']
                 outstr = " | {: <52} | {: <30} | {: <15} | {: <10} | {: <10}|".format(*outlist)
                 print(outstr, file=f)
                 self.printcfg(cfgcopy, mode='md', field='requirement' , file=f)  
@@ -925,3 +933,14 @@ class Chip:
             os.chdir(cwd)
 
  
+
+############################################
+# Annoying helper class b/c yaml..
+# Do we actually have to support a class?
+class YamlIndentDumper(yaml.Dumper):
+    def increase_indent(self, flow=False, indentless=False):
+        return super(YamlIndentDumper, self).increase_indent(flow, False)
+
+
+
+    
