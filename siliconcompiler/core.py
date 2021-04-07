@@ -161,6 +161,11 @@ class Chip:
         '''
         self.logger.debug('Reading config dictionary value: %s', args)
 
+        keys = list(args)
+        for k in keys:
+            if isinstance(k, list):
+                self.logger.critical("List keys not allowed, key=%s. Dictionary keys should be strings!", k)
+                sys.exit()
         return self.search(self.cfg, *args, mode='get')
 
     ###################################
@@ -437,7 +442,7 @@ class Chip:
 
         
         #1. Check for missing combinations
-        #!(def | floorplan | (diesze & coresize)
+        #!(def-file | floorplan | (diesze & coresize)
 
         # notechlef
         # no site
