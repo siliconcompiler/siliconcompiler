@@ -2213,6 +2213,25 @@ def schema_design(cfg):
         """
     }
 
+    cfg['ground'] = {
+        'switch' : '-ground',
+        'type' : ['str', 'str'],
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Design Power Supplies',
+        'param_help' : "'ground' <str str num>",
+        'help' : """
+        A power ground definition specifying the ground name, the net name, 
+        and the voltage.The definition can be used to drive constraints for 
+        implementation and signoff. Ground values specified in Volts.
+
+        Examples:
+        cli: -ground 'vdd vdd 0.9'
+        api: chip.add('ground','vdd vdd 0.9')
+        """
+    }
+    
+
     cfg['define'] = {
         'switch' : '-D',
         'type' : ['str'],
@@ -2684,7 +2703,7 @@ def schema_asic(cfg):
         """
     }
 
-    # 3. Parameterized floorplanning
+    # Parameterized floorplanning
     cfg['asic']['floorplan'] = {
         'switch' : '-asic_floorplan',
         'type' : ['file'],
@@ -2702,10 +2721,34 @@ def schema_asic(cfg):
         Supported formats are tcl, py, and def.
 
         Examples:
-        cli: -asic_floorplan 'hello.def'
-        api:  chip.add('asic', 'floorplan', 'hello.def')
+        cli: -asic_floorplan 'hello.py'
+        api:  chip.add('asic', 'floorplan', 'hello.py')
         """
     }
+
+    # Def file
+    cfg['asic']['def'] = {
+        'switch' : '-asic_def',
+        'type' : ['file'],
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'hash'   : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
+        'short_help' : 'Harc coded DEF floorplan',
+        'param_help' : "'asic' 'def' <file>",
+        'help' : """
+        Provides a fixed DEF floorplan to be used during the floorplan step
+        and/or initial placement step.
+
+        Examples:
+        cli: -asic_def 'hello.def'
+        api:  chip.add('asic', 'def', 'hello.def')
+        """
+    }
+    
+    
 
     return cfg
 
