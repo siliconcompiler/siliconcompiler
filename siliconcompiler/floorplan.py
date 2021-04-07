@@ -61,6 +61,9 @@ class Floorplan:
         Initialize Floorplan
         '''
         self.chip = chip
+        # TODO: assert that die_area/core_area are valid multiples of placement
+        # site size. maybe I should also constrain die_area to be rectangle
+        # TODO: look into the fact that diesize and coresize are in schema
         self.die_area = die_area
 
         self.chip.layout['version'] = '5.8'

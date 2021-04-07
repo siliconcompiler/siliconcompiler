@@ -83,7 +83,7 @@ link_design $topmodule
 ########################################################
 
 if {[file exists $input_def]} {
-    read_def $input_def
+    read_def -floorplan_initialize $input_def
 } else {
     if {[llength $diesize] != "4"} {
 	#1. get cell area
