@@ -1,6 +1,7 @@
 # Copyright 2021 Silicon Compiler Authors. All Rights Reserved.
 
 import logging
+import math
 import jinja2
 
 # Set up Jinja
@@ -20,16 +21,15 @@ DESIGN {{ layout.design }} ;
 UNITS DISTANCE MICRONS 2000 ;
 DIEAREA {% for coord in layout.diearea %}{{ coord | render_tuple }} {% endfor %};
 
-PINS {{ layout.pin | length }} ;
-{% for name, pin in layout.pin.items() %}
-    - {{ name }} + NET {{ pin.net }} + DIRECTION {{ pin.direction|upper }} + USE {{ pin.use|upper }}
-       + PORT
-         + LAYER {{ pin.port.layer }} {{ pin.port.box | map('render_tuple') | join(' ') }}
-         {% if pin.port.status %}
-         + {{ pin.port.status|upper }} {{ pin.port.point | render_tuple }} {{ pin.port.orientation }} ;
-         {% endif %}
+{% for name, row in layout.row.items() %}
+ROW {{ name }} {{ row.site }} {{ row.x }} {{ row.y }} {{ row.orientation }}
+    DO {{ row.numx }} BY {{ row.numy }} STEP {{ row.stepx }} {{ row.stepy }} ;
 {% endfor %}
-END PINS
+
+{% for name, track in layout.track.items() %}
+TRACKS {{ track.direction | upper }} {{ track.start }} DO {{ track.total }} STEP {{ track.step }}
+    LAYER {{ track.layer}} ;
+{% endfor %}
 
 COMPONENTS {{ layout.component | length }} ;
 {% for name, c in layout.component.items() %}
@@ -41,6 +41,17 @@ COMPONENTS {{ layout.component | length }} ;
 {% endfor %}
 END COMPONENTS
 
+PINS {{ layout.pin | length }} ;
+{% for name, pin in layout.pin.items() %}
+    - {{ name }} + NET {{ pin.net }} + DIRECTION {{ pin.direction|upper }} + USE {{ pin.use|upper }}
+       + PORT
+         + LAYER {{ pin.port.layer }} {{ pin.port.box | map('render_tuple') | join(' ') }}
+         {% if pin.port.status %}
+         + {{ pin.port.status|upper }} {{ pin.port.point | render_tuple }} {{ pin.port.orientation }} ;
+         {% endif %}
+{% endfor %}
+END PINS
+
 END DESIGN
 """
 
@@ -50,26 +61,46 @@ class Floorplan:
     '''
 
     def __init__(self, chip,
-                 # TODO: read from synthesis metrics
                  die_area,
-                 # TODO: read from LEF/library files
-                 # layers,
-                 # std_cell_width,
-                 # std_cell_height,
+                 core_area,
+                 layers,
+                 std_cell_name,
+                 std_cell_width,
+                 std_cell_height,
                  scale_factor):
         '''
         Initialize Floorplan
+
+        TODO: parameters will eventually be inferred from synthesis results (for
+        die area), and the technology library otherwise
+
+        TODO: look at this for thoughts on computing core area:
+        can maybe compute, see https://github.com/The-OpenROAD-Project/OpenROAD/tree/0d3bd01519b5fe63df6bf44a1d5e206bb309521d#initialize-floorplan
+
+        layers = [
+          {
+            'name': '',
+            'offset': (x, x),
+            'pitch': x,
+          },
+          ...
+        ]
         '''
         self.chip = chip
+        # TODO: assert that die_area/core_area are valid multiples of placement
+        # site size. maybe I should also constraint die_area to be rectangle
         self.die_area = die_area
+        self.core_area = core_area
 
         self.chip.layout['version'] = '5.8'
         self.chip.layout['design'] = chip.get('design')[-1]
         self.chip.layout['diearea'] = die_area
 
-        # self.layers = layers
-        # self.std_cell_width = std_cell_width
-        # self.std_cell_height = std_cell_height
+        self.layers = layers
+        self.std_cell_name = std_cell_name
+        self.std_cell_width = std_cell_width
+        self.std_cell_height = std_cell_height
+
         self.scale_factor = scale_factor
 
     def save(self, filename):
@@ -276,6 +307,82 @@ class Floorplan:
         }
         self.chip.layout['component'][instance_name] = component
 
+    def generate_rows(self):
+        '''
+        Auto-generate placement rows based on floorplan parameters and tech
+        library
+        '''
+        logging.debug("Placing rows")
+
+        # clear existing rows, since we'll generate new ones from scratch using
+        # floorplan parameters
+        self.chip.layout['row'].clear()
+
+        start_x = self.core_area[0][0]
+        start_y = self.core_area[0][1]
+        core_width = self.core_area[1][0] - start_x
+        core_height = self.core_area[1][1] - start_y
+        num_rows = int(core_height / self.std_cell_height)
+        num_x = core_width / self.std_cell_width
+
+        for i in range(num_rows):
+            name = f'ROW_{i}'
+            row = {
+                'site': self.std_cell_name,
+                'x': start_x,
+                'y': start_y,
+                'orientation': 'FS' if i % 2 == 0 else 'N',
+                'numx': num_x,
+                'numy': 1,
+                'stepx' : self.std_cell_width,
+                'stepy' : 0
+            }
+            self.chip.layout['row'][name] = row
+
+            start_y += self.std_cell_height
+
+    def generate_tracks(self):
+        '''
+        Auto-generate routing tracks based on floorplan parameters and tech
+        library
+        '''
+        logging.debug("Placing tracks")
+
+        # clear existing rows, since we'll generate new ones from scratch using
+        # floorplan parameters
+        self.chip.layout['track'].clear()
+
+        die_width = self.die_area[1][0] - self.die_area[0][0]
+        die_height = self.die_area[1][1] - self.die_area[0][1]
+
+        for layer in self.layers:
+            layer_name = layer['name']
+            offset_x, offset_y = layer['offset']
+            pitch = layer['pitch']
+
+            spacing_x = max(self.std_cell_width, pitch)
+            spacing_y = pitch
+            num_tracks_x = math.floor((die_width - offset_x) / spacing_x) + 1
+            num_tracks_y = math.floor((die_height - offset_y) / spacing_y) + 1
+
+            track_x = {
+                'layer': layer_name,
+                'direction': 'x',
+                'start': offset_x,
+                'step': spacing_x,
+                'total': num_tracks_x
+            }
+            track_y = {
+                'layer': layer_name,
+                'direction': 'y',
+                'start': offset_y,
+                'step': spacing_y,
+                'total': num_tracks_y
+            }
+
+            self.chip.layout['track'][f'{layer_name}_X'] = track_x
+            self.chip.layout['track'][f'{layer_name}_Y'] = track_y
+
     def _scale(self, val, units):
         if isinstance(val, list):
             return [self._scale(item, units) for item in val]
@@ -302,7 +409,17 @@ if __name__ == '__main__':
     from siliconcompiler.core import *
     c = Chip()
     c.set('design', 'test')
-    fp = Floorplan(c, [(0, 0), (100, 100)], 1)
+
+    layers = [
+        {
+            'name': 'metal1',
+            'offset': (5, 5),
+            'pitch': 5
+        }
+    ]
+
+    fp = Floorplan(c, [(0, 0), (100, 100)], [(10, 10), (90, 90)], layers,
+                   "site", 10, 10, 1)
 
     n = 4 # pins per side
     width = 8
@@ -315,5 +432,8 @@ if __name__ == '__main__':
     fp.place_pinlist(pins[3*n:4*n], 's', width, depth, 'metal1')
 
     fp.place_macro('myram', 'RAM', (25, 25), 'N')
+
+    fp.generate_rows()
+    fp.generate_tracks()
 
     fp.save('test.def')
