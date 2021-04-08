@@ -472,7 +472,25 @@ def schema_pdk(cfg):
      
     cfg['pdk']['aprlayer'] = {}
     cfg['pdk']['aprlayer']['default'] = {}
-    cfg['pdk']['aprlayer']['default']['default'] = {}    
+    cfg['pdk']['aprlayer']['default']['default'] = {}
+
+    cfg['pdk']['aprlayer']['default']['default']['name'] = {
+        'switch' : '-pdk_aprlayer_name',
+        'requirement' : 'optional',
+        'type' : ['str'],
+        'defvalue' : [],
+        'short_help' : 'APR Layer Preferred Direction',
+        'param_help' : "'pdk' 'aprlayer' stackup metal 'xpitch'",
+        'help' : """
+        Defines the hardcoded PDK metal name ona on a per stackup and 
+        per metal basis. Metal layers are specifed from m1 to mN.
+        
+        Examples:
+        cli: -pdk_aprlayer_xpitch '2MA4MB2MC m1 0.5'
+        api: chip.add('pdk', 'aprlayer', '2MA4MB2MC', 'm1', 'xpitch', '0.5')
+        """
+    }
+    
     cfg['pdk']['aprlayer']['default']['default']['xpitch'] = {
         'switch' : '-pdk_aprlayer_xpitch',
         'requirement' : 'optional',
@@ -483,6 +501,7 @@ def schema_pdk(cfg):
         'help' : """
         Defines the horizontal minimum pitch of a metal layer specified 
         on a per stackup and per metal basis. Values are specified in um.
+        Metal layers are specifed from m1 to mN.
         
         Examples:
         cli: -pdk_aprlayer_xpitch '2MA4MB2MC m1 0.5'
@@ -500,6 +519,7 @@ def schema_pdk(cfg):
         'help' : """
         Defines the vertical minimum pitch of a metal layer specified 
         on a per stackup and per metal basis. Values are specified in um.
+        Metal layers are specifed from m1 to mN.
 
         Examples:
         cli: -pdk_aprlayer_ypitch '2MA4MB2MC m1 0.5'
@@ -540,7 +560,6 @@ def schema_pdk(cfg):
         api: chip.add('pdk', 'aprlayer', '2MA4MB2MC', 'm1', 'yoffset', '0.5')
         """
     }
-
     
     cfg['pdk']['tapmax'] = {
         'switch' : '-pdk_tapmax',
