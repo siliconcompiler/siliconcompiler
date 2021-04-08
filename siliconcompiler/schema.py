@@ -3,6 +3,7 @@
 import re
 import os
 import textwrap
+import sys
 
 ###############################################################################
 # CHIP CONFIGURATION
@@ -62,7 +63,7 @@ def schema_path(filename):
     '''
 
     #Resolve absolute path usign SCPATH
-    #list is read left to right
+    #list is read left to right    
     scpaths = str(os.environ['SCPATH']).split(':')
     for searchdir in scpaths:        
         abspath = searchdir + "/" + filename
@@ -74,9 +75,12 @@ def schema_path(filename):
     if varmatch:
         var = varmatch.group(1)
         varpath = os.getenv(var)
+        if varpath is None:
+            print("FATAL ERROR: Missing environment variable:", var)
+            sys.exit()
         relpath = varmatch.group(2)
         filename = varpath + relpath
-
+   
     return filename
             
 def schema_istrue(value):
@@ -463,29 +467,81 @@ def schema_pdk(cfg):
     }
 
     cfg['pdk']['aprlayer'] = {}
-    cfg['pdk']['aprlayer']['default'] = {
-        'switch' : '-pdk_aprlayer',
+    cfg['pdk']['aprlayer']['default'] = {}
+    cfg['pdk']['aprlayer']['default']['default'] = {}    
+     
+    cfg['pdk']['aprlayer'] = {}
+    cfg['pdk']['aprlayer']['default'] = {}
+    cfg['pdk']['aprlayer']['default']['default'] = {}    
+    cfg['pdk']['aprlayer']['default']['default']['xpitch'] = {
+        'switch' : '-pdk_aprlayer_xpitch',
         'requirement' : 'optional',
-        'type' : ['str', 'str', 'num', 'num'],
+        'type' : ['num'],
         'defvalue' : [],
-        'short_help' : 'APR Layer Definitions',
-        'param_help' : "'pdk' 'aprlayer' stackup <str str num num>",
+        'short_help' : 'APR Layer Preferred Direction',
+        'param_help' : "'pdk' 'aprlayer' stackup metal 'xpitch'",
         'help' : """
-        A optional list of metal layer definitions. Ideally, all APR setup 
-        rules would be read from the pdk_aprtech file but there are cases when
-        these rules should be overriden with non-minimal design rules. The list
-        enables", per layer routing rule definitions, entered as a tuple of 
-        with format 'metalname preferred-dir width pitch'. The values are 
-        entered on a per stackup basis with X denoting horizontal direction, Y
-        denoting vertical direction, and the width and pitch entered in 
-        micrometers.
+        Defines the horizontal minimum pitch of a metal layer specified 
+        on a per stackup and per metal basis. Values are specified in um.
         
         Examples:
-        cli: -pdk_aprlayer '2MA4MB2MC m1 X 0.5 1.0'
-        api: chip.add('pdk', 'aprlayer', '2MA4MB2MC', 'm1 X 0.5 1.0')
+        cli: -pdk_aprlayer_xpitch '2MA4MB2MC m1 0.5'
+        api: chip.add('pdk', 'aprlayer', '2MA4MB2MC', 'm1', 'xpitch', '0.5')
         """
     }
 
+    cfg['pdk']['aprlayer']['default']['default']['ypitch'] = {
+        'switch' : '-pdk_aprlayer_ypitch',
+        'requirement' : 'optional',
+        'type' : ['str'],
+        'defvalue' : [],
+        'short_help' : 'APR Layer Preferred Direction',
+        'param_help' : "'pdk' 'aprlayer' stackup metal 'ypitch'",
+        'help' : """
+        Defines the vertical minimum pitch of a metal layer specified 
+        on a per stackup and per metal basis. Values are specified in um.
+
+        Examples:
+        cli: -pdk_aprlayer_ypitch '2MA4MB2MC m1 0.5'
+        api: chip.add('pdk', 'aprlayer', '2MA4MB2MC', 'm1', 'ypitch', '0.5')
+        """
+    }
+
+    cfg['pdk']['aprlayer']['default']['default']['xoffset'] = {
+        'switch' : '-pdk_aprlayer_xoffset',
+        'requirement' : 'optional',
+        'type' : ['num'],
+        'defvalue' : [],
+        'short_help' : 'APR Layer Preferred Direction',
+        'param_help' : "'pdk' 'aprlayer' stackup metal 'xoffset'",
+        'help' : """
+        Defines the horizontal wire track offset of a metal layer specified 
+        on a per stackup and per metal basis. Values are specified in um.
+        
+        Examples:
+        cli: -pdk_aprlayer_xoffset '2MA4MB2MC m1 0.5'
+        api: chip.add('pdk', 'aprlayer', '2MA4MB2MC', 'm1', 'xoffset', '0.5')
+        """
+    }
+
+    cfg['pdk']['aprlayer']['default']['default']['yoffset'] = {
+        'switch' : '-pdk_aprlayer_yoffset',
+        'requirement' : 'optional',
+        'type' : ['str'],
+        'defvalue' : [],
+        'short_help' : 'APR Layer Preferred Direction',
+        'param_help' : "'pdk' 'aprlayer' stackup metal 'yoffset'",
+        'help' : """
+        Defines the vertical wire track offset of a metal layer specified 
+        on a per stackup and per metal basis. Values are specified in um.
+
+        Examples:
+        cli: -pdk_aprlayer_yoffset '2MA4MB2MC m1 0.5'
+        api: chip.add('pdk', 'aprlayer', '2MA4MB2MC', 'm1', 'yoffset', '0.5')
+        """
+    }
+
+    
     cfg['pdk']['tapmax'] = {
         'switch' : '-pdk_tapmax',
         'requirement' : 'apr',
@@ -1651,7 +1707,7 @@ def schema_options(cfg):
         'switch' : '-target',
         'type' : ['str'],
         'requirement' : 'optional',
-        'defvalue' : [],
+        'defvalue' : ['custom'],
         'short_help' : 'Target Platform',
         'param_help' : "'target' <str>",
         'help' : """

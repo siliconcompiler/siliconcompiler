@@ -36,28 +36,31 @@ def setup_platform(chip):
     chip.set('pdk','aprtech',stackup, libtype, edavendor,
              pdkdir+'/apr/freepdk45.tech.lef')
 
-    # Techlef Overrides
-    chip.set('pdk','aprlayer',stackup, 'metal1 X 0.095 0.19')
-    chip.add('pdk','aprlayer',stackup, 'metal1 Y 0.07  0.14')
-    chip.add('pdk','aprlayer',stackup, 'metal2 X 0.095 0.19')
-    chip.add('pdk','aprlayer',stackup, 'metal2 Y 0.07  0.14')
-    chip.add('pdk','aprlayer',stackup, 'metal3 X 0.095 0.19')
-    chip.add('pdk','aprlayer',stackup, 'metal3 Y 0.07  0.14')
-    chip.add('pdk','aprlayer',stackup, 'metal4 X 0.095 0.28')
-    chip.add('pdk','aprlayer',stackup, 'metal4 Y 0.07  0.28')
-    chip.add('pdk','aprlayer',stackup, 'metal5 X 0.095 0.28')
-    chip.add('pdk','aprlayer',stackup, 'metal5 Y 0.07  0.28')
-    chip.add('pdk','aprlayer',stackup, 'metal6 X 0.095 0.28')
-    chip.add('pdk','aprlayer',stackup, 'metal6 Y 0.07  0.28')
-    chip.add('pdk','aprlayer',stackup, 'metal7 X 0.095 0.8')
-    chip.add('pdk','aprlayer',stackup, 'metal7 Y 0.07  0.8')
-    chip.add('pdk','aprlayer',stackup, 'metal8 X 0.095 0.8')
-    chip.add('pdk','aprlayer',stackup, 'metal8 Y 0.07  0.8')
-    chip.add('pdk','aprlayer',stackup, 'metal9 X 0.095 1.6')
-    chip.add('pdk','aprlayer',stackup, 'metal9 Y 0.07  1.6')
-    chip.add('pdk','aprlayer',stackup, 'metal10 X 0.095 1.6')
-    chip.add('pdk','aprlayer',stackup, 'metal10 Y 0.07 1.6')
+    # Layer Definitions
+    for metal in ('metal1', 'metal2', 'metal3'):
+        chip.set('pdk','aprlayer', stackup, metal, 'xoffset', '0.095')
+        chip.set('pdk','aprlayer', stackup, metal, 'xpitch',  '0.19')
+        chip.set('pdk','aprlayer', stackup, metal, 'yoffset', '0.07')
+        chip.set('pdk','aprlayer', stackup, metal, 'ypitch',  '0.14')
 
+    for metal in ('metal4', 'metal5', 'metal6'):
+        chip.set('pdk','aprlayer', stackup, metal, 'xoffset', '0.095')
+        chip.set('pdk','aprlayer', stackup, metal, 'xpitch',  '0.28')
+        chip.set('pdk','aprlayer', stackup, metal, 'yoffset', '0.07')
+        chip.set('pdk','aprlayer', stackup, metal, 'ypitch',  '0.28')
+
+    for metal in ('metal7', 'metal8'):  
+        chip.set('pdk','aprlayer', stackup, metal, 'xoffset', '0.095')
+        chip.set('pdk','aprlayer', stackup, metal, 'xpitch',  '0.8')
+        chip.set('pdk','aprlayer', stackup, metal, 'yoffset', '0.07')
+        chip.set('pdk','aprlayer', stackup, metal, 'ypitch',  '0.8')
+
+    for metal in ('metal9', 'metal10'):  
+        chip.set('pdk','aprlayer', stackup, metal, 'xoffset', '0.095')
+        chip.set('pdk','aprlayer', stackup, metal, 'xpitch',  '1.6')
+        chip.set('pdk','aprlayer', stackup, metal, 'yoffset', '0.07')
+        chip.set('pdk','aprlayer', stackup, metal, 'ypitch',  '1.6')
+        
 ####################################################
 # Library Setup
 ####################################################
