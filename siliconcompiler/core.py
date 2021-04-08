@@ -337,6 +337,7 @@ class Chip:
             if isinstance(v, dict):
                 #indicates leaf cell
                 if 'value' in cfg[k].keys():
+                    #print(cfg[k]['value'])
                     #print("dict=",cfg[k])
                     #only do something if type is file
                     if cfg[k]['type'][-1] in  ('file', 'dir'):
@@ -702,7 +703,14 @@ class Chip:
             step: The step to report on (eg. cts)
             jobid: Index of job to report on (1, 2, etc)
         '''
-        print("\nSUMMARY:")
+        
+        info = ' '.join(["design="+self.get('design')[0],
+                         "foundry="+self.get('pdk', 'foundry')[0],
+                         "process="+self.get('pdk', 'process')[0],
+                         "targetlibs="+" ".join(self.get('asic','targetlib'))])
+        
+        print("-"*135)
+        print("SUMMARY:", info, "\n")
         data = []
         steps = []
 
@@ -730,7 +738,8 @@ class Chip:
         df = pandas.DataFrame(data, steps, metrics)
         if filename is None:
             print(df.to_string())
-
+            print("-"*135)
+            
     ###################################
     def display(self, *args, index=0):
       '''Displays content related keys provided  
