@@ -70,7 +70,8 @@ def setup_libs(chip, vendor=None):
     process = 'freepdk45'
     libname = 'NangateOpenCellLibrary'
     libtype = '10t'
-    size = '0.19 1.4'
+    libwidth = '0.19'
+    libheight = '1.4'
     rev = 'r1p0'
     corner = 'typical'
     objectives = ['setup']
@@ -101,7 +102,8 @@ def setup_libs(chip, vendor=None):
     chip.set('stdcell',libname,'libtype',libtype)
 
     # lib site/tile/size
-    chip.set('stdcell',libname,'size',size)
+    chip.set('stdcell',libname,'width', libwidth)
+    chip.set('stdcell',libname,'height', libheight)
 
 #########################
 def setup_design(chip):

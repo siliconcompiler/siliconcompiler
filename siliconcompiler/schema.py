@@ -716,24 +716,42 @@ def schema_libs(cfg, group):
         "api: chip.set('"+group+"','mylib','libtype','12t')                  "
     }
 
-    cfg[group]['default']['size'] = {
-        'switch' : '-'+group+'_size',
+    cfg[group]['default']['width'] = {
+        'switch' : '-'+group+'_width',
         'requirement' : 'apr',
-        'type' : ['num', 'num'],
+        'type' : ['num'],
         'defvalue' : [],
-        'short_help' : group.capitalize() + ' Size',
-        'param_help' : "'"+group+"' libname 'size' <num num>",
+        'short_help' : group.capitalize() + ' Width',
+        'param_help' : "'"+group+"' libname 'width' <num>",
         'help' :
-        "Specifies the height and width of a unit cell. Values are entered as "\
-        "width heigh tuples. The value can usually be extracted automatically "\
-        "from the layout library but is included in the schema to simplify the"\
-        "process of creating parametrized floorplans. The parameter can be    "\
-        "omitted for macro libraries that lack the concept of a unit cell.    "\
+        "Specifies the width of a unit cell. The value can usually be         "\
+        "extracted automatically from the layout library but is included in   "\
+        "the schema to simplify the process of creating parametrized          "\
+        "floorplans.                                                          "\
         "                                                                     "\
         "Examples:                                                            "\
-        "cli: -"+group+"_size 'mylib 0.1 0.5'                                 "\
-        "api: chip.set('"+group+"','mylib','size','0.1 0.5')                  "
+        "cli: -"+group+"_width 'mylib 0.1'                                    "\
+        "api: chip.set('"+group+"','mylib','width','0.1')                     "
     }
+
+    cfg[group]['default']['height'] = {
+        'switch' : '-'+group+'_height',
+        'requirement' : 'apr',
+        'type' : ['num'],
+        'defvalue' : [],
+        'short_help' : group.capitalize() + ' Height',
+        'param_help' : "'"+group+"' libname 'height' <num>",
+        'help' :
+        "Specifies the height of a library unit cell or macro. The value can  "\
+        "usually be extracted automatically from the layout library but is    "\
+        "included in the schema to simplify the process of creating           "\
+        "parametrized floorplans.                                             "\
+        "                                                                     "\
+        "Examples:                                                            "\
+        "cli: -"+group+"_height 'mylib 0.1'                                   "\
+        "api: chip.set('"+group+"','mylib','height','0.1')                    "
+    }
+    
     ###############################
     #Models (Timing, Power, Noise)
     ###############################
@@ -1345,26 +1363,6 @@ def schema_flow(cfg, step):
         """
     }
     
-    #keymap
-    cfg['flow'][step]['keymap'] = {
-        'switch' : '-flow_keymap',
-        'type' : ['str', 'str'],
-        'requirement' : 'optional',
-        'defvalue' : [],
-        'short_help' : 'Script Keymap',
-        'param_help' : "'flow' step 'keymap' <str str>",
-        'help' : """
-        The keymap is used to translate the schema keys when writing out the 
-        configuration to a TCL, JSON, or YAML file to be loaded by an EDA step.
-        Keymaps are specific to each EDA step and specified on a per step 
-        basis.
-
-        Examples:
-        cli: -flow_keymap 'place design design_name'
-        api: chip.add('flow','place','design design_name')
-        """
-    }
-        
     #vendor
     cfg['flow'][step]['vendor'] = {
         'switch' : '-flow_vendor',
@@ -1381,25 +1379,6 @@ def schema_flow(cfg, step):
         Examples:
         cli: -flow_vendor 'place vendor openroad'
         api: chip.set('flow','place','vendor','openroad')
-        """
-    }
-
-    # custom pass through variables
-    cfg['flow'][step]['custom'] = {
-        'switch' : '-flow_custom',
-        'type' : ['str', 'str'],
-        'requirement' : 'optional',
-        'defvalue' : [],
-        'short_help' : 'Custom EDA Parameters',
-        'param_help' : "'flow' step 'custom' <str str>",
-        'help' : """
-        Specifies a custom TCL variablethrough directly to the EDA run scripts.
-        The value is a space separated string with the first value indicating 
-        the variable and the remaining strings assigned as a list.
-        
-        Examples:
-        cli: -flow_custom 'syn SYNMODE lowpower'
-        api:  chip.add('flow','syn','custom','SYNMODE lowpower')
         """
     }
 
@@ -1769,21 +1748,22 @@ def schema_options(cfg):
         """
         }
 
-    cfg['env'] = {
+    cfg['env'] = {}
+    cfg['env']['default'] = {
         'switch' : '-env',
-        'type' : ['str', 'str'],
+        'type' : ['str'],
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Environment Variables',
-        'param_help' : "'env' <str str>",
+        'param_help' : "'env' varname <str>",
         'help' : """
         Certain EDA tools and reference flows require environment variables to
         be set. These variables can be managed externally or specified through
         the env variable.
 
         Examples:
-        cli: -env '$PDK_HOME /disk/mypdk'
-        api: chip.set('env','$PDK_HOME /disk/mypdk')
+        cli: -env 'PDK_HOME /disk/mypdk'
+        api: chip.set('env', 'PDK_HOME', /disk/mypdk')
         """
     }
 
@@ -2250,63 +2230,112 @@ def schema_design(cfg):
         """
     }
 
-    cfg['clock'] = {
-        'switch' : '-clock',
-        'type' : ['str', 'str', 'num', 'num'],
+    cfg['clock'] = {}
+    cfg['clock']['default'] = {}
+    
+    cfg['clock']['default']['name'] = {
+        'switch' : '-clock_name',
+        'type' : ['str'],
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Design Clocks',
-        'param_help' : "'clock' <str str num num>",
+        'short_help' : 'Design Clock Name',
+        'param_help' : "'clock' clkpath 'name' <str>",
         'help' : """
-        A clock definition specifying the name of the clock, the name 
-        of the clock port, or the full hierarchy path to the generated internal
-        clock, the clock frequency and the clock uncertainty (jitter). The 
-        definition can be used to drive constraints for implementation and 
-        signoff. Clock period and clock jitter are specified in nanoseconds.
+        Defines a clock name alias to assign to a clock source.
 
         Examples:
-        cli: -clock 'clk top.pll.clkout 10.0 0.1'
-        api: chip.add('clock','clk top.pll.clkout 10.0 0.1')
-        """
-    }
-
-    cfg['supply'] = {
-        'switch' : '-supply',
-        'type' : ['str', 'str', 'num'],
-        'requirement' : 'optional',
-        'defvalue' : [],
-        'short_help' : 'Design Power Supplies',
-        'param_help' : "'supply' <str str num>",
-        'help' : """
-        A power supply definition specifying the supply name, the net name, 
-        and the voltage.The definition can be used to drive constraints for 
-        implementation and signoff. Supply values specified in Volts.
-
-        Examples:
-        cli: -supply 'vdd vdd 0.9'
-        api: chip.add('supply','vdd vdd 0.9')
-        """
-    }
-
-    cfg['ground'] = {
-        'switch' : '-ground',
-        'type' : ['str', 'str'],
-        'requirement' : 'optional',
-        'defvalue' : [],
-        'short_help' : 'Design Power Supplies',
-        'param_help' : "'ground' <str str num>",
-        'help' : """
-        A power ground definition specifying the ground name, the net name, 
-        and the voltage.The definition can be used to drive constraints for 
-        implementation and signoff. Ground values specified in Volts.
-
-        Examples:
-        cli: -ground 'vdd vdd 0.9'
-        api: chip.add('ground','vdd vdd 0.9')
+        cli: -clock_name 'top.pll.clkout clk'
+        api: chip.add('clock', 'top.pll.clkout', 'name', 'clk')
         """
     }
     
+    cfg['clock'] = {}
+    cfg['clock']['default'] = {}
+    cfg['clock']['default']['period'] = {
+        'switch' : '-clock_period',
+        'type' : ['num'],
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Design Clocks',
+        'param_help' : "'clock' clkpath period <num>",
+        'help' : """
+        Specifies the period for a clock source in nanoseconds
 
+        Examples:
+        cli: -clock_period 'clk top.pll.clkout 10.0'
+        api: chip.add('clock', 'top.pll.clkout', 'period', '10.0')
+        """
+    }
+    
+    cfg['clock']['default']['jitter'] = {
+        'switch' : '-clock_jitter',
+        'type' : ['num'],
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Design Clock Jitter',
+        'param_help' : "'clock' clkpath 'jitter' <num>",
+        'help' : """
+        Specifies the jitter for a clock source in nanoseconds.
+
+        Examples:
+        cli: -clock_jitter 'top.pll.clkout 0.1'
+        api: chip.add('clock','top.pll.clkout', 'jitter', '0.01')
+        """
+    }
+
+    cfg['supply'] = {}
+    cfg['supply']['default'] = {}
+            
+    cfg['supply']['default']['name'] = {
+        'switch' : '-supply_name',
+        'type' : ['str'],
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Design Power Supply Name',
+        'param_help' : "'supply' supplypath 'name' <str>",
+        'help' : """
+        Defines a supply name alias to assign to a power source.
+        A power supply source can be a list of block pins or a regulator
+        output pin.
+
+        Examples:
+        cli: -supply_name 'vdd_0 vdd'
+        api: chip.add('supply','vdd_0', 'name', 'vdd')
+        """
+    }
+
+    cfg['supply']['default']['level'] = {
+        'switch' : '-supply_level',
+        'type' : ['num'],
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Design Power Supply Voltage Level',
+        'param_help' : "'ground' supplypath 'level' <num>",
+        'help' : """
+        Specifies level in Volts for a power source.
+
+        Examples:
+        cli: -supply_level 'vss 0.0'
+        api: chip.add('supply','vss', 'level', '0.0')
+        """
+    }
+
+    cfg['supply']['default']['noise'] = {
+        'switch' : '-supply_noise',
+        'type' : ['num'],
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Design Power Supply Noise',
+        'param_help' : "'ground' supplypath 'noise' <num>",
+        'help' : """
+        Specifies the noise in Volts for a power source.
+
+        Examples:
+        cli: -supply_level 'vss 0.05'
+        api: chip.add('supply','vss', 'level', '0.05')
+        """
+    }
+  
     cfg['define'] = {
         'switch' : '-D',
         'type' : ['str'],
