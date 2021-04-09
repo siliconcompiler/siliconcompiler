@@ -80,7 +80,12 @@ def schema_path(filename):
             sys.exit()
         relpath = varmatch.group(2)
         filename = varpath + relpath
-   
+
+    #Check Path Validity
+    if not os.path.exists(filename):
+        print("FATAL ERROR: File/Dir not found:", filename)
+        sys.exit()
+        
     return filename
             
 def schema_istrue(value):
