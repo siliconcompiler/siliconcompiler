@@ -39,7 +39,7 @@ def setup_platform(chip):
     # Layer Definitions
     for metal in ('metal1', 'metal2', 'metal3'):
         chip.set('pdk','aprlayer', stackup, metal, 'xoffset', '0.095')
-        chip.set('pdk','aprlayer', stackup, metal, 'xpitch',  '0.19')
+        chip.set('pdk','aprlayer', stackup, metal, 'xpitch',  '0.14')
         chip.set('pdk','aprlayer', stackup, metal, 'yoffset', '0.07')
         chip.set('pdk','aprlayer', stackup, metal, 'ypitch',  '0.14')
 
