@@ -850,6 +850,31 @@ def schema_libs(cfg, group):
         "api: chip.add('"+group+"','mylib', 'model', 'tt','ccs','lib',       "\
         "              'mylib_tt.lib')                                       "
     }
+
+    #SCM
+    cfg[group]['default']['model']['default']['scm'] = {}
+    cfg[group]['default']['model']['default']['scm']['default'] = {        
+        'switch' : '-'+group+"_scm",
+        'requirement' : 'optional',
+        'type' : ['file'],
+        'defvalue' : [],
+        'hash' : [],
+        'date'   : [],
+        'author' : [],
+        'signature' : [],
+        'short_help' : group.capitalize() + ' SCM Timing Model',
+        'param_help' : "'"+group+"' libname 'model' corner 'scm' type <file>",
+        'help' :
+        "Filepaths to SCM timing models. Timing files are specified on a per "\
+        "lib, per corner, and per format basis. The format is driven by EDA  "\
+        "requirements. Examples of legal formats includ: lib,lib.gz,lib.bz2, "\
+        "and ldb.                                                            "\
+        "                                                                    "\
+        "Examples:                                                           "\
+        "cli: -"+group+"_scm 'mylib model tt lib mylib_tt.lib'               "\
+        "api: chip.add('"+group+"','mylib', 'model', 'tt','scm','lib',       "\
+        "              'mylib_tt.lib')                                       "
+    }
     
     #AOCV
     cfg[group]['default']['model']['default']['aocv'] = {        
