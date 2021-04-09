@@ -289,7 +289,10 @@ class Chip:
                 #removing all default/template keys
                 if k == 'default':
                     del cfg[k]
-                #delete all keys with empty/default values
+                #remove long help from printing
+                elif 'help' in cfg[k].keys():
+                    del cfg[k]['help']
+                #removing empty values from json file
                 elif 'value' in cfg[k].keys():
                     if not cfg[k]['value']:
                         del cfg[k]
@@ -533,8 +536,6 @@ class Chip:
         if not os.path.exists(os.path.dirname(filepath)):
             os.makedirs(os.path.dirname(filepath))
 
-        
-            
         #prune cfg if option set
         if cfg is not None:
             cfgcopy = copy.deepcopy(cfg)
