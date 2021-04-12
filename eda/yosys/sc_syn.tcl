@@ -19,7 +19,7 @@ set mode [dict get $sc_cfg mode]
 set target [dict get $sc_cfg target]
 
 #Inputs
-set input_verilog   "inputs/$topmodule.v"
+set input_verilog   "inputs/$topmodule.sv"
 set input_def       "inputs/$topmodule.def"
 set input_sdc       "inputs/$topmodule.sdc"
 

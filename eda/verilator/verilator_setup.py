@@ -2,6 +2,7 @@ import os
 import subprocess
 import re
 from siliconcompiler.schema import schema_istrue
+from siliconcompiler.schema import schema_path
 
 ################################
 # Setup Verilator
@@ -52,25 +53,26 @@ def setup_options(chip, step):
     #Source Level Controls
 
     for value in chip.cfg['ydir']['value']:
-        options.append('-y ' + value)
+        options.append('-y ' + schema_path(value))
 
     for value in chip.cfg['vlib']['value']:
-        options.append('-v ' + value)                    
+        options.append('-v ' + schema_path(value))                    
 
     for value in chip.cfg['idir']['value']:
-        options.append('-I' + value)
+        options.append('-I' + schema_path(value))
 
     for value in chip.cfg['define']['value']:
-        options.append('-D ' + value)
+        options.append('-D ' + schema_path(value))
 
     for value in chip.cfg['cmdfile']['value']:
-        options.append('-f ' + value)
+        options.append('-f ' + schema_path(value))
         
     for value in chip.cfg['source']['value']:
-        options.append(value)
+        options.append(schema_path(value))
 
     #Relax Linting
     supress_warnings = ['-Wno-UNOPTFLAT',
+                        '-Wno-WIDTH',
                         '-Wno-SELRANGE',
                         '-Wno-WIDTH',
                         '-Wno-fatal']
@@ -98,13 +100,13 @@ def post_process(chip, step):
     '''
 
     # filtering out debug garbage
-    subprocess.run('egrep -h -v "\`begin_keywords" obj_dir/*.vpp > verilator.v',
+    subprocess.run('egrep -h -v "\`begin_keywords" obj_dir/*.vpp > verilator.sv',
                    shell=True)
                    
     # setting top module of design
     modules = 0
     if(len(chip.cfg['design']['value']) < 1):
-        with open("verilator.v", "r") as open_file:
+        with open("verilator.sv", "r") as open_file:
             for line in open_file:
                 modmatch = re.match('^module\s+(\w+)', line)
                 if modmatch:
@@ -122,7 +124,7 @@ def post_process(chip, step):
         topmodule = chip.cfg['design']['value'][-1]
 
     # Creating file for handoff to synthesis  
-    subprocess.run("cp verilator.v " + "outputs/" + topmodule + ".v",
+    subprocess.run("cp verilator.sv " + "outputs/" + topmodule + ".sv",
                    shell=True)
 
 
