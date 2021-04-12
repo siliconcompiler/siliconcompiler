@@ -37,30 +37,41 @@ def setup_platform(chip):
              pdkdir+'/apr/freepdk45.tech.lef')
 
     # Layer Definitions
-    for metal in ('metal1', 'metal2', 'metal3'):
-        chip.set('pdk','aprlayer', stackup, metal, 'xoffset', '0.095')
-        chip.set('pdk','aprlayer', stackup, metal, 'xpitch',  '0.19')
-        chip.set('pdk','aprlayer', stackup, metal, 'yoffset', '0.07')
-        chip.set('pdk','aprlayer', stackup, metal, 'ypitch',  '0.14')
+    for sc_name, pdk_name in [('m1', 'metal1'), ('m3', 'metal3')]:
+        chip.set('pdk','aprlayer', stackup, sc_name, 'name', pdk_name)
+        chip.set('pdk','aprlayer', stackup, sc_name, 'xoffset', '0.095')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'xpitch',  '0.14')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'yoffset', '0.07')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'ypitch',  '0.14')
 
-    for metal in ('metal4', 'metal5', 'metal6'):
-        chip.set('pdk','aprlayer', stackup, metal, 'xoffset', '0.095')
-        chip.set('pdk','aprlayer', stackup, metal, 'xpitch',  '0.28')
-        chip.set('pdk','aprlayer', stackup, metal, 'yoffset', '0.07')
-        chip.set('pdk','aprlayer', stackup, metal, 'ypitch',  '0.28')
+    for sc_name, pdk_name in [('m2', 'metal2')]:
+        chip.set('pdk','aprlayer', stackup, sc_name, 'name', pdk_name)
+        chip.set('pdk','aprlayer', stackup, sc_name, 'xoffset', '0.095')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'xpitch',  '0.19')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'yoffset', '0.07')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'ypitch',  '0.19')
 
-    for metal in ('metal7', 'metal8'):  
-        chip.set('pdk','aprlayer', stackup, metal, 'xoffset', '0.095')
-        chip.set('pdk','aprlayer', stackup, metal, 'xpitch',  '0.8')
-        chip.set('pdk','aprlayer', stackup, metal, 'yoffset', '0.07')
-        chip.set('pdk','aprlayer', stackup, metal, 'ypitch',  '0.8')
+    for sc_name, pdk_name in [('m4', 'metal4'), ('m5', 'metal5'), ('m6', 'metal6')]:
+        chip.set('pdk','aprlayer', stackup, sc_name, 'name', pdk_name)
+        chip.set('pdk','aprlayer', stackup, sc_name, 'xoffset', '0.095')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'xpitch',  '0.28')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'yoffset', '0.07')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'ypitch',  '0.28')
 
-    for metal in ('metal9', 'metal10'):  
-        chip.set('pdk','aprlayer', stackup, metal, 'xoffset', '0.095')
-        chip.set('pdk','aprlayer', stackup, metal, 'xpitch',  '1.6')
-        chip.set('pdk','aprlayer', stackup, metal, 'yoffset', '0.07')
-        chip.set('pdk','aprlayer', stackup, metal, 'ypitch',  '1.6')
-        
+    for sc_name, pdk_name in [('m7', 'metal7'), ('m8', 'metal8')]:
+        chip.set('pdk','aprlayer', stackup, sc_name, 'name', pdk_name)
+        chip.set('pdk','aprlayer', stackup, sc_name, 'xoffset', '0.095')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'xpitch',  '0.8')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'yoffset', '0.07')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'ypitch',  '0.8')
+
+    for sc_name, pdk_name in [('m9', 'metal9'), ('m10', 'metal10')]:
+        chip.set('pdk','aprlayer', stackup, sc_name, 'name', pdk_name)
+        chip.set('pdk','aprlayer', stackup, sc_name, 'xoffset', '0.095')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'xpitch',  '1.6')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'yoffset', '0.07')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'ypitch',  '1.6')
+
 ####################################################
 # Library Setup
 ####################################################
