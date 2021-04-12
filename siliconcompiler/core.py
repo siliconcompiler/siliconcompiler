@@ -793,26 +793,26 @@ class Chip:
             laststep = steplist[stepindex-1]           
             importstep = (stepindex==0)
 
-            if stepindex==0:
-                jobdir = buildroot + '/import/job'
-            else:
-                jobdir = '/'.join([buildroot,
-                                   step,
-                                   "job"+str(jobid)])
-
             if step not in steplist:
                 self.logger.error('Illegal step name %s', step)
                 sys.exit()
-            
+                
             #####################
-            # Job-id
+            # Job-ID/DIR
             #####################
             
             if (jobid is None ) | importstep:        
                 jobid = int(self.cfg['flow'][step]['jobid']['value'][-1])
                 jobid = jobid + 1
             self.set('flow', step, 'jobid', str(jobid))
-            
+      
+            if stepindex==0:
+                jobdir = buildroot + '/import/job'
+            else:
+                jobdir = '/'.join([buildroot,
+                                   step,
+                                   "job"+str(jobid)])
+                          
             #####################
             # Dynamic EDA setup
             #####################
@@ -831,9 +831,7 @@ class Chip:
             #####################
             # Execution
             #####################
-            if ((stepindex < startindex) |
-                (stepindex > stopindex) |
-                (step in self.cfg['skip']['value']) |
+            if ((step in self.cfg['skip']['value']) |
                 (self.cfg['skipall']['value'][-1] =='true')):
                 self.logger.info('Skipping step: %s', step)
             elif (stepindex==0) & (jobid > 1):  
@@ -854,10 +852,14 @@ class Chip:
                 elif stepindex == 1:
                     shutil.copytree("../../import/job/outputs", 'inputs')
                 else:
-                    lastjobid = self.get('flow', laststep, 'jobid')[-1]
+                    lastjobid = self.get('flow', laststep, 'jobid')[-1]                    
+                    #check if job was run before, if not use current step ID
+                    #TODO: add some error checking here?
+                    if lastjobid == '0':
+                        lastjobid = jobid
                     lastdir = '/'.join(['../../',                
                                         steplist[stepindex-1],
-                                        'job'+lastjobid,
+                                        'job'+str(lastjobid),
                                         'outputs'])
                     shutil.copytree(lastdir, 'inputs')
                 
