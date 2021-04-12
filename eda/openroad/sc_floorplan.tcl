@@ -55,12 +55,13 @@ dict for {key value} [dict get $sc_cfg pdk aprlayer $stackup] {
 #TODO: replace with tcl commands instead of file for new openroad
 set outfile [open "sc_tracks.txt" w]
 foreach metal $metal_list {
+    set name [dict get $sc_cfg pdk aprlayer $stackup $metal name]
     set xpitch [dict get $sc_cfg pdk aprlayer $stackup $metal xpitch]
     set xoffset [dict get $sc_cfg pdk aprlayer $stackup $metal xoffset]
     set ypitch [dict get $sc_cfg pdk aprlayer $stackup $metal ypitch]
     set yoffset [dict get $sc_cfg pdk aprlayer $stackup $metal yoffset]    
-    puts $outfile "$metal X $xoffset $xpitch"
-    puts $outfile "$metal Y $yoffset $ypitch"
+    puts $outfile "$name X $xoffset $xpitch"
+    puts $outfile "$name Y $yoffset $ypitch"
 }
 close $outfile
 
