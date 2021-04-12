@@ -1146,9 +1146,10 @@ def schema_libs(cfg, group):
         "api: chip.add('"+group+"','mylib','cells','dontuse','*eco*')        "\
     }
 
-    cfg[group]['default']['laydb'] = {}
-    cfg[group]['default']['laydb']['default'] = {
-        'switch' : '-'+group+"_laydb",
+    cfg[group]['default']['layoutdb'] = {}
+    cfg[group]['default']['layoutdb']['default'] = {}
+    cfg[group]['default']['layoutdb']['default']['default'] = {
+        'switch' : '-'+group+"_layoutdb",
         'requirement' : 'optional',
         'type' : ['file'],
         'defvalue' : [],
@@ -1157,14 +1158,14 @@ def schema_libs(cfg, group):
         'author' : [],
         'signature' : [],
         'short_help' : group.capitalize() + ' Layout Database',
-        'param_help' : "'"+group+"' libname 'laydb' type <file>",
+        'param_help' : "'"+group+"' libname 'layoutdb' stackup type <file>",
         'help' :
         "Filepaths to compiled library layout database specified on a per    "\
         "format basis. Example formats include oa, mw, ndm.                  "\
         "                                                                    "\
         "Examples:                                                           "\
-        "cli: -"+group+"_laydb 'mylib oa /disk/myliblibdb'                   "\
-        "api: chip.add('"+group+"','mylib','laydb','oa', '/disk/mylibdb')    "
+        "cli: -"+group+"_layoutdb 'mylib 2MA4MB2MC oa /disk/myliblibdb'      "\
+        "api: chip.add('"+group+"','mylib','layoutdb','2MA4MB2MC','oa', '/disk/mylibdb')    "
     }
 
     return cfg
