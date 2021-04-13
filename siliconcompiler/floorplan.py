@@ -15,10 +15,10 @@ env.filters['render_tuple'] = render_tuple
 
 # Jinja template for outputting layout as DEF file
 DEF_TEMPLATE = """VERSION {{ layout.version }} ;
-DIVIDERCHAR "/" ;
-BUSBITCHARS "[]" ;
+DIVIDERCHAR "{{ layout.dividerchar }}" ;
+BUSBITCHARS "{{ layout.busbitchars }}" ;
 DESIGN {{ layout.design }} ;
-UNITS DISTANCE MICRONS 2000 ;
+UNITS DISTANCE MICRONS {{ layout.units }} ;
 DIEAREA {% for coord in layout.diearea %}{{ coord | render_tuple }} {% endfor %};
 
 {% for name, row in layout.row.items() %}
@@ -56,252 +56,279 @@ END DESIGN
 """
 
 class Floorplan:
-    '''
-    Floorplan layout class
-    '''
+    '''Floorplan layout class'''
 
-    def __init__(self, chip,
-                 die_area,
-                 core_area,
-                 layers,
-                 std_cell_name,
-                 std_cell_width,
-                 std_cell_height,
-                 scale_factor):
-        '''
-        Initialize Floorplan
+    def __init__(self, chip, db_units=2000):
+        '''Initializes Floorplan object.
 
-        TODO: parameters will eventually be inferred from synthesis results (for
-        die area), and the technology library otherwise
-
-        TODO: look at this for thoughts on computing core area:
-        can maybe compute, see https://github.com/The-OpenROAD-Project/OpenROAD/tree/0d3bd01519b5fe63df6bf44a1d5e206bb309521d#initialize-floorplan
-
-        layers = [
-          {
-            'name': '',
-            'offset': (x, x),
-            'pitch': x,
-          },
-          ...
-        ]
+        Args:
+            chip (Chip): Object storing the chip config. The Floorplan API
+                expects the chip's configuration to be populated with information
+                from a tech library, and the API will write to the chip's
+                layout configuration.
+            db_units (int): Scaling factor to go from microns to DEF DB units.
         '''
         self.chip = chip
-        # TODO: assert that die_area/core_area are valid multiples of placement
-        # site size. maybe I should also constraint die_area to be rectangle
-        self.die_area = die_area
-        self.core_area = core_area
+
+        self.die_area = None
+        self.core_area = None
 
         self.chip.layout['version'] = '5.8'
         self.chip.layout['design'] = chip.get('design')[-1]
-        self.chip.layout['diearea'] = die_area
+        self.chip.layout['units'] = db_units
 
-        self.layers = layers
-        self.std_cell_name = std_cell_name
-        self.std_cell_width = std_cell_width
-        self.std_cell_height = std_cell_height
+        # extract std cell info based on libname
+        libname = self.chip.get('asic', 'targetlib')[-1]
+        self.std_cell_name = self.chip.get('stdcell', libname, 'site')[-1]
+        self.std_cell_width = float(self.chip.get('stdcell', libname, 'width')[-1])
+        self.std_cell_height = float(self.chip.get('stdcell', libname, 'height')[-1])
 
-        self.scale_factor = scale_factor
+        # extract layers based on stackup
+        stackup = self.chip.get('asic', 'stackup')[-1]
+        self.layers = {}
+        for name, layer in self.chip.cfg['pdk']['aprlayer'][stackup].items():
+            if name == 'default': continue
+            self.layers[name] = {}
+            self.layers[name]['name'] = layer['name']['value'][-1]
+            self.layers[name]['xpitch'] = float(layer['xpitch']['value'][-1])
+            self.layers[name]['ypitch'] = float(layer['ypitch']['value'][-1])
+            self.layers[name]['xoffset'] = float(layer['xoffset']['value'][-1])
+            self.layers[name]['yoffset'] = float(layer['yoffset']['value'][-1])
+
+        self.db_units = db_units
+
+    def create_die_area(self, width, height, core_area=None, generate_rows=True,
+                        generate_tracks=True):
+        '''Initializes die.
+
+        Initializes the area of the die and generates placement rows and routing
+        tracks. This function must be called before calling place_pins. The
+        provided die and core dimensions will overwrite the die/core size
+        already present in the chip config.
+
+        Args:
+            width (float): Width of die in microns.
+            height (float): Height of die in microns.
+            core_area (tuple of float): The core cell area of the physical
+                design. This is provided as a tuple (x0 y0 x1 y1), where (x0,
+                y0), specifes the lower left corner of the block and (x1, y1)
+                specifies the upper right corner. If `None`, core_area is set to
+                be equivalent to the die area.
+            generate_rows (bool): Automatically generate rows to fill entire
+                core area.
+            generate_tracks (bool): Automatically generate tracks to fill entire
+                core area.
+
+        '''
+        # store die_area as 2-tuple since bottom left corner is always 0,0
+        self.die_area = (width, height)
+        if core_area == None:
+            self.core_area = (0, 0, width, height)
+        else:
+            self.core_area = core_area
+
+        self.chip.set('asic', 'diesize', (0, 0, width, height))
+        self.chip.set('asic', 'coresize', self.core_area)
+        self.chip.layout['diearea'] = self._def_scale([(0, 0), self.die_area])
+
+        if generate_rows:
+            self.generate_rows()
+        if generate_tracks:
+            self.generate_tracks()
 
     def save(self, filename):
-        '''
-        Write DEF file
-        '''
-        logging.info('Write DEF %s', filename)
+        '''Writes chip layout to DEF file.
 
-        # TODO: come up with cleaner way to handle defaults
-        old_layout = self.chip.layout
-        del self.chip.layout['pin']['default']
-        del self.chip.layout['component']['default']
+        Args:
+            filename (str): Name of output file.
+        '''
+        logging.debug('Write DEF %s', filename)
 
         tmpl = env.from_string(DEF_TEMPLATE)
+        layout = self._filter_defaults(self.chip.layout)
         with open(filename, 'w') as f:
-            f.write(tmpl.render(layout=self.chip.layout))
+            f.write(tmpl.render(layout=layout))
 
-        self.chip.layout = old_layout
+    def place_pins(self, pins, side, width, depth, layer, offset=0, pitch=None,
+                   direction='inout', net_name=None, use='signal', fixed=True,
+                   units='relative'):
+        '''Places pin(s) on floorplan.
 
-    def place_pin(self, pin_name, net_name, pos, shape, layer, orientation,
-                  direction='input', use='signal', fixed=True, units='relative'):
+        Examples:
+            >>> place_pins(['a[0]', 'a[1]'], 'w', 1, 3, 'm1')
+            Places pins a[0] and a[1] evenly spaced along the left edge of the
+            block
+
+            >>> place_pins(['a[0]', 'a[1]'], 'w', 1, 3, 'm1', pitch=1)
+            Places pins a[0] and a[1] centered on the left edge of the block
+            with minimal spacing
+
+            >>> place_pins(['out'], 'n', 1, 3, 'm1', offset=3.5, units='absolute')
+            Places pin out along the top edge of the block, 3.5 microns from the
+            left side
+
+        Args:
+            pins (list of str): List of pin names to place.
+            side (str): Which side of the block to place the pins along. Options
+                are 'n', 's', 'e', or 'w' (case insensitive).
+            width (float): Width of pin.
+            depth (float): Depth of pin.
+            layer (str): Which metal layer pin is placed on.
+            offset (int): How far to place first pin from edge. If `None`,
+                center pins along edge, snapped to grid.
+            pitch (int): Spacing between pins. If `None`, pins will be evenly
+                spaced between `offset` and the far edge of the side, snapped to
+                grid.
+            direction (str): I/O direction of pins (must be valid LEF/DEF
+                direction).
+            net_name (str): Name of net that each pin is connected to. If `None`,
+                the net name of each pin will correspond to the pin name.
+            use (str): Usage of pin (must be valid LEF/DEF use).
+            fixed (bool): Whether pin status is 'FIXED' or 'PLACED'.
+            units (str): whether to use technology-relative ('relative') or
+                absolute ('absolute') units.
         '''
-        Place pin on floorplan
+        logging.debug('Placing pins: %s', ' '.join(pins))
 
-        Parameters:
-        - pin_name: name of pin
-        - net_name: name of connected net
-        - pos: position of pin, as tuple of 2 numbers
-        - shape: geometry of pin, as list of 2 or more tuples of 2 numbers
-        - layer: layer of pin
-        - orientation: orientation of pin (must be a valid LEF/DEF orientation)
-        - direction: I/O direction of pin (must be valid LEF/DEF direction)
-        - use: use of pin (must be valid LEF/DEF use)
-        - fixed: whether or not pin is fixed
-        - units: whether to use technology-independent ('relative') or absolute
-          ('absolute') units
-        '''
-        logging.debug('Placing a pin: %s', pin_name)
-
+        if side.upper() not in ('N', 'S', 'E', 'W'):
+            raise ValueError('Invalid side')
         if direction.upper() not in ('INPUT', 'OUTPUT', 'INOUT', 'FEEDTHRU'):
             raise ValueError('Invalid direction')
         if use.upper() not in ('SIGNAL', 'POWER', 'GROUND', 'CLOCK', 'TIEOFF',
                                'ANALOG', 'SCAN', 'RESET'):
             raise ValueError('Invalid use')
-        self._validate_orientation(orientation)
         self._validate_units(units)
 
-        pin = {
-            'net': net_name,
-            'direction': direction,
-            'use': use
-        }
+        if self.die_area is None:
+            raise ValueError('Die area must be initialized with create_die_area!')
 
-        port = {
-            'layer': layer,
-            'box': self._scale(shape, units),
-            'status': 'fixed' if fixed else None,
-            'point': self._scale(pos, units),
-            'orientation': orientation
-        }
+        # Convert all received dimensions to microns
+        if units == 'relative':
+            if side.upper() in ('N', 'S'):
+                pin_scale_factor = self.layers[layer]['xpitch'] / 2
+                pos_scale_factor = self.layers[layer]['xoffset']
+            else: # E, W
+                pin_scale_factor = self.layers[layer]['ypitch'] / 2
+                pos_scale_factor = self.layers[layer]['yoffset']
 
-        self.chip.layout['pin'][pin_name] = pin
-        self.chip.layout['pin'][pin_name]['port'] = port
+            width *= pin_scale_factor
+            depth *= pin_scale_factor
 
-    def place_pinlist(self, pinlist, side, pin_width, pin_depth, layer,
-                      pitch=None, offset=2, halo=2, block_w=None, block_h=None,
-                      direction='input', units='relative'):
+            if pitch is not None:
+                pitch *= pos_scale_factor
+            if offset is not None:
+                offset *= pos_scale_factor
 
-        '''Place a list of pins along the side of a block
-
-        Parameters:
-        - pinlist: list of pin names (must be the same as the corresponding net
-          name)
-        - side: which side of the block to place the pins along. Options are
-          'n', 's', 'e', or 'w' (case insensitive)
-        - layer: the name of the layer to place the pins on
-        - pitch: the spacing between pins. If None, place pins equally spaced
-          along side (this overwrites provided offset, if any)
-        - block_w, block_h: the width and the height of the block defining the
-          sides the pins are to be placed along. If None, infers bounds from die
-          area
-        - direction: I/O direction of the pins
-        - units: whether to use technology-independent ('relative') or absolute
-          ('absolute') units
-
-        All other parameters specify dimensions as shown in this diagram (this
-        example is for the north side of the block):
-
-                          <----------pitch-------->
-        -----------+-----|-----+-------------------|-------- ...
-        |<-offset->|I halo     | ^
-        |          +-----------+ |           +-----------+
-        |          |           | pin         |           |
-        |          |    PIN    | depth       |    PIN    |
-        |          |           | |           |           |
-        |          +-----------+ |           +-----------+
-        |          |I halo     | |
-        |          +-----------+ v
-        |          <-pin width->
-        |
-        ...
-
-        '''
-        logging.debug('Placing pins: %s', ' '.join(pinlist))
-
-        self._validate_units(units)
-        if side.upper() not in ('N', 'S', 'E', 'W'):
-            raise ValueError('Invalid side')
-
-        pin_width = self._scale(pin_width, units)
-        pin_depth = self._scale(pin_depth, units)
-        halo = self._scale(halo, units)
-
-        if (block_w is None or block_h is None) and len(self.die_area) != 2:
-            raise ValueError('block_w and block_h must be set explicitly for '
-                             'non-rectangular die area')
-        if block_w is None:
-            block_w = self.die_area[1][0] - self.die_area[0][0]
-        else:
-            block_w = self._scale(block_w, units)
-        if block_h is None:
-            block_h = self.die_area[1][1] - self.die_area[0][1]
-        else:
-            block_h = self._scale(block_h, units)
+        block_w, block_h = self.die_area
 
         if pitch is None:
+            if offset is None: offset = 0
+
             # no pitch provided => infer equal pin spacing
-            num_pins = len(pinlist)
-            pitch = block_w / (num_pins + 1)
-            offset = pitch - pin_width/2
-        else:
-            pitch = self._scale(pitch, units)
-            offset = self._scale(offset, units)
+            num_pins = len(pins)
+            if side.upper() in ('N', 'S'):
+                pitch = (block_w - offset) / (num_pins + 1)
+            else:
+                pitch = (block_h - offset) / (num_pins + 1)
+            offset += pitch
+        elif offset is None:
+            # no offset provided => infer center pins
+            if side.upper() in ('N', 'S'):
+                die_center = block_w / 2
+            else:
+                die_center = block_h / 2
+
+            pin_distance = pitch * len(pins)
+            offset = die_center - pin_distance / 2
+
+        # TODO: might be nice to add sanity checks for pitch and offset values
+        # (to make sure there are no overlapping pins etc.)
 
         if side.upper() == 'N':
-            x0    = offset
-            y0    = block_h - halo
-            x1    = x0 + pin_width
-            y1    = y0 - pin_depth + 2 * halo
+            x     = offset
+            y     = block_h - depth/2
             xincr = pitch
             yincr = 0.0
+            shape = [(-width/2, -depth/2), (width/2, depth/2)]
         elif side.upper() == 'S':
-            x0    = offset
-            y0    = halo
-            x1    = x0 + pin_width
-            y1    = y0 + pin_depth - 2 * halo
+            x     = offset
+            y     = depth/2
             xincr = pitch
             yincr = 0.0
+            shape = [(-width/2, -depth/2), (width/2, depth/2)]
         elif side.upper() == 'W':
-            x0    = halo
-            y0    = offset
-            x1    = x0 + pin_depth - 2 * halo
-            y1    = y0 + pin_width
-            xincr = 0.0
+            x     = depth/2
+            y     = offset
+            xincr = 0
             yincr = pitch
+            shape = [(-depth/2, -width/2), (depth/2, width/2)]
         elif side.upper() == 'E':
-            x0    = block_w - halo
-            y0    = offset
-            x1    = x0 - pin_depth + 2 * halo
-            y1    = y0 + pin_width
-            xincr = 0.0
+            x     = block_w - depth/2
+            y     = offset
+            xincr = 0
             yincr = pitch
+            shape = [(-depth/2, -width/2), (depth/2, width/2)]
 
-        for name in pinlist:
-            shape = [(0, 0), (x1 - x0, y1 - y0)]
-            self.place_pin(name, name, (x0, y0), shape, layer, 'N',
-                           direction=direction, units='absolute')
-            #Update with new values
-            x0 += xincr
-            y0 += yincr
-            x1 += xincr
-            y1 += yincr
+        for pin_name in pins:
+            # if units == relative, snap the appropriate dimension to grid
+            # before placing
+            if units == 'relative':
+                if side.upper() in ('N', 'S'):
+                    pos = self._snap_to_x_track(x, layer), y
+                else:
+                    pos = x, self._snap_to_y_track(y, layer)
+            else:
+                pos = x, y
+
+            pin = {
+                'net': net_name if net_name else pin_name,
+                'direction': direction,
+                'use': use
+            }
+            port = {
+                'layer': layer,
+                'box': self._def_scale(shape),
+                'status': 'fixed' if fixed else 'placed',
+                'point': self._def_scale(pos),
+                'orientation': 'N'
+            }
+            self.chip.layout['pin'][pin_name] = pin
+            self.chip.layout['pin'][pin_name]['port'] = port
+
+            x += xincr
+            y += yincr
+
 
     def place_macro(self, instance_name, macro_name, pos, orientation,
                     halo=(0, 0, 0, 0), fixed=True, units='relative'):
-        '''
-        Place macro
+        ''' Places macro on floorplan.
 
-        Parameters:
-        - name: name of macro instance in design
-        - macro_name: name of macro in library
-        - pos: position of macro as tuple of 2 numbers
-        - orientation: orientation of macro (as LEF/DEF orientation)
-        - halo: halo around macro as tuple (left bottom right top)
-        - fixed: whether or not macro is fixed
-        - units: whether to use technology-independent ('relative') or absolute
-          ('absolute') units
+        Args:
+            name (str): Name of macro instance in design.
+            macro_name (str): name of macro in library.
+            pos (tuple of int): Position of macro as tuple of 2 numbers.
+            orientation (str): Orientation of macro (as LEF/DEF orientation).
+            halo (tuple of int): Halo around macro as tuple (left bottom right
+                top).
+            fixed (bool): Whether or not macro placement is fixed or placed.
+            units (str): Whether to use technology-independent ('relative') or
+                absolute ('absolute') units
         '''
         logging.debug('Placing macro: %s', instance_name)
 
         self._validate_orientation(orientation)
         self._validate_units(units)
 
-        x, y = self._scale(pos, units)
-        halo = self._scale(halo, units)
+        x, y = pos
+        if units == 'relative':
+            x *= self.std_cell_width
+            y *= self.std_cell_height
 
         component = {
             'cell': macro_name,
-            'x': x,
-            'y': y,
-            'status': 'fixed' if fixed else None,
+            'x': self._def_scale(x),
+            'y': self._def_scale(y),
+            'status': 'fixed' if fixed else 'placed',
             'orientation': orientation.upper(),
             'halo': halo,
         }
@@ -309,8 +336,8 @@ class Floorplan:
 
     def generate_rows(self):
         '''
-        Auto-generate placement rows based on floorplan parameters and tech
-        library
+        Auto-generates placement rows based on floorplan parameters and tech
+        library.
         '''
         logging.debug("Placing rows")
 
@@ -318,23 +345,23 @@ class Floorplan:
         # floorplan parameters
         self.chip.layout['row'].clear()
 
-        start_x = self.core_area[0][0]
-        start_y = self.core_area[0][1]
-        core_width = self.core_area[1][0] - start_x
-        core_height = self.core_area[1][1] - start_y
+        start_x = self.core_area[0]
+        start_y = self.core_area[1]
+        core_width = self.core_area[2] - start_x
+        core_height = self.core_area[3] - start_y
         num_rows = int(core_height / self.std_cell_height)
-        num_x = core_width / self.std_cell_width
+        num_x = core_width // self.std_cell_width
 
         for i in range(num_rows):
             name = f'ROW_{i}'
             row = {
                 'site': self.std_cell_name,
-                'x': start_x,
-                'y': start_y,
+                'x': self._def_scale(start_x),
+                'y': self._def_scale(start_y),
                 'orientation': 'FS' if i % 2 == 0 else 'N',
                 'numx': num_x,
                 'numy': 1,
-                'stepx' : self.std_cell_width,
+                'stepx' : self._def_scale(self.std_cell_width),
                 'stepy' : 0
             }
             self.chip.layout['row'][name] = row
@@ -343,8 +370,8 @@ class Floorplan:
 
     def generate_tracks(self):
         '''
-        Auto-generate routing tracks based on floorplan parameters and tech
-        library
+        Auto-generates routing tracks based on floorplan parameters and tech
+        library.
         '''
         logging.debug("Placing tracks")
 
@@ -352,47 +379,60 @@ class Floorplan:
         # floorplan parameters
         self.chip.layout['track'].clear()
 
-        die_width = self.die_area[1][0] - self.die_area[0][0]
-        die_height = self.die_area[1][1] - self.die_area[0][1]
+        die_width, die_height = self.die_area
 
-        for layer in self.layers:
+        for layer in self.layers.values():
             layer_name = layer['name']
-            offset_x, offset_y = layer['offset']
-            pitch = layer['pitch']
+            offset_x = layer['xoffset']
+            offset_y = layer['yoffset']
+            pitch_x = layer['xpitch']
+            pitch_y = layer['ypitch']
 
-            spacing_x = max(self.std_cell_width, pitch)
-            spacing_y = pitch
-            num_tracks_x = math.floor((die_width - offset_x) / spacing_x) + 1
-            num_tracks_y = math.floor((die_height - offset_y) / spacing_y) + 1
+            num_tracks_x = math.floor((die_width - offset_x) / pitch_x) + 1
+            num_tracks_y = math.floor((die_height - offset_y) / pitch_y) + 1
 
             track_x = {
                 'layer': layer_name,
                 'direction': 'x',
-                'start': offset_x,
-                'step': spacing_x,
+                'start': self._def_scale(offset_x),
+                'step': self._def_scale(pitch_x),
                 'total': num_tracks_x
             }
             track_y = {
                 'layer': layer_name,
                 'direction': 'y',
-                'start': offset_y,
-                'step': spacing_y,
+                'start': self._def_scale(offset_y),
+                'step': self._def_scale(pitch_y),
                 'total': num_tracks_y
             }
 
             self.chip.layout['track'][f'{layer_name}_X'] = track_x
             self.chip.layout['track'][f'{layer_name}_Y'] = track_y
 
-    def _scale(self, val, units):
+    def _filter_defaults(self, layout):
+        layout = self.chip.layout.copy()
+        del layout['pin']['default']
+        del layout['component']['default']
+        return layout
+
+    def _def_scale(self, val):
         if isinstance(val, list):
-            return [self._scale(item, units) for item in val]
+            return [self._def_scale(item) for item in val]
         elif isinstance(val, tuple):
-            return tuple([self._scale(item, units) for item in val])
+            return tuple([self._def_scale(item) for item in val])
         else:
-            if units == 'absolute':
-                return val
-            else:
-                return val * self.scale_factor
+            # make int (?)
+            return int(val * self.db_units)
+
+    def _snap_to_x_track(self, x, layer):
+        offset = self.layers[layer]['xoffset']
+        pitch = self.layers[layer]['xpitch']
+        return round((x - offset) / pitch) * pitch + offset
+
+    def _snap_to_y_track(self, y, layer):
+        offset = self.layers[layer]['yoffset']
+        pitch = self.layers[layer]['ypitch']
+        return round((y - offset) / pitch) * pitch + offset
 
     def _validate_units(self, units):
         if units not in ('relative', 'absolute'):
@@ -407,33 +447,27 @@ if __name__ == '__main__':
     # each side
 
     from siliconcompiler.core import *
+    from asic.targets.freepdk45 import *
     c = Chip()
     c.set('design', 'test')
+    setup_platform(c)
+    setup_libs(c)
+    setup_design(c)
 
-    layers = [
-        {
-            'name': 'metal1',
-            'offset': (5, 5),
-            'pitch': 5
-        }
-    ]
-
-    fp = Floorplan(c, [(0, 0), (100, 100)], [(10, 10), (90, 90)], layers,
-                   "site", 10, 10, 1)
+    fp = Floorplan(c)
+    fp.create_die_area(100.13, 100.8, core_area=(10.07, 11.2, 90.25, 91))
 
     n = 4 # pins per side
-    width = 8
-    depth = 12
-
-    pins = [f"in[{i}]" for i in range(4 * n)]
-    fp.place_pinlist(pins[0:n], 'n', width, depth, 'metal1')
-    fp.place_pinlist(pins[n:2*n], 'e', width, depth, 'metal1')
-    fp.place_pinlist(pins[2*n:3*n], 'w', width, depth, 'metal1')
-    fp.place_pinlist(pins[3*n:4*n], 's', width, depth, 'metal1')
+    width = 10
+    depth = 30
+    metal = 'm3'
 
     fp.place_macro('myram', 'RAM', (25, 25), 'N')
 
-    fp.generate_rows()
-    fp.generate_tracks()
+    pins = [f"in[{i}]" for i in range(4 * n)]
+    fp.place_pins(pins[0:n], 'n', width, depth, metal)
+    fp.place_pins(pins[n:2*n], 'e', width, depth, metal)
+    fp.place_pins(pins[2*n:3*n], 'w', width, depth, metal)
+    fp.place_pins(pins[3*n:4*n], 's', width, depth, metal)
 
     fp.save('test.def')
