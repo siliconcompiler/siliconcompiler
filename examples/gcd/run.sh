@@ -1,4 +1,6 @@
 #!/bin/sh
+
+OPT=$1
 sc examples/gcd/gcd.v \
    -pdk_rev "1.0" \
    -target "freepdk45" \
@@ -6,4 +8,4 @@ sc examples/gcd/gcd.v \
    -asic_coresize "10.07 11.2 90.25 91" \
    -loglevel "INFO" \
    -design gcd \
-   -quiet
+   -quiet $OPT
