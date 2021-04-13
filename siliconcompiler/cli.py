@@ -10,6 +10,7 @@ import json
 import sys
 import uuid
 import importlib.resources
+from importlib.machinery import SourceFileLoader
 from argparse import RawTextHelpFormatter
 
 #Shorten siliconcompiler as sc
@@ -225,50 +226,73 @@ def main():
     else:
         loglevel = "INFO"
         
-    #Create one (or many...) instances of Chip class
-    chip = siliconcompiler.Chip(loglevel=loglevel)
+    # Create a 'job hash' and base Chip class.
+    job_hash = uuid.uuid4().hex
+    base_chip = siliconcompiler.Chip(loglevel=loglevel)
 
     # Checing for illegal combination
     if ('target' in cmdlinecfg.keys()) & ('cfg' in cmdlinecfg.keys()):
-        chip.logger.error("Options -target and -cfg are mutually exlusive")
+        base_chip.logger.error("Options -target and -cfg are mutually exlusive")
         sys.exit()
     # Reading in config files specified at command line
     elif 'cfg' in  cmdlinecfg.keys():
         for cfgfile in cmdlinecfg['cfg']['value']:
-            chip.readcfg(cfgfile)
+            base_chip.readcfg(cfgfile)
     # Reading in automated target
     else:
         if 'target' in cmdlinecfg.keys():
-            chip.set('target', cmdlinecfg['target']['value'][0])
+            base_chip.set('target', cmdlinecfg['target']['value'][0])
         else:
-            chip.logger.info('No target set, setting to %s','freepdk45')
-            chip.set('target', 'freepdk45_asic')
+            base_chip.logger.info('No target set, setting to %s','freepdk45')
+            base_chip.set('target', 'freepdk45_asic')
         if 'optmode' in cmdlinecfg.keys():
-            chip.set('optmode', cmdlinecfg['optmode']['value'])
+            base_chip.set('optmode', cmdlinecfg['optmode']['value'])
         #Load values based on target name
-        chip.target()
+        base_chip.target()
 
     # 4. Override cfg with command line args
-    chip.mergecfg(cmdlinecfg)   
+    base_chip.mergecfg(cmdlinecfg)
 
-    #Checks settings and fills in missing values
-    chip.check()
+    # Create one (or many...) instances of Chip class
+    chips = []
+    if 'permutations' in cmdlinecfg.keys():
+        perm_path = os.path.abspath(cmdlinecfg['permutations']['value'][-1])
+        perm_script = SourceFileLoader('job_perms', perm_path).load_module()
+        jobid = 0
+        # Create a new Chip object with the same job hash for each permutation.
+        for chip_cfg in perm_script.permutations(base_chip.cfg):
+            new_chip = siliconcompiler.Chip(loglevel=loglevel)
+            # JSON dump/load is a simple way to deep-copy a Python
+            # dictionary which does not contain custom classes/objects.
+            new_chip.status = json.loads(json.dumps(base_chip.status))
+            new_chip.cfg = json.loads(json.dumps(chip_cfg))
+            # set incrementing job IDs to avoid overwriting other jobs.
+            for step in new_chip.cfg['steps']['value']:
+                #new_chip.set('flow', step, 'jobid', str(jobid))
+                new_chip.cfg['flow'][step]['jobid']['value'] = [str(jobid)]
+            chips.append(new_chip)
+            jobid = jobid + 1
+    else:
+        # If no permutations script is configured, simply run the design once.
+        chips.append(base_chip)
 
-    #Creating hashes for all sourced files
-    chip.hash()
+    # Run each permutation serially.
+    # The Chip.run() method is not thread-safe, so no parallel local runs.
+    for chip in chips:
+        #Checks settings and fills in missing values
+        chip.check()
 
-    # Create a 'job hash'.
-    job_hash = uuid.uuid4().hex
-    chip.status['job_hash'] = job_hash
+        #Creating hashes for all sourced files
+        chip.hash()
 
-    #Lock chip configuration
-    chip.lock()
+        #Lock chip configuration
+        chip.lock()
 
-    # Running compilation pipeline
-    chip.run()
+        # Running compilation pipeline
+        chip.run()
     
-    # Print Summary
-    chip.summary()
+        # Print Summary
+        chip.summary()
         
 #########################
 if __name__ == "__main__":    

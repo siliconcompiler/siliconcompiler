@@ -2122,6 +2122,21 @@ def schema_options(cfg):
         """
     }
 
+    # Path to a config file defining multiple remote jobs to run.
+    cfg['permutations'] = {
+        'switch' : '-permutations',
+        'type' : ['str'],
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : "Python file containing configuration generator for parallel runs.",
+        'param_help' : "'permutations' <str>",
+        'help' : """
+        Sets the path to a Python file containing a generator which yields
+        multiple configurations of a job to run in parallel. This lets you
+        'sweep' various configurations such as die size or clock speed.
+        """
+    }
+
     return cfg
 
 ############################################
