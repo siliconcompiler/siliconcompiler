@@ -37,7 +37,10 @@ def schema_cfg():
     
     # Designer Run options
     cfg = schema_options(cfg)
-    
+
+    # Run status
+    cfg = schema_status(cfg)
+
     return cfg
 
 ###############################################################################
@@ -1313,26 +1316,7 @@ def schema_flow(cfg, step):
         """
     }
     
-    #jobid
-    cfg['flow'][step]['jobid'] = {
-        'switch' : '-flow_jobid',
-        'type' : ['num'],
-        'requirement' : 'all',
-        'defvalue' : ['0'],
-        'short_help' : 'Job Index',
-        'param_help' : "'flow' step 'jobid' <num>",
-        'help' : """
-        A dynamic variable that keeeps track of results to pass forward to the 
-        next step of the implementation pipeline in cases where multiple jobs 
-        are run for one step and a programmatic selection if made to choose the
-        best result the variable can be used to point to a job which may not be
-        the last job launched. Job IDs are tracked on a per step basis.
-
-        Examples:                                                
-        cli: -flow_jobid 'place 5'                               
-        api: chip.set('flow', 'place', 'jobid', '5')             
-        """
-        }
+  
     
     #parallelism
     cfg['flow'][step]['threads'] = {
@@ -1463,7 +1447,7 @@ def schema_flow(cfg, step):
         api: chip.set('flow','syn, 'author', 'wilecoyote@acme.com'
         """
     }
-    
+
     return cfg
 
 ###########################################################################
@@ -1752,7 +1736,27 @@ def schema_options(cfg):
         api:  chip.set('target', 'freepdk45')
         """
     }
-    
+
+    cfg['steplist'] = {
+        'switch' : '-steplist',
+        'requirement' : 'all',
+        'type' : ['str'],
+        'defvalue' : [],
+        'short_help' : 'Compilation Steps List',
+        'param_help' : "'steplist' <str>",
+        'help' : """
+        A complete list of all steps included in the compilation process.
+        Compilation flow is controlled with the -start, -stop, -cont switches 
+        and by adding values to the list. The list must be ordered to enable 
+        default automated compilation from the first entry to the last entry 
+        in the list. 
+
+        Examples:
+        cli: -steplist 'export'
+        api:  chip.add('steplist', 'export')
+        """
+    }
+
     cfg['cfg'] = {
         'switch' : '-cfg',
         'type' : ['file'],
@@ -2068,25 +2072,7 @@ def schema_options(cfg):
         """
     }
     
-    cfg['steps'] = {
-        'switch' : '-steps',
-        'requirement' : 'all',
-        'type' : ['str'],
-        'defvalue' : [],
-        'short_help' : 'Compilation Steps',
-        'param_help' : "'steps' <str>",
-        'help' : """
-        A complete list of all steps included in the compilation process.
-        Compilation flow is controlled with the -start, -stop, -cont switches 
-        and by adding values to the list. The list must be ordered to enable 
-        default automated compilation from the first entry to the last entry 
-        in the list. 
-
-        Examples:
-        cli: -steps 'export'
-        api:  chip.add('steps', 'export')
-        """
-    }
+  
 
     # Remote IP address/host name running sc-server app
     cfg['remote'] = {
@@ -2124,6 +2110,64 @@ def schema_options(cfg):
     }
 
     return cfg
+
+
+############################################
+# Runtime status
+#############################################
+
+def schema_status(cfg):
+
+    cfg['status'] ={}
+    cfg['status']['step'] = {
+        'switch' : '-status_step',
+        'type' : ['str'],
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Current Compilation Step',
+        'param_help' : "'step' <str>",
+        'help' : """
+        A dynamic variable that keeps track of the current
+        name being executed. The variable is managed by the run 
+        function and not writable by the user.
+
+        """
+    }
+
+    cfg['status']['default'] = { }
+
+    cfg['status']['default']['jobid'] = {
+        'switch' : '-status_jobid',
+        'type' : ['num'],
+        'requirement' : 'optional',
+        'defvalue' : ['0'],
+        'short_help' : 'Job Index',
+        'param_help' : "'status' step 'jobid' <num>",
+        'help' : """
+        A dynamic variable that keeeps track of of the current jobid.
+        The variable is managed by the run function and not writable 
+        by the user.
+                
+        """
+        }
+        
+    cfg['status']['default']['active'] = {
+        'switch' : '-status_active',
+        'type' : ['num'],
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Active Job List',
+        'param_help' : "'status' step 'active' <num>",
+        'help' : """
+        A dynamic list that keeps track of all job ids currently in
+        active execution mode. The variable is managed by the run function
+        and not writable by the user.
+
+        """
+        }
+        
+    return cfg
+
 
 ############################################
 # Design Setup
