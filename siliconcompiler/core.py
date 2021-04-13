@@ -448,6 +448,18 @@ class Chip:
         #1. Check for missing combinations
         #!(def-file | floorplan | (diesze & coresize)
 
+        # If die size is set and core size is missing, auto-generate a core size.
+        if (len(self.cfg['asic']['diesize']['value']) > 0) and \
+           (len(self.cfg['asic']['coresize']['value']) == 0):
+            die_sizes = self.cfg['asic']['diesize']['value'][-1].split(' ')
+            # TODO: Use placement site multiples.
+            core_size = '%.2f %.2f %.2f %.2f'%(
+                float(die_sizes[0])+10,
+                float(die_sizes[1])+10,
+                float(die_sizes[2])-10,
+                float(die_sizes[3])-10)
+            self.cfg['asic']['coresize']['value'] = [core_size]
+
         # notechlef
         # no site
         # no targetlib        
