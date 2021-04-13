@@ -715,7 +715,7 @@ class Chip:
         data = []
         steps = []
 
-        steplist = self.get('steps')
+        steplist = self.get('steplist')
         start = self.get('start')[-1]
         stop = self.get('stop')[-1]
         startindex = steplist.index(start)
@@ -724,7 +724,7 @@ class Chip:
         for stepindex in range(startindex, stopindex + 1):
             step = steplist[stepindex]
             steps.append(step)
-            jobid = self.get('flow', step, 'jobid')[-1]
+            jobid = self.get('status', step, 'jobid')[-1]
             row = []
             metrics = []
             for metric in self.getkeys('real', step, jobid):
@@ -771,7 +771,7 @@ class Chip:
         ###########################
 
         remote = len(self.cfg['remote']['value']) > 0
-        steplist = self.cfg['steps']['value']
+        steplist = self.cfg['steplist']['value']
         buildroot = str(self.cfg['dir']['value'][-1])
         cwd = os.getcwd()
          
@@ -788,23 +788,32 @@ class Chip:
         ###########################
         for stepindex in range(startindex, stopindex + 1):
                         
-            #step lookup
+            #step lookup (active state!)
             step = steplist[stepindex]
             laststep = steplist[stepindex-1]           
             importstep = (stepindex==0)
 
+            #update step status
+            self.set('status', 'step', step)
+            
             if step not in steplist:
                 self.logger.error('Illegal step name %s', step)
                 sys.exit()
                 
             #####################
-            # Job-ID/DIR
+            # Job-ID and Step
             #####################
             
-            if (jobid is None ) | importstep:        
-                jobid = int(self.cfg['flow'][step]['jobid']['value'][-1])
+            #Automatic updating of jobids when argument is missing
+            if (jobid is None ) | importstep:
+                #Initialize jobid first time around
+                if not step in self.cfg['status'].keys():
+                    self.set('status', step, 'jobid', '0')
+                jobid = int(self.cfg['status'][step]['jobid']['value'][-1])
                 jobid = jobid + 1
-            self.set('flow', step, 'jobid', str(jobid))
+
+            #Update JOBID in dictionary!
+            self.set('status', step, 'jobid', str(jobid))
       
             if stepindex==0:
                 jobdir = buildroot + '/import/job'
@@ -812,7 +821,7 @@ class Chip:
                 jobdir = '/'.join([buildroot,
                                    step,
                                    "job"+str(jobid)])
-                          
+
             #####################
             # Dynamic EDA setup
             #####################
@@ -852,7 +861,7 @@ class Chip:
                 elif stepindex == 1:
                     shutil.copytree("../../import/job/outputs", 'inputs')
                 else:
-                    lastjobid = self.get('flow', laststep, 'jobid')[-1]                    
+                    lastjobid = self.get('status', laststep, 'jobid')[-1]                    
                     #check if job was run before, if not use current step ID
                     #TODO: add some error checking here?
                     if lastjobid == '0':

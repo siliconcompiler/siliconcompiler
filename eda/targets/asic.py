@@ -8,20 +8,20 @@ import siliconcompiler
 def setup_eda(chip, name=None):
 
     # Define Compilation Flow
-    chip.cfg['steps']['value'] = ['import',
-                                  'syn',
-                                  'floorplan',
-                                  'place',
-                                  'cts',
-                                  'route',
-                                  'dfm',
-                                  'export']
+    chip.cfg['steplist']['value'] = ['import',
+                                     'syn',
+                                     'floorplan',
+                                     'place',
+                                     'cts',
+                                     'route',
+                                     'dfm',
+                                     'export']
     
     chip.cfg['start']['value'] = ['import']
     chip.cfg['stop']['value'] = ['export']
         
     # Setup tool based on flow step
-    for step in chip.cfg['steps']['value']:            
+    for step in chip.cfg['steplist']['value']:            
         if step == 'import':
             vendor = 'verilator'
         elif step == 'syn':

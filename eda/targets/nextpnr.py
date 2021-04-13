@@ -9,15 +9,15 @@ def setup_eda(chip, name=None):
     chip.logger.debug("Setting up an FPGA compilation flow'")
 
     # Define Compilation Steps
-    chip.cfg['steps']['value'] = ['import',
+    chip.cfg['steplist']['value'] = ['import',
                                   'syn',
                                   'apr',
                                   'export']
 
-    chip.cfg['start']['value'] = [chip.cfg['steps']['value'][0]]
-    chip.cfg['stop']['value'] = [chip.cfg['steps']['value'][-1]]
+    chip.cfg['start']['value'] = [chip.cfg['steplist']['value'][0]]
+    chip.cfg['stop']['value'] = [chip.cfg['steplist']['value'][-1]]
 
-    for step in chip.cfg['steps']['value']:
+    for step in chip.cfg['steplist']['value']:
         if step == 'import':
             vendor = 'verilator'
         elif step == 'syn':
