@@ -229,7 +229,7 @@ class Server:
         # Send JSON config instead of using subset of flags.
         # TODO: Use slurmpy SDK?
         srun_cmd  = 'srun %s sc /dev/null '%(export_path)
-        srun_cmd += '-cfg %s/chip.json '%(build_dir)
+        srun_cmd += '-cfg %s/configs/chip%s.json '%(build_dir, jobid)
         srun_cmd += '-start %s -stop %s'%(stage, stage)
 
         # Create async subprocess shell, and block this thread until it finishes.

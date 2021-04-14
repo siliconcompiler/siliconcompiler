@@ -7,7 +7,7 @@ import subprocess
 import time
 
 ###################################
-def remote_run(chip, stage):
+async def remote_run(chip, stage):
     '''Helper method to run a job stage on a remote compute cluster.
     Note that files will not be copied to the remote stage; typically
     the source files will be copied into the cluster's storage before
@@ -20,15 +20,14 @@ def remote_run(chip, stage):
     '''
 
     # Ask the remote server to start processing the requested step.
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(request_remote_run(chip, stage))
+    await request_remote_run(chip, stage)
 
     # Check the job's progress periodically until it finishes.
     is_busy = True
     while is_busy:
       print("%s stage running. Please wait."%stage)
       time.sleep(1)
-      is_busy = loop.run_until_complete(is_job_busy(chip, stage))
+      is_busy = await is_job_busy(chip, stage)
     print("%s stage completed!"%stage)
 
     # Increment the stage's jobid value.
@@ -133,9 +132,8 @@ def fetch_results(chip):
                         chip.status['job_hash'])])
     # Unzip the result and run klayout to display the GDS file.
     subprocess.run(['unzip', '%s.zip'%chip.status['job_hash']])
-    gds_loc = '%s/export/job%s/outputs/%s.gds'%(
+    gds_loc = '%s/export/job*/outputs/%s.gds'%(
         chip.status['job_hash'],
-        next_id,
         chip.cfg['design']['value'][0],
     )
     subprocess.run(['klayout', gds_loc])

@@ -803,7 +803,7 @@ class Chip:
             #####################
             
             if not remote:
-                if (jobid is None ) | importstep:        
+                if (jobid is None ) | importstep:
                     jobid = int(self.cfg['flow'][step]['jobid']['value'][-1])
                     jobid = jobid + 1
                 self.set('flow', step, 'jobid', str(jobid))

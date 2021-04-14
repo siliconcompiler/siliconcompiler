@@ -232,6 +232,7 @@ def main():
     # Create a 'job hash' and base Chip class.
     job_hash = uuid.uuid4().hex
     base_chip = siliconcompiler.Chip(loglevel=loglevel)
+    base_chip.status['job_hash'] = job_hash
 
     # Checing for illegal combination
     if ('target' in cmdlinecfg.keys()) & ('cfg' in cmdlinecfg.keys()):
@@ -299,7 +300,7 @@ def main():
         loop.run_until_complete(chips[-1].run(start='import', stop='import'))
         cwd = os.getcwd()
         os.chdir(str(chips[-1].cfg['dir']['value'][-1]) + '/import/job')
-        loop.run_until_complete(upload_sources_to_cluster(chips[-1]))
+        upload_sources_to_cluster(chips[-1])
         os.chdir(cwd)
 
     # Run each job in parallel (remote) or serially (local).
