@@ -606,11 +606,33 @@ class Chip:
                     self.reset(cfg=cfg[k])
 
     ##################################
-    def sync(self, step, jobid):
-        '''Waits for jobs for the step and jobid specified to complete
-        Much work to do here!!
-
+    def wait(self, step=None, jobid=None):
+        '''Waits for specific jobids and steps to complete
         '''
+
+        if step is None:
+            steplist = self.get('steplist')
+        else:
+            steplist = [step]
+
+        while True:
+            busy = False
+            for step in steplist:
+                pending = self.get('status', step, 'active')
+                if (jobid is None) & (len(pending) > 0) :
+                    self.logger.info("Step '%s' is still active", step)
+                    busy = True
+                elif jobid in pending:
+                    self.logger.info("Jobid '%s' of step '%s' is still active", step, jobid)
+                    busy = True                    
+            if busy:
+                #TODO: Change this timeout
+                self.logger.info("Waiting 10sec for jobs to finish")
+                time.sleep(10)
+            else:
+                break
+
+        
     ##################################
     def hash(self, cfg=None):
         '''Creates hashes for all files sourced by Chip class
