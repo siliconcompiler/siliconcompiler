@@ -18,6 +18,7 @@ import importlib
 import glob
 import pandas
 
+from siliconcompiler.client import remote_run
 from siliconcompiler.schema import schema_cfg
 from siliconcompiler.schema import schema_layout
 from siliconcompiler.schema import schema_path
@@ -756,7 +757,7 @@ class Chip:
           error = subprocess.run(cmd, shell=True)
 
     ###################################
-    def run(self, start=None, stop=None, jobid=None):
+    async def run(self, start=None, stop=None, jobid=None):
 
         '''The common execution method for all compilation steps compilation
         flow. The job executes on the local machine by default, but can be
@@ -793,13 +794,6 @@ class Chip:
             laststep = steplist[stepindex-1]           
             importstep = (stepindex==0)
 
-            if stepindex==0:
-                jobdir = buildroot + '/import/job'
-            else:
-                jobdir = '/'.join([buildroot,
-                                   step,
-                                   "job"+str(jobid)])
-
             if step not in steplist:
                 self.logger.error('Illegal step name %s', step)
                 sys.exit()
@@ -808,10 +802,21 @@ class Chip:
             # Job-id
             #####################
             
-            if (jobid is None ) | importstep:        
+            if not remote:
+                if (jobid is None ) | importstep:        
+                    jobid = int(self.cfg['flow'][step]['jobid']['value'][-1])
+                    jobid = jobid + 1
+                self.set('flow', step, 'jobid', str(jobid))
+            else:
                 jobid = int(self.cfg['flow'][step]['jobid']['value'][-1])
-                jobid = jobid + 1
-            self.set('flow', step, 'jobid', str(jobid))
+                self.set('flow', step, 'jobid', str(jobid))
+
+            if stepindex==0:
+                jobdir = buildroot + '/import/job'
+            else:
+                jobdir = '/'.join([buildroot,
+                                   step,
+                                   "job"+str(jobid)])
             
             #####################
             # Dynamic EDA setup
@@ -841,8 +846,8 @@ class Chip:
             else:
                 self.logger.info("Running step '%s' with jobid '%s'", step, jobid)  
 
-                # Copying in Files
-                if os.path.isdir(jobdir):
+                # Copying in Files (local only)
+                if os.path.isdir(jobdir) and (not remote):
                     shutil.rmtree(jobdir)
                 os.makedirs(jobdir, exist_ok=True)
                 os.chdir(jobdir)
@@ -852,14 +857,16 @@ class Chip:
                 if stepindex==0:
                     pass
                 elif stepindex == 1:
-                    shutil.copytree("../../import/job/outputs", 'inputs')
+                    if not remote:
+                        shutil.copytree("../../import/job/outputs", 'inputs')
                 else:
                     lastjobid = self.get('flow', laststep, 'jobid')[-1]
                     lastdir = '/'.join(['../../',                
                                         steplist[stepindex-1],
                                         'job'+lastjobid,
                                         'outputs'])
-                    shutil.copytree(lastdir, 'inputs')
+                    if not remote:
+                        shutil.copytree(lastdir, 'inputs')
                 
                 #Copy Reference Scripts
                 refdir = schema_path(self.cfg['flow'][step]['refdir']['value'][-1])
@@ -917,10 +924,12 @@ class Chip:
                 #####################
                 # Execute
                 #####################
-                if remote:
+                if (stepindex != 0) and remote:
                     self.logger.info('Remote server call')
-                    pass
+                    await remote_run(self, step)
                 else:
+                    # Local builds must be processed synchronously, because
+                    # they use calls such as os.chdir which are not thread-safe.
                     # Tool Pre Process
                     pre_process = getattr(module,"pre_process")
                     pre_process(self,step)

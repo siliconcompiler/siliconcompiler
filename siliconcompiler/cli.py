@@ -1,6 +1,7 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
 #Standard Modules
+import asyncio
 import sys
 import logging
 import argparse
@@ -16,7 +17,9 @@ from argparse import RawTextHelpFormatter
 #Shorten siliconcompiler as sc
 import siliconcompiler
 from siliconcompiler.schema import schema_cfg
+from siliconcompiler.client import fetch_results
 from siliconcompiler.client import remote_run
+from siliconcompiler.client import upload_sources_to_cluster
 
 ###########################
 def cmdline():
@@ -255,6 +258,7 @@ def main():
 
     # Create one (or many...) instances of Chip class
     chips = []
+    chip_threads = {}
     if 'permutations' in cmdlinecfg.keys():
         perm_path = os.path.abspath(cmdlinecfg['permutations']['value'][-1])
         perm_script = SourceFileLoader('job_perms', perm_path).load_module()
@@ -270,14 +274,15 @@ def main():
             for step in new_chip.cfg['steps']['value']:
                 #new_chip.set('flow', step, 'jobid', str(jobid))
                 new_chip.cfg['flow'][step]['jobid']['value'] = [str(jobid)]
+            if 'remote' in cmdlinecfg.keys():
+                new_chip.set('start', 'syn')
             chips.append(new_chip)
             jobid = jobid + 1
     else:
         # If no permutations script is configured, simply run the design once.
         chips.append(base_chip)
 
-    # Run each permutation serially.
-    # The Chip.run() method is not thread-safe, so no parallel local runs.
+    # Check and lock each permutation.
     for chip in chips:
         #Checks settings and fills in missing values
         chip.check()
@@ -288,11 +293,33 @@ def main():
         #Lock chip configuration
         chip.lock()
 
+    # For remote jobs, run the 'import' stage locally and upload it.
+    loop = asyncio.get_event_loop()
+    if 'remote' in cmdlinecfg.keys():
+        loop.run_until_complete(chips[-1].run(start='import', stop='import'))
+        cwd = os.getcwd()
+        os.chdir(str(chips[-1].cfg['dir']['value'][-1]) + '/import/job')
+        loop.run_until_complete(upload_sources_to_cluster(chips[-1]))
+        os.chdir(cwd)
+
+    # Run each job in parallel (remote) or serially (local).
+    # The Chip.run() method is not thread-safe, so no parallel local runs.
+    for chip in chips:
         # Running compilation pipeline
-        chip.run()
-    
+        chip_threads[chip] = loop.create_task(chip.run())
+
+    # Wait for threads to complete.
+    for chip in chips:
+        while not chip_threads[chip].done():
+            loop.run_until_complete(asyncio.sleep(1.0))
+
         # Print Summary
-        chip.summary()
+        # TODO: Currently causes errors due to jobid keys.
+        #chip.summary()
+
+    # For remote jobs, fetch results.
+    if 'remote' in cmdlinecfg.keys():
+        fetch_results(chips[-1])
         
 #########################
 if __name__ == "__main__":    
