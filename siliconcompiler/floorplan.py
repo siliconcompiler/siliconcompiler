@@ -98,7 +98,7 @@ class Floorplan:
         self.db_units = db_units
 
     def create_die_area(self, width, height, core_area=None, generate_rows=True,
-                        generate_tracks=True):
+                        generate_tracks=True, units='relative'):
         '''Initializes die.
 
         Initializes the area of the die and generates placement rows and routing
@@ -107,23 +107,34 @@ class Floorplan:
         already present in the chip config.
 
         Args:
-            width (float): Width of die in microns.
-            height (float): Height of die in microns.
+            width (float): Width of die in terms of standard cell height if
+                using technology-independent units, otherwise microns.
+            height (float): Height of die in terms of standard cell height if
+                using technology-independent units, otherwise microns.
             core_area (tuple of float): The core cell area of the physical
                 design. This is provided as a tuple (x0 y0 x1 y1), where (x0,
                 y0), specifes the lower left corner of the block and (x1, y1)
                 specifies the upper right corner. If `None`, core_area is set to
-                be equivalent to the die area.
+                be equivalent to the die area minus the standard cell height on
+                each side.
             generate_rows (bool): Automatically generate rows to fill entire
                 core area.
             generate_tracks (bool): Automatically generate tracks to fill entire
                 core area.
-
+            units (str): whether to use technology-relative ('relative') or
+                absolute ('absolute') units.
         '''
         # store die_area as 2-tuple since bottom left corner is always 0,0
+        if units == 'relative':
+            width *= self.std_cell_height
+            height *= self.std_cell_height
+
         self.die_area = (width, height)
         if core_area == None:
-            self.core_area = (0, 0, width, height)
+            self.core_area = (self.std_cell_height,
+                              self.std_cell_height,
+                              width - self.std_cell_height,
+                              height - self.std_cell_height)
         else:
             self.core_area = core_area
 
