@@ -1,3 +1,9 @@
+import os
+import importlib
+
+from siliconcompiler.floorplan import *
+from siliconcompiler.schema import schema_path
+
 ################################
 # Tool Setup
 ################################
@@ -28,7 +34,32 @@ def setup_options(chip, step):
 def pre_process(chip, step):
     ''' Tool specific function to run before step execution
     '''
-    pass
+    if step == 'floorplan':
+        floorplan_file = chip.get('asic', 'floorplan')
+
+        if len(floorplan_file) == 0:
+             return
+
+        floorplan_file = schema_path(floorplan_file[-1])
+
+        if os.path.splitext(floorplan_file)[-1] != '.py':
+             return
+
+        fp = Floorplan(chip)
+
+        # Import user's floorplan file, call setup_floorplan to set up their
+        # floorplan, and save it as an input DEF
+
+        mod_name = os.path.splitext(os.path.basename(floorplan_file))[0]
+        mod_spec = importlib.util.spec_from_file_location(mod_name, floorplan_file)
+        module = importlib.util.module_from_spec(mod_spec)
+        mod_spec.loader.exec_module(module)
+        setup_floorplan = getattr(module, "setup_floorplan")
+
+        fp = setup_floorplan(fp, chip)
+
+        topmodule = chip.get('design')[-1]
+        fp.save('inputs/' + topmodule + '.def')
 
 def post_process(chip, step):
     ''' Tool specific function to run after step execution

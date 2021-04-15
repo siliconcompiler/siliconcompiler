@@ -127,8 +127,8 @@ class Floorplan:
         else:
             self.core_area = core_area
 
-        self.chip.set('asic', 'diesize', (0, 0, width, height))
-        self.chip.set('asic', 'coresize', self.core_area)
+        self.chip.set('asic', 'diesize', str((0, 0, width, height)))
+        self.chip.set('asic', 'coresize', str(self.core_area))
         self.chip.layout['diearea'] = self._def_scale([(0, 0), self.die_area])
 
         if generate_rows:
@@ -286,7 +286,7 @@ class Floorplan:
                 'use': use
             }
             port = {
-                'layer': layer,
+                'layer': self.layers[layer]['name'],
                 'box': self._def_scale(shape),
                 'status': 'fixed' if fixed else 'placed',
                 'point': self._def_scale(pos),
@@ -421,8 +421,11 @@ class Floorplan:
         elif isinstance(val, tuple):
             return tuple([self._def_scale(item) for item in val])
         else:
-            # make int (?)
-            return int(val * self.db_units)
+            # TODO: rounding and making this an int seems helpful for resolving
+            # floating point rounding issues, but could be problematic if we
+            # want to have floats in DEF file? Alternative could be to use
+            # Python decimal library for internally representing micron values
+            return int(round(val * self.db_units))
 
     def _snap_to_x_track(self, x, layer):
         offset = self.layers[layer]['xoffset']
