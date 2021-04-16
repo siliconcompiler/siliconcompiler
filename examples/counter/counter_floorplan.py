@@ -1,8 +1,5 @@
 def setup_floorplan(fp, chip):
-    w = fp.std_cell_width
-    h = fp.std_cell_height
-
-    fp.create_die_area(64 * w, 9 * h, core_area=(8 * w, 1 * h, 56 * w, 8 * h))
+    fp.create_die_area(9, 9)
 
     metal = 'm3'
     width = 1
