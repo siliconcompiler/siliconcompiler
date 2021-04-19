@@ -18,6 +18,8 @@ import importlib
 import glob
 import pandas
 
+from siliconcompiler.client import remote_run
+from siliconcompiler.client import upload_sources_to_cluster
 from siliconcompiler.schema import schema_cfg
 from siliconcompiler.schema import schema_layout
 from siliconcompiler.schema import schema_path
@@ -832,7 +834,8 @@ class Chip:
                 if not step in self.cfg['status'].keys():
                     self.set('status', step, 'jobid', '0')
                 jobid = int(self.cfg['status'][step]['jobid']['value'][-1])
-                jobid = jobid + 1
+                if not remote:
+                    jobid = jobid + 1
 
             #Update JOBID in dictionary!
             self.set('status', step, 'jobid', str(jobid))
@@ -871,7 +874,7 @@ class Chip:
                 self.logger.info("Running step '%s' with jobid '%s'", step, jobid)  
 
                 # Copying in Files
-                if os.path.isdir(jobdir):
+                if os.path.isdir(jobdir) and (not remote):
                     shutil.rmtree(jobdir)
                 os.makedirs(jobdir, exist_ok=True)
                 os.chdir(jobdir)
@@ -881,7 +884,8 @@ class Chip:
                 if stepindex==0:
                     pass
                 elif stepindex == 1:
-                    shutil.copytree("../../import/job/outputs", 'inputs')
+                    if not remote:
+                        shutil.copytree("../../import/job/outputs", 'inputs')
                 else:
                     lastjobid = self.get('status', laststep, 'jobid')[-1]                    
                     #check if job was run before, if not use current step ID
@@ -892,7 +896,8 @@ class Chip:
                                         steplist[stepindex-1],
                                         'job'+str(lastjobid),
                                         'outputs'])
-                    shutil.copytree(lastdir, 'inputs')
+                    if not remote:
+                        shutil.copytree(lastdir, 'inputs')
                 
                 #Copy Reference Scripts
                 refdir = schema_path(self.cfg['flow'][step]['refdir']['value'][-1])
@@ -950,9 +955,9 @@ class Chip:
                 #####################
                 # Execute
                 #####################
-                if remote:
+                if (stepindex != 0) and remote:
                     self.logger.info('Remote server call')
-                    pass
+                    remote_run(self, step)
                 else:
                     # Tool Pre Process
                     pre_process = getattr(module,"pre_process")
@@ -974,6 +979,10 @@ class Chip:
             # Return to $CWD
             ########################       
             os.chdir(cwd)
+
+            # Upload sources to remote cluster if necessary.
+            if (stepindex == 0) and remote:
+                upload_sources_to_cluster(self)
 
  
 

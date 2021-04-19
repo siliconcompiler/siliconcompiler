@@ -18,8 +18,7 @@ def remote_run(chip, stage):
     '''
 
     #Looking up stage numbers
-    stages = (chip.cfg['design_flow']['value'] +
-              chip.cfg['signoff_flow']['value'])
+    stages = chip.cfg['steplist']['value']
     current = stages.index(stage)
     laststage = stages[current-1]
     start = stages.index(chip.cfg['start']['value'][-1]) #scalar
@@ -56,8 +55,8 @@ def remote_run(chip, stage):
 
 
     # Increment the stage's jobid value.
-    next_id = str(int(chip.cfg['flow'][stage]['jobid']['value'][-1])+1)
-    chip.cfg['flow'][stage]['jobid']['value'] = [next_id]
+    next_id = str(int(chip.cfg['status'][stage]['jobid']['value'][-1])+1)
+    chip.cfg['status'][stage]['jobid']['value'] = [next_id]
 
     # Fetch the remote archive after the export stage.
     # TODO: Use aiohttp client methods, but wget is simpler for accessing
@@ -65,15 +64,15 @@ def remote_run(chip, stage):
     if stage == 'export':
         subprocess.run(['wget',
                         "http://%s:%s/get_results/%s.zip"%(
-                            chip.cfg['remote']['value'][0],
-                            chip.cfg['remoteport']['value'][0],
+                            chip.cfg['remote']['value'][-1],
+                            chip.cfg['remoteport']['value'][-1],
                             chip.status['job_hash'])])
         # Unzip the result and run klayout to display the GDS file.
         subprocess.run(['unzip', '%s.zip'%chip.status['job_hash']])
         gds_loc = '%s/export/job%s/outputs/%s.gds'%(
             chip.status['job_hash'],
             next_id,
-            chip.cfg['design']['value'][0],
+            chip.cfg['design']['value'][-1],
         )
         subprocess.run(['klayout', gds_loc])
 
@@ -84,8 +83,8 @@ async def request_remote_run(chip, stage):
     '''
     async with aiohttp.ClientSession() as session:
         async with session.post("http://%s:%s/remote_run/%s/%s"%(
-                                    chip.cfg['remote']['value'][0],
-                                    chip.cfg['remoteport']['value'][0],
+                                    chip.cfg['remote']['value'][-1],
+                                    chip.cfg['remoteport']['value'][-1],
                                     chip.status['job_hash'],
                                     stage),
                                 json=chip.cfg) \
@@ -102,8 +101,8 @@ async def is_job_busy(chip, stage):
 
     async with aiohttp.ClientSession() as session:
         async with session.get("http://%s:%s/check_progress/%s/%s"%(
-                               chip.cfg['remote']['value'][0],
-                               chip.cfg['remoteport']['value'][0],
+                               chip.cfg['remote']['value'][-1],
+                               chip.cfg['remoteport']['value'][-1],
                                chip.status['job_hash'],
                                stage)) \
         as resp:
@@ -117,10 +116,10 @@ async def upload_import_dir(chip):
     '''
 
     async with aiohttp.ClientSession() as session:
-        with open('%s/import.zip'%(chip.cfg['build']['value'][0]), 'rb') as f:
+        with open('%s/import.zip'%(chip.cfg['dir']['value'][-1]), 'rb') as f:
             async with session.post("http://%s:%s/import/%s"%(
-                                        chip.cfg['remote']['value'][0],
-                                        chip.cfg['remoteport']['value'][0],
+                                        chip.cfg['remote']['value'][-1],
+                                        chip.cfg['remoteport']['value'][-1],
                                         chip.status['job_hash']),
                                     data={'import': f}) \
             as resp:
@@ -141,7 +140,7 @@ def upload_sources_to_cluster(chip):
                     '-r',
                     'import.zip',
                     'import'],
-                    cwd=chip.cfg['build']['value'][0])
+                    cwd=chip.cfg['dir']['value'][-1])
 
     # Upload the archive to the 'import' server endpoint.
     loop = asyncio.get_event_loop()
