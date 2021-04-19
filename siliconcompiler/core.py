@@ -24,27 +24,14 @@ from siliconcompiler.schema import schema_path
 from siliconcompiler.schema import schema_istrue
 
 class Chip:
-    """
-    The core class for the siliconcompiler package with central control of
-    compilation configuration and state tracking. The class includes a
-    a collection of suport methods operating on the class attributes
-
-    Parameters
-    ----------
-    loglevel (string) : Level of debugging (DEBUG, INFO, WARNING, ERROR)
-
-    Attributes
-    ----------
-    cfg (dict): Configuration dictionary
-    status (dict) : Step and job ID based status dictionary
-
-    """
+    """Siliconcompiler configuration and flow tracking class"""
 
     ####################
     def __init__(self, loglevel="DEBUG"):
-        '''
-        Init method for Chip object
+        '''Initializes Chip object
 
+        Args:
+            loglevel (str): Level of debugging
         '''
 
         # Create a default dict ("spec")
@@ -100,7 +87,10 @@ class Chip:
 
     ###################################
     def target(self):
-        '''Loading config values based on a named target. 
+        '''Searches the SCPATH and PYTHON path for setup modules that match
+        the target string. The setup string 
+        
+        config values based on a named target. 
 
         '''
 
@@ -631,7 +621,6 @@ class Chip:
                 time.sleep(10)
             else:
                 break
-
         
     ##################################
     def hash(self, cfg=None):
@@ -933,7 +922,8 @@ class Chip:
 
                 #Piping to log file
                 logfile = exe + ".log"
-                if schema_istrue(self.cfg['quiet']['value']):
+                
+                if (schema_istrue(self.cfg['quiet']['value'])) & (not schema_istrue(self.cfg['noexit']['value'])):
                     cmd_fields.append("> " + logfile)
                 else:
                     cmd_fields.append("| tee " + logfile)

@@ -1866,7 +1866,8 @@ def schema_options(cfg):
         'param_help' : "'quiet' <bool>",
         'help' : """
         Modern EDA tools print significant content to the screen. The -quiet 
-        option forces all step prints into a per job log file.
+        option forces all steps to print to a log file. The quiet
+        option is ignored when the -noexit is set to true.
 
         Examples:
         cli: -quiet                                              ",
@@ -2072,7 +2073,23 @@ def schema_options(cfg):
         """
     }
     
-  
+    cfg['noexit'] = {
+        'switch' : '-noexit',
+        'type' : ['bool'],
+        'requirement' : 'optional',
+        'defvalue' : ['false'],
+        'short_help' : "Disable end of step tool exit",
+        'param_help' : "'noexit' <bool>",
+        'help' : """
+        Disables automatic exit from tool at the end of a step for tools that
+        support interactive shells such as synthesis and APR tools.
+        Once inside the shell,  the native EDA tool commands are accessible 
+        in full.
+        Examples:
+        cli: -noexit
+        api: chip.set('noexit','true')
+        """
+    }
 
     # Remote IP address/host name running sc-server app
     cfg['remote'] = {
@@ -2384,7 +2401,7 @@ def schema_design(cfg):
         'type' : ['num'],
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Design Power Supply Voltage Level',
+        'short_help' : 'Design Power Supply Level',
         'param_help' : "'ground' supplypath 'level' <num>",
         'help' : """
         Specifies level in Volts for a power source.

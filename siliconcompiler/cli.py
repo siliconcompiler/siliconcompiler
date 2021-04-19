@@ -70,6 +70,8 @@ def cmdline():
     #Parsing args and converting to dict
     cmdargs = vars(parser.parse_args())
 
+    print(cmdargs)
+    
     # Copying flat parse_args to nested cfg dict based on key type
     # Values are lists of varying legnth based on cfg parameter
     # stdlib, macro, tool has length 3 or 4 depending on type
