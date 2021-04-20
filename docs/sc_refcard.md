@@ -1,5 +1,6 @@
  | param                                                | desription                     | type            | required   | default   |
  | :----                                                | :----                          | :----           | :----      | :----     |
+ | 'flow' step 'input' <str>                            | Excution Dependency            | str             | all        |           |
  | 'flow' step 'exe' <str>                              | Executable Name                | str             | all        |           |
  | 'flow' step 'version' <str>                          | Executable Version             | str             | all        |           |
  | 'flow' step 'option' <str>                           | Executable Options             | str             | optional   |           |
@@ -11,13 +12,10 @@
  | 'flow' step 'cache' <file>                           | Cache Directory Name           | file            | optional   |           |
  | 'flow' step 'warningoff' <file>                      | Warning Filter                 | str             | optional   |           |
  | 'flow' step 'vendor' <str>                           | Step Vendor                    | str             | all        |           |
- | 'flow' step 'signature' <str>                        | Step Signature                 | str             | optional   |           |
- | 'flow' step 'date' <str>                             | Step Date                      | str             | all        |           |
- | 'flow' step 'author' <str>                           | Step Author                    | str             | all        |           |
- | 'goal' step 'jobid' 'instances' <num>                | Total Cell Instances Goal      | num             | optional   |           |
- | 'goal' step 'jobid' 'area' <num>                     | Cell Area Goal                 | num             | optional   |           |
- | 'goal' step 'jobid' 'density' <num>                  | Cell Density Goal              | num             | optional   |           |
- | 'goal' step 'jobid' 'power' <num>                    | Active Power Goal              | num             | optional   |           |
+ | 'goal' step ''cells' <num>                           | Total Cell Instances Goal      | num             | optional   |           |
+ | 'goal' step 'area' <num>                             | Cell Area Goal                 | num             | optional   |           |
+ | 'goal' step 'density' <num>                          | Cell Density Goal              | num             | optional   |           |
+ | 'goal' step 'power' <num>                            | Active Power Goal              | num             | optional   |           |
  | 'goal' step 'jobid' 'leakage' <num>                  | Leakage Goal                   | num             | optional   |           |
  | 'goal' step 'jobid' 'hold_tns' <num>                 | Hold TNS Goal                  | num             | optional   |           |
  | 'goal' step 'jobid' 'hold_wns' <num>                 | Hold WNS Goal                  | num             | optional   |           |
@@ -27,11 +25,14 @@
  | 'goal' step 'jobid' 'warnings' <num>                 | Total Warnings Goal            | num             | optional   |           |
  | 'goal' step 'jobid' 'errors' <num>                   | Total Errors Goal              | num             | optional   |           |
  | 'goal' step 'jobid' 'runtime' <num>                  | Total Runtime Goal             | num             | optional   |           |
- | 'goal' step 'jobid' 'memory' <num>                   | Total Memory Goal              | num             | optional   |           |
- | 'real' step 'jobid' 'instances' <num>                | Total Cell Instances Real      | num             | optional   |           |
- | 'real' step 'jobid' 'area' <num>                     | Cell Area Real                 | num             | optional   |           |
- | 'real' step 'jobid' 'density' <num>                  | Cell Density Real              | num             | optional   |           |
- | 'real' step 'jobid' 'power' <num>                    | Active Power Real              | num             | optional   |           |
+ | 'goal' step 'memory' <num>                           | Total Memory Goal              | num             | optional   |           |
+ | 'goal' step 'author' <str>                           | Step Author Goal               | str             | optional   |           |
+ | 'goal' step 'signature' <str>                        | Step Date Goal                 | str             | optional   |           |
+ | 'goal' step 'date' <str>                             | Step Date Goal                 | str             | optional   |           |
+ | 'real' step ''cells' <num>                           | Total Cell Instances Real      | num             | optional   |           |
+ | 'real' step 'area' <num>                             | Cell Area Real                 | num             | optional   |           |
+ | 'real' step 'density' <num>                          | Cell Density Real              | num             | optional   |           |
+ | 'real' step 'power' <num>                            | Active Power Real              | num             | optional   |           |
  | 'real' step 'jobid' 'leakage' <num>                  | Leakage Real                   | num             | optional   |           |
  | 'real' step 'jobid' 'hold_tns' <num>                 | Hold TNS Real                  | num             | optional   |           |
  | 'real' step 'jobid' 'hold_wns' <num>                 | Hold WNS Real                  | num             | optional   |           |
@@ -41,7 +42,10 @@
  | 'real' step 'jobid' 'warnings' <num>                 | Total Warnings Real            | num             | optional   |           |
  | 'real' step 'jobid' 'errors' <num>                   | Total Errors Real              | num             | optional   |           |
  | 'real' step 'jobid' 'runtime' <num>                  | Total Runtime Real             | num             | optional   |           |
- | 'real' step 'jobid' 'memory' <num>                   | Total Memory Real              | num             | optional   |           |
+ | 'real' step 'memory' <num>                           | Total Memory Real              | num             | optional   |           |
+ | 'real' step 'author' <str>                           | Step Author Real               | str             | optional   |           |
+ | 'real' step 'signature' <str>                        | Step Date Real                 | str             | optional   |           |
+ | 'real' step 'date' <str>                             | Step Date Real                 | str             | optional   |           |
  | 'fpga' 'xml' <file>                                  | FPGA Architecture File         | file            | fpga       |           |
  | 'fpga' 'vendor' <str>                                | FPGA Vendor Name               | str             | !fpga_xml  |           |
  | 'fpga' 'device' <str>                                | FPGA Device Name               | str             | !fpga_xml  |           |
@@ -175,6 +179,7 @@
  | 'quiet' <bool>                                       | Quiet execution                | bool            | optional   | false     |
  | 'loglevel' <str>                                     | Logging Level                  | str             | optional   | WARNING   |
  | 'dir' <dir>                                          | Build Directory                | dir             | optional   | build     |
+ | 'jobname' <dir>                                      | Job Name                       | dir             | optional   |           |
  | 'start' <str>                                        | Compilation Start Step         | str             | optional   |           |
  | 'stop' <str>                                         | Compilation Stop Step          | str             | optional   |           |
  | 'skip' <str>                                         | Compilation Skip Steps         | str             | optional   |           |
@@ -187,6 +192,6 @@
  | 'noexit' <bool>                                      | Disable end of step tool exit  | bool            | optional   | false     |
  | 'remote' <str>                                       | Remote Server Address          | str             | optional   |           |
  | 'remoteport' <str>                                   | Remove Server Port             | num             | remote     | 8080      |
+ | 'permutations' <str>                                 | Run permutations file          | str             | optional   |           |
  | 'step' <str>                                         | Current Compilation Step       | str             | optional   |           |
- | 'status' step 'jobid' <num>                          | Job Index                      | num             | optional   | 0         |
- | 'status' step 'active' <num>                         | Active Job List                | num             | optional   |           |
+ | 'status' step 'active' <bool>                        | Step Active Indicator          | bool            | optional   |           |
