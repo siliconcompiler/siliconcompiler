@@ -20,11 +20,13 @@ def setup_tool(chip, step):
      chip.add('flow', step, 'format', 'tcl')
      chip.add('flow', step, 'vendor', 'openroad')
      chip.add('flow', step, 'exe', 'openroad')
-     chip.add('flow', step, 'option', '-no_init -exit')
+     chip.add('flow', step, 'option', '-no_init')
 
 def setup_options(chip, step):
 
      options = chip.get('flow', step, 'option')
+     if not chip.get('noexit')[-1] == 'true':
+          options.append('-exit')
      return options
   
 ################################

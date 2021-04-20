@@ -17,36 +17,23 @@ import copy
 import importlib
 import glob
 import pandas
+from importlib.machinery import SourceFileLoader
 
 from siliconcompiler.client import remote_run
-from siliconcompiler.client import upload_sources_to_cluster
 from siliconcompiler.schema import schema_cfg
 from siliconcompiler.schema import schema_layout
 from siliconcompiler.schema import schema_path
 from siliconcompiler.schema import schema_istrue
 
 class Chip:
-    """
-    The core class for the siliconcompiler package with central control of
-    compilation configuration and state tracking. The class includes a
-    a collection of suport methods operating on the class attributes
-
-    Parameters
-    ----------
-    loglevel (string) : Level of debugging (DEBUG, INFO, WARNING, ERROR)
-
-    Attributes
-    ----------
-    cfg (dict): Configuration dictionary
-    status (dict) : Step and job ID based status dictionary
-
-    """
+    """Siliconcompiler configuration and flow tracking class"""
 
     ####################
     def __init__(self, loglevel="DEBUG"):
-        '''
-        Init method for Chip object
+        '''Initializes Chip object
 
+        Args:
+            loglevel (str): Level of debugging
         '''
 
         # Create a default dict ("spec")
@@ -60,7 +47,12 @@ class Chip:
         self.handler.setFormatter(self.formatter)
         self.logger.addHandler(self.handler)
         self.logger.setLevel(str(loglevel))
-        
+
+        # Special tracking variable for async run status. This could
+        # go in the config dictionary, but internal thread states don't
+        # need to be exposed to TCL scripts / etc.
+        self.active_thread = None
+
         # Set Environment Variable if not already set
         scriptdir = os.path.dirname(os.path.abspath(__file__))
         rootdir =  re.sub('siliconcompiler/siliconcompiler',
@@ -102,7 +94,10 @@ class Chip:
 
     ###################################
     def target(self):
-        '''Loading config values based on a named target. 
+        '''Searches the SCPATH and PYTHON path for setup modules that match
+        the target string. The setup string 
+        
+        config values based on a named target. 
 
         '''
 
@@ -633,7 +628,6 @@ class Chip:
                 time.sleep(10)
             else:
                 break
-
         
     ##################################
     def hash(self, cfg=None):
@@ -729,13 +723,14 @@ class Chip:
             jobid: Index of job to report on (1, 2, etc)
         '''
         
-        info = ' '.join(["design="+self.get('design')[0],
-                         "foundry="+self.get('pdk', 'foundry')[0],
-                         "process="+self.get('pdk', 'process')[0],
-                         "targetlibs="+" ".join(self.get('asic','targetlib'))])
+        info = '\n'.join(["SUMMARY:\n",
+                          "design = "+self.get('design')[0],
+                          "foundry = "+self.get('pdk', 'foundry')[0],
+                          "process = "+self.get('pdk', 'process')[0],
+                          "targetlibs = "+" ".join(self.get('asic','targetlib'))])
         
         print("-"*135)
-        print("SUMMARY:", info, "\n")
+        print(info, "\n")
         data = []
         steps = []
 
@@ -780,7 +775,17 @@ class Chip:
           error = subprocess.run(cmd, shell=True)
 
     ###################################
-    def run(self, start=None, stop=None, jobid=None):
+    def start_async_run(self, start=None, stop=None, jobid=None):
+        '''Helper method to start an asynchronous 'run' command, and update
+           a tracking semaphore when it starts/finishes.
+        '''
+        loop = asyncio.get_event_loop()
+        self.active_thread = loop.create_task(self.run(start=start,
+                                                       stop=stop,
+                                                       jobid=jobid))
+
+    ###################################
+    async def run(self, start=None, stop=None, jobid=None):
 
         '''The common execution method for all compilation steps compilation
         flow. The job executes on the local machine by default, but can be
@@ -873,7 +878,7 @@ class Chip:
             else:
                 self.logger.info("Running step '%s' with jobid '%s'", step, jobid)  
 
-                # Copying in Files
+                # Copying in Files (local only)
                 if os.path.isdir(jobdir) and (not remote):
                     shutil.rmtree(jobdir)
                 os.makedirs(jobdir, exist_ok=True)
@@ -938,7 +943,8 @@ class Chip:
 
                 #Piping to log file
                 logfile = exe + ".log"
-                if schema_istrue(self.cfg['quiet']['value']):
+                
+                if (schema_istrue(self.cfg['quiet']['value'])) & (not schema_istrue(self.cfg['noexit']['value'])):
                     cmd_fields.append("> " + logfile)
                 else:
                     cmd_fields.append("| tee " + logfile)
@@ -957,8 +963,10 @@ class Chip:
                 #####################
                 if (stepindex != 0) and remote:
                     self.logger.info('Remote server call')
-                    remote_run(self, step)
+                    await remote_run(self, step)
                 else:
+                    # Local builds must be processed synchronously, because
+                    # they use calls such as os.chdir which are not thread-safe.
                     # Tool Pre Process
                     pre_process = getattr(module,"pre_process")
                     pre_process(self,step)
@@ -980,10 +988,8 @@ class Chip:
             ########################       
             os.chdir(cwd)
 
-            # Upload sources to remote cluster if necessary.
-            if (stepindex == 0) and remote:
-                upload_sources_to_cluster(self)
-
+        # Mark completion of async run if applicable.
+        self.active_thread = None
  
 
 ############################################
@@ -993,6 +999,37 @@ class YamlIndentDumper(yaml.Dumper):
     def increase_indent(self, flow=False, indentless=False):
         return super(YamlIndentDumper, self).increase_indent(flow, False)
 
+########################
+def get_permutations(base_chip, cmdlinecfg):
+    '''Helper method to generate one or more Chip objects depending on
+       whether a permutations file was passed in.
+    '''
 
+    chips = []
+    if 'permutations' in cmdlinecfg.keys():
+        perm_path = os.path.abspath(cmdlinecfg['permutations']['value'][-1])
+        perm_script = SourceFileLoader('job_perms', perm_path).load_module()
+        jobid = 0
+        loglevel = cmdlinecfg['loglevel']['value'][-1] \
+            if 'loglevel' in cmdlinecfg.keys() else "INFO"
+        # Create a new Chip object with the same job hash for each permutation.
+        for chip_cfg in perm_script.permutations(base_chip.cfg):
+            new_chip = Chip(loglevel=loglevel)
+            # JSON dump/load is a simple way to deep-copy a Python
+            # dictionary which does not contain custom classes/objects.
+            new_chip.status = json.loads(json.dumps(base_chip.status))
+            new_chip.cfg = json.loads(json.dumps(chip_cfg))
+            # set incrementing job IDs to avoid overwriting other jobs.
+            for step in new_chip.cfg['steplist']['value']:
+                new_chip.set('status', step, 'jobid', str(jobid))
+            if 'remote' in cmdlinecfg.keys():
+                new_chip.set('start', 'syn')
+            chips.append(new_chip)
+            jobid = jobid + 1
+    else:
+        # If no permutations script is configured, simply run the design once.
+        chips.append(base_chip)
 
-    
+    # Done; return the list of Chips.
+    return chips
+

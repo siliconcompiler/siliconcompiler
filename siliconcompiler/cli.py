@@ -1,6 +1,7 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
 #Standard Modules
+import asyncio
 import sys
 import logging
 import argparse
@@ -15,7 +16,10 @@ from argparse import RawTextHelpFormatter
 #Shorten siliconcompiler as sc
 import siliconcompiler
 from siliconcompiler.schema import schema_cfg
+from siliconcompiler.client import fetch_results
+from siliconcompiler.client import remote_preprocess
 from siliconcompiler.client import remote_run
+from siliconcompiler.core   import get_permutations
 
 ###########################
 def cmdline():
@@ -70,6 +74,8 @@ def cmdline():
     #Parsing args and converting to dict
     cmdargs = vars(parser.parse_args())
 
+    print(cmdargs)
+    
     # Copying flat parse_args to nested cfg dict based on key type
     # Values are lists of varying legnth based on cfg parameter
     # stdlib, macro, tool has length 3 or 4 depending on type
@@ -225,50 +231,71 @@ def main():
     else:
         loglevel = "INFO"
         
-    #Create one (or many...) instances of Chip class
-    chip = siliconcompiler.Chip(loglevel=loglevel)
+    # Create a 'job hash' and base Chip class.
+    job_hash = uuid.uuid4().hex
+    base_chip = siliconcompiler.Chip(loglevel=loglevel)
+    base_chip.status['job_hash'] = job_hash
 
     # Checing for illegal combination
     if ('target' in cmdlinecfg.keys()) & ('cfg' in cmdlinecfg.keys()):
-        chip.logger.error("Options -target and -cfg are mutually exlusive")
+        base_chip.logger.error("Options -target and -cfg are mutually exlusive")
         sys.exit()
     # Reading in config files specified at command line
     elif 'cfg' in  cmdlinecfg.keys():
         for cfgfile in cmdlinecfg['cfg']['value']:
-            chip.readcfg(cfgfile)
+            base_chip.readcfg(cfgfile)
     # Reading in automated target
     else:
         if 'target' in cmdlinecfg.keys():
-            chip.set('target', cmdlinecfg['target']['value'][0])
+            base_chip.set('target', cmdlinecfg['target']['value'][0])
         else:
-            chip.logger.info('No target set, setting to %s','freepdk45')
-            chip.set('target', 'freepdk45_asic')
+            base_chip.logger.info('No target set, setting to %s','freepdk45')
+            base_chip.set('target', 'freepdk45_asic')
         if 'optmode' in cmdlinecfg.keys():
-            chip.set('optmode', cmdlinecfg['optmode']['value'])
+            base_chip.set('optmode', cmdlinecfg['optmode']['value'])
         #Load values based on target name
-        chip.target()
+        base_chip.target()
 
     # 4. Override cfg with command line args
-    chip.mergecfg(cmdlinecfg)   
+    base_chip.mergecfg(cmdlinecfg)
 
-    #Checks settings and fills in missing values
-    chip.check()
+    # Create one (or many...) instances of Chip class
+    chips = get_permutations(base_chip, cmdlinecfg)
 
-    #Creating hashes for all sourced files
-    chip.hash()
+    # Check and lock each permutation.
+    for chip in chips:
+        #Checks settings and fills in missing values
+        chip.check()
 
-    # Create a 'job hash'.
-    job_hash = uuid.uuid4().hex
-    chip.status['job_hash'] = job_hash
+        #Creating hashes for all sourced files
+        chip.hash()
 
-    #Lock chip configuration
-    chip.lock()
+        #Lock chip configuration
+        chip.lock()
 
-    # Running compilation pipeline
-    chip.run()
-    
-    # Print Summary
-    chip.summary()
+    # Perform preprocessing for remote jobs, if necessary.
+    remote_preprocess(chips, cmdlinecfg)
+
+    # Run each job in parallel (remote) or serially (local).
+    # The Chip.run() method is not thread-safe, so no parallel local runs.
+    for chip in chips:
+        # Running compilation pipeline
+        chip.start_async_run()
+
+    # Wait for threads to complete.
+    loop = asyncio.get_event_loop()
+    for chip in chips:
+        while chip.active_thread and (not chip.active_thread.done()):
+            # Sleep asynchronously so that background threads can run.
+            loop.run_until_complete(asyncio.sleep(1.0))
+
+        # Print Summary
+        # TODO: Currently causes errors due to jobid keys.
+        #chip.summary()
+
+    # For remote jobs, fetch results.
+    if 'remote' in cmdlinecfg.keys():
+        fetch_results(chips[-1])
         
 #########################
 if __name__ == "__main__":    

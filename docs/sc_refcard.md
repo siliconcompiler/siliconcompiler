@@ -7,13 +7,10 @@
  | 'flow' step 'script' <file>                          | Entry Point script             | file            | optional   |           |
  | 'flow' step 'copy' <bool>                            | Copy Local Option              | bool            | optional   |           |
  | 'flow' step 'format' <str>                           | Script Format                  | str             | all        |           |
- | 'flow' step 'jobid' <num>                            | Job Index                      | num             | all        | 0         |
  | 'flow' step 'threads' <num>                          | Job Parallelism                | num             | all        |           |
  | 'flow' step 'cache' <file>                           | Cache Directory Name           | file            | optional   |           |
  | 'flow' step 'warningoff' <file>                      | Warning Filter                 | str             | optional   |           |
- | 'flow' step 'keymap' <str str>                       | Script Keymap                  | str str         | optional   |           |
  | 'flow' step 'vendor' <str>                           | Step Vendor                    | str             | all        |           |
- | 'flow' step 'custom' <str str>                       | Custom EDA Parameters          | str str         | optional   |           |
  | 'flow' step 'signature' <str>                        | Step Signature                 | str             | optional   |           |
  | 'flow' step 'date' <str>                             | Step Date                      | str             | all        |           |
  | 'flow' step 'author' <str>                           | Step Author                    | str             | all        |           |
@@ -61,7 +58,11 @@
  | 'pdk' 'display' stackup tool <file>                  | Display Configurations         | file            | asic       |           |
  | 'pdk' 'plib' stackup format <file>                   | Primitive Libraries            | file            | asic       |           |
  | 'pdk' 'aprtech' stackup libtype vendor <file>        | APR Technology File            | file            | asic       |           |
- | 'pdk' 'aprlayer' stackup <str str num num>           | APR Layer Definitions          | str str num num | optional   |           |
+ | 'pdk' 'aprlayer' stackup metal 'xpitch'              | APR Layer Preferred Direction  | str             | optional   |           |
+ | 'pdk' 'aprlayer' stackup metal 'xpitch'              | APR Layer Preferred Direction  | num             | optional   |           |
+ | 'pdk' 'aprlayer' stackup metal 'ypitch'              | APR Layer Preferred Direction  | str             | optional   |           |
+ | 'pdk' 'aprlayer' stackup metal 'xoffset'             | APR Layer Preferred Direction  | num             | optional   |           |
+ | 'pdk' 'aprlayer' stackup metal 'yoffset'             | APR Layer Preferred Direction  | str             | optional   |           |
  | 'pdk' 'tapmax' <num>                                 | Tap Cell Max Distance Rule     | num             | apr        |           |
  | 'pdk' 'tapoffset' <num>                              | Tap Cell Offset Rule           | num             | apr        |           |
  | 'asic' 'targetlib' <str>                             | Target Libraries               | str             | asic       |           |
@@ -85,11 +86,13 @@
  | 'stdcell' libname 'doc' <file>                       | Stdcell Documentation          | file            | asic       |           |
  | 'stdcell' libname 'datasheet' <file>                 | Stdcell Datasheets             | file            | optional   |           |
  | 'stdcell' libname 'libtype' <str>                    | Stdcell Type                   | str             | asic       |           |
- | 'stdcell' libname 'size' <num num>                   | Stdcell Size                   | num num         | apr        |           |
+ | 'stdcell' libname 'width' <num>                      | Stdcell Width                  | num             | apr        |           |
+ | 'stdcell' libname 'height' <num>                     | Stdcell Height                 | num             | apr        |           |
  | 'stdcell' libname 'model' corner 'opcond' <str>      | Stdcell Operating Condition    | str             | asic       |           |
  | 'stdcell' libname 'model' corner 'check' <str>       | Stdcell Corner Checks          | str             | asic       |           |
  | 'stdcell' libname 'model' corner 'nldm' type <file>  | Stdcell NLDM Timing Model      | file            | asic       |           |
  | 'stdcell' libname 'model' corner 'ccs' type <file>   | Stdcell CCS Timing Model       | file            | optional   |           |
+ | 'stdcell' libname 'model' corner 'scm' type <file>   | Stdcell SCM Timing Model       | file            | optional   |           |
  | 'stdcell' libname 'model' corner 'aocv' <file>       | Stdcell AOCV Timing Model      | file            | optional   |           |
  | 'stdcell' libname 'model' corner 'apl' type <file>   | Stdcell APL Power Model        | file            | optional   |           |
  | 'stdcell' libname 'lef' <file>                       | Stdcell LEF                    | file            | asic       |           |
@@ -103,18 +106,20 @@
  | 'stdcell' libname 'driver' <str>                     | Stdcell Default Driver Cell    | str             | asic       |           |
  | 'stdcell' libname 'site' <str>                       | Stdcell Site/Tile Name         | str             | optional   |           |
  | 'stdcell' libname 'cells' celltype <str>             | Stdcell Cell Lists             | str             | optional   |           |
- | 'stdcell' libname 'laydb' type <file>                | Stdcell Layout Database        | file            | optional   |           |
+ | 'stdcell' libname 'layoutdb' stackup type <file>     | Stdcell Layout Database        | file            | optional   |           |
  | 'macro' libname 'rev' <str>                          | Macro Release Revision         | str             | asic       |           |
  | 'macro' libname 'origin' <str>                       | Macro Origin                   | str             | asic       |           |
  | 'macro' libname 'license' <file>                     | Macro License File             | file            | asic       |           |
  | 'macro' libname 'doc' <file>                         | Macro Documentation            | file            | asic       |           |
  | 'macro' libname 'datasheet' <file>                   | Macro Datasheets               | file            | optional   |           |
  | 'macro' libname 'libtype' <str>                      | Macro Type                     | str             | asic       |           |
- | 'macro' libname 'size' <num num>                     | Macro Size                     | num num         | apr        |           |
+ | 'macro' libname 'width' <num>                        | Macro Width                    | num             | apr        |           |
+ | 'macro' libname 'height' <num>                       | Macro Height                   | num             | apr        |           |
  | 'macro' libname 'model' corner 'opcond' <str>        | Macro Operating Condition      | str             | asic       |           |
  | 'macro' libname 'model' corner 'check' <str>         | Macro Corner Checks            | str             | asic       |           |
  | 'macro' libname 'model' corner 'nldm' type <file>    | Macro NLDM Timing Model        | file            | asic       |           |
  | 'macro' libname 'model' corner 'ccs' type <file>     | Macro CCS Timing Model         | file            | optional   |           |
+ | 'macro' libname 'model' corner 'scm' type <file>     | Macro SCM Timing Model         | file            | optional   |           |
  | 'macro' libname 'model' corner 'aocv' <file>         | Macro AOCV Timing Model        | file            | optional   |           |
  | 'macro' libname 'model' corner 'apl' type <file>     | Macro APL Power Model          | file            | optional   |           |
  | 'macro' libname 'lef' <file>                         | Macro LEF                      | file            | asic       |           |
@@ -128,7 +133,7 @@
  | 'macro' libname 'driver' <str>                       | Macro Default Driver Cell      | str             | asic       |           |
  | 'macro' libname 'site' <str>                         | Macro Site/Tile Name           | str             | optional   |           |
  | 'macro' libname 'cells' celltype <str>               | Macro Cell Lists               | str             | optional   |           |
- | 'macro' libname 'laydb' type <file>                  | Macro Layout Database          | file            | optional   |           |
+ | 'macro' libname 'layoutdb' stackup type <file>       | Macro Layout Database          | file            | optional   |           |
  | 'source' <file>                                      | Design Source Files            | file            | all        |           |
  | 'doc' <file>                                         | Design Documentation           | file            | all        |           |
  | 'rev' <str>                                          | Design Revision                | str             | all        |           |
@@ -136,9 +141,11 @@
  | 'design' <str>                                       | Design Top Module Name         | str             | optional   |           |
  | 'nickname' <str>                                     | Design Nickname                | str             | optional   |           |
  | 'origin' <str>                                       | Design Origin                  | str             | optional   |           |
- | 'clock' <str str num num>                            | Design Clocks                  | str str num num | optional   |           |
- | 'supply' <str str num>                               | Design Power Supplies          | str str num     | optional   |           |
- | 'ground' <str str num>                               | Design Power Supplies          | str str         | optional   |           |
+ | 'clock' clkpath period <num>                         | Design Clocks                  | num             | optional   |           |
+ | 'clock' clkpath 'jitter' <num>                       | Design Clock Jitter            | num             | optional   |           |
+ | 'supply' supplypath 'name' <str>                     | Design Power Supply Name       | str             | optional   |           |
+ | 'ground' supplypath 'level' <num>                    | Design Power Supply Level      | num             | optional   |           |
+ | 'ground' supplypath 'noise' <num>                    | Design Power Supply Noise      | num             | optional   |           |
  | 'define' <str>                                       | Verilog Preprocessor Symbols   | str             | optional   |           |
  | 'ydir' <dir>                                         | Verilog Module Search Paths    | dir             | optional   |           |
  | 'idir' <dir>                                         | Verilog Include Search Paths   | dir             | optional   |           |
@@ -158,9 +165,10 @@
  | 'mcmm' scenario 'constraint' <str>                   | MCMM Timing Constraints        | file            | asic       |           |
  | 'mcmm' scenario 'check' <str>                        | MCMM Checks                    | str             | asic       |           |
  | 'mode' <str>                                         | Compilation Mode               | str             | all        | asic      |
- | 'target' <str>                                       | Target Platform                | str             | optional   |           |
+ | 'target' <str>                                       | Target Platform                | str             | optional   | custom    |
+ | 'steplist' <str>                                     | Compilation Steps List         | str             | all        |           |
  | 'cfg' <file>                                         | Configuration File             | file            | optional   |           |
- | 'env' <str str>                                      | Environment Variables          | str str         | optional   |           |
+ | 'env' varname <str>                                  | Environment Variables          | str             | optional   |           |
  | 'scpath' <str>                                       | Search path                    | file            | optional   |           |
  | 'hash' <str>                                         | Hash Files                     | str             | optional   | NONE      |
  | 'lock' <bool>                                        | Configuration File Lock        | bool            | optional   | false     |
@@ -176,6 +184,9 @@
  | 'optmode' <str>                                      | Optimization Mode              | str             | optional   | O0        |
  | 'relax' <bool>                                       | Relaxed RTL Linting            | bool            | optional   | false     |
  | 'clean' <bool>                                       | Keep essential files only      | bool            | optional   | false     |
- | 'steps' <str>                                        | Compilation Steps              | str             | all        |           |
+ | 'noexit' <bool>                                      | Disable end of step tool exit  | bool            | optional   | false     |
  | 'remote' <str>                                       | Remote Server Address          | str             | optional   |           |
  | 'remoteport' <str>                                   | Remove Server Port             | num             | remote     | 8080      |
+ | 'step' <str>                                         | Current Compilation Step       | str             | optional   |           |
+ | 'status' step 'jobid' <num>                          | Job Index                      | num             | optional   | 0         |
+ | 'status' step 'active' <num>                         | Active Job List                | num             | optional   |           |
