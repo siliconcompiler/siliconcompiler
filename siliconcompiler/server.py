@@ -45,7 +45,7 @@ class Server:
         self.app.add_routes([
             web.post('/remote_run/{job_hash}/{stage}', self.handle_remote_run),
             web.post('/import/{job_hash}', self.handle_import),
-            web.get('/check_progress/{job_hash}/{stage}', self.handle_check_progress),
+            web.get('/check_progress/{job_hash}/{stage}/{jobid}', self.handle_check_progress),
             web.get('/delete_job/{job_hash}', self.handle_delete_job),
         ])
         # TODO: Put zip files in a different directory.
@@ -77,26 +77,30 @@ class Server:
 
         # Reset 'build' directory in NFS storage.
         build_dir = '%s/%s'%(self.cfg['nfsmount']['value'][0], job_hash)
-        cfg['build']['value'] = [build_dir]
+        cfg['dir']['value'] = [build_dir]
         # Remove 'remote' JSON config value to run locally on compute node.
         cfg['remote']['value'] = []
         # Rename source files in the config dict; the 'import' step already
-        # ran and collected the sources into a single 'verilator.v' file.
+        # ran and collected the sources into a single 'verilator.sv' file.
         # TODO: Use 'jobid'
-        cfg['source']['value'] = ['%s/%s/import/job1/verilator.v'%(self.cfg['nfsmount']['value'][0], job_hash)]
+        cfg['source']['value'] = ['%s/%s/import/job/verilator.sv'%(self.cfg['nfsmount']['value'][0], job_hash)]
         # Write JSON config to shared compute storage.
-        with open('%s/chip.json'%build_dir, 'w') as f:
+        cur_id = cfg['status'][stage]['jobid']['value'][-1]
+        subprocess.run(['mkdir', '-p', '%s/configs'%build_dir])
+        with open('%s/configs/chip%s.json'%(build_dir, cur_id), 'w') as f:
           f.write(json.dumps(cfg))
+        # Symlink the appropriate import directory.
+        subprocess.run(['ln', '-s', '%s/import/job'%build_dir, '%s/import/job%s'%(build_dir, str(int(cur_id)+1))])
 
         # Issue an 'srun' command depending on the given config JSON.
         sc_sources = ''
         for filename in cfg['source']['value']:
           sc_sources += filename + " "
         # (Non-blocking)
-        asyncio.create_task(self.remote_sc(job_hash, cfg['design']['value'][0], cfg['source']['value'], build_dir, stage))
+        asyncio.create_task(self.remote_sc(job_hash, cfg['design']['value'][0], cfg['source']['value'], build_dir, stage, cur_id))
 
         # Return a response to the client.
-        response_text = "Starting step: %s"%stage
+        response_text = "Starting job stage: %s (%s)"%(job_hash, stage)
         return web.Response(text=response_text)
 
     ####################
@@ -134,7 +138,8 @@ class Server:
                         f.write(chunk)
 
         # Un-zip the archive file.
-        subprocess.run(['unzip', '-o', '%s/import.zip'%(job_root)], cwd=job_root)
+        subprocess.run(['mkdir', '-p', '%s/import/job'%job_root])
+        subprocess.run(['unzip', '-o', '%s/import.zip'%(job_root)], cwd='%s/import/job'%job_root)
 
         # Done.
         return web.Response(text="Successfully imported project %s."%job_hash)
@@ -170,6 +175,8 @@ class Server:
             #print('Deleting: %s.zip'%build_dir)
             os.remove('%s.zip'%build_dir)
 
+        return web.Response(text="Job deleted.")
+
     ####################
     async def handle_check_progress(self, request):
         '''
@@ -187,23 +194,31 @@ class Server:
         stage = request.match_info.get('stage', None)
         if not stage:
           return web.Response(text="Error: no stage provided.")
+        jobid = request.match_info.get('jobid', None)
+        if not jobid:
+          return web.Response(text="Error: no job ID provided.")
 
         # Determine if the job is running.
-        if "%s_%s"%(job_hash, stage) in self.sc_jobs:
+        if "%s_%s_%s"%(job_hash, stage, jobid) in self.sc_jobs:
             return web.Response(text="Job is currently running on the cluster.")
         else:
             return web.Response(text="Job has no running steps.")
 
     ####################
-    async def remote_sc(self, job_hash, top_module, sc_sources, build_dir, stage):
+    async def remote_sc(self, job_hash, top_module, sc_sources, build_dir, stage, jobid):
         '''
         Async method to delegate an 'sc' command to a slurm host,
         and send an email notification when the job completes.
 
         '''
 
+        # Read config JSON, for multi-job configuration.
+        jobs_cfg = {}
+        with open('%s/configs/chip%s.json'%(build_dir, jobid), 'r') as cfgf:
+            jobs_cfg = json.load(cfgf)
+
         # Mark the job hash as being busy.
-        self.sc_jobs["%s_%s"%(job_hash, stage)] = 'busy'
+        self.sc_jobs["%s_%s_%s"%(job_hash, stage, jobid)] = 'busy'
 
         # Assemble the 'sc' command. The host must be running slurmctld.
         # TODO: Avoid using a hardcoded $PATH variable for the compute node.
@@ -214,8 +229,7 @@ class Server:
         # Send JSON config instead of using subset of flags.
         # TODO: Use slurmpy SDK?
         srun_cmd  = 'srun %s sc /dev/null '%(export_path)
-        srun_cmd += '-cfg %s/chip.json '%(build_dir)
-        srun_cmd += '-start %s -stop %s'%(stage, stage)
+        srun_cmd += '-cfg %s/configs/chip%s.json '%(build_dir, jobid)
 
         # Create async subprocess shell, and block this thread until it finishes.
         proc = await asyncio.create_subprocess_shell(srun_cmd)
@@ -227,12 +241,13 @@ class Server:
         if stage == 'export':
             subprocess.run(['zip',
                             '-r',
+                            '-y',
                             '%s.zip'%job_hash,
                             '%s'%job_hash],
                            cwd=self.cfg['nfsmount']['value'][0])
 
         # Mark the job hash as being done.
-        self.sc_jobs.pop("%s_%s"%(job_hash, stage))
+        self.sc_jobs.pop("%s_%s_%s"%(job_hash, stage, jobid))
 
     ####################
     def writecfg(self, filename, mode="all"):

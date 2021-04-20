@@ -7,75 +7,48 @@ import subprocess
 import time
 
 ###################################
-def remote_run(chip, stage):
+def remote_preprocess(chips, cmdlinecfg):
+    '''Helper method to perform preprocessing steps for remote cloud jobs,
+       if a remote host was configured in the command-line flags.
+    '''
+    # For remote jobs, run the 'import' stage locally and upload it.
+    loop = asyncio.get_event_loop()
+    if 'remote' in cmdlinecfg.keys():
+        loop.run_until_complete(chips[-1].run(start='import', stop='import'))
+        cwd = os.getcwd()
+        os.chdir(str(chips[-1].cfg['dir']['value'][-1]) + '/import/job')
+        upload_sources_to_cluster(chips[-1])
+        os.chdir(cwd)
+
+###################################
+async def remote_run(chip, stage):
     '''Helper method to run a job stage on a remote compute cluster.
     Note that files will not be copied to the remote stage; typically
     the source files will be copied into the cluster's storage before
     calling this method.
     If the "-remote" parameter was not passed in, this method
     will print a warning and do nothing.
+    This method assumes that the given stage should not be skipped,
+    because it is called from within the `Chip.run(...)` method.
 
     '''
 
-    #Looking up stage numbers
-    stages = (chip.cfg['design_flow']['value'] +
-              chip.cfg['signoff_flow']['value'])
-    current = stages.index(stage)
-    laststage = stages[current-1]
-    start = stages.index(chip.cfg['start']['value'][-1]) #scalar
-    stop = stages.index(chip.cfg['stop']['value'][-1]) #scalar
-    #Check if stage should be explicitly skipped
-    skip = stage in chip.cfg['skip']['value']
-
-    if stage not in stages:
-        chip.logger.error('Illegal stage name %s', stage)
-        return
-    elif (current < start) | (current > stop):
-        chip.logger.info('Skipping stage: %s', stage)
-        return
-    else:
-        chip.logger.info('Running stage: %s', stage)
-
-    # Run the import stage locally, and upload sources to shared storage.
-    if stage == 'import':
-        chip.run(stage)
-        upload_sources_to_cluster(chip)
-        return
-
     # Ask the remote server to start processing the requested step.
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(request_remote_run(chip, stage))
+    chip.cfg['start']['value'] = [stage]
+    chip.cfg['stop']['value'] = [stage]
+    await request_remote_run(chip, stage)
 
     # Check the job's progress periodically until it finishes.
     is_busy = True
     while is_busy:
       print("%s stage running. Please wait."%stage)
       time.sleep(1)
-      is_busy = loop.run_until_complete(is_job_busy(chip, stage))
+      is_busy = await is_job_busy(chip, stage)
     print("%s stage completed!"%stage)
 
-
     # Increment the stage's jobid value.
-    next_id = str(int(chip.cfg['flow'][stage]['jobid']['value'][-1])+1)
-    chip.cfg['flow'][stage]['jobid']['value'] = [next_id]
-
-    # Fetch the remote archive after the export stage.
-    # TODO: Use aiohttp client methods, but wget is simpler for accessing
-    # a server endpoint that returns a file object.
-    if stage == 'export':
-        subprocess.run(['wget',
-                        "http://%s:%s/get_results/%s.zip"%(
-                            chip.cfg['remote']['value'][0],
-                            chip.cfg['remoteport']['value'][0],
-                            chip.status['job_hash'])])
-        # Unzip the result and run klayout to display the GDS file.
-        subprocess.run(['unzip', '%s.zip'%chip.status['job_hash']])
-        gds_loc = '%s/export/job%s/outputs/%s.gds'%(
-            chip.status['job_hash'],
-            next_id,
-            chip.cfg['design']['value'][0],
-        )
-        subprocess.run(['klayout', gds_loc])
+    next_id = str(int(chip.cfg['status'][stage]['jobid']['value'][-1])+1)
+    chip.cfg['status'][stage]['jobid']['value'] = [next_id]
 
 ###################################
 async def request_remote_run(chip, stage):
@@ -101,14 +74,29 @@ async def is_job_busy(chip, stage):
     '''
 
     async with aiohttp.ClientSession() as session:
-        async with session.get("http://%s:%s/check_progress/%s/%s"%(
+        async with session.get("http://%s:%s/check_progress/%s/%s/%s"%(
                                chip.cfg['remote']['value'][0],
                                chip.cfg['remoteport']['value'][0],
                                chip.status['job_hash'],
-                               stage)) \
+                               stage,
+                               chip.cfg['status'][stage]['jobid']['value'][-1])) \
         as resp:
             response = await resp.text()
             return (response != "Job has no running steps.")
+
+###################################
+async def delete_job(chip):
+    '''Helper method to delete a job from shared remote storage.
+    '''
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get("http://%s:%s/delete_job/%s"%(
+                               chip.cfg['remote']['value'][0],
+                               chip.cfg['remoteport']['value'][0],
+                               chip.status['job_hash'])) \
+        as resp:
+            response = await resp.text()
+            return response
 
 ###################################
 async def upload_import_dir(chip):
@@ -117,7 +105,7 @@ async def upload_import_dir(chip):
     '''
 
     async with aiohttp.ClientSession() as session:
-        with open('%s/import.zip'%(chip.cfg['build']['value'][0]), 'rb') as f:
+        with open(os.path.abspath('../../import/job/import.zip'), 'rb') as f:
             async with session.post("http://%s:%s/import/%s"%(
                                         chip.cfg['remote']['value'][0],
                                         chip.cfg['remoteport']['value'][0],
@@ -140,9 +128,28 @@ def upload_sources_to_cluster(chip):
     subprocess.run(['zip',
                     '-r',
                     'import.zip',
-                    'import'],
-                    cwd=chip.cfg['build']['value'][0])
+                    '.'])
 
     # Upload the archive to the 'import' server endpoint.
     loop = asyncio.get_event_loop()
     loop.run_until_complete(upload_import_dir(chip))
+
+def fetch_results(chip):
+    '''Helper method to fetch job results from a remote compute cluster.
+    '''
+
+    # Fetch the remote archive after the export stage.
+    # TODO: Use aiohttp client methods, but wget is simpler for accessing
+    # a server endpoint that returns a file object.
+    subprocess.run(['wget',
+                    "http://%s:%s/get_results/%s.zip"%(
+                        chip.cfg['remote']['value'][0],
+                        chip.cfg['remoteport']['value'][0],
+                        chip.status['job_hash'])])
+    # Unzip the result and run klayout to display the GDS file.
+    subprocess.run(['unzip', '%s.zip'%chip.status['job_hash']])
+    gds_loc = '%s/export/job*/outputs/%s.gds'%(
+        chip.status['job_hash'],
+        chip.cfg['design']['value'][0],
+    )
+    subprocess.run(['klayout', gds_loc])

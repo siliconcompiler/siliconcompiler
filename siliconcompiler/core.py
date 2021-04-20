@@ -17,7 +17,9 @@ import copy
 import importlib
 import glob
 import pandas
+from importlib.machinery import SourceFileLoader
 
+from siliconcompiler.client import remote_run
 from siliconcompiler.schema import schema_cfg
 from siliconcompiler.schema import schema_layout
 from siliconcompiler.schema import schema_path
@@ -45,7 +47,12 @@ class Chip:
         self.handler.setFormatter(self.formatter)
         self.logger.addHandler(self.handler)
         self.logger.setLevel(str(loglevel))
-        
+
+        # Special tracking variable for async run status. This could
+        # go in the config dictionary, but internal thread states don't
+        # need to be exposed to TCL scripts / etc.
+        self.active_thread = None
+
         # Set Environment Variable if not already set
         scriptdir = os.path.dirname(os.path.abspath(__file__))
         rootdir =  re.sub('siliconcompiler/siliconcompiler',
@@ -767,7 +774,17 @@ class Chip:
           error = subprocess.run(cmd, shell=True)
 
     ###################################
-    def run(self, start=None, stop=None, jobid=None):
+    def start_async_run(self, start=None, stop=None, jobid=None):
+        '''Helper method to start an asynchronous 'run' command, and update
+           a tracking semaphore when it starts/finishes.
+        '''
+        loop = asyncio.get_event_loop()
+        self.active_thread = loop.create_task(self.run(start=start,
+                                                       stop=stop,
+                                                       jobid=jobid))
+
+    ###################################
+    async def run(self, start=None, stop=None, jobid=None):
 
         '''The common execution method for all compilation steps compilation
         flow. The job executes on the local machine by default, but can be
@@ -815,16 +832,23 @@ class Chip:
             # Job-ID and Step
             #####################
             
-            #Automatic updating of jobids when argument is missing
-            if (jobid is None ) | importstep:
-                #Initialize jobid first time around
+            if not remote:
+                #Automatic updating of jobids when argument is missing
+                if (jobid is None ) | importstep:
+                    #Initialize jobid first time around
+                    if not step in self.cfg['status'].keys():
+                        self.set('status', step, 'jobid', '0')
+                    jobid = int(self.cfg['status'][step]['jobid']['value'][-1])
+                    jobid = jobid + 1
+
+                #Update JOBID in dictionary!
+                self.set('status', step, 'jobid', str(jobid))
+            else:
+                # Remote job IDs are set ahead of time.
                 if not step in self.cfg['status'].keys():
                     self.set('status', step, 'jobid', '0')
                 jobid = int(self.cfg['status'][step]['jobid']['value'][-1])
-                jobid = jobid + 1
-
-            #Update JOBID in dictionary!
-            self.set('status', step, 'jobid', str(jobid))
+                self.set('status', step, 'jobid', str(jobid))
       
             if stepindex==0:
                 jobdir = buildroot + '/import/job'
@@ -859,8 +883,8 @@ class Chip:
             else:
                 self.logger.info("Running step '%s' with jobid '%s'", step, jobid)  
 
-                # Copying in Files
-                if os.path.isdir(jobdir):
+                # Copying in Files (local only)
+                if os.path.isdir(jobdir) and (not remote):
                     shutil.rmtree(jobdir)
                 os.makedirs(jobdir, exist_ok=True)
                 os.chdir(jobdir)
@@ -870,7 +894,8 @@ class Chip:
                 if stepindex==0:
                     pass
                 elif stepindex == 1:
-                    shutil.copytree("../../import/job/outputs", 'inputs')
+                    if not remote:
+                        shutil.copytree("../../import/job/outputs", 'inputs')
                 else:
                     lastjobid = self.get('status', laststep, 'jobid')[-1]                    
                     #check if job was run before, if not use current step ID
@@ -881,7 +906,8 @@ class Chip:
                                         steplist[stepindex-1],
                                         'job'+str(lastjobid),
                                         'outputs'])
-                    shutil.copytree(lastdir, 'inputs')
+                    if not remote:
+                        shutil.copytree(lastdir, 'inputs')
                 
                 #Copy Reference Scripts
                 refdir = schema_path(self.cfg['flow'][step]['refdir']['value'][-1])
@@ -940,10 +966,12 @@ class Chip:
                 #####################
                 # Execute
                 #####################
-                if remote:
+                if (stepindex != 0) and remote:
                     self.logger.info('Remote server call')
-                    pass
+                    await remote_run(self, step)
                 else:
+                    # Local builds must be processed synchronously, because
+                    # they use calls such as os.chdir which are not thread-safe.
                     # Tool Pre Process
                     pre_process = getattr(module,"pre_process")
                     pre_process(self,step)
@@ -965,6 +993,8 @@ class Chip:
             ########################       
             os.chdir(cwd)
 
+        # Mark completion of async run if applicable.
+        self.active_thread = None
  
 
 ############################################
@@ -974,6 +1004,37 @@ class YamlIndentDumper(yaml.Dumper):
     def increase_indent(self, flow=False, indentless=False):
         return super(YamlIndentDumper, self).increase_indent(flow, False)
 
+########################
+def get_permutations(base_chip, cmdlinecfg):
+    '''Helper method to generate one or more Chip objects depending on
+       whether a permutations file was passed in.
+    '''
 
+    chips = []
+    if 'permutations' in cmdlinecfg.keys():
+        perm_path = os.path.abspath(cmdlinecfg['permutations']['value'][-1])
+        perm_script = SourceFileLoader('job_perms', perm_path).load_module()
+        jobid = 0
+        loglevel = cmdlinecfg['loglevel']['value'][-1] \
+            if 'loglevel' in cmdlinecfg.keys() else "INFO"
+        # Create a new Chip object with the same job hash for each permutation.
+        for chip_cfg in perm_script.permutations(base_chip.cfg):
+            new_chip = Chip(loglevel=loglevel)
+            # JSON dump/load is a simple way to deep-copy a Python
+            # dictionary which does not contain custom classes/objects.
+            new_chip.status = json.loads(json.dumps(base_chip.status))
+            new_chip.cfg = json.loads(json.dumps(chip_cfg))
+            # set incrementing job IDs to avoid overwriting other jobs.
+            for step in new_chip.cfg['steplist']['value']:
+                new_chip.set('status', step, 'jobid', str(jobid))
+            if 'remote' in cmdlinecfg.keys():
+                new_chip.set('start', 'syn')
+            chips.append(new_chip)
+            jobid = jobid + 1
+    else:
+        # If no permutations script is configured, simply run the design once.
+        chips.append(base_chip)
 
-    
+    # Done; return the list of Chips.
+    return chips
+
