@@ -692,6 +692,12 @@ class Chip:
 
 
     ###################################
+    def audit(self, filename=None):
+        '''Performance an an audit of each step in the flow
+        '''
+        pass
+
+    ###################################
     def summary(self, filename=None):
         '''Creates a summary dictionary of the results of the specified step
         and jobid
@@ -709,8 +715,6 @@ class Chip:
         
         print("-"*135)
         print(info, "\n")
-        data = []
-        steps = []
 
         steplist = self.get('steplist')
         start = self.get('start')[-1]
@@ -718,21 +722,29 @@ class Chip:
         startindex = steplist.index(start)
         stopindex = steplist.index(stop)
 
+        #Creating step index
+        data = []
+        steps = []
+        colwidth = 8
+        #Creating header row
         for stepindex in range(startindex, stopindex + 1):
             step = steplist[stepindex]
-            steps.append(step)
-            row = []
-            metrics = []
-            for metric in self.getkeys('real', step):
-                metrics.append(" " + metric)
-                row.append(" " + str(self.get('real', step, metric)[-1]))
-            data.append(row)
+            steps.append(step.center(colwidth))
 
+        #Creating bulk
+        metrics = []
+        for metric in  self.getkeys('real', 'default'):
+            metrics.append(" " + metric)
+            row = []
+            for stepindex in range(startindex, stopindex + 1):
+                row.append(" " +
+                           str(self.get('real', step, metric)[-1]).center(colwidth))
+            data.append(row)
 
         pandas.set_option('display.max_rows', 500)
         pandas.set_option('display.max_columns', 500)
-        pandas.set_option('display.width', 1000)
-        df = pandas.DataFrame(data, steps, metrics)
+        pandas.set_option('display.width', 100)
+        df = pandas.DataFrame(data, metrics, steps)
         if filename is None:
             print(df.to_string())
             print("-"*135)
