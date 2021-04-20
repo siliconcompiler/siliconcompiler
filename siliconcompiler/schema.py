@@ -1486,22 +1486,22 @@ def schema_metrics(cfg, group, step):
 
     cfg[group][step] = {}      # per step
 
-    cfg[group][step]['instances'] = {
-        'switch' : '-'+group+'_instances',
+    cfg[group][step]['cells'] = {
+        'switch' : '-'+group+'_cells',
         'type' : ['num'],
         'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Total Cell Instances ' + group.capitalize(),
-        'param_help' : "'"+group+"' step ''instances' <num>",
+        'param_help' : "'"+group+"' step ''cells' <num>",
         'help' : 
-        "Metric tracking the total number of cell instances on a per step"\
+        "Metric tracking the total number of cells on a per step"\
         " basis. In the case of FPGAs, the it represents    "\
         "the number of LUTs.                                             "\
         "                                                                "\
         "Examples:                                                       "\
-        "cli: -"+group+"_instances 'place 100'                         "\
-        "api: chip.set('"+group+"','place', 'instances', '100')     "
+        "cli: -"+group+"_cells 'place 100'                         "\
+        "api: chip.set('"+group+"','place', 'cells', '100')     "
     }    
     
     cfg[group][step]['area'] = {

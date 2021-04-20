@@ -1,4 +1,6 @@
 import os
+import re
+import sys
 import defusedxml.ElementTree as ET
 
 def setup_tool(chip, step):
@@ -52,10 +54,28 @@ def pre_process(chip, step):
             f.write('set lutsize ' + str(lut_size))
 
 def post_process(chip, step):
-    ''' Tool specific function to run after step execution
-    '''
-    pass
-
+     ''' Tool specific function to run after step execution
+     '''
+     
+     exe = chip.get('flow',step,'exe')[-1]
+     with open(exe + ".log") as f:
+          for line in f:
+               area = re.search('Chip area for module.*\:\s+(.*)', line)
+               cells = re.search('Number of cells\:\s+(.*)', line)
+               stats = re.search('End of script.*CPU\: user (.*)\s+system.*MEM\:\s+(.*) peak',line)
+               warnings = re.search('Warnings.*\s(\d+)\s+total', line)
+               
+               if area:
+                    chip.set('real', step, 'area', str(round(float(area.group(1)),2)))
+               elif cells:
+                    chip.set('real', step, 'cells', cells.group(1))
+               elif stats:
+                    memory = stats.group(2).replace(" ","")
+                    chip.set('real', step, 'runtime', stats.group(1))
+                    chip.set('real', step, 'memory', memory)
+               elif warnings:
+                    chip.set('real', step, 'warnings', warnings.group(1))
+                         
 ################################
 # Utilities
 ################################

@@ -725,7 +725,7 @@ class Chip:
         stop = self.get('stop')[-1]
         startindex = steplist.index(start)
         stopindex = steplist.index(stop)
-
+       
         #Creating step index
         data = []
         steps = []
@@ -741,6 +741,8 @@ class Chip:
             metrics.append(" " + metric)
             row = []
             for stepindex in range(startindex, stopindex + 1):
+                step = steplist[stepindex]
+                print(metric, step, self.get('real', step, metric)[-1])
                 row.append(" " +
                            str(self.get('real', step, metric)[-1]).center(colwidth))
             data.append(row)
