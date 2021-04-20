@@ -25,7 +25,7 @@ def setup_tool(chip, step):
 def setup_options(chip, step):
 
      options = chip.get('flow', step, 'option')
-     if not chip.get('noexit')[-1] == 'true':
+     if (not chip.get('noexit')[-1] == 'true') and (not '-exit' in options):
           options.append('-exit')
      return options
   

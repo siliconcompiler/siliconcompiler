@@ -36,6 +36,8 @@ class Server:
 
         # Use the config that was passed in.
         self.cfg = cmdlinecfg
+        # Ensure that NFS mounting path is absolute.
+        self.cfg['nfsmount']['value'] = [os.path.abspath(self.cfg['nfsmount']['value'][-1])]
 
         # Set up a dictionary to track running jobs.
         self.sc_jobs = {}
@@ -220,19 +222,27 @@ class Server:
         # Mark the job hash as being busy.
         self.sc_jobs["%s_%s_%s"%(job_hash, stage, jobid)] = 'busy'
 
-        # Assemble the 'sc' command. The host must be running slurmctld.
-        # TODO: Avoid using a hardcoded $PATH variable for the compute node.
-        export_path  = '--export=PATH=/home/ubuntu/OpenROAD-flow-scripts/tools/build/OpenROAD/src'
-        export_path += ':/home/ubuntu/OpenROAD-flow-scripts/tools/build/TritonRoute'
-        export_path += ':/home/ubuntu/OpenROAD-flow-scripts/tools/build/yosys/bin'
-        export_path += ':/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin'
-        # Send JSON config instead of using subset of flags.
-        # TODO: Use slurmpy SDK?
-        srun_cmd  = 'srun %s sc /dev/null '%(export_path)
-        srun_cmd += '-cfg %s/configs/chip%s.json '%(build_dir, jobid)
+        run_cmd = ''
+        if self.cfg['cluster']['value'][-1] == 'slurm':
+            # Assemble the 'sc' command. The host must be running slurmctld.
+            # TODO: Avoid using a hardcoded $PATH variable for the compute node.
+            export_path  = '--export=PATH=/home/ubuntu/OpenROAD-flow-scripts/tools/build/OpenROAD/src'
+            export_path += ':/home/ubuntu/OpenROAD-flow-scripts/tools/build/TritonRoute'
+            export_path += ':/home/ubuntu/OpenROAD-flow-scripts/tools/build/yosys/bin'
+            export_path += ':/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin'
+            # Send JSON config instead of using subset of flags.
+            # TODO: Use slurmpy SDK?
+            run_cmd  = 'srun %s sc /dev/null '%(export_path)
+            run_cmd += '-cfg %s/configs/chip%s.json '%(build_dir, jobid)
+        else:
+            # Unrecognized or unset clusering option; run locally on the
+            # server itself. (Note: local runs are mostly synchronous, so
+            # this will probably block the server from responding to other
+            # calls. It should only be used for testing and development.)
+            run_cmd = 'sc /dev/null -cfg %s/configs/chip%s.json'%(build_dir, jobid)
 
         # Create async subprocess shell, and block this thread until it finishes.
-        proc = await asyncio.create_subprocess_shell(srun_cmd)
+        proc = await asyncio.create_subprocess_shell(run_cmd)
         await proc.wait()
 
         # (Email notifications can be sent here using SES)
@@ -244,7 +254,7 @@ class Server:
                             '-y',
                             '%s.zip'%job_hash,
                             '%s'%job_hash],
-                           cwd=self.cfg['nfsmount']['value'][0])
+                           cwd=self.cfg['nfsmount']['value'][-1])
 
         # Mark the job hash as being done.
         self.sc_jobs.pop("%s_%s_%s"%(job_hash, stage, jobid))
@@ -279,22 +289,13 @@ def server_schema():
         'help' : ["TBD"]
     }
 
-    cfg['nfsuser'] = {
-        'short_help': 'Username on remote storage host.',
-        'switch': '-nfs_user',
+    cfg['cluster'] = {
+        'short_help': 'Type of compute cluster to use. Valid values: [slurm, local]',
+        'switch': '-cluster',
         'switch_args': '<str>',
         'type': ['string'],
-        'defvalue': ['ubuntu'],
-        'help' : ["TBD"]
-    }
-
-    cfg['nfshost'] = {
-        'short_help': 'Hostname or IP address for shared storage.',
-        'switch': '-nfs_host',
-        'switch_args': '<str>',
-        'type': ['string'],
-        'defvalue' : [],
-        'help' : ["TBD"]
+        'defvalue': ['slurm'],
+        'help': ["TBD"]
     }
 
     cfg['nfsmount'] = {
@@ -303,15 +304,6 @@ def server_schema():
         'switch_args': '<str>',
         'type': ['string'],
         'defvalue' : ['/nfs/sc_compute'],
-        'help' : ["TBD"]
-    }
-
-    cfg['nfskey'] = {
-        'short_help': 'Key-file used for remote connection.',
-        'switch': '-nfs_key',
-        'switch_args': '<file>',
-        'type': ['file'],
-        'defvalue' : [],
         'help' : ["TBD"]
     }
 

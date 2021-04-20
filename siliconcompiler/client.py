@@ -4,7 +4,6 @@ import aiohttp
 import asyncio
 import os
 import subprocess
-import time
 
 ###################################
 def remote_preprocess(chips, cmdlinecfg):
@@ -42,7 +41,7 @@ async def remote_run(chip, stage):
     is_busy = True
     while is_busy:
       print("%s stage running. Please wait."%stage)
-      time.sleep(1)
+      await asyncio.sleep(1)
       is_busy = await is_job_busy(chip, stage)
     print("%s stage completed!"%stage)
 
@@ -57,8 +56,8 @@ async def request_remote_run(chip, stage):
     '''
     async with aiohttp.ClientSession() as session:
         async with session.post("http://%s:%s/remote_run/%s/%s"%(
-                                    chip.cfg['remote']['value'][0],
-                                    chip.cfg['remoteport']['value'][0],
+                                    chip.cfg['remote']['value'][-1],
+                                    chip.cfg['remoteport']['value'][-1],
                                     chip.status['job_hash'],
                                     stage),
                                 json=chip.cfg) \
@@ -107,8 +106,8 @@ async def upload_import_dir(chip):
     async with aiohttp.ClientSession() as session:
         with open(os.path.abspath('../../import/job/import.zip'), 'rb') as f:
             async with session.post("http://%s:%s/import/%s"%(
-                                        chip.cfg['remote']['value'][0],
-                                        chip.cfg['remoteport']['value'][0],
+                                        chip.cfg['remote']['value'][-1],
+                                        chip.cfg['remoteport']['value'][-1],
                                         chip.status['job_hash']),
                                     data={'import': f}) \
             as resp:

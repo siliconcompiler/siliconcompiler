@@ -833,23 +833,17 @@ class Chip:
             # Job-ID and Step
             #####################
             
-            if not remote:
-                #Automatic updating of jobids when argument is missing
-                if (jobid is None ) | importstep:
-                    #Initialize jobid first time around
-                    if not step in self.cfg['status'].keys():
-                        self.set('status', step, 'jobid', '0')
-                    jobid = int(self.cfg['status'][step]['jobid']['value'][-1])
-                    jobid = jobid + 1
-
-                #Update JOBID in dictionary!
-                self.set('status', step, 'jobid', str(jobid))
-            else:
-                # Remote job IDs are set ahead of time.
+            #Automatic updating of jobids when argument is missing
+            if (jobid is None ) | importstep:
+                #Initialize jobid first time around
                 if not step in self.cfg['status'].keys():
                     self.set('status', step, 'jobid', '0')
                 jobid = int(self.cfg['status'][step]['jobid']['value'][-1])
-                self.set('status', step, 'jobid', str(jobid))
+                if not remote:
+                    jobid = jobid + 1
+
+            #Update JOBID in dictionary!
+            self.set('status', step, 'jobid', str(jobid))
       
             if stepindex==0:
                 jobdir = buildroot + '/import/job'
