@@ -716,13 +716,14 @@ class Chip:
             jobid: Index of job to report on (1, 2, etc)
         '''
         
-        info = ' '.join(["design="+self.get('design')[0],
-                         "foundry="+self.get('pdk', 'foundry')[0],
-                         "process="+self.get('pdk', 'process')[0],
-                         "targetlibs="+" ".join(self.get('asic','targetlib'))])
+        info = '\n'.join(["SUMMARY:\n",
+                          "design = "+self.get('design')[0],
+                          "foundry = "+self.get('pdk', 'foundry')[0],
+                          "process = "+self.get('pdk', 'process')[0],
+                          "targetlibs = "+" ".join(self.get('asic','targetlib'))])
         
         print("-"*135)
-        print("SUMMARY:", info, "\n")
+        print(info, "\n")
         data = []
         steps = []
 
