@@ -1183,6 +1183,25 @@ def schema_flow(cfg, step):
         cfg['flow'] = {}    
     cfg['flow'][step] = {}
 
+    
+    # Used to define flow sequence
+    cfg['flow'][step]['input'] = {
+        'switch' : '-flow_follows',
+        'type' : ['str'],
+        'requirement' : 'all',
+        'defvalue' : [],
+        'short_help' : 'Excution Dependency',
+        'param_help' : "'flow' step 'input' <str>",
+        'help' : """
+        Specifies the a list of inputs that gate the execution start for
+        'step'.
+
+        Examples:
+        cli: -flow_input 'cts place'
+        "api: chip.set('flow', 'cts', 'input', 'place')
+        """
+    }
+
     # exe
     cfg['flow'][step]['exe'] = {
         'switch' : '-flow_exe',
@@ -1315,8 +1334,6 @@ def schema_flow(cfg, step):
         api: chip.set('flow','place','format','tcl')
         """
     }
-    
-  
     
     #parallelism
     cfg['flow'][step]['threads'] = {
