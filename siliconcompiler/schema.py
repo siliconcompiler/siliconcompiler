@@ -1927,6 +1927,24 @@ def schema_options(cfg):
         """
     }
 
+    cfg['jobname'] = {
+        'switch' : '-jobname',
+        'type' : ['dir'],
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Job Name',
+        'param_help' : "'jobname' <dir>",
+        'help' : """
+        By default, job directories are created inside the 'build' directory in a 
+        sequential fashion as follows: job0, job1, job2,...
+        The 'jobname' parameters allows user to manually specify a jobname.
+        
+        Examples:
+        cli: -jobname 'may1'
+        api: chip.set('jobname', 'may1')
+        """
+    }
+
     cfg['start'] = {
         'switch' : '-start',
         'type' : ['str'],
