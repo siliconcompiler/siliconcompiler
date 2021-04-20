@@ -175,6 +175,7 @@ def schema_pdk(cfg):
         'switch' : '-pdk_foundry',
         'requirement' : 'asic',
         'type' : ['str'],
+        'lock' : 'false',
         'defvalue' : [],
         'short_help' : 'Foundry Name',
         'param_help' : "'pdk' 'foundry' <str>",
@@ -193,6 +194,7 @@ def schema_pdk(cfg):
         'switch' : '-pdk_process',
         'requirement' : 'asic',
         'type' : ['str'],
+        'lock' : 'false',
         'defvalue' : [],
         'short_help' : 'Process Name',
         'param_help' : "'pdk' 'process' <str>",
@@ -212,6 +214,7 @@ def schema_pdk(cfg):
         'switch' : '-pdk_node',
         'requirement' : 'asic',
         'type' : ['num'],
+        'lock' : 'false',
         'defvalue' : [],
         'short_help' : 'Process Node',
         'param_help' : "'pdk' 'node' <num>",
@@ -232,6 +235,7 @@ def schema_pdk(cfg):
         'switch' : '-pdk_rev',
         'requirement' : 'asic',
         'type' : ['str'],
+        'lock' : 'false',
         'defvalue' : [],
         'short_help' : 'Process Revision',
         'param_help' : "'pdk' 'rev' <str>",
@@ -250,6 +254,7 @@ def schema_pdk(cfg):
         'switch' : '-pdk_drm',
         'requirement' : 'asic',
         'type' : ['file'],
+        'lock' : 'false',
         'defvalue' : [],
         'hash'   : [],
         'date'   : [],
@@ -273,6 +278,7 @@ def schema_pdk(cfg):
         'switch' : '-pdk_doc',
         'requirement' : 'asic',
         'type' : ['file'],
+        'lock' : 'false',
         'defvalue' : [],
         'hash'   : [],
         'date'   : [],
@@ -296,6 +302,7 @@ def schema_pdk(cfg):
         'switch' : '-pdk_stackup',
         'requirement' : 'asic',
         'type' : ['str'],
+        'lock' : 'false',
         'defvalue' : [],
         'short_help' : 'Process Metal Stackups',
         'param_help' : "'pdk' 'stackup' <str>",
@@ -323,6 +330,7 @@ def schema_pdk(cfg):
         'switch' : '-pdk_devicemodel',
         'requirement' : 'asic',
         'type' : ['file'],
+        'lock' : 'false',
         'defvalue' : [],
         'hash'   : [],
         'date'   : [],
@@ -349,6 +357,7 @@ def schema_pdk(cfg):
         'switch' : '-pdk_pexmodel',
         'requirement' : 'asic',
         'type' : ['file'],
+        'lock' : 'false',
         'defvalue' : [],
         'hash'   : [],
         'date'   : [],
@@ -375,6 +384,7 @@ def schema_pdk(cfg):
         'switch' : '-pdk_layermap',
         'requirement' : 'asic',
         'type' : ['file'],
+        'lock' : 'false',
         'defvalue' : [],
         'hash' : [],
         'date'   : [],
@@ -404,6 +414,7 @@ def schema_pdk(cfg):
         'switch' : '-pdk_display',
         'requirement' : 'asic',
         'type' : ['file'],
+        'lock' : 'false',
         'defvalue' : [],
         'hash' : [],
         'date'   : [],
@@ -428,6 +439,7 @@ def schema_pdk(cfg):
         'switch' : '-pdk_plib',
         'requirement' : 'asic',
         'type' : ['file'],
+        'lock' : 'false',
         'defvalue' : [],
         'hash' : [],
         'date'   : [],
@@ -453,6 +465,7 @@ def schema_pdk(cfg):
         'switch_args' : '<>',
         'requirement' : 'asic',
         'type' : ['file'],
+        'lock' : 'false',
         'defvalue' : [],
         'hash'   : [],
         'date'   : [],
@@ -486,6 +499,7 @@ def schema_pdk(cfg):
         'switch' : '-pdk_aprlayer_name',
         'requirement' : 'optional',
         'type' : ['str'],
+        'lock' : 'false',
         'defvalue' : [],
         'short_help' : 'APR Layer Preferred Direction',
         'param_help' : "'pdk' 'aprlayer' stackup metal 'xpitch'",
@@ -503,6 +517,7 @@ def schema_pdk(cfg):
         'switch' : '-pdk_aprlayer_xpitch',
         'requirement' : 'optional',
         'type' : ['num'],
+        'lock' : 'false',
         'defvalue' : [],
         'short_help' : 'APR Layer Preferred Direction',
         'param_help' : "'pdk' 'aprlayer' stackup metal 'xpitch'",
@@ -521,6 +536,7 @@ def schema_pdk(cfg):
         'switch' : '-pdk_aprlayer_ypitch',
         'requirement' : 'optional',
         'type' : ['str'],
+        'lock' : 'false',
         'defvalue' : [],
         'short_help' : 'APR Layer Preferred Direction',
         'param_help' : "'pdk' 'aprlayer' stackup metal 'ypitch'",
@@ -539,6 +555,7 @@ def schema_pdk(cfg):
         'switch' : '-pdk_aprlayer_xoffset',
         'requirement' : 'optional',
         'type' : ['num'],
+        'lock' : 'false',
         'defvalue' : [],
         'short_help' : 'APR Layer Preferred Direction',
         'param_help' : "'pdk' 'aprlayer' stackup metal 'xoffset'",
@@ -556,6 +573,7 @@ def schema_pdk(cfg):
         'switch' : '-pdk_aprlayer_yoffset',
         'requirement' : 'optional',
         'type' : ['str'],
+        'lock' : 'false',
         'defvalue' : [],
         'short_help' : 'APR Layer Preferred Direction',
         'param_help' : "'pdk' 'aprlayer' stackup metal 'yoffset'",
@@ -573,6 +591,7 @@ def schema_pdk(cfg):
         'switch' : '-pdk_tapmax',
         'requirement' : 'apr',
         'type' : ['num'],
+        'lock' : 'false',
         'defvalue' : [], 
         'short_help' : 'Tap Cell Max Distance Rule',
         'param_help' : "'pdk' 'tapmax' <num>",
@@ -590,6 +609,7 @@ def schema_pdk(cfg):
         'switch' : '-pdk_tapoffset',
         'requirement' : 'apr',
         'type' : ['num'],
+        'lock' : 'false',
         'defvalue' : [],
         'short_help' : 'Tap Cell Offset Rule',
         'param_help' : "'pdk' 'tapoffset' <num>",
@@ -619,6 +639,7 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+'_rev',
         'requirement' : 'asic',
         'type' : ['str'],
+        'lock' : 'false',
         'defvalue' : [],
         'short_help' :  group.capitalize() + ' Release Revision',
         'param_help' : "'"+group+"' libname 'rev' <str>",
@@ -636,6 +657,7 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+'_origin',
         'requirement' : 'asic',
         'type' : ['str'],
+        'lock' : 'false',
         'defvalue' : [],
         'short_help' :  group.capitalize() + ' Origin',
         'param_help' : "'"+group+"' libname 'origin' <str>",
@@ -651,6 +673,7 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+'_license',
         'requirement' : 'asic',
         'type' : ['file'],
+        'lock' : 'false',
         'defvalue' : [],
         'short_help' :  group.capitalize() + ' License File',
         'param_help' : "'"+group+"' libname 'license' <file>",
@@ -666,6 +689,7 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+'_doc',
         'requirement' : 'asic',
         'type' : ['file'],
+        'lock' : 'false',
         'defvalue' : [],
         'hash'   : [],
         'date'   : [],
@@ -688,6 +712,7 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+"_datasheet",
         'requirement' : 'optional',
         'type' : ['file'],
+        'lock' : 'false',
         'defvalue' : [],
         'hash'   : [],
         'date'   : [],
@@ -710,6 +735,7 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+'_libtype',
         'requirement' : 'asic',
         'type' : ['str'],
+        'lock' : 'false',
         'defvalue' : [],
         'short_help' : group.capitalize() + ' Type',
         'param_help' : "'"+group+"' libname 'libtype' <str>",
@@ -728,6 +754,7 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+'_width',
         'requirement' : 'apr',
         'type' : ['num'],
+        'lock' : 'false',
         'defvalue' : [],
         'short_help' : group.capitalize() + ' Width',
         'param_help' : "'"+group+"' libname 'width' <num>",
@@ -746,6 +773,7 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+'_height',
         'requirement' : 'apr',
         'type' : ['num'],
+        'lock' : 'false',
         'defvalue' : [],
         'short_help' : group.capitalize() + ' Height',
         'param_help' : "'"+group+"' libname 'height' <num>",
@@ -772,6 +800,7 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+"_opcond",
         'requirement' : 'asic',
         'type' : ['str'],
+        'lock' : 'false',
         'defvalue' : [],
         'short_help' : group.capitalize() + ' Operating Condition',
         'param_help' : "'"+group+"' libname 'model' corner 'opcond' <str>",
@@ -790,6 +819,7 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+"_check",
         'requirement' : 'asic',
         'type' : ['str'],
+        'lock' : 'false',
         'defvalue' : [],
         'short_help' : group.capitalize() + ' Corner Checks',
         'param_help' : "'"+group+"' libname 'model' corner 'check' <str>",
@@ -815,6 +845,7 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+"_nldm",
         'requirement' : 'asic',
         'type' : ['file'],
+        'lock' : 'false',
         'defvalue' : [],
         'hash' : [],
         'date'   : [],
@@ -840,6 +871,7 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+"_ccs",
         'requirement' : 'optional',
         'type' : ['file'],
+        'lock' : 'false',
         'defvalue' : [],
         'hash' : [],
         'date'   : [],
@@ -865,6 +897,7 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+"_scm",
         'requirement' : 'optional',
         'type' : ['file'],
+        'lock' : 'false',
         'defvalue' : [],
         'hash' : [],
         'date'   : [],
@@ -889,6 +922,7 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+"_aocv",
         'requirement' : 'optional',
         'type' : ['file'],
+        'lock' : 'false',
         'defvalue' : [],
         'hash' : [],
         'date'   : [],
@@ -912,6 +946,7 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+"_apl",
         'requirement' : 'optional',
         'type' : ['file'],
+        'lock' : 'false',
         'defvalue' : [],
         'hash' : [],
         'date'   : [],
@@ -934,6 +969,7 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+"_lef",
         'requirement' : 'asic',
         'type' : ['file'],
+        'lock' : 'false',
         'defvalue' : [],
         'hash'   : [],
         'date'   : [],
@@ -957,6 +993,7 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+"_gds",
         'requirement' : 'optional',
         'type' : ['file'],
+        'lock' : 'false',
         'defvalue' : [],
         'hash'   : [],
         'date'   : [],
@@ -980,6 +1017,7 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+"_cdl",
         'requirement' : 'optional',
         'type' : ['file'],
+        'lock' : 'false',
         'defvalue' : [],
         'hash'   : [],
         'date'   : [],
@@ -1003,6 +1041,7 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+"_spice",
         'requirement' : 'optional',
         'type' : ['file'],
+        'lock' : 'false',
         'defvalue' : [],
         'hash'   : [],
         'date'   : [],
@@ -1023,6 +1062,7 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+"_hdl",
         'requirement' : 'asic',
         'type' : ['file'],
+        'lock' : 'false',
         'defvalue' : [],
         'hash'   : [],
         'date'   : [],
@@ -1043,6 +1083,7 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+"_atpg",
         'requirement' : 'optional',
         'type' : ['file'],
+        'lock' : 'false',
         'defvalue' : [],
         'hash'   : [],
         'date'   : [],
@@ -1063,6 +1104,7 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+"_pgmetal",
         'requirement' : 'optional',
         'type' : ['str'],
+        'lock' : 'false',
         'defvalue' : [],
         'short_help' : group.capitalize() + ' Power/Ground Layer',
         'param_help' : "'"+group+"' libname 'pgmetal' <str>",
@@ -1080,6 +1122,7 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+"_tag",
         'requirement' : 'optional',
         'type' : ['str'],
+        'lock' : 'false',
         'defvalue' : [],
         'short_help' : group.capitalize() + ' Identifier Tags',
         'param_help' : "'"+group+"' libname 'tag' <str>",
@@ -1100,6 +1143,7 @@ def schema_libs(cfg, group):
         'switch_args' : '<>',
         'requirement' : 'asic',
         'type' : ['str'],
+        'lock' : 'false',
         'defvalue' : [],
         'short_help' : group.capitalize() + ' Default Driver Cell',
         'param_help' : "'"+group+"' libname 'driver' <str>",
@@ -1119,6 +1163,7 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+"_site",
         'requirement' : 'optional',
         'type' : ['str'],
+        'lock' : 'false',
         'defvalue' : [],
         'short_help' : group.capitalize() + ' Site/Tile Name',
         'param_help' : "'"+group+"' libname 'site' <str>",
@@ -1135,6 +1180,7 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+"_cells",
         'requirement' : 'optional',
         'type' : ['str'],
+        'lock' : 'false',
         'defvalue' : [],
         'short_help' : group.capitalize() + ' Cell Lists',
         'param_help' : "'"+group+"' libname 'cells' celltype <str>",
@@ -1155,6 +1201,7 @@ def schema_libs(cfg, group):
         'switch' : '-'+group+"_layoutdb",
         'requirement' : 'optional',
         'type' : ['file'],
+        'lock' : 'false',
         'defvalue' : [],
         'hash'   : [],
         'date'   : [],
@@ -1188,6 +1235,7 @@ def schema_flow(cfg, step):
     cfg['flow'][step]['input'] = {
         'switch' : '-flow_input',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'all',
         'defvalue' : [],
         'short_help' : 'Excution Dependency',
@@ -1206,6 +1254,7 @@ def schema_flow(cfg, step):
     cfg['flow'][step]['exe'] = {
         'switch' : '-flow_exe',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'all',
         'defvalue' : [],
         'short_help' : 'Executable Name',
@@ -1224,6 +1273,7 @@ def schema_flow(cfg, step):
     cfg['flow'][step]['version'] = {
         'switch' : '-flow_version',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'all',
         'defvalue' : [],
         'short_help' : 'Executable Version',
@@ -1242,6 +1292,7 @@ def schema_flow(cfg, step):
     cfg['flow'][step]['option'] = {
         'switch' : '-flow_opt',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Executable Options',
@@ -1262,6 +1313,7 @@ def schema_flow(cfg, step):
     cfg['flow'][step]['refdir'] = {
         'switch' : '-flow_refdir',
         'type' : ['file'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Reference Directory',
@@ -1281,6 +1333,7 @@ def schema_flow(cfg, step):
         'switch' : '-flow_script',
         'requirement' : 'optional',
         'type' : ['file'],
+        'lock' : 'false',
         'defvalue' : [],
         'hash' : [],
         'date'   : [],
@@ -1302,6 +1355,7 @@ def schema_flow(cfg, step):
     cfg['flow'][step]['copy'] = {
         'switch' : '-flow_copy',
         'type' : ['bool'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Copy Local Option',
@@ -1320,6 +1374,7 @@ def schema_flow(cfg, step):
     cfg['flow'][step]['format'] = {
         'switch' : '-flow_format',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'all',
         'defvalue' : [],
         'short_help' : 'Script Format',
@@ -1339,6 +1394,7 @@ def schema_flow(cfg, step):
     cfg['flow'][step]['threads'] = {
         'switch' : '-flow_threads',
         'type' : ['num'],
+        'lock' : 'false',
         'requirement' : 'all',
         'defvalue' : [],
         'short_help' : 'Job Parallelism',
@@ -1357,6 +1413,7 @@ def schema_flow(cfg, step):
     cfg['flow'][step]['cache'] = {
         'switch' : '-flow_cache',
         'type' : ['file'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
@@ -1380,6 +1437,7 @@ def schema_flow(cfg, step):
     cfg['flow'][step]['warningoff'] = {
         'switch' : '-flow_warningoff',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Warning Filter',
@@ -1399,6 +1457,7 @@ def schema_flow(cfg, step):
     cfg['flow'][step]['vendor'] = {
         'switch' : '-flow_vendor',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'all',
         'defvalue' : [],
         'short_help' : 'Step Vendor',
@@ -1419,6 +1478,7 @@ def schema_flow(cfg, step):
         'switch' : '-flow_signature',
         'requirement' : 'optional',
         'type' : ['str'],
+        'lock' : 'false',
         'defvalue' : [],
         'short_help' : 'Step Signature',
         'param_help' : "'flow' step 'signature' <str>",
@@ -1434,6 +1494,7 @@ def schema_flow(cfg, step):
     cfg['flow'][step]['date'] = {
         'switch' : '-flow_date',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'all',
         'defvalue' : [],
         'short_help' : 'Step Date',
@@ -1452,6 +1513,7 @@ def schema_flow(cfg, step):
     cfg['flow'][step]['author'] = {
         'switch' : '-flow_author',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'all',
         'defvalue' : [],
         'short_help' : 'Step Author',
@@ -1481,6 +1543,7 @@ def schema_metrics(cfg, group, step):
     cfg[group][step]['instances'] = {
         'switch' : '-'+group+'_instances',
         'type' : ['num'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Total Cell Instances ' + group.capitalize(),
@@ -1498,6 +1561,7 @@ def schema_metrics(cfg, group, step):
     cfg[group][step]['area'] = {
         'switch' : '-'+group+'_area',
         'type' : ['num'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Cell Area ' + group.capitalize(),
@@ -1514,6 +1578,7 @@ def schema_metrics(cfg, group, step):
     cfg[group][step]['density'] = {
         'switch' : '-'+group+'_density',
         'type' : ['num'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Cell Density ' + group.capitalize(),
@@ -1531,6 +1596,7 @@ def schema_metrics(cfg, group, step):
     cfg[group][step]['power'] = {
         'switch' : '-'+group+'_power',
         'type' : ['num'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Active Power ' + group.capitalize(),
@@ -1548,6 +1614,7 @@ def schema_metrics(cfg, group, step):
     cfg[group][step]['leakage'] = {
         'switch' : '-'+group+'_leakage',
         'type' : ['num'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Leakage ' + group.capitalize(),
@@ -1565,6 +1632,7 @@ def schema_metrics(cfg, group, step):
     cfg[group][step]['hold_tns'] = {
         'switch' : '-'+group+'_hold_tns',
         'type' : ['num'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Hold TNS ' + group.capitalize(),
@@ -1581,6 +1649,7 @@ def schema_metrics(cfg, group, step):
     cfg[group][step]['hold_wns'] = {
         'switch' : '-'+group+'_hold_wns',
         'type' : ['num'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Hold WNS ' + group.capitalize(),
@@ -1597,6 +1666,7 @@ def schema_metrics(cfg, group, step):
     cfg[group][step]['setup_tns'] = {
         'switch' : '-'+group+'_setup_tns',
         'type' : ['num'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Setup TNS ' + group.capitalize(),
@@ -1613,6 +1683,7 @@ def schema_metrics(cfg, group, step):
     cfg[group][step]['setup_wns'] = {
         'switch' : '-'+group+'_setup_wns',
         'type' : ['num'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Setup WNS ' + group.capitalize(),
@@ -1629,6 +1700,7 @@ def schema_metrics(cfg, group, step):
     cfg[group][step]['drv'] = {
         'switch' : '-'+group+'_drv',
         'type' : ['num'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Design Rule Violations ' + group.capitalize(),
@@ -1645,6 +1717,7 @@ def schema_metrics(cfg, group, step):
     cfg[group][step]['warnings'] = {
         'switch' : '-'+group+'_warnings',
         'type' : ['num'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Total Warnings ' + group.capitalize(),
@@ -1660,6 +1733,7 @@ def schema_metrics(cfg, group, step):
     cfg[group][step]['errors'] = {
         'switch' : '-'+group+'_errors',
         'type' : ['num'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Total Errors ' + group.capitalize(),
@@ -1675,6 +1749,7 @@ def schema_metrics(cfg, group, step):
     cfg[group][step]['runtime'] = {
         'switch' : '-'+group+'_runtime',
         'type' : ['num'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Total Runtime ' + group.capitalize(),
@@ -1692,6 +1767,7 @@ def schema_metrics(cfg, group, step):
     cfg[group][step]['memory'] = {
         'switch' : '-'+group+'_memory',
         'type' : ['num'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Total Memory ' + group.capitalize(),
@@ -1719,6 +1795,7 @@ def schema_options(cfg):
     cfg['mode'] = {
         'switch' : '-mode',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'all',
         'defvalue' : ['asic'],
         'short_help' : 'Compilation Mode',
@@ -1735,6 +1812,7 @@ def schema_options(cfg):
     cfg['target'] = {
         'switch' : '-target',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : ['custom'],
         'short_help' : 'Target Platform',
@@ -1757,6 +1835,7 @@ def schema_options(cfg):
         'switch' : '-steplist',
         'requirement' : 'all',
         'type' : ['str'],
+        'lock' : 'false',
         'defvalue' : [],
         'short_help' : 'Compilation Steps List',
         'param_help' : "'steplist' <str>",
@@ -1776,6 +1855,7 @@ def schema_options(cfg):
     cfg['cfg'] = {
         'switch' : '-cfg',
         'type' : ['file'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
@@ -1803,6 +1883,7 @@ def schema_options(cfg):
     cfg['env']['default'] = {
         'switch' : '-env',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Environment Variables',
@@ -1821,6 +1902,7 @@ def schema_options(cfg):
     cfg['scpath'] = {
         'switch' : '-scpath',
         'type' : ['file'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Search path',
@@ -1837,6 +1919,7 @@ def schema_options(cfg):
     cfg['hash'] = {
         'switch' : '-hash',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : ['NONE'],
         'short_help' : 'Hash Files',
@@ -1854,6 +1937,7 @@ def schema_options(cfg):
     cfg['lock'] = {
         'switch' : '-lock',
         'type' : ['bool'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : ['false'],
         'short_help' : 'Configuration File Lock',
@@ -1876,6 +1960,7 @@ def schema_options(cfg):
         'short_help' : 'Quiet Execution Option',
         'switch' : '-quiet',
         'type' : ['bool'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : ['false'],
         'short_help' : 'Quiet execution',
@@ -1894,6 +1979,7 @@ def schema_options(cfg):
     cfg['loglevel'] = {
         'switch' : '-loglevel',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : ['WARNING'],
         'short_help' : 'Logging Level',
@@ -1912,6 +1998,7 @@ def schema_options(cfg):
     cfg['dir'] = {
         'switch' : '-dir',
         'type' : ['dir'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : ['build'],
         'short_help' : 'Build Directory',
@@ -1929,6 +2016,7 @@ def schema_options(cfg):
     cfg['jobname'] = {
         'switch' : '-jobname',
         'type' : ['dir'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Job Name',
@@ -1947,6 +2035,7 @@ def schema_options(cfg):
     cfg['start'] = {
         'switch' : '-start',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Compilation Start Step',
@@ -1966,6 +2055,7 @@ def schema_options(cfg):
     cfg['stop'] = {
         'switch' : '-stop',
         'type' : ['str'],
+        'lock' : 'false',
         'defvalue' : [],
         'requirement' : 'optional',
         'short_help' : 'Compilation Stop Step',
@@ -1984,6 +2074,7 @@ def schema_options(cfg):
     cfg['skip'] = {
         'switch' : '-skip',
         'type' : ['str'],
+        'lock' : 'false',
         'defvalue' : [],
         'requirement' : 'optional',
         'short_help' : 'Compilation Skip Steps',
@@ -2002,6 +2093,7 @@ def schema_options(cfg):
     cfg['skipall'] = {
         'switch' : '-skipall',
         'type' : ['bool'],
+        'lock' : 'false',
         'defvalue' : ['false'],
         'requirement' : 'optional',
         'short_help' : 'Skip All Steps',
@@ -2019,6 +2111,7 @@ def schema_options(cfg):
     cfg['msgevent'] = {
         'switch' : '-msgevent',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Message Event',
@@ -2037,6 +2130,7 @@ def schema_options(cfg):
     cfg['msgcontact'] = {
         'switch' : '-msgcontact',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Message Contact',
@@ -2054,6 +2148,7 @@ def schema_options(cfg):
     cfg['optmode'] = {
         'switch' : '-O',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : ['O0'],
         'short_help' : 'Optimization Mode',
@@ -2076,6 +2171,7 @@ def schema_options(cfg):
     cfg['relax'] = {
         'switch' : '-relax',
         'type' : ['bool'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : ['false'],
         'short_help' : 'Relaxed RTL Linting',
@@ -2094,6 +2190,7 @@ def schema_options(cfg):
     cfg['clean'] = {
         'switch' : '-clean',
         'type' : ['bool'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : ['false'],
         'short_help' : 'Keep essential files only',
@@ -2110,6 +2207,7 @@ def schema_options(cfg):
     cfg['noexit'] = {
         'switch' : '-noexit',
         'type' : ['bool'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : ['false'],
         'short_help' : "Disable end of step tool exit",
@@ -2129,6 +2227,7 @@ def schema_options(cfg):
     cfg['remote'] = {
         'switch': '-remote',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Remote Server Address',
@@ -2147,6 +2246,7 @@ def schema_options(cfg):
     cfg['remoteport'] = {
         'switch': '-remoteport',
         'type' : ['num'],
+        'lock' : 'false',
         'requirement' : 'remote',
         'defvalue' : ['8080'],
         'short_help': 'Remove Server Port',
@@ -2164,6 +2264,7 @@ def schema_options(cfg):
     cfg['permutations'] = {
         'switch' : '-permutations',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : "Python file containing configuration generator for parallel runs.",
@@ -2188,6 +2289,7 @@ def schema_status(cfg):
     cfg['status']['step'] = {
         'switch' : '-status_step',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Current Compilation Step',
@@ -2206,6 +2308,7 @@ def schema_status(cfg):
     cfg['status']['default']['active'] = {
         'switch' : '-status_active',
         'type' : ['bool'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Step Active Indicator',
@@ -2230,6 +2333,7 @@ def schema_design(cfg):
     cfg['source'] = {
         'switch' : 'None',
         'type' : ['file'],
+        'lock' : 'false',
         'requirement' : 'all',
         'defvalue' : [],
         'hash'   : [],
@@ -2256,6 +2360,7 @@ def schema_design(cfg):
     cfg['doc'] = {
         'switch' : '-doc',
         'type' : ['file'],
+        'lock' : 'false',
         'requirement' : 'all',
         'defvalue' : [],
         'hash'   : [],
@@ -2276,6 +2381,7 @@ def schema_design(cfg):
     cfg['rev'] = {
         'switch' : '-rev',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'all',
         'defvalue' : [],
         'short_help' : 'Design Revision',
@@ -2291,6 +2397,7 @@ def schema_design(cfg):
     cfg['license'] = {
         'switch' : '-license',
         'type' : ['file'],
+        'lock' : 'false',
         'requirement' : 'all',
         'defvalue' : [],
         'short_help' : 'Design License File',
@@ -2307,6 +2414,7 @@ def schema_design(cfg):
     cfg['design'] = {
         'switch' : '-design',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Design Top Module Name',
@@ -2324,6 +2432,7 @@ def schema_design(cfg):
     cfg['nickname'] = {
         'switch' : '-nickname',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Design Nickname',
@@ -2342,6 +2451,7 @@ def schema_design(cfg):
     cfg['origin'] = {
         'switch' : '-origin',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Design Origin',
@@ -2361,6 +2471,7 @@ def schema_design(cfg):
     cfg['clock']['default']['name'] = {
         'switch' : '-clock_name',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Design Clock Name',
@@ -2379,6 +2490,7 @@ def schema_design(cfg):
     cfg['clock']['default']['period'] = {
         'switch' : '-clock_period',
         'type' : ['num'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Design Clocks',
@@ -2395,6 +2507,7 @@ def schema_design(cfg):
     cfg['clock']['default']['jitter'] = {
         'switch' : '-clock_jitter',
         'type' : ['num'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Design Clock Jitter',
@@ -2414,6 +2527,7 @@ def schema_design(cfg):
     cfg['supply']['default']['name'] = {
         'switch' : '-supply_name',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Design Power Supply Name',
@@ -2432,6 +2546,7 @@ def schema_design(cfg):
     cfg['supply']['default']['level'] = {
         'switch' : '-supply_level',
         'type' : ['num'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Design Power Supply Level',
@@ -2448,6 +2563,7 @@ def schema_design(cfg):
     cfg['supply']['default']['noise'] = {
         'switch' : '-supply_noise',
         'type' : ['num'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Design Power Supply Noise',
@@ -2464,6 +2580,7 @@ def schema_design(cfg):
     cfg['define'] = {
         'switch' : '-D',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Verilog Preprocessor Symbols',
@@ -2480,6 +2597,7 @@ def schema_design(cfg):
     cfg['ydir'] = {
         'switch' : '-y',
         'type' : ['dir'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
@@ -2502,6 +2620,7 @@ def schema_design(cfg):
     cfg['idir'] = {
         'switch' : '-I',
         'type' : ['dir'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
@@ -2523,6 +2642,7 @@ def schema_design(cfg):
     cfg['vlib'] = {
         'switch' : '-v',
         'type' : ['file'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
@@ -2544,6 +2664,7 @@ def schema_design(cfg):
     cfg['libext'] = {
         'switch' : '+libext',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Verilog File Extensions',
@@ -2562,6 +2683,7 @@ def schema_design(cfg):
     cfg['cmdfile'] = {
         'switch' : '-f',
         'type' : ['file'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
@@ -2584,6 +2706,7 @@ def schema_design(cfg):
     cfg['constraint'] = {
         'switch' : '-constraint',
         'type' : ['file'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
@@ -2607,6 +2730,7 @@ def schema_design(cfg):
     cfg['vcd'] = {
         'switch' : '-vcd',
         'type' : ['file'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
@@ -2628,6 +2752,7 @@ def schema_design(cfg):
     cfg['spef'] = {
         'switch' : '-spef',
         'type' : ['file'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
@@ -2651,6 +2776,7 @@ def schema_design(cfg):
     cfg['sdf'] = {
         'switch' : '-sdf',
         'type' : ['file'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
@@ -2683,6 +2809,7 @@ def schema_asic(cfg):
     cfg['asic']['targetlib'] = {
         'switch' : '-asic_targetlib',
         'type' : ['str'],
+        'lock' : 'false',
         'defvalue' : [],
         'requirement' : 'asic',
         'short_help' : 'Target Libraries',
@@ -2701,6 +2828,7 @@ def schema_asic(cfg):
     cfg['asic']['macrolib'] = {
         'switch' : '-asic_macrolib',
         'type' : ['str'],
+        'lock' : 'false',
         'defvalue' : [],
         'requirement' : 'optional',
         'short_help' : 'Macro Libraries',
@@ -2719,6 +2847,7 @@ def schema_asic(cfg):
     cfg['asic']['delaymodel'] = {
         'switch' : '-asic_delaymodel',
         'type' : ['str'],
+        'lock' : 'false',
         'defvalue' : [],
         'requirement' : 'asic',
         'short_help' : 'Library Delay Model',
@@ -2736,6 +2865,7 @@ def schema_asic(cfg):
     cfg['asic']['ndr'] = {
         'switch' : '-asic_ndr',
         'type' : ['file'],
+        'lock' : 'false',
         'requirement' : '',
         'defvalue' : [],
         'hash'   : [],
@@ -2759,6 +2889,7 @@ def schema_asic(cfg):
     cfg['asic']['minlayer'] = {
         'switch' : '-asic_minlayer',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'asic',
         'defvalue' : [],
         'short_help' : 'Minimum routing layer',
@@ -2781,6 +2912,7 @@ def schema_asic(cfg):
     cfg['asic']['maxlayer'] = {
         'switch' : '-maxlayer',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'asic',
         'defvalue' : [],
         'short_help' : 'Maximum Routing Layer',
@@ -2803,6 +2935,7 @@ def schema_asic(cfg):
     cfg['asic']['maxfanout'] = {
         'switch' : '-asic_maxfanout',
         'type' : ['num'],
+        'lock' : 'false',
         'requirement' : 'asic',
         'defvalue' : [],
         'short_help' : 'Maximum Fanout',
@@ -2819,6 +2952,7 @@ def schema_asic(cfg):
     cfg['asic']['stackup'] = {
         'switch' : '-asic_stackup',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'asic',
         'defvalue' : [],
         'short_help' : 'Metal Stackup',
@@ -2837,6 +2971,7 @@ def schema_asic(cfg):
     cfg['asic']['density'] = {
         'switch' : '-asic_density',
         'type' : ['num'],
+        'lock' : 'false',
         'requirement' : '!diesize',
         'defvalue' : [],
         'short_help' : 'Target Core Density',
@@ -2856,6 +2991,7 @@ def schema_asic(cfg):
     cfg['asic']['coremargin'] = {
         'switch' : '-asic_coremargin',
         'type' : ['num'],
+        'lock' : 'false',
         'requirement' : 'density',
         'defvalue' : [],
         'short_help' : 'Block Core Margin',
@@ -2874,6 +3010,7 @@ def schema_asic(cfg):
     cfg['asic']['aspectratio'] = {
         'switch' : '-asic_aspectratio',
         'type' : ['num'],
+        'lock' : 'false',
         'requirement' : 'density',
         'defvalue' : ['1'],
         'short_help' : 'APR Block Aspect Ratio',
@@ -2894,6 +3031,7 @@ def schema_asic(cfg):
     cfg['asic']['diesize'] = {
         'switch' : '-asic_diesize',
         'type' : ['num', 'num', 'num', 'num'],
+        'lock' : 'false',
         'requirement' : '!density',
         'defvalue' : [],
         'short_help' : 'Target Die Size',
@@ -2914,6 +3052,7 @@ def schema_asic(cfg):
     cfg['asic']['coresize'] = {
         'switch' : '-asic_coresize',
         'type' : ['num', 'num', 'num', 'num'],
+        'lock' : 'false',
         'requirement' : 'diesize',
         'defvalue' : [],
         'short_help' : 'Target Core Size',
@@ -2936,6 +3075,7 @@ def schema_asic(cfg):
     cfg['asic']['floorplan'] = {
         'switch' : '-asic_floorplan',
         'type' : ['file'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
@@ -2959,6 +3099,7 @@ def schema_asic(cfg):
     cfg['asic']['def'] = {
         'switch' : '-asic_def',
         'type' : ['file'],
+        'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'hash'   : [],
@@ -2993,6 +3134,7 @@ def schema_mcmm(cfg):
     cfg['mcmm']['default']['voltage'] = {
         'switch' : '-mcmm_voltage',
         'type' : ['num'],
+        'lock' : 'false',
         'requirement' : 'asic',
         'defvalue' : [],
         'short_help' : 'MCMM Voltage',
@@ -3008,6 +3150,7 @@ def schema_mcmm(cfg):
     cfg['mcmm']['default']['temperature'] = {
         'switch' : '-mcmm_temperature',
         'type' : ['num'],
+        'lock' : 'false',
         'requirement' : 'asic',
         'defvalue' : [],
         'short_help' : 'MCMM Temperature',
@@ -3023,6 +3166,7 @@ def schema_mcmm(cfg):
     cfg['mcmm']['default']['libcorner'] = {
         'switch' : '-mcmm_libcorner',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'asic',
         'defvalue' : [],
         'short_help' : 'MCMM Library Corner Name',
@@ -3042,6 +3186,7 @@ def schema_mcmm(cfg):
     cfg['mcmm']['default']['opcond'] = {
         'switch' : '-mcmm_opcond',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'asic',
         'defvalue' : [],
         'short_help' : 'MCMM Operating Condition',
@@ -3061,6 +3206,7 @@ def schema_mcmm(cfg):
     cfg['mcmm']['default']['pexcorner'] = {
         'switch' : '-mcmm_pexcorner',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'asic',
         'defvalue' : [],
         'short_help' : 'MCMM PEX Corner Name',
@@ -3079,6 +3225,7 @@ def schema_mcmm(cfg):
     cfg['mcmm']['default']['mode'] = {
         'switch' : '-mcmm_mode',
         'type' : ['str'],
+        'lock' : 'false',
         'requirement' : 'asic',
         'defvalue' : [],
         'short_help' : 'MCMM Mode Name',
@@ -3094,6 +3241,7 @@ def schema_mcmm(cfg):
     cfg['mcmm']['default']['constraint'] = {
         'switch' : '-mcmm_constraint',
         'type' : ['file'],
+        'lock' : 'false',
         'requirement' : 'asic',
         'hash' : [],
         'date'   : [],
@@ -3117,6 +3265,7 @@ def schema_mcmm(cfg):
     cfg['mcmm']['default']['check'] = {
         'switch' : '-mcmm_check',
         'type' : ['str'],
+        'lock' : 'false',        
         'requirement' : 'asic',
         'defvalue' : [],
         'short_help' : 'MCMM Checks',
