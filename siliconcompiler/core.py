@@ -88,9 +88,6 @@ class Chip:
         # Status placeholder dictionary
         # TODO, should be defined!
         self.status =  {}
-        
-        # Instance starts unlocked
-        self.cfg_locked = False
 
     ###################################
     def target(self):
@@ -458,21 +455,6 @@ class Chip:
         if error:
             sys.exit()
         
-    ###################################
-    def getstatus(self, step, jobid):
-        '''Gets status of a job for a specific compilaton step
-
-        Args:
-            step (string): Step name to get status for
-            jobid (int): Job index
-
-        Returns:
-            string: Status (pending, running, done, or error)
-
-        '''
-
-        return self.status[step][jobid]
-
     #################################
     def readcfg(self, filename):
         '''Reads a json formatted config file into the Chip current Chip
@@ -603,8 +585,8 @@ class Chip:
                     self.reset(cfg=cfg[k])
 
     ##################################
-    def wait(self, step=None, jobid=None):
-        '''Waits for specific jobids and steps to complete
+    def wait(self, step=None):
+        '''Waits for specific step to complete
         '''
 
         if step is None:
@@ -615,16 +597,12 @@ class Chip:
         while True:
             busy = False
             for step in steplist:
-                pending = self.get('status', step, 'active')
-                if (jobid is None) & (len(pending) > 0) :
+                if schema_istrue(self.cfg['status'][step]['active']):
                     self.logger.info("Step '%s' is still active", step)
                     busy = True
-                elif jobid in pending:
-                    self.logger.info("Jobid '%s' of step '%s' is still active", step, jobid)
-                    busy = True                    
             if busy:
                 #TODO: Change this timeout
-                self.logger.info("Waiting 10sec for jobs to finish")
+                self.logger.info("Waiting 10sec for step to finish")
                 time.sleep(10)
             else:
                 break
@@ -743,12 +721,11 @@ class Chip:
         for stepindex in range(startindex, stopindex + 1):
             step = steplist[stepindex]
             steps.append(step)
-            jobid = self.get('status', step, 'jobid')[-1]
             row = []
             metrics = []
-            for metric in self.getkeys('real', step, jobid):
+            for metric in self.getkeys('real', step):
                 metrics.append(" " + metric)
-                row.append(" " + str(self.get('real', step, jobid, metric)[-1]))
+                row.append(" " + str(self.get('real', step, metric)[-1]))
             data.append(row)
 
 
@@ -802,8 +779,32 @@ class Chip:
         remote = len(self.cfg['remote']['value']) > 0
         steplist = self.cfg['steplist']['value']
         buildroot = str(self.cfg['dir']['value'][-1])
+        design = str(self.cfg['design']['value'][-1])
+
         cwd = os.getcwd()
-         
+        
+        ###########################
+        # Jobdir
+        ###########################
+        
+        if (len(self.cfg['jobname']['value']) > 0):
+            jobname = self.cfg['jobname']['value'][-1]
+        else:
+            alljobs = os.listdir(buildroot +
+                                 "/" +
+                                 design)
+            jobid = 0   
+            for item in alljobs:
+                m = re.match('job(\d+)', item)
+                if m:
+                    jobid = max(jobid, int(m.group(1)))
+            jobid = jobid+1
+            jobname = "job" + str(jobid)
+
+        ###########################
+        # Defining Pipeline
+        ###########################
+
         if start is None:
             start = self.get('start')[-1]
         if stop is None:
@@ -811,7 +812,7 @@ class Chip:
 
         startindex = steplist.index(start)
         stopindex = steplist.index(stop)
-        
+
         ###########################
         # Execute pipeline
         ###########################
@@ -828,30 +829,18 @@ class Chip:
             if step not in steplist:
                 self.logger.error('Illegal step name %s', step)
                 sys.exit()
+
+            #####################
+            # Job Directory
+            #####################
                 
-            #####################
-            # Job-ID and Step
-            #####################
-            
-            #Automatic updating of jobids when argument is missing
-            if (jobid is None ) | importstep:
-                #Initialize jobid first time around
-                if not step in self.cfg['status'].keys():
-                    self.set('status', step, 'jobid', '0')
-                jobid = int(self.cfg['status'][step]['jobid']['value'][-1])
-                if not remote:
-                    jobid = jobid + 1
-
-            #Update JOBID in dictionary!
-            self.set('status', step, 'jobid', str(jobid))
-      
-            if stepindex==0:
-                jobdir = buildroot + '/import/job'
-            else:
-                jobdir = '/'.join([buildroot,
-                                   step,
-                                   "job"+str(jobid)])
-
+          
+                        
+            jobdir = '/'.join([buildroot,
+                               design,
+                               jobname,
+                               step])
+                                   
             #####################
             # Dynamic EDA setup
             #####################
@@ -864,8 +853,8 @@ class Chip:
             #####################
             # Init Metrics Table
             #####################
-            for metric in self.getkeys('real', step, 'default'):
-                self.add('real', step, str(jobid), metric, 0)
+            for metric in self.getkeys('real', 'default'):
+                self.add('real', step, metric, 0)
 
             #####################
             # Execution
@@ -873,11 +862,8 @@ class Chip:
             if ((step in self.cfg['skip']['value']) |
                 (self.cfg['skipall']['value'][-1] =='true')):
                 self.logger.info('Skipping step: %s', step)
-            elif (stepindex==0) & (jobid > 1):  
-                self.logger.info('Skipping import step, already run')
             else:
-                self.logger.info("Running step '%s' with jobid '%s'", step, jobid)  
-
+                self.logger.info("Running step '%s'", step)  
                 # Copying in Files (local only)
                 if os.path.isdir(jobdir) and (not remote):
                     shutil.rmtree(jobdir)
@@ -888,21 +874,8 @@ class Chip:
                 # First stage after import always copies from same place
                 if stepindex==0:
                     pass
-                elif stepindex == 1:
-                    if not remote:
-                        shutil.copytree("../../import/job/outputs", 'inputs')
-                else:
-                    lastjobid = self.get('status', laststep, 'jobid')[-1]                    
-                    #check if job was run before, if not use current step ID
-                    #TODO: add some error checking here?
-                    if lastjobid == '0':
-                        lastjobid = jobid
-                    lastdir = '/'.join(['../../',                
-                                        steplist[stepindex-1],
-                                        'job'+str(lastjobid),
-                                        'outputs'])
-                    if not remote:
-                        shutil.copytree(lastdir, 'inputs')
+                elif not remote:
+                    shutil.copytree("../"+laststep+"/outputs", 'inputs')
                 
                 #Copy Reference Scripts
                 refdir = schema_path(self.cfg['flow'][step]['refdir']['value'][-1])

@@ -1186,7 +1186,7 @@ def schema_flow(cfg, step):
     
     # Used to define flow sequence
     cfg['flow'][step]['input'] = {
-        'switch' : '-flow_follows',
+        'switch' : '-flow_input',
         'type' : ['str'],
         'requirement' : 'all',
         'defvalue' : [],
@@ -1477,9 +1477,8 @@ def schema_metrics(cfg, group, step):
         cfg[group] = {}    
 
     cfg[group][step] = {}      # per step
-    cfg[group][step]['default'] = {} # per jobid
 
-    cfg[group][step]['default']['instances'] = {
+    cfg[group][step]['instances'] = {
         'switch' : '-'+group+'_instances',
         'type' : ['num'],
         'requirement' : 'optional',
@@ -1488,7 +1487,7 @@ def schema_metrics(cfg, group, step):
         'param_help' : "'"+group+"' step 'jobid' 'instances' <num>",
         'help' : 
         "Metric tracking the total number of cell instances on a per step"\
-        "and per jobid basis. In the case of FPGAs, the it represents    "\
+        " basis. In the case of FPGAs, the it represents    "\
         "the number of LUTs.                                             "\
         "                                                                "\
         "Examples:                                                       "\
@@ -1496,7 +1495,7 @@ def schema_metrics(cfg, group, step):
         "api: chip.set('"+group+"','place', '1', 'instances', '100')     "
     }    
     
-    cfg[group][step]['default']['area'] = {
+    cfg[group][step]['area'] = {
         'switch' : '-'+group+'_area',
         'type' : ['num'],
         'requirement' : 'optional',
@@ -1504,15 +1503,15 @@ def schema_metrics(cfg, group, step):
         'short_help' : 'Cell Area ' + group.capitalize(),
         'param_help' : "'"+group+"' step 'jobid' 'area' <num>",
         'help' : 
-        "Metric tracking the total cell area on a per step and per jobid "\
-        "basis specified in um^2.                                        "\
+        "Metric tracking the total cell area on a per step basis"\
+        "specified in um^2.                                        "\
         "                                                                "\
         "Examples:                                                       "\
         "cli: -"+group+"_area 'place 1 10000'                            "\
         "api: chip.set('"+group+"','place', '1', 'area', '10000')        "
     }
 
-    cfg[group][step]['default']['density'] = {
+    cfg[group][step]['density'] = {
         'switch' : '-'+group+'_density',
         'type' : ['num'],
         'requirement' : 'optional',
@@ -1529,7 +1528,7 @@ def schema_metrics(cfg, group, step):
         "api: chip.set('"+group+"','place', '1', 'density', '50')        "
     } 
     
-    cfg[group][step]['default']['power'] = {
+    cfg[group][step]['power'] = {
         'switch' : '-'+group+'_power',
         'type' : ['num'],
         'requirement' : 'optional',
@@ -1546,7 +1545,7 @@ def schema_metrics(cfg, group, step):
         "api: chip.set('"+group+"','place', '1', 'power', '0.001')       "
     }    
 
-    cfg[group][step]['default']['leakage'] = {
+    cfg[group][step]['leakage'] = {
         'switch' : '-'+group+'_leakage',
         'type' : ['num'],
         'requirement' : 'optional',
@@ -1563,7 +1562,7 @@ def schema_metrics(cfg, group, step):
     }    
 
     
-    cfg[group][step]['default']['hold_tns'] = {
+    cfg[group][step]['hold_tns'] = {
         'switch' : '-'+group+'_hold_tns',
         'type' : ['num'],
         'requirement' : 'optional',
@@ -1579,7 +1578,7 @@ def schema_metrics(cfg, group, step):
         "api: chip.set('"+group+"','place', '1','hold_tns', '0')         "
     }    
 
-    cfg[group][step]['default']['hold_wns'] = {
+    cfg[group][step]['hold_wns'] = {
         'switch' : '-'+group+'_hold_wns',
         'type' : ['num'],
         'requirement' : 'optional',
@@ -1595,7 +1594,7 @@ def schema_metrics(cfg, group, step):
         "api: chip.set('"+group+"','place','1','hold_wns', '0')          "
     }    
 
-    cfg[group][step]['default']['setup_tns'] = {
+    cfg[group][step]['setup_tns'] = {
         'switch' : '-'+group+'_setup_tns',
         'type' : ['num'],
         'requirement' : 'optional',
@@ -1611,7 +1610,7 @@ def schema_metrics(cfg, group, step):
         "api: chip.set('"+group+"','place','1','setup_tns', '0')         "
     }    
 
-    cfg[group][step]['default']['setup_wns'] = {
+    cfg[group][step]['setup_wns'] = {
         'switch' : '-'+group+'_setup_wns',
         'type' : ['num'],
         'requirement' : 'optional',
@@ -1627,7 +1626,7 @@ def schema_metrics(cfg, group, step):
         "api: chip.set('"+group+"','place','1','setup_wns','0')          "
     }    
 
-    cfg[group][step]['default']['drv'] = {
+    cfg[group][step]['drv'] = {
         'switch' : '-'+group+'_drv',
         'type' : ['num'],
         'requirement' : 'optional',
@@ -1643,7 +1642,7 @@ def schema_metrics(cfg, group, step):
         "api: chip.set('"+group+"','place','1','drv', '0')               "
     }    
 
-    cfg[group][step]['default']['warnings'] = {
+    cfg[group][step]['warnings'] = {
         'switch' : '-'+group+'_warnings',
         'type' : ['num'],
         'requirement' : 'optional',
@@ -1658,7 +1657,7 @@ def schema_metrics(cfg, group, step):
         "api: chip.set('"+group+"','place','1','warnings', '0')           "
     }
     
-    cfg[group][step]['default']['errors'] = {
+    cfg[group][step]['errors'] = {
         'switch' : '-'+group+'_errors',
         'type' : ['num'],
         'requirement' : 'optional',
@@ -1673,7 +1672,7 @@ def schema_metrics(cfg, group, step):
         "api: chip.set('"+group+"','place','1','errors', '0')            "
     }
 
-    cfg[group][step]['default']['runtime'] = {
+    cfg[group][step]['runtime'] = {
         'switch' : '-'+group+'_runtime',
         'type' : ['num'],
         'requirement' : 'optional',
@@ -1690,7 +1689,7 @@ def schema_metrics(cfg, group, step):
         "api: chip.set('"+group+"','place','1','runtime', '0')           "
     }
     
-    cfg[group][step]['default']['memory'] = {
+    cfg[group][step]['memory'] = {
         'switch' : '-'+group+'_memory',
         'type' : ['num'],
         'requirement' : 'optional',
@@ -2203,33 +2202,17 @@ def schema_status(cfg):
 
     cfg['status']['default'] = { }
 
-    cfg['status']['default']['jobid'] = {
-        'switch' : '-status_jobid',
-        'type' : ['num'],
-        'requirement' : 'optional',
-        'defvalue' : ['0'],
-        'short_help' : 'Job Index',
-        'param_help' : "'status' step 'jobid' <num>",
-        'help' : """
-        A dynamic variable that keeeps track of of the current jobid.
-        The variable is managed by the run function and not writable 
-        by the user.
-                
-        """
-        }
-        
+      
     cfg['status']['default']['active'] = {
         'switch' : '-status_active',
-        'type' : ['num'],
+        'type' : ['bool'],
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Active Job List',
-        'param_help' : "'status' step 'active' <num>",
+        'short_help' : 'Step Active Indicator',
+        'param_help' : "'status' step 'active' <bool>",
         'help' : """
-        A dynamic list that keeps track of all job ids currently in
-        active execution mode. The variable is managed by the run function
-        and not writable by the user.
-
+        Status field with boolean indicating step activity.
+        true=active/processing, false=inactive/done
         """
         }
         

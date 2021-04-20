@@ -171,9 +171,9 @@ def add_arg(cfg, parser, keys=None):
                                     help=helpstr,
                                     default = argparse.SUPPRESS)
         elif k in ('goal', 'real'):
-            for k2 in cfg[k]['default']['default'].keys():
-                helpstr = cfg[k]['default']['default'][k2]['short_help']
-                parser.add_argument(cfg[k]['default']['default'][k2]['switch'],
+            for k2 in cfg[k]['default'].keys():
+                helpstr = cfg[k]['default'][k2]['short_help']
+                parser.add_argument(cfg[k]['default'][k2]['switch'],
                                     dest=k+"_"+k2,
                                     metavar='',
                                     action='append',
@@ -289,13 +289,13 @@ def main():
             # Sleep asynchronously so that background threads can run.
             loop.run_until_complete(asyncio.sleep(1.0))
 
-        # Print Summary
-        # TODO: Currently causes errors due to jobid keys.
-        #chip.summary()
-
     # For remote jobs, fetch results.
     if 'remote' in cmdlinecfg.keys():
         fetch_results(chips[-1])
+
+    # Print Summary
+    chip.summary() 
+
         
 #########################
 if __name__ == "__main__":    
