@@ -151,8 +151,8 @@
  | 'ground' supplypath 'level' <num>                    | Design Power Supply Level      | num             | optional   |           |
  | 'ground' supplypath 'noise' <num>                    | Design Power Supply Noise      | num             | optional   |           |
  | 'define' <str>                                       | Verilog Preprocessor Symbols   | str             | optional   |           |
- | 'ydir' <dir>                                         | Verilog Module Search Paths    | dir             | optional   |           |
- | 'idir' <dir>                                         | Verilog Include Search Paths   | dir             | optional   |           |
+ | 'ydir' \<dir\>                                       | Verilog Module Search Paths    | dir             | optional   |           |
+ | 'idir' \<dir\>                                       | Verilog Include Search Paths   | dir             | optional   |           |
  | 'vlib' <file>                                        | Verilog Library                | file            | optional   |           |
  | 'libext' <str>                                       | Verilog File Extensions        | str             | optional   |           |
  | 'cmdfile' <file>                                     | Verilog Options File           | file            | optional   |           |
@@ -178,8 +178,8 @@
  | 'lock' <bool>                                        | Configuration File Lock        | bool            | optional   | false     |
  | 'quiet' <bool>                                       | Quiet execution                | bool            | optional   | false     |
  | 'loglevel' <str>                                     | Logging Level                  | str             | optional   | WARNING   |
- | 'dir' <dir>                                          | Build Directory                | dir             | optional   | build     |
- | 'jobname' <dir>                                      | Job Name                       | dir             | optional   |           |
+ | 'dir' \<dir\>                                        | Build Directory                | dir             | optional   | build     |
+ | 'jobname' \<dir\>                                    | Job Name                       | dir             | optional   |           |
  | 'start' <str>                                        | Compilation Start Step         | str             | optional   |           |
  | 'stop' <str>                                         | Compilation Stop Step          | str             | optional   |           |
  | 'skip' <str>                                         | Compilation Skip Steps         | str             | optional   |           |
