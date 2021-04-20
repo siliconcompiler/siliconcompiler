@@ -233,13 +233,13 @@ class Server:
             # Send JSON config instead of using subset of flags.
             # TODO: Use slurmpy SDK?
             run_cmd  = 'srun %s sc /dev/null '%(export_path)
-            run_cmd += '-cfg %s/chip.json '%(build_dir)
+            run_cmd += '-cfg %s/configs/chip%s.json '%(build_dir, jobid)
         else:
             # Unrecognized or unset clusering option; run locally on the
             # server itself. (Note: local runs are mostly synchronous, so
             # this will probably block the server from responding to other
             # calls. It should only be used for testing and development.)
-            run_cmd = 'sc /dev/null -cfg %s/chip.json'%build_dir
+            run_cmd = 'sc /dev/null -cfg %s/configs/chip%s.json'%(build_dir, jobid)
 
         # Create async subprocess shell, and block this thread until it finishes.
         proc = await asyncio.create_subprocess_shell(run_cmd)
