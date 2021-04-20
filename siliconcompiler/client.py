@@ -4,7 +4,6 @@ import aiohttp
 import asyncio
 import os
 import subprocess
-import time
 
 ###################################
 def remote_preprocess(chips, cmdlinecfg):
@@ -42,7 +41,7 @@ async def remote_run(chip, stage):
     is_busy = True
     while is_busy:
       print("%s stage running. Please wait."%stage)
-      time.sleep(1)
+      await asyncio.sleep(1)
       is_busy = await is_job_busy(chip, stage)
     print("%s stage completed!"%stage)
 
