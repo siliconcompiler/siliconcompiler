@@ -380,7 +380,8 @@ class Chip:
                     valstr = ' '.join(cfg[k][field])
                     typestr = ' '.join(cfg[k]['type'])
                     defstr  = ' '.join(cfg[k]['defvalue'])
-                    outlst = [cfg[k]['param_help'],
+                    #Need to escape dir to get pdf to print in pandoc?
+                    outlst = [cfg[k]['param_help'].replace("<dir>","\<dir\>"),
                               cfg[k]['short_help'],
                               typestr,
                               cfg[k]['requirement'],
