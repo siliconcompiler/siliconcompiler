@@ -1473,60 +1473,6 @@ def schema_flow(cfg, step):
         """
     }
 
-    #signature
-    cfg['flow'][step]['signature'] = {
-        'switch' : '-flow_signature',
-        'requirement' : 'optional',
-        'type' : ['str'],
-        'lock' : 'false',
-        'defvalue' : [],
-        'short_help' : 'Step Signature',
-        'param_help' : "'flow' step 'signature' <str>",
-        'help' : [
-            "A hashed approval signature on a per step basis.        ",
-            "                                                         ",
-            "Examples:                                                ",
-            "cli: -flow_signature 'signoff <str>'                     ",
-            "api: chip.set('flow','signoff, 'signature', <str>)       "]
-    }        
-    
-    #date
-    cfg['flow'][step]['date'] = {
-        'switch' : '-flow_date',
-        'type' : ['str'],
-        'lock' : 'false',
-        'requirement' : 'all',
-        'defvalue' : [],
-        'short_help' : 'Step Date',
-        'param_help' : "'flow' step 'date' <str>",
-        'help' : """
-        A date stamp on a per step basis updated at runtime in coordination 
-        with jobid.
-
-        Examples:
-        cli: -flow_date 'date Mon Mar 1 16:12:14 2021'
-        api: chip.set('flow','date', 'date','Mon Mar 1 16:12:14 2021')
-        """
-    }
-    
-    #author
-    cfg['flow'][step]['author'] = {
-        'switch' : '-flow_author',
-        'type' : ['str'],
-        'lock' : 'false',
-        'requirement' : 'all',
-        'defvalue' : [],
-        'short_help' : 'Step Author',
-        'param_help' : "'flow' step 'author' <str>",
-        'help' : """
-        A author record on a per step basis.
-
-        Examples:
-        cli: -flow_author 'syn author, wilecoyote@acme.com'
-        api: chip.set('flow','syn, 'author', 'wilecoyote@acme.com'
-        """
-    }
-
     return cfg
 
 ###########################################################################
@@ -1547,15 +1493,15 @@ def schema_metrics(cfg, group, step):
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Total Cell Instances ' + group.capitalize(),
-        'param_help' : "'"+group+"' step 'jobid' 'instances' <num>",
+        'param_help' : "'"+group+"' step ''instances' <num>",
         'help' : 
         "Metric tracking the total number of cell instances on a per step"\
         " basis. In the case of FPGAs, the it represents    "\
         "the number of LUTs.                                             "\
         "                                                                "\
         "Examples:                                                       "\
-        "cli: -"+group+"_instances 'place 1 100'                         "\
-        "api: chip.set('"+group+"','place', '1', 'instances', '100')     "
+        "cli: -"+group+"_instances 'place 100'                         "\
+        "api: chip.set('"+group+"','place', 'instances', '100')     "
     }    
     
     cfg[group][step]['area'] = {
@@ -1565,14 +1511,14 @@ def schema_metrics(cfg, group, step):
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Cell Area ' + group.capitalize(),
-        'param_help' : "'"+group+"' step 'jobid' 'area' <num>",
+        'param_help' : "'"+group+"' step 'area' <num>",
         'help' : 
         "Metric tracking the total cell area on a per step basis"\
         "specified in um^2.                                        "\
         "                                                                "\
         "Examples:                                                       "\
-        "cli: -"+group+"_area 'place 1 10000'                            "\
-        "api: chip.set('"+group+"','place', '1', 'area', '10000')        "
+        "cli: -"+group+"_area 'place 10000'                            "\
+        "api: chip.set('"+group+"','place', 'area', '10000')        "
     }
 
     cfg[group][step]['density'] = {
@@ -1582,15 +1528,15 @@ def schema_metrics(cfg, group, step):
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Cell Density ' + group.capitalize(),
-        'param_help' : "'"+group+"' step 'jobid' 'density' <num>",
+        'param_help' : "'"+group+"' step 'density' <num>",
         'help' : 
         "Metric tracking the density calculated as the ratio of cell area"\
         "devided by the total core area available for placement. Value   "\
         "specied as a percentage (%)                                     "\
         "                                                                "\
         "Examples:                                                       "\
-        "cli: -"+group+"_density 'place 1 50'                            "\
-        "api: chip.set('"+group+"','place', '1', 'density', '50')        "
+        "cli: -"+group+"_density 'place 50'                            "\
+        "api: chip.set('"+group+"','place', 'density', '50')        "
     } 
     
     cfg[group][step]['power'] = {
@@ -1600,15 +1546,15 @@ def schema_metrics(cfg, group, step):
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Active Power ' + group.capitalize(),
-        'param_help' : "'"+group+"' step 'jobid' 'power' <num>",
+        'param_help' : "'"+group+"' step 'power' <num>",
         'help' : 
         "Metric tracking the dynamic power of the design on a per step   "\
         "and per jobid basis calculated based on setup config and VCD    "\
         "stimulus. Metric unit is Watts.                                 "\
         "                                                                "\
         "Examples:                                                       "\
-        "cli: -"+group+"_power 'place 1 0.001'                           "\
-        "api: chip.set('"+group+"','place', '1', 'power', '0.001')       "
+        "cli: -"+group+"_power 'place 0.001'                           "\
+        "api: chip.set('"+group+"','place','power', '0.001')       "
     }    
 
     cfg[group][step]['leakage'] = {
@@ -1771,17 +1717,65 @@ def schema_metrics(cfg, group, step):
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Total Memory ' + group.capitalize(),
-        'param_help' : "'"+group+"' step 'jobid' 'memory' <num>",
+        'param_help' : "'"+group+"' step 'memory' <num>",
         'help' : 
         "Metric tracking the total memory on a per step and per jobid   "\
         "Value record as bytes, displayed with standard units:          "\
         "K,M,G,T,P,E for Kilo, Mega, Giga, Tera, Peta, Exa              "\
         "basis.                                                         "\
         "Examples:                                                      "\
-        "cli: -"+group+"_memory 'place 1 0'                             "\
-        "api: chip.set('"+group+"','place','1','memory', '0')           "
+        "cli: -"+group+"_memory 'place 0'                             "\
+        "api: chip.set('"+group+"','place', 'memory', '0')           "
     }
-    
+
+    cfg[group][step]['author'] = {
+        'switch' : '-'+group+'_author',
+        'type' : ['str'],
+        'lock' : 'false',
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Step Author ' + group.capitalize(),
+        'param_help' : "'"+group+"' step 'author' <str>",
+        'help' : 
+        "Metric tracking the author for each step.                       "\
+        "                                                                "\
+        "Examples:                                                       "\
+        "cli: -"+group+"_author 'place joe'                              "\
+        "api: chip.set('"+group+"','place', 'author', 'joe')             "
+    }
+
+    cfg[group][step]['signature'] = {
+        'switch' : '-'+group+'_signature',
+        'type' : ['str'],
+        'lock' : 'false',
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Step Date ' + group.capitalize(),
+        'param_help' : "'"+group+"' step 'signature' <str>",
+        'help' : 
+        "Metric tracking run signature for each step.                    "\
+        "                                                                "\
+        "Examples:                                                       "\
+        "cli: -"+group+"_signaturer 'place 473c04befb323bd6'             "\
+        "api: chip.set('"+group+"','place', 'signature','473c04befb323bd6')"
+    }
+
+    cfg[group][step]['date'] = {
+        'switch' : '-'+group+'_date',
+        'type' : ['str'],
+        'lock' : 'false',
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Step Date ' + group.capitalize(),
+        'param_help' : "'"+group+"' step 'date' <str>",
+        'help' : 
+        "Metric tracking the run date for each step.                     "\
+        "                                                                "\
+        "Examples:                                                       "\
+        "cli: -"+group+"_author 'place May 1, 2021'                      "\
+        "api: chip.set('"+group+"','place', 'author', 'May 1, 2021')     "
+    }
+
     return cfg
 
 ###########################################################################

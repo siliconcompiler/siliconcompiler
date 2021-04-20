@@ -695,6 +695,10 @@ class Chip:
     def audit(self, filename=None):
         '''Performance an an audit of each step in the flow
         '''
+      
+        
+        
+        
         pass
 
     ###################################
