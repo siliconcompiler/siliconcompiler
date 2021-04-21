@@ -1764,7 +1764,7 @@ def schema_options(cfg):
         'short_help' : 'Compilation Mode',
         'param_help' : "'mode' <str>",
         'example': ["cli: -mode fpga",
-                    "api: chip.set('mode','fpga'"],
+                    "api: chip.set('mode','fpga')"],
         'help' : """
         Sets the compilation flow to 'fpga' or 'asic. The default is 'asic'
         """
@@ -1779,7 +1779,7 @@ def schema_options(cfg):
         'short_help' : 'Target Platform',
         'param_help' : "'target' <str>",
         'example': ["cli: -target freepdk45_openroad",
-                    "api: chip.set('target','freepdk45_openroad'"],
+                    "api: chip.set('target','freepdk45_openroad')"],
         'help' : """
         Provides a string name for choosing a physical mapping target for the
         design. The target should be one of the following formats.
