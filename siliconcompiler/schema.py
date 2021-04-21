@@ -1646,7 +1646,7 @@ def schema_provenance(cfg, group='provenance', step='default'):
         'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Step Author ' + group.capitalize(),
+        'short_help' : 'Step Author',
         'param_help' : "'"+group+"' step 'author' <str>",
         'example':["cli: -"+group+"_author 'dfm wcoyote'",
                    "api: chip.add('"+group+"','dfm','author','wcoyote')"],
@@ -1661,7 +1661,7 @@ def schema_provenance(cfg, group='provenance', step='default'):
         'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Step Date ' + group.capitalize(),
+        'short_help' : 'Step User ID',
         'param_help' : "'"+group+"' step 'userid' <str>",
         'example':["cli: -"+group+"_userid 'dfm 0982acea'",
                    "api: chip.add('"+group+"','dfm','userid','0982acea')"],
@@ -1676,7 +1676,7 @@ def schema_provenance(cfg, group='provenance', step='default'):
         'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Step Date ' + group.capitalize(),
+        'short_help' : 'Step Signature',
         'param_help' : "'"+group+"' step 'signature' <str>",
         'example':["cli: -"+group+"_signature 'dfm 473c04b'",
                    "api: chip.add('"+group+"','dfm','signature','473c04b')"],
@@ -1691,7 +1691,7 @@ def schema_provenance(cfg, group='provenance', step='default'):
         'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Step Date ' + group.capitalize(),
+        'short_help' : 'Step Organization',
         'param_help' : "'"+group+"' step 'org' <str>",
         'example':["cli: -"+group+"_organization 'dfm earth'",
                    "api: chip.add('"+group+"','dfm','organization','earth')"],
@@ -1706,7 +1706,7 @@ def schema_provenance(cfg, group='provenance', step='default'):
         'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Step Date ' + group.capitalize(),
+        'short_help' : 'Step Location',
         'param_help' : "'"+group+"' step 'location' <str>",
         'example':["cli: -"+group+"_location 'dfm Boston'",
                    "api: chip.add('"+group+"','dfm','location','Boston')"],
@@ -1721,7 +1721,7 @@ def schema_provenance(cfg, group='provenance', step='default'):
         'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Step Date ' + group.capitalize(),
+        'short_help' : 'Step Date Stamp',
         'param_help' : "'"+group+"' step 'date' <str>",
         'example':["cli: -"+group+"_date 'dfm 2021-05-01'",
                    "api: chip.add('"+group+"','dfm','date','2021-05-01')"],
@@ -1736,7 +1736,7 @@ def schema_provenance(cfg, group='provenance', step='default'):
         'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Step Date ' + group.capitalize(),
+        'short_help' : 'Step Time Stamp',
         'param_help' : "'"+group+"' step 'time' <str>",
         'example':["cli: -"+group+"_time 'dfm 11:35:40'",
                    "api: chip.add('"+group+"','dfm','time','11:35:40')"],
@@ -1746,7 +1746,6 @@ def schema_provenance(cfg, group='provenance', step='default'):
     }
 
     return cfg
-
 
 ###########################################################################
 # Run Options
