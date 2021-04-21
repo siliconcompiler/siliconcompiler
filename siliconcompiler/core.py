@@ -17,6 +17,8 @@ import copy
 import importlib
 import glob
 import pandas
+import code
+
 from importlib.machinery import SourceFileLoader
 
 from siliconcompiler.client import remote_run
@@ -141,6 +143,14 @@ class Chip:
         module = importlib.import_module('.'+edaflow, package=packdir)
         setup_eda = getattr(module,"setup_eda")
         setup_eda(self, name=platform)
+
+   
+    ###################################
+    def help(self,  *args):
+        '''Prints help of a parameter, if not arguments are specified
+        then all help is printed
+        '''
+        pass     
         
     ###################################
     def get(self, *args):
@@ -385,9 +395,15 @@ class Chip:
                               cfg[k]['short_help'],
                               typestr,
                               cfg[k]['requirement'],
-                              defstr,
-                              valstr]
+                              defstr]
                     outstr = " | {: <52} | {: <30} | {: <15} | {: <10} | {: <10}|".format(*outlst)
+                elif mode == 'doc':
+                    keystr = ' '.join(newkeys)
+                    longhelp = cfg[k]['help']
+                    print(longhelp)
+                    shorthelp = cfg[k]['short_help']
+                    outstr =  keystr + shorthelp + "\n"
+                    outstr = outstr + longhelp
                 #print out content
                 if file is None:
                     print(outstr)
@@ -557,7 +573,10 @@ class Chip:
                            ':----']
                 outstr = " | {: <52} | {: <30} | {: <15} | {: <10} | {: <10}|".format(*outlist)
                 print(outstr, file=f)
-                self.printcfg(cfgcopy, mode='md', field='requirement' , file=f)  
+                self.printcfg(cfgcopy, mode='md', field='requirement' , file=f)
+        elif filepath.endswith('.doc'):
+            with open(filepath, 'w') as f:
+                self.printcfg(cfgcopy, mode='doc', field='value' , file=f)
         else:
             self.logger.error('File format not recognized %s', filepath)
             
@@ -614,7 +633,7 @@ class Chip:
 
         '''
         #checking to see how much hashing to do
-        hashmode = self.cfg['hash']['value'][-1]   
+        hashmode = self.cfg['hashmode']['value'][-1]   
         if hashmode != 'NONE':
             if cfg is None:
                 self.logger.info('Computing file hashes with mode %s', hashmode)
@@ -692,6 +711,8 @@ class Chip:
         return same
 
 
+    
+
     ###################################
     def audit(self, filename=None):
         '''Performance an an audit of each step in the flow
@@ -743,7 +764,6 @@ class Chip:
             row = []
             for stepindex in range(startindex, stopindex + 1):
                 step = steplist[stepindex]
-                print(metric, step, self.get('real', step, metric)[-1])
                 row.append(" " +
                            str(self.get('real', step, metric)[-1]).center(colwidth))
             data.append(row)
@@ -852,9 +872,7 @@ class Chip:
             #####################
             # Job Directory
             #####################
-                
-          
-                        
+
             jobdir = '/'.join([buildroot,
                                design,
                                jobname,
@@ -936,7 +954,7 @@ class Chip:
                 #Piping to log file
                 logfile = exe + ".log"
                 
-                if (schema_istrue(self.cfg['quiet']['value'])) & (not schema_istrue(self.cfg['noexit']['value'])):
+                if (schema_istrue(self.cfg['quiet']['value'])) & (step not in self.cfg['bkpt']['value']):
                     cmd_fields.append("> " + logfile)
                 else:
                     cmd_fields.append("| tee " + logfile)
@@ -974,7 +992,13 @@ class Chip:
                     # Tool Post Process
                     post_process = getattr(module,"post_process")
                     post_process(self, step)
-
+                    #Drop into python shell if command line tool
+                    if step in self.cfg['bkpt']['value']:
+                        format = self.cfg['flow'][step]['format']['value'][0]
+                        print(format)
+                        if format=='cmdline':
+                            code.interact(local=dict(globals(), **locals()))
+                    
             ########################
             # Return to $CWD
             ########################       
