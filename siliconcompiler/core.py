@@ -154,7 +154,6 @@ class Chip:
 
         self.logger.debug('Fetching help for %s', args)
 
-        
         #Fetch Values
         description = self.search(self.cfg, *args, mode='get', field='short_help')
         param = self.search(self.cfg, *args, mode='get', field='param_help')
@@ -163,11 +162,8 @@ class Chip:
 
         #Removing multiple spaces and newlines
         helpstr = helpstr.rstrip()
-        print(helpstr)
         helpstr = helpstr.replace("\n","")
         helpstr = ' '.join(helpstr.split())
-        print("string")
-        print(helpstr)
         #Wrap text
         para = textwrap.TextWrapper(width=60)
         para_list = para.wrap(text=helpstr)
@@ -181,7 +177,8 @@ class Chip:
         print("\nHelp:         ", para_list[0].lstrip(), sep = '')
         for line in para_list[1:]:            
             print(" "*13,line.lstrip())
-        print("-"*80)
+
+
     ###################################
     def get(self, *args):
         '''Gets value in the Chip configuration dictionary
@@ -215,13 +212,28 @@ class Chip:
         '''
         self.logger.debug('Retrieving config dictionary keys: %s', args)
 
-        keys = list(self.search(self.cfg, *args, mode='getkeys'))
-
-        if 'default' in keys:
-            keys.remove('default')
+        if len(list(args)) > 0:        
+            keys = list(self.search(self.cfg, *args, mode='getkeys'))
+            if 'default' in keys:
+                keys.remove('default')
+        else:
+            keys = list(self.allkeys(self.cfg))
         
         return keys
 
+    ###################################
+    def allkeys(self, cfg, keys=None, allkeys=None):
+        if keys is None:
+            allkeys = []
+            keys = []
+        for k in cfg:
+            newkeys =  keys.copy()
+            newkeys.append(k)
+            if 'defvalue' in cfg[k]:
+                allkeys.append(newkeys)
+            else:
+                self.allkeys(cfg[k],keys=newkeys, allkeys=allkeys)
+        return allkeys
     ####################################
     def add(self, *args):
         '''Sets a value in the Chip configuration dictionary 
