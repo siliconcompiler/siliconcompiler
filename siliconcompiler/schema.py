@@ -292,7 +292,7 @@ def schema_pdk(cfg):
         'short_help' : 'Process Metal Stackups',
         'param_help' : "'pdk' 'stackup' <str>",
         'example': ["cli: -pdk_stackup 2MA4MB2MC",                    
-                    "api: chip.add('pdk', 'tackup', '2MA4MB2MC')"],
+                    "api: chip.add('pdk', 'stackup', '2MA4MB2MC')"],
         'help' : """
         A list of all metal stackups offered in the process node. Older process
         nodes may only offer a single metal stackup, while advanced nodes 
@@ -808,13 +808,13 @@ def schema_libs(cfg, group):
         'signature' : [],
         'short_help' : group.capitalize() + ' NLDM Timing Model',
         'param_help' : "'"+group+"' libname 'model' corner 'nldm' type <file>",
-        'example':["cli: -"+group+"_nldm 'lib model ss lib.gz lib_ss.lib.gz'",
+        'example':["cli: -"+group+"_nldm 'lib model ss gz ss.lib.gz'",
                    "api: chip.add('"+group+"','lib','model','ss','nldm', \
-                   'lib.gz', 'lib_ss.lib.gz'"],
+                   'gz', 'ss.lib.gz'"],
         'help' : """
         Filepaths to NLDM models. Timing files are specified on a per lib,
         per corner, and per format basis. The format is driven by EDA tool
-        requirements. Examples of legal formats includ: lib, lib.gz, lib.bz2, 
+        requirements. Examples of legal formats includ: lib, gz, bz2, 
         and ldb.            
         """
     }
@@ -833,13 +833,13 @@ def schema_libs(cfg, group):
         'signature' : [],
         'short_help' : group.capitalize() + ' CCS Timing Model',
         'param_help' : "'"+group+"' libname 'model' corner 'ccs' type <file>",
-        'example':["cli: -"+group+"_ccs 'lib model ss lib.gz lib_ss.lib.gz'",
-                   "api: chip.add('"+group+"','lib','model','ss', 'ccs', \
-                   'lib.gz', 'lib_ss.lib.gz'"],
+        'example':["cli: -"+group+"_ccs 'lib model ss lib.gz ss.lib.gz'",
+                   "api: chip.add('"+group+"','lib','model','ss','ccs', \
+                   'gz', 'ss.lib.gz'"],
         'help' : """
         Filepaths to CCS models. Timing files are specified on a per lib,
         per corner, and per format basis. The format is driven by EDA tool
-        requirements. Examples of legal formats includ: lib, lib.gz, lib.bz2, 
+        requirements. Examples of legal formats includ: lib, gz, bz2, 
         and ldb.            
         """
      }
@@ -858,13 +858,13 @@ def schema_libs(cfg, group):
         'signature' : [],
         'short_help' : group.capitalize() + ' SCM Timing Model',
         'param_help' : "'"+group+"' libname 'model' corner 'scm' type <file>",
-        'example':["cli: -"+group+"_scm 'lib model ss lib.gz lib_ss.lib.gz'",
+        'example':["cli: -"+group+"_scm 'lib model ss lib.gz ss.lib.gz'",
                    "api: chip.add('"+group+"','lib','model','ss', 'scm', \
-                   'lib.gz', 'lib_ss.lib.gz'"],
+                   'gz', 'ss.lib.gz'"],
         'help' : """
         Filepaths to SCM models. Timing files are specified on a per lib,
         per corner, and per format basis. The format is driven by EDA tool
-        requirements. Examples of legal formats includ: lib, lib.gz, lib.bz2, 
+        requirements. Examples of legal formats includ: lib, gz, bz2, 
         and ldb.            
         """
     }
@@ -2193,7 +2193,8 @@ def schema_status(cfg):
         'defvalue' : [],
         'short_help' : 'Current Compilation Step',
         'param_help' : "'status' 'step' <str>",
-        'example': ["api: chip.get('status', 'step')"],
+        'example': ["cli: N/A",
+                    "api: chip.get('status', 'step')"],
         'help' : """
         A dynamic variable that keeps track of the current name being executed.
         The variable is managed by the run function and not writable by the 
@@ -2210,7 +2211,8 @@ def schema_status(cfg):
         'defvalue' : [],
         'short_help' : 'Step Active Indicator',
         'param_help' : "'status' step 'active' <bool>",
-        'example': ["api: chip.get('status', 'step', 'active')"],
+        'example': ["cli: N/A",
+                    "api: chip.get('status', 'step', 'active')"],
         'help' : """
         Status field with boolean indicating step activity. The variable is 
         managed by the run function and not writable by the user.
