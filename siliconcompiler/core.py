@@ -978,8 +978,8 @@ class Chip:
                     shutil.copytree("../"+laststep+"/outputs", 'inputs')
                 
                 #Copy Reference Scripts
-                refdir = schema_path(self.cfg['flow'][step]['refdir']['value'][-1])
                 if schema_istrue(self.cfg['flow'][step]['copy']['value']):
+                    refdir = schema_path(self.cfg['flow'][step]['refdir']['value'][-1])                    
                     shutil.copytree(refdir,
                                     ".",
                                     dirs_exist_ok=True)
@@ -988,9 +988,9 @@ class Chip:
                 # Save CFG locally
                 #####################
 
-                self.writecfg("sc_setup.json")
-                self.writecfg("sc_setup.yaml")
-                self.writecfg("sc_setup.tcl", abspath=True)
+                self.writecfg("sc_schema.json")
+                self.writecfg("sc_schema.yaml")
+                self.writecfg("sc_schema.tcl", abspath=True)
 
                 #####################
                 # Generate CMD
@@ -1006,13 +1006,13 @@ class Chip:
                 cmd_fields.extend(options)        
 
                 #Resolve Paths
-                if schema_istrue(self.cfg['flow'][step]['copy']['value']):
-                    for value in self.cfg['flow'][step]['script']['value']:
-                        abspath = schema_path(value)
-                        cmd_fields.append(abspath)
-                else:
-                    for value in self.cfg['flow'][step]['script']['value']:
-                        cmd_fields.append(value)      
+                #TODO: Fix this later, still using abspaths..
+                #with local copy, should copy in top level script and
+                #source from local directory,
+                #onnly keep the end of the file?
+                for value in self.cfg['flow'][step]['script']['value']:
+                    abspath = schema_path(value)
+                    cmd_fields.append(abspath)
 
                 #Piping to log file
                 logfile = exe + ".log"
