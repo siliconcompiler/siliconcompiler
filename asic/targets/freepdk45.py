@@ -31,12 +31,14 @@ def setup_platform(chip):
     chip.set('pdk','process', process)
     chip.set('pdk','rev', rev)
     chip.set('pdk','stackup', stackup)
+    chip.set('pdk','tapmax', "120")
+    chip.set('pdk','tapoffset', "0")
 
     # APR tech file
     chip.set('pdk','aprtech',stackup, libtype, edavendor,
              pdkdir+'/apr/freepdk45.tech.lef')
 
-    # Layer Definitions
+    # Routing Grid Definitions
     for sc_name, pdk_name in [('m1', 'metal1'), ('m3', 'metal3')]:
         chip.set('pdk','aprlayer', stackup, sc_name, 'name', pdk_name)
         chip.set('pdk','aprlayer', stackup, sc_name, 'hoffset', '0.095')
@@ -121,6 +123,8 @@ def setup_design(chip):
 
     chip.set('asic', 'stackup', chip.get('pdk', 'stackup')[0])
     chip.set('asic', 'targetlib', chip.getkeys('stdcell'))
+    chip.set('asic', 'minlayer', "m2")
+    chip.set('asic', 'maxlayer', "m10")
 
     corner = 'typical'
     # hard coded mcmm settings (only one corner!)
