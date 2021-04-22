@@ -18,8 +18,6 @@ def setup_tool(chip, step):
     chip.add('flow', step, 'copy', 'false')
     chip.add('flow', step, 'exe', 'verilator')
     chip.add('flow', step, 'vendor', 'verilator')
-    chip.add('flow', step, 'refdir', '')
-    chip.add('flow', step, 'script', '')
         
 ################################
 # Set Verilator Runtime Options
