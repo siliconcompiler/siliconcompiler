@@ -1,38 +1,9 @@
 
-########################################################
-# SC setup (!!DO NOT EDIT THIS SECTION!!)
-########################################################
 
-set stage      "route"
-set last_stage "cts"
-
-source ./sc_setup.tcl
-
-# Setting script path to local or refdir
-set scriptdir [dict get $sc_cfg flow $stage refdir]
-if {[dict get $sc_cfg flow $stage copy] eq True} {
-    set scriptdir "./"
-}
-# Sourcing helper procedures
-source $scriptdir/sc_procedures.tcl
-
-#Massaging dict into simple local variables
-set stackup      [dict get $sc_cfg asic stackup]
-set target_libs  [dict get $sc_cfg asic targetlib]
-set minlayer     [dict get $sc_cfg asic minlayer]
-set maxlayer     [dict get $sc_cfg asic maxlayer]
-set minmetal     [dict get $sc_cfg pdk aprlayer $stackup $minlayer name]
-set maxmetal     [dict get $sc_cfg pdk aprlayer $stackup $maxlayer name]
-set mainlib      [lindex $target_libs 0]
-set libarch      [dict get $sc_cfg stdcell $mainlib libtype]
-set pdklef       [dict get $sc_cfg stdcell $mainlib lef]
-set techlef      [dict get $sc_cfg pdk aprtech $stackup $libarch openroad]
-set topmodule    [dict get $sc_cfg design]
-
-# TODO: Fetch from config dictionary instead of hardcoding.
 set groute_min_layer 2
 set groute_max_layer 10
 set overflow_iter    100
+set output_guide    "outputs/$sc_design.guide"
 
 
 # TritonRoute cannot handle polygonal pin pads.
@@ -54,7 +25,7 @@ set output_lef      "outputs/merged.lef"
 set output_def      "outputs/$topmodule.def"
 set output_drc      "outputs/$topmodule.drc"
 set output_sdc      "outputs/$topmodule.sdc"
-set output_guide    "outputs/$topmodule.guide"
+
 
 ################################################################
 # Read Inputs

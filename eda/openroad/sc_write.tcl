@@ -1,5 +1,5 @@
-write_def "output/$sc_design.def"
-write_sdc "output/$sc_design.sdc"
-write_verilog "output/$sc_design.v"
-write_db "output/$sc_design.odb"
+write_def "outputs/$sc_design.def"
+write_sdc "outputs/$sc_design.sdc"
+write_verilog "outputs/$sc_design.v"
+write_db "outputs/$sc_design.odb"
 
