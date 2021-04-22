@@ -13,7 +13,7 @@ def setup_tool(chip, step):
      #Shared setting for all openroad tools
      refdir = 'eda/openroad'
      chip.add('flow', step, 'threads', '4')
-     chip.add('flow', step, 'copy', 'true')
+     chip.add('flow', step, 'copy', 'false')
      chip.add('flow', step, 'refdir', refdir)
      chip.add('flow', step, 'script', refdir + '/sc_apr.tcl')
      
