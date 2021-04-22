@@ -147,9 +147,8 @@ class Chip:
 
    
     ###################################
-    def help(self,  *args):
-        '''Prints help of a parameter, if not arguments are specified
-        then all help is printed
+    def help(self,  *args, file=None, mode='full'):
+        '''Prints help of a parameter
         '''
 
         self.logger.debug('Fetching help for %s', args)
@@ -157,27 +156,60 @@ class Chip:
         #Fetch Values
         description = self.search(self.cfg, *args, mode='get', field='short_help')
         param = self.search(self.cfg, *args, mode='get', field='param_help')
+        typestr = ' '.join(self.search(self.cfg, *args, mode='get', field='type'))
+        defstr = ' '.join(self.search(self.cfg, *args, mode='get', field='defvalue'))
+        requirement = self.search(self.cfg, *args, mode='get', field='requirement')
         helpstr = self.search(self.cfg, *args, mode='get', field='help')
         example = self.search(self.cfg, *args, mode='get', field='example')
-
+    
         #Removing multiple spaces and newlines
         helpstr = helpstr.rstrip()
         helpstr = helpstr.replace("\n","")
         helpstr = ' '.join(helpstr.split())
+        
+        #Removing extra spaces in example string
+        cli = ' '.join(example[0].split())
+        
+        for idx, item in enumerate(example):
+            example[idx] = ' '.join(item.split())
+            example[idx] = example[idx].replace(", ",",")
+        
         #Wrap text
         para = textwrap.TextWrapper(width=60)
         para_list = para.wrap(text=helpstr)
-        
-        #Print
-        print("-"*80,end='')
-        print("\nDescription:  ", description.lstrip(), sep = '')
-        print("\nParameter:    ", param.lstrip(), sep = '')
-        print("\nExamples:     ", example[0].lstrip(), sep = '',end='')
-        print("\n              ", example[1].lstrip(), sep = '')
-        print("\nHelp:         ", para_list[0].lstrip(), sep = '')
-        for line in para_list[1:]:            
-            print(" "*13,line.lstrip())
 
+        #Full Doc String
+        fullstr = ("-"*3 +
+                   "\nDescription: " + description.lstrip() + "\n" +
+                   "\nParameter:   " + param.lstrip() + "\n"  +     
+                   "\nExamples:    " + example[0].lstrip() + 
+                   "\n             " + example[1].lstrip() + "\n" +
+                   "\nHelp:        " + para_list[0].lstrip() + "\n")
+        for line in para_list[1:]:
+            fullstr = (fullstr +
+                       " "*13 + line.lstrip() + "\n")
+
+        #Refcard String
+        #Need to escape dir to get pdf to print in pandoc?
+        outlst = [param.replace("<dir>","\<dir\>"),
+                  description,
+                  typestr,
+                  requirement,
+                  defstr]
+        shortstr = " | {: <52} | {: <30} | {: <15} | {: <10} | {: <10}|".format(*outlst)
+
+        #Selecting between full help and one liner
+        if mode == "full":
+            outstr = fullstr
+        else:
+            outstr = shortstr
+        
+        #Print to screen or file
+        if file is None:
+            print(outstr)
+        else:
+            print(outstr, file=file)
+            
 
     ###################################
     def get(self, *args):
@@ -436,14 +468,6 @@ class Chip:
                               cfg[k]['requirement'],
                               defstr]
                     outstr = " | {: <52} | {: <30} | {: <15} | {: <10} | {: <10}|".format(*outlst)
-                elif mode == 'doc':
-                    keystr = ' '.join(newkeys)
-                    longhelp = cfg[k]['help']
-                    print(longhelp)
-                    shorthelp = cfg[k]['short_help']
-                    outstr =  keystr + shorthelp + "\n"
-                    outstr = outstr + longhelp
-                #print out content
                 if file is None:
                     print(outstr)
                 else:
