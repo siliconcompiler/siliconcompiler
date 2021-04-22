@@ -1,15 +1,19 @@
+# Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
+import re
+import os
 import siliconcompiler
-from siliconcompiler.schema import schema
-from siliconcompiler.schema import schema_help
 
-# Create instance of Chip class
-chip = siliconcompiler.Chip()
+#Create one (or many...) instances of Chip class
+chip = siliconcompiler.Chip(loglevel="INFO")
 
-#Print out help for simpl variables
-for key in chip.cfg.keys():
-    if 'help' in chip.cfg[key].keys():
-        print("\n")
-        print(schema_help(chip.cfg[key],mode="help", format="md"))
+# Reading in default config files unless cfg file is set
+chip.help('design')
 
-chip.writecfg("help.json")
+# Print all help
+allkeys = chip.getkeys()
+for key in allkeys:
+    chip.help(*key)
+
+
+
