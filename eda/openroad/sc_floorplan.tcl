@@ -30,6 +30,7 @@ set io_vlayer    "3"
 set endcap_cpp   "2"
 set tapcell_dist 120
 set tapcell_fill "FILLCELL_X1"
+set pinlayer "m3"
 
 #Inputs
 set input_verilog   "inputs/$topmodule.v"
@@ -46,24 +47,7 @@ set output_sdc      "outputs/$topmodule.sdc"
 ####################
 read_lef  $techlef
 
-#creating routing preference file
-set metal_list ""
-dict for {key value} [dict get $sc_cfg pdk aprlayer $stackup] {
-    lappend metal_list $key
-}
 
-#TODO: replace with tcl commands instead of file for new openroad
-set outfile [open "sc_tracks.txt" w]
-foreach metal $metal_list {
-    set name [dict get $sc_cfg pdk aprlayer $stackup $metal name]
-    set xpitch [dict get $sc_cfg pdk aprlayer $stackup $metal xpitch]
-    set xoffset [dict get $sc_cfg pdk aprlayer $stackup $metal xoffset]
-    set ypitch [dict get $sc_cfg pdk aprlayer $stackup $metal ypitch]
-    set yoffset [dict get $sc_cfg pdk aprlayer $stackup $metal yoffset]    
-    puts $outfile "$name X $xoffset $xpitch"
-    puts $outfile "$name Y $yoffset $ypitch"
-}
-close $outfile
 
 ####################
 #Setup Libs
@@ -94,21 +78,55 @@ link_design $topmodule
 if {[file exists $input_def]} {
     read_def -floorplan_initialize $input_def
 } else {
-    if {[llength $diesize] != "4"} {
-	#1. get cell area
-	#2. calculate die area based on density
-	
-    }
-    #init floorplan
+  
+    #########################
+    #Init Floorplan
+    #########################
+
     initialize_floorplan -die_area $diesize \
-	    -core_area $coresize \
-	    -tracks ./sc_tracks.txt \
-	    -site $site     
+	-core_area $coresize \
+	-site $site
+
+    ###########################
+    # Track Creation
+    ###########################
+
+    set metal_list ""
+    dict for {key value} [dict get $sc_cfg pdk aprlayer $stackup] {
+	lappend metal_list $key
+    }
+    
+    foreach metal $metal_list {
+	#extracting values from dictionary
+	set name [dict get $sc_cfg pdk aprlayer $stackup $metal name]
+	set hgrid [dict get $sc_cfg pdk aprlayer $stackup $metal hgrid]
+	set hoffset [dict get $sc_cfg pdk aprlayer $stackup $metal hoffset]
+	set vgrid [dict get $sc_cfg pdk aprlayer $stackup $metal vgrid]
+	set voffset [dict get $sc_cfg pdk aprlayer $stackup $metal voffset]
+
+	make_tracks $name \
+	    -x_offset $hoffset \
+	    -x_pitch $hgrid \
+	    -y_offset $voffset \
+	    -y_pitch $vgrid
+    }
+
+    ###########################
+    # Automatic Pin Placement
+    ###########################
+    auto_place_pins [dict get $sc_cfg pdk aprlayer $stackup $pinlayer name]
+
+
+    ###########################
+    # Tap Cells
+    ###########################
+    
+    
     #TODO!!! Put these into schema
     #randomize I/O placementa
-    io_placer -hor_layer $io_hlayer \
-	-ver_layer $io_vlayer \
-	-random
+    #io_placer -hor_layer $io_hlayer \
+    #-ver_layer $io_vlayer \
+    #-random
     # Tapcell insertion.
     tapcell \
       -endcap_cpp $endcap_cpp \

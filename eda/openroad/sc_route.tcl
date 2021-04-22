@@ -19,11 +19,16 @@ source $scriptdir/sc_procedures.tcl
 #Massaging dict into simple local variables
 set stackup      [dict get $sc_cfg asic stackup]
 set target_libs  [dict get $sc_cfg asic targetlib]
+set minlayer     [dict get $sc_cfg asic minlayer]
+set maxlayer     [dict get $sc_cfg asic maxlayer]
+set minmetal     [dict get $sc_cfg pdk aprlayer $stackup $minlayer name]
+set maxmetal     [dict get $sc_cfg pdk aprlayer $stackup $maxlayer name]
 set mainlib      [lindex $target_libs 0]
 set libarch      [dict get $sc_cfg stdcell $mainlib libtype]
 set pdklef       [dict get $sc_cfg stdcell $mainlib lef]
 set techlef      [dict get $sc_cfg pdk aprtech $stackup $libarch openroad]
 set topmodule    [dict get $sc_cfg design]
+
 # TODO: Fetch from config dictionary instead of hardcoding.
 set groute_min_layer 2
 set groute_max_layer 10
@@ -72,24 +77,60 @@ foreach lib $target_libs {
 }
 # Read design.
 read_def $input_def
+
 # Read SDC.
 read_sdc $input_sdc
 
-################################################################
-# ROUTE CORE SCRIPT
-################################################################
 
-for {set layer 2} {$layer <= 10} {incr layer} {
-  set_global_routing_layer_adjustment $layer 0.5
-}
+######################
+# GLOBAL ROUTE
+######################
 
-fastroute -layers $groute_min_layer-$groute_max_layer \
-          -unidirectional_routing \
-          -overflow_iterations $overflow_iter \
-          -guide_file $output_guide \
-          -verbose 2
+set_global_routing_layer_adjustment $minmetal-$maxmetal 0.5
+set_routing_layers -signal $minmetal-$maxmetal
+set_macro_extension 2
 
-write_def $output_tmp_def
+global_route -guide_file ./route.guide \
+    -overflow_iterations 100 \
+    -verbose 2
+
+######################
+# Set RC estimation
+######################
+
+#TODO: parametrize
+set_wire_rc -signal -layer metal3
+set_wire_rc -clock  -layer metal5
+
+######################
+# Clock Propagation
+######################
+
+set_propagated_clock [all_clocks]
+estimate_parasitics -global_routing
+
+
+######################
+# Detailed Route
+######################
+detailed_route -param $::env(OBJECTS_DIR)/TritonRoute.param
+
+######################
+# Report Metrics
+######################
+report_checks -path_delay min -fields {slew cap input nets fanout} -format full_clock_expanded
+report_checks -path_delay max -fields {slew cap input nets fanout} -format full_clock_expanded
+report_checks -unconstrained -fields {slew cap input nets fanout} -format full_clock_expanded
+report_tns
+report_wns
+report_worst_slack
+report_check_types -max_slew -max_capacitance -max_fanout -violators
+report_clock_skew
+report_power
+report_design_area
+
+
+
 
 # TritonRoute cannot read multiple LEF files, so merge them.
 exec ./mergeLef.py --inputLef \

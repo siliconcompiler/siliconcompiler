@@ -15,7 +15,7 @@ def setup_tool(chip, step):
      chip.add('flow', step, 'threads', '4')
      chip.add('flow', step, 'copy', 'true')
      chip.add('flow', step, 'refdir', refdir)
-     chip.add('flow', step, 'script', refdir + '/sc_'+step+'.tcl')
+     chip.add('flow', step, 'script', refdir + '/sc_apr.tcl')
      
      chip.add('flow', step, 'format', 'tcl')
      chip.add('flow', step, 'vendor', 'openroad')
