@@ -2,7 +2,7 @@
 # SC setup (!!DO NOT EDIT THIS SECTION!!)
 ########################################################
 
-source ./sc_setup.tcl
+source ./sc_schema.tcl
 source ./sc_syn_ice40.tcl
 source ./sc_syn_openfpga.tcl
 set step syn
