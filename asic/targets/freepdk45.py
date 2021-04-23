@@ -43,38 +43,38 @@ def setup_platform(chip):
     # Routing Grid Definitions
     for sc_name, pdk_name in [('m1', 'metal1'), ('m3', 'metal3')]:
         chip.set('pdk','aprlayer', stackup, sc_name, 'name', pdk_name)
-        chip.set('pdk','aprlayer', stackup, sc_name, 'hoffset', '0.095')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'hgrid',  '0.14')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'voffset', '0.07')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'vgrid',  '0.14')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'xoffset', '0.095')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'xpitch',  '0.19')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'yoffset', '0.07')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'ypitch',  '0.14')
 
     for sc_name, pdk_name in [('m2', 'metal2')]:
         chip.set('pdk','aprlayer', stackup, sc_name, 'name', pdk_name)
-        chip.set('pdk','aprlayer', stackup, sc_name, 'hoffset', '0.095')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'hgrid',  '0.19')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'voffset', '0.07')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'vgrid',  '0.19')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'xoffset', '0.095')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'xpitch',  '0.19')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'yoffset', '0.07')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'ypitch',  '0.14')
 
     for sc_name, pdk_name in [('m4', 'metal4'), ('m5', 'metal5'), ('m6', 'metal6')]:
         chip.set('pdk','aprlayer', stackup, sc_name, 'name', pdk_name)
-        chip.set('pdk','aprlayer', stackup, sc_name, 'hoffset', '0.095')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'hgrid',  '0.28')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'voffset', '0.07')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'vgrid',  '0.28')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'xoffset', '0.095')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'xpitch',  '0.28')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'yoffset', '0.07')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'ypitch',  '0.28')
 
     for sc_name, pdk_name in [('m7', 'metal7'), ('m8', 'metal8')]:
         chip.set('pdk','aprlayer', stackup, sc_name, 'name', pdk_name)
-        chip.set('pdk','aprlayer', stackup, sc_name, 'hoffset', '0.095')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'hgrid',  '0.8')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'voffset', '0.07')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'vgrid',  '0.8')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'xoffset', '0.095')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'xpitch',  '0.8')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'yoffset', '0.07')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'ypitch',  '0.8')
 
     for sc_name, pdk_name in [('m9', 'metal9'), ('m10', 'metal10')]:
         chip.set('pdk','aprlayer', stackup, sc_name, 'name', pdk_name)
-        chip.set('pdk','aprlayer', stackup, sc_name, 'hoffset', '0.095')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'hgrid',  '1.6')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'voffset', '0.07')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'vgrid',  '1.6')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'xoffset', '0.095')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'xpitch',  '1.6')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'yoffset', '0.07')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'ypitch',  '1.6')
 
 ####################################################
 # Library Setup
@@ -106,7 +106,7 @@ def setup_libs(chip, vendor=None):
 
     # lef
     chip.set('stdcell',libname,'lef',
-             libdir+'/lef/NangateOpenCellLibrary.macro.lef')    
+             libdir+'/lef/NangateOpenCellLibrary.macro.mod.lef')    
     # gds
     chip.set('stdcell',libname,'gds',
              libdir+'/gds/NangateOpenCellLibrary.gds')
@@ -157,7 +157,7 @@ def setup_design(chip):
 
     chip.set('asic', 'stackup', chip.get('pdk', 'stackup')[0])
     chip.set('asic', 'targetlib', chip.getkeys('stdcell'))
-    chip.set('asic', 'minlayer', "m2")
+    chip.set('asic', 'minlayer', "m1")
     chip.set('asic', 'maxlayer', "m10")
     chip.set('asic', 'maxfanout', "64")
     chip.set('asic', 'maxlength', "1000")
