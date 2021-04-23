@@ -1448,7 +1448,7 @@ def schema_metrics(cfg, group, step='default'):
     }
 
     cfg[group][step]['wirelength'] = {
-        'switch' : '-'+group+'_vias',
+        'switch' : '-'+group+'_wirelength',
         'type' : ['num'],
         'lock' : 'false',
         'requirement' : 'optional',
