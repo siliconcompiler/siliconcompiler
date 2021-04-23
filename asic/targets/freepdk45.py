@@ -118,6 +118,39 @@ def setup_libs(chip, vendor=None):
     chip.set('stdcell',libname,'width', libwidth)
     chip.set('stdcell',libname,'height', libheight)
 
+    #driver
+    chip.add('stdcell',libname,'driver', "BUF_X4")
+    
+    # clock buffers
+    chip.add('stdcell',libname,'cells','clkbuf', "BUF_X4")
+
+    # tie cells
+    chip.add('stdcell',libname,'cells','tie', ["LOGIC1_X1",
+                                               "LOGIC0_X1"])
+
+
+    # hold cells
+    chip.add('stdcell',libname,'cells','hold', "BUF_X1")
+
+    # filler
+    chip.add('stdcell',libname,'cells','filler', ["FILLCELL_X1",
+                                                  "FILLCELL_X2",
+                                                  "FILLCELL_X4",
+                                                  "FILLCELL_X8",
+                                                  "FILLCELL_X16",
+                                                  "FILLCELL_X32"])
+    
+    # Stupid small cells
+    chip.add('stdcell',libname,'cells','ignore', ["AOI211_X1",
+                                                  "OAI211_X1"])
+
+    # Tapcell
+    chip.add('stdcell',libname,'cells','tapcell', "FILLCELL_X1")
+
+    # Endcap
+    chip.add('stdcell',libname,'cells','endcap', "FILLCELL_X1")
+
+        
 #########################
 def setup_design(chip):
 
@@ -125,6 +158,15 @@ def setup_design(chip):
     chip.set('asic', 'targetlib', chip.getkeys('stdcell'))
     chip.set('asic', 'minlayer', "m2")
     chip.set('asic', 'maxlayer', "m10")
+    chip.set('asic', 'maxfanout', "64")
+    chip.set('asic', 'maxlength', "1000")
+    chip.set('asic', 'maxslew', ".2e-9")
+    chip.set('asic', 'maxcap', ".2e-12")
+    chip.set('asic', 'clklayer', "m5")
+    chip.set('asic', 'rclayer', "m3")
+    chip.set('asic', 'hpinlayer', "m3")
+    chip.set('asic', 'vpinlayer', "m2")
+    chip.set('asic', 'density', "1.0")
 
     corner = 'typical'
     # hard coded mcmm settings (only one corner!)
