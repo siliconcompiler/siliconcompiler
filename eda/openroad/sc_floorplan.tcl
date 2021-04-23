@@ -10,7 +10,7 @@ if {[llength $sc_def] > 0} {
     #########################
     #Init Floorplan
     #########################
-
+    
     initialize_floorplan -die_area $sc_diesize \
 	-core_area $sc_coresize \
 	-site $sc_site
@@ -27,16 +27,16 @@ if {[llength $sc_def] > 0} {
     foreach metal $metal_list {
 	#extracting values from dictionary
 	set name [dict get $sc_cfg pdk aprlayer $sc_stackup $metal name]
-	set hgrid [dict get $sc_cfg pdk aprlayer $sc_stackup $metal hgrid]
-	set hoffset [dict get $sc_cfg pdk aprlayer $sc_stackup $metal hoffset]
-	set vgrid [dict get $sc_cfg pdk aprlayer $sc_stackup $metal vgrid]
-	set voffset [dict get $sc_cfg pdk aprlayer $sc_stackup $metal voffset]
+	set xpitch [dict get $sc_cfg pdk aprlayer $sc_stackup $metal xpitch]
+	set xoffset [dict get $sc_cfg pdk aprlayer $sc_stackup $metal xoffset]
+	set ypitch [dict get $sc_cfg pdk aprlayer $sc_stackup $metal ypitch]
+	set yoffset [dict get $sc_cfg pdk aprlayer $sc_stackup $metal yoffset]
 
 	make_tracks $name \
-	    -x_offset $hoffset \
-	    -x_pitch $hgrid \
-	    -y_offset $voffset \
-	    -y_pitch $vgrid
+	    -x_offset $xoffset \
+	    -x_pitch $xpitch \
+	    -y_offset $yoffset \
+	    -y_pitch $ypitch
     }
 
     ###########################
@@ -55,6 +55,11 @@ if {[llength $sc_def] > 0} {
       -distance $sc_tapmax \
       -tapcell_master $sc_tapcell \
       -endcap_master $sc_endcap
+
+    ###########################
+    # Power Network (not good)
+    ###########################
+    #pdngen $::env(PDN_CFG) -verbose
     
 }
 
