@@ -1,138 +1,46 @@
-
-
-set groute_min_layer 2
-set groute_max_layer 10
-set overflow_iter    100
-set output_guide    "outputs/$sc_design.guide"
-
-
-# TritonRoute cannot handle polygonal pin pads.
-# This is only an issue in Nangate45, which also provides a
-# '.mod.lef' file with rectangular pads.
-if  {[dict get $sc_cfg target] eq "freepdk45"} {
-    regsub -all {\.lef} $pdklef .mod.lef pdklef
-}
-
-#Inputs
-set input_verilog   "inputs/$topmodule.v"
-set input_def       "inputs/$topmodule.def"
-set input_sdc       "inputs/$topmodule.sdc"
-
-#Outputs
-set output_verilog  "outputs/$topmodule.v"
-set output_tmp_def  "outputs/$topmodule\_tmp.def"
-set output_lef      "outputs/merged.lef"
-set output_def      "outputs/$topmodule.def"
-set output_drc      "outputs/$topmodule.drc"
-set output_sdc      "outputs/$topmodule.sdc"
-
-
-################################################################
-# Read Inputs
-################################################################
-
-# Setup process.
-read_lef $techlef
-# Setup libraries.
-foreach lib $target_libs {
-    read_liberty [dict get $sc_cfg stdcell $lib model typical nldm lib]
-    # Correct for polygonal pin sizes in nangate45 liberty.
-    if  {$lib eq "NangateOpenCellLibrary"} {
-        set target_lef [dict get $sc_cfg stdcell $lib lef]
-        regsub -all {\.lef} $target_lef .mod.lef target_lef
-        read_lef $target_lef
-    } else {
-        read_lef [dict get $sc_cfg stdcell $lib lef]
-    }
-    set site [dict get $sc_cfg stdcell $lib site]
-}
-# Read design.
-read_def $input_def
-
-# Read SDC.
-read_sdc $input_sdc
-
+##########################################################
+# ROUTING 
+##########################################################
 
 ######################
 # GLOBAL ROUTE
 ######################
 
-set_global_routing_layer_adjustment $minmetal-$maxmetal 0.5
-set_routing_layers -signal $minmetal-$maxmetal
+set_global_routing_layer_adjustment metal2 0.8
+set_global_routing_layer_adjustment metal3 0.7
+set_global_routing_layer_adjustment metal4-metal10 0.4
+
+set_routing_layers -signal $sc_minmetal-$sc_maxmetal
 set_macro_extension 2
 
-global_route -guide_file ./route.guide \
-    -overflow_iterations 100 \
+global_route -guide_file "./route.guide" \
+    -overflow_iterations $openroad_overflow_iter \
     -verbose 2
 
 ######################
-# Set RC estimation
-######################
-
-#TODO: parametrize
-set_wire_rc -signal -layer metal3
-set_wire_rc -clock  -layer metal5
-
-######################
-# Clock Propagation
+# Report Antennas
 ######################
 
 set_propagated_clock [all_clocks]
 estimate_parasitics -global_routing
+check_antennas -report_file reports/antenna.rpt -simple_report
 
+######################
+# Triton Temp Hack
+######################
+
+set param_file [open "route.params" "w"]
+puts $param_file \
+"guide:./route.guide
+outputDRC:./reports/$sc_design.drc
+gap:0
+verbose:1"
+close $param_file
+set param_filepath [file normalize "route.params"]
 
 ######################
 # Detailed Route
 ######################
-detailed_route -param $::env(OBJECTS_DIR)/TritonRoute.param
 
-######################
-# Report Metrics
-######################
-report_checks -path_delay min -fields {slew cap input nets fanout} -format full_clock_expanded
-report_checks -path_delay max -fields {slew cap input nets fanout} -format full_clock_expanded
-report_checks -unconstrained -fields {slew cap input nets fanout} -format full_clock_expanded
-report_tns
-report_wns
-report_worst_slack
-report_check_types -max_slew -max_capacitance -max_fanout -violators
-report_clock_skew
-report_power
-report_design_area
+detailed_route -param "route.params"
 
-
-
-
-# TritonRoute cannot read multiple LEF files, so merge them.
-exec ./mergeLef.py --inputLef \
-                   $techlef \
-                   $pdklef \
-                   --outputLef $output_lef
-
-set param_file [open "route.params" "w"]
-puts $param_file \
-"guide:./$output_guide
-outputDRC:./$output_drc
-verbose:1"
-close $param_file
-
-set param_filepath [file normalize "route.params"]
-puts $param_filepath
-
-detailed_route -param $param_filepath
-
-
-################################################################
-# Reporting
-################################################################
-
-sc_write_reports $topmodule
-
-################################################################
-# Write Results
-################################################################
-
-#sc_write_outputs $topmodule
-write_def $output_def
-write_verilog $output_verilog
-write_sdc $output_sdc
