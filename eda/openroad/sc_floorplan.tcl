@@ -1,14 +1,3 @@
-##############################################################
-# SC SETUP
-##############################################################
-
-# TODO: Retrieve from dictionary instead of hardcoding.
-# Horizontal / Vertical I/O layers.
-set io_hlayer    "4"
-set io_vlayer    "3"
-set tapcell_fill "FILLCELL_X1"
-set pinlayer     "m3"
-
 ########################################################
 # FLOORPLANNING
 ########################################################
@@ -53,25 +42,19 @@ if {[llength $sc_def] > 0} {
     ###########################
     # Automatic Pin Placement
     ###########################
-    auto_place_pins [dict get $sc_cfg pdk aprlayer $sc_stackup $pinlayer name]
-
-
+    
+    place_pins -hor_layers $sc_hpinmetal \
+	-ver_layers $sc_vpinmetal \
+	-random \
+	
     ###########################
     # Tap Cells
     ###########################
-    
-    
-    #TODO!!! Put these into schema
-    #randomize I/O placementa
-    #io_placer -hor_layer $io_hlayer \
-    #-ver_layer $io_vlayer \
-    #-random
-    # Tapcell insertion.
     tapcell \
       -endcap_cpp $sc_tapoffset \
       -distance $sc_tapmax \
-      -tapcell_master $tapcell_fill \
-      -endcap_master $tapcell_fill
+      -tapcell_master $sc_tapcell \
+      -endcap_master $sc_endcap
     
 }
 
