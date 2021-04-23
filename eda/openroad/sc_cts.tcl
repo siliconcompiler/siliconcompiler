@@ -1,45 +1,60 @@
 
-set clock_nets   "clk"
-set cts_buf      "BUF_X4"
-set fillcells    "FILLCELL_X1 FILLCELL_X2 FILLCELL_X4 FILLCELL_X8 FILLCELL_X16 FILLCELL_X32"
-set max_slew     .198e-9
-set max_cap      .242e-12
-set clk_layer    metal5
-set parasitics_layer metal3
+#######################################
+# Clock tree synthesis
+# (skip if no clocks defined)
+#######################################
 
-################################################################
-# CTS CORE SCRIPT
-################################################################
 
-# Clone clock tree inverters.
-repair_clock_inverters
+if {[llength [all_clocks]] > 0} {
 
-# Set clock layer wire RC.
-set_wire_rc -clock  -layer $clk_layer
+    # Clone clock tree inverters next to register loads
+    # so cts does not try to buffer the inverted clocks.
+    repair_clock_inverters
+    
+    clock_tree_synthesis -root_buf $sc_clkbuf -buf_list $sc_clkbuf \
+	-sink_clustering_enable \
+	-sink_clustering_size $openroad_cluster_size \
+	-sink_clustering_max_diameter $openroad_cluster_diameter \
+	-distance_between_buffers $openroad_cluster_diameter
 
-configure_cts_characterization -max_slew $max_slew \
-                               -max_cap $max_cap
+    set_propagated_clock [all_clocks]
+    
+    estimate_parasitics -placement
 
-# Run CTS
-clock_tree_synthesis -buf_list "$cts_buf" \
-                     -clk_nets "$clock_nets"
+    repair_clock_nets -buffer_cell $sc_clkbuf
 
-set_propagated_clock [all_clocks]
+    #######################
+    # Detailed Placement
+    #######################
+    
+    set_placement_padding -global \
+	-left $openroad_pad_global_place \
+	-right $openroad_pad_global_place
+    
+    detailed_placement
 
-filler_placement $fillcells
-check_placement
+    #######################
+    # Fix setup/hold
+    #######################    
 
-# TODO: Programmable metal layer
-set_wire_rc -layer $parasitics_layer
+    repair_timing -hold
 
-estimate_parasitics -placement
-repair_clock_nets -buffer_cell "$cts_buf"
+    repair_timing -setup
+    
+    detailed_placement
 
-set_placement_padding -global
-detailed_placement
-optimize_mirroring
-check_placement -verbose
+    #######################
+    # Add Fillers
+    #######################    
+    
+    filler_placement $sc_filler    
+    
+    #######################
+    # Check Placement
+    #######################    
+    check_placement
+    
+}
 
-estimate_parasitics -placement
-repair_timing -hold
 
+    
