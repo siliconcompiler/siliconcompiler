@@ -2664,7 +2664,23 @@ def schema_asic(cfg):
     '''
 
     cfg['asic'] = {}
-    
+
+    cfg['asic']['stackup'] = {
+        'switch' : '-asic_stackup',
+        'type' : ['str'],
+        'lock' : 'false',
+        'requirement' : 'asic',
+        'defvalue' : [],
+        'short_help' : 'Design Metal Stackup',
+        'param_help' : "'asic' 'stackup' <str>",
+        'example': ["cli: -asic_stackup 2MA4MB2MC",
+                    "api: chip.add('asic','stackup','2MA4MB2MC')"],
+        'help' : """
+        Specifies the target stackup to use in the design. The stackup name 
+        must match a value defined in the pdk_stackup list.
+        """
+    }
+
     cfg['asic']['targetlib'] = {
         'switch' : '-asic_targetlib',
         'type' : ['str'],
@@ -2761,7 +2777,7 @@ def schema_asic(cfg):
     }
 
     cfg['asic']['maxlayer'] = {
-        'switch' : '-maxlayer',
+        'switch' : '-asic_maxlayer',
         'type' : ['str'],
         'lock' : 'false',
         'requirement' : 'asic',
@@ -2781,21 +2797,137 @@ def schema_asic(cfg):
         """
     }
 
-    cfg['asic']['stackup'] = {
-        'switch' : '-asic_stackup',
+    cfg['asic']['maxfanout'] = {
+        'switch' : '-asic_maxfanout',
+        'type' : ['num'],
+        'lock' : 'false',
+        'requirement' : 'asic',
+        'defvalue' : [],
+        'short_help' : 'Design Maximum Fanout',
+        'param_help' : "'asic' 'maxfanout' <str>",
+        'example': ["cli: -asic_maxfanout 64",
+                    "api: chip.add('asic', 'maxfanout', '64')"],
+        'help' : """
+        The maximum driver fanout allowed during automated place and route.
+        The parameter directs the APR tool to break up any net with fanout
+        larger than maxfanout into subnets and buffer.
+        """
+    }
+
+    cfg['asic']['maxlength'] = {
+        'switch' : '-asic_maxlength',
+        'type' : ['num'],
+        'lock' : 'false',
+        'requirement' : 'asic',
+        'defvalue' : [],
+        'short_help' : 'Design Maximum Wire Length',
+        'param_help' : "'asic' 'maxlength' <str>",
+        'example': ["cli: -asic_maxlength 1000",
+                    "api: chip.add('asic', 'maxlength', '1000')"],
+        'help' : """
+        The maximum total wire length allowed in design during APR. Any
+        net that is longer than maxlength is broken up into segments by 
+        the tool.
+        """
+    }
+
+    cfg['asic']['maxcap'] = {
+        'switch' : '-asic_maxcap',
+        'type' : ['num'],
+        'lock' : 'false',
+        'requirement' : 'asic',
+        'defvalue' : [],
+        'short_help' : 'Design Maximum Net Capacitance',
+        'param_help' : "'asic' 'maxcap' <str>",
+        'example': ["cli: -asic_maxcap 0.25e-12",
+                    "api: chip.add('asic', 'maxcap', '0.25e-12')"],
+        'help' : """
+        The maximum allowed capacitance per net. The number is specified
+        in Farads.
+        """
+    }
+
+    cfg['asic']['maxslew'] = {
+        'switch' : '-asic_maxslew',
+        'type' : ['num'],
+        'lock' : 'false',
+        'requirement' : 'asic',
+        'defvalue' : [],
+        'short_help' : 'Design Maximum Net Slew',
+        'param_help' : "'asic' 'maxslew' <str>",
+        'example': ["cli: -asic_maxslew 01e-9",
+                    "api: chip.add('asic', 'maxslew', '1e-9')"],
+        'help' : """
+        The maximum allowed capacitance per net. The number is specified
+        in seconds.
+        """
+    }
+    
+    cfg['asic']['rclayer'] = {
+        'switch' : '-asic_rclayer',
         'type' : ['str'],
         'lock' : 'false',
         'requirement' : 'asic',
         'defvalue' : [],
-        'short_help' : 'Design Metal Stackup',
-        'param_help' : "'asic' 'stackup' <str>",
-        'example': ["cli: -asic_stackup 2MA4MB2MC",
-                    "api: chip.add('asic','stackup','2MA4MB2MC')"],
+        'short_help' : 'Parasitic Extraction Estimation Layer',
+        'param_help' : "'asic' 'rclayer' <str>",
+        'example': ["cli: -asic_rclayer m3",
+                    "api: chip.add('asic', 'rclayer', 'm3')"],
         'help' : """
-        Specifies the target stackup to use in the design. The stackup name 
-        must match a value defined in the pdk_stackup list.
+        The technology agnostic metal layer to be used for parasitic
+        extraction estimation during APR. Allowed layers are m1 to
+        mn. Actual technology metal layers are looked up through the
+        'aprlayer' dictionary.
         """
     }
+
+    cfg['asic']['clklayer'] = {
+        'switch' : '-asic_clklayer',
+        'type' : ['str'],
+        'lock' : 'false',
+        'requirement' : 'asic',
+        'defvalue' : [],
+        'short_help' : 'Design Clock Layer',
+        'param_help' : "'asic' 'clklayer' <str>",
+        'example': ["cli: -asic_clklayer m5",
+                    "api: chip.add('asic', 'clklayer', 'm5')"],
+        'help' : """
+        Metal layer to use for clock net parasitic estimation.
+        """
+    }
+
+    cfg['asic']['vpinlayer'] = {
+        'switch' : '-asic_vpinlayer',
+        'type' : ['str'],
+        'lock' : 'false',
+        'requirement' : 'asic',
+        'defvalue' : [],
+        'short_help' : 'Design Vertical Pin Layer',
+        'param_help' : "'asic' 'vpinlayer' <str>",
+        'example': ["cli: -asic_vpinlayer m3",
+                    "api: chip.add('asic', 'vpinlayer', 'm3')"],
+        'help' : """
+        Metal layer to use for automated vertical pin placement 
+        during APR.
+        """
+    }
+    
+    cfg['asic']['hpinlayer'] = {
+        'switch' : '-asic_hpinlayer',
+        'type' : ['str'],
+        'lock' : 'false',
+        'requirement' : 'asic',
+        'defvalue' : [],
+        'short_help' : 'Design Horizontal Pin Layer',
+        'param_help' : "'asic' 'hpinlayer' <str>",
+        'example': ["cli: -asic_hpinlayer m2",
+                    "api: chip.add('asic', 'hpinlayer', 'm2')"],
+        'help' : """
+        Metal layer to use for automated horizontalpin placement 
+        during APR.
+        """
+    }
+    
     
     # For density driven floorplanning
     cfg['asic']['density'] = {
