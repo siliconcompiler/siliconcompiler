@@ -485,71 +485,71 @@ def schema_pdk(cfg):
         routing layer in the tech.lef.
         """
     }
-    # Horozontal Routing Grid
-    cfg['pdk']['aprlayer']['default']['default']['hgrid'] = {
-        'switch' : '-pdk_aprlayer_hgrid',
+    # Vertical Grid
+    cfg['pdk']['aprlayer']['default']['default']['xpitch'] = {
+        'switch' : '-pdk_aprlayer_xpitch',
         'requirement' : 'optional',
         'type' : ['num'],
         'lock' : 'false',
         'defvalue' : [],
         'short_help' : 'APR Layer Horizontal Grid',
-        'param_help' : "'pdk' 'aprlayer' stackup metal 'hgrid'",
-        'example': ["""cli: -pdk_aprlayer_hgrid 'stack10 m1 0.5'""",
-                    """api: chip.add('pdk','aprlayer','stack10','m1','hgrid',
+        'param_help' : "'pdk' 'aprlayer' stackup metal 'xpitch'",
+        'example': ["""cli: -pdk_aprlayer_xpitch 'stack10 m1 0.5'""",
+                    """api: chip.add('pdk','aprlayer','stack10','m1','xpitch',
                     '0.5')"""],
         'help' : """
-        Defines the horizontal routing grid on a a per stackup and per metal 
+        Defines the vertical routing grid on a a per stackup and per metal 
         basis. Values are specified in um. Metal layers are ordered from m1 to 
         mn, where m1 is the lowest routing layer in the tech.lef.        
         """
     }
 
-    # Vertical Routing Grid
-    cfg['pdk']['aprlayer']['default']['default']['vgrid'] = {
-        'switch' : '-pdk_aprlayer_vgrid',
+    # Horizontal Grid
+    cfg['pdk']['aprlayer']['default']['default']['ypitch'] = {
+        'switch' : '-pdk_aprlayer_ypitch',
         'requirement' : 'optional',
-        'type' : ['str'],
+        'type' : ['num'],
         'lock' : 'false',
         'defvalue' : [],
         'short_help' : 'APR Layer Vertical Grid',
-        'param_help' : "'pdk' 'aprlayer' stackup metal 'vgrid'",
-        'example': ["""cli: -pdk_aprlayer_vgrid 'stack10 m2 0.5'""",
-                    """api: chip.add('pdk','aprlayer','stack10','m2','vgrid',
+        'param_help' : "'pdk' 'aprlayer' stackup metal 'ypitch'",
+        'example': ["""cli: -pdk_aprlayer_ypitch 'stack10 m2 0.5'""",
+                    """api: chip.add('pdk','aprlayer','stack10','m2','ypitch',
                     '0.5')"""],
         'help' : """
-        Defines the vertical routing grid on a a per stackup and per metal 
+        Defines the horizontal routing grid on a a per stackup and per metal 
         basis. Values are specified in um. Metal layers are ordered from m1 to
         mn, where m1 is the lowest routing layer in the tech.lef.
         """
     }
-    # Horizontal Grid Offset
-    cfg['pdk']['aprlayer']['default']['default']['hoffset'] = {
-        'switch' : '-pdk_aprlayer_hoffset',
+    # Vertical Grid Offset
+    cfg['pdk']['aprlayer']['default']['default']['xoffset'] = {
+        'switch' : '-pdk_aprlayer_xoffset',
         'requirement' : 'optional',
         'type' : ['num'],
         'lock' : 'false',
         'defvalue' : [],
         'short_help' : 'APR Layer Preferred Direction',
-        'param_help' : "'pdk' 'aprlayer' stackup metal 'hoffset'",
-        'example': ["""cli: -pdk_aprlayer_hoffset 'stack10 m2 0.5'""",
-                    """api: chip.add('pdk','aprlayer','stack10','m2','hoffset',
+        'param_help' : "'pdk' 'aprlayer' stackup metal 'xoffset'",
+        'example': ["""cli: -pdk_aprlayer_xoffset 'stack10 m2 0.5'""",
+                    """api: chip.add('pdk','aprlayer','stack10','m2','xoffset',
                     '0.5')"""],
         'help' : """
         Defines the horizontal grid offset of a metal layer specified on a per 
         stackup and per metal basis. Values are specified in um.
         """
     }
-    # Vertical Grid Offset
-    cfg['pdk']['aprlayer']['default']['default']['voffset'] = {
-        'switch' : '-pdk_aprlayer_voffset',
+    # Horizontal Grid Offset
+    cfg['pdk']['aprlayer']['default']['default']['yoffset'] = {
+        'switch' : '-pdk_aprlayer_yoffset',
         'requirement' : 'optional',
-        'type' : ['str'],
+        'type' : ['num'],
         'lock' : 'false',
         'defvalue' : [],
         'short_help' : 'APR Layer Preferred Direction',
-        'param_help' : "'pdk' 'aprlayer' stackup metal 'voffset'",
-        'example': ["""cli: -pdk_aprlayer_hoffset 'stack10 m2 0.5'""",
-                    """api: chip.add('pdk','aprlayer','stack10','m2','voffset',
+        'param_help' : "'pdk' 'aprlayer' stackup metal 'yoffset'",
+        'example': ["""cli: -pdk_aprlayer_yoffset 'stack10 m2 0.5'""",
+                    """api: chip.add('pdk','aprlayer','stack10','m2','yoffset',
                     '0.5')"""],
         'help' : """
         Defines the vertical grid offset of a metal layer specified on a per 
@@ -1429,6 +1429,36 @@ def schema_metrics(cfg, group, step='default'):
         'help' : """
         Metric tracking the total cell area on a per step basis
         specified in um^2.
+        """
+    }
+
+    cfg[group][step]['vias'] = {
+        'switch' : '-'+group+'_vias',
+        'type' : ['num'],
+        'lock' : 'false',
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Total Vias ' + group.capitalize(),
+        'param_help' : "'"+group+"' step 'vias' <num>",
+        'example':["cli: -"+group+"_vias 'route 100.00'",
+                   "api: chip.add('"+group+"','place','vias','100')"],
+        'help' : """
+        Metric tracking the total number of vias in the design.
+        """
+    }
+
+    cfg[group][step]['wirelength'] = {
+        'switch' : '-'+group+'_vias',
+        'type' : ['num'],
+        'lock' : 'false',
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Total Wirelength ' + group.capitalize(),
+        'param_help' : "'"+group+"' step 'wirelength' <num>",
+        'example':["cli: -"+group+"_wirelength 'route 100.00'",
+                   "api: chip.add('"+group+"','place','wirelength','100')"],
+        'help' : """
+        Metric tracking the total wirelength in the design in meters.
         """
     }
 
@@ -2354,9 +2384,8 @@ def schema_design(cfg):
 
     cfg['clock'] = {}
     cfg['clock']['default'] = {}
-    
     cfg['clock']['default']['pin'] = {
-        'switch' : '-clock_name',
+        'switch' : '-clock_pin',
         'type' : ['str'],
         'lock' : 'false',
         'requirement' : 'optional',
@@ -2370,8 +2399,6 @@ def schema_design(cfg):
         """
     }
     
-    cfg['clock'] = {}
-    cfg['clock']['default'] = {}
     cfg['clock']['default']['period'] = {
         'switch' : '-clock_period',
         'type' : ['num'],
