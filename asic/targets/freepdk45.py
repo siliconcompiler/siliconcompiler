@@ -14,8 +14,8 @@ def setup_platform(chip):
     process = 'freepdk45'
     rev = 'r1p0'
     stackup = '10M'
-    edavendor = 'openroad'
     libtype = '10t'
+    node = '45'
     pdkdir = '/'.join(["asic",
                        foundry,
                        process,
@@ -29,13 +29,15 @@ def setup_platform(chip):
     # process name
     chip.set('pdk','foundry', foundry)
     chip.set('pdk','process', process)
+    chip.set('pdk','node', node)
     chip.set('pdk','rev', rev)
     chip.set('pdk','stackup', stackup)
+
     chip.set('pdk','tapmax', "120")
     chip.set('pdk','tapoffset', "0")
 
     # APR tech file
-    chip.set('pdk','aprtech',stackup, libtype, edavendor,
+    chip.set('pdk','aprtech',stackup, libtype, 'openroad',
              pdkdir+'/apr/freepdk45.tech.lef')
 
     # Routing Grid Definitions
@@ -109,8 +111,7 @@ def setup_libs(chip, vendor=None):
     chip.set('stdcell',libname,'gds',
              libdir+'/gds/NangateOpenCellLibrary.gds')
     # site name
-    chip.set('stdcell',libname,'site',
-             'FreePDK45_38x28_10R_NP_162NW_34O')
+    chip.set('stdcell',libname,'site', 'FreePDK45_38x28_10R_NP_162NW_34O')
     # lib arch
     chip.set('stdcell',libname,'libtype',libtype)
 
@@ -160,8 +161,8 @@ def setup_design(chip):
     chip.set('asic', 'maxlayer', "m10")
     chip.set('asic', 'maxfanout', "64")
     chip.set('asic', 'maxlength', "1000")
-    chip.set('asic', 'maxslew', ".2e-9")
-    chip.set('asic', 'maxcap', ".2e-12")
+    chip.set('asic', 'maxslew', "0.2e-9")
+    chip.set('asic', 'maxcap', "0.2e-12")
     chip.set('asic', 'clklayer', "m5")
     chip.set('asic', 'rclayer', "m3")
     chip.set('asic', 'hpinlayer', "m3")
