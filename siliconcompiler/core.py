@@ -322,6 +322,7 @@ class Chip:
             #setting or extending value based on set/get mode
             if not (field in cfg[param]):
                 self.logger.error('Search failed, \'%s\' is not a valid leaf cell key', param)
+                sys.exit()
             if(mode=='set'):
                 cfg[param][field] = val
             else:
