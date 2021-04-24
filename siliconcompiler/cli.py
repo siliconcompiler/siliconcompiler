@@ -1,7 +1,6 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
 #Standard Modules
-import asyncio
 import sys
 import logging
 import argparse
@@ -13,6 +12,7 @@ import uuid
 import pyfiglet
 import importlib.resources
 from argparse import RawTextHelpFormatter
+from multiprocessing import Process
 
 #Shorten siliconcompiler as sc
 import siliconcompiler
@@ -282,16 +282,16 @@ def main():
 
     # Run each job in parallel (remote) or serially (local).
     # The Chip.run() method is not thread-safe, so no parallel local runs.
+    chip_procs = []
     for chip in chips:
         # Running compilation pipeline
-        chip.start_async_run()
+        new_proc = Process(target=chip.run, args=())
+        new_proc.start()
+        chip_procs.append(new_proc)
 
     # Wait for threads to complete.
-    loop = asyncio.get_event_loop()
-    for chip in chips:
-        while chip.active_thread and (not chip.active_thread.done()):
-            # Sleep asynchronously so that background threads can run.
-            loop.run_until_complete(asyncio.sleep(1.0))
+    for proc in chip_procs:
+        proc.join()
 
     # For remote jobs, fetch results.
     if 'remote' in cmdlinecfg.keys():
