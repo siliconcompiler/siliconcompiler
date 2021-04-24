@@ -161,17 +161,17 @@ set_placement_padding -global \
 # Source Step Script
 ###############################
 
-source -echo -verbose "$sc_refdir/sc_$sc_step.tcl"
+source "$sc_refdir/sc_$sc_step.tcl"
 
 ###############################
 # Reporting
 ###############################
 
-source -echo -verbose "$sc_refdir/sc_report.tcl"
+source "$sc_refdir/sc_metrics.tcl"
 
 ###############################
 # Write Design Data
 ###############################
 
-source -echo -verbose "$sc_refdir/sc_write.tcl"
+source "$sc_refdir/sc_write.tcl"
 
