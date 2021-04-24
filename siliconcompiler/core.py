@@ -591,7 +591,7 @@ class Chip:
         '''
 
         filepath = os.path.abspath(filename)
-        self.logger.info('Writing configuration to file %s', filepath)
+        self.logger.debug('Writing configuration to file %s', filepath)
 
         if not os.path.exists(os.path.dirname(filepath)):
             os.makedirs(os.path.dirname(filepath))
@@ -964,7 +964,7 @@ class Chip:
                 (self.cfg['skipall']['value'][-1] =='true')):
                 self.logger.info('Skipping step: %s', step)
             else:
-                self.logger.info("Running step '%s'", step)  
+                self.logger.info("Running step '%s' in dir '%s'", step, jobdir)  
                 # Copying in Files (local only)
                 if os.path.isdir(jobdir) and (not remote):
                     shutil.rmtree(jobdir)
@@ -1021,7 +1021,7 @@ class Chip:
                 if (schema_istrue(self.cfg['quiet']['value'])) & (step not in self.cfg['bkpt']['value']):
                     cmd_fields.append("> " + logfile)
                 else:
-                    cmd_fields.append("| tee " + logfile)
+                    cmd_fields.append(" 2>&1 | tee " + logfile)
 
                 #Final command line
                 cmd = ' '.join(cmd_fields)
