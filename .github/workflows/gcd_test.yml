@@ -8,7 +8,6 @@ jobs:
       - uses: actions/checkout@v2
       - run: pip3 install -r $GITHUB_WORKSPACE/requirements.txt
       - run: pip3 install -e $GITHUB_WORKSPACE/.
-      - run: rm -r $GITHUB_WORKSPACE/build/
       - run: mkdir -p $GITHUB_WORKSPACE/build/gcd/
       - run: $GITHUB_WORKSPACE/examples/gcd/test.sh
   fpga_test_job:
