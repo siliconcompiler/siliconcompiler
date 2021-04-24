@@ -1,5 +1,0 @@
-report_checks
-report_design_area
-report_tns
-report_wns
-report_worst_slack
