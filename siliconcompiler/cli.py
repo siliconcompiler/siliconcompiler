@@ -10,6 +10,7 @@ import re
 import json
 import sys
 import uuid
+import pyfiglet
 import importlib.resources
 from argparse import RawTextHelpFormatter
 
@@ -74,7 +75,7 @@ def cmdline():
     #Parsing args and converting to dict
     cmdargs = vars(parser.parse_args())
 
-    print(cmdargs)
+    #print(cmdargs)
     
     # Copying flat parse_args to nested cfg dict based on key type
     # Values are lists of varying legnth based on cfg parameter
@@ -222,6 +223,9 @@ def add_arg(cfg, parser, keys=None):
 ###########################
 def main():
 
+    ascii_banner = pyfiglet.figlet_format("Silicon Compiler")
+    print(ascii_banner)
+
     #Command line inputs, read once
     cmdlinecfg = cmdline()
     
@@ -298,5 +302,6 @@ def main():
 
         
 #########################
-if __name__ == "__main__":    
+if __name__ == "__main__":
+    
     sys.exit(main())
