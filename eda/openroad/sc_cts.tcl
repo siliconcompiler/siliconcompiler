@@ -43,15 +43,6 @@ if {[llength [all_clocks]] > 0} {
     
     detailed_placement
 
-    #######################
-    # Add Fillers
-    #######################    
-    
-    filler_placement $sc_filler    
-    
-    #######################
-    # Check Placement
-    #######################    
     check_placement
     
 }
