@@ -19,3 +19,6 @@ report_tns > "reports/$sc_design.tns.rpt"
 
 report_power > "reports/$sc_design.power.rpt"
 
+report_design_area
+
+
