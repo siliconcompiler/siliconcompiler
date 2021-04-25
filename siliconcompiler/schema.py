@@ -1414,7 +1414,23 @@ def schema_metrics(cfg, group, step='default'):
         Metric tracking the total number of cells on a per step basis.
         In the case of FPGAs, the it represents the number of LUTs.
         """
-    }    
+    }
+
+    cfg[group][step]['nets'] = {
+        'switch' : '-'+group+'_nets',
+        'type' : ['num'],
+        'lock' : 'false',
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Total Nets ' + group.capitalize(),
+        'param_help' : "'"+group+"' step 'nets' <num>",
+        'example':["cli: -"+group+"_cells 'place 100'",
+                   "api: chip.add('"+group+"','place','nets','100')"],
+        'help' : """
+        Metric tracking the total number of net segments on a per step 
+        basis.
+        """
+    }
     
     cfg[group][step]['area'] = {
         'switch' : '-'+group+'_area',
