@@ -274,18 +274,16 @@ def main():
         #Creating hashes for all sourced files
         chip.hash()
 
-        #Lock chip configuration
-        chip.lock()
-
     # Perform preprocessing for remote jobs, if necessary.
-    remote_preprocess(chips, cmdlinecfg)
+    if 'remote' in cmdlinecfg.keys():
+        remote_preprocess(chips)
 
     # Run each job in parallel (remote) or serially (local).
     # The Chip.run() method is not thread-safe, so no parallel local runs.
     chip_procs = []
     for chip in chips:
         # Running compilation pipeline
-        new_proc = Process(target=chip.run, args=())
+        new_proc = Process(target=chip.run)
         new_proc.start()
         chip_procs.append(new_proc)
 
