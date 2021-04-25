@@ -842,7 +842,6 @@ class Chip:
           error = subprocess.run(cmd, shell=True)
 
     ###################################
-    ###################################
     def run(self, start=None, stop=None, jobid=None):
 
         '''The common execution method for all compilation steps compilation
@@ -1015,7 +1014,7 @@ class Chip:
                 #####################
                 if (stepindex != 0) and remote:
                     self.logger.info('Remote server call')
-                    # Set 'jobame' in config dict to retain continuity.
+                    # Set 'jobname' in config dict to retain continuity.
                     self.cfg['jobname']['value'] = [jobname]
                     # Blocks the currently-running thread, but not the whole app.
                     loop = asyncio.new_event_loop()

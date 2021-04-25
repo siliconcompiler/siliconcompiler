@@ -278,8 +278,7 @@ def main():
     if 'remote' in cmdlinecfg.keys():
         remote_preprocess(chips)
 
-    # Run each job in parallel (remote) or serially (local).
-    # The Chip.run() method is not thread-safe, so no parallel local runs.
+    # Run each job in its own thread.
     chip_procs = []
     for chip in chips:
         # Running compilation pipeline

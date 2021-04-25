@@ -81,29 +81,36 @@ class Server:
         build_dir = '%s/%s'%(self.cfg['nfsmount']['value'][-1], job_hash)
         jobs_dir = '%s/%s'%(build_dir, cfg['design']['value'][-1])
         cfg['dir']['value'] = [build_dir]
+
         # Create the working directory for the given 'job hash' if necessary.
         subprocess.run(['mkdir', '-p', jobs_dir])
         # Link to the 'import' directory if necessary.
         subprocess.run(['mkdir', '-p', '%s/%s'%(jobs_dir, cfg['jobname']['value'][-1])])
         subprocess.run(['ln', '-s', '%s/import'%build_dir, '%s/%s/import'%(jobs_dir, cfg['jobname']['value'][-1])])
+
         # Remove 'remote' JSON config value to run locally on compute node.
         cfg['remote']['value'] = []
         # Rename source files in the config dict; the 'import' step already
         # ran and collected the sources into a single 'verilator.sv' file.
-        # TODO: Use 'jobid'
         cfg['source']['value'] = ['%s/import/verilator.sv'%build_dir]
+
         # Write JSON config to shared compute storage.
         cur_id = cfg['jobname']['value'][-1][3:]
         subprocess.run(['mkdir', '-p', '%s/configs'%build_dir])
         with open('%s/configs/chip%s.json'%(build_dir, cur_id), 'w') as f:
           f.write(json.dumps(cfg))
 
-        # Issue an 'srun' command depending on the given config JSON.
+        # Run the job with the configured clustering option.
         sc_sources = ''
         for filename in cfg['source']['value']:
           sc_sources += filename + " "
         # (Non-blocking)
-        asyncio.create_task(self.remote_sc(job_hash, cfg['design']['value'][0], cfg['source']['value'], build_dir, stage, cur_id))
+        asyncio.create_task(self.remote_sc(job_hash,
+                                           cfg['design']['value'][0],
+                                           cfg['source']['value'],
+                                           build_dir,
+                                           stage,
+                                           cur_id))
 
         # Return a response to the client.
         response_text = "Starting job stage: %s (%s)"%(job_hash, stage)
@@ -125,8 +132,10 @@ class Server:
         if not job_hash:
           return web.Response(text="Error: no job hash provided.")
         job_root = '%s/%s'%(self.cfg['nfsmount']['value'][0], job_hash)
+
         # Ensure that the build directory exists.
         subprocess.run(['mkdir', '-p', job_root])
+
         # Receive and write the archive file.
         reader = await request.multipart()
         while True:

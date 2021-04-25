@@ -9,7 +9,10 @@ import subprocess
 def remote_preprocess(chips):
     '''Helper method to run a local import stage for remote jobs.
     '''
+
+    # Run the local 'import' step.
     chips[-1].run(start='import', stop='import')
+    # Clear the 'option' value, in case the import step is run again later.
     chips[-1].cfg['flow']['import']['option']['value'] = []
 
 ###################################
