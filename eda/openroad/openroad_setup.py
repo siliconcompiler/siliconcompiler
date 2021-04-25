@@ -1,5 +1,7 @@
 import os
 import importlib
+import re
+import sys
 
 from siliconcompiler.floorplan import *
 from siliconcompiler.schema import schema_path
@@ -64,7 +66,50 @@ def pre_process(chip, step):
         fp.save('inputs/' + topmodule + '.def')
 
 def post_process(chip, step):
-    ''' Tool specific function to run after step execution
-    '''
-    pass
+     ''' Tool specific function to run after step execution
+     '''
+     
+     #Temporary hack! Soon this should be output by openroad
+     exe = chip.get('flow',step,'exe')[-1]
+     design = chip.get('design')[-1]
+     with open(exe + ".log") as f:
+          for line in f:
+               area = re.search('^Design area (\d+)', line)
+               tns = re.search('^tns (.*)',line)
+               wns = re.search('^wns (.*)',line)
+               power = re.search('^Total(.*)',line)
+               vias = re.search('^total number of vias = (.*)',line)
+               wirelength = re.search('^total wire length = (.*) um',line)
+
+               if area:
+                    chip.set('real', step, 'area', str(round(float(area.group(1)),2)))
+               elif tns:
+                    chip.set('real', step, 'setup_tns', str(round(float(tns.group(1)),2)))
+               elif wns:
+                    chip.set('real', step, 'setup_wns', str(round(float(wns.group(1)),2)))
+               elif power:                    
+                    powerlist = power.group(1).split()
+                    leakage = powerlist[2]
+                    total = powerlist[3] 
+                    chip.set('real', step, 'power', total)
+                    chip.set('real', step, 'leakage',  leakage)
+               elif wirelength:
+                    chip.set('real', step, 'wirelength', str(round(float(wirelength.group(1)),2)))
+               elif vias:
+                    chip.set('real', step, 'vias', str(round(float(vias.group(1)),2)))
+                    
+     #Temporary superhack!
+     #Getting cell count and net number from DEF
+     with open("outputs/" + design + ".def") as f:
+          for line in f:
+               cells = re.search('^COMPONENTS (\d+)', line)
+               nets = re.search('^NETS (\d+)',line)
+               if cells:
+                    chip.set('real', step, 'cells', cells.group(1))
+               elif nets:
+                    chip.set('real', step, 'nets', nets.group(1))               
+          
+
+     
+                        
    
