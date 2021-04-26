@@ -6,18 +6,14 @@ import os
 import subprocess
 
 ###################################
-def remote_preprocess(chips, cmdlinecfg):
-    '''Helper method to perform preprocessing steps for remote cloud jobs,
-       if a remote host was configured in the command-line flags.
+def remote_preprocess(chips):
+    '''Helper method to run a local import stage for remote jobs.
     '''
-    # For remote jobs, run the 'import' stage locally and upload it.
-    loop = asyncio.get_event_loop()
-    if 'remote' in cmdlinecfg.keys():
-        loop.run_until_complete(chips[-1].run(start='import', stop='import'))
-        cwd = os.getcwd()
-        os.chdir(str(chips[-1].cfg['dir']['value'][-1]) + '/import/job')
-        upload_sources_to_cluster(chips[-1])
-        os.chdir(cwd)
+
+    # Run the local 'import' step.
+    chips[-1].run(start='import', stop='import')
+    # Clear the 'option' value, in case the import step is run again later.
+    chips[-1].cfg['flow']['import']['option']['value'] = []
 
 ###################################
 async def remote_run(chip, stage):
@@ -44,10 +40,6 @@ async def remote_run(chip, stage):
       await asyncio.sleep(1)
       is_busy = await is_job_busy(chip, stage)
     print("%s stage completed!"%stage)
-
-    # Increment the stage's jobid value.
-    next_id = str(int(chip.cfg['status'][stage]['jobid']['value'][-1])+1)
-    chip.cfg['status'][stage]['jobid']['value'] = [next_id]
 
 ###################################
 async def request_remote_run(chip, stage):
@@ -78,7 +70,7 @@ async def is_job_busy(chip, stage):
                                chip.cfg['remoteport']['value'][0],
                                chip.status['job_hash'],
                                stage,
-                               chip.cfg['status'][stage]['jobid']['value'][-1])) \
+                               chip.cfg['jobname']['value'][-1][3:])) \
         as resp:
             response = await resp.text()
             return (response != "Job has no running steps.")
@@ -104,7 +96,7 @@ async def upload_import_dir(chip):
     '''
 
     async with aiohttp.ClientSession() as session:
-        with open(os.path.abspath('../../import/job/import.zip'), 'rb') as f:
+        with open(os.path.abspath('import.zip'), 'rb') as f:
             async with session.post("http://%s:%s/import/%s"%(
                                         chip.cfg['remote']['value'][-1],
                                         chip.cfg['remoteport']['value'][-1],
@@ -142,13 +134,14 @@ def fetch_results(chip):
     # a server endpoint that returns a file object.
     subprocess.run(['wget',
                     "http://%s:%s/get_results/%s.zip"%(
-                        chip.cfg['remote']['value'][0],
-                        chip.cfg['remoteport']['value'][0],
+                        chip.cfg['remote']['value'][-1],
+                        chip.cfg['remoteport']['value'][-1],
                         chip.status['job_hash'])])
     # Unzip the result and run klayout to display the GDS file.
     subprocess.run(['unzip', '%s.zip'%chip.status['job_hash']])
-    gds_loc = '%s/export/job*/outputs/%s.gds'%(
+    gds_loc = '%s/%s/job*/export/outputs/%s.gds'%(
         chip.status['job_hash'],
-        chip.cfg['design']['value'][0],
+        chip.cfg['design']['value'][-1],
+        chip.cfg['design']['value'][-1],
     )
     subprocess.run(['klayout', gds_loc])

@@ -78,28 +78,39 @@ class Server:
           return web.Response(text="Error: no stage provided.")
 
         # Reset 'build' directory in NFS storage.
-        build_dir = '%s/%s'%(self.cfg['nfsmount']['value'][0], job_hash)
+        build_dir = '%s/%s'%(self.cfg['nfsmount']['value'][-1], job_hash)
+        jobs_dir = '%s/%s'%(build_dir, cfg['design']['value'][-1])
         cfg['dir']['value'] = [build_dir]
+
+        # Create the working directory for the given 'job hash' if necessary.
+        subprocess.run(['mkdir', '-p', jobs_dir])
+        # Link to the 'import' directory if necessary.
+        subprocess.run(['mkdir', '-p', '%s/%s'%(jobs_dir, cfg['jobname']['value'][-1])])
+        subprocess.run(['ln', '-s', '%s/import'%build_dir, '%s/%s/import'%(jobs_dir, cfg['jobname']['value'][-1])])
+
         # Remove 'remote' JSON config value to run locally on compute node.
         cfg['remote']['value'] = []
         # Rename source files in the config dict; the 'import' step already
         # ran and collected the sources into a single 'verilator.sv' file.
-        # TODO: Use 'jobid'
-        cfg['source']['value'] = ['%s/%s/import/job/verilator.sv'%(self.cfg['nfsmount']['value'][0], job_hash)]
+        cfg['source']['value'] = ['%s/import/verilator.sv'%build_dir]
+
         # Write JSON config to shared compute storage.
-        cur_id = cfg['status'][stage]['jobid']['value'][-1]
+        cur_id = cfg['jobname']['value'][-1][3:]
         subprocess.run(['mkdir', '-p', '%s/configs'%build_dir])
         with open('%s/configs/chip%s.json'%(build_dir, cur_id), 'w') as f:
           f.write(json.dumps(cfg))
-        # Symlink the appropriate import directory.
-        subprocess.run(['ln', '-s', '%s/import/job'%build_dir, '%s/import/job%s'%(build_dir, str(int(cur_id)+1))])
 
-        # Issue an 'srun' command depending on the given config JSON.
+        # Run the job with the configured clustering option.
         sc_sources = ''
         for filename in cfg['source']['value']:
           sc_sources += filename + " "
         # (Non-blocking)
-        asyncio.create_task(self.remote_sc(job_hash, cfg['design']['value'][0], cfg['source']['value'], build_dir, stage, cur_id))
+        asyncio.create_task(self.remote_sc(job_hash,
+                                           cfg['design']['value'][0],
+                                           cfg['source']['value'],
+                                           build_dir,
+                                           stage,
+                                           cur_id))
 
         # Return a response to the client.
         response_text = "Starting job stage: %s (%s)"%(job_hash, stage)
@@ -121,6 +132,10 @@ class Server:
         if not job_hash:
           return web.Response(text="Error: no job hash provided.")
         job_root = '%s/%s'%(self.cfg['nfsmount']['value'][0], job_hash)
+
+        # Ensure that the build directory exists.
+        subprocess.run(['mkdir', '-p', job_root])
+
         # Receive and write the archive file.
         reader = await request.multipart()
         while True:
@@ -128,9 +143,6 @@ class Server:
             if part is None:
                 break
             if part.name == 'import':
-                # Create the working directory for the given 'job hash' UUID.
-                subprocess.run(['mkdir', '-p', job_root])
-
                 # Receive and write the zipped 'import' directory.
                 with open('%s/import.zip'%(job_root), 'wb') as f:
                     while True:
@@ -140,8 +152,8 @@ class Server:
                         f.write(chunk)
 
         # Un-zip the archive file.
-        subprocess.run(['mkdir', '-p', '%s/import/job'%job_root])
-        subprocess.run(['unzip', '-o', '%s/import.zip'%(job_root)], cwd='%s/import/job'%job_root)
+        subprocess.run(['mkdir', '-p', '%s/import'%job_root])
+        subprocess.run(['unzip', '-o', '%s/import.zip'%(job_root)], cwd='%s/import'%job_root)
 
         # Done.
         return web.Response(text="Successfully imported project %s."%job_hash)

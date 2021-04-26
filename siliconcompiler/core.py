@@ -23,6 +23,7 @@ import textwrap
 from importlib.machinery import SourceFileLoader
 
 from siliconcompiler.client import remote_run
+from siliconcompiler.client import upload_sources_to_cluster
 from siliconcompiler.schema import schema_cfg
 from siliconcompiler.schema import schema_layout
 from siliconcompiler.schema import schema_path
@@ -571,14 +572,8 @@ class Chip:
             
         #Rename dictionary based on keymap
         #Customize based on the types
-        if not self.cfg_locked:
-            #Merging arguments with the Chip configuration
-            self.mergecfg(read_args)
-        else:
-            self.logger.error('Trying to change configuration while locked')
-
-        if self.cfg['lock']['value'] == "True":
-            self.cfg_locked = True
+        #Merging arguments with the Chip configuration
+        self.mergecfg(read_args)
 
     ##################################
     def writecfg(self, filename, cfg=None, prune=True, abspath=False, keymap=[]):
@@ -643,14 +638,6 @@ class Chip:
                 self.printcfg(cfgcopy, mode='doc', field='value' , file=f)
         else:
             self.logger.error('File format not recognized %s', filepath)
-            
-    ##################################
-    def lock(self):
-        '''Locks the Chip configuration to prevent unwarranted configuration
-        updates. Copies defvalue into value if value is not set.
-        
-        '''
-        self.cfg_locked = True
 
     ##################################
     def reset(self,cfg=None):
@@ -855,17 +842,7 @@ class Chip:
           error = subprocess.run(cmd, shell=True)
 
     ###################################
-    def start_async_run(self, start=None, stop=None, jobid=None):
-        '''Helper method to start an asynchronous 'run' command, and update
-           a tracking semaphore when it starts/finishes.
-        '''
-        loop = asyncio.get_event_loop()
-        self.active_thread = loop.create_task(self.run(start=start,
-                                                       stop=stop,
-                                                       jobid=jobid))
-
-    ###################################
-    async def run(self, start=None, stop=None, jobid=None):
+    def run(self, start=None, stop=None, jobid=None):
 
         '''The common execution method for all compilation steps compilation
         flow. The job executes on the local machine by default, but can be
@@ -1037,7 +1014,12 @@ class Chip:
                 #####################
                 if (stepindex != 0) and remote:
                     self.logger.info('Remote server call')
-                    await remote_run(self, step)
+                    # Set 'jobname' in config dict to retain continuity.
+                    self.cfg['jobname']['value'] = [jobname]
+                    # Blocks the currently-running thread, but not the whole app.
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    loop.run_until_complete(remote_run(self, step))
                 else:
                     # Local builds must be processed synchronously, because
                     # they use calls such as os.chdir which are not thread-safe.
@@ -1062,6 +1044,10 @@ class Chip:
                         print(format)
                         if format=='cmdline':
                             code.interact(local=dict(globals(), **locals()))
+
+                    # Upload results for remote calls.
+                    if remote:
+                        upload_sources_to_cluster(self)
                     
             ########################
             # Return to $CWD
@@ -1089,7 +1075,6 @@ def get_permutations(base_chip, cmdlinecfg):
     if 'permutations' in cmdlinecfg.keys():
         perm_path = os.path.abspath(cmdlinecfg['permutations']['value'][-1])
         perm_script = SourceFileLoader('job_perms', perm_path).load_module()
-        jobid = 0
         loglevel = cmdlinecfg['loglevel']['value'][-1] \
             if 'loglevel' in cmdlinecfg.keys() else "INFO"
         # Create a new Chip object with the same job hash for each permutation.
@@ -1099,15 +1084,13 @@ def get_permutations(base_chip, cmdlinecfg):
             # dictionary which does not contain custom classes/objects.
             new_chip.status = json.loads(json.dumps(base_chip.status))
             new_chip.cfg = json.loads(json.dumps(chip_cfg))
-            # set incrementing job IDs to avoid overwriting other jobs.
-            for step in new_chip.cfg['steplist']['value']:
-                new_chip.set('status', step, 'jobid', str(jobid))
             if 'remote' in cmdlinecfg.keys():
                 new_chip.set('start', 'syn')
             chips.append(new_chip)
-            jobid = jobid + 1
     else:
         # If no permutations script is configured, simply run the design once.
+        if 'remote' in cmdlinecfg.keys():
+            base_chip.set('start', 'syn')
         chips.append(base_chip)
 
     # Done; return the list of Chips.

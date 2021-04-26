@@ -1982,7 +1982,7 @@ def schema_options(cfg):
     
     cfg['jobname'] = {
         'switch' : '-jobname',
-        'type' : ['dir'],
+        'type' : ['str'],
         'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
