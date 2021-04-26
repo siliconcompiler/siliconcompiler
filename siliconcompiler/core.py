@@ -783,22 +783,42 @@ class Chip:
             step: The step to report on (eg. cts)
             jobid: Index of job to report on (1, 2, etc)
         '''
+
+        
+        steplist = self.get('steplist')
+        start = self.get('start')[-1]
+        stop = self.get('stop')[-1]
+        design = self.get('design')[-1]
+        startindex = steplist.index(start)
+        stopindex = steplist.index(stop)
+        
+        jobdir = (self.get('dir')[-1] +
+                  "/" + design + "/" +
+                  self.get('jobname')[-1] +
+                  self.get('jobid')[-1])
         
         info = '\n'.join(["SUMMARY:\n",
                           "design = "+self.get('design')[0],
                           "foundry = "+self.get('pdk', 'foundry')[0],
                           "process = "+self.get('pdk', 'process')[0],
-                          "targetlibs = "+" ".join(self.get('asic','targetlib'))])
+                          "targetlibs = "+" ".join(self.get('asic','targetlib')),
+                          "jobdir = "+ jobdir])
         
         print("-"*135)
         print(info, "\n")
 
-        steplist = self.get('steplist')
-        start = self.get('start')[-1]
-        stop = self.get('stop')[-1]
-        startindex = steplist.index(start)
-        stopindex = steplist.index(stop)
-       
+        #Copying in All Dictionaries   
+        for stepindex in range(startindex, stopindex + 1):
+            step = steplist[stepindex]
+            metricsfile = "/".join([jobdir,
+                                    step,
+                                    "outputs",
+                                    design + ".json"])
+
+            with open(metricsfile, 'r') as f:
+                   sc_results = json.load(f)
+            self.cfg['real'][step] = copy.deepcopy(sc_results['real'][step])
+            
         #Creating step index
         data = []
         steps = []
@@ -808,7 +828,7 @@ class Chip:
             step = steplist[stepindex]
             steps.append(step.center(colwidth))
 
-        #Creating bulk
+        #Creating table of real values
         metrics = []
         for metric in  self.getkeys('real', 'default'):
             metrics.append(" " + metric)
@@ -864,24 +884,6 @@ class Chip:
         cwd = os.getcwd()
         
         ###########################
-        # Jobdir
-        ###########################
-        
-        if (len(self.cfg['jobname']['value']) > 0):
-            jobname = self.cfg['jobname']['value'][-1]
-        else:
-            alljobs = os.listdir(buildroot +
-                                 "/" +
-                                 design)
-            jobid = 0   
-            for item in alljobs:
-                m = re.match('job(\d+)', item)
-                if m:
-                    jobid = max(jobid, int(m.group(1)))
-            jobid = jobid+1
-            jobname = "job" + str(jobid)
-
-        ###########################
         # Defining Pipeline
         ###########################
 
@@ -900,6 +902,11 @@ class Chip:
                         
             #step lookup (active state!)
             step = steplist[stepindex]
+            stepdir = "/".join([self.get('dir')[-1],
+                                self.get('design')[-1],
+                                self.get('jobname')[-1] + self.get('jobid')[-1],
+                                step])
+            
             laststep = steplist[stepindex-1]           
             importstep = (stepindex==0)
 
@@ -910,15 +917,6 @@ class Chip:
                 self.logger.error('Illegal step name %s', step)
                 sys.exit()
 
-            #####################
-            # Job Directory
-            #####################
-
-            jobdir = '/'.join([buildroot,
-                               design,
-                               jobname,
-                               step])
-                                   
             #####################
             # Dynamic EDA setup
             #####################
@@ -941,12 +939,12 @@ class Chip:
                 (self.cfg['skipall']['value'][-1] =='true')):
                 self.logger.info('Skipping step: %s', step)
             else:
-                self.logger.info("Running step '%s' in dir '%s'", step, jobdir)  
+                self.logger.info("Running step '%s' in dir '%s'", step, stepdir)  
                 # Copying in Files (local only)
-                if os.path.isdir(jobdir) and (not remote):
-                    shutil.rmtree(jobdir)
-                os.makedirs(jobdir, exist_ok=True)
-                os.chdir(jobdir)
+                if os.path.isdir(stepdir) and (not remote):
+                    shutil.rmtree(stepdir)
+                os.makedirs(stepdir, exist_ok=True)
+                os.chdir(stepdir)
                 os.makedirs('outputs', exist_ok=True)
                 os.makedirs('reports', exist_ok=True)
                 # First stage after import always copies from same place
@@ -957,7 +955,7 @@ class Chip:
                 
                 #Copy Reference Scripts
                 if schema_istrue(self.cfg['flow'][step]['copy']['value']):
-                    refdir = schema_path(self.cfg['flow'][step]['refdir']['value'][-1])                    
+                    refdir = schema_path(self.cfg['flow'][step]['refdir']['value'][-1])               
                     shutil.copytree(refdir,
                                     ".",
                                     dirs_exist_ok=True)
@@ -1014,7 +1012,6 @@ class Chip:
                 #####################
                 if (stepindex != 0) and remote:
                     self.logger.info('Remote server call')
-                    # Set 'jobname' in config dict to retain continuity.
                     self.cfg['jobname']['value'] = [jobname]
                     # Blocks the currently-running thread, but not the whole app.
                     loop = asyncio.new_event_loop()
@@ -1050,6 +1047,14 @@ class Chip:
                         upload_sources_to_cluster(self)
                     
             ########################
+            # Save Metrics/Config
+            ########################
+            metricsfile = "/".join(["outputs",
+                                     self.get('design')[-1] +'.json'])
+                                    
+            self.writecfg(metricsfile)
+
+            ########################
             # Return to $CWD
             ########################       
             os.chdir(cwd)
@@ -1057,7 +1062,24 @@ class Chip:
         # Mark completion of async run if applicable.
         self.active_thread = None
  
+    ########################
+    def set_jobid(self):
 
+        design = self.cfg['design']['value'][-1]
+        dirname = self.cfg['dir']['value'][-1]
+        jobname = self.cfg['jobname']['value'][-1]
+
+        alljobs = os.listdir(dirname + "/" + design)
+
+        if len(self.cfg['jobid']['value']) < 1:
+            jobid = 0
+            for item in alljobs:
+                m = re.match(jobname+'(\d+)', item)
+                if m:
+                    jobid = max(jobid, int(m.group(1)))
+            jobid = jobid+1
+            self.set('jobid', str(jobid))
+        
 ############################################
 # Annoying helper class b/c yaml..
 # Do we actually have to support a class?
@@ -1072,11 +1094,13 @@ def get_permutations(base_chip, cmdlinecfg):
     '''
 
     chips = []
+
+    loglevel = cmdlinecfg['loglevel']['value'][-1] \
+        if 'loglevel' in cmdlinecfg.keys() else "INFO"
+    
     if 'permutations' in cmdlinecfg.keys():
         perm_path = os.path.abspath(cmdlinecfg['permutations']['value'][-1])
         perm_script = SourceFileLoader('job_perms', perm_path).load_module()
-        loglevel = cmdlinecfg['loglevel']['value'][-1] \
-            if 'loglevel' in cmdlinecfg.keys() else "INFO"
         # Create a new Chip object with the same job hash for each permutation.
         for chip_cfg in perm_script.permutations(base_chip.cfg):
             new_chip = Chip(loglevel=loglevel)
@@ -1086,13 +1110,19 @@ def get_permutations(base_chip, cmdlinecfg):
             new_chip.cfg = json.loads(json.dumps(chip_cfg))
             if 'remote' in cmdlinecfg.keys():
                 new_chip.set('start', 'syn')
+            new_chip.set_jobid()
             chips.append(new_chip)
     else:
-        # If no permutations script is configured, simply run the design once.
+        new_chip = Chip(loglevel=loglevel)
+        new_chip.status = json.loads(json.dumps(base_chip.status))
+        new_chip.cfg = json.loads(json.dumps(base_chip.cfg))
         if 'remote' in cmdlinecfg.keys():
-            base_chip.set('start', 'syn')
-        chips.append(base_chip)
+            new_chip.set('start', 'syn')
+        new_chip.set_jobid()
+        chips.append(new_chip)
 
     # Done; return the list of Chips.
     return chips
 
+
+  
