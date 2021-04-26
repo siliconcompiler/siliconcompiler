@@ -104,6 +104,14 @@ if {[dict exists $sc_cfg def]} {
     set sc_def  ""
 }
 
+# FLOORPLAN
+if {[dict exists $sc_cfg floorplan]} {    
+    set sc_floorplan [dict get $sc_cfg floorplan]
+} else {
+    set sc_floorplan  ""
+}
+
+
 ###############################
 # Read Files
 ###############################

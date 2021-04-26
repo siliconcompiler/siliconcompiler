@@ -2,7 +2,7 @@
 # FLOORPLANNING
 ########################################################
 
-if {[llength $sc_def] > 0} {
+if {[llength $sc_def] > 0 | [llength $sc_floorplan] > 0} {
     #TODO: Only one def supported for now
     read_def -floorplan_initialize $sc_def
 } else {
