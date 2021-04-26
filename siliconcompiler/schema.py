@@ -104,6 +104,8 @@ def schema_istrue(value):
         return False
 
     
+
+    
 ###############################################################################
 # FPGA
 ###############################################################################
@@ -1985,18 +1987,35 @@ def schema_options(cfg):
         'type' : ['str'],
         'lock' : 'false',
         'requirement' : 'optional',
-        'defvalue' : [],
+        'defvalue' : ['job'],
         'short_help' : 'Job Name',
         'param_help' : "'jobname' <dir>",
         'example': ["cli: -jobname may1",
                     "api: chip.set('jobname','may1'"],
         'help' : """
-        By default, job directories are created inside the 'build' directory 
-        in a sequential fashion as follows: job0, job1, job2,...
-        The 'jobname' parameters allows user to manually specify a jobname.
+        The name of the directory to work in.
+        The full directory structure is:
+        'dir'/'design'/'jobname''jobid'
         """
     }
 
+    cfg['jobid'] = {
+        'switch' : '-jobid',
+        'type' : ['num'],
+        'lock' : 'false',
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Job Name',
+        'param_help' : "'jobname' <dir>",
+        'example': ["cli: -jobid 0",
+                    "api: chip.set('jobid','0'"],
+        'help' : """
+        The id of the specific job to be exeucted.
+        The directory structure is:
+        'dir'/'design'/'jobname''jobid'
+        """
+    }
+    
     cfg['start'] = {
         'switch' : '-start',
         'type' : ['str'],
