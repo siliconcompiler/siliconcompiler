@@ -294,8 +294,9 @@ def main():
     if 'remote' in cmdlinecfg.keys():
         fetch_results(chips[-1])
 
-    # Print Summary
-    chip.summary() 
+    # Print Job Summary
+    for chip in chips:
+        chip.summary() 
 
         
 #########################
