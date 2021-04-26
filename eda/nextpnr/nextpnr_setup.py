@@ -1,4 +1,5 @@
 import os
+from siliconcompiler.schema import schema_path
 
 ################################
 # Setup NextPNR
@@ -37,7 +38,7 @@ def setup_options(chip, step):
     pcf_file = None
     for constraint_file in chip.get('constraint'):
         if os.path.splitext(constraint_file)[-1] == '.pcf':
-            pcf_file = make_abs_path(constraint_file)
+            pcf_file = schema_path(constraint_file)
 
     if pcf_file == None:
         chip.logger.error('Pin constraint file required')
@@ -58,19 +59,3 @@ def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
     pass
-
-################################
-# Utilities
-################################
-
-def make_abs_path(path):
-    '''Helper for constructing absolute path, assuming `path` is relative to
-    directory `sc` was run from
-    '''
-
-    if os.path.isabs(path):
-        return path
-
-    cwd = os.getcwd()
-    run_dir = cwd + '/../../../' # directory `sc` was run from
-    return os.path.join(run_dir, path)
