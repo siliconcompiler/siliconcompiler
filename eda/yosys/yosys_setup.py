@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import defusedxml.ElementTree as ET
+from siliconcompiler.schema import schema_path
 
 def setup_tool(chip, step):
      chip.logger.debug("Setting up Yosys")     
@@ -38,7 +39,7 @@ def pre_process(chip, step):
 
         lut_size = None
         for arch_file in chip.get('fpga', 'xml'):
-            tree = ET.parse(make_abs_path(arch_file))
+            tree = ET.parse(schema_path(arch_file))
             root = tree.getroot()
             if root.tag == 'architecture':
                 lut_size = max([int(pb_type.find("input").get("num_pins"))
@@ -75,19 +76,3 @@ def post_process(chip, step):
                     chip.set('real', step, 'memory', memory)
                elif warnings:
                     chip.set('real', step, 'warnings', warnings.group(1))
-                         
-################################
-# Utilities
-################################
-
-def make_abs_path(path):
-    '''Helper for constructing absolute path, assuming `path` is relative to
-    directory `sc` was run from
-    '''
-
-    if os.path.isabs(path):
-        return path
-
-    cwd = os.getcwd()
-    run_dir = cwd + '/../../../' # directory `sc` was run from
-    return os.path.join(run_dir, path)

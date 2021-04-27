@@ -1,7 +1,7 @@
 # Yosys synthesis script for ice40
 
 proc syn_ice40 {topmodule} {
-    set output_json "outputs/$topmodule.json"
+    set output_json "outputs/${topmodule}_netlist.json"
 
     # Use built-in ice40 synthesis command:
     # http://yosyshq.net/yosys/cmd_synth_ice40.html

@@ -849,14 +849,20 @@ class Chip:
                   "/" + design + "/" +
                   self.get('jobname')[-1] +
                   self.get('jobid')[-1])
-        
-        info = '\n'.join(["SUMMARY:\n",
-                          "design = "+self.get('design')[0],
-                          "foundry = "+self.get('pdk', 'foundry')[0],
-                          "process = "+self.get('pdk', 'process')[0],
-                          "targetlibs = "+" ".join(self.get('asic','targetlib')),
-                          "jobdir = "+ jobdir])
-        
+
+        if self.get('mode')[-1] == 'asic':
+            info = '\n'.join(["SUMMARY:\n",
+                            "design = "+self.get('design')[0],
+                            "foundry = "+self.get('pdk', 'foundry')[0],
+                            "process = "+self.get('pdk', 'process')[0],
+                            "targetlibs = "+" ".join(self.get('asic','targetlib')),
+                            "jobdir = "+ jobdir])
+        else:
+            # TODO: pull in relevant summary items for FPGA?
+            info = '\n'.join(["SUMMARY:\n",
+                              "design = "+self.get('design')[0],
+                              "jobdir = "+ jobdir])
+
         print("-"*135)
         print(info, "\n")
 

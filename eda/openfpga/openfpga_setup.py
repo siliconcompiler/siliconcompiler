@@ -1,6 +1,7 @@
 import os
 from string import Template
 import defusedxml.ElementTree as ET
+from siliconcompiler.schema import schema_path
 
 ################################
 # Setup OpenFPGA
@@ -58,7 +59,7 @@ def pre_process(chip, step):
     openfpga_arch_file = None
 
     for arch_file in chip.get('fpga', 'xml'):
-        path = make_abs_path(arch_file)
+        path = schema_path(arch_file)
         root_tag = ET.parse(path).getroot().tag
         if root_tag == 'architecture':
             vpr_arch_file = path
@@ -89,19 +90,3 @@ def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
     pass
-
-################################
-# Utilities
-################################
-
-def make_abs_path(path):
-    '''Helper for constructing absolute path, assuming `path` is relative to
-    directory `sc` was run from
-    '''
-
-    if os.path.isabs(path):
-        return path
-
-    cwd = os.getcwd()
-    run_dir = cwd + '/../../../' # directory `sc` was run from
-    return os.path.join(run_dir, path)
