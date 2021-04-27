@@ -20,8 +20,9 @@ sc $GCD_DIR/gcd.v \
 # Kill the temporary local sc-server process.
 kill $SERVER_PID
 
-if [[ -f "./[0-9a-f]*/gcd/job1/export/outputs/gcd.gds" ]] && \
-   [[ -f "./[0-9a-f]*/gcd/job2/export/outputs/gcd.gds" ]]; then
+JOB_HASH=`find . -maxdepth 1 -regex "\.\/[0-9a-f]*" | sed 's/\.\///g'`
+if [[ -f "./$JOB_HASH/gcd/job1/export/outputs/gcd.gds" ]] && \
+   [[ -f "./$JOB_HASH/gcd/job2/export/outputs/gcd.gds" ]]; then
   echo "Success!"
   exit 0
 fi
