@@ -1073,7 +1073,6 @@ class Chip:
                 #####################
                 if (stepindex != 0) and remote:
                     self.logger.info('Remote server call')
-                    self.cfg['jobname']['value'] = [jobname]
                     # Blocks the currently-running thread, but not the whole app.
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
@@ -1139,6 +1138,12 @@ class Chip:
                     jobid = max(jobid, int(m.group(1)))
             jobid = jobid+1
             self.set('jobid', str(jobid))
+
+        # Create the job directory to 'reserve' this ID.
+        job_nameid = self.get('jobname')[-1] + self.get('jobid')[-1]
+        subprocess.run(['mkdir',
+                        '-p',
+                        '%s/%s/%s'%(dirname, design, job_nameid)])
             
 ################################################################################        
 # Annoying helper class b/c yaml..

@@ -70,7 +70,7 @@ async def is_job_busy(chip, stage):
                                chip.cfg['remoteport']['value'][0],
                                chip.status['job_hash'],
                                stage,
-                               chip.cfg['jobname']['value'][-1][3:])) \
+                               chip.cfg['jobid']['value'][-1])) \
         as resp:
             response = await resp.text()
             return (response != "Job has no running steps.")
