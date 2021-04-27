@@ -1,6 +1,5 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
-import aiohttp
 import asyncio
 import subprocess
 import os
@@ -10,12 +9,10 @@ import json
 import logging as log
 import hashlib
 import time
-import webbrowser
 import yaml
 import shutil
 import copy
 import importlib
-import glob
 import pandas
 import code
 import textwrap
@@ -32,7 +29,7 @@ from siliconcompiler.schema import schema_istrue
 class Chip:
     """Siliconcompiler Compiler Chip Object Class"""
 
-    ####################
+    ###########################################################################
     def __init__(self, loglevel="DEBUG"):
         '''Initializes Chip object
 
@@ -88,19 +85,51 @@ class Chip:
         self.logger.debug("SC search path set to %s", os.environ['SCPATH'])     
         
         # Copy 'defvalue' to 'value'
-        self.reset()
+        self._reset()
 
         # Status placeholder dictionary
         # TODO, should be defined!
         self.status =  {}
-
-    ###################################
+    ###########################################################################
     def target(self):
-        '''Searches the SCPATH and PYTHON path for setup modules that match
-        the target string. The setup string 
+        '''
+        Searches the SCPATH and PYTHON paths for the target specified by the
+        Chip 'target' parameter. The target can be supplied as a single 
+        alphanumeric string or as a two alphanumeric strings separated by
+        a an underscore ('_'). The first string part represents the technology
+        platform, while the second string part represents the eda flow.
+        If no second second string part is supplied, then a default eda
+        flow is used based ont he 'mode'. Legal modes are 'fgpga' and 'asic'.
         
-        config values based on a named target. 
+        The dynamically loaded target platform module must contain three 
+        standard functions. There is no functionality requirements on the
+        three functions.
 
+            setup_platform(chip) : Sets up basic PDK information
+
+            setup_libs(chip) : Setups of PDK specific IP/Libraries
+
+            setup_design(chip) : Setups up recommended design flows
+        
+        The dynamically loaded target eda module contains a single 
+        standard functions: 
+
+            setup_eda(chip): Defines the implementation flow,
+
+        The setup_eda further loads setup_tool modules on a per step basis.
+        The dynamically loaded per step module must contain for standard
+        functions. 
+
+            setup_tool(chip): A one time setup of the 'flow' dictionary per step
+
+            setup_options(chip,step): Run-time options driver
+
+            pre_process(chip,step): Pre-processing to run before executable
+
+            post_process(chip,step): Post-processing to run before executable
+
+        Examples:
+            >>> chip.target()
         '''
 
         #Selecting fpga or asic mode
@@ -146,23 +175,39 @@ class Chip:
         module = importlib.import_module('.'+edaflow, package=packdir)
         setup_eda = getattr(module,"setup_eda")
         setup_eda(self, name=platform)
-
    
-    ###################################
-    def help(self,  *args, file=None, mode='full'):
-        '''Prints help of a parameter
+    ###########################################################################
+    def help(self,  *args, file=None, mode='full',format='txt'):
+        '''
+        Prints out detailed or summary help for the schema key path provided.
+        The function is used to auto-generate documentation and is accessible
+        at diretly by the user.
+
+        Args:
+            file (filehandle): If 'None', help is printed to stdout, else 
+               help is printed to the filehandle
+            mode (str): When 'full',
+               is specified, the complete help description is printed out. When
+               'table' is specified, a one-line table row descripton is printed.
+            format (str): Format out output ('txt', 'md', 'rst').
+
+        Examples:
+            >>> help('target')
+            Prints out the complet descripton of 'target' to stdout
+            >>> help('target', mode='table')
+            Prints out a one-line table row descripton of 'target' to stdout
         '''
 
         self.logger.debug('Fetching help for %s', args)
 
         #Fetch Values
-        description = self.search(self.cfg, *args, mode='get', field='short_help')
-        param = self.search(self.cfg, *args, mode='get', field='param_help')
-        typestr = ' '.join(self.search(self.cfg, *args, mode='get', field='type'))
-        defstr = ' '.join(self.search(self.cfg, *args, mode='get', field='defvalue'))
-        requirement = self.search(self.cfg, *args, mode='get', field='requirement')
-        helpstr = self.search(self.cfg, *args, mode='get', field='help')
-        example = self.search(self.cfg, *args, mode='get', field='example')
+        description = self._search(self.cfg,*args,mode='get',field='short_help')
+        param = self._search(self.cfg,*args,mode='get',field='param_help')
+        typestr =' '.join(self._search(self.cfg,*args, mode='get',field='type'))
+        defstr=' '.join(self._search(self.cfg,*args,mode='get',field='defvalue'))
+        requirement = self._search(self.cfg,*args,mode='get',field='requirement')
+        helpstr = self._search(self.cfg,*args,mode='get',field='help')
+        example = self._search(self.cfg,*args,mode='get',field='example')
     
         #Removing multiple spaces and newlines
         helpstr = helpstr.rstrip()
@@ -198,8 +243,8 @@ class Chip:
                   typestr,
                   requirement,
                   defstr]
-        shortstr = " | {: <52} | {: <30} | {: <15} | {: <10} | {: <10}|".format(*outlst)
-
+        shortstr = "|{: <52}|{: <30}|{: <15}|{: <10}|{: <10}|".format(*outlst)
+        
         #Selecting between full help and one liner
         if mode == "full":
             outstr = fullstr
@@ -212,51 +257,78 @@ class Chip:
         else:
             print(outstr, file=file)
             
-
-    ###################################
-    def get(self, *args):
-        '''Gets value in the Chip configuration dictionary
+    ###########################################################################
+    def get(self, *args, field='value'):
+        '''
+        Returns a list from the Chip dictionary based on the key tree supplied.
+        
 
         Args:
-            args (string): Configuration parameter to fetch
+            *args (string): A non-keyworded variable length argument list to
+                used to look up non-leaf key tree in the Chip dictionary.
+                Specifying a non-existent key tree results in a program exit.
+            field (string): Specifies the leaf-key value to fetch.
 
         Returns:
-            list: List of Chip configuration values
+            A list of values found for the key tree supplied.
+
+        Examples:
+            >>> get('pdk', 'foundry')
+            Returns the name of the foundry in the Chip dictionary.
 
         '''
+        
         self.logger.debug('Reading config dictionary value: %s', args)
 
         keys = list(args)
         for k in keys:
             if isinstance(k, list):
-                self.logger.critical("List keys not allowed, key=%s. Dictionary keys should be strings!", k)
+                self.logger.critical("List keys not allowed. Key=%s", k)
                 sys.exit()
-        return self.search(self.cfg, *args, mode='get')
+        return self._search(self.cfg, *args, mode='get')
 
-    ###################################
+    ###########################################################################
     def getkeys(self, *args):
-        '''Gets all keys for the specified Chip args
+        '''
+        Returns a list of keys from the Chip dicionary based on the key 
+        tree supplied. 
 
         Args:
-            args (string): Configuration keys to quqery
+            *args (string): A non-keyworded variable length argument list to
+                used to look up non-leaf key tree in the Chip dictionary.
+                The key-tree is supplied in order. If the argument list is empty, 
+                all Chip dictionary trees are returned as as a list of lists.
+                Specifying a non-existent key tree results in a program exit.
 
         Returns:
-            list: List of Chip configuration values
+            A list of keys found for the key tree supplied.
 
+        Examples:
+            >>> getkeys('pdk')
+            Returns all keys associated for the 'pdk' dictionary.
+            >>> getkeys()
+            Returns all key trees in the dictionary as a list of lists.        
         '''
+        
         self.logger.debug('Retrieving config dictionary keys: %s', args)
 
         if len(list(args)) > 0:        
-            keys = list(self.search(self.cfg, *args, mode='getkeys'))
+            keys = list(self._search(self.cfg, *args, mode='getkeys'))
             if 'default' in keys:
                 keys.remove('default')
         else:
-            keys = list(self.allkeys(self.cfg))
+            keys = list(self._allkeys(self.cfg))
         
         return keys
 
-    ###################################
-    def allkeys(self, cfg, keys=None, allkeys=None):
+    ###########################################################################
+    def _allkeys(self, cfg, keys=None, allkeys=None):
+        '''
+        A recursive function that returns all the non-leaf keys in the Chip 
+        dictionary.
+       
+        '''
+
         if keys is None:
             allkeys = []
             keys = []
@@ -266,26 +338,27 @@ class Chip:
             if 'defvalue' in cfg[k]:
                 allkeys.append(newkeys)
             else:
-                self.allkeys(cfg[k],keys=newkeys, allkeys=allkeys)
+                self._allkeys(cfg[k],keys=newkeys, allkeys=allkeys)
         return allkeys
-    ####################################
-    def add(self, *args):
-        '''Sets a value in the Chip configuration dictionary 
-        '''
-        self.logger.debug('Adding config dictionary value: %s', args)
-                
-        all_args = list(args)
-        
-        # Convert val to list if not a list
-        if type(all_args[-1]) != list:
-            all_args[-1] = [str(all_args[-1])]
 
-        return self.search(self.cfg, *all_args, mode='add')
-
-    ####################################
+    ###########################################################################
     def set(self, *args):
-        '''Sets a value in the Chip configuration dictionary 
         '''
+        Sets the value field of the key-tree in the argument list to the 
+        data list supplied. 
+
+        Args:
+            *args (string): A non-keyworded variable length argument list to
+                used to look up non-leaf key tree in the Chip dictionary.The 
+                key-tree is supplied in order, with the data list supplied as 
+                the last argument. Specifying a non-existent key tree 
+                results in a program exit.
+
+        Examples:
+            >>> set('design', 'mydesign')
+            Sets the Chip 'design' name to 'mydesign'
+        '''
+       
         self.logger.debug('Setting config dictionary value: %s', args)
                 
         all_args = list(args)
@@ -294,22 +367,45 @@ class Chip:
         if type(all_args[-1]) != list:
             all_args[-1] = [all_args[-1]]
 
-        return self.search(self.cfg, *all_args, mode='set')
-    
-    ##################################
-    def search(self, cfg, *args, field='value', mode='get'):
-        '''Recursively searches the nested dictionary for a key match
+        return self._search(self.cfg, *all_args, mode='set')
+
+    ###########################################################################
+    def add(self, *args):
+        '''
+        Appends the data list supplied to the list currently in the leaf-value 
+        of the key-tree in the argument list.
 
         Args:
-            keys (string): Keys to match to.
-            value (list): List to replace match with if mode is set
-            mode (string): None, extend,replace
-        
-        Returns:
-            list: Returns list if match is found
+            *args (string): A non-keyworded variable length argument list to
+                used to look up non-leaf key tree in the Chip dictionary. The 
+                key-tree is supplied in order, with the data list supplied as 
+                the last argument. Specifying a non-existent key tree 
+                results in a program exit.
 
+        Examples:
+            >>> add('source', 'mydesign.v')
+            Adds the file 'mydesign.v' to the list of sources.
         '''
+        
+        self.logger.debug('Adding config dictionary value: %s', args)
+                
+        all_args = list(args)
+        
+        # Convert val to list if not a list
+        if type(all_args[-1]) != list:
+            all_args[-1] = [str(all_args[-1])]
 
+        return self._search(self.cfg, *all_args, mode='add')
+
+   
+    ###########################################################################
+    def _search(self, cfg, *args, field='value', mode='get'):
+        '''
+        Recursive function that searches a Chip dictionary for a match to
+        the combination of *args and fields supplied. The function is used
+        to set and get data within the dictionary.
+        '''
+        
         all_args = list(args)
         param = all_args[0]
         val = all_args[-1]
@@ -344,13 +440,16 @@ class Chip:
             if not (param in cfg):
                 cfg[param] = copy.deepcopy(cfg['default'])
             all_args.pop(0)
-            return self.search(cfg[param], *all_args, field=field, mode=mode)
+            return self._search(cfg[param], *all_args, field=field, mode=mode)
 
-    ##################################
-    def prune(self, cfg=None, top=True):  
-        '''Prunes all empty branches from cfg. Modifies the original config
+    ###########################################################################
+    def _prune(self, cfg=None, top=True):
         '''
-
+        Recursive function that creates a copy of the Chip dictionary and
+        then removes all sub trees with non-set values and sub-trees
+        that contain a 'default' key.
+        '''
+        
         #10 should be enough for anyone...
         maxdepth = 10
         i=0
@@ -379,17 +478,19 @@ class Chip:
                     cfg.pop(k)
                 #keep traversing tree
                 else:
-                    self.prune(cfg[k], top=False)
+                    self._prune(cfg[k], top=False)
             if(top):
                 i+=1
             else:
                 break
         return cfg
-    
-    ##################################
-    def abspath(self, cfg):
-        '''Resolves all configuration paths to be absolute paths
+
+    ###########################################################################
+    def _abspath(self, cfg):
+        '''Recursive function that goes through Chip dictionary and
+        resolves all relative paths where required.
         '''
+        
         #Recursively going through dict to set abspaths for files
         for k, v in cfg.items():
             #print("abspath", k,v)
@@ -404,13 +505,15 @@ class Chip:
                             #Look for relative paths in search path
                             cfg[k]['value'][i] = schema_path(v)
                 else:
-                    self.abspath(cfg[k])
+                    self._abspath(cfg[k])
     
-    ##################################
-    def printcfg (self, cfg, keys=None, file=None, mode="", field='value', prefix=""):
-        '''Prints out flattened dictionary in various formats. Formats supported
-        include tcl, csv, md
+    ###########################################################################
+    def _printcfg (self,cfg,keys=None,file=None,mode="",field='value',prefix=""):
+        '''Recursive function that goes through Chip dictionary and prints out
+        configuration commands with one line per value. Currently only TCL is
+        supported.
         '''
+        
         if keys is None:
             keys = []
         for k in cfg:
@@ -436,30 +539,23 @@ class Chip:
                               valstr,']']
                     outstr = ' '.join(outlst)
                     outstr = outstr + '\n'
-                elif mode == 'md':
-                    #create a comma separated file
-                    keystr = ' '.join(newkeys)
-                    valstr = ' '.join(cfg[k][field])
-                    typestr = ' '.join(cfg[k]['type'])
-                    defstr  = ' '.join(cfg[k]['defvalue'])
-                    #Need to escape dir to get pdf to print in pandoc?
-                    outlst = [cfg[k]['param_help'].replace("<dir>","\<dir\>"),
-                              cfg[k]['short_help'],
-                              typestr,
-                              cfg[k]['requirement'],
-                              defstr]
-                    outstr = " | {: <52} | {: <30} | {: <15} | {: <10} | {: <10}|".format(*outlst)
                 if file is None:
                     print(outstr)
                 else:
                     print(outstr, file=file)
             else:
-                self.printcfg(cfg[k], keys=newkeys, file=file, mode=mode, field=field, prefix=prefix)
+                self._printcfg(cfg[k],
+                               keys=newkeys,
+                               file=file,
+                               mode=mode,
+                               field=field,
+                               prefix=prefix)
 
-    ##################################
+    ###########################################################################
     def mergecfg(self, d2, d1=None):
-        '''Merges dictionary with the Chip configuration dictionary
+        '''Recursively copies values in dictionary d2 to the Chip dictionary.
         '''
+        
         if d1 is None:
             d1 = self.cfg
         for k, v in d2.items():
@@ -479,58 +575,43 @@ class Chip:
             #if a new d2 key is found do a deep copy
             else:
                 d1[k] = d2[k].copy()
-    
-    ###################################
-    def check(self, group=None):
-        '''Checks all values set in Chip configuration for legality.
-        Also checks for missing values.
-
-        Args:
-            group (string): fpga, pdk, libs, eda, design
+                
+    ###########################################################################
+    def check(self):
+        '''
+        Performs a validity check for Chip dictionary, printing out warnings
+        and error messages to stdout.
 
         Returns:
-            : Status (pending, running, done, or error)
+            Returns True of if the Chip dictionary is valid, else returns
+            False.
 
+        Examples:
+            >>> check()
+           Returns True of the Chip dictionary checks out.
         '''
 
-        error = 1
+        error = False
 
-        #-check 
-        #
-
-
+        #1. Get all keys
+        #2. For all keys:
+        #   -Get values
+        #   -Check requirements equation
         
-        #1. Check for missing combinations
-        #!(def-file | floorplan | (diesze & coresize)
-
-        # notechlef
-        # no site
-        # no targetlib        
-        # no libarch
-        # no stackup
-
-        #if no errors
-        
-        #Exit on error
-        error = 0
         if error:
             sys.exit()
-        
-    #################################
-    def readcfg(self, filename):
-        '''Reads a json formatted config file into the Chip current Chip
-        configuration
+
+    ###########################################################################
+    def readcfg(self, filename):  
+        '''Reads a json or yaml formatted file into the Chip dictionary.
 
         Args:
-            filename (string): Input filename. File-suffix indicates format
-                               (json, yaml, tcl, mk)
-            keymap (dict): Translates Chip configuration key names to a new set
-                           of names based on a key lookup.x
+            filename (file): A relative or absolute path toe a file to load
+                into dictionary.
 
-        Returns:
-            dict: Returns a dictionary found in JSON file for all keys found in
-                  in the current Chip configuration
-
+        Examples:
+            >>> readcfg('mychip.json')
+            Loads the file mychip.json into the current Chip dictionary.
         '''
 
         abspath = os.path.abspath(filename)
@@ -549,19 +630,29 @@ class Chip:
         else:
             read_args = self.readmake(abspath)
             
-        #Rename dictionary based on keymap
-        #Customize based on the types
         #Merging arguments with the Chip configuration
         self.mergecfg(read_args)
-
-    ##################################
-    def writecfg(self, filename, cfg=None, prune=True, abspath=False, keymap=[]):
-        '''Writes out the current Chip configuration dictionary to a file
+        
+    ###########################################################################
+    def writecfg(self, filename, cfg=None, prune=True, abspath=False):
+        '''Writes out Chip dictionary in json, yaml, or TCL file format.
 
         Args:
-            filename (string): Output filename. File-suffix indicates format
-                               (json, yaml, csv, md)
-
+            filename (file): A relative or absolute path to a file to dump
+                 dictionary into.
+            cfg (dict): A dictionary to dump. If 'None' is specified, then
+                 the current dictionary is dumped.
+            prune (bool): If set to True, then only non-default trees and
+                 non empty values are dumped. If set to False, the whole
+                 dictionary is dumped.
+            abspath (bool): If set to True, then all file paths within the
+                 Chip dictionary are resolved to absolute values.
+   
+        Examples:
+            >>> writecfg('mydump.json')
+            Prunes and dumps the current Chip dictionary into mydump.json
+            >>> writecfg('bigdump.json', prune=False)
+            Dumps the complete current Chip dictionary into bigdump.json
         '''
 
         filepath = os.path.abspath(filename)
@@ -574,13 +665,13 @@ class Chip:
         if cfg is not None:
             cfgcopy = copy.deepcopy(cfg)
         elif prune:
-            cfgcopy = self.prune()
+            cfgcopy = self._prune()
         else:
             cfgcopy = copy.deepcopy(self.cfg)
             
         #resolve absolute paths
         if abspath:
-            self.abspath(cfgcopy)
+            self._abspath(cfgcopy)
             
         # Write out configuration based on file type
         if filepath.endswith('.json'):
@@ -598,28 +689,12 @@ class Chip:
                 print("#############################################", file=f)
                 print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
                 print("#############################################", file=f)
-                self.printcfg(cfgcopy, mode="tcl", prefix="dict set sc_cfg", file=f)
-        elif filepath.endswith('.md'):
-            with open(filepath, 'w') as f:
-                outlist = ['param', 'desription', 'type', 'required', 'default', 'value']
-                outstr = " | {: <52} | {: <30} | {: <15} | {: <10} | {: <10}|".format(*outlist)
-                print(outstr, file=f)
-                outlist = [':----',
-                           ':----',
-                           ':----',
-                           ':----',
-                           ':----']
-                outstr = " | {: <52} | {: <30} | {: <15} | {: <10} | {: <10}|".format(*outlist)
-                print(outstr, file=f)
-                self.printcfg(cfgcopy, mode='md', field='requirement' , file=f)
-        elif filepath.endswith('.doc'):
-            with open(filepath, 'w') as f:
-                self.printcfg(cfgcopy, mode='doc', field='value' , file=f)
+                self._printcfg(cfgcopy, mode="tcl", prefix="dict set sc_cfg", file=f)
         else:
             self.logger.error('File format not recognized %s', filepath)
 
-    ##################################
-    def reset(self,cfg=None):
+    ###########################################################################
+    def _reset(self,cfg=None):
         '''Recursively copies 'defvalue' to 'value' for all configuration 
         parameters
         '''
@@ -632,9 +707,10 @@ class Chip:
                 if 'defvalue' in cfg[k].keys():
                     cfg[k]['value'] = cfg[k]['defvalue'].copy()
                 else:
-                    self.reset(cfg=cfg[k])
+                    self._reset(cfg=cfg[k])
 
-    ##################################
+
+    ###########################################################################
     def wait(self, step=None):
         '''Waits for specific step to complete
         '''
@@ -656,12 +732,12 @@ class Chip:
                 time.sleep(10)
             else:
                 break
-        
-    ##################################
+    ###########################################################################    
     def hash(self, cfg=None):
-        '''Creates hashes for all files sourced by Chip class
-
+        '''Rescursive function that computes the hash values for files in the
+        Chip dictionary based on the setting of the hashmode.
         '''
+        
         #checking to see how much hashing to do
         hashmode = self.cfg['hashmode']['value'][-1]   
         if hashmode != 'NONE':
@@ -687,9 +763,9 @@ class Chip:
                                 cfg[k]['hash'].append(hash_value)
                     else:
                         self.hash(cfg=cfg[k])
-        
-    ##################################
-    def compare(self, file1, file2):
+
+    ###########################################################################    
+    def _compare(self, file1, file2):
         '''Compares Chip configurations contained in two different json files
         Useful??
 
@@ -740,27 +816,27 @@ class Chip:
 
         return same
 
-    
-    ###################################
+    ###########################################################################    
     def audit(self, filename=None):
         '''Performance an an audit of each step in the flow
         '''
       
-        
-        
-        
         pass
 
-    ###################################
+    ###########################################################################
     def summary(self, filename=None):
-        '''Creates a summary dictionary of the results of the specified step
-        and jobid
-
-         Args:
-            step: The step to report on (eg. cts)
-            jobid: Index of job to report on (1, 2, etc)
         '''
+        Creates a summary of the run metrics generated from the 'start' step
+        to the 'stop' step.
 
+        Args:
+            filename (filename): A file to write the summary report to. If 
+                the value is 'None', the summary is printed to stdout.
+
+        Examples:
+            >>> summary()
+            Prints out a summary of the run to stdout.
+        '''
         
         steplist = self.get('steplist')
         start = self.get('start')[-1]
@@ -823,16 +899,32 @@ class Chip:
         if filename is None:
             print(df.to_string())
             print("-"*135)
-            
-    ###################################
-    def run(self, start=None, stop=None, jobid=None):
 
-        '''The common execution method for all compilation steps compilation
-        flow. The job executes on the local machine by default, but can be
-        execute as a remote job as well. If executed in synthconorus mode, the
-        run command waits at the end of the function call before returning to
-        main. If the job is executed in async mode, flags are set in the Class
-        state and the function cal returns to main.
+    ###########################################################################         
+    def run(self, start=None, stop=None):
+        
+        '''
+        A unified thread safe per step execution method for the Chip.
+        The options and modes of the run is setup up through the Chip
+        dictionary. The run executes on the local machine by default, but can 
+        be execute remotely if a server is set up and the remote mode is set
+        in the Chip dictionary. The run metho executes a pipeline of steps
+        from 'start' to 'stop' (inclusive).
+
+        Args:
+            start (string): The starting step within the 'steplist' to execute.
+                If start is 'None', the staring step is the step is the first 
+                index of the 'steplist.
+
+            stop (string): The stopping step within the 'steplist' to execute.
+                If start is 'None', then execution runs to the end of the 
+                steplist.
+    
+        Examples:
+            >>> run()
+            Runs the pipeline defined by 'steplist'
+            >>> run(start='import', stop='place')
+            Runs the pipeline from the 'import' step to the 'place' step
         '''
                
         ###########################
@@ -1023,9 +1115,9 @@ class Chip:
 
         # Mark completion of async run if applicable.
         self.active_thread = None
- 
-    ########################
-    def _set_jobid(self):
+        
+    ###########################################################################
+    def set_jobid(self):
 
         design = self.cfg['design']['value'][-1]
         dirname = self.cfg['dir']['value'][-1]
@@ -1041,15 +1133,15 @@ class Chip:
                     jobid = max(jobid, int(m.group(1)))
             jobid = jobid+1
             self.set('jobid', str(jobid))
-        
-############################################
+            
+################################################################################        
 # Annoying helper class b/c yaml..
 # Do we actually have to support a class?
 class YamlIndentDumper(yaml.Dumper):
     def increase_indent(self, flow=False, indentless=False):
         return super(YamlIndentDumper, self).increase_indent(flow, False)
 
-########################
+################################################################################
 def get_permutations(base_chip, cmdlinecfg):
     '''Helper method to generate one or more Chip objects depending on
        whether a permutations file was passed in.
@@ -1072,7 +1164,7 @@ def get_permutations(base_chip, cmdlinecfg):
             new_chip.cfg = json.loads(json.dumps(chip_cfg))
             if 'remote' in cmdlinecfg.keys():
                 new_chip.set('start', 'syn')
-            new_chip._set_jobid()
+            new_chip.set_jobid()
             chips.append(new_chip)
     else:
         new_chip = Chip(loglevel=loglevel)
@@ -1080,7 +1172,7 @@ def get_permutations(base_chip, cmdlinecfg):
         new_chip.cfg = json.loads(json.dumps(base_chip.cfg))
         if 'remote' in cmdlinecfg.keys():
             new_chip.set('start', 'syn')
-        new_chip._set_jobid()
+        new_chip.set_jobid()
         chips.append(new_chip)
 
     # Done; return the list of Chips.
