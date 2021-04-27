@@ -19,8 +19,8 @@ sc $GCD_DIR/gcd.v \
 # Kill the temporary local sc-server process.
 kill $SERVER_PID
 
-# Get the job hash directory name; we know that it will be a hex string.
-JOB_HASH=`find . -maxdepth 1 -regex "\.\/[0-9a-f]*" | sed 's/\.\///g'`
+# Get the job hash directory name; we know that it will be a 32-digit hex string.
+JOB_HASH=`find . -maxdepth 1 -regextype sed -regex "\.\/[0-9a-f]\{32\}" | sed 's/\.\///g'`
 if [ -f "./$JOB_HASH/gcd/job1/export/outputs/gcd.gds" ]; then
   echo "Success!"
   exit 0
