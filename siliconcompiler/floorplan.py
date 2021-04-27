@@ -323,7 +323,7 @@ class Floorplan:
                 top).
             fixed (bool): Whether or not macro placement is fixed or placed.
             units (str): Whether to use technology-independent ('relative') or
-                absolute ('absolute') units
+                absolute ('absolute') units.
         '''
         logging.debug('Placing macro: %s', instance_name)
 
@@ -345,10 +345,21 @@ class Floorplan:
         }
         self.chip.layout['component'][instance_name] = component
 
-    def generate_rows(self):
-        '''
-        Auto-generates placement rows based on floorplan parameters and tech
+    def generate_rows(self, site_name=None, flip_first_row=False, area=None,
+                      units='relative'):
+        '''Auto-generates placement rows based on floorplan parameters and tech
         library.
+
+        Args:
+            site_name (str): Name of placement site to specify in rows. If
+                `None`, uses default site specified by library file.
+            flip_first_row (bool): Determines orientation of row placement
+                sites. If `False`, alternates starting at "FS", if `True`,
+                alternates starting at "N".
+            area (tuple of float): Area to fill with rows as tuple of four floats.
+                If `None`, fill entire core area. Specified as microns.
+            units (str): Whether to use technology-independent ('relative') or
+                absolute ('absolute') units.
         '''
         logging.debug("Placing rows")
 
@@ -356,20 +367,30 @@ class Floorplan:
         # floorplan parameters
         self.chip.layout['row'].clear()
 
-        start_x = self.core_area[0]
-        start_y = self.core_area[1]
-        core_width = self.core_area[2] - start_x
-        core_height = self.core_area[3] - start_y
+        if site_name == None:
+            site_name = self.std_cell_name
+
+        if area and units == 'relative':
+            area = [v * self.std_cell_height for v in area]
+        elif area == None:
+            area = self.core_area
+
+        start_x = area[0]
+        start_y = area[1]
+        core_width = area[2] - start_x
+        core_height = area[3] - start_y
+
         num_rows = int(core_height / self.std_cell_height)
         num_x = core_width // self.std_cell_width
 
         for i in range(num_rows):
             name = f'ROW_{i}'
+            orientation = 'FS' if (i % 2 == 0 and not flip_first_row) else 'N'
             row = {
-                'site': self.std_cell_name,
+                'site': site_name,
                 'x': self._def_scale(start_x),
                 'y': self._def_scale(start_y),
-                'orientation': 'FS' if i % 2 == 0 else 'N',
+                'orientation': orientation,
                 'numx': num_x,
                 'numy': 1,
                 'stepx' : self._def_scale(self.std_cell_width),
@@ -379,10 +400,16 @@ class Floorplan:
 
             start_y += self.std_cell_height
 
-    def generate_tracks(self):
+    def generate_tracks(self, area=None, units='relative'):
         '''
         Auto-generates routing tracks based on floorplan parameters and tech
         library.
+
+        Args:
+            area (tuple of float): Area to fill with tracks as tuple of four floats.
+                If `None`, fill entire die area. Specified as microns.
+            units (str): Whether to use technology-independent ('relative') or
+                absolute ('absolute') units.
         '''
         logging.debug("Placing tracks")
 
@@ -390,12 +417,17 @@ class Floorplan:
         # floorplan parameters
         self.chip.layout['track'].clear()
 
-        die_width, die_height = self.die_area
+        if area and units == 'relative':
+            area = [v * self.std_cell_height for v in area]
+        elif area == None:
+            area = (0, 0, self.die_area[0], self.die_area[1])
+
+        start_x, start_y, die_width, die_height = area
 
         for layer in self.layers.values():
             layer_name = layer['name']
-            offset_x = layer['xoffset']
-            offset_y = layer['yoffset']
+            offset_x = layer['xoffset'] + start_x
+            offset_y = layer['yoffset'] + start_y
             pitch_x = layer['xpitch']
             pitch_y = layer['ypitch']
 
