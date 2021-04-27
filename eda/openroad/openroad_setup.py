@@ -63,7 +63,13 @@ def pre_process(chip, step):
         fp = setup_floorplan(fp, chip)
 
         topmodule = chip.get('design')[-1]
-        fp.save('inputs/' + topmodule + '.def')
+        def_file = 'inputs/' + topmodule + '.def'
+        fp.save(def_file)
+
+        chip.set('asic', 'def', def_file)
+        # a bit of a hack: have to regenerate schema TCL file so OpenROAD script
+        # finds our generated DEF file
+        chip.writecfg("sc_schema.tcl", abspath=True)
 
 def post_process(chip, step):
      ''' Tool specific function to run after step execution
@@ -108,8 +114,4 @@ def post_process(chip, step):
                     chip.set('real', step, 'cells', cells.group(1))
                elif nets:
                     chip.set('real', step, 'nets', nets.group(1))               
-          
 
-     
-                        
-   

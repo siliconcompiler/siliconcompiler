@@ -98,8 +98,8 @@ if {[dict exists $sc_cfg constraint]} {
 }
 
 # DEF
-if {[dict exists $sc_cfg def]} {    
-    set sc_def [dict get $sc_cfg def]
+if {[dict exists $sc_cfg asic def]} {
+    set sc_def [dict get $sc_cfg asic def]
 } else {
     set sc_def  ""
 }
@@ -182,4 +182,3 @@ source "$sc_refdir/sc_metrics.tcl"
 ###############################
 
 source "$sc_refdir/sc_write.tcl"
-
