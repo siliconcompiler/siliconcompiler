@@ -45,7 +45,7 @@ def setup_options(chip, step):
         os.sys.exit()
 
     options.append('--pcf ' + pcf_file)
-    options.append('--json inputs/' + topmodule + '.json')
+    options.append('--json inputs/' + topmodule + '_netlist.json')
     options.append('--asc outputs/' + topmodule + '.asc')
 
     return options
