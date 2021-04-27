@@ -30,14 +30,15 @@ from siliconcompiler.schema import schema_path
 from siliconcompiler.schema import schema_istrue
 
 class Chip:
-    """Siliconcompiler configuration and flow tracking class"""
+    """Siliconcompiler Compiler Chip Object Class"""
 
     ####################
     def __init__(self, loglevel="DEBUG"):
         '''Initializes Chip object
 
         Args:
-            loglevel (str): Level of debugging
+            loglevel (str): Level of debugging (INFO, DEBUG, WARNING,
+                CRITICAL, ERROR).
         '''
 
         # Create a default dict ("spec")
@@ -385,28 +386,6 @@ class Chip:
                 break
         return cfg
     
-    ##################################
-    def slice(self, key1, key2, cfg=None, result=None):
-        '''Returns list of all vals matchinng key1 and key2
-        '''
-        # Using self if cfg is not specified
-        if cfg is None:
-            cfg = self.cfg
-        # Special recursion entry conditon
-        # #1.init list
-        # #2.select key1 sub tree
-        if result is None:
-            self.logger.debug('Retrieving dictionary slice from %s and %s:', key1, key2)
-            result = []
-            cfg = cfg[key1]
-        for k,v in cfg.items():
-            if isinstance(v, dict):
-                if k == key2:
-                    result.extend(cfg[key2]['value'])
-                else:
-                    self.slice(key1, key2, cfg=cfg[k], result=result)
-        return result
-
     ##################################
     def abspath(self, cfg):
         '''Resolves all configuration paths to be absolute paths
@@ -761,9 +740,7 @@ class Chip:
 
         return same
 
-
     
-
     ###################################
     def audit(self, filename=None):
         '''Performance an an audit of each step in the flow
@@ -847,20 +824,6 @@ class Chip:
             print(df.to_string())
             print("-"*135)
             
-    ###################################
-    def display(self, *args, index=0):
-      '''Displays content related keys provided  
-        '''
-      self.logger.info('Displaying file contents: %s', args)
-
-      EDITOR = os.environ.get('EDITOR')
-      
-      cfgtype = self.search(self.cfg, *args, field="type")
-      if(str(cfgtype[0]) == 'file'):
-          filename = self.search(self.cfg, *args )
-          cmd = EDITOR + " " + filename[index]
-          error = subprocess.run(cmd, shell=True)
-
     ###################################
     def run(self, start=None, stop=None, jobid=None):
 
@@ -1045,7 +1008,6 @@ class Chip:
                     # Upload results for remote calls.
                     if remote:
                         upload_sources_to_cluster(self)
-                    
             ########################
             # Save Metrics/Config
             ########################
@@ -1063,7 +1025,7 @@ class Chip:
         self.active_thread = None
  
     ########################
-    def set_jobid(self):
+    def _set_jobid(self):
 
         design = self.cfg['design']['value'][-1]
         dirname = self.cfg['dir']['value'][-1]
@@ -1110,7 +1072,7 @@ def get_permutations(base_chip, cmdlinecfg):
             new_chip.cfg = json.loads(json.dumps(chip_cfg))
             if 'remote' in cmdlinecfg.keys():
                 new_chip.set('start', 'syn')
-            new_chip.set_jobid()
+            new_chip._set_jobid()
             chips.append(new_chip)
     else:
         new_chip = Chip(loglevel=loglevel)
@@ -1118,7 +1080,7 @@ def get_permutations(base_chip, cmdlinecfg):
         new_chip.cfg = json.loads(json.dumps(base_chip.cfg))
         if 'remote' in cmdlinecfg.keys():
             new_chip.set('start', 'syn')
-        new_chip.set_jobid()
+        new_chip._set_jobid()
         chips.append(new_chip)
 
     # Done; return the list of Chips.
