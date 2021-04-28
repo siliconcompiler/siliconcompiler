@@ -937,7 +937,7 @@ class Chip:
         # Run Setup
         ###########################
 
-        remote = len(self.cfg['remote']['value']) > 0
+        remote = len(self.cfg['remote']['addr']['value']) > 0
         steplist = self.cfg['steplist']['value']
         buildroot = str(self.cfg['dir']['value'][-1])
         design = str(self.cfg['design']['value'][-1])
@@ -1128,16 +1128,20 @@ class Chip:
         dirname = self.cfg['dir']['value'][-1]
         jobname = self.cfg['jobname']['value'][-1]
 
-        alljobs = os.listdir(dirname + "/" + design)
+        try:
+            alljobs = os.listdir(dirname + "/" + design)
 
-        if len(self.cfg['jobid']['value']) < 1:
-            jobid = 0
-            for item in alljobs:
-                m = re.match(jobname+'(\d+)', item)
-                if m:
-                    jobid = max(jobid, int(m.group(1)))
-            jobid = jobid+1
-            self.set('jobid', str(jobid))
+            if len(self.cfg['jobid']['value']) < 1:
+                jobid = 0
+                for item in alljobs:
+                    m = re.match(jobname+'(\d+)', item)
+                    if m:
+                        jobid = max(jobid, int(m.group(1)))
+                jobid = jobid+1
+                self.set('jobid', str(jobid))
+        except FileNotFoundError:
+            # if no existing build directory, set jobid to 1
+            self.set('jobid', '1')
             
 ################################################################################        
 # Annoying helper class b/c yaml..
@@ -1176,18 +1180,10 @@ def get_permutations(base_chip, cmdlinecfg):
         # dictionary which does not contain custom classes/objects.
         new_chip.status = json.loads(json.dumps(base_chip.status))
         new_chip.cfg = json.loads(json.dumps(chip_cfg))
-        if 'remote' in cmdlinecfg.keys():
+        if 'remote_addr' in cmdlinecfg.keys():
             new_chip.set('start', 'syn')
         new_chip.set('jobid', cur_jobid)
         cur_jobid = str(int(cur_jobid) + 1)
-        chips.append(new_chip)
-    else:
-        new_chip = Chip(loglevel=loglevel)
-        new_chip.status = json.loads(json.dumps(base_chip.status))
-        new_chip.cfg = json.loads(json.dumps(base_chip.cfg))
-        if 'remote' in cmdlinecfg.keys():
-            new_chip.set('start', 'syn')
-        new_chip.set_jobid()
         chips.append(new_chip)
 
     # Done; return the list of Chips.

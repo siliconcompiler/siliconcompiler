@@ -38,12 +38,16 @@ def schema_cfg():
     cfg = schema_design(cfg)
     cfg = schema_mcmm(cfg)
     
-    # Designer Run options
+    # Designer Runtime options
     cfg = schema_options(cfg)
 
+    # Remote options
+    cfg = schema_remote(cfg)
+    
     # Run status
     cfg = schema_status(cfg)
 
+    
     return cfg
 
 ###############################################################################
@@ -2189,39 +2193,6 @@ def schema_options(cfg):
         """
     }
 
-    # Remote IP address/host name running sc-server app
-    cfg['remote'] = {
-        'switch': '-remote',
-        'type' : ['str'],
-        'lock' : 'false',
-        'requirement' : 'optional',
-        'defvalue' : [],
-        'short_help' : 'Remote Server Address',
-        'param_help' : "'remote' <str>",
-        'example': ["cli: -remote 192.168.1.100",
-                    "api: chip.add('remote', '192.168.1.100')"],
-        'help' : """
-        Dicates that all steps after the compilation step should be executed
-        on the remote server specified by the IP address. 
-        """
-    }
-    
-    # Port number that the remote host is running 'sc-server' on.
-    cfg['remoteport'] = {
-        'switch': '-remoteport',
-        'type' : ['num'],
-        'lock' : 'false',
-        'requirement' : 'remote',
-        'defvalue' : ['8080'],
-        'short_help': 'Remove Server Port',
-        'param_help' : "'remoteport' <str>",
-        'example': ["cli: -remoteport 8080",
-                    "api: chip.add('remoteport', '8080')"],
-        'help' : """
-        Sets the server port to be used in communicating with the remote host.
-        """
-    }
-
     # Path to a config file defining multiple remote jobs to run.
     cfg['permutations'] = {
         'switch' : '-permutations',
@@ -2240,6 +2211,80 @@ def schema_options(cfg):
         """
     }
 
+    return cfg
+
+############################################
+# Remote Run Options
+#############################################
+def schema_remote(cfg):
+
+    cfg['remote'] = {}
+
+    # Remote IP address/host name running sc-server app
+    cfg['remote']['addr'] = {
+         'switch': '-remote_addr',
+         'type' : ['str'],
+         'lock' : 'false',
+         'requirement' : 'optional',
+         'defvalue' : [],
+         'short_help' : 'Remote Server Address',
+         'param_help' : "'remote' 'addr' <str>",
+         'example': ["cli: -remote_addr 192.168.1.100",
+                    "api: chip.add('remote', 'addr', '192.168.1.100')"],
+         'help' : """
+         Dicates that all steps after the compilation step should be executed
+         on the remote server specified by the IP address or domain name.
+         """
+     }
+
+    # Port number that the remote host is running 'sc-server' on.
+    cfg['remote']['port'] = {
+        'switch': '-remote_port',
+        'type' : ['num'],
+        'lock' : 'false',
+        'requirement' : 'remote',
+        'defvalue' : ['8080'],
+        'short_help': 'Remote Server Port',
+        'param_help' : "'remote' 'port' <str>",
+        'example': ["cli: -remot_eport 8080",
+                    "api: chip.add('remot', 'port', '8080')"],
+        'help' : """
+        Sets the server port to be used in communicating with the remote host.
+        """
+    }
+
+    # Remote start step
+    cfg['remote']['start'] = {
+        'switch': '-remote_start',
+        'type' : ['num'],
+        'lock' : 'false',
+        'requirement' : 'remote',
+        'defvalue' : [],
+        'short_help': 'Remote Execution Starting Step',
+        'param_help' : "'remote' 'start' <str>",
+        'example': ["cli: -remote_start syn",
+                    "api: chip.add('remote', 'start', 'syn')"],
+        'help' : """
+        Specifies which step that remote execution starts from.
+        """
+    }
+
+    # Remote stop step
+    cfg['remote']['stop'] = {
+        'switch': '-remote_stop',
+        'type' : ['num'],
+        'lock' : 'false',
+        'requirement' : 'remote',
+        'defvalue' : [],
+        'short_help': 'Remote Execution Stop Step',
+        'param_help' : "'remote' 'stop' <str>",
+        'example': ["cli: -remote_stop export",
+                    "api: chip.add('remote', 'stop', 'export')"],
+        'help' : """
+        Specifies which step that remote execution stopns on.
+        """
+    }
+   
     return cfg
 
 

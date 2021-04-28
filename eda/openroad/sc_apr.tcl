@@ -105,8 +105,8 @@ if {[dict exists $sc_cfg asic def]} {
 }
 
 # FLOORPLAN
-if {[dict exists $sc_cfg floorplan]} {    
-    set sc_floorplan [dict get $sc_cfg floorplan]
+if {[dict exists $sc_cfg asic floorplan]} {
+    set sc_floorplan [dict get $sc_cfg asic floorplan]
 } else {
     set sc_floorplan  ""
 }
