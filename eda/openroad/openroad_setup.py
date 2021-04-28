@@ -66,11 +66,6 @@ def pre_process(chip, step):
         def_file = 'inputs/' + topmodule + '.def'
         fp.save(def_file)
 
-        chip.set('asic', 'def', def_file)
-        # a bit of a hack: have to regenerate schema TCL file so OpenROAD script
-        # finds our generated DEF file
-        chip.writecfg("sc_schema.tcl", abspath=True)
-
 def post_process(chip, step):
      ''' Tool specific function to run after step execution
      '''
