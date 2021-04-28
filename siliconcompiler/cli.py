@@ -123,7 +123,7 @@ def cmdline():
         
         else:
             #TODO: buggy and ugly, fix all of this properly!
-            m = re.match('(pdk|asic|fpga)_(.*)', key)
+            m = re.match('(pdk|asic|fpga|remote)_(.*)', key)
             if m:
                 param0 =  m.group(1)
                 param2 =  m.group(2)
@@ -183,7 +183,7 @@ def add_arg(cfg, parser, keys=None):
         
         #dict: 'pdk' 'foundry <str>
         #cli: -pdk_foundry "<str>"
-        elif k in ('asic', 'fpga', 'pdk'):
+        elif k in ('asic', 'fpga', 'pdk', 'remote'):
              for k2 in cfg[k].keys():
                 #Watch out for nesting (like in devicemodel)                
                 if 'switch' in cfg[k][k2].keys():
@@ -275,7 +275,7 @@ def main():
         chip.hash()
 
     # Perform preprocessing for remote jobs, if necessary.
-    if 'remote' in cmdlinecfg.keys():
+    if 'remote_addr' in cmdlinecfg.keys():
         remote_preprocess(chips)
 
     # Run each job in its own thread.
@@ -291,7 +291,7 @@ def main():
         proc.join()
 
     # For remote jobs, fetch results.
-    if 'remote' in cmdlinecfg.keys():
+    if len(chips[-1].get('remote', 'addr')) > 0:
         fetch_results(chips[-1])
 
     # Print Job Summary

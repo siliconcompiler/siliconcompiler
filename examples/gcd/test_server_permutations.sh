@@ -15,7 +15,7 @@ sc $GCD_DIR/gcd.v \
   -asic_coresize "10.07 11.2 90.25 91" \
   -constraint $GCD_DIR/constraint.sdc \
   -permutations $GCD_DIR/2jobs.py \
-  -remote localhost
+  -remote_addr localhost
 
 # Kill the temporary local sc-server process.
 kill $SERVER_PID

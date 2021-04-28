@@ -90,7 +90,7 @@ class Server:
         subprocess.run(['ln', '-s', '%s/import'%build_dir, '%s/%s/import'%(jobs_dir, job_nameid)])
 
         # Remove 'remote' JSON config value to run locally on compute node.
-        cfg['remote']['value'] = []
+        cfg['remote']['addr']['value'] = []
         # Rename source files in the config dict; the 'import' step already
         # ran and collected the sources into a single 'verilator.sv' file.
         cfg['source']['value'] = ['%s/import/verilator.sv'%build_dir]
