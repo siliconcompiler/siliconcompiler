@@ -931,7 +931,7 @@ class Chip:
         # Run Setup
         ###########################
 
-        remote = len(self.cfg['remote']['value']) > 0
+        remote = len(self.cfg['remote']['addr']['value']) > 0
         steplist = self.cfg['steplist']['value']
         buildroot = str(self.cfg['dir']['value'][-1])
         design = str(self.cfg['design']['value'][-1])
@@ -1162,7 +1162,7 @@ def get_permutations(base_chip, cmdlinecfg):
             # dictionary which does not contain custom classes/objects.
             new_chip.status = json.loads(json.dumps(base_chip.status))
             new_chip.cfg = json.loads(json.dumps(chip_cfg))
-            if 'remote' in cmdlinecfg.keys():
+            if 'remote_addr' in cmdlinecfg.keys():
                 new_chip.set('start', 'syn')
             new_chip.set_jobid()
             chips.append(new_chip)
@@ -1170,7 +1170,7 @@ def get_permutations(base_chip, cmdlinecfg):
         new_chip = Chip(loglevel=loglevel)
         new_chip.status = json.loads(json.dumps(base_chip.status))
         new_chip.cfg = json.loads(json.dumps(base_chip.cfg))
-        if 'remote' in cmdlinecfg.keys():
+        if 'remote_addr' in cmdlinecfg.keys():
             new_chip.set('start', 'syn')
         new_chip.set_jobid()
         chips.append(new_chip)
