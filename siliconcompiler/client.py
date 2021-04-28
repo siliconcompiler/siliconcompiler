@@ -48,8 +48,8 @@ async def request_remote_run(chip, stage):
     '''
     async with aiohttp.ClientSession() as session:
         async with session.post("http://%s:%s/remote_run/%s/%s"%(
-                                    chip.cfg['remote']['value'][-1],
-                                    chip.cfg['remoteport']['value'][-1],
+                                    chip.cfg['remote']['addr']['value'][-1],
+                                    chip.cfg['remote']['port']['value'][-1],
                                     chip.status['job_hash'],
                                     stage),
                                 json=chip.cfg) \
@@ -66,11 +66,11 @@ async def is_job_busy(chip, stage):
 
     async with aiohttp.ClientSession() as session:
         async with session.get("http://%s:%s/check_progress/%s/%s/%s"%(
-                               chip.cfg['remote']['value'][0],
-                               chip.cfg['remoteport']['value'][0],
+                               chip.cfg['remote']['addr']['value'][0],
+                               chip.cfg['remote']['port']['value'][0],
                                chip.status['job_hash'],
                                stage,
-                               chip.cfg['jobname']['value'][-1][3:])) \
+                               chip.cfg['jobid']['value'][-1])) \
         as resp:
             response = await resp.text()
             return (response != "Job has no running steps.")
@@ -82,8 +82,8 @@ async def delete_job(chip):
 
     async with aiohttp.ClientSession() as session:
         async with session.get("http://%s:%s/delete_job/%s"%(
-                               chip.cfg['remote']['value'][0],
-                               chip.cfg['remoteport']['value'][0],
+                               chip.cfg['remote']['addr']['value'][0],
+                               chip.cfg['remote']['port']['value'][0],
                                chip.status['job_hash'])) \
         as resp:
             response = await resp.text()
@@ -98,8 +98,8 @@ async def upload_import_dir(chip):
     async with aiohttp.ClientSession() as session:
         with open(os.path.abspath('import.zip'), 'rb') as f:
             async with session.post("http://%s:%s/import/%s"%(
-                                        chip.cfg['remote']['value'][-1],
-                                        chip.cfg['remoteport']['value'][-1],
+                                        chip.cfg['remote']['addr']['value'][-1],
+                                        chip.cfg['remote']['port']['value'][-1],
                                         chip.status['job_hash']),
                                     data={'import': f}) \
             as resp:
@@ -134,8 +134,8 @@ def fetch_results(chip):
     # a server endpoint that returns a file object.
     subprocess.run(['wget',
                     "http://%s:%s/get_results/%s.zip"%(
-                        chip.cfg['remote']['value'][-1],
-                        chip.cfg['remoteport']['value'][-1],
+                        chip.cfg['remote']['addr']['value'][-1],
+                        chip.cfg['remote']['port']['value'][-1],
                         chip.status['job_hash'])])
     # Unzip the result and run klayout to display the GDS file.
     subprocess.run(['unzip', '%s.zip'%chip.status['job_hash']])

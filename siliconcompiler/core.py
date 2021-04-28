@@ -1073,7 +1073,6 @@ class Chip:
                 #####################
                 if (stepindex != 0) and remote:
                     self.logger.info('Remote server call')
-                    self.cfg['jobname']['value'] = [jobname]
                     # Blocks the currently-running thread, but not the whole app.
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
@@ -1165,24 +1164,26 @@ def get_permutations(base_chip, cmdlinecfg):
     if 'permutations' in cmdlinecfg.keys():
         perm_path = os.path.abspath(cmdlinecfg['permutations']['value'][-1])
         perm_script = SourceFileLoader('job_perms', perm_path).load_module()
-        # Create a new Chip object with the same job hash for each permutation.
-        for chip_cfg in perm_script.permutations(base_chip.cfg):
-            new_chip = Chip(loglevel=loglevel)
-            # JSON dump/load is a simple way to deep-copy a Python
-            # dictionary which does not contain custom classes/objects.
-            new_chip.status = json.loads(json.dumps(base_chip.status))
-            new_chip.cfg = json.loads(json.dumps(chip_cfg))
-            if 'remote_addr' in cmdlinecfg.keys():
-                new_chip.set('start', 'syn')
-            new_chip.set_jobid()
-            chips.append(new_chip)
+        perms = perm_script.permutations(base_chip.cfg)
     else:
+        perms = [base_chip.cfg]
+
+    # Fetch an initial 'jobid' value for the first permutation.
+    base_chip.set_jobid()
+    cur_jobid = base_chip.get('jobid')[-1]
+    base_chip.cfg['jobid']['value'] = []
+
+    # Create a new Chip object with the same job hash for each permutation.
+    for chip_cfg in perms:
         new_chip = Chip(loglevel=loglevel)
+        # JSON dump/load is a simple way to deep-copy a Python
+        # dictionary which does not contain custom classes/objects.
         new_chip.status = json.loads(json.dumps(base_chip.status))
-        new_chip.cfg = json.loads(json.dumps(base_chip.cfg))
+        new_chip.cfg = json.loads(json.dumps(chip_cfg))
         if 'remote_addr' in cmdlinecfg.keys():
             new_chip.set('start', 'syn')
-        new_chip.set_jobid()
+        new_chip.set('jobid', cur_jobid)
+        cur_jobid = str(int(cur_jobid) + 1)
         chips.append(new_chip)
 
     # Done; return the list of Chips.

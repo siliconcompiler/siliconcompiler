@@ -80,22 +80,23 @@ class Server:
         # Reset 'build' directory in NFS storage.
         build_dir = '%s/%s'%(self.cfg['nfsmount']['value'][-1], job_hash)
         jobs_dir = '%s/%s'%(build_dir, cfg['design']['value'][-1])
+        job_nameid = cfg['jobname']['value'][-1] + cfg['jobid']['value'][-1]
         cfg['dir']['value'] = [build_dir]
 
         # Create the working directory for the given 'job hash' if necessary.
         subprocess.run(['mkdir', '-p', jobs_dir])
         # Link to the 'import' directory if necessary.
-        subprocess.run(['mkdir', '-p', '%s/%s'%(jobs_dir, cfg['jobname']['value'][-1])])
-        subprocess.run(['ln', '-s', '%s/import'%build_dir, '%s/%s/import'%(jobs_dir, cfg['jobname']['value'][-1])])
+        subprocess.run(['mkdir', '-p', '%s/%s'%(jobs_dir, job_nameid)])
+        subprocess.run(['ln', '-s', '%s/import'%build_dir, '%s/%s/import'%(jobs_dir, job_nameid)])
 
         # Remove 'remote' JSON config value to run locally on compute node.
-        cfg['remote']['value'] = []
+        cfg['remote']['addr']['value'] = []
         # Rename source files in the config dict; the 'import' step already
         # ran and collected the sources into a single 'verilator.sv' file.
         cfg['source']['value'] = ['%s/import/verilator.sv'%build_dir]
 
         # Write JSON config to shared compute storage.
-        cur_id = cfg['jobname']['value'][-1][3:]
+        cur_id = cfg['jobid']['value'][-1]
         subprocess.run(['mkdir', '-p', '%s/configs'%build_dir])
         with open('%s/configs/chip%s.json'%(build_dir, cur_id), 'w') as f:
           f.write(json.dumps(cfg))

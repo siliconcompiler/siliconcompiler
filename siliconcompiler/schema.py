@@ -2246,7 +2246,7 @@ def schema_remote(cfg):
         'defvalue' : ['8080'],
         'short_help': 'Remote Server Port',
         'param_help' : "'remote' 'port' <str>",
-        'example': ["cli: -remot_eport 8080",
+        'example': ["cli: -remote_port 8080",
                     "api: chip.add('remot', 'port', '8080')"],
         'help' : """
         Sets the server port to be used in communicating with the remote host.
