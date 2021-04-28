@@ -1138,12 +1138,6 @@ class Chip:
                     jobid = max(jobid, int(m.group(1)))
             jobid = jobid+1
             self.set('jobid', str(jobid))
-
-        # Create the job directory to 'reserve' this ID.
-        job_nameid = self.get('jobname')[-1] + self.get('jobid')[-1]
-        subprocess.run(['mkdir',
-                        '-p',
-                        '%s/%s/%s'%(dirname, design, job_nameid)])
             
 ################################################################################        
 # Annoying helper class b/c yaml..
@@ -1166,17 +1160,27 @@ def get_permutations(base_chip, cmdlinecfg):
     if 'permutations' in cmdlinecfg.keys():
         perm_path = os.path.abspath(cmdlinecfg['permutations']['value'][-1])
         perm_script = SourceFileLoader('job_perms', perm_path).load_module()
-        # Create a new Chip object with the same job hash for each permutation.
-        for chip_cfg in perm_script.permutations(base_chip.cfg):
-            new_chip = Chip(loglevel=loglevel)
-            # JSON dump/load is a simple way to deep-copy a Python
-            # dictionary which does not contain custom classes/objects.
-            new_chip.status = json.loads(json.dumps(base_chip.status))
-            new_chip.cfg = json.loads(json.dumps(chip_cfg))
-            if 'remote' in cmdlinecfg.keys():
-                new_chip.set('start', 'syn')
-            new_chip.set_jobid()
-            chips.append(new_chip)
+        perms = perm_script.permutations(base_chip.cfg)
+    else:
+        perms = [base_chip.cfg]
+
+    # Fetch an initial 'jobid' value for the first permutation.
+    base_chip.set_jobid()
+    cur_jobid = base_chip.get('jobid')[-1]
+    base_chip.cfg['jobid']['value'] = []
+
+    # Create a new Chip object with the same job hash for each permutation.
+    for chip_cfg in perms:
+        new_chip = Chip(loglevel=loglevel)
+        # JSON dump/load is a simple way to deep-copy a Python
+        # dictionary which does not contain custom classes/objects.
+        new_chip.status = json.loads(json.dumps(base_chip.status))
+        new_chip.cfg = json.loads(json.dumps(chip_cfg))
+        if 'remote' in cmdlinecfg.keys():
+            new_chip.set('start', 'syn')
+        new_chip.set('jobid', cur_jobid)
+        cur_jobid = str(int(cur_jobid) + 1)
+        chips.append(new_chip)
     else:
         new_chip = Chip(loglevel=loglevel)
         new_chip.status = json.loads(json.dumps(base_chip.status))
