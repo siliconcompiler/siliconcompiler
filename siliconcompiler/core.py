@@ -16,6 +16,7 @@ import importlib
 import pandas
 import code
 import textwrap
+import uuid
 
 from importlib.machinery import SourceFileLoader
 
@@ -43,7 +44,7 @@ class Chip:
         self.layout = schema_layout()
         
         # Initialize logger
-        self.logger = log.getLogger()
+        self.logger = log.getLogger(uuid.uuid4().hex)
         self.handler = log.StreamHandler()
         self.formatter = log.Formatter('%(asctime)s %(levelname)-8s %(message)s')
         self.handler.setFormatter(self.formatter)
