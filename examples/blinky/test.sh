@@ -2,9 +2,10 @@
 
 sc examples/blinky/blinky.v \
     -target "ice40_nextpnr" \
-    -constraint "examples/blinky/icebreaker.pcf"
+    -constraint "examples/blinky/icebreaker.pcf" \
+    -design "blinky"
 
-if test -f "./build/export/job1/outputs/blinky.bit"; then
+if test -f "./build/blinky/job1/export/outputs/blinky.bit"; then
   echo "Success!"
   exit 0
 fi
