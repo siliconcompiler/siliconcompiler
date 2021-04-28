@@ -1129,16 +1129,20 @@ class Chip:
         dirname = self.cfg['dir']['value'][-1]
         jobname = self.cfg['jobname']['value'][-1]
 
-        alljobs = os.listdir(dirname + "/" + design)
+        try:
+            alljobs = os.listdir(dirname + "/" + design)
 
-        if len(self.cfg['jobid']['value']) < 1:
-            jobid = 0
-            for item in alljobs:
-                m = re.match(jobname+'(\d+)', item)
-                if m:
-                    jobid = max(jobid, int(m.group(1)))
-            jobid = jobid+1
-            self.set('jobid', str(jobid))
+            if len(self.cfg['jobid']['value']) < 1:
+                jobid = 0
+                for item in alljobs:
+                    m = re.match(jobname+'(\d+)', item)
+                    if m:
+                        jobid = max(jobid, int(m.group(1)))
+                jobid = jobid+1
+                self.set('jobid', str(jobid))
+        except FileNotFoundError:
+            # if no existing build directory, set jobid to 1
+            self.set('jobid', '1')
             
 ################################################################################        
 # Annoying helper class b/c yaml..
