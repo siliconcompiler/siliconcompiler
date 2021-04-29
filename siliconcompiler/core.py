@@ -823,6 +823,21 @@ class Chip:
       
         pass
 
+    ###########################################################################    
+    def dpw(self):
+        '''Calculates dies per wafer.
+        '''
+      
+        return value
+
+    ###########################################################################    
+    def cost(self, n):
+        '''Calculates total project costm including project cost and per unit
+        costs.
+        '''
+      
+        return value
+    
     ###########################################################################
     def summary(self, filename=None):
         '''
