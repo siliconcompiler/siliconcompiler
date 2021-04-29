@@ -46,7 +46,6 @@ def schema_cfg():
     
     # Run status
     cfg = schema_status(cfg)
-
     
     return cfg
 
@@ -225,6 +224,131 @@ def schema_pdk(cfg):
         drive technology dependent synthesis and APR optimization. Node 
         examples include 180nm, 130nm, 90nm, 65nm, 45nm, 32nm, 22nm, 14nm, 
         10nm, 7nm, 5nm, 3nm. The value entered implies nanometers.
+        """
+    }
+
+    cfg['pdk']['wafersize'] = {
+        'switch' : '-pdk_wafersize',
+        'requirement' : 'asic',
+        'type' : ['num'],
+        'lock' : 'false',
+        'defvalue' : [],
+        'short_help' : 'Process Wafer Size',
+        'param_help' : "'pdk' 'wafersize' <num>",
+        'example': ["cli: -pdk_wafersize 300",                    
+                    "api:  chip.set('pdk', 'wafersize', '300')"],
+        'help' : """
+        Specifies the wafer diameter for the process in mm.
+        """
+    }
+
+    cfg['pdk']['wafercost'] = {
+        'switch' : '-pdk_wafercost',
+        'requirement' : 'asic',
+        'type' : ['num'],
+        'lock' : 'false',
+        'defvalue' : [],
+        'short_help' : 'Process Wafer Cost',
+        'param_help' : "'pdk' 'wafercost' <num>",
+        'example': ["cli: -pdk_wafercost 10000",                    
+                    "api:  chip.set('pdk', 'wafercost', '10000')"],
+        'help' : """
+        Specifies the raw cost per wafer purchased in USD, not 
+        accounting for yield loss.
+        """
+    }
+
+    cfg['pdk']['d0'] = {
+        'switch' : '-pdk_d0',
+        'requirement' : 'asic',
+        'type' : ['num'],
+        'lock' : 'false',
+        'defvalue' : [],
+        'short_help' : 'Process Defect Density',
+        'param_help' : "'pdk' 'defect_d0' <num>",
+        'example': ["cli: -pdk_d0 0.1",                    
+                    "api:  chip.set('pdk', 'd0', '0.1')"],
+        'help' : """
+        Process defect density (D0) expressed as random defects per cm^2.
+        """
+    }
+    
+    cfg['pdk']['hscribe'] = {
+        'switch' : '-pdk_hscribe',
+        'requirement' : 'asic',
+        'type' : ['num'],
+        'lock' : 'false',
+        'defvalue' : [],
+        'short_help' : 'Process Horizontal Scribeline',
+        'param_help' : "'pdk' 'hscribe' <num>",
+        'example': ["cli: -pdk_hscribe 0.1",                    
+                    "api:  chip.set('pdk', 'hscribe', '0.1')"],
+        'help' : """
+        Specifies the width of the horizontal scribe line in mm.
+        """
+    }
+
+    cfg['pdk']['vscribe'] = {
+        'switch' : '-pdk_vscribe',
+        'requirement' : 'asic',
+        'type' : ['num'],
+        'lock' : 'false',
+        'defvalue' : [],
+        'short_help' : 'Process Horizontal Scribeline',
+        'param_help' : "'pdk' 'vscribe' <num>",
+        'example': ["cli: -pdk_vscribe 0.1",                    
+                    "api:  chip.set('pdk', 'vscribe', '0.1')"],
+        'help' : """
+        Specifies the width of the vertical scribe line in mm.
+        """
+    }
+    
+    cfg['pdk']['edgemargin'] = {
+        'switch' : '-pdk_edgemargin',
+        'requirement' : 'asic',
+        'type' : ['num'],
+        'lock' : 'false',
+        'defvalue' : [],
+        'short_help' : 'Process Wafer Edge Margin',
+        'param_help' : "'pdk' 'edgemargin' <num>",
+        'example': ["cli: -pdk_edgemargin 1",                    
+                    "api:  chip.set('pdk', 'edgemargin', '1')"],
+        'help' : """
+        Specifies keepout distance/margin (in mm) from the wafer edge 
+        where no dies can be placed.
+        """
+    }
+    
+    cfg['pdk']['density'] = {
+        'switch' : '-pdk_density',
+        'requirement' : 'asic',
+        'type' : ['num'],
+        'lock' : 'false',
+        'defvalue' : [],
+        'short_help' : 'Process Transistor Density',
+        'param_help' : "'pdk' 'density' <num>",
+        'example': ["cli: -pdk_density 100e6",                    
+                    "api:  chip.set('pdk', 'density', '10e6')"],
+        'help' : """
+        An approximate logic density expressed as # transistors / mm^2
+        calculated as:
+        0.6 * (Nand2 Transistor Count) / (Nand2 Cell Area) +
+        0.4 * (Register Transistor Count) / (Register Cell Area)
+        """
+    }
+
+    cfg['pdk']['sramcell'] = {
+        'switch' : '-pdk_sramcell',
+        'requirement' : 'asic',
+        'type' : ['num'],
+        'lock' : 'false',
+        'defvalue' : [],
+        'short_help' : 'Process SRAM Bitcell Size',
+        'param_help' : "'pdk' 'sramcell' <num>",
+        'example': ["cli: -pdk_sramcell 0.032",                    
+                    "api:  chip.set('pdk', 'sramcell', '0.026')"],
+        'help' : """
+        The area an SRAM bitcell expressed in um^2. 
         """
     }
 
