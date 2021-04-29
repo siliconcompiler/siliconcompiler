@@ -67,7 +67,7 @@ def post_process(chip, step):
                warnings = re.search('Warnings.*\s(\d+)\s+total', line)
                
                if area:
-                    chip.set('real', step, 'area', str(round(float(area.group(1)),2)))
+                    chip.set('real', step, 'cell_area', str(round(float(area.group(1)),2)))
                elif cells:
                     chip.set('real', step, 'cells', cells.group(1))
                elif stats:
