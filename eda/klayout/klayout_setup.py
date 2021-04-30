@@ -30,11 +30,17 @@ def setup_options(chip,step):
                          'siliconcompiler',
                          scriptdir)
      sc_path = sc_root + '/asic'
-     foundry_path = '%s/%s/%s/pdk/r1p0'%(
+
+     # TODO: should support multiple target libs?
+     libname = chip.get('asic', 'targetlib')[-1]
+     pdk_rev = chip.get('pdk', 'rev')[-1]
+     lib_rev = chip.get('stdcell', libname, 'rev')[-1]
+
+     foundry_path = f'%s/%s/%s/pdk/{pdk_rev}'%(
           sc_path,
           chip.cfg['pdk']['foundry']['value'][-1],
           chip.cfg['target']['value'][-1])
-     lefs_path = '%s/%s/%s/libs/NangateOpenCellLibrary/r1p0/lef'%(
+     lefs_path = f'%s/%s/%s/libs/{libname}/{lib_rev}/lef'%(
           sc_path,
           chip.cfg['pdk']['foundry']['value'][-1],
           chip.cfg['target']['value'][-1])
@@ -56,7 +62,7 @@ def setup_options(chip,step):
           options.append('-rd')
           options.append('in_gds=%s/%s'%(
                sc_root,
-               chip.cfg['stdcell']['NangateOpenCellLibrary']['gds']['value'][-1]))
+               chip.cfg['stdcell'][libname]['gds']['value'][-1]))
           options.append('-rd')
           options.append('out_gds=outputs/%s.gds'%(
                chip.cfg['design']['value'][-1]))
