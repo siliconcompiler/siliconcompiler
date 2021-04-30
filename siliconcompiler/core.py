@@ -18,6 +18,8 @@ import code
 import textwrap
 import uuid
 
+from math import hypot
+
 from importlib.machinery import SourceFileLoader
 
 from siliconcompiler.client import remote_run
@@ -824,6 +826,79 @@ class Chip:
       
         pass
 
+
+    ###########################################################################    
+    def dieyield(self, yieldmodel='poisson'):
+        '''Calculates the die yield
+        '''
+
+        d0 = self.cfg['pdk']['d0']['value'][-1]
+       
+        
+        return value
+    
+    ###########################################################################    
+    def dpw(self):
+        '''Calculates dies per wafer, taking into account scribe lines
+        and wafer edge margin. The algorithms starts with a center aligned
+        wafer and rasters dies uot from the center until a die edge extends
+        beyoond the legal value.
+        
+        '''
+
+
+        #PDK information
+        wafersize = int(self.cfg['pdk']['wafersize']['value'][-1])
+        edgemargin = float(self.cfg['pdk']['edgemargin']['value'][-1])
+        hscribe = float(self.cfg['pdk']['hscribe']['value'][-1])
+        vscribe = float(self.cfg['pdk']['vscribe']['value'][-1])
+
+        #Design parameters
+        diesize = self.cfg['asic']['diesize']['value'][-1].split()
+        diewidth = (float(diesize[2]) - float(diesize[0]))/1000
+        dieheight = (float(diesize[3]) - float(diesize[1]))/1000
+
+        #Derived parameters
+        radius = wafersize/2 -edgemargin 
+        stepwidth = (diewidth + hscribe)
+        stepheight = (dieheight + vscribe)
+
+        #Raster dies out from center until you touch edge margin
+        #Work quadrant by quadrant
+        dies = 0
+        for quad in ('q1','q2','q3','q4'):
+            x = 0
+            y = 0
+            if quad == "q1":
+                xincr = stepwidth
+                yincr = stepheight
+            elif quad == "q2":
+                xincr = -stepwidth
+                yincr = stepheight
+            elif quad == "q3":
+                xincr = -stepwidth
+                yincr = -stepheight   
+            elif quad == "q4":
+                xincr = stepwidth
+                yincr = -stepheight
+            #loop through all y values from center
+            while hypot(0,y) < radius:
+                y = y + yincr
+                while hypot(x,y) < radius:
+                    x = x + xincr
+                    dies = dies + 1
+                x = 0
+
+        return dies
+
+    ###########################################################################    
+    def cost(self, n):
+        '''Calculates total project costm including project cost and per unit
+        costs.
+        '''
+      
+        return value
+    
     ###########################################################################
     def summary(self, filename=None):
         '''

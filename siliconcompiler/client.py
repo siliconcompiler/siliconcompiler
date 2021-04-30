@@ -66,8 +66,8 @@ async def is_job_busy(chip, stage):
 
     async with aiohttp.ClientSession() as session:
         async with session.get("http://%s:%s/check_progress/%s/%s/%s"%(
-                               chip.cfg['remote']['addr']['value'][0],
-                               chip.cfg['remote']['port']['value'][0],
+                               chip.cfg['remote']['addr']['value'][-1],
+                               chip.cfg['remote']['port']['value'][-1],
                                chip.status['job_hash'],
                                stage,
                                chip.cfg['jobid']['value'][-1])) \
@@ -82,8 +82,8 @@ async def delete_job(chip):
 
     async with aiohttp.ClientSession() as session:
         async with session.get("http://%s:%s/delete_job/%s"%(
-                               chip.cfg['remote']['addr']['value'][0],
-                               chip.cfg['remote']['port']['value'][0],
+                               chip.cfg['remote']['addr']['value'][-1],
+                               chip.cfg['remote']['port']['value'][-1],
                                chip.status['job_hash'])) \
         as resp:
             response = await resp.text()

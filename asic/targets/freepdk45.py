@@ -16,6 +16,11 @@ def setup_platform(chip):
     stackup = '10M'
     libtype = '10t'
     node = '45'
+    wafersize = '300'
+    hscribe = '0.1'
+    vscribe = '0.1'
+    edgemargin = '2'
+    
     pdkdir = '/'.join(["asic",
                        foundry,
                        process,
@@ -32,6 +37,10 @@ def setup_platform(chip):
     chip.set('pdk','node', node)
     chip.set('pdk','rev', rev)
     chip.set('pdk','stackup', stackup)
+    chip.set('pdk','wafersize', wafersize)
+    chip.set('pdk','edgemargin', edgemargin)
+    chip.set('pdk','hscribe', hscribe)
+    chip.set('pdk','vscribe', vscribe)
 
     chip.set('pdk','tapmax', "120")
     chip.set('pdk','tapoffset', "0")

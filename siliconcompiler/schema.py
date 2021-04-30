@@ -46,7 +46,6 @@ def schema_cfg():
     
     # Run status
     cfg = schema_status(cfg)
-
     
     return cfg
 
@@ -225,6 +224,131 @@ def schema_pdk(cfg):
         drive technology dependent synthesis and APR optimization. Node 
         examples include 180nm, 130nm, 90nm, 65nm, 45nm, 32nm, 22nm, 14nm, 
         10nm, 7nm, 5nm, 3nm. The value entered implies nanometers.
+        """
+    }
+
+    cfg['pdk']['wafersize'] = {
+        'switch' : '-pdk_wafersize',
+        'requirement' : 'asic',
+        'type' : ['num'],
+        'lock' : 'false',
+        'defvalue' : [],
+        'short_help' : 'Process Wafer Size',
+        'param_help' : "'pdk' 'wafersize' <num>",
+        'example': ["cli: -pdk_wafersize 300",                    
+                    "api:  chip.set('pdk', 'wafersize', '300')"],
+        'help' : """
+        Specifies the wafer diameter for the process in mm.
+        """
+    }
+
+    cfg['pdk']['wafercost'] = {
+        'switch' : '-pdk_wafercost',
+        'requirement' : 'asic',
+        'type' : ['num'],
+        'lock' : 'false',
+        'defvalue' : [],
+        'short_help' : 'Process Wafer Cost',
+        'param_help' : "'pdk' 'wafercost' <num>",
+        'example': ["cli: -pdk_wafercost 10000",                    
+                    "api:  chip.set('pdk', 'wafercost', '10000')"],
+        'help' : """
+        Specifies the raw cost per wafer purchased in USD, not 
+        accounting for yield loss.
+        """
+    }
+
+    cfg['pdk']['d0'] = {
+        'switch' : '-pdk_d0',
+        'requirement' : 'asic',
+        'type' : ['num'],
+        'lock' : 'false',
+        'defvalue' : [],
+        'short_help' : 'Process Defect Density',
+        'param_help' : "'pdk' 'defect_d0' <num>",
+        'example': ["cli: -pdk_d0 0.1",                    
+                    "api:  chip.set('pdk', 'd0', '0.1')"],
+        'help' : """
+        Process defect density (D0) expressed as random defects per cm^2.
+        """
+    }
+    
+    cfg['pdk']['hscribe'] = {
+        'switch' : '-pdk_hscribe',
+        'requirement' : 'asic',
+        'type' : ['num'],
+        'lock' : 'false',
+        'defvalue' : [],
+        'short_help' : 'Process Horizontal Scribeline',
+        'param_help' : "'pdk' 'hscribe' <num>",
+        'example': ["cli: -pdk_hscribe 0.1",                    
+                    "api:  chip.set('pdk', 'hscribe', '0.1')"],
+        'help' : """
+        Specifies the width of the horizontal scribe line in mm.
+        """
+    }
+
+    cfg['pdk']['vscribe'] = {
+        'switch' : '-pdk_vscribe',
+        'requirement' : 'asic',
+        'type' : ['num'],
+        'lock' : 'false',
+        'defvalue' : [],
+        'short_help' : 'Process Horizontal Scribeline',
+        'param_help' : "'pdk' 'vscribe' <num>",
+        'example': ["cli: -pdk_vscribe 0.1",                    
+                    "api:  chip.set('pdk', 'vscribe', '0.1')"],
+        'help' : """
+        Specifies the width of the vertical scribe line in mm.
+        """
+    }
+    
+    cfg['pdk']['edgemargin'] = {
+        'switch' : '-pdk_edgemargin',
+        'requirement' : 'asic',
+        'type' : ['num'],
+        'lock' : 'false',
+        'defvalue' : [],
+        'short_help' : 'Process Wafer Edge Margin',
+        'param_help' : "'pdk' 'edgemargin' <num>",
+        'example': ["cli: -pdk_edgemargin 1",                    
+                    "api:  chip.set('pdk', 'edgemargin', '1')"],
+        'help' : """
+        Specifies keepout distance/margin (in mm) from the wafer edge 
+        where no dies can be placed.
+        """
+    }
+    
+    cfg['pdk']['density'] = {
+        'switch' : '-pdk_density',
+        'requirement' : 'asic',
+        'type' : ['num'],
+        'lock' : 'false',
+        'defvalue' : [],
+        'short_help' : 'Process Transistor Density',
+        'param_help' : "'pdk' 'density' <num>",
+        'example': ["cli: -pdk_density 100e6",                    
+                    "api:  chip.set('pdk', 'density', '10e6')"],
+        'help' : """
+        An approximate logic density expressed as # transistors / mm^2
+        calculated as:
+        0.6 * (Nand2 Transistor Count) / (Nand2 Cell Area) +
+        0.4 * (Register Transistor Count) / (Register Cell Area)
+        """
+    }
+
+    cfg['pdk']['sramcell'] = {
+        'switch' : '-pdk_sramcell',
+        'requirement' : 'asic',
+        'type' : ['num'],
+        'lock' : 'false',
+        'defvalue' : [],
+        'short_help' : 'Process SRAM Bitcell Size',
+        'param_help' : "'pdk' 'sramcell' <num>",
+        'example': ["cli: -pdk_sramcell 0.032",                    
+                    "api:  chip.set('pdk', 'sramcell', '0.026')"],
+        'help' : """
+        The area an SRAM bitcell expressed in um^2. 
         """
     }
 
@@ -1406,6 +1530,22 @@ def schema_metrics(cfg, group, step='default'):
 
     cfg[group][step] = {}      # per step
 
+
+    cfg[group][step]['registers'] = {
+        'switch' : '-'+group+'_registers',
+        'type' : ['num'],
+        'lock' : 'false',
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Total Registers ' + group.capitalize(),
+        'param_help' : "'"+group+"' step 'registers' <num>",
+        'example':["cli: -"+group+"_total_registers 'place 100'",
+                   "api: chip.add('"+group+"','place','total_cells','100')"],
+        'help' : """
+        Metric tracking the total number of register cells on a per step basis.
+        """
+    }
+
     cfg[group][step]['cells'] = {
         'switch' : '-'+group+'_cells',
         'type' : ['num'],
@@ -1417,8 +1557,26 @@ def schema_metrics(cfg, group, step='default'):
         'example':["cli: -"+group+"_cells 'place 100'",
                    "api: chip.add('"+group+"','place','cells','100')"],
         'help' : """
-        Metric tracking the total number of cells on a per step basis.
-        In the case of FPGAs, the it represents the number of LUTs.
+        Metric tracking the total number of instances on a per step basis.
+        Total cells includes registers. In the case of FPGAs, the it 
+        represents the number of LUTs.
+        """
+    }
+
+    cfg[group][step]['rambits'] = {
+        'switch' : '-'+group+'_rambits',
+        'type' : ['num'],
+        'lock' : 'false',
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Total RAM Bits' + group.capitalize(),
+        'param_help' : "'"+group+"' step 'rambits' <num>",
+        'example':["cli: -"+group+"_rambits 'place 100'",
+                   "api: chip.add('"+group+"','place','rambits','100')"],
+        'help' : """
+        Metric tracking the total number of SRAM bits in the design 
+        on a per step basis. In the case of FPGAs, the it 
+        represents the number of bits mapped to block ram.
         """
     }
 
@@ -1437,20 +1595,20 @@ def schema_metrics(cfg, group, step='default'):
         basis.
         """
     }
-    
-    cfg[group][step]['area'] = {
-        'switch' : '-'+group+'_area',
+
+    cfg[group][step]['pins'] = {
+        'switch' : '-'+group+'_pins',
         'type' : ['num'],
         'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Cell Area ' + group.capitalize(),
-        'param_help' : "'"+group+"' step 'area' <num>",
-        'example':["cli: -"+group+"_area 'place 100.00'",
-                   "api: chip.add('"+group+"','place','area','100.00')"],
+        'short_help' : 'Total Pins ' + group.capitalize(),
+        'param_help' : "'"+group+"' step 'pins' <num>",
+        'example':["cli: -"+group+"_pins 'place 100'",
+                   "api: chip.add('"+group+"','place','pins','100')"],
         'help' : """
-        Metric tracking the total cell area on a per step basis
-        specified in um^2.
+        Metric tracking the total number of I/O pins on a per step 
+        basis.
         """
     }
 
@@ -1482,35 +1640,70 @@ def schema_metrics(cfg, group, step='default'):
         'help' : """
         Metric tracking the total wirelength in the design in meters.
         """
-    }
-
-    cfg[group][step]['density'] = {
-        'switch' : '-'+group+'_density',
+    } 
+    
+    cfg[group][step]['cell_area'] = {
+        'switch' : '-'+group+'_cell_area',
         'type' : ['num'],
         'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Cell Density ' + group.capitalize(),
-        'param_help' : "'"+group+"' step 'density' <num>",
-        'example':["cli: -"+group+"_density 'place 99.9'",
+        'short_help' : 'Cell Area ' + group.capitalize(),
+        'param_help' : "'"+group+"' step 'cell_area' <num>",
+        'example':["cli: -"+group+"_cell_area 'place 100.00'",
+                   "api: chip.add('"+group+"','place','cell_area','100.00')"],
+        'help' : """
+        Metric tracking the total cell area on a per step basis
+        specified in um^2.
+        """
+    }
+
+    cfg[group][step]['die_area'] = {
+        'switch' : '-'+group+'_die_area',
+        'type' : ['num'],
+        'lock' : 'false',
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Die Area ' + group.capitalize(),
+        'param_help' : "'"+group+"' step 'die_area' <num>",
+        'example':["cli: -"+group+"_die_area 'place 100.00'",
+                   "api: chip.add('"+group+"','place','die_area','100.00')"],
+        'help' : """
+        Metric tracking the total die area on a per step basis
+        specified in um^2.
+        """
+    }
+
+    
+
+    cfg[group][step]['utilization'] = {
+        'switch' : '-'+group+'_utilization',
+        'type' : ['num'],
+        'lock' : 'false',
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Area Utilization ' + group.capitalize(),
+        'param_help' : "'"+group+"' step 'utilization' <num>",
+        'example':["cli: -"+group+"_utilization 'place 99.9'",
                    "api: chip.add('"+group+"','place','density','99.9')"],
         'help' : """
-        Metric tracking the density calculated as the ratio of cell area
-        devided by the total core area available for placement. Value is
-        specified as a percentage (%) and does not include filler cells.
+        Metric tracking the effective area utilization calculated as the 
+        ratio of cell area divided by the total core area available for 
+        placement. Value is specified as a percentage (%) and does not include
+        filler cells.
         """
     }
     
-    cfg[group][step]['power'] = {
-        'switch' : '-'+group+'_power',
+    cfg[group][step]['total_power'] = {
+        'switch' : '-'+group+'_total_power',
         'type' : ['num'],
         'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Active Power ' + group.capitalize(),
-        'param_help' : "'"+group+"' step 'power' <num>",
-        'example':["cli: -"+group+"_power 'place 0.001'",
-                   "api: chip.add('"+group+"','place','power','0.001')"],
+        'short_help' : 'Total Power ' + group.capitalize(),
+        'param_help' : "'"+group+"' step 'total_power' <num>",
+        'example':["cli: -"+group+"_total_power 'place 0.001'",
+                   "api: chip.add('"+group+"','place','total_power','0.001')"],
         'help' : """       
         Metric tracking the worst case dynamic power of the design on a per 
         step basis calculated based on setup config and VCD stimulus.
@@ -1518,16 +1711,16 @@ def schema_metrics(cfg, group, step='default'):
         """
     }    
 
-    cfg[group][step]['leakage'] = {
-        'switch' : '-'+group+'_leakage',
+    cfg[group][step]['leakage_power'] = {
+        'switch' : '-'+group+'_leakage_power',
         'type' : ['num'],
         'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Leakage ' + group.capitalize(),
-        'param_help' : "'"+group+"' step 'leakage' <num>",
-        'example':["cli: -"+group+"_leakage 'place 1e-6'",
-                   "api: chip.add('"+group+"','place','leakage','1e-6')"],
+        'short_help' : 'Leakage Power ' + group.capitalize(),
+        'param_help' : "'"+group+"' step 'leakage_powerw' <num>",
+        'example':["cli: -"+group+"_leakage_powerw 'place 1e-6'",
+                   "api: chip.add('"+group+"','place','leakage_power','1e-6')"],
         'help' : """
         Metric tracking the worst case leakage of the design on a per step 
         basis. Metric unit is Watts.
