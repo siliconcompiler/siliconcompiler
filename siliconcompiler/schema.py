@@ -2477,6 +2477,39 @@ def schema_remote(cfg):
         Specifies which step that remote execution stopns on.
         """
     }
+
+    # Remote username
+    cfg['remote']['user'] = {
+        'switch': '-remote_user',
+        'type': ['str'],
+        'lock' : 'false',
+        'requirement' : 'remote',
+        'defvalue' : [],
+        'short_help': 'Remote authentication username.',
+        'param_help': "'remote' 'user' <str>",
+        'example': ["cli: -remote_user testuser",
+                    "api: chip.add('remote', 'user', 'testuser')"],
+        'help': """
+        Specifies a username for authenticating calls with a remote server.
+        """
+    }
+
+    # Remote private key file.
+    cfg['remote']['key'] = {
+        'switch': '-remote_key',
+        'type': ['file'],
+        'lock' : 'false',
+        'requirement' : 'remote',
+        'defvalue' : [],
+        'short_help': 'Remote authentication private key file.',
+        'param_help': "'remote' 'key' <str>",
+        'example': ["cli: -remote_key ~/.ssh/decrypt_key",
+                    "api: chip.add('remote', 'key', './decrypt_key')"],
+        'help': """
+        Specifies a private key file which will allow the server to
+        authenticate the given user and decrypt data associated with them.
+        """
+    }
    
     return cfg
 
