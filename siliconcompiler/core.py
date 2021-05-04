@@ -1269,7 +1269,7 @@ def get_permutations(base_chip, cmdlinecfg):
 
         # Skip the 'import' stage for remote jobs; it will be run locally and uploaded.
         if len(new_chip.get('remote', 'addr')) > 0:
-            new_chip.set('start', new_chip.get('steplist')[1])
+            new_chip.set('start', new_chip.get('remote', 'start')[-1])
 
         # Set and increment the "job ID" so multiple chips don't share the same directory.
         new_chip.set('jobid', cur_jobid)
