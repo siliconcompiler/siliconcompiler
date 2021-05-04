@@ -25,7 +25,7 @@ set input_sdc       "inputs/$topmodule.sdc"
 
 # TODO: the original OpenFPGA synth script used read_verilog with -nolatches. Is
 # that a flag we might want here?
-yosys read_verilog $input_verilog
+yosys read_verilog -sv $input_verilog
 
 if {$mode eq "asic"} {
     set targetlib   [dict get $sc_cfg asic targetlib]
@@ -39,7 +39,7 @@ if {$mode eq "asic"} {
     set output_blif     "outputs/$topmodule.blif"
 
     ########################################################
-    # Technology Mapping
+    # Synthhesis
     ########################################################
 
     yosys synth "-flatten" -top $topmodule
