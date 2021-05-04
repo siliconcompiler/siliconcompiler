@@ -1265,7 +1265,7 @@ def get_permutations(base_chip, cmdlinecfg):
         # dictionary which does not contain custom classes/objects.
         new_chip.status = json.loads(json.dumps(base_chip.status))
         new_chip.cfg = json.loads(json.dumps(chip_cfg))
-        if 'remote_addr' in cmdlinecfg.keys():
+        if len(new_chip.get('remote', 'addr')) > 0:
             new_chip.set('start', 'syn')
         new_chip.set('jobid', cur_jobid)
         cur_jobid = str(int(cur_jobid) + 1)
