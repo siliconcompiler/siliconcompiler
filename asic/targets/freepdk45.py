@@ -20,6 +20,7 @@ def setup_platform(chip):
     hscribe = '0.1'
     vscribe = '0.1'
     edgemargin = '2'
+    d0 = '1.25'
     
     pdkdir = '/'.join(["asic",
                        foundry,
@@ -41,6 +42,7 @@ def setup_platform(chip):
     chip.set('pdk','edgemargin', edgemargin)
     chip.set('pdk','hscribe', hscribe)
     chip.set('pdk','vscribe', vscribe)
+    chip.set('pdk','d0', d0)
 
     chip.set('pdk','tapmax', "120")
     chip.set('pdk','tapoffset', "0")

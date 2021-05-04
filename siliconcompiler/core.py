@@ -17,8 +17,7 @@ import pandas
 import code
 import textwrap
 import uuid
-
-from math import hypot
+import math
 
 from importlib.machinery import SourceFileLoader
 
@@ -828,16 +827,25 @@ class Chip:
 
 
     ###########################################################################    
-    def dieyield(self, yieldmodel='poisson'):
+    def calcyield(self, model='poisson'):
         '''Calculates the die yield
         '''
 
-        d0 = self.cfg['pdk']['d0']['value'][-1]
-       
+        d0 = float(self.cfg['pdk']['d0']['value'][-1])
+        diesize = self.cfg['asic']['diesize']['value'][-1].split()
+        diewidth = (float(diesize[2]) - float(diesize[0]))/1000
+        dieheight = (float(diesize[3]) - float(diesize[1]))/1000
+        diearea = diewidth * dieheight;
         
-        return value
+        if model == 'poisson':
+            dy =  math.exp(-diearea * d0/100)
+        elif model == 'murphy':
+            dy = ((1-math.exp(-diearea * d0/100))/(diearea * d0/100))**2
+                   
+        return dy
     
     ###########################################################################    
+
     def dpw(self):
         '''Calculates dies per wafer, taking into account scribe lines
         and wafer edge margin. The algorithms starts with a center aligned
@@ -845,7 +853,6 @@ class Chip:
         beyoond the legal value.
         
         '''
-
 
         #PDK information
         wafersize = int(self.cfg['pdk']['wafersize']['value'][-1])
@@ -882,22 +889,24 @@ class Chip:
                 xincr = stepwidth
                 yincr = -stepheight
             #loop through all y values from center
-            while hypot(0,y) < radius:
+            while math.hypot(0,y) < radius:
                 y = y + yincr
-                while hypot(x,y) < radius:
+                while math.hypot(x,y) < radius:
                     x = x + xincr
                     dies = dies + 1
                 x = 0
 
-        return dies
+        return int(dies)
 
     ###########################################################################    
-    def cost(self, n):
-        '''Calculates total project costm including project cost and per unit
-        costs.
+    def diecost(self, n):
+        '''Calculates total cost of producing 'n', including design costs,
+        mask costs, packaging costs, tooling, characterization, qualifiction, 
+        test. The exact cost model is given by the formula:
+        
         '''
-      
-        return value
+        
+        return cost
     
     ###########################################################################
     def summary(self, filename=None):
@@ -1256,7 +1265,7 @@ def get_permutations(base_chip, cmdlinecfg):
         # dictionary which does not contain custom classes/objects.
         new_chip.status = json.loads(json.dumps(base_chip.status))
         new_chip.cfg = json.loads(json.dumps(chip_cfg))
-        if 'remote_addr' in cmdlinecfg.keys():
+        if len(new_chip.get('remote', 'addr')) > 0:
             new_chip.set('start', 'syn')
         new_chip.set('jobid', cur_jobid)
         cur_jobid = str(int(cur_jobid) + 1)

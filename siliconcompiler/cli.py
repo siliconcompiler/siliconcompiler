@@ -275,7 +275,7 @@ def main():
         chip.hash()
 
     # Perform preprocessing for remote jobs, if necessary.
-    if 'remote_addr' in cmdlinecfg.keys():
+    if len(chips[-1].get('remote', 'addr')) > 0:
         remote_preprocess(chips)
 
     # Run each job in its own thread.
