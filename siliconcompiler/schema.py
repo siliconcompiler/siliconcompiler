@@ -605,7 +605,7 @@ def schema_pdk(cfg):
         'lock' : 'false',
         'defvalue' : [],
         'short_help' : 'APR Layer Name Map',
-        'param_help' : "'pdk' 'aprlayer' stackup metal 'name' <str>",
+        'param_help' : "'pdk' 'aprlayer' stackup layer 'name' <str>",
         'example': ["""cli: -pdk_aprlayer_name 'stack10 m1 metal1'""",
                     """api: chip.add('pdk', 'aprlayer', 'stack10', 'm1', 'name',
                     'metal1')"""],
@@ -623,7 +623,7 @@ def schema_pdk(cfg):
         'lock' : 'false',
         'defvalue' : [],
         'short_help' : 'APR Layer Horizontal Grid',
-        'param_help' : "'pdk' 'aprlayer' stackup metal 'xpitch'",
+        'param_help' : "'pdk' 'aprlayer' stackup layer 'xpitch'",
         'example': ["""cli: -pdk_aprlayer_xpitch 'stack10 m1 0.5'""",
                     """api: chip.add('pdk','aprlayer','stack10','m1','xpitch',
                     '0.5')"""],
@@ -642,7 +642,7 @@ def schema_pdk(cfg):
         'lock' : 'false',
         'defvalue' : [],
         'short_help' : 'APR Layer Vertical Grid',
-        'param_help' : "'pdk' 'aprlayer' stackup metal 'ypitch'",
+        'param_help' : "'pdk' 'aprlayer' stackup layer 'ypitch'",
         'example': ["""cli: -pdk_aprlayer_ypitch 'stack10 m2 0.5'""",
                     """api: chip.add('pdk','aprlayer','stack10','m2','ypitch',
                     '0.5')"""],
@@ -652,6 +652,7 @@ def schema_pdk(cfg):
         mn, where m1 is the lowest routing layer in the tech.lef.
         """
     }
+    
     # Vertical Grid Offset
     cfg['pdk']['aprlayer']['default']['default']['xoffset'] = {
         'switch' : '-pdk_aprlayer_xoffset',
@@ -660,7 +661,7 @@ def schema_pdk(cfg):
         'lock' : 'false',
         'defvalue' : [],
         'short_help' : 'APR Layer Preferred Direction',
-        'param_help' : "'pdk' 'aprlayer' stackup metal 'xoffset'",
+        'param_help' : "'pdk' 'aprlayer' stackup layer 'xoffset'",
         'example': ["""cli: -pdk_aprlayer_xoffset 'stack10 m2 0.5'""",
                     """api: chip.add('pdk','aprlayer','stack10','m2','xoffset',
                     '0.5')"""],
@@ -669,6 +670,7 @@ def schema_pdk(cfg):
         stackup and per metal basis. Values are specified in um.
         """
     }
+    
     # Horizontal Grid Offset
     cfg['pdk']['aprlayer']['default']['default']['yoffset'] = {
         'switch' : '-pdk_aprlayer_yoffset',
@@ -677,16 +679,77 @@ def schema_pdk(cfg):
         'lock' : 'false',
         'defvalue' : [],
         'short_help' : 'APR Layer Preferred Direction',
-        'param_help' : "'pdk' 'aprlayer' stackup metal 'yoffset'",
+        'param_help' : "'pdk' 'aprlayer' stackup layer 'yoffset'",
         'example': ["""cli: -pdk_aprlayer_yoffset 'stack10 m2 0.5'""",
                     """api: chip.add('pdk','aprlayer','stack10','m2','yoffset',
                     '0.5')"""],
         'help' : """
-        Defines the vertical grid offset of a metal layer specified on a per 
+        Defines the horizontal grid offset of a metal layer specified on a per 
         stackup and per metal basis. Values are specified in um.
         """
     }
-    
+
+    # Routing Layer Adjustment
+    cfg['pdk']['aprlayer']['default']['default']['yoffset'] = {
+        'switch' : '-pdk_aprlayer_adjustment',
+        'requirement' : 'optional',
+        'type' : ['num'],
+        'lock' : 'false',
+        'defvalue' : [],
+        'short_help' : 'APR Layer Routing Layer Adjustment',
+        'param_help' : "'pdk' 'aprlayer' stackup layer 'adjustment'",
+        'example': ["""cli: -pdk_aprlayer_adjustment 'stack10 m2 0.5'""",
+                    """api: chip.set('pdk','aprlayer','stack10','m2','adjustment',
+                    '0.5')"""],
+        'help' : """
+        Defines the routing resources adjustments for the design on a per layer
+        basis. The value is expressed as a fraction from 0 to 1. A value of
+        0.5 reduces the routing resources by 50%.
+        """
+    }
+
+    # Routing Layer Capacitance
+    cfg['pdk']['aprlayer']['default']['default']['cap'] = {
+        'switch' : '-pdk_aprlayer_cap',
+        'requirement' : 'optional',
+        'type' : ['num'],
+        'lock' : 'false',
+        'defvalue' : [],
+        'short_help' : 'APR Layer Routing Layer Capacitance',
+        'param_help' : "'pdk' 'aprlayer' stackup layer 'cap'",
+        'example': ["""cli: -pdk_aprlayer_cap 'stack10 m2 0.2'""",
+                    """api: chip.set('pdk','aprlayer','stack10','m2','cap',
+                    '0.2')"""],
+        'help' : """
+        Specifies the unit capacitance of a wire defined by the grid
+        width and spacing values in the 'aprlayer' structure.  The
+        value is specifed as ff/um. The number is only meant to be used 
+        as a sanity check and for coarse design planning. Accurate 
+        analysis should use the PEX models.
+        """
+    }
+
+    # Wire Temperature Coefficient
+    cfg['pdk']['aprlayer']['default']['default']['tcr'] = {
+        'switch' : '-pdk_aprlayer_tcr',
+        'requirement' : 'optional',
+        'type' : ['num'],
+        'lock' : 'false',
+        'defvalue' : [],
+        'short_help' : 'APR Layer Temperature Coefficent',
+        'param_help' : "'pdk' 'aprlayer' stackup layer 'tcr'",
+        'example': ["""cli: -pdk_aprlayer_tcr 'stack10 m2 0.1'""",
+                    """api: chip.set('pdk','aprlayer','stack10','m2','tcr',
+                    '0.1')"""],
+        'help' : """
+        Specifies the temperature coefficient of resistance of the wire 
+        defined by the grid width and spacing values in the 'aprlayer' 
+        structure. The value is specifed in %/ deg C. The number is only
+        meant to be used as a sanity check and for coarse design planning. 
+        Accurate analysis should use the PEX models.
+        """
+    }
+
     cfg['pdk']['tapmax'] = {
         'switch' : '-pdk_tapmax',
         'requirement' : 'apr',
