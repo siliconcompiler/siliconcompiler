@@ -70,6 +70,7 @@ def setup_options(chip, step):
 
     #Relax Linting
     supress_warnings = ['-Wno-UNOPTFLAT',
+                        '-Wno-LITENDIAN',
                         '-Wno-WIDTH',
                         '-Wno-SELRANGE',
                         '-Wno-WIDTH',
