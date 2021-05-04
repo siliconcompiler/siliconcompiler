@@ -52,19 +52,29 @@ def setup_platform(chip):
              pdkdir+'/apr/freepdk45.tech.lef')
 
     # Routing Grid Definitions
-    for sc_name, pdk_name in [('m1', 'metal1'), ('m3', 'metal3')]:
+    for sc_name, pdk_name in [('m1', 'metal1')]:
         chip.set('pdk','aprlayer', stackup, sc_name, 'name', pdk_name)
         chip.set('pdk','aprlayer', stackup, sc_name, 'xoffset', '0.095')
         chip.set('pdk','aprlayer', stackup, sc_name, 'xpitch',  '0.19')
         chip.set('pdk','aprlayer', stackup, sc_name, 'yoffset', '0.07')
         chip.set('pdk','aprlayer', stackup, sc_name, 'ypitch',  '0.14')
-
+        chip.set('pdk','aprlayer', stackup, sc_name, 'adjustment', '1.0')   
+        
     for sc_name, pdk_name in [('m2', 'metal2')]:
         chip.set('pdk','aprlayer', stackup, sc_name, 'name', pdk_name)
         chip.set('pdk','aprlayer', stackup, sc_name, 'xoffset', '0.095')
         chip.set('pdk','aprlayer', stackup, sc_name, 'xpitch',  '0.19')
         chip.set('pdk','aprlayer', stackup, sc_name, 'yoffset', '0.07')
         chip.set('pdk','aprlayer', stackup, sc_name, 'ypitch',  '0.14')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'adjustment', '0.8')   
+        
+    for sc_name, pdk_name in [('m3', 'metal3')]:
+        chip.set('pdk','aprlayer', stackup, sc_name, 'name', pdk_name)
+        chip.set('pdk','aprlayer', stackup, sc_name, 'xoffset', '0.095')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'xpitch',  '0.19')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'yoffset', '0.07')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'ypitch',  '0.14')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'adjustment',  '0.7')   
 
     for sc_name, pdk_name in [('m4', 'metal4'), ('m5', 'metal5'), ('m6', 'metal6')]:
         chip.set('pdk','aprlayer', stackup, sc_name, 'name', pdk_name)
@@ -72,6 +82,7 @@ def setup_platform(chip):
         chip.set('pdk','aprlayer', stackup, sc_name, 'xpitch',  '0.28')
         chip.set('pdk','aprlayer', stackup, sc_name, 'yoffset', '0.07')
         chip.set('pdk','aprlayer', stackup, sc_name, 'ypitch',  '0.28')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'adjustment', '0.4')   
 
     for sc_name, pdk_name in [('m7', 'metal7'), ('m8', 'metal8')]:
         chip.set('pdk','aprlayer', stackup, sc_name, 'name', pdk_name)
@@ -79,6 +90,7 @@ def setup_platform(chip):
         chip.set('pdk','aprlayer', stackup, sc_name, 'xpitch',  '0.8')
         chip.set('pdk','aprlayer', stackup, sc_name, 'yoffset', '0.07')
         chip.set('pdk','aprlayer', stackup, sc_name, 'ypitch',  '0.8')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'adjustment', '0.4')   
 
     for sc_name, pdk_name in [('m9', 'metal9'), ('m10', 'metal10')]:
         chip.set('pdk','aprlayer', stackup, sc_name, 'name', pdk_name)
@@ -86,6 +98,7 @@ def setup_platform(chip):
         chip.set('pdk','aprlayer', stackup, sc_name, 'xpitch',  '1.6')
         chip.set('pdk','aprlayer', stackup, sc_name, 'yoffset', '0.07')
         chip.set('pdk','aprlayer', stackup, sc_name, 'ypitch',  '1.6')
+        chip.set('pdk','aprlayer', stackup, sc_name, 'adjustment', '0.4')   
 
 ####################################################
 # Library Setup

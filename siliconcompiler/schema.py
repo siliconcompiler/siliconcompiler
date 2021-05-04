@@ -690,7 +690,7 @@ def schema_pdk(cfg):
     }
 
     # Routing Layer Adjustment
-    cfg['pdk']['aprlayer']['default']['default']['yoffset'] = {
+    cfg['pdk']['aprlayer']['default']['default']['adjustment'] = {
         'switch' : '-pdk_aprlayer_adjustment',
         'requirement' : 'optional',
         'type' : ['num'],

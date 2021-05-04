@@ -14,11 +14,14 @@ check_placement
 # GLOBAL ROUTE
 ######################
 
-set_global_routing_layer_adjustment metal2 0.8
-set_global_routing_layer_adjustment metal3 0.7
-set_global_routing_layer_adjustment metal4-metal10 0.4
+foreach layer $sc_layers {
+    set name [lindex [dict get $sc_cfg pdk aprlayer $sc_stackup $layer name] end]
+    set adjustment [lindex [dict get $sc_cfg pdk aprlayer $sc_stackup $layer adjustment] end]
+    set_global_routing_layer_adjustment $name $adjustment
+}
 
 set_routing_layers -signal $sc_minmetal-$sc_maxmetal
+
 set_macro_extension 2
 
 global_route -guide_file "./route.guide" \
