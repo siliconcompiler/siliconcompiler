@@ -689,6 +689,24 @@ def schema_pdk(cfg):
         """
     }
 
+    # Routing width
+    cfg['pdk']['aprlayer']['default']['default']['width'] = {
+        'switch' : '-pdk_aprlayer_width',
+        'requirement' : 'optional',
+        'type' : ['num'],
+        'lock' : 'false',
+        'defvalue' : [],
+        'short_help' : 'APR Layer Routing Width',
+        'param_help' : "'pdk' 'aprlayer' stackup layer 'width'",
+        'example': ["""cli: -pdk_aprlayer_xoffset 'stack10 m2 0.5'""",
+                    """api: chip.add('pdk','aprlayer','stack10','m2','width',
+                    '0.5')"""],
+        'help' : """
+        Defines the default routing width for all wiring on a metal layer,
+        specified on a per stackup and per metal basis. Values are specified in um.
+        """
+    }
+
     # Routing Layer Adjustment
     cfg['pdk']['aprlayer']['default']['default']['adjustment'] = {
         'switch' : '-pdk_aprlayer_adjustment',

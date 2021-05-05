@@ -4,7 +4,6 @@
 # make build run without error
 
 sc examples/counter/counter.v \
-   -pdk_rev "1.0" \
    -target "freepdk45" \
    -constraint "examples/counter/constraint.sdc" \
    -asic_diesize "0 0 100.13 100.8" \

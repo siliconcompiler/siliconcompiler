@@ -94,6 +94,7 @@ class Floorplan:
             self.layers[name]['ypitch'] = float(layer['ypitch']['value'][-1])
             self.layers[name]['xoffset'] = float(layer['xoffset']['value'][-1])
             self.layers[name]['yoffset'] = float(layer['yoffset']['value'][-1])
+            self.layers[name]['width'] = float(layer['width']['value'][-1])
 
         self.db_units = db_units
 
@@ -215,11 +216,10 @@ class Floorplan:
 
         # Convert all received dimensions to microns
         if units == 'relative':
+            pin_scale_factor = self.layers[layer]['width']
             if side.upper() in ('N', 'S'):
-                pin_scale_factor = self.layers[layer]['xpitch'] / 2
                 pos_scale_factor = self.layers[layer]['xoffset']
             else: # E, W
-                pin_scale_factor = self.layers[layer]['ypitch'] / 2
                 pos_scale_factor = self.layers[layer]['yoffset']
 
             width *= pin_scale_factor
