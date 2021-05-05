@@ -2512,10 +2512,10 @@ def schema_remote(cfg):
     # Remote start step
     cfg['remote']['start'] = {
         'switch': '-remote_start',
-        'type' : ['num'],
+        'type' : ['str'],
         'lock' : 'false',
         'requirement' : 'remote',
-        'defvalue' : [],
+        'defvalue' : ['syn'],
         'short_help': 'Remote Execution Starting Step',
         'param_help' : "'remote' 'start' <str>",
         'example': ["cli: -remote_start syn",
@@ -2528,7 +2528,7 @@ def schema_remote(cfg):
     # Remote stop step
     cfg['remote']['stop'] = {
         'switch': '-remote_stop',
-        'type' : ['num'],
+        'type' : ['str'],
         'lock' : 'false',
         'requirement' : 'remote',
         'defvalue' : [],
