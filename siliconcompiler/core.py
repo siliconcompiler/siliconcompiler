@@ -1209,6 +1209,10 @@ class Chip:
     ###########################################################################
     def set_jobid(self):
 
+        # Return if jobid is already set.
+        if len(self.get('jobid')) > 0:
+            return
+
         design = self.cfg['design']['value'][-1]
         dirname = self.cfg['dir']['value'][-1]
         jobname = self.cfg['jobname']['value'][-1]
@@ -1267,6 +1271,12 @@ def get_permutations(base_chip, cmdlinecfg):
         new_chip.cfg = json.loads(json.dumps(chip_cfg))
         if len(new_chip.get('remote', 'addr')) > 0:
             new_chip.set('start', 'syn')
+        elif len(new_chip.get('remote', 'key')) > 0:
+            # If 'remote_key' exists without 'remote_addr', it represents an
+            # encoded key string in an ongoing remote job. It should be
+            # moved from the config dictionary to the status one to avoid logging.
+            new_chip.status['decrypt_key'] = new_chip.get('remote', 'key')[-1]
+            new_chip.cfg['remote']['key']['value'] = []
         new_chip.set('jobid', cur_jobid)
         cur_jobid = str(int(cur_jobid) + 1)
         chips.append(new_chip)
