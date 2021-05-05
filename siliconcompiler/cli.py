@@ -18,6 +18,8 @@ from multiprocessing import Process
 import siliconcompiler
 from siliconcompiler.schema import schema_cfg
 from siliconcompiler.client import fetch_results
+from siliconcompiler.client import client_decrypt
+from siliconcompiler.client import client_encrypt
 from siliconcompiler.client import remote_preprocess
 from siliconcompiler.client import remote_run
 from siliconcompiler.core   import get_permutations
@@ -277,6 +279,10 @@ def main():
     # Perform preprocessing for remote jobs, if necessary.
     if len(chips[-1].get('remote', 'addr')) > 0:
         remote_preprocess(chips)
+    # Perform decryption, if necessary.
+    elif 'decrypt_key' in chips[-1].status:
+        for chip in chips:
+            client_decrypt(chip)
 
     # Run each job in its own thread.
     chip_procs = []
@@ -292,11 +298,16 @@ def main():
 
     # For remote jobs, fetch results.
     if len(chips[-1].get('remote', 'addr')) > 0:
-        fetch_results(chips[-1])
+        fetch_results(chips)
 
     # Print Job Summary
     for chip in chips:
         chip.summary() 
+
+    # For local encrypted jobs, re-encrypt and delete the decrypted data.
+    if 'decrypt_key' in chips[-1].status:
+        for chip in chips:
+            client_encrypt(chip)
 
         
 #########################
