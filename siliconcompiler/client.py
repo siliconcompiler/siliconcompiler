@@ -333,6 +333,12 @@ def fetch_results(chips):
                         job_hash)])
     subprocess.run(['unzip', '%s.zip'%job_hash])
 
+    # Call 'delete_job' to remove the run from the server.
+    # This deletes a job_hash, so separate calls for each permutation are not required.
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(delete_job(chips[-1]))
+
     # For encrypted jobs each permutation's result is encrypted in its own archive.
     # For unencrypted jobs, results are simply stored in the archive.
     if len(chips[-1].get('remote', 'key')) > 0:
