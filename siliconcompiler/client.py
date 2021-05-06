@@ -8,6 +8,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 import aiohttp
 import asyncio
 import base64
+import json
 import os
 import shutil
 import subprocess
@@ -267,16 +268,19 @@ async def upload_import_dir(chip):
             with open(os.path.abspath(chip.cfg['remote']['key']['value'][-1]), 'rb') as f:
                 key = f.read()
             b64_key = base64.urlsafe_b64encode(key).decode()
+            post_params = {
+                'username': chip.get('remote', 'user')[-1],
+                'key': b64_key,
+                'aes_key': base64.urlsafe_b64encode(aes_key_enc).decode(),
+                'aes_iv': base64.urlsafe_b64encode(aes_iv).decode(),
+                'job_hash': chip.status['job_hash'],
+            }
             with open(os.path.abspath('import.crypt'), 'rb') as f:
-                async with session.post("http://%s:%s/import/%s/%s/%s/%s/%s"%(
+                async with session.post("http://%s:%s/import/"%(
                                             chip.cfg['remote']['addr']['value'][-1],
-                                            chip.cfg['remote']['port']['value'][-1],
-                                            chip.cfg['remote']['user']['value'][-1],
-                                            b64_key,
-                                            base64.urlsafe_b64encode(aes_key_enc).decode(),
-                                            base64.urlsafe_b64encode(aes_iv).decode(),
-                                            chip.status['job_hash']),
-                                        data={'import': f}) \
+                                            chip.cfg['remote']['port']['value'][-1]),
+                                        data={'import': f,
+                                              'params': json.dumps(post_params)}) \
                 as resp:
                     print(await resp.text())
 
