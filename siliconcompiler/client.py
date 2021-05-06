@@ -161,17 +161,24 @@ async def request_remote_run(chip, stage):
                          chip.cfg['remote']['port']['value'][-1])
 
         # Use authentication if necessary.
+        post_params = {'chip_cfg': chip.cfg}
         if (len(chip.get('remote', 'user')) > 0) and (len(chip.get('remote', 'key')) > 0):
             # Read the key and encode it in base64 format.
             # TODO: Place the key in an https POST request body to TLS-encrypt it.
             with open(os.path.abspath(chip.cfg['remote']['key']['value'][-1]), 'rb') as f:
                 key = f.read()
             b64_key = base64.urlsafe_b64encode(key).decode()
-            remote_run_url += "%s/%s/"%(chip.cfg['remote']['user']['value'][-1], b64_key)
+            post_params['params'] = {
+                'username': chip.get('remote', 'user')[-1],
+                'key': b64_key,
+                'job_hash': chip.status['job_hash'],
+                'stage': stage,
+            }
+        else:
+            remote_run_url += "%s/%s"%(chip.status['job_hash'], stage)
 
         # Make the actual request.
-        remote_run_url += "%s/%s"%(chip.status['job_hash'], stage)
-        async with session.post(remote_run_url, json=chip.cfg) as resp:
+        async with session.post(remote_run_url, json=post_params) as resp:
             print(await resp.text())
 
 ###################################
