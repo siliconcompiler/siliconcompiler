@@ -296,7 +296,8 @@ def main():
 
     # Print Job Summary
     for chip in chips:
-        chip.summary() 
+        if chip.error < 1:
+            chip.summary() 
 
         
 #########################
