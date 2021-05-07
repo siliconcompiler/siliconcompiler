@@ -1,7 +1,7 @@
 import os
 import pathlib
 import subprocess
-from test_fixture import test_wrapper
+from fixtures import test_wrapper
 
 ##################################
 def test_gcd_local():
