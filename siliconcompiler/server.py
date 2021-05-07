@@ -70,6 +70,7 @@ class Server:
 
         # Retrieve JSON config into a dictionary.
         cfg = await request.json()
+        cfg = cfg['chip_cfg']
         job_hash = request.match_info.get('job_hash', None)
         if not job_hash:
           return web.Response(text="Error: no job hash provided.")
