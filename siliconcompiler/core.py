@@ -21,12 +21,8 @@ import yaml
 
 from importlib.machinery import SourceFileLoader
 
-from siliconcompiler.client import remote_run
-from siliconcompiler.client import upload_sources_to_cluster
-from siliconcompiler.schema import schema_cfg
-from siliconcompiler.schema import schema_layout
-from siliconcompiler.schema import schema_path
-from siliconcompiler.schema import schema_istrue
+from siliconcompiler.schema import *
+from siliconcompiler.client import *
 
 class Chip:
     """Siliconcompiler Compiler Chip Object Class"""
@@ -421,6 +417,8 @@ class Chip:
             if not field in cfg[param]:
                 self.logger.error('Search failed, \'%s\' is not a valid leaf cell key', param)
                 sys.exit()
+            #check legality of value
+            ok = schema_check(cfg[param],param,val)
             if mode == 'set':
                 cfg[param][field] = val
             else:
@@ -1178,7 +1176,7 @@ class Chip:
                     # Blocks the currently-running thread, but not the whole app.
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
-                    loop.run_until_complete(remote_run(self, step))
+                    loop.run_until_complete(client.remote_run(self, step))
                 else:
                     # Local builds must be processed synchronously, because
                     # they use calls such as os.chdir which are not thread-safe.
@@ -1206,7 +1204,7 @@ class Chip:
 
                     # Upload results for remote calls.
                     if remote:
-                        upload_sources_to_cluster(self)
+                        client.upload_sources_to_cluster(self)
             ########################
             # Save Metrics/Config
             ########################
