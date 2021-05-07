@@ -1176,7 +1176,7 @@ class Chip:
                     # Blocks the currently-running thread, but not the whole app.
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
-                    loop.run_until_complete(client.remote_run(self, step))
+                    loop.run_until_complete(remote_run(self, step))
                 else:
                     # Local builds must be processed synchronously, because
                     # they use calls such as os.chdir which are not thread-safe.
@@ -1204,7 +1204,7 @@ class Chip:
 
                     # Upload results for remote calls.
                     if remote:
-                        client.upload_sources_to_cluster(self)
+                        upload_sources_to_cluster(self)
             ########################
             # Save Metrics/Config
             ########################
