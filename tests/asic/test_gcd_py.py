@@ -1,6 +1,6 @@
 import os
 import pathlib
-import subprocess
+import siliconcompiler
 from test_fixture import test_wrapper
 
 ##################################
