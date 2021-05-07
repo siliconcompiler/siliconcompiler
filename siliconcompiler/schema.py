@@ -85,15 +85,10 @@ def schema_path(filename):
         var = varmatch.group(1)
         varpath = os.getenv(var)
         if varpath is None:
-            print("FATAL ERROR: Missing environment variable:", var)
+            print("ERROR: Missing environment variable:", var)
             sys.exit()
         relpath = varmatch.group(2)
         filename = varpath + relpath
-
-    #Check Path Validity
-    if not os.path.exists(filename):
-        print("FATAL ERROR: File/Dir not found:", filename)
-        sys.exit()
         
     return filename
             
@@ -106,21 +101,39 @@ def schema_istrue(value):
     else:
         return False
 
-def schema_checktype(value, schematype):
-    ''' Checks that value agrees with schema type
+def schema_check(cfg, leafkey, value):
+    ''' Checks that leaf cell value agrees with type 
     '''
-    
-    
-    boolean = value[-1].lower()
-    if boolean == "true":
-        return True
+
+    ok = True
+    keyval = "(Key,value) = (" + leafkey +  ",'" + ' '.join(value) + "')"
+    if cfg['type'] == 'bool':
+        if value[0] not in ('true', 'false'):
+            print("ERROR: Value should be boolan.", keyval)
+            ok = False
     else:
-        return False
+        for item in value:            
+            if cfg['type'] == 'str':
+                ok =  isinstance(item, str)
+                if not ok:
+                    print("ERROR: Value should be a string.", keyval)
+            elif cfg['type'] == 'num':
+                try:
+                    isinstance(float(item), float)
+                except:
+                    ok = False
+                    print("ERROR: Value should be a number.", keyval)
+            elif cfg['type'] == 'file':
+                ok =  os.path.isfile(schema_path(item))
+                if not ok:
+                    print("ERROR: File is missing.", keyval)
+            elif cfg['type'] == 'dir':
+                ok =  os.path.isdir(schema_path(item))
+                if not ok:
+                    print("ERROR: Directory is missing.", keyval)
 
-
-
+    return ok
     
-
     
 ###############################################################################
 # FPGA
@@ -1448,7 +1461,7 @@ def schema_flow(cfg, step):
     #refdir
     cfg['flow'][step]['refdir'] = {
         'switch' : '-flow_refdir',
-        'type' : 'file',
+        'type' : 'dir',
         'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
@@ -1923,11 +1936,11 @@ def schema_metrics(cfg, group, step='default'):
         'defvalue' : [],
         'short_help' : 'Total Runtime ' + group.capitalize(),
         'param_help' : "'"+group+"' step 'runtime' <num>",
-        'example':["cli: -"+group+"_runtime 'dfm 0:1:20'",
-                   "api: chip.add('"+group+"','dfm','runtime','0:1:20')"],
+        'example':["cli: -"+group+"_runtime 'dfm 35.3'",
+                   "api: chip.add('"+group+"','dfm','runtime','35.3')"],
         'help' : """
         Metric tracking the total runtime on a per step basis. Time recorded
-        as wall clock time, with value expressed as hr:min:sec
+        as wall clock time specified in seconds.
         """
     }
     
@@ -1939,12 +1952,11 @@ def schema_metrics(cfg, group, step='default'):
         'defvalue' : [],
         'short_help' : 'Total Memory ' + group.capitalize(),
         'param_help' : "'"+group+"' step 'memory' <num>",
-        'example':["cli: -"+group+"_memory 'dfm 10MB'",
-                   "api: chip.add('"+group+"','dfm','memory','10MB')"],
+        'example':["cli: -"+group+"_memory 'dfm 10e6'",
+                   "api: chip.add('"+group+"','dfm','memory','10e6')"],
         'help' : """
-        Metric tracking the total memory on a per step basis. Value recorded
-        as bytes, displayed with standard units: K,M,G,T,P,E for Kilo, Mega, 
-        Giga, Tera, Peta, Exa (bytes).
+        Metric tracking the total memory on a per step basis, specified
+        in bytes.
         """
     }
 
