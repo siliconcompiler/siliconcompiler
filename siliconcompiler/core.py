@@ -52,11 +52,6 @@ class Chip:
         self.logger.addHandler(self.handler)
         self.logger.setLevel(str(loglevel))
 
-        # Special tracking variable for async run status. This could
-        # go in the config dictionary, but internal thread states don't
-        # need to be exposed to TCL scripts / etc.
-        self.active_thread = None
-
         # Set Environment Variable if not already set
         scriptdir = os.path.dirname(os.path.abspath(__file__))
         rootdir =  re.sub('siliconcompiler/siliconcompiler',
@@ -92,6 +87,9 @@ class Chip:
         # Status placeholder dictionary
         # TODO, should be defined!
         self.status =  {}
+
+        self.error = 0
+        
     ###########################################################################
     def target(self):
         '''
@@ -1045,7 +1043,6 @@ class Chip:
         # Execute pipeline
         ###########################
         for stepindex in range(startindex, stopindex + 1):
-                        
             #step lookup (active state!)
             step = steplist[stepindex]
             stepdir = "/".join([self.get('dir')[-1],
@@ -1062,7 +1059,7 @@ class Chip:
             if step not in steplist:
                 self.logger.error('Illegal step name %s', step)
                 sys.exit()
-
+            
             #####################
             # Dynamic EDA setup
             #####################
@@ -1071,7 +1068,17 @@ class Chip:
             packdir = "eda." + vendor
             modulename = '.'+vendor+'_setup'
             module = importlib.import_module(modulename, package=packdir)
-        
+
+            #####################
+            # Flow Setup
+            #####################
+            exe = self.cfg['flow'][step]['exe']['value'][-1] #scalar
+
+            #####################
+            # Check Executable
+            #####################
+            exepath = subprocess.run("command -v "+exe+">/dev/null", shell=True)
+
             #####################
             # Init Metrics Table
             #####################
@@ -1084,8 +1091,17 @@ class Chip:
             if ((step in self.cfg['skip']['value']) |
                 (self.cfg['skipall']['value'][-1] =='true')):
                 self.logger.info('Skipping step: %s', step)
+                if exepath.returncode > 0:
+                    self.logger.critical('Executable %s not installed.', exe)
+                    print("Please see https://github.com/siliconcompiler/siliconcompiler/README.md")
             else:
                 self.logger.info("Running step '%s' in dir '%s'", step, stepdir)  
+                if exepath.returncode > 0:
+                    self.logger.critical('Executable %s not installed.', exe)
+                    print("-"*80)
+                    print("Installation Instructions:") 
+                    print("https://github.com/siliconcompiler/siliconcompiler/README.md")
+                
                 # Copying in Files (local only)
                 if os.path.isdir(stepdir) and (not remote):
                     shutil.rmtree(stepdir)
@@ -1118,8 +1134,7 @@ class Chip:
                 # Generate CMD
                 #####################
 
-                #Set Executable
-                exe = self.cfg['flow'][step]['exe']['value'][-1] #scalar
+                #Set Executable               
                 cmd_fields = [exe]
 
                 #Add options to cmd list
@@ -1203,8 +1218,6 @@ class Chip:
             ########################       
             os.chdir(cwd)
 
-        # Mark completion of async run if applicable.
-        self.active_thread = None
         
     ###########################################################################
     def set_jobid(self):
