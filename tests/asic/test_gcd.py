@@ -10,7 +10,7 @@ def test_gcd_local():
     # Use subprocess to test running the `sc` scripts as a command-line program.
     # Pipe stdout to /dev/null to avoid printing to the terminal.
     gcd_ex_dir = os.path.abspath(__file__)
-    gcd_ex_dir = gcd_ex_dir[:gcd_ex_dir.find('/tests/asic')] + '/examples/gcd/'
+    gcd_ex_dir = gcd_ex_dir[:gcd_ex_dir.rfind('/tests/asic')] + '/examples/gcd/'
     print(gcd_ex_dir)
 
     # Run the build command.
