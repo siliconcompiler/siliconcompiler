@@ -45,4 +45,5 @@ def test_gcd_server_permutations():
             break
     # Verify that a GDS file was generated and returned in the server's results.
     assert os.path.isfile(job_hash + '/gcd/job1/export/outputs/gcd.gds')
+    assert os.path.isfile(job_hash + '/gcd/job2/export/outputs/gcd.gds')
 
