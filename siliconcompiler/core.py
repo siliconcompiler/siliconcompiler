@@ -1231,11 +1231,10 @@ class Chip:
         design = self.cfg['design']['value'][-1]
         dirname = self.cfg['dir']['value'][-1]
         jobname = self.cfg['jobname']['value'][-1]
-
+        
         try:
             alljobs = os.listdir(dirname + "/" + design)
-
-            if len(self.cfg['jobid']['value']) < 1:
+            if schema_istrue(self.cfg['jobincr']):
                 jobid = 0
                 for item in alljobs:
                     m = re.match(jobname+'(\d+)', item)
@@ -1244,8 +1243,7 @@ class Chip:
                 jobid = jobid+1
                 self.set('jobid', str(jobid))
         except FileNotFoundError:
-            # if no existing build directory, set jobid to 1
-            self.set('jobid', '1')
+            pass
 
 ################################################################################
 # Annoying helper class b/c yaml..

@@ -2264,15 +2264,32 @@ def schema_options(cfg):
         'type' : ['num'],
         'lock' : 'false',
         'requirement' : 'optional',
-        'defvalue' : [],
-        'short_help' : 'Job Name',
-        'param_help' : "'jobname' <dir>",
+        'defvalue' : ['1'],
+        'short_help' : 'Job ID',
+        'param_help' : "'jobid' <num>",
         'example': ["cli: -jobid 0",
                     "api: chip.set('jobid','0'"],
         'help' : """
         The id of the specific job to be exeucted.
         The directory structure is:
         'dir'/'design'/'jobname''jobid'
+        """
+    }
+
+    cfg['jobincr'] = {
+        'switch' : '-jobincr',
+        'type' : ['bool'],
+        'lock' : 'false',
+        'requirement' : 'optional',
+        'defvalue' : ['true'],
+        'short_help' : 'Job ID Autoincrement Mode ',
+        'param_help' : "'jobincr' <true>",
+        'example': ["cli: -jobincr",
+                    "api: chip.set('jobincr','true'"],
+        'help' : """
+        Autoincrements the jobid value based on the latest 
+        executed job in the design build directory. If no jobs are found, 
+        the value in the 'jobid' parameter is used.
         """
     }
     
