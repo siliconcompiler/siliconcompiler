@@ -500,7 +500,7 @@ class Chip:
                     #print(cfg[k]['value'])
                     #print("dict=",cfg[k])
                     #only do something if type is file
-                    if cfg[k]['type'][-1] in  ('file', 'dir'):
+                    if cfg[k]['type'] in  ('file', 'dir'):
                         for i, v in enumerate(cfg[k]['value']):
                             #Look for relative paths in search path
                             cfg[k]['value'][i] = schema_path(v)

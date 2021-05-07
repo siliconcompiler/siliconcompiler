@@ -203,7 +203,7 @@ def add_arg(cfg, parser, keys=None):
             if 'switch' in cfg[k].keys():                
                 keystr = '_'.join(newkeys)
                 helpstr = cfg[k]['short_help']
-                if cfg[k]['type'][-1] == 'bool': #scalar
+                if cfg[k]['type'] == 'bool': #scalar
                     parser.add_argument(cfg[k]['switch'],
                                         metavar='',
                                         dest=keystr,
