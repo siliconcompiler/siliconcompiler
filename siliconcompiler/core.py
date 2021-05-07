@@ -9,15 +9,15 @@ import json
 import logging as log
 import hashlib
 import time
-import yaml
 import shutil
 import copy
 import importlib
-import pandas
 import code
 import textwrap
 import uuid
 import math
+import pandas
+import yaml
 
 from importlib.machinery import SourceFileLoader
 
@@ -43,7 +43,7 @@ class Chip:
         # Create a default dict ("spec")
         self.cfg = schema_cfg()
         self.layout = schema_layout()
-        
+
         # Initialize logger
         self.logger = log.getLogger(uuid.uuid4().hex)
         self.handler = log.StreamHandler()
@@ -54,9 +54,9 @@ class Chip:
 
         # Set Environment Variable if not already set
         scriptdir = os.path.dirname(os.path.abspath(__file__))
-        rootdir =  re.sub('siliconcompiler/siliconcompiler',
-                          'siliconcompiler',
-                          scriptdir)
+        rootdir = re.sub('siliconcompiler/siliconcompiler',
+                         'siliconcompiler',
+                         scriptdir)
 
         # Set SCPATH to an empty string if it does not exist.
         if not 'SCPATH' in os.environ:
@@ -64,9 +64,9 @@ class Chip:
         #Getting environment path (highest priority)
         scpaths = str(os.environ['SCPATH']).split(':')
 
-        #Add the root Path        
+        #Add the root Path
         scpaths.append(rootdir)
-        
+
         # Adding current working directory if not
         # working out of rootdir
         if not re.match(str(os.getcwd()), rootdir):
@@ -79,29 +79,29 @@ class Chip:
         sys.path.extend(scpaths)
 
         self.logger.debug("Python search path set to %s", sys.path)
-        self.logger.debug("SC search path set to %s", os.environ['SCPATH'])     
-        
+        self.logger.debug("SC search path set to %s", os.environ['SCPATH'])
+
         # Copy 'defvalue' to 'value'
         self._reset()
 
         # Status placeholder dictionary
         # TODO, should be defined!
-        self.status =  {}
+        self.status = {}
 
         self.error = 0
-        
+
     ###########################################################################
     def target(self):
         '''
         Searches the SCPATH and PYTHON paths for the target specified by the
-        Chip 'target' parameter. The target can be supplied as a single 
+        Chip 'target' parameter. The target can be supplied as a single
         alphanumeric string or as a two alphanumeric strings separated by
         a an underscore ('_'). The first string part represents the technology
         platform, while the second string part represents the eda flow.
         If no second second string part is supplied, then a default eda
         flow is used based ont he 'mode'. Legal modes are 'fgpga' and 'asic'.
-        
-        The dynamically loaded target platform module must contain three 
+
+        The dynamically loaded target platform module must contain three
         standard functions. There is no functionality requirements on the
         three functions.
 
@@ -110,15 +110,15 @@ class Chip:
             setup_libs(chip) : Setups of PDK specific IP/Libraries
 
             setup_design(chip) : Setups up recommended design flows
-        
-        The dynamically loaded target eda module contains a single 
-        standard functions: 
+
+        The dynamically loaded target eda module contains a single
+        standard functions:
 
             setup_eda(chip): Defines the implementation flow,
 
         The setup_eda further loads setup_tool modules on a per step basis.
         The dynamically loaded per step module must contain for standard
-        functions. 
+        functions.
 
             setup_tool(chip): A one time setup of the 'flow' dictionary per step
 
@@ -134,7 +134,7 @@ class Chip:
 
         #Selecting fpga or asic mode
         mode = self.get('mode')
-            
+
         # Checking that target is the right format
         # <process/device>
         # <process/device>_<eda>
@@ -152,7 +152,7 @@ class Chip:
             self.logger.debug("Loading platform module %s from %s", platform, packdir)
             module = importlib.import_module('.'+platform, package=packdir)
 
-        setup_platform = getattr(module,"setup_platform")
+        setup_platform = getattr(module, "setup_platform")
         setup_platform(self)
 
         # Load library target definitions for ASICs
@@ -164,27 +164,27 @@ class Chip:
             edaflow = mode
 
         if mode == 'asic':
-            setup_libs = getattr(module,"setup_libs")
+            setup_libs = getattr(module, "setup_libs")
             setup_libs(self)
-            setup_design = getattr(module,"setup_design")
+            setup_design = getattr(module, "setup_design")
             setup_design(self)
 
         #Load EDA
         packdir = "eda.targets"
-        self.logger.debug("Loading EDA module %s from %s", edaflow, packdir)        
+        self.logger.debug("Loading EDA module %s from %s", edaflow, packdir)
         module = importlib.import_module('.'+edaflow, package=packdir)
-        setup_eda = getattr(module,"setup_eda")
+        setup_eda = getattr(module, "setup_eda")
         setup_eda(self, name=platform)
-   
+
     ###########################################################################
-    def help(self,  *args, file=None, mode='full',format='txt'):
+    def help(self, *args, file=None, mode='full', format='txt'):
         '''
         Prints out detailed or summary help for the schema key path provided.
         The function is used to auto-generate documentation and is accessible
         at diretly by the user.
 
         Args:
-            file (filehandle): If 'None', help is printed to stdout, else 
+            file (filehandle): If 'None', help is printed to stdout, else
                help is printed to the filehandle
             mode (str): When 'full',
                is specified, the complete help description is printed out. When
@@ -201,26 +201,26 @@ class Chip:
         self.logger.debug('Fetching help for %s', args)
 
         #Fetch Values
-        description = self._search(self.cfg,*args,mode='get',field='short_help')
-        param = self._search(self.cfg,*args,mode='get',field='param_help')
-        typestr =' '.join(self._search(self.cfg,*args, mode='get',field='type'))
-        defstr=' '.join(self._search(self.cfg,*args,mode='get',field='defvalue'))
-        requirement = self._search(self.cfg,*args,mode='get',field='requirement')
-        helpstr = self._search(self.cfg,*args,mode='get',field='help')
-        example = self._search(self.cfg,*args,mode='get',field='example')
-    
+        description = self._search(self.cfg, *args, mode='get', field='short_help')
+        param = self._search(self.cfg, *args, mode='get', field='param_help')
+        typestr = ' '.join(self._search(self.cfg, *args, mode='get', field='type'))
+        defstr = ' '.join(self._search(self.cfg, *args, mode='get', field='defvalue'))
+        requirement = self._search(self.cfg, *args, mode='get', field='requirement')
+        helpstr = self._search(self.cfg, *args, mode='get', field='help')
+        example = self._search(self.cfg, *args, mode='get', field='example')
+
         #Removing multiple spaces and newlines
         helpstr = helpstr.rstrip()
-        helpstr = helpstr.replace("\n","")
+        helpstr = helpstr.replace("\n", "")
         helpstr = ' '.join(helpstr.split())
-        
+
         #Removing extra spaces in example string
         cli = ' '.join(example[0].split())
-        
+
         for idx, item in enumerate(example):
             example[idx] = ' '.join(item.split())
-            example[idx] = example[idx].replace(", ",",")
-        
+            example[idx] = example[idx].replace(", ", ",")
+
         #Wrap text
         para = textwrap.TextWrapper(width=60)
         para_list = para.wrap(text=helpstr)
@@ -228,8 +228,8 @@ class Chip:
         #Full Doc String
         fullstr = ("-"*3 +
                    "\nDescription: " + description.lstrip() + "\n" +
-                   "\nParameter:   " + param.lstrip() + "\n"  +     
-                   "\nExamples:    " + example[0].lstrip() + 
+                   "\nParameter:   " + param.lstrip() + "\n"  +
+                   "\nExamples:    " + example[0].lstrip() +
                    "\n             " + example[1].lstrip() + "\n" +
                    "\nHelp:        " + para_list[0].lstrip() + "\n")
         for line in para_list[1:]:
@@ -238,30 +238,30 @@ class Chip:
 
         #Refcard String
         #Need to escape dir to get pdf to print in pandoc?
-        outlst = [param.replace("<dir>","\<dir\>"),
+        outlst = [param.replace("<dir>", "\<dir\>"),
                   description,
                   typestr,
                   requirement,
                   defstr]
         shortstr = "|{: <52}|{: <30}|{: <15}|{: <10}|{: <10}|".format(*outlst)
-        
+
         #Selecting between full help and one liner
         if mode == "full":
             outstr = fullstr
         else:
             outstr = shortstr
-        
+
         #Print to screen or file
         if file is None:
             print(outstr)
         else:
             print(outstr, file=file)
-            
+
     ###########################################################################
     def get(self, *args, field='value'):
         '''
         Returns a list from the Chip dictionary based on the key tree supplied.
-        
+
 
         Args:
             *args (string): A non-keyworded variable length argument list to
@@ -277,7 +277,7 @@ class Chip:
             Returns the name of the foundry in the Chip dictionary.
 
         '''
-        
+
         self.logger.debug('Reading config dictionary value: %s', args)
 
         keys = list(args)
@@ -290,13 +290,13 @@ class Chip:
     ###########################################################################
     def getkeys(self, *args):
         '''
-        Returns a list of keys from the Chip dicionary based on the key 
-        tree supplied. 
+        Returns a list of keys from the Chip dicionary based on the key
+        tree supplied.
 
         Args:
             *args (string): A non-keyworded variable length argument list to
                 used to look up non-leaf key tree in the Chip dictionary.
-                The key-tree is supplied in order. If the argument list is empty, 
+                The key-tree is supplied in order. If the argument list is empty,
                 all Chip dictionary trees are returned as as a list of lists.
                 Specifying a non-existent key tree results in a program exit.
 
@@ -307,62 +307,62 @@ class Chip:
             >>> getkeys('pdk')
             Returns all keys associated for the 'pdk' dictionary.
             >>> getkeys()
-            Returns all key trees in the dictionary as a list of lists.        
+            Returns all key trees in the dictionary as a list of lists.
         '''
-        
+
         self.logger.debug('Retrieving config dictionary keys: %s', args)
 
-        if len(list(args)) > 0:        
+        if len(list(args)) > 0:
             keys = list(self._search(self.cfg, *args, mode='getkeys'))
             if 'default' in keys:
                 keys.remove('default')
         else:
             keys = list(self._allkeys(self.cfg))
-        
+
         return keys
 
     ###########################################################################
     def _allkeys(self, cfg, keys=None, allkeys=None):
         '''
-        A recursive function that returns all the non-leaf keys in the Chip 
+        A recursive function that returns all the non-leaf keys in the Chip
         dictionary.
-       
+
         '''
 
         if keys is None:
             allkeys = []
             keys = []
         for k in cfg:
-            newkeys =  keys.copy()
+            newkeys = keys.copy()
             newkeys.append(k)
             if 'defvalue' in cfg[k]:
                 allkeys.append(newkeys)
             else:
-                self._allkeys(cfg[k],keys=newkeys, allkeys=allkeys)
+                self._allkeys(cfg[k], keys=newkeys, allkeys=allkeys)
         return allkeys
 
     ###########################################################################
     def set(self, *args):
         '''
-        Sets the value field of the key-tree in the argument list to the 
-        data list supplied. 
+        Sets the value field of the key-tree in the argument list to the
+        data list supplied.
 
         Args:
             *args (string): A non-keyworded variable length argument list to
-                used to look up non-leaf key tree in the Chip dictionary.The 
-                key-tree is supplied in order, with the data list supplied as 
-                the last argument. Specifying a non-existent key tree 
+                used to look up non-leaf key tree in the Chip dictionary.The
+                key-tree is supplied in order, with the data list supplied as
+                the last argument. Specifying a non-existent key tree
                 results in a program exit.
 
         Examples:
             >>> set('design', 'mydesign')
             Sets the Chip 'design' name to 'mydesign'
         '''
-       
+
         self.logger.debug('Setting config dictionary value: %s', args)
-                
+
         all_args = list(args)
-    
+
         # Convert val to list if not a list
         if type(all_args[-1]) != list:
             all_args[-1] = [all_args[-1]]
@@ -372,32 +372,32 @@ class Chip:
     ###########################################################################
     def add(self, *args):
         '''
-        Appends the data list supplied to the list currently in the leaf-value 
+        Appends the data list supplied to the list currently in the leaf-value
         of the key-tree in the argument list.
 
         Args:
             *args (string): A non-keyworded variable length argument list to
-                used to look up non-leaf key tree in the Chip dictionary. The 
-                key-tree is supplied in order, with the data list supplied as 
-                the last argument. Specifying a non-existent key tree 
+                used to look up non-leaf key tree in the Chip dictionary. The
+                key-tree is supplied in order, with the data list supplied as
+                the last argument. Specifying a non-existent key tree
                 results in a program exit.
 
         Examples:
             >>> add('source', 'mydesign.v')
             Adds the file 'mydesign.v' to the list of sources.
         '''
-        
+
         self.logger.debug('Adding config dictionary value: %s', args)
-                
+
         all_args = list(args)
-        
+
         # Convert val to list if not a list
         if type(all_args[-1]) != list:
             all_args[-1] = [str(all_args[-1])]
 
         return self._search(self.cfg, *all_args, mode='add')
 
-   
+
     ###########################################################################
     def _search(self, cfg, *args, field='value', mode='get'):
         '''
@@ -405,39 +405,39 @@ class Chip:
         the combination of *args and fields supplied. The function is used
         to set and get data within the dictionary.
         '''
-        
+
         all_args = list(args)
         param = all_args[0]
         val = all_args[-1]
         #set/add leaf cell (all_args=(param,val))
-        if ((mode in ('set', 'add')) & (len(all_args) == 2)):
+        if (mode in ('set', 'add')) & (len(all_args) == 2):
             #making an 'instance' of default if not found
-            if not (param in cfg):
-                if not ('default' in cfg):
+            if not param in cfg:
+                if not 'default' in cfg:
                     self.logger.error('Search failed, \'%s\' is not a valid key', param)
                 else:
                     cfg[param] = copy.deepcopy(cfg['default'])
             #setting or extending value based on set/get mode
-            if not (field in cfg[param]):
+            if not field in cfg[param]:
                 self.logger.error('Search failed, \'%s\' is not a valid leaf cell key', param)
                 sys.exit()
-            if(mode=='set'):
+            if mode == 'set':
                 cfg[param][field] = val
             else:
                 cfg[param][field].extend(val)
             return cfg[param][field]
         #get leaf cell (all_args=param)
-        elif (len(all_args) == 1):
-            if(mode=='getkeys'):
+        elif len(all_args) == 1:
+            if mode == 'getkeys':
                 return cfg[param].keys()
             else:
-                if not (field in cfg[param]):
+                if not field in cfg[param]:
                     self.logger.error('Key error, leaf param not found %s', field)
                 return cfg[param][field]
         #if not leaf cell descend tree
         else:
             ##copying in default tree for dynamic trees
-            if not (param in cfg):
+            if not param in cfg:
                 cfg[param] = copy.deepcopy(cfg['default'])
             all_args.pop(0)
             return self._search(cfg[param], *all_args, field=field, mode=mode)
@@ -449,17 +449,17 @@ class Chip:
         then removes all sub trees with non-set values and sub-trees
         that contain a 'default' key.
         '''
-        
+
         #10 should be enough for anyone...
         maxdepth = 10
-        i=0
-        
+        i = 0
+
         if cfg is None:
             cfg = copy.deepcopy(self.cfg)
-      
+
         #When at top of tree loop maxdepth times to make sure all stale
         #branches have been removed, not eleagnt, but stupid-simple
-        while(i < maxdepth):
+        while i < maxdepth:
             #Loop through all keys starting at the top
             for k in list(cfg.keys()):
                 #print(k)
@@ -479,8 +479,8 @@ class Chip:
                 #keep traversing tree
                 else:
                     self._prune(cfg[k], top=False)
-            if(top):
-                i+=1
+            if top:
+                i += 1
             else:
                 break
         return cfg
@@ -490,7 +490,7 @@ class Chip:
         '''Recursive function that goes through Chip dictionary and
         resolves all relative paths where required.
         '''
-        
+
         #Recursively going through dict to set abspaths for files
         for k, v in cfg.items():
             #print("abspath", k,v)
@@ -506,22 +506,22 @@ class Chip:
                             cfg[k]['value'][i] = schema_path(v)
                 else:
                     self._abspath(cfg[k])
-    
+
     ###########################################################################
-    def _printcfg (self,cfg,keys=None,file=None,mode="",field='value',prefix=""):
+    def _printcfg(self, cfg, keys=None, file=None, mode="", field='value', prefix=""):
         '''Recursive function that goes through Chip dictionary and prints out
         configuration commands with one line per value. Currently only TCL is
         supported.
         '''
-        
+
         if keys is None:
             keys = []
         for k in cfg:
-            newkeys =  keys.copy()
+            newkeys = keys.copy()
             newkeys.append(k)
             #detect leaf cell
-            if 'defvalue' in cfg[k]:               
-                if mode=='tcl':
+            if 'defvalue' in cfg[k]:
+                if mode == 'tcl':
                     for i, val in enumerate(cfg[k][field]):
                         #replace $VAR with env(VAR) for tcl
                         m = re.match('\$(\w+)(.*)', val)
@@ -536,7 +536,8 @@ class Chip:
                     outlst = [prefix,
                               keystr,
                               '[list ',
-                              valstr,']']
+                              valstr,
+                              ']']
                     outstr = ' '.join(outlst)
                     outstr = outstr + '\n'
                 if file is None:
@@ -555,7 +556,7 @@ class Chip:
     def mergecfg(self, d2, d1=None):
         '''Recursively copies values in dictionary d2 to the Chip dictionary.
         '''
-        
+
         if d1 is None:
             d1 = self.cfg
         for k, v in d2.items():
@@ -566,16 +567,16 @@ class Chip:
                     #only add items that are not in the current list
                     new_items = []
                     for i in range(len(d2[k]['value'])):
-                        if(d2[k]['value'][i] not in d1[k]['value']):
-                           new_items.append(d2[k]['value'][i])
+                        if d2[k]['value'][i] not in d1[k]['value']:
+                            new_items.append(d2[k]['value'][i])
                     d1[k]['value'].extend(new_items)
                 #if not in leaf keep descending
                 else:
                     self.mergecfg(d2[k], d1=d1[k])
-            #if a new d2 key is found do a deep copy
+                #if a new d2 key is found do a deep copy
             else:
                 d1[k] = d2[k].copy()
-                
+
     ###########################################################################
     def check(self):
         '''
@@ -597,12 +598,12 @@ class Chip:
         #2. For all keys:
         #   -Get values
         #   -Check requirements equation
-        
+
         if error:
             sys.exit()
 
     ###########################################################################
-    def readcfg(self, filename):  
+    def readcfg(self, filename):
         '''Reads a json or yaml formatted file into the Chip dictionary.
 
         Args:
@@ -629,10 +630,10 @@ class Chip:
             read_args = self.readtcl(abspath)
         else:
             read_args = self.readmake(abspath)
-            
+
         #Merging arguments with the Chip configuration
         self.mergecfg(read_args)
-        
+
     ###########################################################################
     def writecfg(self, filename, cfg=None, prune=True, abspath=False):
         '''Writes out Chip dictionary in json, yaml, or TCL file format.
@@ -647,7 +648,7 @@ class Chip:
                  dictionary is dumped.
             abspath (bool): If set to True, then all file paths within the
                  Chip dictionary are resolved to absolute values.
-   
+
         Examples:
             >>> writecfg('mydump.json')
             Prunes and dumps the current Chip dictionary into mydump.json
@@ -668,11 +669,11 @@ class Chip:
             cfgcopy = self._prune()
         else:
             cfgcopy = copy.deepcopy(self.cfg)
-            
+
         #resolve absolute paths
         if abspath:
             self._abspath(cfgcopy)
-            
+
         # Write out configuration based on file type
         if filepath.endswith('.json'):
             with open(filepath, 'w') as f:
@@ -694,15 +695,15 @@ class Chip:
             self.logger.error('File format not recognized %s', filepath)
 
     ###########################################################################
-    def _reset(self,cfg=None):
-        '''Recursively copies 'defvalue' to 'value' for all configuration 
+    def _reset(self, cfg=None):
+        '''Recursively copies 'defvalue' to 'value' for all configuration
         parameters
         '''
         #Setting initial dict so user doesn't have to
         if cfg is None:
             self.logger.debug('Loading default values into Chip configuration')
             cfg = self.cfg
-        for k, v in cfg.items():            
+        for k, v in cfg.items():
             if isinstance(v, dict):
                 if 'defvalue' in cfg[k].keys():
                     cfg[k]['value'] = cfg[k]['defvalue'].copy()
@@ -732,14 +733,14 @@ class Chip:
                 time.sleep(10)
             else:
                 break
-    ###########################################################################    
+    ###########################################################################
     def hash(self, cfg=None):
         '''Rescursive function that computes the hash values for files in the
         Chip dictionary based on the setting of the hashmode.
         '''
-        
+
         #checking to see how much hashing to do
-        hashmode = self.cfg['hashmode']['value'][-1]   
+        hashmode = self.cfg['hashmode']['value'][-1]
         if hashmode != 'NONE':
             if cfg is None:
                 self.logger.info('Computing file hashes with mode %s', hashmode)
@@ -764,7 +765,7 @@ class Chip:
                     else:
                         self.hash(cfg=cfg[k])
 
-    ###########################################################################    
+    ###########################################################################
     def _compare(self, file1, file2):
         '''Compares Chip configurations contained in two different json files
         Useful??
@@ -772,7 +773,7 @@ class Chip:
         '''
 
         #TODO: Solve recursively
-        
+
         abspath1 = os.path.abspath(file1)
         abspath2 = os.path.abspath(file2)
 
@@ -816,15 +817,15 @@ class Chip:
 
         return same
 
-    ###########################################################################    
+    ###########################################################################
     def audit(self, filename=None):
         '''Performance an an audit of each step in the flow
         '''
-      
+
         pass
 
 
-    ###########################################################################    
+    ###########################################################################
     def calcyield(self, model='poisson'):
         '''Calculates the die yield
         '''
@@ -833,23 +834,23 @@ class Chip:
         diesize = self.cfg['asic']['diesize']['value'][-1].split()
         diewidth = (float(diesize[2]) - float(diesize[0]))/1000
         dieheight = (float(diesize[3]) - float(diesize[1]))/1000
-        diearea = diewidth * dieheight;
-        
+        diearea = diewidth * dieheight
+
         if model == 'poisson':
-            dy =  math.exp(-diearea * d0/100)
+            dy = math.exp(-diearea * d0/100)
         elif model == 'murphy':
             dy = ((1-math.exp(-diearea * d0/100))/(diearea * d0/100))**2
-                   
+
         return dy
-    
-    ###########################################################################    
+
+    ###########################################################################
 
     def dpw(self):
         '''Calculates dies per wafer, taking into account scribe lines
         and wafer edge margin. The algorithms starts with a center aligned
         wafer and rasters dies uot from the center until a die edge extends
         beyoond the legal value.
-        
+
         '''
 
         #PDK information
@@ -864,14 +865,14 @@ class Chip:
         dieheight = (float(diesize[3]) - float(diesize[1]))/1000
 
         #Derived parameters
-        radius = wafersize/2 -edgemargin 
+        radius = wafersize/2 -edgemargin
         stepwidth = (diewidth + hscribe)
         stepheight = (dieheight + vscribe)
 
         #Raster dies out from center until you touch edge margin
         #Work quadrant by quadrant
         dies = 0
-        for quad in ('q1','q2','q3','q4'):
+        for quad in ('q1', 'q2', 'q3', 'q4'):
             x = 0
             y = 0
             if quad == "q1":
@@ -882,30 +883,30 @@ class Chip:
                 yincr = stepheight
             elif quad == "q3":
                 xincr = -stepwidth
-                yincr = -stepheight   
+                yincr = -stepheight
             elif quad == "q4":
                 xincr = stepwidth
                 yincr = -stepheight
             #loop through all y values from center
-            while math.hypot(0,y) < radius:
+            while math.hypot(0, y) < radius:
                 y = y + yincr
-                while math.hypot(x,y) < radius:
+                while math.hypot(x, y) < radius:
                     x = x + xincr
                     dies = dies + 1
                 x = 0
 
         return int(dies)
 
-    ###########################################################################    
+    ###########################################################################
     def diecost(self, n):
         '''Calculates total cost of producing 'n', including design costs,
-        mask costs, packaging costs, tooling, characterization, qualifiction, 
+        mask costs, packaging costs, tooling, characterization, qualifiction,
         test. The exact cost model is given by the formula:
-        
+
         '''
-        
+
         return cost
-    
+
     ###########################################################################
     def summary(self, filename=None):
         '''
@@ -913,21 +914,21 @@ class Chip:
         to the 'stop' step.
 
         Args:
-            filename (filename): A file to write the summary report to. If 
+            filename (filename): A file to write the summary report to. If
                 the value is 'None', the summary is printed to stdout.
 
         Examples:
             >>> summary()
             Prints out a summary of the run to stdout.
         '''
-        
+
         steplist = self.get('steplist')
         start = self.get('start')[-1]
         stop = self.get('stop')[-1]
         design = self.get('design')[-1]
         startindex = steplist.index(start)
         stopindex = steplist.index(stop)
-        
+
         jobdir = (self.get('dir')[-1] +
                   "/" + design + "/" +
                   self.get('jobname')[-1] +
@@ -935,11 +936,11 @@ class Chip:
 
         if self.get('mode')[-1] == 'asic':
             info = '\n'.join(["SUMMARY:\n",
-                            "design = "+self.get('design')[0],
-                            "foundry = "+self.get('pdk', 'foundry')[0],
-                            "process = "+self.get('pdk', 'process')[0],
-                            "targetlibs = "+" ".join(self.get('asic','targetlib')),
-                            "jobdir = "+ jobdir])
+                              "design = "+self.get('design')[0],
+                              "foundry = "+self.get('pdk', 'foundry')[0],
+                              "process = "+self.get('pdk', 'process')[0],
+                              "targetlibs = "+" ".join(self.get('asic', 'targetlib')),
+                              "jobdir = "+ jobdir])
         else:
             # TODO: pull in relevant summary items for FPGA?
             info = '\n'.join(["SUMMARY:\n",
@@ -949,7 +950,7 @@ class Chip:
         print("-"*135)
         print(info, "\n")
 
-        #Copying in All Dictionaries   
+        #Copying in All Dictionaries
         for stepindex in range(startindex, stopindex + 1):
             step = steplist[stepindex]
             metricsfile = "/".join([jobdir,
@@ -957,10 +958,12 @@ class Chip:
                                     "outputs",
                                     design + ".json"])
 
+            #Load results from file (multi-thread safe)
             with open(metricsfile, 'r') as f:
-                   sc_results = json.load(f)
+                sc_results = json.load(f)
+            #Copy results into step
             self.cfg['real'][step] = copy.deepcopy(sc_results['real'][step])
-            
+
         #Creating step index
         data = []
         steps = []
@@ -989,33 +992,33 @@ class Chip:
             print(df.to_string())
             print("-"*135)
 
-    ###########################################################################         
+    ###########################################################################
     def run(self, start=None, stop=None):
-        
+
         '''
         A unified thread safe per step execution method for the Chip.
         The options and modes of the run is setup up through the Chip
-        dictionary. The run executes on the local machine by default, but can 
+        dictionary. The run executes on the local machine by default, but can
         be execute remotely if a server is set up and the remote mode is set
         in the Chip dictionary. The run metho executes a pipeline of steps
         from 'start' to 'stop' (inclusive).
 
         Args:
             start (string): The starting step within the 'steplist' to execute.
-                If start is 'None', the staring step is the step is the first 
+                If start is 'None', the staring step is the step is the first
                 index of the 'steplist.
 
             stop (string): The stopping step within the 'steplist' to execute.
-                If start is 'None', then execution runs to the end of the 
+                If start is 'None', then execution runs to the end of the
                 steplist.
-    
+
         Examples:
             >>> run()
             Runs the pipeline defined by 'steplist'
             >>> run(start='import', stop='place')
             Runs the pipeline from the 'import' step to the 'place' step
         '''
-               
+
         ###########################
         # Run Setup
         ###########################
@@ -1026,7 +1029,7 @@ class Chip:
         design = str(self.cfg['design']['value'][-1])
 
         cwd = os.getcwd()
-        
+
         ###########################
         # Defining Pipeline
         ###########################
@@ -1049,21 +1052,21 @@ class Chip:
                                 self.get('design')[-1],
                                 self.get('jobname')[-1] + self.get('jobid')[-1],
                                 step])
-            
-            laststep = steplist[stepindex-1]           
-            importstep = (stepindex==0)
+
+            laststep = steplist[stepindex-1]
+            importstep = (stepindex == 0)
 
             #update step status
             self.set('status', 'step', step)
-            
+
             if step not in steplist:
                 self.logger.error('Illegal step name %s', step)
                 sys.exit()
-            
+
             #####################
             # Dynamic EDA setup
             #####################
-            
+
             vendor = self.cfg['flow'][step]['vendor']['value'][-1]
             packdir = "eda." + vendor
             modulename = '.'+vendor+'_setup'
@@ -1088,20 +1091,19 @@ class Chip:
             #####################
             # Execution
             #####################
-            if ((step in self.cfg['skip']['value']) |
-                (self.cfg['skipall']['value'][-1] =='true')):
+            if (step in self.cfg['skip']['value']) | (self.cfg['skipall']['value'][-1] == 'true'):
                 self.logger.info('Skipping step: %s', step)
                 if exepath.returncode > 0:
                     self.logger.critical('Executable %s not installed.', exe)
                     print("Please see https://github.com/siliconcompiler/siliconcompiler/README.md")
             else:
-                self.logger.info("Running step '%s' in dir '%s'", step, stepdir)  
+                self.logger.info("Running step '%s' in dir '%s'", step, stepdir)
                 if exepath.returncode > 0:
                     self.logger.critical('Executable %s not installed.', exe)
                     print("-"*80)
-                    print("Installation Instructions:") 
+                    print("Installation Instructions:")
                     print("https://github.com/siliconcompiler/siliconcompiler/README.md")
-                
+
                 # Copying in Files (local only)
                 if os.path.isdir(stepdir) and (not remote):
                     shutil.rmtree(stepdir)
@@ -1110,18 +1112,18 @@ class Chip:
                 os.makedirs('outputs', exist_ok=True)
                 os.makedirs('reports', exist_ok=True)
                 # First stage after import always copies from same place
-                if stepindex==0:
+                if stepindex == 0:
                     pass
                 elif not remote:
                     shutil.copytree("../"+laststep+"/outputs", 'inputs')
-                
+
                 #Copy Reference Scripts
                 if schema_istrue(self.cfg['flow'][step]['copy']['value']):
-                    refdir = schema_path(self.cfg['flow'][step]['refdir']['value'][-1])               
+                    refdir = schema_path(self.cfg['flow'][step]['refdir']['value'][-1])
                     shutil.copytree(refdir,
                                     ".",
                                     dirs_exist_ok=True)
-                
+
                 #####################
                 # Save CFG locally
                 #####################
@@ -1134,13 +1136,13 @@ class Chip:
                 # Generate CMD
                 #####################
 
-                #Set Executable               
+                #Set Executable
                 cmd_fields = [exe]
 
                 #Add options to cmd list
-                setup_options = getattr(module,"setup_options")
+                setup_options = getattr(module, "setup_options")
                 options = setup_options(self, step)
-                cmd_fields.extend(options)        
+                cmd_fields.extend(options)
 
                 #Resolve Paths
                 #TODO: Fix this later, still using abspaths..
@@ -1153,7 +1155,7 @@ class Chip:
 
                 #Piping to log file
                 logfile = exe + ".log"
-                
+
                 if (schema_istrue(self.cfg['quiet']['value'])) & (step not in self.cfg['bkpt']['value']):
                     cmd_fields.append("> " + logfile)
                 else:
@@ -1181,8 +1183,8 @@ class Chip:
                     # Local builds must be processed synchronously, because
                     # they use calls such as os.chdir which are not thread-safe.
                     # Tool Pre Process
-                    pre_process = getattr(module,"pre_process")
-                    pre_process(self,step)
+                    pre_process = getattr(module, "pre_process")
+                    pre_process(self, step)
 
                     # Tool Executable
                     self.logger.info('%s', cmd)
@@ -1193,13 +1195,13 @@ class Chip:
                         sys.exit()
 
                     # Tool Post Process
-                    post_process = getattr(module,"post_process")
+                    post_process = getattr(module, "post_process")
                     post_process(self, step)
                     #Drop into python shell if command line tool
                     if step in self.cfg['bkpt']['value']:
                         format = self.cfg['flow'][step]['format']['value'][0]
                         print(format)
-                        if format=='cmdline':
+                        if format == 'cmdline':
                             code.interact(local=dict(globals(), **locals()))
 
                     # Upload results for remote calls.
@@ -1209,16 +1211,16 @@ class Chip:
             # Save Metrics/Config
             ########################
             metricsfile = "/".join(["outputs",
-                                     self.get('design')[-1] +'.json'])
-                                    
+                                    self.get('design')[-1] +'.json'])
+
             self.writecfg(metricsfile)
 
             ########################
             # Return to $CWD
-            ########################       
+            ########################
             os.chdir(cwd)
 
-        
+
     ###########################################################################
     def set_jobid(self):
 
@@ -1244,8 +1246,8 @@ class Chip:
         except FileNotFoundError:
             # if no existing build directory, set jobid to 1
             self.set('jobid', '1')
-            
-################################################################################        
+
+################################################################################
 # Annoying helper class b/c yaml..
 # Do we actually have to support a class?
 class YamlIndentDumper(yaml.Dumper):
@@ -1262,7 +1264,7 @@ def get_permutations(base_chip, cmdlinecfg):
 
     loglevel = cmdlinecfg['loglevel']['value'][-1] \
         if 'loglevel' in cmdlinecfg.keys() else "INFO"
-    
+
     if 'permutations' in cmdlinecfg.keys():
         perm_path = os.path.abspath(cmdlinecfg['permutations']['value'][-1])
         perm_script = SourceFileLoader('job_perms', perm_path).load_module()
@@ -1302,4 +1304,3 @@ def get_permutations(base_chip, cmdlinecfg):
 
     # Done; return the list of Chips.
     return chips
-
