@@ -162,7 +162,6 @@ async def request_remote_run(chip, stage):
         # Use authentication if necessary.
         if (len(chip.get('remote', 'user')) > 0) and (len(chip.get('remote', 'key')) > 0):
             # Read the key and encode it in base64 format.
-            # TODO: Place the key in an https POST request body to TLS-encrypt it.
             with open(os.path.abspath(chip.cfg['remote']['key']['value'][-1]), 'rb') as f:
                 key = f.read()
             b64_key = base64.urlsafe_b64encode(key).decode()
@@ -182,15 +181,34 @@ async def is_job_busy(chip, stage):
     '''
 
     async with aiohttp.ClientSession() as session:
-        async with session.get("http://%s:%s/check_progress/%s/%s/%s"%(
-                               chip.cfg['remote']['addr']['value'][-1],
-                               chip.cfg['remote']['port']['value'][-1],
-                               chip.status['job_hash'],
-                               stage,
-                               chip.cfg['jobid']['value'][-1])) \
-        as resp:
-            response = await resp.text()
-            return (response != "Job has no running steps.")
+        if (len(chip.get('remote', 'user')) > 0) and (len(chip.get('remote', 'key')) > 0):
+            with open(os.path.abspath(chip.cfg['remote']['key']['value'][-1]), 'rb') as f:
+                key = f.read()
+            b64_key = base64.urlsafe_b64encode(key).decode()
+            post_params = {
+                'username': chip.get('remote', 'user')[-1],
+                'key': b64_key,
+                'job_hash': chip.status['job_hash'],
+                'job_id': chip.get('jobid')[-1],
+                'stage': stage,
+            }
+            async with session.post("http://%s:%s/check_progress/"%(
+                                    chip.cfg['remote']['addr']['value'][-1],
+                                    chip.cfg['remote']['port']['value'][-1]),
+                                    json=post_params) \
+            as resp:
+                response = await resp.text()
+                return (response != "Job has no running steps.")
+        else:
+            async with session.get("http://%s:%s/check_progress/%s/%s/%s"%(
+                                   chip.cfg['remote']['addr']['value'][-1],
+                                   chip.cfg['remote']['port']['value'][-1],
+                                   chip.status['job_hash'],
+                                   stage,
+                                   chip.cfg['jobid']['value'][-1])) \
+            as resp:
+                response = await resp.text()
+                return (response != "Job has no running steps.")
 
 ###################################
 async def delete_job(chip):
@@ -332,6 +350,12 @@ def fetch_results(chips):
                         chips[-1].cfg['remote']['port']['value'][-1],
                         job_hash)])
     subprocess.run(['unzip', '%s.zip'%job_hash])
+
+    # Call 'delete_job' to remove the run from the server.
+    # This deletes a job_hash, so separate calls for each permutation are not required.
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(delete_job(chips[-1]))
 
     # For encrypted jobs each permutation's result is encrypted in its own archive.
     # For unencrypted jobs, results are simply stored in the archive.
