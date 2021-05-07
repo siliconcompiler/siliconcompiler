@@ -1222,6 +1222,10 @@ class Chip:
     ###########################################################################
     def set_jobid(self):
 
+        # Return if jobid is already set.
+        if len(self.get('jobid')) > 0:
+            return
+
         design = self.cfg['design']['value'][-1]
         dirname = self.cfg['dir']['value'][-1]
         jobname = self.cfg['jobname']['value'][-1]
@@ -1274,18 +1278,28 @@ def get_permutations(base_chip, cmdlinecfg):
     # Create a new Chip object with the same job hash for each permutation.
     for chip_cfg in perms:
         new_chip = Chip(loglevel=loglevel)
+
         # JSON dump/load is a simple way to deep-copy a Python
         # dictionary which does not contain custom classes/objects.
         new_chip.status = json.loads(json.dumps(base_chip.status))
         new_chip.cfg = json.loads(json.dumps(chip_cfg))
+
+        # Skip the 'import' stage for remote jobs; it will be run locally and uploaded.
         if len(new_chip.get('remote', 'addr')) > 0:
-            new_chip.set('start', 'syn')
+            new_chip.set('start', new_chip.get('remote', 'start')[-1])
+        elif len(new_chip.get('remote', 'key')) > 0:
+            # If 'remote_key' exists without 'remote_addr', it represents an
+            # encoded key string in an ongoing remote job. It should be
+            # moved from the config dictionary to the status one to avoid logging.
+            new_chip.status['decrypt_key'] = new_chip.get('remote', 'key')[-1]
+            new_chip.cfg['remote']['key']['value'] = []
+
+        # Set and increment the "job ID" so multiple chips don't share the same directory.
         new_chip.set('jobid', cur_jobid)
         cur_jobid = str(int(cur_jobid) + 1)
+
         chips.append(new_chip)
 
     # Done; return the list of Chips.
     return chips
 
-
-  
