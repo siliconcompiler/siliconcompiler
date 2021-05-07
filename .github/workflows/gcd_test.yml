@@ -17,37 +17,41 @@ jobs:
     name: 'GCD "local server" test build'
     steps:
       - uses: actions/checkout@v2
-      - run: python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
-      - run: source $GITHUB_WORKSPACE/clean_env/bin/activate
-      - run: pip3 install -r $GITHUB_WORKSPACE/requirements.txt -e $GITHUB_WORKSPACE/.
-      - run: pytest $GITHUB_WORKSPACE/tests/asic/test_gcd_server.py
+      - run: |
+          python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
+          source $GITHUB_WORKSPACE/clean_env/bin/activate
+          pip3 install -r $GITHUB_WORKSPACE/requirements.txt -e $GITHUB_WORKSPACE/.
+          pytest $GITHUB_WORKSPACE/tests/asic/test_gcd_server.py
   gcd_permutations_test:
     runs-on: self-hosted
     name: 'GCD test build with two permutations'
     steps:
       - uses: actions/checkout@v2
-      - run: python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
-      - run: source $GITHUB_WORKSPACE/clean_env/bin/activate
-      - run: pip3 install -r $GITHUB_WORKSPACE/requirements.txt -e $GITHUB_WORKSPACE/.
-      - run: pytest $GITHUB_WORKSPACE/tests/asic/test_gcd_perms.py
+      - run: |
+          python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
+          source $GITHUB_WORKSPACE/clean_env/bin/activate
+          pip3 install -r $GITHUB_WORKSPACE/requirements.txt -e $GITHUB_WORKSPACE/.
+          pytest $GITHUB_WORKSPACE/tests/asic/test_gcd_perms.py
   gcd_loopback_permutations_test:
     runs-on: self-hosted
     name: 'GCD "local server" test build with two permutations'
     steps:
       - uses: actions/checkout@v2
-      - run: python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
-      - run: source $GITHUB_WORKSPACE/clean_env/bin/activate
-      - run: pip3 install -r $GITHUB_WORKSPACE/requirements.txt -e $GITHUB_WORKSPACE/.
-      - run: pytest $GITHUB_WORKSPACE/tests/asic/test_gcd_server_perms.py
+      - run: |
+          python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
+          source $GITHUB_WORKSPACE/clean_env/bin/activate
+          pip3 install -r $GITHUB_WORKSPACE/requirements.txt -e $GITHUB_WORKSPACE/.
+          pytest $GITHUB_WORKSPACE/tests/asic/test_gcd_server_perms.py
   gcd_python_api_test:
     runs-on: self-hosted
     name: 'GCD test build using the Python API (no shell calls)'
     steps:
       - uses: actions/checkout@v2
-      - run: python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
-      - run: source $GITHUB_WORKSPACE/clean_env/bin/activate
-      - run: pip3 install -r $GITHUB_WORKSPACE/requirements.txt -e $GITHUB_WORKSPACE/.
-      - run: pytest $GITHUB_WORKSPACE/tests/asic/test_gcd_py.py
+      - run: |
+          python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
+          source $GITHUB_WORKSPACE/clean_env/bin/activate
+          pip3 install -r $GITHUB_WORKSPACE/requirements.txt -e $GITHUB_WORKSPACE/.
+          pytest $GITHUB_WORKSPACE/tests/asic/test_gcd_py.py
   fpga_test_job:
     runs-on: self-hosted
     name: 'FPGA test builds'
@@ -64,6 +68,8 @@ jobs:
     name: 'Python unit tests'
     steps:
       - uses: actions/checkout@v2
-      - run: pip3 install -r $GITHUB_WORKSPACE/requirements.txt
-      - run: pip3 install -e $GITHUB_WORKSPACE/.
-      - run: python3 -m unittest
+      - run: |
+          python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
+          source $GITHUB_WORKSPACE/clean_env/bin/activate
+          pip3 install -r $GITHUB_WORKSPACE/requirements.txt -e $GITHUB_WORKSPACE/.
+          python3 -m unittest
