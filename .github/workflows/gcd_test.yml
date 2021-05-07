@@ -6,8 +6,9 @@ jobs:
     name: 'GCD test build'
     steps:
       - uses: actions/checkout@v2
-      - run: pip3 install -r $GITHUB_WORKSPACE/requirements.txt
-      - run: pip3 install -e $GITHUB_WORKSPACE/.
+      - run: python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
+      - run: source $GITHUB_WORKSPACE/clean_env/bin/activate
+      - run: pip3 install -r $GITHUB_WORKSPACE/requirements.txt -e $GITHUB_WORKSPACE/.
       - run: pytest $GITHUB_WORKSPACE/tests/asic/test_gcd.py
   gcd_loopback_test:
     runs-on: self-hosted
