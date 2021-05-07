@@ -12,3 +12,4 @@ defusedxml >= 0.7.1
 pandas >= 1.2.3
 Jinja2 >= 2.11.3
 Sphinx >= 3.5.4
+cryptography >= 3.4.7

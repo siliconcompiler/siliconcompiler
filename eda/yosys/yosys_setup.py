@@ -63,16 +63,11 @@ def post_process(chip, step):
           for line in f:
                area = re.search('Chip area for module.*\:\s+(.*)', line)
                cells = re.search('Number of cells\:\s+(.*)', line)
-               stats = re.search('End of script.*CPU\: user (.*)\s+system.*MEM\:\s+(.*) peak',line)
                warnings = re.search('Warnings.*\s(\d+)\s+total', line)
                
                if area:
                     chip.set('real', step, 'cell_area', str(round(float(area.group(1)),2)))
                elif cells:
                     chip.set('real', step, 'cells', cells.group(1))
-               elif stats:
-                    memory = stats.group(2).replace(" ","")
-                    chip.set('real', step, 'runtime', stats.group(1))
-                    chip.set('real', step, 'memory', memory)
                elif warnings:
                     chip.set('real', step, 'warnings', warnings.group(1))

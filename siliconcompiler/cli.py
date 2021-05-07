@@ -203,7 +203,7 @@ def add_arg(cfg, parser, keys=None):
             if 'switch' in cfg[k].keys():                
                 keystr = '_'.join(newkeys)
                 helpstr = cfg[k]['short_help']
-                if cfg[k]['type'][-1] == 'bool': #scalar
+                if cfg[k]['type'] == 'bool': #scalar
                     parser.add_argument(cfg[k]['switch'],
                                         metavar='',
                                         dest=keystr,
@@ -302,7 +302,8 @@ def main():
 
     # Print Job Summary
     for chip in chips:
-        chip.summary() 
+        if chip.error < 1:
+            chip.summary() 
 
     # For local encrypted jobs, re-encrypt and delete the decrypted data.
     if 'decrypt_key' in chips[-1].status:
