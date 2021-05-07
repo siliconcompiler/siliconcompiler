@@ -1,5 +1,4 @@
 import os
-import pathlib
 import siliconcompiler
 from fixtures import test_wrapper
 
