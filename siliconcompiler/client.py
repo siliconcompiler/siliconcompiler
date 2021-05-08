@@ -224,13 +224,30 @@ async def delete_job(chip):
     '''
 
     async with aiohttp.ClientSession() as session:
-        async with session.get("http://%s:%s/delete_job/%s"%(
-                               chip.cfg['remote']['addr']['value'][-1],
-                               chip.cfg['remote']['port']['value'][-1],
-                               chip.status['job_hash'])) \
-        as resp:
-            response = await resp.text()
-            return response
+        if (len(chip.get('remote', 'user')) > 0) and (len(chip.get('remote', 'key')) > 0):
+            with open(os.path.abspath(chip.cfg['remote']['key']['value'][-1]), 'rb') as f:
+                key = f.read()
+            b64_key = base64.urlsafe_b64encode(key).decode()
+            post_params = {
+                'username': chip.get('remote', 'user')[-1],
+                'key': b64_key,
+                'job_hash': chip.status['job_hash'],
+            }
+            async with session.post("http://%s:%s/delete_job/"%(
+                                   chip.cfg['remote']['addr']['value'][-1],
+                                   chip.cfg['remote']['port']['value'][-1]),
+                                   json=post_params) \
+            as resp:
+                response = await resp.text()
+                return response
+        else:
+            async with session.get("http://%s:%s/delete_job/%s"%(
+                                   chip.cfg['remote']['addr']['value'][-1],
+                                   chip.cfg['remote']['port']['value'][-1],
+                                   chip.status['job_hash'])) \
+            as resp:
+                response = await resp.text()
+                return response
 
 ###################################
 async def upload_import_dir(chip):
@@ -347,25 +364,66 @@ def upload_sources_to_cluster(chip):
     loop = asyncio.get_event_loop()
     loop.run_until_complete(upload_import_dir(chip))
 
-def fetch_results(chips):
+###################################
+async def fetch_results_request(chips):
     '''Helper method to fetch job results from a remote compute cluster.
     '''
 
-    # Fetch the remote archive after the export stage.
-    # TODO: Use aiohttp client methods, but wget is simpler for accessing
-    # a server endpoint that returns a file object.
     job_hash = chips[-1].status['job_hash']
-    subprocess.run(['wget',
-                    "http://%s:%s/get_results/%s.zip"%(
-                        chips[-1].cfg['remote']['addr']['value'][-1],
-                        chips[-1].cfg['remote']['port']['value'][-1],
-                        job_hash)])
+    async with aiohttp.ClientSession() as session:
+        if (len(chips[-1].get('remote', 'user')) > 0) and (len(chips[-1].get('remote', 'key')) > 0):
+            with open(os.path.abspath(chips[-1].cfg['remote']['key']['value'][-1]), 'rb') as f:
+                key = f.read()
+            b64_key = base64.urlsafe_b64encode(key).decode()
+            post_params = {
+                'username': chips[-1].get('remote', 'user')[-1],
+                'key': b64_key,
+                'job_hash': job_hash,
+                'job_id': chips[-1].get('jobid')[-1],
+            }
+
+            # Make the web request, and stream the results archive in chunks.
+            with open('%s.zip'%job_hash, 'wb') as zipf:
+                async with session.post("http://%s:%s/get_results/"%(
+                                        chips[-1].cfg['remote']['addr']['value'][-1],
+                                        chips[-1].cfg['remote']['port']['value'][-1]),
+                                        json = post_params) \
+                as resp:
+                    while True:
+                        chunk = await resp.content.read(1024)
+                        if not chunk:
+                            break
+                        zipf.write(chunk)
+        else:
+            # Make the web request, and stream the results archive in chunks.
+            with open('%s.zip'%job_hash, 'wb') as zipf:
+                async with session.get("http://%s:%s/get_results/%s.zip"%(
+                                        chips[-1].cfg['remote']['addr']['value'][-1],
+                                        chips[-1].cfg['remote']['port']['value'][-1],
+                                        job_hash)) \
+                as resp:
+                    while True:
+                        chunk = await resp.content.read(1024)
+                        if not chunk:
+                            break
+                        zipf.write(chunk)
+
+###################################
+def fetch_results(chips):
+    '''Helper method to fetch and open job results from a remote compute cluster.
+    '''
+
+    # Fetch the remote archive after the export stage.
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(fetch_results_request(chips))
+
+    # Unzip the results.
+    job_hash = chips[-1].status['job_hash']
     subprocess.run(['unzip', '%s.zip'%job_hash])
 
     # Call 'delete_job' to remove the run from the server.
     # This deletes a job_hash, so separate calls for each permutation are not required.
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
     loop.run_until_complete(delete_job(chips[-1]))
 
     # For encrypted jobs each permutation's result is encrypted in its own archive.
