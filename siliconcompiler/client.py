@@ -18,10 +18,22 @@ def remote_preprocess(chips):
     '''Helper method to run a local import stage for remote jobs.
     '''
 
+    # TODO: This is a bit hack-y, but necessary because the 'upload' method
+    # is called within an individual Chip.run() method.
+    # Store the IDs of all permutations which will run, so that the server can
+    # create database objects which mark the authenticated owner for those runs.
+    # This also assumes that all permutations have the same 'jobname'.
+    perm_ids = []
+    for chip in chips:
+        perm_ids.append(chip.get('jobid')[-1])
+    chips[-1].status['perm_ids'] = perm_ids
+
     # Run the local 'import' step.
     chips[-1].run(start='import', stop='import')
+
     # Clear the 'option' value, in case the import step is run again later.
     chips[-1].cfg['flow']['import']['option']['value'] = []
+    chips[-1].status['perm_ids'] = None
 
 ###################################
 def client_decrypt(chip):
@@ -316,6 +328,8 @@ async def upload_import_dir(chip):
                 'aes_key': base64.urlsafe_b64encode(aes_key_enc).decode(),
                 'aes_iv': base64.urlsafe_b64encode(aes_iv).decode(),
                 'job_hash': chip.status['job_hash'],
+                'job_name': chip.get('jobname')[-1],
+                'job_ids': chip.status['perm_ids'],
             }
             with open(os.path.abspath('import.crypt'), 'rb') as f:
                 async with session.post("http://%s:%s/import/"%(
