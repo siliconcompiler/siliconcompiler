@@ -2545,7 +2545,7 @@ def schema_remote(cfg):
         'short_help': 'Remote Server Port',
         'param_help' : "'remote' 'port' <str>",
         'example': ["cli: -remote_port 8080",
-                    "api: chip.add('remot', 'port', '8080')"],
+                    "api: chip.add('remote', 'port', '8080')"],
         'help' : """
         Sets the server port to be used in communicating with the remote host.
         """
@@ -2613,6 +2613,28 @@ def schema_remote(cfg):
         'help': """
         Specifies a private key file which will allow the server to
         authenticate the given user and decrypt data associated with them.
+        """
+    }
+
+    # Number of temporary hosts to request for the job. (Default: 0)
+    cfg['remote']['hosts'] = {
+        'switch': '-remote_hosts',
+        'type' : 'num',
+        'lock' : 'false',
+        'requirement' : 'remote',
+        'defvalue' : ['0'],
+        'short_help': 'Number of temporary compute nodes to request.',
+        'param_help' : "'remote' 'hosts' <num>",
+        'example': ["cli: -remote_hosts 2",
+                    "api: chip.add('remote', 'hosts', '2')"],
+        'help' : """
+        Sets the number of temporary hosts to request for parallel processing.
+        Should be less than or equal to the number of permutations being run.
+        No effect if the server is not configured for clustering.
+        If no hosts are requested, the job will run in the standing pool
+        of compute nodes, which is typically small and shared.
+        Depending on server-side limits and capacity, the job may receive
+        fewer temporary hosts than requested, down to and including 0.
         """
     }
    
