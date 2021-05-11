@@ -1,6 +1,6 @@
 import os
 import subprocess
-from fixtures import test_wrapper
+from tests.fixtures import test_wrapper
 
 ###########################
 def test_gcd_local_permutations():
