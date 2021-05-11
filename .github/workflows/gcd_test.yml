@@ -17,12 +17,13 @@ jobs:
     name: 'FPGA test builds'
     steps:
       - uses: actions/checkout@v2
-      - run: pip3 install -r $GITHUB_WORKSPACE/requirements.txt
-      - run: pip3 install -e $GITHUB_WORKSPACE/.
       - run: |
+          python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
+          source $GITHUB_WORKSPACE/clean_env/bin/activate
+          echo $VIRTUAL_ENV
+          pip3 install -r $GITHUB_WORKSPACE/requirements.txt -e $GITHUB_WORKSPACE/.
           PATH="$HOME/OpenFPGA/openfpga:$PATH"
-          $GITHUB_WORKSPACE/examples/blinky/test.sh
-          $GITHUB_WORKSPACE/examples/and2_openfpga/test.sh
+          pytest $GITHUB_WORKSPACE/tests/fpga/
   python_test_job:
     runs-on: self-hosted
     name: 'Python unit tests'
