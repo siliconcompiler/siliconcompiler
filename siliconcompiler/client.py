@@ -330,6 +330,7 @@ async def upload_import_dir(chip):
                 'job_hash': chip.status['job_hash'],
                 'job_name': chip.get('jobname')[-1],
                 'job_ids': chip.status['perm_ids'],
+                'new_hosts': int(chip.get('remote', 'hosts')[-1]),
             }
             with open(os.path.abspath('import.crypt'), 'rb') as f:
                 async with session.post("http://%s:%s/import/"%(
