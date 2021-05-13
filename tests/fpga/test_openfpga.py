@@ -1,7 +1,7 @@
 import os
 import subprocess
 # fixture automatically used when imported to create clean build dir
-from tests.fixtures import test_wrapper
+from ..fixtures import test_wrapper
 
 ##################################
 def test_openfpga():

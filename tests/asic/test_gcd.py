@@ -1,6 +1,6 @@
 import os
 import subprocess
-from tests.fixtures import test_wrapper
+from ..fixtures import test_wrapper
 
 ##################################
 def test_gcd_local():
