@@ -2637,6 +2637,26 @@ def schema_remote(cfg):
         fewer temporary hosts than requested, down to and including 0.
         """
     }
+
+    # Size of remote host to request, in GiB of RAM.
+    # Must be a power of two. Minimum: 1, Maximum: 32, Default: 4.
+    cfg['remote']['hostsize'] = {
+        'switch': '-remote_hostsize',
+        'type' : 'num',
+        'lock' : 'false',
+        'requirement' : 'remote',
+        'defvalue' : ['4'],
+        'short_help': 'Size of the cloud hosts to spin up, in GiB-RAM.',
+        'param_help' : "'remote' 'hostsize' <num>",
+        'example': ["cli: -remote_hostsize 16",
+                    "api: chip.add('remote', 'hostsize', '16')"],
+        'help' : """
+        Sets how 'large' the temporary hosts will be. Accounts will likely
+        be limited by the total 'GiB-RAM-Hosts' that they have running at once.
+        Cloud hosts with more RAM also have access to more hardware threads,
+        but RAM is a convenient metric whose cost appears to scale linearly.
+        """
+    }
    
     return cfg
 
