@@ -222,30 +222,27 @@ async def delete_job(chip):
     '''
 
     async with aiohttp.ClientSession() as session:
+        # Set common parameter.
+        post_params = {
+            'job_hash': chip.status['job_hash'],
+        }
+
+        # Set authentication parameters if necessary.
         if (len(chip.get('remote', 'user')) > 0) and (len(chip.get('remote', 'key')) > 0):
             with open(os.path.abspath(chip.cfg['remote']['key']['value'][-1]), 'rb') as f:
                 key = f.read()
             b64_key = base64.urlsafe_b64encode(key).decode()
-            post_params = {
-                'username': chip.get('remote', 'user')[-1],
-                'key': b64_key,
-                'job_hash': chip.status['job_hash'],
-            }
-            async with session.post("http://%s:%s/delete_job/"%(
-                                   chip.cfg['remote']['addr']['value'][-1],
-                                   chip.cfg['remote']['port']['value'][-1]),
-                                   json=post_params) \
-            as resp:
-                response = await resp.text()
-                return response
-        else:
-            async with session.get("http://%s:%s/delete_job/%s"%(
-                                   chip.cfg['remote']['addr']['value'][-1],
-                                   chip.cfg['remote']['port']['value'][-1],
-                                   chip.status['job_hash'])) \
-            as resp:
-                response = await resp.text()
-                return response
+            post_params['username'] = chip.get('remote', 'user')[-1]
+            post_params['key'] = b64_key
+
+        # Make the request.
+        async with session.post("http://%s:%s/delete_job/"%(
+                               chip.cfg['remote']['addr']['value'][-1],
+                               chip.cfg['remote']['port']['value'][-1]),
+                               json=post_params) \
+        as resp:
+            response = await resp.text()
+            return response
 
 ###################################
 async def upload_import_dir(chip):

@@ -49,7 +49,7 @@ class Server:
             web.post('/remote_run/', self.handle_remote_run),
             web.post('/import/', self.handle_import),
             web.post('/check_progress/', self.handle_check_progress),
-            web.get('/delete_job/{job_hash}', self.handle_delete_job),
+            web.post('/delete_job/', self.handle_delete_job),
         ])
         # TODO: Put zip files in a different directory.
         # And for security reasons, this is not a good public-facing solution.
@@ -171,10 +171,11 @@ class Server:
 
         '''
 
-        # Retrieve the job hash to look for.
-        job_hash = request.match_info.get('job_hash', None)
-        if not job_hash:
+        # Retrieve the JSON parameters.
+        params = await request.json()
+        if not 'job_hash' in params:
             return web.Response(text="Error: no job hash provided.")
+        job_hash = params['job_hash']
 
         # Determine if the job is running.
         for job in self.sc_jobs:
