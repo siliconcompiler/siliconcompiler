@@ -2638,23 +2638,43 @@ def schema_remote(cfg):
         """
     }
 
-    # Size of remote host to request, in GiB of RAM.
-    # Must be a power of two. Minimum: 1, Maximum: 32, Default: 4.
-    cfg['remote']['hostsize'] = {
-        'switch': '-remote_hostsize',
+    # GiB of RAM to request in a remote host.
+    cfg['remote']['ram'] = {
+        'switch': '-remote_ram',
         'type' : 'num',
         'lock' : 'false',
         'requirement' : 'remote',
-        'defvalue' : ['4'],
-        'short_help': 'Size of the cloud hosts to spin up, in GiB-RAM.',
-        'param_help' : "'remote' 'hostsize' <num>",
-        'example': ["cli: -remote_hostsize 16",
-                    "api: chip.add('remote', 'hostsize', '16')"],
+        'defvalue' : [],
+        'short_help': 'GiB of RAM to request in temporary cloud hosts.',
+        'param_help' : "'remote' 'ram' <num>",
+        'example': ["cli: -remote_ram 16",
+                    "api: chip.add('remote', 'ram', '16')"],
         'help' : """
-        Sets how 'large' the temporary hosts will be. Accounts will likely
-        be limited by the total 'GiB-RAM-Hosts' that they have running at once.
-        Cloud hosts with more RAM also have access to more hardware threads,
-        but RAM is a convenient metric whose cost appears to scale linearly.
+        Sets how much RAM each temporary host should have. Depending on what
+        types of hosts the cloud vendor has, the script may request up to
+        one power of two above the given amount, if it is not a power of two.
+        For example, requesting 10GiB of RAM may allocate hosts with up to
+        16GiB, but requesting 8GiB will not.
+        An error may be returned if no hosts can meet the given specifications.
+        """
+    }
+
+    # Number of 'virtual CPUs' to request in a remote host.
+    cfg['remote']['vcpus'] = {
+        'switch': '-remote_vcpus',
+        'type' : 'num',
+        'lock' : 'false',
+        'requirement' : 'remote',
+        'defvalue' : [],
+        'short_help': 'Number of virtual CPUs to request in a remote host.',
+        'param_help' : "'remote' 'vcpus' <num>",
+        'example': ["cli: -remote_vcpus 4",
+                    "api: chip.add('remote', 'vcpus', '4')"],
+        'help' : """
+        Sets how many 'virtual CPUs' each temporary host should have. The
+        definition of a vCPU depends on the cloud vendor and host type, but they
+        are more likely to represent hardware threads than physical CPU cores.
+        An error may be returned if no hosts can meet the given specifications.
         """
     }
    
