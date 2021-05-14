@@ -8,6 +8,7 @@ import logging as log
 import os
 import subprocess
 import shutil
+import uuid
 
 class Server:
     """
@@ -45,16 +46,16 @@ class Server:
         # Create a minimal web server to process the 'remote_run' API call.
         self.app = web.Application()
         self.app.add_routes([
-            web.post('/remote_run/{job_hash}/{stage}', self.handle_remote_run),
-            web.post('/import/{job_hash}', self.handle_import),
-            web.get('/check_progress/{job_hash}/{stage}/{jobid}', self.handle_check_progress),
-            web.get('/delete_job/{job_hash}', self.handle_delete_job),
+            web.post('/remote_run/', self.handle_remote_run),
+            web.post('/import/', self.handle_import),
+            web.post('/check_progress/', self.handle_check_progress),
+            web.post('/delete_job/', self.handle_delete_job),
+            web.post('/get_results/{job_hash}.zip', self.handle_get_results),
         ])
         # TODO: Put zip files in a different directory.
-        # And for security reasons, this is not a good public-facing solution.
+        # For security reasons, this is not a good public-facing solution.
         # There's no access control on which files can be downloaded.
-        # As discussed, a focus on security and access controls will
-        # require a more mature server framework based on e.g. apache/nginx/etc.
+        # But this is an example server which only implements a minimal API.
         self.app.router.add_static('/get_results/', self.cfg['nfsmount']['value'][0])
 
         # Start the async server.
@@ -68,15 +69,16 @@ class Server:
 
         '''
 
-        # Retrieve JSON config into a dictionary.
+        # Retrieve JSON config from the request body.
         cfg = await request.json()
+        params = cfg['params']
         cfg = cfg['chip_cfg']
-        job_hash = request.match_info.get('job_hash', None)
-        if not job_hash:
+        if not 'job_hash' in params:
           return web.Response(text="Error: no job hash provided.")
-        stage = request.match_info.get('stage', None)
-        if not stage:
+        if not 'stage' in params:
           return web.Response(text="Error: no stage provided.")
+        job_hash = params['job_hash']
+        stage = params['stage']
 
         # Reset 'build' directory in NFS storage.
         build_dir = '%s/%s'%(self.cfg['nfsmount']['value'][-1], job_hash)
@@ -126,39 +128,55 @@ class Server:
         preparation for running a remote job stage.
 
         TODO: Infer file type from file extension. Currently only supports .zip
-
         '''
 
-        # Get the job hash value.
-        job_hash = request.match_info.get('job_hash', None)
-        if not job_hash:
-          return web.Response(text="Error: no job hash provided.")
-        job_root = '%s/%s'%(self.cfg['nfsmount']['value'][0], job_hash)
-
-        # Ensure that the build directory exists.
-        subprocess.run(['mkdir', '-p', job_root])
-
-        # Receive and write the archive file.
+        # Receive and parse the POST request body.
         reader = await request.multipart()
         while True:
             part = await reader.next()
             if part is None:
                 break
             if part.name == 'import':
-                # Receive and write the zipped 'import' directory.
-                with open('%s/import.zip'%(job_root), 'wb') as f:
+                # job hash may not be available yet; it's also sent in the body.
+                tmp_file = '/tmp/%s'%uuid.uuid4().hex
+                with open(tmp_file, 'wb') as f:
                     while True:
                         chunk = await part.read_chunk()
                         if not chunk:
                             break
                         f.write(chunk)
+            elif part.name == 'params':
+                # Get the job parameters.
+                job_params = await part.json()
+                # Get the job hash value.
+                if not 'job_hash' in job_params:
+                  return web.Response(text="Error: no job hash provided.")
+                job_hash = job_params['job_hash']
+                job_root = '%s/%s'%(self.cfg['nfsmount']['value'][0], job_hash)
+                # Ensure that the required directories exists.
+                subprocess.run(['mkdir', '-p', '%s/import'%job_root])
 
-        # Un-zip the archive file.
-        subprocess.run(['mkdir', '-p', '%s/import'%job_root])
+        # Move the uploaded archive to the correct location and un-zip it.
+        os.replace(tmp_file, '%s/import.zip'%job_root)
         subprocess.run(['unzip', '-o', '%s/import.zip'%(job_root)], cwd='%s/import'%job_root)
 
         # Done.
         return web.Response(text="Successfully imported project %s."%job_hash)
+
+    ####################
+    async def handle_get_results(self, request):
+        '''
+        API handler to redirect 'get_results' POST calls.
+
+        '''
+
+        # Retrieve the job hash.
+        job_hash = request.match_info.get('job_hash', None)
+        if not job_hash:
+            return web.Response(text="Error: no job hash provided.")
+
+        # Redirect to the same URL, but with a GET request.
+        return web.HTTPFound(request.url)
 
     ####################
     async def handle_delete_job(self, request):
@@ -168,10 +186,11 @@ class Server:
 
         '''
 
-        # Retrieve the job hash to look for.
-        job_hash = request.match_info.get('job_hash', None)
-        if not job_hash:
+        # Retrieve the JSON parameters.
+        params = await request.json()
+        if not 'job_hash' in params:
             return web.Response(text="Error: no job hash provided.")
+        job_hash = params['job_hash']
 
         # Determine if the job is running.
         for job in self.sc_jobs:
@@ -200,22 +219,19 @@ class Server:
         It only returns a response containing a 'still running', 'done', or
         'not found' message. In the future, it can respond with up-to-date
         information about the job's progress and intermediary outputs.
-
         '''
 
-        # Retrieve the job hash to look for.
-        job_hash = request.match_info.get('job_hash', None)
-        if not job_hash:
+        # Retrieve the JSON parameters.
+        params = await request.json()
+        if not 'job_hash' in params:
             return web.Response(text="Error: no job hash provided.")
-        stage = request.match_info.get('stage', None)
-        if not stage:
-          return web.Response(text="Error: no stage provided.")
-        jobid = request.match_info.get('jobid', None)
-        if not jobid:
-          return web.Response(text="Error: no job ID provided.")
+        job_hash = params['job_hash']
+        if not 'job_id' in params:
+            return web.Response(text="Error: no job ID provided.")
+        jobid = params['job_id']
 
         # Determine if the job is running.
-        if "%s_%s_%s"%(job_hash, stage, jobid) in self.sc_jobs:
+        if "%s_%s"%(job_hash, jobid) in self.sc_jobs:
             return web.Response(text="Job is currently running on the cluster.")
         else:
             return web.Response(text="Job has no running steps.")
@@ -234,7 +250,7 @@ class Server:
             jobs_cfg = json.load(cfgf)
 
         # Mark the job hash as being busy.
-        self.sc_jobs["%s_%s_%s"%(job_hash, stage, jobid)] = 'busy'
+        self.sc_jobs["%s_%s"%(job_hash, jobid)] = 'busy'
 
         run_cmd = ''
         if self.cfg['cluster']['value'][-1] == 'slurm':
@@ -271,7 +287,7 @@ class Server:
                            cwd=self.cfg['nfsmount']['value'][-1])
 
         # Mark the job hash as being done.
-        self.sc_jobs.pop("%s_%s_%s"%(job_hash, stage, jobid))
+        self.sc_jobs.pop("%s_%s"%(job_hash, jobid))
 
     ####################
     def writecfg(self, filename, mode="all"):

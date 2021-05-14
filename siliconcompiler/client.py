@@ -18,22 +18,11 @@ def remote_preprocess(chips):
     '''Helper method to run a local import stage for remote jobs.
     '''
 
-    # TODO: This is a bit hack-y, but necessary because the 'upload' method
-    # is called within an individual Chip.run() method.
-    # Store the IDs of all permutations which will run, so that the server can
-    # create database objects which mark the authenticated owner for those runs.
-    # This also assumes that all permutations have the same 'jobname'.
-    perm_ids = []
-    for chip in chips:
-        perm_ids.append(chip.get('jobid')[-1])
-    chips[-1].status['perm_ids'] = perm_ids
-
     # Run the local 'import' step.
     chips[-1].run(start='import', stop='import')
 
     # Clear the 'option' value, in case the import step is run again later.
     chips[-1].cfg['flow']['import']['option']['value'] = []
-    chips[-1].status['perm_ids'] = None
 
 ###################################
 def client_decrypt(chip):
@@ -186,7 +175,10 @@ async def request_remote_run(chip, stage):
                 'stage': stage,
             }
         else:
-            remote_run_url += "%s/%s"%(chip.status['job_hash'], stage)
+            post_params['params'] = {
+                'job_hash': chip.status['job_hash'],
+                'stage': stage,
+            }
 
         # Make the actual request.
         async with session.post(remote_run_url, json=post_params) as resp:
@@ -201,34 +193,28 @@ async def is_job_busy(chip, stage):
     '''
 
     async with aiohttp.ClientSession() as session:
+        # Set common parameters.
+        post_params = {
+            'job_hash': chip.status['job_hash'],
+            'job_id': chip.get('jobid')[-1],
+        }
+
+        # Set authentication parameters if necessary.
         if (len(chip.get('remote', 'user')) > 0) and (len(chip.get('remote', 'key')) > 0):
             with open(os.path.abspath(chip.cfg['remote']['key']['value'][-1]), 'rb') as f:
                 key = f.read()
             b64_key = base64.urlsafe_b64encode(key).decode()
-            post_params = {
-                'username': chip.get('remote', 'user')[-1],
-                'key': b64_key,
-                'job_hash': chip.status['job_hash'],
-                'job_id': chip.get('jobid')[-1],
-                'stage': stage,
-            }
-            async with session.post("http://%s:%s/check_progress/"%(
-                                    chip.cfg['remote']['addr']['value'][-1],
-                                    chip.cfg['remote']['port']['value'][-1]),
-                                    json=post_params) \
-            as resp:
-                response = await resp.text()
-                return (response != "Job has no running steps.")
-        else:
-            async with session.get("http://%s:%s/check_progress/%s/%s/%s"%(
-                                   chip.cfg['remote']['addr']['value'][-1],
-                                   chip.cfg['remote']['port']['value'][-1],
-                                   chip.status['job_hash'],
-                                   stage,
-                                   chip.cfg['jobid']['value'][-1])) \
-            as resp:
-                response = await resp.text()
-                return (response != "Job has no running steps.")
+            post_params['username'] = chip.get('remote', 'user')[-1]
+            post_params['key'] = b64_key
+
+        # Make the request and print its response.
+        async with session.post("http://%s:%s/check_progress/"%(
+                                chip.cfg['remote']['addr']['value'][-1],
+                                chip.cfg['remote']['port']['value'][-1]),
+                                json=post_params) \
+        as resp:
+            response = await resp.text()
+            return (response != "Job has no running steps.")
 
 ###################################
 async def delete_job(chip):
@@ -236,30 +222,27 @@ async def delete_job(chip):
     '''
 
     async with aiohttp.ClientSession() as session:
+        # Set common parameter.
+        post_params = {
+            'job_hash': chip.status['job_hash'],
+        }
+
+        # Set authentication parameters if necessary.
         if (len(chip.get('remote', 'user')) > 0) and (len(chip.get('remote', 'key')) > 0):
             with open(os.path.abspath(chip.cfg['remote']['key']['value'][-1]), 'rb') as f:
                 key = f.read()
             b64_key = base64.urlsafe_b64encode(key).decode()
-            post_params = {
-                'username': chip.get('remote', 'user')[-1],
-                'key': b64_key,
-                'job_hash': chip.status['job_hash'],
-            }
-            async with session.post("http://%s:%s/delete_job/"%(
-                                   chip.cfg['remote']['addr']['value'][-1],
-                                   chip.cfg['remote']['port']['value'][-1]),
-                                   json=post_params) \
-            as resp:
-                response = await resp.text()
-                return response
-        else:
-            async with session.get("http://%s:%s/delete_job/%s"%(
-                                   chip.cfg['remote']['addr']['value'][-1],
-                                   chip.cfg['remote']['port']['value'][-1],
-                                   chip.status['job_hash'])) \
-            as resp:
-                response = await resp.text()
-                return response
+            post_params['username'] = chip.get('remote', 'user')[-1]
+            post_params['key'] = b64_key
+
+        # Make the request.
+        async with session.post("http://%s:%s/delete_job/"%(
+                               chip.cfg['remote']['addr']['value'][-1],
+                               chip.cfg['remote']['port']['value'][-1]),
+                               json=post_params) \
+        as resp:
+            response = await resp.text()
+            return response
 
 ###################################
 async def upload_import_dir(chip):
@@ -268,6 +251,11 @@ async def upload_import_dir(chip):
     '''
 
     async with aiohttp.ClientSession() as session:
+        post_params = {
+            'job_hash': chip.status['job_hash'],
+            'job_name': chip.get('jobname')[-1],
+            'job_ids': chip.status['perm_ids'],
+        }
         if (len(chip.get('remote', 'user')) > 0) and (len(chip.get('remote', 'key')) > 0):
             # Encrypt the .zip archive with the user's public key.
             # Asymmetric key cryptography is good at signing values, but bad at
@@ -317,39 +305,31 @@ async def upload_import_dir(chip):
                 # Write out any remaining data; CTR mode does not require padding.
                 wf.write(encryptor.finalize())
 
-            # Upload the encrypted file, using the private key as authentication
-            # that the script is authorized to upload projects for the user.
+            # Set up encryption and authentication parameters in the request body.
             with open(os.path.abspath(chip.cfg['remote']['key']['value'][-1]), 'rb') as f:
                 key = f.read()
             b64_key = base64.urlsafe_b64encode(key).decode()
-            post_params = {
-                'username': chip.get('remote', 'user')[-1],
-                'key': b64_key,
-                'aes_key': base64.urlsafe_b64encode(aes_key_enc).decode(),
-                'aes_iv': base64.urlsafe_b64encode(aes_iv).decode(),
-                'job_hash': chip.status['job_hash'],
-                'job_name': chip.get('jobname')[-1],
-                'job_ids': chip.status['perm_ids'],
-                'new_hosts': int(chip.get('remote', 'hosts')[-1]),
-            }
-            with open(os.path.abspath('import.crypt'), 'rb') as f:
-                async with session.post("http://%s:%s/import/"%(
-                                            chip.cfg['remote']['addr']['value'][-1],
-                                            chip.cfg['remote']['port']['value'][-1]),
-                                        data={'import': f,
-                                              'params': json.dumps(post_params)}) \
-                as resp:
-                    print(await resp.text())
+            post_params['username'] = chip.get('remote', 'user')[-1]
+            post_params['key'] = b64_key
+            post_params['aes_key'] = base64.urlsafe_b64encode(aes_key_enc).decode()
+            post_params['aes_iv'] = base64.urlsafe_b64encode(aes_iv).decode()
+            post_params['new_hosts'] = int(chip.get('remote', 'hosts')[-1])
+            # Upload the encrypted file.
+            upload_file = os.path.abspath('import.crypt')
 
         else:
-            with open(os.path.abspath('import.zip'), 'rb') as f:
-                async with session.post("http://%s:%s/import/%s"%(
-                                            chip.cfg['remote']['addr']['value'][-1],
-                                            chip.cfg['remote']['port']['value'][-1],
-                                            chip.status['job_hash']),
-                                        data={'import': f}) \
-                as resp:
-                    print(await resp.text())
+            # No authorizaion configured; upload the unencrypted archive.
+            upload_file = os.path.abspath('import.zip')
+
+        # Make the 'import' API call and print the response.
+        with open(upload_file, 'rb') as f:
+            async with session.post("http://%s:%s/import/"%(
+                                        chip.cfg['remote']['addr']['value'][-1],
+                                        chip.cfg['remote']['port']['value'][-1]),
+                                    data={'import': f,
+                                          'params': json.dumps(post_params)}) \
+            as resp:
+                print(await resp.text())
 
 ###################################
 def upload_sources_to_cluster(chip):
@@ -384,8 +364,10 @@ async def fetch_results_request(chips):
     '''Helper method to fetch job results from a remote compute cluster.
     '''
 
-    job_hash = chips[-1].status['job_hash']
     async with aiohttp.ClientSession() as session:
+        job_hash = chips[-1].status['job_hash']
+
+        # Set authentication parameters if necessary.
         if (len(chips[-1].get('remote', 'user')) > 0) and (len(chips[-1].get('remote', 'key')) > 0):
             with open(os.path.abspath(chips[-1].cfg['remote']['key']['value'][-1]), 'rb') as f:
                 key = f.read()
@@ -393,35 +375,23 @@ async def fetch_results_request(chips):
             post_params = {
                 'username': chips[-1].get('remote', 'user')[-1],
                 'key': b64_key,
-                'job_hash': job_hash,
-                'job_id': chips[-1].get('jobid')[-1],
             }
-
-            # Make the web request, and stream the results archive in chunks.
-            with open('%s.zip'%job_hash, 'wb') as zipf:
-                async with session.post("http://%s:%s/get_results/"%(
-                                        chips[-1].cfg['remote']['addr']['value'][-1],
-                                        chips[-1].cfg['remote']['port']['value'][-1]),
-                                        json = post_params) \
-                as resp:
-                    while True:
-                        chunk = await resp.content.read(1024)
-                        if not chunk:
-                            break
-                        zipf.write(chunk)
         else:
-            # Make the web request, and stream the results archive in chunks.
-            with open('%s.zip'%job_hash, 'wb') as zipf:
-                async with session.get("http://%s:%s/get_results/%s.zip"%(
-                                        chips[-1].cfg['remote']['addr']['value'][-1],
-                                        chips[-1].cfg['remote']['port']['value'][-1],
-                                        job_hash)) \
-                as resp:
-                    while True:
-                        chunk = await resp.content.read(1024)
-                        if not chunk:
-                            break
-                        zipf.write(chunk)
+            post_params = {}
+
+        # Make the web request, and stream the results archive in chunks.
+        with open('%s.zip'%job_hash, 'wb') as zipf:
+            async with session.post("http://%s:%s/get_results/%s.zip"%(
+                                    chips[-1].cfg['remote']['addr']['value'][-1],
+                                    chips[-1].cfg['remote']['port']['value'][-1],
+                                    job_hash),
+                                    json = post_params) \
+            as resp:
+                while True:
+                    chunk = await resp.content.read(1024)
+                    if not chunk:
+                        break
+                    zipf.write(chunk)
 
 ###################################
 def fetch_results(chips):
