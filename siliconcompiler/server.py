@@ -48,7 +48,7 @@ class Server:
         self.app.add_routes([
             web.post('/remote_run/', self.handle_remote_run),
             web.post('/import/', self.handle_import),
-            web.get('/check_progress/{job_hash}/{stage}/{jobid}', self.handle_check_progress),
+            web.post('/check_progress/', self.handle_check_progress),
             web.get('/delete_job/{job_hash}', self.handle_delete_job),
         ])
         # TODO: Put zip files in a different directory.
@@ -203,22 +203,19 @@ class Server:
         It only returns a response containing a 'still running', 'done', or
         'not found' message. In the future, it can respond with up-to-date
         information about the job's progress and intermediary outputs.
-
         '''
 
-        # Retrieve the job hash to look for.
-        job_hash = request.match_info.get('job_hash', None)
-        if not job_hash:
+        # Retrieve the JSON parameters.
+        params = await request.json()
+        if not 'job_hash' in params:
             return web.Response(text="Error: no job hash provided.")
-        stage = request.match_info.get('stage', None)
-        if not stage:
-          return web.Response(text="Error: no stage provided.")
-        jobid = request.match_info.get('jobid', None)
-        if not jobid:
-          return web.Response(text="Error: no job ID provided.")
+        job_hash = params['job_hash']
+        if not 'job_id' in params:
+            return web.Response(text="Error: no job ID provided.")
+        jobid = params['job_id']
 
         # Determine if the job is running.
-        if "%s_%s_%s"%(job_hash, stage, jobid) in self.sc_jobs:
+        if "%s_%s"%(job_hash, jobid) in self.sc_jobs:
             return web.Response(text="Job is currently running on the cluster.")
         else:
             return web.Response(text="Job has no running steps.")
@@ -237,7 +234,7 @@ class Server:
             jobs_cfg = json.load(cfgf)
 
         # Mark the job hash as being busy.
-        self.sc_jobs["%s_%s_%s"%(job_hash, stage, jobid)] = 'busy'
+        self.sc_jobs["%s_%s"%(job_hash, jobid)] = 'busy'
 
         run_cmd = ''
         if self.cfg['cluster']['value'][-1] == 'slurm':
@@ -274,7 +271,7 @@ class Server:
                            cwd=self.cfg['nfsmount']['value'][-1])
 
         # Mark the job hash as being done.
-        self.sc_jobs.pop("%s_%s_%s"%(job_hash, stage, jobid))
+        self.sc_jobs.pop("%s_%s"%(job_hash, jobid))
 
     ####################
     def writecfg(self, filename, mode="all"):
