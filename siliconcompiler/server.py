@@ -8,6 +8,7 @@ import logging as log
 import os
 import subprocess
 import shutil
+import uuid
 
 class Server:
     """
@@ -45,8 +46,8 @@ class Server:
         # Create a minimal web server to process the 'remote_run' API call.
         self.app = web.Application()
         self.app.add_routes([
-            web.post('/remote_run/{job_hash}/{stage}', self.handle_remote_run),
-            web.post('/import/{job_hash}', self.handle_import),
+            web.post('/remote_run/', self.handle_remote_run),
+            web.post('/import/', self.handle_import),
             web.get('/check_progress/{job_hash}/{stage}/{jobid}', self.handle_check_progress),
             web.get('/delete_job/{job_hash}', self.handle_delete_job),
         ])
@@ -68,15 +69,16 @@ class Server:
 
         '''
 
-        # Retrieve JSON config into a dictionary.
+        # Retrieve JSON config from the request body.
         cfg = await request.json()
+        params = cfg['params']
         cfg = cfg['chip_cfg']
-        job_hash = request.match_info.get('job_hash', None)
-        if not job_hash:
+        if not 'job_hash' in params:
           return web.Response(text="Error: no job hash provided.")
-        stage = request.match_info.get('stage', None)
-        if not stage:
+        if not 'stage' in params:
           return web.Response(text="Error: no stage provided.")
+        job_hash = params['job_hash']
+        stage = params['stage']
 
         # Reset 'build' directory in NFS storage.
         build_dir = '%s/%s'%(self.cfg['nfsmount']['value'][-1], job_hash)
@@ -126,35 +128,36 @@ class Server:
         preparation for running a remote job stage.
 
         TODO: Infer file type from file extension. Currently only supports .zip
-
         '''
 
-        # Get the job hash value.
-        job_hash = request.match_info.get('job_hash', None)
-        if not job_hash:
-          return web.Response(text="Error: no job hash provided.")
-        job_root = '%s/%s'%(self.cfg['nfsmount']['value'][0], job_hash)
-
-        # Ensure that the build directory exists.
-        subprocess.run(['mkdir', '-p', job_root])
-
-        # Receive and write the archive file.
+        # Receive and parse the POST request body.
         reader = await request.multipart()
         while True:
             part = await reader.next()
             if part is None:
                 break
             if part.name == 'import':
-                # Receive and write the zipped 'import' directory.
-                with open('%s/import.zip'%(job_root), 'wb') as f:
+                # job hash may not be available yet; it's also sent in the body.
+                tmp_file = '/tmp/%s'%uuid.uuid4().hex
+                with open(tmp_file, 'wb') as f:
                     while True:
                         chunk = await part.read_chunk()
                         if not chunk:
                             break
                         f.write(chunk)
+            elif part.name == 'params':
+                # Get the job parameters.
+                job_params = await part.json()
+                # Get the job hash value.
+                if not 'job_hash' in job_params:
+                  return web.Response(text="Error: no job hash provided.")
+                job_hash = job_params['job_hash']
+                job_root = '%s/%s'%(self.cfg['nfsmount']['value'][0], job_hash)
+                # Ensure that the required directories exists.
+                subprocess.run(['mkdir', '-p', '%s/import'%job_root])
 
-        # Un-zip the archive file.
-        subprocess.run(['mkdir', '-p', '%s/import'%job_root])
+        # Move the uploaded archive to the correct location and un-zip it.
+        os.replace(tmp_file, '%s/import.zip'%job_root)
         subprocess.run(['unzip', '-o', '%s/import.zip'%(job_root)], cwd='%s/import'%job_root)
 
         # Done.
