@@ -2650,11 +2650,10 @@ def schema_remote(cfg):
         'example': ["cli: -remote_ram 16",
                     "api: chip.add('remote', 'ram', '16')"],
         'help' : """
-        Sets how much RAM each temporary host should have. Depending on what
-        types of hosts the cloud vendor has, the script may request up to
-        one power of two above the given amount, if it is not a power of two.
-        For example, requesting 10GiB of RAM may allocate hosts with up to
-        16GiB, but requesting 8GiB will not.
+        Sets how much RAM each temporary host should have. If the given value
+        is not a power of two, the script may request up to one power of two
+        above the given amount. For example, requesting 10GiB of RAM may allocate
+        hosts with up to 16GiB, but requesting 8GiB will not.
         An error may be returned if no hosts can meet the given specifications.
         """
     }
@@ -2674,6 +2673,9 @@ def schema_remote(cfg):
         Sets how many 'virtual CPUs' each temporary host should have. The
         definition of a vCPU depends on the cloud vendor and host type, but they
         are more likely to represent hardware threads than physical CPU cores.
+        If the given value is not a power of two, the script may request
+        up to one power of two above the given amount. For example, requesting
+        hosts with 6 vCPUs may allocate up to 8 vCPUS, but requesting 4 will not.
         An error may be returned if no hosts can meet the given specifications.
         """
     }
