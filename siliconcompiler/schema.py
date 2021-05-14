@@ -2659,20 +2659,20 @@ def schema_remote(cfg):
     }
 
     # Number of 'virtual CPUs' to request in a remote host.
-    cfg['remote']['vcpus'] = {
-        'switch': '-remote_vcpus',
+    cfg['remote']['threads'] = {
+        'switch': '-remote_threads',
         'type' : 'num',
         'lock' : 'false',
         'requirement' : 'remote',
         'defvalue' : [],
-        'short_help': 'Number of virtual CPUs to request in a remote host.',
-        'param_help' : "'remote' 'vcpus' <num>",
-        'example': ["cli: -remote_vcpus 4",
-                    "api: chip.add('remote', 'vcpus', '4')"],
+        'short_help': 'Number of harts to request in each remote host.',
+        'param_help' : "'remote' 'threads' <num>",
+        'example': ["cli: -remote_threads 4",
+                    "api: chip.add('remote', 'threads', '4')"],
         'help' : """
-        Sets how many 'virtual CPUs' each temporary host should have. The
-        definition of a vCPU depends on the cloud vendor and host type, but they
-        are more likely to represent hardware threads than physical CPU cores.
+        Sets how many hardware threads each temporary host should have.
+        Threads are the most common metric, but depending on the cloud hosting
+        provider, this parameter may allocate physical CPU cores in some cases.
         If the given value is not a power of two, the script may request
         up to one power of two above the given amount. For example, requesting
         hosts with 6 vCPUs may allocate up to 8 vCPUS, but requesting 4 will not.
