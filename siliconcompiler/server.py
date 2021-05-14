@@ -50,12 +50,12 @@ class Server:
             web.post('/import/', self.handle_import),
             web.post('/check_progress/', self.handle_check_progress),
             web.post('/delete_job/', self.handle_delete_job),
+            web.post('/get_results/{job_hash}.zip', self.handle_get_results),
         ])
         # TODO: Put zip files in a different directory.
-        # And for security reasons, this is not a good public-facing solution.
+        # For security reasons, this is not a good public-facing solution.
         # There's no access control on which files can be downloaded.
-        # As discussed, a focus on security and access controls will
-        # require a more mature server framework based on e.g. apache/nginx/etc.
+        # But this is an example server which only implements a minimal API.
         self.app.router.add_static('/get_results/', self.cfg['nfsmount']['value'][0])
 
         # Start the async server.
@@ -162,6 +162,21 @@ class Server:
 
         # Done.
         return web.Response(text="Successfully imported project %s."%job_hash)
+
+    ####################
+    async def handle_get_results(self, request):
+        '''
+        API handler to redirect 'get_results' POST calls.
+
+        '''
+
+        # Retrieve the job hash.
+        job_hash = request.match_info.get('job_hash', None)
+        if not job_hash:
+            return web.Response(text="Error: no job hash provided.")
+
+        # Redirect to the same URL, but with a GET request.
+        return web.HTTPFound(request.url)
 
     ####################
     async def handle_delete_job(self, request):

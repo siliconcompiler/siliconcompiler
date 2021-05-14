@@ -364,8 +364,10 @@ async def fetch_results_request(chips):
     '''Helper method to fetch job results from a remote compute cluster.
     '''
 
-    job_hash = chips[-1].status['job_hash']
     async with aiohttp.ClientSession() as session:
+        job_hash = chips[-1].status['job_hash']
+
+        # Set authentication parameters if necessary.
         if (len(chips[-1].get('remote', 'user')) > 0) and (len(chips[-1].get('remote', 'key')) > 0):
             with open(os.path.abspath(chips[-1].cfg['remote']['key']['value'][-1]), 'rb') as f:
                 key = f.read()
@@ -373,35 +375,23 @@ async def fetch_results_request(chips):
             post_params = {
                 'username': chips[-1].get('remote', 'user')[-1],
                 'key': b64_key,
-                'job_hash': job_hash,
-                'job_id': chips[-1].get('jobid')[-1],
             }
-
-            # Make the web request, and stream the results archive in chunks.
-            with open('%s.zip'%job_hash, 'wb') as zipf:
-                async with session.post("http://%s:%s/get_results/"%(
-                                        chips[-1].cfg['remote']['addr']['value'][-1],
-                                        chips[-1].cfg['remote']['port']['value'][-1]),
-                                        json = post_params) \
-                as resp:
-                    while True:
-                        chunk = await resp.content.read(1024)
-                        if not chunk:
-                            break
-                        zipf.write(chunk)
         else:
-            # Make the web request, and stream the results archive in chunks.
-            with open('%s.zip'%job_hash, 'wb') as zipf:
-                async with session.get("http://%s:%s/get_results/%s.zip"%(
-                                        chips[-1].cfg['remote']['addr']['value'][-1],
-                                        chips[-1].cfg['remote']['port']['value'][-1],
-                                        job_hash)) \
-                as resp:
-                    while True:
-                        chunk = await resp.content.read(1024)
-                        if not chunk:
-                            break
-                        zipf.write(chunk)
+            post_params = {}
+
+        # Make the web request, and stream the results archive in chunks.
+        with open('%s.zip'%job_hash, 'wb') as zipf:
+            async with session.post("http://%s:%s/get_results/%s.zip"%(
+                                    chips[-1].cfg['remote']['addr']['value'][-1],
+                                    chips[-1].cfg['remote']['port']['value'][-1],
+                                    job_hash),
+                                    json = post_params) \
+            as resp:
+                while True:
+                    chunk = await resp.content.read(1024)
+                    if not chunk:
+                        break
+                    zipf.write(chunk)
 
 ###################################
 def fetch_results(chips):
