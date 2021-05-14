@@ -18,22 +18,11 @@ def remote_preprocess(chips):
     '''Helper method to run a local import stage for remote jobs.
     '''
 
-    # TODO: This is a bit hack-y, but necessary because the 'upload' method
-    # is called within an individual Chip.run() method.
-    # Store the IDs of all permutations which will run, so that the server can
-    # create database objects which mark the authenticated owner for those runs.
-    # This also assumes that all permutations have the same 'jobname'.
-    perm_ids = []
-    for chip in chips:
-        perm_ids.append(chip.get('jobid')[-1])
-    chips[-1].status['perm_ids'] = perm_ids
-
     # Run the local 'import' step.
     chips[-1].run(start='import', stop='import')
 
     # Clear the 'option' value, in case the import step is run again later.
     chips[-1].cfg['flow']['import']['option']['value'] = []
-    chips[-1].status['perm_ids'] = None
 
 ###################################
 def client_decrypt(chip):
@@ -186,7 +175,10 @@ async def request_remote_run(chip, stage):
                 'stage': stage,
             }
         else:
-            remote_run_url += "%s/%s"%(chip.status['job_hash'], stage)
+            post_params['params'] = {
+                'job_hash': chip.status['job_hash'],
+                'stage': stage,
+            }
 
         # Make the actual request.
         async with session.post(remote_run_url, json=post_params) as resp:
@@ -268,6 +260,11 @@ async def upload_import_dir(chip):
     '''
 
     async with aiohttp.ClientSession() as session:
+        post_params = {
+            'job_hash': chip.status['job_hash'],
+            'job_name': chip.get('jobname')[-1],
+            'job_ids': chip.status['perm_ids'],
+        }
         if (len(chip.get('remote', 'user')) > 0) and (len(chip.get('remote', 'key')) > 0):
             # Encrypt the .zip archive with the user's public key.
             # Asymmetric key cryptography is good at signing values, but bad at
@@ -317,39 +314,31 @@ async def upload_import_dir(chip):
                 # Write out any remaining data; CTR mode does not require padding.
                 wf.write(encryptor.finalize())
 
-            # Upload the encrypted file, using the private key as authentication
-            # that the script is authorized to upload projects for the user.
+            # Set up encryption and authentication parameters in the request body.
             with open(os.path.abspath(chip.cfg['remote']['key']['value'][-1]), 'rb') as f:
                 key = f.read()
             b64_key = base64.urlsafe_b64encode(key).decode()
-            post_params = {
-                'username': chip.get('remote', 'user')[-1],
-                'key': b64_key,
-                'aes_key': base64.urlsafe_b64encode(aes_key_enc).decode(),
-                'aes_iv': base64.urlsafe_b64encode(aes_iv).decode(),
-                'job_hash': chip.status['job_hash'],
-                'job_name': chip.get('jobname')[-1],
-                'job_ids': chip.status['perm_ids'],
-                'new_hosts': int(chip.get('remote', 'hosts')[-1]),
-            }
-            with open(os.path.abspath('import.crypt'), 'rb') as f:
-                async with session.post("http://%s:%s/import/"%(
-                                            chip.cfg['remote']['addr']['value'][-1],
-                                            chip.cfg['remote']['port']['value'][-1]),
-                                        data={'import': f,
-                                              'params': json.dumps(post_params)}) \
-                as resp:
-                    print(await resp.text())
+            post_params['username'] = chip.get('remote', 'user')[-1]
+            post_params['key'] = b64_key
+            post_params['aes_key'] = base64.urlsafe_b64encode(aes_key_enc).decode()
+            post_params['aes_iv'] = base64.urlsafe_b64encode(aes_iv).decode()
+            post_params['new_hosts'] = int(chip.get('remote', 'hosts')[-1])
+            # Upload the encrypted file.
+            upload_file = os.path.abspath('import.crypt')
 
         else:
-            with open(os.path.abspath('import.zip'), 'rb') as f:
-                async with session.post("http://%s:%s/import/%s"%(
-                                            chip.cfg['remote']['addr']['value'][-1],
-                                            chip.cfg['remote']['port']['value'][-1],
-                                            chip.status['job_hash']),
-                                        data={'import': f}) \
-                as resp:
-                    print(await resp.text())
+            # No authorizaion configured; upload the unencrypted archive.
+            upload_file = os.path.abspath('import.zip')
+
+        # Make the 'import' API call and print the response.
+        with open(upload_file, 'rb') as f:
+            async with session.post("http://%s:%s/import/"%(
+                                        chip.cfg['remote']['addr']['value'][-1],
+                                        chip.cfg['remote']['port']['value'][-1]),
+                                    data={'import': f,
+                                          'params': json.dumps(post_params)}) \
+            as resp:
+                print(await resp.text())
 
 ###################################
 def upload_sources_to_cluster(chip):

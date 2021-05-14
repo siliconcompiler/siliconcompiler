@@ -1272,6 +1272,7 @@ def get_permutations(base_chip, cmdlinecfg):
     base_chip.set_jobid()
     cur_jobid = base_chip.get('jobid')[-1]
     base_chip.cfg['jobid']['value'] = []
+    perm_ids = []
 
     # Create a new Chip object with the same job hash for each permutation.
     for chip_cfg in perms:
@@ -1294,9 +1295,14 @@ def get_permutations(base_chip, cmdlinecfg):
 
         # Set and increment the "job ID" so multiple chips don't share the same directory.
         new_chip.set('jobid', cur_jobid)
+        perm_ids.append(cur_jobid)
         cur_jobid = str(int(cur_jobid) + 1)
 
         chips.append(new_chip)
+
+    # Mark permutations associated with the job in each Chip object.
+    for chip in chips:
+        chip.status['perm_ids'] = perm_ids
 
     # Done; return the list of Chips.
     return chips
