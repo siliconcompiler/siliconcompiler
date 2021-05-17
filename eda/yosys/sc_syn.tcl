@@ -74,6 +74,7 @@ if {$mode eq "asic"} {
 
     yosys write_verilog -noattr -noexpr -nohex -nodec $output_verilog
     yosys write_blif $output_blif
+    file copy $input_sdc $output_sdc
 } else {
     # FPGA mode
     set targetlist [split $target "_"]

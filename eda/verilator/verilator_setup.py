@@ -126,5 +126,17 @@ def post_process(chip, step):
     subprocess.run("cp verilator.sv " + "outputs/" + topmodule + ".sv",
                    shell=True)
 
-
+    # Get the original working directory where the script was run from.
+    orig_dir = os.environ['SCPATH'].split(':')[-1] + '/'
+    # Concatenate the constraints files into the 'outputs/' directory.
+    with open('outputs/' + topmodule + '.sdc', 'w') as sdcfile:
+        for constraints_file in chip.cfg['constraint']['value']:
+            # If the path is relative, it should account for the chdir into
+            # the job's build directories.
+            if constraints_file[0] != '/':
+                constraints_file = os.path.abspath(orig_dir + constraints_file)
+                with open(constraints_file, 'r') as sdc_in:
+                    sdcfile.write('# ' + constraints_file[constraints_file.rfind('/')+1:] + '\n')
+                    sdcfile.write(sdc_in.read())
+                    sdcfile.write('\n')
 
