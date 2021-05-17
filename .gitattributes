@@ -1,3 +1,4 @@
 *.v			linguist-language=Verilog
 *.vh			linguist-language=Verilog
 asic/virtual/**		linguist-vendored
+eda/openroad/sc_apr.tcl	diff
