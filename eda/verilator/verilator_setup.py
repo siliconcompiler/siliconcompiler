@@ -135,8 +135,8 @@ def post_process(chip, step):
             # the job's build directories.
             if constraints_file[0] != '/':
                 constraints_file = os.path.abspath(orig_dir + constraints_file)
-                with open(constraints_file, 'r') as sdc_in:
-                    sdcfile.write('# ' + constraints_file[constraints_file.rfind('/')+1:] + '\n')
-                    sdcfile.write(sdc_in.read())
-                    sdcfile.write('\n')
+            with open(constraints_file, 'r') as sdc_in:
+                sdcfile.write('# ' + constraints_file[constraints_file.rfind('/')+1:] + '\n')
+                sdcfile.write(sdc_in.read())
+                sdcfile.write('\n')
 
