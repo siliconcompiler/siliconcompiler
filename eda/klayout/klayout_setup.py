@@ -49,8 +49,6 @@ def setup_options(chip,step):
           chip.cfg['target']['value'][-1])
 
      if step == 'export':
-          options.append('-nn')
-          options.append(tech_file)
           options.append('-rd')
           options.append('design_name=%s'%(
                chip.cfg['design']['value'][-1]))
@@ -58,20 +56,22 @@ def setup_options(chip,step):
           options.append('in_def=inputs/%s.def'%(
                chip.cfg['design']['value'][-1]))
           options.append('-rd')
-          options.append('seal_gds=""')
+          options.append('seal_file=""')
           options.append('-rd')
-          options.append('in_gds=%s/%s'%(
+          options.append('in_files=%s/%s'%(
                sc_root,
                chip.cfg['stdcell'][libname]['gds']['value'][-1]))
           options.append('-rd')
-          options.append('out_gds=outputs/%s.gds'%(
+          options.append('out_file=outputs/%s.gds'%(
                chip.cfg['design']['value'][-1]))
           options.append('-rd')
           options.append('tech_file=%s'%tech_file)
           options.append('-rd')
+          options.append('config_file=""')
+          options.append('-rd')
           options.append('foundry_lefs=%s'%lefs_path)
           options.append('-rm')
-          options.append('def2gds.py')
+          options.append('def2stream.py')
 
      return options
 
