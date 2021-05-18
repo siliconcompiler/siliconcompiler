@@ -8,10 +8,12 @@ from cryptography.hazmat.primitives import hashes, serialization
 import aiohttp
 import asyncio
 import base64
+import math
 import json
 import os
 import shutil
 import subprocess
+import sys
 
 ###################################
 def remote_preprocess(chips):
@@ -124,6 +126,61 @@ def client_encrypt(chip):
     # Delete decrypted data.
     shutil.rmtree('%s/%s/%s'%(root_dir, chip.get('design')[-1], job_nameid))
     os.remove('%s/%s.zip'%(root_dir, job_nameid))
+
+###################################
+def get_remote_hostclass(chip):
+    '''Helper method to find a cloud hostclass that matches the given settings.
+       If the 'threads' and 'ram' options are both provided, a suitable host
+       will be chosen with values up to one power of two above the requested
+       ones. Requesting 8GiB of RAM will only look for hosts with 8GiB,
+       but requesting 10GiB would look for hosts in the range of 10-16GiB.
+       If only one parameter is provided, a host will be chosen with the
+       smallest available value for the other parameter.
+       If neither parameter is provided, the smallest host type will be used.
+    '''
+
+    # Define a matrix of available host configurations.
+    # TODO: Import from a JSON file?
+    # TODO: Use a newer line of AWS hosts. m4, c5, r5, or even t3 could work.
+    hosts = {
+        't2.small': {'ram': 2, 'threads': 1},
+        't2.medium': {'ram': 4, 'threads': 2},
+        't2.large': {'ram': 8, 'threads': 2},
+        't2.xlarge': {'ram': 16, 'threads': 4},
+        't2.2xlarge': {'ram': 32, 'threads': 8},
+    }
+
+    # Set min/max parameters from the chip config, with default fallbacks.
+    if len(chip.get('remote', 'ram')) > 0:
+        ram_min = int(chip.get('remote', 'ram')[-1])
+        ram_max = math.pow(2, int(math.log2(ram_min)))
+    else:
+        ram_min = 2
+        ram_max = 32
+    if len(chip.get('remote', 'threads')) > 0:
+        threads_min = int(chip.get('remote', 'threads')[-1])
+        threads_max = math.pow(2, int(math.log2(threads_min)))
+    else:
+        threads_min = 1
+        threads_max = 8
+
+    # Pick the smallest host that matches the given configs.
+    # Prioritise threads when comparing.
+    cur_host = ''
+    for host_key, host in hosts.items():
+        # Does the host match the requested configuration?
+        if (host['ram'] >= ram_min) and (host['ram'] <= ram_max) and \
+           (host['threads'] >= threads_min) and (host['threads'] <= threads_max):
+            # Is the host smaller than the current host (if any)?
+            if (cur_host == '') or \
+               (hosts[cur_host]['threads'] < host['threads']) or \
+               ((hosts[cur_host]['threads'] == host['threads']) and \
+                (hosts[cur_host]['ram'] < host['ram'])):
+                # If so, mark the current host type as the smallest so far.
+                cur_host = host_key
+
+    # Done, return the generated host type.
+    return cur_host
 
 ###################################
 async def remote_run(chip, stage):
@@ -313,7 +370,13 @@ async def upload_import_dir(chip):
             post_params['key'] = b64_key
             post_params['aes_key'] = base64.urlsafe_b64encode(aes_key_enc).decode()
             post_params['aes_iv'] = base64.urlsafe_b64encode(aes_iv).decode()
-            post_params['new_hosts'] = int(chip.get('remote', 'hosts')[-1])
+            num_temp_hosts = int(chip.get('remote', 'hosts')[-1])
+            if num_temp_hosts > 0:
+                post_params['new_hosts'] = num_temp_hosts
+                post_params['new_host_type'] = get_remote_hostclass(chip)
+                if not post_params['new_host_type']:
+                    chip.logger.error('Unable to find a cloud host type matching the requested configuration.')
+                    sys.exit(1)
             # Upload the encrypted file.
             upload_file = os.path.abspath('import.crypt')
 
