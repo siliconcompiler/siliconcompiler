@@ -1,7 +1,7 @@
 # KLayout script to export a .GDS file from a .DEF-formatted design.
 #
 # Source: The OpenROAD Project.
-# https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/blob/master/flow/util/def2gds.py
+# https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/blob/master/flow/util/def2stream.py
 #
 # License: BSD 3-Clause.
 #
@@ -37,7 +37,6 @@ import pya
 import re
 import json
 import copy
-import os
 
 # Expand layers in json
 def expand_cfg_layers(cfg):
@@ -128,10 +127,6 @@ def read_fills(top):
         if m:
           units = float(m.group(1))
 
-#print('---')
-#print(os.getcwd())
-#print('---')
-
 # Load technology file
 tech = pya.Technology()
 tech.load(tech_file)
@@ -143,13 +138,10 @@ for fn in layoutOptions.lefdef_config.lef_files:
   else:
     pathed_files.append(fn)
 layoutOptions.lefdef_config.lef_files = pathed_files
-#print(layoutOptions.lefdef_config.lef_files)
 
 # Load def file
-config_file = ''
 main_layout = pya.Layout()
 main_layout.read(in_def, layoutOptions)
-#main_layout.read(in_def)
 
 # Clear cells
 top_cell_index = main_layout.cell(design_name).cell_index()
@@ -157,15 +149,14 @@ top_cell_index = main_layout.cell(design_name).cell_index()
 print("[INFO] Clearing cells...")
 for i in main_layout.each_cell():
   if i.cell_index() != top_cell_index:
-    if not i.name.startswith("VIA"):
-      #print("\t" + i.name)
+    if i.parent_cells() == 0:
       i.clear()
 
 # Load in the gds to merge
-print("[INFO] Merging GDS files...")
-for gds in in_gds.split():
-  print("\t{0}".format(gds))
-  main_layout.read(gds)
+print("[INFO] Merging GDS/OAS files...")
+for fil in in_files.split():
+  print("\t{0}".format(fil))
+  main_layout.read(fil)
 
 # Copy the top level only to a new layout
 print("[INFO] Copying toplevel cell '{0}'".format(design_name))
@@ -176,23 +167,23 @@ top.copy_tree(main_layout.cell(design_name))
 
 read_fills(top)
 
-print("[INFO] Checking for missing GDS...")
-missing_gds = False
+print("[INFO] Checking for missing GDS/OAS...")
+missing_cell = False
 for i in top_only_layout.each_cell():
   if i.is_empty():
-    missing_gds = True
-    print("[ERROR] LEF Cell '{0}' has no matching GDS cell. Cell will be empty".format(i.name))
+    missing_cell = True
+    print("[ERROR] LEF Cell '{0}' has no matching GDS/OAS cell. Cell will be empty".format(i.name))
 
-if not missing_gds:
-  print("[INFO] All LEF cells have matching GDS cells")
+if not missing_cell:
+  print("[INFO] All LEF cells have matching GDS/OAS cells")
 
-if seal_gds:
+if seal_file:
 
   top_cell = top_only_layout.top_cell()
 
-  print("[INFO] Reading seal GDS file...")
-  print("\t{0}".format(seal_gds))
-  top_only_layout.read(seal_gds)
+  print("[INFO] Reading seal GDS/OAS file...")
+  print("\t{0}".format(seal_file))
+  top_only_layout.read(seal_file)
 
   for cell in top_only_layout.top_cells():
     if cell != top_cell:
@@ -200,5 +191,5 @@ if seal_gds:
       top.insert(pya.CellInstArray(cell.cell_index(), pya.Trans()))
 
 # Write out the GDS
-print("[INFO] Writing out GDS '{0}'".format(out_gds))
-top_only_layout.write(out_gds)
+print("[INFO] Writing out GDS/OAS '{0}'".format(out_file))
+top_only_layout.write(out_file)
