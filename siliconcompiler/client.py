@@ -168,12 +168,15 @@ def get_remote_hostclass(chip):
     # Prioritise threads when comparing.
     cur_host = ''
     for host_key, host in hosts.items():
+        # Does the host match the requested configuration?
         if (host['ram'] >= ram_min) and (host['ram'] <= ram_max) and \
            (host['threads'] >= threads_min) and (host['threads'] <= threads_max):
+            # Is the host smaller than the current host (if any)?
             if (cur_host == '') or \
                (hosts[cur_host]['threads'] < host['threads']) or \
                ((hosts[cur_host]['threads'] == host['threads']) and \
                 (hosts[cur_host]['ram'] < host['ram'])):
+                # If so, mark the current host type as the smallest so far.
                 cur_host = host_key
 
     # Done, return the generated host type.
