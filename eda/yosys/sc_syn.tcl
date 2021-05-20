@@ -30,7 +30,12 @@ yosys read_verilog -sv $input_verilog
 if {$mode eq "asic"} {
     set targetlib   [dict get $sc_cfg asic targetlib]
     #TODO: fix to handle multiple libraries
-    set library_file [dict get $sc_cfg stdcell $targetlib model typical nldm lib]
+    if {$target eq "skywater130"} {
+        # TODO: hack, we use separate synth library for Skywater
+        set library_file [dict get $sc_cfg stdcell $targetlib model typical nldm lib_synth]
+    } else {
+        set library_file [dict get $sc_cfg stdcell $targetlib model typical nldm lib]
+    }
 
     #Outputs
     set output_verilog  "outputs/$topmodule.v"
