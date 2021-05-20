@@ -11,10 +11,10 @@ def test_gcd_local_py():
     chip = siliconcompiler.Chip(loglevel='NOTSET')
 
     # Inserting value into configuration
-    chip.add('source', 'examples/gcd/gcd.v')
+    chip.add('source', '../examples/gcd/gcd.v')
     chip.add('design', 'gcd')
     chip.add('clock', 'clock_name', 'pin', 'clk')
-    chip.add('constraint', "examples/gcd/constraint.sdc")
+    chip.add('constraint', "../examples/gcd/constraint.sdc")
     chip.set('target', "freepdk45")
     chip.set('asic', 'diesize', "0 0 100.13 100.8")
     chip.set('asic', 'coresize', "10.07 11.2 90.25 91")
