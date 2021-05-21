@@ -722,7 +722,7 @@ class Chip:
         while True:
             busy = False
             for step in steplist:
-                if schema_istrue(self.cfg['status'][step]['active']):
+                if schema_istrue(self.cfg['status'][step]['active']['value']):
                     self.logger.info("Step '%s' is still active", step)
                     busy = True
             if busy:
@@ -731,6 +731,36 @@ class Chip:
                 time.sleep(10)
             else:
                 break
+
+
+    ###########################################################################
+    def package(self, dir='output'):
+        '''
+        Collects all files and places them in 'dir'. The function only copies
+        in files that have the 'copy' field set as true. If 'copyall' is
+        set to true, then all files are copied in.
+
+        Args:
+           dir (dirname): Directory name to copy files to.
+
+        Examples:
+            >>> getkeys(dir='output')
+            Copys files called out in schema to directory named 'output;
+        '''
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+        allkeys = self.getkeys()
+        copyall = self.get('copyall')
+        for key in allkeys:
+            leaftype = self._search(self.cfg, *key, mode='get', field='type')
+            if leaftype == 'file':
+                copy = self._search(self.cfg, *key, mode='get', field='copy')
+                value = self._search(self.cfg, *key, mode='get', field='value')
+                if schema_istrue(self.cfg['copyall']['value']) | (copy == 'true'):
+                    for item in value:
+                        filepath = schema_path(item)
+                        shutil.copy(filepath, dir)
+                
     ###########################################################################
     def hash(self, cfg=None):
         '''Rescursive function that computes the hash values for files in the
@@ -1109,9 +1139,9 @@ class Chip:
                 os.chdir(stepdir)
                 os.makedirs('outputs', exist_ok=True)
                 os.makedirs('reports', exist_ok=True)
-                # First stage after import always copies from same place
-                if stepindex == 0:
-                    pass
+                # All steps after import copy in files from previous step
+                if importstep:
+                    self.package(dir='outputs')
                 elif not remote:
                     shutil.copytree("../"+laststep+"/outputs", 'inputs')
 
@@ -1154,7 +1184,7 @@ class Chip:
                 #Piping to log file
                 logfile = exe + ".log"
 
-                if (schema_istrue(self.cfg['quiet']['value'])) & (step not in self.cfg['bkpt']['value']):
+                if schema_istrue(self.cfg['quiet']['value']) & (step not in self.cfg['bkpt']['value']):
                     cmd_fields.append("> " + logfile)
                 else:
                     cmd_fields.append(" 2>&1 | tee " + logfile)
@@ -1232,7 +1262,7 @@ class Chip:
         
         try:
             alljobs = os.listdir(dirname + "/" + design)
-            if schema_istrue(self.cfg['jobincr']):
+            if schema_istrue(self.cfg['jobincr']['value']):
                 jobid = 0
                 for item in alljobs:
                     m = re.match(jobname+'(\d+)', item)

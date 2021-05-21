@@ -2,13 +2,11 @@
 
 # KLayout script to export a GDS file as an SVG.
 
+import math
 import pya
 
-# Read data from the GDS file, using the default KLayout colors/etc.
-win = pya.Application.instance().main_window()
-lm = win.load_layout('outputs/' + design_name + '.gds', 0)
-ly = lm.layout()
-lv = win.current_view()
+# Read data from the previously-generated GDS structure.
+ly = top_only_layout
 cell = ly.cell(design_name)
 bb = cell.bbox()
 # Actual scale is micrometers: (DB units / 1000.0).
@@ -17,6 +15,20 @@ dbu = ly.dbu * 2.0
 bb_h = bb.height() * dbu
 bb_w = bb.width() * dbu
 ctrans = pya.CplxTrans(1.0, 0.0, True, -bb.left, bb.top)
+
+# Set a basic layer-colors array, since we won't have a KLayout QT display.
+# Use the cube root of the number of layers to find how many colors are needed.
+num_pri_cols = math.ceil(math.pow(ly.layers(), 1/3))
+col_step = int(0xff / num_pri_cols)
+primary_vals = []
+for c in range(col_step, 0x100, col_step):
+    primary_vals.append(c)
+colors = []
+for r in primary_vals:
+    for g in primary_vals:
+        for b in primary_vals:
+            # Use 25% opacity on all layers for now.
+            colors.append((r <<  24) | (g << 16) | (b << 8) | 0x40)
 
 # Write out an SVG file containing all polygons from the GDS layers.
 with open('outputs/' + design_name + '.svg', 'w') as svg:
@@ -32,18 +44,8 @@ with open('outputs/' + design_name + '.svg', 'w') as svg:
 
     # Write all relevant paths.
     for layer in range(ly.layers()):
-        # Get layer properties.
-        lp = None
-        lpi = lv.begin_layers()
-        while not lpi.at_end():
-            if lpi.current().layer_index() == layer:
-                lp = lpi.current()
-                break
-            lpi = lpi.next()
-        # TODO: I'm not sure if this RGBA format is right; I like the pastel
-        # sunset colors that it comes up with, but they are different from
-        # the usual KLayout color schemes.
-        fill_color = '%X'%lp.fill_color
+        # Set the fill color for this layer.
+        fill_color = "%X"%colors[layer]
 
         # Using <g> ('group') tags should let us write a viewer which can
         # selectively show and hide different GDS layers.
@@ -84,7 +86,6 @@ with open('outputs/' + design_name + '.svg', 'w') as svg:
         svg.write('  </g>\n\n')
 
     # Done.
-    svg.write('</svg>')
+    svg.write('</svg>\n')
 
 print('Done!')
-win.close_all()

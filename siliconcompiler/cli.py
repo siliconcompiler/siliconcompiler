@@ -227,7 +227,9 @@ def main():
 
     ascii_banner = pyfiglet.figlet_format("Silicon Compiler")
     print(ascii_banner)
-
+    #TODO: parse authors list file, leaving this here as reminder
+    print("-"*80)
+    print("Authors: Andreas Olofsson, William Ransohoff, Noah Moroze\n")
     #Command line inputs, read once
     cmdlinecfg = cmdline()
     
