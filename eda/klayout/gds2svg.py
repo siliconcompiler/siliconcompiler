@@ -2,6 +2,7 @@
 
 # KLayout script to export a GDS file as an SVG.
 
+import math
 import pya
 
 # Read data from the previously-generated GDS structure.
@@ -16,7 +17,12 @@ bb_w = bb.width() * dbu
 ctrans = pya.CplxTrans(1.0, 0.0, True, -bb.left, bb.top)
 
 # Set a basic layer-colors array, since we won't have a KLayout QT display.
-primary_vals = [0x44, 0x88, 0xcc, 0xff]
+# Use the cube root of the number of layers to find how many colors are needed.
+num_pri_cols = math.ceil(math.pow(ly.layers(), 1/3))
+col_step = int(0xff / num_pri_cols)
+primary_vals = []
+for c in range(col_step, 0x100, col_step):
+    primary_vals.append(c)
 colors = []
 for r in primary_vals:
     for g in primary_vals:
@@ -37,11 +43,9 @@ with open('outputs/' + design_name + '.svg', 'w') as svg:
               'version="1.1">\n'%(bb_w, bb_h, bb_w, bb_h))
 
     # Write all relevant paths.
-    lind = 0
     for layer in range(ly.layers()):
-        # Set the fill color for this layer. (Layer IDs aren't always contiguous)
-        fill_color = "%X"%colors[lind]
-        lind += 1
+        # Set the fill color for this layer.
+        fill_color = "%X"%colors[layer]
 
         # Using <g> ('group') tags should let us write a viewer which can
         # selectively show and hide different GDS layers.
