@@ -1313,6 +1313,12 @@ def get_permutations(base_chip, cmdlinecfg):
         new_chip.status = json.loads(json.dumps(base_chip.status))
         new_chip.cfg = json.loads(json.dumps(chip_cfg))
 
+        # Set values for the new Chip's PDK/target if necessary.
+        # For now, simply check whether a process and node are already defined.
+        if (len(new_chip.get('pdk', 'process')) == 0) or \
+           (len(new_chip.get('pdk', 'node')) == 0):
+            new_chip.target()
+
         # Skip the 'import' stage for remote jobs; it will be run locally and uploaded.
         if len(new_chip.get('remote', 'addr')) > 0:
             new_chip.set('start', new_chip.get('remote', 'start')[-1])
@@ -1327,9 +1333,6 @@ def get_permutations(base_chip, cmdlinecfg):
         new_chip.set('jobid', cur_jobid)
         perm_ids.append(cur_jobid)
         cur_jobid = str(int(cur_jobid) + 1)
-
-        # Set the new Chip's PDK/etc settings.
-        new_chip.target()
 
         chips.append(new_chip)
 
