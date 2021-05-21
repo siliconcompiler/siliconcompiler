@@ -49,6 +49,8 @@ def setup_options(chip,step):
      tech_file = '%s/setup/klayout/%s.lyt'%(
           foundry_path,
           chip.cfg['target']['value'][-1])
+     config_file = '%s/setup/klayout/fill.json'%(
+          foundry_path)
 
      if step == 'export':
           options.append('-rd')
@@ -69,7 +71,10 @@ def setup_options(chip,step):
           options.append('-rd')
           options.append('tech_file=%s'%tech_file)
           options.append('-rd')
-          options.append('config_file=""')
+          if os.path.isfile(config_file):
+               options.append('config_file=%s'%config_file)
+          else:
+               options.append('config_file=""')
           options.append('-rd')
           options.append('foundry_lefs=%s'%lefs_path)
           options.append('-r')
