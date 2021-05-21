@@ -42,6 +42,6 @@ def test_gcd_server():
         if (re.match('[0-9a-f]*', d)) and (len(d) == 32):
             job_hash = d
             break
-    # Verify that a GDS file was generated and returned in the server's results.
+    # Verify that GDS and SVG files were generated and returned.
     assert os.path.isfile(job_hash + '/gcd/job1/export/outputs/gcd.gds')
-
+    assert os.path.isfile(job_hash + '/gcd/job1/export/outputs/gcd.svg')

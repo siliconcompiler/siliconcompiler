@@ -31,5 +31,6 @@ def test_gcd_local_py():
     # (Printing the summary makes it harder to see other test case results.)
     #chip.summary()
 
-    # Verify that a GDS file was generated.
+    # Verify that GDS and SVG files were generated.
     assert os.path.isfile('build/gcd/job1/export/outputs/gcd.gds')
+    assert os.path.isfile('build/gcd/job1/export/outputs/gcd.svg')

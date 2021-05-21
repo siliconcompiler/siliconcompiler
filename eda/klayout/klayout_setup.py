@@ -19,7 +19,9 @@ def setup_tool(chip, step):
           if step == 'gdsview':               
                chip.add('flow', step, 'option', '-nn')
           elif step == 'export':               
-               chip.add('flow', step, 'option', '-zz')
+               # GDS -> SVG requires the QT backend. Instead of running with no
+               # QT display, set a QT env variable to use virtual framebuffers.
+               os.environ['QT_QPA_PLATFORM'] = 'offscreen'
           
 def setup_options(chip,step):
 
@@ -70,8 +72,8 @@ def setup_options(chip,step):
           options.append('config_file=""')
           options.append('-rd')
           options.append('foundry_lefs=%s'%lefs_path)
-          options.append('-rm')
-          options.append('def2stream.py')
+          options.append('-r')
+          options.append('klayout_export.py')
 
      return options
 

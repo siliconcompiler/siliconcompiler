@@ -468,6 +468,8 @@ def fetch_results(chips):
             subprocess.run(['mkdir', '-p', perm_dir], cwd=job_hash)
             subprocess.run(['unzip', '-d', perm_dir, '%s.zip'%job_nameid], cwd=job_hash)
 
+    # Ensure that QT will open a GUI window.
+    os.environ['QT_QPA_PLATFORM'] = ''
     # Wildcard filepath which should cover all GDS files.
     gds_loc = '%s/%s/%s*/export/outputs/%s.gds'%(
         job_hash,
