@@ -259,8 +259,6 @@ def main():
             base_chip.set('target', 'freepdk45_asic')
         if 'optmode' in cmdlinecfg.keys():
             base_chip.set('optmode', cmdlinecfg['optmode']['value'])
-        #Load values based on target name
-        base_chip.target()
 
     # 4. Override cfg with command line args
     base_chip.mergecfg(cmdlinecfg)

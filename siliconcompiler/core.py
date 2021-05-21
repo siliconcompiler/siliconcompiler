@@ -1298,6 +1298,9 @@ def get_permutations(base_chip, cmdlinecfg):
         perm_ids.append(cur_jobid)
         cur_jobid = str(int(cur_jobid) + 1)
 
+        # Set the new Chip's PDK/etc settings.
+        new_chip.target()
+
         chips.append(new_chip)
 
     # Mark permutations associated with the job in each Chip object.
