@@ -6,7 +6,7 @@ import pya
 
 # Read data from the GDS file, using the default KLayout colors/etc.
 win = pya.Application.instance().main_window()
-lm = win.load_layout(design_name + '.gds', 0)
+lm = win.load_layout('outputs/' + design_name + '.gds', 0)
 ly = lm.layout()
 lv = win.current_view()
 cell = ly.cell(design_name)
