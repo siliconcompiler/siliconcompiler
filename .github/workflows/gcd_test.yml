@@ -5,6 +5,7 @@ jobs:
     runs-on: self-hosted
     name: 'ASIC test builds'
     steps:
+      - timeout-minutes: 10
       - uses: actions/checkout@v2
       - run: |
           python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
@@ -16,6 +17,7 @@ jobs:
     runs-on: self-hosted
     name: 'FPGA test builds'
     steps:
+      - timeout-minutes: 10
       - uses: actions/checkout@v2
       - run: |
           python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
@@ -28,6 +30,7 @@ jobs:
     runs-on: self-hosted
     name: 'Python unit tests'
     steps:
+      - timeout-minutes: 5
       - uses: actions/checkout@v2
       - run: |
           python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
