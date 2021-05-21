@@ -25,6 +25,7 @@ def test_gcd_server_permutations():
     subprocess.run(['sc',
                     gcd_ex_dir + '/gcd.v',
                     '-design', 'gcd',
+                    '-constraint', gcd_ex_dir + '/gcd.sdc',
                     '-permutations', gcd_ex_dir + '/2jobs.py',
                     '-remote_addr', 'localhost',
                     '-loglevel', 'NOTSET'],

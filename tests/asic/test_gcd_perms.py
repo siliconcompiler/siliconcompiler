@@ -15,6 +15,7 @@ def test_gcd_local_permutations():
     subprocess.run(['sc',
                     gcd_ex_dir + '/gcd.v',
                     '-design', 'gcd',
+                    '-constraint', gcd_ex_dir + '/gcd.sdc',
                     '-permutations', gcd_ex_dir + '/2jobs.py',
                     '-loglevel', 'NOTSET'],
                    stdout = subprocess.DEVNULL)
