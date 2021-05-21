@@ -2,10 +2,10 @@ on: [workflow_dispatch, pull_request, pull_request_review, push]
 
 jobs:
   gcd_test_job:
+    timeout-minutes: 10
     runs-on: self-hosted
     name: 'ASIC test builds'
     steps:
-      - timeout-minutes: 10
       - uses: actions/checkout@v2
       - run: |
           python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
@@ -14,10 +14,10 @@ jobs:
           pip3 install -r $GITHUB_WORKSPACE/requirements.txt -e $GITHUB_WORKSPACE/.
           pytest $GITHUB_WORKSPACE/tests/asic/
   fpga_test_job:
+    timeout-minutes: 10
     runs-on: self-hosted
     name: 'FPGA test builds'
     steps:
-      - timeout-minutes: 10
       - uses: actions/checkout@v2
       - run: |
           python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
@@ -27,10 +27,10 @@ jobs:
           PATH="$HOME/OpenFPGA/openfpga:$PATH"
           pytest $GITHUB_WORKSPACE/tests/fpga/
   python_test_job:
+    timeout-minutes: 5
     runs-on: self-hosted
     name: 'Python unit tests'
     steps:
-      - timeout-minutes: 5
       - uses: actions/checkout@v2
       - run: |
           python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
