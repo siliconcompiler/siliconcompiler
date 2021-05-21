@@ -28,7 +28,7 @@ def test_gcd_server_permutations():
                     '-target', 'freepdk45',
                     '-asic_diesize', '0 0 100.13 100.8',
                     '-asic_coresize', '10.07 11.2 90.25 91',
-                    '-constraint', gcd_ex_dir + '/constraint.sdc',
+                    '-constraint', gcd_ex_dir + '/gcd.sdc',
                     '-permutations', gcd_ex_dir + '/2jobs.py',
                     '-remote_addr', 'localhost',
                     '-loglevel', 'NOTSET'],
