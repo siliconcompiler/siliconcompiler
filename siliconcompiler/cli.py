@@ -265,14 +265,6 @@ def main():
     # 4. Override cfg with command line args
     base_chip.mergecfg(cmdlinecfg)
 
-    # Set the correct starting value for remote jobs.
-    if len(base_chip.get('remote', 'addr')) > 0:
-        base_chip.set('start', base_chip.get('remote', 'start')[-1])
-    # Pull local key values out of the config dict so they aren't recorded.
-    elif len(base_chip.get('remote', 'key')) > 0:
-        base_chip.status['decrypt_key'] = base_chip.get('remote', 'key')[-1]
-        base_chip.cfg['remote']['key']['value'] = []
-
     # Create one (or many...) instances of Chip class
     chips = get_permutations(base_chip, cmdlinecfg)
 
