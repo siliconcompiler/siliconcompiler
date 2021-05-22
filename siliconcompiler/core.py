@@ -1313,15 +1313,20 @@ def get_permutations(base_chip, cmdlinecfg):
         new_chip.status = json.loads(json.dumps(base_chip.status))
         new_chip.cfg = json.loads(json.dumps(chip_cfg))
 
-        # Skip the 'import' stage for remote jobs; it will be run locally and uploaded.
-        if len(new_chip.get('remote', 'addr')) > 0:
-            new_chip.set('start', new_chip.get('remote', 'start')[-1])
-        elif len(new_chip.get('remote', 'key')) > 0:
-            # If 'remote_key' exists without 'remote_addr', it represents an
-            # encoded key string in an ongoing remote job. It should be
-            # moved from the config dictionary to the status one to avoid logging.
-            new_chip.status['decrypt_key'] = new_chip.get('remote', 'key')[-1]
-            new_chip.cfg['remote']['key']['value'] = []
+        # Avoid re-setting values if the Chip was loaded from an existing config.
+        if not 'cfg' in cmdlinecfg.keys():
+            # Set values for the new Chip's PDK/target.
+            new_chip.target()
+
+            # Skip the 'import' stage for remote jobs; it will be run locally and uploaded.
+            if len(new_chip.get('remote', 'addr')) > 0:
+                new_chip.set('start', new_chip.get('remote', 'start')[-1])
+            elif len(new_chip.get('remote', 'key')) > 0:
+                # If 'remote_key' exists without 'remote_addr', it represents an
+                # encoded key string in an ongoing remote job. It should be
+                # moved from the config dictionary to the status one to avoid logging.
+                new_chip.status['decrypt_key'] = new_chip.get('remote', 'key')[-1]
+                new_chip.cfg['remote']['key']['value'] = []
 
         # Set and increment the "job ID" so multiple chips don't share the same directory.
         new_chip.set('jobid', cur_jobid)
