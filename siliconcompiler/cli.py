@@ -255,14 +255,12 @@ def main():
     # Reading in automated target
     else:
         if 'target' in cmdlinecfg.keys():
-            base_chip.set('target', cmdlinecfg['target']['value'][0])
+            base_chip.set('target', cmdlinecfg['target']['value'][-1])
         else:
             base_chip.logger.info('No target set, setting to %s','freepdk45')
             base_chip.set('target', 'freepdk45_asic')
         if 'optmode' in cmdlinecfg.keys():
             base_chip.set('optmode', cmdlinecfg['optmode']['value'])
-        #Load values based on target name
-        base_chip.target()
 
     # 4. Override cfg with command line args
     base_chip.mergecfg(cmdlinecfg)
