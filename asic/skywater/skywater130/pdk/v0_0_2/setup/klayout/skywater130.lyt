@@ -25,7 +25,7 @@
    <net-property-name>#1</net-property-name>
    <produce-inst-names>true</produce-inst-names>
    <inst-property-name>#1</inst-property-name>
-   <produce-cell-outlines>true</produce-cell-outlines>
+   <produce-cell-outlines>false</produce-cell-outlines>
    <cell-outline-layer>OUTLINE</cell-outline-layer>
    <produce-placement-blockages>true</produce-placement-blockages>
    <placement-blockage-layer>PLACEMENT_BLK</placement-blockage-layer>
@@ -37,10 +37,10 @@
    <produce-pins>true</produce-pins>
    <pins-suffix>.pin</pins-suffix>
    <pins-datatype>2</pins-datatype>
-   <produce-obstructions>true</produce-obstructions>
+   <produce-obstructions>false</produce-obstructions>
    <obstructions-suffix>.blockage</obstructions-suffix>
    <obstructions-datatype>3</obstructions-datatype>
-   <produce-blockages>true</produce-blockages>
+   <produce-blockages>false</produce-blockages>
    <blockages-suffix>.blockage</blockages-suffix>
    <blockages-datatype>4</blockages-datatype>
    <produce-labels>true</produce-labels>
