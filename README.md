@@ -1,5 +1,7 @@
 # Silicon Compiler Collection (SCC)
 
+![CI Tests](https://github.com/zeroasiccorp/siliconcompiler/workflows/CI%20Tests/badge.svg)
+
 ## Introduction
 
 * schema.py defines the silicon compiler architecture
