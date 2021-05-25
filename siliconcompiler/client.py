@@ -471,7 +471,7 @@ def fetch_results(chips):
     # Ensure that QT will open a GUI window.
     os.environ['QT_QPA_PLATFORM'] = ''
     # Find a list of GDS files to open.
-    gds_loc = ''
+    klayout_cmd = []
     for chip in chips:
         job_gds = '%s/%s/%s%s/export/outputs/%s.gds'%(
             job_hash,
@@ -480,9 +480,8 @@ def fetch_results(chips):
             chip.cfg['jobid']['value'][-1],
             chip.cfg['design']['value'][-1],
         )
-        gds_loc += os.path.abspath(job_gds) + ' '
+        klayout_cmd.append(os.path.abspath(job_gds))
 
     # Done; display the results using klayout.
-    # TODO: Raise an exception or print an error if no results are present?
-    if gds_loc:
-        subprocess.run(['klayout', gds_loc])
+    klayout_cmd.insert(0, 'klayout')
+    subprocess.run(klayout_cmd)
