@@ -16,6 +16,19 @@ import subprocess
 import sys
 
 ###################################
+def get_base_url(chip):
+    '''Helper method to get the root URL for API calls, given a Chip object.
+    '''
+    remote_host = chip.get('remote', 'addr')[-1]
+    remote_port = chip.get('remote', 'port')[-1]
+    remote_host += ':' + remote_port
+    if remote_host.startswith('http'):
+        remote_protocol = ''
+    else:
+        remote_protocol = 'https://' if remote_port == '443' else 'http://'
+    return remote_protocol + remote_host
+
+###################################
 def remote_preprocess(chips):
     '''Helper method to run a local import stage for remote jobs.
     '''
@@ -159,11 +172,8 @@ async def request_remote_run(chip, stage):
 
     '''
     async with aiohttp.ClientSession() as session:
-        remote_host = chip.get('remote', 'addr')[-1]
-        remote_port = chip.get('remote', 'port')[-1]
-        remote_host += ':' + remote_port
-        remote_protocol = 'https://' if remote_port == '443' else 'http://'
-        remote_run_url = remote_protocol + remote_host + '/remote_run/'
+        # Set the request URL.
+        remote_run_url = get_base_url(chip) + '/remote_run/'
 
         # Use authentication if necessary.
         post_params = {'chip_cfg': chip.cfg}
@@ -208,11 +218,7 @@ async def is_job_busy(chip, stage):
 
     async with aiohttp.ClientSession() as session:
         # Set the request URL.
-        remote_host = chip.get('remote', 'addr')[-1]
-        remote_port = chip.get('remote', 'port')[-1]
-        remote_host += ':' + remote_port
-        remote_protocol = 'https://' if remote_port == '443' else 'http://'
-        remote_run_url = remote_protocol + remote_host + '/check_progress/'
+        remote_run_url = get_base_url(chip) + '/check_progress/'
 
         # Set common parameters.
         post_params = {
@@ -247,11 +253,7 @@ async def delete_job(chip):
 
     async with aiohttp.ClientSession() as session:
         # Set the request URL.
-        remote_host = chip.get('remote', 'addr')[-1]
-        remote_port = chip.get('remote', 'port')[-1]
-        remote_host += ':' + remote_port
-        remote_protocol = 'https://' if remote_port == '443' else 'http://'
-        remote_run_url = remote_protocol + remote_host + '/delete_job/'
+        remote_run_url = get_base_url(chip) + '/delete_job/'
 
         # Set common parameter.
         post_params = {
@@ -286,11 +288,7 @@ async def upload_import_dir(chip):
 
     async with aiohttp.ClientSession() as session:
         # Set the request URL.
-        remote_host = chip.get('remote', 'addr')[-1]
-        remote_port = chip.get('remote', 'port')[-1]
-        remote_protocol = 'https://' if remote_port == '443' else 'http://'
-        remote_host += ':' + remote_port
-        remote_run_url = remote_protocol + remote_host + '/import/'
+        remote_run_url = get_base_url(chip) + '/import/'
 
         # Set common parameters.
         post_params = {
@@ -424,11 +422,7 @@ async def fetch_results_request(chips):
     async with aiohttp.ClientSession() as session:
         # Set the request URL.
         job_hash = chips[-1].status['job_hash']
-        remote_host = chips[-1].get('remote', 'addr')[-1]
-        remote_port = chips[-1].get('remote', 'port')[-1]
-        remote_protocol = 'https://' if remote_port == '443' else 'http://'
-        remote_host += ':' + remote_port
-        remote_run_url = remote_protocol + remote_host + '/get_results/' + job_hash + '.zip'
+        remote_run_url = get_base_url(chips[-1]) + '/get_results/' + job_hash + '.zip'
 
 
         # Set authentication parameters if necessary.
