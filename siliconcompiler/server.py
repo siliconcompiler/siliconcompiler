@@ -176,7 +176,7 @@ class Server:
             return web.Response(text="Error: no job hash provided.")
 
         # Redirect to the same URL, but with a GET request.
-        return web.HTTPFound(request.url)
+        return web.HTTPSeeOther(request.url)
 
     ####################
     async def handle_delete_job(self, request):

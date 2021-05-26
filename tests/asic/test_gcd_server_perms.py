@@ -28,6 +28,7 @@ def test_gcd_server_permutations():
                     '-constraint', gcd_ex_dir + '/gcd.sdc',
                     '-permutations', gcd_ex_dir + '/2jobs.py',
                     '-remote_addr', 'localhost',
+                    '-remote_port', '8080',
                     '-loglevel', 'NOTSET'],
                    stdout = subprocess.DEVNULL)
 
