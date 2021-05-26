@@ -8,6 +8,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 import aiohttp
 import asyncio
 import base64
+import glob
 import math
 import json
 import os
@@ -470,12 +471,14 @@ def fetch_results(chips):
 
     # Ensure that QT will open a GUI window.
     os.environ['QT_QPA_PLATFORM'] = ''
-    # Wildcard filepath which should cover all GDS files.
-    gds_loc = '%s/%s/%s*/export/outputs/%s.gds'%(
-        job_hash,
-        chips[-1].cfg['design']['value'][-1],
-        chips[-1].cfg['jobname']['value'][-1],
-        chips[-1].cfg['design']['value'][-1],
-    )
+    # Find a list of GDS files to open.
+    klayout_cmd = []
+    for gds_file in glob.iglob(os.path.abspath(job_hash) + '/**/*.[gG][dD][sS]',
+                               recursive=True):
+        klayout_cmd.append(gds_file)
+
     # Done; display the results using klayout.
-    subprocess.run(['klayout', gds_loc])
+    # TODO: Raise an exception or print an error message if no GDS files exist?
+    if klayout_cmd:
+        klayout_cmd.insert(0, 'klayout')
+        subprocess.run(klayout_cmd)
