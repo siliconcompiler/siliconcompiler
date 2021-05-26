@@ -2591,7 +2591,7 @@ def schema_remote(cfg):
         'type' : 'num',
         'lock' : 'false',
         'requirement' : 'remote',
-        'defvalue' : ['8080'],
+        'defvalue' : ['443'],
         'short_help': 'Remote Server Port',
         'param_help' : "'remote' 'port' <str>",
         'example': ["cli: -remote_port 8080",
