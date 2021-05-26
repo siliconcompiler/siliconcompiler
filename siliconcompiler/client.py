@@ -17,6 +17,19 @@ import subprocess
 import sys
 
 ###################################
+def get_base_url(chip):
+    '''Helper method to get the root URL for API calls, given a Chip object.
+    '''
+    remote_host = chip.get('remote', 'addr')[-1]
+    remote_port = chip.get('remote', 'port')[-1]
+    remote_host += ':' + remote_port
+    if remote_host.startswith('http'):
+        remote_protocol = ''
+    else:
+        remote_protocol = 'https://' if remote_port == '443' else 'http://'
+    return remote_protocol + remote_host
+
+###################################
 def remote_preprocess(chips):
     '''Helper method to run a local import stage for remote jobs.
     '''
@@ -160,9 +173,8 @@ async def request_remote_run(chip, stage):
 
     '''
     async with aiohttp.ClientSession() as session:
-        remote_run_url = "http://%s:%s/remote_run/"%(
-                         chip.cfg['remote']['addr']['value'][-1],
-                         chip.cfg['remote']['port']['value'][-1])
+        # Set the request URL.
+        remote_run_url = get_base_url(chip) + '/remote_run/'
 
         # Use authentication if necessary.
         post_params = {'chip_cfg': chip.cfg}
@@ -184,8 +196,18 @@ async def request_remote_run(chip, stage):
             }
 
         # Make the actual request.
-        async with session.post(remote_run_url, json=post_params) as resp:
-            print(await resp.text())
+        # Redirected POST requests are translated to GETs. This is actually
+        # part of the HTTP spec, so we need to manually follow the trail.
+        redirect_url = remote_run_url
+        while redirect_url:
+            async with session.post(redirect_url,
+                                    json=post_params,
+                                    allow_redirects=False) as resp:
+                if resp.status == 302:
+                    redirect_url = resp.headers['Location']
+                else:
+                    print(await resp.text())
+                    return
 
 ###################################
 async def is_job_busy(chip, stage):
@@ -196,6 +218,9 @@ async def is_job_busy(chip, stage):
     '''
 
     async with aiohttp.ClientSession() as session:
+        # Set the request URL.
+        remote_run_url = get_base_url(chip) + '/check_progress/'
+
         # Set common parameters.
         post_params = {
             'job_hash': chip.status['job_hash'],
@@ -211,13 +236,16 @@ async def is_job_busy(chip, stage):
             post_params['key'] = b64_key
 
         # Make the request and print its response.
-        async with session.post("http://%s:%s/check_progress/"%(
-                                chip.cfg['remote']['addr']['value'][-1],
-                                chip.cfg['remote']['port']['value'][-1]),
-                                json=post_params) \
-        as resp:
-            response = await resp.text()
-            return (response != "Job has no running steps.")
+        redirect_url = remote_run_url
+        while redirect_url:
+            async with session.post(redirect_url,
+                                    json=post_params,
+                                    allow_redirects=False) as resp:
+                if resp.status == 302:
+                    redirect_url = resp.headers['Location']
+                else:
+                    response = await resp.text()
+                    return (response != "Job has no running steps.")
 
 ###################################
 async def delete_job(chip):
@@ -225,6 +253,9 @@ async def delete_job(chip):
     '''
 
     async with aiohttp.ClientSession() as session:
+        # Set the request URL.
+        remote_run_url = get_base_url(chip) + '/delete_job/'
+
         # Set common parameter.
         post_params = {
             'job_hash': chip.status['job_hash'],
@@ -239,13 +270,16 @@ async def delete_job(chip):
             post_params['key'] = b64_key
 
         # Make the request.
-        async with session.post("http://%s:%s/delete_job/"%(
-                               chip.cfg['remote']['addr']['value'][-1],
-                               chip.cfg['remote']['port']['value'][-1]),
-                               json=post_params) \
-        as resp:
-            response = await resp.text()
-            return response
+        redirect_url = remote_run_url
+        while redirect_url:
+            async with session.post(redirect_url,
+                                    json=post_params,
+                                    allow_redirects=False) as resp:
+                if resp.status == 302:
+                    redirect_url = resp.headers['Location']
+                else:
+                    response = await resp.text()
+                    return response
 
 ###################################
 async def upload_import_dir(chip):
@@ -254,11 +288,17 @@ async def upload_import_dir(chip):
     '''
 
     async with aiohttp.ClientSession() as session:
+        # Set the request URL.
+        remote_run_url = get_base_url(chip) + '/import/'
+
+        # Set common parameters.
         post_params = {
             'job_hash': chip.status['job_hash'],
             'job_name': chip.get('jobname')[-1],
             'job_ids': chip.status['perm_ids'],
         }
+
+        # Set authentication parameters and encrypt data if necessary.
         if (len(chip.get('remote', 'user')) > 0) and (len(chip.get('remote', 'key')) > 0):
             # Encrypt the .zip archive with the user's public key.
             # Asymmetric key cryptography is good at signing values, but bad at
@@ -334,14 +374,18 @@ async def upload_import_dir(chip):
             upload_file = os.path.abspath('import.zip')
 
         # Make the 'import' API call and print the response.
-        with open(upload_file, 'rb') as f:
-            async with session.post("http://%s:%s/import/"%(
-                                        chip.cfg['remote']['addr']['value'][-1],
-                                        chip.cfg['remote']['port']['value'][-1]),
-                                    data={'import': f,
-                                          'params': json.dumps(post_params)}) \
-            as resp:
-                print(await resp.text())
+        redirect_url = remote_run_url
+        while redirect_url:
+            with open(upload_file, 'rb') as f:
+                async with session.post(redirect_url,
+                                        data={'import': f,
+                                              'params': json.dumps(post_params)},
+                                        allow_redirects=False) as resp:
+                    if resp.status == 302:
+                        redirect_url = resp.headers['Location']
+                    else:
+                        print(await resp.text())
+                        return
 
 ###################################
 def upload_sources_to_cluster(chip):
@@ -377,7 +421,10 @@ async def fetch_results_request(chips):
     '''
 
     async with aiohttp.ClientSession() as session:
+        # Set the request URL.
         job_hash = chips[-1].status['job_hash']
+        remote_run_url = get_base_url(chips[-1]) + '/get_results/' + job_hash + '.zip'
+
 
         # Set authentication parameters if necessary.
         if (len(chips[-1].get('remote', 'user')) > 0) and (len(chips[-1].get('remote', 'key')) > 0):
@@ -392,18 +439,25 @@ async def fetch_results_request(chips):
             post_params = {}
 
         # Make the web request, and stream the results archive in chunks.
-        with open('%s.zip'%job_hash, 'wb') as zipf:
-            async with session.post("http://%s:%s/get_results/%s.zip"%(
-                                    chips[-1].cfg['remote']['addr']['value'][-1],
-                                    chips[-1].cfg['remote']['port']['value'][-1],
-                                    job_hash),
-                                    json = post_params) \
-            as resp:
-                while True:
-                    chunk = await resp.content.read(1024)
-                    if not chunk:
-                        break
-                    zipf.write(chunk)
+        redirect_url = remote_run_url
+        can_redirect = False
+        while redirect_url:
+            with open('%s.zip'%job_hash, 'wb') as zipf:
+                async with session.post(redirect_url,
+                                        json=post_params,
+                                        allow_redirects=can_redirect) as resp:
+                    if resp.status == 302:
+                        redirect_url = resp.headers['Location']
+                    elif resp.status == 303:
+                        redirect_url = resp.headers['Location']
+                        can_redirect = True
+                    else:
+                        while True:
+                            chunk = await resp.content.read(1024)
+                            if not chunk:
+                                break
+                            zipf.write(chunk)
+                        return
 
 ###################################
 def fetch_results(chips):
