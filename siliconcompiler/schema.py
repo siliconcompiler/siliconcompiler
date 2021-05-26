@@ -8,6 +8,7 @@ import sys
 ###############################################################################
 # CHIP CONFIGURATION
 ###############################################################################
+
 def schema_cfg():
     '''Method for defining Chip configuration schema
     All the keys defined in this dictionary are reserved words.
@@ -48,6 +49,13 @@ def schema_cfg():
     cfg = schema_status(cfg)
     
     return cfg
+
+
+###############################################################################
+# CHIP LIBRARY 
+###############################################################################
+def schema_lib():
+    pass    
 
 ###############################################################################
 # CHIP LAYOUT
