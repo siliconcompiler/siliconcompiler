@@ -390,7 +390,7 @@ async def upload_import_dir(chip):
                                         allow_redirects=False) as resp:
                     if resp.status == 302:
                         redirect_url = resp.headers['Location']
-                    elif resp.status > 400:
+                    elif resp.status >= 400:
                         print(await resp.text())
                         print('Error importing project data; quitting.')
                         sys.exit(1)
