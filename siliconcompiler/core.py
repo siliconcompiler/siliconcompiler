@@ -1187,7 +1187,10 @@ class Chip:
                 if schema_istrue(self.cfg['quiet']['value']) & (step not in self.cfg['bkpt']['value']):
                     cmd_fields.append("> " + logfile)
                 else:
-                    cmd_fields.append(" 2>&1 | tee " + logfile)
+                    # the weird construct at the end ensures that this invocation returns the
+                    # exit code of the command itself, rather than tee
+                    # (source: https://stackoverflow.com/a/18295541)
+                    cmd_fields.append(" 2>&1 | tee " + logfile + " ; (exit ${PIPESTATUS[0]} )")
 
                 #Final command line
                 cmd = ' '.join(cmd_fields)
@@ -1216,7 +1219,7 @@ class Chip:
 
                     # Tool Executable
                     self.logger.info('%s', cmd)
-                    error = subprocess.run(cmd, shell=True)
+                    error = subprocess.run(cmd, shell=True, executable='/bin/bash')
                     if error.returncode:
                         self.logger.error('Command failed. See log file %s',
                                           os.path.abspath(logfile))
