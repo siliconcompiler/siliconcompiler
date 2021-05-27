@@ -163,8 +163,15 @@ async def remote_run(chip, stage):
     is_busy = True
     while is_busy:
       print("%s stage running. Please wait."%stage)
-      await asyncio.sleep(1)
-      is_busy = await is_job_busy(chip, stage)
+      await asyncio.sleep(3)
+      try:
+          is_busy = await is_job_busy(chip, stage)
+      except:
+          # Sometimes an exception is raised if the request library cannot
+          # reach the server due to a transient network issue.
+          # Retrying ensures that jobs don't break off when the connection drops.
+          is_busy = True
+          print("Unknown error encountered: retrying.")
     print("%s stage completed!"%stage)
 
 ###################################
