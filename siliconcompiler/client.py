@@ -483,6 +483,8 @@ def fetch_results(chips):
     # Unzip the results.
     job_hash = chips[-1].status['job_hash']
     subprocess.run(['unzip', '%s.zip'%job_hash])
+    # Remove the results archive after it is extracted.
+    os.remove('%s.zip'%job_hash)
 
     # Call 'delete_job' to remove the run from the server.
     # This deletes a job_hash, so separate calls for each permutation are not required.
