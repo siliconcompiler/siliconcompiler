@@ -1309,7 +1309,8 @@ def get_permutations(base_chip, cmdlinecfg):
        ('start' in cmdkeys):
         base_chip.set('remote', 'start', base_chip.get('start')[-1])
     # Mark whether a local 'import' stage should be run.
-    base_chip.status['local_import'] = (base_chip.get('start')[-1] == 'import')
+    base_chip.status['local_import'] = (len(base_chip.get('start')) == 0) or \
+                                       (base_chip.get('start')[-1] == 'import')
 
     # Fetch an initial 'jobid' value for the first permutation.
     base_chip.set_jobid()
