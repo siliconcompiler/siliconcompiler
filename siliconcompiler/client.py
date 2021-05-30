@@ -15,6 +15,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 
 ###################################
 def get_base_url(chip):
@@ -154,6 +155,9 @@ async def remote_run(chip, stage):
 
     '''
 
+    # Time how long the process has been running for.
+    step_start = time.monotonic()
+
     # Ask the remote server to start processing the requested step.
     chip.cfg['start']['value'] = [stage]
     chip.cfg['stop']['value'] = [stage]
@@ -162,10 +166,19 @@ async def remote_run(chip, stage):
     # Check the job's progress periodically until it finishes.
     is_busy = True
     while is_busy:
-      print("%s stage running. Please wait."%stage)
-      await asyncio.sleep(1)
-      is_busy = await is_job_busy(chip, stage)
-    print("%s stage completed!"%stage)
+      chip.logger.info("%s stage running. (%d seconds)"%(
+                       stage,
+                       int(time.monotonic() - step_start)))
+      await asyncio.sleep(3)
+      try:
+          is_busy = await is_job_busy(chip, stage)
+      except:
+          # Sometimes an exception is raised if the request library cannot
+          # reach the server due to a transient network issue.
+          # Retrying ensures that jobs don't break off when the connection drops.
+          is_busy = True
+          chip.logger.info("Unknown network error encountered: retrying.")
+    chip.logger.info("%s stage completed!"%stage)
 
 ###################################
 async def request_remote_run(chip, stage):
@@ -206,7 +219,7 @@ async def request_remote_run(chip, stage):
                 if resp.status == 302:
                     redirect_url = resp.headers['Location']
                 else:
-                    print(await resp.text())
+                    chip.logger.info(await resp.text())
                     return
 
 ###################################
@@ -383,8 +396,12 @@ async def upload_import_dir(chip):
                                         allow_redirects=False) as resp:
                     if resp.status == 302:
                         redirect_url = resp.headers['Location']
+                    elif resp.status >= 400:
+                        chip.logger.info(await resp.text())
+                        chip.logger.error('Error importing project data; quitting.')
+                        sys.exit(1)
                     else:
-                        print(await resp.text())
+                        chip.logger.info(await resp.text())
                         return
 
 ###################################
