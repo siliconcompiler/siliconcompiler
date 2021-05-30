@@ -2609,6 +2609,24 @@ def schema_remote(cfg):
         """
     }
 
+    # Job hash. Used to resume or cancel remote jobs after they are started.
+    cfg['remote']['hash'] = {
+        'switch' : '-remote_hash',
+        'type' : 'str',
+        'lock' : 'false',
+        'requirement' : 'optional',
+        'defvalue' : [],
+        'short_help' : 'Job hash/UUID value',
+        'param_help' : "'remote_hash' <str>",
+        'example': ["cli: -remote_hash 0123456789abcdeffedcba9876543210",
+                    "api: chip.set('remote_hash','0123456789abcdeffedcba9876543210'"],
+        'help' : """
+        A unique ID associated with a job run. This field should be left blank
+        when starting a new job, but it can be provided to resume an interrupted
+        remote job, or to clean up after unexpected failures.
+        """
+    }
+
     # Remote start step
     cfg['remote']['start'] = {
         'switch': '-remote_start',
