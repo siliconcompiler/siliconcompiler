@@ -488,8 +488,11 @@ def fetch_results(chips):
     loop.run_until_complete(fetch_results_request(chips))
 
     # Unzip the results.
+    top_design = chips[-1].get('design')[-1]
     job_hash = chips[-1].get('remote', 'hash')[-1]
     subprocess.run(['unzip', '%s.zip'%job_hash])
+    # Remove the results archive after it is extracted.
+    os.remove('%s.zip'%job_hash)
 
     # Call 'delete_job' to remove the run from the server.
     # This deletes a job_hash, so separate calls for each permutation are not required.
@@ -537,15 +540,27 @@ def fetch_results(chips):
                 wf.write(decryptor.finalize())
 
             # Unzip the decrypted archive in the 'job_hash' working directory.
-            perm_dir = '%s/%s'%(chip.get('design')[-1], job_nameid)
+            perm_dir = '%s/%s'%(top_design, job_nameid)
             subprocess.run(['mkdir', '-p', perm_dir], cwd=job_hash)
             subprocess.run(['unzip', '-d', perm_dir, '%s.zip'%job_nameid], cwd=job_hash)
+
+    # Remove dangling 'import' symlinks.
+    for import_link in glob.iglob(job_hash + '/' + top_design + '/**/import',
+                               recursive=True):
+        os.remove(import_link)
+    # Copy the results into the local build directory, and remove the
+    # unzipped directory (including encrypted archives).
+    local_dir = chips[-1].get('dir')[-1]
+    shutil.copytree(job_hash + '/' + top_design,
+                    local_dir + '/' + top_design,
+                    dirs_exist_ok = True)
+    shutil.rmtree(job_hash)
 
     # Ensure that QT will open a GUI window.
     os.environ['QT_QPA_PLATFORM'] = ''
     # Find a list of GDS files to open.
     klayout_cmd = []
-    for gds_file in glob.iglob(os.path.abspath(job_hash) + '/**/*.[gG][dD][sS]',
+    for gds_file in glob.iglob(os.path.abspath(local_dir) + '/**/*.[gG][dD][sS]',
                                recursive=True):
         klayout_cmd.append(gds_file)
 
