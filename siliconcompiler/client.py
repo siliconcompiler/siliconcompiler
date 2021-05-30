@@ -35,15 +35,12 @@ def remote_preprocess(chips):
     '''Helper method to run a local import stage for remote jobs.
     '''
 
-    # Return early if a previous job is being resumed.
-    if chips[-1].get('start')[-1] != 'syn':
-        return
+    # Run the local 'import' step if necessary.
+    if chips[-1].status['local_import']:
+        chips[-1].run(start='import', stop='import')
 
-    # Run the local 'import' step.
-    chips[-1].run(start='import', stop='import')
-
-    # Clear the 'option' value, in case the import step is run again later.
-    chips[-1].cfg['flow']['import']['option']['value'] = []
+        # Clear the 'option' value, in case the import step is run again later.
+        chips[-1].cfg['flow']['import']['option']['value'] = []
 
 ###################################
 def client_decrypt(chip):
