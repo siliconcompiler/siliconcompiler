@@ -35,6 +35,10 @@ def remote_preprocess(chips):
     '''Helper method to run a local import stage for remote jobs.
     '''
 
+    # Return early if a previous job is being resumed.
+    if chips[-1].get('remote', 'start')[-1] != 'syn':
+        return
+
     # Run the local 'import' step.
     chips[-1].run(start='import', stop='import')
 
