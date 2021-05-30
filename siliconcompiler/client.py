@@ -36,7 +36,7 @@ def remote_preprocess(chips):
     '''
 
     # Return early if a previous job is being resumed.
-    if chips[-1].get('remote', 'start')[-1] != 'syn':
+    if chips[-1].get('start')[-1] != 'syn':
         return
 
     # Run the local 'import' step.
