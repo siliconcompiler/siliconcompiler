@@ -23,11 +23,6 @@ class Library:
         '''
         pass
 
-    def read_vcd(self, cell, filename):
-        '''Reads in VCD stimulus for characterization
-        '''
-        pass
-
     ################################
     # Cell Access Functions
     ################################
