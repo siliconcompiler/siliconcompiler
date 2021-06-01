@@ -544,10 +544,11 @@ def fetch_results(chips):
             subprocess.run(['mkdir', '-p', perm_dir], cwd=job_hash)
             subprocess.run(['unzip', '-d', perm_dir, '%s.zip'%job_nameid], cwd=job_hash)
 
-    # Remove dangling 'import' symlinks.
+    # Remove dangling 'import' symlinks if necessary.
     for import_link in glob.iglob(job_hash + '/' + top_design + '/**/import',
                                recursive=True):
-        os.remove(import_link)
+        if os.path.islink(import_link):
+            os.remove(import_link)
     # Copy the results into the local build directory, and remove the
     # unzipped directory (including encrypted archives).
     local_dir = chips[-1].get('dir')[-1]
