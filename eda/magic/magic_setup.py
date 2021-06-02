@@ -47,8 +47,17 @@ def pre_process(chip, step):
 
 def post_process(chip, step):
     ''' Tool specific function to run after step execution
+
+    Reads error count from output and fills in appropriate entry in metrics
     '''
-    pass
+    design = chip.get('design')[-1]
+
+    with open(f'outputs/{design}.drc', 'r') as f:
+        for line in f:
+            errors = re.search('^\[INFO\]: COUNT: (\d+)', line)
+
+            if errors:
+                chip.set('real', step, 'errors', errors.group(1))
 
 ################################
 # Utilities
