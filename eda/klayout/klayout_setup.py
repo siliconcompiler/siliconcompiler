@@ -35,18 +35,20 @@ def setup_options(chip,step):
      libname = chip.get('asic', 'targetlib')[-1]
      pdk_rev = chip.get('pdk', 'rev')[-1]
      lib_rev = chip.get('stdcell', libname, 'rev')[-1]
+     targetlist = str(chip.get('target')[-1]).split('_')
+     platform =  targetlist[0]
 
      foundry_path = f'%s/%s/%s/pdk/{pdk_rev}'%(
           sc_path,
           chip.cfg['pdk']['foundry']['value'][-1],
-          chip.cfg['target']['value'][-1])
+          platform)
      lefs_path = f'%s/%s/%s/libs/{libname}/{lib_rev}/lef'%(
           sc_path,
           chip.cfg['pdk']['foundry']['value'][-1],
-          chip.cfg['target']['value'][-1])
+          platform)
      tech_file = '%s/setup/klayout/%s.lyt'%(
           foundry_path,
-          chip.cfg['target']['value'][-1])
+          platform)
      config_file = '%s/setup/klayout/fill.json'%(
           foundry_path)
 
