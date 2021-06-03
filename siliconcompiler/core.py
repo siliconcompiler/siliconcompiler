@@ -87,7 +87,7 @@ class Chip:
         self.error = 0
 
     ###########################################################################
-    def target(self):
+    def target(self, arg="UNDEFINED"):
         '''
         Searches the SCPATH and PYTHON paths for the target specified by the
         Chip 'target' parameter. The target can be supplied as a single
@@ -124,9 +124,17 @@ class Chip:
 
             post_process(chip,step): Post-processing to run before executable
 
+        Args:
+            arg (string): If the argument is supplied, the set('target', name) 
+                is called before dynamically loading the target platform
+
         Examples:
             >>> chip.target()
         '''
+
+        #Sets target in dictionary if string is passed in
+        if arg!="UNDEFINED":
+            self.set('target', arg)
 
         #Selecting fpga or asic mode
         mode = self.get('mode')
