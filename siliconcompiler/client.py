@@ -35,11 +35,12 @@ def remote_preprocess(chips):
     '''Helper method to run a local import stage for remote jobs.
     '''
 
-    # Run the local 'import' step.
-    chips[-1].run(start='import', stop='import')
+    # Run the local 'import' step if necessary.
+    if chips[-1].status['local_import']:
+        chips[-1].run(start='import', stop='import')
 
-    # Clear the 'option' value, in case the import step is run again later.
-    chips[-1].cfg['flow']['import']['option']['value'] = []
+        # Clear the 'option' value, in case the import step is run again later.
+        chips[-1].cfg['flow']['import']['option']['value'] = []
 
 ###################################
 def client_decrypt(chip):
@@ -199,12 +200,12 @@ async def request_remote_run(chip, stage):
             post_params['params'] = {
                 'username': chip.get('remote', 'user')[-1],
                 'key': b64_key,
-                'job_hash': chip.status['job_hash'],
+                'job_hash': chip.get('remote', 'hash')[-1],
                 'stage': stage,
             }
         else:
             post_params['params'] = {
-                'job_hash': chip.status['job_hash'],
+                'job_hash': chip.get('remote', 'hash')[-1],
                 'stage': stage,
             }
 
@@ -236,7 +237,7 @@ async def is_job_busy(chip, stage):
 
         # Set common parameters.
         post_params = {
-            'job_hash': chip.status['job_hash'],
+            'job_hash': chip.get('remote', 'hash')[-1],
             'job_id': chip.get('jobid')[-1],
         }
 
@@ -271,7 +272,7 @@ async def delete_job(chip):
 
         # Set common parameter.
         post_params = {
-            'job_hash': chip.status['job_hash'],
+            'job_hash': chip.get('remote', 'hash')[-1],
         }
 
         # Set authentication parameters if necessary.
@@ -306,7 +307,7 @@ async def upload_import_dir(chip):
 
         # Set common parameters.
         post_params = {
-            'job_hash': chip.status['job_hash'],
+            'job_hash': chip.get('remote', 'hash')[-1],
             'job_name': chip.get('jobname')[-1],
             'job_ids': chip.status['perm_ids'],
         }
@@ -439,7 +440,7 @@ async def fetch_results_request(chips):
 
     async with aiohttp.ClientSession() as session:
         # Set the request URL.
-        job_hash = chips[-1].status['job_hash']
+        job_hash = chips[-1].get('remote', 'hash')[-1]
         remote_run_url = get_base_url(chips[-1]) + '/get_results/' + job_hash + '.zip'
 
 
@@ -487,8 +488,11 @@ def fetch_results(chips):
     loop.run_until_complete(fetch_results_request(chips))
 
     # Unzip the results.
-    job_hash = chips[-1].status['job_hash']
+    top_design = chips[-1].get('design')[-1]
+    job_hash = chips[-1].get('remote', 'hash')[-1]
     subprocess.run(['unzip', '%s.zip'%job_hash])
+    # Remove the results archive after it is extracted.
+    os.remove('%s.zip'%job_hash)
 
     # Call 'delete_job' to remove the run from the server.
     # This deletes a job_hash, so separate calls for each permutation are not required.
@@ -536,15 +540,28 @@ def fetch_results(chips):
                 wf.write(decryptor.finalize())
 
             # Unzip the decrypted archive in the 'job_hash' working directory.
-            perm_dir = '%s/%s'%(chip.get('design')[-1], job_nameid)
+            perm_dir = '%s/%s'%(top_design, job_nameid)
             subprocess.run(['mkdir', '-p', perm_dir], cwd=job_hash)
             subprocess.run(['unzip', '-d', perm_dir, '%s.zip'%job_nameid], cwd=job_hash)
+
+    # Remove dangling 'import' symlinks if necessary.
+    for import_link in glob.iglob(job_hash + '/' + top_design + '/**/import',
+                               recursive=True):
+        if os.path.islink(import_link):
+            os.remove(import_link)
+    # Copy the results into the local build directory, and remove the
+    # unzipped directory (including encrypted archives).
+    local_dir = chips[-1].get('dir')[-1]
+    shutil.copytree(job_hash + '/' + top_design,
+                    local_dir + '/' + top_design,
+                    dirs_exist_ok = True)
+    shutil.rmtree(job_hash)
 
     # Ensure that QT will open a GUI window.
     os.environ['QT_QPA_PLATFORM'] = ''
     # Find a list of GDS files to open.
     klayout_cmd = []
-    for gds_file in glob.iglob(os.path.abspath(job_hash) + '/**/*.[gG][dD][sS]',
+    for gds_file in glob.iglob(os.path.abspath(local_dir) + '/**/*.[gG][dD][sS]',
                                recursive=True):
         klayout_cmd.append(gds_file)
 

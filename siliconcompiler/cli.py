@@ -238,11 +238,9 @@ def main():
         loglevel = cmdlinecfg['loglevel']['value'][-1]
     else:
         loglevel = "INFO"
-        
-    # Create a 'job hash' and base Chip class.
-    job_hash = uuid.uuid4().hex
+
+    # Create a base Chip class.
     base_chip = siliconcompiler.Chip(loglevel=loglevel)
-    base_chip.status['job_hash'] = job_hash
 
     # Checing for illegal combination
     if ('target' in cmdlinecfg.keys()) & ('cfg' in cmdlinecfg.keys()):
@@ -261,6 +259,11 @@ def main():
             base_chip.set('target', 'freepdk45_asic')
         if 'optmode' in cmdlinecfg.keys():
             base_chip.set('optmode', cmdlinecfg['optmode']['value'])
+
+    # Assign a new 'job_hash' to the chip if necessary.
+    if not base_chip.get('remote', 'hash'):
+        job_hash = uuid.uuid4().hex
+        base_chip.set('remote', 'hash', job_hash)
 
     # 4. Override cfg with command line args
     base_chip.mergecfg(cmdlinecfg)

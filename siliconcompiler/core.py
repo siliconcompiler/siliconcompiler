@@ -1290,16 +1290,27 @@ def get_permutations(base_chip, cmdlinecfg):
     '''
 
     chips = []
+    cmdkeys = cmdlinecfg.keys()
 
     loglevel = cmdlinecfg['loglevel']['value'][-1] \
-        if 'loglevel' in cmdlinecfg.keys() else "INFO"
+        if 'loglevel' in cmdkeys else "INFO"
 
-    if 'permutations' in cmdlinecfg.keys():
+    # Fetch the generator for multiple job permutations if necessary.
+    if 'permutations' in cmdkeys:
         perm_path = os.path.abspath(cmdlinecfg['permutations']['value'][-1])
         perm_script = SourceFileLoader('job_perms', perm_path).load_module()
         perms = perm_script.permutations(base_chip.cfg)
     else:
         perms = [base_chip.cfg]
+
+    # Set '-remote_start' to '-start' if only '-start' is passed in at cmdline.
+    if (not (('remote' in cmdkeys) and \
+             ('start' in cmdlinecfg['remote'].keys()))) and \
+       ('start' in cmdkeys):
+        base_chip.set('remote', 'start', base_chip.get('start')[-1])
+    # Mark whether a local 'import' stage should be run.
+    base_chip.status['local_import'] = (len(base_chip.get('start')) == 0) or \
+                                       (base_chip.get('start')[-1] == 'import')
 
     # Fetch an initial 'jobid' value for the first permutation.
     base_chip.set_jobid()
@@ -1317,7 +1328,7 @@ def get_permutations(base_chip, cmdlinecfg):
         new_chip.cfg = json.loads(json.dumps(chip_cfg))
 
         # Avoid re-setting values if the Chip was loaded from an existing config.
-        if not 'cfg' in cmdlinecfg.keys():
+        if not 'cfg' in cmdkeys:
             # Set values for the new Chip's PDK/target.
             new_chip.target()
 

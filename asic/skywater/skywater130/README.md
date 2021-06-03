@@ -1,7 +1,7 @@
 # Sky130 PDK
 
 This directory contains files for the Skywater 130nm open source PDK,
-restructured into the format required for SC. These files are tagged with the 
+restructured into the format required for SC. These files are tagged with the
 latest PDK version number (v0.0.2), although many of the files come from
 OpenROAD and OpenLANE, rather than the [golden
 copy](https://github.com/google/skywater-pdk-libs-sky130_fd_sc_hd) from Google.
@@ -46,6 +46,22 @@ Source: [OpenROAD](https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts
 
 Up-to-date as of `2484116`.
 
+### `pdk/setup/magic/`
+
+`skywater130.magicrc`
+
+Adapted from
+https://github.com/RTimothyEdwards/open_pdks/blob/master/sky130/magic/sky130.magicrc.
+Some contents were removed for simplicity, in particular the paths to reference
+cells. These aren't necessary for DRC, just GDS export (which we handle with KLayout).
+
+`sky130A.tech`
+
+Source (filled-in template):
+[open_pdks](https://github.com/RTimothyEdwards/open_pdks/blob/master/sky130/magic/sky130.tech).
+
+Up-to-date as of `b06f0f2`.
+
 ### `libs/sky130hd/v0_0_2/`
 
 `gds/sky130_fd_sc_hd.gds`
@@ -85,5 +101,5 @@ script, opting to ignore the cells specified in `drc_exclude.cells` and
 https://github.com/RTimothyEdwards/open_pdks/tree/master/sky130/openlane/sky130_fd_sc_hd).
 This mimics a process that OpenLANE performs behind the scenes to generate a
 temporary version of the library file without these cells that it then passes
-into synthesis. This file is passed to synthesis by storing it in the schema as 
+into synthesis. This file is passed to synthesis by storing it in the schema as
 `cfg['stdcell'][targetlib]['model']['typical']['nldm']['lib_synth']`.

@@ -35,15 +35,9 @@ def test_gcd_server_permutations():
     # Kill the server process.
     srv_proc.kill()
 
-    # Find the job hash of the generated job.
-    # (Job hashes are 32-character lowercase hex strings)
-    for d in os.listdir('.'):
-        if (re.match('[0-9a-f]*', d)) and (len(d) == 32):
-            job_hash = d
-            break
     # Verify that GDS/SVG files were generated and returned.
-    assert os.path.isfile(job_hash + '/gcd/job1/export/outputs/gcd.gds')
-    assert os.path.isfile(job_hash + '/gcd/job2/export/outputs/gcd.gds')
-    assert os.path.isfile(job_hash + '/gcd/job1/export/outputs/gcd.svg')
-    assert os.path.isfile(job_hash + '/gcd/job2/export/outputs/gcd.svg')
+    assert os.path.isfile('build/gcd/job1/export/outputs/gcd.gds')
+    assert os.path.isfile('build/gcd/job2/export/outputs/gcd.gds')
+    assert os.path.isfile('build/gcd/job1/export/outputs/gcd.svg')
+    assert os.path.isfile('build/gcd/job2/export/outputs/gcd.svg')
 
