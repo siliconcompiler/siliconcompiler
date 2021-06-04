@@ -23,8 +23,8 @@ def schema_cfg():
     cfg = schema_metrics(cfg, 'goal')
     cfg = schema_metrics(cfg, 'real')    
     
-    # Provenance Tracking
-    cfg = schema_provenance(cfg) 
+    # Recording design provenance 
+    cfg = schema_record(cfg) 
     
     # FPGA Parameters
     cfg = schema_fpga(cfg)
@@ -2002,10 +2002,10 @@ def schema_metrics(cfg, group, step='default'):
     return cfg
 
 ###########################################################################
-# Provenance Tracking
+# Design Tracking
 ###########################################################################
 
-def schema_provenance(cfg, group='provenance', step='default'):
+def schema_record(cfg, group='record', step='default'):
 
     if not group in cfg:
         cfg[group] = {}    
@@ -2057,16 +2057,16 @@ def schema_provenance(cfg, group='provenance', step='default'):
         """
     }
 
-    cfg[group][step]['organization'] = {
-        'switch' : '-'+group+'_organization',
+    cfg[group][step]['org'] = {
+        'switch' : '-'+group+'_org',
         'type' : 'str',
         'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Step Organization',
         'param_help' : "'"+group+"' step 'org' <str>",
-        'example':["cli: -"+group+"_organization 'dfm earth'",
-                   "api: chip.add('"+group+"','dfm','organization','earth')"],
+        'example':["cli: -"+group+"_org'dfm earth'",
+                   "api: chip.add('"+group+"','dfm','org','earth')"],
         'help' : """
         Metric tracking the user's organization on a per step basis.
         """
