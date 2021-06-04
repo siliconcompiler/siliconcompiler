@@ -4,6 +4,9 @@ import logging
 import math
 import jinja2
 
+from siliconcompiler.leflib import Lef
+from siliconcompiler.schema import schema_path
+
 # Set up Jinja
 env = jinja2.Environment(loader=jinja2.BaseLoader, trim_blocks=True, lstrip_blocks=True)
 
@@ -83,13 +86,25 @@ class Floorplan:
         self.std_cell_width = float(self.chip.get('stdcell', libname, 'width')[-1])
         self.std_cell_height = float(self.chip.get('stdcell', libname, 'height')[-1])
 
+        # extract data from tech LEF
+        stackup = chip.get('asic', 'stackup')[-1]
+        libtype = chip.get('stdcell', libname, 'libtype')[-1]
+
+        tech_lef = schema_path(chip.get('pdk','aprtech', stackup, libtype, 'lef')[-1])
+
+        lef = Lef()
+        with open(tech_lef, 'r') as f:
+            lef_data = lef.parse(f.read())
+
         # extract layers based on stackup
         stackup = self.chip.get('asic', 'stackup')[-1]
         self.layers = {}
         for name, layer in self.chip.cfg['pdk']['grid'][stackup].items():
             if name == 'default': continue
             self.layers[name] = {}
-            self.layers[name]['name'] = layer['name']['value'][-1]
+            pdk_name = layer['name']['value'][-1]
+            self.layers[name]['name'] = pdk_name
+            self.layers[name]['width'] = float(lef_data['LAYER'][pdk_name]['WIDTH'][-1])
             self.layers[name]['xpitch'] = float(layer['xpitch']['value'][-1])
             self.layers[name]['ypitch'] = float(layer['ypitch']['value'][-1])
             self.layers[name]['xoffset'] = float(layer['xoffset']['value'][-1])
@@ -215,11 +230,10 @@ class Floorplan:
 
         # Convert all received dimensions to microns
         if units == 'relative':
+            pin_scale_factor = self.layers[layer]['width']
             if side.upper() in ('N', 'S'):
-                pin_scale_factor = self.layers[layer]['xpitch'] / 2
                 pos_scale_factor = self.layers[layer]['xoffset']
             else: # E, W
-                pin_scale_factor = self.layers[layer]['ypitch'] / 2
                 pos_scale_factor = self.layers[layer]['yoffset']
 
             width *= pin_scale_factor
