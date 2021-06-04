@@ -91,7 +91,7 @@ dict for {key value} [dict get $sc_cfg pdk aprlayer $sc_stackup] {
 ###############################
 
 # MACROS
-if {[dict exists $sc_cfg macrolib]} {    
+if {[dict exists $sc_cfg asic macrolib]} {
     set sc_macrolibs [dict get $sc_cfg asic macrolib]
 } else {
     set sc_macrolibs    ""
