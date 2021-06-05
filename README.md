@@ -2,7 +2,7 @@
 
 ![CI Tests](https://github.com/zeroasiccorp/siliconcompiler/workflows/CI%20Tests/badge.svg)
 
-SiliconCompiler is an open source Python based hardware compiler framework, that aims to fully automate translation of high level source code into hardware ready for manufacturing.
+The SiliconCompiler project aims to enable fully automated translation of high level source code into hardware.
 
 ## Resources
 
@@ -19,9 +19,10 @@ $ python -m pip install -e .
 ```
 
 ## Pre-requisites
-The default SiliconCompiler flow depends on a number of open source projects. Full installation support of these tools is out of scope of for the project, Ubuntu based install scripts can be found in the [./setup](setup) directory for convencience.
+The open source SiliconCompiler flow depends on a number of open source technologies. Full installation support of these tools is out of scope of for the project, Ubuntu based install scripts can be found in the [./setup](setup) directory for convencience.
 
 - **OpenRoad:** https://github.com/The-OpenROAD-Project/OpenROAD
+- **OpenSTA:** https://github.com/The-OpenROAD-Project/OpenSTA
 - **ABC**: https://github.com/berkeley-abc/abc
 - **Yosys:** https://github.com/YosysHQ/yosys
 - **Verilator:** https://github.com/verilator/verilator
