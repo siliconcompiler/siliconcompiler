@@ -83,7 +83,7 @@ def post_process(chip, step):
                wirelength = re.search('^total wire length = (.*) um',line)
 
                if area:
-                    chip.set('real', step, 'cell_area', str(round(float(area.group(1)),2)))
+                    chip.set('real', step, 'area_cells', str(round(float(area.group(1)),2)))
                elif tns:
                     chip.set('real', step, 'setup_tns', str(round(float(tns.group(1)),2)))
                elif wns:
@@ -92,8 +92,8 @@ def post_process(chip, step):
                     powerlist = power.group(1).split()
                     leakage = powerlist[2]
                     total = powerlist[3] 
-                    chip.set('real', step, 'total_power', total)
-                    chip.set('real', step, 'leakage',  leakage)
+                    chip.set('real', step, 'power_total', total)
+                    chip.set('real', step, 'power_leakage',  leakage)
                elif wirelength:
                     chip.set('real', step, 'wirelength', str(round(float(wirelength.group(1)),2)))
                elif vias:
