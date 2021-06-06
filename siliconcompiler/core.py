@@ -18,6 +18,8 @@ import uuid
 import math
 import pandas
 import yaml
+import argparse 
+from argparse import ArgumentParser, HelpFormatter
 
 from importlib.machinery import SourceFileLoader
 
@@ -86,6 +88,94 @@ class Chip:
 
         self.error = 0
 
+    
+    ###########################################################################
+    def cmdline(self):
+        '''
+        A command line interface for the SiliconCompiler schema.
+        All entries in the schema are accessible as command line switches.
+        '''
+        
+        os.environ["COLUMNS"] = '80'        
+        sc_description = '''
+        --------------------------------------------------------------
+        SiliconCompiler (SC)                                          
+        
+        SiliconCompiler is an open source Python based hardware       
+        compiler project that aims to fully automate the translation  
+        of high level source code into manufacturable hardware.       
+                                                                      
+        Website: https://www.siliconcompiler.com                      
+        Documentation: https://www.siliconcompiler.com/docs           
+        Community: https://www.siliconcompiler.com/community          
+                                                                      
+        Examples:                                                     
+        $ sc hello_world.v -target freepdk45
+        '''
+        
+        # Argparse
+        parser = argparse.ArgumentParser(prog='sc',
+                                         prefix_chars='-+',
+                                         description=sc_description,
+                                         formatter_class=RawFormatter)
+        
+        # Required positional source file argument
+        parser.add_argument('source',
+                            nargs='+',
+                            help=self.cfg['source']['short_help'])
+        
+        # Get all keys
+        allkeys = self.getkeys()
+        
+        # Iterate over all keys to add parser argument
+        for key in allkeys:
+            helpstr = self._search(self.cfg, *key, mode='get', field='short_help')
+            typestr = self._search(self.cfg, *key, mode='get', field='type')
+            switchstr = self._search(self.cfg, *key, mode='get', field='switch')
+            dest = switchstr.replace("-","")
+            #Mapping irregular switches(-D, +incdir, -v, -f, -O, etc to key)
+            if not key[0] in dest:
+                dest = key[0]                
+            if 'source' in key:
+                pass
+            elif '+' in  switchstr:
+                #TODO: implement 
+                pass
+            elif typestr == 'bool':
+                parser.add_argument(switchstr,
+                                    metavar='',
+                                    dest=dest,
+                                    action='store_const',
+                                    const=['true'],
+                                    help=helpstr,
+                                    default = argparse.SUPPRESS)
+            else:
+                #all the rest
+                parser.add_argument(switchstr,
+                                    metavar='',                                 
+                                    dest=dest,
+                                    action='append',
+                                    help=helpstr,
+                                    default = argparse.SUPPRESS)
+                
+                
+        # Parse String
+        cmdargs = vars(parser.parse_args())
+        #Stuff values into dynamic dict
+        #key is a string, val is a list
+        cfg= {}
+        for key, val in cmdargs.items():
+            keylist = key.split('_')
+            for item in val:
+                strlist = item.split()
+                args =  keylist + [strlist]
+                #TODO: add special case for cfg file
+                #self.readcfg(item)
+                #TODO: add all the dynamic dictionary stuff
+                self._search(self.cfg, *args, mode='set')
+        
+        return cfg
+            
     ###########################################################################
     def target(self, arg="UNDEFINED"):
         '''
@@ -1285,12 +1375,27 @@ class Chip:
             pass
 
 ################################################################################
-# Annoying helper class b/c yaml..
-# Do we actually have to support a class?
+# Annoying helper classes
+
 class YamlIndentDumper(yaml.Dumper):
     def increase_indent(self, flow=False, indentless=False):
         return super(YamlIndentDumper, self).increase_indent(flow, False)
 
+class RawFormatter(HelpFormatter):
+    def _fill_text(self, text, width, indent):
+        return "\n".join([textwrap.fill(line, width) for line in textwrap.indent(textwrap.dedent(text), indent).splitlines()])
+
+
+class PlusargAction(argparse.Action):
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
+        if nargs is not None:
+            raise ValueError("nargs not allowed")
+        super().__init__(option_strings, dest, **kwargs)
+    def __call__(self, parser, namespace, values, option_string=None):
+        print('%r %r %r' % (namespace, values, option_string))
+        setattr(namespace, self.dest, values)
+        
+    
 ################################################################################
 def get_permutations(base_chip, cmdlinecfg):
     '''Helper method to generate one or more Chip objects depending on
