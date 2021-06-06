@@ -1425,7 +1425,7 @@ def schema_libs(cfg, group):
         'signature' : [],
         'short_help' : group.capitalize() + ' Layout Database',
         'param_help' : "'"+group+"' libname 'layoutdb' stackup format <file>",
-        'example':["cli: -"+group+"_layoutdb 'mylib stack10 oa /disk/mulibdb'",
+        'example':["cli: -"+group+"_layoutdb 'mylib stack10 oa /disk/mylibdb'",
                    "api: chip.add('"+group+"','mylib','layoutdb','stack10', \
                    'oa', '/disk/mylibdb')"],
         'help' : """
@@ -1558,13 +1558,13 @@ def schema_flow(cfg, step):
     #copy
     cfg['flow'][step]['copy'] = {
         'switch' : '-flow_copy',
-        'type' : 'bool',
+        'type' : 'str',
         'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Copy Local Option',
         'param_help' : "'flow' step 'copy' <bool>",
-        'example': ["cli: -flow_copy cts",
+        'example': ["cli: -flow_copy 'cts true'",
                     "api: chip.set('flow','cts','copy','true'"],
         'help' : """
         Specifies that the reference script directory should be copied and run 
@@ -1712,16 +1712,16 @@ def schema_metrics(cfg, group, step='default'):
         """
     }
 
-    cfg[group][step]['rambits'] = {
-        'switch' : '-'+group+'_rambits',
+    cfg[group][step]['ram'] = {
+        'switch' : '-'+group+'_sram',
         'type' : 'num',
         'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Total RAM Bits' + group.capitalize(),
-        'param_help' : "'"+group+"' step 'rambits' <num>",
-        'example':["cli: -"+group+"_rambits 'place 100'",
-                   "api: chip.add('"+group+"','place','rambits','100')"],
+        'short_help' : 'Total SRAM Bits' + group.capitalize(),
+        'param_help' : "'"+group+"' step 'ram' <num>",
+        'example':["cli: -"+group+"_ram 'place 100'",
+                   "api: chip.add('"+group+"','place','ram','100')"],
         'help' : """
         Metric tracking the total number of SRAM bits in the design 
         on a per step basis. In the case of FPGAs, the it 
@@ -1802,23 +1802,23 @@ def schema_metrics(cfg, group, step='default'):
         'example':["cli: -"+group+"_cell_area 'place 100.00'",
                    "api: chip.add('"+group+"','place','cell_area','100.00')"],
         'help' : """
-        Metric tracking the total cell area on a per step basis
-        specified in um^2.
+        Metric tracking the sum of all cell area on a per step basis specified 
+        in um^2.
         """
     }
 
-    cfg[group][step]['die_area'] = {
-        'switch' : '-'+group+'_die_area',
+    cfg[group][step]['total_area'] = {
+        'switch' : '-'+group+'_total_area',
         'type' : 'num',
         'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
-        'short_help' : 'Die Area ' + group.capitalize(),
-        'param_help' : "'"+group+"' step 'die_area' <num>",
-        'example':["cli: -"+group+"_die_area 'place 100.00'",
-                   "api: chip.add('"+group+"','place','die_area','100.00')"],
+        'short_help' : 'Total Area ' + group.capitalize(),
+        'param_help' : "'"+group+"' step 'total_area' <num>",
+        'example':["cli: -"+group+"_total_area 'place 100.00'",
+                   "api: chip.add('"+group+"','place','total_area','100.00')"],
         'help' : """
-        Metric tracking the total die area on a per step basis
+        Metric tracking the total physical design area on a per step basis 
         specified in um^2.
         """
     }
@@ -1854,24 +1854,24 @@ def schema_metrics(cfg, group, step='default'):
         'example':["cli: -"+group+"_total_power 'place 0.001'",
                    "api: chip.add('"+group+"','place','total_power','0.001')"],
         'help' : """       
-        Metric tracking the worst case dynamic power of the design on a per 
+        Metric tracking the worst case total power of the design on a per 
         step basis calculated based on setup config and VCD stimulus.
         stimulus. Metric unit is Watts.
         """
     }    
 
-    cfg[group][step]['leakage_power'] = {
-        'switch' : '-'+group+'_leakage_power',
+    cfg[group][step]['leakage'] = {
+        'switch' : '-'+group+'_leakage',
         'type' : 'num',
         'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Leakage Power ' + group.capitalize(),
-        'param_help' : "'"+group+"' step 'leakage_powerw' <num>",
-        'example':["cli: -"+group+"_leakage_power 'place 1e-6'",
-                   "api: chip.add('"+group+"','place','leakage_power','1e-6')"],
+        'param_help' : "'"+group+"' step 'leakage' <num>",
+        'example':["cli: -"+group+"_leakage 'place 1e-6'",
+                   "api: chip.add('"+group+"','place','leakage','1e-6')"],
         'help' : """
-        Metric tracking the worst case leakage of the design on a per step 
+        Metric tracking the leakage power of the design on a per step 
         basis. Metric unit is Watts.
         """
     }
@@ -2086,7 +2086,7 @@ def schema_record(cfg, group='record', step='default'):
         'defvalue' : [],
         'short_help' : 'Step Organization',
         'param_help' : "'"+group+"' step 'org' <str>",
-        'example':["cli: -"+group+"_org'dfm earth'",
+        'example':["cli: -"+group+"_org 'dfm earth'",
                    "api: chip.add('"+group+"','dfm','org','earth')"],
         'help' : """
         Metric tracking the user's organization on a per step basis.
@@ -2224,9 +2224,9 @@ def schema_options(cfg):
         All parameters can be set at the command line, but with over 500 
         configuration parameters possible, the preferred method for non trivial
         use cases is to create a cfg file using the python API. The cfg file 
-        can then be passed in through he -cfgfile switch at the command line.
+        can then be passed in through he -cfg switch at the command line.
         There  is no restriction on the number of cfg files that can be be 
-        passed in. but it should be noted that the cfgfile are appended to the 
+        passed in. but it should be noted that the cfg are appended to the 
         existing list and configuration list.
         """
         }
@@ -2272,11 +2272,12 @@ def schema_options(cfg):
         'defvalue' : ['NONE'],
         'short_help' : 'File Hash Mode',
         'param_help' : "'hashmode' <str>",
-        'example': ["cli: -hashmode 'ALL'",
+        'example': ["cli: -hashmode ALL",
                     "api: chip.add('hasmode', 'ALL'"],
         'help' : """
         The switch controls how/if setup files and source files are hashed
-        during compilation. Valid entries include NONE, ALL, USED.
+        during compilation. Valid entries include NONE, ALL, ACTIVE.
+        ACTIVE specifies to only hash files being used in the current cfg.
         """
     }
     
@@ -2425,7 +2426,7 @@ def schema_options(cfg):
         'requirement' : 'optional',
         'short_help' : 'Compilation Skip Steps',
         'param_help' : "'skip' <str>",
-        'example': ["cli: -skip",
+        'example': ["cli: -skip dfm",
                     "api: chip.set('stop','dfm'"],
         'help' : """
         In some older technologies it may be possible to skip some of the steps 
@@ -2799,7 +2800,7 @@ def schema_status(cfg):
         'defvalue' : [],
         'short_help' : 'Current Compilation Step',
         'param_help' : "'status' 'step' <str>",
-        'example': ["cli: -status_step",
+        'example': ["cli: -status_step syn",
                     "api: chip.get('status', 'step')"],
         'help' : """
         A dynamic variable that keeps track of the current name being executed.
@@ -2811,14 +2812,14 @@ def schema_status(cfg):
     cfg['status']['default'] = { }
     cfg['status']['default']['active'] = {
         'switch' : '-status_active',
-        'type' : 'bool',
+        'type' : 'str',
         'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Step Active Indicator',
         'param_help' : "'status' step 'active' <bool>",
-        'example': ["cli: -status_active",
-                    "api: chip.get('status', 'step', 'active')"],
+        'example': ["cli: -status_active 'syn true'",
+                    "api: chip.get('status', 'step', 'true')"],
         'help' : """
         Status field with boolean indicating step activity. The variable is 
         managed by the run function and not writable by the user.
@@ -3099,7 +3100,7 @@ def schema_design(cfg):
     }
 
     cfg['idir'] = {
-        'switch' : '-I',
+        'switch' : '+incdir+',
         'type' : 'dir',
         'lock' : 'false',
         'requirement' : 'optional',
@@ -3110,7 +3111,7 @@ def schema_design(cfg):
         'signature' : [],
         'short_help' : 'Design Include Search Paths',
         'param_help' : "'idir' <dir>",
-        'example': ["cli: -I'./mylib'",
+        'example': ["cli: '+incdir+./mylib'",
                     "api: chip.add('idir','./mylib')"],
         'help' : """
         Provides a search paths to look for files included in the design using
@@ -3140,14 +3141,14 @@ def schema_design(cfg):
     }
 
     cfg['libext'] = {
-        'switch' : '+libext',
+        'switch' : '+libext+',
         'type' : 'str',
         'lock' : 'false',
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Verilog File Extensions',
         'param_help' : "'libext' <str>",
-        'example': ["cli:  '+libext+sv'",
+        'example': ["cli: +libext+sv",
                     "api: chip.add('libext','sv')"],
         'help' : """
         Specifes the file extensions that should be used for finding modules. 
@@ -3650,7 +3651,7 @@ def schema_asic(cfg):
         'signature' : [],
         'short_help' : 'Floorplanning Script',
         'param_help' : "'asic' 'floorplan' <file>",
-        'example': ["cli: -asic_floorplan 'hello.py'",
+        'example': ["cli: -asic_floorplan hello.py",
                     "api: chip.add('asic', 'floorplan', 'hello.py')"],
         'help' : """
         Provides a parameterized floorplan to be used during the floorplan step
