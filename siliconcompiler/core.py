@@ -169,14 +169,16 @@ class Chip:
             for item in val:
                 strlist = item.split()
                 args =  keylist + [strlist]
-                #TODO: add special case for cfg file
-                #self.readcfg(item)
-                #TODO: add all the dynamic dictionary stuff
-                #(stdcells|macro|flow|real|goal)
-                #(pdk|asic|fpga|remote|record)
+                #print(args)
                 self._search(self.cfg, *args, mode='set')
+                if key == 'cfg':
+                    self.readcfg(item)
+                #TODO: add special case for cfg file
+                #TODO: add all the dynamic dictionary stuff
+                #(stdcells|macro|flow|real|goal)s
+                #(pdk|asic|fpga|remote|record)
         
-        return cfg
+        #sys.exit()
             
     ###########################################################################
     def target(self, arg="UNDEFINED"):
