@@ -2658,9 +2658,9 @@ def schema_remote(cfg):
         'requirement' : 'optional',
         'defvalue' : [],
         'short_help' : 'Job hash/UUID value',
-        'param_help' : "'remote_hash' <str>",
+        'param_help' : "'remote hash' <str>",
         'example': ["cli: -remote_hash 0123456789abcdeffedcba9876543210",
-                    "api: chip.set('remote_hash','0123456789abcdeffedcba9876543210'"],
+                    "api: chip.set('remote', 'hash','0123456789abcdeffedcba9876543210'"],
         'help' : """
         A unique ID associated with a job run. This field should be left blank
         when starting a new job, but it can be provided to resume an interrupted
