@@ -25,40 +25,33 @@ from siliconcompiler.client import remote_run
 from siliconcompiler.core   import get_permutations
 
 ###########################
-def cmdline():
+def cmdline(chip):
     '''Handles the command line configuration usign argparse. 
     All configuration parameters are exposed at the command line interface.
     This is outside of the class since this can be called 
 
     '''
-    def_cfg = schema_cfg()
 
     os.environ["COLUMNS"] = '80'
 
     # Argument Parser
 
     sc_description = '\n'.join([
-    "-----------------------------------------------------------------------",
-    "Silicon Compiler Collection (SC)                                       ",
-    "                                                                       ",
-    "The SC architecture describes the command line and API arguments that  ",
-    "form the basis of a foundry and eda agnostic silicon compilation flow  ",
-    "Short switch arguments are specified as <type>, where type can be      ",
-    "str, file, num, bool. Some switches have compelx inputs in which case  ",
-    "the argument type is specified as <> and tha description is found in   ",
-    "the switch help paragraph. Complete documentation can be found at in   ",
-    "user manual. A few examples are included here to demonstrate simple use",
-    "cases.                                                                 ",
-    "                                                                       ",
-    "Examples:                                                              ",
-    "$ sc 'hello_world.v' -target freepdk45'                                ",
-    "$ sc 'my_riscv_cpu.v' -target asap7 -design my_riscv_cpu               ",
-    "$ sc 'my_tpu.v' -cfg my_tpu_setup.json                                 ",
-    "                                                                       ",  
-    "-----------------------------------------------------------------------"])
-
-    
-    
+        "---------------------------------------------------------------------",
+        "SiliconCompiler (SC)                                                 ",
+        "                                                                     ",
+        "SiliconCompiler is an open source Python based hardware compiler     ",
+        "framework that aims to fully automate translation of high level      ",
+        "source code into hardware ready for manufacturing.                   ",
+        "                                                                     ",
+        "Website: https://www.siliconcompiler.com                             ",
+        "Documentation: https://www.siliconcompiler.com/docs                  ",
+        "Community: https://www.siliconcompiler.com/community                 ",
+        "                                                                     ",
+        "Examples:                                                            ",
+        "$ sc hello_world.v -target freepdk45                                 "
+    ])
+                    
     parser = argparse.ArgumentParser(prog='sc',
                                      formatter_class =lambda prog: RawTextHelpFormatter(prog, indent_increment=1, max_help_position=23),
                                      prefix_chars='-+',
@@ -69,15 +62,18 @@ def cmdline():
     # Required positional source file argument
     parser.add_argument('source',
                         nargs='+',
-                        help=def_cfg['source']['short_help'])
+                        help=chip.cfg['source']['short_help'])
 
-    #Recursive argument adder
-    add_arg(def_cfg, parser)
-
+    #Getting all keys in schema
+    allkeys = chip.getkeys()
+    for key in allkeys:
+        print(key)
+        
     #Parsing args and converting to dict
     cmdargs = vars(parser.parse_args())
 
-    #print(cmdargs)
+    print(cmdargs)
+    sys.exit()
     
     # Copying flat parse_args to nested cfg dict based on key type
     # Values are lists of varying legnth based on cfg parameter
@@ -225,48 +221,31 @@ def add_arg(cfg, parser, keys=None):
 ###########################
 def main():
 
+    # Create a base chip class.
+    base_chip = siliconcompiler.Chip()
+    
+    # Silly Banner
     ascii_banner = pyfiglet.figlet_format("Silicon Compiler")
     print(ascii_banner)
-    #TODO: parse authors list file, leaving this here as reminder
+    
+    # TODO: parse authors list file, leaving this here as reminder
     print("-"*80)
     print("Authors: Andreas Olofsson, William Ransohoff, Noah Moroze\n")
-    #Command line inputs, read once
-    cmdlinecfg = cmdline()
     
-    #Special Command line control for setting up logging
-    if 'loglevel' in  cmdlinecfg.keys():
-        loglevel = cmdlinecfg['loglevel']['value'][-1]
-    else:
-        loglevel = "INFO"
+    # Command line inputs, read once
+    base_chip.cmdline()
+    #TODO: Fix!
+    cmdlinecfg = {}
 
-    # Create a base Chip class.
-    base_chip = siliconcompiler.Chip(loglevel=loglevel)
-
-    # Checing for illegal combination
-    if ('target' in cmdlinecfg.keys()) & ('cfg' in cmdlinecfg.keys()):
-        base_chip.logger.error("Options -target and -cfg are mutually exlusive")
-        sys.exit()
-    # Reading in config files specified at command line
-    elif 'cfg' in  cmdlinecfg.keys():
-        for cfgfile in cmdlinecfg['cfg']['value']:
-            base_chip.readcfg(cfgfile)
-    # Reading in automated target
-    else:
-        if 'target' in cmdlinecfg.keys():
-            base_chip.set('target', cmdlinecfg['target']['value'][-1])
-        else:
-            base_chip.logger.info('No target set, setting to %s','freepdk45')
-            base_chip.set('target', 'freepdk45_asic')
-        if 'optmode' in cmdlinecfg.keys():
-            base_chip.set('optmode', cmdlinecfg['optmode']['value'])
-
+    # Set default target if not set and there is nothing set
+    if len(base_chip.get('target')) < 1:
+        base_chip.logger.info('No target set, setting to %s','freepdk45')
+        base_chip.set('target', 'freepdk45_asic')
+    
     # Assign a new 'job_hash' to the chip if necessary.
     if not base_chip.get('remote', 'hash'):
         job_hash = uuid.uuid4().hex
         base_chip.set('remote', 'hash', job_hash)
-
-    # 4. Override cfg with command line args
-    base_chip.mergecfg(cmdlinecfg)
 
     # Create one (or many...) instances of Chip class
     chips = get_permutations(base_chip, cmdlinecfg)
@@ -282,6 +261,7 @@ def main():
     # Perform preprocessing for remote jobs, if necessary.
     if len(chips[-1].get('remote', 'addr')) > 0:
         remote_preprocess(chips)
+        
     # Perform decryption, if necessary.
     elif 'decrypt_key' in chips[-1].status:
         for chip in chips:
