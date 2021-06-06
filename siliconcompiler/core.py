@@ -172,6 +172,8 @@ class Chip:
                 #TODO: add special case for cfg file
                 #self.readcfg(item)
                 #TODO: add all the dynamic dictionary stuff
+                #(stdcells|macro|flow|real|goal)
+                #(pdk|asic|fpga|remote|record)
                 self._search(self.cfg, *args, mode='set')
         
         return cfg
