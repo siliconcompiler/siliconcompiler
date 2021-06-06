@@ -44,12 +44,12 @@ set sc_coresize    [dict get $sc_cfg asic coresize]
 set sc_density     [lindex [dict get $sc_cfg asic density] end]
 set sc_hpinlayer   [lindex [dict get $sc_cfg asic hpinlayer] end]
 set sc_vpinlayer   [lindex [dict get $sc_cfg asic vpinlayer] end]
-set sc_hpinmetal   [dict get $sc_cfg pdk aprlayer $sc_stackup $sc_hpinlayer name]
-set sc_vpinmetal   [dict get $sc_cfg pdk aprlayer $sc_stackup $sc_vpinlayer name]
+set sc_hpinmetal   [dict get $sc_cfg pdk grid $sc_stackup $sc_hpinlayer name]
+set sc_vpinmetal   [dict get $sc_cfg pdk grid $sc_stackup $sc_vpinlayer name]
 set sc_rclayer     [lindex [dict get $sc_cfg asic rclayer] end]
 set sc_clklayer    [lindex [dict get $sc_cfg asic clklayer] end]
-set sc_rcmetal     [dict get $sc_cfg pdk aprlayer $sc_stackup $sc_rclayer name]
-set sc_clkmetal    [dict get $sc_cfg pdk aprlayer $sc_stackup $sc_clklayer name]
+set sc_rcmetal     [dict get $sc_cfg pdk grid $sc_stackup $sc_rclayer name]
+set sc_clkmetal    [dict get $sc_cfg pdk grid $sc_stackup $sc_clklayer name]
 
 set sc_aspectratio [lindex [dict get $sc_cfg asic aspectratio] end]
 set sc_minlayer    [lindex [dict get $sc_cfg asic minlayer] end]
@@ -78,11 +78,11 @@ set sc_tapmax      [lindex [dict get $sc_cfg pdk tapmax] end]
 set sc_tapoffset   [lindex [dict get $sc_cfg pdk tapoffset] end]
 
 #APR Layers
-set sc_minmetal    [lindex [dict get $sc_cfg pdk aprlayer $sc_stackup $sc_minlayer name] end]
-set sc_maxmetal    [lindex [dict get $sc_cfg pdk aprlayer $sc_stackup $sc_maxlayer name] end]\0
+set sc_minmetal    [lindex [dict get $sc_cfg pdk grid $sc_stackup $sc_minlayer name] end]
+set sc_maxmetal    [lindex [dict get $sc_cfg pdk grid $sc_stackup $sc_maxlayer name] end]\0
 
 set sc_layers ""
-dict for {key value} [dict get $sc_cfg pdk aprlayer $sc_stackup] {
+dict for {key value} [dict get $sc_cfg pdk grid $sc_stackup] {
     lappend sc_layers $key
 }
 

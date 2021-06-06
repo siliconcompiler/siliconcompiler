@@ -93,7 +93,7 @@ def post_process(chip, step):
                     leakage = powerlist[2]
                     total = powerlist[3] 
                     chip.set('real', step, 'total_power', total)
-                    chip.set('real', step, 'leakage_power',  leakage)
+                    chip.set('real', step, 'leakage',  leakage)
                elif wirelength:
                     chip.set('real', step, 'wirelength', str(round(float(wirelength.group(1)),2)))
                elif vias:
