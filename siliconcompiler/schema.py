@@ -519,8 +519,8 @@ def schema_pdk(cfg):
         'signature' : [],
         'short_help' : 'Parasitic TCAD Models',
         'param_help' : "'pdk' 'pexmodel' stackup corner tool <file>",
-        'example': ["""cli: -pdk_pexmodel 'stack10 max fastcap wire.mod'""",
-                    """api: chip.add('pdk','pexmodel','stack10','max','fastcap'
+        'example': ["""cli: -pdk_pexmodel 'M10 max fastcap wire.mod'""",
+                    """api: chip.add('pdk','pexmodel','M10','max','fastcap'
                     'wire.mod')"""],
         'help' : """
         Filepaths for all PDK wire TCAD models. The structure serves as a 
@@ -563,7 +563,8 @@ def schema_pdk(cfg):
 
     cfg['pdk']['display'] = {}
     cfg['pdk']['display']['default'] = {}
-    cfg['pdk']['display']['default']['default'] = {
+    cfg['pdk']['display']['default']['default'] = {}
+    cfg['pdk']['display']['default']['default']['default'] = {
         'switch' : '-pdk_display',
         'requirement' : 'asic',
         'type' : 'file',
@@ -575,9 +576,9 @@ def schema_pdk(cfg):
         'author' : [],
         'signature' : [],
         'short_help' : 'Display Configurations',
-        'param_help' : "'pdk' 'display' stackup tool <file>",
-        'example': ["""cli: -pdk_display 'stack10 klayout display.cfg'""",
-                    """api: chip.add('pdk', display','stack10','klayout',
+        'param_help' : "'pdk' 'display' stackup tool format <file>",
+        'example': ["""cli: -pdk_display 'M10 klayout python display.lyt'""",
+                    """api: chip.add('pdk', display','M10','klayout','python'
                     'display.cfg')"""],
         'help' : """
         Display configuration files describing colors and pattern schemes for
@@ -588,7 +589,8 @@ def schema_pdk(cfg):
 
     cfg['pdk']['plib'] = {}
     cfg['pdk']['plib']['default'] = {}
-    cfg['pdk']['plib']['default']['default'] = {
+    cfg['pdk']['plib']['default']['default'] = {}
+    cfg['pdk']['plib']['default']['default']['default']= {
         'switch' : '-pdk_plib',
         'requirement' : 'asic',
         'type' : 'file',
@@ -600,9 +602,9 @@ def schema_pdk(cfg):
         'author' : [],
         'signature' : [],
         'short_help' : 'Primitive Libraries',
-        'param_help' : "'pdk' 'plib' stackup format <file>",
-        'example': ["""cli: -pdk_plib 'stack10 oa /disk/asap7/oa/devlib'""",
-                    """api: chip.add('pdk','plib','stack10','oa', 
+        'param_help' : "'pdk' 'plib' stackup tool format <file>",
+        'example': ["""cli: -pdk_plib 'M10 klayout oa /disk/asap7/oa/devlib'""",
+                    """api: chip.add('pdk','plib','M10', 'klayout', 'oa', 
                     '/disk/asap7/oa/devlib')"""],
         'help' : """
         Filepaths to all primitive cell libraries supported by the PDK. The 
@@ -625,9 +627,9 @@ def schema_pdk(cfg):
         'author' : [],
         'signature' : [],
         'short_help' : 'APR Technology File',
-        'param_help' : "'pdk' 'aprtech' stackup libtype vendor <file>",
-        'example': ["""cli: -pdk_aprtech 'stack10 12t openroad tech.lef'""",
-                    """api: chip.add('pdk','aprtech','stack10','12t','openroad',
+        'param_help' : "'pdk' 'aprtech' stackup libtype filetype <file>",
+        'example': ["""cli: -pdk_aprtech 'M10 12t lef tech.lef'""",
+                    """api: chip.add('pdk','aprtech','M10','12t','lef',
                     'tech.lef')"""],
         'help' : """
         Technology file containing the design rule and setup information needed
@@ -652,8 +654,8 @@ def schema_pdk(cfg):
         'defvalue' : [],
         'short_help' : 'Grid Layer Name Map',
         'param_help' : "'pdk' 'grid' stackup layer 'name' <str>",
-        'example': ["""cli: -pdk_grid_name 'stack10 m1 metal1'""",
-                    """api: chip.add('pdk', 'grid', 'stack10', 'm1', 'name',
+        'example': ["""cli: -pdk_grid_name 'M10 m1 metal1'""",
+                    """api: chip.add('pdk', 'grid', 'M10', 'm1', 'name',
                     'metal1')"""],
         'help' : """
         Defines the hardcoded PDK metal name on a per stackup and per metal 
@@ -670,8 +672,8 @@ def schema_pdk(cfg):
         'defvalue' : [],
         'short_help' : 'Grid Layer Horizontal Grid',
         'param_help' : "'pdk' 'grid' stackup layer 'xpitch'",
-        'example': ["""cli: -pdk_grid_xpitch 'stack10 m1 0.5'""",
-                    """api: chip.add('pdk','grid','stack10','m1','xpitch',
+        'example': ["""cli: -pdk_grid_xpitch 'M10 m1 0.5'""",
+                    """api: chip.add('pdk','grid','M10','m1','xpitch',
                     '0.5')"""],
         'help' : """
         Defines the vertical routing grid on a a per stackup and per metal 
@@ -689,8 +691,8 @@ def schema_pdk(cfg):
         'defvalue' : [],
         'short_help' : 'Grid Layer Vertical Grid',
         'param_help' : "'pdk' 'grid' stackup layer 'ypitch'",
-        'example': ["""cli: -pdk_grid_ypitch 'stack10 m2 0.5'""",
-                    """api: chip.add('pdk','grid','stack10','m2','ypitch',
+        'example': ["""cli: -pdk_grid_ypitch 'M10 m2 0.5'""",
+                    """api: chip.add('pdk','grid','M10','m2','ypitch',
                     '0.5')"""],
         'help' : """
         Defines the horizontal routing grid on a a per stackup and per metal 
@@ -708,8 +710,8 @@ def schema_pdk(cfg):
         'defvalue' : [],
         'short_help' : 'Grid Layer Preferred Direction',
         'param_help' : "'pdk' 'grid' stackup layer 'xoffset'",
-        'example': ["""cli: -pdk_grid_xoffset 'stack10 m2 0.5'""",
-                    """api: chip.add('pdk','grid','stack10','m2','xoffset',
+        'example': ["""cli: -pdk_grid_xoffset 'M10 m2 0.5'""",
+                    """api: chip.add('pdk','grid','M10','m2','xoffset',
                     '0.5')"""],
         'help' : """
         Defines the horizontal grid offset of a metal layer specified on a per 
@@ -726,8 +728,8 @@ def schema_pdk(cfg):
         'defvalue' : [],
         'short_help' : 'Grid Layer Preferred Direction',
         'param_help' : "'pdk' 'grid' stackup layer 'yoffset'",
-        'example': ["""cli: -pdk_grid_yoffset 'stack10 m2 0.5'""",
-                    """api: chip.add('pdk','grid','stack10','m2','yoffset',
+        'example': ["""cli: -pdk_grid_yoffset 'M10 m2 0.5'""",
+                    """api: chip.add('pdk','grid','M10','m2','yoffset',
                     '0.5')"""],
         'help' : """
         Defines the horizontal grid offset of a metal layer specified on a per 
@@ -744,8 +746,8 @@ def schema_pdk(cfg):
         'defvalue' : [],
         'short_help' : 'Grid Layer Routing Adjustment',
         'param_help' : "'pdk' 'grid' stackup layer 'adj'",
-        'example': ["""cli: -pdk_grid_adj 'stack10 m2 0.5'""",
-                    """api: chip.set('pdk','grid','stack10','m2','adj',
+        'example': ["""cli: -pdk_grid_adj 'M10 m2 0.5'""",
+                    """api: chip.set('pdk','grid','M10','m2','adj',
                     '0.5')"""],
         'help' : """
         Defines the routing resources adjustments for the design on a per layer
@@ -763,8 +765,8 @@ def schema_pdk(cfg):
         'defvalue' : [],
         'short_help' : 'Grid Layer Routing Layer Capacitance',
         'param_help' : "'pdk' 'grid' stackup layer 'cap'",
-        'example': ["""cli: -pdk_grid_cap 'stack10 m2 0.2'""",
-                    """api: chip.set('pdk','grid','stack10','m2','cap',
+        'example': ["""cli: -pdk_grid_cap 'M10 m2 0.2'""",
+                    """api: chip.set('pdk','grid','M10','m2','cap',
                     '0.2')"""],
         'help' : """
         Specifies the unit capacitance of a wire defined by the grid
@@ -784,8 +786,8 @@ def schema_pdk(cfg):
         'defvalue' : [],
         'short_help' : 'Grid Layer Routing Layer Resistance',
         'param_help' : "'pdk' 'grid' stackup layer 'res'",
-        'example': ["""cli: -pdk_grid_res 'stack10 m2 0.2'""",
-                    """api: chip.set('pdk','grid','stack10','m2','res',
+        'example': ["""cli: -pdk_grid_res 'M10 m2 0.2'""",
+                    """api: chip.set('pdk','grid','M10','m2','res',
                     '0.2')"""],
         'help' : """
         Specifies the resistance  of a wire defined by the grid
@@ -805,8 +807,8 @@ def schema_pdk(cfg):
         'defvalue' : [],
         'short_help' : 'Grid Layer Temperature Coefficent',
         'param_help' : "'pdk' 'grid' stackup layer 'tcr'",
-        'example': ["""cli: -pdk_grid_tcr 'stack10 m2 0.1'""",
-                    """api: chip.set('pdk','grid','stack10','m2','tcr',
+        'example': ["""cli: -pdk_grid_tcr 'M10 m2 0.1'""",
+                    """api: chip.set('pdk','grid','M10','m2','tcr',
                     '0.1')"""],
         'help' : """
         Specifies the temperature coefficient of resistance of the wire 
@@ -1328,7 +1330,7 @@ def schema_libs(cfg, group):
         'defvalue' : [],
         'short_help' : group.capitalize() + ' Power/Ground Layer',
         'param_help' : "'"+group+"' libname 'pgmetal' <str>",
-        'example':["cli: -"+group+"_pgmetal 'mylib pgmetal m1'",
+        'example':["cli: -"+group+"_pgmetal 'mylib m1'",
                    "api: chip.add('"+group+"','mylib','pgmetal','m1')"],
         'help' : """
         Specifies the top metal layer used for power and ground routing within
@@ -1425,8 +1427,8 @@ def schema_libs(cfg, group):
         'signature' : [],
         'short_help' : group.capitalize() + ' Layout Database',
         'param_help' : "'"+group+"' libname 'layoutdb' stackup format <file>",
-        'example':["cli: -"+group+"_layoutdb 'mylib stack10 oa /disk/mylibdb'",
-                   "api: chip.add('"+group+"','mylib','layoutdb','stack10', \
+        'example':["cli: -"+group+"_layoutdb 'mylib M10 oa /disk/mylibdb'",
+                   "api: chip.add('"+group+"','mylib','layoutdb','M10', \
                    'oa', '/disk/mylibdb')"],
         'help' : """
         Filepaths to compiled library layout database specified on a per format
