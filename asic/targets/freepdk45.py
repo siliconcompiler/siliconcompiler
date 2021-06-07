@@ -48,7 +48,7 @@ def setup_platform(chip):
     chip.set('pdk','tapoffset', "0")
 
     # APR tech file
-    chip.set('pdk','aprtech',stackup, libtype, 'openroad',
+    chip.set('pdk','aprtech',stackup, libtype, 'lef',
              pdkdir+'/apr/freepdk45.tech.lef')
 
     # Routing Grid Definitions
