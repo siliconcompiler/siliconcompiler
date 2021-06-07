@@ -337,7 +337,7 @@ def schema_pdk(cfg):
         'lock' : 'false',
         'defvalue' : [],
         'short_help' : 'Process Defect Density',
-        'param_help' : "pdk d0' <num>",
+        'param_help' : "pdk d0 <num>",
         'example': ["cli: -pdk_d0 0.1",                    
                     "api:  chip.set('pdk', 'd0', '0.1')"],
         'help' : """
@@ -2226,8 +2226,8 @@ def schema_options(cfg):
         'defvalue' : ['custom'],
         'short_help' : 'Target Platform',
         'param_help' : "target <str>",
-        'example': ["cli: -target freepdk45_openroad",
-                    "api: chip.set('target','freepdk45_openroad')"],
+        'example': ["cli: -target freepdk45",
+                    "api: chip.set('target','freepdk45')"],
         'help' : """
         Provides a string name for choosing a physical mapping target for the
         design. The target should be one of the following formats.
@@ -2324,8 +2324,8 @@ def schema_options(cfg):
         'defvalue' : ['NONE'],
         'short_help' : 'File Hash Mode',
         'param_help' : "hashmode <str>",
-        'example': ["cli: -hashmode ALL",
-                    "api: chip.add('hasmode', 'ALL'"],
+        'example': ["cli: -hashmode NONE",
+                    "api: chip.add('hashmode', 'NONE'"],
         'help' : """
         The switch controls how/if setup files and source files are hashed
         during compilation. Valid entries include NONE, ALL, ACTIVE.
