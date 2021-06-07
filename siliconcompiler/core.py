@@ -120,23 +120,30 @@ class Chip:
                                          formatter_class=RawFormatter)
         
         # Required positional source file argument
+        
         parser.add_argument('source',
                             nargs='+',
                             help=self.cfg['source']['short_help'])
         
         # Get all keys
         allkeys = self.getkeys()
-        
+        argmap = {}
         # Iterate over all keys to add parser argument
         for key in allkeys:
+
+            #Fetch fields from leaf cell
             helpstr = self._search(self.cfg, *key, mode='get', field='short_help')
             typestr = self._search(self.cfg, *key, mode='get', field='type')
-            switchstr = self._search(self.cfg, *key, mode='get', field='switch')
-            dest = switchstr.replace("-","")
+            paramstr = self._search(self.cfg, *key, mode='get', field='param_help')
+            switchstr = self._search(self.cfg, *key, mode='get', field='switch')            
+
+            #Create a map from parser args back to dictionary
+            dest = switchstr.replace('-','')
+            argmap[dest] = paramstr  
+                   
             #Mapping irregular switches(-D, +incdir, -v, -f, -O, etc to key)
-            if not key[0] in dest:
-                dest = key[0]                
             if 'source' in key:
+                argmap['source'] = paramstr
                 pass
             elif '+' in  switchstr:
                 #TODO: implement 
@@ -159,27 +166,21 @@ class Chip:
                                     default = argparse.SUPPRESS)
                 
                 
-        # Parse String
+        # Get comman line inputs
         cmdargs = vars(parser.parse_args())
-        #Stuff values into dynamic dict
-        #key is a string, val is a list
-        cfg= {}
+
+        #Stuff command line values into dynamic dict
         for key, val in cmdargs.items():
-            keylist = key.split('_')
             for item in val:
                 strlist = item.split()
-                args =  keylist + [strlist]
-                #print(args)
+                args = schema_reorder_keys(argmap[key], item)
                 self._search(self.cfg, *args, mode='set')
                 if key == 'cfg':
                     self.readcfg(item)
-                #TODO: add special case for cfg file
-                #TODO: add all the dynamic dictionary stuff
-                #(stdcells|macro|flow|real|goal)s
-                #(pdk|asic|fpga|remote|record)
         
+
         #sys.exit()
-            
+
     ###########################################################################
     def target(self, arg="UNDEFINED"):
         '''
