@@ -177,9 +177,10 @@ class Chip:
                 self._search(self.cfg, *args, mode='set')
                 if key == 'cfg':
                     self.readcfg(item)
-        
 
-        #sys.exit()
+        # Create one (or many...) instances of Chip class.
+        chips = get_permutations(self, cmdargs)
+        return chips
 
     ###########################################################################
     def target(self, arg="UNDEFINED"):
@@ -1410,12 +1411,22 @@ def get_permutations(base_chip, cmdlinecfg):
     chips = []
     cmdkeys = cmdlinecfg.keys()
 
-    loglevel = cmdlinecfg['loglevel']['value'][-1] \
+    # Set default target if not set and there is nothing set
+    if len(base_chip.get('target')) < 1:
+        base_chip.logger.info('No target set, setting to %s','freepdk45')
+        base_chip.set('target', 'freepdk45_asic')
+
+    # Assign a new 'job_hash' to the chip if necessary.
+    if not base_chip.get('remote', 'hash'):
+        job_hash = uuid.uuid4().hex
+        base_chip.set('remote', 'hash', job_hash)
+
+    loglevel = cmdlinecfg['loglevel'][-1] \
         if 'loglevel' in cmdkeys else "INFO"
 
     # Fetch the generator for multiple job permutations if necessary.
     if 'permutations' in cmdkeys:
-        perm_path = os.path.abspath(cmdlinecfg['permutations']['value'][-1])
+        perm_path = os.path.abspath(cmdlinecfg['permutations'][-1])
         perm_script = SourceFileLoader('job_perms', perm_path).load_module()
         perms = perm_script.permutations(base_chip.cfg)
     else:
@@ -1423,7 +1434,7 @@ def get_permutations(base_chip, cmdlinecfg):
 
     # Set '-remote_start' to '-start' if only '-start' is passed in at cmdline.
     if (not (('remote' in cmdkeys) and \
-             ('start' in cmdlinecfg['remote'].keys()))) and \
+             ('remote_start' in cmdkeys))) and \
        ('start' in cmdkeys):
         base_chip.set('remote', 'start', base_chip.get('start')[-1])
     # Mark whether a local 'import' stage should be run.

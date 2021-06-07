@@ -36,23 +36,8 @@ def main():
     print("-"*80)
     print("Authors: Andreas Olofsson, William Ransohoff, Noah Moroze\n")
     
-    # Command line inputs, read once
-    base_chip.cmdline()
-    #TODO: Fix!
-    cmdlinecfg = {}
-
-    # Set default target if not set and there is nothing set
-    if len(base_chip.get('target')) < 1:
-        base_chip.logger.info('No target set, setting to %s','freepdk45')
-        base_chip.set('target', 'freepdk45_asic')
-    
-    # Assign a new 'job_hash' to the chip if necessary.
-    if not base_chip.get('remote', 'hash'):
-        job_hash = uuid.uuid4().hex
-        base_chip.set('remote', 'hash', job_hash)
-
-    # Create one (or many...) instances of Chip class
-    chips = get_permutations(base_chip, cmdlinecfg)
+    # Read command-line inputs and generate Chip objects to run the flow on.
+    chips = base_chip.cmdline()
 
     # Check and lock each permutation.
     for chip in chips:
