@@ -1,4 +1,4 @@
-Schema API
-===
+Configuration Schema 
+=====================
 
 Placeholder

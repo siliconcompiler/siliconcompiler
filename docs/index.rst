@@ -16,17 +16,18 @@ Welcome to SiliconCompiler's documentation!
    cli_interface
    python_interface
    tutorials/index
-      
+   faq/index
+   glossary
+   
 .. toctree::
    :maxdepth: 3
    :caption: Reference Manual
    :numbered:
    
-   api
    schema
+   api
    targets/index
    tools/index
-  
 
 Indices and tables
 ==================

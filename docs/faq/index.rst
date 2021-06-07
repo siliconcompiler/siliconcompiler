@@ -1,5 +1,5 @@
-Tool Configuration
-===================
+FAQ
+===========================
 
 .. toctree::
     :caption: Contents:
