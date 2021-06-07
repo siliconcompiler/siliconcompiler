@@ -86,7 +86,7 @@ class Floorplan:
         # extract layers based on stackup
         stackup = self.chip.get('asic', 'stackup')[-1]
         self.layers = {}
-        for name, layer in self.chip.cfg['pdk']['aprlayer'][stackup].items():
+        for name, layer in self.chip.cfg['pdk']['grid'][stackup].items():
             if name == 'default': continue
             self.layers[name] = {}
             self.layers[name]['name'] = layer['name']['value'][-1]
