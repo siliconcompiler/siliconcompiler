@@ -13,8 +13,7 @@ Welcome to SiliconCompiler's documentation!
 
    intro
    install
-   cli_interface
-   python_interface
+   run
    tutorials/index
    faq/index
    glossary
@@ -24,8 +23,9 @@ Welcome to SiliconCompiler's documentation!
    :caption: Reference Manual
    :numbered:
    
-   schema
+   schema   
    api
+   commandline
    targets/index
    tools/index
 
