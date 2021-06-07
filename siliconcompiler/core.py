@@ -177,9 +177,11 @@ class Chip:
                 #TODO: add all the dynamic dictionary stuff
                 #(stdcells|macro|flow|real|goal)s
                 #(pdk|asic|fpga|remote|record)
-        
-        #sys.exit()
-            
+
+        # Create one (or many...) instances of Chip class.
+        chips = get_permutations(self, cmdargs)
+        return chips
+
     ###########################################################################
     def target(self, arg="UNDEFINED"):
         '''
@@ -1408,6 +1410,16 @@ def get_permutations(base_chip, cmdlinecfg):
 
     chips = []
     cmdkeys = cmdlinecfg.keys()
+
+    # Set default target if not set and there is nothing set
+    if len(base_chip.get('target')) < 1:
+        base_chip.logger.info('No target set, setting to %s','freepdk45')
+        base_chip.set('target', 'freepdk45_asic')
+
+    # Assign a new 'job_hash' to the chip if necessary.
+    if not base_chip.get('remote', 'hash'):
+        job_hash = uuid.uuid4().hex
+        base_chip.set('remote', 'hash', job_hash)
 
     loglevel = cmdlinecfg['loglevel']['value'][-1] \
         if 'loglevel' in cmdkeys else "INFO"
