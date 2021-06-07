@@ -38,11 +38,6 @@ def test_gcd_server():
                             '-loglevel', 'NOTSET'],
                            stdout = subprocess.PIPE)
 
-    # Find the job hash from the fetched floorplan stage results.
-    with open('build/gcd/job1/floorplan/sc_schema.json', 'r') as json_cfg:
-        run_cfg = json.loads(json_cfg.read())
-    job_hash = run_cfg['remote']['hash']['value'][-1]
-
     # Run another 'sc' step to resume, complete, and delete the prior job run.
     sproc = subprocess.run(['sc',
                             '/dev/null',
@@ -52,7 +47,6 @@ def test_gcd_server():
                             '-stop', 'export',
                             '-remote_addr', 'localhost',
                             '-remote_port', '8080',
-                            '-remote_hash', job_hash,
                             '-loglevel', 'NOTSET'],
                            stdout = subprocess.PIPE)
 
