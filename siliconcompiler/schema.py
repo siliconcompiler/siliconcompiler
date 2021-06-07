@@ -143,19 +143,34 @@ def schema_check(cfg, leafkey, value):
     return ok
 
 
-def schema_argmap(switch, param_help):
+def schema_reorder_keys(param_help, item):
     ''' Returns a keylist used to access the dictionary based on the 
     cmdline switch argument and the param_help field.
     '''
-    switch = switch.replace('-','')
-    switchlist = switch.split('_')
-    paramlist = param_help.split() 
-    print("switch=",switchlist, "              param_help=",paramlist)
 
-    keylist = []
+    #Split param help into keys and data based in <>
+    m = re.search('(.*?)(<.*)',param_help)
+    paramlist = m.group(1).split()
+    datalist = m.group(2).split()
+    #Split cmdline inputn based on spaces
+    itemlist = item.split()
+    
+    depth = len(paramlist)+1
+    args = [None] * depth
 
-    return keylist
+    #Combine keys from param_help and cmdline field
+    j=0
+    for i in range(depth-1):
+        if paramlist[i].endswith('var'):
+            args[i]=itemlist[j]
+            j=j+1
+        else:
+            args[i]=paramlist[i]
 
+    #Insert data field as last entry (some are string tuples)
+    args[-1] = itemlist[-len(datalist):]
+    
+    return args
 
     
 ###############################################################################
