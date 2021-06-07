@@ -1421,12 +1421,12 @@ def get_permutations(base_chip, cmdlinecfg):
         job_hash = uuid.uuid4().hex
         base_chip.set('remote', 'hash', job_hash)
 
-    loglevel = cmdlinecfg['loglevel']['value'][-1] \
+    loglevel = cmdlinecfg['loglevel'][-1] \
         if 'loglevel' in cmdkeys else "INFO"
 
     # Fetch the generator for multiple job permutations if necessary.
     if 'permutations' in cmdkeys:
-        perm_path = os.path.abspath(cmdlinecfg['permutations']['value'][-1])
+        perm_path = os.path.abspath(cmdlinecfg['permutations'][-1])
         perm_script = SourceFileLoader('job_perms', perm_path).load_module()
         perms = perm_script.permutations(base_chip.cfg)
     else:
@@ -1434,7 +1434,7 @@ def get_permutations(base_chip, cmdlinecfg):
 
     # Set '-remote_start' to '-start' if only '-start' is passed in at cmdline.
     if (not (('remote' in cmdkeys) and \
-             ('start' in cmdlinecfg['remote'].keys()))) and \
+             ('remote_start' in cmdkeys))) and \
        ('start' in cmdkeys):
         base_chip.set('remote', 'start', base_chip.get('start')[-1])
     # Mark whether a local 'import' stage should be run.
