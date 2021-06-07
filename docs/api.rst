@@ -1,4 +1,4 @@
-API
+Python API
 ===
 
 Core
