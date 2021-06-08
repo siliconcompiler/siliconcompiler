@@ -16,7 +16,7 @@ def test_failure_notquiet():
     chip = siliconcompiler.Chip(loglevel='NOTSET')
 
     # Inserting value into configuration
-    chip.add('source', '../tests/fpga/test_failure/bad.v')
+    chip.add('source', '../../tests/fpga/test_failure/bad.v')
     chip.add('design', 'bad')
     chip.set('target', "ice40_nextpnr")
     chip.set_jobid()
@@ -40,7 +40,7 @@ def test_failure_quiet():
     chip = siliconcompiler.Chip(loglevel='NOTSET')
 
     # Inserting value into configuration
-    chip.add('source', '../tests/fpga/test_failure/bad.v')
+    chip.add('source', '../../tests/fpga/test_failure/bad.v')
     chip.add('design', 'bad')
     chip.set('target', "ice40_nextpnr")
     chip.set_jobid()

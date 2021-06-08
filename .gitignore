@@ -28,3 +28,5 @@ share/python-wheels/
 MANIFEST
 .vagrant/
 
+# Test results
+pytest_tmp/

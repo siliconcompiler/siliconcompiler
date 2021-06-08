@@ -10,11 +10,14 @@ def test_gcd_local_py():
     # Create instance of Chip class
     chip = siliconcompiler.Chip(loglevel='NOTSET')
 
+    gcd_ex_dir = os.path.abspath(__file__)
+    gcd_ex_dir = gcd_ex_dir[:gcd_ex_dir.rfind('/tests/asic')] + '/examples/gcd/'
+
     # Inserting value into configuration
-    chip.add('source', '../examples/gcd/gcd.v')
+    chip.add('source', gcd_ex_dir + 'gcd.v')
     chip.add('design', 'gcd')
     chip.add('clock', 'clock_name', 'pin', 'clk')
-    chip.add('constraint', "../examples/gcd/gcd.sdc")
+    chip.add('constraint', gcd_ex_dir + 'gcd.sdc')
     chip.set('target', "freepdk45")
     chip.set('asic', 'diesize', "0 0 100.13 100.8")
     chip.set('asic', 'coresize', "10.07 11.2 90.25 91")
