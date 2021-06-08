@@ -277,14 +277,13 @@ class Server:
 
         # (Email notifications can be sent here using SES)
 
-        # Create a single-file archive as part of the 'export' step.
-        if stage == 'export':
-            subprocess.run(['zip',
-                            '-r',
-                            '-y',
-                            '%s.zip'%job_hash,
-                            '%s'%job_hash],
-                           cwd=self.cfg['nfsmount']['value'][-1])
+        # Create a single-file archive to return if results are requested.
+        subprocess.run(['zip',
+                        '-r',
+                        '-y',
+                        '%s.zip'%job_hash,
+                        '%s'%job_hash],
+                       cwd=self.cfg['nfsmount']['value'][-1])
 
         # Mark the job hash as being done.
         self.sc_jobs.pop("%s_%s"%(job_hash, jobid))

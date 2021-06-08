@@ -22,17 +22,17 @@ if {[llength $sc_def] > 0} {
     ###########################
 
     set metal_list ""
-    dict for {key value} [dict get $sc_cfg pdk aprlayer $sc_stackup] {
+    dict for {key value} [dict get $sc_cfg pdk grid $sc_stackup] {
 	lappend metal_list $key
     }
     
     foreach metal $metal_list {
 	#extracting values from dictionary
-	set name [dict get $sc_cfg pdk aprlayer $sc_stackup $metal name]
-	set xpitch [dict get $sc_cfg pdk aprlayer $sc_stackup $metal xpitch]
-	set xoffset [dict get $sc_cfg pdk aprlayer $sc_stackup $metal xoffset]
-	set ypitch [dict get $sc_cfg pdk aprlayer $sc_stackup $metal ypitch]
-	set yoffset [dict get $sc_cfg pdk aprlayer $sc_stackup $metal yoffset]
+	set name [dict get $sc_cfg pdk grid $sc_stackup $metal name]
+	set xpitch [dict get $sc_cfg pdk grid $sc_stackup $metal xpitch]
+	set xoffset [dict get $sc_cfg pdk grid $sc_stackup $metal xoffset]
+	set ypitch [dict get $sc_cfg pdk grid $sc_stackup $metal ypitch]
+	set yoffset [dict get $sc_cfg pdk grid $sc_stackup $metal yoffset]
 
 	make_tracks $name \
 	    -x_offset $xoffset \

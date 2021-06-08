@@ -494,9 +494,10 @@ def fetch_results(chips):
     # Remove the results archive after it is extracted.
     os.remove('%s.zip'%job_hash)
 
-    # Call 'delete_job' to remove the run from the server.
+    # Call 'delete_job' to remove the run from the server, if it has finished.
     # This deletes a job_hash, so separate calls for each permutation are not required.
-    loop.run_until_complete(delete_job(chips[-1]))
+    if chips[-1].get('remote', 'stop')[-1] == 'export':
+        loop.run_until_complete(delete_job(chips[-1]))
 
     # For encrypted jobs each permutation's result is encrypted in its own archive.
     # For unencrypted jobs, results are simply stored in the archive.

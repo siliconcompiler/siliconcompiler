@@ -15,8 +15,8 @@ check_placement
 ######################
 
 foreach layer $sc_layers {
-    set name [lindex [dict get $sc_cfg pdk aprlayer $sc_stackup $layer name] end]
-    set adjustment [lindex [dict get $sc_cfg pdk aprlayer $sc_stackup $layer adjustment] end]
+    set name [lindex [dict get $sc_cfg pdk grid $sc_stackup $layer name] end]
+    set adjustment [lindex [dict get $sc_cfg pdk grid $sc_stackup $layer adj] end]
     set_global_routing_layer_adjustment $name $adjustment
 }
 

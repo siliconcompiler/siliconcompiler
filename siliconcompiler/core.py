@@ -18,6 +18,8 @@ import uuid
 import math
 import pandas
 import yaml
+import argparse 
+from argparse import ArgumentParser, HelpFormatter
 
 from importlib.machinery import SourceFileLoader
 
@@ -86,8 +88,102 @@ class Chip:
 
         self.error = 0
 
+    
     ###########################################################################
-    def target(self):
+    def cmdline(self):
+        '''
+        A command line interface for the SiliconCompiler schema.
+        All entries in the schema are accessible as command line switches.
+        '''
+        
+        os.environ["COLUMNS"] = '80'        
+        sc_description = '''
+        --------------------------------------------------------------
+        SiliconCompiler (SC)                                          
+        
+        SiliconCompiler is an open source Python based hardware       
+        compiler project that aims to fully automate the translation  
+        of high level source code into manufacturable hardware.       
+                                                                      
+        Website: https://www.siliconcompiler.com                      
+        Documentation: https://www.siliconcompiler.com/docs           
+        Community: https://www.siliconcompiler.com/community          
+                                                                      
+        Examples:                                                     
+        $ sc hello_world.v -target freepdk45
+        '''
+        
+        # Argparse
+        parser = argparse.ArgumentParser(prog='sc',
+                                         prefix_chars='-+',
+                                         description=sc_description,
+                                         formatter_class=RawFormatter)
+        
+        # Required positional source file argument
+        
+        parser.add_argument('source',
+                            nargs='+',
+                            help=self.cfg['source']['short_help'])
+        
+        # Get all keys
+        allkeys = self.getkeys()
+        argmap = {}
+        # Iterate over all keys to add parser argument
+        for key in allkeys:
+
+            #Fetch fields from leaf cell
+            helpstr = self._search(self.cfg, *key, mode='get', field='short_help')
+            typestr = self._search(self.cfg, *key, mode='get', field='type')
+            paramstr = self._search(self.cfg, *key, mode='get', field='param_help')
+            switchstr = self._search(self.cfg, *key, mode='get', field='switch')            
+
+            #Create a map from parser args back to dictionary
+            dest = switchstr.replace('-','')
+            argmap[dest] = paramstr  
+                   
+            #Mapping irregular switches(-D, +incdir, -v, -f, -O, etc to key)
+            if 'source' in key:
+                argmap['source'] = paramstr
+                pass
+            elif '+' in  switchstr:
+                #TODO: implement 
+                pass
+            elif typestr == 'bool':
+                parser.add_argument(switchstr,
+                                    metavar='',
+                                    dest=dest,
+                                    action='store_const',
+                                    const=['true'],
+                                    help=helpstr,
+                                    default = argparse.SUPPRESS)
+            else:
+                #all the rest
+                parser.add_argument(switchstr,
+                                    metavar='',                                 
+                                    dest=dest,
+                                    action='append',
+                                    help=helpstr,
+                                    default = argparse.SUPPRESS)
+                
+                
+        # Get comman line inputs
+        cmdargs = vars(parser.parse_args())
+
+        #Stuff command line values into dynamic dict
+        for key, val in cmdargs.items():
+            for item in val:
+                strlist = item.split()
+                args = schema_reorder_keys(argmap[key], item)
+                self._search(self.cfg, *args, mode='set')
+                if key == 'cfg':
+                    self.readcfg(item)
+
+        # Create one (or many...) instances of Chip class.
+        chips = get_permutations(self, cmdargs)
+        return chips
+
+    ###########################################################################
+    def target(self, arg="UNDEFINED"):
         '''
         Searches the SCPATH and PYTHON paths for the target specified by the
         Chip 'target' parameter. The target can be supplied as a single
@@ -124,9 +220,17 @@ class Chip:
 
             post_process(chip,step): Post-processing to run before executable
 
+        Args:
+            arg (string): If the argument is supplied, the set('target', name) 
+                is called before dynamically loading the target platform
+
         Examples:
             >>> chip.target()
         '''
+
+        #Sets target in dictionary if string is passed in
+        if arg!="UNDEFINED":
+            self.set('target', arg)
 
         #Selecting fpga or asic mode
         mode = self.get('mode')
@@ -1177,9 +1281,10 @@ class Chip:
                 #with local copy, should copy in top level script and
                 #source from local directory,
                 #onnly keep the end of the file?
-                for value in self.cfg['flow'][step]['script']['value']:
-                    abspath = schema_path(value)
-                    cmd_fields.append(abspath)
+                if 'script' in self.cfg['flow'][step]:
+                    for value in self.cfg['flow'][step]['script']['value']:
+                        abspath = schema_path(value)
+                        cmd_fields.append(abspath)
 
                 #Piping to log file
                 logfile = exe + ".log"
@@ -1277,12 +1382,27 @@ class Chip:
             pass
 
 ################################################################################
-# Annoying helper class b/c yaml..
-# Do we actually have to support a class?
+# Annoying helper classes
+
 class YamlIndentDumper(yaml.Dumper):
     def increase_indent(self, flow=False, indentless=False):
         return super(YamlIndentDumper, self).increase_indent(flow, False)
 
+class RawFormatter(HelpFormatter):
+    def _fill_text(self, text, width, indent):
+        return "\n".join([textwrap.fill(line, width) for line in textwrap.indent(textwrap.dedent(text), indent).splitlines()])
+
+
+class PlusargAction(argparse.Action):
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
+        if nargs is not None:
+            raise ValueError("nargs not allowed")
+        super().__init__(option_strings, dest, **kwargs)
+    def __call__(self, parser, namespace, values, option_string=None):
+        print('%r %r %r' % (namespace, values, option_string))
+        setattr(namespace, self.dest, values)
+        
+    
 ################################################################################
 def get_permutations(base_chip, cmdlinecfg):
     '''Helper method to generate one or more Chip objects depending on
@@ -1292,22 +1412,37 @@ def get_permutations(base_chip, cmdlinecfg):
     chips = []
     cmdkeys = cmdlinecfg.keys()
 
-    loglevel = cmdlinecfg['loglevel']['value'][-1] \
+    # Set default target if not set and there is nothing set
+    if len(base_chip.get('target')) < 1:
+        base_chip.logger.info('No target set, setting to %s','freepdk45')
+        base_chip.set('target', 'freepdk45_asic')
+
+    # Assign a new 'job_hash' to the chip if necessary.
+    if not base_chip.get('remote', 'hash'):
+        job_hash = uuid.uuid4().hex
+        base_chip.set('remote', 'hash', job_hash)
+
+    loglevel = cmdlinecfg['loglevel'][-1] \
         if 'loglevel' in cmdkeys else "INFO"
 
     # Fetch the generator for multiple job permutations if necessary.
     if 'permutations' in cmdkeys:
-        perm_path = os.path.abspath(cmdlinecfg['permutations']['value'][-1])
+        perm_path = os.path.abspath(cmdlinecfg['permutations'][-1])
         perm_script = SourceFileLoader('job_perms', perm_path).load_module()
         perms = perm_script.permutations(base_chip.cfg)
     else:
         perms = [base_chip.cfg]
 
     # Set '-remote_start' to '-start' if only '-start' is passed in at cmdline.
-    if (not (('remote' in cmdkeys) and \
-             ('start' in cmdlinecfg['remote'].keys()))) and \
+    if (not 'remote_start' in cmdkeys) and \
        ('start' in cmdkeys):
-        base_chip.set('remote', 'start', base_chip.get('start')[-1])
+        base_chip.set('remote', 'start', cmdlinecfg['start'][-1])
+        base_chip.set('start', cmdlinecfg['start'][-1])
+    # Ditto for '-remote_stop' and '-stop'.
+    if (not 'remote_stop' in cmdkeys) and \
+       ('stop' in cmdkeys):
+        base_chip.set('remote', 'stop', cmdlinecfg['stop'][-1])
+        base_chip.set('stop', cmdlinecfg['stop'][-1])
     # Mark whether a local 'import' stage should be run.
     base_chip.status['local_import'] = (len(base_chip.get('start')) == 0) or \
                                        (base_chip.get('start')[-1] == 'import')
@@ -1335,6 +1470,7 @@ def get_permutations(base_chip, cmdlinecfg):
         # Skip the 'import' stage for remote jobs; it will be run locally and uploaded.
         if len(new_chip.get('remote', 'addr')) > 0:
             new_chip.set('start', new_chip.get('remote', 'start')[-1])
+            new_chip.set('stop', new_chip.get('remote', 'stop')[-1])
         elif len(new_chip.get('remote', 'key')) > 0:
             # If 'remote_key' exists without 'remote_addr', it represents an
             # encoded key string in an ongoing remote job. It should be
