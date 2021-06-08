@@ -6,7 +6,9 @@ This directory contains SC documentation, powered by
 ## Generating docs
 
 To generate documentation as a webpage, run `make html` from this directory. The
-output will be generated in `_build/index.html`. 
+output will be generated in `_build/html/index.html`. You can either open up
+this file directly in a web browser, or serve the docs using
+`python -m http.server -d _build/html`. This will display the documentation at http://localhost:8000.
 
 If you have a Latex distribution installed, you can also generate PDF
 documentation through `make latexpdf`. For a full list of targets Sphinx
