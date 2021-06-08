@@ -2730,7 +2730,7 @@ def schema_remote(cfg):
         'type' : 'str',
         'lock' : 'false',
         'requirement' : 'remote',
-        'defvalue' : [],
+        'defvalue' : ['export'],
         'short_help': 'Remote Execution Stop Step',
         'param_help' : "remote stop <str>",
         'example': ["cli: -remote_stop export",

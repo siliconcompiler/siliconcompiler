@@ -1281,9 +1281,10 @@ class Chip:
                 #with local copy, should copy in top level script and
                 #source from local directory,
                 #onnly keep the end of the file?
-                for value in self.cfg['flow'][step]['script']['value']:
-                    abspath = schema_path(value)
-                    cmd_fields.append(abspath)
+                if 'script' in self.cfg['flow'][step]:
+                    for value in self.cfg['flow'][step]['script']['value']:
+                        abspath = schema_path(value)
+                        cmd_fields.append(abspath)
 
                 #Piping to log file
                 logfile = exe + ".log"
@@ -1433,10 +1434,15 @@ def get_permutations(base_chip, cmdlinecfg):
         perms = [base_chip.cfg]
 
     # Set '-remote_start' to '-start' if only '-start' is passed in at cmdline.
-    if (not (('remote' in cmdkeys) and \
-             ('remote_start' in cmdkeys))) and \
+    if (not 'remote_start' in cmdkeys) and \
        ('start' in cmdkeys):
-        base_chip.set('remote', 'start', base_chip.get('start')[-1])
+        base_chip.set('remote', 'start', cmdlinecfg['start'][-1])
+        base_chip.set('start', cmdlinecfg['start'][-1])
+    # Ditto for '-remote_stop' and '-stop'.
+    if (not 'remote_stop' in cmdkeys) and \
+       ('stop' in cmdkeys):
+        base_chip.set('remote', 'stop', cmdlinecfg['stop'][-1])
+        base_chip.set('stop', cmdlinecfg['stop'][-1])
     # Mark whether a local 'import' stage should be run.
     base_chip.status['local_import'] = (len(base_chip.get('start')) == 0) or \
                                        (base_chip.get('start')[-1] == 'import')
@@ -1464,6 +1470,7 @@ def get_permutations(base_chip, cmdlinecfg):
         # Skip the 'import' stage for remote jobs; it will be run locally and uploaded.
         if len(new_chip.get('remote', 'addr')) > 0:
             new_chip.set('start', new_chip.get('remote', 'start')[-1])
+            new_chip.set('stop', new_chip.get('remote', 'stop')[-1])
         elif len(new_chip.get('remote', 'key')) > 0:
             # If 'remote_key' exists without 'remote_addr', it represents an
             # encoded key string in an ongoing remote job. It should be
