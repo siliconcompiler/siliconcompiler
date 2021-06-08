@@ -1,4 +1,4 @@
-Configuration Schema 
+Configuration Schema
 =====================
 
-Placeholder
+.. schemagen::
