@@ -30,7 +30,7 @@ def setup_options(chip, step):
     options = chip.set('flow', step, 'option',[])
     
     #Include cwd in search path
-    options.append('--skip-preprocessor')
+    # options.append('--skip-preprocessor')
 
     for value in chip.cfg['source']['value']:
         options.append(schema_path(value))
