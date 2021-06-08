@@ -20,7 +20,10 @@ def setup_eda(chip, name=None):
     # Setup tool based on flow step
     for step in chip.cfg['steplist']['value']:            
         if step == 'import':
-            vendor = 'verilator'
+            if chip.get('ir')[-1] == 'uhdm':
+                vendor = 'surelog'
+            elif chip.get('ir')[-1] == 'verilog':
+                vendor = 'verilator'
         elif step == 'syn':
             vendor = 'yosys'   
         elif step == 'export':
