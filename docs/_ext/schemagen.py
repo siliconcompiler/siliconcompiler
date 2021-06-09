@@ -1,4 +1,6 @@
 from docutils import nodes
+from sphinx.util.nodes import nested_parse_with_titles
+from docutils.statemachine import ViewList
 from docutils.parsers.rst import Directive
 from siliconcompiler.schema import schema_cfg
 
@@ -81,7 +83,8 @@ class SchemaGen(Directive):
                 entries.append([strong(f'Example ({name.upper()})'), code(ex.strip())])
 
             table = build_table(entries)
-            body = para(schema['help'])
+            body = self.parse_rst(schema['help'])
+
             return [table, body]
         else:
             sections = []
@@ -101,6 +104,16 @@ class SchemaGen(Directive):
             # entry that's a leaf. In this case, we sort this as an empty string
             # in order to put this node at the beginning of the list.
             return sorted(sections, key=lambda s: s[0][0] if isinstance(s, nodes.section) else '')
+
+    def parse_rst(self, content):
+        rst = ViewList()
+        # use fake filename 'inline' and fake line number '1' for error reporting
+        rst.append(content, 'inline', 1)
+        body = nodes.paragraph()
+        nested_parse_with_titles(self.state, rst, body)
+
+        return body
+
 
 def setup(app):
     app.add_directive('schemagen', SchemaGen)

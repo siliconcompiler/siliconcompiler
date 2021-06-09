@@ -201,7 +201,7 @@ def schema_fpga(cfg):
         Provides an XML-based architecture description for the target FPGA
         architecture to be used in VTR, allowing targeting a large number of 
         virtual and commercial architectures.
-        [More information...](https://verilogtorouting.org)
+        `More information... <https://verilogtorouting.org>`_
         """
     }
 
@@ -2912,12 +2912,12 @@ def schema_design(cfg):
         A list of source files to read in for elaboration. The files are read 
         in order from first to last entered. File type is inferred from the 
         file suffix:
-        (*.v, *.vh)  = Verilog
-        (*.vhd)      = VHDL
-        (*.sv)       = SystemVerilog
-        (*.c)        = C
-        (*.cpp, .cc) = C++
-        (*.py)       = Python
+        (\*.v, \*.vh) = Verilog
+        (\*.vhd)      = VHDL
+        (\*.sv)       = SystemVerilog
+        (\*.c)        = C
+        (\*.cpp, .cc) = C++
+        (\*.py)       = Python
         """
     }
 
@@ -3177,7 +3177,7 @@ def schema_design(cfg):
                     "api: chip.add('idir','./mylib')"],
         'help' : """
         Provides a search paths to look for files included in the design using
-        the `include statement.
+        the ```include`` statement.
         """
     }
 
@@ -3215,7 +3215,7 @@ def schema_design(cfg):
         'help' : """
         Specifes the file extensions that should be used for finding modules. 
         For example, if -y is specified as ./lib", and '.v' is specified as 
-        libext then the files ./lib/*.v ", will be searched for module matches.
+        libext then the files ./lib/\*.v ", will be searched for module matches.
         """
     }
 
