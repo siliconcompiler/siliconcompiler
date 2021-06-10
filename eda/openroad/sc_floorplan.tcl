@@ -2,6 +2,28 @@
 # FLOORPLANNING
 ########################################################
 
+proc calculate_core_size {density coremargin aspectratio syn_area lib_height} {
+    set target_area [expr {$syn_area * 100.0 / $density}]
+    set core_width [expr {sqrt($target_area / $aspectratio)}]
+    set core_width_rounded [expr {ceil($core_width / $lib_height) * $lib_height}]
+    set core_height [expr {$aspectratio * $core_width}]
+    set core_height_rounded [expr {ceil($core_height / $lib_height) * $lib_height}]
+
+    set core_max_x [expr {$core_width_rounded + $coremargin}]
+    set core_max_y [expr {$core_height_rounded + $coremargin}]
+
+    return "$coremargin $coremargin $core_max_x $core_max_y"
+}
+
+proc calculate_die_size {coresize coremargin} {
+    set core_max_x [lindex $coresize 2]
+    set core_max_y [lindex $coresize 3]
+    set die_max_x [expr {$core_max_x + $coremargin}]
+    set die_max_y [expr {$core_max_y + $coremargin}]
+
+    return "0 0 $die_max_x $die_max_y"
+}
+
 if {[llength $sc_def] > 0} {
     #TODO: Only one def supported for now
     read_def -floorplan_initialize $sc_def
@@ -12,7 +34,27 @@ if {[llength $sc_def] > 0} {
     #########################
     #Init Floorplan
     #########################
-    
+
+    if {[dict exists $sc_cfg asic diesize] &&
+        [dict exists $sc_cfg asic coresize]} {
+        set sc_diesize     [dict get $sc_cfg asic diesize]
+        set sc_coresize    [dict get $sc_cfg asic coresize]
+    } else {
+        set sc_density [dict get $sc_cfg asic density]
+        set sc_coremargin [dict get $sc_cfg asic coremargin]
+        set sc_aspectratio [dict get $sc_cfg asic aspectratio]
+        if {$sc_density < 1 || $sc_density > 100} {
+            puts "Error: ASIC density must be between 1 and 100!"
+            exit 1
+        }
+
+        set syn_area [dict get $sc_cfg real syn area_cells]
+        set lib_height [dict get $sc_cfg stdcell $sc_mainlib height]
+
+        set sc_coresize [calculate_core_size $sc_density $sc_coremargin $sc_aspectratio $syn_area $lib_height]
+        set sc_diesize [calculate_die_size $sc_coresize $sc_coremargin]
+    }
+
     initialize_floorplan -die_area $sc_diesize \
 	-core_area $sc_coresize \
 	-site $sc_site
