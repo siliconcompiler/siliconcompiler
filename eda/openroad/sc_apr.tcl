@@ -8,11 +8,26 @@ source ./sc_schema.tcl
 # Openroad Constants
 ###############################
 
-set openroad_place_density 0.3
 set openroad_overflow_iter 100
-set openroad_pad_global_place 2
 set openroad_cluster_diameter 100
 set openroad_cluster_size 30
+
+# These are magic tuning constants that vary per-technology. We set their values
+# here since they're OpenROAD-specific, and therefore we don't want to define
+# them in the schema.
+
+set target [dict get $sc_cfg target]
+set targetlist [split $target _]
+set target_tech [lindex $targetlist 0]
+
+if {$target_tech eq "freepdk45"} {
+    set openroad_place_density 0.3
+    set openroad_pad_global_place 2
+} else {
+    puts "WARNING: OpenROAD tuning constants not set for $target_tech in sc_apr.tcl, using generic values."
+    set openroad_place_density 0.3
+    set openroad_pad_global_place 2
+}
 
 ###############################
 # Schema Adapter
