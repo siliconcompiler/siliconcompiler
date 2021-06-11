@@ -201,7 +201,7 @@ def schema_fpga(cfg):
         Provides an XML-based architecture description for the target FPGA
         architecture to be used in VTR, allowing targeting a large number of 
         virtual and commercial architectures.
-        [More information...](https://verilogtorouting.org)
+        `More information... <https://verilogtorouting.org>`_
         """
     }
 
@@ -638,8 +638,8 @@ def schema_pdk(cfg):
         'short_help' : 'Primitive Libraries',
         'param_help' : "pdk plib stackvar toolvar formatvar <file>",
         'example': ["""cli: -pdk_plib 'M10 klayout oa /disk/asap7/oa/devlib'""",
-                    """api: chip.add('pdk','plib','M10', 'klayout', 'oa', 
-                    '/disk/asap7/oa/devlib')"""],
+                    "api: chip.add('pdk','plib','M10', 'klayout', 'oa',"
+                    "'/disk/asap7/oa/devlib')"],
         'help' : """
         Filepaths to all primitive cell libraries supported by the PDK. The 
         filepaths are entered on a per stackup and per format basis.
@@ -663,8 +663,8 @@ def schema_pdk(cfg):
         'short_help' : 'APR Technology File',
         'param_help' : "pdk aprtech stackvar libtypevar filetypevar <file>",
         'example': ["""cli: -pdk_aprtech 'M10 12t lef tech.lef'""",
-                    """api: chip.add('pdk','aprtech','M10','12t','lef',
-                    'tech.lef')"""],
+                    "api: chip.add('pdk','aprtech','M10','12t','lef',"
+                    "'tech.lef')"],
         'help' : """
         Technology file containing the design rule and setup information needed
         to enable DRC clean automated placement a routing. The file is 
@@ -689,8 +689,8 @@ def schema_pdk(cfg):
         'short_help' : 'Grid Layer Name Map',
         'param_help' : "pdk grid stackvar layervar name <str>",
         'example': ["""cli: -pdk_grid_name 'M10 m1 metal1'""",
-                    """api: chip.add('pdk', 'grid', 'M10', 'm1', 'name',
-                    'metal1')"""],
+                    "api: chip.add('pdk', 'grid', 'M10', 'm1', 'name',"
+                    "'metal1')"],
         'help' : """
         Defines the hardcoded PDK metal name on a per stackup and per metal 
         basis. Metal layers are ordered from m1 to mn, where m1 is the lowest
@@ -707,8 +707,8 @@ def schema_pdk(cfg):
         'short_help' : 'Grid Layer Horizontal Grid',
         'param_help' : "pdk grid stackvar layervar xpitch <num>",
         'example': ["""cli: -pdk_grid_xpitch 'M10 m1 0.5'""",
-                    """api: chip.add('pdk','grid','M10','m1','xpitch',
-                    '0.5')"""],
+                    "api: chip.add('pdk','grid','M10','m1','xpitch',"
+                    "'0.5')"],
         'help' : """
         Defines the vertical routing grid on a a per stackup and per metal 
         basis. Values are specified in um. Metal layers are ordered from m1 to 
@@ -726,8 +726,8 @@ def schema_pdk(cfg):
         'short_help' : 'Grid Layer Vertical Grid',
         'param_help' : "pdk grid stackvar layervar ypitch <num>'",
         'example': ["""cli: -pdk_grid_ypitch 'M10 m2 0.5'""",
-                    """api: chip.add('pdk','grid','M10','m2','ypitch',
-                    '0.5')"""],
+                    "api: chip.add('pdk','grid','M10','m2','ypitch',"
+                    "'0.5')"],
         'help' : """
         Defines the horizontal routing grid on a a per stackup and per metal 
         basis. Values are specified in um. Metal layers are ordered from m1 to
@@ -745,8 +745,8 @@ def schema_pdk(cfg):
         'short_help' : 'Grid Layer Preferred Direction',
         'param_help' : "pdk grid stackvar layervar xoffset <num>",
         'example': ["""cli: -pdk_grid_xoffset 'M10 m2 0.5'""",
-                    """api: chip.add('pdk','grid','M10','m2','xoffset',
-                    '0.5')"""],
+                    "api: chip.add('pdk','grid','M10','m2','xoffset',"
+                    "'0.5')"],
         'help' : """
         Defines the horizontal grid offset of a metal layer specified on a per 
         stackup and per metal basis. Values are specified in um.
@@ -763,8 +763,8 @@ def schema_pdk(cfg):
         'short_help' : 'Grid Layer Preferred Direction',
         'param_help' : "pdk grid stackvar layervar yoffset <num>",
         'example': ["""cli: -pdk_grid_yoffset 'M10 m2 0.5'""",
-                    """api: chip.add('pdk','grid','M10','m2','yoffset',
-                    '0.5')"""],
+                    "api: chip.add('pdk','grid','M10','m2','yoffset',"
+                    "'0.5')"],
         'help' : """
         Defines the horizontal grid offset of a metal layer specified on a per 
         stackup and per metal basis. Values are specified in um.
@@ -781,8 +781,8 @@ def schema_pdk(cfg):
         'short_help' : 'Grid Layer Routing Adjustment',
         'param_help' : "pdk grid stackvar layervar adj <num>",
         'example': ["""cli: -pdk_grid_adj 'M10 m2 0.5'""",
-                    """api: chip.set('pdk','grid','M10','m2','adj',
-                    '0.5')"""],
+                    "api: chip.set('pdk','grid','M10','m2','adj',"
+                    "'0.5')"],
         'help' : """
         Defines the routing resources adjustments for the design on a per layer
         basis. The value is expressed as a fraction from 0 to 1. A value of
@@ -800,8 +800,8 @@ def schema_pdk(cfg):
         'short_help' : 'Grid Layer Routing Layer Capacitance',
         'param_help' : "pdk grid stackvar layervar cap <num>",
         'example': ["""cli: -pdk_grid_cap 'M10 m2 0.2'""",
-                    """api: chip.set('pdk','grid','M10','m2','cap',
-                    '0.2')"""],
+                    "api: chip.set('pdk','grid','M10','m2','cap',"
+                    "0.2')"],
         'help' : """
         Specifies the unit capacitance of a wire defined by the grid
         width and spacing values in the 'grid' structure.  The
@@ -821,8 +821,8 @@ def schema_pdk(cfg):
         'short_help' : 'Grid Layer Routing Layer Resistance',
         'param_help' : "pdk grid stackvar layervar res <num>",
         'example': ["""cli: -pdk_grid_res 'M10 m2 0.2'""",
-                    """api: chip.set('pdk','grid','M10','m2','res',
-                    '0.2')"""],
+                    "api: chip.set('pdk','grid','M10','m2','res',"
+                    "'0.2')"],
         'help' : """
         Specifies the resistance  of a wire defined by the grid
         width and spacing values in the 'grid' structure.  The
@@ -842,8 +842,8 @@ def schema_pdk(cfg):
         'short_help' : 'Grid Layer Temperature Coefficent',
         'param_help' : "pdk grid stackvar layervar tcr <num>",
         'example': ["""cli: -pdk_grid_tcr 'M10 m2 0.1'""",
-                    """api: chip.set('pdk','grid','M10','m2','tcr',
-                    '0.1')"""],
+                    "api: chip.set('pdk','grid','M10','m2','tcr',"
+                    "'0.1')"],
         'help' : """
         Specifies the temperature coefficient of resistance of the wire 
         defined by the grid width and spacing values in the 'grid' 
@@ -1066,8 +1066,8 @@ def schema_libs(cfg, group):
         'short_help' : group.capitalize() + ' Operating Condition',
         'param_help' : group+" libvar model cornervar opcond <str>",
         'example':["cli: -"+group+"_opcond 'lib model ss_1.0v_125c WORST'",
-                   "api: chip.add('"+group+"','lib','model','ss_1.0v_125c', \
-                   'opcond', 'WORST'"],
+                   "api: chip.add('"+group+"','lib','model','ss_1.0v_125c',"
+                   "'opcond', 'WORST'"],
         'help' : """
         The default operating condition to use for mcmm optimization and
         signoff on a per corner basis.
@@ -1084,8 +1084,8 @@ def schema_libs(cfg, group):
         'short_help' : group.capitalize() + ' Corner Checks',
         'param_help' : group+" libvar model cornervar check <str>",
         'example':["cli: -"+group+"_check 'lib model ss_1.0v_125c setup'",
-                   "api: chip.add('"+group+"','lib','model','ss_1.0v_125c', \
-                   'check', 'setup'"],
+                   "api: chip.add('"+group+"','lib','model','ss_1.0v_125c',"
+                   "'check', 'setup'"],
         'help' : """
         Per corner checks to perform during optimization and STA signoff.
         Names used in the 'mcmm' scenarios must align with the 'check' names
@@ -1113,8 +1113,8 @@ def schema_libs(cfg, group):
         'short_help' : group.capitalize() + ' NLDM Timing Model',
         'param_help' : group+" libvar model cornervar nldm typevar <file>",
         'example':["cli: -"+group+"_nldm 'lib model ss gz ss.lib.gz'",
-                   "api: chip.add('"+group+"','lib','model','ss','nldm', \
-                   'gz', 'ss.lib.gz'"],
+                   "api: chip.add('"+group+"','lib','model','ss','nldm',"
+                   "'gz', 'ss.lib.gz'"],
         'help' : """
         Filepaths to NLDM models. Timing files are specified on a per lib,
         per corner, and per format basis. The format is driven by EDA tool
@@ -1139,8 +1139,8 @@ def schema_libs(cfg, group):
         'short_help' : group.capitalize() + ' CCS Timing Model',
         'param_help' : group+" libvar model cornervar ccs typevar <file>",
         'example':["cli: -"+group+"_ccs 'lib model ss lib.gz ss.lib.gz'",
-                   "api: chip.add('"+group+"','lib','model','ss','ccs', \
-                   'gz', 'ss.lib.gz'"],
+                   "api: chip.add('"+group+"','lib','model','ss','ccs',"
+                   "'gz', 'ss.lib.gz'"],
         'help' : """
         Filepaths to CCS models. Timing files are specified on a per lib,
         per corner, and per format basis. The format is driven by EDA tool
@@ -1165,8 +1165,8 @@ def schema_libs(cfg, group):
         'short_help' : group.capitalize() + ' SCM Timing Model',
         'param_help' : group+" libvar model cornervar scm typevar <file>",
         'example':["cli: -"+group+"_scm 'lib model ss lib.gz ss.lib.gz'",
-                   "api: chip.add('"+group+"','lib','model','ss', 'scm', \
-                   'gz', 'ss.lib.gz'"],
+                   "api: chip.add('"+group+"','lib','model','ss', 'scm',"
+                   "'gz', 'ss.lib.gz'"],
         'help' : """
         Filepaths to SCM models. Timing files are specified on a per lib,
         per corner, and per format basis. The format is driven by EDA tool
@@ -1190,8 +1190,8 @@ def schema_libs(cfg, group):
         'short_help' : group.capitalize() + ' AOCV Timing Model',
         'param_help' : group+" libvar model cornervar aocv <file>",
         'example':["cli: -"+group+"_aocv 'lib model ss lib.aocv'",
-                   "api: chip.add('"+group+"','lib','model','ss', 'aocv', \
-                   'lib_ss.aocv'"],
+                   "api: chip.add('"+group+"','lib','model','ss', 'aocv',"
+                   "'lib_ss.aocv'"],
         'help': """
         Filepaths to AOCV models. Timing files are specified on a per lib,
         per corner basis. 
@@ -1214,8 +1214,8 @@ def schema_libs(cfg, group):
         'short_help' : group.capitalize() + ' APL Power Model',
         'param_help' : group+" libvar model cornervar apl typevar <file>",
         'example':["cli: -"+group+"_apl 'lib model ss cdev lib_tt.cdev'",
-                   "api: chip.add('"+group+"','lib','model','ss','apl','cdev',\
-                   'lib_tt.cdev'"],
+                   "api: chip.add('"+group+"','lib','model','ss','apl','cdev',"
+                   "'lib_tt.cdev'"],
         'help' : """
         Filepaths to APL power models. Power files are specified on a per
         lib, per corner, and per format basis.
@@ -1308,8 +1308,8 @@ def schema_libs(cfg, group):
         'short_help' : group.capitalize() + ' Spice Netlist',
         'param_help' : group+" libvar spice format <file>",
         'example':["cli: -"+group+"_spice 'mylib pspice mylib.sp'",
-                   "api: chip.add('"+group+"','mylib','spice', 'pspice',\
-                   'mylib.sp')"],
+                   "api: chip.add('"+group+"','mylib','spice', 'pspice',"
+                   "'mylib.sp')"],
         'help' : """
         Files containing library spice netlists used for circuit 
         simulation, specified on a per format basis. 
@@ -1330,8 +1330,8 @@ def schema_libs(cfg, group):
         'short_help' : group.capitalize() + ' HDL Model',
         'param_help' : group+" libvar hdl formatvar <file>",
         'example':["cli: -"+group+"_hdl 'mylib verilog mylib.v'",
-                   "api: chip.add('"+group+"','mylib','hdl', 'verilog',\
-                   'mylib.v')"],
+                   "api: chip.add('"+group+"','mylib','hdl', 'verilog',"
+                   "'mylib.v')"],
         'help' : """
         Library HDL models, specifed on a per format basis. Examples
         of legal formats include Verilog,  VHDL.
@@ -1439,8 +1439,8 @@ def schema_libs(cfg, group):
         'short_help' : group.capitalize() + ' Cell Lists',
         'param_help' : group+" libvar cells groupvar <str>",
         'example':["cli: -"+group+"_cells 'mylib dontuse *eco*'",
-                   "api: chip.add('"+group+"','mylib','cells','dontuse', \
-                   '*eco*')"],
+                   "api: chip.add('"+group+"','mylib','cells','dontuse',"
+                   "'*eco*')"],
         'help' : """
         A named list of cells grouped by a property that can be accessed
         directly by the designer and EDA tools. The example below shows how
@@ -1465,8 +1465,8 @@ def schema_libs(cfg, group):
         'short_help' : group.capitalize() + ' Layout Database',
         'param_help' : group+" libvar layoutdb stackvar formatvar <file>",
         'example':["cli: -"+group+"_layoutdb 'mylib M10 oa /disk/mylibdb'",
-                   "api: chip.add('"+group+"','mylib','layoutdb','M10', \
-                   'oa', '/disk/mylibdb')"],
+                   "api: chip.add('"+group+"','mylib','layoutdb','M10',"
+                   "'oa', '/disk/mylibdb')"],
         'help' : """
         Filepaths to compiled library layout database specified on a per format
         basis. Example formats include oa, mw, ndm.
@@ -2912,12 +2912,12 @@ def schema_design(cfg):
         A list of source files to read in for elaboration. The files are read 
         in order from first to last entered. File type is inferred from the 
         file suffix:
-        (*.v, *.vh)  = Verilog
-        (*.vhd)      = VHDL
-        (*.sv)       = SystemVerilog
-        (*.c)        = C
-        (*.cpp, .cc) = C++
-        (*.py)       = Python
+        (\*.v, \*.vh) = Verilog
+        (\*.vhd)      = VHDL
+        (\*.sv)       = SystemVerilog
+        (\*.c)        = C
+        (\*.cpp, .cc) = C++
+        (\*.py)       = Python
         """
     }
 
@@ -3177,7 +3177,7 @@ def schema_design(cfg):
                     "api: chip.add('idir','./mylib')"],
         'help' : """
         Provides a search paths to look for files included in the design using
-        the `include statement.
+        the ```include`` statement.
         """
     }
 
@@ -3215,7 +3215,7 @@ def schema_design(cfg):
         'help' : """
         Specifes the file extensions that should be used for finding modules. 
         For example, if -y is specified as ./lib", and '.v' is specified as 
-        libext then the files ./lib/*.v ", will be searched for module matches.
+        libext then the files ./lib/\*.v ", will be searched for module matches.
         """
     }
 
