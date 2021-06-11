@@ -45,7 +45,7 @@ with open('outputs/' + design_name + '.svg', 'w') as svg:
     # Write all relevant paths.
     for layer in range(ly.layers()):
         # Set the fill color for this layer.
-        fill_color = "%X"%colors[layer]
+        fill_color = "%X"%(colors[layer] if (len(colors) > layer) else 0xABCDEF40)
 
         # Using <g> ('group') tags should let us write a viewer which can
         # selectively show and hide different GDS layers.
