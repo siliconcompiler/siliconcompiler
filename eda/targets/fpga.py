@@ -16,9 +16,6 @@ def setup_eda(chip, name=None):
                                       'apr',
                                       'export']
 
-        chip.cfg['start']['value'] = [chip.cfg['steplist']['value'][0]]
-        chip.cfg['stop']['value'] = [chip.cfg['steplist']['value'][-1]]
-
         for step in chip.cfg['steplist']['value']:         
             if step == 'import':
                 vendor = 'verilator'

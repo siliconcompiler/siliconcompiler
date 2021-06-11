@@ -1055,8 +1055,10 @@ class Chip:
         '''
 
         steplist = self.get('steplist')
-        start = self.get('start')[-1]
-        stop = self.get('stop')[-1]
+        start = self.get('start')[-1] if self.get('start') \
+                                      else self.get('steplist')[0]
+        stop = self.get('stop')[-1] if self.get('stop') \
+                                    else self.get('steplist')[-1]
         design = self.get('design')[-1]
         startindex = steplist.index(start)
         stopindex = steplist.index(stop)
@@ -1167,9 +1169,11 @@ class Chip:
         ###########################
 
         if start is None:
-            start = self.get('start')[-1]
+            start = self.get('start')[-1] if self.get('start') \
+                                          else self.get('steplist')[0]
         if stop is None:
-            stop = self.get('stop')[-1]
+            stop = self.get('stop')[-1] if self.get('stop') \
+                                        else self.get('steplist')[-1]
 
         startindex = steplist.index(start)
         stopindex = steplist.index(stop)
