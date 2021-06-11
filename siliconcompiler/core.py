@@ -183,7 +183,7 @@ class Chip:
         return chips
 
     ###########################################################################
-    def target(self, arg="UNDEFINED"):
+    def target(self, arg=None):
         '''
         Searches the SCPATH and PYTHON paths for the target specified by the
         Chip 'target' parameter. The target can be supplied as a single
@@ -229,7 +229,7 @@ class Chip:
         '''
 
         #Sets target in dictionary if string is passed in
-        if arg!="UNDEFINED":
+        if arg is not None:
             self.set('target', arg)
 
         #Selecting fpga or asic mode
