@@ -24,6 +24,22 @@ proc calculate_die_size {coresize coremargin} {
     return "0 0 $die_max_x $die_max_y"
 }
 
+# Functon adapted from OpenROAD:
+# https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/blob/ca3004b85e0d4fbee3470115e63b83c498cfed85/flow/scripts/macro_place.tcl#L26
+proc design_has_macros {} {
+  set db [::ord::get_db]
+  set block [[$db getChip] getBlock]
+  foreach inst [$block getInsts] {
+    set inst_master [$inst getMaster]
+
+    # BLOCK means MACRO cells
+    if { [string match [$inst_master getType] "BLOCK"] } {
+        return true
+    }
+  }
+  return false
+}
+
 if {[llength $sc_def] > 0} {
     #TODO: Only one def supported for now
     read_def -floorplan_initialize $sc_def
@@ -90,7 +106,30 @@ if {[llength $sc_def] > 0} {
     place_pins -hor_layers $sc_hpinmetal \
 	-ver_layers $sc_vpinmetal \
 	-random \
-	
+
+    # Need to check if we have any macros before performing macro placement,
+    # since we get an error otherwise.
+    if {[design_has_macros]} {
+        ###########################
+        # TDMS Placement
+        ###########################
+
+        global_placement -density $openroad_place_density \
+            -pad_left $openroad_pad_global_place \
+            -pad_right $openroad_pad_global_place
+
+        ###########################
+        # Macro placement
+        ###########################
+
+        macro_placement \
+            -halo $openroad_macro_place_halo \
+            -channel $openroad_macro_place_channel
+
+        # Note: some platforms set a "macro blockage halo" at this point, but the
+        # technologies we support do not, so we don't include that step for now.
+    }
+
     ###########################
     # Tap Cells
     ###########################
@@ -104,7 +143,7 @@ if {[llength $sc_def] > 0} {
     # Power Network (not good)
     ###########################
     #pdngen $::env(PDN_CFG) -verbose
-    
+
 }
 
 remove_buffers
