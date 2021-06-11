@@ -46,7 +46,7 @@ def setup_options(chip, step):
         options.append('-I' + schema_path(value))
 
     for value in chip.cfg['define']['value']:
-        options.append('-D ' + schema_path(value))
+        options.append('+define+' + schema_path(value))
 
     for value in chip.cfg['cmdfile']['value']:
         options.append('-f ' + schema_path(value))
