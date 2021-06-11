@@ -3652,10 +3652,11 @@ def schema_asic(cfg):
         'example': ["cli: -asic_aspectratio 2.0",
                     "api: chip.add('asic', 'aspectratio', '2.0')"],
         'help' : """
-        Specifies the height to width ratio of the block for  automated 
-        floor-planning. Values below 0.1 and above 10 should be avoided as 
-        they will likely fail to converge during placement and routing. The 
-        ideal aspect ratio for most designs is 1.
+        Specifies the height to width ratio of the block for automated
+        floor-planning. Values below 0.1 and above 10 should be avoided as
+        they will likely fail to converge during placement and routing. The
+        ideal aspect ratio for most designs is 1. This value is only used when
+        no diesize or floorplan is supplied.
         """
         }
 
