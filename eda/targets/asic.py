@@ -9,7 +9,6 @@ def setup_eda(chip, name=None):
 
     # Define Compilation Flow
     chip.cfg['steplist']['value'] = ['import',
-                                     'preprocess',
                                      'syn',
                                      'floorplan',
                                      'place',

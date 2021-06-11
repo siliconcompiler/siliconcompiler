@@ -12,7 +12,6 @@ def setup_eda(chip, name=None):
     if name == 'ice40':
         # Define Compilation Steps
         chip.cfg['steplist']['value'] = ['import',
-                                      'preprocess',
                                       'syn',
                                       'apr',
                                       'export']

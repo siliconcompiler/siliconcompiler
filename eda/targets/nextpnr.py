@@ -10,7 +10,6 @@ def setup_eda(chip, name=None):
 
     # Define Compilation Steps
     chip.cfg['steplist']['value'] = ['import',
-                                  'preprocess',
                                   'syn',
                                   'apr',
                                   'export']
@@ -18,8 +17,6 @@ def setup_eda(chip, name=None):
     for step in chip.cfg['steplist']['value']:
         if step == 'import':
             vendor = 'sv2v'
-        elif step == 'preprocess':
-            vendor = 'verilator'
         elif step == 'syn':
             vendor = 'yosys'
         elif step == 'apr':
