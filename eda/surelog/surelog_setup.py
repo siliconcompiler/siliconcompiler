@@ -31,7 +31,7 @@ def setup_options(chip, step):
     options = chip.set('flow', step, 'option',[])
 
     options.append('-parse')
-    options.append('-elabuhdm')
+    options.append('-noinfo')
     options.append('-I' + "../../../")
 
     #Source Level Controls
