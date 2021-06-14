@@ -31,9 +31,9 @@ def setup_options(chip, step):
 
     options = chip.set('flow', step, 'option', [])
 
-    if chip.get('ir')[-1] == 'uhdm':
-        options.append('-parse')
-    # options.append('-noinfo')
+    # -parse is slow but ensures the SV code is valid
+    # we might want an option to control when to enable this
+    options.append('-parse')
     options.append('-I' + "../../../")
 
     #Source Level Controls
