@@ -31,7 +31,7 @@ if {$sv eq "true" && $ir eq "uhdm"} {
     yosys read_uhdm $input_uhdm
 } else {
     set input_verilog "inputs/$topmodule.v"
-    yosys read_verilog $input_verilog
+    yosys read_verilog -sv $input_verilog
 }
 
 if {$mode eq "asic"} {
