@@ -2762,7 +2762,7 @@ def schema_remote(cfg):
     # Remote private key file.
     cfg['remote']['key'] = {
         'switch' : '-remote_key',
-        'type' : 'file',
+        'type' : 'str',
         'lock' : 'false',
         'copy' : 'false',
         'requirement' : 'remote',
