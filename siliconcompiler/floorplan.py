@@ -8,55 +8,14 @@ from siliconcompiler.leflib import Lef
 from siliconcompiler.schema import schema_path
 
 # Set up Jinja
-env = jinja2.Environment(loader=jinja2.BaseLoader, trim_blocks=True, lstrip_blocks=True)
+env = jinja2.Environment(loader=jinja2.PackageLoader('siliconcompiler'),
+                         trim_blocks=True, lstrip_blocks=True)
 
 # Jinja filter for rendering tuples in DEF style, e.g. (0, 0) becomes "( 0 0 )"
 def render_tuple(vals):
     vals_str = ' '.join([str(val) for val in vals])
     return f"( {vals_str} )"
 env.filters['render_tuple'] = render_tuple
-
-# Jinja template for outputting layout as DEF file
-DEF_TEMPLATE = """VERSION {{ layout.version }} ;
-DIVIDERCHAR "{{ layout.dividerchar }}" ;
-BUSBITCHARS "{{ layout.busbitchars }}" ;
-DESIGN {{ layout.design }} ;
-UNITS DISTANCE MICRONS {{ layout.units }} ;
-DIEAREA {% for coord in layout.diearea %}{{ coord | render_tuple }} {% endfor %};
-
-{% for name, row in layout.row.items() %}
-ROW {{ name }} {{ row.site }} {{ row.x }} {{ row.y }} {{ row.orientation }}
-    DO {{ row.numx }} BY {{ row.numy }} STEP {{ row.stepx }} {{ row.stepy }} ;
-{% endfor %}
-
-{% for name, track in layout.track.items() %}
-TRACKS {{ track.direction | upper }} {{ track.start }} DO {{ track.total }} STEP {{ track.step }}
-    LAYER {{ track.layer}} ;
-{% endfor %}
-
-COMPONENTS {{ layout.component | length }} ;
-{% for name, c in layout.component.items() %}
-   - {{ name }} {{ c.cell }}
-      {% if c.status %}
-      + {{ c.status | upper }} ( {{c.x }} {{ c.y }} ) {{ c.orientation }}
-      {% endif %}
-      + HALO {{ c.halo | join(' ') }} ;
-{% endfor %}
-END COMPONENTS
-
-PINS {{ layout.pin | length }} ;
-{% for name, pin in layout.pin.items() %}
-    - {{ name }} + NET {{ pin.net }} + DIRECTION {{ pin.direction|upper }} + USE {{ pin.use|upper }}
-       + PORT
-         + LAYER {{ pin.port.layer }} {{ pin.port.box | map('render_tuple') | join(' ') }}
-         {% if pin.port.status %}
-         + {{ pin.port.status|upper }} {{ pin.port.point | render_tuple }} {{ pin.port.orientation }} ;
-         {% endif %}
-{% endfor %}
-END PINS
-
-END DESIGN
-"""
 
 class Floorplan:
     '''Floorplan layout class'''
@@ -170,7 +129,7 @@ class Floorplan:
         '''
         logging.debug('Write DEF %s', filename)
 
-        tmpl = env.from_string(DEF_TEMPLATE)
+        tmpl = env.get_template('floorplan_def.j2')
         layout = self._filter_defaults(self.chip.layout)
         with open(filename, 'w') as f:
             f.write(tmpl.render(layout=layout))

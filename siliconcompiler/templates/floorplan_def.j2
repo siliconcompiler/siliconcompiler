@@ -1,0 +1,39 @@
+VERSION {{ layout.version }} ;
+DIVIDERCHAR "{{ layout.dividerchar }}" ;
+BUSBITCHARS "{{ layout.busbitchars }}" ;
+DESIGN {{ layout.design }} ;
+UNITS DISTANCE MICRONS {{ layout.units }} ;
+DIEAREA {% for coord in layout.diearea %}{{ coord | render_tuple }} {% endfor %};
+
+{% for name, row in layout.row.items() %}
+ROW {{ name }} {{ row.site }} {{ row.x }} {{ row.y }} {{ row.orientation }}
+    DO {{ row.numx }} BY {{ row.numy }} STEP {{ row.stepx }} {{ row.stepy }} ;
+{% endfor %}
+
+{% for name, track in layout.track.items() %}
+TRACKS {{ track.direction | upper }} {{ track.start }} DO {{ track.total }} STEP {{ track.step }}
+    LAYER {{ track.layer}} ;
+{% endfor %}
+
+COMPONENTS {{ layout.component | length }} ;
+{% for name, c in layout.component.items() %}
+   - {{ name }} {{ c.cell }}
+      {% if c.status %}
+      + {{ c.status | upper }} ( {{c.x }} {{ c.y }} ) {{ c.orientation }}
+      {% endif %}
+      + HALO {{ c.halo | join(' ') }} ;
+{% endfor %}
+END COMPONENTS
+
+PINS {{ layout.pin | length }} ;
+{% for name, pin in layout.pin.items() %}
+    - {{ name }} + NET {{ pin.net }} + DIRECTION {{ pin.direction|upper }} + USE {{ pin.use|upper }}
+       + PORT
+         + LAYER {{ pin.port.layer }} {{ pin.port.box | map('render_tuple') | join(' ') }}
+         {% if pin.port.status %}
+         + {{ pin.port.status|upper }} {{ pin.port.point | render_tuple }} {{ pin.port.orientation }} ;
+         {% endif %}
+{% endfor %}
+END PINS
+
+END DESIGN
