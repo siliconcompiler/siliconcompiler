@@ -1,6 +1,7 @@
 import os
 import subprocess
 import re
+import sys
 from siliconcompiler.schema import schema_istrue
 from siliconcompiler.schema import schema_path
 
@@ -12,13 +13,13 @@ def setup_tool(chip, step):
     ''' Sets up default settings on a per step basis
     '''
     chip.logger.debug("Setting up SureLog")
-    
+
     chip.add('flow', step, 'threads', '4')
     chip.add('flow', step, 'format', 'cmdline')
     chip.add('flow', step, 'copy', 'false')
     chip.add('flow', step, 'exe', 'surelog')
     chip.add('flow', step, 'vendor', 'surelog')
-        
+
 ################################
 # Set SureLog Runtime Options
 ################################
@@ -28,10 +29,11 @@ def setup_options(chip, step):
     the dictionary settings.
     '''
 
-    options = chip.set('flow', step, 'option',[])
+    options = chip.set('flow', step, 'option', [])
 
-    options.append('-parse')
-    options.append('-noinfo')
+    if chip.get('ir')[-1] == 'uhdm':
+        options.append('-parse')
+    # options.append('-noinfo')
     options.append('-I' + "../../../")
 
     #Source Level Controls
@@ -40,7 +42,7 @@ def setup_options(chip, step):
         options.append('-y ' + schema_path(value))
 
     for value in chip.cfg['vlib']['value']:
-        options.append('-v ' + schema_path(value))                    
+        options.append('-v ' + schema_path(value))
 
     for value in chip.cfg['idir']['value']:
         options.append('-I' + schema_path(value))
@@ -50,13 +52,13 @@ def setup_options(chip, step):
 
     for value in chip.cfg['cmdfile']['value']:
         options.append('-f ' + schema_path(value))
-        
+
     for value in chip.cfg['source']['value']:
         options.append(schema_path(value))
 
-    #Wite back options tp cfg
+    # Wite back options tp cfg
     chip.set('flow', step, 'option', options)
-            
+
     return options
 
 ################################
@@ -65,17 +67,16 @@ def setup_options(chip, step):
 def pre_process(chip, step):
     ''' Tool specific function to run before step execution
     '''
-    pass
 
 def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
     # setting top module of design
     modules = 0
-    if(len(chip.cfg['design']['value']) < 1):
+    if len(chip.cfg['design']['value']) < 1:
         with open("slpp_all/surelog.log", "r") as open_file:
             for line in open_file:
-                modmatch = re.match('Top level module "\w+@(\w+)"', line)
+                modmatch = re.match(r'Top level module "\w+@(\w+)"', line)
                 if modmatch:
                     modules = modules + 1
                     topmodule = modmatch.group(1)
@@ -90,5 +91,6 @@ def post_process(chip, step):
     else:
         topmodule = chip.cfg['design']['value'][-1]
 
-    subprocess.run("cp slpp_all/surelog.uhdm " + "outputs/" + topmodule + ".uhdm",
-                   shell=True)
+    if chip.get('ir')[-1] == 'uhdm':
+        subprocess.run("cp slpp_all/surelog.uhdm " + "outputs/" + topmodule + ".uhdm",
+                       shell=True)

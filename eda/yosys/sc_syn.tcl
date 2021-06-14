@@ -16,22 +16,22 @@ if {[dict get $sc_cfg flow $step copy] eq True} {
 set topmodule    [dict get $sc_cfg design]
 
 set ir [dict get $sc_cfg ir]
+set sv [dict get $sc_cfg sv]
 set mode [dict get $sc_cfg mode]
 set target [dict get $sc_cfg target]
 
 #Inputs
-set input_verilog   "inputs/$topmodule.v"
 set input_def       "inputs/$topmodule.def"
 set input_sdc       "inputs/$topmodule.sdc"
 
 # TODO: the original OpenFPGA synth script used read_verilog with -nolatches. Is
 # that a flag we might want here?
-if {$ir eq "uhdm"} {
-    set input_uhdm   "inputs/$topmodule.uhdm"
+if {$sv eq "true" && $ir eq "uhdm"} {
+    set input_uhdm "inputs/$topmodule.uhdm"
     yosys read_uhdm $input_uhdm
 } else {
-    set input_verilog   "inputs/$topmodule.sv"
-    yosys read_verilog -sv $input_verilog
+    set input_verilog "inputs/$topmodule.v"
+    yosys read_verilog $input_verilog
 }
 
 if {$mode eq "asic"} {

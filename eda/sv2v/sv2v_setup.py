@@ -1,6 +1,7 @@
 import os
 import subprocess
 import re
+import sys
 from siliconcompiler.schema import schema_istrue
 from siliconcompiler.schema import schema_path
 
@@ -12,13 +13,13 @@ def setup_tool(chip, step):
     ''' Sets up default settings on a per step basis
     '''
     chip.logger.debug("Setting up sv2v")
-    
+
     chip.add('flow', step, 'threads', '4')
     chip.add('flow', step, 'format', 'cmdline')
     chip.add('flow', step, 'copy', 'false')
     chip.add('flow', step, 'exe', 'sv2v')
     chip.add('flow', step, 'vendor', 'sv2v')
-        
+
 ################################
 # Set sv2v Runtime Options
 ################################
@@ -27,9 +28,9 @@ def setup_options(chip, step):
     ''' Per tool/step function that returns a dynamic options string based on
     the dictionary settings.
     '''
-    options = chip.set('flow', step, 'option',[])
-    
-    #Include cwd in search path
+    options = chip.set('flow', step, 'option', [])
+
+    # Include cwd in search path
     options.append('-I' + "../../../")
 
     for value in chip.cfg['idir']['value']:
@@ -52,7 +53,6 @@ def setup_options(chip, step):
 def pre_process(chip, step):
     ''' Tool specific function to run before step execution
     '''
-    pass
 
 def post_process(chip, step):
     ''' Tool specific function to run after step execution
@@ -60,10 +60,10 @@ def post_process(chip, step):
 
     # setting top module of design
     modules = 0
-    if(len(chip.cfg['design']['value']) < 1):
+    if len(chip.cfg['design']['value']) < 1:
         with open("sv2v.log", "r") as open_file:
             for line in open_file:
-                modmatch = re.match('^module\s+(\w+)', line)
+                modmatch = re.match(r'^module\s+(\w+)', line)
                 if modmatch:
                     modules = modules + 1
                     topmodule = modmatch.group(1)
@@ -78,4 +78,4 @@ def post_process(chip, step):
     else:
         topmodule = chip.cfg['design']['value'][-1]
 
-    subprocess.run("mv sv2v.log outputs/" + topmodule + ".sv", shell=True)
+    subprocess.run("cp sv2v.log outputs/" + topmodule + ".v", shell=True)
