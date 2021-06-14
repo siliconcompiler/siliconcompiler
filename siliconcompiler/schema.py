@@ -2547,7 +2547,7 @@ def schema_options(cfg):
         'defvalue' : ['O0'],
         'short_help' : 'Optimization Mode',
         'param_help' : "optmode <str>",
-        'example': ["cli: -O 3",
+        'example': ["cli: -O3",
                     "api: chip.set('optmode','3')"],
         'help' : """
         The compiler has modes to prioritize run time and ppa. Modes include:
