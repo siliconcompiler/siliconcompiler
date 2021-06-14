@@ -1,7 +1,7 @@
 from docutils import nodes
 from sphinx.util.nodes import nested_parse_with_titles
 from docutils.statemachine import ViewList
-from docutils.parsers.rst import Directive
+from sphinx.util.docutils import SphinxDirective
 from siliconcompiler.schema import schema_cfg
 
 # docutils helpers
@@ -51,9 +51,11 @@ def is_leaf(schema):
     return False
 
 # Main Sphinx plugin
-class SchemaGen(Directive):
+class SchemaGen(SphinxDirective):
 
     def run(self):
+        self.env.note_dependency('../siliconcompiler/schema.py')
+
         schema = schema_cfg()
 
         # Split up schema into root and nested keys so that we can add a custom
