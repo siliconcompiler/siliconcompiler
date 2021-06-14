@@ -2,6 +2,8 @@ import importlib
 import os
 import siliconcompiler
 
+from eda.targets.importstep import get_import_info
+
 ####################################################
 # EDA Setup
 ####################################################
@@ -11,17 +13,19 @@ def setup_eda(chip, name=None):
 
     if name == 'ice40':
         # Define Compilation Steps
-        chip.cfg['steplist']['value'] = ['import',
-                                      'syn',
-                                      'apr',
-                                      'export']
+        importstep, importvendor, start = get_import_info(chip)
+        chip.cfg['start']['value'] = start
+        chip.cfg['stop']['value'] = ['export']
+
+        chip.cfg['steplist']['value'] = importstep + ['syn',
+                                                      'apr',
+                                                      'export']
 
         for step in chip.cfg['steplist']['value']:         
-            if step == 'import':
-                if chip.get('ir')[-1] == 'uhdm':
-                    vendor = 'surelog'
-                elif chip.get('ir')[-1] == 'verilog':
-                    vendor = 'verilator'
+            if step == 'validate':
+                vendor = 'surelog'
+            elif step == 'import':
+                vendor = importvendor
             elif step == 'syn':
                 vendor = 'yosys'
             elif step == 'apr':

@@ -2,31 +2,15 @@ import importlib
 import os
 import siliconcompiler
 
+from eda.targets.importstep import get_import_info
+
 ####################################################
 # EDA Setup
 ####################################################
 def setup_eda(chip, name=None):
 
     # Define Compilation Flow
-    importstep = ['import'] # standard verilog import just runs Verilator
-    importvendor = 'verilator'
-    chip.cfg['start']['value'] = ['import']
-
-    if chip.get('sv')[-1]:
-        if chip.get('ir')[-1] == 'uhdm':
-            # UHDM import only runs SureLog in UHDM mode
-            importstep = ['import']
-            importvendor = 'surelog'
-        else:
-            # Verilog SV import runs SureLog to validate SV and then sv2v to convert
-            # Since sv2v's parser is not strict we first parse using SureLog to ensure
-            # that the input SV is valid. Compiling invalid SV using sv2v may result
-            # in valid but buggy Verilog code, which we want to avoid.
-            importstep = ['validate', 'import']
-            chip.cfg['start']['value'] = ['validate']
-            importvendor = 'sv2v'
-
-    chip.cfg['stop']['value'] = ['export']
+    importstep, importvendor = get_import_info(chip)
 
     chip.cfg['steplist']['value'] = importstep + ['syn',
                                                   'floorplan',
@@ -35,6 +19,9 @@ def setup_eda(chip, name=None):
                                                   'route',
                                                   'dfm',
                                                   'export']
+
+    chip.cfg['start']['value'] = [chip.cfg['steplist']['value'][0]]
+    chip.cfg['stop']['value'] = [chip.cfg['steplist']['value'][-1]]
 
     # Setup tool based on flow step
     for step in chip.cfg['steplist']['value']:
