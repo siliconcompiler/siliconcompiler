@@ -9,5 +9,4 @@ sc examples/gcd/gcd.v \
    -loglevel "INFO" \
    -quiet \
    -relax \
-   -ir "uhdm" \
    -design gcd  $OPT
