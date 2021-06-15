@@ -8,4 +8,5 @@ sc examples/gcd/gcd.v \
    -asic_coresize "10.07 11.2 90.25 91" \
    -loglevel "INFO" \
    -quiet \
+   -relax \
    -design gcd  $OPT
