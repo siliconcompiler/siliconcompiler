@@ -2,9 +2,31 @@
 
 ![CI Tests](https://github.com/zeroasiccorp/siliconcompiler/workflows/CI%20Tests/badge.svg)
 
-SiliconCompiler is an end-to-end open source platform for hardware compilation. It supports a comprehensive, flexible ecosystem of [tools](https://www.siliconcompiler.org/tools), [hardware targets](https://www.siliconcompiler.org/targets), and [community](https://www.siliconcompiler.org/community) resources that lowers the barrier for virtual architecture prototyping and physical implementation. 
+SiliconCompiler is an end-to-end Python based open source platform for hardware compilation. It supports a comprehensive, flexible ecosystem of [tools](https://www.siliconcompiler.org/tools), [hardware targets](https://www.siliconcompiler.org/targets), and [community](https://www.siliconcompiler.org/community) resources that lowers the barrier to physical ASIC prototyping and high accuracy HW/SW codesign. 
 
-SiliconComiler provides a stable JSON configuration schema, command line interface, and Python API with over 200 configuration parameters and 25 core functions.
+**Features:**
+* Configurable, extensible, and automated ASIC and FPGA compilation flows
+* Compilation configuration dictionary with over 200 parameters
+* Command line application with full configuration access
+* Plain text single file JSON compilation record
+* Zero install client/server execution model
+* Simple name based target technology mapping
+* Python based technology agnostic ASIC floor-planning API  
+
+**App Example:**
+
+```sh
+$ sc hello_world.v -target asap7
+```
+
+**Python Example:**
+```python
+import siliconcompiler
+chip = siliconcompiler.Chip()
+chip.add('source', 'hello.v')
+chip.target('asap7')
+chip.run()
+```
 
 ## Documentation
 
@@ -12,7 +34,7 @@ One of the goals of the SiliconCompiler project is to reduce the information acc
 
 In addition, we have created a number of tutorials and examples that reflect recommended design practices. 
 
-We hope you will spend a few minutes to review the docs before diving in. 
+Please spend a few minutes to review the docs before diving in:
 
 https://www.siliconcompiler.com/docs
 
@@ -47,30 +69,11 @@ The SiliconCompiler project supports open source as well as commercial EDA flows
 
 Ubuntu based install scripts can be found in the [./setup](setup) directory.
 
-## Testing installation
+## Testing Installation
 
 ```bash
 $ sc examples/gcd/gcd.v -design gcd -target freepdk45_asic -constraint examples/gcd/gcd.sdc
 $ sc build/gcd/job1/export/outputs/gcd.gds -display
-```
-
-## Write your first SiliconCompiler program
-
-```sh
-$ python
-```
-
-```python
->>> import siliconcompiler
->>> chip = siliconcompiler.Chip()
->>> chip.add('source', 'examples/gcd/gcd.v')
->>> chip.add('constraint', 'examples/gcd/gcd.sdc')
->>> chip.set('design', 'gcd')
->>> chip.set('target', 'freepdk45')
->>> chip.target()
->>> chip.run()
->>> chip.summary()
->>> chip.display()
 ```
 
 ## Contributing
@@ -79,8 +82,8 @@ We use GitHub issues for tracking requests and bugs.
 
 ## Other Resources
 
-- **Website:** https://www.siliconcompiler.com
-- **Community:** https://www.siliconcompiler.com/community
+- **Website:** https://siliconcompiler.com
+- **Community:** https://siliconcompiler.com/community
 
 ## Similar projects
 
