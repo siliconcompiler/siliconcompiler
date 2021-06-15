@@ -1,0 +1,41 @@
+VERSION {{ layout.version }} ;
+BUSBITCHARS "{{ layout.busbitchars }}" ;
+DIVIDERCHAR "{{ layout.dividerchar }}"  ;
+UNITS 
+  DATABASE MICRONS {{ layout.units }} ;
+END UNITS
+
+MACRO {{ name }}
+  FOREIGN {{ name }} ;
+
+  {% if False %}
+  TODO: should we specify symmetry? do we have to analyze the design to
+  determine that?
+  SYMMETRY X Y R90 ;
+  {% endif %}
+
+  SIZE {{ layout.diearea[1][0] }} BY {{ layout.diearea[1][1] }} ;
+  CLASS BLOCK ;
+  {% for name, pin in layout.pin.items() %}
+  PIN {{ name }}
+    DIRECTION {{ pin.direction }} ;
+    USE {{ pin.use }} ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER {{ pin.port.layer }} ;
+      RECT {{ pin.port.point[0] + pin.port.box[0][0] }}
+           {{ pin.port.point[1] + pin.port.box[0][1] }}
+           {{ pin.port.point[0] + pin.port.box[1][0] }}
+           {{ pin.port.point[1] + pin.port.box[1][1]}} ;
+    END
+  END {{ name }}
+  {% endfor %}
+
+  {% if False %}
+  TODO: blockages specified here
+	[OBS statement ...] ] ...
+  {% endif %}
+
+END {{ name }}
+
+END LIBRARY

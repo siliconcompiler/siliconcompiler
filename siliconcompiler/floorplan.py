@@ -3,6 +3,7 @@
 import logging
 import math
 import jinja2
+import copy
 
 from siliconcompiler.leflib import Lef
 from siliconcompiler.schema import schema_path
@@ -110,18 +111,19 @@ class Floorplan:
                               width - self.std_cell_height,
                               height - self.std_cell_height)
         else:
+            # TODO: scale core area like die area
             self.core_area = core_area
 
         self.chip.set('asic', 'diesize', str((0, 0, width, height)))
         self.chip.set('asic', 'coresize', str(self.core_area))
-        self.chip.layout['diearea'] = self._def_scale([(0, 0), self.die_area])
+        self.chip.layout['diearea'] = [(0, 0), self.die_area]
 
         if generate_rows:
             self.generate_rows()
         if generate_tracks:
             self.generate_tracks()
 
-    def save(self, filename):
+    def write_def(self, filename):
         '''Writes chip layout to DEF file.
 
         Args:
@@ -132,7 +134,21 @@ class Floorplan:
         tmpl = env.get_template('floorplan_def.j2')
         layout = self._filter_defaults(self.chip.layout)
         with open(filename, 'w') as f:
-            f.write(tmpl.render(layout=layout))
+            f.write(tmpl.render(layout=self._def_scale_layout(layout)))
+
+    def write_lef(self, filename, macro_name):
+        '''Writes chip layout to LEF file.
+
+        Args:
+            filename (str): Name of output file.
+            macro_name (str): Macro name to use in LEF.
+        '''
+        logging.debug('Write LEF %s', filename)
+
+        tmpl = env.get_template('floorplan_lef.j2')
+        layout = self._filter_defaults(self.chip.layout)
+        with open(filename, 'w') as f:
+            f.write(tmpl.render(name=macro_name, layout=layout))
 
     def place_pins(self, pins, side, width, depth, layer, offset=0, pitch=None,
                    direction='inout', net_name=None, use='signal', fixed=True,
@@ -271,9 +287,9 @@ class Floorplan:
             }
             port = {
                 'layer': self.layers[layer]['name'],
-                'box': self._def_scale(shape),
+                'box': shape,
                 'status': 'fixed' if fixed else 'placed',
-                'point': self._def_scale(pos),
+                'point': pos,
                 'orientation': 'N'
             }
             self.chip.layout['pin'][pin_name] = pin
@@ -310,8 +326,8 @@ class Floorplan:
 
         component = {
             'cell': macro_name,
-            'x': self._def_scale(x),
-            'y': self._def_scale(y),
+            'x': x,
+            'y': y,
             'status': 'fixed' if fixed else 'placed',
             'orientation': orientation.upper(),
             'halo': halo,
@@ -361,12 +377,12 @@ class Floorplan:
             orientation = 'FS' if (i % 2 == 0 and not flip_first_row) else 'N'
             row = {
                 'site': site_name,
-                'x': self._def_scale(start_x),
-                'y': self._def_scale(start_y),
+                'x': start_x,
+                'y': start_y,
                 'orientation': orientation,
                 'numx': num_x,
                 'numy': 1,
-                'stepx' : self._def_scale(self.std_cell_width),
+                'stepx' : self.std_cell_width,
                 'stepy' : 0
             }
             self.chip.layout['row'][name] = row
@@ -410,15 +426,15 @@ class Floorplan:
             track_x = {
                 'layer': layer_name,
                 'direction': 'x',
-                'start': self._def_scale(offset_x),
-                'step': self._def_scale(pitch_x),
+                'start': offset_x,
+                'step': pitch_x,
                 'total': num_tracks_x
             }
             track_y = {
                 'layer': layer_name,
                 'direction': 'y',
-                'start': self._def_scale(offset_y),
-                'step': self._def_scale(pitch_y),
+                'start': offset_y,
+                'step': pitch_y,
                 'total': num_tracks_y
             }
 
@@ -426,9 +442,39 @@ class Floorplan:
             self.chip.layout['track'][f'{layer_name}_Y'] = track_y
 
     def _filter_defaults(self, layout):
-        layout = self.chip.layout.copy()
+        layout = copy.deepcopy(self.chip.layout)
         del layout['pin']['default']
         del layout['component']['default']
+        return layout
+
+    # TODO: this function is a bit of a hack. Eventually I think we'll switch to
+    # representing the layout directly as members of the Floorplan object
+    # instead of putting everything in a layout dictionary, and can come up with
+    # a cleaner scaling solution then.
+    def _def_scale_layout(self, layout):
+        # take in layout directly since we assume we're already operating on a
+        # deep copy from _filter_defaults()
+
+        layout['diearea'] = self._def_scale(layout['diearea'])
+
+        for pin in layout['pin'].values():
+            port = pin['port']
+            port['box'] = self._def_scale(port['box'])
+            port['point'] = self._def_scale(port['point'])
+
+        for macro in layout['component'].values():
+            macro['x'] = self._def_scale(macro['x'])
+            macro['y'] = self._def_scale(macro['y'])
+
+        for row in layout['row'].values():
+            row['x'] = self._def_scale(row['x'])
+            row['y'] = self._def_scale(row['y'])
+            row['stepx'] = self._def_scale(row['stepx'])
+
+        for track in layout['track'].values():
+            track['start'] = self._def_scale(track['start'])
+            track['step'] = self._def_scale(track['step'])
+
         return layout
 
     def _def_scale(self, val):
@@ -474,7 +520,7 @@ if __name__ == '__main__':
     setup_design(c)
 
     fp = Floorplan(c)
-    fp.create_die_area(100.13, 100.8, core_area=(10.07, 11.2, 90.25, 91))
+    fp.create_die_area(72, 72, core_area=(8*1.4, 8*1.4, 64*1.4, 64*1.4))
 
     n = 4 # pins per side
     width = 10
@@ -489,4 +535,5 @@ if __name__ == '__main__':
     fp.place_pins(pins[2*n:3*n], 'w', width, depth, metal)
     fp.place_pins(pins[3*n:4*n], 's', width, depth, metal)
 
-    fp.save('test.def')
+    fp.write_def('test.def')
+    fp.write_lef('test.lef', 'test')
