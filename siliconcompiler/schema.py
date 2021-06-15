@@ -210,13 +210,14 @@ def schema_fpga(cfg):
         'requirement' : '!fpga_xml',
         'type' : 'str',
         'lock' : 'false',
-        'defvalue' : [],
+        'defvalue' : ['lattice'],
         'short_help' : 'FPGA Vendor Name',
         'param_help' : "fpga vendor <str>",
         'example': ["cli: -fpga_vendor acme",                    
                     "api:  chip.set('fpga', 'vendor', 'acme')"],
         'help' : """
-        Name of the FPGA vendor for non-VTR based compilation
+        Name of the FPGA vendor for non-VTR based compilation. Only currently
+        supported value is 'lattice'.
         """
     }
 
@@ -225,13 +226,14 @@ def schema_fpga(cfg):
         'requirement' : '!fpga_xml',
         'type' : 'str',
         'lock' : 'false',
-        'defvalue' : [],
+        'defvalue' : ['ice40up5k-sg48'],
         'short_help' : 'FPGA Device Name',
         'param_help' : "fpga device <str>",
         'example': ["cli: -fpga_device fpga64k",                    
                     "api:  chip.set('fpga', 'device', 'fpga64k')"],
         'help' : """
-        Name of the FPGA device for non-VTR based compilation
+        Name of the FPGA device for non-VTR based compilation. Only currently
+        supported value is 'ice40up5k-sg48'.
         """
     }
 
