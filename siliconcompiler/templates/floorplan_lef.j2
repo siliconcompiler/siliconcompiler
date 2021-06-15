@@ -31,10 +31,12 @@ MACRO {{ name }}
   END {{ name }}
   {% endfor %}
 
-  {% if False %}
-  TODO: blockages specified here
-	[OBS statement ...] ] ...
-  {% endif %}
+  {% for layer in blockages %}
+  OBS
+    LAYER {{ layer }} ;
+    RECT {% for coord in layout.diearea %}{{ coord | render_tuple }} {% endfor %};
+  END
+  {% endfor %}
 
 END {{ name }}
 

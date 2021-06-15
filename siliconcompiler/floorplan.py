@@ -72,6 +72,8 @@ class Floorplan:
 
         self.db_units = db_units
 
+        self.blockage_layers = []
+
     def create_die_area(self, width, height, core_area=None, generate_rows=True,
                         generate_tracks=True, units='relative'):
         '''Initializes die.
@@ -148,7 +150,7 @@ class Floorplan:
         tmpl = env.get_template('floorplan_lef.j2')
         layout = self._filter_defaults(self.chip.layout)
         with open(filename, 'w') as f:
-            f.write(tmpl.render(name=macro_name, layout=layout))
+            f.write(tmpl.render(name=macro_name, layout=layout, blockages=self.blockage_layers))
 
     def place_pins(self, pins, side, width, depth, layer, offset=0, pitch=None,
                    direction='inout', net_name=None, use='signal', fixed=True,
@@ -441,6 +443,27 @@ class Floorplan:
             self.chip.layout['track'][f'{layer_name}_X'] = track_x
             self.chip.layout['track'][f'{layer_name}_Y'] = track_y
 
+    def place_blockage(self, layers=None):
+        '''
+        Places full-area blockages on the specified layers.
+
+        The blockages specified using this method only take effect when dumping
+        the floorplan as a LEF macro.
+
+        Args:
+            layers (list): List of layers to place blockages on. If `None`,
+            block all metal layers.
+        '''
+
+        if layers is None:
+            layers = list(self.layers.keys())
+
+        for layer in layers:
+            if layer in self.layers:
+                self.blockage_layers.append(self.layers[layer]['name'])
+            else:
+                raise ValueError(f'Layer {layer} not found in tech info!')
+
     def _filter_defaults(self, layout):
         layout = copy.deepcopy(self.chip.layout)
         del layout['pin']['default']
@@ -534,6 +557,8 @@ if __name__ == '__main__':
     fp.place_pins(pins[n:2*n], 'e', width, depth, metal)
     fp.place_pins(pins[2*n:3*n], 'w', width, depth, metal)
     fp.place_pins(pins[3*n:4*n], 's', width, depth, metal)
+
+    fp.place_blockage(['m1', 'm2'])
 
     fp.write_def('test.def')
     fp.write_lef('test.lef', 'test')
