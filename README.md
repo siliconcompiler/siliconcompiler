@@ -4,7 +4,7 @@
 
 SiliconCompiler is an end-to-end Python based open source platform for hardware compilation. It supports a comprehensive, flexible ecosystem of [tools](https://www.siliconcompiler.org/tools), [hardware targets](https://www.siliconcompiler.org/targets), and [community](https://www.siliconcompiler.org/community) resources that lowers the barrier to physical ASIC prototyping and high accuracy HW/SW codesign. 
 
-**Features:**
+**Highlights:**
 * Configurable, extensible, and automated ASIC and FPGA compilation flows
 * Compilation configuration dictionary with over 200 parameters
 * Command line application with full configuration access
@@ -30,9 +30,7 @@ chip.run()
 
 ## Documentation
 
-One of the goals of the SiliconCompiler project is to reduce the information access barrier for aspiring hardware designers. So far we have created over 100 pages of detailed documentation of the architecture, options, configuration, Python API. 
-
-In addition, we have created a number of tutorials and examples that reflect recommended design practices. 
+We take documentation serisouly and have crated detailed documentation of the architecture, options, configuration, Python API. 
 
 Please spend a few minutes to review the docs before diving in:
 
@@ -57,7 +55,9 @@ $ python -m pip install -e .
 
 ## Pre-requisites
 
-The SiliconCompiler project supports open source as well as commercial EDA flows. The open source reference flow included in the project depends on the external packages listed below: 
+To compile designs using the included open source target flow, you will need to install the follwoing external packages: 
+
+Ubuntu based install scripts can be found in the [./setup](setup) directory.
 
 - **OpenRoad:** https://github.com/The-OpenROAD-Project/OpenROAD
 - **OpenSTA:** https://github.com/The-OpenROAD-Project/OpenSTA
@@ -67,7 +67,7 @@ The SiliconCompiler project supports open source as well as commercial EDA flows
 - **Klayout:** https://github.com/KLayout/klayout
 - **VTR:** https://github.com/verilog-to-routing/vtr-verilog-to-routing
 
-Ubuntu based install scripts can be found in the [./setup](setup) directory.
+SiliconCompiler have also been tested with commercial EDA tools and PDKs, but these configurations cannot be disclosed due to IP restrictions.
 
 ## Testing Installation
 
