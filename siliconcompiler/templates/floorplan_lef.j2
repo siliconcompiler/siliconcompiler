@@ -1,7 +1,7 @@
 VERSION {{ layout.version }} ;
 BUSBITCHARS "{{ layout.busbitchars }}" ;
 DIVIDERCHAR "{{ layout.dividerchar }}"  ;
-UNITS 
+UNITS
   DATABASE MICRONS {{ layout.units }} ;
 END UNITS
 
@@ -34,7 +34,10 @@ MACRO {{ name }}
   {% for layer in blockages %}
   OBS
     LAYER {{ layer }} ;
-    RECT {% for coord in layout.diearea %}{{ coord | render_tuple }} {% endfor %};
+    RECT {{ layout.diearea[0][0] }}
+         {{ layout.diearea[0][1] }}
+         {{ layout.diearea[1][0] }}
+         {{ layout.diearea[1][1] }} ;
   END
   {% endfor %}
 
