@@ -40,7 +40,6 @@ class Chip:
 
         # Create a default dict ("spec")
         self.cfg = schema_cfg()
-        self.layout = schema_layout()
 
         # Initialize logger
         self.logger = log.getLogger(uuid.uuid4().hex)
