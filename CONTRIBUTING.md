@@ -94,7 +94,6 @@ $ git checkout -b your-branch-name origin/main
 - Using your favorite editor, make your changes, and [commit](https://dont-be-afraid-to-commit.readthedocs.io/en/latest/git/commandlinegit.html#commit-your-changes)
 - Include tests that cover any code changes you make. Make sure the test fails without your patch. Run the tests as described below.
 - Push your commits to your fork on GitHub
-- Create a [pull request](https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request)
 
 ```sh
 $ git push --set-upstream fork your-branch-name
