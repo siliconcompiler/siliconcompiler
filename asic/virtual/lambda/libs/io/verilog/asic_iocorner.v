@@ -6,7 +6,7 @@
 
 module asic_iocorner
   #(parameter TYPE  = "SOFT", // SOFT or PRIVATE PROPERTY
-    parameter DIR   = "NE"    // NW, NW, SE, SW
+    parameter DIR   = "NE",   // NW, NW, SE, SW
     parameter NCTRL = 8       // number of control/sense signals
     )
 (
@@ -15,7 +15,7 @@ module asic_iocorner
  inout 		   vssio, // io ground
  inout 		   vdd, // core supply
  inout 		   vss, // common ground
- inout [NCTRL-1:0] ctrl // ctrl ring 
+ inout [NCTRL-1:0] ctrlring // ctrl ring 
  );
 
 endmodule
