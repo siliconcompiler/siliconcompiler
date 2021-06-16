@@ -41,7 +41,7 @@ def test_floorplan_def(fp, tmpdir):
 
 def test_floorplan_lef(fp, tmpdir):
     file = tmpdir.join('output.lef')
-    fp.write_lef(file.strpath, 'test')
+    fp.write_lef(file.strpath)
 
     test_dir = os.path.dirname(os.path.abspath(__file__))
 

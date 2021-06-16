@@ -1,12 +1,12 @@
-VERSION {{ layout.version }} ;
-BUSBITCHARS "{{ layout.busbitchars }}" ;
-DIVIDERCHAR "{{ layout.dividerchar }}"  ;
+VERSION 5.8 ;
+BUSBITCHARS "[]" ;
+DIVIDERCHAR "/" ;
 UNITS
-  DATABASE MICRONS {{ layout.units }} ;
+  DATABASE MICRONS {{ fp.db_units }} ;
 END UNITS
 
-MACRO {{ name }}
-  FOREIGN {{ name }} ;
+MACRO {{ fp.design }}
+  FOREIGN {{ fp.design }} ;
 
   {% if False %}
   TODO: should we specify symmetry? do we have to analyze the design to
@@ -14,10 +14,10 @@ MACRO {{ name }}
   SYMMETRY X Y R90 ;
   {% endif %}
 
-  SIZE {{ layout.diearea[1][0] }} BY {{ layout.diearea[1][1] }} ;
+  SIZE {{ fp.die_area[0] }} BY {{ fp.die_area[1] }} ;
   CLASS BLOCK ;
-  {% for name, pin in layout.pin.items() %}
-  PIN {{ name }}
+  {% for pin in fp.pins %}
+  PIN {{ pin.name }}
     DIRECTION {{ pin.direction }} ;
     USE {{ pin.use }} ;
     SHAPE ABUTMENT ;
@@ -26,21 +26,21 @@ MACRO {{ name }}
       RECT {{ pin.port.point[0] + pin.port.box[0][0] }}
            {{ pin.port.point[1] + pin.port.box[0][1] }}
            {{ pin.port.point[0] + pin.port.box[1][0] }}
-           {{ pin.port.point[1] + pin.port.box[1][1]}} ;
+           {{ pin.port.point[1] + pin.port.box[1][1] }} ;
     END
-  END {{ name }}
+  END {{ pin.name }}
   {% endfor %}
 
-  {% for layer in blockages %}
+  {% for layer in fp.blockage_layers %}
   OBS
     LAYER {{ layer }} ;
-    RECT {{ layout.diearea[0][0] }}
-         {{ layout.diearea[0][1] }}
-         {{ layout.diearea[1][0] }}
-         {{ layout.diearea[1][1] }} ;
+    RECT 0
+         0
+         {{ fp.die_area[0] }}
+         {{ fp.die_area[1] }} ;
   END
   {% endfor %}
 
-END {{ name }}
+END {{ fp.design }}
 
 END LIBRARY
