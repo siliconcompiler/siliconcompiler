@@ -112,8 +112,9 @@ class Floorplan:
                               self.std_cell_height,
                               width - self.std_cell_height,
                               height - self.std_cell_height)
+        elif units == 'relative':
+            self.core_area = tuple(x * self.std_cell_height for x in core_area)
         else:
-            # TODO: scale core area like die area
             self.core_area = core_area
 
         self.chip.set('asic', 'diesize', str((0, 0, width, height)))
@@ -534,16 +535,14 @@ if __name__ == '__main__':
     # Test: create floorplan with `n` equally spaced `width` x `depth` pins along
     # each side
 
-    from siliconcompiler.core import *
-    from asic.targets.freepdk45 import *
+    from siliconcompiler.core import Chip
+
     c = Chip()
     c.set('design', 'test')
-    setup_platform(c)
-    setup_libs(c)
-    setup_design(c)
+    c.target('freepdk45')
 
     fp = Floorplan(c)
-    fp.create_die_area(72, 72, core_area=(8*1.4, 8*1.4, 64*1.4, 64*1.4))
+    fp.create_die_area(72, 72, core_area=(8, 8, 64, 64))
 
     n = 4 # pins per side
     width = 10
