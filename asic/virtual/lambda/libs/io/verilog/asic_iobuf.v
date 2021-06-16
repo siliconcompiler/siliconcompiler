@@ -10,22 +10,22 @@ module asic_iobuf
     )
 (
  //pad
- inout 	pad, // pad
+ inout 	     pad, // pad
  //feed through signals
- inout 	vddio, // io supply
- inout 	vssio, // io ground
- inout 	vdd, // core supply
- inout 	vss, // common ground
- inout 	poc, // power-on-ctrl
+ inout 	     vddio, // io supply
+ inout 	     vssio, // io ground
+ inout 	     vdd, // core supply
+ inout 	     vss, // common ground
+ inout 	     poc, // power-on-ctrl
  //core facing signals
- input 	dout, // data to drive to pad
- output din, // data from pad
- input 	oen, // output enable (bar)
- input 	ie, // input enable
- input 	cfg // io config
+ output      din, // data from pad
+ input 	     dout, // data to drive to pad
+ //control signals
+ input 	     oen, // output enable (0=enable)
+ input 	     ie, // input enable (1=enable
+ input [7:0] cfg // io config (drive strength etc)
  );
 
-   
    generate
       if(TYPE == "SOFT") 
 	begin
