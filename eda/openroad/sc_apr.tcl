@@ -25,6 +25,11 @@ if {$target_tech eq "freepdk45"} {
     set openroad_pad_global_place 2
     set openroad_macro_place_halo "22.4 15.12"
     set openroad_macro_place_channel "18.8 19.95"
+} elseif {$target_tech eq "asap7"} {
+    set openroad_place_density 0.77
+    set openroad_pad_global_place 2
+    set openroad_macro_place_halo "22.4 15.12"
+    set openroad_macro_place_channel "18.8 19.95"
 } else {
     puts "WARNING: OpenROAD tuning constants not set for $target_tech in sc_apr.tcl, using generic values."
     set openroad_place_density 0.3
