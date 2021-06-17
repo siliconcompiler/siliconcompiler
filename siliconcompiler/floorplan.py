@@ -33,12 +33,33 @@ class Floorplan:
         '''
         self.chip = chip
 
+        self.design = chip.get('design')[-1]
+        self.db_units = db_units
         self.die_area = None
         self.core_area = None
+        self.pins = []
+        self.macros = []
+        self.rows = []
+        self.tracks = []
 
-        self.chip.layout['version'] = '5.8'
-        self.chip.layout['design'] = chip.get('design')[-1]
-        self.chip.layout['units'] = db_units
+        self.blockage_layers = []
+
+        # Set up custom Jinja `scale` filter as a closure around `self` so we
+        # don't have to pass in db_units
+        def scale(val):
+            if isinstance(val, list):
+                return [scale(item) for item in val]
+            elif isinstance(val, tuple):
+                return tuple([scale(item) for item in val])
+            else:
+                # TODO: rounding and making this an int seems helpful for resolving
+                # floating point rounding issues, but could be problematic if we
+                # want to have floats in DEF file? Alternative could be to use
+                # Python decimal library for internally representing micron values
+                return int(round(val * self.db_units))
+        env.filters['scale'] = scale
+
+        ## Extract technology-specific info ##
 
         # extract std cell info based on libname
         libname = self.chip.get('asic', 'targetlib')[-1]
@@ -70,9 +91,6 @@ class Floorplan:
             self.layers[name]['xoffset'] = float(layer['xoffset']['value'][-1])
             self.layers[name]['yoffset'] = float(layer['yoffset']['value'][-1])
 
-        self.db_units = db_units
-
-        self.blockage_layers = []
 
     def create_die_area(self, width, height, core_area=None, generate_rows=True,
                         generate_tracks=True, units='relative'):
@@ -112,13 +130,14 @@ class Floorplan:
                               self.std_cell_height,
                               width - self.std_cell_height,
                               height - self.std_cell_height)
+        elif units == 'relative':
+            self.core_area = tuple(x * self.std_cell_height for x in core_area)
         else:
-            # TODO: scale core area like die area
             self.core_area = core_area
 
+        # TODO: is this necessary or a good idea?
         self.chip.set('asic', 'diesize', str((0, 0, width, height)))
         self.chip.set('asic', 'coresize', str(self.core_area))
-        self.chip.layout['diearea'] = [(0, 0), self.die_area]
 
         if generate_rows:
             self.generate_rows()
@@ -134,11 +153,10 @@ class Floorplan:
         logging.debug('Write DEF %s', filename)
 
         tmpl = env.get_template('floorplan_def.j2')
-        layout = self._filter_defaults(self.chip.layout)
         with open(filename, 'w') as f:
-            f.write(tmpl.render(layout=self._def_scale_layout(layout)))
+            f.write(tmpl.render(fp=self))
 
-    def write_lef(self, filename, macro_name):
+    def write_lef(self, filename):
         '''Writes chip layout to LEF file.
 
         Args:
@@ -148,9 +166,8 @@ class Floorplan:
         logging.debug('Write LEF %s', filename)
 
         tmpl = env.get_template('floorplan_lef.j2')
-        layout = self._filter_defaults(self.chip.layout)
         with open(filename, 'w') as f:
-            f.write(tmpl.render(name=macro_name, layout=layout, blockages=self.blockage_layers))
+            f.write(tmpl.render(fp=self))
 
     def place_pins(self, pins, side, width, depth, layer, offset=0, pitch=None,
                    direction='inout', net_name=None, use='signal', fixed=True,
@@ -282,11 +299,6 @@ class Floorplan:
             else:
                 pos = x, y
 
-            pin = {
-                'net': net_name if net_name else pin_name,
-                'direction': direction,
-                'use': use
-            }
             port = {
                 'layer': self.layers[layer]['name'],
                 'box': shape,
@@ -294,8 +306,14 @@ class Floorplan:
                 'point': pos,
                 'orientation': 'N'
             }
-            self.chip.layout['pin'][pin_name] = pin
-            self.chip.layout['pin'][pin_name]['port'] = port
+            pin = {
+                'name': pin_name,
+                'net': net_name if net_name else pin_name,
+                'direction': direction,
+                'use': use,
+                'port': port
+            }
+            self.pins.append(pin)
 
             x += xincr
             y += yincr
@@ -327,6 +345,7 @@ class Floorplan:
             y *= self.std_cell_height
 
         component = {
+            'name': instance_name,
             'cell': macro_name,
             'x': x,
             'y': y,
@@ -334,7 +353,7 @@ class Floorplan:
             'orientation': orientation.upper(),
             'halo': halo,
         }
-        self.chip.layout['component'][instance_name] = component
+        self.macros.append(component)
 
     def generate_rows(self, site_name=None, flip_first_row=False, area=None,
                       units='relative'):
@@ -356,7 +375,7 @@ class Floorplan:
 
         # clear existing rows, since we'll generate new ones from scratch using
         # floorplan parameters
-        self.chip.layout['row'].clear()
+        self.rows.clear()
 
         if site_name == None:
             site_name = self.std_cell_name
@@ -378,6 +397,7 @@ class Floorplan:
             name = f'ROW_{i}'
             orientation = 'FS' if (i % 2 == 0 and not flip_first_row) else 'N'
             row = {
+                'name': name,
                 'site': site_name,
                 'x': start_x,
                 'y': start_y,
@@ -387,7 +407,7 @@ class Floorplan:
                 'stepx' : self.std_cell_width,
                 'stepy' : 0
             }
-            self.chip.layout['row'][name] = row
+            self.rows.append(row)
 
             start_y += self.std_cell_height
 
@@ -406,7 +426,7 @@ class Floorplan:
 
         # clear existing rows, since we'll generate new ones from scratch using
         # floorplan parameters
-        self.chip.layout['track'].clear()
+        self.tracks.clear()
 
         if area and units == 'relative':
             area = [v * self.std_cell_height for v in area]
@@ -426,6 +446,7 @@ class Floorplan:
             num_tracks_y = math.floor((die_height - offset_y) / pitch_y) + 1
 
             track_x = {
+                'name': f'{layer_name}_X',
                 'layer': layer_name,
                 'direction': 'x',
                 'start': offset_x,
@@ -433,6 +454,7 @@ class Floorplan:
                 'total': num_tracks_x
             }
             track_y = {
+                'name': f'{layer_name}_Y',
                 'layer': layer_name,
                 'direction': 'y',
                 'start': offset_y,
@@ -440,8 +462,8 @@ class Floorplan:
                 'total': num_tracks_y
             }
 
-            self.chip.layout['track'][f'{layer_name}_X'] = track_x
-            self.chip.layout['track'][f'{layer_name}_Y'] = track_y
+            self.tracks.append(track_x)
+            self.tracks.append(track_y)
 
     def place_blockage(self, layers=None):
         '''
@@ -463,54 +485,6 @@ class Floorplan:
                 self.blockage_layers.append(self.layers[layer]['name'])
             else:
                 raise ValueError(f'Layer {layer} not found in tech info!')
-
-    def _filter_defaults(self, layout):
-        layout = copy.deepcopy(self.chip.layout)
-        del layout['pin']['default']
-        del layout['component']['default']
-        return layout
-
-    # TODO: this function is a bit of a hack. Eventually I think we'll switch to
-    # representing the layout directly as members of the Floorplan object
-    # instead of putting everything in a layout dictionary, and can come up with
-    # a cleaner scaling solution then.
-    def _def_scale_layout(self, layout):
-        # take in layout directly since we assume we're already operating on a
-        # deep copy from _filter_defaults()
-
-        layout['diearea'] = self._def_scale(layout['diearea'])
-
-        for pin in layout['pin'].values():
-            port = pin['port']
-            port['box'] = self._def_scale(port['box'])
-            port['point'] = self._def_scale(port['point'])
-
-        for macro in layout['component'].values():
-            macro['x'] = self._def_scale(macro['x'])
-            macro['y'] = self._def_scale(macro['y'])
-
-        for row in layout['row'].values():
-            row['x'] = self._def_scale(row['x'])
-            row['y'] = self._def_scale(row['y'])
-            row['stepx'] = self._def_scale(row['stepx'])
-
-        for track in layout['track'].values():
-            track['start'] = self._def_scale(track['start'])
-            track['step'] = self._def_scale(track['step'])
-
-        return layout
-
-    def _def_scale(self, val):
-        if isinstance(val, list):
-            return [self._def_scale(item) for item in val]
-        elif isinstance(val, tuple):
-            return tuple([self._def_scale(item) for item in val])
-        else:
-            # TODO: rounding and making this an int seems helpful for resolving
-            # floating point rounding issues, but could be problematic if we
-            # want to have floats in DEF file? Alternative could be to use
-            # Python decimal library for internally representing micron values
-            return int(round(val * self.db_units))
 
     def _snap_to_x_track(self, x, layer):
         offset = self.layers[layer]['xoffset']
@@ -534,16 +508,14 @@ if __name__ == '__main__':
     # Test: create floorplan with `n` equally spaced `width` x `depth` pins along
     # each side
 
-    from siliconcompiler.core import *
-    from asic.targets.freepdk45 import *
+    from siliconcompiler.core import Chip
+
     c = Chip()
     c.set('design', 'test')
-    setup_platform(c)
-    setup_libs(c)
-    setup_design(c)
+    c.target('freepdk45')
 
     fp = Floorplan(c)
-    fp.create_die_area(72, 72, core_area=(8*1.4, 8*1.4, 64*1.4, 64*1.4))
+    fp.create_die_area(72, 72, core_area=(8, 8, 64, 64))
 
     n = 4 # pins per side
     width = 10
@@ -561,4 +533,4 @@ if __name__ == '__main__':
     fp.place_blockage(['m1', 'm2'])
 
     fp.write_def('test.def')
-    fp.write_lef('test.lef', 'test')
+    fp.write_lef('test.lef')

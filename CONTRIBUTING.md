@@ -13,7 +13,7 @@ Thank you for considering contributing to the SiliconCompiler project!
 - Comply with coding guidelines/style of project
 - Avoid style only code based PRs
 
-## Reporting issues
+#### Reporting issues
 
 Include the following information in your post:
 
@@ -51,21 +51,27 @@ $ git config --global user.email 'your email'
 ```
 - Make sure you have a [github account](https://github.com/join)
 
-- [Fork SiliconCompiler]( https://github.com/siliconcompiler/siliconcompiler/fork) to your GitHub account
+
+## Clone/Fork Repository
+
+- [Fork SiliconCompiler]( https://github.com/siliconcompiler/siliconcompiler/fork) to your GitHub account (external contributors only)
 
 - [Clone]( https://docs.github.com/en/github/getting-started-with-github/fork-a-repo#step-2-create-a-local-clone-of-your-fork) the main repository locally.
 
-    
 ```sh
-$ git clone https://github.com/siliconcompiler/siliconcompiler
+$ git clone https://github.com/{username}/siliconcompiler
 $ cd siliconcompiler
 ```
 
--  Add your fork as a remote to push your work to. Replace 'username' with your username. 
+-  Add fork as a remote to push your work to. (external contributors only)
 
 ```sh
 $ git remote add fork https://github.com/{username}/siliconcompiler
 ```
+
+
+
+## Instasll Python Requirements
 
 -  Create a virtualenv.
 ```sh
@@ -92,13 +98,20 @@ $ git fetch origin
 $ git checkout -b your-branch-name origin/main
 ```
 - Using your favorite editor, make your changes, and [commit](https://dont-be-afraid-to-commit.readthedocs.io/en/latest/git/commandlinegit.html#commit-your-changes)
+
 - Include tests that cover any code changes you make. Make sure the test fails without your patch. Run the tests as described below.
-- Push your commits to your fork on GitHub
-- Create a [pull request](https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request)
+
+- Push your commits to your fork on GitHub (external contributors)
 
 ```sh
 $ git push --set-upstream fork your-branch-name
 ```
+
+- Push your commits to your SiliCompiler branch on GitHub (team contributors)
+```sh
+$ git push -u origin your-branch-name
+```
+
 
 ## Running the tests
 
@@ -113,11 +126,7 @@ request. You can run the full test suite with tox if you don't want to wait.
 
 ## Create a Pull Request
 
-- Create a [pull request](https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request)
-
-```sh
-$ git push --set-upstream fork your-branch-name
-```
+- Create a [pull request](https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request) through github.
 
 ## Running test coverage
 
