@@ -11,7 +11,7 @@ and Yosys):
 - The IceStorm Tools
 - NextPNR
 
-See this page for installation instructions: http://www.clifford.at/icestorm/.
+See this page for installation instructions: http://bygone.clairexen.net/icestorm/.
 
 ## How to run
 
