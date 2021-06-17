@@ -486,6 +486,56 @@ class Floorplan:
             else:
                 raise ValueError(f'Layer {layer} not found in tech info!')
 
+    def place_macros(self, macros, start_pos, orientation, direction, spacing=0):
+        '''Places macros on floorplan.
+
+        Args:
+            macros (list of (str, str)): List of macros to place as tuples of
+                (instance name, type).
+            start_pos (tuple): x, y coordinate where to place first instance.
+            orientation (str): Orientation of macro
+            direction (str): Direction to place macros ('h' for east-west, 'v'
+                for north-south).
+            spacing (int): Distance between this pad and previous, in microns.
+        '''
+
+        # TODO Validate orientation
+        # TODO Validate direciton
+        # TODO Validating spacing
+
+        pos_x, pos_y = start_pos
+
+        is_ew_ori = orientation.upper() in ('E', 'W', 'FE', 'FW')
+        print(is_ew_ori)
+        is_ns_ori = not is_ew_ori
+
+        for name, cell in macros:
+            cell_name, width, height = self._get_cell(cell)
+
+            self.place_macro(name, cell_name, (pos_x, pos_y), orientation, units='absolute')
+            # TODO: width/height addition will depend on orientation!
+            if direction.lower() == 'h':
+                pos_x += spacing + (width if is_ns_ori else height)
+            else:
+                pos_y += spacing + (width if is_ew_ori else height)
+
+    def place_macros_spaced(self, macros, start_pos, orientation, direction, distance):
+        '''Places macros on floorplan.
+
+        Args:
+            macros (list of (str, str)): List of macros to place as tuples of
+                (instance name, type).
+            location (str): Which side of the block to place the pads along. Options
+                are 'n', 's', 'e', or 'w' (case insensitive).
+            spacing (int): Distance between this pad and previous, in microns.
+                If `None`, inserts appropriate space to fill the entire side
+                evenly.
+        '''
+        raise NotImplementedError('append_pads is not yet implemented')
+
+    def fill_region(self, region):
+        raise NotImplementedError('fill_region is not yet implemented')
+
     def _snap_to_x_track(self, x, layer):
         offset = self.layers[layer]['xoffset']
         pitch = self.layers[layer]['xpitch']
@@ -504,6 +554,42 @@ class Floorplan:
         if orientation not in ('N', 'S', 'W', 'E', 'FN', 'FS', 'FW', 'FE'):
             raise ValueError("Illegal orientation")
 
+    def _get_cell(self, cell):
+        # TODO: probably want to preprocess cells in __init__ so we don't have
+        # to do file I/O every time we want to get size of cell
+
+        libname = self.chip.get('asic', 'targetlib')[-1]
+        name = self.chip.get('stdcell', libname, 'cells', cell)[-1]
+
+        # TODO: read LEF files to get width/height. hardcoded yosys cell
+        # for now
+        if cell == 'corner':
+            width = 150
+        elif cell.startswith('fill_'):
+            width = int(cell.split('_')[1])
+        else:
+            width = 84
+        height = 150
+
+        return name, width, height
+
+# smooshed padring
+def example_padring1(chip):
+    fp = Floorplan(chip)
+    fp.create_die_area(720, 720, units='absolute')
+
+    fp.place_macros([(f'gpio{i}', 'gpio') for i in range(5)], (150, 0), 'N', 'H')
+    fp.place_macros([(f'gpio{i+5}', 'gpio') for i in range(5)], (0, 150), 'E', 'V')
+    fp.place_macros([(f'gpio{i+10}', 'gpio') for i in range(5)], (150, 720 - 150), 'S', 'H')
+    fp.place_macros([(f'gpio{i+15}', 'gpio') for i in range(5)], (720 - 150, 150), 'W', 'V')
+
+    fp.place_macros([('corner_sw', 'corner')], (0, 0), 'N', 'H')
+    fp.place_macros([('corner_nw', 'corner')], (0, 720-150), 'E', 'H')
+    fp.place_macros([('corner_ne', 'corner')], (720-150, 720-150), 'S', 'V')
+    fp.place_macros([('corner_se', 'corner')], (720-150, 0), 'FN', 'V')
+
+    return fp
+
 if __name__ == '__main__':
     # Test: create floorplan with `n` equally spaced `width` x `depth` pins along
     # each side
@@ -514,23 +600,10 @@ if __name__ == '__main__':
     c.set('design', 'test')
     c.target('freepdk45')
 
-    fp = Floorplan(c)
-    fp.create_die_area(72, 72, core_area=(8, 8, 64, 64))
+    libname = 'NangateOpenCellLibrary'
+    c.set('stdcell',libname, 'cells', 'gpio', 'IOPAD')
+    c.set('stdcell',libname, 'cells', 'corner', 'CORNER')
 
-    n = 4 # pins per side
-    width = 10
-    depth = 30
-    metal = 'm3'
+    fp = example_padring1(c)
 
-    fp.place_macro('myram', 'RAM', (25, 25), 'N')
-
-    pins = [f"in[{i}]" for i in range(4 * n)]
-    fp.place_pins(pins[0:n], 'n', width, depth, metal)
-    fp.place_pins(pins[n:2*n], 'e', width, depth, metal)
-    fp.place_pins(pins[2*n:3*n], 'w', width, depth, metal)
-    fp.place_pins(pins[3*n:4*n], 's', width, depth, metal)
-
-    fp.place_blockage(['m1', 'm2'])
-
-    fp.write_def('test.def')
-    fp.write_lef('test.lef')
+    fp.write_def('padring1.def')
