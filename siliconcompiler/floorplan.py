@@ -18,6 +18,13 @@ def render_tuple(vals):
     return f"( {vals_str} )"
 env.filters['render_tuple'] = render_tuple
 
+def pt_in_box(pt, box):
+    x, y = pt
+    box_min_x, box_min_y = box[0]
+    box_max_x,  box_max_y = box[1]
+
+    return x >= box_min_x and x < box_max_x and y >= box_min_y and y < box_max_y
+
 class Floorplan:
     '''Floorplan layout class'''
 
@@ -58,6 +65,11 @@ class Floorplan:
                 # Python decimal library for internally representing micron values
                 return int(round(val * self.db_units))
         env.filters['scale'] = scale
+
+        self.fill_cell_id = 0
+
+        # TODO: this needs to come from somewhere
+        self.io_cell_height = 150
 
         ## Extract technology-specific info ##
 
@@ -531,10 +543,162 @@ class Floorplan:
                 If `None`, inserts appropriate space to fill the entire side
                 evenly.
         '''
-        raise NotImplementedError('append_pads is not yet implemented')
+        filled_space = 0
+        for _, cell in macros:
+            _, width, _ = self._get_cell(cell)
+            filled_space += width
 
-    def fill_region(self, region):
-        raise NotImplementedError('fill_region is not yet implemented')
+        # TODO: make sure filled_space < distance
+        spacing = (distance - filled_space) / (len(macros) + 1)
+
+        x, y = start_pos
+        if direction.lower() == 'h':
+            x += spacing
+        else:
+            y += spacing
+
+        self.place_macros(macros, (x, y), orientation, direction, spacing)
+
+    def fill_io_region(self, region):
+        ''' Fill empty space in region with I/O filler cells
+
+        Args:
+            region (list of tuple of int): bottom-left and top-right corner of
+                region to fill.
+
+        Raises:
+            ValueError: Region contains macros such that it is unfillable.
+        '''
+
+        # Gather fill cells from schema into a list of (name, size) pairs
+        # TODO: compute this once in init?
+        io_fill_cells = []
+        libname = self.chip.get('asic', 'targetlib')[-1]
+        for cell in self.chip.get('stdcell', libname, 'cells', 'io_fill'):
+            # TODO: need to get width some real way
+            width = int(cell.lstrip('FILLER'))
+            io_fill_cells.append((cell, width))
+
+        # Sort from widest to narrowest fill cells
+        io_fill_cells = sorted(io_fill_cells, key=lambda c: c[1], reverse=True)
+
+        # Compute region direction (make sure it has one, or throw error!)
+        region_min_x, region_min_y = region[0]
+        region_max_x, region_max_y = region[1]
+
+        if (region_max_x - region_min_x) == self.io_cell_height:
+            direction = 'v'
+        elif (region_max_y - region_min_y) == self.io_cell_height:
+            direction = 'h'
+        else:
+            raise ValueError('Fill region must have at least one dimension equal to I/O cell height!')
+
+        # Gather macros in region. Macros in region must be aligned with the
+        # direction of the region, and no macros may be partially contained
+        # along the direction axis.
+        macros = []
+        for macro in self.macros:
+            cell = macro['cell']
+            width, height = self._get_cell_size_by_tech_name(cell)
+            x = macro['x']
+            y = macro['y']
+            ori = macro['orientation']
+            max_y = y + height if ori[-1].lower() in ('n', 's') else y + width
+            max_x = x + width if ori[-1].lower() in ('n', 's') else x + height
+
+            if direction == 'h':
+                if y >= region_max_y or max_y <= region_min_y:
+                    # outside of region vertically
+                    continue
+                if y != region_min_y and max_y != region_max_y:
+                    raise ValueError("Fill region must not contain cells that don't fill it vertically.")
+
+                # if we continue, cell is aligned to region vertically
+
+                left_edge_in = (x >= region_min_x)
+                right_edge_in = (max_x <= region_max_x)
+
+                if left_edge_in or right_edge_in:
+                    # TODO: package this more nicely
+                    macros.append((x, max_x, macro))
+            else:
+                print(x, region_max_x, max_x, region_min_x)
+                if x >= region_max_x or max_x  <= region_min_x:
+                    # outside of region horizontally
+                    continue
+                if x != region_min_x and max_x != region_max_x:
+                    raise ValueError("Fill region must not contain cells that don't fill it horizontally.")
+
+                # if we continue, cell is aligned to region horizontally
+
+                bottom_edge_in = (y >= region_min_y)
+                top_edge_in = (max_y <= region_max_y)
+
+                if bottom_edge_in or top_edge_in:
+                    # TODO: package this more nicely
+                    macros.append((y, max_y, macro))
+
+        # Check macros in the region. They must all be I/O cells, and have the
+        # same orientation (but may be flipped).
+        orientation = None
+        # TODO: pregen this list?
+        corner_cells = self.chip.get('stdcell', libname, 'cells', 'corner')
+        io_cells = (self.chip.get('stdcell', libname, 'cells', 'io_fill') +
+                    self.chip.get('stdcell', libname, 'cells', 'gpio') +
+                    corner_cells)
+        for _, _, macro in macros:
+            if macro['cell'] not in io_cells:
+                raise ValueError('Fill region must not contain cells other than I/O cells.')
+            if macro['cell'] in corner_cells:
+                # corner cells work in multiple orientations
+                continue
+            curr_ori = macro['orientation']
+            # only consider last character in orientation since we don't care flipped vs not
+            if orientation and orientation[-1] != curr_ori[-1]:
+                raise ValueError('Fill region cells must all have same orientation.')
+            orientation = curr_ori
+        # TODO: we're gonna have a problem with orientation if the region is
+        # only corners....
+
+        # Iterate along direction axis
+        # - determine gaps
+        gaps = []
+        macros = sorted(macros, key=lambda c: c[0])
+
+        if direction == 'h':
+            region_start = region_min_x
+            region_end = region_max_x
+        else:
+            region_start = region_min_y
+            region_end = region_max_y
+
+        if region_start < macros[0][0]:
+            gaps.append((region_start, macros[0][0]))
+
+        for i in range(len(macros) - 1):
+            gaps.append((macros[i][1], macros[i+1][0]))
+
+        if region_end > macros[-1][1]:
+            gaps.append((macros[-1][i], region_end))
+
+        # Iterate over gaps and place filler cells
+        for start, end in gaps:
+            cell_idx = 0
+            while start != end:
+                cell, width = io_fill_cells[cell_idx]
+                if width > end - start:
+                    cell_idx += 1
+                    if cell_idx >= len(io_fill_cells):
+                        raise ValueError('Unable to fill gap with available cells!')
+                    continue
+
+                name = f'_sc_io_fill_cell_{self.fill_cell_id}'
+                self.fill_cell_id += 1
+                if direction == 'h':
+                    self.place_macro(name, cell, (start, region_min_y), orientation, units='absolute')
+                else:
+                    self.place_macro(name, cell, (region_min_x, start), orientation, units='absolute')
+                start += width
 
     def _snap_to_x_track(self, x, layer):
         offset = self.layers[layer]['xoffset']
@@ -553,6 +717,19 @@ class Floorplan:
     def _validate_orientation(self, orientation):
         if orientation not in ('N', 'S', 'W', 'E', 'FN', 'FS', 'FW', 'FE'):
             raise ValueError("Illegal orientation")
+
+    def _get_cell_size_by_tech_name(self, cell):
+        # TODO: big hack. should read LEF files to get width/height. hardcode
+        # yosys io cells for now
+        if cell == 'CORNER':
+            width = 150
+        elif cell.startswith('FILLER'):
+            width = int(cell.lstrip('FILLER'))
+        else:
+            width = 84
+        height = 150
+
+        return width, height
 
     def _get_cell(self, cell):
         # TODO: probably want to preprocess cells in __init__ so we don't have
@@ -590,6 +767,45 @@ def example_padring1(chip):
 
     return fp
 
+# spaced padring
+def example_padring2(chip):
+    fp = Floorplan(chip)
+    fp.create_die_area(1200, 1200, units='absolute')
+
+    fp.place_macros_spaced([(f'gpio{i}', 'gpio') for i in range(5)], (150, 0), 'N', 'H', 1200 - 300)
+    fp.place_macros_spaced([(f'gpio{i+5}', 'gpio') for i in range(5)], (0, 150), 'E', 'V', 1200 - 300)
+    fp.place_macros_spaced([(f'gpio{i+10}', 'gpio') for i in range(5)], (150, 1200 - 150), 'S', 'H', 1200-300)
+    fp.place_macros_spaced([(f'gpio{i+15}', 'gpio') for i in range(5)], (1200 - 150, 150), 'W', 'V', 1200-300)
+
+    fp.place_macros([('corner_sw', 'corner')], (0, 0), 'N', 'H')
+    fp.place_macros([('corner_nw', 'corner')], (0, 1200-150), 'E', 'H')
+    fp.place_macros([('corner_ne', 'corner')], (1200-150, 1200-150), 'S', 'V')
+    fp.place_macros([('corner_se', 'corner')], (1200-150, 0), 'FN', 'V')
+
+    return fp
+
+# spaced padring w/ fill
+def example_padring3(chip):
+    fp = Floorplan(chip)
+    fp.create_die_area(1200, 1200, units='absolute')
+
+    fp.place_macros_spaced([(f'gpio{i}', 'gpio') for i in range(5)], (150, 0), 'N', 'H', 1200 - 300)
+    fp.place_macros_spaced([(f'gpio{i+5}', 'gpio') for i in range(5)], (0, 150), 'E', 'V', 1200 - 300)
+    fp.place_macros_spaced([(f'gpio{i+10}', 'gpio') for i in range(5)], (150, 1200 - 150), 'S', 'H', 1200-300)
+    fp.place_macros_spaced([(f'gpio{i+15}', 'gpio') for i in range(5)], (1200 - 150, 150), 'W', 'V', 1200-300)
+
+    fp.place_macros([('corner_sw', 'corner')], (0, 0), 'N', 'H')
+    fp.place_macros([('corner_nw', 'corner')], (0, 1200-150), 'E', 'H')
+    fp.place_macros([('corner_ne', 'corner')], (1200-150, 1200-150), 'S', 'V')
+    fp.place_macros([('corner_se', 'corner')], (1200-150, 0), 'FN', 'V')
+
+    fp.fill_io_region([(0, 0), (1200, 150)])
+    fp.fill_io_region([(0, 0), (150, 1200)])
+    fp.fill_io_region([(1200-150, 0), (1200, 1200)])
+    fp.fill_io_region([(0, 1200-150), (1200, 1200)])
+
+    return fp
+
 if __name__ == '__main__':
     # Test: create floorplan with `n` equally spaced `width` x `depth` pins along
     # each side
@@ -601,9 +817,11 @@ if __name__ == '__main__':
     c.target('freepdk45')
 
     libname = 'NangateOpenCellLibrary'
-    c.set('stdcell',libname, 'cells', 'gpio', 'IOPAD')
-    c.set('stdcell',libname, 'cells', 'corner', 'CORNER')
+    c.set('stdcell', libname, 'cells', 'gpio', 'IOPAD')
+    c.set('stdcell', libname, 'cells', 'corner', 'CORNER')
+    c.set('stdcell', libname, 'cells', 'io_fill',
+        ['FILLER01', 'FILLER02', 'FILLER05', 'FILLER10', 'FILLER25', 'FILLER50'])
 
-    fp = example_padring1(c)
+    fp = example_padring3(c)
 
-    fp.write_def('padring1.def')
+    fp.write_def('padring.def')
