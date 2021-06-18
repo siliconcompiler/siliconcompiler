@@ -17,13 +17,6 @@ def render_tuple(vals):
     return f"( {vals_str} )"
 env.filters['render_tuple'] = render_tuple
 
-def pt_in_box(pt, box):
-    x, y = pt
-    box_min_x, box_min_y = box[0]
-    box_max_x,  box_max_y = box[1]
-
-    return x >= box_min_x and x < box_max_x and y >= box_min_y and y < box_max_y
-
 class Floorplan:
     '''Floorplan layout class'''
 
@@ -74,6 +67,7 @@ class Floorplan:
                 return int(round(val * self.db_units))
         env.filters['scale'] = scale
 
+        # Used to generate unique instance names for I/O fill cells
         self.fill_cell_id = 0
 
         ## Extract technology-specific info ##
@@ -97,14 +91,12 @@ class Floorplan:
         with open(lib_lef, 'r') as f:
             lib_lef_data = lef_parser.lib_parse(f.read())
 
-        # TODO: would I/O cells be in a separate library?
-
         # List of cells the user is able to place
         # TODO: how much sense does it make to place I/O fill cells in this?
         self.available_cells = {}
 
         # Gather fill cells from schema into a list of ordered (name, size)
-        # pairs. This lets us easily implement a greey fill algorithm in
+        # pairs. This lets us easily implement a greedy fill algorithm in
         # `fill_io_region`.
         io_fill_cells = []
         self.io_cell_height = None
@@ -601,23 +593,23 @@ class Floorplan:
                 pos_y += spacing + (width if is_ew_ori else height)
 
     def place_macros_spaced(self, macros, start_pos, orientation, direction, distance):
-        '''Places macros on floorplan.
+        ''' Places macros on floorplan with even space.
 
         Args:
             macros (list of (str, str)): List of macros to place as tuples of
                 (instance name, type).
-            location (str): Which side of the block to place the pads along. Options
-                are 'n', 's', 'e', or 'w' (case insensitive).
-            spacing (int): Distance between this pad and previous, in microns.
-                If `None`, inserts appropriate space to fill the entire side
-                evenly.
+            start_pos (tuple): coordinates of first macro placed.
+            orientation (str): orientation of each macro.
+            direction (str): which direction to repeat macro. Must be 'h' for
+                horizontal or 'v' for vertical.
+            distance (float): distance from start_pos to space macros within.
         '''
         filled_space = 0
         for _, cell_name in macros:
             width = self.available_cells[cell_name]['width']
             filled_space += width
 
-        # TODO: make sure filled_space < distance
+        # TODO: raise error if filled_space < distance
         spacing = (distance - filled_space) / (len(macros) + 1)
 
         x, y = start_pos
@@ -714,8 +706,7 @@ class Floorplan:
 
         # TODO: need a way to set orientation if the region is only corners...
 
-        # Iterate along direction axis
-        # - determine gaps
+        # Iterate along region direction and record gaps between macros.
         gaps = []
         macros = sorted(macros, key=lambda c: c[0])
 
@@ -736,6 +727,9 @@ class Floorplan:
             gaps.append((macros[-1][i], region_end))
 
         # Iterate over gaps and place filler cells
+        # TODO: this is only guaranteed to work if we have a width 1 filler
+        # cell. Is that a valid assumption/should we use a more sophisticated
+        # algorithm?
         for start, end in gaps:
             cell_idx = 0
             while start != end:
