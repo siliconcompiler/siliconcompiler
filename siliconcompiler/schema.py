@@ -33,6 +33,7 @@ def schema_cfg():
     cfg = schema_pdk(cfg)
     cfg = schema_asic(cfg) 
     cfg = schema_libs(cfg, 'stdcell')
+    cfg = schema_libs(cfg, 'iocell')
     cfg = schema_libs(cfg, 'macro')
 
     # Designer's Choice

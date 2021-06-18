@@ -27,6 +27,15 @@ def pt_in_box(pt, box):
 class Floorplan:
     '''Floorplan layout class'''
 
+    # These cell names correspond to I/O cells
+    # They must be mapped to the technology-specific implementations in
+    # chip.cfg['iocell'][libname]['cells'][...]
+
+    # TODO: seems plausible an I/O library might contain more cells than this...
+    # (for example, multiple corners?). We could generate this list dynamically
+    # by looking at keys in chip.cfg['iocell'][libname]['cells']
+    IO_CELLS = ['gpio', 'vdd', 'vss', 'vddio', 'vssio', 'corner']
+
     def __init__(self, chip, db_units=2000):
         '''Initializes Floorplan object.
 
@@ -70,7 +79,7 @@ class Floorplan:
         ## Extract technology-specific info ##
 
         # extract std cell info based on libname
-        libname = self.chip.get('asic', 'targetlib')[-1]
+        self.libname = self.chip.get('asic', 'targetlib')[-1]
         self.std_cell_name = self.chip.get('stdcell', libname, 'site')[-1]
         self.std_cell_width = float(self.chip.get('stdcell', libname, 'width')[-1])
         self.std_cell_height = float(self.chip.get('stdcell', libname, 'height')[-1])
@@ -78,30 +87,40 @@ class Floorplan:
         # Extract data from LEFs
         lef_parser = Lef()
         stackup = chip.get('asic', 'stackup')[-1]
-        libtype = chip.get('stdcell', libname, 'libtype')[-1]
+        libtype = chip.get('stdcell', self.libname, 'libtype')[-1]
 
         tech_lef = schema_path(chip.get('pdk','aprtech', stackup, libtype, 'lef')[-1])
         with open(tech_lef, 'r') as f:
             tech_lef_data = lef_parser.parse(f.read())
 
-        lib_lef = schema_path(chip.get('stdcell', libname, 'lef')[-1])
+        lib_lef = schema_path(chip.get('iocell', self.libname, 'lef')[-1])
         with open(lib_lef, 'r') as f:
             lib_lef_data = lef_parser.lib_parse(f.read())
 
         # TODO: would I/O cells be in a separate library?
+
+        # List of cells the user is able to place
+        # TODO: how much sense does it make to place I/O fill cells in this?
+        self.available_cells = {}
 
         # Gather fill cells from schema into a list of ordered (name, size)
         # pairs. This lets us easily implement a greey fill algorithm in
         # `fill_io_region`.
         io_fill_cells = []
         self.io_cell_height = None
-        for cell in self.chip.get('stdcell', libname, 'cells', 'io_fill'):
-            # TODO: need to fix lef parser so macros are extracted consistently
+        for cell in self.chip.get('iocell', self.libname, 'cells', 'fill'):
             if cell in lib_lef_data['macros']:
                 width, height = lib_lef_data['macros'][cell]['size']
             else:
                 # TODO: throw nicer exception
                 raise Exception()
+
+            self.available_cells[cell] = {
+                'tech_name': cell,
+                'type': 'io',
+                'width': width,
+                'height': height
+            }
 
             io_fill_cells.append((cell, float(width)))
             # TODO: throw an error if height is already set but does not match
@@ -109,6 +128,33 @@ class Floorplan:
                 self.io_cell_height = float(height)
 
         self.io_fill_cells = sorted(io_fill_cells, key=lambda c: c[1], reverse=True)
+        
+        for cell in self.IO_CELLS:
+            tech_name = self.chip.get('iocell', self.libname, 'cells', cell)[-1]
+            width, _ = lib_lef_data['macros'][tech_name]['size']
+            # TODO: validate that I/O heights are constant?
+
+            self.available_cells[cell] = {
+                'tech_name': tech_name,
+                'type': 'io',
+                'width': width,
+                'height': self.io_cell_height
+            }
+
+        for macro in self.chip.get('asic', 'macrolib'):
+            tech_name = macro
+            width = float(self.chip.get('macro', macro, 'width')[-1])
+            height = float(self.chip.get('macro', macro, 'height')[-1])
+
+            # TODO: consider assigning a NamedTuple here - that would make it
+            # immutable, which is much safer given we'll be storing pointers to
+            # these in a macro's 'info' field
+            self.available_cells[macro] = {
+                'tech_name': tech_name,
+                'type': 'macro',
+                'width': width,
+                'height': height
+            }
 
         # extract layers based on stackup
         stackup = self.chip.get('asic', 'stackup')[-1]
@@ -379,7 +425,8 @@ class Floorplan:
 
         component = {
             'name': instance_name,
-            'cell': macro_name,
+            'cell': self.available_cells[macro_name]['tech_name'],
+            'info': self.available_cells[macro_name],
             'x': x,
             'y': y,
             'status': 'fixed' if fixed else 'placed',
@@ -539,14 +586,15 @@ class Floorplan:
         pos_x, pos_y = start_pos
 
         is_ew_ori = orientation.upper() in ('E', 'W', 'FE', 'FW')
-        print(is_ew_ori)
         is_ns_ori = not is_ew_ori
 
-        for name, cell in macros:
-            cell_name, width, height = self._get_cell(cell)
+        for instance_name, cell_name in macros:
+            cell = self.available_cells[cell_name]
+            width = cell['width']
+            height = cell['height']
 
-            self.place_macro(name, cell_name, (pos_x, pos_y), orientation, units='absolute')
-            # TODO: width/height addition will depend on orientation!
+            self.place_macro(instance_name, cell_name, (pos_x, pos_y), orientation, units='absolute')
+            
             if direction.lower() == 'h':
                 pos_x += spacing + (width if is_ns_ori else height)
             else:
@@ -565,8 +613,8 @@ class Floorplan:
                 evenly.
         '''
         filled_space = 0
-        for _, cell in macros:
-            _, width, _ = self._get_cell(cell)
+        for _, cell_name in macros:
+            width = self.available_cells[cell_name]['width']
             filled_space += width
 
         # TODO: make sure filled_space < distance
@@ -591,7 +639,9 @@ class Floorplan:
             ValueError: Region contains macros such that it is unfillable.
         '''
 
-        # Compute region direction (make sure it has one, or throw error!)
+        # Compute region direction, i.e. whether the cells in the region are
+        # lined up horizontally or vertically. If it doesn't have one, raise an
+        # exception!
         region_min_x, region_min_y = region[0]
         region_max_x, region_max_y = region[1]
 
@@ -607,8 +657,8 @@ class Floorplan:
         # along the direction axis.
         macros = []
         for macro in self.macros:
-            cell = macro['cell']
-            width, height = self._get_cell_size_by_tech_name(cell)
+            width = macro['info']['width']
+            height = macro['info']['height']
             x = macro['x']
             y = macro['y']
             ori = macro['orientation']
@@ -628,7 +678,6 @@ class Floorplan:
                 right_edge_in = (max_x <= region_max_x)
 
                 if left_edge_in or right_edge_in:
-                    # TODO: package this more nicely
                     macros.append((x, max_x, macro))
             else:
                 if x >= region_max_x or max_x  <= region_min_x:
@@ -643,19 +692,16 @@ class Floorplan:
                 top_edge_in = (max_y <= region_max_y)
 
                 if bottom_edge_in or top_edge_in:
-                    # TODO: package this more nicely
                     macros.append((y, max_y, macro))
 
         # Check macros in the region. They must all be I/O cells, and have the
         # same orientation (but may be flipped).
         orientation = None
-        # TODO: pregen this list?
-        corner_cells = self.chip.get('stdcell', libname, 'cells', 'corner')
-        io_cells = (self.chip.get('stdcell', libname, 'cells', 'io_fill') +
-                    self.chip.get('stdcell', libname, 'cells', 'gpio') +
-                    corner_cells)
+
+        corner_cells = self.chip.get('iocell', self.libname, 'cells', 'corner')
+        
         for _, _, macro in macros:
-            if macro['cell'] not in io_cells:
+            if macro['info']['type'] != 'io':
                 raise ValueError('Fill region must not contain cells other than I/O cells.')
             if macro['cell'] in corner_cells:
                 # corner cells work in multiple orientations
@@ -665,8 +711,8 @@ class Floorplan:
             if orientation and orientation[-1] != curr_ori[-1]:
                 raise ValueError('Fill region cells must all have same orientation.')
             orientation = curr_ori
-        # TODO: we're gonna have a problem with orientation if the region is
-        # only corners....
+
+        # TODO: need a way to set orientation if the region is only corners...
 
         # Iterate along direction axis
         # - determine gaps
@@ -726,38 +772,6 @@ class Floorplan:
         if orientation not in ('N', 'S', 'W', 'E', 'FN', 'FS', 'FW', 'FE'):
             raise ValueError("Illegal orientation")
 
-    def _get_cell_size_by_tech_name(self, cell):
-        # TODO: big hack. should read LEF files to get width/height. hardcode
-        # yosys io cells for now
-        if cell == 'CORNER':
-            width = 150
-        elif cell.startswith('FILLER'):
-            width = int(cell.lstrip('FILLER'))
-        else:
-            width = 84
-        height = 150
-
-        return width, height
-
-    def _get_cell(self, cell):
-        # TODO: probably want to preprocess cells in __init__ so we don't have
-        # to do file I/O every time we want to get size of cell
-
-        libname = self.chip.get('asic', 'targetlib')[-1]
-        name = self.chip.get('stdcell', libname, 'cells', cell)[-1]
-
-        # TODO: read LEF files to get width/height. hardcoded yosys cell
-        # for now
-        if cell == 'corner':
-            width = 150
-        elif cell.startswith('fill_'):
-            width = int(cell.split('_')[1])
-        else:
-            width = 84
-        height = 150
-
-        return name, width, height
-
 # smooshed padring
 def example_padring1(chip):
     fp = Floorplan(chip)
@@ -807,6 +821,8 @@ def example_padring3(chip):
     fp.place_macros([('corner_ne', 'corner')], (1200-150, 1200-150), 'S', 'V')
     fp.place_macros([('corner_se', 'corner')], (1200-150, 0), 'FN', 'V')
 
+    fp.place_macros([('ram1', 'sram_32x2048_1rw'), ('ram2','sram_32x2048_1rw' )], (500, 600), 'N', 'H', spacing=50)
+
     fp.fill_io_region([(0, 0), (1200, 150)])
     fp.fill_io_region([(0, 0), (150, 1200)])
     fp.fill_io_region([(1200-150, 0), (1200, 1200)])
@@ -824,14 +840,27 @@ if __name__ == '__main__':
     c.set('design', 'test')
     c.target('freepdk45')
 
+    # set up YosysHQ/padring IO cell library
     libname = 'NangateOpenCellLibrary'
-    c.set('stdcell', libname, 'cells', 'gpio', 'IOPAD')
-    c.set('stdcell', libname, 'cells', 'corner', 'CORNER')
-    c.set('stdcell', libname, 'cells', 'io_fill',
+    c.set('iocell', libname, 'lef', 'siliconcompiler/iocells.lef')
+    c.set('iocell', libname, 'cells', 'gpio', 'IOPAD')
+    c.set('iocell', libname, 'cells', 'vdd', 'PWRPAD')
+    c.set('iocell', libname, 'cells', 'vss', 'PWRPAD')
+    c.set('iocell', libname, 'cells', 'vddio', 'PWRPAD')
+    c.set('iocell', libname, 'cells', 'vssio', 'PWRPAD')
+    c.set('iocell', libname, 'cells', 'corner', 'CORNER')
+    c.set('iocell', libname, 'cells', 'fill',
         ['FILLER01', 'FILLER02', 'FILLER05', 'FILLER10', 'FILLER25', 'FILLER50'])
+        
+    macro = 'sram_32x2048_1rw'
+    c.add('asic', 'macrolib', macro)
+    c.set('macro', macro, 'lef', f'{macro}.lef')
+    c.set('macro', macro, 'width', '190.76')
+    c.set('macro', macro, 'height', '313.6')
 
-    c.set('stdcell', libname, 'lef', 'siliconcompiler/iocells.lef')
-
+    fp = example_padring1(c)
+    fp.write_def('padring1.def')
+    fp = example_padring2(c)
+    fp.write_def('padring2.def')
     fp = example_padring3(c)
-
-    fp.write_def('padring.def')
+    fp.write_def('padring3.def')
