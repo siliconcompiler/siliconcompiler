@@ -3,7 +3,6 @@
 import logging
 import math
 import jinja2
-import copy
 
 from siliconcompiler.leflib import Lef
 from siliconcompiler.schema import schema_path
@@ -68,9 +67,6 @@ class Floorplan:
 
         self.fill_cell_id = 0
 
-        # TODO: this needs to come from somewhere
-        self.io_cell_height = 150
-
         ## Extract technology-specific info ##
 
         # extract std cell info based on libname
@@ -79,15 +75,40 @@ class Floorplan:
         self.std_cell_width = float(self.chip.get('stdcell', libname, 'width')[-1])
         self.std_cell_height = float(self.chip.get('stdcell', libname, 'height')[-1])
 
-        # extract data from tech LEF
+        # Extract data from LEFs
+        lef_parser = Lef()
         stackup = chip.get('asic', 'stackup')[-1]
         libtype = chip.get('stdcell', libname, 'libtype')[-1]
 
         tech_lef = schema_path(chip.get('pdk','aprtech', stackup, libtype, 'lef')[-1])
-
-        lef = Lef()
         with open(tech_lef, 'r') as f:
-            lef_data = lef.parse(f.read())
+            tech_lef_data = lef_parser.parse(f.read())
+
+        lib_lef = schema_path(chip.get('stdcell', libname, 'lef')[-1])
+        with open(lib_lef, 'r') as f:
+            lib_lef_data = lef_parser.lib_parse(f.read())
+
+        # TODO: would I/O cells be in a separate library?
+
+        # Gather fill cells from schema into a list of ordered (name, size)
+        # pairs. This lets us easily implement a greey fill algorithm in
+        # `fill_io_region`.
+        io_fill_cells = []
+        self.io_cell_height = None
+        for cell in self.chip.get('stdcell', libname, 'cells', 'io_fill'):
+            # TODO: need to fix lef parser so macros are extracted consistently
+            if cell in lib_lef_data['macros']:
+                width, height = lib_lef_data['macros'][cell]['size']
+            else:
+                # TODO: throw nicer exception
+                raise Exception()
+
+            io_fill_cells.append((cell, float(width)))
+            # TODO: throw an error if height is already set but does not match
+            if not self.io_cell_height:
+                self.io_cell_height = float(height)
+
+        self.io_fill_cells = sorted(io_fill_cells, key=lambda c: c[1], reverse=True)
 
         # extract layers based on stackup
         stackup = self.chip.get('asic', 'stackup')[-1]
@@ -97,7 +118,7 @@ class Floorplan:
             self.layers[name] = {}
             pdk_name = layer['name']['value'][-1]
             self.layers[name]['name'] = pdk_name
-            self.layers[name]['width'] = float(lef_data['LAYER'][pdk_name]['WIDTH'][-1])
+            self.layers[name]['width'] = float(tech_lef_data['LAYER'][pdk_name]['WIDTH'][-1])
             self.layers[name]['xpitch'] = float(layer['xpitch']['value'][-1])
             self.layers[name]['ypitch'] = float(layer['ypitch']['value'][-1])
             self.layers[name]['xoffset'] = float(layer['xoffset']['value'][-1])
@@ -570,18 +591,6 @@ class Floorplan:
             ValueError: Region contains macros such that it is unfillable.
         '''
 
-        # Gather fill cells from schema into a list of (name, size) pairs
-        # TODO: compute this once in init?
-        io_fill_cells = []
-        libname = self.chip.get('asic', 'targetlib')[-1]
-        for cell in self.chip.get('stdcell', libname, 'cells', 'io_fill'):
-            # TODO: need to get width some real way
-            width = int(cell.lstrip('FILLER'))
-            io_fill_cells.append((cell, width))
-
-        # Sort from widest to narrowest fill cells
-        io_fill_cells = sorted(io_fill_cells, key=lambda c: c[1], reverse=True)
-
         # Compute region direction (make sure it has one, or throw error!)
         region_min_x, region_min_y = region[0]
         region_max_x, region_max_y = region[1]
@@ -622,7 +631,6 @@ class Floorplan:
                     # TODO: package this more nicely
                     macros.append((x, max_x, macro))
             else:
-                print(x, region_max_x, max_x, region_min_x)
                 if x >= region_max_x or max_x  <= region_min_x:
                     # outside of region horizontally
                     continue
@@ -685,10 +693,10 @@ class Floorplan:
         for start, end in gaps:
             cell_idx = 0
             while start != end:
-                cell, width = io_fill_cells[cell_idx]
+                cell, width = self.io_fill_cells[cell_idx]
                 if width > end - start:
                     cell_idx += 1
-                    if cell_idx >= len(io_fill_cells):
+                    if cell_idx >= len(self.io_fill_cells):
                         raise ValueError('Unable to fill gap with available cells!')
                     continue
 
@@ -821,6 +829,8 @@ if __name__ == '__main__':
     c.set('stdcell', libname, 'cells', 'corner', 'CORNER')
     c.set('stdcell', libname, 'cells', 'io_fill',
         ['FILLER01', 'FILLER02', 'FILLER05', 'FILLER10', 'FILLER25', 'FILLER50'])
+
+    c.set('stdcell', libname, 'lef', 'siliconcompiler/iocells.lef')
 
     fp = example_padring3(c)
 
