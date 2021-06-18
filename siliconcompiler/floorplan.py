@@ -74,9 +74,9 @@ class Floorplan:
 
         # extract std cell info based on libname
         self.libname = self.chip.get('asic', 'targetlib')[-1]
-        self.std_cell_name = self.chip.get('stdcell', libname, 'site')[-1]
-        self.std_cell_width = float(self.chip.get('stdcell', libname, 'width')[-1])
-        self.std_cell_height = float(self.chip.get('stdcell', libname, 'height')[-1])
+        self.std_cell_name = self.chip.get('stdcell', self.libname, 'site')[-1]
+        self.std_cell_width = float(self.chip.get('stdcell', self.libname, 'width')[-1])
+        self.std_cell_height = float(self.chip.get('stdcell', self.libname, 'height')[-1])
 
         # Extract data from LEFs
         lef_parser = Lef()
@@ -87,51 +87,16 @@ class Floorplan:
         with open(tech_lef, 'r') as f:
             tech_lef_data = lef_parser.parse(f.read())
 
-        lib_lef = schema_path(chip.get('iocell', self.libname, 'lef')[-1])
-        with open(lib_lef, 'r') as f:
-            lib_lef_data = lef_parser.lib_parse(f.read())
+        if self.libname in chip.cfg['iocell']:
+            lib_lef = schema_path(chip.get('iocell', self.libname, 'lef')[-1])
+            with open(lib_lef, 'r') as f:
+                lib_lef_data = lef_parser.lib_parse(f.read())
+        else: 
+            lib_lef_data = None
 
         # List of cells the user is able to place
         # TODO: how much sense does it make to place I/O fill cells in this?
         self.available_cells = {}
-
-        # Gather fill cells from schema into a list of ordered (name, size)
-        # pairs. This lets us easily implement a greedy fill algorithm in
-        # `fill_io_region`.
-        io_fill_cells = []
-        self.io_cell_height = None
-        for cell in self.chip.get('iocell', self.libname, 'cells', 'fill'):
-            if cell in lib_lef_data['macros']:
-                width, height = lib_lef_data['macros'][cell]['size']
-            else:
-                # TODO: throw nicer exception
-                raise Exception()
-
-            self.available_cells[cell] = {
-                'tech_name': cell,
-                'type': 'io',
-                'width': width,
-                'height': height
-            }
-
-            io_fill_cells.append((cell, float(width)))
-            # TODO: throw an error if height is already set but does not match
-            if not self.io_cell_height:
-                self.io_cell_height = float(height)
-
-        self.io_fill_cells = sorted(io_fill_cells, key=lambda c: c[1], reverse=True)
-        
-        for cell in self.IO_CELLS:
-            tech_name = self.chip.get('iocell', self.libname, 'cells', cell)[-1]
-            width, _ = lib_lef_data['macros'][tech_name]['size']
-            # TODO: validate that I/O heights are constant?
-
-            self.available_cells[cell] = {
-                'tech_name': tech_name,
-                'type': 'io',
-                'width': width,
-                'height': self.io_cell_height
-            }
 
         for macro in self.chip.get('asic', 'macrolib'):
             tech_name = macro
@@ -147,6 +112,45 @@ class Floorplan:
                 'width': width,
                 'height': height
             }
+
+        if lib_lef_data is not None:
+            # Gather fill cells from schema into a list of ordered (name, size)
+            # pairs. This lets us easily implement a greedy fill algorithm in
+            # `fill_io_region`.
+            io_fill_cells = []
+            self.io_cell_height = None
+            for cell in self.chip.get('iocell', self.libname, 'cells', 'fill'):
+                if cell in lib_lef_data['macros']:
+                    width, height = lib_lef_data['macros'][cell]['size']
+                else:
+                    # TODO: throw nicer exception
+                    raise Exception()
+
+                self.available_cells[cell] = {
+                    'tech_name': cell,
+                    'type': 'io',
+                    'width': width,
+                    'height': height
+                }
+
+                io_fill_cells.append((cell, float(width)))
+                # TODO: throw an error if height is already set but does not match
+                if not self.io_cell_height:
+                    self.io_cell_height = float(height)
+
+            self.io_fill_cells = sorted(io_fill_cells, key=lambda c: c[1], reverse=True)
+            
+            for cell in self.IO_CELLS:
+                tech_name = self.chip.get('iocell', self.libname, 'cells', cell)[-1]
+                width, _ = lib_lef_data['macros'][tech_name]['size']
+                # TODO: validate that I/O heights are constant?
+
+                self.available_cells[cell] = {
+                    'tech_name': tech_name,
+                    'type': 'io',
+                    'width': width,
+                    'height': self.io_cell_height
+                }
 
         # extract layers based on stackup
         stackup = self.chip.get('asic', 'stackup')[-1]

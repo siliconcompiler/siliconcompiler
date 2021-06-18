@@ -9,6 +9,10 @@ def fp():
     c = Chip()
     c.set('design', 'test')
     c.target('freepdk45')
+    c.add('asic', 'macrolib', 'RAM')
+    c.add('asic', 'macrolib', 'RAM')
+    c.set('macro', 'RAM', 'width', '50')
+    c.set('macro', 'RAM', 'height', '50')
 
     fp = Floorplan(c)
     fp.create_die_area(72, 72, core_area=(8, 8, 64, 64))
