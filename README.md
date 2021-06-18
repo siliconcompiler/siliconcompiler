@@ -59,13 +59,19 @@ To compile designs using the included open source target flow, you will need to 
 
 Ubuntu based install scripts can be found in the [./setup](setup) directory.
 
-- **OpenRoad:** https://github.com/The-OpenROAD-Project/OpenROAD
-- **OpenSTA:** https://github.com/The-OpenROAD-Project/OpenSTA
-- **ABC**: https://github.com/berkeley-abc/abc
-- **Yosys:** https://github.com/YosysHQ/yosys
+- **OpenRoad:** https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts
+  - Following the directions in the OpenROAD-flow-scripts repository will
+    install other required dependencies, such as [Yosys](https://github.com/YosysHQ/yosys),
+    along with OpenROAD itself.
 - **Verilator:** https://github.com/verilator/verilator
 - **Klayout:** https://github.com/KLayout/klayout
-- **VTR:** https://github.com/verilog-to-routing/vtr-verilog-to-routing
+- **Surelog:** https://github.com/chipsalliance/Surelog
+- **sv2v:** https://github.com/zachjs/sv2v
+
+To run the FPGA flows, the following additional dependencies are required:
+- **NextPNR-ice40:** https://github.com/YosysHQ/nextpnr
+- **Icestorm tools:** https://github.com/YosysHQ/icestorm
+- **OpenFPGA:** https://github.com/lnis-uofu/OpenFPGA
 
 SiliconCompiler have also been tested with commercial EDA tools and PDKs, but these configurations cannot be disclosed due to IP restrictions.
 
