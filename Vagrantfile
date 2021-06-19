@@ -2,7 +2,7 @@
 # vi: set ft=ruby :
 Vagrant.configure("2") do |config|
   config.vm.box = "ubuntu/focal64"
-  config.vm.synced_folder ".", "/vagrant", disabled: true
+  config.vm.synced_folder ".", "/vagrant"
   config.vm.synced_folder ".", "/home/vagrant/siliconcompiler/"
 
   config.vm.provider "virtualbox" do |vb|
@@ -18,7 +18,7 @@ Vagrant.configure("2") do |config|
   SHELL
 
   config.vm.provision "shell", inline: "sudo apt-get update", privileged: false
-  config.vm.provision "shell", inline: "mkdir /vagrant/deps", privileged: false
+  config.vm.provision "shell", inline: "mkdir -p /vagrant/deps", privileged: false
 
   # AUTOMATIC INSTALLATION: uncomment the packages that you want to be automatically
   # installed when running 'vagrant up'
