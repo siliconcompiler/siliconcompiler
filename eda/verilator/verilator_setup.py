@@ -86,7 +86,6 @@ def setup_options(chip, step):
                         '-Wno-WIDTH',
                         '-Wno-SELRANGE',
                         '-Wno-WIDTH',
-                        '-Wno-LATCH',
                         '-Wno-fatal']
 
     # Always relax when importing from sv2v
