@@ -9,6 +9,7 @@ def setup_eda(chip, name=None):
 
     # Define Compilation Flow
     chip.cfg['steplist']['value'] = ['validate',
+                                     'convert',
                                      'import',
                                      'syn',
                                      'floorplan',
@@ -22,8 +23,10 @@ def setup_eda(chip, name=None):
     for step in chip.cfg['steplist']['value']:
         if step == 'validate':
             vendor = 'surelog'
-        elif step == 'import':
+        elif step == 'convert':
             vendor = 'sv2v'
+        elif step == 'import':
+            vendor = 'verilator'
         elif step == 'syn':
             vendor = 'yosys'
         elif step == 'export':

@@ -49,7 +49,7 @@ def setup_options(chip, step):
     #Include cwd in search path (verilator default)
     options.append('-I' + "../../../")
 
-    #Source Level Controls
+    # Source Level Controls
 
     for value in chip.cfg['ydir']['value']:
         options.append('-y ' + schema_path(value))
@@ -66,8 +66,19 @@ def setup_options(chip, step):
     for value in chip.cfg['cmdfile']['value']:
         options.append('-f ' + schema_path(value))
 
-    for value in chip.cfg['source']['value']:
-        options.append(schema_path(value))
+
+    # Check if flattened top file was created by sv2v
+    sv2v = False
+    if len(chip.cfg['design']['value']) >= 1:
+        topmodule = chip.cfg['design']['value'][-1]
+        if os.path.isfile("inputs/" + topmodule + ".v"):
+            options.append("inputs/" + topmodule + ".v")
+            sv2v = True
+
+    if not sv2v:
+        # sv2v was not used, so we accumulate the sources
+        for value in chip.cfg['source']['value']:
+            options.append(schema_path(value))
 
     #Relax Linting
     supress_warnings = ['-Wno-UNOPTFLAT',
@@ -75,14 +86,15 @@ def setup_options(chip, step):
                         '-Wno-WIDTH',
                         '-Wno-SELRANGE',
                         '-Wno-WIDTH',
+                        '-Wno-LATCH',
                         '-Wno-fatal']
 
-    if schema_istrue(chip.cfg['relax']['value']):
+    # Always relax when importing from sv2v
+    if schema_istrue(chip.cfg['relax']['value']) or sv2v:
         for value in supress_warnings:
             options.append(value)
 
-
-    #Wite back options tp cfg
+    # Write back options tp cfg
     chip.set('flow', step, 'option', options)
 
     return options

@@ -12,6 +12,7 @@ def setup_eda(chip, name=None):
     if name == 'ice40':
         # Define Compilation Steps
         chip.cfg['steplist']['value'] = ['validate',
+                                         'convert',
                                          'import',
                                          'syn',
                                          'apr',
@@ -20,8 +21,10 @@ def setup_eda(chip, name=None):
         for step in chip.cfg['steplist']['value']:         
             if step == 'validate':
                 vendor = 'surelog'
-            elif step == 'import':
+            elif step == 'convert':
                 vendor = 'sv2v'
+            elif step == 'import':
+                vendor = 'verilator'
             elif step == 'syn':
                 vendor = 'yosys'
             elif step == 'apr':
