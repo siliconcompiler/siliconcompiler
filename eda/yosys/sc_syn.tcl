@@ -4,6 +4,7 @@
 
 source ./sc_schema.tcl
 source ./sc_syn_ice40.tcl
+source ./sc_syn_ecp5.tcl
 source ./sc_syn_openfpga.tcl
 set step syn
 
@@ -108,6 +109,8 @@ if {$mode eq "asic"} {
 
     if {$platform eq "ice40"} {
         syn_ice40 $topmodule
+    } elseif {$platform eq "ecp5"} {
+        syn_ecp5 $topmodule
     } elseif {$platform eq "openfpga"} {
         syn_openfpga $topmodule
     }

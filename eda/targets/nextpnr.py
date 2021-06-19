@@ -14,6 +14,7 @@ def setup_eda(chip, name=None):
                                   'syn',
                                   'apr',
                                   'export']
+    device = chip.get('fpga', 'device')[-1]
 
     for step in chip.cfg['steplist']['value']:
         if step == 'validate':
@@ -25,7 +26,10 @@ def setup_eda(chip, name=None):
         elif step == 'apr':
             vendor = 'nextpnr'
         elif step == 'export':
-            vendor = 'icepack'
+            if 'ice40' in device:
+                vendor = 'icepack'
+            elif 'ecp5' in device:
+                vendor = 'ecppack'
 
         #Load per step EDA setup scripts
         packdir = "eda." + vendor
