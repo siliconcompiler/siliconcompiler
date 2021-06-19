@@ -2,6 +2,9 @@
 sudo apt-get install -y pkg-config build-essential libatomic-ops-dev python3 bison flex libreadline-dev gawk libffi-dev git graphviz tcl xdot libboost-system-dev libboost-python-dev libboost-filesystem-dev zlib1g-dev cmake swig libeigen3-dev
 sudo apt-get install -y libboost-test-dev libspdlog-dev libqt5opengl5-dev
 
+mkdir -p deps
+cd deps
+
 wget -q http://lemon.cs.elte.hu/pub/sources/lemon-1.3.1.tar.gz
 tar -xf lemon-1.3.1.tar.gz
 cd lemon-1.3.1
@@ -23,6 +26,9 @@ sudo ln -s /usr/local/lib/libtcl8.6.so /usr/local/lib/libtcl.so
 git clone https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts
 cd OpenROAD-flow-scripts
 ./build_openroad.sh -o
+
+echo "Please add \"source $(pwd)/setup_env.sh\" to your .bashrc"
+
 cd -
 
 echo 'source /home/vagrant/OpenROAD-flow-scripts/setup_env.sh' >> ~/.bashrc

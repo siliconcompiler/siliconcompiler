@@ -17,10 +17,13 @@ Vagrant.configure("2") do |config|
     systemctl disable apt-daily.timer
   SHELL
   config.vm.provision "shell", inline: "sudo apt-get update", privileged: false
-  config.vm.provision "shell", path: "setup/install-verilator.sh", privileged: false
-  config.vm.provision "shell", path: "setup/install-klayout.sh", privileged: false
-  config.vm.provision "shell", path: "setup/install-openroad.sh", privileged: false
-  config.vm.provision "shell", path: "setup/install-ice40.sh", privileged: false
-  config.vm.provision "shell", path: "setup/install-openfpga.sh", privileged: false
-  config.vm.provision "shell", path: "setup/install-py.sh", privileged: false
+  config.vm.provision "shell", inline: "mkdir /vagrant/deps", privileged: false
+  config.vm.provision "shell", inline: "/vagrant/setup/install-verilator.sh", privileged: false
+  config.vm.provision "shell", inline: "/vagrant/setup/install-klayout.sh", privileged: false
+  config.vm.provision "shell", inline: "echo 'export QT_QPA_PLATFORM=offscreen' >> ~/.bashrc", privileged: false
+  config.vm.provision "shell", inline: "/vagrant/setup/install-openroad.sh", privileged: false
+  config.vm.providion "shell", inline: "echo 'source /home/vagrant/siliconcompiler/deps/OpenROAD-flow-scripts/setup_env.sh' >> /home/vagrant/.bashrc", privileged: false
+  config.vm.provision "shell", inline: "/vagrant/setup/install-ice40.sh", privileged: false
+  config.vm.provision "shell", inline: "/vagrant/setup/install-openfpga.sh", privileged: false
+  config.vm.provision "shell", inline: "/vagrant/setup/install-py.sh", privileged: false
 end
