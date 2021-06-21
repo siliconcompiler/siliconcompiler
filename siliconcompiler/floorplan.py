@@ -3,6 +3,7 @@
 import logging
 import math
 import jinja2
+from collections import namedtuple
 
 from siliconcompiler.leflib import Lef
 from siliconcompiler.schema import schema_path
@@ -17,17 +18,10 @@ def render_tuple(vals):
     return f"( {vals_str} )"
 env.filters['render_tuple'] = render_tuple
 
+MacroInfo = namedtuple("MacroInfo", "tech_name width height")
+
 class Floorplan:
     '''Floorplan layout class'''
-
-    # These cell names correspond to I/O cells
-    # They must be mapped to the technology-specific implementations in
-    # chip.cfg['iocell'][libname]['cells'][...]
-
-    # TODO: seems plausible an I/O library might contain more cells than this...
-    # (for example, multiple corners?). We could generate this list dynamically
-    # by looking at keys in chip.cfg['iocell'][libname]['cells']
-    IO_CELLS = ['gpio', 'vdd', 'vss', 'vddio', 'vssio', 'corner']
 
     def __init__(self, chip, db_units=2000):
         '''Initializes Floorplan object.
@@ -87,70 +81,24 @@ class Floorplan:
         with open(tech_lef, 'r') as f:
             tech_lef_data = lef_parser.parse(f.read())
 
-        if self.libname in chip.cfg['iocell']:
-            lib_lef = schema_path(chip.get('iocell', self.libname, 'lef')[-1])
-            with open(lib_lef, 'r') as f:
-                lib_lef_data = lef_parser.lib_parse(f.read())
-        else: 
-            lib_lef_data = None
-
         # List of cells the user is able to place
-        # TODO: how much sense does it make to place I/O fill cells in this?
         self.available_cells = {}
 
-        for macro in self.chip.get('asic', 'macrolib'):
-            tech_name = macro
-            width = float(self.chip.get('macro', macro, 'width')[-1])
-            height = float(self.chip.get('macro', macro, 'height')[-1])
+        for macrolib in self.chip.get('asic', 'macrolib'):
+            lef_path = schema_path(self.chip.get('macro', macrolib, 'lef')[-1])
+            with open(lef_path, 'r') as f:
+                lef_data = lef_parser.lib_parse(f.read())
+        
+            for name in self.chip.cfg['macro'][macrolib]['cells']:
+                if name == 'default': continue
+                tech_name = self.chip.get('macro', macrolib, 'cells', name)[-1]
+                if tech_name in lef_data['macros']:
+                    width, height = lef_data['macros'][tech_name]['size']
+                else: 
+                    raise KeyError(f'Implementation {tech_name} for macro {name}'
+                        f'not found in library {lef_path}')
 
-            # TODO: consider assigning a NamedTuple here - that would make it
-            # immutable, which is much safer given we'll be storing pointers to
-            # these in a macro's 'info' field
-            self.available_cells[macro] = {
-                'tech_name': tech_name,
-                'type': 'macro',
-                'width': width,
-                'height': height
-            }
-
-        if lib_lef_data is not None:
-            # Gather fill cells from schema into a list of ordered (name, size)
-            # pairs. This lets us easily implement a greedy fill algorithm in
-            # `fill_io_region`.
-            io_fill_cells = []
-            self.io_cell_height = None
-            for cell in self.chip.get('iocell', self.libname, 'cells', 'fill'):
-                if cell in lib_lef_data['macros']:
-                    width, height = lib_lef_data['macros'][cell]['size']
-                else:
-                    # TODO: throw nicer exception
-                    raise Exception()
-
-                self.available_cells[cell] = {
-                    'tech_name': cell,
-                    'type': 'io',
-                    'width': width,
-                    'height': height
-                }
-
-                io_fill_cells.append((cell, float(width)))
-                # TODO: throw an error if height is already set but does not match
-                if not self.io_cell_height:
-                    self.io_cell_height = float(height)
-
-            self.io_fill_cells = sorted(io_fill_cells, key=lambda c: c[1], reverse=True)
-            
-            for cell in self.IO_CELLS:
-                tech_name = self.chip.get('iocell', self.libname, 'cells', cell)[-1]
-                width, _ = lib_lef_data['macros'][tech_name]['size']
-                # TODO: validate that I/O heights are constant?
-
-                self.available_cells[cell] = {
-                    'tech_name': tech_name,
-                    'type': 'io',
-                    'width': width,
-                    'height': self.io_cell_height
-                }
+                self.available_cells[name] = MacroInfo(tech_name, width, height)
 
         # extract layers based on stackup
         stackup = self.chip.get('asic', 'stackup')[-1]
@@ -421,7 +369,7 @@ class Floorplan:
 
         component = {
             'name': instance_name,
-            'cell': self.available_cells[macro_name]['tech_name'],
+            'cell': self.available_cells[macro_name].tech_name,
             'info': self.available_cells[macro_name],
             'x': x,
             'y': y,
@@ -586,8 +534,8 @@ class Floorplan:
 
         for instance_name, cell_name in macros:
             cell = self.available_cells[cell_name]
-            width = cell['width']
-            height = cell['height']
+            width = cell.width
+            height = cell.height
 
             self.place_macro(instance_name, cell_name, (pos_x, pos_y), orientation, units='absolute')
             
@@ -610,7 +558,7 @@ class Floorplan:
         '''
         filled_space = 0
         for _, cell_name in macros:
-            width = self.available_cells[cell_name]['width']
+            width = self.available_cells[cell_name].width
             filled_space += width
 
         # TODO: raise error if filled_space < distance
@@ -624,7 +572,7 @@ class Floorplan:
 
         self.place_macros(macros, (x, y), orientation, direction, spacing)
 
-    def fill_io_region(self, region):
+    def fill_io_region(self, region, fill_cells, orientation):
         ''' Fill empty space in region with I/O filler cells
 
         Args:
@@ -634,27 +582,27 @@ class Floorplan:
         Raises:
             ValueError: Region contains macros such that it is unfillable.
         '''
+ 
+        # TODO: validate orientation
 
-        # Compute region direction, i.e. whether the cells in the region are
-        # lined up horizontally or vertically. If it doesn't have one, raise an
-        # exception!
         region_min_x, region_min_y = region[0]
         region_max_x, region_max_y = region[1]
 
-        if (region_max_x - region_min_x) == self.io_cell_height:
+        # TODO: should direction be passed in explicitly?
+        if orientation[-1].lower() in ('e', 'w'):
             direction = 'v'
-        elif (region_max_y - region_min_y) == self.io_cell_height:
-            direction = 'h'
+            region_height = region_max_x - region_min_x
         else:
-            raise ValueError('Fill region must have at least one dimension equal to I/O cell height!')
+            direction = 'h'
+            region_height = region_max_y - region_min_y
 
         # Gather macros in region. Macros in region must be aligned with the
         # direction of the region, and no macros may be partially contained
         # along the direction axis.
         macros = []
         for macro in self.macros:
-            width = macro['info']['width']
-            height = macro['info']['height']
+            width = macro['info'].width
+            height = macro['info'].height
             x = macro['x']
             y = macro['y']
             ori = macro['orientation']
@@ -690,26 +638,6 @@ class Floorplan:
                 if bottom_edge_in or top_edge_in:
                     macros.append((y, max_y, macro))
 
-        # Check macros in the region. They must all be I/O cells, and have the
-        # same orientation (but may be flipped).
-        orientation = None
-
-        corner_cells = self.chip.get('iocell', self.libname, 'cells', 'corner')
-        
-        for _, _, macro in macros:
-            if macro['info']['type'] != 'io':
-                raise ValueError('Fill region must not contain cells other than I/O cells.')
-            if macro['cell'] in corner_cells:
-                # corner cells work in multiple orientations
-                continue
-            curr_ori = macro['orientation']
-            # only consider last character in orientation since we don't care flipped vs not
-            if orientation and orientation[-1] != curr_ori[-1]:
-                raise ValueError('Fill region cells must all have same orientation.')
-            orientation = curr_ori
-
-        # TODO: need a way to set orientation if the region is only corners...
-
         # Iterate along region direction and record gaps between macros.
         gaps = []
         macros = sorted(macros, key=lambda c: c[0])
@@ -734,13 +662,32 @@ class Floorplan:
         # TODO: this is only guaranteed to work if we have a width 1 filler
         # cell. Is that a valid assumption/should we use a more sophisticated
         # algorithm?
+        
+        # Gather I/O fill cells and sort by wider to narrower
+        io_fill_cells = []
+        for cell in fill_cells:
+            if not cell in self.available_cells:
+                raise ValueError(f'Provided fill cell {cell} is not included in'
+                    f'list of available macros')
+
+            cell_info = self.available_cells[cell]
+
+            if cell_info.height != region_height:
+                raise ValueError(f'Provided fill cell {cell} does not have '
+                    f'appropriate height to fill region')
+
+            io_fill_cells.append((cell, self.available_cells[cell]))
+
+        io_fill_cells = sorted(io_fill_cells, key=lambda c: c[1].width, reverse=True)
+
         for start, end in gaps:
             cell_idx = 0
             while start != end:
-                cell, width = self.io_fill_cells[cell_idx]
+                cell, cell_info = io_fill_cells[cell_idx]
+                width = cell_info.width
                 if width > end - start:
                     cell_idx += 1
-                    if cell_idx >= len(self.io_fill_cells):
+                    if cell_idx >= len(io_fill_cells):
                         raise ValueError('Unable to fill gap with available cells!')
                     continue
 
@@ -807,6 +754,7 @@ def example_padring2(chip):
 # spaced padring w/ fill
 def example_padring3(chip):
     fp = Floorplan(chip)
+
     fp.create_die_area(1200, 1200, units='absolute')
 
     fp.place_macros_spaced([(f'gpio{i}', 'gpio') for i in range(5)], (150, 0), 'N', 'H', 1200 - 300)
@@ -819,12 +767,13 @@ def example_padring3(chip):
     fp.place_macros([('corner_ne', 'corner')], (1200-150, 1200-150), 'S', 'V')
     fp.place_macros([('corner_se', 'corner')], (1200-150, 0), 'FN', 'V')
 
-    fp.place_macros([('ram1', 'sram_32x2048_1rw'), ('ram2','sram_32x2048_1rw' )], (500, 600), 'N', 'H', spacing=50)
+    fp.place_macros([('ram1', 'ram'), ('ram2', 'ram')], (500, 600), 'N', 'H', spacing=50)
 
-    fp.fill_io_region([(0, 0), (1200, 150)])
-    fp.fill_io_region([(0, 0), (150, 1200)])
-    fp.fill_io_region([(1200-150, 0), (1200, 1200)])
-    fp.fill_io_region([(0, 1200-150), (1200, 1200)])
+    io_fill_cells = ['fill1', 'fill2', 'fill5', 'fill10', 'fill25', 'fill50']
+    fp.fill_io_region([(0, 0), (1200, 150)], io_fill_cells, 'N')
+    fp.fill_io_region([(0, 0), (150, 1200)], io_fill_cells, 'W')
+    fp.fill_io_region([(1200-150, 0), (1200, 1200)], io_fill_cells, 'E')
+    fp.fill_io_region([(0, 1200-150), (1200, 1200)], io_fill_cells, 'S')
 
     return fp
 
@@ -838,21 +787,23 @@ if __name__ == '__main__':
     c.set('design', 'test')
     c.target('freepdk45')
 
-    # set up YosysHQ/padring IO cell library
-    libname = 'NangateOpenCellLibrary'
-    c.set('iocell', libname, 'lef', 'siliconcompiler/iocells.lef')
-    c.set('iocell', libname, 'cells', 'gpio', 'IOPAD')
-    c.set('iocell', libname, 'cells', 'vdd', 'PWRPAD')
-    c.set('iocell', libname, 'cells', 'vss', 'PWRPAD')
-    c.set('iocell', libname, 'cells', 'vddio', 'PWRPAD')
-    c.set('iocell', libname, 'cells', 'vssio', 'PWRPAD')
-    c.set('iocell', libname, 'cells', 'corner', 'CORNER')
-    c.set('iocell', libname, 'cells', 'fill',
-        ['FILLER01', 'FILLER02', 'FILLER05', 'FILLER10', 'FILLER25', 'FILLER50'])
+    macro = 'io'
+    c.add('asic', 'macrolib', macro)
+    c.set('macro', macro, 'lef', 'siliconcompiler/iocells.lef')
+    c.set('macro', macro, 'cells', 'gpio', 'IOPAD')
+    c.set('macro', macro, 'cells', 'pwr', 'PWRPAD')
+    c.set('macro', macro, 'cells', 'corner', 'CORNER')
+    c.set('macro', macro, 'cells', 'fill1', 'FILLER01')
+    c.set('macro', macro, 'cells', 'fill2', 'FILLER02')
+    c.set('macro', macro, 'cells', 'fill5', 'FILLER05')
+    c.set('macro', macro, 'cells', 'fill10', 'FILLER10')
+    c.set('macro', macro, 'cells', 'fill25', 'FILLER25')
+    c.set('macro', macro, 'cells', 'fill50', 'FILLER50')
         
     macro = 'sram_32x2048_1rw'
     c.add('asic', 'macrolib', macro)
     c.set('macro', macro, 'lef', f'{macro}.lef')
+    c.set('macro', macro, 'cells', 'ram', 'sram_32x2048_1rw')
     c.set('macro', macro, 'width', '190.76')
     c.set('macro', macro, 'height', '313.6')
 

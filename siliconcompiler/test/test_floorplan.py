@@ -6,13 +6,14 @@ from siliconcompiler.floorplan import Floorplan
 
 @pytest.fixture
 def fp():
+    test_dir = os.path.dirname(os.path.abspath(__file__))
+
     c = Chip()
     c.set('design', 'test')
     c.target('freepdk45')
-    c.add('asic', 'macrolib', 'RAM')
-    c.add('asic', 'macrolib', 'RAM')
-    c.set('macro', 'RAM', 'width', '50')
-    c.set('macro', 'RAM', 'height', '50')
+    c.add('asic', 'macrolib', 'ram')
+    c.add('macro', 'ram', 'lef', test_dir + '/test_floorplan/ram.lef')
+    c.set('macro', 'ram', 'cells', 'ram', 'RAM')
 
     fp = Floorplan(c)
     fp.create_die_area(72, 72, core_area=(8, 8, 64, 64))
@@ -22,7 +23,7 @@ def fp():
     depth = 30
     metal = 'm3'
 
-    fp.place_macro('myram', 'RAM', (25, 25), 'N')
+    fp.place_macro('myram', 'ram', (25, 25), 'N')
 
     pins = [f"in[{i}]" for i in range(4 * n)]
     fp.place_pins(pins[0:n], 'n', width, depth, metal)
