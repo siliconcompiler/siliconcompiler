@@ -1,5 +1,6 @@
 import glob
 import os
+import re
 import shutil
 from siliconcompiler.schema import schema_path
 
@@ -25,20 +26,6 @@ def setup_tool(chip, step):
         chip.logger.error(f"FPGA device and/or vendor unspecified!")
         os.sys.exit()
 
-    vendor = chip.get('fpga', 'vendor')[-1]
-    device = chip.get('fpga', 'device')[-1]
-
-    if vendor == 'lattice' and device == 'ice40up5k-sg48':
-        options = '--up5k --package sg48'
-    elif vendor == 'lattice' and device == 'ecp5-25k-285c':
-        options = '--25k --package CSFBGA285'
-    else:
-        chip.logger.error(f"Unsupported vendor option '{vendor}' and device "
-            f"option '{device}'.")
-        os.sys.exit()
-
-    chip.add('flow', step, 'option', options)
-
 ################################
 # Set fusesoc Runtime Options
 ################################
@@ -62,46 +49,26 @@ def setup_options(chip, step):
         f.write('[library.' + topmodule + ']\n')
         f.write('location = .\n')
 
-    # Generate the fusesoc project config.
+    # Find the directory containing the FPGA board files.
+    scriptdir = os.path.dirname(os.path.abspath(__file__))
+    sc_root   = re.sub('siliconcompiler/eda/fusesoc',
+                       'siliconcompiler',
+                       scriptdir)
+    board_loc = sc_root + '/fpga/boards/' + device
+
+    # Copy the board's pin constraint file.
     constraint_file = chip.get('constraint')[-1]
     constraint_fn = constraint_file[constraint_file.rfind('/'):].lstrip('/')
-    constraint_ext = constraint_file[constraint_file.rfind('.'):]
-    constraint_type = constraint_ext[1:].upper()
-    shutil.copy('../import/inputs/'+constraint_fn,
-                'inputs/'+topmodule+constraint_ext)
-    options_str = ', '.join(chip.get('flow', 'export', 'option'))
-    chip.set('flow', 'export', 'option',
-             ['run', '--target='+topmodule, 'sc:'+topmodule+':1.0'])
-    if 'ice40' in device:
-        device_tool = 'icestorm'
-    elif 'ecp5' in device:
-        device_tool = 'trellis'
-    with open(topmodule + '.core', 'w') as f:
-        f.write(\
-f'''CAPI=2:
-name: sc:{topmodule}:1.0
+    shutil.copy(board_loc + '/' + constraint_fn, 'inputs/' + constraint_fn)
+    # Copy the source Verilog to the path expected by the fusesoc config.
+    shutil.copy('inputs/'+topmodule+'.v', 'inputs/sc.v')
+    # Copy the board's fusesoc config and append the top-level module's name.
+    shutil.copy(board_loc + '/' + device + '.core', device + '.core')
+    with open(device + '.core', 'a') as f:
+      f.write('\n    toplevel: ' + topmodule + '\n')
 
-filesets:
-  rtl:
-    files:
-      - inputs/{topmodule}.v
-    file_type: verilogSource
-
-  constraints:
-    files:
-      - inputs/{topmodule}{constraint_ext}
-    file_type: {constraint_type}
-
-targets:
-  {topmodule}:
-    default_tool: {device_tool}
-    filesets: [rtl, constraints]
-    tools:
-      {device_tool}:
-        nextpnr_options: [{options_str}]
-    toplevel: {topmodule}
-''')
-
+    # Generate and return the run command.
+    chip.set('flow', 'export', 'option', ['run', 'sc:'+device+':1.0'])
     return chip.get('flow', 'export', 'option')
 
 def pre_process(chip, step):
@@ -117,10 +84,6 @@ def post_process(chip, step):
     # Copy the bitstream file to the 'outputs/' directory.
     topmodule = chip.get('design')[-1]
     device = chip.get('fpga', 'device')[-1]
-    if 'ice40' in device:
-        ext = '.bin'
-    elif 'ecp5' in device:
-        ext = '.bit'
-    bitstream_path = 'build/sc_'+topmodule+'_1.0_0/'+topmodule+'*/*'+ext
+    bitstream_path = 'build/sc_*_1.0_0/default-*/*.bi[tn]'
     for bitstream in glob.glob(bitstream_path):
-        shutil.copy(bitstream, 'outputs/'+topmodule+ext)
+        shutil.copy(bitstream, 'outputs/'+topmodule+'.bit')
