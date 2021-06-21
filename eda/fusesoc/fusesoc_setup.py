@@ -5,7 +5,7 @@ import shutil
 from siliconcompiler.schema import schema_path
 
 ################################
-# Setup NextPNR
+# Setup fusesoc
 ################################
 
 def setup_tool(chip, step):
