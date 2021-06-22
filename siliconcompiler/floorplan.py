@@ -43,6 +43,7 @@ class Floorplan:
         self.macros = []
         self.rows = []
         self.tracks = []
+        self.nets = {}
 
         self.blockage_layers = []
 
@@ -698,6 +699,46 @@ class Floorplan:
                 else:
                     self.place_macro(name, cell, (region_min_x, start), orientation, units='absolute')
                 start += width
+
+    def configure_net(self, net, pin_name, use):
+        if net in self.nets:
+            self.nets[net]['use'] = use
+            self.nets[net]['pin_name'] = pin_name
+        else: 
+            self.nets[net] = {
+                'use': use,
+                'pin_name': pin_name,
+                'wires': [] 
+            }
+ 
+    def place_wires(self, nets, layer, width, length, shape, pos, pitch, direction):
+        for net_name in nets:
+            x, y = pos
+            if direction.lower() == 'h':
+                end = x, y + length
+            elif direction.lower() == 'v':
+                end = x + length, y
+            else:
+                raise ValueError(f'Invalid direction {direction}')
+
+            wire = {
+                'layer': self.layers[layer]['name'],
+                'width': width,
+                'shape': shape,
+                'start': pos,
+                'end': end
+            }
+
+            if net_name in self.nets:
+                self.nets[net_name]['wires'].append(wire)
+            else:
+                raise ValueError(f'Net {net_name} not found. Please initialize '
+                    f'it by calling init_net()')
+
+            if direction.lower() == 'h':
+                pos = x + pitch, y
+            elif direction.lower() == 'v':
+                pos = x, y + pitch
 
     def _snap_to_x_track(self, x, layer):
         offset = self.layers[layer]['xoffset']

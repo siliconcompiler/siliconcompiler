@@ -134,6 +134,11 @@ def test_padring():
     fp.fill_io_region([(die_w - io_h, 0), (die_w, die_h)], io_fill_cells, 'E')
     fp.fill_io_region([(0, die_h - io_h), (die_w, die_h)], io_fill_cells, 'S')
 
+    fp.configure_net('VDD', 'VDD', 'POWER')
+    fp.configure_net('VSS', 'VSS', 'GROUND')
+    fp.place_wires(['VDD'] * 11, 'm3', 10, 1000, 'STRIPE', (100, 100), 100, 'h')
+    fp.place_wires(['VSS'] * 11, 'm4', 10, 1000, 'STRIPE', (100, 100), 100, 'v')
+
     fp.write_def('padring.def')
 
 if __name__ == "__main__":
