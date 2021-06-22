@@ -3,7 +3,7 @@
 import logging
 import math
 import jinja2
-import copy
+from collections import namedtuple
 
 from siliconcompiler.leflib import Lef
 from siliconcompiler.schema import schema_path
@@ -17,6 +17,8 @@ def render_tuple(vals):
     vals_str = ' '.join([str(val) for val in vals])
     return f"( {vals_str} )"
 env.filters['render_tuple'] = render_tuple
+
+MacroInfo = namedtuple("MacroInfo", "tech_name width height")
 
 class Floorplan:
     '''Floorplan layout class'''
@@ -59,23 +61,44 @@ class Floorplan:
                 return int(round(val * self.db_units))
         env.filters['scale'] = scale
 
+        # Used to generate unique instance names for I/O fill cells
+        self.fill_cell_id = 0
+
         ## Extract technology-specific info ##
 
         # extract std cell info based on libname
-        libname = self.chip.get('asic', 'targetlib')[-1]
-        self.std_cell_name = self.chip.get('stdcell', libname, 'site')[-1]
-        self.std_cell_width = float(self.chip.get('stdcell', libname, 'width')[-1])
-        self.std_cell_height = float(self.chip.get('stdcell', libname, 'height')[-1])
+        self.libname = self.chip.get('asic', 'targetlib')[-1]
+        self.std_cell_name = self.chip.get('stdcell', self.libname, 'site')[-1]
+        self.std_cell_width = float(self.chip.get('stdcell', self.libname, 'width')[-1])
+        self.std_cell_height = float(self.chip.get('stdcell', self.libname, 'height')[-1])
 
-        # extract data from tech LEF
+        # Extract data from LEFs
+        lef_parser = Lef()
         stackup = chip.get('asic', 'stackup')[-1]
-        libtype = chip.get('stdcell', libname, 'libtype')[-1]
+        libtype = chip.get('stdcell', self.libname, 'libtype')[-1]
 
         tech_lef = schema_path(chip.get('pdk','aprtech', stackup, libtype, 'lef')[-1])
-
-        lef = Lef()
         with open(tech_lef, 'r') as f:
-            lef_data = lef.parse(f.read())
+            tech_lef_data = lef_parser.parse(f.read())
+
+        # List of cells the user is able to place
+        self.available_cells = {}
+
+        for macrolib in self.chip.get('asic', 'macrolib'):
+            lef_path = schema_path(self.chip.get('macro', macrolib, 'lef')[-1])
+            with open(lef_path, 'r') as f:
+                lef_data = lef_parser.lib_parse(f.read())
+        
+            for name in self.chip.cfg['macro'][macrolib]['cells']:
+                if name == 'default': continue
+                tech_name = self.chip.get('macro', macrolib, 'cells', name)[-1]
+                if tech_name in lef_data['macros']:
+                    width, height = lef_data['macros'][tech_name]['size']
+                else: 
+                    raise KeyError(f'Implementation {tech_name} for macro {name}'
+                        f'not found in library {lef_path}')
+
+                self.available_cells[name] = MacroInfo(tech_name, width, height)
 
         # extract layers based on stackup
         stackup = self.chip.get('asic', 'stackup')[-1]
@@ -85,7 +108,7 @@ class Floorplan:
             self.layers[name] = {}
             pdk_name = layer['name']['value'][-1]
             self.layers[name]['name'] = pdk_name
-            self.layers[name]['width'] = float(lef_data['LAYER'][pdk_name]['WIDTH'][-1])
+            self.layers[name]['width'] = float(tech_lef_data['LAYER'][pdk_name]['WIDTH'][-1])
             self.layers[name]['xpitch'] = float(layer['xpitch']['value'][-1])
             self.layers[name]['ypitch'] = float(layer['ypitch']['value'][-1])
             self.layers[name]['xoffset'] = float(layer['xoffset']['value'][-1])
@@ -346,7 +369,8 @@ class Floorplan:
 
         component = {
             'name': instance_name,
-            'cell': macro_name,
+            'cell': self.available_cells[macro_name].tech_name,
+            'info': self.available_cells[macro_name],
             'x': x,
             'y': y,
             'status': 'fixed' if fixed else 'placed',
@@ -486,6 +510,195 @@ class Floorplan:
             else:
                 raise ValueError(f'Layer {layer} not found in tech info!')
 
+    def place_macros(self, macros, start_pos, orientation, direction, spacing=0):
+        '''Places macros on floorplan.
+
+        Args:
+            macros (list of (str, str)): List of macros to place as tuples of
+                (instance name, type).
+            start_pos (tuple): x, y coordinate where to place first instance.
+            orientation (str): Orientation of macro
+            direction (str): Direction to place macros ('h' for east-west, 'v'
+                for north-south).
+            spacing (int): Distance between this pad and previous, in microns.
+        '''
+
+        # TODO Validate orientation
+        # TODO Validate direciton
+        # TODO Validating spacing
+
+        pos_x, pos_y = start_pos
+
+        is_ew_ori = orientation.upper() in ('E', 'W', 'FE', 'FW')
+        is_ns_ori = not is_ew_ori
+
+        for instance_name, cell_name in macros:
+            cell = self.available_cells[cell_name]
+            width = cell.width
+            height = cell.height
+
+            self.place_macro(instance_name, cell_name, (pos_x, pos_y), orientation, units='absolute')
+            
+            if direction.lower() == 'h':
+                pos_x += spacing + (width if is_ns_ori else height)
+            else:
+                pos_y += spacing + (width if is_ew_ori else height)
+
+    def place_macros_spaced(self, macros, start_pos, orientation, direction, distance):
+        ''' Places macros on floorplan with even space.
+
+        Args:
+            macros (list of (str, str)): List of macros to place as tuples of
+                (instance name, type).
+            start_pos (tuple): coordinates of first macro placed.
+            orientation (str): orientation of each macro.
+            direction (str): which direction to repeat macro. Must be 'h' for
+                horizontal or 'v' for vertical.
+            distance (float): distance from start_pos to space macros within.
+        '''
+        filled_space = 0
+        for _, cell_name in macros:
+            width = self.available_cells[cell_name].width
+            filled_space += width
+
+        # TODO: raise error if filled_space < distance
+        spacing = (distance - filled_space) / (len(macros) + 1)
+
+        x, y = start_pos
+        if direction.lower() == 'h':
+            x += spacing
+        else:
+            y += spacing
+
+        self.place_macros(macros, (x, y), orientation, direction, spacing)
+
+    def fill_io_region(self, region, fill_cells, orientation):
+        ''' Fill empty space in region with I/O filler cells
+
+        Args:
+            region (list of tuple of int): bottom-left and top-right corner of
+                region to fill.
+
+        Raises:
+            ValueError: Region contains macros such that it is unfillable.
+        '''
+ 
+        # TODO: validate orientation
+
+        region_min_x, region_min_y = region[0]
+        region_max_x, region_max_y = region[1]
+
+        # TODO: should direction be passed in explicitly?
+        if orientation[-1].lower() in ('e', 'w'):
+            direction = 'v'
+            region_height = region_max_x - region_min_x
+        else:
+            direction = 'h'
+            region_height = region_max_y - region_min_y
+
+        # Gather macros in region. Macros in region must be aligned with the
+        # direction of the region, and no macros may be partially contained
+        # along the direction axis.
+        macros = []
+        for macro in self.macros:
+            width = macro['info'].width
+            height = macro['info'].height
+            x = macro['x']
+            y = macro['y']
+            ori = macro['orientation']
+            max_y = y + height if ori[-1].lower() in ('n', 's') else y + width
+            max_x = x + width if ori[-1].lower() in ('n', 's') else x + height
+
+            if direction == 'h':
+                if y >= region_max_y or max_y <= region_min_y:
+                    # outside of region vertically
+                    continue
+                if y != region_min_y and max_y != region_max_y:
+                    raise ValueError("Fill region must not contain cells that don't fill it vertically.")
+
+                # if we continue, cell is aligned to region vertically
+
+                left_edge_in = (x >= region_min_x)
+                right_edge_in = (max_x <= region_max_x)
+
+                if left_edge_in or right_edge_in:
+                    macros.append((x, max_x, macro))
+            else:
+                if x >= region_max_x or max_x  <= region_min_x:
+                    # outside of region horizontally
+                    continue
+                if x != region_min_x and max_x != region_max_x:
+                    raise ValueError("Fill region must not contain cells that don't fill it horizontally.")
+
+                # if we continue, cell is aligned to region horizontally
+
+                bottom_edge_in = (y >= region_min_y)
+                top_edge_in = (max_y <= region_max_y)
+
+                if bottom_edge_in or top_edge_in:
+                    macros.append((y, max_y, macro))
+
+        # Iterate along region direction and record gaps between macros.
+        gaps = []
+        macros = sorted(macros, key=lambda c: c[0])
+
+        if direction == 'h':
+            region_start = region_min_x
+            region_end = region_max_x
+        else:
+            region_start = region_min_y
+            region_end = region_max_y
+
+        if region_start < macros[0][0]:
+            gaps.append((region_start, macros[0][0]))
+
+        for i in range(len(macros) - 1):
+            gaps.append((macros[i][1], macros[i+1][0]))
+
+        if region_end > macros[-1][1]:
+            gaps.append((macros[-1][i], region_end))
+
+        # Iterate over gaps and place filler cells
+        # TODO: this is only guaranteed to work if we have a width 1 filler
+        # cell. Is that a valid assumption/should we use a more sophisticated
+        # algorithm?
+        
+        # Gather I/O fill cells and sort by wider to narrower
+        io_fill_cells = []
+        for cell in fill_cells:
+            if not cell in self.available_cells:
+                raise ValueError(f'Provided fill cell {cell} is not included in'
+                    f'list of available macros')
+
+            cell_info = self.available_cells[cell]
+
+            if cell_info.height != region_height:
+                raise ValueError(f'Provided fill cell {cell} does not have '
+                    f'appropriate height to fill region')
+
+            io_fill_cells.append((cell, self.available_cells[cell]))
+
+        io_fill_cells = sorted(io_fill_cells, key=lambda c: c[1].width, reverse=True)
+
+        for start, end in gaps:
+            cell_idx = 0
+            while start != end:
+                cell, cell_info = io_fill_cells[cell_idx]
+                width = cell_info.width
+                if width > end - start:
+                    cell_idx += 1
+                    if cell_idx >= len(io_fill_cells):
+                        raise ValueError('Unable to fill gap with available cells!')
+                    continue
+
+                name = f'_sc_io_fill_cell_{self.fill_cell_id}'
+                self.fill_cell_id += 1
+                if direction == 'h':
+                    self.place_macro(name, cell, (start, region_min_y), orientation, units='absolute')
+                else:
+                    self.place_macro(name, cell, (region_min_x, start), orientation, units='absolute')
+                start += width
+
     def _snap_to_x_track(self, x, layer):
         offset = self.layers[layer]['xoffset']
         pitch = self.layers[layer]['xpitch']
@@ -503,34 +716,3 @@ class Floorplan:
     def _validate_orientation(self, orientation):
         if orientation not in ('N', 'S', 'W', 'E', 'FN', 'FS', 'FW', 'FE'):
             raise ValueError("Illegal orientation")
-
-if __name__ == '__main__':
-    # Test: create floorplan with `n` equally spaced `width` x `depth` pins along
-    # each side
-
-    from siliconcompiler.core import Chip
-
-    c = Chip()
-    c.set('design', 'test')
-    c.target('freepdk45')
-
-    fp = Floorplan(c)
-    fp.create_die_area(72, 72, core_area=(8, 8, 64, 64))
-
-    n = 4 # pins per side
-    width = 10
-    depth = 30
-    metal = 'm3'
-
-    fp.place_macro('myram', 'RAM', (25, 25), 'N')
-
-    pins = [f"in[{i}]" for i in range(4 * n)]
-    fp.place_pins(pins[0:n], 'n', width, depth, metal)
-    fp.place_pins(pins[n:2*n], 'e', width, depth, metal)
-    fp.place_pins(pins[2*n:3*n], 'w', width, depth, metal)
-    fp.place_pins(pins[3*n:4*n], 's', width, depth, metal)
-
-    fp.place_blockage(['m1', 'm2'])
-
-    fp.write_def('test.def')
-    fp.write_lef('test.lef')

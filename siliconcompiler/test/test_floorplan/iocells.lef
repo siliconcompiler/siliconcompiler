@@ -1,0 +1,160 @@
+#
+#
+#    Example LEF file containing fake I/O, corner and filler cells
+#
+#    Copyright Symbiotic EDA GmbH 2019
+#    Niels Moseley - niels@symbioticeda.com
+#
+#
+
+VERSION 5.4 ;
+
+UNITS
+    DATABASE MICRONS 1000  ;
+END UNITS
+
+MANUFACTURINGGRID 0.01000 ;
+SITE io_site
+    SYMMETRY Y  ;
+    CLASS PAD  ;
+    SIZE  1.000 BY 150.000 ;
+END io_site
+
+MACRO IOPAD
+    CLASS PAD INOUT ;
+    FOREIGN IOPAD 0 0 ;
+    ORIGIN 0.000 0.000 ;
+    SIZE 84.000 BY 150.000 ;
+    SYMMETRY R90 ;
+    SITE io_site ;
+    PIN EN
+        DIRECTION INPUT ;
+        PORT
+        LAYER MET1 ;
+            RECT  4.000 149.540 5.800 150.000 ;
+        END
+    END EN
+    PIN A
+        DIRECTION INPUT ;
+        PORT
+        LAYER MET1 ;
+            RECT  1.000 149.540 2.800 150.000 ;
+        END
+    END A
+    PIN Y
+        DIRECTION OUTPUT ;
+        PORT
+        LAYER MET1 ;
+            RECT  28.000 149.540 29.800 150.000 ;
+        END
+    END Y
+    PIN PAD
+        DIRECTION INOUT ;
+        PORT
+        LAYER MET1 ;
+            RECT  15.500 39.120 68.500 105.120 ;
+        END
+    END PAD
+    OBS 
+        LAYER MET1 ; 
+        RECT 15.5 0 20.5 39.120 ; 
+    END
+END IOPAD
+
+MACRO PWRPAD
+    CLASS PAD POWER ;
+    FOREIGN PWRPAD 0 0 ;
+    ORIGIN 0.000 0.000 ;
+    SIZE 84.000 BY 150.000 ;
+    SYMMETRY R90 ;
+    SITE io_site ;
+    PIN Y
+        DIRECTION INPUT ;
+        USE POWER ;
+        PORT
+        LAYER MET1 ;
+            RECT  10.000 140.000 74.800 150.000 ;
+        END
+    END Y
+    PIN PAD
+        DIRECTION INPUT ;
+        USE POWER ;
+        PORT
+        LAYER MET1 ;
+            RECT  15.500 39.120 68.500 105.120 ;
+        END
+    END PAD
+    OBS 
+        LAYER MET1 ; 
+        RECT 15.5 0 20.5 39.120 ; 
+    END    
+END PWRPAD
+
+MACRO  CORNER
+    CLASS PAD ;
+    FOREIGN CORNER 0 0 ;
+    ORIGIN 0.000 0.000 ;
+    SIZE 150.000 BY 150.000 ;
+    SYMMETRY R90 ;
+    SITE io_site ;
+    OBS 
+        LAYER MET1 ; 
+        RECT 0.0 0 40.0 40.0 ;
+    END    
+END CORNER
+
+MACRO  FILLER01
+    CLASS PAD SPACER ;
+    FOREIGN FILLER01 0 0 ;
+    ORIGIN 0.000 0.000 ;
+    SIZE 1.000 BY 150.000 ;
+    SYMMETRY R90 ;
+    SITE io_site ;
+END FILLER01
+
+MACRO  FILLER02
+    CLASS PAD SPACER ;
+    FOREIGN FILLER02 0 0 ;
+    ORIGIN 0.000 0.000 ;
+    SIZE 2.000 BY 150.000 ;
+    SYMMETRY R90 ;
+    SITE io_site ;
+END FILLER02
+
+MACRO  FILLER05
+    CLASS PAD SPACER ;
+    FOREIGN FILLER05 0 0 ;
+    ORIGIN 0.000 0.000 ;
+    SIZE 5.000 BY 150.000 ;
+    SYMMETRY R90 ;
+    SITE io_site ;
+END FILLER05
+
+MACRO  FILLER10
+    CLASS PAD SPACER ;
+    FOREIGN FILLER10 0 0 ;
+    ORIGIN 0.000 0.000 ;
+    SIZE 10.000 BY 150.000 ;
+    SYMMETRY R90 ;
+    SITE io_site ;
+END FILLER10
+
+MACRO  FILLER25
+    CLASS PAD SPACER ;
+    FOREIGN FILLER25 0 0 ;
+    ORIGIN 0.000 0.000 ;
+    SIZE 25.000 BY 150.000 ;
+    SYMMETRY R90 ;
+    SITE io_site ;
+END FILLER25
+
+MACRO  FILLER50
+    CLASS PAD SPACER ;
+    FOREIGN FILLER50 0 0 ;
+    ORIGIN 0.000 0.000 ;
+    SIZE 50.000 BY 150.000 ;
+    SYMMETRY R90 ;
+    SITE io_site ;
+END FILLER50
+
+END LIBRARY
