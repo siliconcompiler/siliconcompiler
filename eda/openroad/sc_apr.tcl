@@ -8,11 +8,35 @@ source ./sc_schema.tcl
 # Openroad Constants
 ###############################
 
-set openroad_place_density 0.3
 set openroad_overflow_iter 100
-set openroad_pad_global_place 2
 set openroad_cluster_diameter 100
 set openroad_cluster_size 30
+
+# These are magic tuning constants that vary per-technology. We set their values
+# here since they're OpenROAD-specific, and therefore we don't want to define
+# them in the schema.
+
+set target [dict get $sc_cfg target]
+set targetlist [split $target _]
+set target_tech [lindex $targetlist 0]
+
+if {$target_tech eq "freepdk45"} {
+    set openroad_place_density 0.3
+    set openroad_pad_global_place 2
+    set openroad_macro_place_halo "22.4 15.12"
+    set openroad_macro_place_channel "18.8 19.95"
+} elseif {$target_tech eq "asap7"} {
+    set openroad_place_density 0.77
+    set openroad_pad_global_place 2
+    set openroad_macro_place_halo "22.4 15.12"
+    set openroad_macro_place_channel "18.8 19.95"
+} else {
+    puts "WARNING: OpenROAD tuning constants not set for $target_tech in sc_apr.tcl, using generic values."
+    set openroad_place_density 0.3
+    set openroad_pad_global_place 2
+    set openroad_macro_place_halo "22.4 15.12"
+    set openroad_macro_place_channel "18.8 19.95"
+}
 
 ###############################
 # Schema Adapter
@@ -39,8 +63,6 @@ set sc_optmode     [lindex [dict get $sc_cfg optmode] end]
 set sc_mainlib     [lindex [dict get $sc_cfg asic targetlib] 0]
 set sc_targetlibs  [dict get $sc_cfg asic targetlib]
 set sc_stackup     [lindex [dict get $sc_cfg asic stackup] end]
-set sc_diesize     [dict get $sc_cfg asic diesize]
-set sc_coresize    [dict get $sc_cfg asic coresize]
 set sc_density     [lindex [dict get $sc_cfg asic density] end]
 set sc_hpinlayer   [lindex [dict get $sc_cfg asic hpinlayer] end]
 set sc_vpinlayer   [lindex [dict get $sc_cfg asic vpinlayer] end]
@@ -91,7 +113,7 @@ dict for {key value} [dict get $sc_cfg pdk grid $sc_stackup] {
 ###############################
 
 # MACROS
-if {[dict exists $sc_cfg macrolib]} {    
+if {[dict exists $sc_cfg asic macrolib]} {
     set sc_macrolibs [dict get $sc_cfg asic macrolib]
 } else {
     set sc_macrolibs    ""

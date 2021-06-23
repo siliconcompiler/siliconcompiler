@@ -64,7 +64,7 @@ def pre_process(chip, step):
 
         topmodule = chip.get('design')[-1]
         def_file = 'inputs/' + topmodule + '.def'
-        fp.save(def_file)
+        fp.write_def(def_file)
 
 def post_process(chip, step):
      ''' Tool specific function to run after step execution

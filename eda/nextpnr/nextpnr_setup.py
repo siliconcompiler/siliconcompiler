@@ -18,8 +18,23 @@ def setup_tool(chip, step):
     chip.add('flow', step, 'exe', 'nextpnr-ice40')
     chip.add('flow', step, 'copy', 'false')
 
-    # hardcode settings for icebreaker dev board for now
-    chip.add('flow', step, 'option', '--up5k --package sg48 --freq 12')
+    # Check FPGA schema to determine which device to target
+    if len(chip.get('fpga', 'vendor')) == 0 or len(chip.get('fpga', 'device')) == 0:
+        chip.logger.error(f"FPGA device and/or vendor unspecified!")
+        os.sys.exit()
+
+    vendor = chip.get('fpga', 'vendor')[-1]
+    device = chip.get('fpga', 'device')[-1]
+
+    if vendor == 'lattice' and device == 'ice40up5k-sg48':
+        options = '--up5k --package sg48'
+    else:
+        chip.logger.error(f"Unsupported vendor option '{vendor}' and device option "
+            f"'{device}'. NextPNR flow currently only supports vendor 'lattice' and device "
+            f"'ice40up5k-sg48'.")
+        os.sys.exit()
+
+    chip.add('flow', step, 'option', options)
 
 ################################
 # Set NextPNR Runtime Options

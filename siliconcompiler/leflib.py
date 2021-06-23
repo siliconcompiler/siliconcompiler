@@ -8,6 +8,9 @@ from ply import lex
 #The LEF parser uses the awesome lec tokenizer PLYL
 #https://ply.readthedocs.io/en/latest/ply.html#the-tokens-list
 
+class ParseError(Exception):
+    pass
+
 class Lef:
 
     #LEF Keywords
@@ -85,7 +88,141 @@ class Lef:
     def t_error(self,t):
         print("Illegal character '%s'" % t.value[0])
         t.lexer.skip(1)
-        
+
+    def lib_parse(self, data):
+        self.lexer.input(data)
+        lib = {'sites': [], 'macros': {}}
+
+        while True:
+            tok = self.lexer.token()
+            if not tok: return None
+
+            if tok.type in ('VERSION', 'MANUFACTURINGGRID'):
+                # simple num statement
+                num = self.lexer.token()
+                semi = self.lexer.token()
+                if num.type != 'FLOAT' or semi.type != 'SEMICOLON':
+                    raise ParseError('Statement expects number followed by semicolon')
+                lib[tok.value.lower()] = float(num.value)
+            elif tok.type == 'UNITS':
+                lib['units'] = self.parse_units()
+            elif tok.type == 'SITE':
+                lib['sites'].append(self.parse_site())
+            elif tok.type == 'MACRO':
+                name, macro = self.parse_macro()
+                lib['macros'][name] = macro
+            elif tok.type == 'END':
+                tok = self.lexer.token()
+                break
+
+        return lib
+
+    def parse_version(self):
+        num = self.lexer.token()
+        semi = self.lexer.token()
+        if num.type != 'FLOAT' or semi.type != 'SEMICOLON':
+            raise ParseError('Version statement expects number followed by semicolon')
+
+        return {"version": float(num.value)}
+
+    def parse_units(self):
+        units = []
+        while True:
+            unit_type = self.lexer.token()
+            if unit_type is None or unit_type.type == 'END':
+                break
+
+            unit_unit = self.lexer.token()
+            convert_factor = self.lexer.token()
+            semi = self.lexer.token()
+
+            # TODO: check unit type/unit unit are valid
+            if unit_type.type != 'STRING' or convert_factor.type != 'FLOAT' or semi.type != 'SEMICOLON':
+                raise ParseError('Parse units')
+
+            units.append({unit_type.value.lower(): float(convert_factor.value)})
+
+        # eat 'UNITS' after 'END'
+        # TODO: check that this is UNITS if we want to be strict
+        tok = self.lexer.token()
+
+        return units
+
+    def parse_site(self):
+        # TODO: parse site instead of just ignoring contents
+        name = self.lexer.token()
+        if name.type != 'STRING':
+            raise ParseError("Parse site")
+
+        tok = self.lexer.token()
+        while tok.type != 'END':
+            self.chomp_till_semi()
+            tok = self.lexer.token()
+        name2 = self.lexer.token()
+        # TODO: check that names equal
+
+        return {'name': name.value}
+
+    def parse_macro(self):
+        name = self.lexer.token()
+        if name.type != 'STRING':
+            raise ParseError("Parse macro")
+
+        macro = {}
+
+        tok = self.lexer.token()
+        while tok.type != 'END':
+            if tok.type == 'SIZE':
+                # TODO: refactor into own function w/ error check
+                x = self.lexer.token()
+                by = self.lexer.token()
+                y = self.lexer.token()
+                semi = self.lexer.token()
+                macro['size'] = float(x.value), float(y.value)
+            elif tok.type == 'PIN':
+                self.parse_pin()
+            elif tok.type == 'OBS':
+                self.parse_obs()
+            else:
+                # every other sub-statement is terminated by the next semicolon
+                self.chomp_till_semi()
+
+            tok = self.lexer.token()
+        name2 = self.lexer.token()
+
+        return name.value, macro
+
+    def parse_pin(self):
+        name = self.lexer.token()
+        tok = self.lexer.token()
+        while tok.type != 'END':
+            if tok.type == 'STRING' and tok.value == 'PORT':
+                # big hack, but we just want to ignore port and it looks like
+                # obs (and parse_obs currently throws everything away)
+                self.parse_obs()
+            else:
+                self.chomp_till_semi()
+            tok = self.lexer.token()
+        name2 = self.lexer.token()
+
+    def parse_obs(self):
+        self.chomp_till_semi()
+        self.chomp_till_semi()
+        end = self.lexer.token()
+
+    def chomp_till_semi(self):
+        tok = self.lexer.token()
+        while tok.type != 'SEMICOLON':
+            tok = self.lexer.token()
+
+    def parse_busbitchars(self):
+        chars = self.lexer.token()
+        semi = self.lexer.token()
+        if num.type != 'FLOAT' or semi.type != 'SEMICOLON':
+            raise ParseError('Version statement expects number followed by semicolon')
+
+        return {"version": float(num.value)}
+
     def parse(self,data):
         string        = False
         lef           = {}

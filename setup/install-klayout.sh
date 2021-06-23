@@ -1,4 +1,4 @@
 #!/bin/sh
 sudo apt-get install -y klayout
-export QT_QPA_PLATFORM=offscreen
-echo 'export QT_QPA_PLATFORM=offscreen' >> ~/.bashrc
+
+echo "Please add \"export QT_QPA_PLATFORM=offscreen\" to your .bashrc"

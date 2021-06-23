@@ -12,9 +12,9 @@ def setup_platform(chip):
     foundry = 'virtual'
     process = 'asap7'
     node = '7'
-    rev = 'r1p0'
+    rev = 'r1p7'
     stackup = '10M'
-    libtype = '10t'
+    libtype = '7p5t'
     pdkdir = '/'.join(["asic",
                        foundry,
                        process,
@@ -30,69 +30,78 @@ def setup_platform(chip):
     chip.set('pdk','process', process)
     chip.set('pdk','rev', rev)
     chip.set('pdk','stackup', stackup)
-    chip.set('pdk','tapmax', "120")
+    chip.set('pdk','tapmax', "25")
     chip.set('pdk','tapoffset', "0")
 
     # APR tech file
     chip.set('pdk','aprtech',stackup, libtype, 'lef',
-             pdkdir+'/apr/freepdk45.tech.lef')
+             pdkdir+'/apr/asap7_tech.lef')
 
     # Routing Grid Definitions
     for sc_name, pdk_name in [('m1', 'M1')]:
-        chip.set('pdk','aprlayer', stackup, sc_name, 'name', pdk_name)
-        chip.set('pdk','aprlayer', stackup, sc_name, 'hoffset', '0.036')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'hgrid',  '0.036')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'voffset', '0.036')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'vgrid',  '0.036')
+        chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)
+        chip.set('pdk','grid', stackup, sc_name, 'xoffset', '0.036')
+        chip.set('pdk','grid', stackup, sc_name, 'xpitch',  '0.036')
+        chip.set('pdk','grid', stackup, sc_name, 'yoffset', '0.036')
+        chip.set('pdk','grid', stackup, sc_name, 'ypitch',  '0.036')
+        chip.set('pdk','grid', stackup, sc_name, 'adj',     '1.0')
 
     for sc_name, pdk_name in [('m2', 'M2')]:
-        chip.set('pdk','aprlayer', stackup, sc_name, 'name', pdk_name)
-        chip.set('pdk','aprlayer', stackup, sc_name, 'hoffset', '0.018')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'hgrid',  '0.036')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'voffset', '0.00')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'vgrid',  '0.027')
+        chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)
+        chip.set('pdk','grid', stackup, sc_name, 'xoffset', '0.018')
+        chip.set('pdk','grid', stackup, sc_name, 'xpitch',  '0.036')
+        chip.set('pdk','grid', stackup, sc_name, 'yoffset', '0.00')
+        chip.set('pdk','grid', stackup, sc_name, 'ypitch',  '0.027')
+        chip.set('pdk','grid', stackup, sc_name, 'adj',     '0.8')
 
     for sc_name, pdk_name in [('m3', 'M3')]:
-        chip.set('pdk','aprlayer', stackup, sc_name, 'name', pdk_name)
-        chip.set('pdk','aprlayer', stackup, sc_name, 'hoffset', '0.018')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'hgrid',  '0.036')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'voffset', '0.018')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'vgrid',  '0.036')
+        chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)
+        chip.set('pdk','grid', stackup, sc_name, 'xoffset', '0.018')
+        chip.set('pdk','grid', stackup, sc_name, 'xpitch',  '0.036')
+        chip.set('pdk','grid', stackup, sc_name, 'yoffset', '0.018')
+        chip.set('pdk','grid', stackup, sc_name, 'ypitch',  '0.036')
+        chip.set('pdk','grid', stackup, sc_name, 'adj',     '0.7')
 
     for sc_name, pdk_name in [('m4', 'M4')]:
-        chip.set('pdk','aprlayer', stackup, sc_name, 'name', pdk_name)
-        chip.set('pdk','aprlayer', stackup, sc_name, 'hoffset', '0.028')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'hgrid',  '0.036')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'voffset', '0.069')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'vgrid',  '0.048')
+        chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)
+        chip.set('pdk','grid', stackup, sc_name, 'xoffset', '0.028')
+        chip.set('pdk','grid', stackup, sc_name, 'xpitch',  '0.036')
+        chip.set('pdk','grid', stackup, sc_name, 'yoffset', '0.069')
+        chip.set('pdk','grid', stackup, sc_name, 'ypitch',  '0.048')
+        chip.set('pdk','grid', stackup, sc_name, 'adj',     '0.4')
 
     for sc_name, pdk_name in [('m5', 'M5')]:
-        chip.set('pdk','aprlayer', stackup, sc_name, 'name', pdk_name)
-        chip.set('pdk','aprlayer', stackup, sc_name, 'hoffset', '0.040')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'hgrid',  '0.048')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'voffset', '0.069')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'vgrid',  '0.048')
+        chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)
+        chip.set('pdk','grid', stackup, sc_name, 'xoffset', '0.040')
+        chip.set('pdk','grid', stackup, sc_name, 'xpitch',  '0.048')
+        chip.set('pdk','grid', stackup, sc_name, 'yoffset', '0.069')
+        chip.set('pdk','grid', stackup, sc_name, 'ypitch',  '0.048')
+        chip.set('pdk','grid', stackup, sc_name, 'adj',     '0.4')
+        
 
     for sc_name, pdk_name in [('m6', 'M6')]:
-        chip.set('pdk','aprlayer', stackup, sc_name, 'name', pdk_name)
-        chip.set('pdk','aprlayer', stackup, sc_name, 'hoffset', '0.030')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'hgrid',  '0.048')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'voffset', '0.082')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'vgrid',  '0.064')
+        chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)
+        chip.set('pdk','grid', stackup, sc_name, 'xoffset', '0.030')
+        chip.set('pdk','grid', stackup, sc_name, 'xpitch',  '0.048')
+        chip.set('pdk','grid', stackup, sc_name, 'yoffset', '0.082')
+        chip.set('pdk','grid', stackup, sc_name, 'ypitch',  '0.064')
+        chip.set('pdk','grid', stackup, sc_name, 'adj',     '0.4')
 
     for sc_name, pdk_name in [('m7', 'M7')]:
-        chip.set('pdk','aprlayer', stackup, sc_name, 'name', pdk_name)
-        chip.set('pdk','aprlayer', stackup, sc_name, 'hoffset', '0.082')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'hgrid',  '0.064')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'voffset', '0.036')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'vgrid',  '0.064')
+        chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)
+        chip.set('pdk','grid', stackup, sc_name, 'xoffset', '0.082')
+        chip.set('pdk','grid', stackup, sc_name, 'xpitch',  '0.064')
+        chip.set('pdk','grid', stackup, sc_name, 'yoffset', '0.036')
+        chip.set('pdk','grid', stackup, sc_name, 'ypitch',  '0.064')
+        chip.set('pdk','grid', stackup, sc_name, 'adj',     '0.4')
 
     for sc_name, pdk_name in [('m8', 'M8'), ('m9', 'M9')]:
-        chip.set('pdk','aprlayer', stackup, sc_name, 'name', pdk_name)
-        chip.set('pdk','aprlayer', stackup, sc_name, 'hoffset', '0.098')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'hgrid',  '0.08')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'voffset', '0.098')
-        chip.set('pdk','aprlayer', stackup, sc_name, 'vgrid',  '0.08')
+        chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)
+        chip.set('pdk','grid', stackup, sc_name, 'xoffset', '0.098')
+        chip.set('pdk','grid', stackup, sc_name, 'xpitch',  '0.08')
+        chip.set('pdk','grid', stackup, sc_name, 'yoffset', '0.098')
+        chip.set('pdk','grid', stackup, sc_name, 'ypitch',  '0.08')
+        chip.set('pdk','grid', stackup, sc_name, 'adj',     '0.4')
 
 ####################################################
 # Library Setup
@@ -100,12 +109,12 @@ def setup_platform(chip):
 def setup_libs(chip, vendor=None):
  
     foundry = 'virtual'
-    process = 'freepdk45'
-    libname = 'NangateOpenCellLibrary'
-    libtype = '10t'
-    libwidth = '0.19'
-    libheight = '1.4'
-    rev = 'r1p0'
+    process = 'asap7'
+    libname = 'asap7sc7p5t_rvt'
+    libtype = '7p5t'
+    libwidth = '0.054'
+    libheight = '0.27'
+    rev = 'r1p7'
     corner = 'typical'
     objectives = ['setup']
     libdir = '/'.join(["asic",
@@ -116,18 +125,18 @@ def setup_libs(chip, vendor=None):
                        rev])
     
     # rev
-    chip.set('stdcell',libname,'rev',rev)    
+    chip.set('stdcell',libname,'rev',rev)
 
     # timing
     chip.set('stdcell',libname, 'model', corner, 'nldm', 'lib',
-             libdir+'/lib/NangateOpenCellLibrary_typical.lib')
+             libdir+'/nldm/'+libname+'_ff.lib')
 
     # lef
     chip.set('stdcell',libname,'lef',
-             libdir+'/lef/NangateOpenCellLibrary.macro.lef')    
+             libdir+'/lef/'+libname+'.lef')
     # gds
     chip.set('stdcell',libname,'gds',
-             libdir+'/gds/NangateOpenCellLibrary.gds')
+             libdir+'/gds/'+libname+'.gds')
     # site name
     chip.set('stdcell',libname,'site', 'asap7sc7p5t')
 
@@ -153,21 +162,19 @@ def setup_libs(chip, vendor=None):
     chip.add('stdcell',libname,'cells','hold', "BUFx2_ASAP7_75t_R")
 
     # filler
-    chip.add('stdcell',libname,'cells','filler', ["FILLER_ASAP7_75t_R"]
+    chip.add('stdcell',libname,'cells','filler', ["FILLER_ASAP7_75t_R"])
     
     # Stupid small cells
-    chip.add('stdcell',libname,'cells','ignore', ["*x1_ASAP7*",
-                                                  "*x1p*_ASAP7*",
-                                                  "*xp*_ASAP7*",
-                                                  "SDF*",
-                                                  "ICG*",
-                                                  "DFFH*"]
-             
+    chip.add('stdcell',libname,'cells','ignore', [
+        "*x1_ASAP7*", "*x1p*_ASAP7*", "*xp*_ASAP7*",
+        "SDF*", "ICG*", "DFFH*",
+    ])
+
     # Tapcell
-    chip.add('stdcell',libname,'cells','tapcell', "FILLCELL_X1")
+    chip.add('stdcell',libname,'cells','tapcell', "TAPCELL_ASAP7_75t_R")
 
     # Endcap
-    chip.add('stdcell',libname,'cells','endcap', "FILLCELL_X1")
+    chip.add('stdcell',libname,'cells','endcap', "DECAPx1_ASAP7_75t_R")
 
         
 #########################
@@ -183,8 +190,8 @@ def setup_design(chip):
     chip.set('asic', 'maxcap', "1e-12")
     chip.set('asic', 'clklayer', "m5")
     chip.set('asic', 'rclayer', "m3")
-    chip.set('asic', 'hpinlayer', "m3")
-    chip.set('asic', 'vpinlayer', "m2")
+    chip.set('asic', 'hpinlayer', "m4")
+    chip.set('asic', 'vpinlayer', "m5")
     chip.set('asic', 'density', "1.0")
 
     corner = 'typical'

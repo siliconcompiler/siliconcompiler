@@ -16,26 +16,23 @@ def setup_eda(chip, name=None):
                                      'route',
                                      'dfm',
                                      'export']
-    
-    chip.cfg['start']['value'] = ['import']
-    chip.cfg['stop']['value'] = ['export']
-        
+
     # Setup tool based on flow step
-    for step in chip.cfg['steplist']['value']:            
+    for step in chip.cfg['steplist']['value']:
         if step == 'import':
             vendor = 'verilator'
         elif step == 'syn':
-            vendor = 'yosys'   
+            vendor = 'yosys'
         elif step == 'export':
             vendor = 'klayout'
         else:
             vendor = 'openroad'
-            
+
         #load module dynamically on each step
         packdir = "eda." + vendor
-        modulename = '.'+vendor+'_setup'    
+        modulename = '.'+vendor+'_setup'
         module = importlib.import_module(modulename, package=packdir)
-        setup_tool = getattr(module,'setup_tool')
+        setup_tool = getattr(module, 'setup_tool')
         setup_tool(chip, step)
         
 #########################

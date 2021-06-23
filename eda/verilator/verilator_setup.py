@@ -1,6 +1,7 @@
 import os
 import subprocess
 import re
+import sys
 from siliconcompiler.schema import schema_istrue
 from siliconcompiler.schema import schema_path
 
@@ -12,13 +13,13 @@ def setup_tool(chip, step):
     ''' Sets up default settings on a per step basis
     '''
     chip.logger.debug("Setting up Verilator")
-    
+
     chip.add('flow', step, 'threads', '4')
     chip.add('flow', step, 'format', 'cmdline')
     chip.add('flow', step, 'copy', 'false')
     chip.add('flow', step, 'exe', 'verilator')
     chip.add('flow', step, 'vendor', 'verilator')
-        
+
 ################################
 # Set Verilator Runtime Options
 ################################
@@ -38,10 +39,10 @@ def setup_options(chip, step):
     #-O3
     #
 
-    options = chip.set('flow', step, 'option',[])
-    
+    options = chip.set('flow', step, 'option', [])
+
     if step == 'import':
-        options.append('--lint-only --debug')
+        options.append('--lint-only --debug -sv')
     else:
         options.append('--cc')
 
@@ -54,17 +55,17 @@ def setup_options(chip, step):
         options.append('-y ' + schema_path(value))
 
     for value in chip.cfg['vlib']['value']:
-        options.append('-v ' + schema_path(value))                    
+        options.append('-v ' + schema_path(value))
 
     for value in chip.cfg['idir']['value']:
         options.append('-I' + schema_path(value))
 
     for value in chip.cfg['define']['value']:
-        options.append('-D ' + schema_path(value))
+        options.append('-D' + schema_path(value))
 
     for value in chip.cfg['cmdfile']['value']:
         options.append('-f ' + schema_path(value))
-        
+
     for value in chip.cfg['source']['value']:
         options.append(schema_path(value))
 
@@ -75,7 +76,7 @@ def setup_options(chip, step):
                         '-Wno-SELRANGE',
                         '-Wno-WIDTH',
                         '-Wno-fatal']
-    
+
     if schema_istrue(chip.cfg['relax']['value']):
         for value in supress_warnings:
             options.append(value)
@@ -83,7 +84,7 @@ def setup_options(chip, step):
 
     #Wite back options tp cfg
     chip.set('flow', step, 'option', options)
-            
+
     return options
 
 ################################
@@ -92,22 +93,21 @@ def setup_options(chip, step):
 def pre_process(chip, step):
     ''' Tool specific function to run before step execution
     '''
-    pass
 
 def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
 
     # filtering out debug garbage
-    subprocess.run('egrep -h -v "\`begin_keywords" obj_dir/*.vpp > verilator.sv',
+    subprocess.run('egrep -h -v "\`begin_keywords" obj_dir/*.vpp > verilator.v',
                    shell=True)
-                   
+
     # setting top module of design
     modules = 0
-    if(len(chip.cfg['design']['value']) < 1):
-        with open("verilator.sv", "r") as open_file:
+    if len(chip.cfg['design']['value']) < 1:
+        with open("verilator.v", "r") as open_file:
             for line in open_file:
-                modmatch = re.match('^module\s+(\w+)', line)
+                modmatch = re.match(r'^module\s+(\w+)', line)
                 if modmatch:
                     modules = modules + 1
                     topmodule = modmatch.group(1)
@@ -122,9 +122,6 @@ def post_process(chip, step):
     else:
         topmodule = chip.cfg['design']['value'][-1]
 
-    # Creating file for handoff to synthesis  
-    subprocess.run("cp verilator.sv " + "outputs/" + topmodule + ".sv",
+    # Creating file for handoff to synthesis
+    subprocess.run("cp verilator.v " + "outputs/" + topmodule + ".v",
                    shell=True)
-
-
-

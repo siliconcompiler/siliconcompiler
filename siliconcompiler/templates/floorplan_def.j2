@@ -1,0 +1,39 @@
+VERSION 5.8 ;
+DIVIDERCHAR "/" ;
+BUSBITCHARS "[]" ;
+DESIGN {{ fp.design }} ;
+UNITS DISTANCE MICRONS {{ fp.db_units }} ;
+DIEAREA ( 0 0 ) ( {{ fp.die_area[0] | scale }} {{ fp.die_area[1] | scale }} ) ;
+
+{% for row in fp.rows %}
+ROW {{ row.name }} {{ row.site }} {{ row.x | scale }} {{ row.y | scale }} {{ row.orientation }}
+    DO {{ row.numx }} BY {{ row.numy }} STEP {{ row.stepx | scale }} {{ row.stepy | scale }} ;
+{% endfor %}
+
+{% for track in fp.tracks %}
+TRACKS {{ track.direction | upper }} {{ track.start | scale }} DO {{ track.total }} STEP {{ track.step | scale }}
+    LAYER {{ track.layer}} ;
+{% endfor %}
+
+COMPONENTS {{ fp.macros | length }} ;
+{% for macro in fp.macros %}
+   - {{ macro.name }} {{ macro.cell }}
+      {% if macro.status %}
+      + {{ macro.status | upper }} ( {{macro.x | scale }} {{ macro.y | scale }} ) {{ macro.orientation }}
+      {% endif %}
+      + HALO {{ macro.halo | map('scale') | join(' ') }} ;
+{% endfor %}
+END COMPONENTS
+
+PINS {{ fp.pins | length }} ;
+{% for pin in fp.pins %}
+    - {{ pin.name }} + NET {{ pin.net }} + DIRECTION {{ pin.direction|upper }} + USE {{ pin.use|upper }}
+       + PORT
+         + LAYER {{ pin.port.layer }} {{ pin.port.box | map('scale') | map('render_tuple') | join(' ') }}
+         {% if pin.port.status %}
+         + {{ pin.port.status|upper }} {{ pin.port.point | map('scale') | render_tuple }} {{ pin.port.orientation }} ;
+         {% endif %}
+{% endfor %}
+END PINS
+
+END DESIGN

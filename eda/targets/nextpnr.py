@@ -9,17 +9,17 @@ def setup_eda(chip, name=None):
     chip.logger.debug("Setting up an FPGA compilation flow'")
 
     # Define Compilation Steps
-    chip.cfg['steplist']['value'] = ['import',
+    chip.cfg['steplist']['value'] = ['validate',
+                                  'import',
                                   'syn',
                                   'apr',
                                   'export']
 
-    chip.cfg['start']['value'] = [chip.cfg['steplist']['value'][0]]
-    chip.cfg['stop']['value'] = [chip.cfg['steplist']['value'][-1]]
-
     for step in chip.cfg['steplist']['value']:
-        if step == 'import':
-            vendor = 'verilator'
+        if step == 'validate':
+            vendor = 'surelog'
+        elif step == 'import':
+            vendor = 'sv2v'
         elif step == 'syn':
             vendor = 'yosys'
         elif step == 'apr':

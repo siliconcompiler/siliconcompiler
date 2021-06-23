@@ -40,7 +40,6 @@ class Chip:
 
         # Create a default dict ("spec")
         self.cfg = schema_cfg()
-        self.layout = schema_layout()
 
         # Initialize logger
         self.logger = log.getLogger(uuid.uuid4().hex)
@@ -138,17 +137,17 @@ class Chip:
             switchstr = self._search(self.cfg, *key, mode='get', field='switch')            
 
             #Create a map from parser args back to dictionary
-            dest = switchstr.replace('-','')
-            argmap[dest] = paramstr  
+            #Special gcc/verilator compatible short switches get mapped to
+            #the key, all others get mapped to switch
+            if '_' in switchstr:
+                dest = switchstr.replace('-','')
+            else:
+                dest = key[0]
                    
-            #Mapping irregular switches(-D, +incdir, -v, -f, -O, etc to key)
             if 'source' in key:
                 argmap['source'] = paramstr
-                pass
-            elif '+' in  switchstr:
-                #TODO: implement 
-                pass
             elif typestr == 'bool':
+                argmap[dest] = paramstr 
                 parser.add_argument(switchstr,
                                     metavar='',
                                     dest=dest,
@@ -158,6 +157,7 @@ class Chip:
                                     default = argparse.SUPPRESS)
             else:
                 #all the rest
+                argmap[dest] = paramstr 
                 parser.add_argument(switchstr,
                                     metavar='',                                 
                                     dest=dest,
@@ -166,8 +166,30 @@ class Chip:
                                     default = argparse.SUPPRESS)
                 
                 
-        # Get comman line inputs
-        cmdargs = vars(parser.parse_args())
+        #Preprocess sys.argv to enable legacy GCC/SV switches with no space
+        scargs = []
+
+        for item in sys.argv:
+            #Split switches with one character and a number after (O0,O1,O2)            
+            opt = re.search('(\-\w)(\d+)',item)
+            #Split assign switches (-DCFG_ASIC=1)
+            assign = re.search('(\-\w)(\w+\=\w+)',item)
+            #Split plusargs (+incdir+/path)
+            plusarg = re.search('(\+\w+\+)(.*)',item)
+            if opt:
+                scargs.append(opt.group(1))
+                scargs.append(opt.group(2))
+            elif plusarg:
+                scargs.append(plusarg.group(1))
+                scargs.append(plusarg.group(2))
+            elif assign:
+                scargs.append(assign.group(1))
+                scargs.append(assign.group(2))           
+            else:
+                scargs.append(item)
+
+        #Grab argument from pre-process sysargs
+        cmdargs = vars(parser.parse_args(scargs))
 
         #Stuff command line values into dynamic dict
         for key, val in cmdargs.items():
@@ -183,7 +205,7 @@ class Chip:
         return chips
 
     ###########################################################################
-    def target(self, arg="UNDEFINED"):
+    def target(self, arg=None):
         '''
         Searches the SCPATH and PYTHON paths for the target specified by the
         Chip 'target' parameter. The target can be supplied as a single
@@ -229,7 +251,7 @@ class Chip:
         '''
 
         #Sets target in dictionary if string is passed in
-        if arg!="UNDEFINED":
+        if arg is not None:
             self.set('target', arg)
 
         #Selecting fpga or asic mode
@@ -1055,8 +1077,10 @@ class Chip:
         '''
 
         steplist = self.get('steplist')
-        start = self.get('start')[-1]
-        stop = self.get('stop')[-1]
+        start = self.get('start')[-1] if self.get('start') \
+                                      else self.get('steplist')[0]
+        stop = self.get('stop')[-1] if self.get('stop') \
+                                    else self.get('steplist')[-1]
         design = self.get('design')[-1]
         startindex = steplist.index(start)
         stopindex = steplist.index(stop)
@@ -1167,9 +1191,11 @@ class Chip:
         ###########################
 
         if start is None:
-            start = self.get('start')[-1]
+            start = self.get('start')[-1] if self.get('start') \
+                                          else self.get('steplist')[0]
         if stop is None:
-            stop = self.get('stop')[-1]
+            stop = self.get('stop')[-1] if self.get('stop') \
+                                        else self.get('steplist')[-1]
 
         startindex = steplist.index(start)
         stopindex = steplist.index(stop)
@@ -1392,17 +1418,6 @@ class RawFormatter(HelpFormatter):
     def _fill_text(self, text, width, indent):
         return "\n".join([textwrap.fill(line, width) for line in textwrap.indent(textwrap.dedent(text), indent).splitlines()])
 
-
-class PlusargAction(argparse.Action):
-    def __init__(self, option_strings, dest, nargs=None, **kwargs):
-        if nargs is not None:
-            raise ValueError("nargs not allowed")
-        super().__init__(option_strings, dest, **kwargs)
-    def __call__(self, parser, namespace, values, option_string=None):
-        print('%r %r %r' % (namespace, values, option_string))
-        setattr(namespace, self.dest, values)
-        
-    
 ################################################################################
 def get_permutations(base_chip, cmdlinecfg):
     '''Helper method to generate one or more Chip objects depending on

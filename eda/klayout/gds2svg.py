@@ -18,7 +18,7 @@ ctrans = pya.CplxTrans(1.0, 0.0, True, -bb.left, bb.top)
 
 # Set a basic layer-colors array, since we won't have a KLayout QT display.
 # Use the cube root of the number of layers to find how many colors are needed.
-num_pri_cols = math.ceil(math.pow(ly.layers(), 1/3))
+num_pri_cols = math.ceil(math.pow(ly.layers(), 1.0 / 3.0))
 col_step = int(0xff / num_pri_cols)
 primary_vals = []
 for c in range(col_step, 0x100, col_step):
@@ -45,7 +45,7 @@ with open('outputs/' + design_name + '.svg', 'w') as svg:
     # Write all relevant paths.
     for layer in range(ly.layers()):
         # Set the fill color for this layer.
-        fill_color = "%X"%colors[layer]
+        fill_color = "%X"%(colors[layer] if (len(colors) > layer) else 0xABCDEF40)
 
         # Using <g> ('group') tags should let us write a viewer which can
         # selectively show and hide different GDS layers.

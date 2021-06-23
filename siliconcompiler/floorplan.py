@@ -3,9 +3,14 @@
 import logging
 import math
 import jinja2
+from collections import namedtuple
+
+from siliconcompiler.leflib import Lef
+from siliconcompiler.schema import schema_path
 
 # Set up Jinja
-env = jinja2.Environment(loader=jinja2.BaseLoader, trim_blocks=True, lstrip_blocks=True)
+env = jinja2.Environment(loader=jinja2.PackageLoader('siliconcompiler'),
+                         trim_blocks=True, lstrip_blocks=True)
 
 # Jinja filter for rendering tuples in DEF style, e.g. (0, 0) becomes "( 0 0 )"
 def render_tuple(vals):
@@ -13,47 +18,7 @@ def render_tuple(vals):
     return f"( {vals_str} )"
 env.filters['render_tuple'] = render_tuple
 
-# Jinja template for outputting layout as DEF file
-DEF_TEMPLATE = """VERSION {{ layout.version }} ;
-DIVIDERCHAR "{{ layout.dividerchar }}" ;
-BUSBITCHARS "{{ layout.busbitchars }}" ;
-DESIGN {{ layout.design }} ;
-UNITS DISTANCE MICRONS {{ layout.units }} ;
-DIEAREA {% for coord in layout.diearea %}{{ coord | render_tuple }} {% endfor %};
-
-{% for name, row in layout.row.items() %}
-ROW {{ name }} {{ row.site }} {{ row.x }} {{ row.y }} {{ row.orientation }}
-    DO {{ row.numx }} BY {{ row.numy }} STEP {{ row.stepx }} {{ row.stepy }} ;
-{% endfor %}
-
-{% for name, track in layout.track.items() %}
-TRACKS {{ track.direction | upper }} {{ track.start }} DO {{ track.total }} STEP {{ track.step }}
-    LAYER {{ track.layer}} ;
-{% endfor %}
-
-COMPONENTS {{ layout.component | length }} ;
-{% for name, c in layout.component.items() %}
-   - {{ name }} {{ c.cell }}
-      {% if c.status %}
-      + {{ c.status | upper }} ( {{c.x }} {{ c.y }} ) {{ c.orientation }}
-      {% endif %}
-      + HALO {{ c.halo | join(' ') }} ;
-{% endfor %}
-END COMPONENTS
-
-PINS {{ layout.pin | length }} ;
-{% for name, pin in layout.pin.items() %}
-    - {{ name }} + NET {{ pin.net }} + DIRECTION {{ pin.direction|upper }} + USE {{ pin.use|upper }}
-       + PORT
-         + LAYER {{ pin.port.layer }} {{ pin.port.box | map('render_tuple') | join(' ') }}
-         {% if pin.port.status %}
-         + {{ pin.port.status|upper }} {{ pin.port.point | render_tuple }} {{ pin.port.orientation }} ;
-         {% endif %}
-{% endfor %}
-END PINS
-
-END DESIGN
-"""
+MacroInfo = namedtuple("MacroInfo", "tech_name width height")
 
 class Floorplan:
     '''Floorplan layout class'''
@@ -70,32 +35,85 @@ class Floorplan:
         '''
         self.chip = chip
 
+        self.design = chip.get('design')[-1]
+        self.db_units = db_units
         self.die_area = None
         self.core_area = None
+        self.pins = []
+        self.macros = []
+        self.rows = []
+        self.tracks = []
 
-        self.chip.layout['version'] = '5.8'
-        self.chip.layout['design'] = chip.get('design')[-1]
-        self.chip.layout['units'] = db_units
+        self.blockage_layers = []
+
+        # Set up custom Jinja `scale` filter as a closure around `self` so we
+        # don't have to pass in db_units
+        def scale(val):
+            if isinstance(val, list):
+                return [scale(item) for item in val]
+            elif isinstance(val, tuple):
+                return tuple([scale(item) for item in val])
+            else:
+                # TODO: rounding and making this an int seems helpful for resolving
+                # floating point rounding issues, but could be problematic if we
+                # want to have floats in DEF file? Alternative could be to use
+                # Python decimal library for internally representing micron values
+                return int(round(val * self.db_units))
+        env.filters['scale'] = scale
+
+        # Used to generate unique instance names for I/O fill cells
+        self.fill_cell_id = 0
+
+        ## Extract technology-specific info ##
 
         # extract std cell info based on libname
-        libname = self.chip.get('asic', 'targetlib')[-1]
-        self.std_cell_name = self.chip.get('stdcell', libname, 'site')[-1]
-        self.std_cell_width = float(self.chip.get('stdcell', libname, 'width')[-1])
-        self.std_cell_height = float(self.chip.get('stdcell', libname, 'height')[-1])
+        self.libname = self.chip.get('asic', 'targetlib')[-1]
+        self.std_cell_name = self.chip.get('stdcell', self.libname, 'site')[-1]
+        self.std_cell_width = float(self.chip.get('stdcell', self.libname, 'width')[-1])
+        self.std_cell_height = float(self.chip.get('stdcell', self.libname, 'height')[-1])
+
+        # Extract data from LEFs
+        lef_parser = Lef()
+        stackup = chip.get('asic', 'stackup')[-1]
+        libtype = chip.get('stdcell', self.libname, 'libtype')[-1]
+
+        tech_lef = schema_path(chip.get('pdk','aprtech', stackup, libtype, 'lef')[-1])
+        with open(tech_lef, 'r') as f:
+            tech_lef_data = lef_parser.parse(f.read())
+
+        # List of cells the user is able to place
+        self.available_cells = {}
+
+        for macrolib in self.chip.get('asic', 'macrolib'):
+            lef_path = schema_path(self.chip.get('macro', macrolib, 'lef')[-1])
+            with open(lef_path, 'r') as f:
+                lef_data = lef_parser.lib_parse(f.read())
+        
+            for name in self.chip.cfg['macro'][macrolib]['cells']:
+                if name == 'default': continue
+                tech_name = self.chip.get('macro', macrolib, 'cells', name)[-1]
+                if tech_name in lef_data['macros']:
+                    width, height = lef_data['macros'][tech_name]['size']
+                else: 
+                    raise KeyError(f'Implementation {tech_name} for macro {name}'
+                        f'not found in library {lef_path}')
+
+                self.available_cells[name] = MacroInfo(tech_name, width, height)
 
         # extract layers based on stackup
         stackup = self.chip.get('asic', 'stackup')[-1]
         self.layers = {}
-        for name, layer in self.chip.cfg['pdk']['aprlayer'][stackup].items():
+        for name, layer in self.chip.cfg['pdk']['grid'][stackup].items():
             if name == 'default': continue
             self.layers[name] = {}
-            self.layers[name]['name'] = layer['name']['value'][-1]
+            pdk_name = layer['name']['value'][-1]
+            self.layers[name]['name'] = pdk_name
+            self.layers[name]['width'] = float(tech_lef_data['LAYER'][pdk_name]['WIDTH'][-1])
             self.layers[name]['xpitch'] = float(layer['xpitch']['value'][-1])
             self.layers[name]['ypitch'] = float(layer['ypitch']['value'][-1])
             self.layers[name]['xoffset'] = float(layer['xoffset']['value'][-1])
             self.layers[name]['yoffset'] = float(layer['yoffset']['value'][-1])
 
-        self.db_units = db_units
 
     def create_die_area(self, width, height, core_area=None, generate_rows=True,
                         generate_tracks=True, units='relative'):
@@ -135,19 +153,21 @@ class Floorplan:
                               self.std_cell_height,
                               width - self.std_cell_height,
                               height - self.std_cell_height)
+        elif units == 'relative':
+            self.core_area = tuple(x * self.std_cell_height for x in core_area)
         else:
             self.core_area = core_area
 
+        # TODO: is this necessary or a good idea?
         self.chip.set('asic', 'diesize', str((0, 0, width, height)))
         self.chip.set('asic', 'coresize', str(self.core_area))
-        self.chip.layout['diearea'] = self._def_scale([(0, 0), self.die_area])
 
         if generate_rows:
             self.generate_rows()
         if generate_tracks:
             self.generate_tracks()
 
-    def save(self, filename):
+    def write_def(self, filename):
         '''Writes chip layout to DEF file.
 
         Args:
@@ -155,10 +175,22 @@ class Floorplan:
         '''
         logging.debug('Write DEF %s', filename)
 
-        tmpl = env.from_string(DEF_TEMPLATE)
-        layout = self._filter_defaults(self.chip.layout)
+        tmpl = env.get_template('floorplan_def.j2')
         with open(filename, 'w') as f:
-            f.write(tmpl.render(layout=layout))
+            f.write(tmpl.render(fp=self))
+
+    def write_lef(self, filename):
+        '''Writes chip layout to LEF file.
+
+        Args:
+            filename (str): Name of output file.
+            macro_name (str): Macro name to use in LEF.
+        '''
+        logging.debug('Write LEF %s', filename)
+
+        tmpl = env.get_template('floorplan_lef.j2')
+        with open(filename, 'w') as f:
+            f.write(tmpl.render(fp=self))
 
     def place_pins(self, pins, side, width, depth, layer, offset=0, pitch=None,
                    direction='inout', net_name=None, use='signal', fixed=True,
@@ -215,11 +247,10 @@ class Floorplan:
 
         # Convert all received dimensions to microns
         if units == 'relative':
+            pin_scale_factor = self.layers[layer]['width']
             if side.upper() in ('N', 'S'):
-                pin_scale_factor = self.layers[layer]['xpitch'] / 2
                 pos_scale_factor = self.layers[layer]['xoffset']
             else: # E, W
-                pin_scale_factor = self.layers[layer]['ypitch'] / 2
                 pos_scale_factor = self.layers[layer]['yoffset']
 
             width *= pin_scale_factor
@@ -291,20 +322,21 @@ class Floorplan:
             else:
                 pos = x, y
 
-            pin = {
-                'net': net_name if net_name else pin_name,
-                'direction': direction,
-                'use': use
-            }
             port = {
                 'layer': self.layers[layer]['name'],
-                'box': self._def_scale(shape),
+                'box': shape,
                 'status': 'fixed' if fixed else 'placed',
-                'point': self._def_scale(pos),
+                'point': pos,
                 'orientation': 'N'
             }
-            self.chip.layout['pin'][pin_name] = pin
-            self.chip.layout['pin'][pin_name]['port'] = port
+            pin = {
+                'name': pin_name,
+                'net': net_name if net_name else pin_name,
+                'direction': direction,
+                'use': use,
+                'port': port
+            }
+            self.pins.append(pin)
 
             x += xincr
             y += yincr
@@ -336,14 +368,16 @@ class Floorplan:
             y *= self.std_cell_height
 
         component = {
-            'cell': macro_name,
-            'x': self._def_scale(x),
-            'y': self._def_scale(y),
+            'name': instance_name,
+            'cell': self.available_cells[macro_name].tech_name,
+            'info': self.available_cells[macro_name],
+            'x': x,
+            'y': y,
             'status': 'fixed' if fixed else 'placed',
             'orientation': orientation.upper(),
             'halo': halo,
         }
-        self.chip.layout['component'][instance_name] = component
+        self.macros.append(component)
 
     def generate_rows(self, site_name=None, flip_first_row=False, area=None,
                       units='relative'):
@@ -365,7 +399,7 @@ class Floorplan:
 
         # clear existing rows, since we'll generate new ones from scratch using
         # floorplan parameters
-        self.chip.layout['row'].clear()
+        self.rows.clear()
 
         if site_name == None:
             site_name = self.std_cell_name
@@ -387,16 +421,17 @@ class Floorplan:
             name = f'ROW_{i}'
             orientation = 'FS' if (i % 2 == 0 and not flip_first_row) else 'N'
             row = {
+                'name': name,
                 'site': site_name,
-                'x': self._def_scale(start_x),
-                'y': self._def_scale(start_y),
+                'x': start_x,
+                'y': start_y,
                 'orientation': orientation,
                 'numx': num_x,
                 'numy': 1,
-                'stepx' : self._def_scale(self.std_cell_width),
+                'stepx' : self.std_cell_width,
                 'stepy' : 0
             }
-            self.chip.layout['row'][name] = row
+            self.rows.append(row)
 
             start_y += self.std_cell_height
 
@@ -415,7 +450,7 @@ class Floorplan:
 
         # clear existing rows, since we'll generate new ones from scratch using
         # floorplan parameters
-        self.chip.layout['track'].clear()
+        self.tracks.clear()
 
         if area and units == 'relative':
             area = [v * self.std_cell_height for v in area]
@@ -435,40 +470,234 @@ class Floorplan:
             num_tracks_y = math.floor((die_height - offset_y) / pitch_y) + 1
 
             track_x = {
+                'name': f'{layer_name}_X',
                 'layer': layer_name,
                 'direction': 'x',
-                'start': self._def_scale(offset_x),
-                'step': self._def_scale(pitch_x),
+                'start': offset_x,
+                'step': pitch_x,
                 'total': num_tracks_x
             }
             track_y = {
+                'name': f'{layer_name}_Y',
                 'layer': layer_name,
                 'direction': 'y',
-                'start': self._def_scale(offset_y),
-                'step': self._def_scale(pitch_y),
+                'start': offset_y,
+                'step': pitch_y,
                 'total': num_tracks_y
             }
 
-            self.chip.layout['track'][f'{layer_name}_X'] = track_x
-            self.chip.layout['track'][f'{layer_name}_Y'] = track_y
+            self.tracks.append(track_x)
+            self.tracks.append(track_y)
 
-    def _filter_defaults(self, layout):
-        layout = self.chip.layout.copy()
-        del layout['pin']['default']
-        del layout['component']['default']
-        return layout
+    def place_blockage(self, layers=None):
+        '''
+        Places full-area blockages on the specified layers.
 
-    def _def_scale(self, val):
-        if isinstance(val, list):
-            return [self._def_scale(item) for item in val]
-        elif isinstance(val, tuple):
-            return tuple([self._def_scale(item) for item in val])
+        The blockages specified using this method only take effect when dumping
+        the floorplan as a LEF macro.
+
+        Args:
+            layers (list): List of layers to place blockages on. If `None`,
+            block all metal layers.
+        '''
+
+        if layers is None:
+            layers = list(self.layers.keys())
+
+        for layer in layers:
+            if layer in self.layers:
+                self.blockage_layers.append(self.layers[layer]['name'])
+            else:
+                raise ValueError(f'Layer {layer} not found in tech info!')
+
+    def place_macros(self, macros, start_pos, orientation, direction, spacing=0):
+        '''Places macros on floorplan.
+
+        Args:
+            macros (list of (str, str)): List of macros to place as tuples of
+                (instance name, type).
+            start_pos (tuple): x, y coordinate where to place first instance.
+            orientation (str): Orientation of macro
+            direction (str): Direction to place macros ('h' for east-west, 'v'
+                for north-south).
+            spacing (int): Distance between this pad and previous, in microns.
+        '''
+
+        # TODO Validate orientation
+        # TODO Validate direciton
+        # TODO Validating spacing
+
+        pos_x, pos_y = start_pos
+
+        is_ew_ori = orientation.upper() in ('E', 'W', 'FE', 'FW')
+        is_ns_ori = not is_ew_ori
+
+        for instance_name, cell_name in macros:
+            cell = self.available_cells[cell_name]
+            width = cell.width
+            height = cell.height
+
+            self.place_macro(instance_name, cell_name, (pos_x, pos_y), orientation, units='absolute')
+            
+            if direction.lower() == 'h':
+                pos_x += spacing + (width if is_ns_ori else height)
+            else:
+                pos_y += spacing + (width if is_ew_ori else height)
+
+    def place_macros_spaced(self, macros, start_pos, orientation, direction, distance):
+        ''' Places macros on floorplan with even space.
+
+        Args:
+            macros (list of (str, str)): List of macros to place as tuples of
+                (instance name, type).
+            start_pos (tuple): coordinates of first macro placed.
+            orientation (str): orientation of each macro.
+            direction (str): which direction to repeat macro. Must be 'h' for
+                horizontal or 'v' for vertical.
+            distance (float): distance from start_pos to space macros within.
+        '''
+        filled_space = 0
+        for _, cell_name in macros:
+            width = self.available_cells[cell_name].width
+            filled_space += width
+
+        # TODO: raise error if filled_space < distance
+        spacing = (distance - filled_space) / (len(macros) + 1)
+
+        x, y = start_pos
+        if direction.lower() == 'h':
+            x += spacing
         else:
-            # TODO: rounding and making this an int seems helpful for resolving
-            # floating point rounding issues, but could be problematic if we
-            # want to have floats in DEF file? Alternative could be to use
-            # Python decimal library for internally representing micron values
-            return int(round(val * self.db_units))
+            y += spacing
+
+        self.place_macros(macros, (x, y), orientation, direction, spacing)
+
+    def fill_io_region(self, region, fill_cells, orientation):
+        ''' Fill empty space in region with I/O filler cells
+
+        Args:
+            region (list of tuple of int): bottom-left and top-right corner of
+                region to fill.
+
+        Raises:
+            ValueError: Region contains macros such that it is unfillable.
+        '''
+ 
+        # TODO: validate orientation
+
+        region_min_x, region_min_y = region[0]
+        region_max_x, region_max_y = region[1]
+
+        # TODO: should direction be passed in explicitly?
+        if orientation[-1].lower() in ('e', 'w'):
+            direction = 'v'
+            region_height = region_max_x - region_min_x
+        else:
+            direction = 'h'
+            region_height = region_max_y - region_min_y
+
+        # Gather macros in region. Macros in region must be aligned with the
+        # direction of the region, and no macros may be partially contained
+        # along the direction axis.
+        macros = []
+        for macro in self.macros:
+            width = macro['info'].width
+            height = macro['info'].height
+            x = macro['x']
+            y = macro['y']
+            ori = macro['orientation']
+            max_y = y + height if ori[-1].lower() in ('n', 's') else y + width
+            max_x = x + width if ori[-1].lower() in ('n', 's') else x + height
+
+            if direction == 'h':
+                if y >= region_max_y or max_y <= region_min_y:
+                    # outside of region vertically
+                    continue
+                if y != region_min_y and max_y != region_max_y:
+                    raise ValueError("Fill region must not contain cells that don't fill it vertically.")
+
+                # if we continue, cell is aligned to region vertically
+
+                left_edge_in = (x >= region_min_x)
+                right_edge_in = (max_x <= region_max_x)
+
+                if left_edge_in or right_edge_in:
+                    macros.append((x, max_x, macro))
+            else:
+                if x >= region_max_x or max_x  <= region_min_x:
+                    # outside of region horizontally
+                    continue
+                if x != region_min_x and max_x != region_max_x:
+                    raise ValueError("Fill region must not contain cells that don't fill it horizontally.")
+
+                # if we continue, cell is aligned to region horizontally
+
+                bottom_edge_in = (y >= region_min_y)
+                top_edge_in = (max_y <= region_max_y)
+
+                if bottom_edge_in or top_edge_in:
+                    macros.append((y, max_y, macro))
+
+        # Iterate along region direction and record gaps between macros.
+        gaps = []
+        macros = sorted(macros, key=lambda c: c[0])
+
+        if direction == 'h':
+            region_start = region_min_x
+            region_end = region_max_x
+        else:
+            region_start = region_min_y
+            region_end = region_max_y
+
+        if region_start < macros[0][0]:
+            gaps.append((region_start, macros[0][0]))
+
+        for i in range(len(macros) - 1):
+            gaps.append((macros[i][1], macros[i+1][0]))
+
+        if region_end > macros[-1][1]:
+            gaps.append((macros[-1][i], region_end))
+
+        # Iterate over gaps and place filler cells
+        # TODO: this is only guaranteed to work if we have a width 1 filler
+        # cell. Is that a valid assumption/should we use a more sophisticated
+        # algorithm?
+        
+        # Gather I/O fill cells and sort by wider to narrower
+        io_fill_cells = []
+        for cell in fill_cells:
+            if not cell in self.available_cells:
+                raise ValueError(f'Provided fill cell {cell} is not included in'
+                    f'list of available macros')
+
+            cell_info = self.available_cells[cell]
+
+            if cell_info.height != region_height:
+                raise ValueError(f'Provided fill cell {cell} does not have '
+                    f'appropriate height to fill region')
+
+            io_fill_cells.append((cell, self.available_cells[cell]))
+
+        io_fill_cells = sorted(io_fill_cells, key=lambda c: c[1].width, reverse=True)
+
+        for start, end in gaps:
+            cell_idx = 0
+            while start != end:
+                cell, cell_info = io_fill_cells[cell_idx]
+                width = cell_info.width
+                if width > end - start:
+                    cell_idx += 1
+                    if cell_idx >= len(io_fill_cells):
+                        raise ValueError('Unable to fill gap with available cells!')
+                    continue
+
+                name = f'_sc_io_fill_cell_{self.fill_cell_id}'
+                self.fill_cell_id += 1
+                if direction == 'h':
+                    self.place_macro(name, cell, (start, region_min_y), orientation, units='absolute')
+                else:
+                    self.place_macro(name, cell, (region_min_x, start), orientation, units='absolute')
+                start += width
 
     def _snap_to_x_track(self, x, layer):
         offset = self.layers[layer]['xoffset']
@@ -487,33 +716,3 @@ class Floorplan:
     def _validate_orientation(self, orientation):
         if orientation not in ('N', 'S', 'W', 'E', 'FN', 'FS', 'FW', 'FE'):
             raise ValueError("Illegal orientation")
-
-if __name__ == '__main__':
-    # Test: create floorplan with `n` equally spaced `width` x `depth` pins along
-    # each side
-
-    from siliconcompiler.core import *
-    from asic.targets.freepdk45 import *
-    c = Chip()
-    c.set('design', 'test')
-    setup_platform(c)
-    setup_libs(c)
-    setup_design(c)
-
-    fp = Floorplan(c)
-    fp.create_die_area(100.13, 100.8, core_area=(10.07, 11.2, 90.25, 91))
-
-    n = 4 # pins per side
-    width = 10
-    depth = 30
-    metal = 'm3'
-
-    fp.place_macro('myram', 'RAM', (25, 25), 'N')
-
-    pins = [f"in[{i}]" for i in range(4 * n)]
-    fp.place_pins(pins[0:n], 'n', width, depth, metal)
-    fp.place_pins(pins[n:2*n], 'e', width, depth, metal)
-    fp.place_pins(pins[2*n:3*n], 'w', width, depth, metal)
-    fp.place_pins(pins[3*n:4*n], 's', width, depth, metal)
-
-    fp.save('test.def')

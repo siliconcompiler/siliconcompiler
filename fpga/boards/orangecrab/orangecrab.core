@@ -1,0 +1,21 @@
+CAPI=2:
+name: sc:orangecrab:1.0
+
+filesets:
+  rtl:
+    files:
+      - inputs/sc.v
+    file_type: verilogSource
+
+  constraints:
+    files:
+      - inputs/orangecrab.lpf
+    file_type: LPF
+
+targets:
+  default:
+    default_tool: trellis
+    filesets: [rtl, constraints]
+    tools:
+      trellis:
+        nextpnr_options: ['--25k', '--package', 'CSFBGA285']

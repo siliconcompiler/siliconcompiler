@@ -1,0 +1,46 @@
+VERSION 5.8 ;
+BUSBITCHARS "[]" ;
+DIVIDERCHAR "/" ;
+UNITS
+  DATABASE MICRONS {{ fp.db_units }} ;
+END UNITS
+
+MACRO {{ fp.design }}
+  FOREIGN {{ fp.design }} ;
+
+  {% if False %}
+  TODO: should we specify symmetry? do we have to analyze the design to
+  determine that?
+  SYMMETRY X Y R90 ;
+  {% endif %}
+
+  SIZE {{ fp.die_area[0] }} BY {{ fp.die_area[1] }} ;
+  CLASS BLOCK ;
+  {% for pin in fp.pins %}
+  PIN {{ pin.name }}
+    DIRECTION {{ pin.direction }} ;
+    USE {{ pin.use }} ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER {{ pin.port.layer }} ;
+      RECT {{ pin.port.point[0] + pin.port.box[0][0] }}
+           {{ pin.port.point[1] + pin.port.box[0][1] }}
+           {{ pin.port.point[0] + pin.port.box[1][0] }}
+           {{ pin.port.point[1] + pin.port.box[1][1] }} ;
+    END
+  END {{ pin.name }}
+  {% endfor %}
+
+  {% for layer in fp.blockage_layers %}
+  OBS
+    LAYER {{ layer }} ;
+    RECT 0
+         0
+         {{ fp.die_area[0] }}
+         {{ fp.die_area[1] }} ;
+  END
+  {% endfor %}
+
+END {{ fp.design }}
+
+END LIBRARY

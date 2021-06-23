@@ -58,19 +58,6 @@ def schema_lib():
     pass    
 
 ###############################################################################
-# CHIP LAYOUT
-###############################################################################
-def schema_layout():
-    
-    layout = {}
-
-    layout = schema_lef(layout)
-
-    layout = schema_def(layout)
-
-    return layout
-
-###############################################################################
 # UTILITY FUNCTIONS TIED TO SC SPECIFICATIONS
 ###############################################################################
 
@@ -201,7 +188,7 @@ def schema_fpga(cfg):
         Provides an XML-based architecture description for the target FPGA
         architecture to be used in VTR, allowing targeting a large number of 
         virtual and commercial architectures.
-        [More information...](https://verilogtorouting.org)
+        `More information... <https://verilogtorouting.org>`_
         """
     }
 
@@ -216,7 +203,8 @@ def schema_fpga(cfg):
         'example': ["cli: -fpga_vendor acme",                    
                     "api:  chip.set('fpga', 'vendor', 'acme')"],
         'help' : """
-        Name of the FPGA vendor for non-VTR based compilation
+        Name of the FPGA vendor for non-VTR based compilation. This value is
+        generally set by the FPGA platform target.
         """
     }
 
@@ -231,7 +219,8 @@ def schema_fpga(cfg):
         'example': ["cli: -fpga_device fpga64k",                    
                     "api:  chip.set('fpga', 'device', 'fpga64k')"],
         'help' : """
-        Name of the FPGA device for non-VTR based compilation
+        Name of the FPGA device for non-VTR based compilation. This value is
+        generally set by the FPGA platform target.
         """
     }
 
@@ -526,9 +515,9 @@ def schema_pdk(cfg):
         'signature' : [],
         'short_help' : 'Device Models',
         'param_help' : "pdk devicemodel stackvar typevar toolvar <file>",
-        'example': ["""cli: -pdk_devicemodel 'M10 spice xyce asap7.sp'""",
-                    """api: chip.add('pdk','devicemodel','M10','spice','xyce',
-                    'asap7.sp')"""],
+        'example': [
+            "cli: -pdk_devicemodel 'M10 spice xyce asap7.sp'",
+            "api: chip.add('pdk','devicemodel','M10','spice','xyce','asap7.sp')"],
         'help' : """
         Filepaths for all PDK device models. The structure serves as a central 
         access registry for models for different purpose and tools. Examples of
@@ -553,9 +542,9 @@ def schema_pdk(cfg):
         'signature' : [],
         'short_help' : 'Parasitic TCAD Models',
         'param_help' : "pdk pexmodel stackvar cornervar toolvar <file>",
-        'example': ["""cli: -pdk_pexmodel 'M10 max fastcap wire.mod'""",
-                    """api: chip.add('pdk','pexmodel','M10','max','fastcap'
-                    'wire.mod')"""],
+        'example': [
+            "cli: -pdk_pexmodel 'M10 max fastcap wire.mod'",
+            "api: chip.add('pdk','pexmodel','M10','max','fastcap','wire.mod')"],
         'help' : """
         Filepaths for all PDK wire TCAD models. The structure serves as a 
         central access registry for models for different purpose and tools. 
@@ -580,9 +569,9 @@ def schema_pdk(cfg):
         'signature' : [],
         'short_help' : 'Mask Layer Maps',
         'param_help' : "pdk layermap stackvar srcvar dstvar <file>",
-        'example': ["""cli: -pdk_layermap 'M10 klayout gds asap7.map'""",
-                    """api: chip.add('pdk','layermap','M10','klayout','gds'
-                    'asap7.map')"""],
+        'example': [
+            "cli: -pdk_layermap 'M10 klayout gds asap7.map'",
+            "api: chip.add('pdk','layermap','M10','klayout','gds','asap7.map')"],
         'help' : """
         Files describing input/output mapping for streaming layout data from 
         one format to another. A foundry PDK will include an official layer 
@@ -611,9 +600,9 @@ def schema_pdk(cfg):
         'signature' : [],
         'short_help' : 'Display Configurations',
         'param_help' : "pdk display stackvar toolvar formatvar <file>",
-        'example': ["""cli: -pdk_display 'M10 klayout python display.lyt'""",
-                    """api: chip.add('pdk', display','M10','klayout','python'
-                    'display.cfg')"""],
+        'example': [
+            "cli: -pdk_display 'M10 klayout python display.lyt'",
+            "api: chip.add('pdk','display','M10','klayout','python','display.cfg')"],
         'help' : """
         Display configuration files describing colors and pattern schemes for
         all layers in the PDK. The display configuration file is entered on a 
@@ -637,9 +626,9 @@ def schema_pdk(cfg):
         'signature' : [],
         'short_help' : 'Primitive Libraries',
         'param_help' : "pdk plib stackvar toolvar formatvar <file>",
-        'example': ["""cli: -pdk_plib 'M10 klayout oa /disk/asap7/oa/devlib'""",
-                    """api: chip.add('pdk','plib','M10', 'klayout', 'oa', 
-                    '/disk/asap7/oa/devlib')"""],
+        'example': [
+            "cli: -pdk_plib 'M10 klayout oa ~/devlib'",
+            "api: chip.add('pdk','plib','M10','klayout','oa','~/devlib')"],
         'help' : """
         Filepaths to all primitive cell libraries supported by the PDK. The 
         filepaths are entered on a per stackup and per format basis.
@@ -662,9 +651,9 @@ def schema_pdk(cfg):
         'signature' : [],
         'short_help' : 'APR Technology File',
         'param_help' : "pdk aprtech stackvar libtypevar filetypevar <file>",
-        'example': ["""cli: -pdk_aprtech 'M10 12t lef tech.lef'""",
-                    """api: chip.add('pdk','aprtech','M10','12t','lef',
-                    'tech.lef')"""],
+        'example': [
+            "cli: -pdk_aprtech 'M10 12t lef tech.lef'",
+            "api: chip.add('pdk','aprtech','M10','12t','lef','tech.lef')"],
         'help' : """
         Technology file containing the design rule and setup information needed
         to enable DRC clean automated placement a routing. The file is 
@@ -689,8 +678,8 @@ def schema_pdk(cfg):
         'short_help' : 'Grid Layer Name Map',
         'param_help' : "pdk grid stackvar layervar name <str>",
         'example': ["""cli: -pdk_grid_name 'M10 m1 metal1'""",
-                    """api: chip.add('pdk', 'grid', 'M10', 'm1', 'name',
-                    'metal1')"""],
+                    "api: chip.add('pdk', 'grid', 'M10', 'm1', 'name',"
+                    "'metal1')"],
         'help' : """
         Defines the hardcoded PDK metal name on a per stackup and per metal 
         basis. Metal layers are ordered from m1 to mn, where m1 is the lowest
@@ -707,8 +696,8 @@ def schema_pdk(cfg):
         'short_help' : 'Grid Layer Horizontal Grid',
         'param_help' : "pdk grid stackvar layervar xpitch <num>",
         'example': ["""cli: -pdk_grid_xpitch 'M10 m1 0.5'""",
-                    """api: chip.add('pdk','grid','M10','m1','xpitch',
-                    '0.5')"""],
+                    "api: chip.add('pdk','grid','M10','m1','xpitch',"
+                    "'0.5')"],
         'help' : """
         Defines the vertical routing grid on a a per stackup and per metal 
         basis. Values are specified in um. Metal layers are ordered from m1 to 
@@ -726,8 +715,8 @@ def schema_pdk(cfg):
         'short_help' : 'Grid Layer Vertical Grid',
         'param_help' : "pdk grid stackvar layervar ypitch <num>'",
         'example': ["""cli: -pdk_grid_ypitch 'M10 m2 0.5'""",
-                    """api: chip.add('pdk','grid','M10','m2','ypitch',
-                    '0.5')"""],
+                    "api: chip.add('pdk','grid','M10','m2','ypitch',"
+                    "'0.5')"],
         'help' : """
         Defines the horizontal routing grid on a a per stackup and per metal 
         basis. Values are specified in um. Metal layers are ordered from m1 to
@@ -745,8 +734,8 @@ def schema_pdk(cfg):
         'short_help' : 'Grid Layer Preferred Direction',
         'param_help' : "pdk grid stackvar layervar xoffset <num>",
         'example': ["""cli: -pdk_grid_xoffset 'M10 m2 0.5'""",
-                    """api: chip.add('pdk','grid','M10','m2','xoffset',
-                    '0.5')"""],
+                    "api: chip.add('pdk','grid','M10','m2','xoffset',"
+                    "'0.5')"],
         'help' : """
         Defines the horizontal grid offset of a metal layer specified on a per 
         stackup and per metal basis. Values are specified in um.
@@ -763,8 +752,8 @@ def schema_pdk(cfg):
         'short_help' : 'Grid Layer Preferred Direction',
         'param_help' : "pdk grid stackvar layervar yoffset <num>",
         'example': ["""cli: -pdk_grid_yoffset 'M10 m2 0.5'""",
-                    """api: chip.add('pdk','grid','M10','m2','yoffset',
-                    '0.5')"""],
+                    "api: chip.add('pdk','grid','M10','m2','yoffset',"
+                    "'0.5')"],
         'help' : """
         Defines the horizontal grid offset of a metal layer specified on a per 
         stackup and per metal basis. Values are specified in um.
@@ -781,8 +770,8 @@ def schema_pdk(cfg):
         'short_help' : 'Grid Layer Routing Adjustment',
         'param_help' : "pdk grid stackvar layervar adj <num>",
         'example': ["""cli: -pdk_grid_adj 'M10 m2 0.5'""",
-                    """api: chip.set('pdk','grid','M10','m2','adj',
-                    '0.5')"""],
+                    "api: chip.set('pdk','grid','M10','m2','adj',"
+                    "'0.5')"],
         'help' : """
         Defines the routing resources adjustments for the design on a per layer
         basis. The value is expressed as a fraction from 0 to 1. A value of
@@ -800,8 +789,8 @@ def schema_pdk(cfg):
         'short_help' : 'Grid Layer Routing Layer Capacitance',
         'param_help' : "pdk grid stackvar layervar cap <num>",
         'example': ["""cli: -pdk_grid_cap 'M10 m2 0.2'""",
-                    """api: chip.set('pdk','grid','M10','m2','cap',
-                    '0.2')"""],
+                    "api: chip.set('pdk','grid','M10','m2','cap',"
+                    "0.2')"],
         'help' : """
         Specifies the unit capacitance of a wire defined by the grid
         width and spacing values in the 'grid' structure.  The
@@ -821,8 +810,8 @@ def schema_pdk(cfg):
         'short_help' : 'Grid Layer Routing Layer Resistance',
         'param_help' : "pdk grid stackvar layervar res <num>",
         'example': ["""cli: -pdk_grid_res 'M10 m2 0.2'""",
-                    """api: chip.set('pdk','grid','M10','m2','res',
-                    '0.2')"""],
+                    "api: chip.set('pdk','grid','M10','m2','res',"
+                    "'0.2')"],
         'help' : """
         Specifies the resistance  of a wire defined by the grid
         width and spacing values in the 'grid' structure.  The
@@ -842,8 +831,8 @@ def schema_pdk(cfg):
         'short_help' : 'Grid Layer Temperature Coefficent',
         'param_help' : "pdk grid stackvar layervar tcr <num>",
         'example': ["""cli: -pdk_grid_tcr 'M10 m2 0.1'""",
-                    """api: chip.set('pdk','grid','M10','m2','tcr',
-                    '0.1')"""],
+                    "api: chip.set('pdk','grid','M10','m2','tcr',"
+                    "'0.1')"],
         'help' : """
         Specifies the temperature coefficient of resistance of the wire 
         defined by the grid width and spacing values in the 'grid' 
@@ -964,7 +953,7 @@ def schema_libs(cfg, group):
         'short_help' : group.capitalize() + ' Documentation',
         'param_help' : group+" libvar doc <file>",
         'example': ["cli: -"+group+"_doc 'lib lib_guide.pdf'",
-                    "api: chip.set('"+group+"','lib','doc','lib_guide.pdf"],
+                    "api: chip.set('"+group+"','lib','doc','lib_guide.pdf')"],
         'help' : """
         A list of critical library documents entered in order of importance. 
         The first item in thelist should be the primary library user guide. 
@@ -986,8 +975,9 @@ def schema_libs(cfg, group):
         'signature' : [],
         'short_help' : group.capitalize() + ' Datasheets',
         'param_help' : group+" libvar datasheet <file>",
-        'example': ["cli: -"+group+"_datasheet 'lib lib_ds.pdf'",
-                    "api: chip.set('"+group+"','lib','datasheet','lib_ds.pdf/"],
+        'example': [
+            "cli: -"+group+"_datasheet 'lib lib_ds.pdf'",
+            "api: chip.set('"+group+"','lib','datasheet','lib_ds.pdf')"],
         'help' : """
         A complete collection of library datasheets. The documentation can be
         provied as a PDF or as a filepath to a directory with one HTMl file 
@@ -1004,8 +994,9 @@ def schema_libs(cfg, group):
         'defvalue' : [],
         'short_help' : group.capitalize() + ' Type',
         'param_help' : group+" libvar libtype <str>",
-        'example': ["cli: -"+group+"_libtype 'mylib 12t'",
-                    "api: chip.set('"+group+"','mylib','libtype', '12t'"],
+        'example': [
+            "cli: -"+group+"_libtype 'mylib 12t'",
+            "api: chip.set('"+group+"','mylib','libtype', '12t')"],
         'help' : """
         Libtype is a a unique string that identifies the row height or
         performance class of the library for APR. The libtype must match up
@@ -1023,7 +1014,7 @@ def schema_libs(cfg, group):
         'short_help' : group.capitalize() + ' Width',
         'param_help' : group+" libvar width <num>",
         'example': ["cli: -"+group+"_width 'mylib 0.1'",
-                    "api: chip.set('"+group+"','mylib','width', '0.1'"],
+                    "api: chip.set('"+group+"','mylib','width', '0.1')"],
         
         'help' : """
         Specifies the width of a unit cell. The value can usually be
@@ -1040,8 +1031,9 @@ def schema_libs(cfg, group):
         'defvalue' : [],
         'short_help' : group.capitalize() + ' Height',
         'param_help' : group+" libvar height <num>",
-        'example': ["cli: -"+group+"_height 'mylib 1.0'",
-                    "api: chip.set('"+group+"','mylib','height', '1.0'"],
+        'example': [
+            "cli: -"+group+"_height 'mylib 1.0'",
+            "api: chip.set('"+group+"','mylib','height', '1.0')"],
         'help' : """
         Specifies the height of a unit cell. The value can usually be
         extracted automatically from the layout library but is included in the
@@ -1065,9 +1057,9 @@ def schema_libs(cfg, group):
         'defvalue' : [],
         'short_help' : group.capitalize() + ' Operating Condition',
         'param_help' : group+" libvar model cornervar opcond <str>",
-        'example':["cli: -"+group+"_opcond 'lib model ss_1.0v_125c WORST'",
-                   "api: chip.add('"+group+"','lib','model','ss_1.0v_125c', \
-                   'opcond', 'WORST'"],
+        'example':[
+            "cli: -"+group+"_opcond 'lib model ss_1.0v_125c WORST'",
+            "api: chip.add('"+group+"','lib','model','ss_1.0v_125c','opcond','WORST')"],
         'help' : """
         The default operating condition to use for mcmm optimization and
         signoff on a per corner basis.
@@ -1083,9 +1075,9 @@ def schema_libs(cfg, group):
         'defvalue' : [],
         'short_help' : group.capitalize() + ' Corner Checks',
         'param_help' : group+" libvar model cornervar check <str>",
-        'example':["cli: -"+group+"_check 'lib model ss_1.0v_125c setup'",
-                   "api: chip.add('"+group+"','lib','model','ss_1.0v_125c', \
-                   'check', 'setup'"],
+        'example':[
+            "cli: -"+group+"_check 'lib model ss_1.0v_125c setup'",
+            "api: chip.add('"+group+"','lib','model','ss_1.0v_125c','check','setup')"],
         'help' : """
         Per corner checks to perform during optimization and STA signoff.
         Names used in the 'mcmm' scenarios must align with the 'check' names
@@ -1112,9 +1104,9 @@ def schema_libs(cfg, group):
         'signature' : [],
         'short_help' : group.capitalize() + ' NLDM Timing Model',
         'param_help' : group+" libvar model cornervar nldm typevar <file>",
-        'example':["cli: -"+group+"_nldm 'lib model ss gz ss.lib.gz'",
-                   "api: chip.add('"+group+"','lib','model','ss','nldm', \
-                   'gz', 'ss.lib.gz'"],
+        'example':[
+            "cli: -"+group+"_nldm 'lib model ss gz ss.lib.gz'",
+            "api: chip.add('"+group+"','lib','model','ss','nldm','gz','ss.lib.gz')"],
         'help' : """
         Filepaths to NLDM models. Timing files are specified on a per lib,
         per corner, and per format basis. The format is driven by EDA tool
@@ -1138,9 +1130,9 @@ def schema_libs(cfg, group):
         'signature' : [],
         'short_help' : group.capitalize() + ' CCS Timing Model',
         'param_help' : group+" libvar model cornervar ccs typevar <file>",
-        'example':["cli: -"+group+"_ccs 'lib model ss lib.gz ss.lib.gz'",
-                   "api: chip.add('"+group+"','lib','model','ss','ccs', \
-                   'gz', 'ss.lib.gz'"],
+        'example':[
+            "cli: -"+group+"_ccs 'lib model ss lib.gz ss.lib.gz'",
+            "api: chip.add('"+group+"','lib','model','ss','ccs','gz','ss.lib.gz')"],
         'help' : """
         Filepaths to CCS models. Timing files are specified on a per lib,
         per corner, and per format basis. The format is driven by EDA tool
@@ -1164,9 +1156,9 @@ def schema_libs(cfg, group):
         'signature' : [],
         'short_help' : group.capitalize() + ' SCM Timing Model',
         'param_help' : group+" libvar model cornervar scm typevar <file>",
-        'example':["cli: -"+group+"_scm 'lib model ss lib.gz ss.lib.gz'",
-                   "api: chip.add('"+group+"','lib','model','ss', 'scm', \
-                   'gz', 'ss.lib.gz'"],
+        'example':[
+            "cli: -"+group+"_scm 'lib model ss lib.gz ss.lib.gz'",
+            "api: chip.add('"+group+"','lib','model','ss', 'scm','gz','ss.lib.gz')"],
         'help' : """
         Filepaths to SCM models. Timing files are specified on a per lib,
         per corner, and per format basis. The format is driven by EDA tool
@@ -1189,9 +1181,9 @@ def schema_libs(cfg, group):
         'signature' : [],
         'short_help' : group.capitalize() + ' AOCV Timing Model',
         'param_help' : group+" libvar model cornervar aocv <file>",
-        'example':["cli: -"+group+"_aocv 'lib model ss lib.aocv'",
-                   "api: chip.add('"+group+"','lib','model','ss', 'aocv', \
-                   'lib_ss.aocv'"],
+        'example':[
+            "cli: -"+group+"_aocv 'lib model ss lib.aocv'",
+            "api: chip.add('"+group+"','lib','model','ss','aocv','lib_ss.aocv')"],
         'help': """
         Filepaths to AOCV models. Timing files are specified on a per lib,
         per corner basis. 
@@ -1213,9 +1205,9 @@ def schema_libs(cfg, group):
         'signature' : [],
         'short_help' : group.capitalize() + ' APL Power Model',
         'param_help' : group+" libvar model cornervar apl typevar <file>",
-        'example':["cli: -"+group+"_apl 'lib model ss cdev lib_tt.cdev'",
-                   "api: chip.add('"+group+"','lib','model','ss','apl','cdev',\
-                   'lib_tt.cdev'"],
+        'example':[
+            "cli: -"+group+"_apl 'lib model ss cdev lib_tt.cdev'",
+            "api: chip.add('"+group+"','lib','model','ss','apl','cdev','lib_tt.cdev')"],
         'help' : """
         Filepaths to APL power models. Power files are specified on a per
         lib, per corner, and per format basis.
@@ -1308,8 +1300,8 @@ def schema_libs(cfg, group):
         'short_help' : group.capitalize() + ' Spice Netlist',
         'param_help' : group+" libvar spice format <file>",
         'example':["cli: -"+group+"_spice 'mylib pspice mylib.sp'",
-                   "api: chip.add('"+group+"','mylib','spice', 'pspice',\
-                   'mylib.sp')"],
+                   "api: chip.add('"+group+"','mylib','spice', 'pspice',"
+                   "'mylib.sp')"],
         'help' : """
         Files containing library spice netlists used for circuit 
         simulation, specified on a per format basis. 
@@ -1330,8 +1322,8 @@ def schema_libs(cfg, group):
         'short_help' : group.capitalize() + ' HDL Model',
         'param_help' : group+" libvar hdl formatvar <file>",
         'example':["cli: -"+group+"_hdl 'mylib verilog mylib.v'",
-                   "api: chip.add('"+group+"','mylib','hdl', 'verilog',\
-                   'mylib.v')"],
+                   "api: chip.add('"+group+"','mylib','hdl', 'verilog',"
+                   "'mylib.v')"],
         'help' : """
         Library HDL models, specifed on a per format basis. Examples
         of legal formats include Verilog,  VHDL.
@@ -1439,8 +1431,8 @@ def schema_libs(cfg, group):
         'short_help' : group.capitalize() + ' Cell Lists',
         'param_help' : group+" libvar cells groupvar <str>",
         'example':["cli: -"+group+"_cells 'mylib dontuse *eco*'",
-                   "api: chip.add('"+group+"','mylib','cells','dontuse', \
-                   '*eco*')"],
+                   "api: chip.add('"+group+"','mylib','cells','dontuse',"
+                   "'*eco*')"],
         'help' : """
         A named list of cells grouped by a property that can be accessed
         directly by the designer and EDA tools. The example below shows how
@@ -1465,8 +1457,8 @@ def schema_libs(cfg, group):
         'short_help' : group.capitalize() + ' Layout Database',
         'param_help' : group+" libvar layoutdb stackvar formatvar <file>",
         'example':["cli: -"+group+"_layoutdb 'mylib M10 oa /disk/mylibdb'",
-                   "api: chip.add('"+group+"','mylib','layoutdb','M10', \
-                   'oa', '/disk/mylibdb')"],
+                   "api: chip.add('"+group+"','mylib','layoutdb','M10',"
+                   "'oa', '/disk/mylibdb')"],
         'help' : """
         Filepaths to compiled library layout database specified on a per format
         basis. Example formats include oa, mw, ndm.
@@ -1496,7 +1488,7 @@ def schema_flow(cfg, step):
         'short_help' : 'Excution Dependency',
         'param_help' : "flow stepvar input <str>",
         'example': ["cli: -flow_input 'cts place'",                    
-                    "api:  chip.set('flow', 'cts', 'input', 'place'"],
+                    "api:  chip.set('flow', 'cts', 'input', 'place')"],
         'help' : """
         Specifies the list of inputs dependanices to start 'step' execution.
         """
@@ -1512,7 +1504,7 @@ def schema_flow(cfg, step):
         'short_help' : 'Executable Name',
         'param_help' : "flow stepvar exe <str>",
         'example': ["cli: -flow_exe 'cts openroad'",                    
-                    "api:  chip.set('flow', 'cts', 'exe', 'openroad'"],
+                    "api:  chip.set('flow', 'cts', 'exe', 'openroad')"],
         'help' : """
         The name of the exuctable step or the full path to the executable 
         specified on a per step basis.
@@ -1529,7 +1521,7 @@ def schema_flow(cfg, step):
         'short_help' : 'Executable Version',
         'param_help' : "flow stepvar version <str>",
         'example': ["cli: -flow_version 'cts 1.0'",                    
-                    "api:  chip.set('flow', 'cts', 'version', '1.0'"],
+                    "api:  chip.set('flow', 'cts', 'version', '1.0')"],
         'help' : """
         The version of the executable step to use in compilation.Mismatch 
         between the step specifed and the step avalable results in an error.
@@ -1546,7 +1538,7 @@ def schema_flow(cfg, step):
         'short_help' : 'Executable Options',
         'param_help' : "flow stepvar option <str>",
         'example': ["cli: -flow_opt 'cts -no_init'",                    
-                    "api:  chip.set('flow', 'cts', 'opt', '-no_init'"],
+                    "api:  chip.set('flow', 'cts', 'opt', '-no_init')"],
         'help' : """
         A list of command line options for the executable. For multiple 
         argument options, enter each argument and value as a one list entry, 
@@ -1565,7 +1557,7 @@ def schema_flow(cfg, step):
         'short_help' : 'Reference Directory',
         'param_help' : "flow stepvar refdir <file>",
         'example': ["cli: -flow_refdir 'cts ./myrefdir'",                    
-                    "api:  chip.set('flow', 'cts', 'refdir', './myrefdir'"],
+                    "api:  chip.set('flow', 'cts', 'refdir', './myrefdir')"],
         'help' : """
         A path to a directory containing compilation scripts used by the 
         executable specified on a per step basis.
@@ -1587,7 +1579,7 @@ def schema_flow(cfg, step):
         'short_help' : 'Entry Point script',
         'param_help' : "flow stepvar script <file>",
         'example': ["cli: -flow_script 'cts /myrefdir/cts.tcl'",
-                    "api: chip.set('flow','cts','script','/myrefdir/cts.tcl'"],
+                    "api: chip.set('flow','cts','script','/myrefdir/cts.tcl')"],
         'help' : """
         Path to the entry point compilation script called by the executable 
         specified on a per step basis.
@@ -1604,7 +1596,7 @@ def schema_flow(cfg, step):
         'short_help' : 'Copy Local Option',
         'param_help' : "flow stepvar copy <bool>",
         'example': ["cli: -flow_copy 'cts true'",
-                    "api: chip.set('flow','cts','copy','true'"],
+                    "api: chip.set('flow','cts','copy','true')"],
         'help' : """
         Specifies that the reference script directory should be copied and run 
         from the local run directory. The option specified on a per step basis.
@@ -1621,7 +1613,7 @@ def schema_flow(cfg, step):
         'short_help' : 'Script Format',
         'param_help' : "flow stepvar format <str>",
         'example': ["cli: -flow_format 'cts tcl'",
-                    "api: chip.set('flow','cts','format','tcl'"],
+                    "api: chip.set('flow','cts','format','tcl')"],
         'help' : """
         Specifies that format of the configuration file for the step. Valid 
         formats are tcl, yaml, json, cmdline. The format used is dictated by 
@@ -1639,7 +1631,7 @@ def schema_flow(cfg, step):
         'short_help' : 'Job Parallelism',
         'param_help' : "flow stepvar threads <num>",
         'example': ["cli: -flow_threads 'drc 64'",
-                    "api: chip.set('flow','drc','threads','64'"],
+                    "api: chip.set('flow','drc','threads','64')"],
         'help' : """
         Specifies the level of CPU thread parallelism to enable on a per step
         basis.
@@ -1661,7 +1653,7 @@ def schema_flow(cfg, step):
         'short_help' : 'Cache Directory Name',
         'param_help' : "flow stepvar cache <file>",
         'example': ["cli: -flow_cache 'syn ~/mycache'",
-                    "api: chip.set('flow','syn','cache','/disk1/mycache'"],
+                    "api: chip.set('flow','syn','cache','/disk1/mycache')"],
         'help' : """
         "Specifies a writeable shared cache directory to be used for storage of 
         processed design and library data. The purpose of caching is to save 
@@ -1679,7 +1671,7 @@ def schema_flow(cfg, step):
         'short_help' : 'Warning Filter',
         'param_help' : "flow stepvar warningoff <file>",
         'example': ["cli: -flow_warningoff 'import COMBDLY'",
-                    "api: chip.set('flow','import','warningoff','COMBDLY'"],
+                    "api: chip.set('flow','import','warningoff','COMBDLY')"],
         'help' : """
         Specifies a list of EDA warnings for which printing should be supressed.
         Generally this is done on a per design/node bases after review has 
@@ -1697,7 +1689,7 @@ def schema_flow(cfg, step):
         'short_help' : 'Step Vendor',
         'param_help' : "flow stepvar vendor <str>",
         'example': ["cli: -flow_vendor 'place openroad'",
-                    "api: chip.set('flow','place','vendor', 'openroad'"],
+                    "api: chip.set('flow','place','vendor', 'openroad')"],
         'help' : """
         The vendor argument is used for selecting eda specific technology setup
         variables from the PDK and libraries which generally support multiple
@@ -2247,7 +2239,7 @@ def schema_options(cfg):
         'short_help' : 'Compilation Steps List',
         'param_help' : "steplist <str>",
         'example': ["cli: -steplist export",
-                    "api: chip.add('steplist','export'"],
+                    "api: chip.add('steplist','export')"],
         'help' : """
         A complete list of all steps included in the compilation process.
         Compilation flow is controlled with the -start, -stop, -cont switches 
@@ -2271,7 +2263,7 @@ def schema_options(cfg):
         'short_help' : 'Configuration File',
         'param_help' : "cfg <file>",
         'example': ["cli: -cfg mypdk.json",
-                    "api: chip.add('cfg','mypdk.json'"],
+                    "api: chip.add('cfg','mypdk.json')"],
         'help' : """
         All parameters can be set at the command line, but with over 500 
         configuration parameters possible, the preferred method for non trivial
@@ -2293,7 +2285,7 @@ def schema_options(cfg):
         'short_help' : 'Environment Variables',
         'param_help' : "env namevar <str>",
         'example': ["cli: -env 'PDK_HOME /disk/mypdk'",
-                    "api: chip.add('env', 'PDK_HOME', '/disk/mypdk'"],
+                    "api: chip.add('env', 'PDK_HOME', '/disk/mypdk')"],
         'help' : """
         Certain EDA tools and reference flows require environment variables to
         be set. These variables can be managed externally or specified through
@@ -2310,7 +2302,7 @@ def schema_options(cfg):
         'short_help' : 'Search path',
         'param_help' : "scpath <dir>",
         'example': ["cli: -scpath '/home/$USER/sclib'",
-                    "api: chip.add('scpath', '/home/$USER/sclib'"],
+                    "api: chip.add('scpath', '/home/$USER/sclib')"],
         'help' : """
         Specifies python modules paths for target import.
         """
@@ -2325,7 +2317,7 @@ def schema_options(cfg):
         'short_help' : 'File Hash Mode',
         'param_help' : "hashmode <str>",
         'example': ["cli: -hashmode NONE",
-                    "api: chip.add('hashmode', 'NONE'"],
+                    "api: chip.add('hashmode', 'NONE')"],
         'help' : """
         The switch controls how/if setup files and source files are hashed
         during compilation. Valid entries include NONE, ALL, ACTIVE.
@@ -2343,7 +2335,7 @@ def schema_options(cfg):
         'short_help' : 'Quiet execution',
         'param_help' : "quiet <bool>",
         'example': ["cli: -quiet",
-                    "api: chip.set('quiet', 'true'"],
+                    "api: chip.set('quiet', 'true')"],
         'help' : """
         Modern EDA tools print significant content to the screen. The -quiet 
         option forces all steps to print to a log file. The quiet
@@ -2360,7 +2352,7 @@ def schema_options(cfg):
         'short_help' : 'Logging Level',
         'param_help' : "loglevel <str>",
         'example': ["cli: -loglevel INFO",
-                    "api: chip.set('loglevel', 'INFO'"],
+                    "api: chip.set('loglevel', 'INFO')"],
         'help' : """
         The debug param provides explicit control over the level of debug 
         logging printed. Valid entries include INFO, DEBUG, WARNING, ERROR. The
@@ -2377,7 +2369,7 @@ def schema_options(cfg):
         'short_help' : 'Build Directory',
         'param_help' : "dir <dir>",
         'example': ["cli: -dir ./build_the_future",
-                    "api: chip.set('dir','./build_the_future'"],
+                    "api: chip.set('dir','./build_the_future')"],
         'help' : """
         The default build directoryis './build'. The 'dir' parameters can be 
         used to set an alternate compilation directory path.
@@ -2393,7 +2385,7 @@ def schema_options(cfg):
         'short_help' : 'Job Name',
         'param_help' : "jobname <dir>",
         'example': ["cli: -jobname may1",
-                    "api: chip.set('jobname','may1'"],
+                    "api: chip.set('jobname','may1')"],
         'help' : """
         The name of the directory to work in.
         The full directory structure is:
@@ -2410,7 +2402,7 @@ def schema_options(cfg):
         'short_help' : 'Job ID',
         'param_help' : "jobid <num>",
         'example': ["cli: -jobid 0",
-                    "api: chip.set('jobid','0'"],
+                    "api: chip.set('jobid','0')"],
         'help' : """
         The id of the specific job to be exeucted.
         The directory structure is:
@@ -2427,7 +2419,7 @@ def schema_options(cfg):
         'short_help' : 'Job ID Autoincrement Mode ',
         'param_help' : "jobincr <true>",
         'example': ["cli: -jobincr",
-                    "api: chip.set('jobincr','true'"],
+                    "api: chip.set('jobincr','true')"],
         'help' : """
         Autoincrements the jobid value based on the latest 
         executed job in the design build directory. If no jobs are found, 
@@ -2444,7 +2436,7 @@ def schema_options(cfg):
         'short_help' : 'Compilation Start Step',
         'param_help' : "start <str>",
         'example': ["cli: -start place",
-                    "api: chip.set('start','place'"],
+                    "api: chip.set('start','place')"],
         'help' : """
         The start parameter specifies the starting step of the flow. This would
         generally be the import step but could be any one of the steps within
@@ -2462,7 +2454,7 @@ def schema_options(cfg):
         'short_help' : 'Compilation Stop Step',
         'param_help' : "stop <str>",
         'example': ["cli: -stop place",
-                    "api: chip.set('stop','place'"],
+                    "api: chip.set('stop','place')"],
         'help' : """
         The stop parameter specifies the stopping step of the flow. The value
         entered is inclusive, so if for example the -stop syn is entered, the 
@@ -2479,7 +2471,7 @@ def schema_options(cfg):
         'short_help' : 'Compilation Skip Steps',
         'param_help' : "skip <str>",
         'example': ["cli: -skip dfm",
-                    "api: chip.set('stop','dfm'"],
+                    "api: chip.set('stop','dfm')"],
         'help' : """
         In some older technologies it may be possible to skip some of the steps 
         in the standard flow defined. The skip parameter lists the steps to be 
@@ -2496,7 +2488,7 @@ def schema_options(cfg):
         'short_help' : 'Skip All Steps',
         'param_help' : "skipall <bool>",
         'example': ["cli: -skipall",
-                    "api: chip.set('skipall','true'"],
+                    "api: chip.set('skipall','true')"],
         'help' : """
         Skip all steps. Useful for initial bringup.
         """
@@ -2512,7 +2504,7 @@ def schema_options(cfg):
         'short_help' : 'Message Event',
         'param_help' : "msgevent <str>",
         'example': ["cli: -msgevent export",
-                    "api: chip.set('msgevent','export'"],
+                    "api: chip.set('msgevent','export')"],
         'help' : """
         A list of steps after which to notify a recipient. For example if 
         values of syn, place, cts are entered separate messages would be sent 
@@ -2529,7 +2521,7 @@ def schema_options(cfg):
         'short_help' : 'Message Contact',
         'param_help' : "msgcontact <str>",
         'example': ["cli: -msgcontact 'wile.e.coyote@acme.com'",
-                    "api: chip.set('msgcontact','wile.e.coyote@acme.com'"],
+                    "api: chip.set('msgcontact','wile.e.coyote@acme.com')"],
         'help' : """
         A list of phone numbers or email addresses to message on a event event
         within the msg_event param.
@@ -2544,8 +2536,8 @@ def schema_options(cfg):
         'defvalue' : ['O0'],
         'short_help' : 'Optimization Mode',
         'param_help' : "optmode <str>",
-        'example': ["cli: -O 3",
-                    "api: chip.set('optmode','3'"],
+        'example': ["cli: -O3",
+                    "api: chip.set('optmode','3')"],
         'help' : """
         The compiler has modes to prioritize run time and ppa. Modes include:
         
@@ -2700,7 +2692,7 @@ def schema_remote(cfg):
         'short_help' : 'Job hash/UUID value',
         'param_help' : "remote hash <str>",
         'example': ["cli: -remote_hash 0123456789abcdeffedcba9876543210",
-                    "api: chip.set('remote', 'hash','0123456789abcdeffedcba9876543210'"],
+                    "api: chip.set('remote', 'hash','0123456789abcdeffedcba9876543210')"],
         'help' : """
         A unique ID associated with a job run. This field should be left blank
         when starting a new job, but it can be provided to resume an interrupted
@@ -2759,7 +2751,7 @@ def schema_remote(cfg):
     # Remote private key file.
     cfg['remote']['key'] = {
         'switch' : '-remote_key',
-        'type' : 'file',
+        'type' : 'str',
         'lock' : 'false',
         'copy' : 'false',
         'requirement' : 'remote',
@@ -2912,12 +2904,12 @@ def schema_design(cfg):
         A list of source files to read in for elaboration. The files are read 
         in order from first to last entered. File type is inferred from the 
         file suffix:
-        (*.v, *.vh)  = Verilog
-        (*.vhd)      = VHDL
-        (*.sv)       = SystemVerilog
-        (*.c)        = C
-        (*.cpp, .cc) = C++
-        (*.py)       = Python
+        (\*.v, \*.vh) = Verilog
+        (\*.vhd)      = VHDL
+        (\*.sv)       = SystemVerilog
+        (\*.c)        = C
+        (\*.cpp, .cc) = C++
+        (\*.py)       = Python
         """
     }
 
@@ -3177,7 +3169,7 @@ def schema_design(cfg):
                     "api: chip.add('idir','./mylib')"],
         'help' : """
         Provides a search paths to look for files included in the design using
-        the `include statement.
+        the ```include`` statement.
         """
     }
 
@@ -3215,7 +3207,7 @@ def schema_design(cfg):
         'help' : """
         Specifes the file extensions that should be used for finding modules. 
         For example, if -y is specified as ./lib", and '.v' is specified as 
-        libext then the files ./lib/*.v ", will be searched for module matches.
+        libext then the files ./lib/\*.v ", will be searched for module matches.
         """
     }
 
@@ -3652,10 +3644,11 @@ def schema_asic(cfg):
         'example': ["cli: -asic_aspectratio 2.0",
                     "api: chip.add('asic', 'aspectratio', '2.0')"],
         'help' : """
-        Specifies the height to width ratio of the block for  automated 
-        floor-planning. Values below 0.1 and above 10 should be avoided as 
-        they will likely fail to converge during placement and routing. The 
-        ideal aspect ratio for most designs is 1.
+        Specifies the height to width ratio of the block for automated
+        floor-planning. Values below 0.1 and above 10 should be avoided as
+        they will likely fail to converge during placement and routing. The
+        ideal aspect ratio for most designs is 1. This value is only used when
+        no diesize or floorplan is supplied.
         """
         }
 
@@ -3764,7 +3757,7 @@ def schema_mcmm(cfg):
         'short_help' : 'MCMM Voltage',
         'param_help' : "mcmm scenariovar voltage <num>",
         'example': ["cli: -mcmm_voltage 'worst 0.9'",
-                    "api: chip.add('mcmm', 'worst', 'voltage', '0.9'"],
+                    "api: chip.add('mcmm', 'worst', 'voltage', '0.9')"],
         'help' : """
         Specifies the on chip primary core operating voltage for the scenario.
         The value is specified in Volts.
@@ -3780,7 +3773,7 @@ def schema_mcmm(cfg):
         'short_help' : 'MCMM Temperature',
         'param_help' : "mcmm scenariovar temperature <num>",
         'example': ["cli: -mcmm_temperature 'worst 0.9'",
-                    "api: chip.add('mcmm', 'worst', 'temperature', '125'"],
+                    "api: chip.add('mcmm', 'worst', 'temperature', '125')"],
         'help' : """
         Specifies the on chip temperature for the scenario. The value is specified in 
         degrees Celsius.
@@ -3796,7 +3789,7 @@ def schema_mcmm(cfg):
         'short_help' : 'MCMM Library Corner Name',
         'param_help' : "mcmm scenariovar libcorner <str>",
         'example': ["cli: -mcmm_libcorner 'worst ttt'",
-                    "api: chip.add('mcmm', 'worst', 'libcorner', 'ttt'"],
+                    "api: chip.add('mcmm', 'worst', 'libcorner', 'ttt')"],
         'help' : """
         Specifies the library corner for the scenario. The value is used to access the
         stdcells library timing model. The 'libcorner' value must match the corner 
@@ -3813,7 +3806,7 @@ def schema_mcmm(cfg):
         'short_help' : 'MCMM Operating Condition',
         'param_help' : "mcmm scenariovar opcond <str>",
         'example': ["cli: -mcmm_opcond 'worst typical_1.0'",
-                    "api: chip.add('mcmm', 'worst', 'opcond', 'typical_1.0'"],
+                    "api: chip.add('mcmm', 'worst', 'opcond', 'typical_1.0')"],
         'help' : """
         Specifies the operating condition for the scenario. The value can be used
         to access specific conditions within the library timing models of the 
@@ -3831,7 +3824,7 @@ def schema_mcmm(cfg):
         'short_help' : 'MCMM PEX Corner Name',
         'param_help' : "mcmm scenariovar pexcorner <str>",
         'example': ["cli: -mcmm_pexcorner 'worst max'",
-                    "api: chip.add('mcmm', 'worst', 'pexcorner', 'max'"],
+                    "api: chip.add('mcmm','worst','pexcorner','max')"],
         'help' : """
         Specifies the parasitic corner for the scenario. The 'pexcorner' string must
         match the value 'pdk','pexmodel' dictionary exactly.
@@ -3847,7 +3840,7 @@ def schema_mcmm(cfg):
         'short_help' : 'MCMM Mode Name',
         'param_help' : "mcmm scenariovar mode <str>",
         'example': ["cli: -mcmm_mode 'worst test'",
-                    "api: chip.add('mcmm', 'worst', 'mode', 'test'"],
+                    "api: chip.add('mcmm', 'worst', 'mode', 'test')"],
         'help' : """
         Specifies the operating mode for the scenario. Operating mode strings can be
         values such as "test, functional, standby".
@@ -3868,7 +3861,7 @@ def schema_mcmm(cfg):
         'short_help' : 'MCMM Timing Constraints',
         'param_help' : "mcmm scenariovar constraint <file>",
         'example': ["cli: -mcmm_constraint 'worst hello.sdc'",
-                    "api: chip.add('mcmm', 'worst', 'constraint', 'hello.sdc'"],
+                    "api: chip.add('mcmm','worst','constraint','hello.sdc')"],
         'help' : """
         Specifies a list of timing contstraint files to use for the scenario.
         The values are combined with any constraints specified by the design
@@ -3886,7 +3879,7 @@ def schema_mcmm(cfg):
         'short_help' : 'MCMM Checks',
         'param_help' : "mcmm scenariovar check <str>",
         'example': ["cli: -mcmm_check 'worst check setup'",
-                    "api: chip.add('mcmm', 'worst', 'check', 'setup'"],
+                    "api: chip.add('mcmm','worst','check','setup')"],
         'help' : """
         Specifies a list of checks for to perform for the scenario aligned. The checks
         must align with the capabilities of the EDA tools. Checks generally include 
@@ -3896,154 +3889,3 @@ def schema_mcmm(cfg):
     }
 
     return cfg
-
-###############################################
-# LEF/DEF
-###############################################
-
-def schema_lef(layout):
-
-    #GLOBAL VARIABLES
-    layout["version"] = ""
-    layout["busbitchars"] = "[]"
-    layout["dividerchar"] = "/"
-    layout["units"] = ""
-    layout["manufacturinggrid"] = ""
-
-    #SITE
-    layout["site"] = {}
-    layout["site"]['default'] = {
-        'symmetry' : "",
-        'class' : "",
-        'width' : "",
-        'height' : ""
-    }
-    
-    #ROUTING LAYERS
-    layout["layer"] = {}
-    layout["layer"]['default'] = {
-        'number' : "",
-        'direction' : "",
-        'type' : "",
-        'width' : "",
-        'pitch' : "",
-        'spacing' : "",
-        'minwidth' : "",
-        'maxwidth' : "",
-        'antennaarearatio' : "",
-        'antennadiffarearatio'  : ""
-    }
-
-    #MACROS
-    layout["macro"] = {}
-    layout["macro"]['default'] = {
-        'class' : "",
-        'site' : "",
-        'width' : "",
-        'height' : "",
-        'origin' : "",
-        'symmetry' : ""
-    }
-    layout["macro"]['default']['pin'] = {}
-    layout["macro"]['default']['pin']['default'] = {
-        'direction' : '',
-        'use' : '',
-        'shape' : '',
-        'port' : []
-    }
-
-
-    return layout
-
-def schema_def(layout):
-
-    #DESIGN
-    layout["design"] = []
-    
-    #DIEAREA
-    #Arrray of points, kept as tuple arrray b/c order
-    #is critical    
-    layout["diearea"] = []
-    
-    #ROWS
-    layout["row"] = {}    
-    layout["row"]['default'] = {
-        'site' : "",
-        'x' : "",
-        'y' : "",
-        'orientation' : "",
-        'numx' : "",
-        'numy' : "",
-        'stepx' : "",
-        'stepy' : ""
-    }
-
-    #TRACKS (hidden name)
-    layout["track"] = {}
-    layout["track"]['default'] = {
-        'layer' : "",
-        'direction' : "",
-        'start' : "",
-        'step' : "",
-        'total' : ""
-    }
-
-    #COMPONENTS (instance name driven)
-    layout["component"] ={}
-    layout["component"]['default'] = {
-        'cell' : "",
-        'x' : "",
-        'y' : "",
-        'status' : "",
-        'orientation' : "",
-        'halo' : ""
-    }
-
-    #VIA
-    layout["via"] = {}
-    layout["via"]['default'] = {
-        'net' : "",
-        'special' : "",
-        'placement' : "",
-        'direction' : "",
-        'port' : []
-    }
-
-    
-    #PINS
-    layout["pin"] = {}
-    layout["pin"]['default'] = {
-        'net' : "",
-        'direction' : "",
-        'use' : "",
-    }
-    layout["pin"]['default']['port'] = {}
-    layout["pin"]['default']['port']['default'] = {
-        'layer' : "",
-        'box' : [],
-        'status' : "",
-        'point' : "",
-        'orientation' : "",
-     }
-    
-
-    #SPECIALNETS
-    layout["specialnet"] = {}
-    layout["specialnet"]['default'] = {
-        'connections' : [],
-        'shield' : [],
-        'use' : "",
-        'fixed' : [],
-        'routed' : []
-    }
-
-    #NETS
-    layout["net"] = {}
-    layout["net"]['default'] = {
-        'shield' : [],
-        'use' : "",
-        'fixed' : [],
-        'routed' : []
-    }
-   
-    return layout

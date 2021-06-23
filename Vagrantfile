@@ -2,7 +2,7 @@
 # vi: set ft=ruby :
 Vagrant.configure("2") do |config|
   config.vm.box = "ubuntu/focal64"
-  config.vm.synced_folder ".", "/vagrant", disabled: true
+  config.vm.synced_folder ".", "/vagrant"
   config.vm.synced_folder ".", "/home/vagrant/siliconcompiler/"
 
   config.vm.provider "virtualbox" do |vb|
@@ -16,11 +16,35 @@ Vagrant.configure("2") do |config|
     systemctl disable apt-daily.service
     systemctl disable apt-daily.timer
   SHELL
+
   config.vm.provision "shell", inline: "sudo apt-get update", privileged: false
-  config.vm.provision "shell", path: "setup/install-verilator.sh", privileged: false
-  config.vm.provision "shell", path: "setup/install-klayout.sh", privileged: false
-  config.vm.provision "shell", path: "setup/install-openroad.sh", privileged: false
-  config.vm.provision "shell", path: "setup/install-ice40.sh", privileged: false
-  config.vm.provision "shell", path: "setup/install-openfpga.sh", privileged: false
-  config.vm.provision "shell", path: "setup/install-py.sh", privileged: false
+  config.vm.provision "shell", inline: "mkdir -p /vagrant/deps", privileged: false
+
+  # AUTOMATIC INSTALLATION: uncomment the packages that you want to be automatically
+  # installed when running 'vagrant up'
+
+  # Verilator
+  # config.vm.provision "shell", inline: "/vagrant/setup/install-verilator.sh", privileged: false
+
+  # KLayout
+  # config.vm.provision "shell", inline: "/vagrant/setup/install-klayout.sh", privileged: false
+  # config.vm.provision "shell", inline: "echo 'export QT_QPA_PLATFORM=offscreen' >> ~/.bashrc", privileged: false
+  # OpenROAD
+  # config.vm.provision "shell", inline: "/vagrant/setup/install-openroad.sh", privileged: false
+  # config.vm.providion "shell", inline: "echo 'source /home/vagrant/siliconcompiler/deps/OpenROAD-flow-scripts/setup_env.sh' >> /home/vagrant/.bashrc", privileged: false
+
+  # NextPNR and icestorm
+  # config.vm.provision "shell", inline: "/vagrant/setup/install-ice40.sh", privileged: false
+
+  # OpenFPGA
+  # config.vm.provision "shell", inline: "/vagrant/setup/install-openfpga.sh", privileged: false
+
+  # SureLog
+  # config.vm.provision "shell", inline: "/vagrant/setup/install-surelog.sh", privileged: false
+
+  # sv2v
+  # config.vm.provision "shell", inline: "/vagrant/setup/install-sv2v.sh" privileged: false
+
+  # siliconcompiler and python dependencies
+  # config.vm.provision "shell", inline: "/vagrant/setup/install-py.sh", privileged: false
 end

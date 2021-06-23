@@ -13,10 +13,10 @@ Welcome to SiliconCompiler's documentation!
 
    intro
    install
-   run
+   cli_interface
+   python_interface   
    tutorials/index
    faq/index
-   glossary
    
 .. toctree::
    :maxdepth: 3
@@ -28,6 +28,13 @@ Welcome to SiliconCompiler's documentation!
    commandline
    targets/index
    tools/index
+   
+.. toctree::
+   :maxdepth: 3
+   :caption: Resources
+   :numbered:
+   
+   glossary
 
 Indices and tables
 ==================
