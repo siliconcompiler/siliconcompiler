@@ -11,17 +11,14 @@ def setup_eda(chip, name=None):
 
     if name == 'ice40':
         # Define Compilation Steps
-        chip.cfg['steplist']['value'] = ['validate',
-                                         'import',
+        chip.cfg['steplist']['value'] = ['import',
                                          'syn',
                                          'apr',
                                          'export']
 
         for step in chip.cfg['steplist']['value']:         
-            if step == 'validate':
-                vendor = 'surelog'
-            elif step == 'import':
-                vendor = 'sv2v'
+            if step == 'import':
+                vendor = 'ghdl'
             elif step == 'syn':
                 vendor = 'yosys'
             elif step == 'apr':
@@ -29,7 +26,7 @@ def setup_eda(chip, name=None):
             elif step == 'export':
                 vendor = 'icepack'
 
-            #Load per step EDA setup scripts
+            # Load per step EDA setup scripts
             packdir = "eda." + vendor
             modulename = '.'+vendor+'_setup'    
             module = importlib.import_module(modulename, package=packdir)

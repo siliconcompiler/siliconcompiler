@@ -6,7 +6,7 @@ Vagrant.configure("2") do |config|
   config.vm.synced_folder ".", "/home/vagrant/siliconcompiler/"
 
   config.vm.provider "virtualbox" do |vb|
-    vb.memory = "8192"
+    vb.memory = "14336"
     vb.cpus = 4
     vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
     vb.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
