@@ -131,6 +131,7 @@ class Server:
         '''
 
         # Receive and parse the POST request body.
+        tmp_file = self.cfg['nfsmount']['value'][-1] + '/' + uuid.uuid4().hex
         reader = await request.multipart()
         while True:
             part = await reader.next()
@@ -138,7 +139,6 @@ class Server:
                 break
             if part.name == 'import':
                 # job hash may not be available yet; it's also sent in the body.
-                tmp_file = '/tmp/%s'%uuid.uuid4().hex
                 with open(tmp_file, 'wb') as f:
                     while True:
                         chunk = await part.read_chunk()
@@ -152,13 +152,16 @@ class Server:
                 if not 'job_hash' in job_params:
                   return web.Response(text="Error: no job hash provided.")
                 job_hash = job_params['job_hash']
-                job_root = '%s/%s'%(self.cfg['nfsmount']['value'][0], job_hash)
+                job_root = '%s/%s'%(self.cfg['nfsmount']['value'][-1], job_hash)
                 # Ensure that the required directories exists.
                 subprocess.run(['mkdir', '-p', '%s/import'%job_root])
 
         # Move the uploaded archive to the correct location and un-zip it.
         os.replace(tmp_file, '%s/import.zip'%job_root)
         subprocess.run(['unzip', '-o', '%s/import.zip'%(job_root)], cwd='%s/import'%job_root)
+        # Delete the temporary file.
+        if os.path.exists(tmp_file):
+            os.remove(tmp_file)
 
         # Done.
         return web.Response(text="Successfully imported project %s."%job_hash)
