@@ -656,7 +656,7 @@ class Chip:
                                                 m.group(2))
                     #create a TCL dict
                     keystr = ' '.join(newkeys)
-                    valstr = ' '.join(cfg[k][field])
+                    valstr = ' '.join(cfg[k][field]).replace(';', '\\;')
                     outlst = [prefix,
                               keystr,
                               '[list ',
