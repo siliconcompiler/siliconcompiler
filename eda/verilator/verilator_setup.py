@@ -39,7 +39,7 @@ def setup_options(chip, step):
     #-O3
     #
 
-    options = chip.set('flow', step, 'option', [])
+    options = chip.get('flow', step, 'option')
 
     if step == 'import':
         options.append('--lint-only --debug -sv')
