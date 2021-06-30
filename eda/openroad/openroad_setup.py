@@ -75,12 +75,12 @@ def post_process(chip, step):
      design = chip.get('design')[-1]
      with open(exe + ".log") as f:
           for line in f:
-               area = re.search('^Design area (\d+)', line)
-               tns = re.search('^tns (.*)',line)
-               wns = re.search('^wns (.*)',line)
-               power = re.search('^Total(.*)',line)
-               vias = re.search('^total number of vias = (.*)',line)
-               wirelength = re.search('^total wire length = (.*) um',line)
+               area = re.search(r'^Design area (\d+)', line)
+               tns = re.search(r'^tns (.*)',line)
+               wns = re.search(r'^wns (.*)',line)
+               power = re.search(r'^Total(.*)',line)
+               vias = re.search(r'^total number of vias = (.*)',line)
+               wirelength = re.search(r'^total wire length = (.*) um',line)
 
                if area:
                     chip.set('real', step, 'area_cells', str(round(float(area.group(1)),2)))
@@ -103,9 +103,9 @@ def post_process(chip, step):
      #Getting cell count and net number from DEF
      with open("outputs/" + design + ".def") as f:
           for line in f:
-               cells = re.search('^COMPONENTS (\d+)', line)
-               nets = re.search('^NETS (\d+)',line)
-               pins = re.search('^PINS (\d+)',line)
+               cells = re.search(r'^COMPONENTS (\d+)', line)
+               nets = re.search(r'^NETS (\d+)',line)
+               pins = re.search(r'^PINS (\d+)',line)
                if cells:
                     chip.set('real', step, 'cells', cells.group(1))
                elif nets:

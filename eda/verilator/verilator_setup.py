@@ -99,7 +99,7 @@ def post_process(chip, step):
     '''
 
     # filtering out debug garbage
-    subprocess.run('egrep -h -v "\`begin_keywords" obj_dir/*.vpp > verilator.v',
+    subprocess.run('egrep -h -v "\\`begin_keywords" obj_dir/*.vpp > verilator.v',
                    shell=True)
 
     # setting top module of design
