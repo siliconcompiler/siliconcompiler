@@ -13,7 +13,8 @@ def test_gcd_server_permutations():
     os.mkdir('local_server_work')
     srv_proc = subprocess.Popen(['sc-server',
                                  '-nfs_mount', './local_server_work',
-                                 '-cluster', 'local'],
+                                 '-cluster', 'local',
+                                 '-port', '8081'],
                                 stdout = subprocess.DEVNULL)
 
     # Use subprocess to test running the `sc` scripts as a command-line program.
@@ -28,7 +29,7 @@ def test_gcd_server_permutations():
                     '-constraint', gcd_ex_dir + '/gcd.sdc',
                     '-permutations', gcd_ex_dir + '/2jobs.py',
                     '-remote_addr', 'localhost',
-                    '-remote_port', '8080',
+                    '-remote_port', '8081',
                     '-loglevel', 'NOTSET'],
                    stdout = subprocess.DEVNULL)
 

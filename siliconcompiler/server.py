@@ -59,7 +59,7 @@ class Server:
         self.app.router.add_static('/get_results/', self.cfg['nfsmount']['value'][0])
 
         # Start the async server.
-        web.run_app(self.app)
+        web.run_app(self.app, port = int(self.cfg['port']['value'][-1]))
 
     ####################
     async def handle_remote_run(self, request):
