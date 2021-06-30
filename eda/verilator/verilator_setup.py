@@ -42,7 +42,7 @@ def setup_options(chip, step):
     options = chip.set('flow', step, 'option', [])
 
     if step == 'import':
-        options.append('--lint-only --debug -sv')
+        options.append('--lint-only --debug -sv -Wfuture-')
     else:
         options.append('--cc')
 
