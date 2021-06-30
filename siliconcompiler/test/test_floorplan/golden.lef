@@ -66,9 +66,9 @@ MACRO test
     PORT
       LAYER metal3 ;
       RECT 98.7
-           19.740000000000002
+           19.74
            100.8
-           20.440000000000005 ;
+           20.44 ;
     END
   END in[4]
   PIN in[5]
@@ -78,9 +78,9 @@ MACRO test
     PORT
       LAYER metal3 ;
       RECT 98.7
-           40.040000000000006
+           39.9
            100.8
-           40.74000000000001 ;
+           40.6 ;
     END
   END in[5]
   PIN in[6]
@@ -90,9 +90,9 @@ MACRO test
     PORT
       LAYER metal3 ;
       RECT 98.7
-           60.2
+           60.06
            100.8
-           60.900000000000006 ;
+           60.760000000000005 ;
     END
   END in[6]
   PIN in[7]
@@ -102,9 +102,9 @@ MACRO test
     PORT
       LAYER metal3 ;
       RECT 98.7
-           80.36000000000001
+           80.22000000000001
            100.8
-           81.06 ;
+           80.92 ;
     END
   END in[7]
   PIN in[8]
@@ -114,9 +114,9 @@ MACRO test
     PORT
       LAYER metal3 ;
       RECT 0.0
-           19.740000000000002
+           19.74
            2.1
-           20.440000000000005 ;
+           20.44 ;
     END
   END in[8]
   PIN in[9]
@@ -126,9 +126,9 @@ MACRO test
     PORT
       LAYER metal3 ;
       RECT 0.0
-           40.040000000000006
+           39.9
            2.1
-           40.74000000000001 ;
+           40.6 ;
     END
   END in[9]
   PIN in[10]
@@ -138,9 +138,9 @@ MACRO test
     PORT
       LAYER metal3 ;
       RECT 0.0
-           60.2
+           60.06
            2.1
-           60.900000000000006 ;
+           60.760000000000005 ;
     END
   END in[10]
   PIN in[11]
@@ -150,9 +150,9 @@ MACRO test
     PORT
       LAYER metal3 ;
       RECT 0.0
-           80.36000000000001
+           80.22000000000001
            2.1
-           81.06 ;
+           80.92 ;
     END
   END in[11]
   PIN in[12]

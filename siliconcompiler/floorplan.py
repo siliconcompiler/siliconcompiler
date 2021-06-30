@@ -20,10 +20,13 @@ env.filters['render_tuple'] = render_tuple
 
 MacroInfo = namedtuple("MacroInfo", "tech_name width height")
 
+def snap(val, grid):
+    return grid * round(val/grid)
+
 class Floorplan:
     '''Floorplan layout class'''
 
-    def __init__(self, chip, db_units=2000):
+    def __init__(self, chip, grid=0.005, db_units=2000):
         '''Initializes Floorplan object.
 
         Args:
@@ -31,18 +34,23 @@ class Floorplan:
                 expects the chip's configuration to be populated with information
                 from a tech library, and the API will write to the chip's
                 layout configuration.
+            grid (float): Minimum manufacturing grid that all positions and
+                dimensions are automatically snapped to. If `None`, all
+                received values are kept as-is.
             db_units (int): Scaling factor to go from microns to DEF DB units.
         '''
         self.chip = chip
+        self.grid = grid
+        self.db_units = db_units
 
         self.design = chip.get('design')[-1]
-        self.db_units = db_units
         self.die_area = None
         self.core_area = None
         self.pins = []
         self.macros = []
         self.rows = []
         self.tracks = []
+        self.nets = {}
 
         self.blockage_layers = []
 
@@ -116,7 +124,7 @@ class Floorplan:
 
 
     def create_die_area(self, width, height, core_area=None, generate_rows=True,
-                        generate_tracks=True, units='relative'):
+                        generate_tracks=True):
         '''Initializes die.
 
         Initializes the area of the die and generates placement rows and routing
@@ -133,28 +141,19 @@ class Floorplan:
                 design. This is provided as a tuple (x0 y0 x1 y1), where (x0,
                 y0), specifes the lower left corner of the block and (x1, y1)
                 specifies the upper right corner. If `None`, core_area is set to
-                be equivalent to the die area minus the standard cell height on
-                each side.
+                be equivalent to the die area.
             generate_rows (bool): Automatically generate rows to fill entire
                 core area.
             generate_tracks (bool): Automatically generate tracks to fill entire
                 core area.
-            units (str): whether to use technology-relative ('relative') or
-                absolute ('absolute') units.
         '''
         # store die_area as 2-tuple since bottom left corner is always 0,0
-        if units == 'relative':
-            width *= self.std_cell_height
-            height *= self.std_cell_height
+        width = self.snap_to_grid(width)
+        height = self.snap_to_grid(height)
 
         self.die_area = (width, height)
         if core_area == None:
-            self.core_area = (self.std_cell_height,
-                              self.std_cell_height,
-                              width - self.std_cell_height,
-                              height - self.std_cell_height)
-        elif units == 'relative':
-            self.core_area = tuple(x * self.std_cell_height for x in core_area)
+            self.core_area = (0, 0, width, height)
         else:
             self.core_area = core_area
 
@@ -192,100 +191,44 @@ class Floorplan:
         with open(filename, 'w') as f:
             f.write(tmpl.render(fp=self))
 
-    def place_pins(self, pins, side, width, depth, layer, offset=0, pitch=None,
-                   direction='inout', net_name=None, use='signal', fixed=True,
-                   units='relative'):
-        '''Places pin(s) on floorplan.
-
-        Examples:
-            >>> place_pins(['a[0]', 'a[1]'], 'w', 1, 3, 'm1')
-            Places pins a[0] and a[1] evenly spaced along the left edge of the
-            block
-
-            >>> place_pins(['a[0]', 'a[1]'], 'w', 1, 3, 'm1', pitch=1)
-            Places pins a[0] and a[1] centered on the left edge of the block
-            with minimal spacing
-
-            >>> place_pins(['out'], 'n', 1, 3, 'm1', offset=3.5, units='absolute')
-            Places pin out along the top edge of the block, 3.5 microns from the
-            left side
+    def place_pins(self, pins, offset, pitch, side, width, depth, layer,
+                   pin_dir='inout', net_name=None, use='signal', fixed=True):
+        '''Places pins along edge of floorplan.
 
         Args:
             pins (list of str): List of pin names to place.
+            offset (int): How far to place first pin from edge, in microns.
+            pitch (int): Spacing between pins in microns.
             side (str): Which side of the block to place the pins along. Options
                 are 'n', 's', 'e', or 'w' (case insensitive).
             width (float): Width of pin.
             depth (float): Depth of pin.
             layer (str): Which metal layer pin is placed on.
-            offset (int): How far to place first pin from edge. If `None`,
-                center pins along edge, snapped to grid.
-            pitch (int): Spacing between pins. If `None`, pins will be evenly
-                spaced between `offset` and the far edge of the side, snapped to
-                grid.
-            direction (str): I/O direction of pins (must be valid LEF/DEF
+            pin_dir (str): I/O direction of pins (must be valid LEF/DEF
                 direction).
             net_name (str): Name of net that each pin is connected to. If `None`,
                 the net name of each pin will correspond to the pin name.
             use (str): Usage of pin (must be valid LEF/DEF use).
             fixed (bool): Whether pin status is 'FIXED' or 'PLACED'.
-            units (str): whether to use technology-relative ('relative') or
-                absolute ('absolute') units.
         '''
         logging.debug('Placing pins: %s', ' '.join(pins))
 
-        if side.upper() not in ('N', 'S', 'E', 'W'):
-            raise ValueError('Invalid side')
-        if direction.upper() not in ('INPUT', 'OUTPUT', 'INOUT', 'FEEDTHRU'):
-            raise ValueError('Invalid direction')
+        if pin_dir.upper() not in ('INPUT', 'OUTPUT', 'INOUT', 'FEEDTHRU'):
+            raise ValueError('Invalid pin direction')
         if use.upper() not in ('SIGNAL', 'POWER', 'GROUND', 'CLOCK', 'TIEOFF',
                                'ANALOG', 'SCAN', 'RESET'):
             raise ValueError('Invalid use')
-        self._validate_units(units)
 
         if self.die_area is None:
             raise ValueError('Die area must be initialized with create_die_area!')
 
-        # Convert all received dimensions to microns
-        if units == 'relative':
-            pin_scale_factor = self.layers[layer]['width']
-            if side.upper() in ('N', 'S'):
-                pos_scale_factor = self.layers[layer]['xoffset']
-            else: # E, W
-                pos_scale_factor = self.layers[layer]['yoffset']
 
-            width *= pin_scale_factor
-            depth *= pin_scale_factor
-
-            if pitch is not None:
-                pitch *= pos_scale_factor
-            if offset is not None:
-                offset *= pos_scale_factor
+        width = self.snap_to_grid(width)
+        depth = self.snap_to_grid(depth)
 
         block_w, block_h = self.die_area
 
-        if pitch is None:
-            if offset is None: offset = 0
-
-            # no pitch provided => infer equal pin spacing
-            num_pins = len(pins)
-            if side.upper() in ('N', 'S'):
-                pitch = (block_w - offset) / (num_pins + 1)
-            else:
-                pitch = (block_h - offset) / (num_pins + 1)
-            offset += pitch
-        elif offset is None:
-            # no offset provided => infer center pins
-            if side.upper() in ('N', 'S'):
-                die_center = block_w / 2
-            else:
-                die_center = block_h / 2
-
-            pin_distance = pitch * len(pins)
-            offset = die_center - pin_distance / 2
-
-        # TODO: might be nice to add sanity checks for pitch and offset values
-        # (to make sure there are no overlapping pins etc.)
-
+        # TODO: should shape be snapped to grid?
         if side.upper() == 'N':
             x     = offset
             y     = block_h - depth/2
@@ -312,15 +255,7 @@ class Floorplan:
             shape = [(-depth/2, -width/2), (depth/2, width/2)]
 
         for pin_name in pins:
-            # if units == relative, snap the appropriate dimension to grid
-            # before placing
-            if units == 'relative':
-                if side.upper() in ('N', 'S'):
-                    pos = self._snap_to_x_track(x, layer), y
-                else:
-                    pos = x, self._snap_to_y_track(y, layer)
-            else:
-                pos = x, y
+            pos = self.snap_to_grid(x), self.snap_to_grid(y)
 
             port = {
                 'layer': self.layers[layer]['name'],
@@ -332,7 +267,7 @@ class Floorplan:
             pin = {
                 'name': pin_name,
                 'net': net_name if net_name else pin_name,
-                'direction': direction,
+                'direction': pin_dir,
                 'use': use,
                 'port': port
             }
@@ -341,46 +276,103 @@ class Floorplan:
             x += xincr
             y += yincr
 
-
-    def place_macro(self, instance_name, macro_name, pos, orientation,
-                    halo=(0, 0, 0, 0), fixed=True, units='relative'):
-        ''' Places macro on floorplan.
+    def place_macros(self, macros, pos, pitch, direction, orientation,
+                    halo=(0, 0, 0, 0), fixed=True):
+        '''Places macros on floorplan.
 
         Args:
-            name (str): Name of macro instance in design.
-            macro_name (str): name of macro in library.
-            pos (tuple of int): Position of macro as tuple of 2 numbers.
-            orientation (str): Orientation of macro (as LEF/DEF orientation).
+            macros (list of (str, str)): List of macros to place as tuples of
+                (instance name, type).
+            pos (tuple): x, y coordinate where to place first instance, in
+                microns.
+            pitch (int): Distance between this pad and previous, in microns.
+            direction (str): Direction to place macros ('h' for east-west, 'v'
+                for north-south).
+            orientation (str): Orientation of macro.
             halo (tuple of int): Halo around macro as tuple (left bottom right
                 top).
             fixed (bool): Whether or not macro placement is fixed or placed.
-            units (str): Whether to use technology-independent ('relative') or
-                absolute ('absolute') units.
         '''
-        logging.debug('Placing macro: %s', instance_name)
 
-        self._validate_orientation(orientation)
-        self._validate_units(units)
+        # TODO Validate orientation
+        # TODO Validate direciton
+        # TODO Validating spacing
 
         x, y = pos
-        if units == 'relative':
-            x *= self.std_cell_width
-            y *= self.std_cell_height
 
-        component = {
-            'name': instance_name,
-            'cell': self.available_cells[macro_name].tech_name,
-            'info': self.available_cells[macro_name],
-            'x': x,
-            'y': y,
-            'status': 'fixed' if fixed else 'placed',
-            'orientation': orientation.upper(),
-            'halo': halo,
-        }
-        self.macros.append(component)
+        is_ew_ori = orientation.upper() in ('E', 'W', 'FE', 'FW')
+        is_ns_ori = not is_ew_ori
 
-    def generate_rows(self, site_name=None, flip_first_row=False, area=None,
-                      units='relative'):
+        for instance_name, cell_name in macros:
+            cell = self.available_cells[cell_name]
+            width = cell.width
+            height = cell.height
+
+            macro = {
+                'name': instance_name,
+                'cell': self.available_cells[cell_name].tech_name,
+                'info': self.available_cells[cell_name],
+                'x': self.snap_to_grid(x),
+                'y': self.snap_to_grid(y),
+                'status': 'fixed' if fixed else 'placed',
+                'orientation': orientation.upper(),
+                'halo': halo,
+            }
+            self.macros.append(macro)
+
+            if direction.lower() == 'h':
+                x += pitch
+            else:
+                y += pitch
+
+    def place_wires(self, nets, pos, pitch, direction, layer, width, length, shape):
+        ''' Place wires on floorplan.
+
+        Args:
+            nets (list of str): List of net names of wires to place.
+            pos (tuple): x, y coordinate where to place first instance, in
+                microns.
+            pitch (int): Distance between this wire and previous, in microns.
+            direction (str): Direction to place wires along ('h' for east-west, 'v'
+                for north-south). Wires themselves will run in the opposite
+                direction.
+            layer (str): Which metal layer wire is placed on.
+            width (float): Width of wire in microns.
+            length (float): Length of wire in microns.
+            shape (str): Shape of wire as LEF/DEF shape.
+        '''
+
+        # TODO: validate shape
+
+        for net_name in nets:
+            x, y = pos
+            if direction.lower() == 'h':
+                end = x, y + length
+            elif direction.lower() == 'v':
+                end = x + length, y
+            else:
+                raise ValueError(f'Invalid direction {direction}')
+
+            wire = {
+                'layer': self.layers[layer]['name'],
+                'width': width,
+                'shape': shape,
+                'start': pos,
+                'end': end
+            }
+
+            if net_name in self.nets:
+                self.nets[net_name]['wires'].append(wire)
+            else:
+                raise ValueError(f'Net {net_name} not found. Please initialize '
+                    f'it by calling init_net()')
+
+            if direction.lower() == 'h':
+                pos = x + pitch, y
+            elif direction.lower() == 'v':
+                pos = x, y + pitch
+
+    def generate_rows(self, site_name=None, flip_first_row=False, area=None):
         '''Auto-generates placement rows based on floorplan parameters and tech
         library.
 
@@ -401,12 +393,10 @@ class Floorplan:
         # floorplan parameters
         self.rows.clear()
 
-        if site_name == None:
+        if site_name is None:
             site_name = self.std_cell_name
 
-        if area and units == 'relative':
-            area = [v * self.std_cell_height for v in area]
-        elif area == None:
+        if area is None:
             area = self.core_area
 
         start_x = area[0]
@@ -423,28 +413,26 @@ class Floorplan:
             row = {
                 'name': name,
                 'site': site_name,
-                'x': start_x,
-                'y': start_y,
+                'x': self.snap_to_grid(start_x),
+                'y': self.snap_to_grid(start_y),
                 'orientation': orientation,
                 'numx': num_x,
                 'numy': 1,
-                'stepx' : self.std_cell_width,
+                'stepx' : self.snap_to_grid(self.std_cell_width),
                 'stepy' : 0
             }
             self.rows.append(row)
 
             start_y += self.std_cell_height
 
-    def generate_tracks(self, area=None, units='relative'):
+    def generate_tracks(self, area=None):
         '''
         Auto-generates routing tracks based on floorplan parameters and tech
         library.
 
         Args:
             area (tuple of float): Area to fill with tracks as tuple of four floats.
-                If `None`, fill entire die area. Specified as microns.
-            units (str): Whether to use technology-independent ('relative') or
-                absolute ('absolute') units.
+                If `None`, fill entire die area. Specified in microns.
         '''
         logging.debug("Placing tracks")
 
@@ -452,9 +440,7 @@ class Floorplan:
         # floorplan parameters
         self.tracks.clear()
 
-        if area and units == 'relative':
-            area = [v * self.std_cell_height for v in area]
-        elif area == None:
+        if area is None:
             area = (0, 0, self.die_area[0], self.die_area[1])
 
         start_x, start_y, die_width, die_height = area
@@ -473,16 +459,16 @@ class Floorplan:
                 'name': f'{layer_name}_X',
                 'layer': layer_name,
                 'direction': 'x',
-                'start': offset_x,
-                'step': pitch_x,
+                'start': self.snap_to_grid(offset_x),
+                'step': self.snap_to_grid(pitch_x),
                 'total': num_tracks_x
             }
             track_y = {
                 'name': f'{layer_name}_Y',
                 'layer': layer_name,
                 'direction': 'y',
-                'start': offset_y,
-                'step': pitch_y,
+                'start': self.snap_to_grid(offset_y),
+                'step': self.snap_to_grid(pitch_y),
                 'total': num_tracks_y
             }
 
@@ -509,68 +495,6 @@ class Floorplan:
                 self.blockage_layers.append(self.layers[layer]['name'])
             else:
                 raise ValueError(f'Layer {layer} not found in tech info!')
-
-    def place_macros(self, macros, start_pos, orientation, direction, spacing=0):
-        '''Places macros on floorplan.
-
-        Args:
-            macros (list of (str, str)): List of macros to place as tuples of
-                (instance name, type).
-            start_pos (tuple): x, y coordinate where to place first instance.
-            orientation (str): Orientation of macro
-            direction (str): Direction to place macros ('h' for east-west, 'v'
-                for north-south).
-            spacing (int): Distance between this pad and previous, in microns.
-        '''
-
-        # TODO Validate orientation
-        # TODO Validate direciton
-        # TODO Validating spacing
-
-        pos_x, pos_y = start_pos
-
-        is_ew_ori = orientation.upper() in ('E', 'W', 'FE', 'FW')
-        is_ns_ori = not is_ew_ori
-
-        for instance_name, cell_name in macros:
-            cell = self.available_cells[cell_name]
-            width = cell.width
-            height = cell.height
-
-            self.place_macro(instance_name, cell_name, (pos_x, pos_y), orientation, units='absolute')
-            
-            if direction.lower() == 'h':
-                pos_x += spacing + (width if is_ns_ori else height)
-            else:
-                pos_y += spacing + (width if is_ew_ori else height)
-
-    def place_macros_spaced(self, macros, start_pos, orientation, direction, distance):
-        ''' Places macros on floorplan with even space.
-
-        Args:
-            macros (list of (str, str)): List of macros to place as tuples of
-                (instance name, type).
-            start_pos (tuple): coordinates of first macro placed.
-            orientation (str): orientation of each macro.
-            direction (str): which direction to repeat macro. Must be 'h' for
-                horizontal or 'v' for vertical.
-            distance (float): distance from start_pos to space macros within.
-        '''
-        filled_space = 0
-        for _, cell_name in macros:
-            width = self.available_cells[cell_name].width
-            filled_space += width
-
-        # TODO: raise error if filled_space < distance
-        spacing = (distance - filled_space) / (len(macros) + 1)
-
-        x, y = start_pos
-        if direction.lower() == 'h':
-            x += spacing
-        else:
-            y += spacing
-
-        self.place_macros(macros, (x, y), orientation, direction, spacing)
 
     def fill_io_region(self, region, fill_cells, orientation):
         ''' Fill empty space in region with I/O filler cells
@@ -694,17 +618,46 @@ class Floorplan:
                 name = f'_sc_io_fill_cell_{self.fill_cell_id}'
                 self.fill_cell_id += 1
                 if direction == 'h':
-                    self.place_macro(name, cell, (start, region_min_y), orientation, units='absolute')
+                    self.place_macros([(name, cell)], (start, region_min_y), 0, 'h', orientation)
                 else:
-                    self.place_macro(name, cell, (region_min_x, start), orientation, units='absolute')
+                    self.place_macros([(name, cell)], (region_min_x, start), 0, 'h', orientation)
                 start += width
 
-    def _snap_to_x_track(self, x, layer):
+    def configure_net(self, net, pin_name, use):
+        ''' Configure net.
+
+        Must be called before placing a wire for a net. Calls after the first
+        will overwrite configuration values, but leave wires placed.
+
+        Args:
+            net (str): Name of net.
+            pin_name (str): Name of pins in macro to associate with this net.
+            use (str): Use of net. Must be valid LEF/DEF use.
+        '''
+
+        # TODO: validate `use`
+
+        if net in self.nets:
+            self.nets[net]['use'] = use
+            self.nets[net]['pin_name'] = pin_name
+        else: 
+            self.nets[net] = {
+                'use': use,
+                'pin_name': pin_name,
+                'wires': [] 
+            }
+ 
+    def snap_to_grid(self, val):
+        if self.grid is None:
+            return val
+        return snap(val, self.grid)
+
+    def snap_to_x_track(self, x, layer):
         offset = self.layers[layer]['xoffset']
         pitch = self.layers[layer]['xpitch']
         return round((x - offset) / pitch) * pitch + offset
 
-    def _snap_to_y_track(self, y, layer):
+    def snap_to_y_track(self, y, layer):
         offset = self.layers[layer]['yoffset']
         pitch = self.layers[layer]['ypitch']
         return round((y - offset) / pitch) * pitch + offset
