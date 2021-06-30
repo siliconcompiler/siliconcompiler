@@ -75,7 +75,7 @@ def schema_path(filename):
             filename = abspath
             break
     #Replace $ Variables
-    varmatch = re.match('^\$(\w+)(.*)', filename)
+    varmatch = re.match(r'^\$(\w+)(.*)', filename)
     if varmatch:
         var = varmatch.group(1)
         varpath = os.getenv(var)
@@ -2904,12 +2904,12 @@ def schema_design(cfg):
         A list of source files to read in for elaboration. The files are read 
         in order from first to last entered. File type is inferred from the 
         file suffix:
-        (\*.v, \*.vh) = Verilog
-        (\*.vhd)      = VHDL
-        (\*.sv)       = SystemVerilog
-        (\*.c)        = C
-        (\*.cpp, .cc) = C++
-        (\*.py)       = Python
+        (\\*.v, \\*.vh) = Verilog
+        (\\*.vhd)      = VHDL
+        (\\*.sv)       = SystemVerilog
+        (\\*.c)        = C
+        (\\*.cpp, .cc) = C++
+        (\\*.py)       = Python
         """
     }
 
@@ -3207,7 +3207,7 @@ def schema_design(cfg):
         'help' : """
         Specifes the file extensions that should be used for finding modules. 
         For example, if -y is specified as ./lib", and '.v' is specified as 
-        libext then the files ./lib/\*.v ", will be searched for module matches.
+        libext then the files ./lib/\\*.v ", will be searched for module matches.
         """
     }
 
