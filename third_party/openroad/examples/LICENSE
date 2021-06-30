@@ -1,5 +1,11 @@
 Source: https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/tree/master/flow/designs/src
 Commit hash: 166ffb549f3f358bc8896cbfb18a3b6dc98d0d43
+
+Constraint files moved from:
+`[OpenROAD]/flow/designs/[platform]/[design]/*.sdc`
+to:
+`[siliconcompiler]/third_party/openroad/examples/[design]/[platform].sdc`
+
 Original license follows:
 --------------------------------------------------
 
