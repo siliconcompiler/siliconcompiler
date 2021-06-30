@@ -1,0 +1,21 @@
+CAPI=2:
+name: sc:ice40up5k-evn:1.0
+
+filesets:
+  rtl:
+    files:
+      - inputs/sc.v
+    file_type: verilogSource
+
+  constraints:
+    files:
+      - inputs/ice40up5k-evn.pcf
+    file_type: PCF
+
+targets:
+  default:
+    default_tool: icestorm
+    filesets: [rtl, constraints]
+    tools:
+      icestorm:
+        nextpnr_options: ['--up5k', '--package', 'sg48']
