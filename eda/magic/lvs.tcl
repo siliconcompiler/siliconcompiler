@@ -38,6 +38,6 @@ feedback save extract_${sc_design}.log;
 
 # Run Netgen
 set setup_file ${PDKPATH}/netgen/lvs_setup.tcl
-::netgen -batch lvs "${sc_design}.spice ${sc_design}" "inputs/${sc_design}.v ${sc_design}" $setup_file outputs/${sc_design}.lvs.out
+::netgen -batch lvs "${sc_design}.spice ${sc_design}" "inputs/${sc_design}.v ${sc_design}" $setup_file outputs/${sc_design}.lvs.out -json
 
 exit

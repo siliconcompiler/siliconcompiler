@@ -2,6 +2,8 @@ import os
 import re
 import shutil
 
+from . import count_lvs
+
 ################################
 # Tool Setup
 ################################
@@ -70,6 +72,9 @@ def post_process(chip, step):
         # Need to pass along DEF to export stage
         shutil.copy(f'inputs/{design}.def', f'outputs/{design}.def')
 
+        # Export metrics
+        lvs_failures = count_lvs.count_LVS_failures(f'outputs/{design}.lvs.json')
+        chip.set('real', step, 'errors', str(lvs_failures[0]))
 
 ################################
 # Utilities
