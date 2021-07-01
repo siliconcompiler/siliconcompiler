@@ -55,7 +55,7 @@ def test_gcd_sky130hd():
     '''
 
     # Create the Chip object which represents the design configuration.
-    chip = gen_chip([or_ex_dir + '/gcd/gcd.v'], 'sky130',
+    chip = gen_chip([or_ex_dir + '/gcd/gcd.v'], 'skywater130',
                     'gcd', or_ex_dir + '/gcd/sky130hd.sdc', 'clk',
                     '0 0 279.96 280.128', '9.996 10.08 269.964 270.048')
 
@@ -100,7 +100,7 @@ def test_aes_sky130hd():
     '''
 
     # Create the Chip object which represents the design configuration.
-    chip = gen_chip([or_ex_dir + '/aes/aes_cipher_top.v'], 'sky130',
+    chip = gen_chip([or_ex_dir + '/aes/aes_cipher_top.v'], 'skywater130',
                     'aes_cipher_top', or_ex_dir + '/aes/sky130hd.sdc', 'clk',
                     '0 0 1117.77 1019.2', '10.07 9.8 1107.7 1009.4')
 
