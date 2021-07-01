@@ -16,7 +16,7 @@ def setup_eda(chip, name=None):
 
     for step in chip.cfg['steplist']['value']:
         if step == 'import':
-            vendor = 'verilator'
+            vendor = 'ghdlyos'
         elif step == 'syn':
             vendor = 'yosys'
         elif step == 'apr':

@@ -62,7 +62,7 @@ def configure_fpga(chip):
     chip.add('define', 'CLK_INPUT=50000000')
     chip.add('define', 'CLK_FREQUENCY=40000000')
 
-    chip.set('target', 'ice40_nextpnr')
+    chip.set('target', 'ice40_nextpnrvhdl')
     chip.set('constraint', 'fpga/icebreaker.pcf')
 
 def main():
@@ -70,7 +70,6 @@ def main():
 
     configure_fpga(chip)
 
-    chip.set('quiet', 'true')
     chip.set_jobid()
     chip.target()
     chip.run()
