@@ -68,7 +68,7 @@ def setup_options(chip, step):
         options.append(source_file)
         # Add source file directories to include path; they may use
         # `include statements with relative file paths.
-        source_dir = source_file[:source_file.rfind('/')]
+        source_dir = os.path.dirname(source_file)
         if not source_dir in chip.cfg['idir']['value']:
             chip.cfg['idir']['value'].append(source_dir)
 

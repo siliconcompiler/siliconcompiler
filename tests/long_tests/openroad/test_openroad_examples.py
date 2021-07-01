@@ -51,7 +51,7 @@ def run_chip_job(chip):
 
 ##################################
 def test_gcd_sky130hd():
-    '''Basic CLI test: build the GCD example by running `sc` as a command-line app.
+    '''Basic CLI test: build the GCD example using the Python API.
     '''
 
     # Create the Chip object which represents the design configuration.
@@ -67,7 +67,7 @@ def test_gcd_sky130hd():
 
 ##################################
 def test_gcd_freepdk45():
-    '''Basic CLI test: build the GCD example by running `sc` as a command-line app.
+    '''Basic CLI test: build the GCD example using the Python API.
     '''
 
     # Create the Chip object which represents the design configuration.
@@ -83,7 +83,7 @@ def test_gcd_freepdk45():
 
 ##################################
 def test_aes_freepdk45():
-    '''Basic CLI test: build the AES example by running `sc` through its Python API.
+    '''Basic CLI test: build the AES example using the Python API.
     '''
 
     # Create the Chip object which represents the design configuration.
@@ -96,7 +96,7 @@ def test_aes_freepdk45():
 
 ##################################
 def test_aes_sky130hd():
-    '''Basic CLI test: build the AES example by running `sc` through its Python API.
+    '''Basic CLI test: build the AES example using the Python API.
     '''
 
     # Create the Chip object which represents the design configuration.
