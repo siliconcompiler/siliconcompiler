@@ -57,9 +57,6 @@ def setup_options(chip, step):
     for value in chip.cfg['vlib']['value']:
         options.append('-v ' + schema_path(value))
 
-    for value in chip.cfg['idir']['value']:
-        options.append('-I' + schema_path(value))
-
     for value in chip.cfg['define']['value']:
         options.append('-D' + schema_path(value))
 
@@ -67,7 +64,16 @@ def setup_options(chip, step):
         options.append('-f ' + schema_path(value))
 
     for value in chip.cfg['source']['value']:
-        options.append(schema_path(value))
+        source_file = schema_path(value)
+        options.append(source_file)
+        # Add source file directories to include path; they may use
+        # `include statements with relative file paths.
+        source_dir = source_file[:source_file.rfind('/')]
+        if not source_dir in chip.cfg['idir']['value']:
+            chip.cfg['idir']['value'].append(source_dir)
+
+    for value in chip.cfg['idir']['value']:
+        options.append('-I' + schema_path(value))
 
     #Relax Linting
     supress_warnings = ['-Wno-UNOPTFLAT',
