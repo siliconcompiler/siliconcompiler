@@ -142,7 +142,7 @@ if {[llength $sc_def] > 0} {
     ###########################
     # Power Network (not good)
     ###########################
-    #pdngen $::env(PDN_CFG) -verbose
+    pdngen $sc_pdncfg -verbose
 
 }
 

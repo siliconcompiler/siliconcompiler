@@ -57,6 +57,10 @@ def setup_platform(chip):
     chip.set('pdk','aprtech',stackup, libtype, 'lef',
              pdkdir+'/apr/sky130_fd_sc_hd.tlef')
 
+    # PDN config file
+    if not chip.get('pdk', 'pdncfg'):
+        chip.set('pdk', 'pdncfg', pdkdir+'/apr/sky130_fd_sc_hd_pdn.cfg')
+
     # Routing Grid Definitions
 
     # TODO: what should the SC-internal name of the LI layer be?
