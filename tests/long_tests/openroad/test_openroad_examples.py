@@ -106,3 +106,63 @@ def test_aes_sky130hd():
 
     # Run the design through the workflow, and assert success.
     run_chip_job(chip)
+
+##################################
+def test_ibex_freepdk45():
+    '''Basic CLI test: build an ibex SoC example using the Python API.
+    '''
+
+    # Create the Chip object which represents the design configuration.
+    chip = gen_chip([or_ex_dir + '/ibex/ibex_core.v'], 'freepdk45',
+                    'ibex_core', or_ex_dir + '/ibex/freepdk45.sdc', 'clk_i',
+                    '0 0 600.78 604.8', '10.07 9.8 590.71 595')
+
+    # Set the 'relax' config to suppress an UNOPTFLAT warning in the linter.
+    chip.set('relax', 'True')
+
+    # Run the design through the workflow, and assert success.
+    run_chip_job(chip)
+
+##################################
+def test_ibex_sky130hd():
+    '''Basic CLI test: build an ibex SoC example using the Python API.
+    '''
+
+    # Create the Chip object which represents the design configuration.
+    chip = gen_chip([or_ex_dir + '/ibex/ibex_core.v'], 'skywater130',
+                    'ibex_core', or_ex_dir + '/ibex/sky130hd.sdc', 'clk_i',
+                    '0 0 1117.77 1019.2', '10.07 9.8 1107.7 1009.4')
+
+    # Set the 'relax' config to suppress an UNOPTFLAT warning in the linter.
+    chip.set('relax', 'True')
+
+    # Run the design through the workflow, and assert success.
+    run_chip_job(chip)
+
+##################################
+def test_jpeg_freepdk45():
+    '''Basic CLI test: build the JPEG encoder example using the Python API.
+    '''
+
+    # Create the Chip object which represents the design configuration.
+    chip = gen_chip([or_ex_dir + '/jpeg/jpeg_encoder.v',
+                     or_ex_dir + '/jpeg/include/dt_cos_table.v'], 'freepdk45',
+                    'jpeg_encoder', or_ex_dir + '/jpeg/freepdk45.sdc', 'clk',
+                    '0 0 1201.56 1209.6', '10.07 9.8 1191.49 1199.8')
+
+    # Run the design through the workflow, and assert success.
+    run_chip_job(chip)
+
+##################################
+def test_jpeg_sky130hd():
+    '''Basic CLI test: build the JPEG encoder example using the Python API.
+    '''
+
+    # Create the Chip object which represents the design configuration.
+    chip = gen_chip([or_ex_dir + '/jpeg/jpeg_encoder.v',
+                     or_ex_dir + '/jpeg/include/dt_cos_table.v'], 'skywater130',
+                    'jpeg_encoder', or_ex_dir + '/jpeg/sky130hd.sdc', 'clk',
+                    '0 0 2235.54 2038.4', '10.07 9.8 2225.47 2028.6')
+
+    # Run the design through the workflow, and assert success.
+    run_chip_job(chip)

@@ -45,7 +45,10 @@ module prim_badbit_ram_1p (
 	assign wdata = {{128 - Width {1'b0}}, wdata_i};
 	assign wmask = {{128 - Width {1'b0}}, wmask_i};
 	assign rdata = {{128 - Width {1'b0}}, sram_rdata};
-	wor [127:0] bad_bit_mask;
+        // SC_CHANGE: Verilator does not support wor, and this signal appears to
+        // only have one driver. So, replace it with a wire.
+	//wor [127:0] bad_bit_mask;
+	wire [127:0] bad_bit_mask;
 	assign bad_bit_mask = 128'b00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000;
 	assign rdata_o = sram_rdata ^ bad_bit_mask;
 endmodule
