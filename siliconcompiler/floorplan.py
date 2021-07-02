@@ -18,27 +18,73 @@ def render_tuple(vals):
     return f"( {vals_str} )"
 env.filters['render_tuple'] = render_tuple
 
-MacroInfo = namedtuple("MacroInfo", "tech_name width height")
+_MacroInfo = namedtuple("_MacroInfo", "tech_name width height")
 
 def snap(val, grid):
+    '''Helper function for snapping `val` to nearest multiple of `grid`.'''
     return grid * round(val/grid)
 
 class Floorplan:
-    '''Floorplan layout class'''
+    '''Floorplan layout class.
+
+    This is the main object used to interact with the Floorplan API. In the
+    context of a full SiliconCompiler flow, a Floorplan instance pre-populated
+    with the current chip configuration is passed to the user, who will then
+    call the member functions of this class to define objects and their location
+    within the floorplan.
+
+    In order to define the floorplan geometry in a technology-agnostic way, this
+    object exposes several attributes that allow the user to access
+    technology-specific dimensions, such as standard cell width and height.
+    These attributes can be used as scaling factors to determine the locations and
+    sizes of objects on the floorplan.
+
+    Args:
+        chip (Chip): Object storing the chip config. The Floorplan API
+            expects the chip's configuration to be populated with information
+            from a tech library.
+        grid (float): Minimum manufacturing grid that all positions and
+            dimensions are automatically snapped to. If `None`, all
+            received values are kept as-is.
+        db_units (int): Scaling factor to go from microns to DEF DB units.
+
+    Attributes:
+        available_cells (dict): A dictionary mapping macro names to information
+            about each macro. The values stored in this dictionary have three keys:
+            `tech_name`, the technology-specific name corresponding to the macro;
+            `width`, the width of the macro in microns; and `height`, the height of
+            the macro in microns.
+
+            In order to make macro libraries usable by the Floorplan API, a user must specify them in the chip configuration.
+
+            To point SC to a certain macro library's LEF file:
+
+                .. code-block:: python
+
+                    chip.add('asic', 'macrolib', libname)
+                    chip.set('macro', libname, 'lef', lef_path)
+
+            In order to make the macros in a library accessible from the Floorplan API,
+            each macro must be provided a tech-agnostic name (`macro_name`), which maps to a
+            tech-specific name (the name of the macro in the associated LEF
+            file, `tech_name`):
+
+                .. code-block:: python
+
+                    chip.set('macro', libname, 'cells', macro_name, tech_name)
+
+            All Floorplan API calls related to macros must use the tech-agnostic macro name.
+        die_area (tuple): A tuple of two floats `(width, height)` storing the size of the die area
+            in microns.
+        layers (dict): A dictionary mapping SiliconCompiler layer names to
+            technology-specific info about the layers. The values in this dictionary are
+            dictionaries themselves, containing the keys
+            `name`, `width`, `xpitch`, `ypitch`, `xoffset`, and `yoffset`.
+        std_cell_width (float): Width of standard cells in microns.
+        std_cell_height (float): Height of standard cells in microns.
+    '''
 
     def __init__(self, chip, grid=0.005, db_units=2000):
-        '''Initializes Floorplan object.
-
-        Args:
-            chip (Chip): Object storing the chip config. The Floorplan API
-                expects the chip's configuration to be populated with information
-                from a tech library, and the API will write to the chip's
-                layout configuration.
-            grid (float): Minimum manufacturing grid that all positions and
-                dimensions are automatically snapped to. If `None`, all
-                received values are kept as-is.
-            db_units (int): Scaling factor to go from microns to DEF DB units.
-        '''
         self.chip = chip
         self.grid = grid
         self.db_units = db_units
@@ -106,7 +152,7 @@ class Floorplan:
                     raise KeyError(f'Implementation {tech_name} for macro {name}'
                         f'not found in library {lef_path}')
 
-                self.available_cells[name] = MacroInfo(tech_name, width, height)
+                self.available_cells[name] = _MacroInfo(tech_name, width, height)
 
         # extract layers based on stackup
         stackup = self.chip.get('asic', 'stackup')[-1]
@@ -128,20 +174,18 @@ class Floorplan:
         '''Initializes die.
 
         Initializes the area of the die and generates placement rows and routing
-        tracks. This function must be called before calling place_pins. The
+        tracks. This function must be called before calling `place_pins`. The
         provided die and core dimensions will overwrite the die/core size
         already present in the chip config.
 
         Args:
-            width (float): Width of die in terms of standard cell height if
-                using technology-independent units, otherwise microns.
-            height (float): Height of die in terms of standard cell height if
-                using technology-independent units, otherwise microns.
+            width (float): Width of die in microns.
+            height (float): Height of die in microns.
             core_area (tuple of float): The core cell area of the physical
                 design. This is provided as a tuple (x0 y0 x1 y1), where (x0,
                 y0), specifes the lower left corner of the block and (x1, y1)
                 specifies the upper right corner. If `None`, core_area is set to
-                be equivalent to the die area.
+                be equivalent to the die area. Dimensions are specified in microns.
             generate_rows (bool): Automatically generate rows to fill entire
                 core area.
             generate_tracks (bool): Automatically generate tracks to fill entire
@@ -282,15 +326,15 @@ class Floorplan:
 
         Args:
             macros (list of (str, str)): List of macros to place as tuples of
-                (instance name, type).
+                (instance name, macro name).
             pos (tuple): x, y coordinate where to place first instance, in
                 microns.
-            pitch (int): Distance between this pad and previous, in microns.
+            pitch (int): Distance between this macro and previous, in microns.
             direction (str): Direction to place macros ('h' for east-west, 'v'
                 for north-south).
-            orientation (str): Orientation of macro.
+            orientation (str): Orientation of macros (must be valid LEF/DEF orientation).
             halo (tuple of int): Halo around macro as tuple (left bottom right
-                top).
+                top), in microns.
             fixed (bool): Whether or not macro placement is fixed or placed.
         '''
 
@@ -326,7 +370,7 @@ class Floorplan:
                 y += pitch
 
     def place_wires(self, nets, pos, pitch, direction, layer, width, length, shape):
-        ''' Place wires on floorplan.
+        '''Place wires on floorplan.
 
         Args:
             nets (list of str): List of net names of wires to place.
@@ -334,8 +378,8 @@ class Floorplan:
                 microns.
             pitch (int): Distance between this wire and previous, in microns.
             direction (str): Direction to place wires along ('h' for east-west, 'v'
-                for north-south). Wires themselves will run in the opposite
-                direction.
+                for north-south). Note that the wires themselves will run in the
+                opposite direction.
             layer (str): Which metal layer wire is placed on.
             width (float): Width of wire in microns.
             length (float): Length of wire in microns.
@@ -378,14 +422,12 @@ class Floorplan:
 
         Args:
             site_name (str): Name of placement site to specify in rows. If
-                `None`, uses default site specified by library file.
+                `None`, uses default standard cell site.
             flip_first_row (bool): Determines orientation of row placement
                 sites. If `False`, alternates starting at "FS", if `True`,
                 alternates starting at "N".
             area (tuple of float): Area to fill with rows as tuple of four floats.
                 If `None`, fill entire core area. Specified as microns.
-            units (str): Whether to use technology-independent ('relative') or
-                absolute ('absolute') units.
         '''
         logging.debug("Placing rows")
 
@@ -426,8 +468,7 @@ class Floorplan:
             start_y += self.std_cell_height
 
     def generate_tracks(self, area=None):
-        '''
-        Auto-generates routing tracks based on floorplan parameters and tech
+        '''Auto-generates routing tracks based on floorplan parameters and tech
         library.
 
         Args:
@@ -476,15 +517,14 @@ class Floorplan:
             self.tracks.append(track_y)
 
     def place_blockage(self, layers=None):
-        '''
-        Places full-area blockages on the specified layers.
+        '''Places full-area blockages on the specified layers.
 
         The blockages specified using this method only take effect when dumping
         the floorplan as a LEF macro.
 
         Args:
             layers (list): List of layers to place blockages on. If `None`,
-            block all metal layers.
+                block all metal layers.
         '''
 
         if layers is None:
@@ -497,11 +537,14 @@ class Floorplan:
                 raise ValueError(f'Layer {layer} not found in tech info!')
 
     def fill_io_region(self, region, fill_cells, orientation):
-        ''' Fill empty space in region with I/O filler cells
+        '''Fill empty space in region with I/O filler cells.
 
         Args:
-            region (list of tuple of int): bottom-left and top-right corner of
+            region (list of tuple of float): bottom-left and top-right corner of
                 region to fill.
+            fill_cells (list of str): List of names of I/O filler cells to use.
+            orientation (str): The orientation the filler cells are placed in
+                (must be valid LEF/DEF orientation).
 
         Raises:
             ValueError: Region contains macros such that it is unfillable.
@@ -624,7 +667,7 @@ class Floorplan:
                 start += width
 
     def configure_net(self, net, pin_name, use):
-        ''' Configure net.
+        '''Configure net.
 
         Must be called before placing a wire for a net. Calls after the first
         will overwrite configuration values, but leave wires placed.
@@ -653,11 +696,17 @@ class Floorplan:
         return snap(val, self.grid)
 
     def snap_to_x_track(self, x, layer):
+        '''Helper function to snap a value `x` to the x coordinate of the nearest
+        vertical routing track on `layer`.
+        '''
         offset = self.layers[layer]['xoffset']
         pitch = self.layers[layer]['xpitch']
         return round((x - offset) / pitch) * pitch + offset
 
     def snap_to_y_track(self, y, layer):
+        '''Helper function to snap a value `y` to the y coordinate of the nearest
+        horizontal routing track on `layer`.
+        '''
         offset = self.layers[layer]['yoffset']
         pitch = self.layers[layer]['ypitch']
         return round((y - offset) / pitch) * pitch + offset
