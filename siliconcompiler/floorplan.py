@@ -257,10 +257,10 @@ class Floorplan:
         '''
         logging.debug('Placing pins: %s', ' '.join(pins))
 
-        if pin_dir.upper() not in ('INPUT', 'OUTPUT', 'INOUT', 'FEEDTHRU'):
+        if pin_dir.lower() not in ('input', 'output', 'inout', 'feedthru'):
             raise ValueError('Invalid pin direction')
-        if use.upper() not in ('SIGNAL', 'POWER', 'GROUND', 'CLOCK', 'TIEOFF',
-                               'ANALOG', 'SCAN', 'RESET'):
+        if use.lower() not in ('signal', 'power', 'ground', 'clock', 'tieoff',
+                               'analog', 'scan', 'reset'):
             raise ValueError('Invalid use')
 
         if self.die_area is None:
@@ -338,14 +338,11 @@ class Floorplan:
             fixed (bool): Whether or not macro placement is fixed or placed.
         '''
 
-        # TODO Validate orientation
-        # TODO Validate direciton
-        # TODO Validating spacing
+        self._validate_orientation(orientation)
+        if direction.lower() not in ('h', 'v'):
+            raise ValueError('Invalid direction')
 
         x, y = pos
-
-        is_ew_ori = orientation.upper() in ('E', 'W', 'FE', 'FW')
-        is_ns_ori = not is_ew_ori
 
         for instance_name, cell_name in macros:
             cell = self.available_cells[cell_name]
@@ -386,7 +383,10 @@ class Floorplan:
             shape (str): Shape of wire as LEF/DEF shape.
         '''
 
-        # TODO: validate shape
+        if shape.lower() not in ('ring', 'padring', 'blockring', 'stripe', 
+            'followpin', 'iowire', 'corewire', 'blockwire', 'blockagewire',
+            'fillwire', 'fillwireopc', 'drcfill'): 
+            raise ValueError('Invalid shape')
 
         for net_name in nets:
             x, y = pos
@@ -550,7 +550,7 @@ class Floorplan:
             ValueError: Region contains macros such that it is unfillable.
         '''
  
-        # TODO: validate orientation
+        self._validate_orientation(orientation)
 
         region_min_x, region_min_y = region[0]
         region_max_x, region_max_y = region[1]
@@ -678,7 +678,8 @@ class Floorplan:
             use (str): Use of net. Must be valid LEF/DEF use.
         '''
 
-        # TODO: validate `use`
+        if use.lower() not in ('analog', 'clock', 'ground', 'power', 'reset', 'scan', 'signal', 'tieoff'):
+            raise ValueError('Invalid use')
 
         if net in self.nets:
             self.nets[net]['use'] = use
@@ -711,10 +712,6 @@ class Floorplan:
         pitch = self.layers[layer]['ypitch']
         return round((y - offset) / pitch) * pitch + offset
 
-    def _validate_units(self, units):
-        if units not in ('relative', 'absolute'):
-            raise ValueError("Units must be 'relative' or 'absolute'")
-
     def _validate_orientation(self, orientation):
-        if orientation not in ('N', 'S', 'W', 'E', 'FN', 'FS', 'FW', 'FE'):
-            raise ValueError("Illegal orientation")
+        if orientation.lower() not in ('n', 's', 'w', 'e', 'fn', 'fs', 'fw', 'fe'):
+            raise ValueError('Invalid orientation')
