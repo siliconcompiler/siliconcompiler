@@ -348,6 +348,7 @@ class Floorplan:
             raise ValueError('Invalid direction')
 
         x, y = pos
+        ns_ori = orientation[-1].lower() in ('n', 's')
 
         for instance_name, cell_name in macros:
             cell = self.available_cells[cell_name]
@@ -367,9 +368,9 @@ class Floorplan:
             self.macros.append(macro)
 
             if direction.lower() == 'h':
-                x += spacing
+                x += spacing + (width if ns_ori else height)
             else:
-                y += spacing
+                y += spacing + (height if ns_ori else width)
 
     def place_wires(self, nets, pos, spacing, direction, layer, width, length, shape):
         '''Place wires on floorplan.
