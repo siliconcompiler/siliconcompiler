@@ -62,6 +62,15 @@ Source (filled-in template):
 
 Up-to-date as of `b06f0f2`.
 
+### `pdk/setup/netgen/`
+
+`lvs_setup.tcl`
+
+Adapted from
+https://github.com/RTimothyEdwards/open_pdks/blob/master/sky130/netgen/sky130_setup.tcl.
+
+Up-to-date as of `b06f0f2`.
+
 ### `libs/sky130hd/v0_0_2/`
 
 `gds/sky130_fd_sc_hd.gds`
