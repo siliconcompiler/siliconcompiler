@@ -238,14 +238,14 @@ class Floorplan:
         with open(filename, 'w') as f:
             f.write(tmpl.render(fp=self))
 
-    def place_pins(self, pins, offset, spacing, side, width, depth, layer,
+    def place_pins(self, pins, offset, pitch, side, width, depth, layer,
                    pin_dir='inout', net_name=None, use='signal', fixed=True):
         '''Places pins along edge of floorplan.
 
         Args:
             pins (list of str): List of pin names to place.
             offset (int): How far to place first pin from edge, in microns.
-            spacing (int): Spacing between pins in microns.
+            pitch (int): Spacing between pins in microns.
             side (str): Which side of the block to place the pins along. Options
                 are 'n', 's', 'e', or 'w' (case insensitive).
             width (float): Width of pin.
@@ -280,26 +280,26 @@ class Floorplan:
         if side.upper() == 'N':
             x     = offset
             y     = block_h - depth/2
-            xincr = spacing
+            xincr = pitch
             yincr = 0.0
             shape = [(-width/2, -depth/2), (width/2, depth/2)]
         elif side.upper() == 'S':
             x     = offset
             y     = depth/2
-            xincr = spacing
+            xincr = pitch
             yincr = 0.0
             shape = [(-width/2, -depth/2), (width/2, depth/2)]
         elif side.upper() == 'W':
             x     = depth/2
             y     = offset
             xincr = 0
-            yincr = spacing
+            yincr = pitch
             shape = [(-depth/2, -width/2), (depth/2, width/2)]
         elif side.upper() == 'E':
             x     = block_w - depth/2
             y     = offset
             xincr = 0
-            yincr = spacing
+            yincr = pitch
             shape = [(-depth/2, -width/2), (depth/2, width/2)]
 
         for pin_name in pins:
@@ -372,14 +372,14 @@ class Floorplan:
             else:
                 y += spacing + (height if ns_ori else width)
 
-    def place_wires(self, nets, pos, spacing, direction, layer, width, length, shape):
+    def place_wires(self, nets, pos, pitch, direction, layer, width, length, shape):
         '''Place wires on floorplan.
 
         Args:
             nets (list of str): List of net names of wires to place.
             pos (tuple): x, y coordinate where to place first instance, in
                 microns.
-            spacing (int): Distance between this wire and previous, in microns.
+            pitch (int): Distance between this wire and previous, in microns.
             direction (str): Direction to place wires along ('h' for east-west,
                 'v' for north-south). Note that the wires themselves will run in
                 the opposite direction.
@@ -418,9 +418,9 @@ class Floorplan:
                     f'it by calling init_net()')
 
             if direction.lower() == 'h':
-                pos = x + spacing, y
+                pos = x + pitch, y
             elif direction.lower() == 'v':
-                pos = x, y + spacing
+                pos = x, y + pitch
 
     def generate_rows(self, site_name=None, flip_first_row=False, area=None):
         '''Auto-generates placement rows based on floorplan parameters and tech
