@@ -325,7 +325,7 @@ class Floorplan:
             y += yincr
 
     def place_macros(self, macros, pos, spacing, direction, orientation,
-                    halo=(0, 0, 0, 0), fixed=True):
+                    halo=None, fixed=True):
         '''Places macros on floorplan.
 
         Args:
