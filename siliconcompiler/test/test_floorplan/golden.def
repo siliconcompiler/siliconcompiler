@@ -189,15 +189,15 @@ PINS 16 ;
     - in[5] + NET in[5] + DIRECTION INOUT + USE SIGNAL
        + PORT
          + LAYER metal3 ( -2100 -700 ) ( 2100 700 )
-         + FIXED ( 199500 80780 ) N ;
+         + FIXED ( 199500 80500 ) N ;
     - in[6] + NET in[6] + DIRECTION INOUT + USE SIGNAL
        + PORT
          + LAYER metal3 ( -2100 -700 ) ( 2100 700 )
-         + FIXED ( 199500 121100 ) N ;
+         + FIXED ( 199500 120820 ) N ;
     - in[7] + NET in[7] + DIRECTION INOUT + USE SIGNAL
        + PORT
          + LAYER metal3 ( -2100 -700 ) ( 2100 700 )
-         + FIXED ( 199500 161420 ) N ;
+         + FIXED ( 199500 161140 ) N ;
     - in[8] + NET in[8] + DIRECTION INOUT + USE SIGNAL
        + PORT
          + LAYER metal3 ( -2100 -700 ) ( 2100 700 )
@@ -205,15 +205,15 @@ PINS 16 ;
     - in[9] + NET in[9] + DIRECTION INOUT + USE SIGNAL
        + PORT
          + LAYER metal3 ( -2100 -700 ) ( 2100 700 )
-         + FIXED ( 2100 80780 ) N ;
+         + FIXED ( 2100 80500 ) N ;
     - in[10] + NET in[10] + DIRECTION INOUT + USE SIGNAL
        + PORT
          + LAYER metal3 ( -2100 -700 ) ( 2100 700 )
-         + FIXED ( 2100 121100 ) N ;
+         + FIXED ( 2100 120820 ) N ;
     - in[11] + NET in[11] + DIRECTION INOUT + USE SIGNAL
        + PORT
          + LAYER metal3 ( -2100 -700 ) ( 2100 700 )
-         + FIXED ( 2100 161420 ) N ;
+         + FIXED ( 2100 161140 ) N ;
     - in[12] + NET in[12] + DIRECTION INOUT + USE SIGNAL
        + PORT
          + LAYER metal3 ( -700 -2100 ) ( 700 2100 )
@@ -231,5 +231,8 @@ PINS 16 ;
          + LAYER metal3 ( -700 -2100 ) ( 700 2100 )
          + FIXED ( 161310 2100 ) N ;
 END PINS
+
+SPECIALNETS 0 ;
+END SPECIALNETS
 
 END DESIGN

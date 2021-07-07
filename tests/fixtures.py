@@ -16,6 +16,8 @@ def test_wrapper(request):
 
     topdir = os.getcwd()
 
+    if os.path.isdir(testdir):
+        shutil.rmtree(testdir)
     os.mkdir(testdir)
     os.chdir(testdir)
 

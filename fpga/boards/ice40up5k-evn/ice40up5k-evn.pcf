@@ -1,0 +1,10 @@
+# Minimal constraint file for Lattice's iCE40UP5K evaluation board.
+
+# 12 MHz clock
+set_io -nowarn CLK        35
+set_frequency  CLK        12
+
+# RGB LED
+set_io -nowarn LED1       39
+set_io -nowarn LED2       40
+set_io -nowarn LED3       41

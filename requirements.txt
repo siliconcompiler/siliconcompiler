@@ -8,6 +8,7 @@ aiohttp >= 3.7.4.post0
 pyfiglet >= 0.8
 PyYAML >= 5.4.1
 pytest >= 6.2.4
+pytest-xdist >= 2.3.0
 defusedxml >= 0.7.1
 pandas >= 1.2.3
 Jinja2 >= 2.11.3

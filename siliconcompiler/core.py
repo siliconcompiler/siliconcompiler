@@ -171,11 +171,11 @@ class Chip:
 
         for item in sys.argv:
             #Split switches with one character and a number after (O0,O1,O2)            
-            opt = re.search('(\-\w)(\d+)',item)
+            opt = re.search(r'(\-\w)(\d+)',item)
             #Split assign switches (-DCFG_ASIC=1)
-            assign = re.search('(\-\w)(\w+\=\w+)',item)
+            assign = re.search(r'(\-\w)(\w+\=\w+)',item)
             #Split plusargs (+incdir+/path)
-            plusarg = re.search('(\+\w+\+)(.*)',item)
+            plusarg = re.search(r'(\+\w+\+)(.*)',item)
             if opt:
                 scargs.append(opt.group(1))
                 scargs.append(opt.group(2))
@@ -360,7 +360,7 @@ class Chip:
 
         #Refcard String
         #Need to escape dir to get pdf to print in pandoc?
-        outlst = [param.replace("<dir>", "\<dir\>"),
+        outlst = [param.replace("<dir>", "\\<dir\\>"),
                   description,
                   typestr,
                   requirement,
@@ -648,7 +648,7 @@ class Chip:
                 if mode == 'tcl':
                     for i, val in enumerate(cfg[k][field]):
                         #replace $VAR with env(VAR) for tcl
-                        m = re.match('\$(\w+)(.*)', val)
+                        m = re.match(r'\$(\w+)(.*)', val)
                         if m:
                             cfg[k][field][i] = ('$env(' +
                                                 m.group(1) +
@@ -1399,7 +1399,7 @@ class Chip:
             if schema_istrue(self.cfg['jobincr']['value']):
                 jobid = 0
                 for item in alljobs:
-                    m = re.match(jobname+'(\d+)', item)
+                    m = re.match(jobname+r'(\d+)', item)
                     if m:
                         jobid = max(jobid, int(m.group(1)))
                 jobid = jobid+1

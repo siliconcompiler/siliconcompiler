@@ -15,7 +15,8 @@ def test_gcd_server():
     with open('../test.log', 'w') as f:
         srv_proc = subprocess.Popen(['sc-server',
                                      '-nfs_mount', './local_server_work',
-                                     '-cluster', 'local'],
+                                     '-cluster', 'local',
+                                     '-port', '8082'],
                                     stdout = f)
 
     # Find an absolute path to the example design.
@@ -34,7 +35,7 @@ def test_gcd_server():
                             '-asic_coresize', '10.07 11.2 90.25 91',
                             '-constraint', gcd_ex_dir + '/gcd.sdc',
                             '-remote_addr', 'localhost',
-                            '-remote_port', '8080',
+                            '-remote_port', '8082',
                             '-loglevel', 'NOTSET'],
                            stdout = subprocess.PIPE)
 
@@ -46,7 +47,7 @@ def test_gcd_server():
                             '-start', 'place',
                             '-stop', 'export',
                             '-remote_addr', 'localhost',
-                            '-remote_port', '8080',
+                            '-remote_port', '8082',
                             '-loglevel', 'NOTSET'],
                            stdout = subprocess.PIPE)
 

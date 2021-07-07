@@ -61,9 +61,9 @@ def post_process(chip, step):
      exe = chip.get('flow',step,'exe')[-1]
      with open(exe + ".log") as f:
           for line in f:
-               area = re.search('Chip area for module.*\:\s+(.*)', line)
-               cells = re.search('Number of cells\:\s+(.*)', line)
-               warnings = re.search('Warnings.*\s(\d+)\s+total', line)
+               area = re.search(r'Chip area for module.*\:\s+(.*)', line)
+               cells = re.search(r'Number of cells\:\s+(.*)', line)
+               warnings = re.search(r'Warnings.*\s(\d+)\s+total', line)
                
                if area:
                     chip.set('real', step, 'area_cells', str(round(float(area.group(1)),2)))
