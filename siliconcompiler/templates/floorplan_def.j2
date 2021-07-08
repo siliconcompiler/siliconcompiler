@@ -22,8 +22,8 @@ COMPONENTS {{ fp.macros | length }} ;
       + {{ macro.status | upper }} ( {{macro.x | scale }} {{ macro.y | scale }} ) {{ macro.orientation }}
       {% endif %}
       {% if macro.halo %}
-      + HALO {{ macro.halo | map('scale') | join(' ') }} ;
-      {% endif %}
+      + HALO {{ macro.halo | map('scale') | join(' ') }}
+      {% endif %} ;
 {% endfor %}
 END COMPONENTS
 
