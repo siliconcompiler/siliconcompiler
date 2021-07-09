@@ -1,3 +1,6 @@
 [submodule "libs/oh"]
 	path = libs/oh
 	url = https://github.com/aolofsson/oh
+[submodule "third_party/microwatt"]
+	path = third_party/microwatt
+	url = https://github.com/antonblanchard/microwatt
