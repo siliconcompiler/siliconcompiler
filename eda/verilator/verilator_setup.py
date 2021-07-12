@@ -67,7 +67,9 @@ def setup_options(chip, step):
         options.append('-f ' + schema_path(value))
 
     for value in chip.cfg['source']['value']:
-        options.append(schema_path(value))
+        if value.endswith('.v') or value.endswith('.vh') or \
+            value.endswith('.sv') or value.endswith('.svh'):
+            options.append(schema_path(value))
 
     #Relax Linting
     supress_warnings = ['-Wno-UNOPTFLAT',

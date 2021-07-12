@@ -41,7 +41,8 @@ def setup_options(chip, step):
         options.append('-g' + schema_path(value))
 
     for value in chip.cfg['source']['value']:
-        options.append(schema_path(value))
+        if value.endswith('.vhd') or value.endswith('.vhdl'):
+            options.append(schema_path(value))
 
     if len(chip.cfg['design']['value']) < 1:
         chip.logger.error('No top module set')
