@@ -37,10 +37,6 @@ def setup_platform(chip):
     chip.set('pdk','aprtech',stackup, libtype, 'lef',
              pdkdir+'/apr/asap7_tech.lef')
 
-    # PDN config file
-    if not chip.get('pdk', 'pdncfg'):
-        chip.set('pdk', 'pdncfg', pdkdir+'/apr/asap7_pdn.cfg')
-
     # Routing Grid Definitions
     for sc_name, pdk_name in [('m1', 'M1')]:
         chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)

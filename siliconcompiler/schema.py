@@ -664,27 +664,6 @@ def schema_pdk(cfg):
         """
     }
 
-    cfg['pdk']['pdncfg'] = {
-        'switch' : '-pdk_pdncfg',
-        'requirement' : 'optional',
-        'type' : 'file',
-        'lock' : 'false',
-        'copy' : 'false',
-        'defvalue' : [],
-        'hash'   : [],
-        'date'   : [],
-        'author' : [],
-        'signature' : [],
-        'short_help' : 'PDN configuration file',
-        'param_help' : "pdk pdncfg <file>",
-        'example': ["""cli: -pdk_pdncfg /path/to/file.cfg""",
-                    "api: chip.add('pdk', 'pdncfg', '/path/to/file.cfg')"],
-        'help' : """
-        Defines the file path to a PDN configuration file. If none is provided,
-        a default value will be used from the PDK files.
-        """
-    }
-
     cfg['pdk']['grid'] = {}
     cfg['pdk']['grid']['default'] = {}
     cfg['pdk']['grid']['default']['default'] = {}    
