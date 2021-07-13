@@ -113,39 +113,39 @@ def test_padring():
     io_dist_vert = die_h - 2 * io_h
 
     pad_w = fp.available_cells['gpio'].width
-    spacing = (io_dist_hori - 8 * pad_w) // 9 + pad_w
+    spacing = (io_dist_hori - 8 * pad_w) // 9
 
     # north
-    start = io_h + spacing - pad_w
+    start = io_h + spacing
     y = die_h - io_h
     fp.place_macros([(f'GPIO[{i}]', 'gpio') for i in range(4)], (start, y), spacing, 'H', 'N')
-    fp.place_macros([(f'GPIO[{i}]', 'gpio') for i in range(4, 8)], (start + 4 * spacing, y), spacing, 'H', 'FS')
+    fp.place_macros([(f'GPIO[{i}]', 'gpio') for i in range(4, 8)], (start + 4 * (spacing + pad_w), y), spacing, 'H', 'FS')
 
     # south
     fp.place_macros([('CLK', 'gpio'), ('RESET', 'gpio'), ('MISO', 'gpio'), ('MOSI', 'gpio'), ('SCK', 'gpio'), ('SPI_CS_N', 'gpio')], (start, 0), spacing, 'H', 'N')
-    fp.place_macros([('UART_TX', 'gpio'), ('UART_RX', 'gpio')], (start + 6 * spacing, 0), spacing, 'H', 'FN')
+    fp.place_macros([('UART_TX', 'gpio'), ('UART_RX', 'gpio')], (start + 6 * (spacing + pad_w), 0), spacing, 'H', 'FN')
 
     # east
     assert pad_w == fp.available_cells['pwr'].width, "making bad assumption about pads being same width..."
 
-    spacing = (io_dist_vert - 6 * pad_w) // 6 + pad_w
+    spacing = (io_dist_vert - 6 * pad_w) // 6
     x = die_w - io_h
-    start = io_h + spacing - pad_w
+    start = io_h + spacing
     fp.place_macros([('PWM_1', 'gpio'), ('PWM_2', 'gpio')], (x, start), spacing, 'V', 'W')
-    fp.place_macros([('VDD_1', 'pwr'), ('GND_1', 'pwr')], (x, start + 2 * spacing), pad_w, 'V', 'W')
-    fp.place_macros([('PWM_3', 'gpio'), ('PWM_4', 'gpio')], (x, start + 3 * spacing + pad_w), spacing, 'V', 'FE')
+    fp.place_macros([('VDD_1', 'pwr'), ('GND_1', 'pwr')], (x, start + 2 * (spacing + pad_w)), 0, 'V', 'W')
+    fp.place_macros([('PWM_3', 'gpio'), ('PWM_4', 'gpio')], (x, start + 3 * (spacing + pad_w) + pad_w), spacing, 'V', 'FE')
 
     # west
     fp.place_macros([('DAC_0', 'gpio'), ('DAC_1', 'gpio')], (0, start), spacing, 'V', 'E')
-    fp.place_macros([('VDD_2', 'pwr'), ('GND_2', 'pwr')], (0, start + 2 * spacing), pad_w, 'V', 'E')
-    fp.place_macros([('DAC_2', 'gpio'), ('DAC_3', 'gpio')], (0, start + 3 * spacing + pad_w), spacing, 'V', 'W')
+    fp.place_macros([('VDD_2', 'pwr'), ('GND_2', 'pwr')], (0, start + 2 * (spacing + pad_w)), 0, 'V', 'E')
+    fp.place_macros([('DAC_2', 'gpio'), ('DAC_3', 'gpio')], (0, start + 3 * (spacing + pad_w) + pad_w), spacing, 'V', 'W')
 
     fp.place_macros([('CORNER_1', 'corner')], (die_w - io_h, 0), 0, 'V', 'W') # SE
     fp.place_macros([('CORNER_2', 'corner')], (0, 0), 0, 'H', 'N') # SW
     fp.place_macros([('CORNER_3', 'corner')], (die_w - io_h, die_h - io_h), 0,  'V', 'S') # NE
     fp.place_macros([('CORNER_4', 'corner')], (0, die_h - io_h), 0, 'H', 'E') # NW
 
-    fp.place_macros([('ram1', 'ram'), ('ram2', 'ram')], (die_w / 2, die_h / 2), 200, 'H', 'N')
+    fp.place_macros([('ram1', 'ram'), ('ram2', 'ram')], (die_w / 2, die_h / 2), 50, 'H', 'N')
 
     io_fill_cells = ['fill1', 'fill2', 'fill5', 'fill10', 'fill25', 'fill50']
     fp.fill_io_region([(0, 0), (die_w, io_h)], io_fill_cells, 'N')
@@ -163,6 +163,6 @@ def test_padring():
 if __name__ == "__main__":
     import py
 
-    test_floorplan_def(make_fp(), py.path.local('.'))
-    test_floorplan_lef(make_fp(), py.path.local('.'))
+    #test_floorplan_def(make_fp(), py.path.local('.'))
+    #test_floorplan_lef(make_fp(), py.path.local('.'))
     test_padring()
