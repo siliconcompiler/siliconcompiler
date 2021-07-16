@@ -69,19 +69,9 @@ def setup_options(chip, step):
     for value in chip.cfg['source']['value']:
         options.append(schema_path(value))
 
-    #Relax Linting
-    supress_warnings = ['-Wno-UNOPTFLAT',
-                        '-Wno-LITENDIAN',
-                        '-Wno-WIDTH',
-                        '-Wno-SELRANGE',
-                        '-Wno-WIDTH',
-                        '-Wno-LATCH',
-                        '-Wno-fatal']
-
+    #Make warnings non-fatal in relaxed mode
     if schema_istrue(chip.cfg['relax']['value']):
-        for value in supress_warnings:
-            options.append(value)
-
+        options.append('-Wno-fatal')
 
     #Wite back options tp cfg
     chip.set('flow', step, 'option', options)
