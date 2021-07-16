@@ -1316,7 +1316,7 @@ class Chip:
                 logfile = exe + ".log"
 
                 if schema_istrue(self.cfg['quiet']['value']) & (step not in self.cfg['bkpt']['value']):
-                    cmd_fields.append("> " + logfile)
+                    cmd_fields.append(" &> " + logfile)
                 else:
                     # the weird construct at the end ensures that this invocation returns the
                     # exit code of the command itself, rather than tee
