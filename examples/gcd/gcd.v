@@ -7,6 +7,7 @@
 //
 // dump-vcd: False
 //module GcdUnit
+/* verilator lint_off LATCH */
 module gcd
 (
   input  wire clk,
