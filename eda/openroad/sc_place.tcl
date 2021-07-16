@@ -39,6 +39,10 @@ repair_design
 # DETAILED PLACEMENT
 #######################
 
+set_placement_padding -global \
+                      -left $openroad_pad_detail_place \
+                      -right $openroad_pad_detail_place
+
 detailed_placement
 
 optimize_mirroring
