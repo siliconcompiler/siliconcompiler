@@ -75,6 +75,7 @@ def setup_options(chip, step):
                         '-Wno-WIDTH',
                         '-Wno-SELRANGE',
                         '-Wno-WIDTH',
+                        '-Wno-LATCH',
                         '-Wno-fatal']
 
     if schema_istrue(chip.cfg['relax']['value']):
