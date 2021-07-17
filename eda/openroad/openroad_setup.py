@@ -66,7 +66,7 @@ def pre_process(chip, step):
         def_file = 'inputs/' + topmodule + '.def'
         fp.write_def(def_file)
 
-def post_process(chip, step):
+def post_process(chip, step, status):
      ''' Tool specific function to run after step execution
      '''
 
@@ -117,5 +117,5 @@ def post_process(chip, step):
                     elif pins:
                          chip.set('real', step, 'pins', pins.group(1))
 
-   
-     return error
+     #TODO: implement stronger error checking
+     return status

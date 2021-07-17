@@ -85,7 +85,7 @@ def pre_process(chip, step):
     ''' Tool specific function to run before step execution
     '''
 
-def post_process(chip, step):
+def post_process(chip, step, status):
     ''' Tool specific function to run after step execution
     '''
 
@@ -132,6 +132,6 @@ def post_process(chip, step):
     subprocess.run("cp verilator.v " + "outputs/" + topmodule + ".v",
                    shell=True)
 
-    #return error code
-    return error
+    #combine exe status and log file checking
+    return error & status
 

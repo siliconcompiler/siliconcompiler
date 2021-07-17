@@ -54,7 +54,7 @@ def pre_process(chip, step):
         with open('fpga_lutsize.tcl', 'w') as f:
             f.write('set lutsize ' + str(lut_size))
 
-def post_process(chip, step):
+def post_process(chip, step, status):
      ''' Tool specific function to run after step execution
      '''
      
@@ -73,12 +73,4 @@ def post_process(chip, step):
                     chip.set('real', step, 'warnings', warnings.group(1))
 
 
-     #Check log file for errors
-     error=0    
-     with open("yosys.log", "r") as open_file:
-          for line in open_file:
-               errmatch = re.match(r'^ERROR', line)
-               if errmatch:
-                    error = 1
-
-     return error
+     return status

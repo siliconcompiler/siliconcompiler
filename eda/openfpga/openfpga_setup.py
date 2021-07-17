@@ -86,11 +86,10 @@ def pre_process(chip, step):
     with open(OPENFPGA_SCRIPT, 'w') as f:
         f.write(tmpl.safe_substitute(tmpl_vars))
 
-def post_process(chip, step):
+def post_process(chip, step, status):
     ''' Tool specific function to run after step execution
     '''
 
     #TODO: return error code
-    error = 0
-    return error
+    return status
 

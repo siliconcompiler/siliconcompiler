@@ -77,7 +77,7 @@ def pre_process(chip, step):
 
     pass
 
-def post_process(chip, step):
+def post_process(chip, step, status):
     ''' Tool specific function to run after step execution
     '''
 
@@ -89,5 +89,4 @@ def post_process(chip, step):
         shutil.copy(bitstream, 'outputs/'+topmodule+'.bit')
 
     #TODO: return error code
-    error = 0
-    return error
+    return status

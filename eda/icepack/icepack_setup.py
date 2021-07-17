@@ -38,9 +38,8 @@ def pre_process(chip, step):
     '''
     pass
 
-def post_process(chip, step):
+def post_process(chip, step, status):
     ''' Tool specific function to run after step execution
     '''
     #TODO: return error code
-    error = 0
-    return error
+    return status

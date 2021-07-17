@@ -54,7 +54,7 @@ def pre_process(chip, step):
     with open('pdkpath.tcl', 'w') as f:
         f.write(f'set PDKPATH {pdk_path(chip)}')
 
-def post_process(chip, step):
+def post_process(chip, step, status):
     ''' Tool specific function to run after step execution
 
     Reads error count from output and fills in appropriate entry in metrics
@@ -78,8 +78,7 @@ def post_process(chip, step):
 
 
     #TODO: return error code
-    error = 0
-    return error
+    return status
         
 ################################
 # Utilities

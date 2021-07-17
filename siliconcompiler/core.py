@@ -1352,14 +1352,14 @@ class Chip:
 
                     # Executable
                     self.logger.info('%s', cmd)
-                    subprocess.run(cmd, shell=True, executable='/bin/bash')
+                    error = subprocess.run(cmd, shell=True, executable='/bin/bash')
 
                     # Post Process (and error checking)
                     post_process = getattr(module, "post_process")
-                    error = post_process(self, step)
+                    post_error = post_process(self, step, error.returncode)
 
                     # Exit on Error
-                    if error:
+                    if post_error:
                         self.logger.error('Command failed. See log file %s',
                                           os.path.abspath(logfile))
                         sys.exit()
