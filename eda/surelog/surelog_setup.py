@@ -69,7 +69,7 @@ def pre_process(chip, step):
     ''' Tool specific function to run before step execution
     '''
 
-def post_process(chip, step):
+def post_process(chip, step, status):
     ''' Tool specific function to run after step execution
     '''
     # setting top module of design
@@ -95,3 +95,6 @@ def post_process(chip, step):
 
         subprocess.run("cp slpp_all/surelog.uhdm " + "outputs/" + topmodule + ".uhdm",
                        shell=True)
+
+    #TODO: return error code
+    return status

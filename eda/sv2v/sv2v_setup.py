@@ -54,7 +54,7 @@ def pre_process(chip, step):
     ''' Tool specific function to run before step execution
     '''
 
-def post_process(chip, step):
+def post_process(chip, step, status):
     ''' Tool specific function to run after step execution
     '''
 
@@ -79,3 +79,7 @@ def post_process(chip, step):
         topmodule = chip.cfg['design']['value'][-1]
 
     subprocess.run("cp sv2v.log outputs/" + topmodule + ".v", shell=True)
+
+
+    #TODO: return error code
+    return status

@@ -77,7 +77,7 @@ def pre_process(chip, step):
 
     pass
 
-def post_process(chip, step):
+def post_process(chip, step, status):
     ''' Tool specific function to run after step execution
     '''
 
@@ -87,3 +87,6 @@ def post_process(chip, step):
     bitstream_path = 'build/sc_*_1.0_0/default-*/*.bi[tn]'
     for bitstream in glob.glob(bitstream_path):
         shutil.copy(bitstream, 'outputs/'+topmodule+'.bit')
+
+    #TODO: return error code
+    return status

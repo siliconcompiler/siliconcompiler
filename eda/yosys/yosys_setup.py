@@ -54,7 +54,7 @@ def pre_process(chip, step):
         with open('fpga_lutsize.tcl', 'w') as f:
             f.write('set lutsize ' + str(lut_size))
 
-def post_process(chip, step):
+def post_process(chip, step, status):
      ''' Tool specific function to run after step execution
      '''
      
@@ -71,3 +71,6 @@ def post_process(chip, step):
                     chip.set('real', step, 'cells', cells.group(1))
                elif warnings:
                     chip.set('real', step, 'warnings', warnings.group(1))
+
+
+     return status

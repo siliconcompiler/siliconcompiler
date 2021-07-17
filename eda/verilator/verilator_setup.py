@@ -69,18 +69,9 @@ def setup_options(chip, step):
     for value in chip.cfg['source']['value']:
         options.append(schema_path(value))
 
-    #Relax Linting
-    supress_warnings = ['-Wno-UNOPTFLAT',
-                        '-Wno-LITENDIAN',
-                        '-Wno-WIDTH',
-                        '-Wno-SELRANGE',
-                        '-Wno-WIDTH',
-                        '-Wno-fatal']
-
+    #Make warnings non-fatal in relaxed mode
     if schema_istrue(chip.cfg['relax']['value']):
-        for value in supress_warnings:
-            options.append(value)
-
+        options.append('-Wno-fatal')
 
     #Wite back options tp cfg
     chip.set('flow', step, 'option', options)
@@ -94,9 +85,24 @@ def pre_process(chip, step):
     ''' Tool specific function to run before step execution
     '''
 
-def post_process(chip, step):
+def post_process(chip, step, status):
     ''' Tool specific function to run after step execution
     '''
+
+    #Filtering our module not found errors
+    total_errors=0
+    error=0    
+    with open("verilator.log", "r") as open_file:
+        for line in open_file:
+            errmatch = re.match(r'^%Error\:.*Cannot find file containing module', line)
+            exitmatch = re.match(r'^%Error\:\s+Exiting due to (\d+) error', line)
+            if errmatch:
+                total_errors = total_errors + 1
+            elif exitmatch:
+                if int(exitmatch.group(1)) == total_errors:
+                    error=0
+                else:
+                    error=1
 
     # filtering out debug garbage
     subprocess.run('egrep -h -v "\\`begin_keywords" obj_dir/*.vpp > verilator.v',
@@ -125,3 +131,7 @@ def post_process(chip, step):
     # Creating file for handoff to synthesis
     subprocess.run("cp verilator.v " + "outputs/" + topmodule + ".v",
                    shell=True)
+
+    #combine exe status and log file checking
+    return error & status
+

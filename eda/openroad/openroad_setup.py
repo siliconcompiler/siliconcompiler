@@ -66,23 +66,26 @@ def pre_process(chip, step):
         def_file = 'inputs/' + topmodule + '.def'
         fp.write_def(def_file)
 
-def post_process(chip, step):
+def post_process(chip, step, status):
      ''' Tool specific function to run after step execution
      '''
-     
-     #Temporary hack! Soon this should be output by openroad
+
+     #Check log file for errors and statistics
+     error = 0
      exe = chip.get('flow',step,'exe')[-1]
      design = chip.get('design')[-1]
      with open(exe + ".log") as f:
           for line in f:
+               errmatch = re.match(r'^Error:', line)
                area = re.search(r'^Design area (\d+)', line)
                tns = re.search(r'^tns (.*)',line)
                wns = re.search(r'^wns (.*)',line)
                power = re.search(r'^Total(.*)',line)
                vias = re.search(r'^total number of vias = (.*)',line)
                wirelength = re.search(r'^total wire length = (.*) um',line)
-
-               if area:
+               if errmatch:
+                    error = 1
+               elif area:
                     chip.set('real', step, 'area_cells', str(round(float(area.group(1)),2)))
                elif tns:
                     chip.set('real', step, 'setup_tns', str(round(float(tns.group(1)),2)))
@@ -101,14 +104,18 @@ def post_process(chip, step):
                     
      #Temporary superhack!
      #Getting cell count and net number from DEF
-     with open("outputs/" + design + ".def") as f:
-          for line in f:
-               cells = re.search(r'^COMPONENTS (\d+)', line)
-               nets = re.search(r'^NETS (\d+)',line)
-               pins = re.search(r'^PINS (\d+)',line)
-               if cells:
-                    chip.set('real', step, 'cells', cells.group(1))
-               elif nets:
-                    chip.set('real', step, 'nets', nets.group(1))               
-               elif pins:
-                    chip.set('real', step, 'pins', pins.group(1))
+     if error == 0:
+          with open("outputs/" + design + ".def") as f:
+               for line in f:
+                    cells = re.search(r'^COMPONENTS (\d+)', line)
+                    nets = re.search(r'^NETS (\d+)',line)
+                    pins = re.search(r'^PINS (\d+)',line)
+                    if cells:
+                         chip.set('real', step, 'cells', cells.group(1))
+                    elif nets:
+                         chip.set('real', step, 'nets', nets.group(1))               
+                    elif pins:
+                         chip.set('real', step, 'pins', pins.group(1))
+
+     #TODO: implement stronger error checking
+     return status

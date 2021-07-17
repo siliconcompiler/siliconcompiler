@@ -54,7 +54,7 @@ def pre_process(chip, step):
     with open('pdkpath.tcl', 'w') as f:
         f.write(f'set PDKPATH {pdk_path(chip)}')
 
-def post_process(chip, step):
+def post_process(chip, step, status):
     ''' Tool specific function to run after step execution
 
     Reads error count from output and fills in appropriate entry in metrics
@@ -76,6 +76,10 @@ def post_process(chip, step):
         lvs_failures = count_lvs.count_LVS_failures(f'outputs/{design}.lvs.json')
         chip.set('real', step, 'errors', str(lvs_failures[0]))
 
+
+    #TODO: return error code
+    return status
+        
 ################################
 # Utilities
 ################################
