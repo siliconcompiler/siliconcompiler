@@ -95,3 +95,7 @@ def post_process(chip, step):
 
         subprocess.run("cp slpp_all/surelog.uhdm " + "outputs/" + topmodule + ".uhdm",
                        shell=True)
+
+    #TODO: return error code
+    error = 0
+    return error

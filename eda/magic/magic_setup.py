@@ -76,6 +76,11 @@ def post_process(chip, step):
         lvs_failures = count_lvs.count_LVS_failures(f'outputs/{design}.lvs.json')
         chip.set('real', step, 'errors', str(lvs_failures[0]))
 
+
+    #TODO: return error code
+    error = 0
+    return error
+        
 ################################
 # Utilities
 ################################

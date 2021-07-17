@@ -89,6 +89,21 @@ def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
 
+    #Filtering our module not found errors
+    total_errors=0
+    error=0    
+    with open("verilator.log", "r") as open_file:
+        for line in open_file:
+            errmatch = re.match(r'^%Error\:.*Cannot find file containing module', line)
+            exitmatch = re.match(r'^%Error\:\s+Exiting due to (\d+) error', line)
+            if errmatch:
+                total_errors = total_errors + 1
+            elif exitmatch:
+                if int(exitmatch.group(1)) == total_errors:
+                    error=0
+                else:
+                    error=1
+
     # filtering out debug garbage
     subprocess.run('egrep -h -v "\\`begin_keywords" obj_dir/*.vpp > verilator.v',
                    shell=True)
@@ -116,3 +131,7 @@ def post_process(chip, step):
     # Creating file for handoff to synthesis
     subprocess.run("cp verilator.v " + "outputs/" + topmodule + ".v",
                    shell=True)
+
+    #return error code
+    return error
+

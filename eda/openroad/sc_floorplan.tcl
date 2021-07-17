@@ -50,7 +50,6 @@ if {[llength $sc_def] > 0} {
     #########################
     #Init Floorplan
     #########################
-
     if {[dict exists $sc_cfg asic diesize] &&
         [dict exists $sc_cfg asic coresize]} {
         set sc_diesize     [dict get $sc_cfg asic diesize]

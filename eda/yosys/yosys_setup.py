@@ -71,3 +71,14 @@ def post_process(chip, step):
                     chip.set('real', step, 'cells', cells.group(1))
                elif warnings:
                     chip.set('real', step, 'warnings', warnings.group(1))
+
+
+     #Check log file for errors
+     error=0    
+     with open("yosys.log", "r") as open_file:
+          for line in open_file:
+               errmatch = re.match(r'^ERROR', line)
+               if errmatch:
+                    error = 1
+
+     return error

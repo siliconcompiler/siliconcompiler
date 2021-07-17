@@ -1332,6 +1332,7 @@ class Chip:
                     print(cmd, file=f)
                 f.close()
                 os.chmod("run.sh", 0o755)
+                
                 #####################
                 # Execute
                 #####################
@@ -1344,31 +1345,35 @@ class Chip:
                 else:
                     # Local builds must be processed synchronously, because
                     # they use calls such as os.chdir which are not thread-safe.
-                    # Tool Pre Process
+
+                    # Pre Process
                     pre_process = getattr(module, "pre_process")
                     pre_process(self, step)
 
-                    # Tool Executable
+                    # Executable
                     self.logger.info('%s', cmd)
-                    error = subprocess.run(cmd, shell=True, executable='/bin/bash')
-                    if error.returncode:
+                    subprocess.run(cmd, shell=True, executable='/bin/bash')
+
+                    # Post Process (and error checking)
+                    post_process = getattr(module, "post_process")
+                    error = post_process(self, step)
+
+                    # Exit on Error
+                    if error:
                         self.logger.error('Command failed. See log file %s',
                                           os.path.abspath(logfile))
                         sys.exit()
-
-                    # Tool Post Process
-                    post_process = getattr(module, "post_process")
-                    post_process(self, step)
+                    
                     #Drop into python shell if command line tool
                     if step in self.cfg['bkpt']['value']:
                         format = self.cfg['flow'][step]['format']['value'][0]
-                        print(format)
                         if format == 'cmdline':
                             code.interact(local=dict(globals(), **locals()))
 
                     # Upload results for remote calls.
                     if remote:
                         upload_sources_to_cluster(self)
+              
             ########################
             # Save Metrics/Config
             ########################

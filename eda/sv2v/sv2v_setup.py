@@ -79,3 +79,8 @@ def post_process(chip, step):
         topmodule = chip.cfg['design']['value'][-1]
 
     subprocess.run("cp sv2v.log outputs/" + topmodule + ".v", shell=True)
+
+
+    #TODO: return error code
+    error = 0
+    return error

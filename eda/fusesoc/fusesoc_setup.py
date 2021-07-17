@@ -87,3 +87,7 @@ def post_process(chip, step):
     bitstream_path = 'build/sc_*_1.0_0/default-*/*.bi[tn]'
     for bitstream in glob.glob(bitstream_path):
         shutil.copy(bitstream, 'outputs/'+topmodule+'.bit')
+
+    #TODO: return error code
+    error = 0
+    return error
