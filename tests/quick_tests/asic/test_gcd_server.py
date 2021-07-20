@@ -1,7 +1,7 @@
 import os
 import re
 import subprocess
-from ..fixtures import test_wrapper
+from tests.fixtures import test_wrapper
 
 ###########################
 def test_gcd_server():
@@ -19,7 +19,7 @@ def test_gcd_server():
     # Use subprocess to test running the `sc` scripts as a command-line program.
     # Pipe stdout to /dev/null to avoid printing to the terminal.
     gcd_ex_dir = os.path.abspath(__file__)
-    gcd_ex_dir = gcd_ex_dir[:gcd_ex_dir.rfind('/tests/asic')] + '/examples/gcd/'
+    gcd_ex_dir = gcd_ex_dir[:gcd_ex_dir.rfind('/tests/quick_tests/asic')] + '/examples/gcd/'
     # Ensure that klayout doesn't open its GUI after results are retrieved.
     os.environ['DISPLAY'] = ''
     subprocess.run(['sc',

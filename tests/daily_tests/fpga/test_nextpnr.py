@@ -1,7 +1,7 @@
 import os
 import subprocess
 # fixture automatically used when imported to create clean build dir
-from ..fixtures import test_wrapper
+from tests.fixtures import test_wrapper
 
 ##################################
 def test_nextpnr():
@@ -11,7 +11,7 @@ def test_nextpnr():
     # Use subprocess to test running the `sc` scripts as a command-line program.
     # Pipe stdout to /dev/null to avoid printing to the terminal.
     blinky_ex_dir = os.path.abspath(__file__)
-    blinky_ex_dir = blinky_ex_dir[:blinky_ex_dir.rfind('/tests/fpga')] + '/examples/blinky/'
+    blinky_ex_dir = blinky_ex_dir[:blinky_ex_dir.rfind('/tests/daily_tests/fpga')] + '/examples/blinky/'
 
     # Run the build command.
     subprocess.run(['sc',

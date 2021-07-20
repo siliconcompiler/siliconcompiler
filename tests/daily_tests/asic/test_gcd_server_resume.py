@@ -2,7 +2,7 @@ import json
 import os
 import re
 import subprocess
-from ..fixtures import test_wrapper
+from tests.fixtures import test_wrapper
 
 ###########################
 def test_gcd_server():
@@ -21,7 +21,7 @@ def test_gcd_server():
 
     # Find an absolute path to the example design.
     gcd_ex_dir = os.path.abspath(__file__)
-    gcd_ex_dir = gcd_ex_dir[:gcd_ex_dir.rfind('/tests/asic')] + '/examples/gcd/'
+    gcd_ex_dir = gcd_ex_dir[:gcd_ex_dir.rfind('/tests/daily_tests/asic')] + '/examples/gcd/'
     # Ensure that klayout doesn't open its GUI after results are retrieved.
     os.environ['DISPLAY'] = ''
 
