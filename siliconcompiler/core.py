@@ -169,7 +169,9 @@ class Chip:
         #Preprocess sys.argv to enable legacy GCC/SV switches with no space
         scargs = []
 
-        for item in sys.argv:
+        # Iterate from index 1, otherwise we end up with script name as a
+        # 'source' positional argument
+        for item in sys.argv[1:]:
             #Split switches with one character and a number after (O0,O1,O2)            
             opt = re.search(r'(\-\w)(\d+)',item)
             #Split assign switches (-DCFG_ASIC=1)
@@ -194,9 +196,13 @@ class Chip:
         #Stuff command line values into dynamic dict
         for key, val in cmdargs.items():
             for item in val:
-                strlist = item.split()
                 args = schema_reorder_keys(argmap[key], item)
-                self._search(self.cfg, *args, mode='set')
+                # TODO: we should annotate each schema item as list or scalar,
+                # and then use that annotation to determine how to set the value
+                if key in ('source'):
+                    self._search(self.cfg, *args, mode='add')
+                else:
+                    self._search(self.cfg, *args, mode='set')
                 if key == 'cfg':
                     self.readcfg(item)
 
@@ -261,7 +267,7 @@ class Chip:
         # <process/device>
         # <process/device>_<eda>
 
-        targetlist = str(self.get('target')[0]).split('_')
+        targetlist = str(self.get('target')[-1]).split('_')
         platform = targetlist[0]
 
         #Load Platform (PDK or FPGA)
