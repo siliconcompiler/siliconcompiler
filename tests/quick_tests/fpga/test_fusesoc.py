@@ -1,7 +1,7 @@
 import os
 import subprocess
 # fixture automatically used when imported to create clean build dir
-from ..fixtures import test_wrapper
+from tests.fixtures import test_wrapper
 
 ##################################
 def test_icebreaker():
@@ -11,7 +11,7 @@ def test_icebreaker():
     # Use subprocess to test running the `sc` scripts as a command-line program.
     # Pipe stdout to /dev/null to avoid printing to the terminal.
     blinky_ex_dir = os.path.abspath(__file__)
-    blinky_ex_dir = blinky_ex_dir[:blinky_ex_dir.rfind('/tests/fpga')] + '/examples/blinky/'
+    blinky_ex_dir = blinky_ex_dir[:blinky_ex_dir.rfind('/tests/quick_tests/fpga')] + '/examples/blinky/'
 
     # Run the build command for an iCE40 board.
     subprocess.run(['sc',
@@ -31,7 +31,7 @@ def test_ice40up5k_evn():
     # Use subprocess to test running the `sc` scripts as a command-line program.
     # Pipe stdout to /dev/null to avoid printing to the terminal.
     blinky_ex_dir = os.path.abspath(__file__)
-    blinky_ex_dir = blinky_ex_dir[:blinky_ex_dir.rfind('/tests/fpga')] + '/examples/blinky/'
+    blinky_ex_dir = blinky_ex_dir[:blinky_ex_dir.rfind('/tests/quick_tests/fpga')] + '/examples/blinky/'
 
     # Run the build command for an iCE40 board.
     subprocess.run(['sc',
@@ -51,7 +51,7 @@ def test_orangecrab():
     # Use subprocess to test running the `sc` scripts as a command-line program.
     # Pipe stdout to /dev/null to avoid printing to the terminal.
     blinky_ex_dir = os.path.abspath(__file__)
-    blinky_ex_dir = blinky_ex_dir[:blinky_ex_dir.rfind('/tests/fpga')] + '/examples/blinky/'
+    blinky_ex_dir = blinky_ex_dir[:blinky_ex_dir.rfind('/tests/quick_tests/fpga')] + '/examples/blinky/'
 
     # Run the build command for an ECP5 board.
     subprocess.run(['sc',

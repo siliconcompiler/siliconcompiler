@@ -1,6 +1,6 @@
 on: [workflow_dispatch, push]
 
-name: 'CI Tests'
+name: 'Quick CI Tests'
 
 jobs:
   gcd_test_job:
@@ -14,7 +14,7 @@ jobs:
           source $GITHUB_WORKSPACE/clean_env/bin/activate
           echo $VIRTUAL_ENV
           pip3 install -r $GITHUB_WORKSPACE/requirements.txt -e $GITHUB_WORKSPACE/.
-          pytest -n 4 $GITHUB_WORKSPACE/tests/asic/
+          pytest -n 4 $GITHUB_WORKSPACE/tests/quick_tests/asic/
   fpga_test_job:
     timeout-minutes: 10
     runs-on: self-hosted
@@ -27,7 +27,7 @@ jobs:
           echo $VIRTUAL_ENV
           pip3 install -r $GITHUB_WORKSPACE/requirements.txt -e $GITHUB_WORKSPACE/.
           PATH="$HOME/OpenFPGA/openfpga:$PATH"
-          pytest -n 4 $GITHUB_WORKSPACE/tests/fpga/
+          pytest -n 4 $GITHUB_WORKSPACE/tests/quick_tests/fpga/
   python_test_job:
     timeout-minutes: 5
     runs-on: self-hosted

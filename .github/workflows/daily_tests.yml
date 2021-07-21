@@ -1,0 +1,32 @@
+on:
+  schedule:
+    - cron: '0 0 * * *'
+
+name: 'Daily CI Tests'
+
+jobs:
+  daily_tests_job:
+    timeout-minutes: 10
+    runs-on: self-hosted
+    name: 'ASIC test builds'
+    steps:
+      - uses: actions/checkout@v2
+      - run: |
+          python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
+          source $GITHUB_WORKSPACE/clean_env/bin/activate
+          echo $VIRTUAL_ENV
+          pip3 install -r $GITHUB_WORKSPACE/requirements.txt -e $GITHUB_WORKSPACE/.
+          pytest -n 4 $GITHUB_WORKSPACE/tests/daily_tests/
+  openroad_tests_job:
+    timeout-minutes: 30
+    runs-on: self-hosted
+    name: 'FPGA test builds'
+    steps:
+      - uses: actions/checkout@v2
+      - run: |
+          python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
+          source $GITHUB_WORKSPACE/clean_env/bin/activate
+          echo $VIRTUAL_ENV
+          pip3 install -r $GITHUB_WORKSPACE/requirements.txt -e $GITHUB_WORKSPACE/.
+          PATH="$HOME/OpenFPGA/openfpga:$PATH"
+          pytest -n 4 $GITHUB_WORKSPACE/tests/long_tests/openroad/
