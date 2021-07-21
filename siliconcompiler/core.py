@@ -18,7 +18,7 @@ import uuid
 import math
 import pandas
 import yaml
-import argparse 
+import argparse
 from argparse import ArgumentParser, HelpFormatter
 
 from importlib.machinery import SourceFileLoader
@@ -87,43 +87,43 @@ class Chip:
 
         self.error = 0
 
-    
+
     ###########################################################################
     def cmdline(self):
         '''
         A command line interface for the SiliconCompiler schema.
         All entries in the schema are accessible as command line switches.
         '''
-        
-        os.environ["COLUMNS"] = '80'        
+
+        os.environ["COLUMNS"] = '80'
         sc_description = '''
         --------------------------------------------------------------
-        SiliconCompiler (SC)                                          
-        
-        SiliconCompiler is an open source Python based hardware       
-        compiler project that aims to fully automate the translation  
-        of high level source code into manufacturable hardware.       
-                                                                      
-        Website: https://www.siliconcompiler.com                      
-        Documentation: https://www.siliconcompiler.com/docs           
-        Community: https://www.siliconcompiler.com/community          
-                                                                      
-        Examples:                                                     
+        SiliconCompiler (SC)
+
+        SiliconCompiler is an open source Python based hardware
+        compiler project that aims to fully automate the translation
+        of high level source code into manufacturable hardware.
+
+        Website: https://www.siliconcompiler.com
+        Documentation: https://www.siliconcompiler.com/docs
+        Community: https://www.siliconcompiler.com/community
+
+        Examples:
         $ sc hello_world.v -target freepdk45
         '''
-        
+
         # Argparse
         parser = argparse.ArgumentParser(prog='sc',
                                          prefix_chars='-+',
                                          description=sc_description,
                                          formatter_class=RawFormatter)
-        
+
         # Required positional source file argument
-        
+
         parser.add_argument('source',
                             nargs='+',
                             help=self.cfg['source']['short_help'])
-        
+
         # Get all keys
         allkeys = self.getkeys()
         argmap = {}
@@ -134,7 +134,7 @@ class Chip:
             helpstr = self._search(self.cfg, *key, mode='get', field='short_help')
             typestr = self._search(self.cfg, *key, mode='get', field='type')
             paramstr = self._search(self.cfg, *key, mode='get', field='param_help')
-            switchstr = self._search(self.cfg, *key, mode='get', field='switch')            
+            switchstr = self._search(self.cfg, *key, mode='get', field='switch')
 
             #Create a map from parser args back to dictionary
             #Special gcc/verilator compatible short switches get mapped to
@@ -143,11 +143,11 @@ class Chip:
                 dest = switchstr.replace('-','')
             else:
                 dest = key[0]
-                   
+
             if 'source' in key:
                 argmap['source'] = paramstr
             elif typestr == 'bool':
-                argmap[dest] = paramstr 
+                argmap[dest] = paramstr
                 parser.add_argument(switchstr,
                                     metavar='',
                                     dest=dest,
@@ -157,23 +157,23 @@ class Chip:
                                     default = argparse.SUPPRESS)
             else:
                 #all the rest
-                argmap[dest] = paramstr 
+                argmap[dest] = paramstr
                 parser.add_argument(switchstr,
-                                    metavar='',                                 
+                                    metavar='',
                                     dest=dest,
                                     action='append',
                                     help=helpstr,
                                     default = argparse.SUPPRESS)
-                
-                
+
+
         #Preprocess sys.argv to enable legacy GCC/SV switches with no space
         scargs = []
 
         # Iterate from index 1, otherwise we end up with script name as a
         # 'source' positional argument
         for item in sys.argv[1:]:
-            #Split switches with one character and a number after (O0,O1,O2)            
-            opt = re.search(r'(\-\w)(\d+)',item)
+            #Split switches with one character and a number after (O0,O1,O2)
+            opt = re.match(r'(\-\w)(\d+)',item)
             #Split assign switches (-DCFG_ASIC=1)
             assign = re.search(r'(\-\w)(\w+\=\w+)',item)
             #Split plusargs (+incdir+/path)
@@ -186,7 +186,7 @@ class Chip:
                 scargs.append(plusarg.group(2))
             elif assign:
                 scargs.append(assign.group(1))
-                scargs.append(assign.group(2))           
+                scargs.append(assign.group(2))
             else:
                 scargs.append(item)
 
@@ -249,7 +249,7 @@ class Chip:
             post_process(chip,step): Post-processing to run before executable
 
         Args:
-            arg (string): If the argument is supplied, the set('target', name) 
+            arg (string): If the argument is supplied, the set('target', name)
                 is called before dynamically loading the target platform
 
         Examples:
@@ -892,7 +892,7 @@ class Chip:
                     for item in value:
                         filepath = schema_path(item)
                         shutil.copy(filepath, dir)
-                
+
     ###########################################################################
     def hash(self, cfg=None):
         '''Rescursive function that computes the hash values for files in the
@@ -1338,7 +1338,7 @@ class Chip:
                     print(cmd, file=f)
                 f.close()
                 os.chmod("run.sh", 0o755)
-                
+
                 #####################
                 # Execute
                 #####################
@@ -1369,7 +1369,7 @@ class Chip:
                         self.logger.error('Command failed. See log file %s',
                                           os.path.abspath(logfile))
                         sys.exit()
-                    
+
                     #Drop into python shell if command line tool
                     if step in self.cfg['bkpt']['value']:
                         format = self.cfg['flow'][step]['format']['value'][0]
@@ -1379,7 +1379,7 @@ class Chip:
                     # Upload results for remote calls.
                     if remote:
                         upload_sources_to_cluster(self)
-              
+
             ########################
             # Save Metrics/Config
             ########################
@@ -1404,7 +1404,7 @@ class Chip:
         design = self.cfg['design']['value'][-1]
         dirname = self.cfg['dir']['value'][-1]
         jobname = self.cfg['jobname']['value'][-1]
-        
+
         try:
             alljobs = os.listdir(dirname + "/" + design)
             if schema_istrue(self.cfg['jobincr']['value']):
