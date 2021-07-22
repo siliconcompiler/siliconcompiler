@@ -56,7 +56,7 @@ if {$mode eq "asic"} {
     foreach libname $sc_macrolibs {
         set macro_lib [dict get $sc_cfg macro $libname model typical nldm lib]
         yosys read_liberty -lib $macro_lib
-        append stat_libs "-liberty $macro_lib"
+        append stat_libs "-liberty $macro_lib "
     }
 
     #Outputs
