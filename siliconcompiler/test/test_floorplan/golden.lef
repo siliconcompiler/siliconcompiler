@@ -16,7 +16,7 @@ MACRO test
     USE signal ;
     SHAPE ABUTMENT ;
     PORT
-      LAYER metal3 ;
+      LAYER metal2 ;
       RECT 19.884999999999998
            98.7
            20.585
@@ -28,7 +28,7 @@ MACRO test
     USE signal ;
     SHAPE ABUTMENT ;
     PORT
-      LAYER metal3 ;
+      LAYER metal2 ;
       RECT 40.025
            98.7
            40.725
@@ -40,7 +40,7 @@ MACRO test
     USE signal ;
     SHAPE ABUTMENT ;
     PORT
-      LAYER metal3 ;
+      LAYER metal2 ;
       RECT 60.165
            98.7
            60.865
@@ -52,13 +52,61 @@ MACRO test
     USE signal ;
     SHAPE ABUTMENT ;
     PORT
-      LAYER metal3 ;
+      LAYER metal2 ;
       RECT 80.305
            98.7
            81.005
            100.8 ;
     END
   END in[3]
+  PIN in[12]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER metal2 ;
+      RECT 19.884999999999998
+           0.0
+           20.585
+           2.1 ;
+    END
+  END in[12]
+  PIN in[13]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER metal2 ;
+      RECT 40.025
+           0.0
+           40.725
+           2.1 ;
+    END
+  END in[13]
+  PIN in[14]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER metal2 ;
+      RECT 60.165
+           0.0
+           60.865
+           2.1 ;
+    END
+  END in[14]
+  PIN in[15]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER metal2 ;
+      RECT 80.305
+           0.0
+           81.005
+           2.1 ;
+    END
+  END in[15]
   PIN in[4]
     DIRECTION inout ;
     USE signal ;
@@ -78,9 +126,9 @@ MACRO test
     PORT
       LAYER metal3 ;
       RECT 98.7
-           39.9
+           40.04
            100.8
-           40.6 ;
+           40.74 ;
     END
   END in[5]
   PIN in[6]
@@ -126,9 +174,9 @@ MACRO test
     PORT
       LAYER metal3 ;
       RECT 0.0
-           39.9
+           40.04
            2.1
-           40.6 ;
+           40.74 ;
     END
   END in[9]
   PIN in[10]
@@ -155,54 +203,6 @@ MACRO test
            80.92 ;
     END
   END in[11]
-  PIN in[12]
-    DIRECTION inout ;
-    USE signal ;
-    SHAPE ABUTMENT ;
-    PORT
-      LAYER metal3 ;
-      RECT 19.884999999999998
-           0.0
-           20.585
-           2.1 ;
-    END
-  END in[12]
-  PIN in[13]
-    DIRECTION inout ;
-    USE signal ;
-    SHAPE ABUTMENT ;
-    PORT
-      LAYER metal3 ;
-      RECT 40.025
-           0.0
-           40.725
-           2.1 ;
-    END
-  END in[13]
-  PIN in[14]
-    DIRECTION inout ;
-    USE signal ;
-    SHAPE ABUTMENT ;
-    PORT
-      LAYER metal3 ;
-      RECT 60.165
-           0.0
-           60.865
-           2.1 ;
-    END
-  END in[14]
-  PIN in[15]
-    DIRECTION inout ;
-    USE signal ;
-    SHAPE ABUTMENT ;
-    PORT
-      LAYER metal3 ;
-      RECT 80.305
-           0.0
-           81.005
-           2.1 ;
-    END
-  END in[15]
 
   OBS
     LAYER metal1 ;

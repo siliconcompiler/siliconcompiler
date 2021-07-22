@@ -168,20 +168,36 @@ END COMPONENTS
 PINS 16 ;
     - in[0] + NET in[0] + DIRECTION INOUT + USE SIGNAL
        + PORT
-         + LAYER metal3 ( -700 -2100 ) ( 700 2100 )
+         + LAYER metal2 ( -700 -2100 ) ( 700 2100 )
          + FIXED ( 40470 199500 ) N ;
     - in[1] + NET in[1] + DIRECTION INOUT + USE SIGNAL
        + PORT
-         + LAYER metal3 ( -700 -2100 ) ( 700 2100 )
+         + LAYER metal2 ( -700 -2100 ) ( 700 2100 )
          + FIXED ( 80750 199500 ) N ;
     - in[2] + NET in[2] + DIRECTION INOUT + USE SIGNAL
        + PORT
-         + LAYER metal3 ( -700 -2100 ) ( 700 2100 )
+         + LAYER metal2 ( -700 -2100 ) ( 700 2100 )
          + FIXED ( 121030 199500 ) N ;
     - in[3] + NET in[3] + DIRECTION INOUT + USE SIGNAL
        + PORT
-         + LAYER metal3 ( -700 -2100 ) ( 700 2100 )
+         + LAYER metal2 ( -700 -2100 ) ( 700 2100 )
          + FIXED ( 161310 199500 ) N ;
+    - in[12] + NET in[12] + DIRECTION INOUT + USE SIGNAL
+       + PORT
+         + LAYER metal2 ( -700 -2100 ) ( 700 2100 )
+         + FIXED ( 40470 2100 ) N ;
+    - in[13] + NET in[13] + DIRECTION INOUT + USE SIGNAL
+       + PORT
+         + LAYER metal2 ( -700 -2100 ) ( 700 2100 )
+         + FIXED ( 80750 2100 ) N ;
+    - in[14] + NET in[14] + DIRECTION INOUT + USE SIGNAL
+       + PORT
+         + LAYER metal2 ( -700 -2100 ) ( 700 2100 )
+         + FIXED ( 121030 2100 ) N ;
+    - in[15] + NET in[15] + DIRECTION INOUT + USE SIGNAL
+       + PORT
+         + LAYER metal2 ( -700 -2100 ) ( 700 2100 )
+         + FIXED ( 161310 2100 ) N ;
     - in[4] + NET in[4] + DIRECTION INOUT + USE SIGNAL
        + PORT
          + LAYER metal3 ( -2100 -700 ) ( 2100 700 )
@@ -189,7 +205,7 @@ PINS 16 ;
     - in[5] + NET in[5] + DIRECTION INOUT + USE SIGNAL
        + PORT
          + LAYER metal3 ( -2100 -700 ) ( 2100 700 )
-         + FIXED ( 199500 80500 ) N ;
+         + FIXED ( 199500 80780 ) N ;
     - in[6] + NET in[6] + DIRECTION INOUT + USE SIGNAL
        + PORT
          + LAYER metal3 ( -2100 -700 ) ( 2100 700 )
@@ -205,7 +221,7 @@ PINS 16 ;
     - in[9] + NET in[9] + DIRECTION INOUT + USE SIGNAL
        + PORT
          + LAYER metal3 ( -2100 -700 ) ( 2100 700 )
-         + FIXED ( 2100 80500 ) N ;
+         + FIXED ( 2100 80780 ) N ;
     - in[10] + NET in[10] + DIRECTION INOUT + USE SIGNAL
        + PORT
          + LAYER metal3 ( -2100 -700 ) ( 2100 700 )
@@ -214,22 +230,6 @@ PINS 16 ;
        + PORT
          + LAYER metal3 ( -2100 -700 ) ( 2100 700 )
          + FIXED ( 2100 161140 ) N ;
-    - in[12] + NET in[12] + DIRECTION INOUT + USE SIGNAL
-       + PORT
-         + LAYER metal3 ( -700 -2100 ) ( 700 2100 )
-         + FIXED ( 40470 2100 ) N ;
-    - in[13] + NET in[13] + DIRECTION INOUT + USE SIGNAL
-       + PORT
-         + LAYER metal3 ( -700 -2100 ) ( 700 2100 )
-         + FIXED ( 80750 2100 ) N ;
-    - in[14] + NET in[14] + DIRECTION INOUT + USE SIGNAL
-       + PORT
-         + LAYER metal3 ( -700 -2100 ) ( 700 2100 )
-         + FIXED ( 121030 2100 ) N ;
-    - in[15] + NET in[15] + DIRECTION INOUT + USE SIGNAL
-       + PORT
-         + LAYER metal3 ( -700 -2100 ) ( 700 2100 )
-         + FIXED ( 161310 2100 ) N ;
 END PINS
 
 SPECIALNETS 0 ;

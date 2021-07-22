@@ -2,7 +2,7 @@ import pytest
 import os
 
 from siliconcompiler.core import Chip
-from siliconcompiler.floorplan import Floorplan, snap
+from siliconcompiler.floorplan import Floorplan
 
 def make_fp():
     test_dir = os.path.dirname(os.path.abspath(__file__))
@@ -20,26 +20,26 @@ def make_fp():
     fp.create_die_area(72 * cell_h, 72 * cell_h, core_area=(8 * cell_h, 8 * cell_h, 64 * cell_h, 64 * cell_h))
 
     n = 4 # pins per side
-    metal = 'm3'
-    width = 10 * fp.layers[metal]['width']
-    depth = 30 * fp.layers[metal]['width']
 
-    fp.place_macros([('myram', 'ram')], (25 * cell_w, 25 * cell_h), 0, 'h', 'N')
+    hmetal = c.get('asic', 'hpinlayer')[-1]
+    vmetal = c.get('asic', 'vpinlayer')[-1]
+    hwidth = 30 * fp.layers[hmetal]['width']
+    hheight = 10 * fp.layers[hmetal]['width']
+    vwidth = 10 * fp.layers[vmetal]['width']
+    vheight = 30 * fp.layers[vmetal]['width']
+
+    fp.place_macros([('myram', 'ram')], 25 * cell_w, 25 * cell_h, 0, 0, 'N')
 
     die_w, die_h = fp.die_area
-    spacing_x = die_w / (n + 1)
-    pitch_x = snap(spacing_x, fp.layers[metal]['xpitch'])
-    offset_x = fp.snap_to_x_track(spacing_x, metal)
 
+    spacing_x = die_w / (n + 1)
     spacing_y = die_h / (n + 1)
-    pitch_y = snap(spacing_y, fp.layers[metal]['ypitch'])
-    offset_y = fp.snap_to_y_track(spacing_y, metal)
 
     pins = [f"in[{i}]" for i in range(4 * n)]
-    fp.place_pins(pins[0:n], offset_x, pitch_x, 'n', width, depth, metal)
-    fp.place_pins(pins[n:2*n], offset_y, pitch_y, 'e', width, depth, metal)
-    fp.place_pins(pins[2*n:3*n], offset_y, pitch_y, 'w', width, depth, metal)
-    fp.place_pins(pins[3*n:4*n], offset_x, pitch_x, 's', width, depth, metal)
+    fp.place_pins(pins[0:n], spacing_x - vwidth/2, die_h - vheight, spacing_x, 0, vwidth, vheight, vmetal, snap=True) # n
+    fp.place_pins(pins[3*n:4*n], spacing_x - vwidth/2, 0, spacing_x, 0, vwidth, vheight, vmetal, snap=True) # s
+    fp.place_pins(pins[n:2*n], die_w - hwidth, spacing_y - hheight/2, 0, spacing_y, hwidth, hheight, hmetal, snap=True) # e
+    fp.place_pins(pins[2*n:3*n], 0, spacing_y - hheight/2, 0, spacing_y, hwidth, hheight, hmetal, snap=True) # w
 
     fp.place_blockage(['m1', 'm2'])
 
@@ -116,36 +116,39 @@ def test_padring():
     spacing = (io_dist_hori - 8 * pad_w) // 9
 
     # north
-    start = io_h + spacing
+    start = fp.snap(io_h + spacing, 1)
     y = die_h - io_h
-    fp.place_macros([(f'GPIO[{i}]', 'gpio') for i in range(4)], (start, y), spacing, 'H', 'N')
-    fp.place_macros([(f'GPIO[{i}]', 'gpio') for i in range(4, 8)], (start + 4 * (spacing + pad_w), y), spacing, 'H', 'FS')
+    pitch = fp.snap(spacing + pad_w, 1)
+    fp.place_macros([(f'GPIO[{i}]', 'gpio') for i in range(4)], start, y, pitch, 0, 'N', snap=False)
+    fp.place_macros([(f'GPIO[{i}]', 'gpio') for i in range(4, 8)], start + 4 * pitch, y, pitch, 0, 'FS', snap=False)
 
     # south
-    fp.place_macros([('CLK', 'gpio'), ('RESET', 'gpio'), ('MISO', 'gpio'), ('MOSI', 'gpio'), ('SCK', 'gpio'), ('SPI_CS_N', 'gpio')], (start, 0), spacing, 'H', 'N')
-    fp.place_macros([('UART_TX', 'gpio'), ('UART_RX', 'gpio')], (start + 6 * (spacing + pad_w), 0), spacing, 'H', 'FN')
+    fp.place_macros([('CLK', 'gpio'), ('RESET', 'gpio'), ('MISO', 'gpio'), ('MOSI', 'gpio'), ('SCK', 'gpio'), ('SPI_CS_N', 'gpio')], start, 0, spacing + pad_w, 0, 'N', snap=False)
+    fp.place_macros([('UART_TX', 'gpio'), ('UART_RX', 'gpio')], start + 6 * pitch, 0, pitch, 0, 'FN', snap=False)
 
     # east
     assert pad_w == fp.available_cells['pwr'].width, "making bad assumption about pads being same width..."
 
     spacing = (io_dist_vert - 6 * pad_w) // 6
     x = die_w - io_h
-    start = io_h + spacing
-    fp.place_macros([('PWM_1', 'gpio'), ('PWM_2', 'gpio')], (x, start), spacing, 'V', 'W')
-    fp.place_macros([('VDD_1', 'pwr'), ('GND_1', 'pwr')], (x, start + 2 * (spacing + pad_w)), 0, 'V', 'W')
-    fp.place_macros([('PWM_3', 'gpio'), ('PWM_4', 'gpio')], (x, start + 3 * (spacing + pad_w) + pad_w), spacing, 'V', 'FE')
+    start = fp.snap(io_h + spacing, 1)
+    pitch = fp.snap(spacing + pad_w, 1)
+    fp.place_macros([('PWM_1', 'gpio'), ('PWM_2', 'gpio')], x, start, 0, pitch, 'W', snap=False)
+    fp.place_macros([('VDD_1', 'pwr'), ('GND_1', 'pwr')], x, start + 2 * pitch, 0, pad_w, 'W', snap=False)
+    fp.place_macros([('PWM_3', 'gpio'), ('PWM_4', 'gpio')], x, start + 3 * pitch + pad_w, 0, pitch, 'FE', snap=False)
 
     # west
-    fp.place_macros([('DAC_0', 'gpio'), ('DAC_1', 'gpio')], (0, start), spacing, 'V', 'E')
-    fp.place_macros([('VDD_2', 'pwr'), ('GND_2', 'pwr')], (0, start + 2 * (spacing + pad_w)), 0, 'V', 'E')
-    fp.place_macros([('DAC_2', 'gpio'), ('DAC_3', 'gpio')], (0, start + 3 * (spacing + pad_w) + pad_w), spacing, 'V', 'W')
+    fp.place_macros([('DAC_0', 'gpio'), ('DAC_1', 'gpio')], 0, start, 0, pitch, 'E', snap=False)
+    fp.place_macros([('VDD_2', 'pwr'), ('GND_2', 'pwr')], 0, start + 2 * pitch, 0, pad_w, 'E', snap=False)
+    fp.place_macros([('DAC_2', 'gpio'), ('DAC_3', 'gpio')], 0, start + 3 * pitch + pad_w, 0, pitch, 'W', snap=False)
 
-    fp.place_macros([('CORNER_1', 'corner')], (die_w - io_h, 0), 0, 'V', 'W') # SE
-    fp.place_macros([('CORNER_2', 'corner')], (0, 0), 0, 'H', 'N') # SW
-    fp.place_macros([('CORNER_3', 'corner')], (die_w - io_h, die_h - io_h), 0,  'V', 'S') # NE
-    fp.place_macros([('CORNER_4', 'corner')], (0, die_h - io_h), 0, 'H', 'E') # NW
+    fp.place_macros([('CORNER_1', 'corner')], die_w - io_h, 0, 0, 0, 'W', snap=False) # SE
+    fp.place_macros([('CORNER_2', 'corner')], 0, 0, 0, 0, 'N', snap=False) # SW
+    fp.place_macros([('CORNER_3', 'corner')], die_w - io_h, die_h - io_h, 0, 0, 'S', snap=False) # NE
+    fp.place_macros([('CORNER_4', 'corner')], 0, die_h - io_h, 0, 0, 'E', snap=False) # NW
 
-    fp.place_macros([('ram1', 'ram'), ('ram2', 'ram')], (die_w / 2, die_h / 2), 50, 'H', 'N')
+    ram_w = fp.available_cells['ram'].width
+    fp.place_macros([('ram1', 'ram'), ('ram2', 'ram')], die_w / 2, die_h / 2, 50 + ram_w, 0, 'N', snap=True)
 
     io_fill_cells = ['fill1', 'fill2', 'fill5', 'fill10', 'fill25', 'fill50']
     fp.fill_io_region([(0, 0), (die_w, io_h)], io_fill_cells, 'N')
@@ -155,8 +158,12 @@ def test_padring():
 
     fp.configure_net('VDD', 'VDD', 'POWER')
     fp.configure_net('VSS', 'VSS', 'GROUND')
-    fp.place_wires(['VDD'] * 11, (100, 100), 100, 'h', 'm3', 10, 1000, 'STRIPE')
-    fp.place_wires(['VSS'] * 11, (100, 100), 100, 'v', 'm4', 10, 1000, 'STRIPE')
+
+    hlayer = chip.get('asic', 'hpinlayer')[-1]
+    vlayer = chip.get('asic', 'vpinlayer')[-1]
+
+    fp.place_wires(['VDD'] * 11, 100, 100, 0, 100, 1000, 10, hlayer, 'STRIPE', snap=True)
+    fp.place_wires(['VSS'] * 11, 100, 100, 100, 0, 10, 1000, vlayer, 'STRIPE', snap=True)
 
     fp.write_def('padring.def')
 
