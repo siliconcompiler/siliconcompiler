@@ -147,7 +147,7 @@ class Floorplan:
                 if tech_name in lef_data['macros']:
                     width, height = lef_data['macros'][tech_name]['size']
                 else:
-                    raise KeyError(f'Implementation {tech_name} for macro {name}'
+                    raise KeyError(f'Implementation {tech_name} for macro {name} '
                         f'not found in library {lef_path}')
 
                 self.available_cells[name] = _MacroInfo(tech_name, width, height)
