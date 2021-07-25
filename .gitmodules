@@ -1,3 +1,3 @@
-[submodule "third_party/design/oh"]
-	path = third_party/design/oh
+[submodule "third_party/designs/oh"]
+	path = third_party/designs/oh
 	url = https://github.com/aolofsson/oh

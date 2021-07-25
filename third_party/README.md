@@ -1,6 +1,6 @@
 
 ## Directory Structure
 
-    ├── design             # Curated design libraries
-    ├── test               # Third party test cases
-    ├── tool               # Open source tools
+    ├── designs           # Curated design libraries
+    ├── tests             # Third party test cases
+    ├── tools             # Open source tools

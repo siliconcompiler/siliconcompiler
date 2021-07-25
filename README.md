@@ -2,7 +2,7 @@
 
 ![CI Tests](https://github.com/zeroasiccorp/siliconcompiler/workflows/CI%20Tests/badge.svg)
 
-SiliconCompiler is an end-to-end Python based open source platform for hardware compilation. It supports a comprehensive, flexible ecosystem of [tools](https://www.siliconcompiler.org/tools), [hardware targets](https://www.siliconcompiler.org/targets), and [community](https://www.siliconcompiler.org/community) resources that lowers the barrier to physical ASIC prototyping and high accuracy HW/SW codesign. 
+SiliconCompiler is an end-to-end Python based open source platform for hardware compilation. It supports a comprehensive, flexible ecosystem of [tools](https://www.siliconcompiler.org/tools), [hardware targets](https://www.siliconcompiler.org/targets), and [community](https://www.siliconcompiler.org/community) resources that lowers the barrier to physical ASIC prototyping and high accuracy HW/SW codesign.
 
 **Highlights:**
 * Configurable, extensible, and automated ASIC and FPGA compilation flows
@@ -11,7 +11,7 @@ SiliconCompiler is an end-to-end Python based open source platform for hardware 
 * Plain text single file JSON compilation record
 * Zero install client/server execution model
 * Simple name based target technology mapping
-* Python based technology agnostic ASIC floor-planning API  
+* Python based technology agnostic ASIC floor-planning API
 
 **App Example:**
 
@@ -30,7 +30,7 @@ chip.run()
 
 ## Documentation
 
-We take documentation serisouly and have crated detailed documentation of the architecture, options, configuration, Python API. 
+We take documentation serisouly and have crated detailed documentation of the architecture, options, configuration, Python API.
 
 Please spend a few minutes to review the docs before diving in:
 
@@ -49,13 +49,14 @@ To install from the active developer repository.
 ```sh
 $ git clone https://github.com/siliconcompiler/siliconcompiler
 $ cd siliconcompiler
+$ git submodule update --init --recursive
 $ pip install -r requirements.txt
 $ python -m pip install -e .
 ```
 
 ## Pre-requisites
 
-To compile designs using the included open source target flow, you will need to install the follwoing external packages: 
+To compile designs using the included open source target flow, you will need to install the follwoing external packages:
 
 Ubuntu based install scripts can be found in the [./setup](setup) directory. These scripts will install dependencies into `siliconcompiler/deps`, and usually build them from source.
 
