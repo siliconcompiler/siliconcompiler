@@ -44,13 +44,17 @@ def setup_options(chip, step):
         if value.endswith('.vhd') or value.endswith('.vhdl'):
             options.append(schema_path(value))
 
-    if len(chip.cfg['design']['value']) < 1:
-        chip.logger.error('No top module set')
-        return
+    modules = ""
+    with open("undefined.morty", "r") as undefined_file:
+        modules = undefined_file.read().strip()
 
-    topmodule = chip.cfg['design']['value'][-1]
+    if modules == "":
+        if len(chip.cfg['design']['value']) < 1:
+            chip.logger.error('No top module set')
+            return
+        modules = chip.cfg['design']['value'][-1]
 
-    options.append('-e ' + topmodule)
+    options.append('-e ' + modules)
 
     options.append('; write_ilang ghdl.ilang\'')
 
