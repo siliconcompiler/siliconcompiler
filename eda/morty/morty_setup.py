@@ -13,8 +13,8 @@ def setup_tool(chip, step):
     chip.add('flow', step, 'threads', '4')
     chip.add('flow', step, 'format', 'cmdline')
     chip.add('flow', step, 'copy', 'false')
-    chip.add('flow', step, 'exe', 'verilator')
-    chip.add('flow', step, 'vendor', 'verilator')
+    chip.add('flow', step, 'exe', 'morty')
+    chip.add('flow', step, 'vendor', 'morty')
 
 def setup_options(chip, step):
     ''' Per tool/step function that returns a dynamic options string based on

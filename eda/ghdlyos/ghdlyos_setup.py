@@ -45,10 +45,10 @@ def setup_options(chip, step):
             options.append(schema_path(value))
 
     modules = ""
-    with open("undefined.morty", "r") as undefined_file:
-        modules = undefined_file.read().strip()
-
-    if modules == "":
+    try:
+        with open("inputs/undefined.morty", "r") as undefined_file:
+            modules = undefined_file.read().strip()
+    except FileNotFoundError:
         if len(chip.cfg['design']['value']) < 1:
             chip.logger.error('No top module set')
             return
@@ -77,3 +77,4 @@ def post_process(chip, step):
     topmodule = chip.cfg['design']['value'][-1]
     subprocess.run("cp ghdl.ilang " + "outputs/" + topmodule + ".ilang",
                    shell=True)
+    subprocess.run("cp inputs/" + topmodule + ".v" + " outputs/", shell=True)

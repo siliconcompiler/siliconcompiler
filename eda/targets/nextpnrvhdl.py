@@ -10,14 +10,14 @@ def setup_eda(chip, name=None):
 
     # Define Compilation Steps
     chip.cfg['steplist']['value'] = ['import',
-                                  'importvhdl'
+                                  'importvhdl',
                                   'syn',
                                   'apr',
                                   'export']
 
     for step in chip.cfg['steplist']['value']:
         if step == 'import':
-            vendor = 'verilator'
+            vendor = 'morty'
         elif step == 'importvhdl':
             vendor = 'ghdlyos'
         elif step == 'syn':

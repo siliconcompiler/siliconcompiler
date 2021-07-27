@@ -27,10 +27,14 @@ set input_sdc       "inputs/$topmodule.sdc"
 if { [file exists "inputs/$topmodule.uhdm"] } {
     set input_uhdm "inputs/$topmodule.uhdm"
     yosys read_uhdm $input_uhdm
-} elseif { [file exists "inputs/$topmodule.ilang"] } {
+}
+
+if { [file exists "inputs/$topmodule.ilang"] } {
     set input_ilang "inputs/$topmodule.ilang"
     yosys read_ilang $input_ilang
-} else {
+}
+
+if { [file exists "inputs/$topmodule.v"] } {
     set input_verilog "inputs/$topmodule.v"
     yosys read_verilog -sv $input_verilog
 }
