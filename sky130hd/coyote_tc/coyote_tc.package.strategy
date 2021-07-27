@@ -1,0 +1,247 @@
+puts "Loading library IO cell meta-data"
+source $::env(FOOTPRINT_LIBRARY)
+
+puts "Loaded library IO cell data"
+Footprint definition {
+  Type Wirebond
+
+  die_area {0 0 5200.000 4599.140}
+  core_area {210.0 210.00 4990.0 4389.14}
+
+  power_nets  "VDD VDDIO"
+  ground_nets "VSS VSSIO"
+
+  offsets 0
+  tracks platforms/sky130/tracks_hs.info
+  pin_layer met5
+  
+  pad_inst_name "u_%s"
+  pad_pin_name "%s"
+
+  padcell {
+    sig0     {type sig       cell {origin {x  280.000 y 210.965}}}
+    sig1     {type sig       cell {origin {x  360.000 y 210.965}}}
+    vzz_0    {type vssio_hvc cell {origin {x  440.000 y 197.965}}}
+    v18_0    {type vddio_hvc cell {origin {x  520.000 y 197.965}}}
+    sig2     {type sig       cell {origin {x  600.000 y 210.965}}}
+    sig3     {type sig       cell {origin {x  680.000 y 210.965}}}
+    sig4     {type sig       cell {origin {x  760.000 y 210.965}}}
+    sig5     {type sig       cell {origin {x  840.000 y 210.965}}}
+    sig6     {type sig       cell {origin {x  920.000 y 210.965}}}
+    sig7     {type sig       cell {origin {x 1000.000 y 210.965}}}
+    sig8     {type sig       cell {origin {x 1080.000 y 210.965}}}
+    sig9     {type sig       cell {origin {x 1160.000 y 210.965}}}
+    vzz_1    {type vssio_hvc cell {origin {x 1240.000 y 197.965}}}
+    v18_1    {type vddio_hvc cell {origin {x 1320.000 y 197.965}}}
+    sig10    {type sig       cell {origin {x 1400.000 y 210.965}}}
+    sig11    {type sig       cell {origin {x 1480.000 y 210.965}}}
+    sig12    {type sig       cell {origin {x 1560.000 y 210.965}}}
+    vss_0    {type vssd_hvc  cell {origin {x 1640.000 y 197.965}}}
+    vdd_0    {type vccd_hvc  cell {origin {x 1720.000 y 197.965}}}
+    sig13    {type sig       cell {origin {x 1800.000 y 210.965}}}
+    sig14    {type sig       cell {origin {x 1880.000 y 210.965}}}
+    sig15    {type sig       cell {origin {x 1960.000 y 210.965}}}
+    sig16    {type sig       cell {origin {x 2040.000 y 210.965}}}
+    sig17    {type sig       cell {origin {x 2120.000 y 210.965}}}
+    vzz_2    {type vssio_hvc cell {origin {x 2200.000 y 197.965}}}
+    v18_2    {type vddio_hvc cell {origin {x 2280.000 y 197.965}}}
+    sig18    {type sig       cell {origin {x 2360.000 y 210.965}}}
+    sig19    {type sig       cell {origin {x 2440.000 y 210.965}}}
+    sig20    {type sig       cell {origin {x 2520.000 y 210.965}}}
+    sig21    {type sig       cell {origin {x 2600.000 y 210.965}}}
+    sig22    {type sig       cell {origin {x 2680.000 y 210.965}}}
+    sig23    {type sig       cell {origin {x 2760.000 y 210.965}}}
+    sig24    {type sig       cell {origin {x 2840.000 y 210.965}}}
+    sig25    {type sig       cell {origin {x 2920.000 y 210.965}}}
+    vzz_3    {type vssio_hvc cell {origin {x 3000.000 y 197.965}}}
+    v18_3    {type vddio_hvc cell {origin {x 3080.000 y 197.965}}}
+    sig26    {type sig       cell {origin {x 3160.000 y 210.965}}}
+    sig27    {type sig       cell {origin {x 3240.000 y 210.965}}}
+    sig28    {type sig       cell {origin {x 3320.000 y 210.965}}}
+    sig29    {type sig       cell {origin {x 3400.000 y 210.965}}}
+    sig30    {type sig       cell {origin {x 3480.000 y 210.965}}}
+    vss_1    {type vssd_hvc  cell {origin {x 3560.000 y 197.965}}}
+    vdd_1    {type vccd_hvc  cell {origin {x 3640.000 y 197.965}}}
+    sig31    {type sig       cell {origin {x 3720.000 y 210.965}}}
+    sig32    {type sig       cell {origin {x 3800.000 y 210.965}}}
+    sig33    {type sig       cell {origin {x 3880.000 y 210.965}}}
+    vzz_4    {type vssio_hvc cell {origin {x 3960.000 y 197.965}}}
+    v18_4    {type vddio_hvc cell {origin {x 4040.000 y 197.965}}}
+    sig34    {type sig       cell {origin {x 4120.000 y 210.965}}}
+    sig35    {type sig       cell {origin {x 4200.000 y 210.965}}}
+    sig36    {type sig       cell {origin {x 4280.000 y 210.965}}}
+    sig37    {type sig       cell {origin {x 4360.000 y 210.965}}}
+    sig38    {type sig       cell {origin {x 4440.000 y 210.965}}}
+    sig39    {type sig       cell {origin {x 4520.000 y 210.965}}}
+    sig40    {type sig       cell {origin {x 4600.000 y 210.965}}}
+    sig41    {type sig       cell {origin {x 4680.000 y 210.965}}}
+    vzz_5    {type vssio_hvc cell {origin {x 4760.000 y 197.965}}}
+    v18_5    {type vddio_hvc cell {origin {x 4840.000 y 197.965}}}
+    sig42    {type sig       cell {origin {x 4920.000 y 210.965}}}
+    sig43    {type sig       cell {origin {x 5000.000 y 210.965}} side bottom}
+    sig44    {type sig       cell {origin {x 4989.035 y  294.000}}}
+    sig45    {type sig       cell {origin {x 4989.035 y  374.000}}}
+    sig46    {type sig       cell {origin {x 4989.035 y  454.000}}}
+    sig47    {type sig       cell {origin {x 4989.035 y  534.000}}}
+    vzz_6    {type vssio_hvc cell {origin {x 5002.035 y  614.000}}}
+    v18_6    {type vddio_hvc cell {origin {x 5002.035 y  694.000}}}
+    vss_2    {type vssd_hvc  cell {origin {x 5002.035 y  774.000}}}
+    vdd_2    {type vccd_hvc  cell {origin {x 5002.035 y  854.000}}}
+    sig48    {type sig       cell {origin {x 4989.035 y  934.000}}}
+    sig49    {type sig       cell {origin {x 4989.035 y 1014.000}}}
+    sig50    {type sig       cell {origin {x 4989.035 y 1094.000}}}
+    sig51    {type sig       cell {origin {x 4989.035 y 1174.000}}}
+    sig52    {type sig       cell {origin {x 4989.035 y 1254.000}}}
+    sig53    {type sig       cell {origin {x 4989.035 y 1334.000}}}
+    sig54    {type sig       cell {origin {x 4989.035 y 1414.000}}}
+    sig55    {type sig       cell {origin {x 4989.035 y 1494.000}}}
+    vzz_7    {type vssio_hvc cell {origin {x 5002.035 y 1574.000}}}
+    v18_7    {type vddio_hvc cell {origin {x 5002.035 y 1654.000}}}
+    sig56    {type sig       cell {origin {x 4989.035 y 1734.000}}}
+    sig57    {type sig       cell {origin {x 4989.035 y 1814.000}}}
+    sig58    {type sig       cell {origin {x 4989.035 y 1894.000}}}
+    sig59    {type sig       cell {origin {x 4989.035 y 1974.000}}}
+    sig60    {type sig       cell {origin {x 4989.035 y 2054.000}}}
+    sig61    {type sig       cell {origin {x 4989.035 y 2134.000}}}
+    sig62    {type sig       cell {origin {x 4989.035 y 2214.000}}}
+    sig63    {type sig       cell {origin {x 4989.035 y 2294.000}}}
+    vzz_8    {type vssio_hvc cell {origin {x 5002.035 y 2374.000}}}
+    v18_8    {type vddio_hvc cell {origin {x 5002.035 y 2454.000}}}
+    sig64    {type sig       cell {origin {x 4989.035 y 2534.000}}}
+    sig65    {type sig       cell {origin {x 4989.035 y 2614.000}}}
+    sig66    {type sig       cell {origin {x 4989.035 y 2694.000}}}
+    vss_3    {type vssd_hvc  cell {origin {x 5002.035 y 2774.000}}}
+    vdd_3    {type vccd_hvc  cell {origin {x 5002.035 y 2854.000}}}
+    sig67    {type sig       cell {origin {x 4989.035 y 2934.000}}}
+    sig68    {type sig       cell {origin {x 4989.035 y 3014.000}}}
+    sig69    {type sig       cell {origin {x 4989.035 y 3094.000}}}
+    sig70    {type sig       cell {origin {x 4989.035 y 3174.000}}}
+    sig71    {type sig       cell {origin {x 4989.035 y 3254.000}}}
+    vzz_9    {type vssio_hvc cell {origin {x 5002.035 y 3334.000}}}
+    v18_9    {type vddio_hvc cell {origin {x 5002.035 y 3414.000}}}
+    sig72    {type sig       cell {origin {x 4989.035 y 3494.000}}}
+    sig73    {type sig       cell {origin {x 4989.035 y 3574.000}}}
+    sig74    {type sig       cell {origin {x 4989.035 y 3654.000}}}
+    sig75    {type sig       cell {origin {x 4989.035 y 3734.000}}}
+    sig76    {type sig       cell {origin {x 4989.035 y 3814.000}}}
+    sig77    {type sig       cell {origin {x 4989.035 y 3894.000}}}
+    sig78    {type sig       cell {origin {x 4989.035 y 3974.000}}}
+    sig79    {type sig       cell {origin {x 4989.035 y 4054.000}}}
+    vzz_10   {type vssio_hvc cell {origin {x 5002.035 y 4134.000}}}
+    v18_10   {type vddio_hvc cell {origin {x 5002.035 y 4214.000}}}
+    sig80    {type sig       cell {origin {x 4989.035 y 4294.000}}}
+    sig81    {type sig       cell {origin {x 4989.035 y 4374.000}}}
+    sig82    {type sig       cell {origin {x 4920.000 y 4388.175}}}
+    sig83    {type sig       cell {origin {x 4840.000 y 4388.175}}}
+    sig84    {type sig       cell {origin {x 4760.000 y 4388.175}}}
+    sig85    {type sig       cell {origin {x 4680.000 y 4388.175}}}
+    vss_4    {type vssd_hvc  cell {origin {x 4600.000 y 4401.175}}}
+    vdd_4    {type vccd_hvc  cell {origin {x 4520.000 y 4401.175}}}
+    sig86    {type sig       cell {origin {x 4440.000 y 4388.175}}}
+    sig87    {type sig       cell {origin {x 4360.000 y 4388.175}}}
+    vzz_11   {type vssio_hvc cell {origin {x 4280.000 y 4401.175}}}
+    v18_11   {type vddio_hvc cell {origin {x 4200.000 y 4401.175}}}
+    sig88    {type sig       cell {origin {x 4120.000 y 4388.175}}}
+    sig89    {type sig       cell {origin {x 4040.000 y 4388.175}}}
+    sig90    {type sig       cell {origin {x 3960.000 y 4388.175}}}
+    sig91    {type sig       cell {origin {x 3880.000 y 4388.175}}}
+    sig92    {type sig       cell {origin {x 3800.000 y 4388.175}}}
+    sig93    {type sig       cell {origin {x 3720.000 y 4388.175}}}
+    sig94    {type sig       cell {origin {x 3640.000 y 4388.175}}}
+    sig95    {type sig       cell {origin {x 3560.000 y 4388.175}}}
+    vzz_12   {type vssio_hvc cell {origin {x 3480.000 y 4401.175}}}
+    v18_12   {type vddio_hvc cell {origin {x 3400.000 y 4401.175}}}
+    sig96    {type sig       cell {origin {x 3320.000 y 4388.175}}}
+    sig97    {type sig       cell {origin {x 3240.000 y 4388.175}}}
+    sig98    {type sig       cell {origin {x 3160.000 y 4388.175}}}
+    sig99    {type sig       cell {origin {x 3080.000 y 4388.175}}}
+    sig100   {type sig       cell {origin {x 3000.000 y 4388.175}}}
+    sig101   {type sig       cell {origin {x 2920.000 y 4388.175}}}
+    sig102   {type sig       cell {origin {x 2840.000 y 4388.175}}}
+    sig103   {type sig       cell {origin {x 2760.000 y 4388.175}}}
+    vzz_13   {type vssio_hvc cell {origin {x 2680.000 y 4401.175}}}
+    v18_13   {type vddio_hvc cell {origin {x 2600.000 y 4401.175}}}
+    vss_5    {type vssd_hvc  cell {origin {x 2520.000 y 4401.175}}}
+    vdd_5    {type vccd_hvc  cell {origin {x 2440.000 y 4401.175}}}
+    sig104   {type sig       cell {origin {x 2360.000 y 4388.175}}}
+    sig105   {type sig       cell {origin {x 2280.000 y 4388.175}}}
+    sig106   {type sig       cell {origin {x 2200.000 y 4388.175}}}
+    sig107   {type sig       cell {origin {x 2120.000 y 4388.175}}}
+    sig108   {type sig       cell {origin {x 2040.000 y 4388.175}}}
+    sig109   {type sig       cell {origin {x 1960.000 y 4388.175}}}
+    sig110   {type sig       cell {origin {x 1880.000 y 4388.175}}}
+    sig111   {type sig       cell {origin {x 1800.000 y 4388.175}}}
+    vzz_14   {type vssio_hvc cell {origin {x 1720.000 y 4401.175}}}
+    v18_14   {type vddio_hvc cell {origin {x 1640.000 y 4401.175}}}
+    sig112   {type sig       cell {origin {x 1560.000 y 4388.175}}}
+    sig113   {type sig       cell {origin {x 1480.000 y 4388.175}}}
+    sig114   {type sig       cell {origin {x 1400.000 y 4388.175}}}
+    sig115   {type sig       cell {origin {x 1320.000 y 4388.175}}}
+    sig116   {type sig       cell {origin {x 1240.000 y 4388.175}}}
+    sig117   {type sig       cell {origin {x 1160.000 y 4388.175}}}
+    sig118   {type sig       cell {origin {x 1080.000 y 4388.175}}}
+    sig119   {type sig       cell {origin {x 1000.000 y 4388.175}}}
+    vzz_15   {type vssio_hvc cell {origin {x  920.000 y 4401.175}}}
+    v18_15   {type vddio_hvc cell {origin {x  840.000 y 4401.175}}}
+    sig120   {type sig       cell {origin {x  760.000 y 4388.175}}}
+    sig121   {type sig       cell {origin {x  680.000 y 4388.175}}}
+    vdd_6    {type vssd_hvc  cell {origin {x  600.000 y 4401.175}}}
+    vss_6    {type vccd_hvc  cell {origin {x  520.000 y 4401.175}}}
+    sig122   {type sig       cell {origin {x  440.000 y 4388.175}}}
+    sig123   {type sig       cell {origin {x  360.000 y 4388.175}}}
+    sig124   {type sig       cell {origin {x  280.000 y 4388.175}}}
+    sig125   {type sig       cell {origin {x  200.000 y 4388.175}} side top}
+    sig126   {type sig       cell {origin {x  210.965 y 4300.000}}}
+    sig127   {type sig       cell {origin {x  210.965 y 4220.000}}}
+    vzz_16   {type vssio_hvc cell {origin {x  197.965 y 4140.000}}}
+    v18_16   {type vddio_hvc cell {origin {x  197.965 y 4060.000}}}
+    sig128   {type sig       cell {origin {x  210.965 y 3980.000}}}
+    sig129   {type sig       cell {origin {x  210.965 y 3900.000}}}
+    sig130   {type sig       cell {origin {x  210.965 y 3820.000}}}
+    sig131   {type sig       cell {origin {x  210.965 y 3740.000}}}
+    sig132   {type sig       cell {origin {x  210.965 y 3660.000}}}
+    sig133   {type sig       cell {origin {x  210.965 y 3580.000}}}
+    sig134   {type sig       cell {origin {x  210.965 y 3500.000}}}
+    sig135   {type sig       cell {origin {x  210.965 y 3420.000}}}
+    vzz_17   {type vssio_hvc cell {origin {x  197.965 y 3340.000}}}
+    v18_17   {type vddio_hvc cell {origin {x  197.965 y 3260.000}}}
+    sig136   {type sig       cell {origin {x  210.965 y 3180.000}}}
+    sig137   {type sig       cell {origin {x  210.965 y 3100.000}}}
+    sig138   {type sig       cell {origin {x  210.965 y 3020.000}}}
+    sig139   {type sig       cell {origin {x  210.965 y 2940.000}}}
+    sig140   {type sig       cell {origin {x  210.965 y 2860.000}}}
+    sig141   {type sig       cell {origin {x  210.965 y 2780.000}}}
+    vss_7    {type vssd_hvc  cell {origin {x  197.965 y 2700.000}}}
+    vdd_7    {type vccd_hvc  cell {origin {x  197.965 y 2620.000}}}
+    sig142   {type sig       cell {origin {x  210.965 y 2540.000}}}
+    sig143   {type sig       cell {origin {x  210.965 y 2460.000}}}
+    vzz_18   {type vssio_hvc cell {origin {x  197.965 y 2380.000}}}
+    v18_18   {type vddio_hvc cell {origin {x  197.965 y 2300.000}}}
+    sig144   {type sig       cell {origin {x  210.965 y 2220.000}}}
+    sig145   {type sig       cell {origin {x  210.965 y 2140.000}}}
+    sig146   {type sig       cell {origin {x  210.965 y 2060.000}}}
+    sig147   {type sig       cell {origin {x  210.965 y 1980.000}}}
+    sig148   {type sig       cell {origin {x  210.965 y 1900.000}}}
+    sig149   {type sig       cell {origin {x  210.965 y 1820.000}}}
+    sig150   {type sig       cell {origin {x  210.965 y 1740.000}}}
+    sig151   {type sig       cell {origin {x  210.965 y 1660.000}}}
+    vzz_19   {type vssio_hvc cell {origin {x  197.965 y 1580.000}}}
+    v18_19   {type vddio_hvc cell {origin {x  197.965 y 1500.000}}}
+    sig152   {type sig       cell {origin {x  210.965 y 1420.000}}}
+    sig153   {type sig       cell {origin {x  210.965 y 1340.000}}}
+    sig154   {type sig       cell {origin {x  210.965 y 1260.000}}}
+    sig155   {type sig       cell {origin {x  210.965 y 1180.000}}}
+    sig156   {type sig       cell {origin {x  210.965 y 1100.000}}}
+    sig157   {type sig       cell {origin {x  210.965 y 1020.000}}}
+    sig158   {type sig       cell {origin {x  210.965 y  940.000}}}
+    sig159   {type sig       cell {origin {x  210.965 y  860.000}}}
+    vdd_8    {type vccd_hvc  cell {origin {x  197.965 y  780.000}}}
+    vss_8    {type vssd_hvc  cell {origin {x  197.965 y  700.000}}}
+    vzz_20   {type vssio_hvc cell {origin {x  197.965 y  620.000}}}
+    v18_20   {type vddio_hvc cell {origin {x  197.965 y  540.000}}}
+    sig160   {type sig       cell {origin {x  210.965 y  460.000}}}
+    sig161   {type sig       cell {origin {x  210.965 y  380.000}}}
+    sig162   {type sig       cell {origin {x  210.965 y  300.000}}}
+    sig163   {type sig       cell {origin {x  210.965 y  220.000}}}
+  }
+}                                                             

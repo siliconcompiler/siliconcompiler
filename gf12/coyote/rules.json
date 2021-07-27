@@ -1,0 +1,69 @@
+{
+    "rules": [
+        {
+            "field": "synth__design__instance__stdcell__area",
+            "value": 171708,
+            "compare": "<="
+        },
+        {
+            "field": "constraints__clocks__count",
+            "value": 1,
+            "compare": "=="
+        },
+        {
+            "field": "placeopt__design__instance__design__area",
+            "value": 229685,
+            "compare": "<="
+        },
+        {
+            "field": "placeopt__design__instance__stdcell__count",
+            "value": 414461,
+            "compare": "<="
+        },
+        {
+            "field": "cts__timing__setup__ws",
+            "value": -756.19,
+            "compare": ">="
+        },
+        {
+            "field": "cts__timing__setup__ws__prerepair",
+            "value": -1145.32,
+            "compare": ">="
+        },
+        {
+            "field": "cts__timing__setup__ws__postrepair",
+            "value": -835.49,
+            "compare": ">="
+        },
+        {
+            "field": "globalroute__timing__clock__slack",
+            "value": -519.26,
+            "compare": ">="
+        },
+        {
+            "field": "globalroute__timing__setup__ws",
+            "value": -519.27,
+            "compare": ">="
+        },
+        {
+            "field": "detailedroute__route__wirelength",
+            "value": 6253562,
+            "compare": "<="
+        },
+        {
+            "field": "detailedroute__route__drc_errors__count",
+            "value": 0,
+            "compare": "=="
+        },
+        {
+            "field": "finish__timing__setup__ws",
+            "value": -270.36,
+            "compare": ">="
+        },
+        {
+            "field": "finish__design__instance__area",
+            "value": 1919766,
+            "compare": "<="
+        }
+    ]
+}

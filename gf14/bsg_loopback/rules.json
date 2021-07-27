@@ -1,0 +1,9 @@
+{
+    "rules": [
+        {
+            "field" : "detailedroute__drc__error__count",
+            "value" : 5600,
+            "compare": "<="
+        }
+    ]
+}
