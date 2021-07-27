@@ -577,9 +577,6 @@ def server_schema():
         'help' : ["TBD"]
     }
 
-    #cfg['addusers'] = {
-    #}
-
     return cfg
 
 ###############################################
