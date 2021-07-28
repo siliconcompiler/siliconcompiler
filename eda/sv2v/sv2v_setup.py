@@ -30,17 +30,9 @@ def setup_options(chip, step):
     '''
     options = chip.set('flow', step, 'option', [])
 
-    # Include cwd in search path
-    options.append('-I' + "../../../")
-
-    for value in chip.cfg['idir']['value']:
-        options.append('-I' + schema_path(value))
-
-    for value in chip.cfg['define']['value']:
-        options.append('-D ' + schema_path(value))
-
-    for value in chip.cfg['source']['value']:
-        options.append(schema_path(value))
+    topmodule = chip.cfg['design']['value'][-1]
+    options.append("inputs/" + topmodule + ".v")
+    options.append("--write=outputs/" + topmodule + ".v")
 
     #Wite back options tp cfg
     chip.set('flow', step, 'option', options)
@@ -57,25 +49,3 @@ def pre_process(chip, step):
 def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
-
-    # setting top module of design
-    modules = 0
-    if len(chip.cfg['design']['value']) < 1:
-        with open("sv2v.log", "r") as open_file:
-            for line in open_file:
-                modmatch = re.match(r'^module\s+(\w+)', line)
-                if modmatch:
-                    modules = modules + 1
-                    topmodule = modmatch.group(1)
-        # Only setting design when possible
-        if (modules > 1) & (chip.cfg['design']['value'] == ""):
-            chip.logger.error('Multiple modules found during import, \
-            but sc_design was not set')
-            sys.exit()
-        else:
-            chip.logger.info('Setting design (topmodule) to %s', topmodule)
-            chip.cfg['design']['value'].append(topmodule)
-    else:
-        topmodule = chip.cfg['design']['value'][-1]
-
-    subprocess.run("cp sv2v.log outputs/" + topmodule + ".v", shell=True)
