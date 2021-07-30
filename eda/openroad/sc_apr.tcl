@@ -51,7 +51,7 @@ if {$target_tech eq "freepdk45"} {
 # Schema Adapter
 ###############################
 
-#Handling remote/local script execution 
+#Handling remote/local script execution
 set sc_step   [dict get $sc_cfg status step]
 
 if {[dict get $sc_cfg flow $sc_step copy] eq True} {
@@ -59,7 +59,7 @@ if {[dict get $sc_cfg flow $sc_step copy] eq True} {
 } else {
     set sc_refdir [dict get $sc_cfg flow $sc_step refdir]
 }
-    
+
 # Design
 set sc_design     [lindex [dict get $sc_cfg design] end]
 set sc_optmode     [lindex [dict get $sc_cfg optmode] end]
@@ -68,7 +68,7 @@ set sc_optmode     [lindex [dict get $sc_cfg optmode] end]
 # Required
 ###############################
 
-# APR Parameters		    
+# APR Parameters
 set sc_mainlib     [lindex [dict get $sc_cfg asic targetlib] 0]
 set sc_targetlibs  [dict get $sc_cfg asic targetlib]
 set sc_stackup     [lindex [dict get $sc_cfg asic stackup] end]
@@ -129,7 +129,7 @@ if {[dict exists $sc_cfg asic macrolib]} {
 }
 
 # CONSTRAINTS
-if {[dict exists $sc_cfg constraint]} {    
+if {[dict exists $sc_cfg constraint]} {
     set sc_constraint [dict get $sc_cfg constraint]
 } else {
     set sc_constraint  ""
@@ -156,7 +156,7 @@ if {[dict exists $sc_cfg asic floorplan]} {
 
 # Triton Hack b/c it can't handle multiple LEFs!!
 # TODO: Fix as soon as triton is merged
-if {$sc_step == "route"} {    
+if {$sc_step == "route"} {
     exec "$sc_refdir/mergeLef.py" --inputLef \
 	$sc_techlef \
 	[dict get $sc_cfg stdcell $sc_mainlib lef] \
@@ -171,21 +171,21 @@ if {$sc_step == "route"} {
 	read_lef [dict get $sc_cfg stdcell $lib lef]
     }
 }
- 
+
 # Macrolibs
 foreach lib $sc_macrolibs {
     read_liberty [dict get $sc_cfg macro $lib model typical nldm lib]
-    read_lef [dict get $sc_cfg macro $lib lef]    
+    read_lef [dict get $sc_cfg macro $lib lef]
 }
 
 # Floorplan reads synthesis verilog, others read def
-if {$sc_step == "floorplan"} {
+if {$sc_step == "floorplan" | $sc_step == "synopt"} {
     read_verilog "inputs/$sc_design.v"
     link_design $sc_design
     foreach sdc $sc_constraint {
 	read_sdc $sdc
     }
-} else {    
+} else {
     read_def "inputs/$sc_design.def"
     read_sdc "inputs/$sc_design.sdc"
 }

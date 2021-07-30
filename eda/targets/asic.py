@@ -10,6 +10,7 @@ def setup_eda(chip, name=None):
     # Define Compilation Flow
     chip.cfg['steplist']['value'] = ['import',
                                      'syn',
+                                     'synopt',
                                      'floorplan',
                                      'place',
                                      'cts',
@@ -34,9 +35,9 @@ def setup_eda(chip, name=None):
         module = importlib.import_module(modulename, package=packdir)
         setup_tool = getattr(module, 'setup_tool')
         setup_tool(chip, step)
-        
+
 #########################
-if __name__ == "__main__":    
+if __name__ == "__main__":
 
     # File being executed
     prefix = os.path.splitext(os.path.basename(__file__))[0]
