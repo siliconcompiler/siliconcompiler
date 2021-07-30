@@ -1871,6 +1871,25 @@ def schema_metric(cfg, group='default', step='default'):
         """
     }
 
+    cfg['metric'][step][group]['overflow'] = {
+        'switch': '-metric_overflow',
+        'type': 'num',
+        'lock': 'false',
+        'requirement': 'optional',
+        'defvalue': [],
+        'short_help': 'Routing Overflow Metric',
+        'param_help': 'metric stepvar stagevar overflow <num>',
+        'example': ["cli: -"+group+"_overflow 'route 0'",
+                    "api: chip.add(metric,'"+group+"','place','overflow','0')"],
+        'help': """
+        Metric tracking the total number of overflow tracks for the routing.
+        Any non-zero number suggests an over congested design. To analyze
+        where the congestion is occuring inspect the router log files for
+        detailed per metal overflow reporting and open up the design to find
+        routing hotspots.
+        """
+    }
+
     cfg['metric'][step][group]['area_cells'] = {
         'switch': '-metric_area_cells',
         'type': 'num',
@@ -1954,6 +1973,23 @@ def schema_metric(cfg, group='default', step='default'):
         """
     }
 
+    cfg['metric'][step][group]['hold_slack'] = {
+        'switch': '-metric_hold_slack',
+        'type': 'num',
+        'lock': 'false',
+        'requirement': 'optional',
+        'defvalue': [],
+        'short_help': 'Hold Slack Metric',
+        'param_help': 'metric stepvar stagevar hold_slack <num>',
+        'example': ["cli: -metric_hold_slack 'place "+group+" 0",
+                    "api: chip.add(metric,'place','"+group+"','hold_slack','0')"],
+        'help': """
+        Metric tracking the worst hold/min timing path slack in the design.
+        Positive values means there is spare/slack, negative slack means the design
+        is failing a hold timing constrainng. The metric unit is nanoseconds.
+        """
+    }
+
     cfg['metric'][step][group]['hold_tns'] = {
         'switch': '-metric_hold_tns',
         'type': 'num',
@@ -1970,21 +2006,23 @@ def schema_metric(cfg, group='default', step='default'):
         """
     }
 
-    cfg['metric'][step][group]['hold_wns'] = {
-        'switch': '-metric_hold_wns',
+    cfg['metric'][step][group]['setup_slack'] = {
+        'switch': '-metric_setup_slack',
         'type': 'num',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'short_help': 'Hold WNS Metric',
-        'param_help': 'metric stepvar stagevar hold_wns <num>',
-        'example': ["cli: -"+group+"_hold_wns 'place 0'",
-                    "api: chip.add(metric,'"+group+"','place','hold_wns','0')"],
+        'short_help': 'Setup Slack Metric',
+        'param_help': 'metric stepvar stagevar setup_slack <num>',
+        'example': ["cli: -metric_setup_slack 'place "+group+" 0",
+                    "api: chip.add(metric,'place','"+group+"','setup_slack','0')"],
         'help': """
-        Metric tracking of worst negative hold slack (WNS) on a per step basis.
-        Metric unit is nanoseconds.
+        Metric tracking the worst setup/min timing path slack in the design.
+        Positive values means there is spare/slack, negative slack means the design
+        is failing a setup timing constrainng. The metric unit is nanoseconds.
         """
     }
+
 
     cfg['metric'][step][group]['setup_tns'] = {
         'switch': '-metric_setup_tns',
@@ -1998,23 +2036,6 @@ def schema_metric(cfg, group='default', step='default'):
                     "api: chip.add(metric,'"+group+"','place','setup_tns','0')"],
         'help': """
         Metric tracking of total negative setup slack (TNS) on a per step basis.
-        Metric unit is nanoseconds.
-        """
-    }
-
-
-    cfg['metric'][step][group]['setup_wns'] = {
-        'switch': '-metric_setup_wns',
-        'type': 'num',
-        'lock': 'false',
-        'requirement': 'optional',
-        'defvalue': [],
-        'short_help': 'Setup WNS Metric',
-        'param_help': 'metric stepvar stagevar setup_wns <num>',
-        'example': ["cli: -"+group+"_setup_wns 'place 0'",
-                    "api: chip.add(metric,'"+group+"','place','setup_wns','0')"],
-        'help': """
-        Metric tracking of worst negative setup slack (WNS) on a per step basis.
         Metric unit is nanoseconds.
         """
     }
