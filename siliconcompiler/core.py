@@ -192,6 +192,7 @@ class Chip:
 
         #Grab argument from pre-process sysargs
         cmdargs = vars(parser.parse_args(scargs))
+        print(cmdargs)
 
         #Stuff command line values into dynamic dict
         for key, val in cmdargs.items():
