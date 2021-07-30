@@ -61,12 +61,13 @@ if {$mode eq "asic"} {
 
     #Outputs
     set output_verilog  "outputs/$topmodule.v"
+    set output_yson     "outputs/$topmodule.yson"
     set output_def      "outputs/$topmodule.def"
     set output_sdc      "outputs/$topmodule.sdc"
     set output_blif     "outputs/$topmodule.blif"
 
     ########################################################
-    # Synthhesis
+    # Synthesis
     ########################################################
 
     yosys synth "-flatten" -top $topmodule
@@ -100,6 +101,7 @@ if {$mode eq "asic"} {
     ########################################################
 
     yosys write_verilog -noattr -noexpr -nohex -nodec $output_verilog
+    yosys write_json $output_yson
     yosys write_blif $output_blif
 } else {
     # FPGA mode

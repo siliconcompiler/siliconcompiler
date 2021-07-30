@@ -5,8 +5,8 @@ import defusedxml.ElementTree as ET
 from siliconcompiler.schema import schema_path
 
 def setup_tool(chip, step):
-     chip.logger.debug("Setting up Yosys")     
-     
+     chip.logger.debug("Setting up Yosys")
+
      refdir = 'eda/yosys'
 
      chip.add('flow', step, 'format', 'tcl')
@@ -16,7 +16,7 @@ def setup_tool(chip, step):
      chip.add('flow', step, 'option', '-c')
      chip.add('flow', step, 'refdir', refdir)
      chip.add('flow', step, 'script', refdir + '/sc_syn.tcl')
-   
+
 def setup_options(chip, step):
 
      options = chip.get('flow', step, 'option')
@@ -57,20 +57,20 @@ def pre_process(chip, step):
 def post_process(chip, step, status):
      ''' Tool specific function to run after step execution
      '''
-     
+
      exe = chip.get('flow',step,'exe')[-1]
      with open(exe + ".log") as f:
           for line in f:
                area = re.search(r'Chip area for module.*\:\s+(.*)', line)
                cells = re.search(r'Number of cells\:\s+(.*)', line)
                warnings = re.search(r'Warnings.*\s(\d+)\s+total', line)
-               
+
                if area:
-                    chip.set('real', step, 'area_cells', str(round(float(area.group(1)),2)))
+                    chip.set('metric', step, 'real', 'area_cells', str(round(float(area.group(1)),2)))
                elif cells:
-                    chip.set('real', step, 'cells', cells.group(1))
+                    chip.set('metric', step, 'real', 'cells', cells.group(1))
                elif warnings:
-                    chip.set('real', step, 'warnings', warnings.group(1))
+                    chip.set('metric', step, 'real', 'warnings', warnings.group(1))
 
 
      return status

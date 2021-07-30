@@ -18,7 +18,7 @@ def setup_tool(chip, step):
      chip.add('flow', step, 'copy', 'false')
      chip.add('flow', step, 'refdir', refdir)
      chip.add('flow', step, 'script', refdir + '/sc_apr.tcl')
-     
+
      chip.add('flow', step, 'format', 'tcl')
      chip.add('flow', step, 'vendor', 'openroad')
      chip.add('flow', step, 'exe', 'openroad')
@@ -30,7 +30,7 @@ def setup_options(chip, step):
      if (step not in chip.get('bkpt')) and (not '-exit' in options):
           options.append('-exit')
      return options
-  
+
 ################################
 # Pre/Post Processing
 ################################
@@ -86,22 +86,22 @@ def post_process(chip, step, status):
                if errmatch:
                     error = 1
                elif area:
-                    chip.set('real', step, 'area_cells', str(round(float(area.group(1)),2)))
+                    chip.set('metric', step, 'real', 'area_cells', str(round(float(area.group(1)),2)))
                elif tns:
-                    chip.set('real', step, 'setup_tns', str(round(float(tns.group(1)),2)))
+                    chip.set('metric', step, 'real', 'setup_tns', str(round(float(tns.group(1)),2)))
                elif wns:
-                    chip.set('real', step, 'setup_wns', str(round(float(wns.group(1)),2)))
-               elif power:                    
+                    chip.set('metric', step, 'real', 'setup_wns', str(round(float(wns.group(1)),2)))
+               elif power:
                     powerlist = power.group(1).split()
                     leakage = powerlist[2]
-                    total = powerlist[3] 
-                    chip.set('real', step, 'power_total', total)
-                    chip.set('real', step, 'power_leakage',  leakage)
+                    total = powerlist[3]
+                    chip.set('metric', step, 'real', 'power_total', total)
+                    chip.set('metric', step, 'real', 'power_leakage',  leakage)
                elif wirelength:
-                    chip.set('real', step, 'wirelength', str(round(float(wirelength.group(1)),2)))
+                    chip.set('metric', step, 'real', 'wirelength', str(round(float(wirelength.group(1)),2)))
                elif vias:
-                    chip.set('real', step, 'vias', str(round(float(vias.group(1)),2)))
-                    
+                    chip.set('metric', step, 'real', 'vias', str(round(float(vias.group(1)),2)))
+
      #Temporary superhack!
      #Getting cell count and net number from DEF
      if error == 0:
@@ -111,11 +111,11 @@ def post_process(chip, step, status):
                     nets = re.search(r'^NETS (\d+)',line)
                     pins = re.search(r'^PINS (\d+)',line)
                     if cells:
-                         chip.set('real', step, 'cells', cells.group(1))
+                         chip.set('metric', step, 'real', 'cells', cells.group(1))
                     elif nets:
-                         chip.set('real', step, 'nets', nets.group(1))               
+                         chip.set('metric', step, 'real', 'nets', nets.group(1))
                     elif pins:
-                         chip.set('real', step, 'pins', pins.group(1))
+                         chip.set('metric', step, 'real', 'pins', pins.group(1))
 
      #TODO: implement stronger error checking
      return status
