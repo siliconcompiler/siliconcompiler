@@ -197,15 +197,13 @@ class Chip:
         for key, val in cmdargs.items():
             for item in val:
                 args = schema_reorder_keys(argmap[key], item)
+                #print(args)
                 # TODO: we should annotate each schema item as list or scalar,
                 # and then use that annotation to determine how to set the value
-                if key in ('source'):
-                    self._search(self.cfg, *args, mode='add')
-                else:
-                    self._search(self.cfg, *args, mode='set')
+                self._search(self.cfg, *args, mode='add')
+                # reading in config from a file
                 if key == 'cfg':
                     self.readcfg(item)
-
         # Create one (or many...) instances of Chip class.
         chips = get_permutations(self, cmdargs)
         return chips
@@ -1440,7 +1438,7 @@ def get_permutations(base_chip, cmdlinecfg):
 
     # Set default target if not set and there is nothing set
     if len(base_chip.get('target')) < 1:
-        base_chip.logger.info('No target set, setting to %s','freepdk45')
+        base_chip.logger.info('No target set, setting to %s','freepdk45_asic')
         base_chip.set('target', 'freepdk45_asic')
 
     # Assign a new 'job_hash' to the chip if necessary.
