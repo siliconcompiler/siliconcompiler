@@ -67,19 +67,19 @@ def post_process(chip, step, status):
                 errors = re.search(r'^\[INFO\]: COUNT: (\d+)', line)
 
                 if errors:
-                    chip.set('real', step, 'errors', errors.group(1))
+                    chip.set('metric', step, 'real', 'errors', errors.group(1))
     elif step == 'lvs':
         # Need to pass along DEF to export stage
         shutil.copy(f'inputs/{design}.def', f'outputs/{design}.def')
 
         # Export metrics
         lvs_failures = count_lvs.count_LVS_failures(f'outputs/{design}.lvs.json')
-        chip.set('real', step, 'errors', str(lvs_failures[0]))
+        chip.set('metric', step, 'real', 'errors', str(lvs_failures[0]))
 
 
     #TODO: return error code
     return status
-        
+
 ################################
 # Utilities
 ################################

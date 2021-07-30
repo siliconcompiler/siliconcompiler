@@ -1124,7 +1124,7 @@ class Chip:
             with open(metricsfile, 'r') as f:
                 sc_results = json.load(f)
             #Copy results into step
-            self.cfg['real'][step] = copy.deepcopy(sc_results['real'][step])
+            self.cfg['metric'][step] = copy.deepcopy(sc_results['metric'][step])
 
         #Creating step index
         data = []
@@ -1137,13 +1137,13 @@ class Chip:
 
         #Creating table of real values
         metrics = []
-        for metric in  self.getkeys('real', 'default'):
+        for metric in  self.getkeys('metric', 'default', 'default'):
             metrics.append(" " + metric)
             row = []
             for stepindex in range(startindex, stopindex + 1):
                 step = steplist[stepindex]
                 row.append(" " +
-                           str(self.get('real', step, metric)[-1]).center(colwidth))
+                           str(self.get('metric', step, 'real', metric)[-1]).center(colwidth))
             data.append(row)
 
         pandas.set_option('display.max_rows', 500)
@@ -1249,8 +1249,8 @@ class Chip:
             #####################
             # Init Metrics Table
             #####################
-            for metric in self.getkeys('real', 'default'):
-                self.add('real', step, metric, 0)
+            for metric in self.getkeys('metric', 'default', 'default'):
+                self.set('metric', step, 'real', metric, str(0))
 
             #####################
             # Execution

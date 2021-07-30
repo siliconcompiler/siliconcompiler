@@ -19,8 +19,7 @@ def schema_cfg():
     cfg = schema_flow(cfg, 'default')
 
     # Metric Tracking
-    cfg = schema_metrics(cfg, 'goal')
-    cfg = schema_metrics(cfg, 'real')
+    cfg = schema_metric(cfg)
 
     # Recording design provenance
     cfg = schema_record(cfg)
@@ -1737,38 +1736,39 @@ def schema_flow(cfg, step):
 # Metrics to Track
 ###########################################################################
 
-def schema_metrics(cfg, group, step='default'):
+def schema_metric(cfg, group='default', step='default'):
 
-    if not group in cfg:
-        cfg[group] = {}
+    if not 'metric' in cfg:
+        cfg['metric'] = {}
+        cfg['metric'][step] = {}
 
-    cfg[group][step] = {}      # per step
+    cfg['metric'][step]['default'] = {}
 
-    cfg[group][step]['registers'] = {
-        'switch': '-'+group+'_registers',
+    cfg['metric'][step][group]['registers'] = {
+        'switch': '-metric_registers',
         'type': 'num',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'short_help': 'Total Registers ' + group.capitalize(),
-        'param_help': group+" stepvar registers <num>",
-        'example': ["cli: -"+group+"_registers 'place 100'",
-                    "api: chip.add('"+group+"','place','registers','100')"],
+        'short_help': 'Total Registers Metric',
+        'param_help': 'metric stepvar stagevar registers <num>',
+        'example': ["cli: -metric_"+group+"_registers 'place 100'",
+                    "api: chip.add(metric,'"+group+"','place','registers','100')"],
         'help': """
         Metric tracking the total number of register cells on a per step basis.
         """
     }
 
-    cfg[group][step]['cells'] = {
-        'switch': '-'+group+'_cells',
+    cfg['metric'][step][group]['cells'] = {
+        'switch': '-metric_cells',
         'type': 'num',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'short_help': 'Total Cell Instances ' + group.capitalize(),
-        'param_help': group+" stepvar cells <num>",
+        'short_help': 'Total Cell Instances Metric',
+        'param_help': 'metric stepvar stagevar cells <num>',
         'example': ["cli: -"+group+"_cells 'place 100'",
-                    "api: chip.add('"+group+"','place','cells','100')"],
+                    "api: chip.add(metric,'"+group+"','place','cells','100')"],
         'help': """
         Metric tracking the total number of instances on a per step basis.
         Total cells includes registers. In the case of FPGAs, the it
@@ -1776,16 +1776,16 @@ def schema_metrics(cfg, group, step='default'):
         """
     }
 
-    cfg[group][step]['rambits'] = {
-        'switch': '-'+group+'_rambits',
+    cfg['metric'][step][group]['rambits'] = {
+        'switch': '-metric_rambits',
         'type': 'num',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'short_help': 'Total RAM Macro Bits' + group.capitalize(),
-        'param_help': group+" stepvar rambits <num>",
+        'short_help': 'Total RAM Macro Bits Metric',
+        'param_help': 'metric stepvar stagevar rambits <num>',
         'example': ["cli: -"+group+"_rambits 'place 100'",
-                    "api: chip.add('"+group+"','place','rambits','100')"],
+                    "api: chip.add(metric,'"+group+"','place','rambits','100')"],
         'help': """
         Metric tracking the total number of RAM bits in the design
         on a per step basis. In the case of FPGAs, the it
@@ -1793,126 +1793,126 @@ def schema_metrics(cfg, group, step='default'):
         """
     }
 
-    cfg[group][step]['xtors'] = {
-        'switch': '-'+group+'_xtors',
+    cfg['metric'][step][group]['xtors'] = {
+        'switch': '-metric_xtors',
         'type': 'num',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'short_help': 'Total Transistors' + group.capitalize(),
-        'param_help': group+" stepvar xtors <num>",
+        'short_help': 'Total Transistors Metric',
+        'param_help': 'metric stepvar stagevar xtors <num>',
         'example': ["cli: -"+group+"_xtors 'place 100'",
-                    "api: chip.add('"+group+"','place','xtors','100')"],
+                    "api: chip.add(metric,'"+group+"','place','xtors','100')"],
         'help': """
         Metric tracking the total number of transistors in the design
         on a per step basis.
         """
     }
 
-    cfg[group][step]['nets'] = {
-        'switch': '-'+group+'_nets',
+    cfg['metric'][step][group]['nets'] = {
+        'switch': '-metric_nets',
         'type': 'num',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'short_help': 'Total Nets ' + group.capitalize(),
-        'param_help': group+" stepvar nets <num>",
+        'short_help': 'Total Nets Metric',
+        'param_help': 'metric stepvar stagevar nets <num>',
         'example': ["cli: -"+group+"_nets 'place 100'",
-                    "api: chip.add('"+group+"','place','nets','100')"],
+                    "api: chip.add(metric,'"+group+"','place','nets','100')"],
         'help': """
         Metric tracking the total number of net segments on a per step
         basis.
         """
     }
 
-    cfg[group][step]['pins'] = {
-        'switch': '-'+group+'_pins',
+    cfg['metric'][step][group]['pins'] = {
+        'switch': '-metric_pins',
         'type': 'num',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'short_help': 'Total Pins ' + group.capitalize(),
-        'param_help': group+" stepvar pins <num>",
+        'short_help': 'Total Pins Metric',
+        'param_help': 'metric stepvar '+group+" stepvar pins <num>",
         'example': ["cli: -"+group+"_pins 'place 100'",
-                    "api: chip.add('"+group+"','place','pins','100')"],
+                    "api: chip.add(metric,'"+group+"','place','pins','100')"],
         'help': """
         Metric tracking the total number of I/O pins on a per step
         basis.
         """
     }
 
-    cfg[group][step]['vias'] = {
-        'switch': '-'+group+'_vias',
+    cfg['metric'][step][group]['vias'] = {
+        'switch': '-metric_vias',
         'type': 'num',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'short_help': 'Total Vias ' + group.capitalize(),
-        'param_help': group+" stepvar vias <num>",
+        'short_help': 'Total Vias metric',
+        'param_help': 'metric stepvar stagevar vias <num>',
         'example': ["cli: -"+group+"_vias 'route 100.00'",
-                    "api: chip.add('"+group+"','place','vias','100')"],
+                    "api: chip.add(metric,'"+group+"','place','vias','100')"],
         'help': """
         Metric tracking the total number of vias in the design.
         """
     }
 
-    cfg[group][step]['wirelength'] = {
-        'switch': '-'+group+'_wirelength',
+    cfg['metric'][step][group]['wirelength'] = {
+        'switch': '-metric_wirelength',
         'type': 'num',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'short_help': 'Total Wirelength ' + group.capitalize(),
-        'param_help': group+" stepvar wirelength <num>",
+        'short_help': 'Total Wirelength Metric',
+        'param_help': 'metric stepvar stagevar wirelength <num>',
         'example': ["cli: -"+group+"_wirelength 'route 100.00'",
-                    "api: chip.add('"+group+"','place','wirelength','100')"],
+                    "api: chip.add(metric,'"+group+"','place','wirelength','100')"],
         'help': """
         Metric tracking the total wirelength in the design in meters.
         """
     }
 
-    cfg[group][step]['area_cells'] = {
-        'switch': '-'+group+'_area_cells',
+    cfg['metric'][step][group]['area_cells'] = {
+        'switch': '-metric_area_cells',
         'type': 'num',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'short_help': 'Cell Area ' + group.capitalize(),
-        'param_help': group+" stepvar area_cells <num>",
+        'short_help': 'Cell Area Metric',
+        'param_help': 'metric stepvar stagevar area_cells <num>',
         'example': ["cli: -"+group+"_area_cells 'place 100.00'",
-                    "api: chip.add('"+group+"','place','area_cells','100.00')"],
+                    "api: chip.add(metric,'"+group+"','place','area_cells','100.00')"],
         'help': """
         Metric tracking the sum of all cell area on a per step basis specified
         in um^2.
         """
     }
 
-    cfg[group][step]['area_total'] = {
-        'switch': '-'+group+'_area_total',
+    cfg['metric'][step][group]['area_total'] = {
+        'switch': '-metric_area_total',
         'type': 'num',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'short_help': 'Total Area ' + group.capitalize(),
-        'param_help': group+" stepvar area_total <num>",
+        'short_help': 'Total Area Metric',
+        'param_help': 'metric stepvar stagevar area_total <num>',
         'example': ["cli: -"+group+"_area_total 'place 100.00'",
-                    "api: chip.add('"+group+"','place','area_total','100.00')"],
+                    "api: chip.add(metric,'"+group+"','place','area_total','100.00')"],
         'help': """
         Metric tracking the total physical design area on a per step basis
         specified in um^2.
         """
     }
 
-    cfg[group][step]['area_density'] = {
-        'switch': '-'+group+'_area_density',
+    cfg['metric'][step][group]['area_density'] = {
+        'switch': '-metric_area_density',
         'type': 'num',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'short_help': 'Area Density ' + group.capitalize(),
-        'param_help': group+" stepvar area_density <num>",
+        'short_help': 'Area Density Metric',
+        'param_help': 'metric stepvar stagevar area_density <num>',
         'example': ["cli: -"+group+"_area_density 'place 99.9'",
-                    "api: chip.add('"+group+"','place','area_density','99.9')"],
+                    "api: chip.add(metric,'"+group+"','place','area_density','99.9')"],
         'help': """
         Metric tracking the effective area utilization/desnity calculated as the
         ratio of cell area divided by the total core area available for
@@ -1921,16 +1921,16 @@ def schema_metrics(cfg, group, step='default'):
         """
     }
 
-    cfg[group][step]['power_total'] = {
-        'switch': '-'+group+'_power_total',
+    cfg['metric'][step][group]['power_total'] = {
+        'switch': '-metric_power_total',
         'type': 'num',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'short_help': 'Total Power ' + group.capitalize(),
-        'param_help': group+" stepvar power_total <num>",
+        'short_help': 'Total Power Metric',
+        'param_help': 'metric stepvar stagevar power_total <num>',
         'example': ["cli: -"+group+"_power_total 'place 0.001'",
-                    "api: chip.add('"+group+"','place','power_total','0.001')"],
+                    "api: chip.add(metric,'"+group+"','place','power_total','0.001')"],
         'help': """
         Metric tracking the worst case total power of the design on a per
         step basis calculated based on setup config and VCD stimulus.
@@ -1938,64 +1938,64 @@ def schema_metrics(cfg, group, step='default'):
         """
     }
 
-    cfg[group][step]['power_leakage'] = {
-        'switch': '-'+group+'_power_leakage',
+    cfg['metric'][step][group]['power_leakage'] = {
+        'switch': '-metric_power_leakage',
         'type': 'num',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'short_help': 'Leakage Power ' + group.capitalize(),
-        'param_help': group+" stepvar power_leakage <num>",
+        'short_help': 'Leakage Power Metric',
+        'param_help': 'metric stepvar stagevar power_leakage <num>',
         'example': ["cli: -"+group+"_power_leakage 'place 1e-6'",
-                    "api: chip.add('"+group+"','place','power_leakage','1e-6')"],
+                    "api: chip.add(metric,'"+group+"','place','power_leakage','1e-6')"],
         'help': """
         Metric tracking the leakage power of the design on a per step
         basis. Metric unit is Watts.
         """
     }
 
-    cfg[group][step]['hold_tns'] = {
-        'switch': '-'+group+'_hold_tns',
+    cfg['metric'][step][group]['hold_tns'] = {
+        'switch': '-metric_hold_tns',
         'type': 'num',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'short_help': 'Hold TNS ' + group.capitalize(),
-        'param_help': group+" stepvar hold_tns <num>",
+        'short_help': 'Hold TNS Metric',
+        'param_help': 'metric stepvar stagevar hold_tns <num>',
         'example': ["cli: -"+group+"_hold_tns 'place 0'",
-                    "api: chip.add('"+group+"','place','hold_tns','0')"],
+                    "api: chip.add(metric,'"+group+"','place','hold_tns','0')"],
         'help': """
         Metric tracking of total negative hold slack (TNS) on a per step basis.
         Metric unit is nanoseconds.
         """
     }
 
-    cfg[group][step]['hold_wns'] = {
-        'switch': '-'+group+'_hold_wns',
+    cfg['metric'][step][group]['hold_wns'] = {
+        'switch': '-metric_hold_wns',
         'type': 'num',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'short_help': 'Hold WNS ' + group.capitalize(),
-        'param_help': group+" stepvar hold_wns <num>",
+        'short_help': 'Hold WNS Metric',
+        'param_help': 'metric stepvar stagevar hold_wns <num>',
         'example': ["cli: -"+group+"_hold_wns 'place 0'",
-                    "api: chip.add('"+group+"','place','hold_wns','0')"],
+                    "api: chip.add(metric,'"+group+"','place','hold_wns','0')"],
         'help': """
         Metric tracking of worst negative hold slack (WNS) on a per step basis.
         Metric unit is nanoseconds.
         """
     }
 
-    cfg[group][step]['setup_tns'] = {
-        'switch': '-'+group+'_setup_tns',
+    cfg['metric'][step][group]['setup_tns'] = {
+        'switch': '-metric_setup_tns',
         'type': 'num',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'short_help': 'Setup TNS ' + group.capitalize(),
-        'param_help': group+" stepvar setup_tns <num>",
+        'short_help': 'Setup TNS Metric',
+        'param_help': 'metric stepvar stagevar setup_tns <num>',
         'example': ["cli: -"+group+"_setup_tns 'place 0'",
-                    "api: chip.add('"+group+"','place','setup_tns','0')"],
+                    "api: chip.add(metric,'"+group+"','place','setup_tns','0')"],
         'help': """
         Metric tracking of total negative setup slack (TNS) on a per step basis.
         Metric unit is nanoseconds.
@@ -2003,95 +2003,95 @@ def schema_metrics(cfg, group, step='default'):
     }
 
 
-    cfg[group][step]['setup_wns'] = {
-        'switch': '-'+group+'_setup_wns',
+    cfg['metric'][step][group]['setup_wns'] = {
+        'switch': '-metric_setup_wns',
         'type': 'num',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'short_help': 'Setup WNS ' + group.capitalize(),
-        'param_help': group+" stepvar setup_wns <num>",
+        'short_help': 'Setup WNS Metric',
+        'param_help': 'metric stepvar stagevar setup_wns <num>',
         'example': ["cli: -"+group+"_setup_wns 'place 0'",
-                    "api: chip.add('"+group+"','place','setup_wns','0')"],
+                    "api: chip.add(metric,'"+group+"','place','setup_wns','0')"],
         'help': """
         Metric tracking of worst negative setup slack (WNS) on a per step basis.
         Metric unit is nanoseconds.
         """
     }
 
-    cfg[group][step]['drv'] = {
-        'switch': '-'+group+'_drv',
+    cfg['metric'][step][group]['drv'] = {
+        'switch': '-metric_drv',
         'type': 'num',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'short_help': 'Design Rule Violations ' + group.capitalize(),
-        'param_help': group+" stepvar drv <num>",
+        'short_help': 'Design Rule Violations Metric',
+        'param_help': 'metric stepvar stagevar drv <num>',
         'example': ["cli: -"+group+"_drv 'dfm 0'",
-                    "api: chip.add('"+group+"','dfm','drv','0')"],
+                    "api: chip.add(metric,'"+group+"','dfm','drv','0')"],
         'help': """
         Metric tracking the total number of design rule violations on per step
         basis.
         """
     }
 
-    cfg[group][step]['warnings'] = {
-        'switch': '-'+group+'_warnings',
+    cfg['metric'][step][group]['warnings'] = {
+        'switch': '-metric_warnings',
         'type': 'num',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'short_help': 'Total Warnings ' + group.capitalize(),
-        'param_help': group+" stepvar warnings <num>",
+        'short_help': 'Total Warnings Metric',
+        'param_help': 'metric stepvar stagevar warnings <num>',
         'example': ["cli: -"+group+"_warnings 'dfm 0'",
-                    "api: chip.add('"+group+"','dfm','warnings','0')"],
+                    "api: chip.add(metric,'"+group+"','dfm','warnings','0')"],
 
         'help': """
         Metric tracking the total number of warnings on a per step basis.
         """
     }
 
-    cfg[group][step]['errors'] = {
-        'switch': '-'+group+'_errors',
+    cfg['metric'][step][group]['errors'] = {
+        'switch': '-metric_errors',
         'type': 'num',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'short_help': 'Total Errors ' + group.capitalize(),
-        'param_help': group+" stepvar errors <num>",
+        'short_help': 'Total Errors Metric',
+        'param_help': 'metric stepvar stagevar errors <num>',
         'example': ["cli: -"+group+"_errors 'dfm 0'",
-                    "api: chip.add('"+group+"','dfm','errors','0')"],
+                    "api: chip.add(metric,'"+group+"','dfm','errors','0')"],
         'help': """
         Metric tracking the total number of errors on a per step basis.
         """
     }
 
-    cfg[group][step]['runtime'] = {
-        'switch': '-'+group+'_runtime',
+    cfg['metric'][step][group]['runtime'] = {
+        'switch': '-metric_runtime',
         'type': 'num',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'short_help': 'Total Runtime ' + group.capitalize(),
-        'param_help': group+" stepvar runtime <num>",
+        'short_help': 'Total Runtime Metric',
+        'param_help': 'metric stepvar stagevar runtime <num>',
         'example': ["cli: -"+group+"_runtime 'dfm 35.3'",
-                    "api: chip.add('"+group+"','dfm','runtime','35.3')"],
+                    "api: chip.add(metric,'"+group+"','dfm','runtime','35.3')"],
         'help': """
         Metric tracking the total runtime on a per step basis. Time recorded
         as wall clock time specified in seconds.
         """
     }
 
-    cfg[group][step]['memory'] = {
-        'switch': '-'+group+'_memory',
+    cfg['metric'][step][group]['memory'] = {
+        'switch': '-metric_memory',
         'type': 'num',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'short_help': 'Total Memory ' + group.capitalize(),
-        'param_help': group+" stepvar memory <num>",
+        'short_help': 'Total Memory Metric',
+        'param_help': 'metric stepvar stagevar memory <num>',
         'example': ["cli: -"+group+"_memory 'dfm 10e6'",
-                    "api: chip.add('"+group+"','dfm','memory','10e6')"],
+                    "api: chip.add(metric,'"+group+"','dfm','memory','10e6')"],
         'help': """
         Metric tracking the total memory on a per step basis, specified
         in bytes.
@@ -3151,14 +3151,14 @@ def schema_design(cfg):
     }
 
     cfg['param'] = {
-        'switch': '-p',
+        'switch': '-param',
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
         'short_help': 'Design Parameter Override',
         'param_help': "param <str>",
-        'example': ["cli: -p 'N=64'",
+        'example': ["cli: -param 'N=64'",
                     "api: chip.add('param','N=64')"],
         'help': """
         Overrides the given parameter of the top level module. The value

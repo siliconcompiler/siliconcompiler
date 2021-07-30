@@ -63,7 +63,7 @@ if {[llength $sc_def] > 0} {
             exit 1
         }
 
-        set syn_area [dict get $sc_cfg real syn area_cells]
+        set syn_area [dict get $sc_cfg metric syn real area_cells]
         set lib_height [dict get $sc_cfg stdcell $sc_mainlib height]
 
         set sc_coresize [calculate_core_size $sc_density $sc_coremargin $sc_aspectratio $syn_area $lib_height]
@@ -82,7 +82,7 @@ if {[llength $sc_def] > 0} {
     dict for {key value} [dict get $sc_cfg pdk grid $sc_stackup] {
 	lappend metal_list $key
     }
-    
+
     foreach metal $metal_list {
 	#extracting values from dictionary
 	set name [dict get $sc_cfg pdk grid $sc_stackup $metal name]
@@ -101,7 +101,7 @@ if {[llength $sc_def] > 0} {
     ###########################
     # Automatic Pin Placement
     ###########################
-    
+
     place_pins -hor_layers $sc_hpinmetal \
 	-ver_layers $sc_vpinmetal \
 	-random \
@@ -146,5 +146,3 @@ if {[llength $sc_def] > 0} {
 }
 
 remove_buffers
-
-
