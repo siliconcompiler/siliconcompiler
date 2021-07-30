@@ -182,9 +182,9 @@ def schema_fpga(cfg):
         'example': ["cli: -fpga_xml myfpga.xml",
                     "api:  chip.set('fpga', 'xml', 'myfpga.xml')"],
         'help': """
-        Provides an XML-based architecture description for the target FPGA
-        architecture to be used in VTR, allowing targeting a large number of
-        virtual and commercial architectures.
+        A complete XML-based architecture description for the target FPGA
+        architecture to be used in Verilog to Routing (VTR) tool, allowing
+        targeting a large number of virtual and commercial architectures.
         `More information... <https://verilogtorouting.org>`_
         """
     }
@@ -200,8 +200,9 @@ def schema_fpga(cfg):
         'example': ["cli: -fpga_vendor acme",
                     "api:  chip.set('fpga', 'vendor', 'acme')"],
         'help': """
-        Name of the FPGA vendor for non-VTR based compilation. This value is
-        generally set by the FPGA platform target.
+        Vendor or project name for the FPGA target. The name should be specified
+        in lower case (ie. xilinx, intel, microchip, lattice, openfpga,
+        symbiflow, etc)
         """
     }
 
@@ -216,8 +217,8 @@ def schema_fpga(cfg):
         'example': ["cli: -fpga_device fpga64k",
                     "api:  chip.set('fpga', 'device', 'fpga64k')"],
         'help': """
-        Name of the FPGA device for non-VTR based compilation. This value is
-        generally set by the FPGA platform target.
+        Name of the FPGA device target based on the synthesis and place and
+        route tool used for compilation.
         """
     }
 
@@ -242,9 +243,9 @@ def schema_pdk(cfg):
         'example': ["cli: -pdk_foundry virtual",
                     "api:  chip.set('pdk', 'foundry', 'virtual')"],
         'help': """
-        The name of the foundry. For example: intel, gf, tsmc, "samsung,
-        skywater, virtual. The \'virtual\' keyword is reserved for simulated
-        non-manufacturable processes such as freepdk45 and asap7.
+        The official foundry company name. For example: intel, gf, tsmc,
+        samsung, skywater, virtual. The \'virtual\' keyword is reserved for
+        simulated non-manufacturable processes such as freepdk45 and asap7.
         """
     }
 
@@ -277,7 +278,7 @@ def schema_pdk(cfg):
         'example': ["cli: -pdk_node 130",
                     "api:  chip.set('pdk', 'node', '130')"],
         'help': """
-        An approximate relative minimum dimension of the process node. A
+        Approximate relative minimum dimension of the process target. A
         required parameter in some reference flows that leverage the value to
         drive technology dependent synthesis and APR optimization. Node
         examples include 180nm, 130nm, 90nm, 65nm, 45nm, 32nm, 22nm, 14nm,
@@ -296,7 +297,11 @@ def schema_pdk(cfg):
         'example': ["cli: -pdk_wafersize 300",
                     "api:  chip.set('pdk', 'wafersize', '300')"],
         'help': """
-        Specifies the wafer diameter for the process in mm.
+        Wafer diameter used in manufacturing specified in mm. The standard
+        diameter for leading edge manufacturing is generally 300mm. For older
+        process technologies and speciality fabs, smaller diameters such as
+        200, 100, 125, 100 are more common. The value is used to calculate
+        dies per wafer and full factory chip costs.
         """
     }
 
@@ -311,8 +316,8 @@ def schema_pdk(cfg):
         'example': ["cli: -pdk_wafercost 10000",
                     "api:  chip.set('pdk', 'wafercost', '10000')"],
         'help': """
-        Specifies the raw cost per wafer purchased in USD, not
-        accounting for yield loss.
+        Raw cost per wafer purchased specified in USD, not accounting for
+        yield loss. The values is used to calculate chip full factory costs.
         """
     }
 
@@ -327,7 +332,12 @@ def schema_pdk(cfg):
         'example': ["cli: -pdk_d0 0.1",
                     "api:  chip.set('pdk', 'd0', '0.1')"],
         'help': """
-        Process defect density (D0) expressed as random defects per cm^2.
+        Process defect density (D0) expressed as random defects per cm^2. The
+        value is used to calcuate yield losses as a function of area, which in
+        turn affects the chip full factory costs. Two yield models are
+        supported: poisson (default), and murphy. The poisson based yield is
+        calculated as dy = exp(-area * d0/100). The murphy based yield is
+        calculated as dy = ((1-exp(-area * d0/100))/(area * d0/100))^2.
         """
     }
 
@@ -342,7 +352,11 @@ def schema_pdk(cfg):
         'example': ["cli: -pdk_hscribe 0.1",
                     "api:  chip.set('pdk', 'hscribe', '0.1')"],
         'help': """
-        Specifies the width of the horizontal scribe line in mm.
+        Width of the horizonotal scribe line (in mm) used during die separation.
+        The process is generally complted using a mecanical saw, but can be
+        done through combinations of mechanical saws, lasers, wafer thinning,
+        and chemical etching in more advanced technolgoies. The value is used
+        to calculate effective dies per wafer and full factory cost.
         """
     }
 
@@ -357,7 +371,11 @@ def schema_pdk(cfg):
         'example': ["cli: -pdk_vscribe 0.1",
                     "api:  chip.set('pdk', 'vscribe', '0.1')"],
         'help': """
-        Specifies the width of the vertical scribe line in mm.
+        Width of the vertical scribe line (in mm) used during die separation.
+        The process is generally complted using a mecanical saw, but can be
+        done through combinations of mechanical saws, lasers, wafer thinning,
+        and chemical etching in more advanced technolgoies. The value is used
+        to calculate effective dies per wafer and full factory cost.
         """
     }
 
@@ -372,8 +390,9 @@ def schema_pdk(cfg):
         'example': ["cli: -pdk_edgemargin 1",
                     "api:  chip.set('pdk', 'edgemargin', '1')"],
         'help': """
-        Specifies keepout distance/margin (in mm) from the wafer edge
-        where no dies can be placed.
+        Keepout distance/margin (in mm) from the wafer edge prone to chipping
+        and poor yield. The value is used to calculate effective dies per
+        wafer and full factory cost.
         """
     }
 
@@ -392,6 +411,11 @@ def schema_pdk(cfg):
         calculated as:
         0.6 * (Nand2 Transistor Count) / (Nand2 Cell Area) +
         0.4 * (Register Transistor Count) / (Register Cell Area)
+        The value is specified for a fixed standard cell library
+        within a node and will differ depending on the library vendor,
+        library track height and library type. The value is used to
+        normalize the effective density reported for the design and to
+        enable technology portable floor-plans.
         """
     }
 
@@ -406,7 +430,9 @@ def schema_pdk(cfg):
         'example': ["cli: -pdk_sramsize 0.032",
                     "api:  chip.set('pdk', 'sramcell', '0.026')"],
         'help': """
-        The area an SRAM bitcell expressed in um^2.
+        Area of an SRAM bitcell expressed in um^2. The value can be found
+        in the PDK and  is used to normalize the effective density reported
+        enable technology portable floor-plans.
         """
     }
 
@@ -421,9 +447,10 @@ def schema_pdk(cfg):
         'example': ["cli: -pdk_rev 1.0",
                     "api:  chip.set('pdk', 'rev', '1.0')"],
         'help': """
-        An alphanumeric string specifying the revision  of the current PDK.
+        Alphanumeric string specifying the revision of the current PDK.
         Verification of correct PDK and IP revisions revisions is an ASIC
-        tapeout requirement in all commercial foundries.
+        tapeout requirement in all commercial foundries. The value is used
+        to for design manifest tracking and tapeout checklists.
         """
     }
 
@@ -443,10 +470,11 @@ def schema_pdk(cfg):
         'example': ["cli: -pdk_drm asap7_drm.pdf",
                     "api:  chip.set('pdk', 'drm', 'asap7_drm.pdf')"],
         'help': """
-        A PDK document that includes complete information about physical and
+        PDK document that includes complete information about physical and
         electrical design rules to comply with in the design and layout of the
-        chip. In cases where the user guides and design rules are combined into
-        a single document, the pdk_doc parameter can be left blank.
+        chip. In advanced technologies, design rules may be split across
+        multiple documents, in which case all files should be listed within
+        the drm parameter.
         """
     }
 
@@ -516,10 +544,13 @@ def schema_pdk(cfg):
             "cli: -pdk_devicemodel 'M10 spice xyce asap7.sp'",
             "api: chip.add('pdk','devicemodel','M10','spice','xyce','asap7.sp')"],
         'help': """
-        Filepaths for all PDK device models. The structure serves as a central
+        Filepaths to PDK device models. The structure serves as a central
         access registry for models for different purpose and tools. Examples of
         device model types include spice, aging, electromigration, radiation.
-        An example of a spice tool is xyce.
+        An example of a spice tool is xyce. Device models should be specified
+        per metal stack basis. Device types and tools are dynamic entries
+        that depend on the tool setup and device technology. Pseud-standardized
+        device types include spice, em (electromigration), and aging.
         """
     }
 
@@ -543,10 +574,12 @@ def schema_pdk(cfg):
             "cli: -pdk_pexmodel 'M10 max fastcap wire.mod'",
             "api: chip.add('pdk','pexmodel','M10','max','fastcap','wire.mod')"],
         'help': """
-        Filepaths for all PDK wire TCAD models. The structure serves as a
+        Filepaths to PDK wire TCAD models. The structure serves as a
         central access registry for models for different purpose and tools.
-        Examples of RC extraction corners include: min, max, nominal. An
-        example of an extraction tool is FastCap.
+        Pexmodels are specified on a per metal stack basis. Corner values
+        depend on the process being used, but typically include nomeclature
+        such as min, max, nominal. For exact names, refer to the DRM. Pexmodels
+        are generally not standardized and specified on a per tool basis.
         """
     }
 
@@ -603,7 +636,7 @@ def schema_pdk(cfg):
         'help': """
         Display configuration files describing colors and pattern schemes for
         all layers in the PDK. The display configuration file is entered on a
-        stackup and per tool basis.
+        stackup, tool, and format basis.
         """
     }
 
@@ -628,7 +661,10 @@ def schema_pdk(cfg):
             "api: chip.add('pdk','plib','M10','klayout','oa','~/devlib')"],
         'help': """
         Filepaths to all primitive cell libraries supported by the PDK. The
-        filepaths are entered on a per stackup and per format basis.
+        filepaths are entered on a per stackup, tool,  and format basis.
+        The plib cells is the first layer of abstraction encountered above
+        the basic device models, and genearally include parametrized
+        transistors, resistors, capacitors, inductors, etc.
         """
     }
 
@@ -657,7 +693,9 @@ def schema_pdk(cfg):
         specified on a per stackup, libtype, and format basis, where libtype
         generates the library architecture (e.g. library height). For example a
         PDK with support for 9 and 12 track libraries might have libtypes
-        called 9t and 12t.
+        called 9t and 12t. The standardized method of specifying place and
+        route design rules for a process node is through a LEF format
+        technology file.
         """
     }
 
@@ -678,9 +716,10 @@ def schema_pdk(cfg):
                     "api: chip.add('pdk', 'grid', 'M10', 'm1', 'name',"
                     "'metal1')"],
         'help': """
-        Defines the hardcoded PDK metal name on a per stackup and per metal
-        basis. Metal layers are ordered from m1 to mn, where m1 is the lowest
-        routing layer in the tech.lef.
+        Map betwen the custom PDK metal names found in the tech,lef and the
+        SC standardized metal naming schem that starts with m1 (lowest
+        routing layer) and ends with mN (highest routing layer). The map is
+        specified on a per metal stack basis.
         """
     }
     # Vertical Grid
@@ -696,9 +735,9 @@ def schema_pdk(cfg):
                     "api: chip.add('pdk','grid','M10','m1','xpitch',"
                     "'0.5')"],
         'help': """
-        Defines the vertical routing grid on a a per stackup and per metal
-        basis. Values are specified in um. Metal layers are ordered from m1 to
-        mn, where m1 is the lowest routing layer in the tech.lef.
+        Defines the routing pitch for vertical wires on a per stackup and
+        per metal basis. Values are specified in um. Metal layers are ordered
+        from m1 to mn, where m1 is the lowest routing layer in the tech.lef.
         """
     }
 
@@ -715,9 +754,9 @@ def schema_pdk(cfg):
                     "api: chip.add('pdk','grid','M10','m2','ypitch',"
                     "'0.5')"],
         'help': """
-        Defines the horizontal routing grid on a a per stackup and per metal
-        basis. Values are specified in um. Metal layers are ordered from m1 to
-        mn, where m1 is the lowest routing layer in the tech.lef.
+        Defines the routing pitch for horizontal wires on a per stackup and
+        per metal basis. Values are specified in um. Metal layers are ordered
+        from m1 to mn, where m1 is the lowest routing layer in the tech.lef.
         """
     }
 
@@ -734,7 +773,7 @@ def schema_pdk(cfg):
                     "api: chip.add('pdk','grid','M10','m2','xoffset',"
                     "'0.5')"],
         'help': """
-        Defines the horizontal grid offset of a metal layer specified on a per
+        Defines the grid offset of a vertical metal layer specified on a per
         stackup and per metal basis. Values are specified in um.
         """
     }
@@ -752,7 +791,7 @@ def schema_pdk(cfg):
                     "api: chip.add('pdk','grid','M10','m2','yoffset',"
                     "'0.5')"],
         'help': """
-        Defines the horizontal grid offset of a metal layer specified on a per
+        Defines the grid offset of a horizontal metal layer specified on a per
         stackup and per metal basis. Values are specified in um.
         """
     }
@@ -789,11 +828,11 @@ def schema_pdk(cfg):
                     "api: chip.set('pdk','grid','M10','m2','cap',"
                     "0.2')"],
         'help': """
-        Specifies the unit capacitance of a wire defined by the grid
-        width and spacing values in the 'grid' structure.  The
-        value is specifed as ff/um. The number is only meant to be used
-        as a sanity check and for coarse design planning. Accurate
-        analysis should use the PEX models.
+        Unit capacitance of a wire defined by the grid width and spacing values
+        in the 'grid' structure. The value is specifed as ff/um on a per
+        stackup and per metal basis. As a rough rule of thumb, this value
+        tends to stay around 0.2ff/um. This number should only be used for
+        realtiy confirmation. Accurate analysis should use the PEX models.
         """
     }
 
@@ -810,11 +849,10 @@ def schema_pdk(cfg):
                     "api: chip.set('pdk','grid','M10','m2','res',"
                     "'0.2')"],
         'help': """
-        Specifies the resistance  of a wire defined by the grid
-        width and spacing values in the 'grid' structure.  The
-        value is specifed as ohms/um. The number is only meant to be
-        used as a sanity check and for coarse design planning. Accurate
-        analysis should use the PEX models.
+        Resistance of a wire defined by the grid width and spacing values
+        in the 'grid' structure.  The value is specifed as ohms/um. The number
+        is only meant to be used as a sanity check and for coarse design
+        planning. Accurate analysis should use the PEX models.
         """
     }
 
@@ -831,11 +869,10 @@ def schema_pdk(cfg):
                     "api: chip.set('pdk','grid','M10','m2','tcr',"
                     "'0.1')"],
         'help': """
-        Specifies the temperature coefficient of resistance of the wire
-        defined by the grid width and spacing values in the 'grid'
-        structure. The value is specifed in %/ deg C. The number is only
-        meant to be used as a sanity check and for coarse design planning.
-        Accurate analysis should use the PEX models.
+        Temperature coefficient of resistance of the wire defined by the grid
+        width and spacing values in the 'grid' structure. The value is specifed
+        in %/ deg C. The number is only meant to be used as a sanity check and
+        for coarse design planning. Accurate analysis should use the PEX models.
         """
     }
 
