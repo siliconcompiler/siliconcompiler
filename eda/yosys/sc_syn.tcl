@@ -70,11 +70,13 @@ if {$mode eq "asic"} {
     # Override top level parameters
     ########################################################
     yosys chparam -list
-    dict for {key value} [dict get $sc_cfg param] {
-	if !{[string is integer $value]} {
-	    set value [concat \"$value\"]
+    if {[dict exists $sc_cfg param]} {
+	dict for {key value} [dict get $sc_cfg param] {
+	    if !{[string is integer $value]} {
+		set value [concat \"$value\"]
+	    }
+	    yosys chparam -set $key $value $topmodule
 	}
-	yosys chparam -set $key $value $topmodule
     }
 
     ########################################################
