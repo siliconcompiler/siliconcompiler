@@ -122,7 +122,6 @@ def schema_check(cfg, leafkey, value):
                 ok = os.path.isdir(schema_path(item))
                 if not ok:
                     print("ERROR: Directory is missing.", keyval)
-                    sys.exit()
     return ok
 
 
