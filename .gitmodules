@@ -1,3 +1,63 @@
 [submodule "third_party/designs/oh"]
 	path = third_party/designs/oh
 	url = https://github.com/aolofsson/oh
+[submodule "third_party/designs/SweRV-EH2"]
+	path = third_party/designs/SweRV-EH2
+	url = https://github.com/chipsalliance/Cores-SweRV-EH2
+[submodule "third_party/designs/cva6"]
+	path = third_party/designs/cva6
+	url = https://github.com/openhwgroup/cva6
+[submodule "third_party/designs/black-parrot"]
+	path = third_party/designs/black-parrot
+	url = https://github.com/black-parrot/black-parrot
+[submodule "third_party/designs/tnoc"]
+	path = third_party/designs/tnoc
+	url = https://github.com/taichi-ishitani/tnoc
+[submodule "third_party/designs/ibex"]
+	path = third_party/designs/ibex
+	url = https://github.com/lowRISC/ibex
+[submodule "third_party/designs/opentitan"]
+	path = third_party/designs/opentitan
+	url = https://github.com/lowRISC/opentitan
+[submodule "third_party/designs/serv"]
+	path = third_party/designs/serv
+	url = https://github.com/olofk/serv
+[submodule "third_party/designs/adi"]
+	path = third_party/designs/adi
+	url = https://github.com/analogdevicesinc/hdl
+[submodule "third_party/designs/ettus-uhd"]
+	path = third_party/designs/ettus-uhd
+	url = https://github.com/EttusResearch/uhd
+[submodule "third_party/designs/picorv32"]
+	path = third_party/designs/picorv32
+	url = https://github.com/cliffordwolf/picorv32
+[submodule "third_party/designs/nvdla"]
+	path = third_party/designs/nvdla
+	url = https://github.com/nvdla/hw
+[submodule "third_party/designs/basejump_stl"]
+	path = third_party/designs/basejump_stl
+	url = https://github.com/bespoke-silicon-group/basejump_stl
+[submodule "third_party/designs/microwatt"]
+	path = third_party/designs/microwatt
+	url = https://github.com/antonblanchard/microwatt
+[submodule "third_party/designs/aib-phy"]
+	path = third_party/designs/aib-phy
+	url = https://github.com/chipsalliance/aib-phy-hardware
+[submodule "third_party/designs/openpiton"]
+	path = third_party/designs/openpiton
+	url = https://github.com/PrincetonUniversity/openpiton
+[submodule "third_party/designs/ravenoc"]
+	path = third_party/designs/ravenoc
+	url = https://github.com/aignacio/ravenoc
+[submodule "third_party/designs/sofa"]
+	path = third_party/designs/sofa
+	url = https://github.com/lnis-uofu/SOFA
+[submodule "third_party/designs/fpu"]
+	path = third_party/designs/fpu
+	url = https://github.com/dawsonjon/fpu
+[submodule "third_party/designs/aes"]
+	path = third_party/designs/aes
+	url = https://github.com/secworks/aes
+[submodule "third_party/designs/openofdm"]
+	path = third_party/designs/openofdm
+	url = https://github.com/jhshi/openofdm
