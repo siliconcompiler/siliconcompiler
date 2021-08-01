@@ -67,6 +67,19 @@ if {$mode eq "asic"} {
     set output_blif     "outputs/$topmodule.blif"
 
     ########################################################
+    # Override top level parameters
+    ########################################################
+    yosys chparam -list
+    if {[dict exists $sc_cfg param]} {
+	dict for {key value} [dict get $sc_cfg param] {
+	    if !{[string is integer $value]} {
+		set value [concat \"$value\"]
+	    }
+	    yosys chparam -set $key $value $topmodule
+	}
+    }
+
+    ########################################################
     # Synthesis
     ########################################################
 

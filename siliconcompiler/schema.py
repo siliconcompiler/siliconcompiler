@@ -122,7 +122,6 @@ def schema_check(cfg, leafkey, value):
                 ok = os.path.isdir(schema_path(item))
                 if not ok:
                     print("ERROR: Directory is missing.", keyval)
-                    sys.exit()
     return ok
 
 
@@ -3171,23 +3170,22 @@ def schema_design(cfg):
         """
     }
 
-    cfg['param'] = {
+    cfg['param'] = {}
+    cfg['param']['default'] = {
         'switch': '-param',
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
         'short_help': 'Design Parameter Override',
-        'param_help': "param <str>",
-        'example': ["cli: -param 'N=64'",
-                    "api: chip.add('param','N=64')"],
+        'param_help': "param paramvar <str>",
+        'example': ["cli: -param 'N 64'",
+                    "api: chip.add('param','N', '64')"],
         'help': """
         Overrides the given parameter of the top level module. The value
         is limited to basic data literals. The parameter override is
         passed into tools such as Verilator and Yosys. The parameters
         support Verilog integer literals (64'h4, 2'b0, 4) and strings.
-        Strings must be supplied as properyl escaped double quotes
-        (eg. -p 'TYPE=\"FAST\"').
         """
     }
 

@@ -15,8 +15,9 @@ report_checks -fields $fields -path_delay min -format full_clock_expanded
 puts "$PREFIX unconstrained"
 report_checks  -fields $fields -unconstrained -format full_clock_expanded
 
-puts "$PREFIX clock_skew"
-report_clock_skew
+#TODO: should only be executed when there is a clock
+#puts "$PREFIX clock_skew"
+#report_clock_skew
 
 puts "$PREFIX wns"
 report_wns

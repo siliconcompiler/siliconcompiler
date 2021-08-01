@@ -3,8 +3,10 @@
 ########################################################
 
 proc calculate_core_size {density coremargin aspectratio syn_area lib_height} {
+
     set target_area [expr {$syn_area * 100.0 / $density}]
     set core_width [expr {sqrt($target_area / $aspectratio)}]
+
     set core_width_rounded [expr {ceil($core_width / $lib_height) * $lib_height}]
     set core_height [expr {$aspectratio * $core_width}]
     set core_height_rounded [expr {ceil($core_height / $lib_height) * $lib_height}]
@@ -57,7 +59,6 @@ if {[llength $sc_def] > 0} {
     } else {
         set sc_density [dict get $sc_cfg asic density]
         set sc_coremargin [dict get $sc_cfg asic coremargin]
-        set sc_aspectratio [dict get $sc_cfg asic aspectratio]
         if {$sc_density < 1 || $sc_density > 100} {
             puts "Error: ASIC density must be between 1 and 100!"
             exit 1
@@ -65,9 +66,9 @@ if {[llength $sc_def] > 0} {
 
         set syn_area [dict get $sc_cfg metric syn real area_cells]
         set lib_height [dict get $sc_cfg stdcell $sc_mainlib height]
-
         set sc_coresize [calculate_core_size $sc_density $sc_coremargin $sc_aspectratio $syn_area $lib_height]
         set sc_diesize [calculate_die_size $sc_coresize $sc_coremargin]
+
     }
 
     initialize_floorplan -die_area $sc_diesize \

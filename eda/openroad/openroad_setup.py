@@ -71,45 +71,54 @@ def post_process(chip, step, status):
      '''
 
      #Check log file for errors and statistics
-     error = 0
+     errors = 0
+     warnings = 0
+     metric = None
      exe = chip.get('flow',step,'exe')[-1]
      design = chip.get('design')[-1]
      with open(exe + ".log") as f:
           for line in f:
                metricmatch = re.search(r'^SC_METRIC:\s+(\w+)', line)
                errmatch = re.match(r'^Error:', line)
+               warnmatch = re.match(r'^\[WARNING', line)
                area = re.search(r'^Design area (\d+)', line)
                tns = re.search(r'^tns (.*)',line)
-               wns = re.search(r'^wns (.*)',line)
-               power = re.search(r'^Total(.*)',line)
                vias = re.search(r'^total number of vias = (.*)',line)
                wirelength = re.search(r'^total wire length = (.*) um',line)
-               worstslack = re.search(r'^worst slack (.*)',line)
-
+               power = re.search(r'^Total(.*)',line)
+               slack = re.search(r'^worst slack (.*)',line)
                if metricmatch:
                     metric = metricmatch.group(1)
                elif errmatch:
-                    error = 1
+                    errors = errors + 1
+               elif warnmatch:
+                    warnings = warnings +1
                elif area:
                     chip.set('metric', step, 'real', 'area_cells', str(round(float(area.group(1)),2)))
                elif tns:
                     chip.set('metric', step, 'real', 'setup_tns', str(round(float(tns.group(1)),2)))
-               elif power:
-                    powerlist = power.group(1).split()
-                    leakage = powerlist[2]
-                    total = powerlist[3]
-                    chip.set('metric', step, 'real', 'power_total', total)
-                    chip.set('metric', step, 'real', 'power_leakage',  leakage)
                elif wirelength:
                     chip.set('metric', step, 'real', 'wirelength', str(round(float(wirelength.group(1)),2)))
                elif vias:
                     chip.set('metric', step, 'real', 'vias', str(round(float(vias.group(1)),2)))
-               elif worstslack:
-                    chip.set('metric', step, 'real', metric, str(round(float(worstslack.group(1)),2)))
+               elif slack:
+                    chip.set('metric', step, 'real', metric, str(round(float(slack.group(1)),2)))
+               elif metric == "power":
+                    if power:
+                         powerlist = power.group(1).split()
+                         leakage = powerlist[2]
+                         total = powerlist[3]
+                         chip.set('metric', step, 'real', 'power_total', total)
+                         chip.set('metric', step, 'real', 'power_leakage',  leakage)
+
+
+     #Setting Warnings and Errors
+     chip.set('metric', step, 'real', 'errors', str(errors))
+     chip.set('metric', step, 'real', 'warnings', str(warnings))
 
      #Temporary superhack!
      #Getting cell count and net number from DEF
-     if error == 0:
+     if errors == 0:
           with open("outputs/" + design + ".def") as f:
                for line in f:
                     cells = re.search(r'^COMPONENTS (\d+)', line)
