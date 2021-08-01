@@ -27,15 +27,21 @@ def main():
 
     # Create a base chip class.
     base_chip = siliconcompiler.Chip()
-    
+
     # Silly Banner
     ascii_banner = pyfiglet.figlet_format("Silicon Compiler")
     print(ascii_banner)
-    
-    # TODO: parse authors list file, leaving this here as reminder
+
+    # Print out SC project authors
+    authors = []
+    f = open("AUTHORS", "r")
+    for line in f:
+        name = re.match(r'^(\w+\s+\w+)',line)
+        if name:
+            authors.append(name.group(1))
+    print("Authors:",", ".join(authors),"\n")
     print("-"*80)
-    print("Authors: Andreas Olofsson, William Ransohoff, Noah Moroze\n")
-    
+
     # Read command-line inputs and generate Chip objects to run the flow on.
     chips = base_chip.cmdline()
 
@@ -50,7 +56,7 @@ def main():
     # Perform preprocessing for remote jobs, if necessary.
     if len(chips[-1].get('remote', 'addr')) > 0:
         remote_preprocess(chips)
-        
+
     # Perform decryption, if necessary.
     elif 'decrypt_key' in chips[-1].status:
         for chip in chips:
@@ -75,15 +81,15 @@ def main():
     # Print Job Summary
     for chip in chips:
         if chip.error < 1:
-            chip.summary() 
+            chip.summary()
 
     # For local encrypted jobs, re-encrypt and delete the decrypted data.
     if 'decrypt_key' in chips[-1].status:
         for chip in chips:
             client_encrypt(chip)
 
-        
+
 #########################
 if __name__ == "__main__":
-    
+
     sys.exit(main())
