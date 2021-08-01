@@ -1,12 +1,12 @@
 ##########################################################
-# ROUTING 
+# ROUTING
 ##########################################################
 
 #######################
 # Add Fillers
-#######################    
+#######################
 
-filler_placement $sc_filler    
+filler_placement $sc_filler
 
 check_placement
 
@@ -34,7 +34,7 @@ global_route -guide_file "./route.guide" \
 
 set_propagated_clock [all_clocks]
 estimate_parasitics -global_routing
-check_antennas -report_file reports/antenna.rpt -simple_report
+check_antennas -report_file reports/antenna.rpt
 
 ######################
 # Triton Temp Hack
@@ -53,5 +53,11 @@ set param_filepath [file normalize "route.params"]
 # Detailed Route
 ######################
 
-detailed_route -param "route.params"
+#detailed_route -param "route.params"
+set additional_args ""
 
+detailed_route -output_drc reports/drc.rpt \
+               -output_guide reports/output_guide.mod \
+               -output_maze reports/maze.log \
+               -verbose 1 \
+               {*}$additional_args

@@ -4,21 +4,34 @@ proc reopenStdout {file} {
 }
 
 set fields "{capacitance slew input_pins nets fanout}"
+set PREFIX "SC_METRIC:"
 
-report_checks -fields $fields -path_delay max -format full_clock_expanded > reports/$sc_design.setup.rpt
+puts "$PREFIX report_checks -path_delay max"
+report_checks -fields $fields -path_delay max -format full_clock_expanded
 
-report_checks -fields $fields -path_delay min -format full_clock_expanded > "reports/$sc_design.hold.rpt"
+puts "$PREFIX report_checks -path_delay min"
+report_checks -fields $fields -path_delay min -format full_clock_expanded
 
-report_checks  -fields $fields -unconstrained -format full_clock_expanded > "reports/$sc_design.unconstrained.rpt"
+puts "$PREFIX unconstrained"
+report_checks  -fields $fields -unconstrained -format full_clock_expanded
 
-report_clock_skew > "reports/$sc_design.clockskew.rpt"
+puts "$PREFIX clock_skew"
+report_clock_skew
 
-report_wns > "reports/$sc_design.wns.rpt"
+puts "$PREFIX wns"
+report_wns
 
-report_tns > "reports/$sc_design.tns.rpt"
+puts "$PREFIX tns"
+report_tns
 
-report_power > "reports/$sc_design.power.rpt"
+puts "$PREFIX setup_slack"
+report_worst_slack -max
 
+puts "$PREFIX hold_slack"
+report_worst_slack -min
+
+puts "$PREFIX power"
+report_power
+
+puts "$PREFIX area_cells"
 report_design_area
-
-

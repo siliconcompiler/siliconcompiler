@@ -76,6 +76,7 @@ def post_process(chip, step, status):
      design = chip.get('design')[-1]
      with open(exe + ".log") as f:
           for line in f:
+               metricmatch = re.search(r'^SC_METRIC:\s+(\w+)', line)
                errmatch = re.match(r'^Error:', line)
                area = re.search(r'^Design area (\d+)', line)
                tns = re.search(r'^tns (.*)',line)
@@ -83,14 +84,16 @@ def post_process(chip, step, status):
                power = re.search(r'^Total(.*)',line)
                vias = re.search(r'^total number of vias = (.*)',line)
                wirelength = re.search(r'^total wire length = (.*) um',line)
-               if errmatch:
+               worstslack = re.search(r'^worst slack (.*)',line)
+
+               if metricmatch:
+                    metric = metricmatch.group(1)
+               elif errmatch:
                     error = 1
                elif area:
                     chip.set('metric', step, 'real', 'area_cells', str(round(float(area.group(1)),2)))
                elif tns:
                     chip.set('metric', step, 'real', 'setup_tns', str(round(float(tns.group(1)),2)))
-               elif wns:
-                    chip.set('metric', step, 'real', 'setup_wns', str(round(float(wns.group(1)),2)))
                elif power:
                     powerlist = power.group(1).split()
                     leakage = powerlist[2]
@@ -101,6 +104,8 @@ def post_process(chip, step, status):
                     chip.set('metric', step, 'real', 'wirelength', str(round(float(wirelength.group(1)),2)))
                elif vias:
                     chip.set('metric', step, 'real', 'vias', str(round(float(vias.group(1)),2)))
+               elif worstslack:
+                    chip.set('metric', step, 'real', metric, str(round(float(worstslack.group(1)),2)))
 
      #Temporary superhack!
      #Getting cell count and net number from DEF
