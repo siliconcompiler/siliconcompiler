@@ -15,29 +15,32 @@ def schema_cfg():
 
     cfg = {}
 
-    # Flow Setup (from schema_options)
-    cfg = schema_flow(cfg, 'default')
+    # Flow graph Setup
+    cfg = schema_flowgraph(cfg, 'default')
 
-    # Metric Tracking
+    # EDA setup
+    cfg = schema_eda(cfg, 'default')
+
+    # Metric tracking
     cfg = schema_metric(cfg)
 
     # Recording design provenance
     cfg = schema_record(cfg)
 
-    # FPGA Parameters
+    # FPGA parameters
     cfg = schema_fpga(cfg)
 
-    # ASIC Parameters
+    # ASIC parameters
     cfg = schema_pdk(cfg)
     cfg = schema_asic(cfg)
     cfg = schema_libs(cfg, 'stdcell')
     cfg = schema_libs(cfg, 'macro')
 
-    # Designer's Choice
+    # Designer's choice
     cfg = schema_design(cfg)
     cfg = schema_mcmm(cfg)
 
-    # Designer Runtime options
+    # Designer runtime options
     cfg = schema_options(cfg)
 
     # Remote options
@@ -47,7 +50,6 @@ def schema_cfg():
     cfg = schema_status(cfg)
 
     return cfg
-
 
 ###############################################################################
 # CHIP LIBRARY
@@ -1503,74 +1505,122 @@ def schema_libs(cfg, group):
 # Flow Configuration
 ###############################################################################
 
-def schema_flow(cfg, step):
+def schema_flowgraph(cfg, step):
 
-    if not 'flow' in cfg:
-        cfg['flow'] = {}
-    cfg['flow'][step] = {}
+    if not 'flowgraph' in cfg:
+        cfg['flowgraph'] = {}
+    cfg['flowgraph'][step] = {}
 
 
     # Used to define flow sequence
-    cfg['flow'][step]['input'] = {
-        'switch': '-flow_input',
+    cfg['flowgraph'][step]['output'] = {
+        'switch': '-flowgraph_output',
         'type': 'str',
         'lock': 'false',
         'requirement': 'all',
         'defvalue': [],
-        'short_help': 'Excution Dependency',
-        'param_help': "flow stepvar input <str>",
-        'example': ["cli: -flow_input 'cts place'",
-                    "api:  chip.set('flow', 'cts', 'input', 'place')"],
+        'short_help': 'Flowgraph Step Output',
+        'param_help': "flowgraph toolvar output <str>",
+        'example': ["cli: -flowgraph_output 'cts place'",
+                    "api:  chip.set('flowgraph', 'cts', 'output', 'route')"],
         'help': """
-        Specifies the list of inputs dependanices to start 'step' execution.
+        List of steps following the current step in the flowgraph.
         """
     }
 
+    #vendor
+    cfg['flowgraph'][step]['tool'] = {
+        'switch': '-flowgraph_tool',
+        'type': 'str',
+        'lock': 'false',
+        'requirement': 'all',
+        'defvalue': [],
+        'short_help': 'Flowgraph Tool Selection',
+        'param_help': "graph toolvar tool <str>",
+        'example': ["cli: -graph_tool 'place openroad'",
+                    "api: chip.set('graph', 'place', 'tool', 'openroad')"],
+        'help': """
+        Name of the EDA tool to use for a specific step in the exeecution flow
+        graph.
+        """
+    }
+
+    return cfg
+
+###########################################################################
+# EDA Tool Setup
+###########################################################################
+
+def schema_eda(cfg, tool):
+
+    #setup default structure
+    if not 'eda' in cfg:
+        cfg['eda'] = {}
+    cfg['eda'][tool] = {}
+
     # exe
-    cfg['flow'][step]['exe'] = {
-        'switch': '-flow_exe',
+    cfg['eda'][tool]['exe'] = {
+        'switch': '-eda_exe',
         'type': 'str',
         'lock': 'false',
         'requirement': 'all',
         'defvalue': [],
         'short_help': 'Executable Name',
-        'param_help': "flow stepvar exe <str>",
-        'example': ["cli: -flow_exe 'cts openroad'",
-                    "api:  chip.set('flow', 'cts', 'exe', 'openroad')"],
+        'param_help': "eda toolvar exe <str>",
+        'example': ["cli: -eda_exe 'cts openroad'",
+                    "api:  chip.set('eda', 'cts', 'exe', 'openroad')"],
         'help': """
         The name of the exuctable step or the full path to the executable
         specified on a per step basis.
         """
     }
 
+    # exe vendor
+    cfg['eda'][tool]['vendor'] = {
+        'switch': '-eda_vendor',
+        'type': 'str',
+        'lock': 'false',
+        'requirement': 'all',
+        'defvalue': [],
+        'short_help': 'Tool Vendor',
+        'param_help': "eda toolvar vendor <str>",
+        'example': ["cli: -eda_vendor 'place openroad'",
+                    "api: chip.set('eda','place','vendor', 'openroad')"],
+        'help': """
+        The vendor argument is used for selecting eda specific technology setup
+        variables from the PDK and libraries which generally support multiple
+        vendors for each implementation step
+        """
+    }
+
     # exe version
-    cfg['flow'][step]['version'] = {
-        'switch': '-flow_version',
+    cfg['eda'][tool]['version'] = {
+        'switch': '-eda_version',
         'type': 'str',
         'lock': 'false',
         'requirement': 'all',
         'defvalue': [],
         'short_help': 'Executable Version',
-        'param_help': "flow stepvar version <str>",
-        'example': ["cli: -flow_version 'cts 1.0'",
-                    "api:  chip.set('flow', 'cts', 'version', '1.0')"],
+        'param_help': "eda toolvar version <str>",
+        'example': ["cli: -eda_version 'cts 1.0'",
+                    "api:  chip.set('eda', 'cts', 'version', '1.0')"],
         'help': """
         The version of the executable step to use in compilation.Mismatch
         between the step specifed and the step avalable results in an error.
         """
     }
 
-    #opt
-    cfg['flow'][step]['option'] = {
-        'switch': '-flow_opt',
+    # options
+    cfg['eda'][tool]['option'] = {
+        'switch': '-eda_opt',
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
         'short_help': 'Executable Options',
-        'param_help': "flow stepvar option <str>",
-        'example': ["cli: -flow_opt 'cts -no_init'",
-                    "api:  chip.set('flow', 'cts', 'opt', '-no_init')"],
+        'param_help': "eda toolvar option <str>",
+        'example': ["cli: -eda_opt 'cts -no_init'",
+                    "api:  chip.set('eda', 'cts', 'opt', '-no_init')"],
         'help': """
         A list of command line options for the executable. For multiple
         argument options, enter each argument and value as a one list entry,
@@ -1579,26 +1629,26 @@ def schema_flow(cfg, step):
         """
     }
 
-    #refdir
-    cfg['flow'][step]['refdir'] = {
-        'switch': '-flow_refdir',
+    # refdir
+    cfg['eda'][tool]['refdir'] = {
+        'switch': '-eda_refdir',
         'type': 'dir',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
         'short_help': 'Reference Directory',
-        'param_help': "flow stepvar refdir <file>",
-        'example': ["cli: -flow_refdir 'cts ./myrefdir'",
-                    "api:  chip.set('flow', 'cts', 'refdir', './myrefdir')"],
+        'param_help': "eda toolvar refdir <file>",
+        'example': ["cli: -eda_refdir 'cts ./myrefdir'",
+                    "api:  chip.set('eda', 'cts', 'refdir', './myrefdir')"],
         'help': """
         A path to a directory containing compilation scripts used by the
         executable specified on a per step basis.
         """
     }
 
-    #entry point script
-    cfg['flow'][step]['script'] = {
-        'switch': '-flow_script',
+    # entry point script
+    cfg['eda'][tool]['script'] = {
+        'switch': '-eda_script',
         'requirement': 'optional',
         'type': 'file',
         'lock': 'false',
@@ -1609,43 +1659,43 @@ def schema_flow(cfg, step):
         'author': [],
         'signature': [],
         'short_help': 'Entry Point script',
-        'param_help': "flow stepvar script <file>",
-        'example': ["cli: -flow_script 'cts /myrefdir/cts.tcl'",
-                    "api: chip.set('flow','cts','script','/myrefdir/cts.tcl')"],
+        'param_help': "eda toolvar script <file>",
+        'example': ["cli: -eda_script 'cts /myrefdir/cts.tcl'",
+                    "api: chip.set('eda','cts','script','/myrefdir/cts.tcl')"],
         'help': """
         Path to the entry point compilation script called by the executable
         specified on a per step basis.
         """
     }
 
-    #copy
-    cfg['flow'][step]['copy'] = {
-        'switch': '-flow_copy',
+    # copy
+    cfg['eda'][tool]['copy'] = {
+        'switch': '-eda_copy',
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
         'short_help': 'Copy Local Option',
-        'param_help': "flow stepvar copy <bool>",
-        'example': ["cli: -flow_copy 'cts true'",
-                    "api: chip.set('flow','cts','copy','true')"],
+        'param_help': "eda toolvar copy <bool>",
+        'example': ["cli: -eda_copy 'cts true'",
+                    "api: chip.set('eda','cts','copy','true')"],
         'help': """
         Specifies that the reference script directory should be copied and run
         from the local run directory. The option specified on a per step basis.
         """
     }
 
-    #script format
-    cfg['flow'][step]['format'] = {
-        'switch': '-flow_format',
+    # script format
+    cfg['eda'][tool]['format'] = {
+        'switch': '-eda_format',
         'type': 'str',
         'lock': 'false',
         'requirement': 'all',
         'defvalue': [],
         'short_help': 'Script Format',
-        'param_help': "flow stepvar format <str>",
-        'example': ["cli: -flow_format 'cts tcl'",
-                    "api: chip.set('flow','cts','format','tcl')"],
+        'param_help': "eda toolvar format <str>",
+        'example': ["cli: -eda_format 'cts tcl'",
+                    "api: chip.set('eda','cts','format','tcl')"],
         'help': """
         Specifies that format of the configuration file for the step. Valid
         formats are tcl, yaml, json, cmdline. The format used is dictated by
@@ -1653,57 +1703,34 @@ def schema_flow(cfg, step):
         """
     }
 
-    #parallelism
-    cfg['flow'][step]['threads'] = {
-        'switch': '-flow_threads',
+    # parallelism
+    cfg['eda'][tool]['threads'] = {
+        'switch': '-eda_threads',
         'type': 'num',
         'lock': 'false',
         'requirement': 'all',
         'defvalue': [],
         'short_help': 'Job Parallelism',
-        'param_help': "flow stepvar threads <num>",
-        'example': ["cli: -flow_threads 'drc 64'",
-                    "api: chip.set('flow','drc','threads','64')"],
+        'param_help': "eda toolvar threads <num>",
+        'example': ["cli: -eda_threads 'drc 64'",
+                    "api: chip.set('eda','drc','threads','64')"],
         'help': """
         Specifies the level of CPU thread parallelism to enable on a per step
         basis.
         """
     }
 
-    #cache
-    cfg['flow'][step]['cache'] = {
-        'switch': '-flow_cache',
-        'type': 'file',
-        'lock': 'false',
-        'copy': 'false',
-        'requirement': 'optional',
-        'defvalue': [],
-        'hash': [],
-        'date': [],
-        'author': [],
-        'signature': [],
-        'short_help': 'Cache Directory Name',
-        'param_help': "flow stepvar cache <file>",
-        'example': ["cli: -flow_cache 'syn ~/mycache'",
-                    "api: chip.set('flow','syn','cache','/disk1/mycache')"],
-        'help': """
-        "Specifies a writeable shared cache directory to be used for storage of
-        processed design and library data. The purpose of caching is to save
-        runtime and disk space in future runs.
-        """
-    }
-
-    #warnings
-    cfg['flow'][step]['warningoff'] = {
-        'switch': '-flow_warningoff',
+    # warnings
+    cfg['eda'][tool]['woff'] = {
+        'switch': '-eda_woff',
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
         'short_help': 'Warning Filter',
-        'param_help': "flow stepvar warningoff <file>",
-        'example': ["cli: -flow_warningoff 'import COMBDLY'",
-                    "api: chip.set('flow','import','warningoff','COMBDLY')"],
+        'param_help': "eda toolvar woff <file>",
+        'example': ["cli: -eda_woff 'import COMBDLY'",
+                    "api: chip.set('eda','import','woff','COMBDLY')"],
         'help': """
         Specifies a list of EDA warnings for which printing should be supressed.
         Generally this is done on a per design/node bases after review has
@@ -1711,25 +1738,8 @@ def schema_flow(cfg, step):
         """
     }
 
-    #vendor
-    cfg['flow'][step]['vendor'] = {
-        'switch': '-flow_vendor',
-        'type': 'str',
-        'lock': 'false',
-        'requirement': 'all',
-        'defvalue': [],
-        'short_help': 'Step Vendor',
-        'param_help': "flow stepvar vendor <str>",
-        'example': ["cli: -flow_vendor 'place openroad'",
-                    "api: chip.set('flow','place','vendor', 'openroad')"],
-        'help': """
-        The vendor argument is used for selecting eda specific technology setup
-        variables from the PDK and libraries which generally support multiple
-        vendors for each implementation step
-        """
-    }
-
     return cfg
+
 
 ###########################################################################
 # Metrics to Track
