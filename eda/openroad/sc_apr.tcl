@@ -57,10 +57,10 @@ set tool openroad
 #Handling remote/local script execution
 set sc_step   [dict get $sc_cfg status step]
 
-if {[dict get $sc_cfg eda $tool copy] eq True} {
+if {[dict get $sc_cfg eda $tool $sc_step copy] eq True} {
     set sc_refdir "."
 } else {
-    set sc_refdir [dict get $sc_cfg eda $tool refdir]
+    set sc_refdir [dict get $sc_cfg eda $tool $sc_step refdir]
 }
 
 # Design

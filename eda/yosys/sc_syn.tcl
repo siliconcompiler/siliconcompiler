@@ -10,8 +10,8 @@ set step syn
 set tool yosys
 
 # Setting script path to local or refdir
-set scriptdir [dict get $sc_cfg eda $tool refdir]
-if {[dict get $sc_cfg eda $tool copy] eq True} {
+set scriptdir [dict get $sc_cfg eda $tool $step refdir]
+if {[dict get $sc_cfg eda $tool $step copy] eq True} {
     set scriptdir "./"
 }
 

@@ -12,17 +12,17 @@ def setup_tool(chip, step):
      tool = 'klayout'
      refdir = 'eda/klayout'
 
-     chip.set('eda', tool, 'threads', '4')
-     chip.set('eda', tool, 'format', 'json')
-     chip.set('eda', tool, 'copy', 'true')
-     chip.set('eda', tool, 'vendor', 'klayout')
-     chip.set('eda', tool, 'exe', 'klayout')
-     chip.set('eda', tool, 'refdir', refdir)
+     chip.set('eda', tool, step, 'threads', '4')
+     chip.set('eda', tool, step, 'format', 'json')
+     chip.set('eda', tool, step, 'copy', 'true')
+     chip.set('eda', tool, step, 'vendor', 'klayout')
+     chip.set('eda', tool, step, 'exe', 'klayout')
+     chip.set('eda', tool, step, 'refdir', refdir)
 
      if step == 'gdsview':
-          chip.set('eda', tool, 'option', '-nn')
+          chip.set('eda', tool, step, 'option', '-nn')
      elif step == 'export':
-          chip.set('eda', tool, 'option', '-zz')
+          chip.set('eda', tool, step, 'option', '-zz')
 
      scriptdir = os.path.dirname(os.path.abspath(__file__))
      sc_root   =  re.sub('siliconcompiler/eda/klayout',
@@ -81,7 +81,7 @@ def setup_tool(chip, step):
           options.append('-r')
           options.append('klayout_export.py')
           #add all options to dictionary
-          chip.add('eda', tool, 'option', options)
+          chip.add('eda', tool, step, 'option', options)
 
 
 def post_process(chip, step):
