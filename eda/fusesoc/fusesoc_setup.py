@@ -15,12 +15,12 @@ def setup_tool(chip, step):
     refdir = 'eda/fusesoc'
 
     tool = 'fusesoc'
-    chip.add('eda', tool, 'threads', '4')
-    chip.add('eda', tool, 'format', 'cmdline')
-    chip.add('eda', tool, 'vendor', 'fusesoc')
-    chip.add('eda', tool, 'refdir', refdir)
-    chip.add('eda', tool, 'exe', 'fusesoc')
-    chip.add('eda', tool, 'copy', 'false')
+    chip.add('eda', tool, step, 'threads', '4')
+    chip.add('eda', tool, step, 'format', 'cmdline')
+    chip.add('eda', tool, step, 'vendor', 'fusesoc')
+    chip.add('eda', tool, step, 'refdir', refdir)
+    chip.add('eda', tool, step, 'exe', 'fusesoc')
+    chip.add('eda', tool, step, 'copy', 'false')
     setup_options(chip, step)
 
     # Check FPGA schema to determine which device to target

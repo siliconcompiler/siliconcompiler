@@ -15,11 +15,11 @@ def setup_tool(chip, step):
     chip.logger.debug("Setting up SureLog")
 
     tool = 'surelog'
-    chip.add('eda', tool, 'threads', '4')
-    chip.add('eda', tool, 'format', 'cmdline')
-    chip.add('eda', tool, 'copy', 'false')
-    chip.add('eda', tool, 'exe', 'surelog')
-    chip.add('eda', tool, 'vendor', 'surelog')
+    chip.add('eda', tool, step, 'threads', '4')
+    chip.add('eda', tool, step, 'format', 'cmdline')
+    chip.add('eda', tool, step, 'copy', 'false')
+    chip.add('eda', tool, step, 'exe', 'surelog')
+    chip.add('eda', tool, step, 'vendor', 'surelog')
 
 ################################
 # Set SureLog Runtime Options
@@ -31,7 +31,7 @@ def setup_options(chip, step):
     '''
 
     tool = 'surelog'
-    options = chip.set('eda', tool, 'option', [])
+    options = chip.set('eda', tool, step, 'option', [])
 
     # -parse is slow but ensures the SV code is valid
     # we might want an option to control when to enable this
@@ -60,7 +60,7 @@ def setup_options(chip, step):
         options.append(schema_path(value))
 
     # Wite back options tp cfg
-    chip.set('eda', tool, 'option', options)
+    chip.set('eda', tool, step, 'option', options)
 
     return options
 
