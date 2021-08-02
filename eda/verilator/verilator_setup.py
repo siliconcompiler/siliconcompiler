@@ -2,107 +2,60 @@ import os
 import subprocess
 import re
 import sys
+import siliconcompiler
+
 from siliconcompiler.schema import schema_istrue
 from siliconcompiler.schema import schema_path
 
 ################################
-# Setup Verilator
+# Setup Tool (pre executable)
 ################################
 
 def setup_tool(chip, step):
-    ''' Sets up default settings on a per step basis
-    '''
-    chip.logger.debug("Setting up Verilator")
-
-    chip.add('flow', step, 'threads', '4')
-    chip.add('flow', step, 'format', 'cmdline')
-    chip.add('flow', step, 'copy', 'false')
-    chip.add('flow', step, 'exe', 'verilator')
-    chip.add('flow', step, 'vendor', 'verilator')
-
-################################
-# Set Verilator Runtime Options
-################################
-
-def setup_options(chip, step):
-    ''' Per tool/step function that returns a dynamic options string based on
+    ''' Per tool function that returns a dynamic options string based on
     the dictionary settings.
     '''
 
-    #Get default opptions from setup
-    #TODO: add options for:
-    #sc/scc
-    #clk
-    #-stats --stats-vars -profile-cfuncs
-    #-trace --trace-structs
-    #-CFLAGS
-    #-O3
-    #
+    # Standard Setup
+    chip.add('eda', step, 'threads', '4')
+    chip.add('eda', step, 'format', 'cmdline')
+    chip.add('eda', step, 'copy', 'false')
+    chip.add('eda', step, 'exe', 'verilator')
+    chip.add('eda', step, 'vendor', 'verilator')
+    chip.add('eda', step, 'option', 'sv')
 
-    options = chip.set('flow', step, 'option', [])
-
+    # Differentiate between import step and compilation
     if step == 'import':
-        options.append('--lint-only --debug -sv')
-    else:
-        options.append('--cc')
+        chip.add('eda', step, 'option', '--lint-only --debug')
+    elif (step == 'sim'):
+        chip.add('eda', step, 'option', '--cc')
 
     #Include cwd in search path (verilator default)
-    options.append('-I' + "../../../")
+    chip.add('eda', step, 'option', '-I../../../')
 
     #Source Level Controls
-
     for value in chip.cfg['ydir']['value']:
-        options.append('-y ' + schema_path(value))
-
+        chip.add('eda', step, 'option', '-y ' + schema_path(value))
     for value in chip.cfg['vlib']['value']:
-        options.append('-v ' + schema_path(value))
-
+        chip.add('eda', step, 'option', '-v ' + schema_path(value))
     for value in chip.cfg['idir']['value']:
-        options.append('-I' + schema_path(value))
-
+        chip.add('eda', step, 'option', '-I' + schema_path(value))
     for value in chip.cfg['define']['value']:
-        options.append('-D' + schema_path(value))
-
+        chip.add('eda', step, 'option', '-D' + schema_path(value))
     for value in chip.cfg['cmdfile']['value']:
-        options.append('-f ' + schema_path(value))
-
+        chip.add('eda', step, 'option', '-f ' + schema_path(value))
     for value in chip.cfg['source']['value']:
-        options.append(schema_path(value))
+        chip.add('eda', step, 'option', schema_path(value))
 
     #Make warnings non-fatal in relaxed mode
-    if schema_istrue(chip.cfg['relax']['value']):
-        options.append('-Wno-fatal')
+    print(chip.cfg['relax']['value'])
+    if len(chip.cfg['relax']['value']) > 0:
+        if schema_istrue(chip.cfg['relax']['value']):
+            chip.add('eda', step, 'option', '-Wno-fatal')
 
-    #Wite back options tp cfg
-    chip.set('flow', step, 'option', options)
-
-    return options
-
-################################
-# Pre and Post Run Commands
-################################
-def pre_process(chip, step):
-    ''' Tool specific function to run before step execution
-    '''
-
-def post_process(chip, step, status):
+def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
-
-    #Filtering our module not found errors
-    total_errors=0
-    error=0    
-    with open("verilator.log", "r") as open_file:
-        for line in open_file:
-            errmatch = re.match(r'^%Error\:.*Cannot find file containing module', line)
-            exitmatch = re.match(r'^%Error\:\s+Exiting due to (\d+) error', line)
-            if errmatch:
-                total_errors = total_errors + 1
-            elif exitmatch:
-                if int(exitmatch.group(1)) == total_errors:
-                    error=0
-                else:
-                    error=1
 
     # filtering out debug garbage
     subprocess.run('egrep -h -v "\\`begin_keywords" obj_dir/*.vpp > verilator.v',
@@ -133,5 +86,18 @@ def post_process(chip, step, status):
                    shell=True)
 
     #combine exe status and log file checking
-    return error & status
+    return status
 
+##################################################
+if __name__ == "__main__":
+
+    # File being executed
+    prefix = os.path.splitext(os.path.basename(__file__))[0]
+    output = prefix + '.json'
+
+    # create a chip instance
+    chip = siliconcompiler.Chip(defaults=False)
+    # load configuration
+    setup_tool(chip, step='import')
+    # write out results
+    chip.writecfg(output)
