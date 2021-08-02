@@ -27,6 +27,7 @@ def test_gcd_local_py():
 
     chip.set('stop', 'export')
     chip.set('quiet', 'true')
+    chip.set('relax', 'true')
 
     # Run the chip's build process synchronously.
     chip.run()
