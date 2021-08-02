@@ -287,7 +287,7 @@ class Chip:
         if  len(targetlist) == 2:
             edaflow = targetlist[1]
         else:
-            edaflow = mode
+            edaflow = 'asicflow'
 
         if mode == 'asic':
             setup_libs = getattr(module, "setup_libs")
