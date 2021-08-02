@@ -37,11 +37,8 @@ def remote_preprocess(chips):
 
     # Run the local 'import' step if necessary.
     if chips[-1].status['local_import']:
-        importstep = chips[-1].get('steplist')[0]
-        chips[-1].run(start=importstep, stop=importstep)
-
-        # Clear the 'option' value, in case the import step is run again later.
-        chips[-1].cfg['flow']['import']['option']['value'] = []
+        # TODO: Bit of a hack while we figure out the 'flowgraph' configs.
+        chips[-1].run(start='import', stop='import')
 
 ###################################
 def client_decrypt(chip):

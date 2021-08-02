@@ -14,12 +14,14 @@ def setup_tool(chip, step):
 
     refdir = 'eda/fusesoc'
 
-    chip.add('flow', step, 'threads', '4')
-    chip.add('flow', step, 'format', 'cmdline')
-    chip.add('flow', step, 'vendor', 'fusesoc')
-    chip.add('flow', step, 'refdir', refdir)
-    chip.add('flow', step, 'exe', 'fusesoc')
-    chip.add('flow', step, 'copy', 'false')
+    tool = 'fusesoc'
+    chip.add('eda', tool, step, 'threads', '4')
+    chip.add('eda', tool, step, 'format', 'cmdline')
+    chip.add('eda', tool, step, 'vendor', 'fusesoc')
+    chip.add('eda', tool, step, 'refdir', refdir)
+    chip.add('eda', tool, step, 'exe', 'fusesoc')
+    chip.add('eda', tool, step, 'copy', 'false')
+    setup_options(chip, step)
 
     # Check FPGA schema to determine which device to target
     if len(chip.get('fpga', 'vendor')) == 0 or len(chip.get('fpga', 'device')) == 0:
@@ -68,8 +70,9 @@ def setup_options(chip, step):
       f.write('\n    toplevel: ' + topmodule + '\n')
 
     # Generate and return the run command.
-    chip.set('flow', 'export', 'option', ['run', 'sc:'+device+':1.0'])
-    return chip.get('flow', 'export', 'option')
+    tool = 'fusesoc'
+    chip.set('flow', tool, 'option', ['run', 'sc:'+device+':1.0'])
+    return chip.get('flow', tool, 'option')
 
 def pre_process(chip, step):
     ''' Tool specific function to run before step execution
