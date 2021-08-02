@@ -47,3 +47,4 @@ if __name__ == "__main__":
     setup_flow(chip)
     # write out results
     chip.writecfg(output)
+    chip.write_flowgraph(prefix + ".svg")
