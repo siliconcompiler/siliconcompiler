@@ -34,20 +34,6 @@ def setup_tool(chip, step):
     for value in chip.cfg['define']['value']:
         chip.add('eda', tool, step, 'option', '-D ' + schema_path(value))
 
-    #Source Level Controls
-    for value in chip.cfg['ydir']['value']:
-        chip.add('eda', tool, step, 'option', '-y ' + schema_path(value))
-    for value in chip.cfg['vlib']['value']:
-        chip.add('eda', tool, step, 'option', '-v ' + schema_path(value))
-    for value in chip.cfg['idir']['value']:
-        chip.add('eda', tool, step, 'option', '-I' + schema_path(value))
-    for value in chip.cfg['define']['value']:
-        chip.add('eda', tool, step, 'option', '-D' + schema_path(value))
-    for value in chip.cfg['cmdfile']['value']:
-        chip.add('eda', tool, step, 'option', '-f ' + schema_path(value))
-    for value in chip.cfg['source']['value']:
-        chip.add('eda', tool, step, 'option', schema_path(value))
-
     # since this step should run after import, the top design module should be
     # set and we can read the pickled Verilog without accessing the original
     # sources
