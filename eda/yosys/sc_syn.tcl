@@ -26,10 +26,18 @@ set input_sdc       "inputs/$topmodule.sdc"
 
 # TODO: the original OpenFPGA synth script used read_verilog with -nolatches. Is
 # that a flag we might want here?
+
+# If UHDM, ilang, or Verilog inputs exist, read them in (this allows mixed
+# inputs in designs). UHDM requires a version of Yosys built with this support.
 if { [file exists "inputs/$topmodule.uhdm"] } {
     set input_uhdm "inputs/$topmodule.uhdm"
     yosys read_uhdm $input_uhdm
-} else {
+}
+if { [file exists "inputs/$topmodule.ilang"] } {
+    set input_ilang "inputs/$topmodule.ilang"
+    yosys read_ilang $input_ilang
+}
+if { [file exists "inputs/$topmodule.v"] } {
     set input_verilog "inputs/$topmodule.v"
     yosys read_verilog -sv $input_verilog
 }
