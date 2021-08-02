@@ -5,11 +5,13 @@
 source ./sc_schema.tcl
 source ./sc_syn_ice40.tcl
 source ./sc_syn_openfpga.tcl
+
 set step syn
+set tool yosys
 
 # Setting script path to local or refdir
-set scriptdir [dict get $sc_cfg flow $step refdir]
-if {[dict get $sc_cfg flow $step copy] eq True} {
+set scriptdir [dict get $sc_cfg eda $tool refdir]
+if {[dict get $sc_cfg eda $tool copy] eq True} {
     set scriptdir "./"
 }
 
@@ -116,6 +118,7 @@ if {$mode eq "asic"} {
     yosys write_verilog -noattr -noexpr -nohex -nodec $output_verilog
     yosys write_json $output_yson
     yosys write_blif $output_blif
+    yosys show -prefix $topmodule -format dot
 } else {
     # FPGA mode
     set targetlist [split $target "_"]

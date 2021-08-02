@@ -51,13 +51,16 @@ if {$target_tech eq "freepdk45"} {
 # Schema Adapter
 ###############################
 
+set tool openroad
+
+
 #Handling remote/local script execution
 set sc_step   [dict get $sc_cfg status step]
 
-if {[dict get $sc_cfg flow $sc_step copy] eq True} {
+if {[dict get $sc_cfg eda $tool copy] eq True} {
     set sc_refdir "."
 } else {
-    set sc_refdir [dict get $sc_cfg flow $sc_step refdir]
+    set sc_refdir [dict get $sc_cfg eda $tool refdir]
 }
 
 # Design

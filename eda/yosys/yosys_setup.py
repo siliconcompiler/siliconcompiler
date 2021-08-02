@@ -2,35 +2,33 @@ import os
 import re
 import sys
 import defusedxml.ElementTree as ET
+
+import siliconcompiler
 from siliconcompiler.schema import schema_path
 
+################################
+# Setup Tool (pre executable)
+################################
 def setup_tool(chip, step):
-     chip.logger.debug("Setting up Yosys")
-
-     refdir = 'eda/yosys'
-
-     chip.add('flow', step, 'format', 'tcl')
-     chip.add('flow', step, 'copy', 'true')
-     chip.add('flow', step, 'vendor', 'yosys')
-     chip.add('flow', step, 'exe', 'yosys')
-     chip.add('flow', step, 'option', '-c')
-     chip.add('flow', step, 'refdir', refdir)
-     chip.add('flow', step, 'script', refdir + '/sc_syn.tcl')
-
-def setup_options(chip, step):
-
-     options = chip.get('flow', step, 'option')
-     return options
-
-################################
-# Pre and Post Run Commands
-################################
-def pre_process(chip, step):
     ''' Tool specific function to run before step execution
     '''
 
-    targetlist = chip.get('target')[-1].split('_')
-    if targetlist[0] == 'openfpga':
+    chip.logger.debug("Setting up Yosys")
+
+    tool = 'yosys'
+    refdir = 'eda/yosys'
+    chip.add('eda', tool, 'format', 'tcl')
+    chip.add('eda', tool, 'copy', 'true')
+    chip.add('eda', tool, 'vendor', 'yosys')
+    chip.add('eda', tool, 'exe', 'yosys')
+    chip.add('eda', tool, 'option', '-c')
+    chip.add('eda', tool, 'refdir', refdir)
+    chip.add('eda', tool, 'script', refdir + '/sc_syn.tcl')
+
+    #TODO: remove special treatment for fpga??
+    #targetlist = chip.get('target').split('_')
+    targetlist = []
+    if False : #(targetlist[0] == 'openfpga'):
         # Synthesis for OpenFPGA/VPR needs to know the size of the LUTs in the
         # FPGA architecture. We infer this from the VPR architecture file, then
         # dump it to a TCL file imported by the synthesis script.
@@ -54,23 +52,40 @@ def pre_process(chip, step):
         with open('fpga_lutsize.tcl', 'w') as f:
             f.write('set lutsize ' + str(lut_size))
 
-def post_process(chip, step, status):
-     ''' Tool specific function to run after step execution
-     '''
+################################
+# Post_process (post executable)
+################################
+def post_process(chip, step):
+    ''' Tool specific function to run after step execution
+    '''
+    tool = 'yosys'
+    exe = chip.get('eda',tool,'exe')[-1]
+    with open(exe + ".log") as f:
+        for line in f:
+            area = re.search(r'Chip area for module.*\:\s+(.*)', line)
+            cells = re.search(r'Number of cells\:\s+(.*)', line)
+            warnings = re.search(r'Warnings.*\s(\d+)\s+total', line)
 
-     exe = chip.get('flow',step,'exe')[-1]
-     with open(exe + ".log") as f:
-          for line in f:
-               area = re.search(r'Chip area for module.*\:\s+(.*)', line)
-               cells = re.search(r'Number of cells\:\s+(.*)', line)
-               warnings = re.search(r'Warnings.*\s(\d+)\s+total', line)
+            if area:
+                chip.set('metric', step, 'real', 'area_cells', str(round(float(area.group(1)),2)))
+            elif cells:
+                chip.set('metric', step, 'real', 'cells', cells.group(1))
+            elif warnings:
+                chip.set('metric', step, 'real', 'warnings', warnings.group(1))
 
-               if area:
-                    chip.set('metric', step, 'real', 'area_cells', str(round(float(area.group(1)),2)))
-               elif cells:
-                    chip.set('metric', step, 'real', 'cells', cells.group(1))
-               elif warnings:
-                    chip.set('metric', step, 'real', 'warnings', warnings.group(1))
+    #Return 0 if successful
+    return 0
 
+##################################################
+if __name__ == "__main__":
 
-     return status
+    # File being executed
+    prefix = os.path.splitext(os.path.basename(__file__))[0]
+    output = prefix + '.json'
+
+    # create a chip instance
+    chip = siliconcompiler.Chip(defaults=False)
+    # load configuration
+    setup_tool(chip, step='synr')
+    # write out results
+    chip.writecfg(output)

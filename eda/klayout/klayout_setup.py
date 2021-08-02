@@ -1,29 +1,28 @@
 import os
 import re
 
+import siliconcompiler
+
 ################################
-# Tool Setup
+# Setup Tool (pre executable)
 ################################
 
 def setup_tool(chip, step):
 
+     tool = 'klayout'
      refdir = 'eda/klayout'
-     
-     for step in (['export', 'gdsview']):
-          chip.add('flow', step, 'threads', '4')
-          chip.add('flow', step, 'format', 'json')
-          chip.add('flow', step, 'copy', 'true')
-          chip.add('flow', step, 'vendor', 'klayout')
-          chip.add('flow', step, 'exe', 'klayout') 
-          chip.add('flow', step, 'refdir', refdir)
-          if step == 'gdsview':               
-               chip.add('flow', step, 'option', '-nn')
-          elif step == 'export':               
-               chip.add('flow', step, 'option', '-zz')
-          
-def setup_options(chip,step):
 
-     options = chip.get('flow', step, 'option')
+     chip.set('eda', tool, 'threads', '4')
+     chip.set('eda', tool, 'format', 'json')
+     chip.set('eda', tool, 'copy', 'true')
+     chip.set('eda', tool, 'vendor', 'klayout')
+     chip.set('eda', tool, 'exe', 'klayout')
+     chip.set('eda', tool, 'refdir', refdir)
+
+     if step == 'gdsview':
+          chip.set('eda', tool, 'option', '-nn')
+     elif step == 'export':
+          chip.set('eda', tool, 'option', '-zz')
 
      scriptdir = os.path.dirname(os.path.abspath(__file__))
      sc_root   =  re.sub('siliconcompiler/eda/klayout',
@@ -52,7 +51,9 @@ def setup_options(chip,step):
      config_file = '%s/setup/klayout/fill.json'%(
           foundry_path)
 
+
      if step == 'export':
+          options = []
           options.append('-rd')
           options.append('design_name=%s'%(
                chip.cfg['design']['value'][-1]))
@@ -79,20 +80,13 @@ def setup_options(chip,step):
           options.append('foundry_lefs=%s'%lefs_path)
           options.append('-r')
           options.append('klayout_export.py')
+          #add all options to dictionary
+          chip.add('eda', tool, 'option', options)
 
-     return options
 
-################################
-# Pre/Post Processing
-################################
-def pre_process(chip, step):
-    ''' Tool specific function to run before step execution
-    '''
-    pass
-
-def post_process(chip, step, status):
+def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
 
     #TODO: implement error check
-    return status
+    return 0
