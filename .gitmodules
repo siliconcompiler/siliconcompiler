@@ -61,3 +61,6 @@
 [submodule "third_party/designs/openofdm"]
 	path = third_party/designs/openofdm
 	url = https://github.com/jhshi/openofdm
+[submodule "third_party/tools/openroad"]
+	path = third_party/tools/openroad
+	url = https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts.git
