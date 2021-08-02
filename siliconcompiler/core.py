@@ -30,7 +30,7 @@ class Chip:
     """Siliconcompiler Compiler Chip Object Class"""
 
     ###########################################################################
-    def __init__(self, loglevel="DEBUG"):
+    def __init__(self, loglevel="DEBUG", defaults=True):
         '''Initializes Chip object
 
         Args:
@@ -79,7 +79,7 @@ class Chip:
         self.logger.debug("SC search path set to %s", os.environ['SCPATH'])
 
         # Copy 'defvalue' to 'value'
-        self._reset()
+        self._reset(defaults)
 
         # Status placeholder dictionary
         # TODO, should be defined!
@@ -822,8 +822,16 @@ class Chip:
         else:
             self.logger.error('File format not recognized %s', filepath)
 
+
+    def writegraph(self, filename):
+        '''Writes the compilation flow graph. Legal extensions are
+        .svg, .png, .dot.
+        '''
+        pass
+
+
     ###########################################################################
-    def _reset(self, cfg=None):
+    def _reset(self, defaults, cfg=None):
         '''Recursively copies 'defvalue' to 'value' for all configuration
         parameters
         '''
@@ -834,9 +842,12 @@ class Chip:
         for k, v in cfg.items():
             if isinstance(v, dict):
                 if 'defvalue' in cfg[k].keys():
-                    cfg[k]['value'] = cfg[k]['defvalue'].copy()
+                    if defaults:
+                        cfg[k]['value'] = cfg[k]['defvalue'].copy()
+                    else:
+                        cfg[k]['value'] = []
                 else:
-                    self._reset(cfg=cfg[k])
+                    self._reset(defaults, cfg=cfg[k])
 
 
     ###########################################################################
@@ -1225,28 +1236,19 @@ class Chip:
                 self.logger.error('Illegal step name %s', step)
                 sys.exit()
 
-            #####################
-            # Dynamic EDA setup
-            #####################
-
+            # Dynamic EDA Module load
             vendor = self.cfg['flow'][step]['vendor']['value'][-1]
             packdir = "eda." + vendor
             modulename = '.'+vendor+'_setup'
             module = importlib.import_module(modulename, package=packdir)
 
-            #####################
             # Flow Setup
-            #####################
             exe = self.cfg['flow'][step]['exe']['value'][-1] #scalar
 
-            #####################
             # Check Executable
-            #####################
             exepath = subprocess.run("command -v "+exe+">/dev/null", shell=True)
 
-            #####################
             # Init Metrics Table
-            #####################
             for metric in self.getkeys('metric', 'default', 'default'):
                 self.set('metric', step, 'real', metric, str(0))
 
@@ -1273,6 +1275,7 @@ class Chip:
                 os.chdir(stepdir)
                 os.makedirs('outputs', exist_ok=True)
                 os.makedirs('reports', exist_ok=True)
+
                 # All steps after import copy in files from previous step
                 if importstep:
                     self.package(dir='outputs')
@@ -1306,11 +1309,7 @@ class Chip:
                 options = setup_options(self, step)
                 cmd_fields.extend(options)
 
-                #Resolve Paths
-                #TODO: Fix this later, still using abspaths..
-                #with local copy, should copy in top level script and
-                #source from local directory,
-                #onnly keep the end of the file?
+                #Resolve Script Paths
                 if 'script' in self.cfg['flow'][step]:
                     for value in self.cfg['flow'][step]['script']['value']:
                         abspath = schema_path(value)
