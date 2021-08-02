@@ -16,9 +16,9 @@ jobs:
           source $GITHUB_WORKSPACE/clean_env/bin/activate
           echo $VIRTUAL_ENV
           pip3 install -r $GITHUB_WORKSPACE/requirements.txt -e $GITHUB_WORKSPACE/.
-          pytest -n 4 $GITHUB_WORKSPACE/tests/daily_tests/
-  openroad_tests_job:
-    timeout-minutes: 30
+          pytest -n 4 $GITHUB_WORKSPACE/tests/daily_tests/asic/
+  fpga_tests_job:
+    timeout-minutes: 10
     runs-on: self-hosted
     name: 'FPGA test builds'
     steps:
@@ -29,4 +29,4 @@ jobs:
           echo $VIRTUAL_ENV
           pip3 install -r $GITHUB_WORKSPACE/requirements.txt -e $GITHUB_WORKSPACE/.
           PATH="$HOME/OpenFPGA/openfpga:$PATH"
-          pytest -n 4 $GITHUB_WORKSPACE/tests/long_tests/openroad/
+          pytest -n 4 $GITHUB_WORKSPACE/tests/daily_tests/fpga/
