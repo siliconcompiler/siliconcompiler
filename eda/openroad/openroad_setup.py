@@ -14,17 +14,17 @@ def setup_tool(chip, step):
     ''' Tool specific function to run before step execution
     '''
 
-    # default tool settings
+    # default tool settings, note, not additive!
     tool = 'openroad'
     refdir = 'eda/openroad'
-    chip.add('eda', tool, 'threads', '4')
-    chip.add('eda', tool, 'copy', 'false')
-    chip.add('eda', tool, 'refdir', refdir)
-    chip.add('eda', tool, 'script', refdir + '/sc_apr.tcl')
-    chip.add('eda', tool, 'format', 'tcl')
-    chip.add('eda', tool, 'vendor', 'openroad')
-    chip.add('eda', tool, 'exe', 'openroad')
-    chip.add('eda', tool, 'option', '-no_init')
+    chip.set('eda', tool, 'threads', '4')
+    chip.set('eda', tool, 'copy', 'false')
+    chip.set('eda', tool, 'refdir', refdir)
+    chip.set('eda', tool, 'script', refdir + '/sc_apr.tcl')
+    chip.set('eda', tool, 'format', 'tcl')
+    chip.set('eda', tool, 'vendor', 'openroad')
+    chip.set('eda', tool, 'exe', 'openroad')
+    chip.set('eda', tool, 'option', '-no_init')
 
     # exit automatically unless bkpt
     if (step not in chip.get('bkpt')):
@@ -129,10 +129,10 @@ def post_process(chip, step):
                     elif pins:
                          chip.set('metric', step, 'real', 'pins', pins.group(1))
 
-     #TODO: implement stronger error checking
-     return status
+     #Return 0 if successful
+     return 0
 
- ##################################################
+##################################################
 if __name__ == "__main__":
 
     # File being executed

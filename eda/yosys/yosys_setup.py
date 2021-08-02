@@ -55,26 +55,26 @@ def setup_tool(chip, step):
 ################################
 # Post_process (post executable)
 ################################
-def post_process(chip, step, status):
-     ''' Tool specific function to run after step execution
-     '''
+def post_process(chip, step):
+    ''' Tool specific function to run after step execution
+    '''
+    tool = 'yosys'
+    exe = chip.get('eda',tool,'exe')[-1]
+    with open(exe + ".log") as f:
+        for line in f:
+            area = re.search(r'Chip area for module.*\:\s+(.*)', line)
+            cells = re.search(r'Number of cells\:\s+(.*)', line)
+            warnings = re.search(r'Warnings.*\s(\d+)\s+total', line)
 
-     exe = chip.get('flow',step,'exe')[-1]
-     with open(exe + ".log") as f:
-          for line in f:
-               area = re.search(r'Chip area for module.*\:\s+(.*)', line)
-               cells = re.search(r'Number of cells\:\s+(.*)', line)
-               warnings = re.search(r'Warnings.*\s(\d+)\s+total', line)
+            if area:
+                chip.set('metric', step, 'real', 'area_cells', str(round(float(area.group(1)),2)))
+            elif cells:
+                chip.set('metric', step, 'real', 'cells', cells.group(1))
+            elif warnings:
+                chip.set('metric', step, 'real', 'warnings', warnings.group(1))
 
-               if area:
-                    chip.set('metric', step, 'real', 'area_cells', str(round(float(area.group(1)),2)))
-               elif cells:
-                    chip.set('metric', step, 'real', 'cells', cells.group(1))
-               elif warnings:
-                    chip.set('metric', step, 'real', 'warnings', warnings.group(1))
-
-
-     return status
+    #Return 0 if successful
+    return 0
 
 ##################################################
 if __name__ == "__main__":

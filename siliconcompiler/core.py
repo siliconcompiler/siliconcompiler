@@ -299,8 +299,8 @@ class Chip:
         packdir = "eda.targets"
         self.logger.debug("Loading EDA module %s from %s", edaflow, packdir)
         module = importlib.import_module('.'+edaflow, package=packdir)
-        setup_eda = getattr(module, "setup_eda")
-        setup_eda(self, name=platform)
+        setup_flow = getattr(module, "setup_flow")
+        setup_flow(self, name=platform)
 
     ###########################################################################
     def help(self, *args, file=None, mode='full', format='txt'):
@@ -856,7 +856,7 @@ class Chip:
         '''
 
         if step is None:
-            steplist = self.get('steplist')
+            steplist =self.getkeys('flowgraph')
         else:
             steplist = [step]
 
@@ -1091,12 +1091,16 @@ class Chip:
             Prints out a summary of the run to stdout.
         '''
 
-        steplist = self.get('steplist')
+        steplist =self.getkeys('flowgraph')
+
         start = self.get('start')[-1] if self.get('start') \
-                                      else self.get('steplist')[0]
+                                      else steplist[0]
+
         stop = self.get('stop')[-1] if self.get('stop') \
-                                    else self.get('steplist')[-1]
+                                    else steplist[-1]
+
         design = self.get('design')[-1]
+
         startindex = steplist.index(start)
         stopindex = steplist.index(stop)
 
@@ -1194,23 +1198,23 @@ class Chip:
         # Run Setup
         ###########################
 
+        steplist = self.getkeys('flowgraph')
         remote = len(self.cfg['remote']['addr']['value']) > 0
-        steplist = self.cfg['steplist']['value']
         buildroot = str(self.cfg['dir']['value'][-1])
         design = str(self.cfg['design']['value'][-1])
 
         cwd = os.getcwd()
 
         ###########################
-        # Defining Pipeline
+        # Defining Pipeline Range
         ###########################
 
         if start is None:
             start = self.get('start')[-1] if self.get('start') \
-                                          else self.get('steplist')[0]
+                                          else steplist[0]
         if stop is None:
             stop = self.get('stop')[-1] if self.get('stop') \
-                                        else self.get('steplist')[-1]
+                                        else steplist[-1]
 
         startindex = steplist.index(start)
         stopindex = steplist.index(stop)
@@ -1218,6 +1222,8 @@ class Chip:
         ###########################
         # Execute pipeline
         ###########################
+
+        #TODO: To support non-linear pipelines, need better logic here!
         for stepindex in range(startindex, stopindex + 1):
             #step lookup (active state!)
             step = steplist[stepindex]
@@ -1229,6 +1235,9 @@ class Chip:
             laststep = steplist[stepindex-1]
             importstep = (stepindex == 0)
 
+            # get step specific tool
+            tool = self.cfg['flowgraph'][step]['tool']['value'][-1]
+
             #update step status
             self.set('status', 'step', step)
 
@@ -1236,16 +1245,18 @@ class Chip:
                 self.logger.error('Illegal step name %s', step)
                 sys.exit()
 
-            # Dynamic EDA Module load
-            vendor = self.cfg['flow'][step]['vendor']['value'][-1]
-            packdir = "eda." + vendor
-            modulename = '.'+vendor+'_setup'
-            module = importlib.import_module(modulename, package=packdir)
+            #################################
+            # Dynamic EDA Tool Module Loading
+            #################################
 
-            # Flow Setup
-            exe = self.cfg['flow'][step]['exe']['value'][-1] #scalar
+            packdir = "eda." + tool
+            modulename = '.'+tool+'_setup'
+            module = importlib.import_module(modulename, package=packdir)
+            setup_tool = getattr(module, "setup_tool")
+            setup_tool(self, step)
 
             # Check Executable
+            exe = self.cfg['eda'][tool]['exe']['value'][-1] #scalar
             exepath = subprocess.run("command -v "+exe+">/dev/null", shell=True)
 
             # Init Metrics Table
@@ -1283,8 +1294,8 @@ class Chip:
                     shutil.copytree("../"+laststep+"/outputs", 'inputs')
 
                 #Copy Reference Scripts
-                if schema_istrue(self.cfg['flow'][step]['copy']['value']):
-                    refdir = schema_path(self.cfg['flow'][step]['refdir']['value'][-1])
+                if schema_istrue(self.cfg['eda'][tool]['copy']['value']):
+                    refdir = schema_path(self.cfg['eda'][tool]['refdir']['value'][-1])
                     shutil.copytree(refdir,
                                     ".",
                                     dirs_exist_ok=True)
@@ -1301,38 +1312,37 @@ class Chip:
                 # Generate CMD
                 #####################
 
-                #Set Executable
-                cmd_fields = [exe]
-
-                #Add options to cmd list
-                setup_options = getattr(module, "setup_options")
-                options = setup_options(self, step)
-                cmd_fields.extend(options)
-
-                #Resolve Script Paths
-                if 'script' in self.cfg['flow'][step]:
-                    for value in self.cfg['flow'][step]['script']['value']:
+                #Create command line dynamically
+                exe = self.cfg['eda'][tool]['exe']['value'][-1]
+                options = self.cfg['eda'][tool]['option']['value']
+                scripts = []
+                if 'script' in self.cfg['eda'][tool]:
+                    for value in self.cfg['eda'][tool]['script']['value']:
                         abspath = schema_path(value)
-                        cmd_fields.append(abspath)
+                        scripts.append(abspath)
+
+                cmdlist =  [exe]
+                cmdlist.extend(options)
+                cmdlist.extend(scripts)
 
                 #Piping to log file
                 logfile = exe + ".log"
 
                 if schema_istrue(self.cfg['quiet']['value']) & (step not in self.cfg['bkpt']['value']):
-                    cmd_fields.append(" &> " + logfile)
+                    cmdlist.append(" &> " + logfile)
                 else:
                     # the weird construct at the end ensures that this invocation returns the
                     # exit code of the command itself, rather than tee
                     # (source: https://stackoverflow.com/a/18295541)
-                    cmd_fields.append(" 2>&1 | tee " + logfile + " ; (exit ${PIPESTATUS[0]} )")
+                    cmdlist.append(" 2>&1 | tee " + logfile + " ; (exit ${PIPESTATUS[0]} )")
 
                 #Final command line
-                cmd = ' '.join(cmd_fields)
+                cmdstr = ' '.join(cmdlist)
 
                 #Create run file
                 with open("run.sh", 'w') as f:
                     print("#!/bin/bash", file=f)
-                    print(cmd, file=f)
+                    print(cmdstr, file=f)
                 f.close()
                 os.chmod("run.sh", 0o755)
 
@@ -1349,27 +1359,23 @@ class Chip:
                     # Local builds must be processed synchronously, because
                     # they use calls such as os.chdir which are not thread-safe.
 
-                    # Pre Process
-                    pre_process = getattr(module, "pre_process")
-                    pre_process(self, step)
-
-                    # Executable
-                    self.logger.info('%s', cmd)
-                    error = subprocess.run(cmd, shell=True, executable='/bin/bash')
+                    # Execute!
+                    self.logger.info('%s', cmdstr)
+                    error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
 
                     # Post Process (and error checking)
                     post_process = getattr(module, "post_process")
-                    post_error = post_process(self, step, error.returncode)
+                    post_error = post_process(self, step)
 
                     # Exit on Error
-                    if post_error:
+                    if (error.returncode | post_error):
                         self.logger.error('Command failed. See log file %s',
                                           os.path.abspath(logfile))
                         sys.exit()
 
                     #Drop into python shell if command line tool
                     if step in self.cfg['bkpt']['value']:
-                        format = self.cfg['flow'][step]['format']['value'][0]
+                        format = self.cfg['eda'][tool]['format']['value'][0]
                         if format == 'cmdline':
                             code.interact(local=dict(globals(), **locals()))
 
