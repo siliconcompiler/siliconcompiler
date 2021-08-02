@@ -19,6 +19,8 @@ import math
 import pandas
 import yaml
 import argparse
+import graphviz
+
 from argparse import ArgumentParser, HelpFormatter
 
 from importlib.machinery import SourceFileLoader
@@ -822,13 +824,25 @@ class Chip:
         else:
             self.logger.error('File format not recognized %s', filepath)
 
-
-    def writegraph(self, filename):
-        '''Writes the compilation flow graph. Legal extensions are
-        .svg, .png, .dot.
+    ###########################################################################
+    def write_flowgraph(self, filename):
+        '''Exports the execution flow graph using the graphviz library.
+        For graphviz formats supported, see https://graphviz.org/.
+        For rendering
         '''
-        pass
-
+        filepath = os.path.abspath(filename)
+        self.logger.debug('Writing flowgraph to file %s', filepath)
+        fileroot, ext = os.path.splitext(filepath)
+        fileformat = ext.replace(".","")
+        gvfile = fileroot+".gv"
+        dot = graphviz.Digraph(format=fileformat)
+        for step in self.getkeys('flowgraph'):
+            tool = self.get('flowgraph',step, 'tool')[-1]
+            labelname = step+'\\n('+tool+")"
+            dot.node(step,label=labelname)
+            for next_step in self.get('flowgraph',step,'output'):
+                dot.edge(step, next_step)
+        dot.render(filename=fileroot, cleanup=True)
 
     ###########################################################################
     def _reset(self, defaults, cfg=None):
@@ -848,7 +862,6 @@ class Chip:
                         cfg[k]['value'] = []
                 else:
                     self._reset(defaults, cfg=cfg[k])
-
 
     ###########################################################################
     def wait(self, step=None):
