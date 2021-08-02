@@ -15,6 +15,7 @@ from multiprocessing import Process
 #Shorten siliconcompiler as sc
 import siliconcompiler
 from siliconcompiler.schema import schema_cfg
+from siliconcompiler.schema import schema_path
 from siliconcompiler.client import fetch_results
 from siliconcompiler.client import client_decrypt
 from siliconcompiler.client import client_encrypt
@@ -34,7 +35,9 @@ def main():
 
     # Print out SC project authors
     authors = []
-    f = open("AUTHORS", "r")
+
+    authorfile = schema_path("AUTHORS")
+    f = open(authorfile, "r")
     for line in f:
         name = re.match(r'^(\w+\s+\w+)',line)
         if name:
