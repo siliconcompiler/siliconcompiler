@@ -1256,7 +1256,7 @@ class Chip:
             setup_tool(self, step)
 
             # Check Executable
-            exe = self.cfg['eda'][tool]['exe']['value'][-1] #scalar
+            exe = self.cfg['eda'][tool][step]['exe']['value'][-1] #scalar
             exepath = subprocess.run("command -v "+exe+">/dev/null", shell=True)
 
             # Init Metrics Table
@@ -1294,8 +1294,8 @@ class Chip:
                     shutil.copytree("../"+laststep+"/outputs", 'inputs')
 
                 #Copy Reference Scripts
-                if schema_istrue(self.cfg['eda'][tool]['copy']['value']):
-                    refdir = schema_path(self.cfg['eda'][tool]['refdir']['value'][-1])
+                if schema_istrue(self.cfg['eda'][tool][step]['copy']['value']):
+                    refdir = schema_path(self.cfg['eda'][tool][step]['refdir']['value'][-1])
                     shutil.copytree(refdir,
                                     ".",
                                     dirs_exist_ok=True)
@@ -1313,11 +1313,11 @@ class Chip:
                 #####################
 
                 #Create command line dynamically
-                exe = self.cfg['eda'][tool]['exe']['value'][-1]
-                options = self.cfg['eda'][tool]['option']['value']
+                exe = self.cfg['eda'][tool][step]['exe']['value'][-1]
+                options = self.cfg['eda'][tool][step]['option']['value']
                 scripts = []
-                if 'script' in self.cfg['eda'][tool]:
-                    for value in self.cfg['eda'][tool]['script']['value']:
+                if 'script' in self.cfg['eda'][tool][step]:
+                    for value in self.cfg['eda'][tool][step]['script']['value']:
                         abspath = schema_path(value)
                         scripts.append(abspath)
 
@@ -1375,7 +1375,7 @@ class Chip:
 
                     #Drop into python shell if command line tool
                     if step in self.cfg['bkpt']['value']:
-                        format = self.cfg['eda'][tool]['format']['value'][0]
+                        format = self.cfg['eda'][tool][step]['format']['value'][0]
                         if format == 'cmdline':
                             code.interact(local=dict(globals(), **locals()))
 

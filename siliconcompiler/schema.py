@@ -19,7 +19,7 @@ def schema_cfg():
     cfg = schema_flowgraph(cfg, 'default')
 
     # EDA setup
-    cfg = schema_eda(cfg, 'default')
+    cfg = schema_eda(cfg)
 
     # Metric tracking
     cfg = schema_metric(cfg)
@@ -1551,50 +1551,54 @@ def schema_flowgraph(cfg, step):
 # EDA Tool Setup
 ###########################################################################
 
-def schema_eda(cfg, tool):
+def schema_eda(cfg):
 
-    #setup default structure
-    if not 'eda' in cfg:
-        cfg['eda'] = {}
+
+    tool = 'default'
+    step = 'default'
+
+    cfg['eda'] = {}
     cfg['eda'][tool] = {}
+    cfg['eda'][tool][step] = {}
 
     # exe
-    cfg['eda'][tool]['exe'] = {
+    cfg['eda'][tool][step]['exe'] = {
         'switch': '-eda_exe',
         'type': 'str',
         'lock': 'false',
         'requirement': 'all',
         'defvalue': [],
         'short_help': 'Executable Name',
-        'param_help': "eda toolvar exe <str>",
+        'param_help': "eda toolvar stepvar exe <str>",
         'example': ["cli: -eda_exe 'cts openroad'",
                     "api:  chip.set('eda', 'cts', 'exe', 'openroad')"],
         'help': """
-        The name of the exuctable step or the full path to the executable
-        specified on a per step basis.
+        Name of the exuctable step or the full path to the executable
+        specified on a per tool and step basis.
         """
     }
 
     # exe vendor
-    cfg['eda'][tool]['vendor'] = {
+    cfg['eda'][tool][step]['vendor'] = {
         'switch': '-eda_vendor',
         'type': 'str',
         'lock': 'false',
         'requirement': 'all',
         'defvalue': [],
         'short_help': 'Tool Vendor',
-        'param_help': "eda toolvar vendor <str>",
-        'example': ["cli: -eda_vendor 'place openroad'",
-                    "api: chip.set('eda','place','vendor', 'openroad')"],
+        'param_help': "eda toolvar stepvar vendor <str>",
+        'example': ["cli: -eda_vendor 'yosys syn yosys'",
+                    "api: chip.set('eda','yosys,'syn','vendor','yosys')"],
         'help': """
-        The vendor argument is used for selecting eda specific technology setup
-        variables from the PDK and libraries which generally support multiple
-        vendors for each implementation step
+        Name of the tool vendor specified on a per tool and step basis.
+        Parameter can be used to set vendor specific technology variables
+        in the PDK and libraries. For open source projects, the project
+        name should be used in place of vendor.
         """
     }
 
     # exe version
-    cfg['eda'][tool]['version'] = {
+    cfg['eda'][tool][step]['version'] = {
         'switch': '-eda_version',
         'type': 'str',
         'lock': 'false',
@@ -1605,49 +1609,51 @@ def schema_eda(cfg, tool):
         'example': ["cli: -eda_version 'cts 1.0'",
                     "api:  chip.set('eda', 'cts', 'version', '1.0')"],
         'help': """
-        The version of the executable step to use in compilation.Mismatch
-        between the step specifed and the step avalable results in an error.
+        Version of the tool executable specified on a per tool and per step
+        basis. Mismatch between the step specifed and the step avalable results
+        in an error.
         """
     }
 
     # options
-    cfg['eda'][tool]['option'] = {
+    cfg['eda'][tool][step]['option'] = {
         'switch': '-eda_opt',
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
         'short_help': 'Executable Options',
-        'param_help': "eda toolvar option <str>",
+        'param_help': "eda toolvar stepvar option <str>",
         'example': ["cli: -eda_opt 'cts -no_init'",
                     "api:  chip.set('eda', 'cts', 'opt', '-no_init')"],
         'help': """
-        A list of command line options for the executable. For multiple
-        argument options, enter each argument and value as a one list entry,
-        specified on a per step basis. Command line values must be enclosed in
+        List of command line options for the tool executable, specified on
+        a per tool and per step basis. For multiple argument options, enter
+        each argument and value as a one list entry, specified on a per
+        step basis. Options that include spaces must be enclosed in in double
         quotes.
         """
     }
 
     # refdir
-    cfg['eda'][tool]['refdir'] = {
+    cfg['eda'][tool][step]['refdir'] = {
         'switch': '-eda_refdir',
         'type': 'dir',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
         'short_help': 'Reference Directory',
-        'param_help': "eda toolvar refdir <file>",
-        'example': ["cli: -eda_refdir 'cts ./myrefdir'",
-                    "api:  chip.set('eda', 'cts', 'refdir', './myrefdir')"],
+        'param_help': "eda toolvar stepvar refdir <file>",
+        'example': ["cli: -eda_refdir 'yosys syn ./myref'",
+                    "api:  chip.set('eda', 'yosys', 'syn', './myref')"],
         'help': """
-        A path to a directory containing compilation scripts used by the
-        executable specified on a per step basis.
+        Path to directories  containing compilation scripts, specified
+        on a per step basis.
         """
     }
 
     # entry point script
-    cfg['eda'][tool]['script'] = {
+    cfg['eda'][tool][step]['script'] = {
         'switch': '-eda_script',
         'requirement': 'optional',
         'type': 'file',
@@ -1659,82 +1665,87 @@ def schema_eda(cfg, tool):
         'author': [],
         'signature': [],
         'short_help': 'Entry Point script',
-        'param_help': "eda toolvar script <file>",
-        'example': ["cli: -eda_script 'cts /myrefdir/cts.tcl'",
-                    "api: chip.set('eda','cts','script','/myrefdir/cts.tcl')"],
+        'param_help': "eda toolvar stepvar script <file>",
+        'example': ["cli: -eda_script 'yosys syn syn.tcl'",
+                    "api: chip.set('eda', 'yosys','syn','script','syn.tcl')"],
         'help': """
-        Path to the entry point compilation script called by the executable
-        specified on a per step basis.
+        Path to the entry point compilation script called by the executable,
+        specified on a per tool and per step basis.
         """
     }
 
     # copy
-    cfg['eda'][tool]['copy'] = {
+    cfg['eda'][tool][step]['copy'] = {
         'switch': '-eda_copy',
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
         'short_help': 'Copy Local Option',
-        'param_help': "eda toolvar copy <bool>",
-        'example': ["cli: -eda_copy 'cts true'",
-                    "api: chip.set('eda','cts','copy','true')"],
+        'param_help': "eda toolvar stepvar copy <bool>",
+        'example': ["cli: -eda_copy 'openroad cts true'",
+                    "api: chip.set('eda', 'openroad', 'cts','copy','true')"],
         'help': """
         Specifies that the reference script directory should be copied and run
-        from the local run directory. The option specified on a per step basis.
+        from the local run directory. The option is specified on a per tool and
+        per step basis.
         """
     }
 
     # script format
-    cfg['eda'][tool]['format'] = {
+    cfg['eda'][tool][step]['format'] = {
         'switch': '-eda_format',
         'type': 'str',
         'lock': 'false',
         'requirement': 'all',
         'defvalue': [],
         'short_help': 'Script Format',
-        'param_help': "eda toolvar format <str>",
-        'example': ["cli: -eda_format 'cts tcl'",
-                    "api: chip.set('eda','cts','format','tcl')"],
+        'param_help': "eda toolvar stepvar format <str>",
+        'example': ["cli: -eda_format 'openroad cts tcl'",
+                    "api: chip.set('eda','openroad, 'cts','format','tcl')"],
         'help': """
-        Specifies that format of the configuration file for the step. Valid
-        formats are tcl, yaml, json, cmdline. The format used is dictated by
-        the executable for the step and specified on a per step basis.
+        Format of the configuration file specified on a per tool and per
+        step basis. Valid formats depend on the type of tool. Supported formats
+        include tcl, yaml, json, command line.
         """
     }
 
     # parallelism
-    cfg['eda'][tool]['threads'] = {
+    cfg['eda'][tool][step]['threads'] = {
         'switch': '-eda_threads',
         'type': 'num',
         'lock': 'false',
         'requirement': 'all',
         'defvalue': [],
         'short_help': 'Job Parallelism',
-        'param_help': "eda toolvar threads <num>",
-        'example': ["cli: -eda_threads 'drc 64'",
-                    "api: chip.set('eda','drc','threads','64')"],
+        'param_help': "eda toolvar stepvar threads <num>",
+        'example': ["cli: -eda_threads 'maxgic drc 64'",
+                    "api: chip.set('eda','maxgic', 'drc','threads','64')"],
         'help': """
-        Specifies the level of CPU thread parallelism to enable on a per step
-        basis.
+        Thread parallelism to use for execution specified on a per tool and per
+        step basis. If not specified, SC queries the operating system and sets
+        the threads based on the maximum thread count supported by the
+        hardware.
         """
     }
 
     # warnings
-    cfg['eda'][tool]['woff'] = {
+    cfg['eda'][tool][step]['woff'] = {
         'switch': '-eda_woff',
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
         'short_help': 'Warning Filter',
-        'param_help': "eda toolvar woff <file>",
-        'example': ["cli: -eda_woff 'import COMBDLY'",
-                    "api: chip.set('eda','import','woff','COMBDLY')"],
+        'param_help': "eda toolvar stepvar woff <file>",
+        'example': ["cli: -eda_woff 'verilator import COMBDLY'",
+                    "api: chip.set('eda','verilator', 'import','woff','COMBDLY')"],
         'help': """
-        Specifies a list of EDA warnings for which printing should be supressed.
-        Generally this is done on a per design/node bases after review has
-        determined that warning can be safely ignored
+        A list of EDA warnings for which printing should be supressed specified
+        on a per tool and per step basis. Generally this is done on a per
+        design basis after review has determined that warning can be safely
+        ignored The code for turning off warnings can be found in the specific
+        tool reference manual.
         """
     }
 

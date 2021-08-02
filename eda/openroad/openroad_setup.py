@@ -17,18 +17,18 @@ def setup_tool(chip, step):
     # default tool settings, note, not additive!
     tool = 'openroad'
     refdir = 'eda/openroad'
-    chip.set('eda', tool, 'threads', '4')
-    chip.set('eda', tool, 'copy', 'false')
-    chip.set('eda', tool, 'refdir', refdir)
-    chip.set('eda', tool, 'script', refdir + '/sc_apr.tcl')
-    chip.set('eda', tool, 'format', 'tcl')
-    chip.set('eda', tool, 'vendor', 'openroad')
-    chip.set('eda', tool, 'exe', 'openroad')
-    chip.set('eda', tool, 'option', '-no_init')
+    chip.set('eda', tool, step, 'threads', '4')
+    chip.set('eda', tool, step, 'copy', 'false')
+    chip.set('eda', tool, step, 'refdir', refdir)
+    chip.set('eda', tool, step, 'script', refdir + '/sc_apr.tcl')
+    chip.set('eda', tool, step, 'format', 'tcl')
+    chip.set('eda', tool, step, 'vendor', 'openroad')
+    chip.set('eda', tool, step, 'exe', 'openroad')
+    chip.set('eda', tool, step, 'option', '-no_init')
 
     # exit automatically unless bkpt
     if (step not in chip.get('bkpt')):
-         chip.add('eda', tool, 'option', '-exit')
+         chip.add('eda', tool, step, 'option', '-exit')
 
     # enable programmatic pythonic floorplans
     if step == 'floorplan':
@@ -72,7 +72,7 @@ def post_process(chip, step):
      errors = 0
      warnings = 0
      metric = None
-     exe = chip.get('eda',tool,'exe')[-1]
+     exe = chip.get('eda', tool, step, 'exe')[-1]
      design = chip.get('design')[-1]
      with open(exe + ".log") as f:
           for line in f:

@@ -17,13 +17,13 @@ def setup_tool(chip, step):
 
     tool = 'yosys'
     refdir = 'eda/yosys'
-    chip.add('eda', tool, 'format', 'tcl')
-    chip.add('eda', tool, 'copy', 'true')
-    chip.add('eda', tool, 'vendor', 'yosys')
-    chip.add('eda', tool, 'exe', 'yosys')
-    chip.add('eda', tool, 'option', '-c')
-    chip.add('eda', tool, 'refdir', refdir)
-    chip.add('eda', tool, 'script', refdir + '/sc_syn.tcl')
+    chip.add('eda', tool, step, 'format', 'tcl')
+    chip.add('eda', tool, step, 'copy', 'true')
+    chip.add('eda', tool, step, 'vendor', 'yosys')
+    chip.add('eda', tool, step, 'exe', 'yosys')
+    chip.add('eda', tool, step, 'option', '-c')
+    chip.add('eda', tool, step, 'refdir', refdir)
+    chip.add('eda', tool, step, 'script', refdir + '/sc_syn.tcl')
 
     #TODO: remove special treatment for fpga??
     #targetlist = chip.get('target').split('_')
@@ -59,7 +59,7 @@ def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
     tool = 'yosys'
-    exe = chip.get('eda',tool,'exe')[-1]
+    exe = chip.get('eda',tool, step, 'exe')[-1]
     with open(exe + ".log") as f:
         for line in f:
             area = re.search(r'Chip area for module.*\:\s+(.*)', line)

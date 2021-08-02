@@ -34,9 +34,6 @@ def setup_flow(chip, name=None):
         chip.set('flowgraph', step, 'tool', tool)
 
 
-    steplist =chip.getkeys('flowgraph')
-    print(steplist)
-
 ##################################################
 if __name__ == "__main__":
 
