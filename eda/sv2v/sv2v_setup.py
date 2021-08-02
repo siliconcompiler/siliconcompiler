@@ -39,10 +39,13 @@ def setup_options(chip, step):
     for value in chip.cfg['define']['value']:
         options.append('-D ' + schema_path(value))
 
-    for value in chip.cfg['source']['value']:
-        options.append(schema_path(value))
+    # since this step should run after import, the top design module should be
+    # set and we can read the pickled Verilog without accessing the original
+    # sources
+    topmodule = chip.cfg['design']['value'][-1]
+    options.append("inputs/" + topmodule + ".v")
+    options.append("--write=outputs/" + topmodule + ".v")
 
-    #Wite back options tp cfg
     chip.set('flow', step, 'option', options)
             
     return options
