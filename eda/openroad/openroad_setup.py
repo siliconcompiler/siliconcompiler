@@ -2,42 +2,35 @@ import os
 import importlib
 import re
 import sys
-
+import siliconcompiler
 from siliconcompiler.floorplan import *
 from siliconcompiler.schema import schema_path
 
 ################################
-# Tool Setup
+# Setup Tool (pre executable)
 ################################
 
 def setup_tool(chip, step):
-
-     #Shared setting for all openroad tools
-     refdir = 'eda/openroad'
-     chip.add('flow', step, 'threads', '4')
-     chip.add('flow', step, 'copy', 'false')
-     chip.add('flow', step, 'refdir', refdir)
-     chip.add('flow', step, 'script', refdir + '/sc_apr.tcl')
-
-     chip.add('flow', step, 'format', 'tcl')
-     chip.add('flow', step, 'vendor', 'openroad')
-     chip.add('flow', step, 'exe', 'openroad')
-     chip.add('flow', step, 'option', '-no_init')
-
-def setup_options(chip, step):
-
-     options = chip.get('flow', step, 'option')
-     if (step not in chip.get('bkpt')) and (not '-exit' in options):
-          options.append('-exit')
-     return options
-
-################################
-# Pre/Post Processing
-################################
-
-def pre_process(chip, step):
     ''' Tool specific function to run before step execution
     '''
+
+    # default tool settings
+    tool = 'openroad'
+    refdir = 'eda/openroad'
+    chip.add('eda', tool, 'threads', '4')
+    chip.add('eda', tool, 'copy', 'false')
+    chip.add('eda', tool, 'refdir', refdir)
+    chip.add('eda', tool, 'script', refdir + '/sc_apr.tcl')
+    chip.add('eda', tool, 'format', 'tcl')
+    chip.add('eda', tool, 'vendor', 'openroad')
+    chip.add('eda', tool, 'exe', 'openroad')
+    chip.add('eda', tool, 'option', '-no_init')
+
+    # exit automatically unless bkpt
+    if (step not in chip.get('bkpt')):
+         chip.add('eda', tool, 'option', '-exit')
+
+    # enable programmatic pythonic floorplans
     if step == 'floorplan':
         floorplan_file = chip.get('asic', 'floorplan')
 
@@ -66,15 +59,20 @@ def pre_process(chip, step):
         def_file = 'inputs/' + topmodule + '.def'
         fp.write_def(def_file)
 
-def post_process(chip, step, status):
+################################
+# Post_process (post executable)
+################################
+
+def post_process(chip, step):
      ''' Tool specific function to run after step execution
      '''
 
      #Check log file for errors and statistics
+     tool = 'openroad'
      errors = 0
      warnings = 0
      metric = None
-     exe = chip.get('flow',step,'exe')[-1]
+     exe = chip.get('eda',tool,'exe')[-1]
      design = chip.get('design')[-1]
      with open(exe + ".log") as f:
           for line in f:
@@ -133,3 +131,17 @@ def post_process(chip, step, status):
 
      #TODO: implement stronger error checking
      return status
+
+ ##################################################
+if __name__ == "__main__":
+
+    # File being executed
+    prefix = os.path.splitext(os.path.basename(__file__))[0]
+    output = prefix + '.json'
+
+    # create a chip instance
+    chip = siliconcompiler.Chip(defaults=False)
+    # load configuration
+    setup_tool(chip, step='apr')
+    # write out results
+    chip.writecfg(output)
