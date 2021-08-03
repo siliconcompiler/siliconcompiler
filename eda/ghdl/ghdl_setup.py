@@ -58,7 +58,7 @@ def setup_tool(chip, step):
         modules = chip.cfg['design']['value'][-1]
 
     # pass the list of top modules to GHDL for elaboration
-    chip.add('eda', tool, step, 'option', '-e' + modules)
+    chip.add('eda', tool, step, 'option', '-e ' + modules)
 
     # generate a .ilang file (Yosys RTLIL) which can be read by Yosys during
     # synthesis along with the Verilog inputs
