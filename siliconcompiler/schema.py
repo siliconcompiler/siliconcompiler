@@ -3022,6 +3022,21 @@ def schema_design(cfg):
         """
     }
 
+    cfg['repo'] = {
+        'switch': '-repo',
+        'type': 'str',
+        'lock': 'false',
+        'requirement': 'optional',
+        'defvalue': [],
+        'short_help': 'Design Repository',
+        'param_help': "rev <str>",
+        'example': ["cli: -repo git@github.com:aolofsson/oh.git",
+                    "api: chip.set('repo','git@github.com:aolofsson/oh.git')"],
+        'help': """
+        Optional address to the design repository of the design.
+        """
+    }
+
     cfg['doc'] = {
         'switch': '-doc',
         'type': 'file',
@@ -3053,7 +3068,8 @@ def schema_design(cfg):
         'example': ["cli: -rev 1.0",
                     "api: chip.add('rev', '1.0')"],
         'help': """
-        Specifies the revision of the current design.
+        Specifies the revision of the current design. Can be a branch, tag, or
+        commit has or simple string. 
         """
     }
 
