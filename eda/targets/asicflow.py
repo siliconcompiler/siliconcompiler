@@ -8,7 +8,7 @@ import siliconcompiler
 def setup_flow(chip, name=None):
 
     # A simple linear flow
-    flowpipe = ['import',
+    flowpipe = ['package',
                 'syn',
                 'synopt',
                 'floorplan',
@@ -23,7 +23,7 @@ def setup_flow(chip, name=None):
 
     # Per step tool selection
     for step in flowpipe:
-        if step == 'import':
+        if step == 'package':
             tool = 'verilator'
         elif step == 'syn':
             tool = 'yosys'
