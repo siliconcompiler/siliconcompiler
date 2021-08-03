@@ -2,38 +2,33 @@ import os
 import subprocess
 import re
 import sys
+
+import siliconcompiler
 from siliconcompiler.schema import schema_istrue
 from siliconcompiler.schema import schema_path
 
 ################################
-# Setup SureLog
+# Setup Tool (pre executable)
 ################################
 
 def setup_tool(chip, step):
     ''' Sets up default settings on a per step basis
     '''
-    chip.logger.debug("Setting up SureLog")
 
-    chip.add('flow', step, 'threads', '4')
-    chip.add('flow', step, 'format', 'cmdline')
-    chip.add('flow', step, 'copy', 'false')
-    chip.add('flow', step, 'exe', 'surelog')
-    chip.add('flow', step, 'vendor', 'surelog')
+    # Standard Setup
+    tool = 'surelog'
+    chip.add('eda', tool, step, 'threads', '4')
+    chip.add('eda', tool, step, 'format', 'cmdline')
+    chip.add('eda', tool, step, 'copy', 'false')
+    chip.add('eda', tool, step, 'exe', tool)
+    chip.add('eda', tool, step, 'vendor', tool)
 
-################################
-# Set SureLog Runtime Options
-################################
 
-def setup_options(chip, step):
-    ''' Per tool/step function that returns a dynamic options string based on
-    the dictionary settings.
-    '''
-
-    options = chip.set('flow', step, 'option', [])
 
     # -parse is slow but ensures the SV code is valid
     # we might want an option to control when to enable this
     # or replace surelog with a SV linter for the validate step
+    options = []
     options.append('-parse')
     options.append('-I' + "../../../")
 
@@ -58,18 +53,15 @@ def setup_options(chip, step):
         options.append(schema_path(value))
 
     # Wite back options tp cfg
-    chip.set('flow', step, 'option', options)
+    chip.set('eda', tool, step, 'option', options)
 
     return options
 
 ################################
-# Pre and Post Run Commands
+# Post_process (post executable)
 ################################
-def pre_process(chip, step):
-    ''' Tool specific function to run before step execution
-    '''
 
-def post_process(chip, step, status):
+def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
     # setting top module of design
@@ -97,4 +89,18 @@ def post_process(chip, step, status):
                        shell=True)
 
     #TODO: return error code
-    return status
+    return 0
+
+##################################################
+if __name__ == "__main__":
+
+    # File being executed
+    prefix = os.path.splitext(os.path.basename(__file__))[0]
+    output = prefix + '.json'
+
+    # create a chip instance
+    chip = siliconcompiler.Chip(defaults=False)
+    # load configuration
+    setup_tool(chip, step='lint')
+    # write out results
+    chip.writecfg(output)
