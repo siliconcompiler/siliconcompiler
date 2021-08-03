@@ -1,6 +1,7 @@
 import os
 from string import Template
 import defusedxml.ElementTree as ET
+import siliconcompiler
 from siliconcompiler.schema import schema_path
 
 ################################
@@ -15,39 +16,15 @@ def setup_tool(chip, step):
 
     refdir = 'eda/openfpga'
 
-    chip.add('flow', step, 'threads', '4')
-    chip.add('flow', step, 'format', 'cmdline')
+    tool = 'openfpga'
+    chip.add('eda', tool, step, 'threads', '4')
+    chip.add('eda', tool, step, 'format', 'cmdline')
 
-    chip.add('flow', step, 'vendor', 'openfpga')
-    chip.add('flow', step, 'refdir', refdir)
-    chip.add('flow', step, 'option', '-batch -f ' + OPENFPGA_SCRIPT)
-    chip.add('flow', step, 'exe', 'openfpga')
-    chip.add('flow', step, 'copy', 'true')
-
-################################
-# Set OpenFPGA Runtime Options
-################################
-
-def setup_options(chip, step):
-    ''' Per step function that returns a dynamic options string based on
-    the dictionary settings.
-    '''
-
-    options = chip.get('flow', step, 'option')
-    return options
-
-################################
-# Pre and Post Run Commands
-################################
-
-def pre_process(chip, step):
-    '''Tool specific function to run before step execution that fills out shell
-    script template
-
-    OpenFPGA doesn't have a rich command line interface or a tcl interface, so
-    we use a template script in OpenFPGA's scripting language and fill it in
-    with relevant variables, similar to how the OpenFPGA flow itself works
-    '''
+    chip.add('eda', tool, step, 'vendor', 'openfpga')
+    chip.add('eda', tool, step, 'refdir', refdir)
+    chip.add('eda', tool, step, 'option', '-batch -f ' + OPENFPGA_SCRIPT)
+    chip.add('eda', tool, step, 'exe', 'openfpga')
+    chip.add('eda', tool, step, 'copy', 'true')
 
     topmodule = chip.cfg['design']['value'][-1]
 
@@ -74,7 +51,7 @@ def pre_process(chip, step):
         os.sys.exit()
 
     # Fill in OpenFPGA shell script template
-    openfpga_script_template = 'openfpga_script_template.openfpga'
+    openfpga_script_template = schema_path('eda/openfpga/openfpga_script_template.openfpga')
 
     tmpl_vars = {'VPR_ARCH_FILE': vpr_arch_file,
                  'VPR_TESTBENCH_BLIF': input_blif,
@@ -86,10 +63,27 @@ def pre_process(chip, step):
     with open(OPENFPGA_SCRIPT, 'w') as f:
         f.write(tmpl.safe_substitute(tmpl_vars))
 
-def post_process(chip, step, status):
+################################
+# Post Run Command
+################################
+
+def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
 
-    #TODO: return error code
-    return status
+    # Return 0 if successful
+    return 0
 
+##################################################
+if __name__ == "__main__":
+
+    # File being executed
+    prefix = os.path.splitext(os.path.basename(__file__))[0]
+    output = prefix + '.json'
+
+    # create a chip instance
+    chip = siliconcompiler.Chip(defaults=False)
+    # load configuration
+    setup_tool(chip, step='apr')
+    # write out results
+    chip.writecfg(output)

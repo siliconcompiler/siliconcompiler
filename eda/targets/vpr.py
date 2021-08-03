@@ -5,28 +5,40 @@ import siliconcompiler
 ####################################################
 # EDA Setup
 ####################################################
-def setup_eda(chip, name=None):
+def setup_flow(chip, name=None):
     chip.logger.debug("Setting up an FPGA compilation flow'")
 
     # Define Compilation Steps
-    chip.cfg['steplist']['value'] = ['validate',
-                                  'import',
-                                  'syn',
-                                  'apr']
+    flowpipe = ['validate',
+                'import',
+                'syn',
+                'apr']
 
-    for step in chip.cfg['steplist']['value']:
+    for i in range(len(flowpipe)-1):
+        chip.add('flowgraph', flowpipe[i], 'output', flowpipe[i+1])
+
+    for step in flowpipe:
         if step == 'validate':
-            vendor = 'surelog'
+            tool = 'surelog'
         if step == 'import':
-            vendor = 'sv2v'
+            tool = 'sv2v'
         elif step == 'syn':
-            vendor = 'yosys'
+            tool = 'yosys'
         elif step == 'apr':
-            vendor = 'openfpga'
+            tool = 'openfpga'
+        chip.set('flowgraph', step, 'tool', tool)
 
-        #Load per step EDA setup scripts
-        packdir = "eda." + vendor
-        modulename = '.'+vendor+'_setup'
-        module = importlib.import_module(modulename, package=packdir)
-        setup_tool = getattr(module,'setup_tool')
-        setup_tool(chip, step)
+##################################################
+if __name__ == "__main__":
+
+    # File being executed
+    prefix = os.path.splitext(os.path.basename(__file__))[0]
+    output = prefix + '.json'
+
+    # create a chip instance
+    chip = siliconcompiler.Chip(defaults=False)
+    # load configuration
+    setup_flow(chip)
+    # write out results
+    chip.writecfg(output)
+    chip.write_flowgraph(prefix + ".svg")

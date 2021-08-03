@@ -130,7 +130,7 @@ if {$mode eq "asic"} {
 } else {
     # FPGA mode
     set targetlist [split $target "_"]
-    set platform [lindex $targetlist 0]
+    set platform [lindex [lindex $targetlist 0] end]
 
     if {$platform eq "ice40"} {
         syn_ice40 $topmodule
