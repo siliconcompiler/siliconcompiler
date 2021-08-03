@@ -887,20 +887,25 @@ class Chip:
                 break
 
 
-    ###########################################################################
+    ########################################################################
     def package(self, dir='output'):
         '''
-        Collects all files and places them in 'dir'. The function only copies
-        in files that have the 'copy' field set as true. If 'copyall' is
-        set to true, then all files are copied in.
+        Collects files found in the configuration dictionary and places
+        them in 'dir'. The function only copies in files that have the 'copy'
+        field set as true. If 'copyall' is set to true, then all files are 
+        copied in.
+
+        1. indexing like in run, job1
+        2. chdir package
+        3. run tool to collect files, pickle file in output/design.v
+        4. copy in rest of the files below
+        5. record files read in to schema
 
         Args:
-           dir (dirname): Directory name to copy files to.
+           dir (filepath): Destination directory
 
-        Examples:
-            >>> getkeys(dir='output')
-            Copys files called out in schema to directory named 'output;
         '''
+
         if not os.path.exists(dir):
             os.makedirs(dir)
         allkeys = self.getkeys()
@@ -1180,6 +1185,90 @@ class Chip:
             print(df.to_string())
             print("-"*135)
 
+                        
+
+    ###########################################################################
+    def runstep(self, step, workdir):
+        
+        # Dynamic EDA tool module load        
+        tool = self.cfg['flowgraph'][step]['tool']['value'][-1]
+        packdir = "eda." + tool
+        modulename = '.'+tool+'_setup'
+        module = importlib.import_module(modulename, package=packdir)
+        setup_tool = getattr(module, "setup_tool")
+        setup_tool(self, step)
+        
+        # Check installation
+        exe = self.cfg['eda'][tool][step]['exe']['value'][-1]
+        exepath = subprocess.run("command -v "+exe+">/dev/null", shell=True)
+        if exepath.returncode > 0:
+            self.logger.critical('Executable %s not installed.', exe)
+            sys.exit()
+            
+        # Make work directory if it doesn't exist
+        cwd = os.getcwd()
+        if not os.path.isdir(workdir):
+            os.makedirs(workdir, exist_ok=True)
+        os.chdir(workdir)
+        os.makedirs('outputs', exist_ok=True)
+        os.makedirs('reports', exist_ok=True)
+
+        # Save config files required by eda tools
+        if len(self.get('name')) > 0:
+            fileroot = self.get('name');
+        else:
+            fileroot = self.get('design')[-1];
+        fileroot = fileroot + "_manifest" 
+        self.writecfg(fileroot+".json")
+        self.writecfg(fileroot+".yaml")
+        self.writecfg(fileroot+".tcl", abspath=True)
+    
+        # Construct command line
+        exe = self.cfg['eda'][tool][step]['exe']['value'][-1]
+        logfile = exe + ".log"
+        options = self.cfg['eda'][tool][step]['option']['value']                
+        scripts = []
+        
+        if 'script' in self.cfg['eda'][tool][step]:
+            for value in self.cfg['eda'][tool][step]['script']['value']:
+                abspath = schema_path(value)
+                scripts.append(abspath)
+
+        cmdlist =  [exe]
+        cmdlist.extend(options)
+        cmdlist.extend(scripts)
+        
+        if schema_istrue(self.cfg['quiet']['value']) & (step not in self.cfg['bkpt']['value']):
+            cmdlist.append(" &> " + logfile)
+        else:
+            # the weird construct at the end ensures that this invocation returns the
+            # exit code of the command itself, rather than tee
+            # (source: https://stackoverflow.com/a/18295541)
+            cmdlist.append(" 2>&1 | tee " + logfile + " ; (exit ${PIPESTATUS[0]} )")
+            
+        # Create rerun command
+        cmdstr = ' '.join(cmdlist)
+        with open('run.sh', 'w') as f:
+            print('#!/bin/bash\n',cmdstr, file=f)
+        os.chmod("run.sh", 0o755)
+        
+        # Run exeuctable
+        self.logger.info('%s', cmdstr)
+        error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
+
+        # Post Process (and error checking)
+        post_process = getattr(module, "post_process")
+        post_error = post_process(self, step)
+        
+        # Check for errors
+        if (error.returncode | post_error):
+            self.logger.error('Command failed. See log file %s',
+                              os.path.abspath(logfile))
+            sys.exit()
+            
+        # return fo original directory
+        os.chdir(cwd)
+        
     ###########################################################################
     def run(self, start=None, stop=None):
 
