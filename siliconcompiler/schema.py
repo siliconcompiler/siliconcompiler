@@ -3058,20 +3058,22 @@ def schema_design(cfg):
         """
     }
 
-    cfg['nickname'] = {
-        'switch': '-nickname',
+    cfg['name'] = {
+        'switch': '-ame',
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'short_help': 'Design Nickname',
-        'param_help': "nickname <str>",
-        'example': ["cli: -nickname hello",
-                    "api: chip.add('nickname', 'hello')"],
+        'short_help': 'Design Package Name',
+        'param_help': "name <str>",
+        'example': ["cli: -name hello",
+                    "api: chip.add('name', 'hello')"],
         'help': """
         An alias for the top level design name. Can be useful when top level
-        designs have long and confusing names. The nickname is used in all
-        output file prefixes.
+        designs have long and confusing names or when multiple configuration
+        packages are created for the same design. The nickname is used in all
+        output file prefixes. The top level design name is used if no
+        'name' parameter is defined.
         """
     }
 
