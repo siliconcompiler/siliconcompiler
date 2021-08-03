@@ -28,6 +28,7 @@ def setup_tool(chip, step):
     chip.add('eda', tool, step, 'option', '-o morty.v')
     # write list of undefined modules to `undefined.morty`
     chip.add('eda', tool, step, 'option', '--write-undefined')
+    chip.add('eda', tool, step, 'option', '--write-filelist')
     chip.add('eda', tool, step, 'option', '-I ../../../')
 
     for value in chip.cfg['ydir']['value']:
