@@ -3,6 +3,7 @@ import subprocess
 import re
 import sys
 import siliconcompiler
+import shutil
 
 from siliconcompiler.schema import schema_istrue
 from siliconcompiler.schema import schema_path
@@ -26,10 +27,13 @@ def setup_tool(chip, step):
     chip.add('eda', tool, step, 'option', '-sv')
 
     # Differentiate between import step and compilation
-    if step in ['import', 'lint']:
+    if step in ['package', 'lint']:
         chip.add('eda', tool, step, 'option', '--lint-only --debug')
     elif (step == 'sim'):
         chip.add('eda', tool, step, 'option', '--cc')
+    else:
+        chip.logger.error('Step %s not supported for verilator', step)
+        sys.exit()
 
     #Include cwd in search path (verilator default)
     chip.add('eda', tool, step, 'option', '-I../../../')
@@ -61,7 +65,7 @@ def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
 
-    # filtering out debug garbage
+    # Creating single file "pickle' synthesis handoff    
     subprocess.run('egrep -h -v "\\`begin_keywords" obj_dir/*.vpp > verilator.v',
                    shell=True)
 
@@ -85,10 +89,12 @@ def post_process(chip, step):
     else:
         topmodule = chip.cfg['design']['value'][-1]
 
-    # Creating file for handoff to synthesis
-    subprocess.run("cp verilator.v " + "outputs/" + topmodule + ".v",
-                   shell=True)
+    # Moving pickled file to outputs    
+    os.rename("verilator.v", "outputs/" + topmodule + ".v")
 
+    # Clean up
+    shutil.rmtree('obj_dir')
+    
     #Return 0 if successful
     return 0
 
