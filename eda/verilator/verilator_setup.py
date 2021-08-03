@@ -26,7 +26,7 @@ def setup_tool(chip, step):
     chip.add('eda', tool, step, 'option', '-sv')
 
     # Differentiate between import step and compilation
-    if step == 'import':
+    if step in ['import', 'lint']:
         chip.add('eda', tool, step, 'option', '--lint-only --debug')
     elif (step == 'sim'):
         chip.add('eda', tool, step, 'option', '--cc')
