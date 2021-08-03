@@ -2,6 +2,8 @@ import os
 import subprocess
 import re
 import sys
+
+import siliconcompiler
 from siliconcompiler.schema import schema_istrue
 from siliconcompiler.schema import schema_path
 
@@ -14,21 +16,16 @@ def setup_tool(chip, step):
     '''
     chip.logger.debug("Setting up sv2v")
 
-    chip.add('flow', step, 'threads', '4')
-    chip.add('flow', step, 'format', 'cmdline')
-    chip.add('flow', step, 'copy', 'false')
-    chip.add('flow', step, 'exe', 'sv2v')
-    chip.add('flow', step, 'vendor', 'sv2v')
 
-################################
-# Set sv2v Runtime Options
-################################
+    tool = 'sv2v'
 
-def setup_options(chip, step):
-    ''' Per tool/step function that returns a dynamic options string based on
-    the dictionary settings.
-    '''
-    options = chip.set('flow', step, 'option', [])
+    chip.set('eda', tool, step, 'threads', '4')
+    chip.set('eda', tool, step, 'format', 'cmdline')
+    chip.set('eda', tool, step, 'copy', 'false')
+    chip.set('eda', tool, step, 'exe', tool)
+    chip.set('eda', tool, step, 'vendor', tool)
+
+    options = []
 
     # Include cwd in search path
     options.append('-I' + "../../../")
@@ -43,18 +40,15 @@ def setup_options(chip, step):
         options.append(schema_path(value))
 
     #Wite back options tp cfg
-    chip.set('flow', step, 'option', options)
-            
+    chip.set('eda', tool, step, 'option', options)
+
     return options
 
-################################
-# Pre and Post Run Commands
-################################
-def pre_process(chip, step):
-    ''' Tool specific function to run before step execution
-    '''
 
-def post_process(chip, step, status):
+################################
+# Post_process (post executable)
+################################
+def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
 
@@ -82,4 +76,18 @@ def post_process(chip, step, status):
 
 
     #TODO: return error code
-    return status
+    return 0
+
+##################################################
+if __name__ == "__main__":
+
+    # File being executed
+    prefix = os.path.splitext(os.path.basename(__file__))[0]
+    output = prefix + '.json'
+
+    # create a chip instance
+    chip = siliconcompiler.Chip(defaults=False)
+    # load configuration
+    setup_tool(chip, step='transalate')
+    # write out results
+    chip.writecfg(output)
