@@ -52,6 +52,9 @@ def setup_tool(chip, step):
         with open("inputs/undefined.morty", "r") as undefined_file:
             modules = undefined_file.read().strip()
     except FileNotFoundError:
+        pass
+    
+    if modules == "":
         if len(chip.cfg['design']['value']) < 1:
             chip.logger.error('No top module set')
             return
