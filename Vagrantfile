@@ -21,7 +21,11 @@ Vagrant.configure("2") do |config|
   config.vm.provision "shell", inline: "mkdir -p /vagrant/deps", privileged: false
 
   # AUTOMATIC INSTALLATION: uncomment the packages that you want to be automatically
-  # installed when running 'vagrant up'
+  # installed when running 'vagrant up' for the first time
+
+  # Morty
+  # config.vm.provision "shell", inline: "/vagrant/setup/install-rust.sh", privileged: false
+  # config.vm.provision "shell", inline: "/vagrant/setup/install-morty.sh", privileged: false
 
   # Verilator
   # config.vm.provision "shell", inline: "/vagrant/setup/install-verilator.sh", privileged: false
