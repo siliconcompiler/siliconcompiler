@@ -6,8 +6,8 @@ import siliconcompiler
 # Flowgraph Setup
 ####################################################
 def setup_flow(chip, name=None):
-    flowpipe = ['import', 'syn']
-    flowtools = ['ghdl', 'yosys']
+    flowpipe = ['import', 'importvhdl', 'syn']
+    flowtools = ['morty', 'ghdl', 'yosys']
     for i in range(len(flowpipe)-1):
         chip.add('flowgraph', flowpipe[i], 'output', flowpipe[i+1])
     for i, tool in enumerate(flowtools):
