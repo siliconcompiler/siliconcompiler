@@ -2151,6 +2151,28 @@ def schema_record(cfg, step='default'):
 
     cfg['record'][step] = {}      # per step
 
+    cfg['record'][step]['file'] = {
+        'switch': '-record_file',
+        'requirement': 'optional',
+        'type': 'file',
+        'copy': 'false',
+        'lock': 'false',
+        'defvalue': [],
+        'hash': [],
+        'date': [],
+        'author': [],
+        'signature': [],
+        'short_help': 'Step File Inputs',
+        'param_help': "record stepvar file <str>",
+        'example': ["cli: -record_input 'package gcd.v'",
+                    "api: chip.add('record','package','file','gcd.v')"],
+        'help': """
+        Metric tracking all input files on a per step basis. This list
+        include files entered by the user and files automatically found
+        by the flow like in the case of the "-y" auto-discovery path.
+        """
+    }
+
     cfg['record'][step]['author'] = {
         'switch': '-record_author',
         'type': 'str',
