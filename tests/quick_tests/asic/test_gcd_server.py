@@ -31,6 +31,7 @@ def test_gcd_server():
                     '-constraint', gcd_ex_dir + '/gcd.sdc',
                     '-remote_addr', 'localhost',
                     '-remote_port', '8080',
+                    '-relax',
                     '-loglevel', 'NOTSET'],
                    stdout = subprocess.DEVNULL)
 

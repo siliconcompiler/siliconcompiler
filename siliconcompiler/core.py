@@ -1188,7 +1188,40 @@ class Chip:
 
 
     ###########################################################################
-    def runstep(self, step, workdir):
+    def runstep(self, step):
+
+        cwd = os.getcwd()
+
+        # Error checking
+        steplist = self.getkeys('flowgraph')
+        stepindex = steplist.index(step)
+        if step not in steplist:
+            self.logger.critical('Illegal step name %s', step)
+            sys.exit()
+
+        # Update step status
+        self.set('status', 'step', step)
+
+        # Create directory structure
+        remote = len(self.cfg['remote']['addr']['value']) > 0
+        stepdir = "/".join([self.get('dir')[-1],
+                            self.get('design')[-1],
+                            self.get('jobname')[-1] + self.get('jobid')[-1],
+                            step])
+
+        if os.path.isdir(stepdir) and (not remote):
+            shutil.rmtree(stepdir)
+        os.makedirs(stepdir, exist_ok=True)
+        os.chdir(stepdir)
+        os.makedirs('outputs', exist_ok=True)
+        os.makedirs('reports', exist_ok=True)
+
+        # Copy files from previous step unless first step
+        # TODO: this logic needs to be fixed for graphs
+        if stepindex == 0:
+            self.package(dir='outputs')
+        elif not remote:
+            shutil.copytree("../"+steplist[stepindex-1]+"/outputs", 'inputs')
 
         # Dynamic EDA tool module load
         tool = self.cfg['flowgraph'][step]['tool']['value'][-1]
@@ -1205,23 +1238,15 @@ class Chip:
             self.logger.critical('Executable %s not installed.', exe)
             sys.exit()
 
-        # Make work directory if it doesn't exist
-        cwd = os.getcwd()
-        if not os.path.isdir(workdir):
-            os.makedirs(workdir, exist_ok=True)
-        os.chdir(workdir)
-        os.makedirs('outputs', exist_ok=True)
-        os.makedirs('reports', exist_ok=True)
+        #Copy Reference Scripts
+        if schema_istrue(self.cfg['eda'][tool][step]['copy']['value']):
+            refdir = schema_path(self.get('eda', tool, step, 'refdir')[-1])
+            shutil.copytree(refdir, ".", dirs_exist_ok=True)
 
         # Save config files required by eda tools
-        if len(self.get('name')) > 0:
-            fileroot = self.get('name');
-        else:
-            fileroot = self.get('design')[-1];
-        fileroot = fileroot + "_manifest"
-        self.writecfg(fileroot+".json")
-        self.writecfg(fileroot+".yaml")
-        self.writecfg(fileroot+".tcl", abspath=True)
+        self.writecfg("sc_manifest.json")
+        self.writecfg("sc_manifest.yaml")
+        self.writecfg("sc_manifest.tcl", abspath=True)
 
         # Construct command line
         exe = self.cfg['eda'][tool][step]['exe']['value'][-1]
@@ -1252,7 +1277,12 @@ class Chip:
             print('#!/bin/bash\n',cmdstr, file=f)
         os.chmod("run.sh", 0o755)
 
-        # Run exeuctable
+        # Init Metrics Table
+        for metric in self.getkeys('metric', 'default', 'default'):
+            self.set('metric', step, 'real', metric, str(0))
+
+        # Run exeucutable
+        self.logger.info("Running %s in %s", step, os.path.abspath(stepdir))
         self.logger.info('%s', cmdstr)
         error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
 
@@ -1265,6 +1295,19 @@ class Chip:
             self.logger.error('Command failed. See log file %s',
                               os.path.abspath(logfile))
             sys.exit()
+
+        # interactive debugging
+        if step in self.cfg['bkpt']['value']:
+            format = self.cfg['eda'][tool][step]['format']['value'][0]
+            if format == 'cmdline':
+                code.interact(local=dict(globals(), **locals()))
+
+        # save metrics
+        self.writecfg("outputs/" + self.get('design')[-1] +'.json')
+
+        # upload files
+        if remote:
+            upload_sources_to_cluster(self)
 
         # return fo original directory
         os.chdir(cwd)
@@ -1296,20 +1339,13 @@ class Chip:
             Runs the pipeline from the 'import' step to the 'place' step
         '''
 
+
         ###########################
-        # Run Setup
+        # Pipeline Setup
         ###########################
 
         steplist = self.getkeys('flowgraph')
         remote = len(self.cfg['remote']['addr']['value']) > 0
-        buildroot = str(self.cfg['dir']['value'][-1])
-        design = str(self.cfg['design']['value'][-1])
-
-        cwd = os.getcwd()
-
-        ###########################
-        # Defining Pipeline Range
-        ###########################
 
         if start is None:
             start = self.get('start')[-1] if self.get('start') \
@@ -1321,182 +1357,22 @@ class Chip:
         startindex = steplist.index(start)
         stopindex = steplist.index(stop)
 
-        ###########################
-        # Execute pipeline
-        ###########################
-
-        #TODO: To support non-linear pipelines, need better logic here!
+        #TODO: Support non-linear graph pipelines
         for stepindex in range(startindex, stopindex + 1):
-            #step lookup (active state!)
+
             step = steplist[stepindex]
-            stepdir = "/".join([self.get('dir')[-1],
-                                self.get('design')[-1],
-                                self.get('jobname')[-1] + self.get('jobid')[-1],
-                                step])
 
-            laststep = steplist[stepindex-1]
-            importstep = (stepindex == 0)
-
-            # get step specific tool
-            tool = self.cfg['flowgraph'][step]['tool']['value'][-1]
-
-            #update step status
-            self.set('status', 'step', step)
-
-            if step not in steplist:
-                self.logger.error('Illegal step name %s', step)
-                sys.exit()
-
-            #################################
-            # Dynamic EDA Tool Module Loading
-            #################################
-
-            if os.path.isdir(stepdir) and (not remote):
-                shutil.rmtree(stepdir)
-            os.makedirs(stepdir, exist_ok=True)
-            os.chdir(stepdir)
-            os.makedirs('outputs', exist_ok=True)
-            os.makedirs('reports', exist_ok=True)
-
-            # All steps after import copy in files from previous step
-            if importstep:
-                self.package(dir='outputs')
-            elif not remote:
-                shutil.copytree("../"+laststep+"/outputs", 'inputs')
-
-            packdir = "eda." + tool
-            modulename = '.'+tool+'_setup'
-            module = importlib.import_module(modulename, package=packdir)
-            setup_tool = getattr(module, "setup_tool")
-            setup_tool(self, step)
-
-            # Check Executable
-            exe = self.cfg['eda'][tool][step]['exe']['value'][-1] #scalar
-            exepath = subprocess.run("command -v "+exe+">/dev/null", shell=True)
-
-            # Init Metrics Table
-            for metric in self.getkeys('metric', 'default', 'default'):
-                self.set('metric', step, 'real', metric, str(0))
-
-            #####################
-            # Execution
-            #####################
+            # conditional step execution
             if (step in self.cfg['skip']['value']) | (self.cfg['skipall']['value'][-1] == 'true'):
                 self.logger.info('Skipping step: %s', step)
-                if exepath.returncode > 0:
-                    self.logger.critical('Executable %s not installed.', exe)
-                    print("Please see https://github.com/siliconcompiler/siliconcompiler/README.md")
             else:
-                self.logger.info("Running step '%s' in dir '%s'", step, stepdir)
-                if exepath.returncode > 0:
-                    self.logger.critical('Executable %s not installed.', exe)
-                    print("-"*80)
-                    print("Installation Instructions:")
-                    print("https://github.com/siliconcompiler/siliconcompiler/README.md")
-
-                #Copy Reference Scripts
-                if schema_istrue(self.cfg['eda'][tool][step]['copy']['value']):
-                    refdir = schema_path(self.cfg['eda'][tool][step]['refdir']['value'][-1])
-                    shutil.copytree(refdir,
-                                    ".",
-                                    dirs_exist_ok=True)
-
-                #####################
-                # Save CFG locally
-                #####################
-
-                self.writecfg("sc_schema.json")
-                self.writecfg("sc_schema.yaml")
-                self.writecfg("sc_schema.tcl", abspath=True)
-
-                #####################
-                # Generate CMD
-                #####################
-
-                #Create command line dynamically
-                exe = self.cfg['eda'][tool][step]['exe']['value'][-1]
-                options = self.cfg['eda'][tool][step]['option']['value']
-                scripts = []
-                if 'script' in self.cfg['eda'][tool][step]:
-                    for value in self.cfg['eda'][tool][step]['script']['value']:
-                        abspath = schema_path(value)
-                        scripts.append(abspath)
-
-                cmdlist =  [exe]
-                cmdlist.extend(options)
-                cmdlist.extend(scripts)
-
-                #Piping to log file
-                logfile = exe + ".log"
-
-                if schema_istrue(self.cfg['quiet']['value']) & (step not in self.cfg['bkpt']['value']):
-                    cmdlist.append(" &> " + logfile)
-                else:
-                    # the weird construct at the end ensures that this invocation returns the
-                    # exit code of the command itself, rather than tee
-                    # (source: https://stackoverflow.com/a/18295541)
-                    cmdlist.append(" 2>&1 | tee " + logfile + " ; (exit ${PIPESTATUS[0]} )")
-
-                #Final command line
-                cmdstr = ' '.join(cmdlist)
-
-                #Create run file
-                with open("run.sh", 'w') as f:
-                    print("#!/bin/bash", file=f)
-                    print(cmdstr, file=f)
-                f.close()
-                os.chmod("run.sh", 0o755)
-
-                #####################
-                # Execute
-                #####################
                 if (stepindex != 0) and remote:
                     self.logger.info('Remote server call')
-                    # Blocks the currently-running thread, but not the whole app.
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
                     loop.run_until_complete(remote_run(self, step))
                 else:
-                    # Local builds must be processed synchronously, because
-                    # they use calls such as os.chdir which are not thread-safe.
-
-                    # Execute!
-                    self.logger.info('%s', cmdstr)
-                    error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
-
-                    # Post Process (and error checking)
-                    post_process = getattr(module, "post_process")
-                    post_error = post_process(self, step)
-
-                    # Exit on Error
-                    if (error.returncode | post_error):
-                        self.logger.error('Command failed. See log file %s',
-                                          os.path.abspath(logfile))
-                        sys.exit()
-
-                    #Drop into python shell if command line tool
-                    if step in self.cfg['bkpt']['value']:
-                        format = self.cfg['eda'][tool][step]['format']['value'][0]
-                        if format == 'cmdline':
-                            code.interact(local=dict(globals(), **locals()))
-
-                    # Upload results for remote calls.
-                    if remote:
-                        upload_sources_to_cluster(self)
-
-            ########################
-            # Save Metrics/Config
-            ########################
-            metricsfile = "/".join(["outputs",
-                                    self.get('design')[-1] +'.json'])
-
-            self.writecfg(metricsfile)
-
-            ########################
-            # Return to $CWD
-            ########################
-            os.chdir(cwd)
-
+                    self.runstep(step)
 
     ###########################################################################
     def set_jobid(self):

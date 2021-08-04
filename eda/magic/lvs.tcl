@@ -1,4 +1,4 @@
-source ./sc_schema.tcl
+source ./sc_manifest.tcl
 source ./pdkpath.tcl
 
 set sc_design  [lindex [dict get $sc_cfg design] end]

@@ -2,7 +2,7 @@
 # Reading SC Schema
 ###############################
 
-source ./sc_schema.tcl
+source ./sc_manifest.tcl
 
 ###############################
 # Openroad Constants
