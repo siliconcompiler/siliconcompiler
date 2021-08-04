@@ -285,7 +285,7 @@ class Chip:
 
         # Load library target definitions for ASICs
         # Note the default fpga/asic flow when eda is left out in target name
-        mode = self.cfg['mode']['value'][-1]
+        mode = self.get('mode')[-1]
         if  len(targetlist) == 2:
             edaflow = targetlist[1]
         else:
@@ -416,7 +416,7 @@ class Chip:
         return self._search(self.cfg, *args, field=field, mode='get')
 
     ###########################################################################
-    def getkeys(self, *args):
+    def getkeys(self, *args, cfg=None):
         '''
         Returns a list of keys from the Chip dicionary based on the key
         tree supplied.
@@ -440,12 +440,15 @@ class Chip:
 
         self.logger.debug('Retrieving config dictionary keys: %s', args)
 
+        if cfg is None:
+            cfg = self.cfg
+
         if len(list(args)) > 0:
-            keys = list(self._search(self.cfg, *args, mode='getkeys'))
+            keys = list(self._search(cfg, *args, mode='getkeys'))
             if 'default' in keys:
                 keys.remove('default')
         else:
-            keys = list(self._allkeys(self.cfg))
+            keys = list(self._allkeys(cfg))
 
         return keys
 
@@ -876,7 +879,7 @@ class Chip:
         while True:
             busy = False
             for step in steplist:
-                if schema_istrue(self.cfg['status'][step]['active']['value']):
+                if schema_istrue(self.get('status',step,'active')):
                     self.logger.info("Step '%s' is still active", step)
                     busy = True
             if busy:
@@ -915,7 +918,7 @@ class Chip:
             if leaftype == 'file':
                 copy = self._search(self.cfg, *key, mode='get', field='copy')
                 value = self._search(self.cfg, *key, mode='get', field='value')
-                if schema_istrue(self.cfg['copyall']['value']) | (copy == 'true'):
+                if schema_istrue(self.get('copyall')) | (copy == 'true'):
                     for item in value:
                         filepath = schema_path(item)
                         shutil.copy(filepath, dir)
@@ -927,7 +930,7 @@ class Chip:
         '''
 
         #checking to see how much hashing to do
-        hashmode = self.cfg['hashmode']['value'][-1]
+        hashmode = self.get('hashmode')[-1]
         if hashmode != 'NONE':
             if cfg is None:
                 self.logger.info('Computing file hashes with mode %s', hashmode)
@@ -960,6 +963,7 @@ class Chip:
         '''
 
         #TODO: Solve recursively
+        pass
 
         abspath1 = os.path.abspath(file1)
         abspath2 = os.path.abspath(file2)
@@ -975,10 +979,14 @@ class Chip:
             file2_args = json.load(f)
 
         same = True
+        allkeys = self.getkeys()
+        for key in allkeys:
+            print(key)
         for key in self.cfg:
             # check that both files have all the keys
             # checking that all values and scalars are identical
             # list compare implicitly checks for list lengths as well
+
             if (key in file1_args) & (key in file2_args):
                 if self.cfg[key]['type'] in {"list", "file"}:
                     #seems that sort needs to be done before doing list compare?
