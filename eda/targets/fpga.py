@@ -5,47 +5,39 @@ import siliconcompiler
 ####################################################
 # EDA Setup
 ####################################################
-def setup_eda(chip, name=None):
-    chip.logger.debug("Setting up an FPGA compilation flow'")     
+def setup_flow(chip, name=None):
+
+    chip.logger.debug("Setting up an FPGA compilation flow'")
+
+    # A simple linear flow
+    flowpipe = ['validate',
+                'import',
+                'export']
 
 
-    if name == 'ice40':
-        # Define Compilation Steps
-        chip.cfg['steplist']['value'] = ['validate',
-                                         'import',
-                                         'syn',
-                                         'apr',
-                                         'export']
+    for i in range(len(flowpipe)-1):
+        chip.add('flowgraph', flowpipe[i], 'output', flowpipe[i+1])
 
-        for step in chip.cfg['steplist']['value']:         
-            if step == 'validate':
-                vendor = 'surelog'
-            elif step == 'import':
-                vendor = 'sv2v'
-            elif step == 'syn':
-                vendor = 'yosys'
-            elif step == 'apr':
-                vendor = 'nextpnr'
-            elif step == 'export':
-                vendor = 'icepack'
+    for step in flowpipe:
+        if step == 'validate':
+            tool = 'surelog'
+        elif step == 'import':
+            tool = 'verilator'
+        elif step == 'export':
+            tool = 'fusesoc'
+        chip.set('flowgraph', step, 'tool', tool)
 
-            #Load per step EDA setup scripts
-            packdir = "eda." + vendor
-            modulename = '.'+vendor+'_setup'    
-            module = importlib.import_module(modulename, package=packdir)
-            setup_tool = getattr(module,'setup_tool')
-            setup_tool(chip, step)
-
-#########################
-if __name__ == "__main__":    
+##################################################
+if __name__ == "__main__":
 
     # File being executed
     prefix = os.path.splitext(os.path.basename(__file__))[0]
     output = prefix + '.json'
 
     # create a chip instance
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip(defaults=False)
     # load configuration
-    setup_eda(chip)
-    # write out result
+    setup_flow(chip)
+    # write out results
     chip.writecfg(output)
+    chip.write_flowgraph(prefix + ".svg")
