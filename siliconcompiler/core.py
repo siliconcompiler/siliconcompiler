@@ -1219,7 +1219,7 @@ class Chip:
         # Copy files from previous step unless first step
         # TODO: this logic needs to be fixed for graphs
         if stepindex == 0:
-            self.package(dir='outputs')
+            self.package(dir='inputs')
         elif not remote:
             shutil.copytree("../"+steplist[stepindex-1]+"/outputs", 'inputs')
 

@@ -89,6 +89,9 @@ def post_process(chip, step):
     else:
         topmodule = chip.cfg['design']['value'][-1]
 
+    # Copy files from inputs to outputs
+    shutil.copytree("inputs", "outputs", dirs_exist_ok=True)
+
     # Moving pickled file to outputs
     os.rename("verilator.v", "outputs/" + topmodule + ".v")
 
