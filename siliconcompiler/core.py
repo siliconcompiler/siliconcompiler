@@ -124,7 +124,7 @@ class Chip:
 
         parser.add_argument('source',
                             nargs='+',
-                            help=self.cfg['source']['short_help'])
+                            help=self.get('source',field='short_help'))
 
         # Get all keys
         allkeys = self.getkeys()
@@ -413,7 +413,7 @@ class Chip:
             if isinstance(k, list):
                 self.logger.critical("List keys not allowed. Key=%s", k)
                 sys.exit()
-        return self._search(self.cfg, *args, mode='get')
+        return self._search(self.cfg, *args, field=field, mode='get')
 
     ###########################################################################
     def getkeys(self, *args):
@@ -470,7 +470,7 @@ class Chip:
         return allkeys
 
     ###########################################################################
-    def set(self, *args):
+    def set(self, *args, field='value'):
         '''
         Sets the value field of the key-tree in the argument list to the
         data list supplied.
@@ -495,10 +495,10 @@ class Chip:
         if type(all_args[-1]) != list:
             all_args[-1] = [all_args[-1]]
 
-        return self._search(self.cfg, *all_args, mode='set')
+        return self._search(self.cfg, *all_args, field=field, mode='set')
 
     ###########################################################################
-    def add(self, *args):
+    def add(self, *args, field='value'):
         '''
         Appends the data list supplied to the list currently in the leaf-value
         of the key-tree in the argument list.
@@ -523,7 +523,7 @@ class Chip:
         if type(all_args[-1]) != list:
             all_args[-1] = [str(all_args[-1])]
 
-        return self._search(self.cfg, *all_args, mode='add')
+        return self._search(self.cfg, *all_args, field=field, mode='add')
 
 
     ###########################################################################
