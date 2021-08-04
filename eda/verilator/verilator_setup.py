@@ -27,7 +27,7 @@ def setup_tool(chip, step):
     chip.add('eda', tool, step, 'option', '-sv')
 
     # Differentiate between import step and compilation
-    if step in ['package', 'lint']:
+    if step in ['import', 'lint']:
         chip.add('eda', tool, step, 'option', '--lint-only --debug')
     elif (step == 'sim'):
         chip.add('eda', tool, step, 'option', '--cc')
@@ -65,7 +65,7 @@ def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
 
-    # Creating single file "pickle' synthesis handoff    
+    # Creating single file "pickle' synthesis handoff
     subprocess.run('egrep -h -v "\\`begin_keywords" obj_dir/*.vpp > verilator.v',
                    shell=True)
 
@@ -89,12 +89,12 @@ def post_process(chip, step):
     else:
         topmodule = chip.cfg['design']['value'][-1]
 
-    # Moving pickled file to outputs    
+    # Moving pickled file to outputs
     os.rename("verilator.v", "outputs/" + topmodule + ".v")
 
     # Clean up
     shutil.rmtree('obj_dir')
-    
+
     #Return 0 if successful
     return 0
 
