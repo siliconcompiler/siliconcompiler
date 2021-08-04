@@ -662,7 +662,7 @@ class Chip:
                                                 m.group(2))
                     #create a TCL dict
                     keystr = ' '.join(newkeys)
-                    valstr = ' '.join(cfg[k][field])
+                    valstr = ' '.join(cfg[k][field]).replace(';', '\\;')
                     outlst = [prefix,
                               keystr,
                               '[list ',
@@ -1262,6 +1262,20 @@ class Chip:
             # Dynamic EDA Tool Module Loading
             #################################
 
+            if os.path.isdir(stepdir) and (not remote):
+                shutil.rmtree(stepdir)
+            os.makedirs(stepdir, exist_ok=True)
+            os.chdir(stepdir)
+
+            os.makedirs('outputs', exist_ok=True)
+            os.makedirs('reports', exist_ok=True)
+
+            # All steps after import copy in files from previous step
+            if importstep:
+                self.package(dir='outputs')
+            elif not remote:
+                shutil.copytree("../"+laststep+"/outputs", 'inputs')
+
             packdir = "eda." + tool
             modulename = '.'+tool+'_setup'
             module = importlib.import_module(modulename, package=packdir)
@@ -1291,20 +1305,6 @@ class Chip:
                     print("-"*80)
                     print("Installation Instructions:")
                     print("https://github.com/siliconcompiler/siliconcompiler/README.md")
-
-                # Copying in Files (local only)
-                if os.path.isdir(stepdir) and (not remote):
-                    shutil.rmtree(stepdir)
-                os.makedirs(stepdir, exist_ok=True)
-                os.chdir(stepdir)
-                os.makedirs('outputs', exist_ok=True)
-                os.makedirs('reports', exist_ok=True)
-
-                # All steps after import copy in files from previous step
-                if importstep:
-                    self.package(dir='outputs')
-                elif not remote:
-                    shutil.copytree("../"+laststep+"/outputs", 'inputs')
 
                 #Copy Reference Scripts
                 if schema_istrue(self.cfg['eda'][tool][step]['copy']['value']):
