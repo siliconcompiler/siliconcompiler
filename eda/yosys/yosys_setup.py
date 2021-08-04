@@ -26,9 +26,8 @@ def setup_tool(chip, step):
     chip.add('eda', tool, step, 'script', refdir + '/sc_syn.tcl')
 
     #TODO: remove special treatment for fpga??
-    #targetlist = chip.get('target').split('_')
-    targetlist = []
-    if False : #(targetlist[0] == 'openfpga'):
+    targetlist = chip.get('target')[-1].split('_')
+    if targetlist[0] == 'openfpga':
         # Synthesis for OpenFPGA/VPR needs to know the size of the LUTs in the
         # FPGA architecture. We infer this from the VPR architecture file, then
         # dump it to a TCL file imported by the synthesis script.
