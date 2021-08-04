@@ -192,7 +192,7 @@ async def request_remote_run(chip, stage):
         post_params = {'chip_cfg': chip.cfg}
         if (len(chip.get('remote', 'user')) > 0) and (len(chip.get('remote', 'key')) > 0):
             # Read the key and encode it in base64 format.
-            with open(os.path.abspath(chip.cfg['remote']['key']['value'][-1]), 'rb') as f:
+            with open(os.path.abspath(chip.get('remote', 'key')[-1]), 'rb') as f:
                 key = f.read()
             b64_key = base64.urlsafe_b64encode(key).decode()
             post_params['params'] = {
@@ -241,7 +241,7 @@ async def is_job_busy(chip, stage):
 
         # Set authentication parameters if necessary.
         if (len(chip.get('remote', 'user')) > 0) and (len(chip.get('remote', 'key')) > 0):
-            with open(os.path.abspath(chip.cfg['remote']['key']['value'][-1]), 'rb') as f:
+            with open(os.path.abspath(chip.get('remote', 'key')[-1]), 'rb') as f:
                 key = f.read()
             b64_key = base64.urlsafe_b64encode(key).decode()
             post_params['username'] = chip.get('remote', 'user')[-1]
@@ -275,7 +275,7 @@ async def delete_job(chip):
 
         # Set authentication parameters if necessary.
         if (len(chip.get('remote', 'user')) > 0) and (len(chip.get('remote', 'key')) > 0):
-            with open(os.path.abspath(chip.cfg['remote']['key']['value'][-1]), 'rb') as f:
+            with open(os.path.abspath(chip.get('remote', 'key')[-1]), 'rb') as f:
                 key = f.read()
             b64_key = base64.urlsafe_b64encode(key).decode()
             post_params['username'] = chip.get('remote', 'user')[-1]
@@ -361,7 +361,7 @@ async def upload_import_dir(chip):
                 wf.write(encryptor.finalize())
 
             # Set up encryption and authentication parameters in the request body.
-            with open(os.path.abspath(chip.cfg['remote']['key']['value'][-1]), 'rb') as f:
+            with open(os.path.abspath(chip.get('remote', 'key')[-1]), 'rb') as f:
                 key = f.read()
             b64_key = base64.urlsafe_b64encode(key).decode()
             post_params['username'] = chip.get('remote', 'user')[-1]
@@ -444,7 +444,7 @@ async def fetch_results_request(chips):
 
         # Set authentication parameters if necessary.
         if (len(chips[-1].get('remote', 'user')) > 0) and (len(chips[-1].get('remote', 'key')) > 0):
-            with open(os.path.abspath(chips[-1].cfg['remote']['key']['value'][-1]), 'rb') as f:
+            with open(os.path.abspath(chips[-1].get('remote', 'key')[-1]), 'rb') as f:
                 key = f.read()
             b64_key = base64.urlsafe_b64encode(key).decode()
             post_params = {
