@@ -54,8 +54,6 @@ def setup_tool(chip, step):
     # Wite back options tp cfg
     chip.set('eda', tool, step, 'option', options)
 
-    return options
-
 ################################
 # Post_process (post executable)
 ################################
@@ -64,7 +62,7 @@ def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
     # setting top module of design
-    if step == 'import':
+    if step in 'import':
         modules = 0
         if len(chip.cfg['design']['value']) < 1:
             with open("slpp_all/surelog.log", "r") as open_file:

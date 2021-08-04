@@ -51,6 +51,8 @@ def setup_tool(chip, step):
     # Copy the board's pin constraint file.
     constraint_file = chip.get('constraint')[-1]
     constraint_fn = constraint_file[constraint_file.rfind('/'):].lstrip('/')
+
+
     shutil.copy(board_loc + '/' + constraint_fn, 'inputs/' + constraint_fn)
 
     # Copy the source Verilog to the path expected by the fusesoc config.

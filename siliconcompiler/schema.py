@@ -2145,120 +2145,155 @@ def schema_metric(cfg, group='default', step='default'):
 # Design Tracking
 ###########################################################################
 
-def schema_record(cfg, group='record', step='default'):
+def schema_record(cfg, step='default'):
 
-    if not group in cfg:
-        cfg[group] = {}
+    cfg['record'] = {}
 
-    cfg[group][step] = {}      # per step
+    cfg['record'][step] = {}      # per step
 
-    cfg[group][step]['author'] = {
-        'switch': '-'+group+'_author',
+    cfg['record'][step]['file'] = {
+        'switch': '-record_file',
+        'requirement': 'optional',
+        'type': 'file',
+        'copy': 'false',
+        'lock': 'false',
+        'defvalue': [],
+        'hash': [],
+        'date': [],
+        'author': [],
+        'signature': [],
+        'short_help': 'Step File Inputs',
+        'param_help': "record stepvar file <str>",
+        'example': ["cli: -record_input 'package gcd.v'",
+                    "api: chip.add('record','package','file','gcd.v')"],
+        'help': """
+        Metric tracking all input files on a per step basis. This list
+        include files entered by the user and files automatically found
+        by the flow like in the case of the "-y" auto-discovery path.
+        """
+    }
+
+    cfg['record'][step]['author'] = {
+        'switch': '-record_author',
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
         'short_help': 'Step Author',
-        'param_help': group+" stepvar author <str>",
-        'example': ["cli: -"+group+"_author 'dfm coyote'",
-                    "api: chip.add('"+group+"','dfm','author','wcoyote')"],
+        'param_help': "record stepvar author <str>",
+        'example': ["cli: -record_author 'dfm coyote'",
+                    "api: chip.add('record','dfm','author','wcoyote')"],
+        'help': """
+        Metric tracking the author on a per step basis.
+        """
+    }
+    
+    cfg['record'][step]['author'] = {
+        'switch': '-record_author',
+        'type': 'str',
+        'lock': 'false',
+        'requirement': 'optional',
+        'defvalue': [],
+        'short_help': 'Step Author',
+        'param_help': "record stepvar author <str>",
+        'example': ["cli: -record_author 'dfm coyote'",
+                    "api: chip.add('record','dfm','author','wcoyote')"],
         'help': """
         Metric tracking the author on a per step basis.
         """
     }
 
-    cfg[group][step]['userid'] = {
-        'switch': '-'+group+'_userid',
+    cfg['record'][step]['userid'] = {
+        'switch': '-record_userid',
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
         'short_help': 'Step User ID',
-        'param_help': group+" stepvar userid <str>",
-        'example': ["cli: -"+group+"_userid 'dfm 0982acea'",
-                    "api: chip.add('"+group+"','dfm','userid','0982acea')"],
+        'param_help': "record stepvar userid <str>",
+        'example': ["cli: -record_userid 'dfm 0982acea'",
+                    "api: chip.add('record','dfm','userid','0982acea')"],
         'help': """
         Metric tracking the run userid on a per step basis.
         """
     }
 
-    cfg[group][step]['signature'] = {
-        'switch': '-'+group+'_signature',
+    cfg['record'][step]['signature'] = {
+        'switch': '-record_signature',
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
         'short_help': 'Step Signature',
-        'param_help': group+" stepvar signature <str>",
-        'example': ["cli: -"+group+"_signature 'dfm 473c04b'",
-                    "api: chip.add('"+group+"','dfm','signature','473c04b')"],
+        'param_help': "record stepvar signature <str>",
+        'example': ["cli: -record_signature 'dfm 473c04b'",
+                    "api: chip.add('record','dfm','signature','473c04b')"],
         'help': """
         Metric tracking the execution signature/hashid on a per step basis.
         """
     }
 
-    cfg[group][step]['org'] = {
-        'switch': '-'+group+'_org',
+    cfg['record'][step]['org'] = {
+        'switch': '-record_org',
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
         'short_help': 'Step Organization',
-        'param_help': group+" stepvar org <str>",
-        'example': ["cli: -"+group+"_org 'dfm earth'",
-                    "api: chip.add('"+group+"','dfm','org','earth')"],
+        'param_help': "record stepvar org <str>",
+        'example': ["cli: -record_org 'dfm earth'",
+                    "api: chip.add('record','dfm','org','earth')"],
         'help': """
         Metric tracking the user's organization on a per step basis.
         """
     }
 
-    cfg[group][step]['location'] = {
-        'switch': '-'+group+'_location',
+    cfg['record'][step]['location'] = {
+        'switch': '-record_location',
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
         'short_help': 'Step Location',
-        'param_help': group+" stepvar location <str>",
-        'example': ["cli: -"+group+"_location 'dfm Boston'",
-                    "api: chip.add('"+group+"','dfm','location','Boston')"],
+        'param_help': "record stepvar location <str>",
+        'example': ["cli: -record_location 'dfm Boston'",
+                    "api: chip.add('record','dfm','location','Boston')"],
         'help': """
         Metric tracking the user's location on a per step basis.
         """
     }
 
-    cfg[group][step]['date'] = {
-        'switch': '-'+group+'_date',
+    cfg['record'][step]['date'] = {
+        'switch': '-record_date',
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
         'short_help': 'Step Date Stamp',
-        'param_help': group+" stepvar date <str>",
-        'example': ["cli: -"+group+"_date 'dfm 2021-05-01'",
-                    "api: chip.add('"+group+"','dfm','date','2021-05-01')"],
+        'param_help': "record stepvar date <str>",
+        'example': ["cli: -record_date 'dfm 2021-05-01'",
+                    "api: chip.add('record','dfm','date','2021-05-01')"],
         'help': """
         Metric tracking the run date stamp on a per step basis.
         The date format is the ISO 8601 format YYYY-MM-DD.
         """
     }
 
-    cfg[group][step]['time'] = {
-        'switch': '-'+group+'_time',
+    cfg['record'][step]['time'] = {
+        'switch': '-record_time',
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
         'short_help': 'Step Time Stamp',
-        'param_help': group+" stepvar time <str>",
-        'example': ["cli: -"+group+"_time 'dfm 11:35:40'",
-                    "api: chip.add('"+group+"','dfm','time','11:35:40')"],
+        'param_help': "record stepvar time <str>",
+        'example': ["cli: -record_time 'dfm 11:35:40'",
+                    "api: chip.add('record','dfm','time','11:35:40')"],
         'help': """
         Metric tracking the local run start time on a per step basis.
         The time format is specified in 24h-hr format hr:min:sec
         """
     }
-
 
     return cfg
 
@@ -2328,7 +2363,7 @@ def schema_options(cfg):
         'switch': '-cfg',
         'type': 'file',
         'lock': 'false',
-        'copy': 'false',
+        'copy': 'true',
         'requirement': 'optional',
         'defvalue': [],
         'hash': [],
@@ -2987,11 +3022,26 @@ def schema_design(cfg):
         """
     }
 
+    cfg['repo'] = {
+        'switch': '-repo',
+        'type': 'str',
+        'lock': 'false',
+        'requirement': 'optional',
+        'defvalue': [],
+        'short_help': 'Design Repository',
+        'param_help': "rev <str>",
+        'example': ["cli: -repo git@github.com:aolofsson/oh.git",
+                    "api: chip.set('repo','git@github.com:aolofsson/oh.git')"],
+        'help': """
+        Optional address to the design repository of the design.
+        """
+    }
+
     cfg['doc'] = {
         'switch': '-doc',
         'type': 'file',
         'lock': 'false',
-        'copy': 'false',
+        'copy': 'true',
         'requirement': 'all',
         'defvalue': [],
         'hash': [],
@@ -3018,7 +3068,8 @@ def schema_design(cfg):
         'example': ["cli: -rev 1.0",
                     "api: chip.add('rev', '1.0')"],
         'help': """
-        Specifies the revision of the current design.
+        Specifies the revision of the current design. Can be a branch, tag, or
+        commit has or simple string. 
         """
     }
 
@@ -3058,20 +3109,22 @@ def schema_design(cfg):
         """
     }
 
-    cfg['nickname'] = {
-        'switch': '-nickname',
+    cfg['name'] = {
+        'switch': '-ame',
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'short_help': 'Design Nickname',
-        'param_help': "nickname <str>",
-        'example': ["cli: -nickname hello",
-                    "api: chip.add('nickname', 'hello')"],
+        'short_help': 'Design Package Name',
+        'param_help': "name <str>",
+        'example': ["cli: -name hello",
+                    "api: chip.add('name', 'hello')"],
         'help': """
         An alias for the top level design name. Can be useful when top level
-        designs have long and confusing names. The nickname is used in all
-        output file prefixes.
+        designs have long and confusing names or when multiple configuration
+        packages are created for the same design. The nickname is used in all
+        output file prefixes. The top level design name is used if no
+        'name' parameter is defined.
         """
     }
 
@@ -3270,7 +3323,7 @@ def schema_design(cfg):
         'switch': '-v',
         'type': 'file',
         'lock': 'false',
-        'copy': 'false',
+        'copy': 'true',
         'requirement': 'optional',
         'defvalue': [],
         'hash': [],
@@ -3308,7 +3361,7 @@ def schema_design(cfg):
         'switch': '-f',
         'type': 'file',
         'lock': 'false',
-        'copy': 'false',
+        'copy': 'true',
         'requirement': 'optional',
         'defvalue': [],
         'hash': [],
