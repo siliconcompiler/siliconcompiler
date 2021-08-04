@@ -21,17 +21,7 @@ def setup_tool(chip, step):
     chip.add('eda', tool, step, 'exe', 'surelog')
     chip.add('eda', tool, step, 'vendor', 'surelog')
 
-################################
-# Set SureLog Runtime Options
-################################
-
-def setup_options(chip, step):
-    ''' Per tool/step function that returns a dynamic options string based on
-    the dictionary settings.
-    '''
-
-    tool = 'surelog'
-    options = chip.set('eda', tool, step, 'option', [])
+    options = []
 
     # -parse is slow but ensures the SV code is valid
     # we might want an option to control when to enable this
@@ -62,8 +52,6 @@ def setup_options(chip, step):
     # Wite back options tp cfg
     chip.set('eda', tool, step, 'option', options)
 
-    return options
-
 ################################
 # Pre and Post Run Commands
 ################################
@@ -75,7 +63,7 @@ def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
     # setting top module of design
-    if step == 'import':
+    if step in 'import':
         modules = 0
         if len(chip.cfg['design']['value']) < 1:
             with open("slpp_all/surelog.log", "r") as open_file:

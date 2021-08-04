@@ -21,21 +21,11 @@ def setup_tool(chip, step):
     chip.add('eda', tool, step, 'refdir', refdir)
     chip.add('eda', tool, step, 'exe', 'fusesoc')
     chip.add('eda', tool, step, 'copy', 'false')
-    setup_options(chip, step)
 
     # Check FPGA schema to determine which device to target
     if len(chip.get('fpga', 'vendor')) == 0 or len(chip.get('fpga', 'device')) == 0:
         chip.logger.error(f"FPGA device and/or vendor unspecified!")
         os.sys.exit()
-
-################################
-# Set fusesoc Runtime Options
-################################
-
-def setup_options(chip, step):
-    ''' Per tool/step function that returns a dynamic options string based on
-    the dictionary settings.
-    '''
 
     # Ensure that a constraint file was passed in.
     constraint_file = chip.get('constraint')[-1]
@@ -61,6 +51,8 @@ def setup_options(chip, step):
     # Copy the board's pin constraint file.
     constraint_file = chip.get('constraint')[-1]
     constraint_fn = constraint_file[constraint_file.rfind('/'):].lstrip('/')
+
+
     shutil.copy(board_loc + '/' + constraint_fn, 'inputs/' + constraint_fn)
     # Copy the source Verilog to the path expected by the fusesoc config.
     shutil.copy('inputs/'+topmodule+'.v', 'inputs/sc.v')
@@ -70,17 +62,13 @@ def setup_options(chip, step):
       f.write('\n    toplevel: ' + topmodule + '\n')
 
     # Generate and return the run command.
-    tool = 'fusesoc'
-    chip.set('flow', tool, 'option', ['run', 'sc:'+device+':1.0'])
-    return chip.get('flow', tool, 'option')
+    chip.set('eda', tool, step, 'option', ['run', 'sc:'+device+':1.0'])
 
-def pre_process(chip, step):
-    ''' Tool specific function to run before step execution
-    '''
+################################
+# Post_process (post executable)
+################################
 
-    pass
-
-def post_process(chip, step, status):
+def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
 
@@ -92,4 +80,18 @@ def post_process(chip, step, status):
         shutil.copy(bitstream, 'outputs/'+topmodule+'.bit')
 
     #TODO: return error code
-    return status
+    return 0
+
+##################################################
+if __name__ == "__main__":
+
+    # File being executed
+    prefix = os.path.splitext(os.path.basename(__file__))[0]
+    output = prefix + '.json'
+
+    # create a chip instance
+    chip = siliconcompiler.Chip(defaults=False)
+    # load configuration
+    setup_tool(chip, step='apr')
+    # write out results
+    chip.writecfg(output)

@@ -892,7 +892,7 @@ class Chip:
         '''
         Collects files found in the configuration dictionary and places
         them in 'dir'. The function only copies in files that have the 'copy'
-        field set as true. If 'copyall' is set to true, then all files are 
+        field set as true. If 'copyall' is set to true, then all files are
         copied in.
 
         1. indexing like in run, job1
@@ -1185,26 +1185,26 @@ class Chip:
             print(df.to_string())
             print("-"*135)
 
-                        
+
 
     ###########################################################################
     def runstep(self, step, workdir):
-        
-        # Dynamic EDA tool module load        
+
+        # Dynamic EDA tool module load
         tool = self.cfg['flowgraph'][step]['tool']['value'][-1]
         packdir = "eda." + tool
         modulename = '.'+tool+'_setup'
         module = importlib.import_module(modulename, package=packdir)
         setup_tool = getattr(module, "setup_tool")
         setup_tool(self, step)
-        
+
         # Check installation
         exe = self.cfg['eda'][tool][step]['exe']['value'][-1]
         exepath = subprocess.run("command -v "+exe+">/dev/null", shell=True)
         if exepath.returncode > 0:
             self.logger.critical('Executable %s not installed.', exe)
             sys.exit()
-            
+
         # Make work directory if it doesn't exist
         cwd = os.getcwd()
         if not os.path.isdir(workdir):
@@ -1218,17 +1218,17 @@ class Chip:
             fileroot = self.get('name');
         else:
             fileroot = self.get('design')[-1];
-        fileroot = fileroot + "_manifest" 
+        fileroot = fileroot + "_manifest"
         self.writecfg(fileroot+".json")
         self.writecfg(fileroot+".yaml")
         self.writecfg(fileroot+".tcl", abspath=True)
-    
+
         # Construct command line
         exe = self.cfg['eda'][tool][step]['exe']['value'][-1]
         logfile = exe + ".log"
-        options = self.cfg['eda'][tool][step]['option']['value']                
+        options = self.cfg['eda'][tool][step]['option']['value']
         scripts = []
-        
+
         if 'script' in self.cfg['eda'][tool][step]:
             for value in self.cfg['eda'][tool][step]['script']['value']:
                 abspath = schema_path(value)
@@ -1237,7 +1237,7 @@ class Chip:
         cmdlist =  [exe]
         cmdlist.extend(options)
         cmdlist.extend(scripts)
-        
+
         if schema_istrue(self.cfg['quiet']['value']) & (step not in self.cfg['bkpt']['value']):
             cmdlist.append(" &> " + logfile)
         else:
@@ -1245,13 +1245,13 @@ class Chip:
             # exit code of the command itself, rather than tee
             # (source: https://stackoverflow.com/a/18295541)
             cmdlist.append(" 2>&1 | tee " + logfile + " ; (exit ${PIPESTATUS[0]} )")
-            
+
         # Create rerun command
         cmdstr = ' '.join(cmdlist)
         with open('run.sh', 'w') as f:
             print('#!/bin/bash\n',cmdstr, file=f)
         os.chmod("run.sh", 0o755)
-        
+
         # Run exeuctable
         self.logger.info('%s', cmdstr)
         error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
@@ -1259,16 +1259,16 @@ class Chip:
         # Post Process (and error checking)
         post_process = getattr(module, "post_process")
         post_error = post_process(self, step)
-        
+
         # Check for errors
         if (error.returncode | post_error):
             self.logger.error('Command failed. See log file %s',
                               os.path.abspath(logfile))
             sys.exit()
-            
+
         # return fo original directory
         os.chdir(cwd)
-        
+
     ###########################################################################
     def run(self, start=None, stop=None):
 
@@ -1350,6 +1350,18 @@ class Chip:
             #################################
             # Dynamic EDA Tool Module Loading
             #################################
+            if os.path.isdir(stepdir) and (not remote):
+                shutil.rmtree(stepdir)
+            os.makedirs(stepdir, exist_ok=True)
+            os.chdir(stepdir)
+            os.makedirs('outputs', exist_ok=True)
+            os.makedirs('reports', exist_ok=True)
+
+            # All steps after import copy in files from previous step
+            if importstep:
+                self.package(dir='outputs')
+            elif not remote:
+                shutil.copytree("../"+laststep+"/outputs", 'inputs')
 
             packdir = "eda." + tool
             modulename = '.'+tool+'_setup'
@@ -1380,20 +1392,6 @@ class Chip:
                     print("-"*80)
                     print("Installation Instructions:")
                     print("https://github.com/siliconcompiler/siliconcompiler/README.md")
-
-                # Copying in Files (local only)
-                if os.path.isdir(stepdir) and (not remote):
-                    shutil.rmtree(stepdir)
-                os.makedirs(stepdir, exist_ok=True)
-                os.chdir(stepdir)
-                os.makedirs('outputs', exist_ok=True)
-                os.makedirs('reports', exist_ok=True)
-
-                # All steps after import copy in files from previous step
-                if importstep:
-                    self.package(dir='outputs')
-                elif not remote:
-                    shutil.copytree("../"+laststep+"/outputs", 'inputs')
 
                 #Copy Reference Scripts
                 if schema_istrue(self.cfg['eda'][tool][step]['copy']['value']):
