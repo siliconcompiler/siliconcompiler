@@ -1244,9 +1244,9 @@ class Chip:
             shutil.copytree(refdir, ".", dirs_exist_ok=True)
 
         # Save config files required by eda tools
-        self.writecfg("design_manifest.json")
-        self.writecfg("design_manifest.yaml")
-        self.writecfg("design_manifest.tcl", abspath=True)
+        self.writecfg("sc_manifest.json")
+        self.writecfg("sc_manifest.yaml")
+        self.writecfg("sc_manifest.tcl", abspath=True)
 
         # Construct command line
         exe = self.cfg['eda'][tool][step]['exe']['value'][-1]

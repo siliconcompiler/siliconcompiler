@@ -13,7 +13,7 @@
 # limitations under the License.
 # SPDX-License-Identifier: Apache-2.0
 
-source ./sc_schema.tcl
+source ./sc_manifest.tcl
 
 set sc_design     [lindex [dict get $sc_cfg design] end]
 
