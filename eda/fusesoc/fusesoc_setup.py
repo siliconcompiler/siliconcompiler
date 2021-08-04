@@ -12,14 +12,14 @@ def setup_tool(chip, step):
     ''' Sets up default settings on a per step basis
     '''
 
+    tool = 'fusesoc'
     refdir = 'eda/fusesoc'
 
-    tool = 'fusesoc'
-    chip.add('eda', tool, step, 'threads', '4')
+    chip.add('eda', tool, step, 'exe', tool)
+    chip.add('eda', tool, step, 'vendor', tool)
     chip.add('eda', tool, step, 'format', 'cmdline')
-    chip.add('eda', tool, step, 'vendor', 'fusesoc')
+    chip.add('eda', tool, step, 'threads', '4')
     chip.add('eda', tool, step, 'refdir', refdir)
-    chip.add('eda', tool, step, 'exe', 'fusesoc')
     chip.add('eda', tool, step, 'copy', 'false')
 
     # Check FPGA schema to determine which device to target
@@ -54,8 +54,10 @@ def setup_tool(chip, step):
 
 
     shutil.copy(board_loc + '/' + constraint_fn, 'inputs/' + constraint_fn)
+
     # Copy the source Verilog to the path expected by the fusesoc config.
     shutil.copy('inputs/'+topmodule+'.v', 'inputs/sc.v')
+
     # Copy the board's fusesoc config and append the top-level module's name.
     shutil.copy(board_loc + '/' + device + '.core', device + '.core')
     with open(device + '.core', 'a') as f:

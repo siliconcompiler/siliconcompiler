@@ -1363,6 +1363,20 @@ class Chip:
             elif not remote:
                 shutil.copytree("../"+laststep+"/outputs", 'inputs')
 
+            if os.path.isdir(stepdir) and (not remote):
+                shutil.rmtree(stepdir)
+            os.makedirs(stepdir, exist_ok=True)
+            os.chdir(stepdir)
+
+            os.makedirs('outputs', exist_ok=True)
+            os.makedirs('reports', exist_ok=True)
+
+            # All steps after import copy in files from previous step
+            if importstep:
+                self.package(dir='outputs')
+            elif not remote:
+                shutil.copytree("../"+laststep+"/outputs", 'inputs')
+
             packdir = "eda." + tool
             modulename = '.'+tool+'_setup'
             module = importlib.import_module(modulename, package=packdir)

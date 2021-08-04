@@ -3,29 +3,39 @@ import os
 import siliconcompiler
 
 ####################################################
-# EDA Setup
+# Flowgraph Setup
 ####################################################
 def setup_flow(chip, name=None):
 
-    chip.logger.debug("Setting up an FPGA compilation flow'")
-
     # A simple linear flow
-    flowpipe = ['validate',
-                'import',
+    flowpipe = ['import',
+                'convert',
+                'syn',
+                'synopt',
+                'floorplan',
+                'place',
+                'cts',
+                'route',
+                'dfm',
                 'export']
-
 
     for i in range(len(flowpipe)-1):
         chip.add('flowgraph', flowpipe[i], 'output', flowpipe[i+1])
 
+    # Per step tool selection
     for step in flowpipe:
-        if step == 'validate':
-            tool = 'surelog'
-        elif step == 'import':
-            tool = 'verilator'
+        if step == 'import':
+            tool = 'morty'
+        elif step == 'convert':
+            tool = 'sv2v'
+        elif step == 'syn':
+            tool = 'yosys'
         elif step == 'export':
-            tool = 'fusesoc'
+            tool = 'klayout'
+        else:
+            tool = 'openroad'
         chip.set('flowgraph', step, 'tool', tool)
+
 
 ##################################################
 if __name__ == "__main__":

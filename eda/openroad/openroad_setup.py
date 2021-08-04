@@ -17,13 +17,14 @@ def setup_tool(chip, step):
     # default tool settings, note, not additive!
     tool = 'openroad'
     refdir = 'eda/openroad'
+    chip.set('eda', tool, step, 'format', 'tcl')
+    chip.set('eda', tool, step, 'vendor', tool)
+    chip.set('eda', tool, step, 'exe', tool)
     chip.set('eda', tool, step, 'threads', '4')
     chip.set('eda', tool, step, 'copy', 'false')
     chip.set('eda', tool, step, 'refdir', refdir)
     chip.set('eda', tool, step, 'script', refdir + '/sc_apr.tcl')
-    chip.set('eda', tool, step, 'format', 'tcl')
-    chip.set('eda', tool, step, 'vendor', 'openroad')
-    chip.set('eda', tool, step, 'exe', 'openroad')
+
     chip.set('eda', tool, step, 'option', '-no_init')
 
     # exit automatically unless bkpt

@@ -1,48 +1,59 @@
-################################
-# Tool Setup
-################################
 
-def setup_toool(chip, stage):
+import os
 
+import siliconcompiler
+from siliconcompiler.floorplan import *
+from siliconcompiler.schema import schema_path
+
+################################
+# Setup Tool (pre executable)
+################################
+def setup_tool(chip, step):
+
+     tool = 'vpr'
      refdir = 'eda/vpr/'
 
-     #Default stages
-     chip.add('tool', stage, 'threads', '4')
-     chip.add('tool', stage, 'format', 'cmdline')
-     chip.add('tool', stage, 'copy', 'false')
-     chip.add('tool', stage, 'vendor', 'vpr')
-     chip.add('tool', stage, 'refdir', '')
-     chip.add('tool', stage, 'script', '')
-     
-     #TODO: break up into stages later
-     if stage in ("floorplan"):          
-          chip.add('tool', stage, 'exe', 'vpr')
+     chip.set('eda', tool, step, 'threads', '4')
+     chip.set('eda', tool, step, 'copy', 'false')
+     chip.set('eda', tool, step, 'format', 'cmdline')
+     chip.set('eda', tool, step, 'vendor', tool)
+     chip.set('eda', tool, step, 'exe', tool)
+
+     #TODO: this flow is broken!
+     if step in ("floorplan"):
+          chip.set('eda', tool, step, 'exe', tool)
      else:
           #ignore stages withh echo
-          chip.add('tool', stage, 'exe', 'echo')
-          
-def setup_options(chip, stage):
+          chip.set('eda', tool, step, 'exe', 'echo')
 
-     arch = chip.get('fpga_arch')
-     topmodule = chip.get('design')     
-     blif = "inputs/" + topmodule + ".blif"     
-     options = arch + blif
+     arch = chip.get('fpga','arch')
+     topmodule = chip.get('design')
+     blif = "inputs/" + topmodule + ".blif"
+     options = [arch, blif]
 
-     return options
+     chip.set('eda', tool, step, 'option', options)
 
 ################################
-# Pre/Post Processing
+# Post_process (post executable)
 ################################
 
-def pre_process(chip, step):
-    ''' Tool specific function to run before step execution
-    '''
-    pass
-
-def post_process(chip, step, status):
+def post_process(chip, step ):
     ''' Tool specific function to run after step execution
     '''
 
     #TODO: return error code
-    return status
+    return 0
 
+##################################################
+if __name__ == "__main__":
+
+    # File being executed
+    prefix = os.path.splitext(os.path.basename(__file__))[0]
+    output = prefix + '.json'
+
+    # create a chip instance
+    chip = siliconcompiler.Chip(defaults=False)
+    # load configuration
+    setup_tool(chip, step='apr')
+    # write out results
+    chip.writecfg(output)
