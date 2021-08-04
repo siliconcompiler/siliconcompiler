@@ -17,7 +17,7 @@ def test_icebreaker():
     subprocess.run(['sc',
                     blinky_ex_dir + '/blinky.v',
                     '-design', 'blinky',
-                    '-target', 'icebreaker_fusesoc'],
+                    '-target', 'icebreaker_fpga'],
                    stdout = subprocess.DEVNULL)
 
     # Verify that a bitstream was generated
@@ -37,7 +37,7 @@ def test_ice40up5k_evn():
     subprocess.run(['sc',
                     blinky_ex_dir + '/blinky.v',
                     '-design', 'blinky',
-                    '-target', 'ice40up5k-evn_fusesoc'],
+                    '-target', 'ice40up5k-evn_fpga'],
                    stdout = subprocess.DEVNULL)
 
     # Verify that a bitstream was generated
@@ -57,7 +57,7 @@ def test_orangecrab():
     subprocess.run(['sc',
                     blinky_ex_dir + '/blinky.v',
                     '-design', 'blinky',
-                    '-target', 'orangecrab_fusesoc'],
+                    '-target', 'orangecrab_fpga'],
                    stdout = subprocess.DEVNULL)
 
     # Verify that a bitstream was generated
