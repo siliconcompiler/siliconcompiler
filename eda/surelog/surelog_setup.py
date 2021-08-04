@@ -15,6 +15,15 @@ def setup_tool(chip, step):
     ''' Sets up default settings on a per step basis
     '''
 
+    # Standard Setup
+    tool = 'surelog'
+
+    chip.set('eda', tool, step, 'exe', tool)
+    chip.set('eda', tool, step, 'vendor', tool)
+    chip.set('eda', tool, step, 'format', 'cmdline')
+    chip.set('eda', tool, step, 'threads', '4')
+    chip.set('eda', tool, step, 'copy', 'false')
+
     # -parse is slow but ensures the SV code is valid
     # we might want an option to control when to enable this
     # or replace surelog with a SV linter for the validate step
@@ -94,4 +103,3 @@ if __name__ == "__main__":
     setup_tool(chip, step='lint')
     # write out results
     chip.writecfg(output)
-
