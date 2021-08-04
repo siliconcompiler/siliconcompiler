@@ -3,31 +3,39 @@ import os
 import siliconcompiler
 
 ####################################################
-# EDA Setup
+# Flowgraph Setup
 ####################################################
 def setup_flow(chip, name=None):
-    chip.logger.debug("Setting up an FPGA compilation flow'")
 
-    # Define Compilation Steps
-    flowpipe = ['validate',
-                'import',
+    # A simple linear flow
+    flowpipe = ['import',
+                'convert',
+                'syn',
+                'synopt',
+                'floorplan',
+                'place',
+                'cts',
+                'route',
+                'dfm',
                 'export']
 
     for i in range(len(flowpipe)-1):
         chip.add('flowgraph', flowpipe[i], 'output', flowpipe[i+1])
 
-    device = chip.get('fpga', 'device')[-1]
+    # Per step tool selection
     for step in flowpipe:
-        if step == 'validate':
-            tool = 'surelog'
-        elif step == 'import':
-            tool = 'verilator'
+        if step == 'import':
+            tool = 'morty'
+        elif step == 'convert':
+            tool = 'sv2v'
+        elif step == 'syn':
+            tool = 'yosys'
         elif step == 'export':
-            tool = 'fusesoc'
+            tool = 'klayout'
+        else:
+            tool = 'openroad'
         chip.set('flowgraph', step, 'tool', tool)
 
-    steplist =chip.getkeys('flowgraph')
-    print(steplist)
 
 ##################################################
 if __name__ == "__main__":
@@ -42,3 +50,4 @@ if __name__ == "__main__":
     setup_flow(chip)
     # write out results
     chip.writecfg(output)
+    chip.write_flowgraph(prefix + ".svg")

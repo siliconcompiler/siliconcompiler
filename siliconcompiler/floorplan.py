@@ -579,10 +579,6 @@ class Floorplan:
                 if y >= region_max_y or max_y <= region_min_y:
                     # outside of region vertically
                     continue
-                if y != region_min_y and max_y != region_max_y:
-                    raise ValueError("Fill region must not contain cells that don't fill it vertically.")
-
-                # if we continue, cell is aligned to region vertically
 
                 left_edge_in = (x >= region_min_x)
                 right_edge_in = (max_x <= region_max_x)
@@ -593,10 +589,6 @@ class Floorplan:
                 if x >= region_max_x or max_x  <= region_min_x:
                     # outside of region horizontally
                     continue
-                if x != region_min_x and max_x != region_max_x:
-                    raise ValueError("Fill region must not contain cells that don't fill it horizontally.")
-
-                # if we continue, cell is aligned to region horizontally
 
                 bottom_edge_in = (y >= region_min_y)
                 top_edge_in = (max_y <= region_max_y)
@@ -635,13 +627,6 @@ class Floorplan:
             if not cell in self.available_cells:
                 raise ValueError(f'Provided fill cell {cell} is not included in'
                     f'list of available macros')
-
-            cell_info = self.available_cells[cell]
-
-            if cell_info.height != region_height:
-                raise ValueError(f'Provided fill cell {cell} does not have '
-                    f'appropriate height to fill region')
-
             io_fill_cells.append((cell, self.available_cells[cell]))
 
         io_fill_cells = sorted(io_fill_cells, key=lambda c: c[1].width, reverse=True)

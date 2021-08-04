@@ -3,17 +3,20 @@ import subprocess
 import re
 import sys
 
+
 import siliconcompiler
 from siliconcompiler.schema import schema_istrue
 from siliconcompiler.schema import schema_path
 
 ################################
-# Setup sv2v
+# Setup Tool (pre executable)
 ################################
 
 def setup_tool(chip, step):
-    ''' Sets up default settings on a per step basis
+    ''' Per tool function that returns a dynamic options string based on
+    the dictionary settings.
     '''
+
     chip.logger.debug("Setting up sv2v")
 
 
@@ -25,57 +28,30 @@ def setup_tool(chip, step):
     chip.set('eda', tool, step, 'exe', tool)
     chip.set('eda', tool, step, 'vendor', tool)
 
-    options = []
-
     # Include cwd in search path
-    options.append('-I' + "../../../")
+    chip.set('eda', tool, step, 'option', '-I../../../')
 
     for value in chip.cfg['idir']['value']:
-        options.append('-I' + schema_path(value))
+        chip.add('eda', tool, step, 'option', '-I' + schema_path(value))
 
     for value in chip.cfg['define']['value']:
-        options.append('-D ' + schema_path(value))
+        chip.add('eda', tool, step, 'option', '-D ' + schema_path(value))
 
-    for value in chip.cfg['source']['value']:
-        options.append(schema_path(value))
-
-    #Wite back options tp cfg
-    chip.set('eda', tool, step, 'option', options)
-
-    return options
-
+ 
+    # since this step should run after import, the top design module should be
+    # set and we can read the pickled Verilog without accessing the original
+    # sources
+    topmodule = chip.cfg['design']['value'][-1]
+    chip.add('eda', tool, step, 'option', "inputs/" + topmodule + ".v")
+    chip.add('eda', tool, step, 'option', "--write=outputs/" + topmodule + ".v")
 
 ################################
 # Post_process (post executable)
 ################################
+
 def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
-
-    # setting top module of design
-    modules = 0
-    if len(chip.cfg['design']['value']) < 1:
-        with open("sv2v.log", "r") as open_file:
-            for line in open_file:
-                modmatch = re.match(r'^module\s+(\w+)', line)
-                if modmatch:
-                    modules = modules + 1
-                    topmodule = modmatch.group(1)
-        # Only setting design when possible
-        if (modules > 1) & (chip.cfg['design']['value'] == ""):
-            chip.logger.error('Multiple modules found during import, \
-            but sc_design was not set')
-            sys.exit()
-        else:
-            chip.logger.info('Setting design (topmodule) to %s', topmodule)
-            chip.cfg['design']['value'].append(topmodule)
-    else:
-        topmodule = chip.cfg['design']['value'][-1]
-
-    subprocess.run("cp sv2v.log outputs/" + topmodule + ".v", shell=True)
-
-
-    #TODO: return error code
     return 0
 
 ##################################################
