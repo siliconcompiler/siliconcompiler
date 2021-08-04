@@ -124,7 +124,7 @@ class Chip:
 
         parser.add_argument('source',
                             nargs='+',
-                            help=self.cfg['source']['short_help'])
+                            help=self.get('source',field='short_help'))
 
         # Get all keys
         allkeys = self.getkeys()
@@ -285,7 +285,7 @@ class Chip:
 
         # Load library target definitions for ASICs
         # Note the default fpga/asic flow when eda is left out in target name
-        mode = self.cfg['mode']['value'][-1]
+        mode = self.get('mode')[-1]
         if  len(targetlist) == 2:
             edaflow = targetlist[1]
         else:
@@ -413,10 +413,10 @@ class Chip:
             if isinstance(k, list):
                 self.logger.critical("List keys not allowed. Key=%s", k)
                 sys.exit()
-        return self._search(self.cfg, *args, mode='get')
+        return self._search(self.cfg, *args, field=field, mode='get')
 
     ###########################################################################
-    def getkeys(self, *args):
+    def getkeys(self, *args, cfg=None):
         '''
         Returns a list of keys from the Chip dicionary based on the key
         tree supplied.
@@ -440,12 +440,15 @@ class Chip:
 
         self.logger.debug('Retrieving config dictionary keys: %s', args)
 
+        if cfg is None:
+            cfg = self.cfg
+
         if len(list(args)) > 0:
-            keys = list(self._search(self.cfg, *args, mode='getkeys'))
+            keys = list(self._search(cfg, *args, mode='getkeys'))
             if 'default' in keys:
                 keys.remove('default')
         else:
-            keys = list(self._allkeys(self.cfg))
+            keys = list(self._allkeys(cfg))
 
         return keys
 
@@ -470,7 +473,7 @@ class Chip:
         return allkeys
 
     ###########################################################################
-    def set(self, *args):
+    def set(self, *args, field='value'):
         '''
         Sets the value field of the key-tree in the argument list to the
         data list supplied.
@@ -495,10 +498,10 @@ class Chip:
         if type(all_args[-1]) != list:
             all_args[-1] = [all_args[-1]]
 
-        return self._search(self.cfg, *all_args, mode='set')
+        return self._search(self.cfg, *all_args, field=field, mode='set')
 
     ###########################################################################
-    def add(self, *args):
+    def add(self, *args, field='value'):
         '''
         Appends the data list supplied to the list currently in the leaf-value
         of the key-tree in the argument list.
@@ -523,7 +526,7 @@ class Chip:
         if type(all_args[-1]) != list:
             all_args[-1] = [str(all_args[-1])]
 
-        return self._search(self.cfg, *all_args, mode='add')
+        return self._search(self.cfg, *all_args, field=field, mode='add')
 
 
     ###########################################################################
@@ -690,7 +693,7 @@ class Chip:
         if d1 is None:
             d1 = self.cfg
         for k, v in d2.items():
-            #Checking if dub dict exists in self.cfg and new dict
+            #Checking if dict exists in self.cfg and new dict
             if k in d1 and isinstance(d1[k], dict) and isinstance(d2[k], dict):
                 #if we reach a leaf copy d2 to d1
                 if 'value' in d1[k].keys():
@@ -876,7 +879,7 @@ class Chip:
         while True:
             busy = False
             for step in steplist:
-                if schema_istrue(self.cfg['status'][step]['active']['value']):
+                if schema_istrue(self.get('status',step,'active')):
                     self.logger.info("Step '%s' is still active", step)
                     busy = True
             if busy:
@@ -915,7 +918,7 @@ class Chip:
             if leaftype == 'file':
                 copy = self._search(self.cfg, *key, mode='get', field='copy')
                 value = self._search(self.cfg, *key, mode='get', field='value')
-                if schema_istrue(self.cfg['copyall']['value']) | (copy == 'true'):
+                if schema_istrue(self.get('copyall')) | (copy == 'true'):
                     for item in value:
                         filepath = schema_path(item)
                         shutil.copy(filepath, dir)
@@ -927,7 +930,7 @@ class Chip:
         '''
 
         #checking to see how much hashing to do
-        hashmode = self.cfg['hashmode']['value'][-1]
+        hashmode = self.get('hashmode')[-1]
         if hashmode != 'NONE':
             if cfg is None:
                 self.logger.info('Computing file hashes with mode %s', hashmode)
@@ -960,6 +963,7 @@ class Chip:
         '''
 
         #TODO: Solve recursively
+        pass
 
         abspath1 = os.path.abspath(file1)
         abspath2 = os.path.abspath(file2)
@@ -974,35 +978,13 @@ class Chip:
         with open(abspath2, "r") as f:
             file2_args = json.load(f)
 
+        file1_keys = self.getkeys(cfg=file1_args)
+        file2_keys = self.getkeys(cfg=file2_args)
         same = True
-        for key in self.cfg:
-            # check that both files have all the keys
-            # checking that all values and scalars are identical
-            # list compare implicitly checks for list lengths as well
-            if (key in file1_args) & (key in file2_args):
-                if self.cfg[key]['type'] in {"list", "file"}:
-                    #seems that sort needs to be done before doing list compare?
-                    #can't be combined?
-                    file1_args[key]['values'].sort()
-                    file2_args[key]['values'].sort()
-                    if file1_args[key]['values'] != file2_args[key]['values']:
-                        same = False
-                        self.logger.error('File difference found for key %s', key)
-                    if self.cfg[key]['type'] in {"file"}:
-                        file1_args[key]['hash'].sort()
-                        file2_args[key]['hash'].sort()
-                        if file1_args[key]['hash'] != file2_args[key]['hash']:
-                            same = False
-                            self.logger.error('Comparison difference for key %s',
-                                              key)
-                elif file1_args[key]['values'] != file2_args[key]['values']:
-                    same = False
-                    self.logger.error('Comparison difference found for key %s',
-                                      key)
-            else:
-                same = False
+        ##TODO: Implement...
+        #1. Sorted key list should be identical
+        #2. If keylists are identical, then compare values
 
-        return same
 
     ###########################################################################
     def audit(self, filename=None):
@@ -1017,8 +999,8 @@ class Chip:
         '''Calculates the die yield
         '''
 
-        d0 = float(self.cfg['pdk']['d0']['value'][-1])
-        diesize = self.cfg['asic']['diesize']['value'][-1].split()
+        d0 = float(self.get('pdk','d0')[-1])
+        diesize = self.get('asic','diesize')[-1].split()
         diewidth = (float(diesize[2]) - float(diesize[0]))/1000
         dieheight = (float(diesize[3]) - float(diesize[1]))/1000
         diearea = diewidth * dieheight
@@ -1041,13 +1023,13 @@ class Chip:
         '''
 
         #PDK information
-        wafersize = int(self.cfg['pdk']['wafersize']['value'][-1])
-        edgemargin = float(self.cfg['pdk']['edgemargin']['value'][-1])
-        hscribe = float(self.cfg['pdk']['hscribe']['value'][-1])
-        vscribe = float(self.cfg['pdk']['vscribe']['value'][-1])
+        wafersize = int(self.get('pdk', 'wafersize', 'value')[-1])
+        edgemargin = float(self.get('pdk', 'edgemargin', 'value')[-1])
+        hscribe = float(self.get('pdk', 'hscribe', 'value')[-1])
+        vscribe = float(self.get('pdk', 'vscribe', 'value')[-1])
 
         #Design parameters
-        diesize = self.cfg['asic']['diesize']['value'][-1].split()
+        diesize = self.get('asic','diesize')[-1].split()
         diewidth = (float(diesize[2]) - float(diesize[0]))/1000
         dieheight = (float(diesize[3]) - float(diesize[1]))/1000
 
@@ -1203,7 +1185,7 @@ class Chip:
         self.set('status', 'step', step)
 
         # Create directory structure
-        remote = len(self.cfg['remote']['addr']['value']) > 0
+        remote = len(self.get('remote','addr')) > 0
         stepdir = "/".join([self.get('dir')[-1],
                             self.get('design')[-1],
                             self.get('jobname')[-1] + self.get('jobid')[-1],
@@ -1224,7 +1206,7 @@ class Chip:
             shutil.copytree("../"+steplist[stepindex-1]+"/outputs", 'inputs')
 
         # Dynamic EDA tool module load
-        tool = self.cfg['flowgraph'][step]['tool']['value'][-1]
+        tool = self.get('flowgraph', step, 'tool')[-1]
         packdir = "eda." + tool
         modulename = '.'+tool+'_setup'
         module = importlib.import_module(modulename, package=packdir)
@@ -1232,14 +1214,14 @@ class Chip:
         setup_tool(self, step)
 
         # Check installation
-        exe = self.cfg['eda'][tool][step]['exe']['value'][-1]
+        exe = self.get('eda', tool, step, 'exe')[-1]
         exepath = subprocess.run("command -v "+exe+">/dev/null", shell=True)
         if exepath.returncode > 0:
             self.logger.critical('Executable %s not installed.', exe)
             sys.exit()
 
         #Copy Reference Scripts
-        if schema_istrue(self.cfg['eda'][tool][step]['copy']['value']):
+        if schema_istrue(self.get('eda', tool, step, 'copy')):
             refdir = schema_path(self.get('eda', tool, step, 'refdir')[-1])
             shutil.copytree(refdir, ".", dirs_exist_ok=True)
 
@@ -1249,13 +1231,13 @@ class Chip:
         self.writecfg("sc_manifest.tcl", abspath=True)
 
         # Construct command line
-        exe = self.cfg['eda'][tool][step]['exe']['value'][-1]
+        exe = self.get('eda', tool, step, 'exe')[-1]
         logfile = exe + ".log"
-        options = self.cfg['eda'][tool][step]['option']['value']
-        scripts = []
+        options = self.get('eda', tool, step, 'option')
 
-        if 'script' in self.cfg['eda'][tool][step]:
-            for value in self.cfg['eda'][tool][step]['script']['value']:
+        scripts = []
+        if 'script' in self.getkeys('eda', tool, step):
+            for value in self.get('eda', tool, step, 'script'):
                 abspath = schema_path(value)
                 scripts.append(abspath)
 
@@ -1263,7 +1245,7 @@ class Chip:
         cmdlist.extend(options)
         cmdlist.extend(scripts)
 
-        if schema_istrue(self.cfg['quiet']['value']) & (step not in self.cfg['bkpt']['value']):
+        if schema_istrue(self.get('quiet')) & (step not in self.get('bkpt')):
             cmdlist.append(" &> " + logfile)
         else:
             # the weird construct at the end ensures that this invocation returns the
@@ -1292,14 +1274,12 @@ class Chip:
 
         # Check for errors
         if (error.returncode | post_error):
-            self.logger.error('Command failed. See log file %s',
-                              os.path.abspath(logfile))
+            self.logger.error('Command failed. See log file %s', os.path.abspath(logfile))
             sys.exit()
 
         # interactive debugging
-        if step in self.cfg['bkpt']['value']:
-            format = self.cfg['eda'][tool][step]['format']['value'][0]
-            if format == 'cmdline':
+        if step in self.get('bkpt'):
+            if (self.get('eda', tool, step, 'format')[-1]) == 'cmdline':
                 code.interact(local=dict(globals(), **locals()))
 
         # save metrics
@@ -1345,7 +1325,7 @@ class Chip:
         ###########################
 
         steplist = self.getkeys('flowgraph')
-        remote = len(self.cfg['remote']['addr']['value']) > 0
+        remote = len(self.get('remote', 'addr')) > 0
 
         if start is None:
             start = self.get('start')[-1] if self.get('start') \
@@ -1363,7 +1343,7 @@ class Chip:
             step = steplist[stepindex]
 
             # conditional step execution
-            if (step in self.cfg['skip']['value']) | (self.cfg['skipall']['value'][-1] == 'true'):
+            if (step in self.get('skip')) | (self.get('skipall')[-1] == 'true'):
                 self.logger.info('Skipping step: %s', step)
             else:
                 if (stepindex != 0) and remote:
@@ -1381,13 +1361,13 @@ class Chip:
         if len(self.get('jobid')) > 0:
             return
 
-        design = self.cfg['design']['value'][-1]
-        dirname = self.cfg['dir']['value'][-1]
-        jobname = self.cfg['jobname']['value'][-1]
+        design = self.get('design')[-1]
+        dirname = self.get('dir')[-1]
+        jobname = self.get('jobname')[-1]
 
         try:
             alljobs = os.listdir(dirname + "/" + design)
-            if schema_istrue(self.cfg['jobincr']['value']):
+            if schema_istrue(self.get('jobincr')):
                 jobid = 0
                 for item in alljobs:
                     m = re.match(jobname+r'(\d+)', item)

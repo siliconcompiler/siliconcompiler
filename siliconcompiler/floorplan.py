@@ -141,7 +141,7 @@ class Floorplan:
             with open(lef_path, 'r') as f:
                 lef_data = lef_parser.lib_parse(f.read())
 
-            for name in self.chip.cfg['macro'][macrolib]['cells']:
+            for name in self.chip.get('macro', macrolib, 'cells'):
                 if name == 'default': continue
                 tech_name = self.chip.get('macro', macrolib, 'cells', name)[-1]
                 if tech_name in lef_data['macros']:
@@ -155,7 +155,7 @@ class Floorplan:
         # extract layers based on stackup
         stackup = self.chip.get('asic', 'stackup')[-1]
         self.layers = {}
-        for name, layer in self.chip.cfg['pdk']['grid'][stackup].items():
+        for name, layer in self.chip.get('pdk', 'grid')[stackup].items():
             if name == 'default': continue
             self.layers[name] = {}
             pdk_name = layer['name']['value'][-1]
@@ -347,7 +347,7 @@ class Floorplan:
             x += xpitch
             y += ypitch
 
-    def place_wires(self, nets, x0, y0, xpitch, ypitch, width, height, layer, 
+    def place_wires(self, nets, x0, y0, xpitch, ypitch, width, height, layer,
                     shape, snap=False):
         '''Place wires on floorplan.
 
