@@ -2,59 +2,60 @@ import os
 import re
 import shutil
 
-from . import count_lvs
+import count_lvs
+
+import siliconcompiler
+from siliconcompiler.floorplan import *
+from siliconcompiler.schema import schema_path
 
 ################################
-# Tool Setup
+# Setup Tool (pre executable)
 ################################
 
 def setup_tool(chip, step):
+    ''' Tool specific function to run before step execution
+    '''
 
+    tool = 'magic'
     refdir = 'eda/magic'
 
-    chip.add('flow', step, 'threads', '4')
-    chip.add('flow', step, 'format', 'tcl')
-    chip.add('flow', step, 'copy', 'true')
-    chip.add('flow', step, 'vendor', 'magic')
-    chip.add('flow', step, 'exe', 'magic')
-    chip.add('flow', step, 'refdir', refdir)
+    target_tech = chip.cfg['target']['value'][-1].split('_')[0]
+    magicrc = '%s/magic/%s.magicrc'%(
+        pdk_path(chip),
+        target_tech)
 
+    # magic used for drc and lvs
     if step == 'drc':
         script = 'gds_drc.tcl'
     elif step == 'lvs':
         script = 'lvs.tcl'
 
-    chip.add('flow', step, 'script', refdir + '/' + script)
+    chip.set('eda', tool, step, 'vendor', tool)
+    chip.set('eda', tool, step, 'exe', tool)
+    chip.set('eda', tool, step, 'format', 'tcl')
+    chip.set('eda', tool, step, 'threads', '4')
+    chip.set('eda', tool, step, 'copy', 'false')
+    chip.set('eda', tool, step, 'refdir', refdir)
+    chip.set('eda', tool, step, 'script', refdir + '/' + script)
 
-def setup_options(chip,step):
-    options = chip.get('flow', step, 'option')
-
-    target_tech = chip.cfg['target']['value'][-1].split('_')[0]
-
-    magicrc = '%s/magic/%s.magicrc'%(
-        pdk_path(chip),
-        target_tech)
-
+    # set options
+    options = []
     options.append('-rcfile')
     options.append(magicrc)
     options.append('-noc')
     options.append('-dnull')
 
-    return options
+    chip.set('eda', tool, step, 'option', options)
 
-################################
-# Pre/Post Processing
-################################
-
-def pre_process(chip, step):
-    ''' Tool specific function to run before step execution
-
-    Dumps path to PDK to tcl file so that .magicrc can find tech file
-    '''
+    # Dumps path to PDK to tcl file so that .magicrc can find tech file
     with open('pdkpath.tcl', 'w') as f:
         f.write(f'set PDKPATH {pdk_path(chip)}')
 
-def post_process(chip, step, status):
+################################
+# Post_process (post executable)
+################################
+
+def post_process(chip, step):
     ''' Tool specific function to run after step execution
 
     Reads error count from output and fills in appropriate entry in metrics
@@ -76,9 +77,8 @@ def post_process(chip, step, status):
         lvs_failures = count_lvs.count_LVS_failures(f'outputs/{design}.lvs.json')
         chip.set('metric', step, 'real', 'errors', str(lvs_failures[0]))
 
-
     #TODO: return error code
-    return status
+    return 0
 
 ################################
 # Utilities
@@ -101,3 +101,17 @@ def pdk_path(chip):
         sc_path,
         chip.cfg['pdk']['foundry']['value'][-1],
         target_tech)
+
+##################################################
+if __name__ == "__main__":
+
+    # File being executed
+    prefix = os.path.splitext(os.path.basename(__file__))[0]
+    output = prefix + '.json'
+
+    # create a chip instance
+    chip = siliconcompiler.Chip(defaults=False)
+    # load configuration
+    setup_tool(chip, step='drc')
+    # write out results
+    chip.writecfg(output)

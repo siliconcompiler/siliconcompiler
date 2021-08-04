@@ -1,35 +1,45 @@
-################################
-# Tool Setup
-################################
+import os
 
+import siliconcompiler
+from siliconcompiler.floorplan import *
+from siliconcompiler.schema import schema_path
+
+################################
+# Setup Tool (pre executable)
+################################
 def setup_tool(chip, step):
 
-     refdir = 'eda/xyce'
+     tool = 'xyce'
 
-     chip.add('flow', step, 'threads', '4')
-     chip.add('flow', step, 'format', 'cmdline')
-     chip.add('flow', step, 'copy', 'false')
-     chip.add('flow', step, 'vendor', 'xyce')
-     chip.add('flow', step, 'exe', 'xyce')
-     chip.add('flow', step, 'option', '')
-     chip.add('flow', step, 'refdir', refdir)
-   
-def setup_options(chip, step):
+     chip.set('eda', tool, step, 'threads', '4')
+     chip.set('eda', tool, step, 'copy', 'false')
+     chip.set('eda', tool, step, 'format', 'cmdline')
+     chip.set('eda', tool, step, 'vendor', tool)
+     chip.set('eda', tool, step, 'exe', tool)
 
-     options = chip.get('flow', step, 'opt')
-     return options
+
+
 
 ################################
-# Pre and Post Run Commands
+# Post_process (post executable)
 ################################
-def pre_process(chip, step):
-    ''' Tool specific function to run before step execution
-    '''
-    pass
-
-def post_process(chip, step, status):
+def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
 
     #TODO: return error code
-    return status
+    return 0
+
+##################################################
+if __name__ == "__main__":
+
+    # File being executed
+    prefix = os.path.splitext(os.path.basename(__file__))[0]
+    output = prefix + '.json'
+
+    # create a chip instance
+    chip = siliconcompiler.Chip(defaults=False)
+    # load configuration
+    setup_tool(chip, step='spice')
+    # write out results
+    chip.writecfg(output)

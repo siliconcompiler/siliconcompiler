@@ -166,8 +166,8 @@ def schema_fpga(cfg):
     '''
     cfg['fpga'] = {}
 
-    cfg['fpga']['xml'] = {
-        'switch': '-fpga_xml',
+    cfg['fpga']['arch'] = {
+        'switch': '-fpga_arch',
         'requirement': 'fpga',
         'type': 'file',
         'lock': 'false',
@@ -178,14 +178,14 @@ def schema_fpga(cfg):
         'author': [],
         'signature': [],
         'short_help': 'FPGA Architecture File',
-        'param_help': "fpga xml <file>",
-        'example': ["cli: -fpga_xml myfpga.xml",
-                    "api:  chip.set('fpga', 'xml', 'myfpga.xml')"],
+        'param_help': "fpga arch <file>",
+        'example': ["cli: -fpga_arch myfpga.xml",
+                    "api:  chip.set('fpga', 'arch', 'myfpga.xml')"],
         'help': """
-        A complete XML-based architecture description for the target FPGA
-        architecture to be used in Verilog to Routing (VTR) tool, allowing
-        targeting a large number of virtual and commercial architectures.
-        `More information... <https://verilogtorouting.org>`_
+        Architecture definition file for the FPGA place and route tool. In the
+        Verilog To Routing case, tjhe file is an XML based description,
+        allowing targeting a large number of virtual and commercial
+        architectures. `More information... <https://verilogtorouting.org>`_
         """
     }
 

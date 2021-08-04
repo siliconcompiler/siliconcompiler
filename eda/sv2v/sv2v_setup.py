@@ -2,8 +2,9 @@ import os
 import subprocess
 import re
 import sys
-import siliconcompiler
 
+
+import siliconcompiler
 from siliconcompiler.schema import schema_istrue
 from siliconcompiler.schema import schema_path
 
@@ -16,17 +17,19 @@ def setup_tool(chip, step):
     the dictionary settings.
     '''
 
-    # Standard Setup
-    tool = 'sv2v'
-    chip.add('eda', tool, step, 'threads', '4')
-    chip.add('eda', tool, step, 'format', 'cmdline')
-    chip.add('eda', tool, step, 'copy', 'false')
-    chip.add('eda', tool, step, 'exe', 'sv2v')
-    chip.add('eda', tool, step, 'vendor', 'sv2v')
+    chip.logger.debug("Setting up sv2v")
 
+
+    tool = 'sv2v'
+
+    chip.set('eda', tool, step, 'threads', '4')
+    chip.set('eda', tool, step, 'format', 'cmdline')
+    chip.set('eda', tool, step, 'copy', 'false')
+    chip.set('eda', tool, step, 'exe', tool)
+    chip.set('eda', tool, step, 'vendor', tool)
 
     # Include cwd in search path
-    chip.add('eda', tool, step, 'option', '-I../../../')
+    chip.set('eda', tool, step, 'option', '-I../../../')
 
     for value in chip.cfg['idir']['value']:
         chip.add('eda', tool, step, 'option', '-I' + schema_path(value))
@@ -34,6 +37,7 @@ def setup_tool(chip, step):
     for value in chip.cfg['define']['value']:
         chip.add('eda', tool, step, 'option', '-D ' + schema_path(value))
 
+ 
     # since this step should run after import, the top design module should be
     # set and we can read the pickled Verilog without accessing the original
     # sources
@@ -60,6 +64,6 @@ if __name__ == "__main__":
     # create a chip instance
     chip = siliconcompiler.Chip(defaults=False)
     # load configuration
-    setup_tool(chip, step='import')
+    setup_tool(chip, step='transalate')
     # write out results
     chip.writecfg(output)

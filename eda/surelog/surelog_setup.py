@@ -2,40 +2,23 @@ import os
 import subprocess
 import re
 import sys
+
+import siliconcompiler
 from siliconcompiler.schema import schema_istrue
 from siliconcompiler.schema import schema_path
 
 ################################
-# Setup SureLog
+# Setup Tool (pre executable)
 ################################
 
 def setup_tool(chip, step):
     ''' Sets up default settings on a per step basis
     '''
-    chip.logger.debug("Setting up SureLog")
-
-    tool = 'surelog'
-    chip.add('eda', tool, step, 'threads', '4')
-    chip.add('eda', tool, step, 'format', 'cmdline')
-    chip.add('eda', tool, step, 'copy', 'false')
-    chip.add('eda', tool, step, 'exe', 'surelog')
-    chip.add('eda', tool, step, 'vendor', 'surelog')
-
-################################
-# Set SureLog Runtime Options
-################################
-
-def setup_options(chip, step):
-    ''' Per tool/step function that returns a dynamic options string based on
-    the dictionary settings.
-    '''
-
-    tool = 'surelog'
-    options = chip.set('eda', tool, step, 'option', [])
 
     # -parse is slow but ensures the SV code is valid
     # we might want an option to control when to enable this
     # or replace surelog with a SV linter for the validate step
+    options = []
     options.append('-parse')
     options.append('-I' + "../../../")
 
@@ -65,11 +48,8 @@ def setup_options(chip, step):
     return options
 
 ################################
-# Pre and Post Run Commands
+# Post_process (post executable)
 ################################
-def pre_process(chip, step):
-    ''' Tool specific function to run before step execution
-    '''
 
 def post_process(chip, step):
     ''' Tool specific function to run after step execution
@@ -100,3 +80,18 @@ def post_process(chip, step):
 
     #TODO: return error code
     return 0
+
+##################################################
+if __name__ == "__main__":
+
+    # File being executed
+    prefix = os.path.splitext(os.path.basename(__file__))[0]
+    output = prefix + '.json'
+
+    # create a chip instance
+    chip = siliconcompiler.Chip(defaults=False)
+    # load configuration
+    setup_tool(chip, step='lint')
+    # write out results
+    chip.writecfg(output)
+
