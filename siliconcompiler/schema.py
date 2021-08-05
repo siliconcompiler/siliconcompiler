@@ -189,36 +189,38 @@ def schema_fpga(cfg):
         """
     }
 
-    cfg['fpga']['vendor'] = {
-        'switch': '-fpga_vendor',
+    cfg['fpga']['edaflow'] = {
+        'switch': '-fpga_edaflow',
         'requirement': '!fpga_xml',
         'type': 'str',
         'lock': 'false',
         'defvalue': [],
-        'short_help': 'FPGA Vendor Name',
+        'short_help': 'FPGA EDA Flow Name',
         'param_help': "fpga vendor <str>",
-        'example': ["cli: -fpga_vendor acme",
+        'example': ["cli: -fpga_tool acme",
                     "api:  chip.set('fpga', 'vendor', 'acme')"],
         'help': """
-        Vendor or project name for the FPGA target. The name should be specified
-        in lower case (ie. xilinx, intel, microchip, lattice, openfpga,
-        symbiflow, etc)
+        Name of the FPGA implepmentation flow used by a generic
+        fpga flow target. For commercial tools with all inclusive tools,
+        the vendor name should be used. The variable is
+        optional for flows with customized flowgraphs and eda tool/step
+        setup parameters.
         """
     }
 
-    cfg['fpga']['device'] = {
-        'switch': '-fpga_device',
+    cfg['fpga']['partname'] = {
+        'switch': '-fpga_partname',
         'requirement': '!fpga_xml',
         'type': 'str',
         'lock': 'false',
         'defvalue': [],
-        'short_help': 'FPGA Device Name',
-        'param_help': "fpga device <str>",
-        'example': ["cli: -fpga_device fpga64k",
-                    "api:  chip.set('fpga', 'device', 'fpga64k')"],
+        'short_help': 'FPGA Part Name',
+        'param_help': "fpga partname <str>",
+        'example': ["cli: -fpga_partname fpga64k",
+                    "api:  chip.set('fpga', 'partname', 'fpga64k')"],
         'help': """
-        Name of the FPGA device target based on the synthesis and place and
-        route tool used for compilation.
+        FPGA part name to target for bit stream generation. The string
+        must match the value recognized by the edaflow tools.
         """
     }
 
@@ -2187,7 +2189,7 @@ def schema_record(cfg, step='default'):
         Metric tracking the author on a per step basis.
         """
     }
-    
+
     cfg['record'][step]['author'] = {
         'switch': '-record_author',
         'type': 'str',
@@ -2326,17 +2328,15 @@ def schema_options(cfg):
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': ['custom'],
-        'short_help': 'Target Platform',
+        'short_help': 'Compilation Target',
         'param_help': "target <str>",
-        'example': ["cli: -target freepdk45",
-                    "api: chip.set('target','freepdk45')"],
+        'example': ["cli: -target 'freepdk45_asicflow'",
+                    "api: chip.set('target','freepdk45_asicflow')"],
         'help': """
-        Provides a string name for choosing a physical mapping target for the
-        design. The target should be one of the following formats.
-
-        1.) A single word target found in the targetmap list (freepdk45, asap7)
-        2.) For ASICs, an underscore split string of format "process_edaflow"
-        3.) For FPGAs, an underscore split string of format "device_edaflow"
+        Compilation target double string separated by a single underscore,
+        specified as "<process>_<edaflow>" for ASIC compilation and
+        "<partname>_<edaflow>" for FPGA compilation. The process, edaflow,
+        partname fields must be alphanumeric and cannot contain underscores.
         """
     }
 
@@ -3069,7 +3069,7 @@ def schema_design(cfg):
                     "api: chip.add('rev', '1.0')"],
         'help': """
         Specifies the revision of the current design. Can be a branch, tag, or
-        commit has or simple string. 
+        commit has or simple string.
         """
     }
 
