@@ -1,71 +1,47 @@
 import importlib
 import os
 import siliconcompiler
+import re
 
 ####################################################
 # Flowgraph Setup
 ####################################################
-def setup_flow(chip, name=None):
-
-
-    #Get edaflow, partname
-    edaflow = chip.get('fpga','edaflow')[-1]
-    partname = chip.get('fpga','partname')[-1]
-
-    # Vendor/EDA lookup table
-    if edaflow == 'xilinx':
-        vendor_tool = 'vivado'
-    elif edaflow == 'intel':
-        vendor_tool = 'quartus'
-    elif edaflow == 'lattice':
-        vendor_tool = 'radiant'
-    elif edaflow == 'microchip':
-        vendor_tool = 'libero'
+def setup_flow(chip, partname):
 
     # A simple linear flow
     flowpipe = ['import',
                 'syn',
                 'apr',
-                'bitgen',
-                'program']
+                'bitstream']
+
+    #TODO: add 'program' stage
 
     for i in range(len(flowpipe)-1):
         chip.add('flowgraph', flowpipe[i], 'output', flowpipe[i+1])
-
+        
     # Per step tool selection
     for step in flowpipe:
         if step == 'import':
             tool = 'verilator'
         elif step == 'syn':
-            if edaflow in ['openfpga', 'icestorm']:
-                tool = 'yosys'
-            else:
-                tool = vendor_tool
+            tool = 'yosys'
         elif step == 'apr':
-            if edaflow in ['icestorm']:
+            if re.match('ice', partname):
                 tool = 'nextpnr'
-            elif edaflow in ['openfpga']:
+            else:
                 tool = 'vpr'
-            else:
-                tool = vendor_tool
-        elif step == 'bitgen':
-            if edaflow in ['icestorm']:
+        elif step == 'bitstream':
+            if re.match('ice', partname):
                 tool = 'icepack'
-            elif edaflow in ['openfpga']:
+            else:
                 tool = 'openfpga'
-            else:
-                tool = vendor_tool
         elif step == 'program':
-            if edaflow in ['icestorm']:
-                tool = 'FAIL'
-            elif edaflow in ['openfpga']:
-                tool = 'FAIL'
+            if re.match('ice', partname):
+                tool = 'iceprog'
             else:
-                tool = vendor_tool
-
+                tool = 'openfpga'
         chip.set('flowgraph', step, 'tool', tool)
-
-
+            
 ##################################################
 if __name__ == "__main__":
 
@@ -76,7 +52,7 @@ if __name__ == "__main__":
     # create a chip instance
     chip = siliconcompiler.Chip(defaults=False)
     # load configuration
-    setup_flow(chip)
+    setup_flow(chip, "partname")
     # write out results
     chip.writecfg(output)
     chip.write_flowgraph(prefix + ".svg")
