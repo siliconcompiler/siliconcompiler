@@ -25,7 +25,7 @@ def test_gcd_server():
     subprocess.run(['sc',
                     gcd_ex_dir + '/gcd.v',
                     '-design', 'gcd',
-                    '-target', 'freepdk45',
+                    '-target', 'freepdk45_asicflow',
                     '-asic_diesize', '0 0 100.13 100.8',
                     '-asic_coresize', '10.07 11.2 90.25 91',
                     '-constraint', gcd_ex_dir + '/gcd.sdc',
