@@ -189,6 +189,22 @@ def schema_fpga(cfg):
         """
     }
 
+    cfg['fpga']['vendor'] = {
+        'switch': '-fpga_vendor',
+        'requirement': '!fpga_xml',
+        'type': 'str',
+        'lock': 'false',
+        'defvalue': [],
+        'short_help': 'FPGA Vendor Name',
+        'param_help': "fpga vendor <str>",
+        'example': ["cli: -fpga_vendor acme",
+                    "api:  chip.set('fpga', 'vendor', 'acme')"],
+        'help': """
+        Name of the FPGA vendor. Use to check part name and to select
+        the eda tool flow in case 'edaflow' is unspecified.
+        """
+    }
+
     cfg['fpga']['edaflow'] = {
         'switch': '-fpga_edaflow',
         'requirement': '!fpga_xml',
