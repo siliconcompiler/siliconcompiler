@@ -16,6 +16,7 @@ def test_icebreaker():
     # Run the build command for an iCE40 board.
     subprocess.run(['sc',
                     blinky_ex_dir + '/blinky.v',
+                    '-mode', 'fpga',
                     '-design', 'blinky',
                     '-target', 'icebreaker_fpga'],
                    stdout = subprocess.DEVNULL)
@@ -36,6 +37,7 @@ def test_ice40up5k_evn():
     # Run the build command for an iCE40 board.
     subprocess.run(['sc',
                     blinky_ex_dir + '/blinky.v',
+                    '-mode', 'fpga',
                     '-design', 'blinky',
                     '-target', 'ice40up5k-evn_fpga'],
                    stdout = subprocess.DEVNULL)
@@ -56,6 +58,7 @@ def test_orangecrab():
     # Run the build command for an ECP5 board.
     subprocess.run(['sc',
                     blinky_ex_dir + '/blinky.v',
+                    '-mode', 'fpga',
                     '-design', 'blinky',
                     '-target', 'orangecrab_fpga'],
                    stdout = subprocess.DEVNULL)
