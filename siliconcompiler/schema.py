@@ -205,25 +205,6 @@ def schema_fpga(cfg):
         """
     }
 
-    cfg['fpga']['edaflow'] = {
-        'switch': '-fpga_edaflow',
-        'requirement': '!fpga_xml',
-        'type': 'str',
-        'lock': 'false',
-        'defvalue': [],
-        'short_help': 'FPGA EDA Flow Name',
-        'param_help': "fpga vendor <str>",
-        'example': ["cli: -fpga_tool acme",
-                    "api:  chip.set('fpga', 'vendor', 'acme')"],
-        'help': """
-        Name of the FPGA implepmentation flow used by a generic
-        fpga flow target. For commercial tools with all inclusive tools,
-        the vendor name should be used. The variable is
-        optional for flows with customized flowgraphs and eda tool/step
-        setup parameters.
-        """
-    }
-
     cfg['fpga']['partname'] = {
         'switch': '-fpga_partname',
         'requirement': '!fpga_xml',
