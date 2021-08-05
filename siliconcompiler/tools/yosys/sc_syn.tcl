@@ -1,140 +1,98 @@
-########################################################
-# SC setup (!!DO NOT EDIT THIS SECTION!!)
-########################################################
-
+###############################
+# Reading SC Schema
+###############################
 source ./sc_manifest.tcl
-source ./sc_syn_ice40.tcl
-source ./sc_syn_openfpga.tcl
 
-set step syn
 set tool yosys
 
-# Setting script path to local or refdir
-set scriptdir [dict get $sc_cfg eda $tool $step refdir]
-if {[dict get $sc_cfg eda $tool $step copy] eq True} {
-    set scriptdir "./"
+set step syn
+
+###############################
+# Schema Adapter
+###############################
+
+set tool yosys
+
+#Handling remote/local script execution
+set sc_step   [dict get $sc_cfg status step]
+
+if {[dict get $sc_cfg eda $tool $sc_step copy] eq True} {
+    set sc_refdir "."
+} else {
+    set sc_refdir [dict get $sc_cfg eda $tool $sc_step refdir]
 }
 
-set topmodule    [dict get $sc_cfg design]
+# Design
+set sc_mode        [lindex [dict get $sc_cfg mode] end]
+set sc_design      [lindex [dict get $sc_cfg design] end]
+set sc_optmode     [lindex [dict get $sc_cfg optmode] end]
 
-set mode [dict get $sc_cfg mode]
-set target [dict get $sc_cfg target]
+set topmodule  $sc_design
 
-#Inputs
-set input_def       "inputs/$topmodule.def"
-set input_sdc       "inputs/$topmodule.sdc"
+if {$sc_mode eq "asic"} {
+    set sc_process     [lindex [dict get $sc_cfg pdk process] end]
+    set sc_mainlib     [lindex [dict get $sc_cfg asic targetlib] 0]
+    set sc_targetlibs  [dict get $sc_cfg asic targetlib]
+}
+
+# CONSTRAINTS
+if {[dict exists $sc_cfg constraint]} {
+    set sc_constraint [dict get $sc_cfg constraint]
+} else {
+    set sc_constraint  ""
+}
+
+########################################################
+# Design Inputs
+########################################################
 
 # TODO: the original OpenFPGA synth script used read_verilog with -nolatches. Is
 # that a flag we might want here?
 
 # If UHDM, ilang, or Verilog inputs exist, read them in (this allows mixed
 # inputs in designs). UHDM requires a version of Yosys built with this support.
-if { [file exists "inputs/$topmodule.uhdm"] } {
-    set input_uhdm "inputs/$topmodule.uhdm"
+
+if { [file exists "inputs/$sc_design.uhdm"] } {
+    set input_uhdm "inputs/$sc_design.uhdm"
     yosys read_uhdm $input_uhdm
 }
-if { [file exists "inputs/$topmodule.ilang"] } {
-    set input_ilang "inputs/$topmodule.ilang"
+if { [file exists "inputs/$sc_design.ilang"] } {
+    set input_ilang "inputs/$sc_design.ilang"
     yosys read_ilang $input_ilang
 }
-if { [file exists "inputs/$topmodule.v"] } {
-    set input_verilog "inputs/$topmodule.v"
+if { [file exists "inputs/$sc_design.v"] } {
+    set input_verilog "inputs/$sc_design.v"
     yosys read_verilog -sv $input_verilog
 }
 
-if {$mode eq "asic"} {
-    set targetlib   [dict get $sc_cfg asic targetlib]
-    #TODO: fix to handle multiple libraries
-    # (note that ABC and dfflibmap can only accept one library from Yosys, so
-    # for now everything needs to be concatenated into one library regardless)
-    if {$target eq "skywater130"} {
-        # TODO: hack, we use separate synth library for Skywater
-        set library_file [dict get $sc_cfg stdcell $targetlib model typical nldm lib_synth]
-    } else {
-        set library_file [dict get $sc_cfg stdcell $targetlib model typical nldm lib]
-    }
 
-    if {[dict exists $sc_cfg asic macrolib]} {
-        set sc_macrolibs [dict get $sc_cfg asic macrolib]
-    } else {
-        set sc_macrolibs  ""
-    }
-
-    # Read macro library files, and gather argument list to pass into stat later
-    # on (for area estimation).
-    set stat_libs ""
-    foreach libname $sc_macrolibs {
-        set macro_lib [dict get $sc_cfg macro $libname model typical nldm lib]
-        yosys read_liberty -lib $macro_lib
-        append stat_libs "-liberty $macro_lib "
-    }
-
-    #Outputs
-    set output_verilog  "outputs/$topmodule.v"
-    set output_yson     "outputs/$topmodule.yson"
-    set output_def      "outputs/$topmodule.def"
-    set output_sdc      "outputs/$topmodule.sdc"
-    set output_blif     "outputs/$topmodule.blif"
-
-    ########################################################
-    # Override top level parameters
-    ########################################################
-    yosys chparam -list
-    if {[dict exists $sc_cfg param]} {
-	dict for {key value} [dict get $sc_cfg param] {
-	    if !{[string is integer $value]} {
-		set value [concat \"$value\"]
-	    }
-	    yosys chparam -set $key $value $topmodule
+########################################################
+# Override top level parameters
+########################################################
+yosys chparam -list
+if {[dict exists $sc_cfg param]} {
+    dict for {key value} [dict get $sc_cfg param] {
+	if !{[string is integer $value]} {
+	    set value [concat \"$value\"]
 	}
-    }
-
-    ########################################################
-    # Synthesis
-    ########################################################
-
-    yosys synth "-flatten" -top $topmodule
-
-    yosys opt -purge
-
-    ########################################################
-    # Technology Mapping
-    ########################################################
-
-    yosys dfflibmap -liberty $library_file
-
-    yosys opt
-
-    yosys abc -liberty $library_file
-
-    yosys stat -liberty $library_file {*}$stat_libs
-
-    ########################################################
-    # Cleanup
-    ########################################################
-
-    yosys setundef -zero
-
-    yosys splitnets
-
-    yosys clean
-
-    ########################################################
-    # Write Netlist
-    ########################################################
-
-    yosys write_verilog -noattr -noexpr -nohex -nodec $output_verilog
-    yosys write_json $output_yson
-    yosys write_blif $output_blif
-    yosys show -prefix $topmodule -format dot
-} else {
-    # FPGA mode
-    set targetlist [split $target "_"]
-    set platform [lindex [lindex $targetlist 0] end]
-
-    if {$platform eq "ice40"} {
-        syn_ice40 $topmodule
-    } elseif {$platform eq "openfpga"} {
-        syn_openfpga $topmodule
+	yosys chparam -set $key $value $sc_design
     }
 }
+
+########################################################
+# Synthesis based on mode
+########################################################
+
+if {$sc_mode eq "fpga"} {
+    source syn_fpga.tcl
+} else {
+    source syn_asic.tcl
+}
+
+########################################################
+# Write Netlist
+########################################################
+yosys write_verilog -noattr -noexpr -nohex -nodec "outputs/$sc_design.v"
+yosys write_json "outputs/${sc_design}_netlist.json"
+yosys write_blif "outputs/$sc_design.blif"
+
