@@ -77,8 +77,8 @@ class Chip:
         #Adding scpath to python search path
         sys.path.extend(scpaths)
 
-        self.logger.debug("Python search path set to %s", sys.path)
-        self.logger.debug("SC search path set to %s", os.environ['SCPATH'])
+        self.logger.debug("Python search path is %s", sys.path)
+        self.logger.debug("Environment search path is %s", os.environ['SCPATH'])
 
         # Copy 'defvalue' to 'value'
         self._reset(defaults)
@@ -260,45 +260,33 @@ class Chip:
         if arg is not None:
             self.set('target', arg)
 
-        #Selecting fpga or asic mode
-        mode = self.get('mode')
-
-        # Checking that target is the right format
-        # <process/device>
-        # <process/device>_<eda>
-
         targetlist = str(self.get('target')[-1]).split('_')
+
+        if(len(targetlist) < 2 ):
+            self.logger.critical('Illegal string, syntax is <platform>_<edaflow>.')
+            sys.exit()
+
         platform = targetlist[0]
+        edaflow = targetlist[1]
 
-        #Load Platform (PDK or FPGA)
-        try:
-            packdir = "asic.targets"
+        #if self.get('mode')[-1] == 'asic':
+        print(sys.path)
+        if False:
+            #search for module in paths.
+            packdir = "foundry.targets"
             self.logger.debug("Loading platform module %s from %s", platform, packdir)
             module = importlib.import_module('.'+platform, package=packdir)
-        except ImportError:
-            packdir = "fpga.targets"
-            self.logger.debug("Loading platform module %s from %s", platform, packdir)
-            module = importlib.import_module('.'+platform, package=packdir)
 
-        setup_platform = getattr(module, "setup_platform")
-        setup_platform(self)
-
-        # Load library target definitions for ASICs
-        # Note the default fpga/asic flow when eda is left out in target name
-        mode = self.get('mode')[-1]
-        if  len(targetlist) == 2:
-            edaflow = targetlist[1]
-        else:
-            edaflow = 'asicflow'
-
-        if mode == 'asic':
+            setup_platform = getattr(module, "setup_platform")
+            setup_platform(self)
             setup_libs = getattr(module, "setup_libs")
             setup_libs(self)
             setup_design = getattr(module, "setup_design")
             setup_design(self)
 
         #Load EDA
-        packdir = "eda.targets"
+        # Search for eda flow
+        packdir = "eda"
         self.logger.debug("Loading EDA module %s from %s", edaflow, packdir)
         module = importlib.import_module('.'+edaflow, package=packdir)
         setup_flow = getattr(module, "setup_flow")
