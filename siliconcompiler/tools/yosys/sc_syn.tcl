@@ -3,8 +3,8 @@
 ########################################################
 
 source ./sc_manifest.tcl
-#source ./sc_syn_ice40.tcl
-#source ./sc_syn_openfpga.tcl
+source ./sc_syn_ice40.tcl
+source ./sc_syn_openfpga.tcl
 
 set step syn
 set tool yosys
