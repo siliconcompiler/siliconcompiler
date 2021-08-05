@@ -274,7 +274,7 @@ class Chip:
         #PDK/Foundry dynamic module load
         if self.get('mode')[-1] == 'asic':
             try:
-                searchdir = 'siliconcompiler.foundry'
+                searchdir = 'siliconcompiler.foundries'
                 module = importlib.import_module('.'+platform, package=searchdir)
                 setup_platform = getattr(module, "setup_platform")
                 setup_platform(self)
@@ -286,9 +286,12 @@ class Chip:
             except:
                 self.logger.critical("Platform %s not found.", platform)
                 sys.exit()
+        else:
+            self.set('fpga','partname', platform)    
 
         #EDA flow load
         try:
+
             searchdir = 'siliconcompiler.flows'
             module = importlib.import_module('.'+edaflow, package=searchdir)
             setup_flow = getattr(module, "setup_flow")
@@ -423,7 +426,7 @@ class Chip:
                 The key-tree is supplied in order. If the argument list is empty,
                 all Chip dictionary trees are returned as as a list of lists.
                 Specifying a non-existent key tree results in a program exit.
-
+ss
         Returns:
             A list of keys found for the key tree supplied.
 
