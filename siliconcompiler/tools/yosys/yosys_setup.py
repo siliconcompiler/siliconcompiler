@@ -85,6 +85,6 @@ if __name__ == "__main__":
     # create a chip instance
     chip = siliconcompiler.Chip(defaults=False)
     # load configuration
-    setup_tool(chip, step='synr')
+    setup_tool(chip, step='syn')
     # write out results
     chip.writecfg(output)
