@@ -10,7 +10,7 @@ import siliconcompiler
 def setup_tool(chip, step):
 
      tool = 'klayout'
-     refdir = 'eda/klayout'
+     refdir = 'siliconcompiler/tools/klayout'
 
      chip.set('eda', tool, step, 'threads', '4')
      chip.set('eda', tool, step, 'format', 'json')
@@ -25,10 +25,10 @@ def setup_tool(chip, step):
           chip.set('eda', tool, step, 'option', '-zz')
 
      scriptdir = os.path.dirname(os.path.abspath(__file__))
-     sc_root   =  re.sub('siliconcompiler/eda/klayout',
+     sc_root   =  re.sub('siliconcompiler/siliconcompiler/tools/klayout',
                          'siliconcompiler',
                          scriptdir)
-     sc_path = sc_root + '/asic'
+     sc_path = sc_root + '/third_party/foundry'
 
      # TODO: should support multiple target libs?
      libname = chip.get('asic', 'targetlib')[-1]

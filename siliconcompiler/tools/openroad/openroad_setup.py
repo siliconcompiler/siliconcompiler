@@ -16,7 +16,7 @@ def setup_tool(chip, step):
 
     # default tool settings, note, not additive!
     tool = 'openroad'
-    refdir = 'eda/openroad'
+    refdir = 'siliconcompiler/tools/openroad'
     chip.set('eda', tool, step, 'format', 'tcl')
     chip.set('eda', tool, step, 'vendor', tool)
     chip.set('eda', tool, step, 'exe', tool)

@@ -16,7 +16,7 @@ def setup_tool(chip, step):
     chip.logger.debug("Setting up Yosys")
 
     tool = 'yosys'
-    refdir = 'eda/yosys'
+    refdir = 'siliconcompiler/tools/yosys'
     chip.add('eda', tool, step, 'format', 'tcl')
     chip.add('eda', tool, step, 'copy', 'true')
     chip.add('eda', tool, step, 'vendor', 'yosys')
