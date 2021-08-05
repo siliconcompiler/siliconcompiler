@@ -292,7 +292,7 @@ class Chip:
             searchdir = 'siliconcompiler.flows'
             module = importlib.import_module('.'+edaflow, package=searchdir)
             setup_flow = getattr(module, "setup_flow")
-            setup_flow(self, name=platform)
+            setup_flow(self, platform)
             self.logger.info("Loaded eda flow %s", edaflow)
         except:
             self.logger.critical("EDA flow %s not found.", edaflow)
