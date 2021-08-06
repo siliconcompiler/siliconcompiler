@@ -11,7 +11,40 @@ from siliconcompiler.schema import schema_path
 ################################
 
 def setup_tool(chip, step):
-    ''' Tool specific function to run before step execution
+    ''' OpenROAD is an integrated chip physical design tool that takes a design
+    from synthesized netlist to routed layout. 
+
+    Implementation steps done by OpenROAD include:
+    * Physical database management
+    * DEF/LEF/Liberty/Verilog/SDC file interfaces
+    * Static timing analysis
+    * Floorplan initialize
+    * Pin placement
+    * Tap cell insertion
+    * Power grid inesertion
+    * Macro Placement
+    * Global placement of standard cells
+    * Electrical design rule repair
+    * Clock tree synthesis
+    * Timing driven optimization
+    * Filler insertion
+    * Global routing (route guides for detailed routing)
+    * Detailed routing
+  
+    SC Configuration:
+    All communiucation from siliconcompiler to openroad is done through
+    the file 'sc_manifeset.tcl'. The entry point for all openroad based steps 
+    is the 'sc_apr.tcl' script. The script handles general input/output 
+    function and is the main interface to SC. Execution then branches off to
+    separate files based on the step being executed (place, route, etc).
+
+    Documentation:
+    https://github.com/The-OpenROAD-Project/OpenROAD
+
+    Source code: 
+    https://github.com/The-OpenROAD-Project/OpenROAD
+    https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts
+
     '''
 
     # default tool settings, note, not additive!
