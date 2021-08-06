@@ -8,7 +8,7 @@ import re
 ####################################################
 def setup_flow(chip, partname):
     '''
-    This is a standard open source ASIC flow based on high quality tools.
+    This is a standard open source FPGA flow based on high quality tools.
     The flow supports SystemVerilog, VHDL, and mixed SystemVerilog/VHDL 
     flows. The asic flow is a linera pipeline that includes the 
     stages below. To skip the last three verification steps, you can
