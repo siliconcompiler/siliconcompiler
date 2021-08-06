@@ -45,7 +45,6 @@ def setup_tool(chip, step):
         chip.logger.error('Pin constraint file required')
         os.sys.exit()
 
-
     topmodule = chip.get('design')[-1]
     options.append('--pcf ' + pcf_file)
     options.append('--json inputs/' + topmodule + '_netlist.json')
