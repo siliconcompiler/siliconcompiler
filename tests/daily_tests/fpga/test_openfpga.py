@@ -17,7 +17,10 @@ def test_openfpga():
     subprocess.run(['sc',
                     openfpga_ex_dir + '/and2.v',
                     '-design', 'and2',
-                    '-target', 'openfpga_vpr'],
+                    '-fpga_arch', openfpga_ex_dir + '/k6_frac_N10_40nm_openfpga.xml',
+                    '-fpga_arch', openfpga_ex_dir + '/k6_frac_N10_40nm_vpr.xml', 
+                    '-mode', 'fpga',
+                    '-target', 'openfpga_fpgaflow'],
                    stdout = subprocess.DEVNULL)
 
     # Verify that a bitstream was generated

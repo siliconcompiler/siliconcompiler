@@ -35,7 +35,7 @@ def setup_tool(chip, step):
         # https://github.com/lnis-uofu/OpenFPGA/blob/c393ee695975c98342b8708c5bee19b677f4a062/openfpga_flow/scripts/run_fpga_flow.py#L473
 
         lut_size = None
-        for arch_file in chip.get('fpga', 'xml'):
+        for arch_file in chip.get('fpga', 'arch'):
             tree = ET.parse(schema_path(arch_file))
             root = tree.getroot()
             if root.tag == 'architecture':
@@ -44,8 +44,8 @@ def setup_tool(chip, step):
                                 if pb_type.get("class") == "lut"])
 
         if lut_size == None:
-            chip.logger.error('Could not infer FPGA LUT size from architecture \
-                files')
+            chip.logger.error('Could not infer FPGA LUT size from architecture '
+                'files')
             os.sys.exit()
 
         with open('fpga_lutsize.tcl', 'w') as f:
