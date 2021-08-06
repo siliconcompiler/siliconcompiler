@@ -141,8 +141,7 @@ class Floorplan:
             with open(lef_path, 'r') as f:
                 lef_data = lef_parser.lib_parse(f.read())
 
-            for name in self.chip.get('macro', macrolib, 'cells'):
-                if name == 'default': continue
+            for name in self.chip.getkeys('macro', macrolib, 'cells'):
                 tech_name = self.chip.get('macro', macrolib, 'cells', name)[-1]
                 if tech_name in lef_data['macros']:
                     width, height = lef_data['macros'][tech_name]['size']
@@ -155,18 +154,24 @@ class Floorplan:
         # extract layers based on stackup
         stackup = self.chip.get('asic', 'stackup')[-1]
         self.layers = {}
-        for name, layer in self.chip.get('pdk', 'grid')[stackup].items():
-            if name == 'default': continue
-            self.layers[name] = {}
-            pdk_name = layer['name']['value'][-1]
-            self.layers[name]['name'] = pdk_name
-            self.layers[name]['width'] = float(tech_lef_data['LAYER'][pdk_name]['WIDTH'][-1])
-            self.layers[name]['direction'] = tech_lef_data['LAYER'][pdk_name]['DIRECTION'][-1]
-            self.layers[name]['xpitch'] = float(layer['xpitch']['value'][-1])
-            self.layers[name]['ypitch'] = float(layer['ypitch']['value'][-1])
-            self.layers[name]['xoffset'] = float(layer['xoffset']['value'][-1])
-            self.layers[name]['yoffset'] = float(layer['yoffset']['value'][-1])
+        for name in self.chip.getkeys('pdk', 'grid', stackup):
+            pdk_name = self.chip.get('pdk', 'grid', stackup, name, 'name')[-1]
+            xpitch = float(self.chip.get('pdk', 'grid', stackup, name, 'xpitch')[-1])
+            ypitch = float(self.chip.get('pdk', 'grid', stackup, name, 'ypitch')[-1])
+            xoffset = float(self.chip.get('pdk', 'grid', stackup, name, 'xoffset')[-1])
+            yoffset = float(self.chip.get('pdk', 'grid', stackup, name, 'yoffset')[-1])
+            width = float(tech_lef_data['LAYER'][pdk_name]['WIDTH'][-1])
+            direction = tech_lef_data['LAYER'][pdk_name]['DIRECTION'][-1]
 
+            self.layers[name] = {
+                'name': pdk_name,
+                'width': width,
+                'direction': direction,
+                'xpitch': xpitch,
+                'ypitch': ypitch,
+                'xoffset': xoffset,
+                'yoffset': yoffset
+            }
 
     def create_die_area(self, width, height, core_area=None, generate_rows=True,
                         generate_tracks=True):
