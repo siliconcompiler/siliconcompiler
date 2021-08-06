@@ -28,12 +28,6 @@ def setup_platform(chip):
     edgemargin = '2'
     d0 = '1.25'
 
-    pdkdir = '/'.join(["third_party/foundry",
-                       foundry,
-                       process,
-                       'pdk',
-                       rev])
-
     #Checking that all parameters have been set
     chip.set('pdk','node','45')
     chip.set('pdk','stackup','m10')
