@@ -20,7 +20,7 @@ def test_failure_notquiet():
     chip.add('design', 'bad')
     chip.set('asic', 'diesize', '0 0 10 10')
     chip.set('asic',  'coresize', '1 1 9 9')
-    chip.set('target', 'freepdk45')
+    chip.set('target', 'freepdk45_asicflow')
     chip.set_jobid()
 
     chip.target()
@@ -46,7 +46,7 @@ def test_failure_quiet():
     chip.add('design', 'bad')
     chip.set('asic', 'diesize', '0 0 10 10')
     chip.set('asic',  'coresize', '1 1 9 9')
-    chip.set('target', 'freepdk45')
+    chip.set('target', 'freepdk45_asicflow')
     chip.set_jobid()
 
     chip.target()

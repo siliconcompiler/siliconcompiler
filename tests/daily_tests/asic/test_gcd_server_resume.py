@@ -29,7 +29,7 @@ def test_gcd_server():
     sproc = subprocess.run(['sc',
                             gcd_ex_dir + '/gcd.v',
                             '-design', 'gcd',
-                            '-target', 'freepdk45',
+                            '-target', 'freepdk45_asicflow',
                             '-stop', 'floorplan',
                             '-asic_diesize', '0 0 100.13 100.8',
                             '-asic_coresize', '10.07 11.2 90.25 91',
@@ -42,7 +42,7 @@ def test_gcd_server():
     # Run another 'sc' step to resume, complete, and delete the prior job run.
     sproc = subprocess.run(['sc',
                             '/dev/null',
-                            '-cfg', 'build/gcd/job1/floorplan/sc_schema.json',
+                            '-cfg', 'build/gcd/job1/floorplan/sc_manifest.json',
                             '-dir', 'build/',
                             '-start', 'place',
                             '-stop', 'export',

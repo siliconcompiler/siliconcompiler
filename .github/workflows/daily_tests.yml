@@ -6,7 +6,7 @@ name: 'Daily CI Tests'
 
 jobs:
   daily_tests_job:
-    timeout-minutes: 10
+    timeout-minutes: 20
     runs-on: self-hosted
     name: 'ASIC test builds'
     steps:
