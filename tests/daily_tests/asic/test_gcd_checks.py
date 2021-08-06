@@ -18,7 +18,7 @@ def test_gcd_checks():
     chip.add('design', 'gcd')
     chip.add('clock', 'clock_name', 'pin', 'clk')
     chip.add('constraint', gcd_ex_dir + 'gcd.sdc')
-    chip.set('target', 'skywater130_asic-checked')
+    chip.set('target', 'skywater130_asicflow')
     chip.set('asic', 'diesize', '0 0 200.56 201.28')
     chip.set('asic', 'coresize', '20.24 21.76 180.32 184.96')
     chip.set_jobid()
