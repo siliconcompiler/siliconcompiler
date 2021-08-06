@@ -14,7 +14,7 @@ def setup_tool(chip, step):
     ''' Sets up default settings on a per step basis
     '''
 
-    refdir = 'eda/openfpga'
+    refdir = 'siliconcompiler/tools/openfpga'
 
     tool = 'openfpga'
     chip.add('eda', tool, step, 'threads', '4')
@@ -23,7 +23,12 @@ def setup_tool(chip, step):
     chip.add('eda', tool, step, 'vendor', 'openfpga')
     chip.add('eda', tool, step, 'refdir', refdir)
     chip.add('eda', tool, step, 'option', '-batch -f ' + OPENFPGA_SCRIPT)
-    chip.add('eda', tool, step, 'exe', 'openfpga')
+    if step == 'apr':
+        chip.add('eda', tool, step, 'exe', 'openfpga')
+    elif step == 'bitstream':
+        # bitstream step is currently a NOP, since apr and bitstream generation
+        # are integrated in shell script
+        chip.add('eda', tool, step, 'exe', 'cp -r inputs/ outputs/; echo')
     chip.add('eda', tool, step, 'copy', 'true')
 
     topmodule = chip.cfg['design']['value'][-1]
@@ -35,7 +40,7 @@ def setup_tool(chip, step):
     vpr_arch_file = None
     openfpga_arch_file = None
 
-    for arch_file in chip.get('fpga', 'xml'):
+    for arch_file in chip.get('fpga', 'arch'):
         path = schema_path(arch_file)
         root_tag = ET.parse(path).getroot().tag
         if root_tag == 'architecture':
@@ -51,7 +56,9 @@ def setup_tool(chip, step):
         os.sys.exit()
 
     # Fill in OpenFPGA shell script template
-    openfpga_script_template = schema_path('eda/openfpga/openfpga_script_template.openfpga')
+    scriptdir = os.path.dirname(os.path.abspath(__file__))
+
+    openfpga_script_template = f'{scriptdir}/openfpga_script_template.openfpga'
 
     tmpl_vars = {'VPR_ARCH_FILE': vpr_arch_file,
                  'VPR_TESTBENCH_BLIF': input_blif,

@@ -53,7 +53,10 @@ def setup_flow(chip, partname):
             if re.match('ice', partname):
                 tool = 'nextpnr'
             else:
-                tool = 'vpr'
+                # TODO: eventually we want to drive vpr directly without going
+                # through openfpga
+                # tool = 'vpr'
+                tool = 'openfpga'
         elif step == 'bitstream':
             if re.match('ice', partname):
                 tool = 'icepack'
