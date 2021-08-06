@@ -410,7 +410,7 @@ class Chip:
         keys = list(args)
         for k in keys:
             if isinstance(k, list):
-                self.logger.critical("List keys not allowed. Key=%s", k)
+                self.logger.critical("Illegal format, keys cannot be lists. Keys=%s", k)
                 sys.exit()
         return self._search(self.cfg, *args, field=field, mode='get')
 
