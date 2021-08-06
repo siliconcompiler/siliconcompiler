@@ -56,9 +56,13 @@ def setup_flow(chip, process):
                 'dfm',
                 'export',
                 # TODO: sta is currently broken, don't include in flow
-                # 'sta',
-                'lvs',
-                'drc']
+                # 'sta'
+                ]
+
+    # TODO: implement these steps for processes other than Skywater
+    verification_steps = [ 'lvs', 'drc']
+    if process == 'skywater130':
+        flowpipe += verification_steps
 
     for i in range(len(flowpipe)-1):
         chip.add('flowgraph', flowpipe[i], 'output', flowpipe[i+1])

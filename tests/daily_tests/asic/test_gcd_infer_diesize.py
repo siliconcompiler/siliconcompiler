@@ -19,7 +19,7 @@ def test_gcd_infer_diesize():
     subprocess.run(['sc',
                     gcd_ex_dir + '/gcd.v',
                     '-design', 'gcd',
-                    '-target', 'freepdk45',
+                    '-target', 'freepdk45_asicflow',
                     '-asic_density', '10',
                     '-asic_aspectratio', '1',
                     '-asic_coremargin', '26.6',

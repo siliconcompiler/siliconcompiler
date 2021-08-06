@@ -16,7 +16,7 @@ def test_gcd_floorplan():
     subprocess.run(['sc',
                     gcd_ex_dir + '/gcd.v',
                     '-design', 'gcd',
-                    '-target', 'freepdk45',
+                    '-target', 'freepdk45_asicflow',
                     '-asic_floorplan', gcd_ex_dir + '/floorplan.py',
                     '-constraint', gcd_ex_dir + '/gcd.sdc',
                     '-loglevel', 'NOTSET'],
