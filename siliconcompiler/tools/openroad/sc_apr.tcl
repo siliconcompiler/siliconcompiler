@@ -18,7 +18,7 @@ set openroad_cluster_size 30
 
 set target [dict get $sc_cfg target]
 set targetlist [split $target _]
-set target_tech [lindex $targetlist 0]
+set target_tech [lindex [lindex $targetlist 0] end]
 
 if {$target_tech eq "freepdk45"} {
     set openroad_place_density 0.3
