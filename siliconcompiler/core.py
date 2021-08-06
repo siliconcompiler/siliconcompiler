@@ -287,7 +287,7 @@ class Chip:
                 self.logger.critical("Platform %s not found.", platform)
                 sys.exit()
         else:
-            self.set('fpga','partname', platform)    
+            self.set('fpga','partname', platform)
 
         #EDA flow load
         try:
@@ -387,8 +387,7 @@ class Chip:
     ###########################################################################
     def get(self, *args, field='value'):
         '''
-        Returns a list from the Chip dictionary based on the key tree supplied.
-
+        Returns value from the Chip dictionary based on the key tree supplied.
 
         Args:
             *args (string): A non-keyworded variable length argument list to
@@ -397,7 +396,8 @@ class Chip:
             field (string): Specifies the leaf-key value to fetch.
 
         Returns:
-            A list of values found for the key tree supplied.
+            Value(s) found for the key tree supplied. The returned value
+        can be a boolean, list, or string depending on the parameter type.
 
         Examples:
             >>> get('pdk', 'foundry')
@@ -493,10 +493,6 @@ ss
 
         all_args = list(args)
 
-        # Convert val to list if not a list
-        if type(all_args[-1]) != list:
-            all_args[-1] = [all_args[-1]]
-
         return self._search(self.cfg, *all_args, field=field, mode='set')
 
     ###########################################################################
@@ -522,9 +518,6 @@ ss
         all_args = list(args)
 
         # Convert val to list if not a list
-        if type(all_args[-1]) != list:
-            all_args[-1] = [str(all_args[-1])]
-
         return self._search(self.cfg, *all_args, field=field, mode='add')
 
 
@@ -552,12 +545,14 @@ ss
                 self.logger.error('Search failed, \'%s\' is not a valid leaf cell key', param)
                 sys.exit()
             #check legality of value
-            ok = schema_check(cfg[param],param,val)
-            if mode == 'set':
-                cfg[param][field] = val
-            else:
-                cfg[param][field].extend(val)
-            return cfg[param][field]
+            ok = schema_typecheck(self, cfg[param], param, val)
+            if ok:
+                if mode == 'set':
+                    cfg[param][field] = val
+                elif type(val) == list:
+                    cfg[param][field].extend(val)
+                #return field
+                return cfg[param][field]
         #get leaf cell (all_args=param)
         elif len(all_args) == 1:
             if mode == 'getkeys':
