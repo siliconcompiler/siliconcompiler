@@ -38,4 +38,4 @@ jobs:
           python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
           source $GITHUB_WORKSPACE/clean_env/bin/activate
           pip3 install -r $GITHUB_WORKSPACE/requirements.txt -e $GITHUB_WORKSPACE/.
-          python3 -m unittest
+          pytest $GITHUB_WORKSPACE/tests/quick_tests/python/
