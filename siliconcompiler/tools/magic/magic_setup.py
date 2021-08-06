@@ -70,12 +70,13 @@ def post_process(chip, step):
                 if errors:
                     chip.set('metric', step, 'real', 'errors', errors.group(1))
     elif step == 'lvs':
-        # Need to pass along DEF to export stage
-        shutil.copy(f'inputs/{design}.def', f'outputs/{design}.def')
-
         # Export metrics
         lvs_failures = count_lvs.count_LVS_failures(f'outputs/{design}.lvs.json')
         chip.set('metric', step, 'real', 'errors', str(lvs_failures[0]))
+
+    # Need to pass along DEF and GDS to future verification stages
+    shutil.copy(f'inputs/{design}.def', f'outputs/{design}.def')
+    shutil.copy(f'inputs/{design}.gds', f'outputs/{design}.gds')
 
     #TODO: return error code
     return 0

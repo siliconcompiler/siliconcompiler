@@ -55,7 +55,8 @@ def setup_flow(chip, process):
                 'route',
                 'dfm',
                 'export',
-                'sta',
+                # TODO: sta is currently broken, don't include in flow
+                # 'sta',
                 'lvs',
                 'drc']
 

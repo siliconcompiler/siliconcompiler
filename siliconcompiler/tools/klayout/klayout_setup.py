@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 
 import siliconcompiler
 
@@ -87,6 +88,10 @@ def setup_tool(chip, step):
 def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
+    # Pass along files needed for future verification steps
+    design = chip.get('design')[-1]
+    shutil.copy(f'inputs/{design}.def', f'outputs/{design}.def')
+    shutil.copy(f'inputs/{design}.sdc', f'outputs/{design}.sdc')
+    shutil.copy(f'inputs/{design}.v', f'outputs/{design}.v')
 
-    #TODO: implement error check
     return 0
