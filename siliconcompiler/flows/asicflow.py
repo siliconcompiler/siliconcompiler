@@ -5,8 +5,46 @@ import siliconcompiler
 ####################################################
 # Flowgraph Setup
 ####################################################
-def setup_flow(chip, platform):
+def setup_flow(chip, process):
+    '''
+    This is a standard open source ASIC flow based on high quality tools.
+    The flow supports SystemVerilog, VHDL, and mixed SystemVerilog/VHDL 
+    flows. The asic flow is a linera pipeline that includes the 
+    stages below. To skip the last three verification steps, you can
+    specify "-stop export" at the command line.
 
+    import: Sources are collected and packaged for compilation.
+            A design manifest is created to simplify design sharing.
+
+    syn: Translates RTL to netlist using Yosys
+
+    synopt: Timing driven synthesis
+
+    floorplan: Floorplanning
+
+    place: Gloal placement
+
+    cts: Clock tree synthesis
+
+    route: Global and detailed routing
+
+    dfm: Metal fill, atenna fixes and any other post routing steps
+
+    export: Merge library GDS files with design DEF to produce a single GDS
+
+    sta: Signoff static timing analysis
+
+    lvs: Layout versus schematic check
+
+    drc: Design rule check
+  
+    Args:
+        process (string): Specifies the the process of the compilation.
+            Used in complex flows and reserved for future use.
+
+    '''
+
+    
     # A simple linear flow
     flowpipe = ['import',
                 'syn',
@@ -16,7 +54,10 @@ def setup_flow(chip, platform):
                 'cts',
                 'route',
                 'dfm',
-                'export']
+                'export',
+                'sta',
+                'lvs',
+                'drc']
 
     for i in range(len(flowpipe)-1):
         chip.add('flowgraph', flowpipe[i], 'output', flowpipe[i+1])
@@ -27,12 +68,16 @@ def setup_flow(chip, platform):
             #tool = 'morty'
             #tool = 'surelog'
             tool = 'verilator'
+        elif step == 'importvhdl':
+            tool = 'ghdl'
         elif step == 'convert':
             tool = 'sv2v' 
         elif step == 'syn':
             tool = 'yosys'
         elif step == 'export':
             tool = 'klayout'
+        elif step in ('lvs', 'drc'):
+            tool = 'magic' 
         else:
             tool = 'openroad'
         chip.set('flowgraph', step, 'tool', tool)

@@ -9,6 +9,14 @@ import siliconcompiler
 ####################################################
 
 def setup_platform(chip):
+    '''
+    A setup package for the open source freepdk45 virtual PDK that
+    includes the technology files and standard cell libraries 
+    needed for basic RTL to GDSII compilation.
+
+    Documentation:
+    
+    '''
 
     foundry = 'virtual'
     process = 'freepdk45'
