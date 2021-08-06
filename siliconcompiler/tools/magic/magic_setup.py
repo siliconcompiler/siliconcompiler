@@ -2,7 +2,7 @@ import os
 import re
 import shutil
 
-import count_lvs
+from siliconcompiler.tools.magic import count_lvs
 
 import siliconcompiler
 from siliconcompiler.floorplan import *
@@ -17,7 +17,7 @@ def setup_tool(chip, step):
     '''
 
     tool = 'magic'
-    refdir = 'eda/magic'
+    refdir = 'siliconcompiler/tools/magic'
 
     target_tech = chip.cfg['target']['value'][-1].split('_')[0]
     magicrc = '%s/magic/%s.magicrc'%(
@@ -86,10 +86,10 @@ def post_process(chip, step):
 
 def pdk_path(chip):
     scriptdir = os.path.dirname(os.path.abspath(__file__))
-    sc_root   =  re.sub('siliconcompiler/eda/magic',
+    sc_root   =  re.sub('siliconcompiler/siliconcompiler/tools/magic',
                         'siliconcompiler',
                         scriptdir)
-    sc_path = sc_root + '/asic'
+    sc_path = sc_root + '/third_party/foundry'
 
     libname = chip.get('asic', 'targetlib')[-1]
     pdk_rev = chip.get('pdk', 'rev')[-1]

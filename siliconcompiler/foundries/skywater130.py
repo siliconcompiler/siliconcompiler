@@ -27,7 +27,7 @@ def setup_platform(chip):
     vscribe = '0.1'
     edgemargin = '2'
     
-    pdkdir = '/'.join(["asic",
+    pdkdir = '/'.join(['third_party/foundry',
                        foundry,
                        process,
                        'pdk',
@@ -120,7 +120,7 @@ def setup_libs(chip, vendor=None):
     # TODO: should I be using a different name for the corner
     corner = 'typical'
 
-    libdir = '/'.join(["asic",
+    libdir = '/'.join(['third_party/foundry',
                        foundry,
                        process,
                        'libs',
