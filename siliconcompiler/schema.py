@@ -1673,6 +1673,56 @@ def schema_eda(cfg):
         """
     }
 
+    # pre execution script
+    cfg['eda'][tool][step]['prescript'] = {
+        'switch': '-eda_prescript',
+        'requirement': 'optional',
+        'type': 'file',
+        'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'hash': [],
+        'date': [],
+        'author': [],
+        'signature': [],
+        'short_help': 'Pre step script',
+        'param_help': "eda toolvar stepvar prescript <file>",
+        'example': ["cli: -eda_prescript 'yosys syn pre.tcl'",
+                    "api: chip.set('eda', 'yosys','syn','prescript','pre.tcl')"],
+        'help': """
+        Path to a user supplied script to execute after reading in the design
+        but before the main execution stage of the step. Exact entry point
+        depends on the step and main script being executed. An example 
+        of a prescript entry point would be immediately before global
+        placement.
+        """
+    }
+    
+    # post execution script
+    cfg['eda'][tool][step]['postcript'] = {
+        'switch': '-eda_postscript',
+        'requirement': 'optional',
+        'type': 'file',
+        'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'hash': [],
+        'date': [],
+        'author': [],
+        'signature': [],
+        'short_help': 'Post step script',
+        'param_help': "eda toolvar stepvar postscript <file>",
+        'example': ["cli: -eda_postscript 'yosys syn post.tcl'",
+                    "api: chip.set('eda', 'yosys','syn','postscript','post.tcl')"],
+        'help': """
+        Path to a user supplied script to execute after reading in the design
+        but before the main execution stage of the step. Exact entry point
+        depends on the step and main script being executed. An example 
+        of a postscript entry point would be immediately after global
+        placement.
+        """
+    }
+
     # copy
     cfg['eda'][tool][step]['copy'] = {
         'switch': '-eda_copy',
