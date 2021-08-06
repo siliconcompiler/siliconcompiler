@@ -77,8 +77,8 @@ class Chip:
         #Adding scpath to python search path
         sys.path.extend(scpaths)
 
-        self.logger.debug("Python search path set to %s", sys.path)
-        self.logger.debug("SC search path set to %s", os.environ['SCPATH'])
+        self.logger.debug("Python search path is %s", sys.path)
+        self.logger.debug("Environment search path is %s", os.environ['SCPATH'])
 
         # Copy 'defvalue' to 'value'
         self._reset(defaults)
@@ -214,12 +214,14 @@ class Chip:
     def target(self, arg=None):
         '''
         Searches the SCPATH and PYTHON paths for the target specified by the
-        Chip 'target' parameter. The target can be supplied as a single
-        alphanumeric string or as a two alphanumeric strings separated by
-        a an underscore ('_'). The first string part represents the technology
-        platform, while the second string part represents the eda flow.
-        If no second second string part is supplied, then a default eda
-        flow is used based ont he 'mode'. Legal modes are 'fgpga' and 'asic'.
+        Chip 'target' parameter. The target is supplied as a  two alphanumeric
+        strings separated by an underscore ('_'). The first string part
+        represents the technology platform, while the second string part
+        represents the eda flow.
+
+        In order of priority,  the search path sequence is:
+        1.) Try finding the target in the built in directory
+        2.) Search the rest of the paths
 
         The dynamically loaded target platform module must contain three
         standard functions. There is no functionality requirements on the
@@ -260,49 +262,46 @@ class Chip:
         if arg is not None:
             self.set('target', arg)
 
-        #Selecting fpga or asic mode
-        mode = self.get('mode')
-
-        # Checking that target is the right format
-        # <process/device>
-        # <process/device>_<eda>
-
         targetlist = str(self.get('target')[-1]).split('_')
+
+        if(len(targetlist) < 2 ):
+            self.logger.critical('Illegal string, syntax is <platform>_<edaflow>.')
+            sys.exit()
+
         platform = targetlist[0]
+        edaflow = targetlist[1]
 
-        #Load Platform (PDK or FPGA)
-        try:
-            packdir = "asic.targets"
-            self.logger.debug("Loading platform module %s from %s", platform, packdir)
-            module = importlib.import_module('.'+platform, package=packdir)
-        except ImportError:
-            packdir = "fpga.targets"
-            self.logger.debug("Loading platform module %s from %s", platform, packdir)
-            module = importlib.import_module('.'+platform, package=packdir)
-
-        setup_platform = getattr(module, "setup_platform")
-        setup_platform(self)
-
-        # Load library target definitions for ASICs
-        # Note the default fpga/asic flow when eda is left out in target name
-        mode = self.get('mode')[-1]
-        if  len(targetlist) == 2:
-            edaflow = targetlist[1]
+        #PDK/Foundry dynamic module load
+        if self.get('mode')[-1] == 'asic':
+            try:
+                searchdir = 'siliconcompiler.foundries'
+                module = importlib.import_module('.'+platform, package=searchdir)
+                setup_platform = getattr(module, "setup_platform")
+                setup_platform(self)
+                setup_libs = getattr(module, "setup_libs")
+                setup_libs(self)
+                setup_design = getattr(module, "setup_design")
+                setup_design(self)
+                self.logger.info("Loaded platform %s", platform)
+            except:
+                self.logger.critical("Platform %s not found.", platform)
+                sys.exit()
         else:
-            edaflow = 'asicflow'
+            self.set('fpga','partname', platform)    
 
-        if mode == 'asic':
-            setup_libs = getattr(module, "setup_libs")
-            setup_libs(self)
-            setup_design = getattr(module, "setup_design")
-            setup_design(self)
+        #EDA flow load
+        try:
 
-        #Load EDA
-        packdir = "eda.targets"
-        self.logger.debug("Loading EDA module %s from %s", edaflow, packdir)
-        module = importlib.import_module('.'+edaflow, package=packdir)
-        setup_flow = getattr(module, "setup_flow")
-        setup_flow(self, name=platform)
+            searchdir = 'siliconcompiler.flows'
+            module = importlib.import_module('.'+edaflow, package=searchdir)
+            setup_flow = getattr(module, "setup_flow")
+            setup_flow(self, platform)
+            self.logger.info("Loaded eda flow %s", edaflow)
+        except:
+            self.logger.critical("EDA flow %s not found.", edaflow)
+            sys.exit()
+
+
 
     ###########################################################################
     def help(self, *args, file=None, mode='full', format='txt'):
@@ -427,7 +426,7 @@ class Chip:
                 The key-tree is supplied in order. If the argument list is empty,
                 all Chip dictionary trees are returned as as a list of lists.
                 Specifying a non-existent key tree results in a program exit.
-
+ss
         Returns:
             A list of keys found for the key tree supplied.
 
@@ -1207,9 +1206,9 @@ class Chip:
 
         # Dynamic EDA tool module load
         tool = self.get('flowgraph', step, 'tool')[-1]
-        packdir = "eda." + tool
+        searchdir = "siliconcompiler.tools." + tool
         modulename = '.'+tool+'_setup'
-        module = importlib.import_module(modulename, package=packdir)
+        module = importlib.import_module(modulename, package=searchdir)
         setup_tool = getattr(module, "setup_tool")
         setup_tool(self, step)
 

@@ -5,7 +5,7 @@ import siliconcompiler
 ####################################################
 # Flowgraph Setup
 ####################################################
-def setup_flow(chip, name=None):
+def setup_flow(chip, platform):
 
     # A simple linear flow
     flowpipe = ['import',
@@ -44,7 +44,7 @@ if __name__ == "__main__":
     # create a chip instance
     chip = siliconcompiler.Chip(defaults=False)
     # load configuration
-    setup_flow(chip)
+    setup_flow(chip, "freepdk45")
     # write out results
     chip.writecfg(output)
     chip.write_flowgraph(prefix + ".svg")

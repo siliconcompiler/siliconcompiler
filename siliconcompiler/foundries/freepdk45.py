@@ -21,13 +21,13 @@ def setup_platform(chip):
     vscribe = '0.1'
     edgemargin = '2'
     d0 = '1.25'
-    
-    pdkdir = '/'.join(["asic",
+
+    pdkdir = '/'.join(["third_party/foundry",
                        foundry,
                        process,
                        'pdk',
                        rev])
-    
+
 
     #if you are calling this file, you are in asic mode
     chip.set('mode','asic')
@@ -58,23 +58,23 @@ def setup_platform(chip):
         chip.set('pdk','grid', stackup, sc_name, 'xpitch',  '0.19')
         chip.set('pdk','grid', stackup, sc_name, 'yoffset', '0.07')
         chip.set('pdk','grid', stackup, sc_name, 'ypitch',  '0.14')
-        chip.set('pdk','grid', stackup, sc_name, 'adj',     '1.0')   
-        
+        chip.set('pdk','grid', stackup, sc_name, 'adj',     '1.0')
+
     for sc_name, pdk_name in [('m2', 'metal2')]:
         chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)
         chip.set('pdk','grid', stackup, sc_name, 'xoffset', '0.095')
         chip.set('pdk','grid', stackup, sc_name, 'xpitch',  '0.19')
         chip.set('pdk','grid', stackup, sc_name, 'yoffset', '0.07')
         chip.set('pdk','grid', stackup, sc_name, 'ypitch',  '0.14')
-        chip.set('pdk','grid', stackup, sc_name, 'adj',     '0.8')   
-        
+        chip.set('pdk','grid', stackup, sc_name, 'adj',     '0.8')
+
     for sc_name, pdk_name in [('m3', 'metal3')]:
         chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)
         chip.set('pdk','grid', stackup, sc_name, 'xoffset', '0.095')
         chip.set('pdk','grid', stackup, sc_name, 'xpitch',  '0.19')
         chip.set('pdk','grid', stackup, sc_name, 'yoffset', '0.07')
         chip.set('pdk','grid', stackup, sc_name, 'ypitch',  '0.14')
-        chip.set('pdk','grid', stackup, sc_name, 'adj',     '0.7')   
+        chip.set('pdk','grid', stackup, sc_name, 'adj',     '0.7')
 
     for sc_name, pdk_name in [('m4', 'metal4'), ('m5', 'metal5'), ('m6', 'metal6')]:
         chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)
@@ -82,7 +82,7 @@ def setup_platform(chip):
         chip.set('pdk','grid', stackup, sc_name, 'xpitch',  '0.28')
         chip.set('pdk','grid', stackup, sc_name, 'yoffset', '0.07')
         chip.set('pdk','grid', stackup, sc_name, 'ypitch',  '0.28')
-        chip.set('pdk','grid', stackup, sc_name, 'adj',     '0.4')   
+        chip.set('pdk','grid', stackup, sc_name, 'adj',     '0.4')
 
     for sc_name, pdk_name in [('m7', 'metal7'), ('m8', 'metal8')]:
         chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)
@@ -90,7 +90,7 @@ def setup_platform(chip):
         chip.set('pdk','grid', stackup, sc_name, 'xpitch',  '0.8')
         chip.set('pdk','grid', stackup, sc_name, 'yoffset', '0.07')
         chip.set('pdk','grid', stackup, sc_name, 'ypitch',  '0.8')
-        chip.set('pdk','grid', stackup, sc_name, 'adj',     '0.4')   
+        chip.set('pdk','grid', stackup, sc_name, 'adj',     '0.4')
 
     for sc_name, pdk_name in [('m9', 'metal9'), ('m10', 'metal10')]:
         chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)
@@ -98,13 +98,13 @@ def setup_platform(chip):
         chip.set('pdk','grid', stackup, sc_name, 'xpitch',  '1.6')
         chip.set('pdk','grid', stackup, sc_name, 'yoffset', '0.07')
         chip.set('pdk','grid', stackup, sc_name, 'ypitch',  '1.6')
-        chip.set('pdk','grid', stackup, sc_name, 'adj',     '0.4')   
+        chip.set('pdk','grid', stackup, sc_name, 'adj',     '0.4')
 
 ####################################################
 # Library Setup
 ####################################################
 def setup_libs(chip, vendor=None):
- 
+
     foundry = 'virtual'
     process = 'freepdk45'
     libname = 'NangateOpenCellLibrary'
@@ -114,15 +114,15 @@ def setup_libs(chip, vendor=None):
     rev = 'r1p0'
     corner = 'typical'
     objectives = ['setup']
-    libdir = '/'.join(["asic",
+    libdir = '/'.join(["third_party/foundry",
                        foundry,
                        process,
                        'libs',
                        libname,
                        rev])
-    
+
     # rev
-    chip.set('stdcell',libname,'rev',rev)    
+    chip.set('stdcell',libname,'rev',rev)
 
     # timing
     chip.set('stdcell',libname, 'model', corner, 'nldm', 'lib',
@@ -130,7 +130,7 @@ def setup_libs(chip, vendor=None):
 
     # lef
     chip.set('stdcell',libname,'lef',
-             libdir+'/lef/NangateOpenCellLibrary.macro.mod.lef')    
+             libdir+'/lef/NangateOpenCellLibrary.macro.mod.lef')
     # gds
     chip.set('stdcell',libname,'gds',
              libdir+'/gds/NangateOpenCellLibrary.gds')
@@ -145,7 +145,7 @@ def setup_libs(chip, vendor=None):
 
     #driver
     chip.add('stdcell',libname,'driver', "BUF_X4")
-    
+
     # clock buffers
     chip.add('stdcell',libname,'cells','clkbuf', "BUF_X4")
 
@@ -164,7 +164,7 @@ def setup_libs(chip, vendor=None):
                                                   "FILLCELL_X8",
                                                   "FILLCELL_X16",
                                                   "FILLCELL_X32"])
-    
+
     # Stupid small cells
     chip.add('stdcell',libname,'cells','ignore', ["AOI211_X1",
                                                   "OAI211_X1"])
@@ -175,7 +175,7 @@ def setup_libs(chip, vendor=None):
     # Endcap
     chip.add('stdcell',libname,'cells','endcap', "FILLCELL_X1")
 
-        
+
 #########################
 def setup_design(chip):
 
@@ -199,9 +199,9 @@ def setup_design(chip):
     chip.set('mcmm','worst','pexcorner', corner)
     chip.set('mcmm','worst','mode', 'func')
     chip.set('mcmm','worst','check', ['setup','hold'])
-    
+
 #########################
-if __name__ == "__main__":    
+if __name__ == "__main__":
 
     # File being executed
     prefix = os.path.splitext(os.path.basename(__file__))[0]
@@ -214,5 +214,3 @@ if __name__ == "__main__":
     setup_libs(chip)
     # write out result
     chip.writecfg(output)
-
-   

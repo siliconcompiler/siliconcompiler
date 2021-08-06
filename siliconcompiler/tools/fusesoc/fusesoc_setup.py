@@ -13,7 +13,7 @@ def setup_tool(chip, step):
     '''
 
     tool = 'fusesoc'
-    refdir = 'eda/fusesoc'
+    refdir = 'siliconcompiler/tools/fusesoc'
 
     chip.add('eda', tool, step, 'exe', tool)
     chip.add('eda', tool, step, 'vendor', tool)
