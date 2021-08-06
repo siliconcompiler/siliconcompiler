@@ -24,7 +24,11 @@ def setup_flow(chip, platform):
     # Per step tool selection
     for step in flowpipe:
         if step == 'import':
+            #tool = 'morty'
+            #tool = 'surelog'
             tool = 'verilator'
+        elif step == 'convert':
+            tool = 'sv2v' 
         elif step == 'syn':
             tool = 'yosys'
         elif step == 'export':
