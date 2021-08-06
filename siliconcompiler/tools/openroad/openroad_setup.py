@@ -1,6 +1,7 @@
 import os
 import importlib
 import re
+import shutil
 import sys
 import siliconcompiler
 from siliconcompiler.floorplan import *
@@ -162,6 +163,11 @@ def post_process(chip, step):
                          chip.set('metric', step, 'real', 'nets', nets.group(1))
                     elif pins:
                          chip.set('metric', step, 'real', 'pins', pins.group(1))
+
+     if step == 'sta':
+          # Copy along GDS for verification steps that rely on it
+          design = chip.get('design')[-1]
+          shutil.copy(f'inputs/{design}.gds', f'outputs/{design}.gds')
 
      #Return 0 if successful
      return 0

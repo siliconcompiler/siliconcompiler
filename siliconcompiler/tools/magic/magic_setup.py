@@ -2,7 +2,7 @@ import os
 import re
 import shutil
 
-import count_lvs
+from siliconcompiler.tools.magic import count_lvs
 
 import siliconcompiler
 from siliconcompiler.floorplan import *
@@ -17,7 +17,7 @@ def setup_tool(chip, step):
     '''
 
     tool = 'magic'
-    refdir = 'eda/magic'
+    refdir = 'siliconcompiler/tools/magic'
 
     target_tech = chip.cfg['target']['value'][-1].split('_')[0]
     magicrc = '%s/magic/%s.magicrc'%(
@@ -70,12 +70,13 @@ def post_process(chip, step):
                 if errors:
                     chip.set('metric', step, 'real', 'errors', errors.group(1))
     elif step == 'lvs':
-        # Need to pass along DEF to export stage
-        shutil.copy(f'inputs/{design}.def', f'outputs/{design}.def')
-
         # Export metrics
         lvs_failures = count_lvs.count_LVS_failures(f'outputs/{design}.lvs.json')
         chip.set('metric', step, 'real', 'errors', str(lvs_failures[0]))
+
+    # Need to pass along DEF and GDS to future verification stages
+    shutil.copy(f'inputs/{design}.def', f'outputs/{design}.def')
+    shutil.copy(f'inputs/{design}.gds', f'outputs/{design}.gds')
 
     #TODO: return error code
     return 0
@@ -86,10 +87,10 @@ def post_process(chip, step):
 
 def pdk_path(chip):
     scriptdir = os.path.dirname(os.path.abspath(__file__))
-    sc_root   =  re.sub('siliconcompiler/eda/magic',
+    sc_root   =  re.sub('siliconcompiler/siliconcompiler/tools/magic',
                         'siliconcompiler',
                         scriptdir)
-    sc_path = sc_root + '/asic'
+    sc_path = sc_root + '/third_party/foundry'
 
     libname = chip.get('asic', 'targetlib')[-1]
     pdk_rev = chip.get('pdk', 'rev')[-1]

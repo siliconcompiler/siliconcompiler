@@ -53,11 +53,4 @@ set param_filepath [file normalize "route.params"]
 # Detailed Route
 ######################
 
-#detailed_route -param "route.params"
-set additional_args ""
-
-detailed_route -output_drc reports/drc.rpt \
-               -output_guide reports/output_guide.mod \
-               -output_maze reports/maze.log \
-               -verbose 1 \
-               {*}$additional_args
+detailed_route -param "route.params"
