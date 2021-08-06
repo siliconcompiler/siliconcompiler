@@ -23,5 +23,5 @@ def test_icebreaker():
                    stdout = subprocess.DEVNULL)
 
     # Verify that a bitstream was generated
-    assert os.path.isfile('build/blinky/job1/export/outputs/blinky.bit')
+    assert os.path.isfile('build/blinky/job1/bitstream/outputs/blinky.bit')
 
