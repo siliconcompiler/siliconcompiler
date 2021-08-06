@@ -20,10 +20,7 @@ def setup_platform(chip):
                        process,
                        'pdk',
                        rev])
-    
 
-    #if you are calling this file, you are in asic mode
-    chip.set('mode','asic')
 
     # process name
     chip.set('pdk','foundry', foundry)
@@ -77,7 +74,7 @@ def setup_platform(chip):
         chip.set('pdk','grid', stackup, sc_name, 'yoffset', '0.069')
         chip.set('pdk','grid', stackup, sc_name, 'ypitch',  '0.048')
         chip.set('pdk','grid', stackup, sc_name, 'adj',     '0.4')
-        
+
 
     for sc_name, pdk_name in [('m6', 'M6')]:
         chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)
@@ -107,7 +104,7 @@ def setup_platform(chip):
 # Library Setup
 ####################################################
 def setup_libs(chip, vendor=None):
- 
+
     foundry = 'virtual'
     process = 'asap7'
     libname = 'asap7sc7p5t_rvt'
@@ -123,7 +120,7 @@ def setup_libs(chip, vendor=None):
                        'libs',
                        libname,
                        rev])
-    
+
     # rev
     chip.set('stdcell',libname,'rev',rev)
 
@@ -149,7 +146,7 @@ def setup_libs(chip, vendor=None):
 
     #driver
     chip.add('stdcell',libname,'driver', "BUFx2_ASAP7_75t_R")
-    
+
     # clock buffers
     chip.add('stdcell',libname,'cells','clkbuf', "BUFx2_ASAP7_75t_R")
 
@@ -163,7 +160,7 @@ def setup_libs(chip, vendor=None):
 
     # filler
     chip.add('stdcell',libname,'cells','filler', ["FILLER_ASAP7_75t_R"])
-    
+
     # Stupid small cells
     chip.add('stdcell',libname,'cells','ignore', [
         "*x1_ASAP7*", "*x1p*_ASAP7*", "*xp*_ASAP7*",
@@ -176,7 +173,7 @@ def setup_libs(chip, vendor=None):
     # Endcap
     chip.add('stdcell',libname,'cells','endcap', "DECAPx1_ASAP7_75t_R")
 
-        
+
 #########################
 def setup_design(chip):
 
@@ -200,9 +197,9 @@ def setup_design(chip):
     chip.set('mcmm','worst','pexcorner', corner)
     chip.set('mcmm','worst','mode', 'func')
     chip.set('mcmm','worst','check', ['setup','hold'])
-    
+
 #########################
-if __name__ == "__main__":    
+if __name__ == "__main__":
 
     # File being executed
     prefix = os.path.splitext(os.path.basename(__file__))[0]
