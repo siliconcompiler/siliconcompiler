@@ -154,16 +154,26 @@ class Chip:
                                     metavar='',
                                     dest=dest,
                                     action='store_const',
-                                    const=['true'],
+                                    const='true',
                                     help=helpstr,
                                     default = argparse.SUPPRESS)
-            else:
+            #list type arguments
+            elif re.match('\[',typestr):
                 #all the rest
                 argmap[dest] = paramstr
                 parser.add_argument(switchstr,
                                     metavar='',
                                     dest=dest,
                                     action='append',
+                                    help=helpstr,
+                                    default = argparse.SUPPRESS)
+
+            else:
+                #all the rest
+                argmap[dest] = paramstr
+                parser.add_argument(switchstr,
+                                    metavar='',
+                                    dest=dest,
                                     help=helpstr,
                                     default = argparse.SUPPRESS)
 
@@ -194,9 +204,9 @@ class Chip:
 
         #Grab argument from pre-process sysargs
         cmdargs = vars(parser.parse_args(scargs))
-
         #Stuff command line values into dynamic dict
         for key, val in cmdargs.items():
+            print(key, val)
             for item in val:
                 args = schema_reorder_keys(argmap[key], item)
                 #print(args)
@@ -262,7 +272,7 @@ class Chip:
         if arg is not None:
             self.set('target', arg)
 
-        targetlist = str(self.get('target')[-1]).split('_')
+        targetlist = self.get('target').split('_')
 
         if(len(targetlist) < 2 ):
             self.logger.critical('Illegal string, syntax is <platform>_<edaflow>.')
@@ -272,7 +282,7 @@ class Chip:
         edaflow = targetlist[1]
 
         #PDK/Foundry dynamic module load
-        if self.get('mode')[-1] == 'asic':
+        if self.get('mode') == 'asic':
             try:
                 searchdir = 'siliconcompiler.foundries'
                 module = importlib.import_module('.'+platform, package=searchdir)
@@ -282,7 +292,7 @@ class Chip:
                 setup_libs(self)
                 setup_design = getattr(module, "setup_design")
                 setup_design(self)
-                self.logger.info("Loaded platform %s", platform)
+                self.logger.info("Loaded platform '%s'", platform)
             except:
                 self.logger.critical("Platform %s not found.", platform)
                 sys.exit()
@@ -296,7 +306,7 @@ class Chip:
             module = importlib.import_module('.'+edaflow, package=searchdir)
             setup_flow = getattr(module, "setup_flow")
             setup_flow(self, platform)
-            self.logger.info("Loaded eda flow %s", edaflow)
+            self.logger.info("Loaded edaflow '%s'", edaflow)
         except:
             self.logger.critical("EDA flow %s not found.", edaflow)
             sys.exit()
@@ -537,22 +547,29 @@ ss
             #making an 'instance' of default if not found
             if not param in cfg:
                 if not 'default' in cfg:
-                    self.logger.error('Search failed, \'%s\' is not a valid key', param)
+                    self.logger.error('Search failed. \'%s\' is not a valid key', all_args)
+                    self.error = 1
                 else:
                     cfg[param] = copy.deepcopy(cfg['default'])
             #setting or extending value based on set/get mode
             if not field in cfg[param]:
-                self.logger.error('Search failed, \'%s\' is not a valid leaf cell key', param)
-                sys.exit()
+                self.logger.error('Search failed. Field not found for \'%s\'', param)
+                self.error = 1
             #check legality of value
-            ok = schema_typecheck(self, cfg[param], param, val)
-            if ok:
-                if mode == 'set':
-                    cfg[param][field] = val
-                elif type(val) == list:
+            if schema_typecheck(self, cfg[param], param, val):
+                #promote value to list for list types
+                if (type(val) != list) & (field == 'value') & bool(re.match('\[',cfg[param]['type'])):
+                    val = [str(val)]
+                #set value based on scalar/list/set/add
+                if (mode == 'add') & (type(val) == list):
                     cfg[param][field].extend(val)
-                #return field
-                return cfg[param][field]
+                elif (mode == 'set') & (type(val) == list):
+                    cfg[param][field] = val
+                #ignore add commmand for scalars
+                elif (type(val) != list):
+                    cfg[param][field] =  str(val)
+            #return field
+            return cfg[param][field]
         #get leaf cell (all_args=param)
         elif len(all_args) == 1:
             if mode == 'getkeys':
@@ -560,7 +577,9 @@ ss
             else:
                 if not field in cfg[param]:
                     self.logger.error('Key error, leaf param not found %s', field)
-                return cfg[param][field]
+                    self.error = 1
+                else:
+                    return cfg[param][field]
         #if not leaf cell descend tree
         else:
             ##copying in default tree for dynamic trees
@@ -627,10 +646,14 @@ ss
                     #print(cfg[k]['value'])
                     #print("dict=",cfg[k])
                     #only do something if type is file
-                    if cfg[k]['type'] in  ('file', 'dir'):
-                        for i, v in enumerate(cfg[k]['value']):
-                            #Look for relative paths in search path
-                            cfg[k]['value'][i] = schema_path(v)
+                    if re.search('file|dir', cfg[k]['type']):
+                        #iterate if list
+                        if re.match('\[', cfg[k]['type']):
+                            for i, v in enumerate(list(cfg[k]['value'])):
+                                #Look for relative paths in search path
+                                cfg[k]['value'][i] = schema_path(v)
+                        else:
+                            cfg[k]['value'] = schema_path(cfg[k]['value'])
                 else:
                     self._abspath(cfg[k])
 
@@ -649,17 +672,23 @@ ss
             #detect leaf cell
             if 'defvalue' in cfg[k]:
                 if mode == 'tcl':
-                    for i, val in enumerate(cfg[k][field]):
+                    if bool(re.match('\[',str(cfg[k]['type']))) & (field == 'value'):
+                        alist = cfg[k][field].copy()
+                    else:
+                        alist = [cfg[k][field]]
+                    for i, val in enumerate(alist):
                         #replace $VAR with env(VAR) for tcl
-                        m = re.match(r'\$(\w+)(.*)', val)
+                        m = re.match(r'\$(\w+)(.*)', str(val))
                         if m:
-                            cfg[k][field][i] = ('$env(' +
-                                                m.group(1) +
-                                                ')' +
-                                                m.group(2))
+                            print("env replace")
+                            alist[i] = ('$env(' +
+                                        m.group(1) +
+                                        ')' +
+                                        m.group(2))
+
                     #create a TCL dict
                     keystr = ' '.join(newkeys)
-                    valstr = ' '.join(cfg[k][field]).replace(';', '\\;')
+                    valstr = ' '.join(map(str,alist)).replace(';', '\\;')
                     outlst = [prefix,
                               keystr,
                               '[list ',
@@ -820,6 +849,7 @@ ss
                 self._printcfg(cfgcopy, mode="tcl", prefix="dict set sc_cfg", file=f)
         else:
             self.logger.error('File format not recognized %s', filepath)
+            self.error = 1
 
     ###########################################################################
     def write_flowgraph(self, filename):
@@ -834,7 +864,7 @@ ss
         gvfile = fileroot+".gv"
         dot = graphviz.Digraph(format=fileformat)
         for step in self.getkeys('flowgraph'):
-            tool = self.get('flowgraph',step, 'tool')[-1]
+            tool = self.get('flowgraph',step, 'tool')
             labelname = step+'\\n('+tool+")"
             dot.node(step,label=labelname)
             for next_step in self.get('flowgraph',step,'output'):
@@ -913,16 +943,19 @@ ss
         if not os.path.exists(dir):
             os.makedirs(dir)
         allkeys = self.getkeys()
-        copyall = self.get('copyall')
+        copyall = schema_istrue(self.get('copyall'))
         for key in allkeys:
             leaftype = self._search(self.cfg, *key, mode='get', field='type')
             if leaftype == 'file':
                 copy = self._search(self.cfg, *key, mode='get', field='copy')
                 value = self._search(self.cfg, *key, mode='get', field='value')
-                if schema_istrue(self.get('copyall')) | (copy == 'true'):
+                if copyall | (copy == 'true'):
+                    if type(value) != list:
+                        value = [value]
                     for item in value:
-                        filepath = schema_path(item)
-                        shutil.copy(filepath, dir)
+                        if item:
+                            filepath = schema_path(item)
+                            shutil.copy(filepath, dir)
 
     ###########################################################################
     def hash(self, cfg=None):
@@ -931,7 +964,7 @@ ss
         '''
 
         #checking to see how much hashing to do
-        hashmode = self.get('hashmode')[-1]
+        hashmode = self.get('hashmode')
         if hashmode != 'NONE':
             if cfg is None:
                 self.logger.info('Computing file hashes with mode %s', hashmode)
@@ -1000,10 +1033,10 @@ ss
         '''Calculates the die yield
         '''
 
-        d0 = float(self.get('pdk','d0')[-1])
-        diesize = self.get('asic','diesize')[-1].split()
-        diewidth = (float(diesize[2]) - float(diesize[0]))/1000
-        dieheight = (float(diesize[3]) - float(diesize[1]))/1000
+        d0 = self.get('pdk','d0')
+        diesize = self.get('asic','diesize').split()
+        diewidth = (diesize[2] - diesize[0])/1000
+        dieheight = (diesize[3] - diesize[1])/1000
         diearea = diewidth * dieheight
 
         if model == 'poisson':
@@ -1024,15 +1057,15 @@ ss
         '''
 
         #PDK information
-        wafersize = int(self.get('pdk', 'wafersize', 'value')[-1])
-        edgemargin = float(self.get('pdk', 'edgemargin', 'value')[-1])
-        hscribe = float(self.get('pdk', 'hscribe', 'value')[-1])
-        vscribe = float(self.get('pdk', 'vscribe', 'value')[-1])
+        wafersize = self.get('pdk', 'wafersize', 'value')
+        edgemargin = self.get('pdk', 'edgemargin', 'value')
+        hscribe = self.get('pdk', 'hscribe', 'value')
+        vscribe = self.get('pdk', 'vscribe', 'value')
 
         #Design parameters
-        diesize = self.get('asic','diesize')[-1].split()
-        diewidth = (float(diesize[2]) - float(diesize[0]))/1000
-        dieheight = (float(diesize[3]) - float(diesize[1]))/1000
+        diesize = self.get('asic','diesize').split()
+        diewidth = (diesize[2] - diesize[0])/1000
+        dieheight = (diesize[3] - diesize[1])/1000
 
         #Derived parameters
         radius = wafersize/2 -edgemargin
@@ -1094,33 +1127,39 @@ ss
 
         steplist =self.getkeys('flowgraph')
 
-        start = self.get('start')[-1] if self.get('start') \
-                                      else steplist[0]
+        # Full flow graph run if no start/stop set
+        # start/stop set to None by default in schema
+        if self.get('start'):
+            start = self.get('start')
+        else:
+            start = steplist[0]
 
-        stop = self.get('stop')[-1] if self.get('stop') \
-                                    else steplist[-1]
+        if self.get('stop'):
+            stop = self.get('stop')
+        else:
+            stop = steplist[-1]
 
-        design = self.get('design')[-1]
+        design = self.get('design')
 
         startindex = steplist.index(start)
         stopindex = steplist.index(stop)
 
-        jobdir = (self.get('dir')[-1] +
+        jobdir = (self.get('build_dir') +
                   "/" + design + "/" +
-                  self.get('jobname')[-1] +
-                  self.get('jobid')[-1])
+                  self.get('jobname') +
+                  self.get('jobid'))
 
         if self.get('mode')[-1] == 'asic':
             info = '\n'.join(["SUMMARY:\n",
-                              "design = "+self.get('design')[0],
-                              "foundry = "+self.get('pdk', 'foundry')[0],
-                              "process = "+self.get('pdk', 'process')[0],
+                              "design = " + self.get('design'),
+                              "foundry = " + self.get('pdk', 'foundry'),
+                              "process = " + self.get('pdk', 'process'),
                               "targetlibs = "+" ".join(self.get('asic', 'targetlib')),
                               "jobdir = "+ jobdir])
         else:
             # TODO: pull in relevant summary items for FPGA?
             info = '\n'.join(["SUMMARY:\n",
-                              "design = "+self.get('design')[0],
+                              "design = "+self.get('design'),
                               "jobdir = "+ jobdir])
 
         print("-"*135)
@@ -1157,7 +1196,7 @@ ss
             for stepindex in range(startindex, stopindex + 1):
                 step = steplist[stepindex]
                 row.append(" " +
-                           str(self.get('metric', step, 'real', metric)[-1]).center(colwidth))
+                           str(self.get('metric', step, 'real', metric)).center(colwidth))
             data.append(row)
 
         pandas.set_option('display.max_rows', 500)
@@ -1186,10 +1225,10 @@ ss
         self.set('status', 'step', step)
 
         # Create directory structure
-        remote = len(self.get('remote','addr')) > 0
-        stepdir = "/".join([self.get('dir')[-1],
-                            self.get('design')[-1],
-                            self.get('jobname')[-1] + self.get('jobid')[-1],
+        remote = self.get('remote','addr')
+        stepdir = "/".join([self.get('build_dir'),
+                            self.get('design'),
+                            self.get('jobname') + self.get('jobid'),
                             step])
 
         if os.path.isdir(stepdir) and (not remote):
@@ -1207,7 +1246,7 @@ ss
             shutil.copytree("../"+steplist[stepindex-1]+"/outputs", 'inputs')
 
         # Dynamic EDA tool module load
-        tool = self.get('flowgraph', step, 'tool')[-1]
+        tool = self.get('flowgraph', step, 'tool')
         searchdir = "siliconcompiler.tools." + tool
         modulename = '.'+tool+'_setup'
         module = importlib.import_module(modulename, package=searchdir)
@@ -1215,7 +1254,7 @@ ss
         setup_tool(self, step)
 
         # Check installation
-        exe = self.get('eda', tool, step, 'exe')[-1]
+        exe = self.get('eda', tool, step, 'exe')
         exepath = subprocess.run("command -v "+exe+">/dev/null", shell=True)
         if exepath.returncode > 0:
             self.logger.critical('Executable %s not installed.', exe)
@@ -1223,7 +1262,7 @@ ss
 
         #Copy Reference Scripts
         if schema_istrue(self.get('eda', tool, step, 'copy')):
-            refdir = schema_path(self.get('eda', tool, step, 'refdir')[-1])
+            refdir = schema_path(self.get('eda', tool, step, 'refdir'))
             shutil.copytree(refdir, ".", dirs_exist_ok=True)
 
         # Save config files required by eda tools
@@ -1232,7 +1271,7 @@ ss
         self.writecfg("sc_manifest.tcl", abspath=True)
 
         # Construct command line
-        exe = self.get('eda', tool, step, 'exe')[-1]
+        exe = self.get('eda', tool, step, 'exe')
         logfile = exe + ".log"
         options = self.get('eda', tool, step, 'option')
 
@@ -1262,7 +1301,7 @@ ss
 
         # Init Metrics Table
         for metric in self.getkeys('metric', 'default', 'default'):
-            self.set('metric', step, 'real', metric, str(0))
+            self.set('metric', step, 'real', metric, 0)
 
         # Run exeucutable
         self.logger.info("Running %s in %s", step, os.path.abspath(stepdir))
@@ -1280,11 +1319,11 @@ ss
 
         # interactive debugging
         if step in self.get('bkpt'):
-            if (self.get('eda', tool, step, 'format')[-1]) == 'cmdline':
+            if (self.get('eda', tool, step, 'format')) == 'cmdline':
                 code.interact(local=dict(globals(), **locals()))
 
         # save metrics
-        self.writecfg("outputs/" + self.get('design')[-1] +'.json')
+        self.writecfg("outputs/" + self.get('design') +'.json')
 
         # upload files
         if remote:
@@ -1326,14 +1365,18 @@ ss
         ###########################
 
         steplist = self.getkeys('flowgraph')
-        remote = len(self.get('remote', 'addr')) > 0
+        remote = self.get('remote', 'addr')
 
-        if start is None:
-            start = self.get('start')[-1] if self.get('start') \
-                                          else steplist[0]
-        if stop is None:
-            stop = self.get('stop')[-1] if self.get('stop') \
-                                        else steplist[-1]
+        if not start:
+            if self.get('start'):
+                start = self.get('start')
+            else:
+                start = steplist[0]
+        if not stop:
+            if self.get('stop'):
+                stop = self.get('stop')
+            else:
+                stop = steplist[-1]
 
         startindex = steplist.index(start)
         stopindex = steplist.index(stop)
@@ -1344,7 +1387,7 @@ ss
             step = steplist[stepindex]
 
             # conditional step execution
-            if (step in self.get('skip')) | (self.get('skipall')[-1] == 'true'):
+            if (step in self.get('skip')) | (self.get('skipall') == 'true'):
                 self.logger.info('Skipping step: %s', step)
             else:
                 if (stepindex != 0) and remote:
@@ -1359,12 +1402,12 @@ ss
     def set_jobid(self):
 
         # Return if jobid is already set.
-        if len(self.get('jobid')) > 0:
+        if self.get('jobid'):
             return
 
-        design = self.get('design')[-1]
-        dirname = self.get('dir')[-1]
-        jobname = self.get('jobname')[-1]
+        design = self.get('design')
+        dirname = self.get('build_dir')
+        jobname = self.get('jobname')
 
         try:
             alljobs = os.listdir(dirname + "/" + design)
@@ -1400,7 +1443,7 @@ def get_permutations(base_chip, cmdlinecfg):
     cmdkeys = cmdlinecfg.keys()
 
     # Set default target if not set and there is nothing set
-    if len(base_chip.get('target')) < 1:
+    if base_chip.get('target'):
         base_chip.logger.info('No target set, setting to %s','freepdk45_asic')
         base_chip.set('target', 'freepdk45_asic')
 
@@ -1409,12 +1452,12 @@ def get_permutations(base_chip, cmdlinecfg):
         job_hash = uuid.uuid4().hex
         base_chip.set('remote', 'hash', job_hash)
 
-    loglevel = cmdlinecfg['loglevel'][-1] \
+    loglevel = cmdlinecfg['loglevel'] \
         if 'loglevel' in cmdkeys else "INFO"
 
     # Fetch the generator for multiple job permutations if necessary.
     if 'permutations' in cmdkeys:
-        perm_path = os.path.abspath(cmdlinecfg['permutations'][-1])
+        perm_path = os.path.abspath(cmdlinecfg['permutations'])
         perm_script = SourceFileLoader('job_perms', perm_path).load_module()
         perms = perm_script.permutations(base_chip.cfg)
     else:
@@ -1423,21 +1466,21 @@ def get_permutations(base_chip, cmdlinecfg):
     # Set '-remote_start' to '-start' if only '-start' is passed in at cmdline.
     if (not 'remote_start' in cmdkeys) and \
        ('start' in cmdkeys):
-        base_chip.set('remote', 'start', cmdlinecfg['start'][-1])
-        base_chip.set('start', cmdlinecfg['start'][-1])
+        base_chip.set('remote', 'start', cmdlinecfg['start'])
+        base_chip.set('start', cmdlinecfg['start'])
     # Ditto for '-remote_stop' and '-stop'.
     if (not 'remote_stop' in cmdkeys) and \
        ('stop' in cmdkeys):
-        base_chip.set('remote', 'stop', cmdlinecfg['stop'][-1])
-        base_chip.set('stop', cmdlinecfg['stop'][-1])
+        base_chip.set('remote', 'stop', cmdlinecfg['stop'])
+        base_chip.set('stop', cmdlinecfg['stop'])
     # Mark whether a local 'import' stage should be run.
-    base_chip.status['local_import'] = (len(base_chip.get('start')) == 0) or \
-                                       (base_chip.get('start')[-1] == 'import')
+    base_chip.status['local_import'] = (not base_chip.get('start') or \
+                                       (base_chip.get('start') == 'import'))
 
     # Fetch an initial 'jobid' value for the first permutation.
     base_chip.set_jobid()
-    cur_jobid = base_chip.get('jobid')[-1]
-    base_chip.cfg['jobid']['value'] = []
+    cur_jobid = base_chip.get('jobid')
+    base_chip.cfg['jobid']['value'] = None
     perm_ids = []
 
     # Create a new Chip object with the same job hash for each permutation.
@@ -1456,13 +1499,13 @@ def get_permutations(base_chip, cmdlinecfg):
 
         # Skip the 'import' stage for remote jobs; it will be run locally and uploaded.
         if len(new_chip.get('remote', 'addr')) > 0:
-            new_chip.set('start', new_chip.get('remote', 'start')[-1])
-            new_chip.set('stop', new_chip.get('remote', 'stop')[-1])
+            new_chip.set('start', new_chip.get('remote', 'start'))
+            new_chip.set('stop', new_chip.get('remote', 'stop'))
         elif len(new_chip.get('remote', 'key')) > 0:
             # If 'remote_key' exists without 'remote_addr', it represents an
             # encoded key string in an ongoing remote job. It should be
             # moved from the config dictionary to the status one to avoid logging.
-            new_chip.status['decrypt_key'] = new_chip.get('remote', 'key')[-1]
+            new_chip.status['decrypt_key'] = new_chip.get('remote', 'key')
             new_chip.cfg['remote']['key']['value'] = []
 
         # Set and increment the "job ID" so multiple chips don't share the same directory.
