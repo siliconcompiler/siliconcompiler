@@ -89,9 +89,10 @@ def schema_path(filename):
 
 def schema_istrue(value):
     ''' Checks schema boolean string and returns Python True/False
+    Allow for both Python True/False values and "true"/"false",
+    "True/False". What's the harm?
     '''
-    boolean = value[-1].lower()
-    return bool(boolean == "true")
+    return value.lower() == 'true'
 
 def schema_typecheck(chip, cfg, leafkey, value):
     ''' Schema type checking
@@ -1663,10 +1664,10 @@ def schema_eda(cfg):
     # refdir
     cfg['eda'][tool][step]['refdir'] = {
         'switch': '-eda_refdir',
-        'type': '[dir]',
+        'type': 'dir',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Reference Directory',
         'param_help': "eda toolvar stepvar refdir <file>",
         'example': ["cli: -eda_refdir 'yosys syn ./myref'",
