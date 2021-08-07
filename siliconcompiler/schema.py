@@ -2733,7 +2733,7 @@ def schema_options(cfg):
         'type': '[str]',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': 'false',
+        'defvalue': [],
         'short_help': "A list of flow breakpoints",
         'param_help': "bkpt <str>",
         'example': ["cli: -bkpt place",

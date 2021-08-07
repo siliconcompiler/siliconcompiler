@@ -853,10 +853,17 @@ ss
         for k, v in cfg.items():
             if isinstance(v, dict):
                 if 'defvalue' in cfg[k].keys():
-                    if defaults:
-                        cfg[k]['value'] = cfg[k]['defvalue'].copy()
+                    #list type
+                    if re.match('\[',cfg[k]['type']):
+                        if defaults:
+                            cfg[k]['value'] = cfg[k]['defvalue'].copy()
+                        else:
+                            cfg[k]['value'] = []
+                    #scalars
+                    elif defaults & bool(cfg[k]['defvalue']):
+                        cfg[k]['value'] = cfg[k]['defvalue']
                     else:
-                        cfg[k]['value'] = []
+                        cfg[k]['value'] = None
                 else:
                     self._reset(defaults, cfg=cfg[k])
 
