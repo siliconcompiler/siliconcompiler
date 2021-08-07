@@ -132,6 +132,8 @@ def schema_typecheck(chip, cfg, leafkey, value):
                     if not os.path.isdir(schema_path(item)):
                         errormsg = "Invalid path or missing directory."
                         ok = False
+                elif (cfgtype == 'float') & isinstance(item, int):
+                    pass
                 else:
                     errormsg = "Type mismach."
                     ok = False
@@ -1675,14 +1677,14 @@ def schema_eda(cfg):
         """
     }
 
-    # entry point script
+    # entry point scripts
     cfg['eda'][tool][step]['script'] = {
         'switch': '-eda_script',
         'requirement': 'optional',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
-        'defvalue': None,
+        'defvalue': [],
         'hash': [],
         'date': [],
         'author': [],
@@ -3302,10 +3304,10 @@ def schema_design(cfg):
 
     cfg['define'] = {
         'switch': '-D',
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': None,
+        'defvalue': [],
         'short_help': 'Design Preprocessor Symbols',
         'param_help': "define <str>",
         'example': ["cli: -D 'CFG_ASIC=1'",
