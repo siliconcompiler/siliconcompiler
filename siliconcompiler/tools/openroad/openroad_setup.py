@@ -55,7 +55,8 @@ def setup_tool(chip, step):
     chip.set('eda', tool, step, 'format', 'tcl')
     chip.set('eda', tool, step, 'vendor', tool)
     chip.set('eda', tool, step, 'exe', tool)
-    chip.set('eda', tool, step, 'threads', 4)
+    if chip.get('eda', tool, step, 'threads') is None:
+        chip.set('eda', tool, step, 'threads', 1)
     chip.set('eda', tool, step, 'copy', 'false')
     chip.set('eda', tool, step, 'refdir', refdir)
 
