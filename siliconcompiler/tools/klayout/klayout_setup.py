@@ -13,7 +13,7 @@ def setup_tool(chip, step):
      tool = 'klayout'
      refdir = 'siliconcompiler/tools/klayout'
 
-     chip.set('eda', tool, step, 'threads', '4')
+     chip.set('eda', tool, step, 'threads', 4)
      chip.set('eda', tool, step, 'format', 'json')
      chip.set('eda', tool, step, 'copy', 'true')
      chip.set('eda', tool, step, 'vendor', 'klayout')
@@ -32,19 +32,19 @@ def setup_tool(chip, step):
      sc_path = sc_root + '/third_party/foundry'
 
      # TODO: should support multiple target libs?
-     libname = chip.get('asic', 'targetlib')[-1]
-     pdk_rev = chip.get('pdk', 'rev')[-1]
-     lib_rev = chip.get('stdcell', libname, 'rev')[-1]
-     targetlist = str(chip.get('target')[-1]).split('_')
+     libname = chip.get('asic', 'targetlib')[0]
+     pdk_rev = chip.get('pdk', 'rev')
+     lib_rev = chip.get('stdcell', libname, 'rev')
+     targetlist = chip.get('target').split('_')
      platform =  targetlist[0]
 
      foundry_path = f'%s/%s/%s/pdk/{pdk_rev}'%(
           sc_path,
-          chip.cfg['pdk']['foundry']['value'][-1],
+          chip.get('pdk','foundry'),
           platform)
      lefs_path = f'%s/%s/%s/libs/{libname}/{lib_rev}/lef'%(
           sc_path,
-          chip.cfg['pdk']['foundry']['value'][-1],
+          chip.get('pdk','foundry'),
           platform)
      tech_file = '%s/setup/klayout/%s.lyt'%(
           foundry_path,
@@ -52,24 +52,24 @@ def setup_tool(chip, step):
      config_file = '%s/setup/klayout/fill.json'%(
           foundry_path)
 
-
+     #TODO: Fix, currenly only accepts one GDS file, need to loop
      if step == 'export':
           options = []
           options.append('-rd')
           options.append('design_name=%s'%(
-               chip.cfg['design']['value'][-1]))
+               chip.get('design')))
           options.append('-rd')
           options.append('in_def=inputs/%s.def'%(
-               chip.cfg['design']['value'][-1]))
+               chip.get('design')))
           options.append('-rd')
           options.append('seal_file=""')
           options.append('-rd')
           options.append('in_files=%s/%s'%(
                sc_root,
-               chip.cfg['stdcell'][libname]['gds']['value'][-1]))
+               chip.get('stdcell',libname,'gds')[0]))
           options.append('-rd')
           options.append('out_file=outputs/%s.gds'%(
-               chip.cfg['design']['value'][-1]))
+               chip.get('design')))
           options.append('-rd')
           options.append('tech_file=%s'%tech_file)
           options.append('-rd')
@@ -89,7 +89,7 @@ def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
     # Pass along files needed for future verification steps
-    design = chip.get('design')[-1]
+    design = chip.get('design')
     shutil.copy(f'inputs/{design}.def', f'outputs/{design}.def')
     shutil.copy(f'inputs/{design}.sdc', f'outputs/{design}.sdc')
     shutil.copy(f'inputs/{design}.v', f'outputs/{design}.v')

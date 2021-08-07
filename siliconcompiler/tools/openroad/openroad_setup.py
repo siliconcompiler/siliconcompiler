@@ -13,7 +13,7 @@ from siliconcompiler.schema import schema_path
 
 def setup_tool(chip, step):
     ''' OpenROAD is an integrated chip physical design tool that takes a design
-    from synthesized netlist to routed layout. 
+    from synthesized netlist to routed layout.
 
     Implementation steps done by OpenROAD include:
     * Physical database management
@@ -31,18 +31,18 @@ def setup_tool(chip, step):
     * Filler insertion
     * Global routing (route guides for detailed routing)
     * Detailed routing
-  
+
     SC Configuration:
     All communiucation from siliconcompiler to openroad is done through
-    the file 'sc_manifeset.tcl'. The entry point for all openroad based steps 
-    is the 'sc_apr.tcl' script. The script handles general input/output 
+    the file 'sc_manifeset.tcl'. The entry point for all openroad based steps
+    is the 'sc_apr.tcl' script. The script handles general input/output
     function and is the main interface to SC. Execution then branches off to
     separate files based on the step being executed (place, route, etc).
 
     Documentation:
     https://github.com/The-OpenROAD-Project/OpenROAD
 
-    Source code: 
+    Source code:
     https://github.com/The-OpenROAD-Project/OpenROAD
     https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts
 
@@ -54,11 +54,10 @@ def setup_tool(chip, step):
     chip.set('eda', tool, step, 'format', 'tcl')
     chip.set('eda', tool, step, 'vendor', tool)
     chip.set('eda', tool, step, 'exe', tool)
-    chip.set('eda', tool, step, 'threads', '4')
+    chip.set('eda', tool, step, 'threads', 4)
     chip.set('eda', tool, step, 'copy', 'false')
     chip.set('eda', tool, step, 'refdir', refdir)
     chip.set('eda', tool, step, 'script', refdir + '/sc_apr.tcl')
-
     chip.set('eda', tool, step, 'option', '-no_init')
 
     # exit automatically unless bkpt
@@ -72,9 +71,9 @@ def setup_tool(chip, step):
         if len(floorplan_file) == 0:
              return
 
-        floorplan_file = schema_path(floorplan_file[-1])
+        floorplan_file = schema_path(floorplan_file)
 
-        if os.path.splitext(floorplan_file)[-1] != '.py':
+        if os.path.splitext(floorplan_file) != '.py':
              return
 
         fp = Floorplan(chip)
@@ -90,7 +89,7 @@ def setup_tool(chip, step):
 
         fp = setup_floorplan(fp, chip)
 
-        topmodule = chip.get('design')[-1]
+        topmodule = chip.get('design')
         def_file = 'inputs/' + topmodule + '.def'
         fp.write_def(def_file)
 
@@ -107,8 +106,8 @@ def post_process(chip, step):
      errors = 0
      warnings = 0
      metric = None
-     exe = chip.get('eda', tool, step, 'exe')[-1]
-     design = chip.get('design')[-1]
+     exe = chip.get('eda', tool, step, 'exe')
+     design = chip.get('design')
      with open(exe + ".log") as f:
           for line in f:
                metricmatch = re.search(r'^SC_METRIC:\s+(\w+)', line)
@@ -127,27 +126,27 @@ def post_process(chip, step):
                elif warnmatch:
                     warnings = warnings +1
                elif area:
-                    chip.set('metric', step, 'real', 'area_cells', str(round(float(area.group(1)),2)))
+                    chip.set('metric', step, 'real', 'area_cells', round(float(area.group(1)),2))
                elif tns:
-                    chip.set('metric', step, 'real', 'setup_tns', str(round(float(tns.group(1)),2)))
+                    chip.set('metric', step, 'real', 'setup_tns', round(float(tns.group(1)),2))
                elif wirelength:
-                    chip.set('metric', step, 'real', 'wirelength', str(round(float(wirelength.group(1)),2)))
+                    chip.set('metric', step, 'real', 'wirelength', round(float(wirelength.group(1)),2))
                elif vias:
-                    chip.set('metric', step, 'real', 'vias', str(round(float(vias.group(1)),2)))
+                    chip.set('metric', step, 'real', 'vias', round(float(vias.group(1)),2))
                elif slack:
-                    chip.set('metric', step, 'real', metric, str(round(float(slack.group(1)),2)))
+                    chip.set('metric', step, 'real', metric, round(float(slack.group(1)),2))
                elif metric == "power":
                     if power:
                          powerlist = power.group(1).split()
                          leakage = powerlist[2]
                          total = powerlist[3]
-                         chip.set('metric', step, 'real', 'power_total', total)
-                         chip.set('metric', step, 'real', 'power_leakage',  leakage)
+                         chip.set('metric', step, 'real', 'power_total', float(total))
+                         chip.set('metric', step, 'real', 'power_leakage',  float(leakage))
 
 
      #Setting Warnings and Errors
-     chip.set('metric', step, 'real', 'errors', str(errors))
-     chip.set('metric', step, 'real', 'warnings', str(warnings))
+     chip.set('metric', step, 'real', 'errors', errors)
+     chip.set('metric', step, 'real', 'warnings', warnings)
 
      #Temporary superhack!
      #Getting cell count and net number from DEF
@@ -158,15 +157,15 @@ def post_process(chip, step):
                     nets = re.search(r'^NETS (\d+)',line)
                     pins = re.search(r'^PINS (\d+)',line)
                     if cells:
-                         chip.set('metric', step, 'real', 'cells', cells.group(1))
+                         chip.set('metric', step, 'real', 'cells', int(cells.group(1)))
                     elif nets:
-                         chip.set('metric', step, 'real', 'nets', nets.group(1))
+                         chip.set('metric', step, 'real', 'nets', int(nets.group(1)))
                     elif pins:
-                         chip.set('metric', step, 'real', 'pins', pins.group(1))
+                         chip.set('metric', step, 'real', 'pins', int(pins.group(1)))
 
      if step == 'sta':
           # Copy along GDS for verification steps that rely on it
-          design = chip.get('design')[-1]
+          design = chip.get('design')
           shutil.copy(f'inputs/{design}.gds', f'outputs/{design}.gds')
 
      #Return 0 if successful
