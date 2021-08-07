@@ -17,16 +17,16 @@ def setup_tool(chip, step):
 
     tool = 'yosys'
     refdir = 'siliconcompiler/tools/yosys'
-    chip.add('eda', tool, step, 'format', 'tcl')
-    chip.add('eda', tool, step, 'copy', 'true')
-    chip.add('eda', tool, step, 'vendor', 'yosys')
-    chip.add('eda', tool, step, 'exe', 'yosys')
-    chip.add('eda', tool, step, 'option', '-c')
-    chip.add('eda', tool, step, 'refdir', refdir)
+    chip.set('eda', tool, step, 'format', 'tcl')
+    chip.set('eda', tool, step, 'copy', 'true')
+    chip.set('eda', tool, step, 'vendor', 'yosys')
+    chip.set('eda', tool, step, 'exe', 'yosys')
+    chip.set('eda', tool, step, 'refdir', refdir)
     chip.add('eda', tool, step, 'script', refdir + '/sc_syn.tcl')
+    chip.add('eda', tool, step, 'option', '-c')
 
     #TODO: remove special treatment for fpga??
-    targetlist = chip.get('target')[-1].split('_')
+    targetlist = chip.get('target').split('_')
     if targetlist[0] == 'openfpga':
         # Synthesis for OpenFPGA/VPR needs to know the size of the LUTs in the
         # FPGA architecture. We infer this from the VPR architecture file, then
@@ -58,7 +58,7 @@ def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
     tool = 'yosys'
-    exe = chip.get('eda',tool, step, 'exe')[-1]
+    exe = chip.get('eda',tool, step, 'exe')
     with open(exe + ".log") as f:
         for line in f:
             area = re.search(r'Chip area for module.*\:\s+(.*)', line)
