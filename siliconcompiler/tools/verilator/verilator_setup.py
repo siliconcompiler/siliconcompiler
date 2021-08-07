@@ -53,9 +53,8 @@ def setup_tool(chip, step):
         chip.add('eda', tool, step, 'option', schema_path(value))
 
     #Make warnings non-fatal in relaxed mode
-    if len(chip.cfg['relax']['value']) > 0:
-        if schema_istrue(chip.cfg['relax']['value']):
-            chip.add('eda', tool, step, 'option', '-Wno-fatal')
+    if schema_istrue(chip.get('relax')):
+        chip.add('eda', tool, step, 'option', '-Wno-fatal')
 
 ################################
 # Post_process (post executable)
