@@ -19,11 +19,11 @@ def setup_tool(chip, step):
 
     # Standard Setup
     tool = 'verilator'
-    chip.add('eda', tool, step, 'threads', '4')
-    chip.add('eda', tool, step, 'format', 'cmdline')
-    chip.add('eda', tool, step, 'copy', 'false')
-    chip.add('eda', tool, step, 'exe', 'verilator')
-    chip.add('eda', tool, step, 'vendor', 'verilator')
+    chip.set('eda', tool, step, 'threads', 4)
+    chip.set('eda', tool, step, 'format', 'cmdline')
+    chip.set('eda', tool, step, 'copy', 'false')
+    chip.set('eda', tool, step, 'exe', 'verilator')
+    chip.set('eda', tool, step, 'vendor', 'verilator')
     chip.add('eda', tool, step, 'option', '-sv')
 
     # Differentiate between import step and compilation
@@ -39,23 +39,22 @@ def setup_tool(chip, step):
     chip.add('eda', tool, step, 'option', '-I../../../')
 
     #Source Level Controls
-    for value in chip.cfg['ydir']['value']:
+    for value in chip.get('ydir'):
         chip.add('eda', tool, step, 'option', '-y ' + schema_path(value))
-    for value in chip.cfg['vlib']['value']:
+    for value in chip.get('vlib'):
         chip.add('eda', tool, step, 'option', '-v ' + schema_path(value))
-    for value in chip.cfg['idir']['value']:
+    for value in chip.get('idir'):
         chip.add('eda', tool, step, 'option', '-I' + schema_path(value))
-    for value in chip.cfg['define']['value']:
+    for value in chip.get('define'):
         chip.add('eda', tool, step, 'option', '-D' + schema_path(value))
-    for value in chip.cfg['cmdfile']['value']:
+    for value in chip.get('cmdfile'):
         chip.add('eda', tool, step, 'option', '-f ' + schema_path(value))
-    for value in chip.cfg['source']['value']:
+    for value in chip.get('source'):
         chip.add('eda', tool, step, 'option', schema_path(value))
 
     #Make warnings non-fatal in relaxed mode
-    if len(chip.cfg['relax']['value']) > 0:
-        if schema_istrue(chip.cfg['relax']['value']):
-            chip.add('eda', tool, step, 'option', '-Wno-fatal')
+    if schema_istrue(chip.get('relax')):
+        chip.add('eda', tool, step, 'option', '-Wno-fatal')
 
 ################################
 # Post_process (post executable)
@@ -87,7 +86,7 @@ def post_process(chip, step):
             chip.logger.info('Setting design (topmodule) to %s', topmodule)
             chip.cfg['design']['value'].append(topmodule)
     else:
-        topmodule = chip.cfg['design']['value'][-1]
+        topmodule = chip.cfg['design']['value']
 
     # Copy files from inputs to outputs
     shutil.copytree("inputs", "outputs", dirs_exist_ok=True)

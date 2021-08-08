@@ -89,41 +89,79 @@ def schema_path(filename):
 
 def schema_istrue(value):
     ''' Checks schema boolean string and returns Python True/False
+    Allow for both Python True/False values and "true"/"false",
+    "True/False". What's the harm?
     '''
-    boolean = value[-1].lower()
-    return bool(boolean == "true")
+    return value.lower() == 'true'
 
-
-def schema_check(cfg, leafkey, value):
-    ''' Checks that leaf cell value agrees with type
+def schema_typecheck(chip, cfg, leafkey, value):
+    ''' Schema type checking
     '''
 
+    # Check that value is list when type is scalar
     ok = True
-    keyval = "(Key,value) = (" + leafkey +  ",'" + ' '.join(value) + "')"
-    if cfg['type'] == 'bool':
-        if value[0] not in ('true', 'false'):
-            print("ERROR: Value should be boolan.", keyval)
-            ok = False
+    valuetype =type(value)
+    if (not re.match('\[',cfg['type'])) & (valuetype==list):
+        errormsg = "Value should be a scalar."
+        ok = False
+    # Iterate over list
     else:
-        for item in value:
-            if cfg['type'] == 'str':
-                ok = isinstance(item, str)
-                if not ok:
-                    print("ERROR: Value should be a string.", keyval)
-            elif cfg['type'] == 'num':
-                try:
-                    isinstance(float(item), float)
-                except:
+        # Create list for iteration
+        if valuetype == list:
+            valuelist = value
+        else:
+            valuelist = [value]
+        # Make type python compatible
+        cfgtype = re.sub('[\[\]]', '', cfg['type'])
+        for item in valuelist:
+            valuetype =  type(item)
+            if (cfgtype != valuetype.__name__):
+                if cfgtype == 'float4':
+                    if (len(valuelist) != 1):
+                        errormsg = "Value should be entered as a single string."
+                        ok = False
+                    else:
+                        float4list = valuelist[0].split()
+                        if (len(float4list) != 4):
+                            errormsg = "String should be string with 4 space separated values."
+                            ok = False
+                        else:
+                            for num in float4list:
+                                try:
+                                    float(num)
+                                except ValueError:
+                                    errormsg = "Type mismatch. String cannot be cast to float."
+                                    ok = False
+                elif cfgtype == 'bool':
+                    if not item in ['true', 'false']:
+                        errormsg = "Valid boolean values are True/False/'true'/'false'"
+                        ok = False
+                elif cfgtype == 'file':
+                    if not os.path.isfile(schema_path(item)):
+                        errormsg = "Invalid path or missing file."
+                        ok = False
+                elif cfgtype == 'dir':
+                    if not os.path.isdir(schema_path(item)):
+                        errormsg = "Invalid path or missing directory."
+                        ok = False
+                elif (cfgtype == 'float') & isinstance(item, int):
+                    pass
+                else:
+                    errormsg = "Type mismach."
                     ok = False
-                    print("ERROR: Value should be a number.", keyval)
-            elif cfg['type'] == 'file':
-                ok = os.path.isfile(schema_path(item))
-                if not ok:
-                    print("ERROR: File is missing.", keyval)
-            elif cfg['type'] == 'dir':
-                ok = os.path.isdir(schema_path(item))
-                if not ok:
-                    print("ERROR: Directory is missing.", keyval)
+    # Logger message
+    if not ok:
+        if type(value) == list:
+            printvalue = ','.join(map(str, value))
+        else:
+            printvalue = str(value)
+        errormsg = (errormsg +
+                    " Key=" + str(leafkey) +
+                    ", Expected Type=" + cfg['type'] +
+                    ", Entered Type=" + valuetype.__name__ +
+                    ", Value=" + printvalue)
+        chip.logger.error("%s", errormsg)
+
     return ok
 
 
@@ -131,12 +169,12 @@ def schema_reorder_keys(param_help, item):
     ''' Returns a keylist used to access the dictionary based on the
     cmdline switch argument and the param_help field.
     '''
-
     #Split param help into keys and data based in <>
     m = re.search('(.*?)(<.*)', param_help)
     paramlist = m.group(1).split()
     datalist = m.group(2).split()
-    #Split cmdline inputn based on spaces
+    #Split cmdline input based on spaces
+
     itemlist = item.split()
 
     depth = len(paramlist)+1
@@ -152,7 +190,11 @@ def schema_reorder_keys(param_help, item):
             args[i] = paramlist[i]
 
     #Insert data field as last entry (some are string tuples)
-    args[-1] = itemlist[-len(datalist):]
+    #ugly, not planning a lot these, keep for now...
+    if re.search('float float float float', param_help):
+        args[-1] = ' '.join(map(str, itemlist))
+    else:
+        args[-1] = itemlist[-1]
 
     return args
 
@@ -169,11 +211,11 @@ def schema_fpga(cfg):
     cfg['fpga']['arch'] = {
         'switch': '-fpga_arch',
         'requirement': 'fpga',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'true',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -194,7 +236,7 @@ def schema_fpga(cfg):
         'requirement': '!fpga_xml',
         'type': 'str',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'FPGA Vendor Name',
         'param_help': "fpga vendor <str>",
         'example': ["cli: -fpga_vendor acme",
@@ -210,7 +252,7 @@ def schema_fpga(cfg):
         'requirement': '!fpga_xml',
         'type': 'str',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'FPGA Part Name',
         'param_help': "fpga partname <str>",
         'example': ["cli: -fpga_partname fpga64k",
@@ -236,7 +278,7 @@ def schema_pdk(cfg):
         'requirement': 'asic',
         'type': 'str',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Foundry Name',
         'param_help': "pdk foundry <str>",
         'example': ["cli: -pdk_foundry virtual",
@@ -253,7 +295,7 @@ def schema_pdk(cfg):
         'requirement': 'asic',
         'type': 'str',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Process Name',
         'param_help': "pdk process <str>",
         'example': ["cli: -pdk_process asap7",
@@ -269,9 +311,9 @@ def schema_pdk(cfg):
     cfg['pdk']['node'] = {
         'switch': '-pdk_node',
         'requirement': 'asic',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Process Node',
         'param_help': "pdk node <num>",
         'example': ["cli: -pdk_node 130",
@@ -288,9 +330,9 @@ def schema_pdk(cfg):
     cfg['pdk']['wafersize'] = {
         'switch': '-pdk_wafersize',
         'requirement': 'asic',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Process Wafer Size',
         'param_help': "pdk wafersize <num>",
         'example': ["cli: -pdk_wafersize 300",
@@ -307,9 +349,9 @@ def schema_pdk(cfg):
     cfg['pdk']['wafercost'] = {
         'switch': '-pdk_wafercost',
         'requirement': 'asic',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Process Wafer Cost',
         'param_help': "pdk wafercost <num>",
         'example': ["cli: -pdk_wafercost 10000",
@@ -323,9 +365,9 @@ def schema_pdk(cfg):
     cfg['pdk']['d0'] = {
         'switch': '-pdk_d0',
         'requirement': 'asic',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Process Defect Density',
         'param_help': "pdk d0 <num>",
         'example': ["cli: -pdk_d0 0.1",
@@ -343,9 +385,9 @@ def schema_pdk(cfg):
     cfg['pdk']['hscribe'] = {
         'switch': '-pdk_hscribe',
         'requirement': 'asic',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Process Horizontal Scribeline',
         'param_help': "pdk hscribe <num>",
         'example': ["cli: -pdk_hscribe 0.1",
@@ -362,9 +404,9 @@ def schema_pdk(cfg):
     cfg['pdk']['vscribe'] = {
         'switch': '-pdk_vscribe',
         'requirement': 'asic',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Process Horizontal Scribeline',
         'param_help': "pdk vscribe <num>",
         'example': ["cli: -pdk_vscribe 0.1",
@@ -381,9 +423,9 @@ def schema_pdk(cfg):
     cfg['pdk']['edgemargin'] = {
         'switch': '-pdk_edgemargin',
         'requirement': 'asic',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Process Wafer Edge Margin',
         'param_help': "pdk edgemargin <num>",
         'example': ["cli: -pdk_edgemargin 1",
@@ -398,9 +440,9 @@ def schema_pdk(cfg):
     cfg['pdk']['density'] = {
         'switch': '-pdk_density',
         'requirement': 'asic',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Process Transistor Density',
         'param_help': "pdk density <num>",
         'example': ["cli: -pdk_density 100e6",
@@ -421,9 +463,9 @@ def schema_pdk(cfg):
     cfg['pdk']['sramsize'] = {
         'switch': '-pdk_sramsize',
         'requirement': 'asic',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Process SRAM Bitcell Size',
         'param_help': "pdk sramsize <num>",
         'example': ["cli: -pdk_sramsize 0.032",
@@ -440,7 +482,7 @@ def schema_pdk(cfg):
         'requirement': 'asic',
         'type': 'str',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Process Revision',
         'param_help': "pdk rev <str>",
         'example': ["cli: -pdk_rev 1.0",
@@ -456,11 +498,11 @@ def schema_pdk(cfg):
     cfg['pdk']['drm'] = {
         'switch': '-pdk_drm',
         'requirement': 'asic',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -480,11 +522,11 @@ def schema_pdk(cfg):
     cfg['pdk']['doc'] = {
         'switch': '-pdk_doc',
         'requirement': 'asic',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -503,7 +545,7 @@ def schema_pdk(cfg):
     cfg['pdk']['stackup'] = {
         'switch': '-pdk_stackup',
         'requirement': 'asic',
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'defvalue': [],
         'short_help': 'Process Metal Stackups',
@@ -529,11 +571,11 @@ def schema_pdk(cfg):
     cfg['pdk']['devicemodel']['default']['default']['default'] = {
         'switch': '-pdk_devicemodel',
         'requirement': 'asic',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -559,11 +601,11 @@ def schema_pdk(cfg):
     cfg['pdk']['pexmodel']['default']['default']['default'] = {
         'switch': '-pdk_pexmodel',
         'requirement': 'asic',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -588,11 +630,11 @@ def schema_pdk(cfg):
     cfg['pdk']['layermap']['default']['default']['default'] = {
         'switch': '-pdk_layermap',
         'requirement': 'asic',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -619,11 +661,11 @@ def schema_pdk(cfg):
     cfg['pdk']['display']['default']['default']['default'] = {
         'switch': '-pdk_display',
         'requirement': 'asic',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -645,11 +687,11 @@ def schema_pdk(cfg):
     cfg['pdk']['plib']['default']['default']['default'] = {
         'switch': '-pdk_plib',
         'requirement': 'asic',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -673,11 +715,11 @@ def schema_pdk(cfg):
     cfg['pdk']['aprtech']['default']['default']['default'] = {
         'switch': '-pdk_aprtech',
         'requirement': 'asic',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -708,7 +750,7 @@ def schema_pdk(cfg):
         'requirement': 'optional',
         'type': 'str',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Grid Layer Name Map',
         'param_help': "pdk grid stackvar layervar name <str>",
         'example': ["""cli: -pdk_grid_name 'M10 m1 metal1'""",
@@ -725,9 +767,9 @@ def schema_pdk(cfg):
     cfg['pdk']['grid']['default']['default']['xpitch'] = {
         'switch': '-pdk_grid_xpitch',
         'requirement': 'optional',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Grid Layer Horizontal Grid',
         'param_help': "pdk grid stackvar layervar xpitch <num>",
         'example': ["""cli: -pdk_grid_xpitch 'M10 m1 0.5'""",
@@ -744,9 +786,9 @@ def schema_pdk(cfg):
     cfg['pdk']['grid']['default']['default']['ypitch'] = {
         'switch': '-pdk_grid_ypitch',
         'requirement': 'optional',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Grid Layer Vertical Grid',
         'param_help': "pdk grid stackvar layervar ypitch <num>'",
         'example': ["""cli: -pdk_grid_ypitch 'M10 m2 0.5'""",
@@ -763,9 +805,9 @@ def schema_pdk(cfg):
     cfg['pdk']['grid']['default']['default']['xoffset'] = {
         'switch': '-pdk_grid_xoffset',
         'requirement': 'optional',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Grid Layer Preferred Direction',
         'param_help': "pdk grid stackvar layervar xoffset <num>",
         'example': ["""cli: -pdk_grid_xoffset 'M10 m2 0.5'""",
@@ -781,9 +823,9 @@ def schema_pdk(cfg):
     cfg['pdk']['grid']['default']['default']['yoffset'] = {
         'switch': '-pdk_grid_yoffset',
         'requirement': 'optional',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Grid Layer Preferred Direction',
         'param_help': "pdk grid stackvar layervar yoffset <num>",
         'example': ["""cli: -pdk_grid_yoffset 'M10 m2 0.5'""",
@@ -799,9 +841,9 @@ def schema_pdk(cfg):
     cfg['pdk']['grid']['default']['default']['adj'] = {
         'switch': '-pdk_grid_adj',
         'requirement': 'optional',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Grid Layer Routing Adjustment',
         'param_help': "pdk grid stackvar layervar adj <num>",
         'example': ["""cli: -pdk_grid_adj 'M10 m2 0.5'""",
@@ -818,9 +860,9 @@ def schema_pdk(cfg):
     cfg['pdk']['grid']['default']['default']['cap'] = {
         'switch': '-pdk_grid_cap',
         'requirement': 'optional',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Grid Layer Routing Layer Capacitance',
         'param_help': "pdk grid stackvar layervar cap <num>",
         'example': ["""cli: -pdk_grid_cap 'M10 m2 0.2'""",
@@ -839,9 +881,9 @@ def schema_pdk(cfg):
     cfg['pdk']['grid']['default']['default']['res'] = {
         'switch': '-pdk_grid_res',
         'requirement': 'optional',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Grid Layer Routing Layer Resistance',
         'param_help': "pdk grid stackvar layervar res <num>",
         'example': ["""cli: -pdk_grid_res 'M10 m2 0.2'""",
@@ -859,9 +901,9 @@ def schema_pdk(cfg):
     cfg['pdk']['grid']['default']['default']['tcr'] = {
         'switch': '-pdk_grid_tcr',
         'requirement': 'optional',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Grid Layer Temperature Coefficent',
         'param_help': "pdk grid stackvar layervar tcr <num>",
         'example': ["""cli: -pdk_grid_tcr 'M10 m2 0.1'""",
@@ -878,9 +920,9 @@ def schema_pdk(cfg):
     cfg['pdk']['tapmax'] = {
         'switch': '-pdk_tapmax',
         'requirement': 'apr',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Tap Cell Max Distance Rule',
         'param_help': "pdk tapmax <num>",
         'example': ["""cli: -pdk_tapmax 100""",
@@ -894,9 +936,9 @@ def schema_pdk(cfg):
     cfg['pdk']['tapoffset'] = {
         'switch': '-pdk_tapoffset',
         'requirement': 'apr',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Tap Cell Offset Rule',
         'param_help': "pdk tapoffset <num>",
         'example': ["""cli: -pdk_tapoffset 100""",
@@ -925,7 +967,7 @@ def schema_libs(cfg, group):
         'requirement': 'asic',
         'type': 'str',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': group.capitalize() + ' Release Revision',
         'param_help': group+" libvar rev <str>",
         'example': ["cli: -"+group+"_rev 'mylib 1.0'",
@@ -942,7 +984,7 @@ def schema_libs(cfg, group):
         'requirement': 'asic',
         'type': 'str',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': group.capitalize() + ' Origin',
         'param_help': group+" libvar origin <str>",
         'example': ["cli: -"+group+"_origin 'mylib US'",
@@ -955,11 +997,11 @@ def schema_libs(cfg, group):
     cfg[group]['default']['license'] = {
         'switch': '-'+group+'_license',
         'requirement': 'asic',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -975,11 +1017,11 @@ def schema_libs(cfg, group):
     cfg[group]['default']['doc'] = {
         'switch': '-'+group+'_doc',
         'requirement': 'asic',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -998,11 +1040,11 @@ def schema_libs(cfg, group):
     cfg[group]['default']['datasheet'] = {
         'switch': '-'+group+"_datasheet",
         'requirement': 'optional',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1024,7 +1066,7 @@ def schema_libs(cfg, group):
         'requirement': 'asic',
         'type': 'str',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': group.capitalize() + ' Type',
         'param_help': group+" libvar libtype <str>",
         'example': [
@@ -1041,9 +1083,9 @@ def schema_libs(cfg, group):
     cfg[group]['default']['width'] = {
         'switch': '-'+group+'_width',
         'requirement': 'apr',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': group.capitalize() + ' Width',
         'param_help': group+" libvar width <num>",
         'example': ["cli: -"+group+"_width 'mylib 0.1'",
@@ -1059,9 +1101,9 @@ def schema_libs(cfg, group):
     cfg[group]['default']['height'] = {
         'switch': '-'+group+'_height',
         'requirement': 'apr',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': group.capitalize() + ' Height',
         'param_help': group+" libvar height <num>",
         'example': [
@@ -1087,7 +1129,7 @@ def schema_libs(cfg, group):
         'requirement': 'asic',
         'type': 'str',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': group.capitalize() + ' Operating Condition',
         'param_help': group+" libvar model cornervar opcond <str>",
         'example': [
@@ -1103,7 +1145,7 @@ def schema_libs(cfg, group):
     cfg[group]['default']['model']['default']['check'] = {
         'switch': '-'+group+"_check",
         'requirement': 'asic',
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'defvalue': [],
         'short_help': group.capitalize() + ' Corner Checks',
@@ -1127,11 +1169,11 @@ def schema_libs(cfg, group):
     cfg[group]['default']['model']['default']['nldm']['default'] = {
         'switch': '-'+group+"_nldm",
         'requirement': 'asic',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1153,11 +1195,11 @@ def schema_libs(cfg, group):
     cfg[group]['default']['model']['default']['ccs']['default'] = {
         'switch': '-'+group+"_ccs",
         'requirement': 'optional',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1179,11 +1221,11 @@ def schema_libs(cfg, group):
     cfg[group]['default']['model']['default']['scm']['default'] = {
         'switch': '-'+group+"_scm",
         'requirement': 'optional',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1204,11 +1246,11 @@ def schema_libs(cfg, group):
     cfg[group]['default']['model']['default']['aocv'] = {
         'switch': '-'+group+"_aocv",
         'requirement': 'optional',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1228,11 +1270,11 @@ def schema_libs(cfg, group):
     cfg[group]['default']['model']['default']['apl']['default'] = {
         'switch': '-'+group+"_apl",
         'requirement': 'optional',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1251,11 +1293,11 @@ def schema_libs(cfg, group):
     cfg[group]['default']['lef'] = {
         'switch': '-'+group+"_lef",
         'requirement': 'asic',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1274,11 +1316,11 @@ def schema_libs(cfg, group):
     cfg[group]['default']['gds'] = {
         'switch': '-'+group+"_gds",
         'requirement': 'optional',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1298,11 +1340,11 @@ def schema_libs(cfg, group):
     cfg[group]['default']['cdl'] = {
         'switch': '-'+group+"_cdl",
         'requirement': 'optional',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1322,11 +1364,11 @@ def schema_libs(cfg, group):
     cfg[group]['default']['spice']['default'] = {
         'switch': '-'+group+"_spice",
         'requirement': 'optional',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1344,11 +1386,11 @@ def schema_libs(cfg, group):
     cfg[group]['default']['hdl']['default'] = {
         'switch': '-'+group+"_hdl",
         'requirement': 'asic',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1366,11 +1408,11 @@ def schema_libs(cfg, group):
     cfg[group]['default']['atpg'] = {
         'switch': '-'+group+"_atpg",
         'requirement': 'optional',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1389,7 +1431,7 @@ def schema_libs(cfg, group):
         'requirement': 'optional',
         'type': 'str',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': group.capitalize() + ' Power/Ground Layer',
         'param_help': group+" libvar pgmetal <str>",
         'example': ["cli: -"+group+"_pgmetal 'mylib m1'",
@@ -1404,7 +1446,7 @@ def schema_libs(cfg, group):
     cfg[group]['default']['tag'] = {
         'switch': '-'+group+"_tag",
         'requirement': 'optional',
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'defvalue': [],
         'short_help': group.capitalize() + ' Identifier Tags',
@@ -1423,7 +1465,7 @@ def schema_libs(cfg, group):
     cfg[group]['default']['driver'] = {
         'switch': '-'+group+"_driver",
         'requirement': 'asic',
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'defvalue': [],
         'short_help': group.capitalize() + ' Default Driver Cell',
@@ -1444,7 +1486,7 @@ def schema_libs(cfg, group):
         'requirement': 'optional',
         'type': 'str',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': group.capitalize() + ' Site/Tile Name',
         'param_help': group+" libvar site <str>",
         'example': ["cli: -"+group+"_site 'mylib core'",
@@ -1458,7 +1500,7 @@ def schema_libs(cfg, group):
     cfg[group]['default']['cells']['default'] = {
         'switch': '-'+group+"_cells",
         'requirement': 'optional',
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'defvalue': [],
         'short_help': group.capitalize() + ' Cell Lists',
@@ -1479,11 +1521,11 @@ def schema_libs(cfg, group):
     cfg[group]['default']['layoutdb']['default']['default'] = {
         'switch': '-'+group+"_layoutdb",
         'requirement': 'optional',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1514,7 +1556,7 @@ def schema_flowgraph(cfg, step):
     # Used to define flow sequence
     cfg['flowgraph'][step]['output'] = {
         'switch': '-flowgraph_output',
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'requirement': 'all',
         'defvalue': [],
@@ -1533,7 +1575,7 @@ def schema_flowgraph(cfg, step):
         'type': 'str',
         'lock': 'false',
         'requirement': 'all',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Flowgraph Tool Selection',
         'param_help': "graph toolvar tool <str>",
         'example': ["cli: -graph_tool 'place openroad'",
@@ -1566,7 +1608,7 @@ def schema_eda(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'all',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Executable Name',
         'param_help': "eda toolvar stepvar exe <str>",
         'example': ["cli: -eda_exe 'cts openroad'",
@@ -1583,7 +1625,7 @@ def schema_eda(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'all',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Tool Vendor',
         'param_help': "eda toolvar stepvar vendor <str>",
         'example': ["cli: -eda_vendor 'yosys syn yosys'",
@@ -1602,7 +1644,7 @@ def schema_eda(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'all',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Executable Version',
         'param_help': "eda toolvar version <str>",
         'example': ["cli: -eda_version 'cts 1.0'",
@@ -1617,7 +1659,7 @@ def schema_eda(cfg):
     # options
     cfg['eda'][tool][step]['option'] = {
         'switch': '-eda_opt',
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
@@ -1640,7 +1682,7 @@ def schema_eda(cfg):
         'type': 'dir',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Reference Directory',
         'param_help': "eda toolvar stepvar refdir <file>",
         'example': ["cli: -eda_refdir 'yosys syn ./myref'",
@@ -1651,15 +1693,15 @@ def schema_eda(cfg):
         """
     }
 
-    # entry point script
+    # entry point scripts
     cfg['eda'][tool][step]['script'] = {
         'switch': '-eda_script',
         'requirement': 'optional',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1677,11 +1719,11 @@ def schema_eda(cfg):
     cfg['eda'][tool][step]['prescript'] = {
         'switch': '-eda_prescript',
         'requirement': 'optional',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1692,21 +1734,21 @@ def schema_eda(cfg):
         'help': """
         Path to a user supplied script to execute after reading in the design
         but before the main execution stage of the step. Exact entry point
-        depends on the step and main script being executed. An example 
+        depends on the step and main script being executed. An example
         of a prescript entry point would be immediately before global
         placement.
         """
     }
-    
+
     # post execution script
     cfg['eda'][tool][step]['postcript'] = {
         'switch': '-eda_postscript',
         'requirement': 'optional',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1717,7 +1759,7 @@ def schema_eda(cfg):
         'help': """
         Path to a user supplied script to execute after reading in the design
         but before the main execution stage of the step. Exact entry point
-        depends on the step and main script being executed. An example 
+        depends on the step and main script being executed. An example
         of a postscript entry point would be immediately after global
         placement.
         """
@@ -1729,7 +1771,7 @@ def schema_eda(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Copy Local Option',
         'param_help': "eda toolvar stepvar copy <bool>",
         'example': ["cli: -eda_copy 'openroad cts true'",
@@ -1747,7 +1789,7 @@ def schema_eda(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'all',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Script Format',
         'param_help': "eda toolvar stepvar format <str>",
         'example': ["cli: -eda_format 'openroad cts tcl'",
@@ -1762,10 +1804,10 @@ def schema_eda(cfg):
     # parallelism
     cfg['eda'][tool][step]['threads'] = {
         'switch': '-eda_threads',
-        'type': 'num',
+        'type': 'int',
         'lock': 'false',
         'requirement': 'all',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Job Parallelism',
         'param_help': "eda toolvar stepvar threads <num>",
         'example': ["cli: -eda_threads 'maxgic drc 64'",
@@ -1784,7 +1826,7 @@ def schema_eda(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Warning Filter',
         'param_help': "eda toolvar stepvar woff <file>",
         'example': ["cli: -eda_woff 'verilator import COMBDLY'",
@@ -1815,10 +1857,10 @@ def schema_metric(cfg, group='default', step='default'):
 
     cfg['metric'][step][group]['registers'] = {
         'switch': '-metric_registers',
-        'type': 'num',
+        'type': 'int',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Total Registers Metric',
         'param_help': 'metric stepvar stagevar registers <num>',
         'example': ["cli: -metric_"+group+"_registers 'place 100'",
@@ -1830,10 +1872,10 @@ def schema_metric(cfg, group='default', step='default'):
 
     cfg['metric'][step][group]['cells'] = {
         'switch': '-metric_cells',
-        'type': 'num',
+        'type': 'int',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Total Cell Instances Metric',
         'param_help': 'metric stepvar stagevar cells <num>',
         'example': ["cli: -"+group+"_cells 'place 100'",
@@ -1847,10 +1889,10 @@ def schema_metric(cfg, group='default', step='default'):
 
     cfg['metric'][step][group]['rambits'] = {
         'switch': '-metric_rambits',
-        'type': 'num',
+        'type': 'int',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Total RAM Macro Bits Metric',
         'param_help': 'metric stepvar stagevar rambits <num>',
         'example': ["cli: -"+group+"_rambits 'place 100'",
@@ -1864,10 +1906,10 @@ def schema_metric(cfg, group='default', step='default'):
 
     cfg['metric'][step][group]['xtors'] = {
         'switch': '-metric_xtors',
-        'type': 'num',
+        'type': 'int',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Total Transistors Metric',
         'param_help': 'metric stepvar stagevar xtors <num>',
         'example': ["cli: -"+group+"_xtors 'place 100'",
@@ -1880,10 +1922,10 @@ def schema_metric(cfg, group='default', step='default'):
 
     cfg['metric'][step][group]['nets'] = {
         'switch': '-metric_nets',
-        'type': 'num',
+        'type': 'int',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Total Nets Metric',
         'param_help': 'metric stepvar stagevar nets <num>',
         'example': ["cli: -"+group+"_nets 'place 100'",
@@ -1896,10 +1938,10 @@ def schema_metric(cfg, group='default', step='default'):
 
     cfg['metric'][step][group]['pins'] = {
         'switch': '-metric_pins',
-        'type': 'num',
+        'type': 'int',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Total Pins Metric',
         'param_help': 'metric stepvar '+group+" stepvar pins <num>",
         'example': ["cli: -"+group+"_pins 'place 100'",
@@ -1912,10 +1954,10 @@ def schema_metric(cfg, group='default', step='default'):
 
     cfg['metric'][step][group]['vias'] = {
         'switch': '-metric_vias',
-        'type': 'num',
+        'type': 'int',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Total Vias metric',
         'param_help': 'metric stepvar stagevar vias <num>',
         'example': ["cli: -"+group+"_vias 'route 100.00'",
@@ -1927,10 +1969,10 @@ def schema_metric(cfg, group='default', step='default'):
 
     cfg['metric'][step][group]['wirelength'] = {
         'switch': '-metric_wirelength',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Total Wirelength Metric',
         'param_help': 'metric stepvar stagevar wirelength <num>',
         'example': ["cli: -"+group+"_wirelength 'route 100.00'",
@@ -1942,10 +1984,10 @@ def schema_metric(cfg, group='default', step='default'):
 
     cfg['metric'][step][group]['overflow'] = {
         'switch': '-metric_overflow',
-        'type': 'num',
+        'type': 'int',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Routing Overflow Metric',
         'param_help': 'metric stepvar stagevar overflow <num>',
         'example': ["cli: -"+group+"_overflow 'route 0'",
@@ -1961,10 +2003,10 @@ def schema_metric(cfg, group='default', step='default'):
 
     cfg['metric'][step][group]['area_cells'] = {
         'switch': '-metric_area_cells',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Cell Area Metric',
         'param_help': 'metric stepvar stagevar area_cells <num>',
         'example': ["cli: -"+group+"_area_cells 'place 100.00'",
@@ -1977,10 +2019,10 @@ def schema_metric(cfg, group='default', step='default'):
 
     cfg['metric'][step][group]['area_total'] = {
         'switch': '-metric_area_total',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Total Area Metric',
         'param_help': 'metric stepvar stagevar area_total <num>',
         'example': ["cli: -"+group+"_area_total 'place 100.00'",
@@ -1993,10 +2035,10 @@ def schema_metric(cfg, group='default', step='default'):
 
     cfg['metric'][step][group]['area_density'] = {
         'switch': '-metric_area_density',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Area Density Metric',
         'param_help': 'metric stepvar stagevar area_density <num>',
         'example': ["cli: -"+group+"_area_density 'place 99.9'",
@@ -2011,10 +2053,10 @@ def schema_metric(cfg, group='default', step='default'):
 
     cfg['metric'][step][group]['power_total'] = {
         'switch': '-metric_power_total',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Total Power Metric',
         'param_help': 'metric stepvar stagevar power_total <num>',
         'example': ["cli: -"+group+"_power_total 'place 0.001'",
@@ -2028,10 +2070,10 @@ def schema_metric(cfg, group='default', step='default'):
 
     cfg['metric'][step][group]['power_leakage'] = {
         'switch': '-metric_power_leakage',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Leakage Power Metric',
         'param_help': 'metric stepvar stagevar power_leakage <num>',
         'example': ["cli: -"+group+"_power_leakage 'place 1e-6'",
@@ -2044,10 +2086,10 @@ def schema_metric(cfg, group='default', step='default'):
 
     cfg['metric'][step][group]['hold_slack'] = {
         'switch': '-metric_hold_slack',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Hold Slack Metric',
         'param_help': 'metric stepvar stagevar hold_slack <num>',
         'example': ["cli: -metric_hold_slack 'place "+group+" 0",
@@ -2061,10 +2103,10 @@ def schema_metric(cfg, group='default', step='default'):
 
     cfg['metric'][step][group]['hold_tns'] = {
         'switch': '-metric_hold_tns',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Hold TNS Metric',
         'param_help': 'metric stepvar stagevar hold_tns <num>',
         'example': ["cli: -"+group+"_hold_tns 'place 0'",
@@ -2077,10 +2119,10 @@ def schema_metric(cfg, group='default', step='default'):
 
     cfg['metric'][step][group]['setup_slack'] = {
         'switch': '-metric_setup_slack',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Setup Slack Metric',
         'param_help': 'metric stepvar stagevar setup_slack <num>',
         'example': ["cli: -metric_setup_slack 'place "+group+" 0",
@@ -2095,10 +2137,10 @@ def schema_metric(cfg, group='default', step='default'):
 
     cfg['metric'][step][group]['setup_tns'] = {
         'switch': '-metric_setup_tns',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Setup TNS Metric',
         'param_help': 'metric stepvar stagevar setup_tns <num>',
         'example': ["cli: -"+group+"_setup_tns 'place 0'",
@@ -2111,10 +2153,10 @@ def schema_metric(cfg, group='default', step='default'):
 
     cfg['metric'][step][group]['drv'] = {
         'switch': '-metric_drv',
-        'type': 'num',
+        'type': 'int',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Design Rule Violations Metric',
         'param_help': 'metric stepvar stagevar drv <num>',
         'example': ["cli: -"+group+"_drv 'dfm 0'",
@@ -2127,10 +2169,10 @@ def schema_metric(cfg, group='default', step='default'):
 
     cfg['metric'][step][group]['warnings'] = {
         'switch': '-metric_warnings',
-        'type': 'num',
+        'type': 'int',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Total Warnings Metric',
         'param_help': 'metric stepvar stagevar warnings <num>',
         'example': ["cli: -"+group+"_warnings 'dfm 0'",
@@ -2143,10 +2185,10 @@ def schema_metric(cfg, group='default', step='default'):
 
     cfg['metric'][step][group]['errors'] = {
         'switch': '-metric_errors',
-        'type': 'num',
+        'type': 'int',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Total Errors Metric',
         'param_help': 'metric stepvar stagevar errors <num>',
         'example': ["cli: -"+group+"_errors 'dfm 0'",
@@ -2158,10 +2200,10 @@ def schema_metric(cfg, group='default', step='default'):
 
     cfg['metric'][step][group]['runtime'] = {
         'switch': '-metric_runtime',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Total Runtime Metric',
         'param_help': 'metric stepvar stagevar runtime <num>',
         'example': ["cli: -"+group+"_runtime 'dfm 35.3'",
@@ -2174,10 +2216,10 @@ def schema_metric(cfg, group='default', step='default'):
 
     cfg['metric'][step][group]['memory'] = {
         'switch': '-metric_memory',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Total Memory Metric',
         'param_help': 'metric stepvar stagevar memory <num>',
         'example': ["cli: -"+group+"_memory 'dfm 10e6'",
@@ -2200,21 +2242,21 @@ def schema_record(cfg, step='default'):
 
     cfg['record'][step] = {}      # per step
 
-    cfg['record'][step]['file'] = {
-        'switch': '-record_file',
+    cfg['record'][step]['input'] = {
+        'switch': '-record_input',
         'requirement': 'optional',
-        'type': 'file',
+        'type': '[file]',
         'copy': 'false',
         'lock': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': 'Step File Inputs',
-        'param_help': "record stepvar file <str>",
+        'short_help': 'Step Inputs',
+        'param_help': "record stepvar input <str>",
         'example': ["cli: -record_input 'package gcd.v'",
-                    "api: chip.add('record','package','file','gcd.v')"],
+                    "api: chip.add('record','package','input','gcd.v')"],
         'help': """
         Metric tracking all input files on a per step basis. This list
         include files entered by the user and files automatically found
@@ -2227,22 +2269,7 @@ def schema_record(cfg, step='default'):
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
-        'short_help': 'Step Author',
-        'param_help': "record stepvar author <str>",
-        'example': ["cli: -record_author 'dfm coyote'",
-                    "api: chip.add('record','dfm','author','wcoyote')"],
-        'help': """
-        Metric tracking the author on a per step basis.
-        """
-    }
-
-    cfg['record'][step]['author'] = {
-        'switch': '-record_author',
-        'type': 'str',
-        'lock': 'false',
-        'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Step Author',
         'param_help': "record stepvar author <str>",
         'example': ["cli: -record_author 'dfm coyote'",
@@ -2257,7 +2284,7 @@ def schema_record(cfg, step='default'):
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Step User ID',
         'param_help': "record stepvar userid <str>",
         'example': ["cli: -record_userid 'dfm 0982acea'",
@@ -2272,7 +2299,7 @@ def schema_record(cfg, step='default'):
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Step Signature',
         'param_help': "record stepvar signature <str>",
         'example': ["cli: -record_signature 'dfm 473c04b'",
@@ -2287,7 +2314,7 @@ def schema_record(cfg, step='default'):
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Step Organization',
         'param_help': "record stepvar org <str>",
         'example': ["cli: -record_org 'dfm earth'",
@@ -2302,13 +2329,13 @@ def schema_record(cfg, step='default'):
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Step Location',
         'param_help': "record stepvar location <str>",
         'example': ["cli: -record_location 'dfm Boston'",
                     "api: chip.add('record','dfm','location','Boston')"],
         'help': """
-        Metric tracking the user's location on a per step basis.
+        Metric tracking the user's location/site on a per step basis.
         """
     }
 
@@ -2317,7 +2344,7 @@ def schema_record(cfg, step='default'):
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Step Date Stamp',
         'param_help': "record stepvar date <str>",
         'example': ["cli: -record_date 'dfm 2021-05-01'",
@@ -2333,7 +2360,7 @@ def schema_record(cfg, step='default'):
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Step Time Stamp',
         'param_help': "record stepvar time <str>",
         'example': ["cli: -record_time 'dfm 11:35:40'",
@@ -2359,7 +2386,7 @@ def schema_options(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'all',
-        'defvalue': ['asic'],
+        'defvalue': 'asic',
         'short_help': 'Compilation Mode',
         'param_help': "mode <str>",
         'example': ["cli: -mode fpga",
@@ -2374,7 +2401,7 @@ def schema_options(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': ['custom'],
+        'defvalue': None,
         'short_help': 'Compilation Target',
         'param_help': "target <str>",
         'example': ["cli: -target 'freepdk45_asicflow'",
@@ -2387,33 +2414,14 @@ def schema_options(cfg):
         """
     }
 
-    cfg['steplist'] = {
-        'switch': '-steplist',
-        'requirement': 'all',
-        'type': 'str',
-        'lock': 'false',
-        'defvalue': [],
-        'short_help': 'Compilation Steps List',
-        'param_help': "steplist <str>",
-        'example': ["cli: -steplist export",
-                    "api: chip.add('steplist','export')"],
-        'help': """
-        A complete list of all steps included in the compilation process.
-        Compilation flow is controlled with the -start, -stop, -cont switches
-        and by adding values to the list. The list must be ordered to enable
-        default automated compilation from the first entry to the last entry
-        in the list.
-        """
-    }
-
     cfg['cfg'] = {
         'switch': '-cfg',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'true',
         'requirement': 'optional',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -2435,7 +2443,7 @@ def schema_options(cfg):
     cfg['env'] = {}
     cfg['env']['default'] = {
         'switch': '-env',
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
@@ -2452,7 +2460,7 @@ def schema_options(cfg):
 
     cfg['scpath'] = {
         'switch': '-scpath',
-        'type': 'dir',
+        'type': '[dir]',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
@@ -2470,14 +2478,14 @@ def schema_options(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': ['NONE'],
+        'defvalue': 'OFF',
         'short_help': 'File Hash Mode',
         'param_help': "hashmode <str>",
-        'example': ["cli: -hashmode NONE",
-                    "api: chip.add('hashmode', 'NONE')"],
+        'example': ["cli: -hashmode 'ALL'",
+                    "api: chip.add('hashmode', 'ALL')"],
         'help': """
         The switch controls how/if setup files and source files are hashed
-        during compilation. Valid entries include NONE, ALL, ACTIVE.
+        during compilation. Valid entries include OFF, ALL, ACTIVE.
         ACTIVE specifies to only hash files being used in the current cfg.
         """
     }
@@ -2487,7 +2495,7 @@ def schema_options(cfg):
         'type': 'bool',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': ['false'],
+        'defvalue': 'false',
         'short_help': 'Quiet execution',
         'param_help': "quiet <bool>",
         'example': ["cli: -quiet",
@@ -2504,7 +2512,7 @@ def schema_options(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': ['WARNING'],
+        'defvalue': 'WARNING',
         'short_help': 'Logging Level',
         'param_help': "loglevel <str>",
         'example': ["cli: -loglevel INFO",
@@ -2516,16 +2524,16 @@ def schema_options(cfg):
         """
     }
 
-    cfg['dir'] = {
-        'switch': '-dir',
+    cfg['build_dir'] = {
+        'switch': '-build_dir',
         'type': 'dir',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': ['build'],
+        'defvalue': 'build',
         'short_help': 'Build Directory',
-        'param_help': "dir <dir>",
-        'example': ["cli: -dir ./build_the_future",
-                    "api: chip.set('dir','./build_the_future')"],
+        'param_help': "dir <build_dir>",
+        'example': ["cli: -build_dir ./build_the_future",
+                    "api: chip.set('build_dir','./build_the_future')"],
         'help': """
         The default build directoryis './build'. The 'dir' parameters can be
         used to set an alternate compilation directory path.
@@ -2537,8 +2545,8 @@ def schema_options(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': ['job'],
-        'short_help': 'Job Name',
+        'defvalue': 'job',
+        'short_help': 'Job Name Prefix',
         'param_help': "jobname <dir>",
         'example': ["cli: -jobname may1",
                     "api: chip.set('jobname','may1')"],
@@ -2551,10 +2559,10 @@ def schema_options(cfg):
 
     cfg['jobid'] = {
         'switch': '-jobid',
-        'type': 'num',
+        'type': 'int',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': ['1'],
+        'defvalue': '1',
         'short_help': 'Job ID',
         'param_help': "jobid <num>",
         'example': ["cli: -jobid 0",
@@ -2571,7 +2579,7 @@ def schema_options(cfg):
         'type': 'bool',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': ['true'],
+        'defvalue': 'true',
         'short_help': 'Job ID Autoincrement Mode ',
         'param_help': "jobincr <true>",
         'example': ["cli: -jobincr",
@@ -2588,7 +2596,7 @@ def schema_options(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Compilation Start Step',
         'param_help': "start <str>",
         'example': ["cli: -start place",
@@ -2605,7 +2613,7 @@ def schema_options(cfg):
         'switch': '-stop',
         'type': 'str',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'requirement': 'optional',
         'short_help': 'Compilation Stop Step',
         'param_help': "stop <str>",
@@ -2620,7 +2628,7 @@ def schema_options(cfg):
 
     cfg['skip'] = {
         'switch': '-skip',
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'defvalue': [],
         'requirement': 'optional',
@@ -2639,7 +2647,7 @@ def schema_options(cfg):
         'switch': '-skipall',
         'type': 'bool',
         'lock': 'false',
-        'defvalue': ['false'],
+        'defvalue': 'false',
         'requirement': 'optional',
         'short_help': 'Skip All Steps',
         'param_help': "skipall <bool>",
@@ -2653,7 +2661,7 @@ def schema_options(cfg):
 
     cfg['msgevent'] = {
         'switch': '-msgevent',
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
@@ -2670,7 +2678,7 @@ def schema_options(cfg):
 
     cfg['msgcontact'] = {
         'switch': '-msgcontact',
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
@@ -2689,7 +2697,7 @@ def schema_options(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': ['O0'],
+        'defvalue': 'O0',
         'short_help': 'Optimization Mode',
         'param_help': "optmode <str>",
         'example': ["cli: -O3",
@@ -2710,7 +2718,7 @@ def schema_options(cfg):
         'type': 'bool',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': ['false'],
+        'defvalue': 'false',
         'short_help': 'Relaxed RTL Linting',
         'param_help': "relax <bool>",
         'example': ["cli: -relax",
@@ -2727,7 +2735,7 @@ def schema_options(cfg):
         'type': 'bool',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': ['false'],
+        'defvalue': 'false',
         'short_help': 'Keep essential files only',
         'param_help': "clean <bool>",
         'example': ["cli: -clean",
@@ -2740,10 +2748,10 @@ def schema_options(cfg):
 
     cfg['bkpt'] = {
         'switch': '-bkpt',
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': ['false'],
+        'defvalue': [],
         'short_help': "A list of flow breakpoints",
         'param_help': "bkpt <str>",
         'example': ["cli: -bkpt place",
@@ -2759,12 +2767,12 @@ def schema_options(cfg):
     # Path to a config file defining multiple remote jobs to run.
     cfg['permutations'] = {
         'switch': '-permutations',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -2784,7 +2792,7 @@ def schema_options(cfg):
         'type': 'bool',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': ['false'],
+        'defvalue': 'false',
         'short_help': "Copy All Input Files to Jobdir",
         'param_help': "copyall <bool>",
         'example': ["cli: -copyall",
@@ -2811,7 +2819,7 @@ def schema_remote(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Remote Server Address',
         'param_help': "remote addr <str>",
         'example': ["cli: -remote_addr 192.168.1.100",
@@ -2825,10 +2833,10 @@ def schema_remote(cfg):
     # Port number that the remote host is running 'sc-server' on.
     cfg['remote']['port'] = {
         'switch': '-remote_port',
-        'type': 'num',
+        'type': 'int',
         'lock': 'false',
         'requirement': 'remote',
-        'defvalue': ['443'],
+        'defvalue': '443',
         'short_help': 'Remote Server Port',
         'param_help': "remote port <str>",
         'example': ["cli: -remote_port 8080",
@@ -2844,11 +2852,11 @@ def schema_remote(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Job hash/UUID value',
         'param_help': "remote hash <str>",
         'example': ["cli: -remote_hash 0123456789abcdeffedcba9876543210",
-                    "api: chip.set('remote', 'hash','0123456789abcdeffedcba9876543210')"],
+                    "api: chip.set('remote', 'filehash','0123456789abcdeffedcba9876543210')"],
         'help': """
         A unique ID associated with a job run. This field should be left blank
         when starting a new job, but it can be provided to resume an interrupted
@@ -2862,7 +2870,7 @@ def schema_remote(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'remote',
-        'defvalue': ['syn'],
+        'defvalue': 'syn',
         'short_help': 'Remote Execution Starting Step',
         'param_help': "remote start <str>",
         'example': ["cli: -remote_start syn",
@@ -2878,7 +2886,7 @@ def schema_remote(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'remote',
-        'defvalue': ['export'],
+        'defvalue': 'export',
         'short_help': 'Remote Execution Stop Step',
         'param_help': "remote stop <str>",
         'example': ["cli: -remote_stop export",
@@ -2894,7 +2902,7 @@ def schema_remote(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'remote',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Remote authentication username.',
         'param_help': "remote user <str>",
         'example': ["cli: -remote_user testuser",
@@ -2911,7 +2919,7 @@ def schema_remote(cfg):
         'lock': 'false',
         'copy': 'false',
         'requirement': 'remote',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Remote authentication private key file.',
         'param_help': "remote key <str>",
         'example': ["cli: -remote_key ~/.ssh/decrypt_key",
@@ -2925,10 +2933,10 @@ def schema_remote(cfg):
     # Number of temporary hosts to request for the job. (Default: 0)
     cfg['remote']['hosts'] = {
         'switch': '-remote_hosts',
-        'type': 'num',
+        'type': 'int',
         'lock': 'false',
         'requirement': 'remote',
-        'defvalue': ['0'],
+        'defvalue': '0',
         'short_help': 'Number of temporary compute nodes to request.',
         'param_help': "remote hosts <num>",
         'example': ["cli: -remote_hosts 2",
@@ -2947,10 +2955,10 @@ def schema_remote(cfg):
     # GiB of RAM to request in a remote host.
     cfg['remote']['ram'] = {
         'switch': '-remote_ram',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
         'requirement': 'remote',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'GiB of RAM to request in temporary cloud hosts.',
         'param_help': "remote ram <num>",
         'example': ["cli: -remote_ram 16",
@@ -2967,10 +2975,10 @@ def schema_remote(cfg):
     # Number of 'virtual CPUs' to request in a remote host.
     cfg['remote']['threads'] = {
         'switch': '-remote_threads',
-        'type': 'num',
+        'type': 'int',
         'lock': 'false',
         'requirement': 'remote',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Number of harts to request in each remote host.',
         'param_help': "remote threads <num>",
         'example': ["cli: -remote_threads 4",
@@ -3001,7 +3009,7 @@ def schema_status(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Current Compilation Step',
         'param_help': "status step <str>",
         'example': ["cli: -status_step syn",
@@ -3019,7 +3027,7 @@ def schema_status(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Step Active Indicator',
         'param_help': "status stepvar active <bool>",
         'example': ["cli: -status_active 'syn true'",
@@ -3043,12 +3051,12 @@ def schema_design(cfg):
 
     cfg['source'] = {
         'switch': 'None',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'true',
         'requirement': 'all',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -3071,7 +3079,7 @@ def schema_design(cfg):
 
     cfg['repo'] = {
         'switch': '-repo',
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
@@ -3080,18 +3088,18 @@ def schema_design(cfg):
         'example': ["cli: -repo git@github.com:aolofsson/oh.git",
                     "api: chip.set('repo','git@github.com:aolofsson/oh.git')"],
         'help': """
-        Optional address to the design repository of the design.
+        Optional address to the design repositories used in design.
         """
     }
 
     cfg['doc'] = {
         'switch': '-doc',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'true',
         'requirement': 'all',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -3109,7 +3117,7 @@ def schema_design(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'all',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Design Revision',
         'param_help': "rev <str>",
         'example': ["cli: -rev 1.0",
@@ -3122,12 +3130,12 @@ def schema_design(cfg):
 
     cfg['license'] = {
         'switch': '-license',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'true',
         'requirement': 'all',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -3145,7 +3153,7 @@ def schema_design(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Design Top Module Name',
         'param_help': "design <str>",
         'example': ["cli: -design hello_world",
@@ -3157,11 +3165,11 @@ def schema_design(cfg):
     }
 
     cfg['name'] = {
-        'switch': '-ame',
+        'switch': '-name',
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Design Package Name',
         'param_help': "name <str>",
         'example': ["cli: -name hello",
@@ -3180,7 +3188,7 @@ def schema_design(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Design Origin',
         'param_help': "origin <str>",
         'example': ["cli: -origin mars",
@@ -3197,7 +3205,7 @@ def schema_design(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Design Clock Driver',
         'param_help': "clock clkvar pin <str>",
         'example': ["cli: -clock_pin 'clk top.pll.clkout'",
@@ -3209,10 +3217,10 @@ def schema_design(cfg):
 
     cfg['clock']['default']['period'] = {
         'switch': '-clock_period',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Design Clock Period',
         'param_help': "clock clkvar period <num>",
         'example': ["cli: -clock_period 'clk 10'",
@@ -3224,10 +3232,10 @@ def schema_design(cfg):
 
     cfg['clock']['default']['jitter'] = {
         'switch': '-clock_jitter',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Design Clock Jitter',
         'param_help': "clock clkvar jitter <num>",
         'example': ["cli: -clock_jitter 'clk 0.01'",
@@ -3245,7 +3253,7 @@ def schema_design(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Design Power Supply Name',
         'param_help': "supply supplyvar pin <str>",
         'example': ["cli: -supply_pin 'vdd vdd_0'",
@@ -3257,16 +3265,16 @@ def schema_design(cfg):
 
         Examples:
         cli: -supply_name 'vdd_0 vdd'
-        api: chip.add('supply','vdd_0', 'name', 'vdd')
+        api: chip.add('supply','vdd_0', 'pin', 'vdd')
         """
     }
 
     cfg['supply']['default']['level'] = {
         'switch': '-supply_level',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Design Power Supply Level',
         'param_help': "supply supplyvar level <num>",
         'example': ["cli: -supply_level 'vdd 1.0'",
@@ -3278,10 +3286,10 @@ def schema_design(cfg):
 
     cfg['supply']['default']['noise'] = {
         'switch': '-supply_noise',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Design Power Supply Noise',
         'param_help': "supply supplyvar noise <num>",
         'example': ["cli: -supply_noise 'vdd 0.05'",
@@ -3297,7 +3305,7 @@ def schema_design(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Design Parameter Override',
         'param_help': "param paramvar <str>",
         'example': ["cli: -param 'N 64'",
@@ -3312,7 +3320,7 @@ def schema_design(cfg):
 
     cfg['define'] = {
         'switch': '-D',
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
@@ -3327,11 +3335,11 @@ def schema_design(cfg):
 
     cfg['ydir'] = {
         'switch': '-y',
-        'type': 'dir',
+        'type': '[dir]',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -3348,11 +3356,11 @@ def schema_design(cfg):
 
     cfg['idir'] = {
         'switch': '+incdir+',
-        'type': 'dir',
+        'type': '[dir]',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -3368,12 +3376,12 @@ def schema_design(cfg):
 
     cfg['vlib'] = {
         'switch': '-v',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'true',
         'requirement': 'optional',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -3389,7 +3397,7 @@ def schema_design(cfg):
 
     cfg['libext'] = {
         'switch': '+libext+',
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
@@ -3406,12 +3414,12 @@ def schema_design(cfg):
 
     cfg['cmdfile'] = {
         'switch': '-f',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'true',
         'requirement': 'optional',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -3428,12 +3436,12 @@ def schema_design(cfg):
 
     cfg['constraint'] = {
         'switch': '-constraint',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'true',
         'requirement': 'optional',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -3451,12 +3459,12 @@ def schema_design(cfg):
 
     cfg['vcd'] = {
         'switch': '-vcd',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'true',
         'requirement': 'optional',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -3472,12 +3480,12 @@ def schema_design(cfg):
 
     cfg['spef'] = {
         'switch': '-spef',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'true',
         'requirement': 'optional',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -3495,12 +3503,12 @@ def schema_design(cfg):
 
     cfg['sdf'] = {
         'switch': '-sdf',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'true',
         'requirement': 'optional',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -3530,7 +3538,7 @@ def schema_asic(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'asic',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Design Metal Stackup',
         'param_help': "asic stackup <str>",
         'example': ["cli: -asic_stackup 2MA4MB2MC",
@@ -3543,7 +3551,7 @@ def schema_asic(cfg):
 
     cfg['asic']['targetlib'] = {
         'switch': '-asic_targetlib',
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'defvalue': [],
         'requirement': 'asic',
@@ -3560,7 +3568,7 @@ def schema_asic(cfg):
 
     cfg['asic']['macrolib'] = {
         'switch': '-asic_macrolib',
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'defvalue': [],
         'requirement': 'optional',
@@ -3579,7 +3587,7 @@ def schema_asic(cfg):
         'switch': '-asic_delaymodel',
         'type': 'str',
         'lock': 'false',
-        'defvalue': [],
+        'defvalue': None,
         'requirement': 'asic',
         'short_help': 'Library Delay Model',
         'param_help': "asic delaymodel <str>",
@@ -3593,12 +3601,12 @@ def schema_asic(cfg):
 
     cfg['asic']['ndr'] = {
         'switch': '-asic_ndr',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'true',
         'requirement': '',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -3642,7 +3650,7 @@ def schema_asic(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'asic',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Design Maximum Routing Layer',
         'param_help': "asic maxlayer <str>",
         'example': ["cli: -asic_maxlayer m6",
@@ -3660,10 +3668,10 @@ def schema_asic(cfg):
 
     cfg['asic']['maxfanout'] = {
         'switch': '-asic_maxfanout',
-        'type': 'num',
+        'type': 'int',
         'lock': 'false',
         'requirement': 'asic',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Design Maximum Fanout',
         'param_help': "asic maxfanout <str>",
         'example': ["cli: -asic_maxfanout 64",
@@ -3677,10 +3685,10 @@ def schema_asic(cfg):
 
     cfg['asic']['maxlength'] = {
         'switch': '-asic_maxlength',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
         'requirement': 'asic',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Design Maximum Wire Length',
         'param_help': "asic maxlength <str>",
         'example': ["cli: -asic_maxlength 1000",
@@ -3694,10 +3702,10 @@ def schema_asic(cfg):
 
     cfg['asic']['maxcap'] = {
         'switch': '-asic_maxcap',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
         'requirement': 'asic',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Design Maximum Net Capacitance',
         'param_help': "asic maxcap <str>",
         'example': ["cli: -asic_maxcap '0.25e-12'",
@@ -3710,10 +3718,10 @@ def schema_asic(cfg):
 
     cfg['asic']['maxslew'] = {
         'switch': '-asic_maxslew',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
         'requirement': 'asic',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Design Maximum Net Slew',
         'param_help': "asic maxslew <str>",
         'example': ["cli: -asic_maxslew '01e-9'",
@@ -3729,7 +3737,7 @@ def schema_asic(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'asic',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Parasitic Extraction Estimation Layer',
         'param_help': "asic rclayer <str>",
         'example': ["cli: -asic_rclayer m3",
@@ -3747,7 +3755,7 @@ def schema_asic(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'asic',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Design Clock Layer',
         'param_help': "asic clklayer <str>",
         'example': ["cli: -asic_clklayer m5",
@@ -3762,7 +3770,7 @@ def schema_asic(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'asic',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Design Vertical Pin Layer',
         'param_help': "asic vpinlayer <str>",
         'example': ["cli: -asic_vpinlayer m3",
@@ -3778,7 +3786,7 @@ def schema_asic(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'asic',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'Design Horizontal Pin Layer',
         'param_help': "asic hpinlayer <str>",
         'example': ["cli: -asic_hpinlayer m2",
@@ -3793,10 +3801,10 @@ def schema_asic(cfg):
     # For density driven floorplanning
     cfg['asic']['density'] = {
         'switch': '-asic_density',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
         'requirement': '!diesize',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'APR Target Core Density',
         'param_help': "asic density <num>",
         'example': ["cli: -asic_density 30",
@@ -3811,10 +3819,10 @@ def schema_asic(cfg):
 
     cfg['asic']['coremargin'] = {
         'switch': '-asic_coremargin',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
         'requirement': 'density',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'APR Block Core Margin',
         'param_help': "asic coremargin <num>",
         'example': ["cli: -asic_coremargin 1",
@@ -3828,10 +3836,10 @@ def schema_asic(cfg):
 
     cfg['asic']['aspectratio'] = {
         'switch': '-asic_aspectratio',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
         'requirement': 'density',
-        'defvalue': ['1'],
+        'defvalue': '1',
         'short_help': 'APR Block Aspect Ratio',
         'param_help': "asic aspectratio <num>",
         'example': ["cli: -asic_aspectratio 2.0",
@@ -3848,12 +3856,12 @@ def schema_asic(cfg):
     # For spec driven floorplanning
     cfg['asic']['diesize'] = {
         'switch': '-asic_diesize',
-        'type': 'num4',
+        'type': 'float4',
         'lock': 'false',
         'requirement': '!density',
         'defvalue': [],
         'short_help': 'Target Die Size',
-        'param_help': "asic diesize <num num num num>",
+        'param_help': "asic diesize <float float float float>",
         'example': ["cli: -asic_diesize '0 0 100 100'",
                     "api: chip.add('asic', 'diesize', '0 0 100 100')"],
         'help': """
@@ -3867,12 +3875,12 @@ def schema_asic(cfg):
 
     cfg['asic']['coresize'] = {
         'switch': '-asic_coresize',
-        'type': 'num4',
+        'type': 'float4',
         'lock': 'false',
         'requirement': 'diesize',
         'defvalue': [],
         'short_help': 'Target Core Size',
-        'param_help': "asic coresize <num num num num>",
+        'param_help': "asic coresize <float float float float>",
         'example': ["cli: -asic_coresize '0 0 90 90'",
                     "api: chip.add('asic', 'coresize', '0 0 90 90')"],
         'help': """
@@ -3888,12 +3896,12 @@ def schema_asic(cfg):
     # Parameterized floorplanning
     cfg['asic']['floorplan'] = {
         'switch': '-asic_floorplan',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'true',
         'requirement': 'optional',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -3902,7 +3910,7 @@ def schema_asic(cfg):
         'example': ["cli: -asic_floorplan hello.py",
                     "api: chip.add('asic', 'floorplan', 'hello.py')"],
         'help': """
-        Provides a parameterized floorplan to be used during the floorplan step
+        Provides a python based floorplan to be used during the floorplan step
         of compilation to generate a fixed DEF ready for use by the APR tool.
         Supported formats are tcl and py.
         """
@@ -3911,12 +3919,12 @@ def schema_asic(cfg):
     # Def file
     cfg['asic']['def'] = {
         'switch': '-asic_def',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'true',
         'requirement': 'optional',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -3943,10 +3951,10 @@ def schema_mcmm(cfg):
 
     cfg['mcmm']['default']['voltage'] = {
         'switch': '-mcmm_voltage',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
         'requirement': 'asic',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'MCMM Voltage',
         'param_help': "mcmm scenariovar voltage <num>",
         'example': ["cli: -mcmm_voltage 'worst 0.9'",
@@ -3959,10 +3967,10 @@ def schema_mcmm(cfg):
 
     cfg['mcmm']['default']['temperature'] = {
         'switch': '-mcmm_temperature',
-        'type': 'num',
+        'type': 'float',
         'lock': 'false',
         'requirement': 'asic',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'MCMM Temperature',
         'param_help': "mcmm scenariovar temperature <num>",
         'example': ["cli: -mcmm_temperature 'worst 0.9'",
@@ -3978,7 +3986,7 @@ def schema_mcmm(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'asic',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'MCMM Library Corner Name',
         'param_help': "mcmm scenariovar libcorner <str>",
         'example': ["cli: -mcmm_libcorner 'worst ttt'",
@@ -3995,7 +4003,7 @@ def schema_mcmm(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'asic',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'MCMM Operating Condition',
         'param_help': "mcmm scenariovar opcond <str>",
         'example': ["cli: -mcmm_opcond 'worst typical_1.0'",
@@ -4013,7 +4021,7 @@ def schema_mcmm(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'asic',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'MCMM PEX Corner Name',
         'param_help': "mcmm scenariovar pexcorner <str>",
         'example': ["cli: -mcmm_pexcorner 'worst max'",
@@ -4029,7 +4037,7 @@ def schema_mcmm(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'asic',
-        'defvalue': [],
+        'defvalue': None,
         'short_help': 'MCMM Mode Name',
         'param_help': "mcmm scenariovar mode <str>",
         'example': ["cli: -mcmm_mode 'worst test'",
@@ -4042,11 +4050,11 @@ def schema_mcmm(cfg):
 
     cfg['mcmm']['default']['constraint'] = {
         'switch': '-mcmm_constraint',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'true',
         'requirement': 'asic',
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -4065,7 +4073,7 @@ def schema_mcmm(cfg):
 
     cfg['mcmm']['default']['check'] = {
         'switch': '-mcmm_check',
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'requirement': 'asic',
         'defvalue': [],

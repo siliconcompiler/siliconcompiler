@@ -17,11 +17,11 @@ def setup_tool(chip, step):
     chip.set('eda', tool, step, 'vendor', tool)
     chip.set('eda', tool, step, 'exe', tool)
     chip.add('eda', tool, step, 'format', 'cmdline')
-    chip.set('eda', tool, step, 'threads', '4')
+    chip.set('eda', tool, step, 'threads', 4)
     chip.set('eda', tool, step, 'copy', 'false')
 
     #Get default opptions from setup
-    topmodule = chip.get('design')[-1]
+    topmodule = chip.get('design')
 
     options = []
     options.append("inputs/" + topmodule + ".asc")

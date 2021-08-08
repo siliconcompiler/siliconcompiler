@@ -57,7 +57,7 @@ def main():
         chip.hash()
 
     # Perform preprocessing for remote jobs, if necessary.
-    if len(chips[-1].get('remote', 'addr')) > 0:
+    if chips[-1].get('remote', 'addr'):
         remote_preprocess(chips)
 
     # Perform decryption, if necessary.
@@ -78,7 +78,7 @@ def main():
         proc.join()
 
     # For remote jobs, fetch results.
-    if len(chips[-1].get('remote', 'addr')) > 0:
+    if chips[-1].get('remote', 'addr'):
         fetch_results(chips)
 
     # Print Job Summary

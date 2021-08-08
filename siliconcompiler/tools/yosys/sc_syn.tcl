@@ -23,14 +23,14 @@ if {[dict get $sc_cfg eda $tool $sc_step copy] eq True} {
 }
 
 # Design
-set sc_mode        [lindex [dict get $sc_cfg mode] end]
-set sc_design      [lindex [dict get $sc_cfg design] end]
-set sc_optmode     [lindex [dict get $sc_cfg optmode] end]
+set sc_mode        [dict get $sc_cfg mode]
+set sc_design      [dict get $sc_cfg design]
+set sc_optmode     [dict get $sc_cfg optmode]
 
 set topmodule  $sc_design
 
 if {$sc_mode eq "asic"} {
-    set sc_process     [lindex [dict get $sc_cfg pdk process] end]
+    set sc_process     [dict get $sc_cfg pdk process]
     set sc_mainlib     [lindex [dict get $sc_cfg asic targetlib] 0]
     set sc_targetlibs  [dict get $sc_cfg asic targetlib]
 } else {
@@ -97,4 +97,3 @@ if {$sc_mode eq "fpga"} {
 yosys write_verilog -noattr -noexpr -nohex -nodec "outputs/$sc_design.v"
 yosys write_json "outputs/${sc_design}_netlist.json"
 yosys write_blif "outputs/$sc_design.blif"
-

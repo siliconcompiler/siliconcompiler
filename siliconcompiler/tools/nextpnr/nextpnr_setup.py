@@ -11,19 +11,19 @@ def setup_tool(chip, step):
 
     refdir = 'siliconcompiler/tools/nextpnr'
     tool = 'nextpnr'
-    chip.add('eda', tool, step, 'threads', '4')
+    chip.add('eda', tool, step, 'threads', 4)
     chip.add('eda', tool, step, 'format', 'cmdline')
     chip.add('eda', tool, step, 'vendor', 'nextpnr')
     chip.add('eda', tool, step, 'refdir', refdir)
     chip.add('eda', tool, step, 'copy', 'false')
     chip.add('eda',tool, step, 'exe', 'nextpnr-ice40')
-    
+
     # Check FPGA schema to determine which device to target
     if len(chip.get('fpga', 'partname')) == 0:
         chip.logger.error(f"FPGA partname unspecified!")
         os.sys.exit()
     else:
-        partname = chip.get('fpga', 'partname')[-1]
+        partname = chip.get('fpga', 'partname')
 
 
     options = []
@@ -35,22 +35,21 @@ def setup_tool(chip, step):
             f"'ice40up5k-sg48'.")
         os.sys.exit()
 
-    topmodule = chip.get('design')[-1]
+    topmodule = chip.get('design')
     pcf_file = None
     for constraint_file in chip.get('constraint'):
         if os.path.splitext(constraint_file)[-1] == '.pcf':
             pcf_file = schema_path(constraint_file)
-            
+
     if pcf_file == None:
         chip.logger.error('Pin constraint file required')
         os.sys.exit()
 
-    topmodule = chip.get('design')[-1]
     options.append('--pcf ' + pcf_file)
     options.append('--json inputs/' + topmodule + '_netlist.json')
     options.append('--asc outputs/' + topmodule + '.asc')
     chip.add('eda', tool, step, 'option', options)
-    
+
 ################################
 # Setup Tool (pre executable)
 ################################
