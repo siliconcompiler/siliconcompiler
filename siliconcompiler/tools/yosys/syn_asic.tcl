@@ -59,6 +59,17 @@ yosys stat -liberty $library_file {*}$stat_libs
 
 yosys setundef -zero
 
+# sc_tie has 2 logical entries, but is a length 4 tcl list since each entry
+# includes a space separated cell and port
+if {[llength $sc_tie] == 4} {
+    set sc_tiehi_cell [lindex $sc_tie 0]
+    set sc_tiehi_port [lindex $sc_tie 1]
+    set sc_tielo_cell [lindex $sc_tie 2]
+    set sc_tielo_port [lindex $sc_tie 3]
+
+    yosys hilomap -hicell $sc_tiehi_cell $sc_tiehi_port -locell $sc_tielo_cell $sc_tielo_port
+}
+
 yosys splitnets
 
 yosys clean
