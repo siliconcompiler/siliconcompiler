@@ -111,7 +111,7 @@ class Chip:
         Community: https://www.siliconcompiler.com/community
 
         Examples:
-        $ sc hello_world.v -target freepdk45
+        $ sc hello_world.v -target freepdk45_asicflow
         '''
 
         # Argparse
@@ -154,7 +154,7 @@ class Chip:
                                     metavar='',
                                     dest=dest,
                                     action='store_const',
-                                    const='true',
+                                    const="true",
                                     help=helpstr,
                                     default = argparse.SUPPRESS)
             #list type arguments
@@ -204,12 +204,15 @@ class Chip:
 
         #Grab argument from pre-process sysargs
         cmdargs = vars(parser.parse_args(scargs))
+
         #Stuff command line values into dynamic dict
         for key, val in cmdargs.items():
-            print(key, val)
-            for item in val:
+            if type(val)==list:
+                val_list = val
+            else:
+                val_list = [val]
+            for item in val_list:
                 args = schema_reorder_keys(argmap[key], item)
-                #print(args)
                 # TODO: we should annotate each schema item as list or scalar,
                 # and then use that annotation to determine how to set the value
                 self._search(self.cfg, *args, mode='add')
@@ -274,12 +277,16 @@ class Chip:
 
         targetlist = self.get('target').split('_')
 
-        if(len(targetlist) < 2 ):
-            self.logger.critical('Illegal string, syntax is <platform>_<edaflow>.')
+        if not self.get('target'):
+            self.logger.error('Target not defined.')
             sys.exit()
-
-        platform = targetlist[0]
-        edaflow = targetlist[1]
+        elif len(self.get('target').split('_')) < 2:
+            self.logger.error('Illegal string, syntax is <platform>_<edaflow>.')
+            sys.exit()
+        else:
+            targetlist = self.get('target').split('_')
+            platform = targetlist[0]
+            edaflow = targetlist[1]
 
         #PDK/Foundry dynamic module load
         if self.get('mode') == 'asic':
@@ -301,7 +308,6 @@ class Chip:
 
         #EDA flow load
         try:
-
             searchdir = 'siliconcompiler.flows'
             module = importlib.import_module('.'+edaflow, package=searchdir)
             setup_flow = getattr(module, "setup_flow")
@@ -973,7 +979,7 @@ ss
             for k, v in cfg.items():
                 if isinstance(v, dict):
                     #indicates leaf cell/file to act on
-                    if 'hash' in cfg[k].keys():
+                    if 'filehash' in cfg[k].keys():
                         #clear out old values (do comp?)
                         cfg[k]['hash'] = []
                         for i, v in enumerate(cfg[k]['value']):
@@ -1147,7 +1153,7 @@ ss
         jobdir = (self.get('build_dir') +
                   "/" + design + "/" +
                   self.get('jobname') +
-                  self.get('jobid'))
+                  str(self.get('jobid')))
 
         if self.get('mode')[-1] == 'asic':
             info = '\n'.join(["SUMMARY:\n",
@@ -1228,7 +1234,7 @@ ss
         remote = self.get('remote','addr')
         stepdir = "/".join([self.get('build_dir'),
                             self.get('design'),
-                            self.get('jobname') + self.get('jobid'),
+                            self.get('jobname') + str(self.get('jobid')),
                             step])
 
         if os.path.isdir(stepdir) and (not remote):
@@ -1417,8 +1423,8 @@ ss
                     m = re.match(jobname+r'(\d+)', item)
                     if m:
                         jobid = max(jobid, int(m.group(1)))
-                jobid = jobid+1
-                self.set('jobid', str(jobid))
+                jobid = jobid + 1
+                self.set('jobid', jobid)
         except FileNotFoundError:
             pass
 
@@ -1443,9 +1449,9 @@ def get_permutations(base_chip, cmdlinecfg):
     cmdkeys = cmdlinecfg.keys()
 
     # Set default target if not set and there is nothing set
-    if base_chip.get('target'):
-        base_chip.logger.info('No target set, setting to %s','freepdk45_asic')
-        base_chip.set('target', 'freepdk45_asic')
+    if not base_chip.get('target'):
+        base_chip.logger.info('No target set, setting to %s','freepdk45_asicflow')
+        base_chip.set('target', 'freepdk45_asicflow')
 
     # Assign a new 'job_hash' to the chip if necessary.
     if not base_chip.get('remote', 'hash'):
@@ -1498,10 +1504,10 @@ def get_permutations(base_chip, cmdlinecfg):
             new_chip.target()
 
         # Skip the 'import' stage for remote jobs; it will be run locally and uploaded.
-        if len(new_chip.get('remote', 'addr')) > 0:
+        if new_chip.get('remote', 'addr'):
             new_chip.set('start', new_chip.get('remote', 'start'))
             new_chip.set('stop', new_chip.get('remote', 'stop'))
-        elif len(new_chip.get('remote', 'key')) > 0:
+        elif new_chip.get('remote', 'key'):
             # If 'remote_key' exists without 'remote_addr', it represents an
             # encoded key string in an ongoing remote job. It should be
             # moved from the config dictionary to the status one to avoid logging.
@@ -1509,7 +1515,7 @@ def get_permutations(base_chip, cmdlinecfg):
             new_chip.cfg['remote']['key']['value'] = []
 
         # Set and increment the "job ID" so multiple chips don't share the same directory.
-        new_chip.set('jobid', cur_jobid)
+        new_chip.set('jobid', int(cur_jobid))
         perm_ids.append(cur_jobid)
         cur_jobid = str(int(cur_jobid) + 1)
 
