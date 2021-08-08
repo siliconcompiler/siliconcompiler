@@ -117,14 +117,25 @@ def schema_typecheck(chip, cfg, leafkey, value):
             valuetype =  type(item)
             if (cfgtype != valuetype.__name__):
                 if cfgtype == 'float4':
-                    if (len(valuelist) != 4):
-                        errormsg = "Value should be list with 4 float values."
+                    if (len(valuelist) != 1):
+                        errormsg = "Value should be entered as a single string."
                         ok = False
                     else:
-                        for num in valuelist:
-                            if not isinstance(num, (float, int)):
-                                errormsg = "Type mismatch."
-                                ok = False
+                        float4list = valuelist[0].split()
+                        if (len(float4list) != 4):
+                            errormsg = "String should be string with 4 space separated values."
+                            ok = False
+                        else:
+                            for num in float4list:
+                                try:
+                                    float(num)
+                                except ValueError:
+                                    errormsg = "Type mismatch. String cannot be cast to float."
+                                    ok = False
+                elif cfgtype == 'bool':
+                    if not item in ['true', 'false']:
+                        errormsg = "Valid boolean values are True/False/'true'/'false'"
+                        ok = False
                 elif cfgtype == 'file':
                     if not os.path.isfile(schema_path(item)):
                         errormsg = "Invalid path or missing file."
@@ -158,12 +169,12 @@ def schema_reorder_keys(param_help, item):
     ''' Returns a keylist used to access the dictionary based on the
     cmdline switch argument and the param_help field.
     '''
-
     #Split param help into keys and data based in <>
     m = re.search('(.*?)(<.*)', param_help)
     paramlist = m.group(1).split()
     datalist = m.group(2).split()
-    #Split cmdline inputn based on spaces
+    #Split cmdline input based on spaces
+
     itemlist = item.split()
 
     depth = len(paramlist)+1
@@ -179,7 +190,11 @@ def schema_reorder_keys(param_help, item):
             args[i] = paramlist[i]
 
     #Insert data field as last entry (some are string tuples)
-    args[-1] = itemlist[-len(datalist):]
+    #ugly, not planning a lot these, keep for now...
+    if re.search('float float float float', param_help):
+        args[-1] = ' '.join(map(str, itemlist))
+    else:
+        args[-1] = itemlist[-1]
 
     return args
 
@@ -196,11 +211,11 @@ def schema_fpga(cfg):
     cfg['fpga']['arch'] = {
         'switch': '-fpga_arch',
         'requirement': 'fpga',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'true',
-        'defvalue': None,
-        'hash': [],
+        'defvalue': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -487,7 +502,7 @@ def schema_pdk(cfg):
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -511,7 +526,7 @@ def schema_pdk(cfg):
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -560,7 +575,7 @@ def schema_pdk(cfg):
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -590,7 +605,7 @@ def schema_pdk(cfg):
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -619,7 +634,7 @@ def schema_pdk(cfg):
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -650,7 +665,7 @@ def schema_pdk(cfg):
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -676,7 +691,7 @@ def schema_pdk(cfg):
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -704,7 +719,7 @@ def schema_pdk(cfg):
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -986,7 +1001,7 @@ def schema_libs(cfg, group):
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1006,7 +1021,7 @@ def schema_libs(cfg, group):
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1029,7 +1044,7 @@ def schema_libs(cfg, group):
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1158,7 +1173,7 @@ def schema_libs(cfg, group):
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1184,7 +1199,7 @@ def schema_libs(cfg, group):
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1210,7 +1225,7 @@ def schema_libs(cfg, group):
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1235,7 +1250,7 @@ def schema_libs(cfg, group):
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1259,7 +1274,7 @@ def schema_libs(cfg, group):
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1282,7 +1297,7 @@ def schema_libs(cfg, group):
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1305,7 +1320,7 @@ def schema_libs(cfg, group):
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1329,7 +1344,7 @@ def schema_libs(cfg, group):
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1353,7 +1368,7 @@ def schema_libs(cfg, group):
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1375,7 +1390,7 @@ def schema_libs(cfg, group):
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1397,7 +1412,7 @@ def schema_libs(cfg, group):
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1510,7 +1525,7 @@ def schema_libs(cfg, group):
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1686,7 +1701,7 @@ def schema_eda(cfg):
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1704,11 +1719,11 @@ def schema_eda(cfg):
     cfg['eda'][tool][step]['prescript'] = {
         'switch': '-eda_prescript',
         'requirement': 'optional',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
-        'defvalue': None,
-        'hash': [],
+        'defvalue': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -1729,11 +1744,11 @@ def schema_eda(cfg):
     cfg['eda'][tool][step]['postcript'] = {
         'switch': '-eda_postscript',
         'requirement': 'optional',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
-        'defvalue': None,
-        'hash': [],
+        'defvalue': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -2234,7 +2249,7 @@ def schema_record(cfg, step='default'):
         'copy': 'false',
         'lock': 'false',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -2406,7 +2421,7 @@ def schema_options(cfg):
         'copy': 'true',
         'requirement': 'optional',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -2752,12 +2767,12 @@ def schema_options(cfg):
     # Path to a config file defining multiple remote jobs to run.
     cfg['permutations'] = {
         'switch': '-permutations',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'false',
         'requirement': 'optional',
-        'defvalue': None,
-        'hash': [],
+        'defvalue': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -2841,7 +2856,7 @@ def schema_remote(cfg):
         'short_help': 'Job hash/UUID value',
         'param_help': "remote hash <str>",
         'example': ["cli: -remote_hash 0123456789abcdeffedcba9876543210",
-                    "api: chip.set('remote', 'hash','0123456789abcdeffedcba9876543210')"],
+                    "api: chip.set('remote', 'filehash','0123456789abcdeffedcba9876543210')"],
         'help': """
         A unique ID associated with a job run. This field should be left blank
         when starting a new job, but it can be provided to resume an interrupted
@@ -3041,7 +3056,7 @@ def schema_design(cfg):
         'copy': 'true',
         'requirement': 'all',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -3084,7 +3099,7 @@ def schema_design(cfg):
         'copy': 'true',
         'requirement': 'all',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -3115,12 +3130,12 @@ def schema_design(cfg):
 
     cfg['license'] = {
         'switch': '-license',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'true',
         'requirement': 'all',
-        'defvalue': None,
-        'hash': [],
+        'defvalue': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -3324,7 +3339,7 @@ def schema_design(cfg):
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -3345,7 +3360,7 @@ def schema_design(cfg):
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -3366,7 +3381,7 @@ def schema_design(cfg):
         'copy': 'true',
         'requirement': 'optional',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -3404,7 +3419,7 @@ def schema_design(cfg):
         'copy': 'true',
         'requirement': 'optional',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -3426,7 +3441,7 @@ def schema_design(cfg):
         'copy': 'true',
         'requirement': 'optional',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -3444,12 +3459,12 @@ def schema_design(cfg):
 
     cfg['vcd'] = {
         'switch': '-vcd',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'true',
         'requirement': 'optional',
-        'defvalue': None,
-        'hash': [],
+        'defvalue': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -3465,12 +3480,12 @@ def schema_design(cfg):
 
     cfg['spef'] = {
         'switch': '-spef',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'true',
         'requirement': 'optional',
-        'defvalue': None,
-        'hash': [],
+        'defvalue': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -3488,12 +3503,12 @@ def schema_design(cfg):
 
     cfg['sdf'] = {
         'switch': '-sdf',
-        'type': 'file',
+        'type': '[file]',
         'lock': 'false',
         'copy': 'true',
         'requirement': 'optional',
-        'defvalue': None,
-        'hash': [],
+        'defvalue': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -3591,7 +3606,7 @@ def schema_asic(cfg):
         'copy': 'true',
         'requirement': '',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -3841,12 +3856,12 @@ def schema_asic(cfg):
     # For spec driven floorplanning
     cfg['asic']['diesize'] = {
         'switch': '-asic_diesize',
-        'type': '[float4]',
+        'type': 'float4',
         'lock': 'false',
         'requirement': '!density',
         'defvalue': [],
         'short_help': 'Target Die Size',
-        'param_help': "asic diesize <num num num num>",
+        'param_help': "asic diesize <float float float float>",
         'example': ["cli: -asic_diesize '0 0 100 100'",
                     "api: chip.add('asic', 'diesize', '0 0 100 100')"],
         'help': """
@@ -3860,12 +3875,12 @@ def schema_asic(cfg):
 
     cfg['asic']['coresize'] = {
         'switch': '-asic_coresize',
-        'type': '[float4]',
+        'type': 'float4',
         'lock': 'false',
         'requirement': 'diesize',
         'defvalue': [],
         'short_help': 'Target Core Size',
-        'param_help': "asic coresize <num num num num>",
+        'param_help': "asic coresize <float float float float>",
         'example': ["cli: -asic_coresize '0 0 90 90'",
                     "api: chip.add('asic', 'coresize', '0 0 90 90')"],
         'help': """
@@ -3886,7 +3901,7 @@ def schema_asic(cfg):
         'copy': 'true',
         'requirement': 'optional',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -3909,7 +3924,7 @@ def schema_asic(cfg):
         'copy': 'true',
         'requirement': 'optional',
         'defvalue': [],
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
@@ -4039,7 +4054,7 @@ def schema_mcmm(cfg):
         'lock': 'false',
         'copy': 'true',
         'requirement': 'asic',
-        'hash': [],
+        'filehash': [],
         'date': [],
         'author': [],
         'signature': [],
