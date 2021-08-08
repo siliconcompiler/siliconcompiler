@@ -31,7 +31,8 @@ author = 'Zero ASIC Corporation'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
-    'schemagen'
+    'schemagen',
+    'toolgen'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
