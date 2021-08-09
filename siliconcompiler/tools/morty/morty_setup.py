@@ -26,9 +26,9 @@ def setup_tool(chip, step):
 
     # output single file to `morty.v`
     chip.add('eda', tool, step, 'option', '-o morty.v')
-    # write list of undefined modules to `undefined.morty`
-    chip.add('eda', tool, step, 'option', '--write-undefined')
-    chip.add('eda', tool, step, 'option', '--write-filelist')
+    # write additional information to `manifest.json`
+    chip.add('eda', tool, step, 'option', '--manifest manifest.json')
+
     chip.add('eda', tool, step, 'option', '-I ../../../')
 
     for value in chip.cfg['ydir']['value']:
