@@ -23,7 +23,7 @@ def get_base_url(chip):
     '''
     remote_host = chip.get('remote', 'addr')
     remote_port = chip.get('remote', 'port')
-    remote_host += ':' + remote_port
+    remote_host += ':' + str(remote_port)
     if remote_host.startswith('http'):
         remote_protocol = ''
     else:

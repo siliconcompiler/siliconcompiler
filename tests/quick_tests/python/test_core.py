@@ -5,7 +5,7 @@ from siliconcompiler.core import Chip
 class TestCore(unittest.TestCase):
 
     def test_set_get(self):
-        chip = Chip()
+        chip = Chip(loglevel='DEBUG')
         chip.set('target', 'freepdk45_asicflow')
         self.assertEqual(chip.get('target'), 'freepdk45_asicflow')
 
@@ -13,7 +13,7 @@ class TestCore(unittest.TestCase):
         ''' Regression test for bug where CLI parser wasn't handling multiple
         source files properly.
         '''
-        chip = Chip()
+        chip = Chip(loglevel='DEBUG')
 
         args = ['sc', 'examples/ibex/ibex_alu.v', 'examples/ibex/ibex_branch_predict.v', 
                 '-target', 'freepdk45_asicflow']
