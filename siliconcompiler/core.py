@@ -763,7 +763,16 @@ ss
         #   -Get values
         #   -Check requirements equation
 
+
+        if not self.get('design'):
+            self.logger.error('Design name has not been set.')
+            error = True
+        elif not self.getkeys('flowgraph'):
+            self.logger.error('Flowgraph has not been defined.')
+            error = True
+
         if error:
+
             sys.exit()
 
     ###########################################################################
@@ -1215,13 +1224,15 @@ ss
             print(df.to_string())
             print("-"*135)
 
-
     ###########################################################################
     def runstep(self, step):
 
         cwd = os.getcwd()
 
-        # Error checking
+        # Check minimum setip
+        self.check()
+
+        # Per Step Error checking
         steplist = self.getkeys('flowgraph')
         stepindex = steplist.index(step)
         if step not in steplist:
@@ -1407,7 +1418,7 @@ ss
 
 
     ###########################################################################
-    def show(self, step, filetype=None):
+    def show(self, filetype=None):
         '''
         Display output of a step. File to be displayed and program used for display
         is configured in the EDA directory.
@@ -1415,35 +1426,50 @@ ss
         Would need to pass in parameters to the tcl scripts to accomplish this.
         '''
 
-        #Enabling show on old run directory
-        if self.get('jobid'):
-            jobid = self.get('jobid');
-        else:
-            jobid = 1
+        showsteps =self.get('show')
 
-        stepdir = "/".join([self.get('build_dir'),
-                            self.get('design'),
-                            self.get('jobname') + str(jobid),
-                            step])
+        for step in showsteps:
+            # Dynamic EDA tool module load
+            showtool = self.get('flowgraph', step, 'showtool')
+            searchdir = "siliconcompiler.tools." + showtool
+            modulename = '.'+showtool+'_setup'
+            module = importlib.import_module(modulename, package=searchdir)
+            setup_tool = getattr(module, "setup_tool")
+            setup_tool(self, 'show')
 
-        tool = self.get('flowgraph', step, 'tool')
+            # construct command string
+            cmdlist =  [self.get('eda', showtool, 'show', 'exe')]
+            cmdlist.extend(self.get('eda', showtool, 'show', 'option'))
 
-        self.logger.info("Showing output from %s", os.path.abspath(stepdir))
+            if 'script' in self.getkeys('eda', showtool, 'show'):
+                for value in self.get('eda', showtool, 'show', 'script'):
+                    abspath = schema_path(value)
+                    cmdlist.extend([abspath])
 
-        # construct command string
-        cmdlist =  [self.get('eda', tool, step, 'showexe')]
-        cmdlist.extend(self.get('eda', tool, step, 'showopt'))
-        if 'showscript' in self.getkeys('eda', tool, step):
-            for value in self.get('eda', tool, step, 'showscript'):
-                abspath = schema_path(value)
-                cmdlist.extend([abspath])
-        cmdstr = ' '.join(cmdlist)
+            cmdstr = ' '.join(cmdlist)
 
-        # execute show command from output directory
-        cwd = os.getcwd()
-        os.chdir(stepdir)
-        subprocess.run(cmdstr, shell=True, executable='/bin/bash')
-        os.chdir(cwd)
+            # Check setup
+            self.check()
+
+            #Enabling show on old run directory
+            if self.get('jobid'):
+                jobid = self.get('jobid');
+            else:
+                jobid = 1
+
+            print(self.get('build_dir'))
+            stepdir = "/".join([self.get('build_dir'),
+                                self.get('design'),
+                                self.get('jobname') + str(jobid),
+                                step])
+
+            self.logger.info("Showing output from %s", os.path.abspath(stepdir))
+
+            # execute show command from output directory
+            cwd = os.getcwd()
+            os.chdir(stepdir)
+            subprocess.run(cmdstr, shell=True, executable='/bin/bash')
+            os.chdir(cwd)
 
     ###########################################################################
     def set_jobid(self):

@@ -8,8 +8,8 @@ import siliconcompiler
 def setup_flow(chip, process):
     '''
     This is a standard open source ASIC flow based on high quality tools.
-    The flow supports SystemVerilog, VHDL, and mixed SystemVerilog/VHDL 
-    flows. The asic flow is a linera pipeline that includes the 
+    The flow supports SystemVerilog, VHDL, and mixed SystemVerilog/VHDL
+    flows. The asic flow is a linera pipeline that includes the
     stages below. To skip the last three verification steps, you can
     specify "-stop export" at the command line.
 
@@ -37,14 +37,14 @@ def setup_flow(chip, process):
     lvs: Layout versus schematic check
 
     drc: Design rule check
-  
+
     Args:
         process (string): Specifies the the process of the compilation.
             Used in complex flows and reserved for future use.
 
     '''
 
-    
+
     # A simple linear flow
     flowpipe = ['import',
                 'syn',
@@ -73,20 +73,28 @@ def setup_flow(chip, process):
             #tool = 'morty'
             #tool = 'surelog'
             tool = 'verilator'
+            showtool = None
         elif step == 'importvhdl':
             tool = 'ghdl'
+            showtool = None
         elif step == 'convert':
-            tool = 'sv2v' 
+            tool = 'sv2v'
+            showtool = None
         elif step == 'syn':
             tool = 'yosys'
+            showtool = 'yosys'
         elif step == 'export':
             tool = 'klayout'
+            showtool = 'klayout'
         elif step in ('lvs', 'drc'):
-            tool = 'magic' 
+            tool = 'magic'
+            showtool = 'klayout'
         else:
             tool = 'openroad'
+            showtool = 'openroad'
         chip.set('flowgraph', step, 'tool', tool)
-
+        if showtool:
+            chip.set('flowgraph', step, 'showtool', showtool)
 
 ##################################################
 if __name__ == "__main__":

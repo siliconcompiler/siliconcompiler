@@ -1577,7 +1577,7 @@ def schema_flowgraph(cfg, step):
         """
     }
 
-    # Step vendor
+    # Step tool
     cfg['flowgraph'][step]['tool'] = {
         'switch': '-flowgraph_tool',
         'type': 'str',
@@ -1591,6 +1591,23 @@ def schema_flowgraph(cfg, step):
         'help': """
         Name of the EDA tool to use for a specific step in the exeecution flow
         graph.
+        """
+    }
+
+    # Step showtool
+    cfg['flowgraph'][step]['showtool'] = {
+        'switch': '-flowgraph_showtool',
+        'type': 'str',
+        'lock': 'false',
+        'requirement': 'all',
+        'defvalue': None,
+        'short_help': 'Flowgraph Show Tool Selection',
+        'param_help': "flowgraph toolvar showtool <str>",
+        'example': ["cli: -flowgraph_showtool 'place openroad'",
+                    "api: chip.set('flowgraph', 'place', 'showtool', 'openroad')"],
+        'help': """
+        Name of the tool to use for showing the output file for a specific step in
+        the exeecution flowgraph.
         """
     }
 
@@ -1845,62 +1862,6 @@ def schema_eda(cfg):
         design basis after review has determined that warning can be safely
         ignored The code for turning off warnings can be found in the specific
         tool reference manual.
-        """
-    }
-
-    # show command
-    cfg['eda'][tool][step]['showexe'] = {
-        'switch': '-eda_showexe',
-        'type': 'str',
-        'lock': 'false',
-        'requirement': 'optional',
-        'defvalue': None,
-        'short_help': 'Show executable',
-        'param_help': "eda toolvar stepvar showexe <file>",
-        'example': ["cli: -eda_showexe 'openroad route openroad'",
-                    "api: chip.set('eda','openroad', 'route','showexe','openroad')"],
-        'help': """
-        Exeuctable to use for displaying output data specified on a per step and
-        tool basis.
-        """
-    }
-
-    # show opt
-    cfg['eda'][tool][step]['showopt'] = {
-        'switch': '-eda_showopt',
-        'type': '[str]',
-        'lock': 'false',
-        'requirement': 'optional',
-        'defvalue': [],
-        'short_help': 'Show options',
-        'param_help': "eda toolvar stepvar showopt <file>",
-        'example': ["cli: -eda_showopt 'openroad route fullscreen'",
-                    "api: chip.set('eda','openroad', 'route','showopt','fullscreen')"],
-        'help': """
-        Options for showing file.
-        """
-    }
-
-    # show command
-    cfg['eda'][tool][step]['showscript'] = {
-        'switch': '-eda_showscript',
-        'requirement': 'optional',
-        'type': '[file]',
-        'lock': 'false',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'date': [],
-        'author': [],
-        'signature': [],
-        'defvalue': [],
-        'short_help': 'Show script to execute',
-        'param_help': "eda toolvar stepvar showscript <file>",
-        'example': ["cli: -eda_showscript 'openroad route display.tcl'",
-                    "api: chip.set('eda','openroad', 'route','showscript','display.tcl')"],
-        'help': """
-        Script to execute for displaying file.
         """
     }
 
@@ -2864,6 +2825,22 @@ def schema_options(cfg):
         Specifies that all used files should be copied into the jobdir,
         overriding the per schema entry copy settings. The default
         is false.
+        """
+    }
+
+    cfg['show'] = {
+        'switch': '-show',
+        'type': '[str]',
+        'lock': 'false',
+        'requirement': 'optional',
+        'defvalue': [],
+        'short_help': "Display Output",
+        'param_help': "show <steplist>",
+        'example': ["cli: -show route",
+                    "api: chip.set('show', 'rout')"],
+        'help': """
+        List of steps for which to display the output using a graphical
+        viewer defined by the flowgraph showtool dictionary.
         """
     }
 
