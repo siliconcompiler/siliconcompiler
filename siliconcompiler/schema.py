@@ -87,13 +87,6 @@ def schema_path(filename):
 
     return filename
 
-def schema_istrue(value):
-    ''' Checks schema boolean string and returns Python True/False
-    Allow for both Python True/False values and "true"/"false",
-    "True/False". What's the harm?
-    '''
-    return value.lower() == 'true'
-
 def schema_typecheck(chip, cfg, leafkey, value):
     ''' Schema type checking
     '''
@@ -1793,10 +1786,10 @@ def schema_eda(cfg):
     # copy
     cfg['eda'][tool][step]['copy'] = {
         'switch': '-eda_copy',
-        'type': 'str',
+        'type': 'bool',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': None,
+        'defvalue': "false",
         'short_help': 'Copy Local Option',
         'param_help': "eda toolvar stepvar copy <bool>",
         'example': ["cli: -eda_copy 'openroad cts true'",
@@ -2837,7 +2830,7 @@ def schema_options(cfg):
         'short_help': "Display Output",
         'param_help': "show <steplist>",
         'example': ["cli: -show route",
-                    "api: chip.set('show', 'rout')"],
+                    "api: chip.set('show', 'route')"],
         'help': """
         List of steps for which to display the output using a graphical
         viewer defined by the flowgraph showtool dictionary.

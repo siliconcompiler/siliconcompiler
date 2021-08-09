@@ -205,6 +205,7 @@ class Chip:
         #Grab argument from pre-process sysargs
         cmdargs = vars(parser.parse_args(scargs))
         #print(cmdargs)
+        #sys.exit()
         #Stuff command line values into dynamic dict
         for key, val in cmdargs.items():
             if type(val)==list:
@@ -586,6 +587,29 @@ ss
                 if not field in cfg[param]:
                     self.logger.error('Key error, leaf param not found %s', field)
                     self.error = 1
+                elif field == 'value':
+                        #check for list/vs scalar
+                    if bool(re.match('\[',cfg[param]['type'])):
+                        return_list = []
+                        for item in cfg[param]['value']:
+                            if re.search('int', cfg[param]['type']):
+                                return_list.append(int(item))
+                            elif re.search('float', cfg[param]['type']):
+                                return_list.append(float(item))
+                            else:
+                                return_list.append(item)
+                        return return_list
+                    else:
+                        if cfg[param]['type'] == "int":
+                            scalar = int(cfg[param]['value'])
+                        elif cfg[param]['type'] == "float":
+                            scalar = float(cfg[param]['value'])
+                        elif cfg[param]['type'] == "bool":
+                            scalar = (cfg[param]['value'] == 'true')
+                        else:
+                            scalar = cfg[param]['value']
+                        return scalar
+                #all non-value fields are strings
                 else:
                     return cfg[param][field]
         #if not leaf cell descend tree
@@ -931,7 +955,7 @@ ss
         while True:
             busy = False
             for step in steplist:
-                if schema_istrue(self.get('status',step,'active')):
+                if self.get('status', step, 'active'):
                     self.logger.info("Step '%s' is still active", step)
                     busy = True
             if busy:
@@ -964,7 +988,7 @@ ss
         if not os.path.exists(dir):
             os.makedirs(dir)
         allkeys = self.getkeys()
-        copyall = schema_istrue(self.get('copyall'))
+        copyall = self.get('copyall')
         for key in allkeys:
             leaftype = self._search(self.cfg, *key, mode='get', field='type')
             if leaftype == 'file':
@@ -1283,7 +1307,7 @@ ss
             sys.exit()
 
         #Copy Reference Scripts
-        if schema_istrue(self.get('eda', tool, step, 'copy')):
+        if self.get('eda', tool, step, 'copy'):
             refdir = schema_path(self.get('eda', tool, step, 'refdir'))
             shutil.copytree(refdir, ".", dirs_exist_ok=True)
 
@@ -1307,7 +1331,7 @@ ss
         cmdlist.extend(options)
         cmdlist.extend(scripts)
 
-        if schema_istrue(self.get('quiet')) & (step not in self.get('bkpt')):
+        if self.get('quiet') & (step not in self.get('bkpt')):
             cmdlist.append(" &> " + logfile)
         else:
             # the weird construct at the end ensures that this invocation returns the
@@ -1488,7 +1512,7 @@ ss
 
         try:
             alljobs = os.listdir(dirname + "/" + design)
-            if schema_istrue(self.get('jobincr')):
+            if self.get('jobincr'):
                 jobid = 0
                 for item in alljobs:
                     m = re.match(jobname+r'(\d+)', item)

@@ -5,7 +5,6 @@ import sys
 
 
 import siliconcompiler
-from siliconcompiler.schema import schema_istrue
 from siliconcompiler.schema import schema_path
 
 ################################
@@ -37,7 +36,7 @@ def setup_tool(chip, step):
     for value in chip.cfg['define']['value']:
         chip.add('eda', tool, step, 'option', '-D ' + schema_path(value))
 
- 
+
     # since this step should run after import, the top design module should be
     # set and we can read the pickled Verilog without accessing the original
     # sources

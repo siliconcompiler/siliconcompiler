@@ -5,7 +5,6 @@ import sys
 import siliconcompiler
 import shutil
 
-from siliconcompiler.schema import schema_istrue
 from siliconcompiler.schema import schema_path
 
 ################################
@@ -53,7 +52,7 @@ def setup_tool(chip, step):
         chip.add('eda', tool, step, 'option', schema_path(value))
 
     #Make warnings non-fatal in relaxed mode
-    if schema_istrue(chip.get('relax')):
+    if chip.get('relax'):
         chip.add('eda', tool, step, 'option', '-Wno-fatal')
 
 ################################

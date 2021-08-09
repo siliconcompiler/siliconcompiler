@@ -4,7 +4,6 @@ import re
 import sys
 import siliconcompiler
 
-from siliconcompiler.schema import schema_istrue
 from siliconcompiler.schema import schema_path
 
 ################################
@@ -53,7 +52,7 @@ def setup_tool(chip, step):
             modules = undefined_file.read().strip()
     except FileNotFoundError:
         pass
-    
+
     if modules == "":
         if len(chip.cfg['design']['value']) < 1:
             chip.logger.error('No top module set')
@@ -81,7 +80,7 @@ def post_process(chip, step):
     # pass the RTLIL to the next step
     subprocess.run("cp ghdl.ilang " + "outputs/" + topmodule + ".ilang",
                    shell=True)
-    
+
     # pass any pickled verilog file along as well
     # TODO: with a graph representation we may be able to remove this part so the
     # Verilog can be passed directly from the import step to the next step

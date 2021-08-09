@@ -4,7 +4,6 @@ import re
 import sys
 
 import siliconcompiler
-from siliconcompiler.schema import schema_istrue
 from siliconcompiler.schema import schema_path
 
 ################################
