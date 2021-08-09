@@ -123,9 +123,9 @@ class Server:
 
         # Reset 'build' directory in NFS storage.
         build_dir = '%s/%s'%(self.cfg['nfsmount']['value'][-1], job_hash)
-        jobs_dir = '%s/%s'%(build_dir, cfg['design']['value'][-1])
-        job_nameid = cfg['jobname']['value'][-1] + cfg['jobid']['value'][-1]
-        cfg['dir']['value'] = [build_dir]
+        jobs_dir = '%s/%s'%(build_dir, cfg['design']['value'])
+        job_nameid = cfg['jobname']['value'] + cfg['jobid']['value']
+        cfg['build_dir']['value'] = build_dir
 
         # Create the working directory for the given 'job hash' if necessary.
         subprocess.run(['mkdir', '-p', jobs_dir])
@@ -140,7 +140,7 @@ class Server:
         cfg['source']['value'] = ['%s/import/verilator.sv'%build_dir]
 
         # Write JSON config to shared compute storage.
-        cur_id = cfg['jobid']['value'][-1]
+        cur_id = cfg['jobid']['value']
         subprocess.run(['mkdir', '-p', '%s/configs'%build_dir])
         with open('%s/configs/chip%s.json'%(build_dir, cur_id), 'w') as f:
           f.write(json.dumps(cfg))
@@ -347,7 +347,7 @@ class Server:
         # Reset 'build' directory in NFS storage.
         build_dir = '/tmp/%s_%s/'%(job_hash, job_nameid)
         jobs_dir = '%s/%s'%(build_dir, jobs_cfg['design']['value'][-1])
-        jobs_cfg['dir']['value'] = [build_dir]
+        jobs_cfg['build_dir']['value'] = build_dir
 
         # Copy the 'import' directory for a new run if necessary.
         nfs_mount = self.cfg['nfsmount']['value'][-1]
