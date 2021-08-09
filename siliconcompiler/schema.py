@@ -1666,15 +1666,15 @@ def schema_eda(cfg):
 
     # options
     cfg['eda'][tool][step]['option'] = {
-        'switch': '-eda_opt',
+        'switch': '-eda_option',
         'type': '[str]',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
         'short_help': 'Executable Options',
         'param_help': "eda toolvar stepvar option <str>",
-        'example': ["cli: -eda_opt 'cts -no_init'",
-                    "api:  chip.set('eda', 'cts', 'opt', '-no_init')"],
+        'example': ["cli: -eda_option 'cts -no_init'",
+                    "api:  chip.set('eda', 'cts', 'option', '-no_init')"],
         'help': """
         List of command line options for the tool executable, specified on
         a per tool and per step basis. For multiple argument options, enter
@@ -1845,6 +1845,62 @@ def schema_eda(cfg):
         design basis after review has determined that warning can be safely
         ignored The code for turning off warnings can be found in the specific
         tool reference manual.
+        """
+    }
+
+    # show command
+    cfg['eda'][tool][step]['showexe'] = {
+        'switch': '-eda_showexe',
+        'type': 'str',
+        'lock': 'false',
+        'requirement': 'optional',
+        'defvalue': None,
+        'short_help': 'Show executable',
+        'param_help': "eda toolvar stepvar showexe <file>",
+        'example': ["cli: -eda_showexe 'openroad route openroad'",
+                    "api: chip.set('eda','openroad', 'route','showexe','openroad')"],
+        'help': """
+        Exeuctable to use for displaying output data specified on a per step and
+        tool basis.
+        """
+    }
+
+    # show opt
+    cfg['eda'][tool][step]['showopt'] = {
+        'switch': '-eda_showopt',
+        'type': '[str]',
+        'lock': 'false',
+        'requirement': 'optional',
+        'defvalue': [],
+        'short_help': 'Show options',
+        'param_help': "eda toolvar stepvar showopt <file>",
+        'example': ["cli: -eda_showopt 'openroad route fullscreen'",
+                    "api: chip.set('eda','openroad', 'route','showopt','fullscreen')"],
+        'help': """
+        Options for showing file.
+        """
+    }
+
+    # show command
+    cfg['eda'][tool][step]['showscript'] = {
+        'switch': '-eda_showscript',
+        'requirement': 'optional',
+        'type': '[file]',
+        'lock': 'false',
+        'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'filehash': [],
+        'date': [],
+        'author': [],
+        'signature': [],
+        'defvalue': [],
+        'short_help': 'Show script to execute',
+        'param_help': "eda toolvar stepvar showscript <file>",
+        'example': ["cli: -eda_showscript 'openroad route display.tcl'",
+                    "api: chip.set('eda','openroad', 'route','showscript','display.tcl')"],
+        'help': """
+        Script to execute for displaying file.
         """
     }
 

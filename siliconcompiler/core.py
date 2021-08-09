@@ -1407,12 +1407,43 @@ ss
 
 
     ###########################################################################
-    def show(self, step):
+    def show(self, step, filetype=None):
         '''
         Display output of a step. File to be displayed and program used for display
         is configured in the EDA directory.
+        TODO: Should we support viewing multiple outputs for a step?
+        Would need to pass in parameters to the tcl scripts to accomplish this.
         '''
-        pass
+
+        #Enabling show on old run directory
+        if self.get('jobid'):
+            jobid = self.get('jobid');
+        else:
+            jobid = 1
+
+        stepdir = "/".join([self.get('build_dir'),
+                            self.get('design'),
+                            self.get('jobname') + str(jobid),
+                            step])
+
+        tool = self.get('flowgraph', step, 'tool')
+
+        self.logger.info("Showing output from %s", os.path.abspath(stepdir))
+
+        # construct command string
+        cmdlist =  [self.get('eda', tool, step, 'showexe')]
+        cmdlist.extend(self.get('eda', tool, step, 'showopt'))
+        if 'showscript' in self.getkeys('eda', tool, step):
+            for value in self.get('eda', tool, step, 'showscript'):
+                abspath = schema_path(value)
+                cmdlist.extend([abspath])
+        cmdstr = ' '.join(cmdlist)
+
+        # execute show command from output directory
+        cwd = os.getcwd()
+        os.chdir(stepdir)
+        subprocess.run(cmdstr, shell=True, executable='/bin/bash')
+        os.chdir(cwd)
 
     ###########################################################################
     def set_jobid(self):

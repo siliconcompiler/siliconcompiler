@@ -60,6 +60,11 @@ def setup_tool(chip, step):
     chip.set('eda', tool, step, 'script', refdir + '/sc_apr.tcl')
     chip.set('eda', tool, step, 'option', '-no_init')
 
+    # Show command control (tied to tool flow, formats)
+    chip.set('eda', tool, step, 'showexe', 'openroad')
+    chip.set('eda', tool, step, 'showopt', '-gui')
+    chip.set('eda', tool, step, 'showscript', refdir + '/sc_display.tcl')
+
     # exit automatically unless bkpt
     if (step not in chip.get('bkpt')):
          chip.add('eda', tool, step, 'option', '-exit')
