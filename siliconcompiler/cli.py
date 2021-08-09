@@ -86,6 +86,11 @@ def main():
         if chip.error < 1:
             chip.summary()
 
+    # Print Job Summary
+    for chip in chips:
+        if chip.error < 1:
+            chip.show()
+
     # For local encrypted jobs, re-encrypt and delete the decrypted data.
     if 'decrypt_key' in chips[-1].status:
         for chip in chips:

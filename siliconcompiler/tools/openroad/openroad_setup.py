@@ -51,47 +51,52 @@ def setup_tool(chip, step):
     # default tool settings, note, not additive!
     tool = 'openroad'
     refdir = 'siliconcompiler/tools/openroad'
+
     chip.set('eda', tool, step, 'format', 'tcl')
     chip.set('eda', tool, step, 'vendor', tool)
     chip.set('eda', tool, step, 'exe', tool)
     chip.set('eda', tool, step, 'threads', 4)
     chip.set('eda', tool, step, 'copy', 'false')
     chip.set('eda', tool, step, 'refdir', refdir)
-    chip.set('eda', tool, step, 'script', refdir + '/sc_apr.tcl')
-    chip.set('eda', tool, step, 'option', '-no_init')
 
-    # exit automatically unless bkpt
-    if (step not in chip.get('bkpt')):
-         chip.add('eda', tool, step, 'option', '-exit')
+    if step == 'show':
+        chip.set('eda', tool, step, 'option', '-gui')
+        chip.set('eda', tool, step, 'script', refdir + '/sc_display.tcl')
+    else:
+        chip.set('eda', tool, step, 'option', '-no_init')
+        chip.set('eda', tool, step, 'script', refdir + '/sc_apr.tcl')
+        # exit automatically unless bkpt
+        if (step not in chip.get('bkpt')):
+            chip.add('eda', tool, step, 'option', '-exit')
 
-    # enable programmatic pythonic floorplans
-    if step == 'floorplan':
-        floorplan_file = chip.get('asic', 'floorplan')
+        # enable programmatic pythonic floorplans
+        if step == 'floorplan':
+            floorplan_file = chip.get('asic', 'floorplan')
 
-        if len(floorplan_file) == 0:
-             return
+            if len(floorplan_file) == 0:
+                 return
 
-        floorplan_file = schema_path(floorplan_file)
+            floorplan_file = schema_path(floorplan_file)
 
-        if os.path.splitext(floorplan_file) != '.py':
-             return
+            if os.path.splitext(floorplan_file) != '.py':
+                 return
 
-        fp = Floorplan(chip)
+            fp = Floorplan(chip)
 
-        # Import user's floorplan file, call setup_floorplan to set up their
-        # floorplan, and save it as an input DEF
+            # Import user's floorplan file, call setup_floorplan to set up their
+            # floorplan, and save it as an input DEF
 
-        mod_name = os.path.splitext(os.path.basename(floorplan_file))[0]
-        mod_spec = importlib.util.spec_from_file_location(mod_name, floorplan_file)
-        module = importlib.util.module_from_spec(mod_spec)
-        mod_spec.loader.exec_module(module)
-        setup_floorplan = getattr(module, "setup_floorplan")
+            mod_name = os.path.splitext(os.path.basename(floorplan_file))[0]
+            mod_spec = importlib.util.spec_from_file_location(mod_name, floorplan_file)
+            module = importlib.util.module_from_spec(mod_spec)
+            mod_spec.loader.exec_module(module)
+            setup_floorplan = getattr(module, "setup_floorplan")
 
-        fp = setup_floorplan(fp, chip)
+            fp = setup_floorplan(fp, chip)
 
-        topmodule = chip.get('design')
-        def_file = 'inputs/' + topmodule + '.def'
-        fp.write_def(def_file)
+            topmodule = chip.get('design')
+            def_file = 'inputs/' + topmodule + '.def'
+            fp.write_def(def_file)
 
 ################################
 # Post_process (post executable)

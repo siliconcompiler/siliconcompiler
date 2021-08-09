@@ -1577,7 +1577,7 @@ def schema_flowgraph(cfg, step):
         """
     }
 
-    # Step vendor
+    # Step tool
     cfg['flowgraph'][step]['tool'] = {
         'switch': '-flowgraph_tool',
         'type': 'str',
@@ -1591,6 +1591,23 @@ def schema_flowgraph(cfg, step):
         'help': """
         Name of the EDA tool to use for a specific step in the exeecution flow
         graph.
+        """
+    }
+
+    # Step showtool
+    cfg['flowgraph'][step]['showtool'] = {
+        'switch': '-flowgraph_showtool',
+        'type': 'str',
+        'lock': 'false',
+        'requirement': 'all',
+        'defvalue': None,
+        'short_help': 'Flowgraph Show Tool Selection',
+        'param_help': "flowgraph toolvar showtool <str>",
+        'example': ["cli: -flowgraph_showtool 'place openroad'",
+                    "api: chip.set('flowgraph', 'place', 'showtool', 'openroad')"],
+        'help': """
+        Name of the tool to use for showing the output file for a specific step in
+        the exeecution flowgraph.
         """
     }
 
@@ -1666,15 +1683,15 @@ def schema_eda(cfg):
 
     # options
     cfg['eda'][tool][step]['option'] = {
-        'switch': '-eda_opt',
+        'switch': '-eda_option',
         'type': '[str]',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
         'short_help': 'Executable Options',
         'param_help': "eda toolvar stepvar option <str>",
-        'example': ["cli: -eda_opt 'cts -no_init'",
-                    "api:  chip.set('eda', 'cts', 'opt', '-no_init')"],
+        'example': ["cli: -eda_option 'cts -no_init'",
+                    "api:  chip.set('eda', 'cts', 'option', '-no_init')"],
         'help': """
         List of command line options for the tool executable, specified on
         a per tool and per step basis. For multiple argument options, enter
@@ -2808,6 +2825,22 @@ def schema_options(cfg):
         Specifies that all used files should be copied into the jobdir,
         overriding the per schema entry copy settings. The default
         is false.
+        """
+    }
+
+    cfg['show'] = {
+        'switch': '-show',
+        'type': '[str]',
+        'lock': 'false',
+        'requirement': 'optional',
+        'defvalue': [],
+        'short_help': "Display Output",
+        'param_help': "show <steplist>",
+        'example': ["cli: -show route",
+                    "api: chip.set('show', 'rout')"],
+        'help': """
+        List of steps for which to display the output using a graphical
+        viewer defined by the flowgraph showtool dictionary.
         """
     }
 
