@@ -589,7 +589,7 @@ ss
                     self.error = 1
                 elif field == 'value':
                         #check for list/vs scalar
-                    if bool(re.match('\[',cfg[param]['type'])):
+                    if bool(re.match(r'\[',cfg[param]['type'])):
                         return_list = []
                         for item in cfg[param]['value']:
                             if re.search('int', cfg[param]['type']):
