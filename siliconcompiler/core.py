@@ -303,7 +303,7 @@ class Chip:
                 setup_design = getattr(module, "setup_design")
                 setup_design(self)
                 self.logger.info("Loaded platform '%s'", platform)
-            except:
+            except ModuleNotFoundError:
                 self.logger.critical("Platform %s not found.", platform)
                 sys.exit()
         else:
@@ -316,7 +316,7 @@ class Chip:
             setup_flow = getattr(module, "setup_flow")
             setup_flow(self, platform)
             self.logger.info("Loaded edaflow '%s'", edaflow)
-        except:
+        except ModuleNotFoundError:
             self.logger.critical("EDA flow %s not found.", edaflow)
             sys.exit()
 
