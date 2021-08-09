@@ -728,13 +728,17 @@ ss
             if k in d1 and isinstance(d1[k], dict) and isinstance(d2[k], dict):
                 #if we reach a leaf copy d2 to d1
                 if 'value' in d1[k].keys():
-                    #only add items that are not in the current list
-                    new_items = []
-                    for i in range(len(d2[k]['value'])):
-                        if d2[k]['value'][i] not in d1[k]['value']:
-                            new_items.append(d2[k]['value'][i])
-                    d1[k]['value'].extend(new_items)
-                #if not in leaf keep descending
+                    if ('type' in d1[k].keys()) and ('[' in d1[k]['type']):
+                        #only add items that are not in the current list
+                        new_items = []
+                        for i in range(len(d2[k]['value'])):
+                            if d2[k]['value'][i] not in d1[k]['value']:
+                                new_items.append(d2[k]['value'][i])
+                        d1[k]['value'].extend(new_items)
+                    else:
+                        # Scalar copy.
+                        d1[k]['value'] = d2[k]['value']
+                    #if not in leaf keep descending
                 else:
                     self.mergecfg(d2[k], d1=d1[k])
                 #if a new d2 key is found do a deep copy
@@ -850,7 +854,7 @@ ss
         # Write out configuration based on file type
         if filepath.endswith('.json'):
             with open(filepath, 'w') as f:
-                print(json.dumps(cfgcopy, sort_keys=True, indent=4), file=f)
+                print(json.dumps(cfgcopy, indent=4), file=f)
         elif filepath.endswith('.yaml'):
             with open(filepath, 'w') as f:
                 print("#############################################", file=f)
