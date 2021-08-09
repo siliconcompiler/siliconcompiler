@@ -7,7 +7,7 @@ from siliconcompiler.floorplan import Floorplan
 def make_fp():
     test_dir = os.path.dirname(os.path.abspath(__file__))
 
-    c = Chip()
+    c = Chip(loglevel='INFO')
     c.set('design', 'test')
     c.target('freepdk45_asicflow')
     c.add('asic', 'macrolib', 'ram')
@@ -21,8 +21,8 @@ def make_fp():
 
     n = 4 # pins per side
 
-    hmetal = c.get('asic', 'hpinlayer')[-1]
-    vmetal = c.get('asic', 'vpinlayer')[-1]
+    hmetal = c.get('asic', 'hpinlayer')
+    vmetal = c.get('asic', 'vpinlayer')
     hwidth = 30 * fp.layers[hmetal]['width']
     hheight = 10 * fp.layers[hmetal]['width']
     vwidth = 10 * fp.layers[vmetal]['width']
@@ -77,7 +77,7 @@ def test_padring():
 
     test_dir = os.path.dirname(os.path.abspath(__file__))
 
-    chip = Chip()
+    chip = Chip(loglevel='INFO')
     chip.set('design', 'mypadring')
     chip.target('freepdk45_asicflow')
 
@@ -159,8 +159,8 @@ def test_padring():
     fp.configure_net('VDD', 'VDD', 'POWER')
     fp.configure_net('VSS', 'VSS', 'GROUND')
 
-    hlayer = chip.get('asic', 'hpinlayer')[-1]
-    vlayer = chip.get('asic', 'vpinlayer')[-1]
+    hlayer = chip.get('asic', 'hpinlayer')
+    vlayer = chip.get('asic', 'vpinlayer')
 
     fp.place_wires(['VDD'] * 11, 100, 100, 0, 100, 1000, 10, hlayer, 'STRIPE', snap=True)
     fp.place_wires(['VSS'] * 11, 100, 100, 100, 0, 10, 1000, vlayer, 'STRIPE', snap=True)

@@ -87,7 +87,7 @@ class Floorplan:
         self.grid = grid
         self.db_units = db_units
 
-        self.design = chip.get('design')[-1]
+        self.design = chip.get('design')
         self.die_area = None
         self.core_area = None
         self.pins = []
@@ -119,17 +119,17 @@ class Floorplan:
         ## Extract technology-specific info ##
 
         # extract std cell info based on libname
-        self.libname = self.chip.get('asic', 'targetlib')[-1]
-        self.std_cell_name = self.chip.get('stdcell', self.libname, 'site')[-1]
-        self.std_cell_width = float(self.chip.get('stdcell', self.libname, 'width')[-1])
-        self.std_cell_height = float(self.chip.get('stdcell', self.libname, 'height')[-1])
+        self.libname = self.chip.get('asic', 'targetlib')[0]
+        self.std_cell_name = self.chip.get('stdcell', self.libname, 'site')
+        self.std_cell_width = self.chip.get('stdcell', self.libname, 'width')
+        self.std_cell_height = self.chip.get('stdcell', self.libname, 'height')
 
         # Extract data from LEFs
         lef_parser = Lef()
-        stackup = chip.get('asic', 'stackup')[-1]
-        libtype = chip.get('stdcell', self.libname, 'libtype')[-1]
+        stackup = chip.get('asic', 'stackup')
+        libtype = chip.get('stdcell', self.libname, 'libtype')
 
-        tech_lef = schema_path(chip.get('pdk','aprtech', stackup, libtype, 'lef')[-1])
+        tech_lef = schema_path(chip.get('pdk','aprtech', stackup, libtype, 'lef')[0])
         with open(tech_lef, 'r') as f:
             tech_lef_data = lef_parser.parse(f.read())
 
@@ -137,12 +137,12 @@ class Floorplan:
         self.available_cells = {}
 
         for macrolib in self.chip.get('asic', 'macrolib'):
-            lef_path = schema_path(self.chip.get('macro', macrolib, 'lef')[-1])
+            lef_path = schema_path(self.chip.get('macro', macrolib, 'lef')[0])
             with open(lef_path, 'r') as f:
                 lef_data = lef_parser.lib_parse(f.read())
 
             for name in self.chip.getkeys('macro', macrolib, 'cells'):
-                tech_name = self.chip.get('macro', macrolib, 'cells', name)[-1]
+                tech_name = self.chip.get('macro', macrolib, 'cells', name)[0]
                 if tech_name in lef_data['macros']:
                     width, height = lef_data['macros'][tech_name]['size']
                 else:
@@ -152,14 +152,14 @@ class Floorplan:
                 self.available_cells[name] = _MacroInfo(tech_name, width, height)
 
         # extract layers based on stackup
-        stackup = self.chip.get('asic', 'stackup')[-1]
+        stackup = self.chip.get('asic', 'stackup')
         self.layers = {}
         for name in self.chip.getkeys('pdk', 'grid', stackup):
-            pdk_name = self.chip.get('pdk', 'grid', stackup, name, 'name')[-1]
-            xpitch = float(self.chip.get('pdk', 'grid', stackup, name, 'xpitch')[-1])
-            ypitch = float(self.chip.get('pdk', 'grid', stackup, name, 'ypitch')[-1])
-            xoffset = float(self.chip.get('pdk', 'grid', stackup, name, 'xoffset')[-1])
-            yoffset = float(self.chip.get('pdk', 'grid', stackup, name, 'yoffset')[-1])
+            pdk_name = self.chip.get('pdk', 'grid', stackup, name, 'name')
+            xpitch = self.chip.get('pdk', 'grid', stackup, name, 'xpitch')
+            ypitch = self.chip.get('pdk', 'grid', stackup, name, 'ypitch')
+            xoffset = self.chip.get('pdk', 'grid', stackup, name, 'xoffset')
+            yoffset = self.chip.get('pdk', 'grid', stackup, name, 'yoffset')
             width = float(tech_lef_data['LAYER'][pdk_name]['WIDTH'][-1])
             direction = tech_lef_data['LAYER'][pdk_name]['DIRECTION'][-1]
 
@@ -204,8 +204,9 @@ class Floorplan:
             self.core_area = core_area
 
         # TODO: is this necessary or a good idea?
-        self.chip.set('asic', 'diesize', str((0, 0, width, height)))
-        self.chip.set('asic', 'coresize', str(self.core_area))
+        self.chip.set('asic', 'diesize', f'0 0 {width} {height}')
+        self.chip.set('asic', 'coresize', f'{self.core_area[0]} {self.core_area[1]} '
+                                          f'{self.core_area[2]} {self.core_area[3]}')
 
         if generate_rows:
             self.generate_rows()
