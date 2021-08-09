@@ -64,36 +64,31 @@ if {[dict get $sc_cfg eda $tool $sc_step copy] eq True} {
 }
 
 # Design
-set sc_design     [lindex [dict get $sc_cfg design] end]
-set sc_optmode     [lindex [dict get $sc_cfg optmode] end]
-
-###############################
-# Required
-###############################
+set sc_design      [dict get $sc_cfg design]
+set sc_optmode     [dict get $sc_cfg optmode]
 
 # APR Parameters
 set sc_mainlib     [lindex [dict get $sc_cfg asic targetlib] 0]
 set sc_targetlibs  [dict get $sc_cfg asic targetlib]
-set sc_stackup     [lindex [dict get $sc_cfg asic stackup] end]
-set sc_density     [lindex [dict get $sc_cfg asic density] end]
-set sc_hpinlayer   [lindex [dict get $sc_cfg asic hpinlayer] end]
-set sc_vpinlayer   [lindex [dict get $sc_cfg asic vpinlayer] end]
+set sc_stackup     [dict get $sc_cfg asic stackup]
+set sc_density     [dict get $sc_cfg asic density]
+set sc_hpinlayer   [dict get $sc_cfg asic hpinlayer]
+set sc_vpinlayer   [dict get $sc_cfg asic vpinlayer]
 set sc_hpinmetal   [dict get $sc_cfg pdk grid $sc_stackup $sc_hpinlayer name]
 set sc_vpinmetal   [dict get $sc_cfg pdk grid $sc_stackup $sc_vpinlayer name]
-set sc_rclayer     [lindex [dict get $sc_cfg asic rclayer] end]
-set sc_clklayer    [lindex [dict get $sc_cfg asic clklayer] end]
+set sc_rclayer     [dict get $sc_cfg asic rclayer]
+set sc_clklayer    [dict get $sc_cfg asic clklayer]
 set sc_rcmetal     [dict get $sc_cfg pdk grid $sc_stackup $sc_rclayer name]
 set sc_clkmetal    [dict get $sc_cfg pdk grid $sc_stackup $sc_clklayer name]
+set sc_aspectratio [dict get $sc_cfg asic aspectratio]
+set sc_minlayer    [dict get $sc_cfg asic minlayer]
+set sc_maxlayer    [dict get $sc_cfg asic maxlayer]
+set sc_maxfanout   [dict get $sc_cfg asic maxfanout]
+set sc_maxlength   [dict get $sc_cfg asic maxlength]
+set sc_maxcap      [dict get $sc_cfg asic maxcap]
+set sc_maxslew     [dict get $sc_cfg asic maxslew]
 
-set sc_aspectratio [lindex [dict get $sc_cfg asic aspectratio] end]
-set sc_minlayer    [lindex [dict get $sc_cfg asic minlayer] end]
-set sc_maxlayer    [lindex [dict get $sc_cfg asic maxlayer] end]
-set sc_maxfanout   [lindex [dict get $sc_cfg asic maxfanout] end]
-set sc_maxlength   [lindex [dict get $sc_cfg asic maxlength] end]
-set sc_maxcap      [lindex [dict get $sc_cfg asic maxcap] end]
-set sc_maxslew     [lindex [dict get $sc_cfg asic maxslew] end]
-
-#Library
+# Library
 set sc_libtype     [lindex [dict get $sc_cfg stdcell $sc_mainlib libtype] end]
 set sc_site        [lindex [dict get $sc_cfg stdcell $sc_mainlib site] end]
 set sc_driver      [lindex [dict get $sc_cfg stdcell $sc_mainlib driver] end]
@@ -106,15 +101,17 @@ set sc_ignore      [dict get $sc_cfg stdcell $sc_mainlib cells ignore]
 set sc_tapcell     [dict get $sc_cfg stdcell $sc_mainlib cells tapcell]
 set sc_endcap      [dict get $sc_cfg stdcell $sc_mainlib cells endcap]
 
-#PDK Design Rules
+# PDK Design Rules
 set sc_techlef     [dict get $sc_cfg pdk aprtech $sc_stackup $sc_libtype lef]
 set sc_tapmax      [lindex [dict get $sc_cfg pdk tapmax] end]
 set sc_tapoffset   [lindex [dict get $sc_cfg pdk tapoffset] end]
 
-#APR Layers
-set sc_minmetal    [lindex [dict get $sc_cfg pdk grid $sc_stackup $sc_minlayer name] end]
-set sc_maxmetal    [lindex [dict get $sc_cfg pdk grid $sc_stackup $sc_maxlayer name] end]\0
+# APR Layers
+set sc_minmetal    [dict get $sc_cfg pdk grid $sc_stackup $sc_minlayer name]
+set sc_maxmetal    [dict get $sc_cfg pdk grid $sc_stackup $sc_maxlayer name]
 
+
+# Layer Definitions
 set sc_layers ""
 dict for {key value} [dict get $sc_cfg pdk grid $sc_stackup] {
     lappend sc_layers $key
@@ -151,7 +148,6 @@ if {[dict exists $sc_cfg asic floorplan]} {
 } else {
     set sc_floorplan  ""
 }
-
 
 ###############################
 # Read Files
