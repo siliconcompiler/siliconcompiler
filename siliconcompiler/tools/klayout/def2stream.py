@@ -137,6 +137,10 @@ for fn in layoutOptions.lefdef_config.lef_files:
     pathed_files.append(foundry_lefs + fn[1:])
   else:
     pathed_files.append(fn)
+
+for lef in macro_lefs.split():
+  pathed_files.append(lef)
+
 layoutOptions.lefdef_config.lef_files = pathed_files
 
 # Load def file
