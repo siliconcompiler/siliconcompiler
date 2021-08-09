@@ -204,7 +204,7 @@ class Chip:
 
         #Grab argument from pre-process sysargs
         cmdargs = vars(parser.parse_args(scargs))
-
+        #print(cmdargs)
         #Stuff command line values into dynamic dict
         for key, val in cmdargs.items():
             if type(val)==list:
@@ -213,6 +213,7 @@ class Chip:
                 val_list = [val]
             for item in val_list:
                 args = schema_reorder_keys(argmap[key], item)
+                #print(args)
                 # TODO: we should annotate each schema item as list or scalar,
                 # and then use that annotation to determine how to set the value
                 self._search(self.cfg, *args, mode='add')
@@ -220,6 +221,7 @@ class Chip:
                 if key == 'cfg':
                     self.readcfg(item)
         # Create one (or many...) instances of Chip class.
+
         chips = get_permutations(self, cmdargs)
         return chips
 
@@ -1218,7 +1220,6 @@ ss
             print("-"*135)
 
 
-
     ###########################################################################
     def runstep(self, step):
 
@@ -1407,6 +1408,15 @@ ss
                     loop.run_until_complete(remote_run(self, step))
                 else:
                     self.runstep(step)
+
+
+    ###########################################################################
+    def show(self, step):
+        '''
+        Display output of a step. File to be displayed and program used for display
+        is configured in the EDA directory.
+        '''
+        pass
 
     ###########################################################################
     def set_jobid(self):

@@ -144,8 +144,18 @@ def schema_typecheck(chip, cfg, leafkey, value):
                     if not os.path.isdir(schema_path(item)):
                         errormsg = "Invalid path or missing directory."
                         ok = False
-                elif (cfgtype == 'float') & isinstance(item, int):
-                    pass
+                elif (cfgtype == 'float'):
+                    try:
+                        float(item)
+                    except:
+                        errormsg = "Type mismatch. Cannot cast iteme to float."
+                        ok = False
+                elif (cfgtype == 'int'):
+                    try:
+                        int(item)
+                    except:
+                        errormsg = "Type mismatch. Cannot cast item to int."
+                        ok = False
                 else:
                     errormsg = "Type mismach."
                     ok = False
@@ -173,8 +183,6 @@ def schema_reorder_keys(param_help, item):
     m = re.search('(.*?)(<.*)', param_help)
     paramlist = m.group(1).split()
     datalist = m.group(2).split()
-    #Split cmdline input based on spaces
-
     itemlist = item.split()
 
     depth = len(paramlist)+1
@@ -1553,7 +1561,7 @@ def schema_flowgraph(cfg, step):
     cfg['flowgraph'][step] = {}
 
 
-    # Used to define flow sequence
+    # Flow graph definition
     cfg['flowgraph'][step]['output'] = {
         'switch': '-flowgraph_output',
         'type': '[str]',
@@ -1569,7 +1577,7 @@ def schema_flowgraph(cfg, step):
         """
     }
 
-    #vendor
+    # Step vendor
     cfg['flowgraph'][step]['tool'] = {
         'switch': '-flowgraph_tool',
         'type': 'str',
@@ -1577,9 +1585,9 @@ def schema_flowgraph(cfg, step):
         'requirement': 'all',
         'defvalue': None,
         'short_help': 'Flowgraph Tool Selection',
-        'param_help': "graph toolvar tool <str>",
-        'example': ["cli: -graph_tool 'place openroad'",
-                    "api: chip.set('graph', 'place', 'tool', 'openroad')"],
+        'param_help': "flowgraph toolvar tool <str>",
+        'example': ["cli: -flowgraph_tool 'place openroad'",
+                    "api: chip.set('flowgraph', 'place', 'tool', 'openroad')"],
         'help': """
         Name of the EDA tool to use for a specific step in the exeecution flow
         graph.
@@ -1810,8 +1818,8 @@ def schema_eda(cfg):
         'defvalue': None,
         'short_help': 'Job Parallelism',
         'param_help': "eda toolvar stepvar threads <num>",
-        'example': ["cli: -eda_threads 'maxgic drc 64'",
-                    "api: chip.set('eda','maxgic', 'drc','threads','64')"],
+        'example': ["cli: -eda_threads 'magic drc 64'",
+                    "api: chip.set('eda','magic', 'drc','threads','64')"],
         'help': """
         Thread parallelism to use for execution specified on a per tool and per
         step basis. If not specified, SC queries the operating system and sets
@@ -1841,7 +1849,6 @@ def schema_eda(cfg):
     }
 
     return cfg
-
 
 ###########################################################################
 # Metrics to Track
