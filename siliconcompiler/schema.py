@@ -144,8 +144,18 @@ def schema_typecheck(chip, cfg, leafkey, value):
                     if not os.path.isdir(schema_path(item)):
                         errormsg = "Invalid path or missing directory."
                         ok = False
-                elif (cfgtype == 'float') & isinstance(item, int):
-                    pass
+                elif (cfgtype == 'float'):
+                    try:
+                        float(item)
+                    except:
+                        errormsg = "Type mismatch. Cannot cast iteme to float."
+                        ok = False
+                elif (cfgtype == 'int'):
+                    try:
+                        int(item)
+                    except:
+                        errormsg = "Type mismatch. Cannot cast item to int."
+                        ok = False
                 else:
                     errormsg = "Type mismach."
                     ok = False
@@ -173,8 +183,6 @@ def schema_reorder_keys(param_help, item):
     m = re.search('(.*?)(<.*)', param_help)
     paramlist = m.group(1).split()
     datalist = m.group(2).split()
-    #Split cmdline input based on spaces
-
     itemlist = item.split()
 
     depth = len(paramlist)+1
@@ -1586,22 +1594,6 @@ def schema_flowgraph(cfg, step):
         """
     }
 
-    # Show step results
-    cfg['flowgraph'][step]['show'] = {
-        'switch': '-flowgraph_show',
-        'type': 'str',
-        'lock': 'false',
-        'requirement': 'optional',
-        'defvalue': "false",
-        'short_help': 'Show Step Output',
-        'param_help': "flowgraph toolvar show <true/false>",
-        'example': ["cli: -flowgraph_show 'place show true'",
-                    "api: chip.set('flowgraph','place','show','true')"],
-        'help': """
-        Enables showing the output of e step using a display play program.
-        """
-    }
-
     return cfg
 
 ###########################################################################
@@ -1826,8 +1818,8 @@ def schema_eda(cfg):
         'defvalue': None,
         'short_help': 'Job Parallelism',
         'param_help': "eda toolvar stepvar threads <num>",
-        'example': ["cli: -eda_threads 'maxgic drc 64'",
-                    "api: chip.set('eda','maxgic', 'drc','threads','64')"],
+        'example': ["cli: -eda_threads 'magic drc 64'",
+                    "api: chip.set('eda','magic', 'drc','threads','64')"],
         'help': """
         Thread parallelism to use for execution specified on a per tool and per
         step basis. If not specified, SC queries the operating system and sets
