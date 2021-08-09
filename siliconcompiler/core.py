@@ -1312,8 +1312,8 @@ ss
             shutil.copytree(refdir, ".", dirs_exist_ok=True)
 
         # Save config files required by eda tools
-        self.writecfg("sc_manifest.json")
-        self.writecfg("sc_manifest.yaml")
+        self.writecfg("sc_manifest.json", prune=False)
+        self.writecfg("sc_manifest.yaml", prune=False)
         self.writecfg("sc_manifest.tcl", abspath=True)
 
         # Construct command line
@@ -1454,7 +1454,11 @@ ss
         Would need to pass in parameters to the tcl scripts to accomplish this.
         '''
 
-        showsteps =self.get('show')
+        if self.get('show'):
+            showsteps = self.get('show')
+        else:
+            self.logger.error("Running show commmand with no showsteps defined.")
+            sys.exit()
 
         for step in showsteps:
             # Dynamic EDA tool module load
