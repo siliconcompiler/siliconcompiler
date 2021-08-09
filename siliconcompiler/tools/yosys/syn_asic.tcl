@@ -24,9 +24,13 @@ if {[dict exists $sc_cfg asic macrolib]} {
 # on (for area estimation).
 set stat_libs ""
 foreach libname $sc_macrolibs {
-    set macro_lib [dict get $sc_cfg macro $libname model typical nldm lib]
-    yosys read_liberty -lib $macro_lib
-    append stat_libs "-liberty $macro_lib "
+    # TODO: we assume corner name is "typical" - this should probably be
+    # documented somewhere?
+    if {[dict exists $sc_cfg macro $libname model]} {
+        set macro_lib [dict get $sc_cfg macro $libname model typical nldm lib]
+        yosys read_liberty -lib $macro_lib
+        append stat_libs "-liberty $macro_lib "
+    }
 }
 
 ########################################################

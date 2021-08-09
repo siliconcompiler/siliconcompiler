@@ -173,7 +173,9 @@ if {$sc_step == "route"} {
 
 # Macrolibs
 foreach lib $sc_macrolibs {
-    read_liberty [dict get $sc_cfg macro $lib model typical nldm lib]
+    if {[dict exists $sc_cfg macro $lib model]} {
+        read_liberty [dict get $sc_cfg macro $lib model typical nldm lib]
+    }
     read_lef [dict get $sc_cfg macro $lib lef]
 }
 
