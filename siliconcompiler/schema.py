@@ -1553,7 +1553,7 @@ def schema_flowgraph(cfg, step):
     cfg['flowgraph'][step] = {}
 
 
-    # Used to define flow sequence
+    # Flow graph definition
     cfg['flowgraph'][step]['output'] = {
         'switch': '-flowgraph_output',
         'type': '[str]',
@@ -1569,7 +1569,7 @@ def schema_flowgraph(cfg, step):
         """
     }
 
-    #vendor
+    # Step vendor
     cfg['flowgraph'][step]['tool'] = {
         'switch': '-flowgraph_tool',
         'type': 'str',
@@ -1577,12 +1577,28 @@ def schema_flowgraph(cfg, step):
         'requirement': 'all',
         'defvalue': None,
         'short_help': 'Flowgraph Tool Selection',
-        'param_help': "graph toolvar tool <str>",
-        'example': ["cli: -graph_tool 'place openroad'",
-                    "api: chip.set('graph', 'place', 'tool', 'openroad')"],
+        'param_help': "flowgraph toolvar tool <str>",
+        'example': ["cli: -flowgraph_tool 'place openroad'",
+                    "api: chip.set('flowgraph', 'place', 'tool', 'openroad')"],
         'help': """
         Name of the EDA tool to use for a specific step in the exeecution flow
         graph.
+        """
+    }
+
+    # Show step results
+    cfg['flowgraph'][step]['show'] = {
+        'switch': '-flowgraph_show',
+        'type': 'str',
+        'lock': 'false',
+        'requirement': 'optional',
+        'defvalue': "false",
+        'short_help': 'Show Step Output',
+        'param_help': "flowgraph toolvar show <true/false>",
+        'example': ["cli: -flowgraph_show 'place show true'",
+                    "api: chip.set('flowgraph','place','show','true')"],
+        'help': """
+        Enables showing the output of e step using a display play program.
         """
     }
 
@@ -1841,7 +1857,6 @@ def schema_eda(cfg):
     }
 
     return cfg
-
 
 ###########################################################################
 # Metrics to Track
