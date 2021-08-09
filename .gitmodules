@@ -64,3 +64,6 @@
 [submodule "third_party/tools/openroad"]
 	path = third_party/tools/openroad
 	url = https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts.git
+[submodule "third_party/designs/OPBD"]
+	path = third_party/designs/OPBD
+	url = https://github.com/PrincetonUniversity/OPDB
