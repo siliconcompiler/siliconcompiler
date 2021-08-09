@@ -23,5 +23,3 @@ def test_gcd_local_permutations():
     # Verify that all GDS/SVG files were generated.
     assert os.path.isfile('build/gcd/job1/export/outputs/gcd.gds')
     assert os.path.isfile('build/gcd/job2/export/outputs/gcd.gds')
-    assert os.path.isfile('build/gcd/job1/export/outputs/gcd.svg')
-    assert os.path.isfile('build/gcd/job2/export/outputs/gcd.svg')
