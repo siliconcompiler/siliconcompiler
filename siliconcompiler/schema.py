@@ -101,7 +101,7 @@ def schema_typecheck(chip, cfg, leafkey, value):
     # Check that value is list when type is scalar
     ok = True
     valuetype =type(value)
-    if (not re.match('\[',cfg['type'])) & (valuetype==list):
+    if (not re.match(r'\[',cfg['type'])) & (valuetype==list):
         errormsg = "Value should be a scalar."
         ok = False
     # Iterate over list
@@ -112,7 +112,7 @@ def schema_typecheck(chip, cfg, leafkey, value):
         else:
             valuelist = [value]
         # Make type python compatible
-        cfgtype = re.sub('[\[\]]', '', cfg['type'])
+        cfgtype = re.sub(r'[\[\]]', '', cfg['type'])
         for item in valuelist:
             valuetype =  type(item)
             if (cfgtype != valuetype.__name__):
