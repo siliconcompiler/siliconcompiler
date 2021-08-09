@@ -34,5 +34,5 @@ def test_gcd_checks():
     assert os.path.isfile('build/gcd/job1/export/outputs/gcd.gds')
 
     # Verify that the build was LVS and DRC clean.
-    assert int(chip.get('metric', 'lvs', 'real', 'errors')[-1]) == 0
-    assert int(chip.get('metric', 'drc', 'real', 'errors')[-1]) == 0
+    assert chip.get('metric', 'lvs', 'real', 'errors') == 0
+    assert chip.get('metric', 'drc', 'real', 'errors') == 0

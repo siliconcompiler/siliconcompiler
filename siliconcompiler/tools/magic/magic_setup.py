@@ -19,7 +19,7 @@ def setup_tool(chip, step):
     tool = 'magic'
     refdir = 'siliconcompiler/tools/magic'
 
-    target_tech = chip.cfg['target']['value'][-1].split('_')[0]
+    target_tech = chip.get('target').split('_')[0]
     magicrc = '%s/magic/%s.magicrc'%(
         pdk_path(chip),
         target_tech)
@@ -60,7 +60,7 @@ def post_process(chip, step):
 
     Reads error count from output and fills in appropriate entry in metrics
     '''
-    design = chip.get('design')[-1]
+    design = chip.get('design')
 
     if step == 'drc':
         with open(f'outputs/{design}.drc', 'r') as f:
@@ -72,7 +72,7 @@ def post_process(chip, step):
     elif step == 'lvs':
         # Export metrics
         lvs_failures = count_lvs.count_LVS_failures(f'outputs/{design}.lvs.json')
-        chip.set('metric', step, 'real', 'errors', str(lvs_failures[0]))
+        chip.set('metric', step, 'real', 'errors', lvs_failures[0])
 
     # Need to pass along DEF and GDS to future verification stages
     shutil.copy(f'inputs/{design}.def', f'outputs/{design}.def')
@@ -92,15 +92,15 @@ def pdk_path(chip):
                         scriptdir)
     sc_path = sc_root + '/third_party/foundry'
 
-    libname = chip.get('asic', 'targetlib')[-1]
-    pdk_rev = chip.get('pdk', 'rev')[-1]
-    lib_rev = chip.get('stdcell', libname, 'rev')[-1]
+    libname = chip.get('asic', 'targetlib')[0]
+    pdk_rev = chip.get('pdk', 'rev')
+    lib_rev = chip.get('stdcell', libname, 'rev')
 
-    target_tech = chip.cfg['target']['value'][-1].split('_')[0]
+    target_tech = chip.get('target').split('_')[0]
 
     return f'%s/%s/%s/pdk/{pdk_rev}/setup/'%(
         sc_path,
-        chip.cfg['pdk']['foundry']['value'][-1],
+        chip.get('pdk', 'foundry'),
         target_tech)
 
 ##################################################
