@@ -5,5 +5,3 @@
 
 with open('def2stream.py', 'r') as py:
   exec(py.read())
-with open('gds2svg.py', 'r') as py:
-  exec(py.read())

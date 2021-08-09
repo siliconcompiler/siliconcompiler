@@ -158,7 +158,7 @@ class Chip:
                                     help=helpstr,
                                     default = argparse.SUPPRESS)
             #list type arguments
-            elif re.match('\[',typestr):
+            elif re.match(r'\[',typestr):
                 #all the rest
                 argmap[dest] = paramstr
                 parser.add_argument(switchstr,
@@ -303,7 +303,7 @@ class Chip:
                 setup_design = getattr(module, "setup_design")
                 setup_design(self)
                 self.logger.info("Loaded platform '%s'", platform)
-            except:
+            except ModuleNotFoundError:
                 self.logger.critical("Platform %s not found.", platform)
                 sys.exit()
         else:
@@ -316,7 +316,7 @@ class Chip:
             setup_flow = getattr(module, "setup_flow")
             setup_flow(self, platform)
             self.logger.info("Loaded edaflow '%s'", edaflow)
-        except:
+        except ModuleNotFoundError:
             self.logger.critical("EDA flow %s not found.", edaflow)
             sys.exit()
 
@@ -567,7 +567,7 @@ ss
             #check legality of value
             if schema_typecheck(self, cfg[param], param, val):
                 #promote value to list for list types
-                if (type(val) != list) & (field == 'value') & bool(re.match('\[',cfg[param]['type'])):
+                if (type(val) != list) & (field == 'value') & bool(re.match(r'\[',cfg[param]['type'])):
                     val = [str(val)]
                 #set value based on scalar/list/set/add
                 if (mode == 'add') & (type(val) == list):
@@ -680,7 +680,7 @@ ss
                     #only do something if type is file
                     if re.search('file|dir', cfg[k]['type']):
                         #iterate if list
-                        if re.match('\[', cfg[k]['type']):
+                        if re.match(r'\[', cfg[k]['type']):
                             for i, v in enumerate(list(cfg[k]['value'])):
                                 #Look for relative paths in search path
                                 cfg[k]['value'][i] = schema_path(v)
@@ -704,7 +704,7 @@ ss
             #detect leaf cell
             if 'defvalue' in cfg[k]:
                 if mode == 'tcl':
-                    if bool(re.match('\[',str(cfg[k]['type']))) & (field == 'value'):
+                    if bool(re.match(r'\[',str(cfg[k]['type']))) & (field == 'value'):
                         alist = cfg[k][field].copy()
                     else:
                         alist = [cfg[k][field]]
@@ -929,7 +929,7 @@ ss
             if isinstance(v, dict):
                 if 'defvalue' in cfg[k].keys():
                     #list type
-                    if re.match('\[',cfg[k]['type']):
+                    if re.match(r'\[',cfg[k]['type']):
                         if defaults:
                             cfg[k]['value'] = cfg[k]['defvalue'].copy()
                         else:
