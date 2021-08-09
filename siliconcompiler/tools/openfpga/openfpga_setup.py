@@ -22,16 +22,17 @@ def setup_tool(chip, step):
 
     chip.add('eda', tool, step, 'vendor', 'openfpga')
     chip.add('eda', tool, step, 'refdir', refdir)
-    chip.add('eda', tool, step, 'option', '-batch -f ' + OPENFPGA_SCRIPT)
     if step == 'apr':
         chip.add('eda', tool, step, 'exe', 'openfpga')
+        chip.add('eda', tool, step, 'option', '-batch -f ' + OPENFPGA_SCRIPT)
     elif step == 'bitstream':
         # bitstream step is currently a NOP, since apr and bitstream generation
         # are integrated in shell script
-        chip.add('eda', tool, step, 'exe', 'cp -r inputs/ outputs/; echo')
+        chip.add('eda', tool, step, 'exe', 'cp')
+        chip.add('eda', tool, step, 'option', ' -r inputs/ outputs/')
     chip.add('eda', tool, step, 'copy', 'true')
 
-    topmodule = chip.cfg['design']['value'][-1]
+    topmodule = chip.get('design')
 
     input_blif = 'inputs/' + topmodule + '.blif'
 
