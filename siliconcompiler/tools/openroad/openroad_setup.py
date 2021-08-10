@@ -56,7 +56,7 @@ def setup_tool(chip, step):
     chip.set('eda', tool, step, 'vendor', tool)
     chip.set('eda', tool, step, 'exe', tool)
     if chip.get('eda', tool, step, 'threads') is None:
-        chip.set('eda', tool, step, 'threads', 1)
+        chip.set('eda', tool, step, 'threads', os.cpu_count())
     chip.set('eda', tool, step, 'copy', 'false')
     chip.set('eda', tool, step, 'refdir', refdir)
 
