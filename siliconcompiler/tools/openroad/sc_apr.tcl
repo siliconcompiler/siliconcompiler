@@ -53,10 +53,7 @@ if {$target_tech eq "freepdk45"} {
 
 set tool openroad
 
-
 #Handling remote/local script execution
-set sc_step   [dict get $sc_cfg status step]
-
 if {[dict get $sc_cfg eda $tool $sc_step copy] eq True} {
     set sc_refdir "."
 } else {
@@ -66,6 +63,9 @@ if {[dict get $sc_cfg eda $tool $sc_step copy] eq True} {
 # Design
 set sc_design      [dict get $sc_cfg design]
 set sc_optmode     [dict get $sc_cfg optmode]
+
+# Get inputs
+set sc_input     [dict get $sc_cfg flowgraph $sc_step input]
 
 # APR Parameters
 set sc_mainlib     [lindex [dict get $sc_cfg asic targetlib] 0]
@@ -183,14 +183,14 @@ foreach lib $sc_macrolibs {
 
 # Floorplan reads synthesis verilog, others read def
 if {$sc_step == "floorplan" | $sc_step == "synopt"} {
-    read_verilog "inputs/$sc_design.v"
+    read_verilog "inputs/$sc_input/$sc_design.v"
     link_design $sc_design
     foreach sdc $sc_constraint {
 	read_sdc $sdc
     }
 } else {
-    read_def "inputs/$sc_design.def"
-    read_sdc "inputs/$sc_design.sdc"
+    read_def "inputs/$sc_input/$sc_design.def"
+    read_sdc "inputs/$sc_input/$sc_design.sdc"
 }
 
 ###############################
