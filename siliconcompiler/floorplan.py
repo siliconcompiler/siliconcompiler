@@ -416,7 +416,7 @@ class Floorplan:
                 self.nets[net_name]['wires'].append(wire)
             else:
                 raise ValueError(f'Net {net_name} not found. Please initialize '
-                    f'it by calling init_net()')
+                    f'it by calling configure_net()')
 
             x += xpitch
             y += ypitch
