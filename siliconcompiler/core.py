@@ -600,7 +600,10 @@ ss
                                 return_list.append(item)
                         return return_list
                     else:
-                        if cfg[param]['type'] == "int":
+                        if cfg[param]['value'] is None:
+                            # Unset scalar of any type
+                            scalar = None
+                        elif cfg[param]['type'] == "int":
                             scalar = int(cfg[param]['value'])
                         elif cfg[param]['type'] == "float":
                             scalar = float(cfg[param]['value'])
