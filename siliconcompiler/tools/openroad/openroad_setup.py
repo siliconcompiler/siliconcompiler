@@ -76,10 +76,15 @@ def setup_tool(chip, step):
             if len(floorplan_file) == 0:
                  return
 
-            floorplan_file = schema_path(floorplan_file)
+            floorplan_file = schema_path(floorplan_file[0])
 
-            if os.path.splitext(floorplan_file) != '.py':
+            if os.path.splitext(floorplan_file)[-1] != '.py':
                  return
+
+            if len(floorplan_file) > 1:
+                 chip.logger.warning('OpenROAD-based flows expect only one Python '
+                                     'floorplan, but multiple were provided. '
+                                     f'Defaulting to {floorplan_file}.')
 
             fp = Floorplan(chip)
 
