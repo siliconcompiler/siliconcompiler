@@ -117,6 +117,8 @@ dict for {key value} [dict get $sc_cfg pdk grid $sc_stackup] {
     lappend sc_layers $key
 }
 
+set sc_threads [dict get $sc_cfg eda openroad $sc_step threads]
+
 ###############################
 # Optional
 ###############################

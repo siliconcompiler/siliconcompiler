@@ -53,4 +53,6 @@ set param_filepath [file normalize "route.params"]
 # Detailed Route
 ######################
 
+set_thread_count $sc_threads
+
 detailed_route -param "route.params"
