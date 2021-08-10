@@ -155,8 +155,8 @@ def setup_libs(chip, vendor=None):
     chip.add('stdcell',libname,'cells','clkbuf', "BUF_X4")
 
     # tie cells
-    chip.add('stdcell',libname,'cells','tie', ["LOGIC1_X1",
-                                               "LOGIC0_X1"])
+    chip.add('stdcell',libname,'cells','tie', ["LOGIC1_X1/Z",
+                                               "LOGIC0_X1/Z"])
 
 
     # hold cells

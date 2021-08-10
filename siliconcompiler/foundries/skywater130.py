@@ -214,7 +214,8 @@ def setup_libs(chip, vendor=None):
     chip.set('stdcell',libname,'driver', '')
 
     # tie cells
-    chip.add('stdcell',libname,'cells','tie', [''])
+    chip.add('stdcell',libname,'cells','tie', ['sky130_fd_sc_hd__conb_1/HI',
+                                               'sky130_fd_sc_hd__conb_1/LO'])
 
 #########################
 def setup_design(chip):

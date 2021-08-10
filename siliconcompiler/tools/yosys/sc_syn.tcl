@@ -33,6 +33,7 @@ if {$sc_mode eq "asic"} {
     set sc_process     [dict get $sc_cfg pdk process]
     set sc_mainlib     [lindex [dict get $sc_cfg asic targetlib] 0]
     set sc_targetlibs  [dict get $sc_cfg asic targetlib]
+    set sc_tie         [dict get $sc_cfg stdcell $sc_mainlib cells tie]
 } else {
     set sc_partname  [dict get $sc_cfg fpga partname]
 }

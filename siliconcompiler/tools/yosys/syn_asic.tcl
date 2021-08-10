@@ -59,6 +59,13 @@ yosys stat -liberty $library_file {*}$stat_libs
 
 yosys setundef -zero
 
+if {[llength $sc_tie] == 2} {
+    set sc_tiehi [split [lindex $sc_tie 0] /]
+    set sc_tielo [split [lindex $sc_tie 1] /]
+
+    yosys hilomap -hicell {*}$sc_tiehi -locell {*}$sc_tielo
+}
+
 yosys splitnets
 
 yosys clean

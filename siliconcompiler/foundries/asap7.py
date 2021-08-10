@@ -151,8 +151,8 @@ def setup_libs(chip, vendor=None):
     chip.add('stdcell',libname,'cells','clkbuf', "BUFx2_ASAP7_75t_R")
 
     # tie cells
-    chip.add('stdcell',libname,'cells','tie', ["TIEHIx1_ASAP7_75t_R H",
-                                               "TIELOx1_ASAP7_75t_R L"])
+    chip.add('stdcell',libname,'cells','tie', ["TIEHIx1_ASAP7_75t_R/H",
+                                               "TIELOx1_ASAP7_75t_R/L"])
 
 
     # hold cells
