@@ -11,7 +11,7 @@ def setup_floorplan(fp, chip):
     out_pins += [f'resp_msg[{i}]' for i in range(16)]
     out_pins += ['resp_val']
 
-    metal = chip.get('asic', 'hpinlayer')[-1]
+    metal = chip.get('asic', 'hpinlayer')
     width = 3 * fp.layers[metal]['width']
     height = 1 * fp.layers[metal]['width']
 
