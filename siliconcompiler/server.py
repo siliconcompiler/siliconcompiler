@@ -336,17 +336,17 @@ class Server:
         '''
 
         # Assemble core job parameters.
-        top_module = jobs_cfg['design']['value'][-1]
+        top_module = jobs_cfg['design']['value']
         sc_sources = jobs_cfg['source']['value']
-        cur_id = jobs_cfg['jobid']['value'][-1]
-        job_nameid = jobs_cfg['jobname']['value'][-1] + cur_id
+        cur_id = jobs_cfg['jobid']['value']
+        job_nameid = jobs_cfg['jobname']['value'] + cur_id
 
         # Mark the job run as busy.
         self.sc_jobs["%s%s_%s"%(username, job_hash, cur_id)] = 'busy'
 
         # Reset 'build' directory in NFS storage.
         build_dir = '/tmp/%s_%s/'%(job_hash, job_nameid)
-        jobs_dir = '%s/%s'%(build_dir, jobs_cfg['design']['value'][-1])
+        jobs_dir = '%s/%s'%(build_dir, jobs_cfg['design']['value'])
         jobs_cfg['build_dir']['value'] = build_dir
 
         # Copy the 'import' directory for a new run if necessary.
@@ -362,7 +362,7 @@ class Server:
         # Rename source files in the config dict; the 'import' step already
         # ran and collected the sources into a single 'verilator.sv' file.
         jobs_cfg['source']['value'] = ['%s/%s/%s/import/verilator.sv'%\
-            (build_dir, jobs_cfg['design']['value'][-1], job_nameid)]
+            (build_dir, jobs_cfg['design']['value'], job_nameid)]
 
         run_cmd = ''
         if self.cfg['cluster']['value'][-1] == 'slurm':
@@ -491,11 +491,7 @@ class Server:
                 pk_str.encode(),
                 None,
                 backend=default_backend())
-        except:
-            # Authentication fails if either key is incorrectly formatted.
-            return False
 
-        try:
             # Encrypt a test string using the public key.
             nonce = uuid.uuid4().hex
             test_encrypt = encrypt_key.encrypt(
@@ -515,9 +511,10 @@ class Server:
                     label=None,
                 ))
 
+            # Authentication succeeds if decrypted nonce matches the original.
             return (test_decrypt and (test_decrypt.decode() == nonce))
         except:
-            # Authentication fails if any problems occur in key verification.
+            # Authentication fails if any unexpected errors occur.
             return False
 
     ####################

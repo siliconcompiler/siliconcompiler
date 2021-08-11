@@ -43,7 +43,7 @@ def test_gcd_server():
     sproc = subprocess.run(['sc',
                             '/dev/null',
                             '-cfg', 'build/gcd/job1/floorplan/sc_manifest.json',
-                            '-dir', 'build/',
+                            '-build_dir', 'build/',
                             '-start', 'place',
                             '-stop', 'export',
                             '-remote_addr', 'localhost',

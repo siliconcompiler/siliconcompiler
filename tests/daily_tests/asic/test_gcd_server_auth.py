@@ -47,6 +47,7 @@ def test_gcd_server_authenticated():
                     '-remote_port', '8085',
                     '-remote_user', 'test_user',
                     '-remote_key', root_dir + '/tests/insecure_ci_keypair',
+                    '-relax',
                     '-loglevel', 'NOTSET'],
                    stdout = subprocess.DEVNULL)
 
@@ -80,7 +81,7 @@ def test_gcd_server_not_authenticated():
     srv_proc = subprocess.Popen(['sc-server',
                                  '-nfs_mount', './local_server_work',
                                  '-cluster', 'local',
-                                 '-port', '8085',
+                                 '-port', '8086',
                                  '-auth'],
                                 stdout = subprocess.DEVNULL)
 
@@ -94,9 +95,10 @@ def test_gcd_server_not_authenticated():
                     '-asic_coresize', '10.07 11.2 90.25 91',
                     '-constraint', gcd_ex_dir + '/gcd.sdc',
                     '-remote_addr', 'localhost',
-                    '-remote_port', '8085',
+                    '-remote_port', '8086',
                     '-remote_user', 'test_user',
                     '-remote_key', root_dir + '/tests/insecure_ci_keypair',
+                    '-relax',
                     '-loglevel', 'NOTSET'],
                    stdout = subprocess.DEVNULL)
 
