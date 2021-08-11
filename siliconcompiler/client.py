@@ -46,7 +46,7 @@ def client_decrypt(chip):
     '''
 
     root_dir = chip.get('build_dir')
-    job_nameid = chip.get('jobname') + chip.get('jobid')
+    job_nameid = chip.get('jobname') + str(chip.get('jobid'))
 
     # Create cipher for decryption.
     dk = base64.urlsafe_b64decode(chip.status['decrypt_key'])
@@ -94,7 +94,7 @@ def client_encrypt(chip):
     '''
 
     root_dir = chip.get('build_dir')
-    job_nameid = chip.get('jobname') + chip.get('jobid')
+    job_nameid = chip.get('jobname') + str(chip.get('jobid'))
 
     # Create cipher for decryption.
     dk = base64.urlsafe_b64decode(chip.status['decrypt_key'])
@@ -236,7 +236,7 @@ async def is_job_busy(chip, stage):
         # Set common parameters.
         post_params = {
             'job_hash': chip.get('remote', 'hash'),
-            'job_id': chip.get('jobid'),
+            'job_id': str(chip.get('jobid')),
         }
 
         # Set authentication parameters if necessary.
@@ -519,7 +519,7 @@ def fetch_results(chips):
         # Decrypt each permutation using their individual initialization vectors.
         for chip in chips:
             # Read in the iv.
-            job_nameid = chip.get('jobname') + chip.get('jobid')
+            job_nameid = chip.get('jobname') + str(chip.get('jobid'))
             with open('%s/%s.iv'%(job_hash, job_nameid), 'rb') as f:
                 aes_iv = f.read()
 

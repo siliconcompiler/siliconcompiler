@@ -88,7 +88,7 @@ def main():
 
     # Print Job Summary
     for chip in chips:
-        if chip.error < 1:
+        if (chip.error < 1) and (chip.get('show')):
             chip.show()
 
     # For local encrypted jobs, re-encrypt and delete the decrypted data.
