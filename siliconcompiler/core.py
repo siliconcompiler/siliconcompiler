@@ -1197,7 +1197,7 @@ ss
                   self.get('jobname') +
                   str(self.get('jobid')))
 
-        if self.get('mode')[-1] == 'asic':
+        if self.get('mode') == 'asic':
             info = '\n'.join(["SUMMARY:\n",
                               "design = " + self.get('design'),
                               "foundry = " + self.get('pdk', 'foundry'),
@@ -1565,7 +1565,8 @@ def get_permutations(base_chip, cmdlinecfg):
 
     # Fetch the generator for multiple job permutations if necessary.
     if 'permutations' in cmdkeys:
-        perm_path = os.path.abspath(cmdlinecfg['permutations'])
+        # TODO: should there be different behavior for >1 permutations file?
+        perm_path = os.path.abspath(cmdlinecfg['permutations'][0])
         perm_script = SourceFileLoader('job_perms', perm_path).load_module()
         perms = perm_script.permutations(base_chip.cfg)
     else:

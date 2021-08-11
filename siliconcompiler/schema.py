@@ -2548,7 +2548,7 @@ def schema_options(cfg):
         'requirement': 'optional',
         'defvalue': 'build',
         'short_help': 'Build Directory',
-        'param_help': "dir <build_dir>",
+        'param_help': "build_dir <build_dir>",
         'example': ["cli: -build_dir ./build_the_future",
                     "api: chip.set('build_dir','./build_the_future')"],
         'help': """
