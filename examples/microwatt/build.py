@@ -64,7 +64,7 @@ def configure_fpga(chip):
     chip.add('define', 'CLK_INPUT=50000000')
     chip.add('define', 'CLK_FREQUENCY=40000000')
 
-    chip.set("target", "freepdk45_ghdlflow")
+    chip.set("target", "freepdk45_asicflow")
 
 def main():
     chip = sc.Chip()
