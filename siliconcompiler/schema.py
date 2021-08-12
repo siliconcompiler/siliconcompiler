@@ -3117,6 +3117,27 @@ def schema_design(cfg):
         """
     }
 
+    cfg['component'] = {
+        'switch': '-component',
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'true',
+        'requirement': 'all',
+        'defvalue': [],
+        'filehash': [],
+        'date': [],
+        'author': [],
+        'signature': [],
+        'short_help': 'Design Component',
+        'param_help': "component <file>",
+        'example': ["cli: -component padring_manifest.json",
+                    "api: chip.add('component', 'padring_manifest.json')"],
+        'help': """
+        A list of SC manifest files with with complete information needed
+        to enable instantation at the current design level.
+        """
+    }
+
     cfg['repo'] = {
         'switch': '-repo',
         'type': '[str]',
