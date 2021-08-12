@@ -49,6 +49,14 @@ SPECIALNETS {{ fp.nets | length }} ;
         {% endif %}
         {{ wire.layer }} {{ wire.width | scale }} + SHAPE {{ wire.shape }}
         {{ wire.start | scale | render_tuple }} {{ wire.end | scale | render_tuple }}
+    {% endfor %}
+    {% for via in net.vias %}
+        {% if loop.first %}
+        + ROUTED
+        {% else %}
+        NEW
+        {% endif %}
+        {{ via.layer }} 0 + SHAPE STRIPE {{ via.point | scale | render_tuple }} {{ via.rule }}
     {% endfor %} ;
 {% endfor %}
 END SPECIALNETS

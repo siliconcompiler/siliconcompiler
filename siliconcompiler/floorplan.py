@@ -421,6 +421,28 @@ class Floorplan:
             x += xpitch
             y += ypitch
 
+    def place_vias(self, nets, x0, y0, xpitch, ypitch, layer, rule):
+        # TODO: document
+        # TODO: add snap arg?
+
+        x = x0
+        y = y0
+        for net_name in nets:
+            via = {
+                'point': (x, y),
+                'layer': self.layers[layer]['name'],
+                'rule': rule
+            }
+
+            if net_name in self.nets:
+                self.nets[net_name]['vias'].append(via)
+            else:
+                raise ValueError(f'Net {net_name} not found. Please initialize '
+                    f'it by calling configure_net()')
+
+            x += xpitch
+            y += ypitch
+
     def generate_rows(self, site_name=None, flip_first_row=False, area=None):
         '''Auto-generates placement rows based on floorplan parameters and tech
         library.
@@ -678,7 +700,8 @@ class Floorplan:
             self.nets[net] = {
                 'use': use,
                 'pin_name': pin_name,
-                'wires': []
+                'wires': [],
+                'vias': []
             }
 
     def snap(self, val, grid):
