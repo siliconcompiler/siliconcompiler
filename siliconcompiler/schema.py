@@ -2830,17 +2830,17 @@ def schema_options(cfg):
 
     cfg['show'] = {
         'switch': '-show',
-        'type': '[str]',
+        'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
-        'short_help': "Display Output",
-        'param_help': "show <steplist>",
+        'defvalue': None,
+        'short_help': "Display step output",
+        'param_help': "show <step>",
         'example': ["cli: -show route",
                     "api: chip.set('show', 'route')"],
         'help': """
-        List of steps for which to display the output using a graphical
-        viewer defined by the flowgraph showtool dictionary.
+        Step output to display using thee graphical
+        viewer defined by the flowgraph showtool parameter.
         """
     }
 
