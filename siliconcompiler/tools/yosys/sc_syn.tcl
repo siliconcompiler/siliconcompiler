@@ -26,7 +26,7 @@ if {[dict get $sc_cfg eda $tool $sc_step copy] eq True} {
 set sc_mode        [dict get $sc_cfg mode]
 set sc_design      [dict get $sc_cfg design]
 set sc_optmode     [dict get $sc_cfg optmode]
-set sc_inputdir    [dict get $sc_cfg flowgraph syn input]
+set sc_inputdir    [dict get $sc_cfg flowgraph $sc_step input]
 
 set topmodule  $sc_design
 
