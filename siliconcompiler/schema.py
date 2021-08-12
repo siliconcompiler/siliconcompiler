@@ -129,6 +129,11 @@ def schema_typecheck(chip, cfg, leafkey, value):
                     if not item in ['true', 'false']:
                         errormsg = "Valid boolean values are True/False/'true'/'false'"
                         ok = False
+                elif cfgtype == 'path':
+                    if (not os.path.isfile(schema_path(item)) and
+                        not os.path.isdir(schema_path(item))):
+                        errormsg = "Invalid path."
+                        ok = False
                 elif cfgtype == 'file':
                     if not os.path.isfile(schema_path(item)):
                         errormsg = "Invalid path or missing file."
@@ -3084,7 +3089,7 @@ def schema_design(cfg):
 
     cfg['source'] = {
         'switch': 'None',
-        'type': '[file]',
+        'type': '[path]',
         'lock': 'false',
         'copy': 'true',
         'requirement': 'all',
@@ -3235,16 +3240,16 @@ def schema_design(cfg):
     cfg['clock']['default'] = {}
     cfg['clock']['default']['pin'] = {
         'switch': '-clock_pin',
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': None,
-        'short_help': 'Design Clock Driver',
+        'defvalue': ['clk'],
+        'short_help': 'Design Clock Drivers',
         'param_help': "clock clkvar pin <str>",
         'example': ["cli: -clock_pin 'clk top.pll.clkout'",
                     "api: chip.add('clock', 'clk','pin','top.pll.clkout')"],
         'help': """
-        Defines a clock name alias to assign to a clock source.
+        Defines clock name aliases to assign to a clock source.
         """
     }
 

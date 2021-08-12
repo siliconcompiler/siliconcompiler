@@ -53,6 +53,11 @@ def main():
         #Checks settings and fills in missing values
         chip.check()
 
+        #Process absolute file paths for sources.
+        for i, v in enumerate(list(chip.cfg['source']['value'])):
+            #Look for relative paths in search path
+            chip.cfg['source']['value'][i] = schema_path(v)
+
         #Creating hashes for all sourced files
         chip.hash()
 

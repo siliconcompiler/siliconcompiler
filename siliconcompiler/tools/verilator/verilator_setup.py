@@ -24,6 +24,7 @@ def setup_tool(chip, step):
     chip.set('eda', tool, step, 'exe', 'verilator')
     chip.set('eda', tool, step, 'vendor', 'verilator')
     chip.add('eda', tool, step, 'option', '-sv')
+    chip.add('eda', tool, step, 'option', f'--top-module {chip.get("design")}')
 
     # Differentiate between import step and compilation
     if step in ['import', 'lint']:
@@ -34,6 +35,8 @@ def setup_tool(chip, step):
         chip.logger.error('Step %s not supported for verilator', step)
         sys.exit()
 
+    #Allow relative '`include' paths.
+    chip.add('eda', tool, step, 'option', '--relative-includes')
     #Include cwd in search path (verilator default)
     chip.add('eda', tool, step, 'option', '-I../../../')
 

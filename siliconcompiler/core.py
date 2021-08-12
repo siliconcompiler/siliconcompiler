@@ -677,11 +677,11 @@ ss
             #print("abspath", k,v)
             if isinstance(v, dict):
                 #indicates leaf cell
-                if 'value' in cfg[k].keys():
+                if ('value' in cfg[k].keys()) and (cfg[k]['value']):
                     #print(cfg[k]['value'])
                     #print("dict=",cfg[k])
                     #only do something if type is file
-                    if re.search('file|dir', cfg[k]['type']):
+                    if re.search('file|dir|path', cfg[k]['type']):
                         #iterate if list
                         if re.match(r'\[', cfg[k]['type']):
                             for i, v in enumerate(list(cfg[k]['value'])):
