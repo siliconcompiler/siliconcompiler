@@ -35,6 +35,7 @@ def setup_tool(chip, step):
 
      # TODO: should support multiple target libs?
      libname = chip.get('asic', 'targetlib')[0]
+     inputdir = chip.get('flowgraph',step, 'input')[0]
      pdk_rev = chip.get('pdk', 'rev')
      lib_rev = chip.get('stdcell', libname, 'rev')
      targetlist = chip.get('target').split('_')
@@ -61,7 +62,7 @@ def setup_tool(chip, step):
           options.append('design_name=%s'%(
                chip.get('design')))
           options.append('-rd')
-          options.append('in_def=inputs/%s.def'%(
+          options.append(f'in_def=inputs/{inputdir}/%s.def'%(
                chip.get('design')))
           options.append('-rd')
           options.append('seal_file=""')
@@ -107,8 +108,10 @@ def post_process(chip, step):
     '''
     # Pass along files needed for future verification steps
     design = chip.get('design')
-    shutil.copy(f'inputs/{design}.def', f'outputs/{design}.def')
-    shutil.copy(f'inputs/{design}.sdc', f'outputs/{design}.sdc')
-    shutil.copy(f'inputs/{design}.v', f'outputs/{design}.v')
+    inputdir = chip.get('flowgraph',step, 'input')[0]
+
+    shutil.copy(f'inputs/{inputdir}/{design}.def', f'outputs/{design}.def')
+    shutil.copy(f'inputs/{inputdir}/{design}.sdc', f'outputs/{design}.sdc')
+    shutil.copy(f'inputs/{inputdir}/{design}.v', f'outputs/{design}.v')
 
     return 0

@@ -64,8 +64,10 @@ def setup_flow(chip, process):
     if process == 'skywater130':
         flowpipe += verification_steps
 
-    for i in range(len(flowpipe)-1):
-        chip.add('flowgraph', flowpipe[i], 'output', flowpipe[i+1])
+    # Setting up flowgraph
+    for i, step in enumerate(flowpipe):
+        if i > 0:
+            chip.add('flowgraph', flowpipe[i], 'input', flowpipe[i-1])
 
     # Per step tool selection
     for step in flowpipe:

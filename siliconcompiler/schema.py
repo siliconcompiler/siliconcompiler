@@ -21,6 +21,9 @@ def schema_cfg():
     # EDA setup
     cfg = schema_eda(cfg)
 
+    # Dyanamic Tool Arguments
+    cfg = schema_arg(cfg)
+
     # Metric tracking
     cfg = schema_metric(cfg)
 
@@ -65,6 +68,9 @@ def schema_path(filename):
     ''' Resolves file paths using SCPATH and resolve environment variables
     starting with $
     '''
+
+    if filename==None:
+        return None
 
     #Resolve absolute path usign SCPATH
     #list is read left to right
@@ -1555,20 +1561,21 @@ def schema_flowgraph(cfg, step):
 
 
     # Flow graph definition
-    cfg['flowgraph'][step]['output'] = {
-        'switch': '-flowgraph_output',
+    cfg['flowgraph'][step]['input'] = {
+        'switch': '-flowgraph_input',
         'type': '[str]',
         'lock': 'false',
         'requirement': 'all',
         'defvalue': [],
-        'short_help': 'Flowgraph Step Output',
-        'param_help': "flowgraph toolvar output <str>",
-        'example': ["cli: -flowgraph_output 'cts place'",
-                    "api:  chip.set('flowgraph', 'cts', 'output', 'route')"],
+        'short_help': 'Flowgraph Step Input',
+        'param_help': "flowgraph toolvar input <str>",
+        'example': ["cli: -flowgraph_input 'cts place'",
+                    "api:  chip.set('flowgraph', 'cts', 'input', 'place')"],
         'help': """
-        List of steps following the current step in the flowgraph.
+        List of input step dependancies for the current step.
         """
     }
+
 
     # Step tool
     cfg['flowgraph'][step]['tool'] = {
@@ -1859,6 +1866,38 @@ def schema_eda(cfg):
     }
 
     return cfg
+
+###########################################################################
+# Local (not global!) parameters for controllings tools
+###########################################################################
+def schema_arg(cfg):
+
+
+    cfg['arg'] = {}
+
+    cfg['arg']['step'] = {
+        'switch': '-arg_step',
+        'type': 'str',
+        'lock': 'false',
+        'requirement': 'optional',
+        'defvalue': None,
+        'short_help': 'Current Execution Step',
+        'param_help': "arg_step <str>",
+        'example': ["cli: -arg_step 'route'",
+                    "api: chip.set('arg', 'step', 'route')"],
+        'help': """
+        Dynamic variable passed in by the sc runtime as an argument to
+        an EDA tool. The variable allows the EDA configuration code
+        (usually TCL) to use control flow that depend on the current
+        executions step rather than having separate files called
+        for each step.
+        """
+    }
+
+
+
+    return cfg
+
 
 ###########################################################################
 # Metrics to Track
@@ -3031,46 +3070,46 @@ def schema_remote(cfg):
 
 
 ############################################
-# Runtime status
+# Thread safe per step runtime status
 #############################################
 
 def schema_status(cfg):
 
     cfg['status'] = {}
-    cfg['status']['step'] = {
-        'switch': '-status_step',
-        'type': 'str',
-        'lock': 'false',
-        'requirement': 'optional',
-        'defvalue': None,
-        'short_help': 'Current Compilation Step',
-        'param_help': "status step <str>",
-        'example': ["cli: -status_step syn",
-                    "api: chip.get('status', 'step')"],
-        'help': """
-        A dynamic variable that keeps track of the current step being executed.
-        The variable is managed by the run function and not writable by the
-        user.
-        """
-    }
-
     cfg['status']['default'] = {}
     cfg['status']['default']['active'] = {
         'switch': '-status_active',
-        'type': 'str',
+        'type': 'int',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': None,
         'short_help': 'Step Active Indicator',
         'param_help': "status stepvar active <bool>",
         'example': ["cli: -status_active 'syn true'",
-                    "api: chip.get('status', 'syn', 'active', 'true')"],
+                    "api: chip.get('status', 'syn', 'active', True)"],
         'help': """
         Status field with boolean indicating step activity. The variable is
         managed by the run function and not writable by the user.
-        true=active/processing, false=inactive/done
+        0 = done, !0 = active
         """
         }
+
+    cfg['status']['default']['error'] = {
+        'switch': '-status_error',
+        'type': 'int',
+        'lock': 'false',
+        'requirement': 'optional',
+        'defvalue': None,
+        'short_help': 'Step Error Indicator',
+        'param_help': "status stepvar active <bool>",
+        'example': ["cli: -status_active 'syn true'",
+                    "api: chip.get('status', 'syn', 'active', True)"],
+        'help': """
+        Error indicator on a per step basis. The variable is
+        managed by the run function and not writable by the user.
+        0 = ok, !0 = Error
+        """
+    }
 
     return cfg
 

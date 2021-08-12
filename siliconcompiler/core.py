@@ -20,6 +20,9 @@ import pandas
 import yaml
 import argparse
 import graphviz
+import threading
+from time import sleep
+import multiprocessing
 
 from argparse import ArgumentParser, HelpFormatter
 
@@ -278,20 +281,16 @@ class Chip:
         if arg is not None:
             self.set('target', arg)
 
-        targetlist = self.get('target').split('_')
-
+        # Error checking
         if not self.get('target'):
             self.logger.error('Target not defined.')
             sys.exit()
-        elif len(self.get('target').split('_')) < 2:
-            self.logger.error('Illegal string, syntax is <platform>_<edaflow>.')
+        elif len(self.get('target').split('_')) > 2:
+            self.logger.error('Target format should be one or two strings sepaated by underscore')
             sys.exit()
-        else:
-            targetlist = self.get('target').split('_')
-            platform = targetlist[0]
-            edaflow = targetlist[1]
 
-        #PDK/Foundry dynamic module load
+        # Technology platform
+        platform = self.get('target').split('_')[0]
         if self.get('mode') == 'asic':
             try:
                 searchdir = 'siliconcompiler.foundries'
@@ -309,18 +308,19 @@ class Chip:
         else:
             self.set('fpga','partname', platform)
 
-        #EDA flow load
-        try:
-            searchdir = 'siliconcompiler.flows'
-            module = importlib.import_module('.'+edaflow, package=searchdir)
-            setup_flow = getattr(module, "setup_flow")
-            setup_flow(self, platform)
-            self.logger.info("Loaded edaflow '%s'", edaflow)
-        except ModuleNotFoundError:
-            self.logger.critical("EDA flow %s not found.", edaflow)
-            sys.exit()
 
-
+        # EDA flow
+        if len(self.get('target').split('_')) == 2:
+            edaflow = self.get('target').split('_')[1]
+            try:
+                searchdir = 'siliconcompiler.flows'
+                module = importlib.import_module('.'+edaflow, package=searchdir)
+                setup_flow = getattr(module, "setup_flow")
+                setup_flow(self, platform)
+                self.logger.info("Loaded edaflow '%s'", edaflow)
+            except ModuleNotFoundError:
+                self.logger.critical("EDA flow %s not found.", edaflow)
+                sys.exit()
 
     ###########################################################################
     def help(self, *args, file=None, mode='full', format='txt'):
@@ -404,7 +404,7 @@ class Chip:
             print(outstr, file=file)
 
     ###########################################################################
-    def get(self, *args, field='value'):
+    def get(self, *args, cfg=None, field='value'):
         '''
         Returns value from the Chip dictionary based on the key tree supplied.
 
@@ -426,12 +426,15 @@ class Chip:
 
         self.logger.debug('Reading config dictionary value: %s', args)
 
+        if cfg is None:
+            cfg = self.cfg
+
         keys = list(args)
         for k in keys:
             if isinstance(k, list):
                 self.logger.critical("Illegal format, keys cannot be lists. Keys=%s", k)
                 sys.exit()
-        return self._search(self.cfg, *args, field=field, mode='get')
+        return self._search(cfg, *args, field=field, mode='get')
 
     ###########################################################################
     def getkeys(self, *args, cfg=None):
@@ -491,7 +494,7 @@ ss
         return allkeys
 
     ###########################################################################
-    def set(self, *args, field='value'):
+    def set(self, *args, cfg=None, field='value'):
         '''
         Sets the value field of the key-tree in the argument list to the
         data list supplied.
@@ -510,12 +513,15 @@ ss
 
         self.logger.debug('Setting config dictionary value: %s', args)
 
+        if cfg is None:
+            cfg = self.cfg
+
         all_args = list(args)
 
-        return self._search(self.cfg, *all_args, field=field, mode='set')
+        return self._search(cfg, *all_args, field=field, mode='set')
 
     ###########################################################################
-    def add(self, *args, field='value'):
+    def add(self, *args, cfg=None, field='value'):
         '''
         Appends the data list supplied to the list currently in the leaf-value
         of the key-tree in the argument list.
@@ -534,10 +540,13 @@ ss
 
         self.logger.debug('Adding config dictionary value: %s', args)
 
+        if cfg is None:
+            cfg = self.cfg
+
         all_args = list(args)
 
         # Convert val to list if not a list
-        return self._search(self.cfg, *all_args, field=field, mode='add')
+        return self._search(cfg, *all_args, field=field, mode='add')
 
 
     ###########################################################################
@@ -643,7 +652,6 @@ ss
         while i < maxdepth:
             #Loop through all keys starting at the top
             for k in list(cfg.keys()):
-                #print(k)
                 #removing all default/template keys
                 if k == 'default':
                     del cfg[k]
@@ -652,7 +660,7 @@ ss
                     del cfg[k]['help']
                 #removing empty values from json file
                 elif 'value' in cfg[k].keys():
-                    if not cfg[k]['value']:
+                    if (not cfg[k]['value']) | (cfg[k]['value'] == None):
                         del cfg[k]
                 #removing stale branches
                 elif not cfg[k]:
@@ -839,7 +847,7 @@ ss
         self.mergecfg(read_args)
 
     ###########################################################################
-    def writecfg(self, filename, cfg=None, prune=True, abspath=False):
+    def writecfg(self, filename, step=None, cfg=None, prune=True, abspath=False):
         '''Writes out Chip dictionary in json, yaml, or TCL file format.
 
         Args:
@@ -867,12 +875,14 @@ ss
             os.makedirs(os.path.dirname(filepath))
 
         #prune cfg if option set
-        if cfg is not None:
-            cfgcopy = copy.deepcopy(cfg)
-        elif prune:
-            cfgcopy = self._prune()
-        else:
+        if (cfg is None) & (prune==True):
+            cfgcopy = self._prune(self.cfg)
+        elif (cfg is not None) & (prune==True):
+            cfgcopy = self._prune(cfg)
+        elif (cfg is None) & (prune==False):
             cfgcopy = copy.deepcopy(self.cfg)
+        else:
+            cfgcopy = copy.deepcopy(cfg)
 
         #resolve absolute paths
         if abspath:
@@ -888,7 +898,7 @@ ss
                 print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
                 print("#############################################", file=f)
                 print(yaml.dump(cfgcopy, Dumper=YamlIndentDumper, default_flow_style=False), file=f)
-                #print(yaml.dump(cfgcopy, sort_keys=True, indent=4), file=f)
+
         elif filepath.endswith('.tcl'):
             with open(filepath, 'w') as f:
                 print("#############################################", file=f)
@@ -900,7 +910,23 @@ ss
             self.error = 1
 
     ###########################################################################
-    def write_flowgraph(self, filename):
+    def min(self, steplist, function):
+        '''Return step with minimum value based on formulat supplied.
+        The mimumum can then be used to
+
+        #or, and, max, min
+        #many trials, find max
+        #look for failure
+        #look for success
+
+        #keep track directories, indexing
+
+        '''
+        pass
+
+
+    ###########################################################################
+    def writegraph(self, filename):
         '''Exports the execution flow graph using the graphviz library.
         For graphviz formats supported, see https://graphviz.org/.
         For rendering
@@ -912,11 +938,13 @@ ss
         gvfile = fileroot+".gv"
         dot = graphviz.Digraph(format=fileformat)
         for step in self.getkeys('flowgraph'):
-            tool = self.get('flowgraph',step, 'tool')
-            labelname = step+'\\n('+tool+")"
+            if self.get('flowgraph',step, 'tool'):
+                labelname = step+'\\n('+self.get('flowgraph',step, 'tool')+")"
+            else:
+                labelname = step
             dot.node(step,label=labelname)
-            for next_step in self.get('flowgraph',step,'output'):
-                dot.edge(step, next_step)
+            for prev_step in self.get('flowgraph',step,'input'):
+                dot.edge(prev_step, step)
         dot.render(filename=fileroot, cleanup=True)
 
     ###########################################################################
@@ -1159,7 +1187,7 @@ ss
         return cost
 
     ###########################################################################
-    def summary(self, filename=None):
+    def summary(self, steplist=None, filename=None):
         '''
         Creates a summary of the run metrics generated from the 'start' step
         to the 'stop' step.
@@ -1173,24 +1201,14 @@ ss
             Prints out a summary of the run to stdout.
         '''
 
-        steplist =self.getkeys('flowgraph')
-
-        # Full flow graph run if no start/stop set
-        # start/stop set to None by default in schema
-        if self.get('start'):
-            start = self.get('start')
-        else:
-            start = steplist[0]
-
-        if self.get('stop'):
-            stop = self.get('stop')
-        else:
-            stop = steplist[-1]
+        if steplist == None:
+            steplist = self.getkeys('flowgraph')
 
         design = self.get('design')
 
-        startindex = steplist.index(start)
-        stopindex = steplist.index(stop)
+        #TODO, FIX FOR GRAPH!!
+        startindex = 0
+        stopindex = len(steplist)-1
 
         jobdir = (self.get('build_dir') +
                   "/" + design + "/" +
@@ -1213,13 +1231,14 @@ ss
         print("-"*135)
         print(info, "\n")
 
-        #Copying in All Dictionaries
+        # Stepping through all directories
+        # for remote running, metrics are not in memory, must be read from file
         for stepindex in range(startindex, stopindex + 1):
             step = steplist[stepindex]
             metricsfile = "/".join([jobdir,
                                     step,
                                     "outputs",
-                                    design + ".json"])
+                                    design + "_manifest.json"])
 
             #Load results from file (multi-thread safe)
             with open(metricsfile, 'r') as f:
@@ -1256,31 +1275,30 @@ ss
             print("-"*135)
 
     ###########################################################################
-    def runstep(self, step):
+    def runstep(self, step, active):
 
-        cwd = os.getcwd()
+        # Explicit wait loop until inputs have been resolved
+        # This should be a shared object to not be messy
+        while True:
+            pending = 0
+            for item in self.get('flowgraph', step, 'input'):
+                pending = pending + active[item]
+            if not pending:
+                break
+            self.logger.info('Step %s waiting on inputs', step)
+            sleep(1)
 
-        # Check minimum setip
-        self.check()
+        self.logger.info('Starting step %s', step)
 
-        # Per Step Error checking
-        steplist = self.getkeys('flowgraph')
-        stepindex = steplist.index(step)
-        if step not in steplist:
-            self.logger.critical('Illegal step name %s', step)
-            sys.exit()
-
-        # Update step status
-        self.set('status', 'step', step)
-
-        # Create directory structure
-        remote = self.get('remote','addr')
+        # Build directory
         stepdir = "/".join([self.get('build_dir'),
                             self.get('design'),
                             self.get('jobname') + str(self.get('jobid')),
                             step])
 
-        if os.path.isdir(stepdir) and (not remote):
+        # Directory manipulation
+        cwd = os.getcwd()
+        if os.path.isdir(stepdir) and (not self.get('remote','addr')):
             shutil.rmtree(stepdir)
         os.makedirs(stepdir, exist_ok=True)
         os.chdir(stepdir)
@@ -1288,11 +1306,12 @@ ss
         os.makedirs('reports', exist_ok=True)
 
         # Copy files from previous step unless first step
-        # TODO: this logic needs to be fixed for graphs
-        if stepindex == 0:
+        # Package/import step is special in that it has no inputs
+        if not self.get('flowgraph', step, 'input'):
             self.package(dir='inputs')
-        elif not remote:
-            shutil.copytree("../"+steplist[stepindex-1]+"/outputs", 'inputs')
+        elif not self.get('remote','addr'):
+            for item in self.get('flowgraph', step, 'input'):
+                shutil.copytree("../"+item+"/outputs", 'inputs/'+item)
 
         # Dynamic EDA tool module load
         tool = self.get('flowgraph', step, 'tool')
@@ -1313,11 +1332,6 @@ ss
         if self.get('eda', tool, step, 'copy'):
             refdir = schema_path(self.get('eda', tool, step, 'refdir'))
             shutil.copytree(refdir, ".", dirs_exist_ok=True)
-
-        # Save config files required by eda tools
-        self.writecfg("sc_manifest.json", prune=False)
-        self.writecfg("sc_manifest.yaml", prune=False)
-        self.writecfg("sc_manifest.tcl", abspath=True)
 
         # Construct command line
         exe = self.get('eda', tool, step, 'exe')
@@ -1352,6 +1366,19 @@ ss
         for metric in self.getkeys('metric', 'default', 'default'):
             self.set('metric', step, 'real', metric, 0)
 
+        # Save config files required by EDA tools
+        # Create a local copy with arguments set
+        # The below snippet is how we communicate thread local data needed
+        # for scripts. Anything done to the cfgcopy is only seen by this thread
+
+        # Passing local arguments to EDA tool!
+        cfglocal = copy.deepcopy(self.cfg)
+        self.set('arg', 'step', step, cfg=cfglocal)
+        # Writing out files
+        self.writecfg("sc_manifest.json", cfg=cfglocal, prune=False)
+        self.writecfg("sc_manifest.yaml", cfg=cfglocal, prune=False)
+        self.writecfg("sc_manifest.tcl", cfg=cfglocal, abspath=True)
+
         # Run exeucutable
         self.logger.info("Running %s in %s", step, os.path.abspath(stepdir))
         self.logger.info('%s', cmdstr)
@@ -1364,25 +1391,25 @@ ss
         # Check for errors
         if (error.returncode | post_error):
             self.logger.error('Command failed. See log file %s', os.path.abspath(logfile))
+            self.set('status', step, 'error', 1)
+            self.set('status', step, 'active', 0)
             sys.exit()
 
-        # interactive debugging
-        if step in self.get('bkpt'):
-            if (self.get('eda', tool, step, 'format')) == 'cmdline':
-                code.interact(local=dict(globals(), **locals()))
-
-        # save metrics
-        self.writecfg("outputs/" + self.get('design') +'.json')
+        # save output manifest
+        self.writecfg("outputs/" + self.get('design') +'_manifest.json')
 
         # upload files
-        if remote:
-            upload_sources_to_cluster(self)
+        #if remote:
+        #    upload_sources_to_cluster(self)
 
         # return fo original directory
         os.chdir(cwd)
 
+        # clearing active bit
+        active[step] = 0
+
     ###########################################################################
-    def run(self, start=None, stop=None):
+    def run(self, steplist=None):
 
         '''
         A unified thread safe per step execution method for the Chip.
@@ -1393,60 +1420,42 @@ ss
         from 'start' to 'stop' (inclusive).
 
         Args:
-            start (string): The starting step within the 'steplist' to execute.
-                If start is 'None', the staring step is the step is the first
-                index of the 'steplist.
-
-            stop (string): The stopping step within the 'steplist' to execute.
-                If start is 'None', then execution runs to the end of the
-                steplist.
+            steplist: The list of steps to launch. If no list is specified
+            all steps int he flowgraph are executed.
 
         Examples:
             >>> run()
             Runs the pipeline defined by 'steplist'
-            >>> run(start='import', stop='place')
-            Runs the pipeline from the 'import' step to the 'place' step
+            >>> run(steplist=['route', 'dfm'])
+            Runs the route and dfm steps.
         '''
+        # setup sanity check before you start run
+        self.check()
 
+        # default is to launch whole graph
+        if steplist == None:
+            steplist = self.getkeys('flowgraph')
 
-        ###########################
-        # Pipeline Setup
-        ###########################
+        # Set all threads to active before launching to avoid races
+        # Sequence matters, do NOT merge this loop with loop below!
 
-        steplist = self.getkeys('flowgraph')
-        remote = self.get('remote', 'addr')
-
-        if not start:
-            if self.get('start'):
-                start = self.get('start')
-            else:
-                start = steplist[0]
-        if not stop:
-            if self.get('stop'):
-                stop = self.get('stop')
-            else:
-                stop = steplist[-1]
-
-        startindex = steplist.index(start)
-        stopindex = steplist.index(stop)
-
-        #TODO: Support non-linear graph pipelines
-        for stepindex in range(startindex, stopindex + 1):
-
-            step = steplist[stepindex]
-
-            # conditional step execution
-            if (step in self.get('skip')) | (self.get('skipall') == 'true'):
-                self.logger.info('Skipping step: %s', step)
-            else:
-                if (stepindex != 0) and remote:
-                    self.logger.info('Remote server call')
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    loop.run_until_complete(remote_run(self, step))
-                else:
-                    self.runstep(step)
-
+        # Launch a thread for eact step in flowgraph
+        manager = multiprocessing.Manager()
+        # Create a shared
+        active = manager.dict()
+        # Set all procs to active
+        for step in steplist:
+            active[step] = 1
+        # Create procs
+        processes = []
+        for step in steplist:
+            processes.append(multiprocessing.Process(target=self.runstep, args=(step, active)))
+        # Start all procs
+        for p in processes:
+            p.start()
+        # Mandatory procs cleanup
+        for p in processes:
+            p.join()
 
     ###########################################################################
     def show(self, filetype=None):
