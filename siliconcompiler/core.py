@@ -102,8 +102,8 @@ class Chip:
         cmdline interface is implemented using the Python argparase package and
         the following user restrictions apply. Custom command line apps can
         be created by restricting the schema parameters exposed at the command
-        line. The priority of command line switch settings is: 1.) -target,
-        2.) -cfg, 3.) all others
+        line. The priority of command line switch settings is: 1.) -loglevel
+        2.) -target, 3.) -cfg, 3.) all others.
 
         * Help is accessed with the '-h' switch
 
@@ -254,6 +254,11 @@ class Chip:
 
         #Grab argument from pre-process sysargs
         cmdargs = vars(parser.parse_args(scargs))
+
+        # set loglevel if set at command line
+        if 'loglevel' in cmdargs.keys():
+            self.logger.setLevel(cmdargs['loglevel'])
+
         # read in target if set
         if 'target' in cmdargs.keys():
             self.target(cmdargs['target'])
