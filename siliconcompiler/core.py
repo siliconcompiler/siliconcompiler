@@ -35,7 +35,7 @@ class Chip:
     """Siliconcompiler Compiler Chip Object Class"""
 
     ###########################################################################
-    def __init__(self, loglevel="DEBUG", defaults=True):
+    def __init__(self, loglevel="INFO", defaults=True):
         '''Initializes Chip object
 
         Args:
