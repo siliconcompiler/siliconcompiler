@@ -52,6 +52,7 @@ if {$target_tech eq "freepdk45"} {
 ###############################
 
 set tool openroad
+set sc_step       [dict get $sc_cfg arg step]
 
 #Handling remote/local script execution
 if {[dict get $sc_cfg eda $tool $sc_step copy] eq True} {
@@ -61,11 +62,11 @@ if {[dict get $sc_cfg eda $tool $sc_step copy] eq True} {
 }
 
 # Design
-set sc_design      [dict get $sc_cfg design]
-set sc_optmode     [dict get $sc_cfg optmode]
+set sc_design     [dict get $sc_cfg design]
+set sc_optmode    [dict get $sc_cfg optmode]
 
 # Get inputs
-set sc_input     [dict get $sc_cfg flowgraph $sc_step input]
+set sc_input      [dict get $sc_cfg flowgraph $sc_step input]
 
 # APR Parameters
 set sc_mainlib     [lindex [dict get $sc_cfg asic targetlib] 0]
