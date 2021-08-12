@@ -27,20 +27,16 @@ def setup_tool(chip, step):
     chip.set('eda', tool, step, 'exe', tool)
     chip.set('eda', tool, step, 'vendor', tool)
 
-    # Include cwd in search path
-    chip.set('eda', tool, step, 'option', '-I../../../')
-
-    for value in chip.cfg['idir']['value']:
-        chip.add('eda', tool, step, 'option', '-I' + schema_path(value))
-
-    for value in chip.cfg['define']['value']:
-        chip.add('eda', tool, step, 'option', '-D ' + schema_path(value))
-
+    # Since we run sv2v after the import/preprocess step, there should be no
+    # need for specifying include dirs/defines. However we don't want to pass
+    # --skip-preprocessor because the morty there may still be unused
+    # preprocessor directives not removed by morty/the importer and passing the
+    # --skip-preprocessor flag would cause sv2v to error.
 
     # since this step should run after import, the top design module should be
     # set and we can read the pickled Verilog without accessing the original
     # sources
-    topmodule = chip.cfg['design']['value'][-1]
+    topmodule = chip.get('design')
     chip.add('eda', tool, step, 'option', "inputs/" + topmodule + ".v")
     chip.add('eda', tool, step, 'option', "--write=outputs/" + topmodule + ".v")
 

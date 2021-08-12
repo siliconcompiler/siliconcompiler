@@ -10,10 +10,10 @@ def main():
 
     chip.add('design', 'eq2')
     add_sources(chip)
-    chip.set('target', 'freepdk45_ghdlflow')
+    chip.set('stop', 'export')
 
     chip.set_jobid()
-    chip.target()
+    chip.target("freepdk45_asicflow")
     chip.run()
 
 if __name__ == '__main__':
