@@ -88,9 +88,7 @@ class Chip:
         # Status placeholder dictionary
         # TODO, should be defined!
         self.status = {}
-
         self.error = 0
-
 
     ###########################################################################
     def cmdline(self, prog=None, description=None, paramlist=[]):
@@ -957,9 +955,9 @@ ss
 
         score = 0
         for metric in self.getkeys('metric', 'default', 'default'):
-            value = self.get(self.get(cfg['metric'][step]['real'][metric]))
-            if metric in (self.getkey(cfg['flowgraph'][step]['weight'])):
-                product = value * self.get(self.getkey(cfg['flowgraph'][step]['weight']))
+            value = self.get('metric', step, 'real', metric)
+            if metric in self.getkeys('flowgraph', step, 'weight'):
+                product = value * self.get('flowgraph', step, 'weight', metric)
             else:
                 product = value * 1.0
             score = score + product
@@ -1228,7 +1226,7 @@ ss
         return cost
 
     ###########################################################################
-    def summary(self, steplist=None, filename=None):
+    def summary(self, filename=None):
         '''
         Creates a summary of the run metrics generated from the 'start' step
         to the 'stop' step.
@@ -1242,17 +1240,17 @@ ss
             Prints out a summary of the run to stdout.
         '''
 
-        if steplist == None:
+        if self.get('steplist'):
+            steplist = self.get('steplist')
+        else:
             steplist = self.getkeys('flowgraph')
-
-        design = self.get('design')
 
         #TODO, FIX FOR GRAPH!!
         startindex = 0
         stopindex = len(steplist)-1
 
         jobdir = (self.get('build_dir') +
-                  "/" + design + "/" +
+                  "/" + self.get('design') + "/" +
                   self.get('jobname') +
                   str(self.get('jobid')))
 
@@ -1279,7 +1277,7 @@ ss
             metricsfile = "/".join([jobdir,
                                     step,
                                     "outputs",
-                                    design + "_manifest.json"])
+                                    self.get('design') + "_manifest.json"])
 
             #Load results from file (multi-thread safe)
             with open(metricsfile, 'r') as f:
@@ -1306,6 +1304,15 @@ ss
                 row.append(" " +
                            str(self.get('metric', step, 'real', metric)).center(colwidth))
             data.append(row)
+
+        #Creating goodness score for step
+        metrics.append(" " + '**score**')
+        row = []
+        for stepindex in range(startindex, stopindex + 1):
+            step = steplist[stepindex]
+            step_score =  self.score(step)
+            row.append(" " + str(step_score).center(colwidth))
+        data.append(row)
 
         pandas.set_option('display.max_rows', 500)
         pandas.set_option('display.max_columns', 500)
@@ -1450,7 +1457,7 @@ ss
         active[step] = 0
 
     ###########################################################################
-    def run(self, steplist=None):
+    def run(self):
 
         '''
         A unified thread safe per step execution method for the Chip.
@@ -1473,8 +1480,10 @@ ss
         # setup sanity check before you start run
         self.check()
 
-        # default is to launch whole graph
-        if steplist == None:
+        # Run steps if set, otherwise run whole graph
+        if self.get('steplist'):
+            steplist = self.get('steplist')
+        else:
             steplist = self.getkeys('flowgraph')
 
         # Set all threads to active before launching to avoid races
@@ -1531,6 +1540,9 @@ ss
                 abspath = schema_path(value)
                 cmdlist.extend([abspath])
 
+        if self.get('quiet'):
+            cmdlist.append("> /dev/null")
+
         cmdstr = ' '.join(cmdlist)
 
         # Check setup
@@ -1542,7 +1554,6 @@ ss
         else:
             jobid = 1
 
-        print(self.get('build_dir'))
         stepdir = "/".join([self.get('build_dir'),
                             self.get('design'),
                             self.get('jobname') + str(jobid),
