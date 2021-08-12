@@ -27,7 +27,7 @@ from siliconcompiler.core   import get_permutations
 def main():
 
     # Create a base chip class.
-    base_chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip()
 
     # Silly Banner
     ascii_banner = pyfiglet.figlet_format("Silicon Compiler")
@@ -35,7 +35,6 @@ def main():
 
     # Print out SC project authors
     authors = []
-
     authorfile = schema_path("AUTHORS")
     f = open(authorfile, "r")
     for line in f:
@@ -46,56 +45,34 @@ def main():
     print("-"*80)
 
     # Read command-line inputs and generate Chip objects to run the flow on.
-    chips = base_chip.cmdline()
+    chip.cmdline()
 
-    # Check and lock each permutation.
-    for chip in chips:
-        #Checks settings and fills in missing values
-        chip.check()
-
-        #Creating hashes for all sourced files
-        chip.hash()
+    #Creating hashes for all sourced files
+    chip.hash()
 
     # Perform preprocessing for remote jobs, if necessary.
-    if chips[-1].get('remote', 'addr'):
-        remote_preprocess(chips)
+    if chip.get('remote', 'addr'):
+        remote_preprocess(chip)
+    elif 'decrypt_key' in chip.status:
+        client_decrypt(chip)
 
-    # Perform decryption, if necessary.
-    elif 'decrypt_key' in chips[-1].status:
-        for chip in chips:
-            client_decrypt(chip)
-
-    # Run each job in its own thread.
-    chip_procs = []
-    for chip in chips:
-        # Running compilation pipeline
-        new_proc = Process(target=chip.run)
-        new_proc.start()
-        chip_procs.append(new_proc)
-
-    # Wait for threads to complete.
-    for proc in chip_procs:
-        proc.join()
+    # Run flow
+    chip.run()
 
     # For remote jobs, fetch results.
-    if chips[-1].get('remote', 'addr'):
-        fetch_results(chips)
+    if chip.get('remote', 'addr'):
+        fetch_results(chip)
 
     # Print Job Summary
-    for chip in chips:
-        if chip.error < 1:
-            chip.summary()
+    chip.summary()
 
-    # Print Job Summary
-    for chip in chips:
-        if (chip.error < 1) and (chip.get('show')):
-            chip.show()
+    # Show job if set
+    if (chip.error < 1) and (chip.get('show')):
+        chip.show()
 
     # For local encrypted jobs, re-encrypt and delete the decrypted data.
-    if 'decrypt_key' in chips[-1].status:
-        for chip in chips:
-            client_encrypt(chip)
-
+    if 'decrypt_key' in chip.status:
+        client_encrypt(chip)
 
 #########################
 if __name__ == "__main__":
