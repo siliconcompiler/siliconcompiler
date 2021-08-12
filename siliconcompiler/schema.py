@@ -1568,13 +1568,33 @@ def schema_flowgraph(cfg, step):
         'requirement': 'all',
         'defvalue': [],
         'short_help': 'Flowgraph Step Input',
-        'param_help': "flowgraph toolvar input <str>",
+        'param_help': "flowgraph stepvar input <str>",
         'example': ["cli: -flowgraph_input 'cts place'",
                     "api:  chip.set('flowgraph', 'cts', 'input', 'place')"],
         'help': """
         List of input step dependancies for the current step.
         """
     }
+
+    # Flow graph score weights
+    cfg['flowgraph'][step]['weight'] = {}
+    cfg['flowgraph'][step]['weight']['default'] = {
+        'switch': '-flowgraph_weight',
+        'type': '[float]',
+        'lock': 'false',
+        'requirement': 'all',
+        'defvalue': [],
+        'short_help': 'Flowgraph Metric Weights',
+        'param_help': "flowgraph stepvar input <str>",
+        'example': ["cli: -flowgraph_weight 'cts area_cells 1.0'",
+                    "api:  chip.set('flowgraph', 'cts', 'weight', 'are_cells', '1.0')"],
+        'help': """
+        Weights specified on a per step and per metric basis used to give
+        effective "goodnes" score for a step by calculating the sum all step
+        real metrics results by the corresponding per step weights.
+        """
+    }
+
 
 
     # Step tool
@@ -1585,7 +1605,7 @@ def schema_flowgraph(cfg, step):
         'requirement': 'all',
         'defvalue': None,
         'short_help': 'Flowgraph Tool Selection',
-        'param_help': "flowgraph toolvar tool <str>",
+        'param_help': "flowgraph stepvar tool <str>",
         'example': ["cli: -flowgraph_tool 'place openroad'",
                     "api: chip.set('flowgraph', 'place', 'tool', 'openroad')"],
         'help': """
@@ -1602,7 +1622,7 @@ def schema_flowgraph(cfg, step):
         'requirement': 'all',
         'defvalue': None,
         'short_help': 'Flowgraph Show Tool Selection',
-        'param_help': "flowgraph toolvar showtool <str>",
+        'param_help': "flowgraph stepvar showtool <str>",
         'example': ["cli: -flowgraph_showtool 'place openroad'",
                     "api: chip.set('flowgraph', 'place', 'showtool', 'openroad')"],
         'help': """
@@ -2647,73 +2667,21 @@ def schema_options(cfg):
         """
     }
 
-    cfg['start'] = {
-        'switch': '-start',
-        'type': 'str',
-        'lock': 'false',
-        'requirement': 'optional',
-        'defvalue': None,
-        'short_help': 'Compilation Start Step',
-        'param_help': "start <str>",
-        'example': ["cli: -start place",
-                    "api: chip.set('start','place')"],
-        'help': """
-        The start parameter specifies the starting step of the flow. This would
-        generally be the import step but could be any one of the steps within
-        the steps parameter. For example, if a previous job was stopped at syn a
-        job can be continued from that point by specifying -start place
-        """
-    }
-
-    cfg['stop'] = {
-        'switch': '-stop',
-        'type': 'str',
-        'lock': 'false',
-        'defvalue': None,
-        'requirement': 'optional',
-        'short_help': 'Compilation Stop Step',
-        'param_help': "stop <str>",
-        'example': ["cli: -stop place",
-                    "api: chip.set('stop','place')"],
-        'help': """
-        The stop parameter specifies the stopping step of the flow. The value
-        entered is inclusive, so if for example the -stop syn is entered, the
-        flow stops after syn has been completed.
-        """
-    }
-
-    cfg['skip'] = {
-        'switch': '-skip',
+    cfg['steplist'] = {
+        'switch': '-steplist',
         'type': '[str]',
         'lock': 'false',
+        'requirement': 'optional',
         'defvalue': [],
-        'requirement': 'optional',
-        'short_help': 'Compilation Skip Steps',
-        'param_help': "skip <str>",
-        'example': ["cli: -skip dfm",
-                    "api: chip.set('stop','dfm')"],
+        'short_help': 'Compilation step list',
+        'param_help': "steplist <str>",
+        'example': ["cli: -steplist 'import'",
+                    "api: chip.set('steplist','import')"],
         'help': """
-        In some older technologies it may be possible to skip some of the steps
-        in the standard flow defined. The skip parameter lists the steps to be
-        skipped during execution.
+        List of steps to execute. The default is to execute all steps defined
+        in the flow graph.
         """
     }
-
-    cfg['skipall'] = {
-        'switch': '-skipall',
-        'type': 'bool',
-        'lock': 'false',
-        'defvalue': 'false',
-        'requirement': 'optional',
-        'short_help': 'Skip All Steps',
-        'param_help': "skipall <bool>",
-        'example': ["cli: -skipall",
-                    "api: chip.set('skipall','true')"],
-        'help': """
-        Skip all steps. Useful for initial bringup.
-        """
-    }
-
 
     cfg['msgevent'] = {
         'switch': '-msgevent',
@@ -2862,17 +2830,17 @@ def schema_options(cfg):
 
     cfg['show'] = {
         'switch': '-show',
-        'type': '[str]',
+        'type': 'str',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': [],
-        'short_help': "Display Output",
-        'param_help': "show <steplist>",
+        'defvalue': None,
+        'short_help': "Display step output",
+        'param_help': "show <step>",
         'example': ["cli: -show route",
                     "api: chip.set('show', 'route')"],
         'help': """
-        List of steps for which to display the output using a graphical
-        viewer defined by the flowgraph showtool dictionary.
+        Step output to display using thee graphical
+        viewer defined by the flowgraph showtool parameter.
         """
     }
 

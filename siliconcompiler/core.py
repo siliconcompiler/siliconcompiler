@@ -35,7 +35,7 @@ class Chip:
     """Siliconcompiler Compiler Chip Object Class"""
 
     ###########################################################################
-    def __init__(self, loglevel="DEBUG", defaults=True):
+    def __init__(self, loglevel="INFO", defaults=True):
         '''Initializes Chip object
 
         Args:
@@ -79,9 +79,8 @@ class Chip:
 
         #Adding scpath to python search path
         sys.path.extend(scpaths)
-
-        self.logger.debug("Python search path is %s", sys.path)
-        self.logger.debug("Environment search path is %s", os.environ['SCPATH'])
+        self.logger.info("SC search path %s", os.environ['SCPATH'])
+        self.logger.info("Python search path %s", sys.path)
 
         # Copy 'defvalue' to 'value'
         self._reset(defaults)
@@ -89,38 +88,69 @@ class Chip:
         # Status placeholder dictionary
         # TODO, should be defined!
         self.status = {}
-
         self.error = 0
 
-
     ###########################################################################
-    def cmdline(self):
+    def cmdline(self, prog=None, description=None, paramlist=[]):
         '''
-        A command line interface for the SiliconCompiler schema.
-        All entries in the schema are accessible as command line switches.
+        A command line interface for the SiliconCompiler project. The method
+        exposes parameters in the SC echema as command line switchs.  Exact
+        format for all command line switches can be found in the example and help
+        fields of the schema parameter within the 'schema.py'. module The
+        cmdline interface is implemented using the Python argparase package and
+        the following user restrictions apply. Custom command line apps can
+        be created by restricting the schema parameters exposed at the command
+        line. The priority of command line switch settings is: 1.) -loglevel
+        2.) -target, 3.) -cfg, 3.) all others.
+
+        * Help is accessed with the '-h' switch
+        * Arguments that include spaces must be enclosed with double quotes.
+        * List parameters are entered indidually (ie. -y libdir1 -y libdir2)
+        * For parameters with boolean types, the switch implies "true".
+        * Special characters (such as '-') must be enclosed in double quotes.
+
+        Args:
+            prog (string): Name of program to be exeucted at the command
+                 line. The default program name is 'sc'.
+            description (string): Header help function to be displayed
+                 by the command line program. By default a short
+                 description of the main sc program is displayed.
+            paramlist (list): List of SC schema parameters to expose
+                 at the command line. By default all SC scema params are
+                 exposed as switches.
+
+        Examples:
+            >>> cmdline()
+            Creates the default sc command line interface
+            >>> cmdline(prog='sc-display', paramlist=['show'])
+            Creates a command line interface called sc-display with a
+            a single switch parameter ('show').
+
         '''
 
         os.environ["COLUMNS"] = '80'
-        sc_description = '''
-        --------------------------------------------------------------
-        SiliconCompiler (SC)
+        # defaults to the sc application
+        if prog == None:
+            prog = 'sc'
+            description = '''
+            --------------------------------------------------------------
+            SiliconCompiler (SC)
+            SiliconCompiler is an open source Python based hardware
+            compiler project that aims to fully automate the translation
+            of high level source code into manufacturable hardware.
 
-        SiliconCompiler is an open source Python based hardware
-        compiler project that aims to fully automate the translation
-        of high level source code into manufacturable hardware.
-
-        Website: https://www.siliconcompiler.com
-        Documentation: https://www.siliconcompiler.com/docs
-        Community: https://www.siliconcompiler.com/community
-
-        Examples:
-        $ sc hello_world.v -target freepdk45_asicflow
-        '''
+            Website: https://www.siliconcompiler.com
+            Documentation: https://www.siliconcompiler.com/docs
+            Community: https://www.siliconcompiler.com/community
+            '''
+        elif description == None:
+            description = '''
+            '''
 
         # Argparse
         parser = argparse.ArgumentParser(prog='sc',
                                          prefix_chars='-+',
-                                         description=sc_description,
+                                         description=description,
                                          formatter_class=RawFormatter)
 
         # Required positional source file argument
@@ -129,8 +159,12 @@ class Chip:
                             nargs='+',
                             help=self.get('source',field='short_help'))
 
-        # Get all keys
-        allkeys = self.getkeys()
+        # Get all keys from global dictionary or override at command line
+        if paramlist:
+            allkeys = paramlist
+        else:
+            allkeys = self.getkeys()
+
         argmap = {}
         # Iterate over all keys to add parser argument
         for key in allkeys:
@@ -181,7 +215,8 @@ class Chip:
                                     default = argparse.SUPPRESS)
 
 
-        #Preprocess sys.argv to enable legacy GCC/SV switches with no space
+        #Preprocess sys.argv to enable linux commandline switch formats
+        #(gcc, verilator, etc)
         scargs = []
 
         # Iterate from index 1, otherwise we end up with script name as a
@@ -207,9 +242,21 @@ class Chip:
 
         #Grab argument from pre-process sysargs
         cmdargs = vars(parser.parse_args(scargs))
-        #print(cmdargs)
-        #sys.exit()
-        #Stuff command line values into dynamic dict
+
+        # set loglevel if set at command line
+        if 'loglevel' in cmdargs.keys():
+            self.logger.setLevel(cmdargs['loglevel'])
+
+        # read in target if set
+        if 'target' in cmdargs.keys():
+            self.target(cmdargs['target'])
+
+        # read in all cfg files
+        if 'cfg' in cmdargs.keys():
+            for item in cmdargs['cfg']:
+                self.readcfg(item)
+
+        # insert all parameters in dictionary
         for key, val in cmdargs.items():
             if type(val)==list:
                 val_list = val
@@ -217,17 +264,7 @@ class Chip:
                 val_list = [val]
             for item in val_list:
                 args = schema_reorder_keys(argmap[key], item)
-                #print(args)
-                # TODO: we should annotate each schema item as list or scalar,
-                # and then use that annotation to determine how to set the value
                 self._search(self.cfg, *args, mode='add')
-                # reading in config from a file
-                if key == 'cfg':
-                    self.readcfg(item)
-        # Create one (or many...) instances of Chip class.
-
-        chips = get_permutations(self, cmdargs)
-        return chips
 
     ###########################################################################
     def target(self, arg=None):
@@ -459,16 +496,16 @@ ss
             Returns all key trees in the dictionary as a list of lists.
         '''
 
-        self.logger.debug('Retrieving config dictionary keys: %s', args)
-
         if cfg is None:
             cfg = self.cfg
 
         if len(list(args)) > 0:
+            self.logger.debug('Getting schema parameter keys for: %s', args)
             keys = list(self._search(cfg, *args, mode='getkeys'))
             if 'default' in keys:
                 keys.remove('default')
         else:
+            self.logger.debug('Getting all schema parameter keys.')
             keys = list(self._allkeys(cfg))
 
         return keys
@@ -910,20 +947,22 @@ ss
             self.error = 1
 
     ###########################################################################
-    def min(self, steplist, function):
-        '''Return step with minimum value based on formulat supplied.
-        The mimumum can then be used to
-
-        #or, and, max, min
-        #many trials, find max
-        #look for failure
-        #look for success
-
-        #keep track directories, indexing
+    def score(self, step):
+        '''Return the sum of product of all metrics for measure step multiplied
+        by the values in a weight dictionary input.
 
         '''
-        pass
 
+        score = 0
+        for metric in self.getkeys('metric', 'default', 'default'):
+            value = self.get('metric', step, 'real', metric)
+            if metric in self.getkeys('flowgraph', step, 'weight'):
+                product = value * self.get('flowgraph', step, 'weight', metric)
+            else:
+                product = value * 1.0
+            score = score + product
+
+        return score
 
     ###########################################################################
     def writegraph(self, filename):
@@ -1187,7 +1226,7 @@ ss
         return cost
 
     ###########################################################################
-    def summary(self, steplist=None, filename=None):
+    def summary(self, filename=None):
         '''
         Creates a summary of the run metrics generated from the 'start' step
         to the 'stop' step.
@@ -1201,17 +1240,17 @@ ss
             Prints out a summary of the run to stdout.
         '''
 
-        if steplist == None:
+        if self.get('steplist'):
+            steplist = self.get('steplist')
+        else:
             steplist = self.getkeys('flowgraph')
-
-        design = self.get('design')
 
         #TODO, FIX FOR GRAPH!!
         startindex = 0
         stopindex = len(steplist)-1
 
         jobdir = (self.get('build_dir') +
-                  "/" + design + "/" +
+                  "/" + self.get('design') + "/" +
                   self.get('jobname') +
                   str(self.get('jobid')))
 
@@ -1238,7 +1277,7 @@ ss
             metricsfile = "/".join([jobdir,
                                     step,
                                     "outputs",
-                                    design + "_manifest.json"])
+                                    self.get('design') + "_manifest.json"])
 
             #Load results from file (multi-thread safe)
             with open(metricsfile, 'r') as f:
@@ -1265,6 +1304,15 @@ ss
                 row.append(" " +
                            str(self.get('metric', step, 'real', metric)).center(colwidth))
             data.append(row)
+
+        #Creating goodness score for step
+        metrics.append(" " + '**score**')
+        row = []
+        for stepindex in range(startindex, stopindex + 1):
+            step = steplist[stepindex]
+            step_score =  self.score(step)
+            row.append(" " + str(step_score).center(colwidth))
+        data.append(row)
 
         pandas.set_option('display.max_rows', 500)
         pandas.set_option('display.max_columns', 500)
@@ -1409,7 +1457,7 @@ ss
         active[step] = 0
 
     ###########################################################################
-    def run(self, steplist=None):
+    def run(self):
 
         '''
         A unified thread safe per step execution method for the Chip.
@@ -1432,8 +1480,10 @@ ss
         # setup sanity check before you start run
         self.check()
 
-        # default is to launch whole graph
-        if steplist == None:
+        # Run steps if set, otherwise run whole graph
+        if self.get('steplist'):
+            steplist = self.get('steplist')
+        else:
             steplist = self.getkeys('flowgraph')
 
         # Set all threads to active before launching to avoid races
@@ -1458,7 +1508,7 @@ ss
             p.join()
 
     ###########################################################################
-    def show(self, filetype=None):
+    def show(self, step=None, filetype=None):
         '''
         Display output of a step. File to be displayed and program used for display
         is configured in the EDA directory.
@@ -1466,54 +1516,56 @@ ss
         Would need to pass in parameters to the tcl scripts to accomplish this.
         '''
 
-        if self.get('show'):
-            showsteps = self.get('show')
-        else:
-            self.logger.error("Running show commmand with no showsteps defined.")
-            sys.exit()
-
-        for step in showsteps:
-            # Dynamic EDA tool module load
-            showtool = self.get('flowgraph', step, 'showtool')
-            searchdir = "siliconcompiler.tools." + showtool
-            modulename = '.'+showtool+'_setup'
-            module = importlib.import_module(modulename, package=searchdir)
-            setup_tool = getattr(module, "setup_tool")
-            setup_tool(self, 'show')
-
-            # construct command string
-            cmdlist =  [self.get('eda', showtool, 'show', 'exe')]
-            cmdlist.extend(self.get('eda', showtool, 'show', 'option'))
-
-            if 'script' in self.getkeys('eda', showtool, 'show'):
-                for value in self.get('eda', showtool, 'show', 'script'):
-                    abspath = schema_path(value)
-                    cmdlist.extend([abspath])
-
-            cmdstr = ' '.join(cmdlist)
-
-            # Check setup
-            self.check()
-
-            #Enabling show on old run directory
-            if self.get('jobid'):
-                jobid = self.get('jobid');
+        if step==None:
+            if self.get('show'):
+                step = self.get('show')
             else:
-                jobid = 1
+                self.logger.error("Running show commmand with no showsteps defined.")
+                sys.exit()
 
-            print(self.get('build_dir'))
-            stepdir = "/".join([self.get('build_dir'),
-                                self.get('design'),
-                                self.get('jobname') + str(jobid),
-                                step])
+        # Dynamic EDA tool module load
+        showtool = self.get('flowgraph', step, 'showtool')
+        searchdir = "siliconcompiler.tools." + showtool
+        modulename = '.'+showtool+'_setup'
+        module = importlib.import_module(modulename, package=searchdir)
+        setup_tool = getattr(module, "setup_tool")
+        setup_tool(self, 'show')
 
-            self.logger.info("Showing output from %s", os.path.abspath(stepdir))
+        # construct command string
+        cmdlist =  [self.get('eda', showtool, 'show', 'exe')]
+        cmdlist.extend(self.get('eda', showtool, 'show', 'option'))
 
-            # execute show command from output directory
-            cwd = os.getcwd()
-            os.chdir(stepdir)
-            subprocess.run(cmdstr, shell=True, executable='/bin/bash')
-            os.chdir(cwd)
+        if 'script' in self.getkeys('eda', showtool, 'show'):
+            for value in self.get('eda', showtool, 'show', 'script'):
+                abspath = schema_path(value)
+                cmdlist.extend([abspath])
+
+        if self.get('quiet'):
+            cmdlist.append("> /dev/null")
+
+        cmdstr = ' '.join(cmdlist)
+
+        # Check setup
+        self.check()
+
+        #Enabling show on old run directory
+        if self.get('jobid'):
+            jobid = self.get('jobid');
+        else:
+            jobid = 1
+
+        stepdir = "/".join([self.get('build_dir'),
+                            self.get('design'),
+                            self.get('jobname') + str(jobid),
+                            step])
+
+        self.logger.info("Showing output from %s", os.path.abspath(stepdir))
+
+        # execute show command from output directory
+        cwd = os.getcwd()
+        os.chdir(stepdir)
+        subprocess.run(cmdstr, shell=True, executable='/bin/bash')
+        os.chdir(cwd)
 
     ###########################################################################
     def set_jobid(self):
