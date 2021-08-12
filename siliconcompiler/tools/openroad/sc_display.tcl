@@ -8,7 +8,7 @@ source ./sc_manifest.tcl
 # Manifest adapter
 ###############################
 
-set sc_step        [dict get $sc_cfg status step]
+set sc_step        [dict get $sc_cfg arg step]
 set sc_design      [dict get $sc_cfg design]
 set sc_targetlibs  [dict get $sc_cfg asic targetlib]
 set sc_mainlib     [lindex [dict get $sc_cfg asic targetlib] 0]

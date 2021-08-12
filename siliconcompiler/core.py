@@ -106,20 +106,10 @@ class Chip:
         2.) -target, 3.) -cfg, 3.) all others.
 
         * Help is accessed with the '-h' switch
-
-        * Parameters that include strings separated by spaces must be
-        enclosed with double quotes.
-
-        * Lists are entered one entry at a time. For example, a steplist
-        would be entereed as: -steplist "import" -steplist "syn", ...etc
-
-        * For parameters with boolean types, the switch implies "true" so
-        and there should be no argument passed in.
-
-        * Any command line erguments with special characters (such as '-')
-        must be enclosed in double quotes.
-
-        * The '-target' switch causes the
+        * Arguments that include spaces must be enclosed with double quotes.
+        * List parameters are entered indidually (ie. -y libdir1 -y libdir2)
+        * For parameters with boolean types, the switch implies "true".
+        * Special characters (such as '-') must be enclosed in double quotes.
 
         Args:
             prog (string): Name of program to be exeucted at the command
@@ -1509,7 +1499,7 @@ ss
             p.join()
 
     ###########################################################################
-    def show(self, filetype=None):
+    def show(self, step=None, filetype=None):
         '''
         Display output of a step. File to be displayed and program used for display
         is configured in the EDA directory.
@@ -1517,54 +1507,54 @@ ss
         Would need to pass in parameters to the tcl scripts to accomplish this.
         '''
 
-        if self.get('show'):
-            showsteps = self.get('show')
-        else:
-            self.logger.error("Running show commmand with no showsteps defined.")
-            sys.exit()
-
-        for step in showsteps:
-            # Dynamic EDA tool module load
-            showtool = self.get('flowgraph', step, 'showtool')
-            searchdir = "siliconcompiler.tools." + showtool
-            modulename = '.'+showtool+'_setup'
-            module = importlib.import_module(modulename, package=searchdir)
-            setup_tool = getattr(module, "setup_tool")
-            setup_tool(self, 'show')
-
-            # construct command string
-            cmdlist =  [self.get('eda', showtool, 'show', 'exe')]
-            cmdlist.extend(self.get('eda', showtool, 'show', 'option'))
-
-            if 'script' in self.getkeys('eda', showtool, 'show'):
-                for value in self.get('eda', showtool, 'show', 'script'):
-                    abspath = schema_path(value)
-                    cmdlist.extend([abspath])
-
-            cmdstr = ' '.join(cmdlist)
-
-            # Check setup
-            self.check()
-
-            #Enabling show on old run directory
-            if self.get('jobid'):
-                jobid = self.get('jobid');
+        if step==None:
+            if self.get('show'):
+                step = self.get('show')
             else:
-                jobid = 1
+                self.logger.error("Running show commmand with no showsteps defined.")
+                sys.exit()
 
-            print(self.get('build_dir'))
-            stepdir = "/".join([self.get('build_dir'),
-                                self.get('design'),
-                                self.get('jobname') + str(jobid),
-                                step])
+        # Dynamic EDA tool module load
+        showtool = self.get('flowgraph', step, 'showtool')
+        searchdir = "siliconcompiler.tools." + showtool
+        modulename = '.'+showtool+'_setup'
+        module = importlib.import_module(modulename, package=searchdir)
+        setup_tool = getattr(module, "setup_tool")
+        setup_tool(self, 'show')
 
-            self.logger.info("Showing output from %s", os.path.abspath(stepdir))
+        # construct command string
+        cmdlist =  [self.get('eda', showtool, 'show', 'exe')]
+        cmdlist.extend(self.get('eda', showtool, 'show', 'option'))
 
-            # execute show command from output directory
-            cwd = os.getcwd()
-            os.chdir(stepdir)
-            subprocess.run(cmdstr, shell=True, executable='/bin/bash')
-            os.chdir(cwd)
+        if 'script' in self.getkeys('eda', showtool, 'show'):
+            for value in self.get('eda', showtool, 'show', 'script'):
+                abspath = schema_path(value)
+                cmdlist.extend([abspath])
+
+        cmdstr = ' '.join(cmdlist)
+
+        # Check setup
+        self.check()
+
+        #Enabling show on old run directory
+        if self.get('jobid'):
+            jobid = self.get('jobid');
+        else:
+            jobid = 1
+
+        print(self.get('build_dir'))
+        stepdir = "/".join([self.get('build_dir'),
+                            self.get('design'),
+                            self.get('jobname') + str(jobid),
+                            step])
+
+        self.logger.info("Showing output from %s", os.path.abspath(stepdir))
+
+        # execute show command from output directory
+        cwd = os.getcwd()
+        os.chdir(stepdir)
+        subprocess.run(cmdstr, shell=True, executable='/bin/bash')
+        os.chdir(cwd)
 
     ###########################################################################
     def set_jobid(self):
