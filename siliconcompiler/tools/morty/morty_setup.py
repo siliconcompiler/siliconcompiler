@@ -65,7 +65,7 @@ def post_process(chip, step):
                 chip.logger.error('No top-level modules found during \
                         import, and sc_design was not set')
                 sys.exit()
-            top = data["tops"]
+            top = data["tops"][0]
 
     # Hand off `morty.v` and `manifest.json` to the next step
     subprocess.run("cp morty.v " + "outputs/" + top + ".v", shell=True)
