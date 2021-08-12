@@ -95,6 +95,7 @@ class Floorplan:
         self.rows = []
         self.tracks = []
         self.nets = {}
+        self.viarules = []
 
         self.blockage_layers = []
 
@@ -442,6 +443,30 @@ class Floorplan:
 
             x += xpitch
             y += ypitch
+
+    def add_viarule(self, name, rule, cutsize, layers, cutspacing, enclosure, rowcol=None):
+        # TODO: document
+        # TODO: look at VIA docs in DEF to see if this makes sense/if I should
+        # add anything else
+
+        # TODO: do we want SC-agnostic via layer names? For now, just pass
+        # through non metal layers
+        tech_layers = []
+        for layer in layers:
+            if layer in self.layers:
+                tech_layers.append(self.layers[layer]['name'])
+            else:
+                tech_layers.append(layer)
+
+        self.viarules.append({
+            'name': name,
+            'rule': rule,
+            'cutsize': cutsize,
+            'layers': tech_layers,
+            'cutspacing': cutspacing,
+            'enclosure': enclosure,
+            'rowcol': rowcol
+        })
 
     def generate_rows(self, site_name=None, flip_first_row=False, area=None):
         '''Auto-generates placement rows based on floorplan parameters and tech

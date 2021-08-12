@@ -15,6 +15,19 @@ TRACKS {{ track.direction | upper }} {{ track.start | scale }} DO {{ track.total
     LAYER {{ track.layer}} ;
 {% endfor %}
 
+VIAS {{ fp.viarules | length }} ;
+    {% for rule in fp.viarules %}
+    - {{ rule.name }} + VIARULE {{ rule.rule }}
+                      + CUTSIZE {{ rule.cutsize | map('scale') | join(' ') }}
+                      + LAYERS {{ rule.layers | join(' ') }}
+                      + CUTSPACING {{ rule.cutspacing | map('scale') | join(' ') }}
+                      + ENCLOSURE {{ rule.enclosure | map('scale') | join(' ') }}
+                      {% if rule.rowcol %}
+                      + ROWCOL {{ rule.rowcol | join(' ') }}
+                      {% endif %};
+    {% endfor %}
+END VIAS
+
 COMPONENTS {{ fp.macros | length }} ;
 {% for macro in fp.macros %}
    - {{ macro.name }} {{ macro.cell }}
