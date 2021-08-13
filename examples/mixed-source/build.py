@@ -10,10 +10,21 @@ def main():
 
     chip.add('design', 'eq2')
     add_sources(chip)
-    chip.set('stop', 'export')
 
     chip.set_jobid()
-    chip.target("freepdk45_asicflow")
+    chip.target("freepdk45")
+
+    flow = [
+        ('import', 'morty'),
+        ('importvhdl', 'ghdl'),
+        ('syn', 'yosys')
+    ]
+
+    for i, (step, tool) in enumerate(flow):
+        if i > 0:
+            chip.add('flowgraph', step, 'input', flow[i-1][0])
+        chip.add('flowgraph', step, 'tool', tool)
+
     chip.run()
 
 if __name__ == '__main__':
