@@ -23,7 +23,7 @@ def setup_tool(chip, step):
     chip.set('eda', tool, step, 'exe', 'yosys')
     chip.set('eda', tool, step, 'refdir', refdir)
     chip.add('eda', tool, step, 'script', refdir + '/sc_syn.tcl')
-    chip.add('eda', tool, step, 'option', '-c')
+    chip.add('eda', tool, step, 'option', 'cmdline', '-c')
 
     #TODO: remove special treatment for fpga??
     targetlist = chip.get('target').split('_')

@@ -90,17 +90,17 @@ set sc_maxcap      [dict get $sc_cfg asic maxcap]
 set sc_maxslew     [dict get $sc_cfg asic maxslew]
 
 # Library
-set sc_libtype     [lindex [dict get $sc_cfg stdcell $sc_mainlib libtype] end]
-set sc_site        [lindex [dict get $sc_cfg stdcell $sc_mainlib site] end]
-set sc_driver      [lindex [dict get $sc_cfg stdcell $sc_mainlib driver] end]
-set sc_filler      [dict get $sc_cfg stdcell $sc_mainlib cells filler]
-set sc_dontuse     [dict get $sc_cfg stdcell $sc_mainlib cells ignore]
-set sc_clkbuf      [dict get $sc_cfg stdcell $sc_mainlib cells clkbuf]
-set sc_filler      [dict get $sc_cfg stdcell $sc_mainlib cells filler]
-set sc_tie         [dict get $sc_cfg stdcell $sc_mainlib cells tie]
-set sc_ignore      [dict get $sc_cfg stdcell $sc_mainlib cells ignore]
-set sc_tapcell     [dict get $sc_cfg stdcell $sc_mainlib cells tapcell]
-set sc_endcap      [dict get $sc_cfg stdcell $sc_mainlib cells endcap]
+set sc_libtype     [dict get $sc_cfg library $sc_mainlib arch]
+set sc_site        [dict get $sc_cfg library $sc_mainlib site]
+set sc_driver      [dict get $sc_cfg library $sc_mainlib driver]
+set sc_filler      [dict get $sc_cfg library $sc_mainlib cells filler]
+set sc_dontuse     [dict get $sc_cfg library $sc_mainlib cells ignore]
+set sc_clkbuf      [dict get $sc_cfg library $sc_mainlib cells clkbuf]
+set sc_filler      [dict get $sc_cfg library $sc_mainlib cells filler]
+set sc_tie         [dict get $sc_cfg library $sc_mainlib cells tie]
+set sc_ignore      [dict get $sc_cfg library $sc_mainlib cells ignore]
+set sc_tapcell     [dict get $sc_cfg library $sc_mainlib cells tapcell]
+set sc_endcap      [dict get $sc_cfg library $sc_mainlib cells endcap]
 
 # PDK Design Rules
 set sc_techlef     [dict get $sc_cfg pdk aprtech $sc_stackup $sc_libtype lef]
@@ -161,7 +161,7 @@ if {[dict exists $sc_cfg asic floorplan]} {
 if {$sc_step == "route"} {
     exec "$sc_refdir/mergeLef.py" --inputLef \
 	$sc_techlef \
-	[dict get $sc_cfg stdcell $sc_mainlib lef] \
+	[dict get $sc_cfg library $sc_mainlib lef] \
 	--outputLef "triton_merged.lef"
     read_lef "triton_merged.lef"
 } else {
@@ -169,8 +169,8 @@ if {$sc_step == "route"} {
     read_lef  $sc_techlef
     # Stdcells
     foreach lib $sc_targetlibs {
-	read_liberty [dict get $sc_cfg stdcell $lib model typical nldm lib]
-	read_lef [dict get $sc_cfg stdcell $lib lef]
+	read_liberty [dict get $sc_cfg library $lib model typical nldm lib]
+	read_lef [dict get $sc_cfg library $lib lef]
     }
 }
 

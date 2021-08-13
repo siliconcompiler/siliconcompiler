@@ -23,9 +23,9 @@ def setup_tool(chip, step):
      chip.set('eda', tool, step, 'refdir', refdir)
 
      if step == 'gdsview':
-          chip.set('eda', tool, step, 'option', '-nn')
+          chip.set('eda', tool, step, 'option', 'cmdline', '-nn')
      elif step == 'export':
-          chip.set('eda', tool, step, 'option', '-zz')
+          chip.set('eda', tool, step, 'option', 'cmdline', '-zz')
 
      scriptdir = os.path.dirname(os.path.abspath(__file__))
      sc_root   =  re.sub('siliconcompiler/siliconcompiler/tools/klayout',
@@ -37,7 +37,7 @@ def setup_tool(chip, step):
      libname = chip.get('asic', 'targetlib')[0]
      inputdir = chip.get('flowgraph',step, 'input')[0]
      pdk_rev = chip.get('pdk', 'rev')
-     lib_rev = chip.get('stdcell', libname, 'rev')
+     lib_rev = chip.get('library', libname, 'rev')
      targetlist = chip.get('target').split('_')
      platform =  targetlist[0]
 
@@ -68,7 +68,7 @@ def setup_tool(chip, step):
           options.append('seal_file=""')
 
           options.append('-rd')
-          stdcell_gds = chip.get('stdcell', libname, 'gds')[0]
+          stdcell_gds = chip.get('library', libname, 'gds')[0]
           gds_files = [f'{sc_root}/{stdcell_gds}']
           for macrolib in chip.get('asic', 'macrolib'):
                for gds in chip.get('macro', macrolib, 'gds'):
@@ -100,7 +100,7 @@ def setup_tool(chip, step):
           options.append('-r')
           options.append('klayout_export.py')
           #add all options to dictionary
-          chip.add('eda', tool, step, 'option', options)
+          chip.add('eda', tool, step, 'option', 'cmdline', options)
 
 
 def post_process(chip, step):

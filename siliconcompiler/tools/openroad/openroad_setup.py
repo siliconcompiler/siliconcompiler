@@ -61,14 +61,14 @@ def setup_tool(chip, step):
     chip.set('eda', tool, step, 'refdir', refdir)
 
     if step == 'show':
-        chip.set('eda', tool, step, 'option', '-gui')
+        chip.set('eda', tool, step, 'option', 'cmdline', '-gui')
         chip.set('eda', tool, step, 'script', refdir + '/sc_display.tcl')
     else:
-        chip.set('eda', tool, step, 'option', '-no_init')
+        chip.set('eda', tool, step, 'option', 'cmdline', '-no_init')
         chip.set('eda', tool, step, 'script', refdir + '/sc_apr.tcl')
         # exit automatically unless bkpt
         if (step not in chip.get('bkpt')):
-            chip.add('eda', tool, step, 'option', '-exit')
+            chip.add('eda', tool, step, 'option', 'cmdline', '-exit')
 
         # enable programmatic pythonic floorplans
         if step == 'floorplan':

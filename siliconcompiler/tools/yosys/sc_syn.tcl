@@ -2,16 +2,11 @@
 # Reading SC Schema
 ###############################
 source ./sc_manifest.tcl
-
 set tool yosys
-
-set step syn
 
 ###############################
 # Schema Adapter
 ###############################
-
-set tool yosys
 
 #Handling remote/local script execution
 set sc_step   [dict get $sc_cfg arg step]
@@ -29,22 +24,6 @@ set sc_optmode     [dict get $sc_cfg optmode]
 set sc_inputdir    [dict get $sc_cfg flowgraph $sc_step input]
 
 set topmodule  $sc_design
-
-if {$sc_mode eq "asic"} {
-    set sc_process     [dict get $sc_cfg pdk process]
-    set sc_mainlib     [lindex [dict get $sc_cfg asic targetlib] 0]
-    set sc_targetlibs  [dict get $sc_cfg asic targetlib]
-    set sc_tie         [dict get $sc_cfg stdcell $sc_mainlib cells tie]
-} else {
-    set sc_partname  [dict get $sc_cfg fpga partname]
-}
-
-# CONSTRAINTS
-if {[dict exists $sc_cfg constraint]} {
-    set sc_constraint [dict get $sc_cfg constraint]
-} else {
-    set sc_constraint  ""
-}
 
 ########################################################
 # Design Inputs
@@ -88,9 +67,9 @@ if {[dict exists $sc_cfg param]} {
 ########################################################
 
 if {$sc_mode eq "fpga"} {
-    source syn_fpga.tcl
+    source "$sc_refdir/syn_fpga.tcl"
 } else {
-    source syn_asic.tcl
+    source "$sc_refdir/syn_asic.tcl"
 }
 
 ########################################################

@@ -126,44 +126,48 @@ def setup_libs(chip, vendor=None):
                        libname,
                        rev])
 
+    # standard cell typ
+    chip.set('library',libname,'type','stdcell')
+
     # rev
-    chip.set('stdcell',libname,'rev',rev)
+    chip.set('library',libname,'rev',rev)
 
     # timing
-    chip.set('stdcell',libname, 'model', corner, 'nldm', 'lib',
+    chip.set('library',libname, 'model', corner, 'nldm', 'lib',
              libdir+'/lib/NangateOpenCellLibrary_typical.lib')
 
     # lef
-    chip.set('stdcell',libname,'lef',
+    chip.set('library',libname,'lef',
              libdir+'/lef/NangateOpenCellLibrary.macro.mod.lef')
     # gds
-    chip.set('stdcell',libname,'gds',
+    chip.set('library',libname,'gds',
              libdir+'/gds/NangateOpenCellLibrary.gds')
     # site name
-    chip.set('stdcell',libname,'site', 'FreePDK45_38x28_10R_NP_162NW_34O')
+    chip.set('library',libname,'site', 'FreePDK45_38x28_10R_NP_162NW_34O')
+
     # lib arch
-    chip.set('stdcell',libname,'libtype',libtype)
+    chip.set('library',libname,'arch',libtype)
 
     # lib site/tile/size
-    chip.set('stdcell',libname,'width', libwidth)
-    chip.set('stdcell',libname,'height', libheight)
+    chip.set('library',libname,'width', libwidth)
+    chip.set('library',libname,'height', libheight)
 
     #driver
-    chip.add('stdcell',libname,'driver', "BUF_X4")
+    chip.add('library',libname,'driver', "BUF_X4")
 
     # clock buffers
-    chip.add('stdcell',libname,'cells','clkbuf', "BUF_X4")
+    chip.add('library',libname,'cells','clkbuf', "BUF_X4")
 
     # tie cells
-    chip.add('stdcell',libname,'cells','tie', ["LOGIC1_X1/Z",
+    chip.add('library',libname,'cells','tie', ["LOGIC1_X1/Z",
                                                "LOGIC0_X1/Z"])
 
 
     # hold cells
-    chip.add('stdcell',libname,'cells','hold', "BUF_X1")
+    chip.add('library',libname,'cells','hold', "BUF_X1")
 
     # filler
-    chip.add('stdcell',libname,'cells','filler', ["FILLCELL_X1",
+    chip.add('library',libname,'cells','filler', ["FILLCELL_X1",
                                                   "FILLCELL_X2",
                                                   "FILLCELL_X4",
                                                   "FILLCELL_X8",
@@ -171,21 +175,21 @@ def setup_libs(chip, vendor=None):
                                                   "FILLCELL_X32"])
 
     # Stupid small cells
-    chip.add('stdcell',libname,'cells','ignore', ["AOI211_X1",
+    chip.add('library',libname,'cells','ignore', ["AOI211_X1",
                                                   "OAI211_X1"])
 
     # Tapcell
-    chip.add('stdcell',libname,'cells','tapcell', "FILLCELL_X1")
+    chip.add('library',libname,'cells','tapcell', "FILLCELL_X1")
 
     # Endcap
-    chip.add('stdcell',libname,'cells','endcap', "FILLCELL_X1")
+    chip.add('library',libname,'cells','endcap', "FILLCELL_X1")
 
 
 #########################
 def setup_design(chip):
 
     chip.set('asic', 'stackup', chip.get('pdk', 'stackup')[0])
-    chip.set('asic', 'targetlib', chip.getkeys('stdcell'))
+    chip.set('asic', 'targetlib', chip.getkeys('library'))
     chip.set('asic', 'minlayer', "m1")
     chip.set('asic', 'maxlayer', "m10")
     chip.set('asic', 'maxfanout', 64)
