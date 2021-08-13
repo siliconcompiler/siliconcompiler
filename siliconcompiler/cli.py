@@ -27,7 +27,7 @@ from siliconcompiler.core   import get_permutations
 def main():
 
     # Create a base chip class.
-    chip = siliconcompiler.Chip("root")
+    chip = siliconcompiler.Chip()
 
     # Silly Banner
     ascii_banner = pyfiglet.figlet_format("Silicon Compiler")

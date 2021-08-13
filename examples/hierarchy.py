@@ -2,7 +2,7 @@ import siliconcompiler
 
 # Top level
 topmodule = "liz"
-top = siliconcompiler.Chip(topmodule, loglevel="DEBUG")
+top = siliconcompiler.Chip(design=topmodule, loglevel="DEBUG")
 top.add('hier', topmodule, 'charlie', 'build', 'true')
 top.add('hier', topmodule, 'andy', 'build', 'true')
 top.add('hier', topmodule, 'annie', 'build', 'true')
@@ -10,7 +10,7 @@ top.add('hier', topmodule, 'eddie', 'build', 'true')
 top.add('hier', 'charlie', 'willie', 'build', 'true')
 
 # Child module
-charlie = siliconcompiler.Chip("charlie", loglevel="DEBUG")
+charlie = siliconcompiler.Chip(design="charlie", loglevel="DEBUG")
 
 # Print out Hiearchy
 top.writegraph('hier', 'hier.dot')
