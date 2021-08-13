@@ -89,7 +89,7 @@ class FlowGen(SphinxDirective):
         # TODO: how to choose "default" process
         setup(chip, 'freepdk45')
         flow_path = f'_images/gen/{target}.svg'
-        chip.write_flowgraph(flow_path, 'flowgraph')
+        chip.writegraph('flowgraph', flow_path)
 
         s = build_section(target, target)
         docstr = setup.__doc__

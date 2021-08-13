@@ -126,6 +126,3 @@ def setup(app):
         'parallel_read_safe': True,
         'parallel_write_safe': True,
     }
-
-if __name__ == '__main__':
-    eda_mods()
