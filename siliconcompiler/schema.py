@@ -36,8 +36,7 @@ def schema_cfg():
     # ASIC parameters
     cfg = schema_pdk(cfg)
     cfg = schema_asic(cfg)
-    cfg = schema_libs(cfg, 'stdcell')
-    cfg = schema_libs(cfg, 'macro')
+    cfg = schema_libs(cfg)
 
     # Designer's choice
     cfg = schema_design(cfg)
@@ -963,11 +962,28 @@ def schema_pdk(cfg):
 # Library Configuration
 ###############################################################################
 
-def schema_libs(cfg, group):
+def schema_libs(cfg, group='library'):
 
     cfg[group] = {}
 
     cfg[group]['default'] = {}
+
+    cfg[group]['default']['type'] = {
+        'switch': '-'+group+'_type',
+        'requirement': 'asic',
+        'type': 'str',
+        'lock': 'false',
+        'defvalue': None,
+        'short_help': group.capitalize() + ' Release Revision',
+        'param_help': group+" libvar type <str>",
+        'example': ["cli: -"+group+"_type 'mylib stdcells'",
+                    "api: chip.set('"+group+"','mylib','type','stdcells')"],
+        'help': """
+        String specifying the type of library. Valid types are 'stdcells'
+        and 'component'.
+        """
+    }
+
 
     cfg[group]['default']['rev'] = {
         'switch': '-'+group+'_rev',
