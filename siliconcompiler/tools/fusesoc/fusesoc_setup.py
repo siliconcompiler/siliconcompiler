@@ -64,7 +64,7 @@ def setup_tool(chip, step):
       f.write('\n    toplevel: ' + topmodule + '\n')
 
     # Generate and return the run command.
-    chip.set('eda', tool, step, 'option', ['run', 'sc:'+device+':1.0'])
+    chip.set('eda', tool, step, 'option', 'cmdline', ['run', 'sc:'+device+':1.0'])
 
 ################################
 # Post_process (post executable)

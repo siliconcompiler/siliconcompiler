@@ -24,25 +24,25 @@ def setup_tool(chip, step):
     chip.add('eda', tool, step, 'vendor', 'morty')
 
     # output single file to `morty.v`
-    chip.add('eda', tool, step, 'option', '-o morty.v')
+    chip.add('eda', tool, step, 'option', 'cmdline', '-o morty.v')
     # write additional information to `manifest.json`
-    chip.add('eda', tool, step, 'option', '--manifest manifest.json')
+    chip.add('eda', tool, step, 'option', 'cmdline', '--manifest manifest.json')
 
-    chip.add('eda', tool, step, 'option', '-I ../../../')
+    chip.add('eda', tool, step, 'option', 'cmdline', '-I ../../../')
 
     for value in chip.cfg['ydir']['value']:
-        chip.add('eda', tool, step, 'option', '--library-dir ' + schema_path(value))
+        chip.add('eda', tool, step, 'option', 'cmdline', '--library-dir ' + schema_path(value))
     for value in chip.cfg['vlib']['value']:
-        chip.add('eda', tool, step, 'option', '--library-file ' + schema_path(value))
+        chip.add('eda', tool, step, 'option', 'cmdline', '--library-file ' + schema_path(value))
     for value in chip.cfg['idir']['value']:
-        chip.add('eda', tool, step, 'option', '-I ' + schema_path(value))
+        chip.add('eda', tool, step, 'option', 'cmdline', '-I ' + schema_path(value))
     for value in chip.cfg['define']['value']:
-        chip.add('eda', tool, step, 'option', '-D ' + schema_path(value))
+        chip.add('eda', tool, step, 'option', 'cmdline', '-D ' + schema_path(value))
     for value in chip.cfg['source']['value']:
         # only pickle Verilog or SystemVerilog files
         if value.endswith('.v') or value.endswith('.vh') or \
                 value.endswith('.sv') or value.endswith('.svh'):
-            chip.add('eda', tool, step, 'option', schema_path(value))
+            chip.add('eda', tool, step, 'option', 'cmdline', schema_path(value))
 
 ################################
 # Post_process (post executable)

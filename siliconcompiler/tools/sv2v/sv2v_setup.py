@@ -37,8 +37,8 @@ def setup_tool(chip, step):
     # set and we can read the pickled Verilog without accessing the original
     # sources
     topmodule = chip.get('design')
-    chip.add('eda', tool, step, 'option', "inputs/" + topmodule + ".v")
-    chip.add('eda', tool, step, 'option', "--write=outputs/" + topmodule + ".v")
+    chip.add('eda', tool, step, 'option', 'cmdline', "inputs/" + topmodule + ".v")
+    chip.add('eda', tool, step, 'option', 'cmdline', "--write=outputs/" + topmodule + ".v")
 
 ################################
 # Post_process (post executable)

@@ -51,7 +51,7 @@ def setup_tool(chip, step):
         options.append(schema_path(value))
 
     # Wite back options tp cfg
-    chip.set('eda', tool, step, 'option', options)
+    chip.set('eda', tool, step, 'option', 'cmdline', options)
 
 ################################
 # Post_process (post executable)
