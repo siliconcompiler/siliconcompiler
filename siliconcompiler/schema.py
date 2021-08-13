@@ -1079,22 +1079,23 @@ def schema_libs(cfg):
         """
     }
 
-    cfg['library']['default']['libtype'] = {
-        'switch': '-library_libtype',
+    cfg['library']['default']['arch'] = {
+        'switch': '-library_arch',
         'requirement': 'asic',
         'type': 'str',
         'lock': 'false',
         'defvalue': None,
         'short_help': 'Library Type',
-        'param_help': "library libvar libtype <str>",
+        'param_help': "library libvar arch <str>",
         'example': [
-            "cli: -library_libtype 'mylib 12t'",
-            "api: chip.set('library','mylib','libtype', '12t')"],
+            "cli: -library_arch 'mylib 12t'",
+            "api: chip.set('library','mylib','arch', '12t')"],
         'help': """
-        Libtype is a a unique string that identifies the row height or
-        performance class of the library for APR. The libtype must match up
-        with the name used in the pdk_aprtech dictionary. Mixing of libtypes
-        in a flat place and route block is not allowed.
+        A unique string that identifies the row height or performance
+        class of the library for APR. The arch must match up with the name
+        used in the pdk_aprtech dictionary. Mixing of library archs in a flat
+        place and route block is not allowed. Examples of library archs include
+        6 track libraries, 9 track libraries, 10 track libraries, etc.
         """
     }
 
