@@ -1310,7 +1310,7 @@ ss
         row = []
         for stepindex in range(startindex, stopindex + 1):
             step = steplist[stepindex]
-            step_score =  self.score(step)
+            step_score =  round(self.score(step),2)
             row.append(" " + str(step_score).center(colwidth))
         data.append(row)
 
@@ -1323,19 +1323,22 @@ ss
             print("-"*135)
 
     ###########################################################################
-    def runstep(self, step, active):
+    def runstep(self, step, active, event):
 
         # Explicit wait loop until inputs have been resolved
         # This should be a shared object to not be messy
+
+        self.logger.info('Step %s waiting on inputs', step)
         while True:
+            #global shared event signaling error
+            if event.is_set():
+                sys.exit(1)
             pending = 0
             for item in self.get('flowgraph', step, 'input'):
                 pending = pending + active[item]
             if not pending:
                 break
-            self.logger.info('Step %s waiting on inputs', step)
             sleep(1)
-
         self.logger.info('Starting step %s', step)
 
         # Build directory
@@ -1384,7 +1387,7 @@ ss
         # Construct command line
         exe = self.get('eda', tool, step, 'exe')
         logfile = exe + ".log"
-        options = self.get('eda', tool, step, 'option')
+        options = self.get('eda', tool, step, 'option', 'cmdline')
 
         scripts = []
         if 'script' in self.getkeys('eda', tool, step):
@@ -1439,8 +1442,8 @@ ss
         # Check for errors
         if (error.returncode | post_error):
             self.logger.error('Command failed. See log file %s', os.path.abspath(logfile))
-            self.set('status', step, 'error', 1)
-            self.set('status', step, 'active', 0)
+            #Signal an error event
+            event.set()
             sys.exit()
 
         # save output manifest
@@ -1493,13 +1496,14 @@ ss
         manager = multiprocessing.Manager()
         # Create a shared
         active = manager.dict()
+        event = multiprocessing.Event()
         # Set all procs to active
         for step in steplist:
             active[step] = 1
         # Create procs
         processes = []
         for step in steplist:
-            processes.append(multiprocessing.Process(target=self.runstep, args=(step, active)))
+            processes.append(multiprocessing.Process(target=self.runstep, args=(step, active, event,)))
         # Start all procs
         for p in processes:
             p.start()
