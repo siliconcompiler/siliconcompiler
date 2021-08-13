@@ -64,7 +64,17 @@ def configure_fpga(chip):
     chip.add('define', 'CLK_INPUT=50000000')
     chip.add('define', 'CLK_FREQUENCY=40000000')
 
-    chip.set("target", "freepdk45_asicflow")
+    chip.target("freepdk45")
+
+    flow = [
+        ('importvhdl', 'ghdl'),
+        ('syn', 'yosys')
+    ]
+
+    for i, (step, tool) in enumerate(flow):
+        if i > 0:
+            chip.add('flowgraph', step, 'input', flow[i-1][0])
+        chip.add('flowgraph', step, 'tool', tool)
 
 def main():
     chip = sc.Chip()
