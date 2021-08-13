@@ -6,7 +6,7 @@ import os
 import sys
 import re
 import json
-import logging as log
+import logging
 import hashlib
 import time
 import shutil
@@ -35,7 +35,7 @@ class Chip:
     """Siliconcompiler Compiler Chip Object Class"""
 
     ###########################################################################
-    def __init__(self, loglevel="INFO", defaults=True):
+    def __init__(self, design, loglevel="INFO", defaults=True):
         '''Initializes Chip object
 
         Args:
@@ -43,13 +43,24 @@ class Chip:
                 CRITICAL, ERROR).
         '''
 
-        # Create a default dict ("spec")
+
+        # Local variables
+        self.design = design
+        self.status = {}
+        self.error = 0
         self.cfg = schema_cfg()
 
+        # Copy 'defvalue' to 'value'
+        self._reset(defaults)
+
+        # Setting design variable
+        self.cfg['design']['value'] = self.design
+        logname = self.design.center(12)
+
         # Initialize logger
-        self.logger = log.getLogger(uuid.uuid4().hex)
-        self.handler = log.StreamHandler()
-        self.formatter = log.Formatter('%(asctime)s %(levelname)-8s %(message)s')
+        self.logger = logging.getLogger(uuid.uuid4().hex)
+        self.handler = logging.StreamHandler()
+        self.formatter = logging.Formatter('| %(levelname)s | %(asctime)-8s | ' + logname +  ' | %(message)s', datefmt='%Y-%m-%d %H:%M:%S',)
         self.handler.setFormatter(self.formatter)
         self.logger.addHandler(self.handler)
         self.logger.setLevel(str(loglevel))
@@ -79,16 +90,10 @@ class Chip:
 
         #Adding scpath to python search path
         sys.path.extend(scpaths)
-        self.logger.info("SC search path %s", os.environ['SCPATH'])
-        self.logger.info("Python search path %s", sys.path)
+        self.logger.debug("SC search path %s", os.environ['SCPATH'])
+        self.logger.debug("Python search path %s", sys.path)
 
-        # Copy 'defvalue' to 'value'
-        self._reset(defaults)
 
-        # Status placeholder dictionary
-        # TODO, should be defined!
-        self.status = {}
-        self.error = 0
 
     ###########################################################################
     def cmdline(self, prog=None, description=None, paramlist=[]):
@@ -170,10 +175,10 @@ class Chip:
         for key in allkeys:
 
             #Fetch fields from leaf cell
-            helpstr = self._search(self.cfg, *key, mode='get', field='short_help')
-            typestr = self._search(self.cfg, *key, mode='get', field='type')
-            paramstr = self._search(self.cfg, *key, mode='get', field='param_help')
-            switchstr = self._search(self.cfg, *key, mode='get', field='switch')
+            helpstr = self.get(*key, field='short_help')
+            typestr = self.get(*key, field='type')
+            paramstr = self.get(*key, field='param_help')
+            switchstr = self.get(*key, field='switch')
 
             #Create a map from parser args back to dictionary
             #Special gcc/verilator compatible short switches get mapped to
@@ -243,6 +248,10 @@ class Chip:
         #Grab argument from pre-process sysargs
         cmdargs = vars(parser.parse_args(scargs))
 
+        # set design name (override default)
+        if 'design' in cmdargs.keys():
+            self.name = cmdargs['design']
+
         # set loglevel if set at command line
         if 'loglevel' in cmdargs.keys():
             self.logger.setLevel(cmdargs['loglevel'])
@@ -264,7 +273,7 @@ class Chip:
                 val_list = [val]
             for item in val_list:
                 args = schema_reorder_keys(argmap[key], item)
-                self._search(self.cfg, *args, mode='add')
+                self.add(*args)
 
     ###########################################################################
     def target(self, arg=None):
@@ -441,7 +450,7 @@ class Chip:
             print(outstr, file=file)
 
     ###########################################################################
-    def get(self, *args, cfg=None, field='value'):
+    def get(self, *args, chip=None, cfg=None, field='value'):
         '''
         Returns value from the Chip dictionary based on the key tree supplied.
 
@@ -461,20 +470,23 @@ class Chip:
 
         '''
 
-        self.logger.debug('Reading config dictionary value: %s', args)
+        if chip == None:
+            chip = self
+
+        chip.logger.debug('Reading config dictionary value: %s', args)
 
         if cfg is None:
-            cfg = self.cfg
+            cfg = chip.cfg
 
         keys = list(args)
         for k in keys:
             if isinstance(k, list):
-                self.logger.critical("Illegal format, keys cannot be lists. Keys=%s", k)
+                chip.logger.critical("Illegal format, keys cannot be lists. Keys=%s", k)
                 sys.exit()
-        return self._search(cfg, *args, field=field, mode='get')
+        return self._search(chip, cfg, *args, field=field, mode='get')
 
     ###########################################################################
-    def getkeys(self, *args, cfg=None):
+    def getkeys(self, *args, chip=None, cfg=None):
         '''
         Returns a list of keys from the Chip dicionary based on the key
         tree supplied.
@@ -496,22 +508,25 @@ ss
             Returns all key trees in the dictionary as a list of lists.
         '''
 
+        if chip == None:
+            chip = self
+
         if cfg is None:
-            cfg = self.cfg
+            cfg = chip.cfg
 
         if len(list(args)) > 0:
-            self.logger.debug('Getting schema parameter keys for: %s', args)
-            keys = list(self._search(cfg, *args, mode='getkeys'))
+            chip.logger.debug('Getting schema parameter keys for: %s', args)
+            keys = list(self._search(chip, cfg, *args, mode='getkeys'))
             if 'default' in keys:
                 keys.remove('default')
         else:
             self.logger.debug('Getting all schema parameter keys.')
-            keys = list(self._allkeys(cfg))
+            keys = list(self._allkeys(chip, cfg))
 
         return keys
 
     ###########################################################################
-    def _allkeys(self, cfg, keys=None, allkeys=None):
+    def _allkeys(self, chip, cfg, keys=None, allkeys=None):
         '''
         A recursive function that returns all the non-leaf keys in the Chip
         dictionary.
@@ -527,11 +542,11 @@ ss
             if 'defvalue' in cfg[k]:
                 allkeys.append(newkeys)
             else:
-                self._allkeys(cfg[k], keys=newkeys, allkeys=allkeys)
+                self._allkeys(chip, cfg[k], keys=newkeys, allkeys=allkeys)
         return allkeys
 
     ###########################################################################
-    def set(self, *args, cfg=None, field='value'):
+    def set(self, *args, chip=None, cfg=None, field='value'):
         '''
         Sets the value field of the key-tree in the argument list to the
         data list supplied.
@@ -548,17 +563,20 @@ ss
             Sets the Chip 'design' name to 'mydesign'
         '''
 
-        self.logger.debug('Setting config dictionary value: %s', args)
+        if chip == None:
+            chip = self
+
+        chip.logger.debug('Setting config dictionary value: %s', args)
 
         if cfg is None:
-            cfg = self.cfg
+            cfg = chip.cfg
 
         all_args = list(args)
 
-        return self._search(cfg, *all_args, field=field, mode='set')
+        return self._search(chip, cfg, *all_args, field=field, mode='set')
 
     ###########################################################################
-    def add(self, *args, cfg=None, field='value'):
+    def add(self, *args, chip=None, cfg=None, field='value'):
         '''
         Appends the data list supplied to the list currently in the leaf-value
         of the key-tree in the argument list.
@@ -575,19 +593,22 @@ ss
             Adds the file 'mydesign.v' to the list of sources.
         '''
 
-        self.logger.debug('Adding config dictionary value: %s', args)
+        if chip == None:
+            chip = self
+
+        chip.logger.debug('Adding config dictionary value: %s', args)
 
         if cfg is None:
-            cfg = self.cfg
+            cfg = chip.cfg
 
         all_args = list(args)
 
         # Convert val to list if not a list
-        return self._search(cfg, *all_args, field=field, mode='add')
+        return self._search(chip, cfg, *all_args, field=field, mode='add')
 
 
     ###########################################################################
-    def _search(self, cfg, *args, field='value', mode='get'):
+    def _search(self, chip, cfg, *args, field='value', mode='get'):
         '''
         Recursive function that searches a Chip dictionary for a match to
         the combination of *args and fields supplied. The function is used
@@ -602,16 +623,16 @@ ss
             #making an 'instance' of default if not found
             if not param in cfg:
                 if not 'default' in cfg:
-                    self.logger.error('Search failed. \'%s\' is not a valid key', all_args)
-                    self.error = 1
+                    chip.logger.error('Search failed. \'%s\' is not a valid key', all_args)
+                    chip.error = 1
                 else:
                     cfg[param] = copy.deepcopy(cfg['default'])
             #setting or extending value based on set/get mode
             if not field in cfg[param]:
-                self.logger.error('Search failed. Field not found for \'%s\'', param)
-                self.error = 1
+                chip.logger.error('Search failed. Field not found for \'%s\'', param)
+                chip.error = 1
             #check legality of value
-            if schema_typecheck(self, cfg[param], param, val):
+            if schema_typecheck(chip, cfg[param], param, val):
                 #promote value to list for list types
                 if (type(val) != list) & (field == 'value') & bool(re.match(r'\[',cfg[param]['type'])):
                     val = [str(val)]
@@ -631,8 +652,8 @@ ss
                 return cfg[param].keys()
             else:
                 if not field in cfg[param]:
-                    self.logger.error('Key error, leaf param not found %s', field)
-                    self.error = 1
+                    chip.logger.error('Key error, leaf param not found %s', field)
+                    chip.error = 1
                 elif field == 'value':
                         #check for list/vs scalar
                     if bool(re.match(r'\[',cfg[param]['type'])):
@@ -667,7 +688,7 @@ ss
             if not param in cfg:
                 cfg[param] = copy.deepcopy(cfg['default'])
             all_args.pop(0)
-            return self._search(cfg[param], *all_args, field=field, mode=mode)
+            return self._search(chip, cfg[param], *all_args, field=field, mode=mode)
 
     ###########################################################################
     def _prune(self, cfg=None, top=True):
@@ -999,7 +1020,6 @@ ss
         '''
         #Setting initial dict so user doesn't have to
         if cfg is None:
-            self.logger.debug('Loading default values into Chip configuration')
             cfg = self.cfg
         for k, v in cfg.items():
             if isinstance(v, dict):
@@ -1043,7 +1063,7 @@ ss
 
 
     ########################################################################
-    def package(self, dir='output'):
+    def collect(self, chip=None, dir='output'):
         '''
         Collects files found in the configuration dictionary and places
         them in 'dir'. The function only copies in files that have the 'copy'
@@ -1061,15 +1081,18 @@ ss
 
         '''
 
+        if chip == None:
+            chip = self
+
         if not os.path.exists(dir):
             os.makedirs(dir)
-        allkeys = self.getkeys()
-        copyall = self.get('copyall')
+        allkeys = self.getkeys(chip=chip)
+        copyall = self.get('copyall', chip=chip)
         for key in allkeys:
-            leaftype = self._search(self.cfg, *key, mode='get', field='type')
+            leaftype = self.get(*key, field='type', chip=chip)
             if leaftype == 'file':
-                copy = self._search(self.cfg, *key, mode='get', field='copy')
-                value = self._search(self.cfg, *key, mode='get', field='value')
+                copy = self.get(*key, field='copy',chip=chip)
+                value = self.get(*key, field='value',chip=chip)
                 if copyall | (copy == 'true'):
                     if type(value) != list:
                         value = [value]
@@ -1365,7 +1388,7 @@ ss
         # Copy files from previous step unless first step
         # Package/import step is special in that it has no inputs
         if not self.get('flowgraph', step, 'input'):
-            self.package(dir='inputs')
+            self.collect(dir='inputs')
         elif not self.get('remote','addr'):
             for item in self.get('flowgraph', step, 'input'):
                 shutil.copytree("../"+item+"/outputs", 'inputs/'+item)
@@ -1486,6 +1509,12 @@ ss
             >>> run(steplist=['route', 'dfm'])
             Runs the route and dfm steps.
         '''
+
+        # step through all components
+        # create chip objects for hiearchy
+        # runstep gets a chip object AND step
+        # add chip object to all core functions
+
         # setup sanity check before you start run
         self.check()
 
