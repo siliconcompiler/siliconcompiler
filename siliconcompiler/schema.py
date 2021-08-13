@@ -16,7 +16,7 @@ def schema_cfg():
     cfg = {}
 
     # Flow graph Setup
-    cfg = schema_flowgraph(cfg, 'default')
+    cfg = schema_flowgraph(cfg)
 
     # EDA setup
     cfg = schema_eda(cfg)
@@ -36,12 +36,13 @@ def schema_cfg():
     # ASIC parameters
     cfg = schema_pdk(cfg)
     cfg = schema_asic(cfg)
-    cfg = schema_libs(cfg, 'stdcell')
-    cfg = schema_libs(cfg, 'macro')
 
     # Designer's choice
     cfg = schema_design(cfg)
     cfg = schema_mcmm(cfg)
+
+    # Library/Component Definitions
+    cfg = schema_libs(cfg)
 
     # Designer runtime options
     cfg = schema_options(cfg)
@@ -53,12 +54,6 @@ def schema_cfg():
     cfg = schema_status(cfg)
 
     return cfg
-
-###############################################################################
-# CHIP LIBRARY
-###############################################################################
-def schema_lib():
-    pass
 
 ###############################################################################
 # UTILITY FUNCTIONS TIED TO SC SPECIFICATIONS
@@ -963,22 +958,38 @@ def schema_pdk(cfg):
 # Library Configuration
 ###############################################################################
 
-def schema_libs(cfg, group):
+def schema_libs(cfg):
 
-    cfg[group] = {}
+    cfg['library'] = {}
+    cfg['library']['default'] = {}
 
-    cfg[group]['default'] = {}
-
-    cfg[group]['default']['rev'] = {
-        'switch': '-'+group+'_rev',
+    cfg['library']['default']['type'] = {
+        'switch': '-library_type',
         'requirement': 'asic',
         'type': 'str',
         'lock': 'false',
         'defvalue': None,
-        'short_help': group.capitalize() + ' Release Revision',
-        'param_help': group+" libvar rev <str>",
-        'example': ["cli: -"+group+"_rev 'mylib 1.0'",
-                    "api: chip.set('"+group+"','mylib','rev','1.0')"],
+        'short_help': 'Library Type',
+        'param_help': "library libvar type <str>",
+        'example': ["cli: -library_type 'mylib stdcell'",
+                    "api: chip.set('library', 'mylib', 'type', 'stdcell')"],
+        'help': """
+        String specifying the library type. A 'stdcell' type is reserved
+        for fixed height stadnard cell libraries used for synthesis and
+        place and route. A 'component' type is used for everything else.
+        """
+    }
+
+    cfg['library']['default']['rev'] = {
+        'switch': '-library_rev',
+        'requirement': 'asic',
+        'type': 'str',
+        'lock': 'false',
+        'defvalue': None,
+        'short_help': 'Library Release Revision',
+        'param_help': "library libvar rev <str>",
+        'example': ["cli: -library_rev 'mylib 1.0'",
+                    "api: chip.set('library','mylib','rev','1.0')"],
         'help': """
         String specifying revision on a per library basis. Verification of
         correct PDK and IP revisions is an ASIC tapeout requirement in all
@@ -986,23 +997,23 @@ def schema_libs(cfg, group):
         """
     }
 
-    cfg[group]['default']['origin'] = {
-        'switch': '-'+group+'_origin',
+    cfg['library']['default']['origin'] = {
+        'switch': '-library_origin',
         'requirement': 'asic',
         'type': 'str',
         'lock': 'false',
         'defvalue': None,
-        'short_help': group.capitalize() + ' Origin',
-        'param_help': group+" libvar origin <str>",
-        'example': ["cli: -"+group+"_origin 'mylib US'",
-                    "api: chip.set('"+group+"','mylib','origin','US')"],
+        'short_help': 'Library Origin',
+        'param_help': "library libvar origin <str>",
+        'example': ["cli: -library_origin 'mylib US'",
+                    "api: chip.set('library','mylib','origin','US')"],
         'help': """
         String specifying library country of origin.
         """
     }
 
-    cfg[group]['default']['license'] = {
-        'switch': '-'+group+'_license',
+    cfg['library']['default']['license'] = {
+        'switch': '-library_license',
         'requirement': 'asic',
         'type': '[file]',
         'lock': 'false',
@@ -1012,17 +1023,17 @@ def schema_libs(cfg, group):
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': group.capitalize() + ' License File',
-        'param_help': group+" libvar license <file>",
-        'example': ["cli: -"+group+"_license 'mylib ./LICENSE'",
-                    "api: chip.set('"+group+"','mylib','license','./LICENSE')"],
+        'short_help': 'Library License File',
+        'param_help': "library libvar license <file>",
+        'example': ["cli: -library_license 'mylib ./LICENSE'",
+                    "api: chip.set('library','mylib','license','./LICENSE')"],
         'help': """
         Filepath to library license
         """
     }
 
-    cfg[group]['default']['doc'] = {
-        'switch': '-'+group+'_doc',
+    cfg['library']['default']['doc'] = {
+        'switch': '-library_doc',
         'requirement': 'asic',
         'type': '[file]',
         'lock': 'false',
@@ -1032,10 +1043,10 @@ def schema_libs(cfg, group):
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': group.capitalize() + ' Documentation',
-        'param_help': group+" libvar doc <file>",
-        'example': ["cli: -"+group+"_doc 'lib lib_guide.pdf'",
-                    "api: chip.set('"+group+"','lib','doc','lib_guide.pdf')"],
+        'short_help': 'Library Documentation',
+        'param_help': "library libvar doc <file>",
+        'example': ["cli: -library_doc 'lib lib_guide.pdf'",
+                    "api: chip.set('library','lib','doc','lib_guide.pdf')"],
         'help': """
         A list of critical library documents entered in order of importance.
         The first item in thelist should be the primary library user guide.
@@ -1044,8 +1055,8 @@ def schema_libs(cfg, group):
         """
     }
 
-    cfg[group]['default']['datasheet'] = {
-        'switch': '-'+group+"_datasheet",
+    cfg['library']['default']['datasheet'] = {
+        'switch': '-'+"library_datasheet",
         'requirement': 'optional',
         'type': '[file]',
         'lock': 'false',
@@ -1055,11 +1066,11 @@ def schema_libs(cfg, group):
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': group.capitalize() + ' Datasheets',
-        'param_help': group+" libvar datasheet <file>",
+        'short_help': 'Library Datasheets',
+        'param_help': "library libvar datasheet <file>",
         'example': [
-            "cli: -"+group+"_datasheet 'lib lib_ds.pdf'",
-            "api: chip.set('"+group+"','lib','datasheet','lib_ds.pdf')"],
+            "cli: -library_datasheet 'lib lib_ds.pdf'",
+            "api: chip.set('library','lib','datasheet','lib_ds.pdf')"],
         'help': """
         A complete collection of library datasheets. The documentation can be
         provied as a PDF or as a filepath to a directory with one HTMl file
@@ -1068,35 +1079,36 @@ def schema_libs(cfg, group):
         """
     }
 
-    cfg[group]['default']['libtype'] = {
-        'switch': '-'+group+'_libtype',
+    cfg['library']['default']['arch'] = {
+        'switch': '-library_arch',
         'requirement': 'asic',
         'type': 'str',
         'lock': 'false',
         'defvalue': None,
-        'short_help': group.capitalize() + ' Type',
-        'param_help': group+" libvar libtype <str>",
+        'short_help': 'Library Type',
+        'param_help': "library libvar arch <str>",
         'example': [
-            "cli: -"+group+"_libtype 'mylib 12t'",
-            "api: chip.set('"+group+"','mylib','libtype', '12t')"],
+            "cli: -library_arch 'mylib 12t'",
+            "api: chip.set('library','mylib','arch', '12t')"],
         'help': """
-        Libtype is a a unique string that identifies the row height or
-        performance class of the library for APR. The libtype must match up
-        with the name used in the pdk_aprtech dictionary. Mixing of libtypes
-        in a flat place and route block is not allowed.
+        A unique string that identifies the row height or performance
+        class of the library for APR. The arch must match up with the name
+        used in the pdk_aprtech dictionary. Mixing of library archs in a flat
+        place and route block is not allowed. Examples of library archs include
+        6 track libraries, 9 track libraries, 10 track libraries, etc.
         """
     }
 
-    cfg[group]['default']['width'] = {
-        'switch': '-'+group+'_width',
+    cfg['library']['default']['width'] = {
+        'switch': '-library_width',
         'requirement': 'apr',
         'type': 'float',
         'lock': 'false',
         'defvalue': None,
-        'short_help': group.capitalize() + ' Width',
-        'param_help': group+" libvar width <num>",
-        'example': ["cli: -"+group+"_width 'mylib 0.1'",
-                    "api: chip.set('"+group+"','mylib','width', '0.1')"],
+        'short_help': 'Library Width',
+        'param_help': "library libvar width <num>",
+        'example': ["cli: -library_width 'mylib 0.1'",
+                    "api: chip.set('library','mylib','width', '0.1')"],
 
         'help': """
         Specifies the width of a unit cell. The value can usually be
@@ -1105,17 +1117,17 @@ def schema_libs(cfg, group):
         """
     }
 
-    cfg[group]['default']['height'] = {
-        'switch': '-'+group+'_height',
+    cfg['library']['default']['height'] = {
+        'switch': '-library_height',
         'requirement': 'apr',
         'type': 'float',
         'lock': 'false',
         'defvalue': None,
-        'short_help': group.capitalize() + ' Height',
-        'param_help': group+" libvar height <num>",
+        'short_help': 'Library Height',
+        'param_help': "library libvar height <num>",
         'example': [
-            "cli: -"+group+"_height 'mylib 1.0'",
-            "api: chip.set('"+group+"','mylib','height', '1.0')"],
+            "cli: -library_height 'mylib 1.0'",
+            "api: chip.set('library','mylib','height', '1.0')"],
         'help': """
         Specifies the height of a unit cell. The value can usually be
         extracted automatically from the layout library but is included in the
@@ -1127,21 +1139,21 @@ def schema_libs(cfg, group):
     #Models (Timing, Power, Noise)
     ###############################
 
-    cfg[group]['default']['model'] = {}
-    cfg[group]['default']['model']['default'] = {}
+    cfg['library']['default']['model'] = {}
+    cfg['library']['default']['model']['default'] = {}
 
     #Operating Conditions (per corner)
-    cfg[group]['default']['model']['default']['opcond'] = {
-        'switch': '-'+group+"_opcond",
+    cfg['library']['default']['model']['default']['opcond'] = {
+        'switch': '-library_opcond',
         'requirement': 'asic',
         'type': 'str',
         'lock': 'false',
         'defvalue': None,
-        'short_help': group.capitalize() + ' Operating Condition',
-        'param_help': group+" libvar model cornervar opcond <str>",
+        'short_help': 'Library Operating Condition',
+        'param_help': "library libvar model cornervar opcond <str>",
         'example': [
-            "cli: -"+group+"_opcond 'lib model ss_1.0v_125c WORST'",
-            "api: chip.add('"+group+"','lib','model','ss_1.0v_125c','opcond','WORST')"],
+            "cli: -library_opcond 'lib model ss_1.0v_125c WORST'",
+            "api: chip.add('library','lib','model','ss_1.0v_125c','opcond','WORST')"],
         'help': """
         The default operating condition to use for mcmm optimization and
         signoff on a per corner basis.
@@ -1149,17 +1161,17 @@ def schema_libs(cfg, group):
     }
 
     #Checks To Do (per corner)
-    cfg[group]['default']['model']['default']['check'] = {
-        'switch': '-'+group+"_check",
+    cfg['library']['default']['model']['default']['check'] = {
+        'switch': '-library_check',
         'requirement': 'asic',
         'type': '[str]',
         'lock': 'false',
         'defvalue': [],
-        'short_help': group.capitalize() + ' Corner Checks',
-        'param_help': group+" libvar model cornervar check <str>",
+        'short_help': 'Library Corner Checks',
+        'param_help': "library libvar model cornervar check <str>",
         'example': [
-            "cli: -"+group+"_check 'lib model ss_1.0v_125c setup'",
-            "api: chip.add('"+group+"','lib','model','ss_1.0v_125c','check','setup')"],
+            "cli: -library_check 'lib model ss_1.0v_125c setup'",
+            "api: chip.add('library','lib','model','ss_1.0v_125c','check','setup')"],
         'help': """
         Per corner checks to perform during optimization and STA signoff.
         Names used in the 'mcmm' scenarios must align with the 'check' names
@@ -1172,9 +1184,9 @@ def schema_libs(cfg, group):
     }
 
     #NLDM
-    cfg[group]['default']['model']['default']['nldm'] = {}
-    cfg[group]['default']['model']['default']['nldm']['default'] = {
-        'switch': '-'+group+"_nldm",
+    cfg['library']['default']['model']['default']['nldm'] = {}
+    cfg['library']['default']['model']['default']['nldm']['default'] = {
+        'switch': '-library_nldm',
         'requirement': 'asic',
         'type': '[file]',
         'lock': 'false',
@@ -1184,11 +1196,11 @@ def schema_libs(cfg, group):
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': group.capitalize() + ' NLDM Timing Model',
-        'param_help': group+" libvar model cornervar nldm typevar <file>",
+        'short_help': 'Library NLDM Timing Model',
+        'param_help': "library libvar model cornervar nldm typevar <file>",
         'example': [
-            "cli: -"+group+"_nldm 'lib model ss gz ss.lib.gz'",
-            "api: chip.add('"+group+"','lib','model','ss','nldm','gz','ss.lib.gz')"],
+            "cli: -library_nldm 'lib model ss gz ss.lib.gz'",
+            "api: chip.add('library','lib','model','ss','nldm','gz','ss.lib.gz')"],
         'help': """
         Filepaths to NLDM models. Timing files are specified on a per lib,
         per corner, and per format basis. The format is driven by EDA tool
@@ -1198,9 +1210,9 @@ def schema_libs(cfg, group):
     }
 
     #CCS
-    cfg[group]['default']['model']['default']['ccs'] = {}
-    cfg[group]['default']['model']['default']['ccs']['default'] = {
-        'switch': '-'+group+"_ccs",
+    cfg['library']['default']['model']['default']['ccs'] = {}
+    cfg['library']['default']['model']['default']['ccs']['default'] = {
+        'switch': '-library_ccs',
         'requirement': 'optional',
         'type': '[file]',
         'lock': 'false',
@@ -1210,11 +1222,11 @@ def schema_libs(cfg, group):
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': group.capitalize() + ' CCS Timing Model',
-        'param_help': group+" libvar model cornervar ccs typevar <file>",
+        'short_help': 'Library CCS Timing Model',
+        'param_help': "library libvar model cornervar ccs typevar <file>",
         'example': [
-            "cli: -"+group+"_ccs 'lib model ss lib.gz ss.lib.gz'",
-            "api: chip.add('"+group+"','lib','model','ss','ccs','gz','ss.lib.gz')"],
+            "cli: -library_ccs 'lib model ss lib.gz ss.lib.gz'",
+            "api: chip.add('library','lib','model','ss','ccs','gz','ss.lib.gz')"],
         'help': """
         Filepaths to CCS models. Timing files are specified on a per lib,
         per corner, and per format basis. The format is driven by EDA tool
@@ -1224,9 +1236,9 @@ def schema_libs(cfg, group):
     }
 
     #SCM
-    cfg[group]['default']['model']['default']['scm'] = {}
-    cfg[group]['default']['model']['default']['scm']['default'] = {
-        'switch': '-'+group+"_scm",
+    cfg['library']['default']['model']['default']['scm'] = {}
+    cfg['library']['default']['model']['default']['scm']['default'] = {
+        'switch': '-library_scm',
         'requirement': 'optional',
         'type': '[file]',
         'lock': 'false',
@@ -1236,11 +1248,11 @@ def schema_libs(cfg, group):
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': group.capitalize() + ' SCM Timing Model',
-        'param_help': group+" libvar model cornervar scm typevar <file>",
+        'short_help': 'Library SCM Timing Model',
+        'param_help': "library libvar model cornervar scm typevar <file>",
         'example': [
-            "cli: -"+group+"_scm 'lib model ss lib.gz ss.lib.gz'",
-            "api: chip.add('"+group+"','lib','model','ss', 'scm','gz','ss.lib.gz')"],
+            "cli: -library_scm 'lib model ss lib.gz ss.lib.gz'",
+            "api: chip.add('library','lib','model','ss', 'scm','gz','ss.lib.gz')"],
         'help': """
         Filepaths to SCM models. Timing files are specified on a per lib,
         per corner, and per format basis. The format is driven by EDA tool
@@ -1250,8 +1262,8 @@ def schema_libs(cfg, group):
     }
 
     #AOCV
-    cfg[group]['default']['model']['default']['aocv'] = {
-        'switch': '-'+group+"_aocv",
+    cfg['library']['default']['model']['default']['aocv'] = {
+        'switch': '-library_aocv',
         'requirement': 'optional',
         'type': '[file]',
         'lock': 'false',
@@ -1261,11 +1273,11 @@ def schema_libs(cfg, group):
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': group.capitalize() + ' AOCV Timing Model',
-        'param_help': group+" libvar model cornervar aocv <file>",
+        'short_help': 'Library AOCV Timing Model',
+        'param_help': "library libvar model cornervar aocv <file>",
         'example': [
-            "cli: -"+group+"_aocv 'lib model ss lib.aocv'",
-            "api: chip.add('"+group+"','lib','model','ss','aocv','lib_ss.aocv')"],
+            "cli: -library_aocv 'lib model ss lib.aocv'",
+            "api: chip.add('library','lib','model','ss','aocv','lib_ss.aocv')"],
         'help': """
         Filepaths to AOCV models. Timing files are specified on a per lib,
         per corner basis.
@@ -1273,9 +1285,9 @@ def schema_libs(cfg, group):
     }
 
     #APL
-    cfg[group]['default']['model']['default']['apl'] = {}
-    cfg[group]['default']['model']['default']['apl']['default'] = {
-        'switch': '-'+group+"_apl",
+    cfg['library']['default']['model']['default']['apl'] = {}
+    cfg['library']['default']['model']['default']['apl']['default'] = {
+        'switch': '-library_apl',
         'requirement': 'optional',
         'type': '[file]',
         'lock': 'false',
@@ -1285,11 +1297,11 @@ def schema_libs(cfg, group):
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': group.capitalize() + ' APL Power Model',
-        'param_help': group+" libvar model cornervar apl typevar <file>",
+        'short_help': 'Library APL Power Model',
+        'param_help': "library libvar model cornervar apl typevar <file>",
         'example': [
-            "cli: -"+group+"_apl 'lib model ss cdev lib_tt.cdev'",
-            "api: chip.add('"+group+"','lib','model','ss','apl','cdev','lib_tt.cdev')"],
+            "cli: -library_apl 'lib model ss cdev lib_tt.cdev'",
+            "api: chip.add('library','lib','model','ss','apl','cdev','lib_tt.cdev')"],
         'help': """
         Filepaths to APL power models. Power files are specified on a per
         lib, per corner, and per format basis.
@@ -1297,8 +1309,8 @@ def schema_libs(cfg, group):
     }
 
     #LEF
-    cfg[group]['default']['lef'] = {
-        'switch': '-'+group+"_lef",
+    cfg['library']['default']['lef'] = {
+        'switch': '-library_lef',
         'requirement': 'asic',
         'type': '[file]',
         'lock': 'false',
@@ -1308,10 +1320,10 @@ def schema_libs(cfg, group):
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': group.capitalize() + ' LEF',
-        'param_help': group+" libvar lef <file>",
-        'example': ["cli: -"+group+"_lef 'mylib mylib.lef'",
-                    "api: chip.add('"+group+"','mylib','lef','mylib.lef')"],
+        'short_help': 'Library LEF',
+        'param_help': "library libvar lef <file>",
+        'example': ["cli: -library_lef 'mylib mylib.lef'",
+                    "api: chip.add('library','mylib','lef','mylib.lef')"],
         'help': """
         An abstracted view of library cells that gives a complete description
         of the cell's place and route boundary, pin positions, pin metals, and
@@ -1320,8 +1332,8 @@ def schema_libs(cfg, group):
     }
 
     #GDS
-    cfg[group]['default']['gds'] = {
-        'switch': '-'+group+"_gds",
+    cfg['library']['default']['gds'] = {
+        'switch': '-library_gds',
         'requirement': 'optional',
         'type': '[file]',
         'lock': 'false',
@@ -1331,10 +1343,10 @@ def schema_libs(cfg, group):
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': group.capitalize() + ' GDS',
-        'param_help': group+" libvar gds <file>",
-        'example': ["cli: -"+group+"_gds 'mylib mylib.gds'",
-                    "api: chip.add('"+group+"','mylib','gds','mylib.gds')"],
+        'short_help': 'Library GDS',
+        'param_help': "library libvar gds <file>",
+        'example': ["cli: -library_gds 'mylib mylib.gds'",
+                    "api: chip.add('library','mylib','gds','mylib.gds')"],
         'help': """
         The complete mask layout of the library cells ready to be merged with
         the rest of the design for tapeout. In some cases, the GDS merge
@@ -1344,8 +1356,8 @@ def schema_libs(cfg, group):
         """
     }
 
-    cfg[group]['default']['cdl'] = {
-        'switch': '-'+group+"_cdl",
+    cfg['library']['default']['cdl'] = {
+        'switch': '-library_cdl',
         'requirement': 'optional',
         'type': '[file]',
         'lock': 'false',
@@ -1355,10 +1367,10 @@ def schema_libs(cfg, group):
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': group.capitalize() + ' CDL Netlist',
-        'param_help': group+" libvar cdl <file>",
-        'example': ["cli: -"+group+"_cdl 'mylib mylib.cdl'",
-                    "api: chip.add('"+group+"','mylib','cdl','mylib.cdl')"],
+        'short_help': 'Library CDL Netlist',
+        'param_help': "library libvar cdl <file>",
+        'example': ["cli: -library_cdl 'mylib mylib.cdl'",
+                    "api: chip.add('library','mylib','cdl','mylib.cdl')"],
         'help': """
         Files containing the netlists used for layout versus schematic (LVS)
         checks. In some cases, the GDS merge happens at the foundry, so
@@ -1367,9 +1379,9 @@ def schema_libs(cfg, group):
         pre tapout
         """
     }
-    cfg[group]['default']['spice'] = {}
-    cfg[group]['default']['spice']['default'] = {
-        'switch': '-'+group+"_spice",
+    cfg['library']['default']['spice'] = {}
+    cfg['library']['default']['spice']['default'] = {
+        'switch': '-library_spice',
         'requirement': 'optional',
         'type': '[file]',
         'lock': 'false',
@@ -1379,19 +1391,19 @@ def schema_libs(cfg, group):
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': group.capitalize() + ' Spice Netlist',
-        'param_help': group+" libvar spice format <file>",
-        'example': ["cli: -"+group+"_spice 'mylib pspice mylib.sp'",
-                    "api: chip.add('"+group+"','mylib','spice', 'pspice',"
+        'short_help': 'Library Spice Netlist',
+        'param_help': "library libvar spice format <file>",
+        'example': ["cli: -library_spice 'mylib pspice mylib.sp'",
+                    "api: chip.add('library','mylib','spice', 'pspice',"
                     "'mylib.sp')"],
         'help': """
         Files containing library spice netlists used for circuit
         simulation, specified on a per format basis.
         """
     }
-    cfg[group]['default']['hdl'] = {}
-    cfg[group]['default']['hdl']['default'] = {
-        'switch': '-'+group+"_hdl",
+    cfg['library']['default']['hdl'] = {}
+    cfg['library']['default']['hdl']['default'] = {
+        'switch': '-library_hdl',
         'requirement': 'asic',
         'type': '[file]',
         'lock': 'false',
@@ -1401,10 +1413,10 @@ def schema_libs(cfg, group):
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': group.capitalize() + ' HDL Model',
-        'param_help': group+" libvar hdl formatvar <file>",
-        'example': ["cli: -"+group+"_hdl 'mylib verilog mylib.v'",
-                    "api: chip.add('"+group+"','mylib','hdl', 'verilog',"
+        'short_help': 'Library HDL Model',
+        'param_help': "library libvar hdl formatvar <file>",
+        'example': ["cli: -library_hdl 'mylib verilog mylib.v'",
+                    "api: chip.add('library','mylib','hdl', 'verilog',"
                     "'mylib.v')"],
         'help': """
         Library HDL models, specifed on a per format basis. Examples
@@ -1412,8 +1424,8 @@ def schema_libs(cfg, group):
         """
     }
 
-    cfg[group]['default']['atpg'] = {
-        'switch': '-'+group+"_atpg",
+    cfg['library']['default']['atpg'] = {
+        'switch': '-library_atpg',
         'requirement': 'optional',
         'type': '[file]',
         'lock': 'false',
@@ -1423,26 +1435,26 @@ def schema_libs(cfg, group):
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': group.capitalize() + ' ATPG Model',
-        'param_help': group+" libvar atpg <file>",
-        'example': ["cli: -"+group+"_atpg 'mylib atpg mylib.atpg'",
-                    "api: chip.add('"+group+"','mylib','atpg','mylib.atpg')"],
+        'short_help': 'Library ATPG Model',
+        'param_help': "library libvar atpg <file>",
+        'example': ["cli: -library_atpg 'mylib atpg mylib.atpg'",
+                    "api: chip.add('library','mylib','atpg','mylib.atpg')"],
         'help': """
         Library models used for ATPG based automated faultd based post
         manufacturing testing.
         """
     }
 
-    cfg[group]['default']['pgmetal'] = {
-        'switch': '-'+group+"_pgmetal",
+    cfg['library']['default']['pgmetal'] = {
+        'switch': '-library_pgmetal',
         'requirement': 'optional',
         'type': 'str',
         'lock': 'false',
         'defvalue': None,
-        'short_help': group.capitalize() + ' Power/Ground Layer',
-        'param_help': group+" libvar pgmetal <str>",
-        'example': ["cli: -"+group+"_pgmetal 'mylib m1'",
-                    "api: chip.add('"+group+"','mylib','pgmetal','m1')"],
+        'short_help': 'Library Power/Ground Layer',
+        'param_help': "library libvar pgmetal <str>",
+        'example': ["cli: -library_pgmetal 'mylib m1'",
+                    "api: chip.add('library','mylib','pgmetal','m1')"],
         'help': """
         Specifies the top metal layer used for power and ground routing within
         the library. The parameter can be used to guide cell power grid hookup
@@ -1450,16 +1462,16 @@ def schema_libs(cfg, group):
         """
     }
 
-    cfg[group]['default']['tag'] = {
-        'switch': '-'+group+"_tag",
+    cfg['library']['default']['tag'] = {
+        'switch': '-library_tag',
         'requirement': 'optional',
         'type': '[str]',
         'lock': 'false',
         'defvalue': [],
-        'short_help': group.capitalize() + ' Identifier Tags',
-        'param_help': group+" libvar tag <str>",
-        'example': ["cli: -"+group+"_tag 'mylib virtual'",
-                    "api: chip.add('"+group+"','mylib','tag','virtual')"],
+        'short_help': 'Library Identifier Tags',
+        'param_help': "library libvar tag <str>",
+        'example': ["cli: -library_tag 'mylib virtual'",
+                    "api: chip.add('library','mylib','tag','virtual')"],
         'help': """
         Marks a library with a set of tags that can be used by the designer
         and EDA tools for optimization purposes. The tags are meant to cover
@@ -1469,16 +1481,16 @@ def schema_libs(cfg, group):
         """
     }
 
-    cfg[group]['default']['driver'] = {
-        'switch': '-'+group+"_driver",
+    cfg['library']['default']['driver'] = {
+        'switch': '-library_driver',
         'requirement': 'asic',
         'type': '[str]',
         'lock': 'false',
         'defvalue': [],
-        'short_help': group.capitalize() + ' Default Driver Cell',
-        'param_help': group+" libvar driver <str>",
-        'example': ["cli: -"+group+"_driver 'mylib BUFX1'",
-                    "api: chip.add('"+group+"','mylib','driver','BUFX1')"],
+        'short_help': 'Library Default Driver Cell',
+        'param_help': "library libvar driver <str>",
+        'example': ["cli: -library_driver 'mylib BUFX1'",
+                    "api: chip.add('library','mylib','driver','BUFX1')"],
         'help': """
         The name of a library cell to be used as the default driver for
         block timing constraints. The cell should be strong enough to drive
@@ -1488,32 +1500,32 @@ def schema_libs(cfg, group):
         """
     }
 
-    cfg[group]['default']['site'] = {
-        'switch': '-'+group+"_site",
+    cfg['library']['default']['site'] = {
+        'switch': '-library_site',
         'requirement': 'optional',
         'type': 'str',
         'lock': 'false',
         'defvalue': None,
-        'short_help': group.capitalize() + ' Site/Tile Name',
-        'param_help': group+" libvar site <str>",
-        'example': ["cli: -"+group+"_site 'mylib core'",
-                    "api: chip.add('"+group+"','mylib','site','core')"],
+        'short_help': 'Library Site/Tile Name',
+        'param_help': "library libvar site <str>",
+        'example': ["cli: -library_site 'mylib core'",
+                    "api: chip.add('library','mylib','site','core')"],
         'help': """
         Provides the primary site name to use for placement.
         """
     }
 
-    cfg[group]['default']['cells'] = {}
-    cfg[group]['default']['cells']['default'] = {
-        'switch': '-'+group+"_cells",
+    cfg['library']['default']['cells'] = {}
+    cfg['library']['default']['cells']['default'] = {
+        'switch': '-library_cells',
         'requirement': 'optional',
         'type': '[str]',
         'lock': 'false',
         'defvalue': [],
-        'short_help': group.capitalize() + ' Cell Lists',
-        'param_help': group+" libvar cells groupvar <str>",
-        'example': ["cli: -"+group+"_cells 'mylib dontuse *eco*'",
-                    "api: chip.add('"+group+"','mylib','cells','dontuse',"
+        'short_help': 'Library Cell Lists',
+        'param_help': "library libvar cells groupvar <str>",
+        'example': ["cli: -library_cells 'mylib dontuse *eco*'",
+                    "api: chip.add('library','mylib','cells','dontuse',"
                     "'*eco*')"],
         'help': """
         A named list of cells grouped by a property that can be accessed
@@ -1523,10 +1535,10 @@ def schema_libs(cfg, group):
         """
     }
 
-    cfg[group]['default']['layoutdb'] = {}
-    cfg[group]['default']['layoutdb']['default'] = {}
-    cfg[group]['default']['layoutdb']['default']['default'] = {
-        'switch': '-'+group+"_layoutdb",
+    cfg['library']['default']['layoutdb'] = {}
+    cfg['library']['default']['layoutdb']['default'] = {}
+    cfg['library']['default']['layoutdb']['default']['default'] = {
+        'switch': '-library_layoutdb',
         'requirement': 'optional',
         'type': '[file]',
         'lock': 'false',
@@ -1536,10 +1548,10 @@ def schema_libs(cfg, group):
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': group.capitalize() + ' Layout Database',
-        'param_help': group+" libvar layoutdb stackvar formatvar <file>",
-        'example': ["cli: -"+group+"_layoutdb 'mylib M10 oa /disk/mylibdb'",
-                    "api: chip.add('"+group+"','mylib','layoutdb','M10',"
+        'short_help': 'Library Layout Database',
+        'param_help': "library libvar layoutdb stackvar formatvar <file>",
+        'example': ["cli: -library_layoutdb 'mylib M10 oa /disk/mylibdb'",
+                    "api: chip.add('library','mylib','layoutdb','M10',"
                     "'oa', '/disk/mylibdb')"],
         'help': """
         Filepaths to compiled library layout database specified on a per format
@@ -1553,7 +1565,7 @@ def schema_libs(cfg, group):
 # Flow Configuration
 ###############################################################################
 
-def schema_flowgraph(cfg, step):
+def schema_flowgraph(cfg, step='default'):
 
     if not 'flowgraph' in cfg:
         cfg['flowgraph'] = {}
@@ -1702,22 +1714,27 @@ def schema_eda(cfg):
     }
 
     # options
-    cfg['eda'][tool][step]['option'] = {
+    cfg['eda'][tool][step]['option'] = {}
+    cfg['eda'][tool][step]['option']['default'] = {
         'switch': '-eda_option',
         'type': '[str]',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
         'short_help': 'Executable Options',
-        'param_help': "eda toolvar stepvar option <str>",
-        'example': ["cli: -eda_option 'cts -no_init'",
-                    "api:  chip.set('eda', 'cts', 'option', '-no_init')"],
+        'param_help': "eda toolvar stepvar option optvar <str>",
+        'example': ["cli: -eda_option 'cts cmdline -no_init'",
+                    "api:  chip.set('eda', 'cts', 'option', 'cmdline', '-no_init')"],
         'help': """
         List of command line options for the tool executable, specified on
         a per tool and per step basis. For multiple argument options, enter
         each argument and value as a one list entry, specified on a per
         step basis. Options that include spaces must be enclosed in in double
-        quotes.
+        quotes. The options are entered as a dictionary assigned to a variable.
+        For command line options, a variable should be 'cmdline'. For TCL
+        variables fed into specific tools,  the variable name can be anything
+        that is compatible with the tool, thus enabling the driving of an
+        arbitray set of parameters within the tool.
         """
     }
 
@@ -3114,6 +3131,27 @@ def schema_design(cfg):
         (\\*.c)        = C
         (\\*.cpp, .cc) = C++
         (\\*.py)       = Python
+        """
+    }
+
+    cfg['component'] = {
+        'switch': '-component',
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'true',
+        'requirement': 'all',
+        'defvalue': [],
+        'filehash': [],
+        'date': [],
+        'author': [],
+        'signature': [],
+        'short_help': 'Design Component',
+        'param_help': "component <file>",
+        'example': ["cli: -component padring_manifest.json",
+                    "api: chip.add('component', 'padring_manifest.json')"],
+        'help': """
+        A list of SC manifest files with with complete information needed
+        to enable instantation at the current design level.
         """
     }
 

@@ -48,7 +48,7 @@ def setup_tool(chip, step):
     options.append('--pcf ' + pcf_file)
     options.append('--json inputs/' + topmodule + '_netlist.json')
     options.append('--asc outputs/' + topmodule + '.asc')
-    chip.add('eda', tool, step, 'option', options)
+    chip.add('eda', tool, step, 'option', 'cmdline', options)
 
 ################################
 # Setup Tool (pre executable)

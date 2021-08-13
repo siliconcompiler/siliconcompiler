@@ -26,7 +26,7 @@ def setup_tool(chip, step):
     options = []
     options.append("inputs/" + topmodule + ".asc")
     options.append("outputs/" + topmodule + ".bit")
-    chip.add('eda', tool, step, 'option', options)
+    chip.add('eda', tool, step, 'option', 'cmdline', options)
 
 ################################
 # Post_process (post executable)

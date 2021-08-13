@@ -31,7 +31,7 @@ def setup_tool(chip, step):
      blif = "inputs/" + topmodule + ".blif"
      options = [arch, blif]
 
-     chip.set('eda', tool, step, 'option', options)
+     chip.set('eda', tool, step, 'option', 'cmdline', options)
 
 ################################
 # Post_process (post executable)
