@@ -22,10 +22,7 @@ def test_gcd_local_py():
     chip.set('asic', 'diesize', "0 0 100.13 100.8")
     chip.set('asic', 'coresize', "10.07 11.2 90.25 91")
     chip.set_jobid()
-
     chip.target()
-
-    chip.set('stop', 'export')
     chip.set('quiet', 'true')
     chip.set('relax', 'true')
 
