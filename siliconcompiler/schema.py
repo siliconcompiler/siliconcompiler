@@ -980,6 +980,30 @@ def schema_libs(cfg):
         """
     }
 
+
+    cfg['library']['default']['testbench'] = {}
+    cfg['library']['default']['testbench']['default'] = {
+        'switch': '-library_testbench',
+        'requirement': 'asic',
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'filehash': [],
+        'date': [],
+        'author': [],
+        'signature': [],
+        'short_help': 'Library Testbench',
+        'param_help': "library libvar testbench simvar <file>",
+        'example': ["cli: -library_testbench 'mylib verilog ./mylib_tb.v'",
+                    "api: chip.set('library', 'mylib', 'testbench', 'verilog, '/mylib_tb.v')"],
+        'help': """
+        Path to testbench specified based on a per library and per
+        simluation type basis. Typical simulation types include verilog, spice.
+        """
+    }
+
+
     cfg['library']['default']['rev'] = {
         'switch': '-library_rev',
         'requirement': 'asic',
@@ -1356,8 +1380,8 @@ def schema_libs(cfg):
         """
     }
 
-    cfg['library']['default']['cdl'] = {
-        'switch': '-library_cdl',
+    cfg['library']['default']['netlist'] = {
+        'switch': '-library_netlist',
         'requirement': 'optional',
         'type': '[file]',
         'lock': 'false',
@@ -1367,16 +1391,16 @@ def schema_libs(cfg):
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': 'Library CDL Netlist',
-        'param_help': "library libvar cdl <file>",
-        'example': ["cli: -library_cdl 'mylib mylib.cdl'",
-                    "api: chip.add('library','mylib','cdl','mylib.cdl')"],
+        'short_help': 'Library Netlist',
+        'param_help': "library libvar netlist <file>",
+        'example': ["cli: -library_netlist 'mylib mylib.cdl'",
+                    "api: chip.add('library','mylib','netlist','mylib.cdl')"],
         'help': """
-        Files containing the netlists used for layout versus schematic (LVS)
-        checks. In some cases, the GDS merge happens at the foundry, so
-        inclusion of a CDL file is optional. In all cases, where the CDL
-        files are available they should specified here to enable LVS checks
-        pre tapout
+        Files containing the netlist used for layout versus schematic (LVS)
+        checks. For transistor level libraries such as standard cell libraries
+        and SRAM macros, this should be a CDL type netlist. For higher level
+        modules like place and route blocks, it should be a verilog gate
+        level netlist.
         """
     }
     cfg['library']['default']['spice'] = {}
