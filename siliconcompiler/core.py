@@ -997,6 +997,7 @@ ss
         fileformat = ext.replace(".","")
         gvfile = fileroot+".gv"
         dot = graphviz.Digraph(format=fileformat)
+        dot.attr(bgcolor='transparent')
         if graph == 'flowgraph':
             for step in self.getkeys('flowgraph'):
                 if self.get('flowgraph',step, 'tool'):

@@ -16,6 +16,7 @@ def setup_tool(chip, step):
     from synthesized netlist to routed layout.
 
     Implementation steps done by OpenROAD include:
+
     * Physical database management
     * DEF/LEF/Liberty/Verilog/SDC file interfaces
     * Static timing analysis
