@@ -35,17 +35,3 @@ def post_process(chip, step):
     ''' Tool specific function to run after step execution
     '''
     return 0
-
-##################################################
-if __name__ == "__main__":
-
-    # File being executed
-    prefix = os.path.splitext(os.path.basename(__file__))[0]
-    output = prefix + '.json'
-
-    # create a chip instance
-    chip = siliconcompiler.Chip(defaults=False)
-    # load configuration
-    setup_tool(chip, step='bitstream')
-    # write out results
-    chip.writecfg(output)

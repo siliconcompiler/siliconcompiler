@@ -72,17 +72,3 @@ def post_process(chip, step):
     subprocess.run("cp manifest.json " + "outputs/", shell=True)
 
     return 0
-
-##################################################
-if __name__ == "__main__":
-
-    # File being executed
-    prefix = os.path.splitext(os.path.basename(__file__))[0]
-    output = prefix + '.json'
-
-    # create a chip instance
-    chip = siliconcompiler.Chip(defaults=False)
-    # load configuration
-    setup_tool(chip, step='import')
-    # write out results
-    chip.writecfg(output)

@@ -59,17 +59,3 @@ def post_process(chip, step):
     '''
     #TODO: return error code
     return 0
-
-##################################################
-if __name__ == "__main__":
-
-    # File being executed
-    prefix = os.path.splitext(os.path.basename(__file__))[0]
-    output = prefix + '.json'
-
-    # create a chip instance
-    chip = siliconcompiler.Chip(defaults=False)
-    # load configuration
-    setup_tool(chip, step='syn')
-    # write out results
-    chip.writecfg(output)

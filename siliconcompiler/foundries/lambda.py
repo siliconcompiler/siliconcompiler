@@ -223,20 +223,3 @@ def setup_design(chip):
     chip.set('mcmm','worst','pexcorner', corner)
     chip.set('mcmm','worst','mode', 'func')
     chip.set('mcmm','worst','check', ['setup','hold'])
-
-#########################
-if __name__ == "__main__":
-
-    # File being executed
-    prefix = os.path.splitext(os.path.basename(__file__))[0]
-    output = prefix + '.json'
-
-    # create a chip instance
-    chip = siliconcompiler.Chip()
-    chip.set('pdk','node','1')
-    chip.set('pdk','stackup','m10')
-    # load configuration
-    setup_platform(chip)
-    setup_libs(chip)
-    # write out result
-    chip.writecfg(output)

@@ -102,17 +102,3 @@ def pdk_path(chip):
         sc_path,
         chip.get('pdk', 'foundry'),
         target_tech)
-
-##################################################
-if __name__ == "__main__":
-
-    # File being executed
-    prefix = os.path.splitext(os.path.basename(__file__))[0]
-    output = prefix + '.json'
-
-    # create a chip instance
-    chip = siliconcompiler.Chip(defaults=False)
-    # load configuration
-    setup_tool(chip, step='drc')
-    # write out results
-    chip.writecfg(output)
