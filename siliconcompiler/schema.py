@@ -1713,22 +1713,27 @@ def schema_eda(cfg):
     }
 
     # options
-    cfg['eda'][tool][step]['option'] = {
+    cfg['eda'][tool][step]['option'] = {}
+    cfg['eda'][tool][step]['option']['default'] = {
         'switch': '-eda_option',
         'type': '[str]',
         'lock': 'false',
         'requirement': 'optional',
         'defvalue': [],
         'short_help': 'Executable Options',
-        'param_help': "eda toolvar stepvar option <str>",
-        'example': ["cli: -eda_option 'cts -no_init'",
-                    "api:  chip.set('eda', 'cts', 'option', '-no_init')"],
+        'param_help': "eda toolvar stepvar option optvar <str>",
+        'example': ["cli: -eda_option 'cts cmdline -no_init'",
+                    "api:  chip.set('eda', 'cts', 'option', 'cmdline', '-no_init')"],
         'help': """
         List of command line options for the tool executable, specified on
         a per tool and per step basis. For multiple argument options, enter
         each argument and value as a one list entry, specified on a per
         step basis. Options that include spaces must be enclosed in in double
-        quotes.
+        quotes. The options are entered as a dictionary assigned to a variable.
+        For command line options, a variable should be 'cmdline'. For TCL
+        variables fed into specific tools,  the variable name can be anything
+        that is compatible with the tool, thus enabling the driving of an
+        arbitray set of parameters within the tool.
         """
     }
 
