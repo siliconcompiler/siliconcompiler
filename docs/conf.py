@@ -33,7 +33,8 @@ extensions = [
     'sphinx.ext.napoleon',
     'schemagen',
     'toolgen',
-    'targetgen'
+    'targetgen',
+    'flowgen'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
