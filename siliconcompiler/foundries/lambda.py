@@ -23,13 +23,13 @@ def setup_platform(chip):
     libtype = 'default'
     rev = 'r1p0'
     # TODO: fix, constants for now
-    hscribe = '0.1'
-    vscribe = '0.1'
-    edgemargin = '2'
-    d0 = '1.25'
+    hscribe = 0.1
+    vscribe = 0.1
+    edgemargin = 2
+    d0 = 1.25
 
     #Checking that all parameters have been set
-    chip.set('pdk','node','45')
+    chip.set('pdk','node',45)
     chip.set('pdk','stackup','m10')
     if not chip.get('pdk', 'node'):
         chip.logger.error("Required PDK node parameter unspecified!!")
@@ -38,8 +38,8 @@ def setup_platform(chip):
         chip.logger.error("Required PDK stackup parameter unspecified!!")
         os.sys.exit()
     else:
-        node = int(chip.get('pdk', 'node')[-1])
-        stackup = chip.get('pdk', 'stackup')[-1]
+        node = chip.get('pdk', 'node')
+        stackup = chip.get('pdk', 'stackup')[0]
 
 
     # Process details
@@ -52,9 +52,9 @@ def setup_platform(chip):
     ##################
 
     if node > 130:
-        wafersize = '300'
+        wafersize = 300
     else:
-        wafersize = '200'
+        wafersize = 200
 
     ##################
     # DPW Settings
@@ -88,8 +88,8 @@ def setup_platform(chip):
     tapmax = 120 #predict! TODO
     tapoffset = 0 #predict! TODO
 
-    chip.set('pdk','tapmax', str(tapmax))
-    chip.set('pdk','tapoffset', str(tapoffset))
+    chip.set('pdk','tapmax', tapmax)
+    chip.set('pdk','tapoffset', tapoffset)
 
     ##################
     # APR Settings
@@ -112,11 +112,11 @@ def setup_platform(chip):
         ypitch = 1
         adj = 1
         chip.set('pdk','grid', stackup, sc_name, 'name', sc_name)
-        chip.set('pdk','grid', stackup, sc_name, 'xoffset', str(xoffset))
-        chip.set('pdk','grid', stackup, sc_name, 'xpitch', str(xpitch))
-        chip.set('pdk','grid', stackup, sc_name, 'yoffset', str(yoffset))
-        chip.set('pdk','grid', stackup, sc_name, 'ypitch', str(ypitch))
-        chip.set('pdk','grid', stackup, sc_name, 'adj', str(adj))
+        chip.set('pdk','grid', stackup, sc_name, 'xoffset', xoffset)
+        chip.set('pdk','grid', stackup, sc_name, 'xpitch', xpitch)
+        chip.set('pdk','grid', stackup, sc_name, 'yoffset', yoffset)
+        chip.set('pdk','grid', stackup, sc_name, 'ypitch', ypitch)
+        chip.set('pdk','grid', stackup, sc_name, 'adj', adj)
 
 
 ####################################################
@@ -131,7 +131,7 @@ def setup_libs(chip, vendor=None, type=None):
     foundry = chip.get('pdk','foundry')
     process = chip.get('pdk','process')
     pdkrev  = chip.get('pdk','rev')
-    stackup = chip.get('pdk','stackup')[-1]
+    stackup = chip.get('pdk','stackup')[0]
     #TODO: ugly and circular still...
     libtype = chip.getkeys('pdk','aprtech',stackup)
 
@@ -188,8 +188,8 @@ def setup_libs(chip, vendor=None, type=None):
 
     libwidth = 0
     libheight = 0
-    chip.set('stdcell',libname,'width', str(libwidth))
-    chip.set('stdcell',libname,'height', str(libheight))
+    chip.set('stdcell',libname,'width', libwidth)
+    chip.set('stdcell',libname,'height', libheight)
 
     #####################
     # Auto-generate files
@@ -207,15 +207,15 @@ def setup_design(chip):
     chip.set('asic', 'targetlib', chip.getkeys('stdcell'))
     chip.set('asic', 'minlayer', "m1")
     chip.set('asic', 'maxlayer', "m10")
-    chip.set('asic', 'maxfanout', "64")
-    chip.set('asic', 'maxlength', "1000")
-    chip.set('asic', 'maxslew', "0.2e-9")
-    chip.set('asic', 'maxcap', "0.2e-12")
+    chip.set('asic', 'maxfanout', 64)
+    chip.set('asic', 'maxlength', 1000)
+    chip.set('asic', 'maxslew', 0.2e-9)
+    chip.set('asic', 'maxcap', 0.2e-12)
     chip.set('asic', 'clklayer', "m5")
     chip.set('asic', 'rclayer', "m3")
     chip.set('asic', 'hpinlayer', "m3")
     chip.set('asic', 'vpinlayer', "m2")
-    chip.set('asic', 'density', "1.0")
+    chip.set('asic', 'density', 1.0)
 
     corner = 'typical'
     # hard coded mcmm settings (only one corner!)
