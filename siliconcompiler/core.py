@@ -965,10 +965,10 @@ ss
         return score
 
     ###########################################################################
-    def writegraph(self, filename):
+    def writegraph(self, graph, filename):
         '''Exports the execution flow graph using the graphviz library.
         For graphviz formats supported, see https://graphviz.org/.
-        For rendering
+
         '''
         filepath = os.path.abspath(filename)
         self.logger.debug('Writing flowgraph to file %s', filepath)
@@ -976,14 +976,20 @@ ss
         fileformat = ext.replace(".","")
         gvfile = fileroot+".gv"
         dot = graphviz.Digraph(format=fileformat)
-        for step in self.getkeys('flowgraph'):
-            if self.get('flowgraph',step, 'tool'):
-                labelname = step+'\\n('+self.get('flowgraph',step, 'tool')+")"
-            else:
-                labelname = step
-            dot.node(step,label=labelname)
-            for prev_step in self.get('flowgraph',step,'input'):
-                dot.edge(prev_step, step)
+        if graph == 'flowgraph':
+            for step in self.getkeys('flowgraph'):
+                if self.get('flowgraph',step, 'tool'):
+                    labelname = step+'\\n('+self.get('flowgraph',step, 'tool')+")"
+                else:
+                    labelname = step
+                dot.node(step,label=labelname)
+                for prev_step in self.get('flowgraph',step,'input'):
+                    dot.edge(prev_step, step)
+        elif graph == 'hier':
+            for parent in self.getkeys('hier'):
+                dot.node(parent)
+                for child in self.getkeys('hier', parent):
+                    dot.edge(parent, child)
         dot.render(filename=fileroot, cleanup=True)
 
     ###########################################################################

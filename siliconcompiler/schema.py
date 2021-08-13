@@ -18,6 +18,9 @@ def schema_cfg():
     # Flow graph Setup
     cfg = schema_flowgraph(cfg)
 
+    # Design Hiearchy
+    cfg = schema_hier(cfg)
+
     # EDA setup
     cfg = schema_eda(cfg)
 
@@ -1669,6 +1672,57 @@ def schema_flowgraph(cfg, step='default'):
 
     return cfg
 
+
+###########################################################################
+# Design Hieararchy
+###########################################################################
+
+def schema_hier(cfg, parent='default', child='default'):
+
+
+    cfg['hier'] = {}
+    cfg['hier'][parent] = {}
+    cfg['hier'][parent][child] = {}
+
+    # Flow graph definition
+    cfg['hier'][parent][child]['package'] = {
+        'switch': '-hier_package',
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'filehash': [],
+        'date': [],
+        'author': [],
+        'signature': [],
+        'short_help': 'Component package file',
+        'param_help': "hier parentvar childvar 'package' <file>",
+        'example': ["cli: -hier_package 'top padring padring_package.json'",
+                    "api:  chip.set('hier', 'top', 'padring','package', 'padring_package.json')"],
+        'help': """
+        Path to an instantiated child component package file. The file format is
+        the standard JSON format exported by SC.
+        """
+    }
+
+    # Hierarchical build indicator
+    cfg['hier'][parent][child]['build'] = {
+        'switch': '-hier_build',
+        'type': 'bool',
+        'lock': 'false',
+        'requirement': 'optional',
+        'defvalue': "false",
+        'short_help': 'Child ',
+        'param_help': "hiear parentvar childvar 'build' <bool>",
+        'example': ["cli: -hiear_build 'top padring true'",
+                    "api:  chip.set('hier', 'build', 'top', 'padring','build', 'true')"],
+        'help': """
+        Path to an instantiated child cell package file.
+        """
+    }
+
+    return cfg
+
 ###########################################################################
 # EDA Tool Setup
 ###########################################################################
@@ -3155,27 +3209,6 @@ def schema_design(cfg):
         (\\*.c)        = C
         (\\*.cpp, .cc) = C++
         (\\*.py)       = Python
-        """
-    }
-
-    cfg['component'] = {
-        'switch': '-component',
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'true',
-        'requirement': 'all',
-        'defvalue': [],
-        'filehash': [],
-        'date': [],
-        'author': [],
-        'signature': [],
-        'short_help': 'Design Component',
-        'param_help': "component <file>",
-        'example': ["cli: -component padring_manifest.json",
-                    "api: chip.add('component', 'padring_manifest.json')"],
-        'help': """
-        A list of SC manifest files with with complete information needed
-        to enable instantation at the current design level.
         """
     }
 
