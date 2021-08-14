@@ -31,6 +31,7 @@ author = 'Zero ASIC Corporation'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
+    'sphinx.ext.imgconverter',
     'schemagen',
     'toolgen',
     'targetgen',
