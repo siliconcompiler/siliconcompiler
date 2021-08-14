@@ -690,6 +690,16 @@ ss
             all_args.pop(0)
             return self._search(chip, cfg[param], *all_args, field=field, mode=mode)
 
+
+    ###########################################################################
+    def extend(self, filename, cfg=None):
+        '''
+        Read in a json dictionary and add to the SC cfg.
+        '''
+        #1. Check format/legality (keywords, missing information)
+        #2. Create an entry for every key not found
+        pass
+
     ###########################################################################
     def _prune(self, cfg=None, top=True):
         '''
