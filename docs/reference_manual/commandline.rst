@@ -1,9 +1,3 @@
-
-Python Interface
------------------------
-
-
-
 Command Line Interface
 ========================
 
@@ -13,13 +7,6 @@ accessible through the command line app (but if you find yourself entering
 more than 5-10 switches, you should probably consider using the Python API
 directly).
 
-**Usage:** sc <source-file> [-h] ...
+* sc <sourcefile> [<switches>]
 
-**Positional Arguments:**  <source-file>
-
-**Positional Arguments:**  -h, -target, -constraint, ...
-
-Examples
----------
-
-
+* Auto-generate all switches

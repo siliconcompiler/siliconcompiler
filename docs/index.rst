@@ -11,30 +11,36 @@ Welcome to SiliconCompiler's documentation!
    :caption: User Guide
    :numbered:
 
-   intro
-   install
-   cli_interface
-   python_interface   
+   user_guide/introduction
+   user_guide/installation
+   user_guide/quick_start
+   user_guide/basic_concepts/index
+   user_guide/faq
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Tutorials
+   :numbered:
+
    tutorials/index
-   faq/index
-   
+
 .. toctree::
    :maxdepth: 3
    :caption: Reference Manual
    :numbered:
-   
-   schema   
-   api
-   commandline
-   targets/index
-   tools/index
-   
+
+   reference_manual/schema
+   reference_manual/api
+   reference_manual/commandline
+   reference_manual/targets/index
+   reference_manual/tools/index
+
 .. toctree::
    :maxdepth: 3
    :caption: Resources
    :numbered:
-   
-   glossary
+
+   resources/glossary
 
 Indices and tables
 ==================
