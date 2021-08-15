@@ -1768,7 +1768,7 @@ def schema_eda(cfg):
 
     tool = 'default'
     step = 'default'
-    index = '1'
+    index = '0'
 
     cfg['eda'] = {}
     cfg['eda'][tool] = {}
@@ -2070,7 +2070,7 @@ def schema_arg(cfg):
 # Metrics to Track
 ###########################################################################
 
-def schema_metric(cfg, group='default', step='default', index='1'):
+def schema_metric(cfg, group='default', step='default', index='0'):
 
     if not 'metric' in cfg:
         cfg['metric'] = {}
@@ -2787,7 +2787,7 @@ def schema_options(cfg):
         'type': 'int',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': '1',
+        'defvalue': '0',
         'short_help': 'Job ID',
         'param_help': "jobid <num>",
         'example': ["cli: -jobid 0",

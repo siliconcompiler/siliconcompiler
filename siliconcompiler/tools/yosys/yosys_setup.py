@@ -9,6 +9,7 @@ from siliconcompiler.schema import schema_path
 ################################
 # Setup Tool (pre executable)
 ################################
+
 def setup_tool(chip, step, index):
     ''' Tool specific function to run before step execution
     '''
@@ -21,9 +22,9 @@ def setup_tool(chip, step, index):
     chip.set('eda', tool, step, index, 'copy', 'true')
     chip.set('eda', tool, step, index, 'vendor', 'yosys')
     chip.set('eda', tool, step, index, 'exe', 'yosys')
+    chip.add('eda', tool, step, index, 'option', 'cmdline', '-c')
     chip.set('eda', tool, step, index, 'refdir', refdir)
     chip.add('eda', tool, step, index, 'script', refdir + '/sc_syn.tcl')
-    chip.add('eda', tool, step, index, 'option', 'cmdline', '-c')
 
     #TODO: remove special treatment for fpga??
     targetlist = chip.get('target').split('_')

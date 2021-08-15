@@ -1319,7 +1319,7 @@ ss
 
         #TODO, FIX FOR GRAPH!!
         #TODO, FIX FOR INDEX
-        index = str(1)
+        index = str(0)
         startindex = 0
         stopindex = len(steplist)-1
 
@@ -1371,7 +1371,7 @@ ss
 
         #Creating table of real values
         metrics = []
-        for metric in  self.getkeys('metric', 'default', str(1), 'default'):
+        for metric in  self.getkeys('metric', 'default', str(0), 'default'):
             metrics.append(" " + metric)
             row = []
             for stepindex in range(startindex, stopindex + 1):
@@ -1447,7 +1447,7 @@ ss
         elif not self.get('remote','addr'):
             for item in self.get('flowgraph', step, 'input'):
                 #TODO: Add Merge!
-                for i in range(1, self.get('flowgraph', step, 'nproc') + 1):
+                for i in range(self.get('flowgraph', step, 'nproc')):
                     shutil.copytree("../"+item+str(i)+"/outputs", 'inputs/')
 
         # Dynamic EDA tool module load
@@ -1577,7 +1577,6 @@ ss
         else:
             steplist = self.getkeys('flowgraph')
 
-
         # Walk the hierarchy tree and set up for run
 
         # setup sanity check before you start run
@@ -1594,12 +1593,12 @@ ss
         event = multiprocessing.Event()
         # Set all procs to active
         for step in steplist:
-            index = '1'
+            index = str(0)
             #shared variable for summary
-            for metric in self.getkeys('metric', 'default', str(1), 'default'):
+            print(step,index)
+            for metric in self.getkeys('metric', 'default', str(0), 'default'):
                 self.set('metric', step, index, 'real', metric, 0)
             active[step] = 1
-            #TODO: Fix for multi-processing
 
         # Create procs
         processes = []
