@@ -9,7 +9,7 @@ from siliconcompiler.schema import schema_path
 ################################
 # Setup Tool (pre executable)
 ################################
-def setup_tool(chip, step):
+def setup_tool(chip, step, index):
     ''' Tool specific function to run before step execution
     '''
 
@@ -17,13 +17,13 @@ def setup_tool(chip, step):
 
     tool = 'yosys'
     refdir = 'siliconcompiler/tools/yosys'
-    chip.set('eda', tool, step, 'format', 'tcl')
-    chip.set('eda', tool, step, 'copy', 'true')
-    chip.set('eda', tool, step, 'vendor', 'yosys')
-    chip.set('eda', tool, step, 'exe', 'yosys')
-    chip.set('eda', tool, step, 'refdir', refdir)
-    chip.add('eda', tool, step, 'script', refdir + '/sc_syn.tcl')
-    chip.add('eda', tool, step, 'option', 'cmdline', '-c')
+    chip.set('eda', tool, step, index, 'format', 'tcl')
+    chip.set('eda', tool, step, index, 'copy', 'true')
+    chip.set('eda', tool, step, index, 'vendor', 'yosys')
+    chip.set('eda', tool, step, index, 'exe', 'yosys')
+    chip.set('eda', tool, step, index, 'refdir', refdir)
+    chip.add('eda', tool, step, index, 'script', refdir + '/sc_syn.tcl')
+    chip.add('eda', tool, step, index, 'option', 'cmdline', '-c')
 
     #TODO: remove special treatment for fpga??
     targetlist = chip.get('target').split('_')
@@ -54,11 +54,11 @@ def setup_tool(chip, step):
 ################################
 # Post_process (post executable)
 ################################
-def post_process(chip, step):
+def post_process(chip, step, index):
     ''' Tool specific function to run after step execution
     '''
     tool = 'yosys'
-    exe = chip.get('eda',tool, step, 'exe')
+    exe = chip.get('eda',tool, step, index, 'exe')
     with open(exe + ".log") as f:
         for line in f:
             area = re.search(r'Chip area for module.*\:\s+(.*)', line)
@@ -66,11 +66,11 @@ def post_process(chip, step):
             warnings = re.search(r'Warnings.*\s(\d+)\s+total', line)
 
             if area:
-                chip.set('metric', step, 'real', 'area_cells', round(float(area.group(1)),2))
+                chip.set('metric', step, index, 'real', 'area_cells', round(float(area.group(1)),2))
             elif cells:
-                chip.set('metric', step, 'real', 'cells', int(cells.group(1)))
+                chip.set('metric', step, index, 'real', 'cells', int(cells.group(1)))
             elif warnings:
-                chip.set('metric', step, 'real', 'warnings', int(warnings.group(1)))
+                chip.set('metric', step, index, 'real', 'warnings', int(warnings.group(1)))
 
     #Return 0 if successful
     return 0

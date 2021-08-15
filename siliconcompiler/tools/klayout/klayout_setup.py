@@ -10,22 +10,22 @@ from siliconcompiler.schema import schema_path
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip, step):
+def setup_tool(chip, step, index):
 
      tool = 'klayout'
      refdir = 'siliconcompiler/tools/klayout'
 
-     chip.set('eda', tool, step, 'threads', 4)
-     chip.set('eda', tool, step, 'format', 'json')
-     chip.set('eda', tool, step, 'copy', 'true')
-     chip.set('eda', tool, step, 'vendor', 'klayout')
-     chip.set('eda', tool, step, 'exe', 'klayout')
-     chip.set('eda', tool, step, 'refdir', refdir)
+     chip.set('eda', tool, step, index, 'threads', 4)
+     chip.set('eda', tool, step, index, 'format', 'json')
+     chip.set('eda', tool, step, index, 'copy', 'true')
+     chip.set('eda', tool, step, index, 'vendor', 'klayout')
+     chip.set('eda', tool, step, index, 'exe', 'klayout')
+     chip.set('eda', tool, step, index, 'refdir', refdir)
 
      if step == 'gdsview':
-          chip.set('eda', tool, step, 'option', 'cmdline', '-nn')
+          chip.set('eda', tool, step, index, 'option', 'cmdline', '-nn')
      elif step == 'export':
-          chip.set('eda', tool, step, 'option', 'cmdline', '-zz')
+          chip.set('eda', tool, step, index, 'option', 'cmdline', '-zz')
 
      scriptdir = os.path.dirname(os.path.abspath(__file__))
      sc_root   =  re.sub('siliconcompiler/siliconcompiler/tools/klayout',
@@ -35,7 +35,6 @@ def setup_tool(chip, step):
 
      # TODO: should support multiple target libs?
      libname = chip.get('asic', 'targetlib')[0]
-     inputdir = chip.get('flowgraph',step, 'input')[0]
      pdk_rev = chip.get('pdk', 'rev')
      lib_rev = chip.get('library', libname, 'rev')
      targetlist = chip.get('target').split('_')
@@ -62,7 +61,7 @@ def setup_tool(chip, step):
           options.append('design_name=%s'%(
                chip.get('design')))
           options.append('-rd')
-          options.append(f'in_def=inputs/{inputdir}/%s.def'%(
+          options.append(f'in_def=inputs/%s.def'%(
                chip.get('design')))
           options.append('-rd')
           options.append('seal_file=""')
@@ -100,18 +99,18 @@ def setup_tool(chip, step):
           options.append('-r')
           options.append('klayout_export.py')
           #add all options to dictionary
-          chip.add('eda', tool, step, 'option', 'cmdline', options)
+          chip.add('eda', tool, step, index, 'option', 'cmdline', options)
 
 
-def post_process(chip, step):
+def post_process(chip, step, index):
     ''' Tool specific function to run after step execution
     '''
     # Pass along files needed for future verification steps
     design = chip.get('design')
-    inputdir = chip.get('flowgraph',step, 'input')[0]
 
-    shutil.copy(f'inputs/{inputdir}/{design}.def', f'outputs/{design}.def')
-    shutil.copy(f'inputs/{inputdir}/{design}.sdc', f'outputs/{design}.sdc')
-    shutil.copy(f'inputs/{inputdir}/{design}.v', f'outputs/{design}.v')
+    #TODO: Fix fur multi
+    shutil.copy(f'inputs/{design}.def', f'outputs/{design}.def')
+    shutil.copy(f'inputs/{design}.sdc', f'outputs/{design}.sdc')
+    shutil.copy(f'inputs/{design}.v', f'outputs/{design}.v')
 
     return 0

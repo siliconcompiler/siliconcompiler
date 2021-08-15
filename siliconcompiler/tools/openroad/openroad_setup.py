@@ -11,7 +11,7 @@ from siliconcompiler.schema import schema_path
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip, step):
+def setup_tool(chip, step, index):
     ''' OpenROAD is an integrated chip physical design tool that takes a design
     from synthesized netlist to routed layout.
 
@@ -53,23 +53,23 @@ def setup_tool(chip, step):
     tool = 'openroad'
     refdir = 'siliconcompiler/tools/openroad'
 
-    chip.set('eda', tool, step, 'format', 'tcl')
-    chip.set('eda', tool, step, 'vendor', tool)
-    chip.set('eda', tool, step, 'exe', tool)
-    if chip.get('eda', tool, step, 'threads') is None:
-        chip.set('eda', tool, step, 'threads', os.cpu_count())
-    chip.set('eda', tool, step, 'copy', 'false')
-    chip.set('eda', tool, step, 'refdir', refdir)
+    chip.set('eda', tool, step, index, 'format', 'tcl')
+    chip.set('eda', tool, step, index, 'vendor', tool)
+    chip.set('eda', tool, step, index, 'exe', tool)
+    if chip.get('eda', tool, step, index, 'threads') is None:
+        chip.set('eda', tool, step, index, 'threads', os.cpu_count())
+    chip.set('eda', tool, step, index, 'copy', 'false')
+    chip.set('eda', tool, step, index, 'refdir', refdir)
 
     if step == 'show':
-        chip.set('eda', tool, step, 'option', 'cmdline', '-gui')
-        chip.set('eda', tool, step, 'script', refdir + '/sc_display.tcl')
+        chip.set('eda', tool, step, index, 'option', 'cmdline', '-gui')
+        chip.set('eda', tool, step, index, 'script', refdir + '/sc_display.tcl')
     else:
-        chip.set('eda', tool, step, 'option', 'cmdline', '-no_init')
-        chip.set('eda', tool, step, 'script', refdir + '/sc_apr.tcl')
+        chip.set('eda', tool, step, index, 'option', 'cmdline', '-no_init')
+        chip.set('eda', tool, step, index, 'script', refdir + '/sc_apr.tcl')
         # exit automatically unless bkpt
         if (step not in chip.get('bkpt')):
-            chip.add('eda', tool, step, 'option', 'cmdline', '-exit')
+            chip.add('eda', tool, step, index, 'option', 'cmdline', '-exit')
 
         # enable programmatic pythonic floorplans
         if step == 'floorplan':
@@ -109,7 +109,7 @@ def setup_tool(chip, step):
 # Post_process (post executable)
 ################################
 
-def post_process(chip, step):
+def post_process(chip, step, index):
      ''' Tool specific function to run after step execution
      '''
 
@@ -118,7 +118,7 @@ def post_process(chip, step):
      errors = 0
      warnings = 0
      metric = None
-     exe = chip.get('eda', tool, step, 'exe')
+     exe = chip.get('eda', tool, step, index, 'exe')
      design = chip.get('design')
      with open(exe + ".log") as f:
           for line in f:
@@ -138,27 +138,27 @@ def post_process(chip, step):
                elif warnmatch:
                     warnings = warnings +1
                elif area:
-                    chip.set('metric', step, 'real', 'area_cells', round(float(area.group(1)),2))
+                    chip.set('metric', step, index, 'real', 'area_cells', round(float(area.group(1)),2))
                elif tns:
-                    chip.set('metric', step, 'real', 'setup_tns', round(float(tns.group(1)),2))
+                    chip.set('metric', step, index, 'real', 'setup_tns', round(float(tns.group(1)),2))
                elif wirelength:
-                    chip.set('metric', step, 'real', 'wirelength', round(float(wirelength.group(1)),2))
+                    chip.set('metric', step, index, 'real', 'wirelength', round(float(wirelength.group(1)),2))
                elif vias:
-                    chip.set('metric', step, 'real', 'vias', round(float(vias.group(1)),2))
+                    chip.set('metric', step, index, 'real', 'vias', round(float(vias.group(1)),2))
                elif slack:
-                    chip.set('metric', step, 'real', metric, round(float(slack.group(1)),2))
+                    chip.set('metric', step, index, 'real', metric, round(float(slack.group(1)),2))
                elif metric == "power":
                     if power:
                          powerlist = power.group(1).split()
                          leakage = powerlist[2]
                          total = powerlist[3]
-                         chip.set('metric', step, 'real', 'power_total', float(total))
-                         chip.set('metric', step, 'real', 'power_leakage',  float(leakage))
+                         chip.set('metric', step, index, 'real', 'power_total', float(total))
+                         chip.set('metric', step, index, 'real', 'power_leakage',  float(leakage))
 
 
      #Setting Warnings and Errors
-     chip.set('metric', step, 'real', 'errors', errors)
-     chip.set('metric', step, 'real', 'warnings', warnings)
+     chip.set('metric', step, index, 'real', 'errors', errors)
+     chip.set('metric', step, index, 'real', 'warnings', warnings)
 
      #Temporary superhack!
      #Getting cell count and net number from DEF
@@ -169,11 +169,11 @@ def post_process(chip, step):
                     nets = re.search(r'^NETS (\d+)',line)
                     pins = re.search(r'^PINS (\d+)',line)
                     if cells:
-                         chip.set('metric', step, 'real', 'cells', int(cells.group(1)))
+                         chip.set('metric', step, index, 'real', 'cells', int(cells.group(1)))
                     elif nets:
-                         chip.set('metric', step, 'real', 'nets', int(nets.group(1)))
+                         chip.set('metric', step, index, 'real', 'nets', int(nets.group(1)))
                     elif pins:
-                         chip.set('metric', step, 'real', 'pins', int(pins.group(1)))
+                         chip.set('metric', step, index, 'real', 'pins', int(pins.group(1)))
 
      if step == 'sta':
           # Copy along GDS for verification steps that rely on it
