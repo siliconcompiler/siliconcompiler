@@ -18,11 +18,13 @@ def setup_tool(chip, step, index):
 
     # Standard Setup
     tool = 'verilator'
-    chip.set('eda', tool, step, index, 'threads', 4)
     chip.set('eda', tool, step, index, 'format', 'cmdline')
     chip.set('eda', tool, step, index, 'copy', 'false')
     chip.set('eda', tool, step, index, 'exe', 'verilator')
     chip.set('eda', tool, step, index, 'vendor', 'verilator')
+    chip.set('eda', tool, step, index, 'threads', 4)
+
+    # Options driven on a per step basis
     chip.add('eda', tool, step, index, 'option', 'cmdline', '-sv')
 
     # Differentiate between import step and compilation
