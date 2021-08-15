@@ -1397,6 +1397,15 @@ ss
             print(df.to_string())
             print("-"*135)
 
+
+    ###########################################################################
+    def merge(self, step, inputs, op='min'):
+        '''
+        Merges multiple inputs into a single directory 'step/inputs'.
+        The operation can be an or operation or min operation.
+        '''
+        pass
+
     ###########################################################################
     def runstep(self, step, index, active, event):
 
