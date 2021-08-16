@@ -97,10 +97,7 @@ class Server:
         cfg = cfg['chip_cfg']
         if not 'job_hash' in params:
             return web.Response(text="Error: no job hash provided.")
-        if not 'stage' in params:
-            return web.Response(text="Error: no stage provided.")
         job_hash = params['job_hash']
-        stage = params['stage']
 
         # Retrieve authentication parameters if enabled.
         use_auth = False
@@ -150,18 +147,16 @@ class Server:
             asyncio.create_task(self.remote_sc_auth(job_hash,
                                                     cfg,
                                                     username,
-                                                    key,
-                                                    stage))
+                                                    key))
         else:
             asyncio.create_task(self.remote_sc(job_hash,
                                                cfg['design']['value'][0],
                                                cfg['source']['value'],
                                                build_dir,
-                                               stage,
                                                cur_id))
 
         # Return a response to the client.
-        response_text = "Starting job stage: %s (%s)"%(job_hash, stage)
+        response_text = f"Starting job: {job_hash}"
         return web.Response(text=response_text)
 
     ####################
@@ -241,7 +236,7 @@ class Server:
                     subprocess.run(['mkdir', '-p', '%s/import'%job_root])
                     # Move the uploaded archive and un-zip it.
                     os.replace(tmp_file, '%s/import.zip'%job_root)
-                    subprocess.run(['unzip', '-o', '%s/import.zip'%(job_root)], cwd='%s/import'%job_root)
+                    subprocess.run(['unzip', '-o', '%s/import.zip'%(job_root)], cwd=job_root)
 
         # Delete the temporary file if it still exists.
         if os.path.exists(tmp_file):
@@ -327,7 +322,7 @@ class Server:
             return web.Response(text="Job has no running steps.")
 
     ####################
-    async def remote_sc_auth(self, job_hash, jobs_cfg, username, pk, stage):
+    async def remote_sc_auth(self, job_hash, jobs_cfg, username, pk):
         '''
         Async method to delegate an 'sc' command to a slurm host,
         and send an email notification when the job completes.
@@ -397,14 +392,13 @@ class Server:
             # Run the generated command.
             subprocess.run(run_cmd, shell = True)
 
-        # Zip results after the 'export' stage.
-        if stage == 'export':
-            subprocess.run(['zip',
-                            '-r',
-                            '-y',
-                            '%s.zip'%job_hash,
-                            '%s'%job_hash],
-                           cwd = nfs_mount)
+        # Zip results after all job stages have finished.
+        subprocess.run(['zip',
+                        '-r',
+                        '-y',
+                        '%s.zip'%job_hash,
+                        '%s'%job_hash],
+                       cwd = nfs_mount)
 
         # (Email notifications can be sent here using your preferred API)
 
@@ -412,7 +406,7 @@ class Server:
         self.sc_jobs.pop("%s%s_%s"%(username, job_hash, cur_id))
 
     ####################
-    async def remote_sc(self, job_hash, top_module, sc_sources, build_dir, stage, jobid):
+    async def remote_sc(self, job_hash, top_module, sc_sources, build_dir, jobid):
         '''
         Async method to delegate an 'sc' command to a slurm host,
         and send an email notification when the job completes.

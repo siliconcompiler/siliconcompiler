@@ -1487,13 +1487,16 @@ ss
             if event.is_set():
                 sys.exit(1)
             pending = 0
+
             for input_step in self.get('flowgraph', step, 'input'):
                 for input_index in range(self.get('flowgraph', input_step, 'nproc')):
                     input_str = input_step + str(input_index)
                     pending = pending + active[input_str]
+
             if not pending:
                 break
             sleep(1)
+         
         self.logger.info('Starting step %s', step)
 
         # Build directory
@@ -1608,10 +1611,6 @@ ss
         # save output manifest
         self.writecfg("outputs/" + self.get('design') +'.pkg.json')
 
-        # upload files
-        #if remote:
-        #    upload_sources_to_cluster(self)
-
         # return fo original directory
         os.chdir(cwd)
 
@@ -1640,18 +1639,34 @@ ss
             Runs the route and dfm steps.
         '''
 
-        # step through all components
-        # create chip objects for hiearchy
-        # runstep gets a chip object AND step
-        # add chip object to all core functions
+        # Remote workflow: Dispatch the Chip to a remote server for processing.
+        if self.get('remote', 'addr'):
+            # Pre-process: Run an 'import' stage locally, and upload the
+            # in-progress build directory to the remote server.
+            # Data is encrypted if user / key were specified.
+            remote_preprocess(self)
+            
+            # Run the async 'remote_run' method.
+            asyncio.get_event_loop().run_until_complete(remote_run(self))
 
+            # Fetch results (and delete the job's data from the server).
+            fetch_results(self)
+      
+      
+         if self.get('remote', 'key'):
+                # If 'remote_key' is present in a local job, it represents an
+                # encoded key string to decrypt an in-progress job's data. The key
+                # must be removed from the config dictionary to avoid logging.
+                self.status['decrypt_key'] = self.get('remote', 'key')
+                self.set('remote', 'key', None)
+                # Decrypt the job's data for processing.
+                client_decrypt(self)
+     
         # Run steps if set, otherwise run whole graph
         if self.get('steplist'):
             steplist = self.get('steplist')
         else:
             steplist = self.getsteps()
-
-        # Walk the hierarchy tree and set up for run
 
         # setup sanity check before you start run
         self.check()
@@ -1682,6 +1697,10 @@ ss
         # Mandatory procs cleanup
         for p in processes:
             p.join()
+
+        # For local encrypted jobs, re-encrypt and delete the decrypted data.
+        if 'decrypt_key' in self.status:
+            client_encrypt(self)
 
     ###########################################################################
     def show(self, filename, kind=None):
@@ -1781,7 +1800,7 @@ def get_permutations(base_chip, cmdlinecfg):
     # Set default target if not set and there is nothing set
     if not base_chip.get('target'):
         base_chip.logger.info('No target set, setting to %s','freepdk45_asicflow')
-        base_chip.set('target', 'freepdk45_asicflow')
+        base_chip.set('target', 'freepdk4>>>>>>> main5_asicflow')
 
     # Assign a new 'job_hash' to the chip if necessary.
     if not base_chip.get('remote', 'hash'):

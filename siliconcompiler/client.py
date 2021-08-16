@@ -10,12 +10,14 @@ import asyncio
 import base64
 import glob
 import math
+import multiprocessing
 import json
 import os
 import shutil
 import subprocess
 import sys
 import time
+import uuid
 
 ###################################
 def get_base_url(chip):
@@ -31,14 +33,25 @@ def get_base_url(chip):
     return remote_protocol + remote_host
 
 ###################################
-def remote_preprocess(chips):
+def remote_preprocess(chip):
     '''Helper method to run a local import stage for remote jobs.
     '''
 
+    # Assign a new 'job_hash' to the chip if necessary.
+    if not chip.get('remote', 'hash'):
+        job_hash = uuid.uuid4().hex
+        chip.set('remote', 'hash', job_hash)
+
     # Run the local 'import' step if necessary.
-    if chips[-1].status['local_import']:
-        # TODO: Bit of a hack while we figure out the 'flowgraph' configs.
-        chips[-1].run(start='import', stop='import')
+    if 'import' in chip.getkeys('flowgraph'):
+        chip.runstep('import', {}, multiprocessing.Event())
+
+        # Remove the 'import' step from the flow graph.
+        # (Leave the 'input' list intact so following step(s) know where to look)
+        chip.cfg['flowgraph'].pop('import')
+
+        # Upload the results of the local import stage.
+        upload_sources_to_cluster(chip)
 
 ###################################
 def client_decrypt(chip):
@@ -142,7 +155,7 @@ def client_encrypt(chip):
     os.remove('%s/%s.zip'%(root_dir, job_nameid))
 
 ###################################
-async def remote_run(chip, stage):
+async def remote_run(chip):
     '''Helper method to run a job stage on a remote compute cluster.
     Note that files will not be copied to the remote stage; typically
     the source files will be copied into the cluster's storage before
@@ -158,29 +171,26 @@ async def remote_run(chip, stage):
     step_start = time.monotonic()
 
     # Ask the remote server to start processing the requested step.
-    chip.cfg['start']['value'] = stage
-    chip.cfg['stop']['value'] = stage
-    await request_remote_run(chip, stage)
+    await request_remote_run(chip)
 
     # Check the job's progress periodically until it finishes.
     is_busy = True
     while is_busy:
-      chip.logger.info("%s stage running. (%d seconds)"%(
-                       stage,
+      chip.logger.info("Job is still running. (%d seconds)"%(
                        int(time.monotonic() - step_start)))
       await asyncio.sleep(3)
       try:
-          is_busy = await is_job_busy(chip, stage)
+          is_busy = await is_job_busy(chip)
       except:
           # Sometimes an exception is raised if the request library cannot
           # reach the server due to a transient network issue.
           # Retrying ensures that jobs don't break off when the connection drops.
           is_busy = True
           chip.logger.info("Unknown network error encountered: retrying.")
-    chip.logger.info("%s stage completed!"%stage)
+    chip.logger.info("Remote job run completed!")
 
 ###################################
-async def request_remote_run(chip, stage):
+async def request_remote_run(chip):
     '''Helper method to make an async request to start a job stage.
 
     '''
@@ -190,7 +200,8 @@ async def request_remote_run(chip, stage):
 
         # Use authentication if necessary.
         post_params = {'chip_cfg': chip.cfg}
-        if (chip.get('remote', 'user') and chip.get('remote', 'key')):
+        if (('user' in chip.getkeys('remote') and chip.get('remote', 'user')) and \
+            ('key' in chip.getkeys('remote') and chip.get('remote', 'key'))):
             # Read the key and encode it in base64 format.
             with open(os.path.abspath(chip.get('remote', 'key')), 'rb') as f:
                 key = f.read()
@@ -199,12 +210,10 @@ async def request_remote_run(chip, stage):
                 'username': chip.get('remote', 'user'),
                 'key': b64_key,
                 'job_hash': chip.get('remote', 'hash'),
-                'stage': stage,
             }
         else:
             post_params['params'] = {
                 'job_hash': chip.get('remote', 'hash'),
-                'stage': stage,
             }
 
         # Make the actual request.
@@ -222,7 +231,7 @@ async def request_remote_run(chip, stage):
                     return
 
 ###################################
-async def is_job_busy(chip, stage):
+async def is_job_busy(chip):
     '''Helper method to make an async request asking the remote server
     whether a job is busy, or ready to accept a new step.
     Returns True if the job is busy, False if not.
@@ -240,7 +249,8 @@ async def is_job_busy(chip, stage):
         }
 
         # Set authentication parameters if necessary.
-        if (chip.get('remote', 'user') and chip.get('remote', 'key')):
+        if (('user' in chip.getkeys('remote') and chip.get('remote', 'user')) and \
+            ('key' in chip.getkeys('remote') and chip.get('remote', 'key'))):
             with open(os.path.abspath(chip.get('remote', 'key')), 'rb') as f:
                 key = f.read()
             b64_key = base64.urlsafe_b64encode(key).decode()
@@ -274,7 +284,8 @@ async def delete_job(chip):
         }
 
         # Set authentication parameters if necessary.
-        if (chip.get('remote', 'user') and chip.get('remote', 'key')):
+        if (('user' in chip.getkeys('remote') and chip.get('remote', 'user')) and \
+            ('key' in chip.getkeys('remote') and chip.get('remote', 'key'))):
             with open(os.path.abspath(chip.get('remote', 'key')), 'rb') as f:
                 key = f.read()
             b64_key = base64.urlsafe_b64encode(key).decode()
@@ -307,11 +318,11 @@ async def upload_import_dir(chip):
         post_params = {
             'job_hash': chip.get('remote', 'hash'),
             'job_name': chip.get('jobname'),
-            'job_ids': chip.status['perm_ids'],
         }
 
         # Set authentication parameters and encrypt data if necessary.
-        if (chip.get('remote', 'user') and chip.get('remote', 'key')):
+        if (('user' in chip.getkeys('remote') and chip.get('remote', 'user')) and \
+            ('key' in chip.getkeys('remote') and chip.get('remote', 'key'))):
             # Encrypt the .zip archive with the user's public key.
             # Asymmetric key cryptography is good at signing values, but bad at
             # encrypting bulk data. One common approach is to generate a random
@@ -350,8 +361,16 @@ async def upload_import_dir(chip):
             # Open both 'import.zip' and 'import.crypt' files.
             # We're using a stream cipher to support large files which may not fit
             # in memory, so we'll read and write data one 'chunk' at a time.
-            with open('import.crypt', 'wb') as wf:
-                with open('import.zip', 'rb') as rf:
+            if chip.get('jobid'):
+                jobid = chip.get('jobid');
+            else:
+                jobid = 1
+            local_build_dir = stepdir = '/'.join([chip.get('build_dir'),
+                                                  chip.get('design'),
+                                                  chip.get('jobname') + str(jobid),
+                                                  'import'])
+            with open(local_build_dir + '/import.crypt', 'wb') as wf:
+                with open(local_build_dir + '/import.zip', 'rb') as rf:
                     while True:
                         chunk = rf.read(1024)
                         if not chunk:
@@ -379,11 +398,20 @@ async def upload_import_dir(chip):
                     post_params['new_host_threads'] = int(chip.get('remote', 'threads'))
 
             # Upload the encrypted file.
-            upload_file = os.path.abspath('import.crypt')
+            upload_file = os.path.abspath(local_build_dir + '/import.crypt')
 
         else:
             # No authorizaion configured; upload the unencrypted archive.
-            upload_file = os.path.abspath('import.zip')
+            if chip.get('jobid'):
+                jobid = chip.get('jobid');
+            else:
+                jobid = 1
+            import_loc = '/'.join([chip.get('build_dir'),
+                                   chip.get('design'),
+                                   chip.get('jobname') + str(jobid),
+                                   'import',
+                                   'import.zip'])
+            upload_file = os.path.abspath(import_loc)
 
         # Make the 'import' API call and print the response.
         redirect_url = remote_run_url
@@ -414,41 +442,42 @@ def upload_sources_to_cluster(chip):
     '''
 
     # Zip the 'import' directory.
-    # TODO: Encrypted jobs need to start one level up, this should be unified though.
-    if (chip.get('remote', 'user') and chip.get('remote', 'key')):
-        subprocess.run(['zip',
-                        '-r',
-                        'import/import.zip',
-                        'import'],
-                       cwd='..')
+    if chip.get('jobid'):
+        jobid = chip.get('jobid');
     else:
-        subprocess.run(['zip',
-                        '-r',
-                        'import.zip',
-                        '.'])
+        jobid = 1
+    local_build_dir = stepdir = '/'.join([chip.get('build_dir'),
+                                          chip.get('design'),
+                                          chip.get('jobname') + str(jobid)])
+    subprocess.run(['zip',
+                    '-r',
+                    'import/import.zip',
+                    'import/'],
+                   cwd=local_build_dir)
 
     # Upload the archive to the 'import' server endpoint.
     loop = asyncio.get_event_loop()
     loop.run_until_complete(upload_import_dir(chip))
 
 ###################################
-async def fetch_results_request(chips):
+async def fetch_results_request(chip):
     '''Helper method to fetch job results from a remote compute cluster.
     '''
 
     async with aiohttp.ClientSession() as session:
         # Set the request URL.
-        job_hash = chips[-1].get('remote', 'hash')
-        remote_run_url = get_base_url(chips[-1]) + '/get_results/' + job_hash + '.zip'
+        job_hash = chip.get('remote', 'hash')
+        remote_run_url = get_base_url(chip) + '/get_results/' + job_hash + '.zip'
 
 
         # Set authentication parameters if necessary.
-        if (chips[-1].get('remote', 'user') and chips[-1].get('remote', 'key')):
-            with open(os.path.abspath(chips[-1].get('remote', 'key')), 'rb') as f:
+        if (('user' in chip.getkeys('remote') and chip.get('remote', 'user')) and \
+            ('key' in chip.getkeys('remote') and chip.get('remote', 'key'))):
+            with open(os.path.abspath(chip.get('remote', 'key')), 'rb') as f:
                 key = f.read()
             b64_key = base64.urlsafe_b64encode(key).decode()
             post_params = {
-                'username': chips[-1].get('remote', 'user'),
+                'username': chip.get('remote', 'user'),
                 'key': b64_key,
             }
         else:
@@ -476,34 +505,32 @@ async def fetch_results_request(chips):
                         return
 
 ###################################
-def fetch_results(chips):
+def fetch_results(chip):
     '''Helper method to fetch and open job results from a remote compute cluster.
     '''
 
     # Fetch the remote archive after the export stage.
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    loop.run_until_complete(fetch_results_request(chips))
+    loop.run_until_complete(fetch_results_request(chip))
 
     # Unzip the results.
-    top_design = chips[-1].get('design')
-    job_hash = chips[-1].get('remote', 'hash')
+    top_design = chip.get('design')
+    job_hash = chip.get('remote', 'hash')
     subprocess.run(['unzip', '%s.zip'%job_hash])
     # Remove the results archive after it is extracted.
     os.remove('%s.zip'%job_hash)
 
-    # Call 'delete_job' to remove the run from the server, if it has finished.
-    # This deletes a job_hash, so separate calls for each permutation are not required.
-    if chips[-1].get('remote', 'stop') == 'export':
-        loop.run_until_complete(delete_job(chips[-1]))
+    # Call 'delete_job' to remove the run from the server.
+    loop.run_until_complete(delete_job(chip))
 
     # For encrypted jobs each permutation's result is encrypted in its own archive.
     # For unencrypted jobs, results are simply stored in the archive.
-    if chips[-1].get('remote', 'key'):
+    if ('key' in chip.getkeys('remote')) and chip.get('remote', 'key'):
         # Decrypt the block cipher key using the user's private key.
         with open('%s/import.bin'%job_hash, 'rb') as f:
             aes_key_enc = f.read()
-        with open('%s'%os.path.abspath(chips[-1].get('remote', 'key')), 'r') as f:
+        with open('%s'%os.path.abspath(chip.get('remote', 'key')), 'r') as f:
             decrypt_key = serialization.load_ssh_private_key(
                 f.read().encode(),
                 None,
@@ -516,32 +543,31 @@ def fetch_results(chips):
                 label=None,
             ))
 
-        # Decrypt each permutation using their individual initialization vectors.
-        for chip in chips:
-            # Read in the iv.
-            job_nameid = chip.get('jobname') + str(chip.get('jobid'))
-            with open('%s/%s.iv'%(job_hash, job_nameid), 'rb') as f:
-                aes_iv = f.read()
+        # Decrypt the results using the original initialization vector.
+        # Read in the iv.
+        job_nameid = chip.get('jobname') + str(chip.get('jobid'))
+        with open('%s/%s.iv'%(job_hash, job_nameid), 'rb') as f:
+            aes_iv = f.read()
 
-            # Create the AES cipher.
-            cipher = Cipher(algorithms.AES(aes_key), modes.CTR(aes_iv))
-            decryptor = cipher.decryptor()
+        # Create the AES cipher.
+        cipher = Cipher(algorithms.AES(aes_key), modes.CTR(aes_iv))
+        decryptor = cipher.decryptor()
 
-            # Decrypt the '.crypt' file in chunks.
-            with open('%s/%s.zip'%(job_hash, job_nameid), 'wb') as wf:
-                with open('%s/%s.crypt'%(job_hash, job_nameid), 'rb') as rf:
-                    while True:
-                        chunk = rf.read(1024)
-                        if not chunk:
-                            break
-                        wf.write(decryptor.update(chunk))
-                # Write out any remaining data; CTR mode does not require padding.
-                wf.write(decryptor.finalize())
+        # Decrypt the '.crypt' file in chunks.
+        with open('%s/%s.zip'%(job_hash, job_nameid), 'wb') as wf:
+            with open('%s/%s.crypt'%(job_hash, job_nameid), 'rb') as rf:
+                while True:
+                    chunk = rf.read(1024)
+                    if not chunk:
+                        break
+                    wf.write(decryptor.update(chunk))
+            # Write out any remaining data; CTR mode does not require padding.
+            wf.write(decryptor.finalize())
 
-            # Unzip the decrypted archive in the 'job_hash' working directory.
-            perm_dir = '%s/%s'%(top_design, job_nameid)
-            subprocess.run(['mkdir', '-p', perm_dir], cwd=job_hash)
-            subprocess.run(['unzip', '-d', perm_dir, '%s.zip'%job_nameid], cwd=job_hash)
+        # Unzip the decrypted archive in the 'job_hash' working directory.
+        perm_dir = '%s/%s'%(top_design, job_nameid)
+        subprocess.run(['mkdir', '-p', perm_dir], cwd=job_hash)
+        subprocess.run(['unzip', '-d', perm_dir, '%s.zip'%job_nameid], cwd=job_hash)
 
     # Remove dangling 'import' symlinks if necessary.
     for import_link in glob.iglob(job_hash + '/' + top_design + '/**/import',
@@ -550,7 +576,7 @@ def fetch_results(chips):
             os.remove(import_link)
     # Copy the results into the local build directory, and remove the
     # unzipped directory (including encrypted archives).
-    local_dir = chips[-1].get('build_dir')
+    local_dir = chip.get('build_dir')
     shutil.copytree(job_hash + '/' + top_design,
                     local_dir + '/' + top_design,
                     dirs_exist_ok = True)
