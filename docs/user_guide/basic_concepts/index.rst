@@ -7,13 +7,15 @@ Basic Concepts
 
    data_model
    execution_model
-   sources
+   design import
+   technology_setup
+   flow_setup
+   tool_setup
+   compiler targets
+   floorplanning
    design_hierarchy
    libraries
-   tool_setup
-   targets
-   client_server
-   floorplanning
    metrics
    packaging
+   remote_server
    commandline

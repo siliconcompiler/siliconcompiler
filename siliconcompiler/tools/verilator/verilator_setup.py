@@ -11,55 +11,57 @@ from siliconcompiler.schema import schema_path
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip, step):
+def setup_tool(chip, step, index):
     ''' Per tool function that returns a dynamic options string based on
     the dictionary settings.
     '''
 
     # Standard Setup
     tool = 'verilator'
-    chip.set('eda', tool, step, 'threads', 4)
-    chip.set('eda', tool, step, 'format', 'cmdline')
-    chip.set('eda', tool, step, 'copy', 'false')
-    chip.set('eda', tool, step, 'exe', 'verilator')
-    chip.set('eda', tool, step, 'vendor', 'verilator')
-    chip.add('eda', tool, step, 'option', 'cmdline', '-sv')
+    chip.set('eda', tool, step, index, 'format', 'cmdline')
+    chip.set('eda', tool, step, index, 'copy', 'false')
+    chip.set('eda', tool, step, index, 'exe', 'verilator')
+    chip.set('eda', tool, step, index, 'vendor', 'verilator')
+    chip.set('eda', tool, step, index, 'threads', 4)
+
+    # Options driven on a per step basis
+    chip.add('eda', tool, step, index, 'option', 'cmdline', '-sv')
 
     # Differentiate between import step and compilation
     if step in ['import', 'lint']:
-        chip.add('eda', tool, step, 'option', 'cmdline', '--lint-only --debug')
+        chip.add('eda', tool, step, index, 'option', 'cmdline', '--lint-only --debug')
     elif (step == 'sim'):
-        chip.add('eda', tool, step, 'option', 'cmdline', '--cc')
+        chip.add('eda', tool, step, index, 'option', 'cmdline', '--cc')
     else:
         chip.logger.error('Step %s not supported for verilator', step)
         sys.exit()
 
     #Include cwd in search path (verilator default)
-    chip.add('eda', tool, step, 'option', 'cmdline', '-I../../../')
+    chip.add('eda', tool, step, index, 'option', 'cmdline', '-I../../../')
 
     #Source Level Controls
     for value in chip.get('ydir'):
-        chip.add('eda', tool, step, 'option', 'cmdline', '-y ' + schema_path(value))
+        chip.add('eda', tool, step, index, 'option', 'cmdline', '-y ' + schema_path(value))
     for value in chip.get('vlib'):
-        chip.add('eda', tool, step, 'option', 'cmdline', '-v ' + schema_path(value))
+        chip.add('eda', tool, step, index, 'option', 'cmdline', '-v ' + schema_path(value))
     for value in chip.get('idir'):
-        chip.add('eda', tool, step, 'option', 'cmdline', '-I' + schema_path(value))
+        chip.add('eda', tool, step, index, 'option', 'cmdline', '-I' + schema_path(value))
     for value in chip.get('define'):
-        chip.add('eda', tool, step, 'option', 'cmdline', '-D' + schema_path(value))
+        chip.add('eda', tool, step, index, 'option', 'cmdline', '-D' + schema_path(value))
     for value in chip.get('cmdfile'):
-        chip.add('eda', tool, step, 'option', 'cmdline', '-f ' + schema_path(value))
+        chip.add('eda', tool, step, index, 'option', 'cmdline', '-f ' + schema_path(value))
     for value in chip.get('source'):
-        chip.add('eda', tool, step, 'option', 'cmdline', schema_path(value))
+        chip.add('eda', tool, step, index, 'option', 'cmdline', schema_path(value))
 
     #Make warnings non-fatal in relaxed mode
     if chip.get('relax'):
-        chip.add('eda', tool, step, 'option', 'cmdline', '-Wno-fatal')
+        chip.add('eda', tool, step, index, 'option', 'cmdline', '-Wno-fatal')
 
 ################################
 # Post_process (post executable)
 ################################
 
-def post_process(chip, step):
+def post_process(chip, step, index):
     ''' Tool specific function to run after step execution
     '''
 

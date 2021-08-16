@@ -1599,7 +1599,26 @@ def schema_flowgraph(cfg, step='default'):
     cfg['flowgraph'][step] = {}
 
 
-    # Flow graph definition
+    # Flow step parallelism
+    cfg['flowgraph'][step]['nproc'] = {
+        'switch': '-flowgraph_nproc',
+        'type': 'int',
+        'lock': 'false',
+        'requirement': 'all',
+        'defvalue': 1,
+        'short_help': 'Flowgraph step parallelism',
+        'param_help': "flowgraph stepvar nproc <int>",
+        'example': ["cli: -flowgraph_nprocs 'cts 10'",
+                    "api:  chip.set('flowgraph', 'cts', 'nproc', '10')"],
+        'help': """
+        Integer specifying how many parallel processes to launch for step
+        the step specified Each forked process operates on the same input
+        data but on slightly different setup parameters as configured on
+        a per fork basis.
+        """
+    }
+
+    # Flow input dependancy
     cfg['flowgraph'][step]['input'] = {
         'switch': '-flowgraph_input',
         'type': '[str]',
@@ -1612,6 +1631,25 @@ def schema_flowgraph(cfg, step='default'):
                     "api:  chip.set('flowgraph', 'cts', 'input', 'place')"],
         'help': """
         List of input step dependancies for the current step.
+        """
+    }
+
+
+
+    # Flow input merging
+    cfg['flowgraph'][step]['mergeop'] = {
+        'switch': '-flowgraph_mergeop',
+        'type': 'str',
+        'lock': 'false',
+        'requirement': 'all',
+        'defvalue': [],
+        'short_help': 'Flowgraph Merge Operation',
+        'param_help': "flowgraph stepvar mergeop <str>",
+        'example': ["cli: -flowgraph_mergeop 'cts min'",
+                    "api:  chip.set('flowgraph', 'cts', 'mergeop', 'min')"],
+        'help': """
+        Function to use when merging data from multiple inputs. Valid
+        options are 'or' and 'min'.
         """
     }
 
@@ -1672,7 +1710,6 @@ def schema_flowgraph(cfg, step='default'):
 
     return cfg
 
-
 ###########################################################################
 # Design Hieararchy
 ###########################################################################
@@ -1729,16 +1766,17 @@ def schema_hier(cfg, parent='default', child='default'):
 
 def schema_eda(cfg):
 
-
     tool = 'default'
     step = 'default'
+    index = 'default'
 
     cfg['eda'] = {}
     cfg['eda'][tool] = {}
     cfg['eda'][tool][step] = {}
+    cfg['eda'][tool][step][index] = {}
 
     # exe
-    cfg['eda'][tool][step]['exe'] = {
+    cfg['eda'][tool][step][index]['exe'] = {
         'switch': '-eda_exe',
         'type': 'str',
         'lock': 'false',
@@ -1755,7 +1793,7 @@ def schema_eda(cfg):
     }
 
     # exe vendor
-    cfg['eda'][tool][step]['vendor'] = {
+    cfg['eda'][tool][step][index]['vendor'] = {
         'switch': '-eda_vendor',
         'type': 'str',
         'lock': 'false',
@@ -1774,7 +1812,7 @@ def schema_eda(cfg):
     }
 
     # exe version
-    cfg['eda'][tool][step]['version'] = {
+    cfg['eda'][tool][step][index]['version'] = {
         'switch': '-eda_version',
         'type': 'str',
         'lock': 'false',
@@ -1792,8 +1830,8 @@ def schema_eda(cfg):
     }
 
     # options
-    cfg['eda'][tool][step]['option'] = {}
-    cfg['eda'][tool][step]['option']['default'] = {
+    cfg['eda'][tool][step][index]['option'] = {}
+    cfg['eda'][tool][step][index]['option']['default'] = {
         'switch': '-eda_option',
         'type': '[str]',
         'lock': 'false',
@@ -1817,7 +1855,7 @@ def schema_eda(cfg):
     }
 
     # refdir
-    cfg['eda'][tool][step]['refdir'] = {
+    cfg['eda'][tool][step][index]['refdir'] = {
         'switch': '-eda_refdir',
         'type': 'dir',
         'lock': 'false',
@@ -1834,7 +1872,7 @@ def schema_eda(cfg):
     }
 
     # entry point scripts
-    cfg['eda'][tool][step]['script'] = {
+    cfg['eda'][tool][step][index]['script'] = {
         'switch': '-eda_script',
         'requirement': 'optional',
         'type': '[file]',
@@ -1856,7 +1894,7 @@ def schema_eda(cfg):
     }
 
     # pre execution script
-    cfg['eda'][tool][step]['prescript'] = {
+    cfg['eda'][tool][step][index]['prescript'] = {
         'switch': '-eda_prescript',
         'requirement': 'optional',
         'type': '[file]',
@@ -1881,7 +1919,7 @@ def schema_eda(cfg):
     }
 
     # post execution script
-    cfg['eda'][tool][step]['postcript'] = {
+    cfg['eda'][tool][step][index]['postcript'] = {
         'switch': '-eda_postscript',
         'requirement': 'optional',
         'type': '[file]',
@@ -1906,7 +1944,7 @@ def schema_eda(cfg):
     }
 
     # copy
-    cfg['eda'][tool][step]['copy'] = {
+    cfg['eda'][tool][step][index]['copy'] = {
         'switch': '-eda_copy',
         'type': 'bool',
         'lock': 'false',
@@ -1924,7 +1962,7 @@ def schema_eda(cfg):
     }
 
     # script format
-    cfg['eda'][tool][step]['format'] = {
+    cfg['eda'][tool][step][index]['format'] = {
         'switch': '-eda_format',
         'type': 'str',
         'lock': 'false',
@@ -1942,7 +1980,7 @@ def schema_eda(cfg):
     }
 
     # parallelism
-    cfg['eda'][tool][step]['threads'] = {
+    cfg['eda'][tool][step][index]['threads'] = {
         'switch': '-eda_threads',
         'type': 'int',
         'lock': 'false',
@@ -1961,7 +1999,7 @@ def schema_eda(cfg):
     }
 
     # warnings
-    cfg['eda'][tool][step]['woff'] = {
+    cfg['eda'][tool][step][index]['woff'] = {
         'switch': '-eda_woff',
         'type': 'str',
         'lock': 'false',
@@ -2009,7 +2047,21 @@ def schema_arg(cfg):
         """
     }
 
-
+    cfg['arg']['index'] = {
+        'switch': '-arg_index',
+        'type': 'int',
+        'lock': 'false',
+        'requirement': 'optional',
+        'defvalue': None,
+        'short_help': 'Current Step Index',
+        'param_help': "arg_step <str>",
+        'example': ["cli: -arg_step 'route'",
+                    "api: chip.set('arg', 'step', 'route')"],
+        'help': """
+        Dynamic variable passed in by the sc runtime as an argument to
+        an EDA tool to indicate the index of the step being worked on.
+        """
+    }
 
     return cfg
 
@@ -2018,15 +2070,16 @@ def schema_arg(cfg):
 # Metrics to Track
 ###########################################################################
 
-def schema_metric(cfg, group='default', step='default'):
+def schema_metric(cfg, group='default', step='default', index='default'):
 
     if not 'metric' in cfg:
         cfg['metric'] = {}
         cfg['metric'][step] = {}
 
-    cfg['metric'][step]['default'] = {}
+    cfg['metric'][step][index] = {}
+    cfg['metric'][step][index][group] = {}
 
-    cfg['metric'][step][group]['registers'] = {
+    cfg['metric'][step][index][group]['registers'] = {
         'switch': '-metric_registers',
         'type': 'int',
         'lock': 'false',
@@ -2041,7 +2094,7 @@ def schema_metric(cfg, group='default', step='default'):
         """
     }
 
-    cfg['metric'][step][group]['cells'] = {
+    cfg['metric'][step][index][group]['cells'] = {
         'switch': '-metric_cells',
         'type': 'int',
         'lock': 'false',
@@ -2058,7 +2111,7 @@ def schema_metric(cfg, group='default', step='default'):
         """
     }
 
-    cfg['metric'][step][group]['rambits'] = {
+    cfg['metric'][step][index][group]['rambits'] = {
         'switch': '-metric_rambits',
         'type': 'int',
         'lock': 'false',
@@ -2075,7 +2128,7 @@ def schema_metric(cfg, group='default', step='default'):
         """
     }
 
-    cfg['metric'][step][group]['xtors'] = {
+    cfg['metric'][step][index][group]['xtors'] = {
         'switch': '-metric_xtors',
         'type': 'int',
         'lock': 'false',
@@ -2091,7 +2144,7 @@ def schema_metric(cfg, group='default', step='default'):
         """
     }
 
-    cfg['metric'][step][group]['nets'] = {
+    cfg['metric'][step][index][group]['nets'] = {
         'switch': '-metric_nets',
         'type': 'int',
         'lock': 'false',
@@ -2107,7 +2160,7 @@ def schema_metric(cfg, group='default', step='default'):
         """
     }
 
-    cfg['metric'][step][group]['pins'] = {
+    cfg['metric'][step][index][group]['pins'] = {
         'switch': '-metric_pins',
         'type': 'int',
         'lock': 'false',
@@ -2123,7 +2176,7 @@ def schema_metric(cfg, group='default', step='default'):
         """
     }
 
-    cfg['metric'][step][group]['vias'] = {
+    cfg['metric'][step][index][group]['vias'] = {
         'switch': '-metric_vias',
         'type': 'int',
         'lock': 'false',
@@ -2138,7 +2191,7 @@ def schema_metric(cfg, group='default', step='default'):
         """
     }
 
-    cfg['metric'][step][group]['wirelength'] = {
+    cfg['metric'][step][index][group]['wirelength'] = {
         'switch': '-metric_wirelength',
         'type': 'float',
         'lock': 'false',
@@ -2153,7 +2206,7 @@ def schema_metric(cfg, group='default', step='default'):
         """
     }
 
-    cfg['metric'][step][group]['overflow'] = {
+    cfg['metric'][step][index][group]['overflow'] = {
         'switch': '-metric_overflow',
         'type': 'int',
         'lock': 'false',
@@ -2172,7 +2225,7 @@ def schema_metric(cfg, group='default', step='default'):
         """
     }
 
-    cfg['metric'][step][group]['area_cells'] = {
+    cfg['metric'][step][index][group]['area_cells'] = {
         'switch': '-metric_area_cells',
         'type': 'float',
         'lock': 'false',
@@ -2188,7 +2241,7 @@ def schema_metric(cfg, group='default', step='default'):
         """
     }
 
-    cfg['metric'][step][group]['area_total'] = {
+    cfg['metric'][step][index][group]['area_total'] = {
         'switch': '-metric_area_total',
         'type': 'float',
         'lock': 'false',
@@ -2204,7 +2257,7 @@ def schema_metric(cfg, group='default', step='default'):
         """
     }
 
-    cfg['metric'][step][group]['area_density'] = {
+    cfg['metric'][step][index][group]['area_density'] = {
         'switch': '-metric_area_density',
         'type': 'float',
         'lock': 'false',
@@ -2222,7 +2275,7 @@ def schema_metric(cfg, group='default', step='default'):
         """
     }
 
-    cfg['metric'][step][group]['power_total'] = {
+    cfg['metric'][step][index][group]['power_total'] = {
         'switch': '-metric_power_total',
         'type': 'float',
         'lock': 'false',
@@ -2239,7 +2292,7 @@ def schema_metric(cfg, group='default', step='default'):
         """
     }
 
-    cfg['metric'][step][group]['power_leakage'] = {
+    cfg['metric'][step][index][group]['power_leakage'] = {
         'switch': '-metric_power_leakage',
         'type': 'float',
         'lock': 'false',
@@ -2255,7 +2308,7 @@ def schema_metric(cfg, group='default', step='default'):
         """
     }
 
-    cfg['metric'][step][group]['hold_slack'] = {
+    cfg['metric'][step][index][group]['hold_slack'] = {
         'switch': '-metric_hold_slack',
         'type': 'float',
         'lock': 'false',
@@ -2272,7 +2325,7 @@ def schema_metric(cfg, group='default', step='default'):
         """
     }
 
-    cfg['metric'][step][group]['hold_tns'] = {
+    cfg['metric'][step][index][group]['hold_tns'] = {
         'switch': '-metric_hold_tns',
         'type': 'float',
         'lock': 'false',
@@ -2288,7 +2341,7 @@ def schema_metric(cfg, group='default', step='default'):
         """
     }
 
-    cfg['metric'][step][group]['setup_slack'] = {
+    cfg['metric'][step][index][group]['setup_slack'] = {
         'switch': '-metric_setup_slack',
         'type': 'float',
         'lock': 'false',
@@ -2306,7 +2359,7 @@ def schema_metric(cfg, group='default', step='default'):
     }
 
 
-    cfg['metric'][step][group]['setup_tns'] = {
+    cfg['metric'][step][index][group]['setup_tns'] = {
         'switch': '-metric_setup_tns',
         'type': 'float',
         'lock': 'false',
@@ -2322,7 +2375,7 @@ def schema_metric(cfg, group='default', step='default'):
         """
     }
 
-    cfg['metric'][step][group]['drv'] = {
+    cfg['metric'][step][index][group]['drv'] = {
         'switch': '-metric_drv',
         'type': 'int',
         'lock': 'false',
@@ -2338,7 +2391,7 @@ def schema_metric(cfg, group='default', step='default'):
         """
     }
 
-    cfg['metric'][step][group]['warnings'] = {
+    cfg['metric'][step][index][group]['warnings'] = {
         'switch': '-metric_warnings',
         'type': 'int',
         'lock': 'false',
@@ -2354,7 +2407,7 @@ def schema_metric(cfg, group='default', step='default'):
         """
     }
 
-    cfg['metric'][step][group]['errors'] = {
+    cfg['metric'][step][index][group]['errors'] = {
         'switch': '-metric_errors',
         'type': 'int',
         'lock': 'false',
@@ -2369,7 +2422,7 @@ def schema_metric(cfg, group='default', step='default'):
         """
     }
 
-    cfg['metric'][step][group]['runtime'] = {
+    cfg['metric'][step][index][group]['runtime'] = {
         'switch': '-metric_runtime',
         'type': 'float',
         'lock': 'false',
@@ -2385,7 +2438,7 @@ def schema_metric(cfg, group='default', step='default'):
         """
     }
 
-    cfg['metric'][step][group]['memory'] = {
+    cfg['metric'][step][index][group]['memory'] = {
         'switch': '-metric_memory',
         'type': 'float',
         'lock': 'false',
@@ -2407,13 +2460,14 @@ def schema_metric(cfg, group='default', step='default'):
 # Design Tracking
 ###########################################################################
 
-def schema_record(cfg, step='default'):
+def schema_record(cfg, step='default', index=1):
 
     cfg['record'] = {}
 
     cfg['record'][step] = {}      # per step
+    cfg['record'][step][index] = {} # per index
 
-    cfg['record'][step]['input'] = {
+    cfg['record'][step][index]['input'] = {
         'switch': '-record_input',
         'requirement': 'optional',
         'type': '[file]',
@@ -2435,7 +2489,7 @@ def schema_record(cfg, step='default'):
         """
     }
 
-    cfg['record'][step]['author'] = {
+    cfg['record'][step][index]['author'] = {
         'switch': '-record_author',
         'type': 'str',
         'lock': 'false',
@@ -2450,7 +2504,7 @@ def schema_record(cfg, step='default'):
         """
     }
 
-    cfg['record'][step]['userid'] = {
+    cfg['record'][step][index]['userid'] = {
         'switch': '-record_userid',
         'type': 'str',
         'lock': 'false',
@@ -2465,7 +2519,7 @@ def schema_record(cfg, step='default'):
         """
     }
 
-    cfg['record'][step]['signature'] = {
+    cfg['record'][step][index]['signature'] = {
         'switch': '-record_signature',
         'type': 'str',
         'lock': 'false',
@@ -2480,7 +2534,7 @@ def schema_record(cfg, step='default'):
         """
     }
 
-    cfg['record'][step]['org'] = {
+    cfg['record'][step][index]['org'] = {
         'switch': '-record_org',
         'type': 'str',
         'lock': 'false',
@@ -2495,7 +2549,7 @@ def schema_record(cfg, step='default'):
         """
     }
 
-    cfg['record'][step]['location'] = {
+    cfg['record'][step][index]['location'] = {
         'switch': '-record_location',
         'type': 'str',
         'lock': 'false',
@@ -2510,7 +2564,7 @@ def schema_record(cfg, step='default'):
         """
     }
 
-    cfg['record'][step]['date'] = {
+    cfg['record'][step][index]['date'] = {
         'switch': '-record_date',
         'type': 'str',
         'lock': 'false',
@@ -2526,7 +2580,7 @@ def schema_record(cfg, step='default'):
         """
     }
 
-    cfg['record'][step]['time'] = {
+    cfg['record'][step][index]['time'] = {
         'switch': '-record_time',
         'type': 'str',
         'lock': 'false',
@@ -2733,7 +2787,7 @@ def schema_options(cfg):
         'type': 'int',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': '1',
+        'defvalue': '0',
         'short_help': 'Job ID',
         'param_help': "jobid <num>",
         'example': ["cli: -jobid 0",

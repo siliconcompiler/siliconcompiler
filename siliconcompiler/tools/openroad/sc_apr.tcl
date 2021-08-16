@@ -53,20 +53,19 @@ if {$target_tech eq "freepdk45"} {
 
 set tool openroad
 set sc_step       [dict get $sc_cfg arg step]
+set sc_index      [dict get $sc_cfg arg index]
 
 #Handling remote/local script execution
-if {[dict get $sc_cfg eda $tool $sc_step copy] eq True} {
+if {[dict get $sc_cfg eda $tool $sc_step $sc_index copy] eq True} {
     set sc_refdir "."
 } else {
-    set sc_refdir [dict get $sc_cfg eda $tool $sc_step refdir]
+    set sc_refdir [dict get $sc_cfg eda $tool $sc_step $sc_index refdir]
 }
 
 # Design
 set sc_design     [dict get $sc_cfg design]
 set sc_optmode    [dict get $sc_cfg optmode]
 
-# Get inputs
-set sc_input      [dict get $sc_cfg flowgraph $sc_step input]
 
 # APR Parameters
 set sc_mainlib     [lindex [dict get $sc_cfg asic targetlib] 0]
@@ -118,7 +117,7 @@ dict for {key value} [dict get $sc_cfg pdk grid $sc_stackup] {
     lappend sc_layers $key
 }
 
-set sc_threads [dict get $sc_cfg eda openroad $sc_step threads]
+set sc_threads [dict get $sc_cfg eda openroad $sc_step $sc_index threads]
 
 ###############################
 # Optional
@@ -184,14 +183,14 @@ foreach lib $sc_macrolibs {
 
 # Floorplan reads synthesis verilog, others read def
 if {$sc_step == "floorplan" | $sc_step == "synopt"} {
-    read_verilog "inputs/$sc_input/$sc_design.v"
+    read_verilog "inputs/$sc_design.v"
     link_design $sc_design
     foreach sdc $sc_constraint {
 	read_sdc $sdc
     }
 } else {
-    read_def "inputs/$sc_input/$sc_design.def"
-    read_sdc "inputs/$sc_input/$sc_design.sdc"
+    read_def "inputs/$sc_design.def"
+    read_sdc "inputs/$sc_design.sdc"
 }
 
 ###############################

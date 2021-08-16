@@ -60,7 +60,7 @@ class Chip:
         # Initialize logger
         self.logger = logging.getLogger(uuid.uuid4().hex)
         self.handler = logging.StreamHandler()
-        self.formatter = logging.Formatter('| %(levelname)s | %(asctime)-8s | ' + logname +  ' | %(message)s', datefmt='%Y-%m-%d %H:%M:%S',)
+        self.formatter = logging.Formatter('| %(levelname)-7s | %(asctime)s | ' + logname +  ' | %(message)s', datefmt='%Y-%m-%d %H:%M:%S',)
         self.handler.setFormatter(self.formatter)
         self.logger.addHandler(self.handler)
         self.logger.setLevel(str(loglevel))
@@ -566,10 +566,10 @@ ss
         if chip == None:
             chip = self
 
-        chip.logger.debug('Setting config dictionary value: %s', args)
-
         if cfg is None:
             cfg = chip.cfg
+
+        chip.logger.debug('Setting config dictionary value: %s', args)
 
         all_args = list(args)
 
@@ -978,22 +978,54 @@ ss
             self.error = 1
 
     ###########################################################################
-    def score(self, step):
+    def score(self, step, index, chip=None, cfg=None):
         '''Return the sum of product of all metrics for measure step multiplied
         by the values in a weight dictionary input.
 
         '''
 
+        if chip == None:
+            chip = self
+
+        if cfg is None:
+            cfg = chip.cfg
+
+        chip.logger.debug('Calculating score for step %s, index %s', step, index)
+
         score = 0
-        for metric in self.getkeys('metric', 'default', 'default'):
-            value = self.get('metric', step, 'real', metric)
-            if metric in self.getkeys('flowgraph', step, 'weight'):
-                product = value * self.get('flowgraph', step, 'weight', metric)
+        for metric in self.getkeys('metric', 'default', index, 'default',chip=chip, cfg=cfg):
+            value = self.get('metric', step, index, 'real', metric, chip=chip, cfg=cfg)
+            if metric in self.getkeys('flowgraph', step, 'weight', chip=chip, cfg=cfg):
+                product = value * self.get('flowgraph', step, 'weight', metric, chip=chip, cfg=cfg)
             else:
                 product = value * 1.0
             score = score + product
 
         return score
+
+    ###########################################################################
+    def min(self, steplist, chip=None, cfg=None):
+        '''Return the the step with the minimum score (best) out of list
+        of steps provided.
+
+        '''
+
+        if chip == None:
+            chip = self
+
+        if cfg is None:
+            cfg = chip.cfg
+
+        chip.logger.debug('Calculating minimum from  %s', steplist)
+
+        minscore = Inf
+        minstep = None
+        for step in steplist:
+            score = self.score(step, chip=chip, cfg=cfg)
+            if score < minscore:
+                minstep = step
+
+        return minstep
 
     ###########################################################################
     def writegraph(self, graph, filename):
@@ -1055,7 +1087,7 @@ ss
         '''
 
         if step is None:
-            steplist =self.getkeys('flowgraph')
+            steplist = self.getsteps()
         else:
             steplist = [step]
 
@@ -1283,16 +1315,13 @@ ss
         if self.get('steplist'):
             steplist = self.get('steplist')
         else:
-            steplist = self.getkeys('flowgraph')
+            steplist = self.getsteps()
 
         #TODO, FIX FOR GRAPH!!
-        startindex = 0
-        stopindex = len(steplist)-1
-
-        jobdir = (self.get('build_dir') +
-                  "/" + self.get('design') + "/" +
-                  self.get('jobname') +
-                  str(self.get('jobid')))
+        #TODO, FIX FOR INDEX
+        jobdir = "/".join([self.get('build_dir') ,
+                           self.get('design'),
+                           self.get('jobname') + str(self.get('jobid'))])
 
         if self.get('mode') == 'asic':
             info = '\n'.join(["SUMMARY:\n",
@@ -1310,47 +1339,50 @@ ss
         print("-"*135)
         print(info, "\n")
 
-        # Stepping through all directories
-        # for remote running, metrics are not in memory, must be read from file
-        for stepindex in range(startindex, stopindex + 1):
-            step = steplist[stepindex]
-            metricsfile = "/".join([jobdir,
-                                    step,
-                                    "outputs",
-                                    self.get('design') + "_manifest.json"])
-
-            #Load results from file (multi-thread safe)
-            with open(metricsfile, 'r') as f:
-                sc_results = json.load(f)
-            #Copy results into step
-            self.cfg['metric'][step] = copy.deepcopy(sc_results['metric'][step])
-
-        #Creating step index
+        # Stepping through all steps/indices and printing out metrics
         data = []
         steps = []
         colwidth = 8
-        #Creating header row
-        for stepindex in range(startindex, stopindex + 1):
-            step = steplist[stepindex]
+        for step in steplist:
+            #Creating centered columns
+            steps.append(step.center(colwidth))
+            for index in range(self.get('flowgraph', step, 'nproc')):
+                metricsfile = "/".join([jobdir,
+                                        step+str(index),
+                                        "outputs",
+                                        self.get('design') + ".pkg.json"])
+
+                #Load results from file (multi-thread safe)
+                with open(metricsfile, 'r') as f:
+                    sc_results = json.load(f)
+
+                #Copying over metric one at a time
+                for metric in  self.getkeys('metric', 'default', 'default', 'default'):
+                    value = self.get('metric', step, str(index), 'real', metric, cfg=sc_results)
+                    self.set('metric', step, index, 'real', metric, value)
+
+
+        #Creating Header
+        steps = []
+        colwidth = 8
+        for step in steplist:
             steps.append(step.center(colwidth))
 
         #Creating table of real values
         metrics = []
-        for metric in  self.getkeys('metric', 'default', 'default'):
+        for metric in  self.getkeys('metric', 'default', 'default', 'default'):
             metrics.append(" " + metric)
             row = []
-            for stepindex in range(startindex, stopindex + 1):
-                step = steplist[stepindex]
+            for step in steplist:
                 row.append(" " +
-                           str(self.get('metric', step, 'real', metric)).center(colwidth))
+                           str(self.get('metric', step, index, 'real', metric)).center(colwidth))
             data.append(row)
 
         #Creating goodness score for step
         metrics.append(" " + '**score**')
         row = []
-        for stepindex in range(startindex, stopindex + 1):
-            step = steplist[stepindex]
-            step_score =  round(self.score(step),2)
+        for step in steplist:
+            step_score =  round(self.score(step, index),2)
             row.append(" " + str(step_score).center(colwidth))
         data.append(row)
 
@@ -1362,31 +1394,121 @@ ss
             print(df.to_string())
             print("-"*135)
 
+
     ###########################################################################
-    def runstep(self, step, active, event):
+    def flowgraph_outputs(self, step, chip=None, cfg=None):
+        '''
+        Returns an ordered list based on the flowgraph
+        '''
+
+        if chip == None:
+            chip = self
+
+        if cfg is None:
+            cfg = chip.cfg
+
+        outputs = []
+        for item in self.getkeys('flowgraph'):
+            if step in self.get('flowgraph', item, 'input', chip=chip, cfg=cfg):
+                outputs.append(item)
+
+        return outputs
+    ###########################################################################
+    def _allpaths(self, node, path=None, allpaths=None, cfg=None):
+
+        if path is None:
+            allpaths = []
+            path = []
+        for node in self.get('flowgraph', node, 'input', chip=chip, cfg=cfg):
+            newpath = path.copy()
+            newpath.append(node)
+            allpaths.append(newpath)
+            return self._allpaths(node, path=newpath, allpaths=allpaths,chip=chip, cfg=cfg)
+        return allpaths
+
+    ###########################################################################
+    def getsteps(self, chip=None, cfg=None):
+        '''
+        Returns an ordered list based on the flowgraph
+        '''
+
+        if chip == None:
+            chip = self
+
+        if cfg is None:
+            cfg = chip.cfg
+
+        #Get length of paths from step to root
+        depth = {}
+        for step in self.getkeys('flowgraph', chip=chip, cfg=cfg):
+            max_length = 0
+            depth[step] = 0
+            for path in self._allpaths(chip, step):
+                if len(list(path)) > depth[step]:
+                    depth[step] = len(path)
+
+        #Sort steps based on path lenghts
+        sorted_dict = dict(sorted(depth.items(), key=lambda depth: depth[1]))
+        return list(sorted_dict.keys())
+
+    ###########################################################################
+    def _allpaths(self, chip, node, path=None, allpaths=None):
+
+        if path is None:
+            allpaths = []
+            path = []
+        if not self.get('flowgraph', node, 'input', chip=chip):
+            allpaths.append(path)
+        else:
+            for node in self.get('flowgraph', node, 'input', chip=chip):
+                newpath = path.copy()
+                newpath.append(node)
+                return self._allpaths(chip, node, path=newpath, allpaths=allpaths)
+        return list(allpaths)
+
+    ###########################################################################
+    def select(self, step, op='min'):
+        '''
+        Merges multiple inputs into a single directory 'step/inputs'.
+        The operation can be an 'or' operation or 'min' operation.
+        '''
+
+        steplist = self.get('flowgraph', step, 'input')
+        #TODO: Add logic for stepping through procs, steps and selecting
+
+        index = 0
+        return (steplist, index)
+
+    ###########################################################################
+    def runstep(self, step, index, active, event):
 
         # Explicit wait loop until inputs have been resolved
         # This should be a shared object to not be messy
 
         self.logger.info('Step %s waiting on inputs', step)
+        stepstr = step + index
         while True:
             #global shared event signaling error
             if event.is_set():
                 sys.exit(1)
             pending = 0
-            for item in self.get('flowgraph', step, 'input'):
-                if item in self.cfg['flowgraph']:
-                    pending = pending + active[item]
+
+            for input_step in self.get('flowgraph', step, 'input'):
+                for input_index in range(self.get('flowgraph', input_step, 'nproc')):
+                    input_str = input_step + str(input_index)
+                    pending = pending + active[input_str]
+
             if not pending:
                 break
             sleep(1)
+
         self.logger.info('Starting step %s', step)
 
         # Build directory
         stepdir = "/".join([self.get('build_dir'),
                             self.get('design'),
                             self.get('jobname') + str(self.get('jobid')),
-                            step])
+                            step + index])
 
         # Directory manipulation
         cwd = os.getcwd()
@@ -1402,8 +1524,10 @@ ss
         if not self.get('flowgraph', step, 'input'):
             self.collect(dir='inputs')
         elif not self.get('remote','addr'):
-            for item in self.get('flowgraph', step, 'input'):
-                shutil.copytree("../"+item+"/outputs", 'inputs/'+item)
+            #select the previous step outputs to copy over
+            steplist, mindex = self.select(step)
+            for item in steplist:
+                shutil.copytree("../"+item+str(mindex)+"/outputs", 'inputs/')
 
         # Dynamic EDA tool module load
         tool = self.get('flowgraph', step, 'tool')
@@ -1411,28 +1535,28 @@ ss
         modulename = '.'+tool+'_setup'
         module = importlib.import_module(modulename, package=searchdir)
         setup_tool = getattr(module, "setup_tool")
-        setup_tool(self, step)
+        setup_tool(self, step, index)
 
         # Check installation
-        exe = self.get('eda', tool, step, 'exe')
+        exe = self.get('eda', tool, step, index, 'exe')
         exepath = subprocess.run("command -v "+exe+">/dev/null", shell=True)
         if exepath.returncode > 0:
             self.logger.critical('Executable %s not installed.', exe)
             sys.exit()
 
         #Copy Reference Scripts
-        if self.get('eda', tool, step, 'copy'):
-            refdir = schema_path(self.get('eda', tool, step, 'refdir'))
+        if self.get('eda', tool, step, index, 'copy'):
+            refdir = schema_path(self.get('eda', tool, step, index, 'refdir'))
             shutil.copytree(refdir, ".", dirs_exist_ok=True)
 
         # Construct command line
-        exe = self.get('eda', tool, step, 'exe')
+        exe = self.get('eda', tool, step, index, 'exe')
         logfile = exe + ".log"
-        options = self.get('eda', tool, step, 'option', 'cmdline')
+        options = self.get('eda', tool, step, index, 'option', 'cmdline')
 
         scripts = []
-        if 'script' in self.getkeys('eda', tool, step):
-            for value in self.get('eda', tool, step, 'script'):
+        if 'script' in self.getkeys('eda', tool, step, index):
+            for value in self.get('eda', tool, step, index, 'script'):
                 abspath = schema_path(value)
                 scripts.append(abspath)
 
@@ -1454,10 +1578,6 @@ ss
             print('#!/bin/bash\n',cmdstr, file=f)
         os.chmod("run.sh", 0o755)
 
-        # Init Metrics Table
-        for metric in self.getkeys('metric', 'default', 'default'):
-            self.set('metric', step, 'real', metric, 0)
-
         # Save config files required by EDA tools
         # Create a local copy with arguments set
         # The below snippet is how we communicate thread local data needed
@@ -1466,10 +1586,16 @@ ss
         # Passing local arguments to EDA tool!
         cfglocal = copy.deepcopy(self.cfg)
         self.set('arg', 'step', step, cfg=cfglocal)
+        self.set('arg', 'index', index, cfg=cfglocal)
+
         # Writing out files
         self.writecfg("sc_manifest.json", cfg=cfglocal, prune=False)
         self.writecfg("sc_manifest.yaml", cfg=cfglocal, prune=False)
         self.writecfg("sc_manifest.tcl", cfg=cfglocal, abspath=True)
+
+        # Resetting metrics
+        for metric in self.getkeys('metric', 'default', 'default', 'default'):
+                    self.set('metric', step, index, 'real', metric, 0)
 
         # Run exeucutable
         self.logger.info("Running %s in %s", step, os.path.abspath(stepdir))
@@ -1478,7 +1604,7 @@ ss
 
         # Post Process (and error checking)
         post_process = getattr(module, "post_process")
-        post_error = post_process(self, step)
+        post_error = post_process(self, step, index)
 
         # Check for errors
         if (error.returncode | post_error):
@@ -1488,13 +1614,13 @@ ss
             sys.exit()
 
         # save output manifest
-        self.writecfg("outputs/" + self.get('design') +'_manifest.json')
+        self.writecfg("outputs/" + self.get('design') +'.pkg.json')
 
         # return fo original directory
         os.chdir(cwd)
 
         # clearing active bit
-        active[step] = 0
+        active[step + index] = 0
 
     ###########################################################################
     def run(self):
@@ -1530,9 +1656,7 @@ ss
 
             # Fetch results (and delete the job's data from the server).
             fetch_results(self)
-
         else:
-            # Local workflow: Run the Chip's configured steps in parallel.
             if self.get('remote', 'key'):
                 # If 'remote_key' is present in a local job, it represents an
                 # encoded key string to decrypt an in-progress job's data. The key
@@ -1542,19 +1666,14 @@ ss
                 # Decrypt the job's data for processing.
                 client_decrypt(self)
 
-            # step through all components
-            # create chip objects for hiearchy
-            # runstep gets a chip object AND step
-            # add chip object to all core functions
-
-            # setup sanity check before you start run
-            self.check()
-
             # Run steps if set, otherwise run whole graph
             if self.get('steplist'):
                 steplist = self.get('steplist')
             else:
-                steplist = self.getkeys('flowgraph')
+                steplist = self.getsteps()
+
+            # setup sanity check before you start run
+            self.check()
 
             # Set all threads to active before launching to avoid races
             # Sequence matters, do NOT merge this loop with loop below!
@@ -1562,15 +1681,20 @@ ss
             # Launch a thread for eact step in flowgraph
             manager = multiprocessing.Manager()
             # Create a shared
-            active = manager.dict()
             event = multiprocessing.Event()
+            active = manager.dict()
             # Set all procs to active
             for step in steplist:
-                active[step] = 1
+                for index in range(self.get('flowgraph', step, 'nproc')):
+                    stepstr = step + str(index)
+                    active[stepstr] = 1
+
             # Create procs
             processes = []
             for step in steplist:
-                processes.append(multiprocessing.Process(target=self.runstep, args=(step, active, event,)))
+                for index in range(self.get('flowgraph', step, 'nproc')):
+                    processes.append(multiprocessing.Process(target=self.runstep,
+                                                             args=(step, str(index), active, event,)))
             # Start all procs
             for p in processes:
                 p.start()
@@ -1583,64 +1707,55 @@ ss
                 client_encrypt(self)
 
     ###########################################################################
-    def show(self, step=None, filetype=None):
+    def show(self, filename, kind=None):
         '''
-        Display output of a step. File to be displayed and program used for display
-        is configured in the EDA directory.
-        TODO: Should we support viewing multiple outputs for a step?
-        Would need to pass in parameters to the tcl scripts to accomplish this.
+        Displays the filename using the appropriate program. Only files
+        taken from a valid SC directory path is supported.
+
+        filename=def,gds,json,etc
+        kind=used when there are multiple kinds of data inside like
+        metricss, hiearchym flowgraph
+        step is taken from args, which is when file was written!
         '''
 
-        if step==None:
-            if self.get('show'):
-                step = self.get('show')
-            else:
-                self.logger.error("Running show commmand with no showsteps defined.")
-                sys.exit()
+        self.logger.info("Showing file %s", filename)
+        filext = os.path.splitext(filename)[1].lower()
 
-        # Dynamic EDA tool module load
-        showtool = self.get('flowgraph', step, 'showtool')
-        searchdir = "siliconcompiler.tools." + showtool
-        modulename = '.'+showtool+'_setup'
-        module = importlib.import_module(modulename, package=searchdir)
-        setup_tool = getattr(module, "setup_tool")
-        setup_tool(self, 'show')
+        #Figure out which tool to use for opening data
+        if filename.endswith(".json"):
+            if kind==None:
+                self.logger.error("No 'kind' argument supplied for json file.")
+            elif kind=="flowgraph":
+                pass
+            elif kind=="metric":
+                pass
+            elif kind=="hier":
+                pass
+        elif filext in ('.def', '.gds', '.gbr', '.brd'):
+            #exrtract step from filename
+            #error if trying to show file frmo out of tree
 
-        # construct command string
-        cmdlist =  [self.get('eda', showtool, 'show', 'exe')]
-        cmdlist.extend(self.get('eda', showtool, 'show', 'option'))
+            #load settings for showtool
+            showtool = self.get('flowgraph', step, 'showtool')
+            searchdir = "siliconcompiler.tools." + showtool
+            modulename = '.'+showtool+'_setup'
+            module = importlib.import_module(modulename, package=searchdir)
+            setup_tool = getattr(module, "setup_tool")
+            setup_tool(self, 'show')
 
-        if 'script' in self.getkeys('eda', showtool, 'show'):
-            for value in self.get('eda', showtool, 'show', 'script'):
-                abspath = schema_path(value)
-                cmdlist.extend([abspath])
+            # construct command string
+            cmdlist =  [self.get('eda', showtool, 'show', 'exe')]
+            cmdlist.extend(self.get('eda', showtool, 'show', 'option'))
 
-        if self.get('quiet'):
-            cmdlist.append("> /dev/null")
+            if 'script' in self.getkeys('eda', showtool, 'show'):
+                for value in self.get('eda', showtool, 'show', 'script'):
+                    abspath = schema_path(value)
+                    cmdlist.extend([abspath])
+            if self.get('quiet'):
+                cmdlist.append("> /dev/null")
+            cmdstr = ' '.join(cmdlist)
+            subprocess.run(cmdstr, shell=True, executable='/bin/bash')
 
-        cmdstr = ' '.join(cmdlist)
-
-        # Check setup
-        self.check()
-
-        #Enabling show on old run directory
-        if self.get('jobid'):
-            jobid = self.get('jobid');
-        else:
-            jobid = 1
-
-        stepdir = "/".join([self.get('build_dir'),
-                            self.get('design'),
-                            self.get('jobname') + str(jobid),
-                            step])
-
-        self.logger.info("Showing output from %s", os.path.abspath(stepdir))
-
-        # execute show command from output directory
-        cwd = os.getcwd()
-        os.chdir(stepdir)
-        subprocess.run(cmdstr, shell=True, executable='/bin/bash')
-        os.chdir(cwd)
 
     ###########################################################################
     def set_jobid(self):
@@ -1689,7 +1804,7 @@ def get_permutations(base_chip, cmdlinecfg):
     # Set default target if not set and there is nothing set
     if not base_chip.get('target'):
         base_chip.logger.info('No target set, setting to %s','freepdk45_asicflow')
-        base_chip.set('target', 'freepdk45_asicflow')
+        base_chip.set('target', 'freepdk4>>>>>>> main5_asicflow')
 
     # Assign a new 'job_hash' to the chip if necessary.
     if not base_chip.get('remote', 'hash'):

@@ -3,6 +3,7 @@
 ###############################
 source ./sc_manifest.tcl
 set tool yosys
+yosys echo on
 
 ###############################
 # Schema Adapter
@@ -10,20 +11,20 @@ set tool yosys
 
 #Handling remote/local script execution
 set sc_step   [dict get $sc_cfg arg step]
+set sc_index  [dict get $sc_cfg arg index]
 
-if {[dict get $sc_cfg eda $tool $sc_step copy] eq True} {
+if {[dict get $sc_cfg eda $tool $sc_step $sc_index copy] eq True} {
     set sc_refdir "."
 } else {
-    set sc_refdir [dict get $sc_cfg eda $tool $sc_step refdir]
+    set sc_refdir [dict get $sc_cfg eda $tool $sc_step $sc_index refdir]
 }
 
 # Design
 set sc_mode        [dict get $sc_cfg mode]
 set sc_design      [dict get $sc_cfg design]
 set sc_optmode     [dict get $sc_cfg optmode]
-set sc_inputdir    [dict get $sc_cfg flowgraph $sc_step input]
 
-set topmodule  $sc_design
+set topmodule $sc_design
 
 ########################################################
 # Design Inputs
@@ -35,16 +36,17 @@ set topmodule  $sc_design
 # If UHDM, ilang, or Verilog inputs exist, read them in (this allows mixed
 # inputs in designs). UHDM requires a version of Yosys built with this support.
 
-if { [file exists "inputs/$sc_inputdir/$sc_design.uhdm"] } {
-    set input_uhdm "inputs/$sc_inputdir/$sc_design.uhdm"
+if { [file exists "inputs/$sc_design.uhdm"] } {
+    set input_uhdm "inputs/$sc_design.uhdm"
     yosys read_uhdm $input_uhdm
 }
-if { [file exists "inputs/$sc_inputdir/$sc_design.ilang"] } {
-    set input_ilang "inputs/$sc_inputdir/$sc_design.ilang"
+if { [file exists "inputs/$sc_design.ilang"] } {
+    set input_ilang "inputs/$sc_design.ilang"
     yosys read_ilang $input_ilang
 }
-if { [file exists "inputs/$sc_inputdir/$sc_design.v"] } {
-    set input_verilog "inputs/$sc_inputdir/$sc_design.v"
+
+if { [file exists "inputs/$sc_design.v"] } {
+    set input_verilog "inputs/$sc_design.v"
     yosys read_verilog -sv $input_verilog
 }
 
