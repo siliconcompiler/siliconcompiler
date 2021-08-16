@@ -1496,7 +1496,7 @@ ss
             if not pending:
                 break
             sleep(1)
-         
+
         self.logger.info('Starting step %s', step)
 
         # Build directory
@@ -1645,15 +1645,14 @@ ss
             # in-progress build directory to the remote server.
             # Data is encrypted if user / key were specified.
             remote_preprocess(self)
-            
+
             # Run the async 'remote_run' method.
             asyncio.get_event_loop().run_until_complete(remote_run(self))
 
             # Fetch results (and delete the job's data from the server).
             fetch_results(self)
-      
-      
-         if self.get('remote', 'key'):
+        else:
+            if self.get('remote', 'key'):
                 # If 'remote_key' is present in a local job, it represents an
                 # encoded key string to decrypt an in-progress job's data. The key
                 # must be removed from the config dictionary to avoid logging.
@@ -1661,46 +1660,46 @@ ss
                 self.set('remote', 'key', None)
                 # Decrypt the job's data for processing.
                 client_decrypt(self)
-     
-        # Run steps if set, otherwise run whole graph
-        if self.get('steplist'):
-            steplist = self.get('steplist')
-        else:
-            steplist = self.getsteps()
 
-        # setup sanity check before you start run
-        self.check()
+            # Run steps if set, otherwise run whole graph
+            if self.get('steplist'):
+                steplist = self.get('steplist')
+            else:
+                steplist = self.getsteps()
 
-        # Set all threads to active before launching to avoid races
-        # Sequence matters, do NOT merge this loop with loop below!
+            # setup sanity check before you start run
+            self.check()
 
-        # Launch a thread for eact step in flowgraph
-        manager = multiprocessing.Manager()
-        # Create a shared
-        event = multiprocessing.Event()
-        active = manager.dict()
-        # Set all procs to active
-        for step in steplist:
-            for index in range(self.get('flowgraph', step, 'nproc')):
-                stepstr = step + str(index)
-                active[stepstr] = 1
+            # Set all threads to active before launching to avoid races
+            # Sequence matters, do NOT merge this loop with loop below!
 
-        # Create procs
-        processes = []
-        for step in steplist:
-            for index in range(self.get('flowgraph', step, 'nproc')):
-                processes.append(multiprocessing.Process(target=self.runstep,
-                                                         args=(step, str(index), active, event,)))
-        # Start all procs
-        for p in processes:
-            p.start()
-        # Mandatory procs cleanup
-        for p in processes:
-            p.join()
+            # Launch a thread for eact step in flowgraph
+            manager = multiprocessing.Manager()
+            # Create a shared
+            event = multiprocessing.Event()
+            active = manager.dict()
+            # Set all procs to active
+            for step in steplist:
+                for index in range(self.get('flowgraph', step, 'nproc')):
+                    stepstr = step + str(index)
+                    active[stepstr] = 1
 
-        # For local encrypted jobs, re-encrypt and delete the decrypted data.
-        if 'decrypt_key' in self.status:
-            client_encrypt(self)
+            # Create procs
+            processes = []
+            for step in steplist:
+                for index in range(self.get('flowgraph', step, 'nproc')):
+                    processes.append(multiprocessing.Process(target=self.runstep,
+                                                             args=(step, str(index), active, event,)))
+            # Start all procs
+            for p in processes:
+                p.start()
+            # Mandatory procs cleanup
+            for p in processes:
+                p.join()
+
+            # For local encrypted jobs, re-encrypt and delete the decrypted data.
+            if 'decrypt_key' in self.status:
+                client_encrypt(self)
 
     ###########################################################################
     def show(self, filename, kind=None):
