@@ -1768,7 +1768,7 @@ def schema_eda(cfg):
 
     tool = 'default'
     step = 'default'
-    index = '0'
+    index = 'default'
 
     cfg['eda'] = {}
     cfg['eda'][tool] = {}
