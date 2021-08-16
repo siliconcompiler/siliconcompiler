@@ -1467,12 +1467,17 @@ ss
         return list(allpaths)
 
     ###########################################################################
-    def merge(self, step, inputs, op='min'):
+    def select(self, step, op='min'):
         '''
         Merges multiple inputs into a single directory 'step/inputs'.
-        The operation can be an or operation or min operation.
+        The operation can be an 'or' operation or 'min' operation.
         '''
-        pass
+
+        steplist = self.get('flowgraph', step, 'input')
+        #TODO: Add logic for stepping through procs, steps and selecting
+
+        index = 0
+        return (steplist, index)
 
     ###########################################################################
     def runstep(self, step, index, active, event):
@@ -1519,10 +1524,10 @@ ss
         if not self.get('flowgraph', step, 'input'):
             self.collect(dir='inputs')
         elif not self.get('remote','addr'):
-            for item in self.get('flowgraph', step, 'input'):
-                #TODO: Add Merge!
-                for i in range(self.get('flowgraph', step, 'nproc')):
-                    shutil.copytree("../"+item+str(i)+"/outputs", 'inputs/')
+            #select the previous step outputs to copy over
+            steplist, mindex = self.select(step)
+            for item in steplist:
+                shutil.copytree("../"+item+str(mindex)+"/outputs", 'inputs/')
 
         # Dynamic EDA tool module load
         tool = self.get('flowgraph', step, 'tool')
