@@ -452,7 +452,7 @@ def upload_sources_to_cluster(chip):
     subprocess.run(['zip',
                     '-r',
                     'import/import.zip',
-                    'import/*'],
+                    'import/'],
                    cwd=local_build_dir)
 
     # Upload the archive to the 'import' server endpoint.
