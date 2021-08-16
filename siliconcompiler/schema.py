@@ -2070,7 +2070,7 @@ def schema_arg(cfg):
 # Metrics to Track
 ###########################################################################
 
-def schema_metric(cfg, group='default', step='default', index='0'):
+def schema_metric(cfg, group='default', step='default', index='default'):
 
     if not 'metric' in cfg:
         cfg['metric'] = {}
