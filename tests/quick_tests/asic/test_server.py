@@ -39,4 +39,4 @@ def test_gcd_server():
     srv_proc.kill()
 
     # Verify that GDS and SVG files were generated and returned.
-    assert os.path.isfile('build/gcd/job1/export/outputs/gcd.gds')
+    assert os.path.isfile('build/gcd/job0/export0/outputs/gcd.gds')

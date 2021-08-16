@@ -36,4 +36,4 @@ def test_mixedsrc_local_py():
     chip.run()
 
     # Verify that the Verilog netlist is generated
-    assert os.path.isfile('build/eq2/job1/syn/outputs/eq2.v')
+    assert os.path.isfile('build/eq2/job0/syn0/outputs/eq2.v')
