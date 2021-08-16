@@ -1375,7 +1375,8 @@ ss
                 sys.exit(1)
             pending = 0
             for item in self.get('flowgraph', step, 'input'):
-                pending = pending + active[item]
+                if item in self.cfg['flowgraph']:
+                    pending = pending + active[item]
             if not pending:
                 break
             sleep(1)
@@ -1489,10 +1490,6 @@ ss
         # save output manifest
         self.writecfg("outputs/" + self.get('design') +'_manifest.json')
 
-        # upload files
-        #if remote:
-        #    upload_sources_to_cluster(self)
-
         # return fo original directory
         os.chdir(cwd)
 
@@ -1521,41 +1518,69 @@ ss
             Runs the route and dfm steps.
         '''
 
-        # step through all components
-        # create chip objects for hiearchy
-        # runstep gets a chip object AND step
-        # add chip object to all core functions
+        # Remote workflow: Dispatch the Chip to a remote server for processing.
+        if self.get('remote', 'addr'):
+            # Pre-process: Run an 'import' stage locally, and upload the
+            # in-progress build directory to the remote server.
+            # Data is encrypted if user / key were specified.
+            remote_preprocess(self)
 
-        # setup sanity check before you start run
-        self.check()
+            # Run the async 'remote_run' method.
+            asyncio.get_event_loop().run_until_complete(remote_run(self))
 
-        # Run steps if set, otherwise run whole graph
-        if self.get('steplist'):
-            steplist = self.get('steplist')
+            # Fetch results (and delete the job's data from the server).
+            fetch_results(self)
+
         else:
-            steplist = self.getkeys('flowgraph')
+            # Local workflow: Run the Chip's configured steps in parallel.
+            if self.get('remote', 'key'):
+                # If 'remote_key' is present in a local job, it represents an
+                # encoded key string to decrypt an in-progress job's data. The key
+                # must be removed from the config dictionary to avoid logging.
+                self.status['decrypt_key'] = self.get('remote', 'key')
+                self.set('remote', 'key', None)
+                # Decrypt the job's data for processing.
+                client_decrypt(self)
 
-        # Set all threads to active before launching to avoid races
-        # Sequence matters, do NOT merge this loop with loop below!
+            # step through all components
+            # create chip objects for hiearchy
+            # runstep gets a chip object AND step
+            # add chip object to all core functions
 
-        # Launch a thread for eact step in flowgraph
-        manager = multiprocessing.Manager()
-        # Create a shared
-        active = manager.dict()
-        event = multiprocessing.Event()
-        # Set all procs to active
-        for step in steplist:
-            active[step] = 1
-        # Create procs
-        processes = []
-        for step in steplist:
-            processes.append(multiprocessing.Process(target=self.runstep, args=(step, active, event,)))
-        # Start all procs
-        for p in processes:
-            p.start()
-        # Mandatory procs cleanup
-        for p in processes:
-            p.join()
+            # setup sanity check before you start run
+            self.check()
+
+            # Run steps if set, otherwise run whole graph
+            if self.get('steplist'):
+                steplist = self.get('steplist')
+            else:
+                steplist = self.getkeys('flowgraph')
+
+            # Set all threads to active before launching to avoid races
+            # Sequence matters, do NOT merge this loop with loop below!
+
+            # Launch a thread for eact step in flowgraph
+            manager = multiprocessing.Manager()
+            # Create a shared
+            active = manager.dict()
+            event = multiprocessing.Event()
+            # Set all procs to active
+            for step in steplist:
+                active[step] = 1
+            # Create procs
+            processes = []
+            for step in steplist:
+                processes.append(multiprocessing.Process(target=self.runstep, args=(step, active, event,)))
+            # Start all procs
+            for p in processes:
+                p.start()
+            # Mandatory procs cleanup
+            for p in processes:
+                p.join()
+
+            # For local encrypted jobs, re-encrypt and delete the decrypted data.
+            if 'decrypt_key' in self.status:
+                client_encrypt(self)
 
     ###########################################################################
     def show(self, step=None, filetype=None):

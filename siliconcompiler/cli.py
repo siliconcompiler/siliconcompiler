@@ -21,7 +21,6 @@ from siliconcompiler.client import client_decrypt
 from siliconcompiler.client import client_encrypt
 from siliconcompiler.client import remote_preprocess
 from siliconcompiler.client import remote_run
-from siliconcompiler.core   import get_permutations
 
 ###########################
 def main():
@@ -50,18 +49,8 @@ def main():
     #Creating hashes for all sourced files
     chip.hash()
 
-    # Perform preprocessing for remote jobs, if necessary.
-    if chip.get('remote', 'addr'):
-        remote_preprocess(chip)
-    elif 'decrypt_key' in chip.status:
-        client_decrypt(chip)
-
     # Run flow
     chip.run()
-
-    # For remote jobs, fetch results.
-    if chip.get('remote', 'addr'):
-        fetch_results(chip)
 
     # Print Job Summary
     chip.summary()
@@ -69,10 +58,6 @@ def main():
     # Show job if set
     if (chip.error < 1) and (chip.get('show')):
         chip.show()
-
-    # For local encrypted jobs, re-encrypt and delete the decrypted data.
-    if 'decrypt_key' in chip.status:
-        client_encrypt(chip)
 
 #########################
 if __name__ == "__main__":
