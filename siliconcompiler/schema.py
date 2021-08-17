@@ -2460,7 +2460,7 @@ def schema_metric(cfg, group='default', step='default', index='default'):
 # Design Tracking
 ###########################################################################
 
-def schema_record(cfg, step='default', index=1):
+def schema_record(cfg, step='default', index='default'):
 
     cfg['record'] = {}
 
@@ -2974,22 +2974,6 @@ def schema_options(cfg):
         Specifies that all used files should be copied into the jobdir,
         overriding the per schema entry copy settings. The default
         is false.
-        """
-    }
-
-    cfg['show'] = {
-        'switch': '-show',
-        'type': 'str',
-        'lock': 'false',
-        'requirement': 'optional',
-        'defvalue': None,
-        'short_help': "Display step output",
-        'param_help': "show <step>",
-        'example': ["cli: -show route",
-                    "api: chip.set('show', 'route')"],
-        'help': """
-        Step output to display using thee graphical
-        viewer defined by the flowgraph showtool parameter.
         """
     }
 
