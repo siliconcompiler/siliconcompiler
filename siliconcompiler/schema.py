@@ -3391,16 +3391,16 @@ def schema_design(cfg):
     cfg['clock']['default'] = {}
     cfg['clock']['default']['pin'] = {
         'switch': '-clock_pin',
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'requirement': 'optional',
-        'defvalue': None,
-        'short_help': 'Design Clock Driver',
+        'defvalue': [],
+        'short_help': 'Design Clock Drivers',
         'param_help': "clock clkvar pin <str>",
         'example': ["cli: -clock_pin 'clk top.pll.clkout'",
                     "api: chip.add('clock', 'clk','pin','top.pll.clkout')"],
         'help': """
-        Defines a clock name alias to assign to a clock source.
+        Defines clock name aliases to assign to clock sources.
         """
     }
 

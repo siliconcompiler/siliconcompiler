@@ -256,10 +256,6 @@ class Chip:
         if 'loglevel' in cmdargs.keys():
             self.logger.setLevel(cmdargs['loglevel'])
 
-        # read in target if set
-        if 'target' in cmdargs.keys():
-            self.target(cmdargs['target'])
-
         # read in all cfg files
         if 'cfg' in cmdargs.keys():
             for item in cmdargs['cfg']:
@@ -274,6 +270,10 @@ class Chip:
             for item in val_list:
                 args = schema_reorder_keys(argmap[key], item)
                 self.add(*args)
+
+        # read in target if set
+        if 'target' in cmdargs.keys():
+            self.target(cmdargs['target'])
 
     ###########################################################################
     def target(self, arg=None):
