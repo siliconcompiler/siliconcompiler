@@ -28,21 +28,6 @@ def main():
     # Create a base chip class.
     chip = siliconcompiler.Chip()
 
-    # Silly Banner
-    ascii_banner = pyfiglet.figlet_format("Silicon Compiler")
-    print(ascii_banner)
-
-    # Print out SC project authors
-    authors = []
-    authorfile = schema_path("AUTHORS")
-    f = open(authorfile, "r")
-    for line in f:
-        name = re.match(r'^(\w+\s+\w+)',line)
-        if name:
-            authors.append(name.group(1))
-    print("Authors:",", ".join(authors),"\n")
-    print("-"*80)
-
     # Read command-line inputs and generate Chip objects to run the flow on.
     chip.cmdline("sc",
                  description="""
@@ -78,8 +63,8 @@ def main():
     chip.summary()
 
     # Show job if set
-    if (chip.error < 1) and (chip.get('show')):
-        chip.show()
+    # if (chip.error < 1) and (chip.get('show')):
+    #   chip.show()
 
 #########################
 if __name__ == "__main__":

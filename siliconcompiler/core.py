@@ -21,6 +21,8 @@ import yaml
 import argparse
 import graphviz
 import threading
+import pyfiglet
+
 from time import sleep
 import multiprocessing
 
@@ -134,6 +136,21 @@ class Chip:
             a single switch parameter ('show').
 
         """
+
+        # Print banner
+        ascii_banner = pyfiglet.figlet_format("Silicon Compiler")
+        print(ascii_banner)
+
+        # Print out SC project authors
+        authors = []
+        authorfile = schema_path("AUTHORS")
+        f = open(authorfile, "r")
+        for line in f:
+            name = re.match(r'^(\w+\s+\w+)',line)
+            if name:
+                authors.append(name.group(1))
+        print("Authors:",", ".join(authors),"\n")
+        print("-"*80)
 
         os.environ["COLUMNS"] = '80'
 
