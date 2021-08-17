@@ -701,6 +701,25 @@ ss
         pass
 
     ###########################################################################
+    def include(self, name, filename=None):
+        '''
+        Include a component
+        '''
+
+        if filename == None:
+            module = importlib.import_module(name)
+            setup_design = getattr(module, "setup_design")
+            chip = setup_design()
+        else:
+            chip = siliconcompiler.Chip(design=name)
+            chip.readcfg(filename)
+
+        print(chip.get('design'))
+
+        return chip
+
+
+    ###########################################################################
     def _prune(self, cfg=None, top=True):
         '''
         Recursive function that creates a copy of the Chip dictionary and
@@ -1595,7 +1614,7 @@ ss
 
         # Resetting metrics
         for metric in self.getkeys('metric', 'default', 'default', 'default'):
-                    self.set('metric', step, index, 'real', metric, 0)
+            self.set('metric', step, index, 'real', metric, 0)
 
         # Run exeucutable
         self.logger.info("Running %s in %s", step, os.path.abspath(stepdir))
