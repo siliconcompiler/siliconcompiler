@@ -44,7 +44,29 @@ def main():
     print("-"*80)
 
     # Read command-line inputs and generate Chip objects to run the flow on.
-    chip.cmdline()
+    chip.cmdline("sc",
+                 description="""
+                 --------------------------------------------------------------
+                 SiliconCompiler is an open source Python based hardware
+                 compiler project that aims to fully automate the translation
+                 of high level source code into manufacturable hardware. The program
+                 is a command line utility app around the SC APi and schema that
+                 calls executes the following functions in sequence:
+
+                 1. target(), if defined
+
+                 2. hash()
+
+                 3. run()
+
+                 4. summary()
+
+                 5. show(), if defined
+
+                 Website: https://www.siliconcompiler.com
+                 Documentation: https://www.siliconcompiler.com/docs
+                 Community: https://www.siliconcompiler.com/community
+                 """)
 
     #Creating hashes for all sourced files
     chip.hash()

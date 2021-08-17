@@ -36,12 +36,12 @@ class Chip:
 
     ###########################################################################
     def __init__(self, design="root", loglevel="INFO", defaults=True):
-        '''Initializes Chip object
+        """Initializes Chip object
 
         Args:
             loglevel (str): Level of debugging (INFO, DEBUG, WARNING,
                 CRITICAL, ERROR).
-        '''
+        """
 
 
         # Local variables
@@ -96,17 +96,17 @@ class Chip:
 
 
     ###########################################################################
-    def cmdline(self, prog=None, description=None, paramlist=[]):
-        '''
-        A command line interface for the SiliconCompiler project. The method
-        exposes parameters in the SC echema as command line switchs.  Exact
-        format for all command line switches can be found in the example and help
-        fields of the schema parameter within the 'schema.py'. module The
-        cmdline interface is implemented using the Python argparase package and
-        the following user restrictions apply. Custom command line apps can
-        be created by restricting the schema parameters exposed at the command
-        line. The priority of command line switch settings is: 1.) -loglevel
-        2.) -target, 3.) -cfg, 3.) all others.
+    def cmdline(self, progname, description=None, switchlist=[]):
+        """Command line interface for the SiliconCompiler project.
+
+        The method exposes parameters in the SC echema as command line switches.
+        Exact format for all command line switches can be found in the example
+        and help fields of the schema parameters within the 'schema.py' module.
+        Custom command line apps can be created by restricting the schema
+        parameters exposed at the command line. The priority of command line
+        switch settings is: 1.) design 2.) -loglevel 3.) -target, 4.) -cfg,
+        3.) all others. The cmdline interface is implemented using the Python
+        argparase package and the following user restrictions apply.
 
         * Help is accessed with the '-h' switch
         * Arguments that include spaces must be enclosed with double quotes.
@@ -120,9 +120,11 @@ class Chip:
             description (string): Header help function to be displayed
                  by the command line program. By default a short
                  description of the main sc program is displayed.
-            paramlist (list): List of SC schema parameters to expose
-                 at the command line. By default all SC scema params are
-                 exposed as switches.
+            switchlist (list): List of SC parameter switches to expose
+                 at the command line. By default all SC scema switches
+                 are available. The switchlist entries should ommit
+                 the '-'. To include a non-switch source file,
+                 use 'source' as the switch.
 
         Examples:
             >>> cmdline()
@@ -131,49 +133,27 @@ class Chip:
             Creates a command line interface called sc-display with a
             a single switch parameter ('show').
 
-        '''
+        """
 
         os.environ["COLUMNS"] = '80'
-        # defaults to the sc application
-        if prog == None:
-            prog = 'sc'
-            description = '''
-            --------------------------------------------------------------
-            SiliconCompiler (SC)
-            SiliconCompiler is an open source Python based hardware
-            compiler project that aims to fully automate the translation
-            of high level source code into manufacturable hardware.
-
-            Website: https://www.siliconcompiler.com
-            Documentation: https://www.siliconcompiler.com/docs
-            Community: https://www.siliconcompiler.com/community
-            '''
-        elif description == None:
-            description = '''
-            '''
 
         # Argparse
-        parser = argparse.ArgumentParser(prog='sc',
+        parser = argparse.ArgumentParser(prog=progname,
                                          prefix_chars='-+',
                                          description=description,
                                          formatter_class=RawFormatter)
 
         # Required positional source file argument
-
-        parser.add_argument('source',
-                            nargs='+',
-                            help=self.get('source',field='short_help'))
+        if (switchlist==[]) | ('source' in switchlist):
+            parser.add_argument('source',
+                                nargs='+',
+                                help=self.get('source',field='short_help'))
 
         # Get all keys from global dictionary or override at command line
-        if paramlist:
-            allkeys = paramlist
-        else:
-            allkeys = self.getkeys()
-
+        allkeys = self.getkeys()
         argmap = {}
         # Iterate over all keys to add parser argument
         for key in allkeys:
-
             #Fetch fields from leaf cell
             helpstr = self.get(*key, field='short_help')
             typestr = self.get(*key, field='type')
@@ -188,36 +168,38 @@ class Chip:
             else:
                 dest = key[0]
 
+            #print(switchstr, switchlist)
             if 'source' in key:
                 argmap['source'] = paramstr
-            elif typestr == 'bool':
-                argmap[dest] = paramstr
-                parser.add_argument(switchstr,
-                                    metavar='',
-                                    dest=dest,
-                                    action='store_const',
-                                    const="true",
-                                    help=helpstr,
-                                    default = argparse.SUPPRESS)
-            #list type arguments
-            elif re.match(r'\[',typestr):
-                #all the rest
-                argmap[dest] = paramstr
-                parser.add_argument(switchstr,
-                                    metavar='',
-                                    dest=dest,
-                                    action='append',
-                                    help=helpstr,
-                                    default = argparse.SUPPRESS)
+            elif (switchlist==[]) | (dest in switchlist):
+                if typestr == 'bool':
+                    argmap[dest] = paramstr
+                    parser.add_argument(switchstr,
+                                        metavar='',
+                                        dest=dest,
+                                        action='store_const',
+                                        const="true",
+                                        help=helpstr,
+                                        default = argparse.SUPPRESS)
+                #list type arguments
+                elif re.match(r'\[',typestr):
+                    #all the rest
+                    argmap[dest] = paramstr
+                    parser.add_argument(switchstr,
+                                        metavar='',
+                                        dest=dest,
+                                        action='append',
+                                        help=helpstr,
+                                        default = argparse.SUPPRESS)
 
-            else:
-                #all the rest
-                argmap[dest] = paramstr
-                parser.add_argument(switchstr,
-                                    metavar='',
-                                    dest=dest,
-                                    help=helpstr,
-                                    default = argparse.SUPPRESS)
+                else:
+                    #all the rest
+                    argmap[dest] = paramstr
+                    parser.add_argument(switchstr,
+                                        metavar='',
+                                        dest=dest,
+                                        help=helpstr,
+                                        default = argparse.SUPPRESS)
 
 
         #Preprocess sys.argv to enable linux commandline switch formats
