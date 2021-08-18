@@ -1528,18 +1528,7 @@ ss
             #select the previous step outputs to copy over
             steplist, mindex = self.select(step)
             for item in steplist:
-                indexed_output = f'../{item}{str(mindex)}/outputs'
-                flat_output = f'../{item}/outputs'
-                if os.path.isdir(indexed_output):
-                    # First, try to import the prior step with the same proc ID.
-                    shutil.copytree(indexed_output, 'inputs/')
-                elif os.path.isdir(flat_output):
-                    # Fallback to importing the step independent of proc ID.
-                    shutil.copytree(flat_output, 'inputs/')
-                else:
-                    # Cannot find files to import from previous step; error.
-                    chip.logger.error(f"No 'outputs/' directory found for previous step: {step}")
-                    sys.exit(1)
+                shutil.copytree("../"+item+str(mindex)+"/outputs", 'inputs/')
 
         # Dynamic EDA tool module load
         tool = self.get('flowgraph', step, 'tool')

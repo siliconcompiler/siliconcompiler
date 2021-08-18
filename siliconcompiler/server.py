@@ -128,7 +128,7 @@ class Server:
         subprocess.run(['mkdir', '-p', jobs_dir])
         # Link to the 'import' directory if necessary.
         subprocess.run(['mkdir', '-p', '%s/%s'%(jobs_dir, job_nameid)])
-        subprocess.run(['ln', '-s', '%s/import'%build_dir, '%s/%s/import'%(jobs_dir, job_nameid)])
+        subprocess.run(['ln', '-s', '%s/import0'%build_dir, '%s/%s/import0'%(jobs_dir, job_nameid)])
 
         # Remove 'remote' JSON config value to run locally on compute node.
         cfg['remote']['addr']['value'] = []
@@ -233,7 +233,7 @@ class Server:
                         encrypted_key.write(base64.urlsafe_b64decode(aes_iv))
                 else:
                     # Ensure that the required directories exists.
-                    subprocess.run(['mkdir', '-p', '%s/import'%job_root])
+                    subprocess.run(['mkdir', '-p', '%s/import0'%job_root])
                     # Move the uploaded archive and un-zip it.
                     os.replace(tmp_file, '%s/import.zip'%job_root)
                     subprocess.run(['unzip', '-o', '%s/import.zip'%(job_root)], cwd=job_root)
@@ -395,7 +395,6 @@ class Server:
         # Zip results after all job stages have finished.
         subprocess.run(['zip',
                         '-r',
-                        '-y',
                         '%s.zip'%job_hash,
                         '%s'%job_hash],
                        cwd = nfs_mount)
@@ -448,7 +447,6 @@ class Server:
         # Create a single-file archive to return if results are requested.
         subprocess.run(['zip',
                         '-r',
-                        '-y',
                         '%s.zip'%job_hash,
                         '%s'%job_hash],
                        cwd=self.cfg['nfsmount']['value'][-1])
