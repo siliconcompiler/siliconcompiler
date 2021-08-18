@@ -26,13 +26,13 @@ def setup_platform(chip):
     hscribe = 0.1
     vscribe = 0.1
     edgemargin = 2
-    
+
     pdkdir = '/'.join(['third_party/foundry',
                        foundry,
                        process,
                        'pdk',
                        rev])
-    
+
 
     #if you are calling this file, you are in asic mode
     chip.set('mode','asic')
@@ -107,7 +107,7 @@ def setup_platform(chip):
 # Library Setup
 ####################################################
 def setup_libs(chip, vendor=None):
- 
+
     foundry = 'skywater'
     process = 'skywater130'
     rev = 'v0_0_2'
@@ -126,9 +126,9 @@ def setup_libs(chip, vendor=None):
                        'libs',
                        libname,
                        rev])
-    
+
     # rev
-    chip.set('stdcell',libname,'rev',rev)    
+    chip.set('stdcell',libname,'rev',rev)
 
     # timing
     chip.set('stdcell',libname, 'model', corner, 'nldm', 'lib',
@@ -218,7 +218,7 @@ def setup_libs(chip, vendor=None):
                                                'sky130_fd_sc_hd__conb_1/LO'])
 
 #########################
-def setup_design(chip):
+def setup_methodology(chip):
 
     chip.set('asic', 'stackup', chip.get('pdk', 'stackup')[0])
     chip.set('asic', 'targetlib', chip.getkeys('stdcell'))
@@ -242,9 +242,9 @@ def setup_design(chip):
     chip.set('mcmm','worst','pexcorner', corner)
     chip.set('mcmm','worst','mode', 'func')
     chip.set('mcmm','worst','check', ['setup','hold'])
-    
+
 #########################
-if __name__ == "__main__":    
+if __name__ == "__main__":
 
     # File being executed
     prefix = os.path.splitext(os.path.basename(__file__))[0]
@@ -257,5 +257,3 @@ if __name__ == "__main__":
     setup_libs(chip)
     # write out result
     chip.writecfg(output)
-
-   

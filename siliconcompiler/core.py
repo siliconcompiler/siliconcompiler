@@ -34,7 +34,23 @@ from siliconcompiler.schema import *
 from siliconcompiler.client import *
 
 class Chip:
-    """Siliconcompiler Compiler Chip Object Class"""
+    """The core Siliconcompiler Class
+
+    This is the main object  used to interact with configuration, data, and execution
+    for the SiliconCompiler API. Once the constructor has been called, access to
+    the object data is accompoushed through the core methods. (set,get,add,...).
+
+    Args:
+        design (string): Specifies the name of the top level chip object.
+        loglevel (string): Sets the level of logging for the chip object. Valid
+            levels are "DEBUG", "INFO", "WARNING", "ERROR".
+        defaults (bool)": If True, causes the schema dictionary values to
+            be loaded with default values, else they are left empty.
+
+    Examples:
+        >>> siliconcompiler.Chip(design="top", loglevel="DEBUG")
+        Creates a chip object with name "top" and sets loglevel to "DEBUG".
+    """
 
     ###########################################################################
     def __init__(self, design="root", loglevel="INFO", defaults=True):
@@ -95,11 +111,9 @@ class Chip:
         self.logger.debug("SC search path %s", os.environ['SCPATH'])
         self.logger.debug("Python search path %s", sys.path)
 
-
-
     ###########################################################################
     def cmdline(self, progname, description=None, switchlist=[]):
-        """Command line interface for the SiliconCompiler project.
+        """Creates a command line interface for the SiliconCompiler project.
 
         The method exposes parameters in the SC echema as command line switches.
         Exact format for all command line switches can be found in the example
@@ -275,52 +289,68 @@ class Chip:
                 self.add(*args)
 
     ###########################################################################
-    def target(self, arg=None):
-        '''
-        Searches the SCPATH and PYTHON paths for the target specified by the
-        Chip 'target' parameter. The target is supplied as a  two alphanumeric
-        strings separated by an underscore ('_'). The first string part
-        represents the technology platform, while the second string part
-        represents the eda flow.
+    def target(self, arg=None, libs=True,  methodology=True ):
+        """Loads eda flow and technology targets based on a string.
 
-        In order of priority,  the search path sequence is:
-        1.) Try finding the target in the built in directory
-        2.) Search the rest of the paths
+        Dynamically loads eda flow and technology targets based on 'target'
+        string specifed as <technology>_<edaflow>. The edaflow part of the
+        string is optional. The 'technology' and 'edaflow' are used to search
+        and dynamically import modules based on the PYTHON environment variable.
 
-        The dynamically loaded target platform module must contain three
-        standard functions. There is no functionality requirements on the
-        three functions.
+        The target function supports ASIC as well as FPGA design flows. For
+        FPGA flows, the function simpply sets the partname to the technology
+        string portion. For ASIC flows,the target is used to  bundle and
+        simplify the setup of SC schema parameters en masse. Modern silicon
+        process PDKs can contain hundreds of files and setup variables. Doing
+        this setup once and creating a named target significantly improves
+        the ramp-up time for new users and reduces the chance of costly
+        setup errors.
 
-            setup_platform(chip) : Sets up basic PDK information
+        Imported modules implement a set of functions with standardized
+        function names and interfaces as described below.
 
-            setup_libs(chip) : Setups of PDK specific IP/Libraries
+        **TECHNOLOGY (ASIC ONLY):**
 
-            setup_design(chip) : Setups up recommended design flows
+        **setup_platform (chip):** Configures basic PDK information,
+        including setting up wire tracks and setting filesystem pointers to
+        things like spice models, runsets, design rules manual. The function
+        takes the a Chip object as an input argument and uses the Chip's
+        schema acess methods to set/get parameters. To maximize reuse it
+        is recommended that the setup_platform function includes only core
+        PDK information and does not include settings for IPs such as
+        libraries or design methodology information such as maximum fanout.
 
-        The dynamically loaded target eda module contains a single
-        standard functions:
+        **setup_libs (chip, vendor=None):** Configures the core digital
+        library IP for the process. The vendor argument is used to select
+        the the vendor for foundry nodes that support multiple IP vendors.
+        The function works as an abstraction layer for the designer by
+        encapsulating all the low level details of the libraries such as
+        filename, directory structures, and cell naming methodologies.
 
-            setup_eda(chip): Defines the implementation flow,
+        **EDAFLOW:**
 
-        The setup_eda further loads setup_tool modules on a per step basis.
-        The dynamically loaded per step module must contain for standard
-        functions.
-
-            setup_tool(chip): A one time setup of the 'flow' dictionary per step
-
-            setup_options(chip,step): Run-time options driver
-
-            pre_process(chip,step): Pre-processing to run before executable
-
-            post_process(chip,step): Post-processing to run before executable
+        **setup_flow (platform):** Configures the edaflow by setting
+        up the steps of the execution graph (eg. 'flowgraph') and
+        binding each step to a an EDA tool. The tools are dynamically
+        loaded in the 'runstep' method based on the name of these tools.
+        The platform argument can be used as a selector by the
+        setup_flow to alter the execution flow and tool selection for
+        a specific process node.
 
         Args:
-            arg (string): If the argument is supplied, the set('target', name)
-                is called before dynamically loading the target platform
+            arg (string): Name of target to load. If None, the target is
+                read from the SC schema.
+            libs (bool): Setup_libs executed if libs is set to True
+            methodology (bool): Setup_methodology called if methodology
+                is set to True.
 
         Examples:
-            >>> chip.target()
-        '''
+            >>> target("freepdk45_asicflow")
+            Loads the 'freepdk45' and 'asicflow' settings.
+            >>> target()
+            Loads target settings based on self.get('target')
+
+        """
 
         #Sets target in dictionary if string is passed in
         if arg is not None:
@@ -342,10 +372,12 @@ class Chip:
                 module = importlib.import_module('.'+platform, package=searchdir)
                 setup_platform = getattr(module, "setup_platform")
                 setup_platform(self)
-                setup_libs = getattr(module, "setup_libs")
-                setup_libs(self)
-                setup_design = getattr(module, "setup_design")
-                setup_design(self)
+                if libs:
+                    setup_libs = getattr(module, "setup_libs")
+                    setup_libs(self)
+                if methodology:
+                    setup_methodology = getattr(module, "setup_methodology")
+                    setup_methodology(self)
                 self.logger.info("Loaded platform '%s'", platform)
             except ModuleNotFoundError:
                 self.logger.critical("Platform %s not found.", platform)
@@ -368,37 +400,35 @@ class Chip:
                 sys.exit()
 
     ###########################################################################
-    def help(self, *args, file=None, mode='full', format='txt'):
+    def help(self, *args):
         '''
-        Prints out detailed or summary help for the schema key path provided.
-        The function is used to auto-generate documentation and is accessible
-        at diretly by the user.
+        Returns a help summary based on the the schema key list provided.
 
         Args:
-            file (filehandle): If 'None', help is printed to stdout, else
-               help is printed to the filehandle
-            mode (str): When 'full',
-               is specified, the complete help description is printed out. When
-               'table' is specified, a one-line table row descripton is printed.
-            format (str): Format out output ('txt', 'md', 'rst').
+            *args (string): A non-keyworded variable length argument list for
+        which to dsiplay help.
+
+        Returns:
+            Returns a formatted multi-line help string.
 
         Examples:
             >>> help('target')
-            Prints out the complet descripton of 'target' to stdout
-            >>> help('target', mode='table')
-            Prints out a one-line table row descripton of 'target' to stdout
+            Returns help information about the 'target' parameter
+            >>> help('asic','diesize', short=True)
+            Return a short description of the 'asic diesize' parametet
+
         '''
 
         self.logger.debug('Fetching help for %s', args)
 
         #Fetch Values
-        description = self._search(self.cfg, *args, mode='get', field='short_help')
-        param = self._search(self.cfg, *args, mode='get', field='param_help')
-        typestr = ' '.join(self._search(self.cfg, *args, mode='get', field='type'))
-        defstr = ' '.join(self._search(self.cfg, *args, mode='get', field='defvalue'))
-        requirement = self._search(self.cfg, *args, mode='get', field='requirement')
-        helpstr = self._search(self.cfg, *args, mode='get', field='help')
-        example = self._search(self.cfg, *args, mode='get', field='example')
+        description = self.get(*args, field='short_help')
+        param = self.get(*args, field='param_help')
+        typestr = str(self.get(*args, field='type'))
+        defstr = str(self.get(*args, field='defvalue'))
+        requirement = self.get(*args, field='requirement')
+        helpstr = self.get(*args, field='help')
+        example = self.get(*args, field='example')
 
         #Removing multiple spaces and newlines
         helpstr = helpstr.rstrip()
@@ -419,7 +449,10 @@ class Chip:
         #Full Doc String
         fullstr = ("-"*3 +
                    "\nDescription: " + description.lstrip() + "\n" +
-                   "\nParameter:   " + param.lstrip() + "\n"  +
+                   "\nOrder:       " + param.lstrip() + "\n"  +
+                   "\nType:        " + typestr.lstrip() + "\n"  +
+                   "\nRequirement: " + requirement.lstrip() + "\n"  +
+                   "\nDefault:     " + defstr.lstrip() + "\n"  +
                    "\nExamples:    " + example[0].lstrip() +
                    "\n             " + example[1].lstrip() + "\n" +
                    "\nHelp:        " + para_list[0].lstrip() + "\n")
@@ -427,26 +460,7 @@ class Chip:
             fullstr = (fullstr +
                        " "*13 + line.lstrip() + "\n")
 
-        #Refcard String
-        #Need to escape dir to get pdf to print in pandoc?
-        outlst = [param.replace("<dir>", "\\<dir\\>"),
-                  description,
-                  typestr,
-                  requirement,
-                  defstr]
-        shortstr = "|{: <52}|{: <30}|{: <15}|{: <10}|{: <10}|".format(*outlst)
-
-        #Selecting between full help and one liner
-        if mode == "full":
-            outstr = fullstr
-        else:
-            outstr = shortstr
-
-        #Print to screen or file
-        if file is None:
-            print(outstr)
-        else:
-            print(outstr, file=file)
+        return fullstr
 
     ###########################################################################
     def get(self, *args, chip=None, cfg=None, field='value'):
