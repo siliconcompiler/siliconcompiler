@@ -617,18 +617,20 @@ class Chip:
     ###########################################################################
     def add(self, *args, chip=None, cfg=None):
         '''
-        Appends value to current parameter list based on a keylist provided.
+        Adds value to dictionary based on a keylist provided.
 
         Accesses to non-existing dictionary entries results in a logger
         error and in the setting the 'chip.error' flag to 1. For non list
         based types, the method is equivalent to to the set method and the
-        value is overriden. The data type provided must agree with the
-        dictionary parameter 'type'. Before setting the parameter, the data
-        value is type checked. Any type descrepancy results in a logger error
-        and in setting the chip.error flag to 1. For descriptions of the legal
-        values for a specific parameter, refer to the schema.py documentation.
-        Legal values are cast to strings before writing to the dictionary.
-        Illegal values are not written to the dictionary.
+        value is overriden.
+
+        The data type provided must agree with the dictionary parameter 'type'.
+        Before setting the parameter, the data value is type checked.
+        Any type descrepancy results in a logger error and in setting the
+        chip.error flag to 1. For descriptions of the legal values for a
+        specific parameter, refer to the schema.py documentation. Legal values
+        are cast to strings before writing to the dictionary. Illegal value
+        are not written to the dictionary.
 
         Args:
             args (string): A variable length key list used to look
@@ -700,18 +702,19 @@ class Chip:
                 chip.logger.error('Search failed. Field not found for \'%s\'', param)
                 chip.error = 1
             #check legality of value
-            if schema_typecheck(chip, cfg[param], param, val):
-                #promote value to list for list types
-                if (type(val) != list) & (field == 'value') & bool(re.match(r'\[',cfg[param]['type'])):
-                    val = [str(val)]
-                #set value based on scalar/list/set/add
-                if (mode == 'add') & (type(val) == list):
-                    cfg[param][field].extend(val)
-                elif (mode == 'set') & (type(val) == list):
-                    cfg[param][field] = val
-                #ignore add commmand for scalars
-                elif (type(val) != list):
-                    cfg[param][field] =  str(val)
+            if not schema_typecheck(chip, cfg[param], param, val):
+                chip.error = 1
+            #Converting scalar to list for entries whose type is 'list'
+            if (type(val) != list) & (field == 'value') & bool(re.match(r'\[',cfg[param]['type'])):
+                val = [str(val)]
+            #set value based on scalar/list/set/add
+            if (mode == 'add') & (type(val) == list):
+                cfg[param][field].extend(val)
+            elif (mode == 'set') & (type(val) == list):
+                cfg[param][field] = val
+            #ignore add commmand for scalars
+            elif (type(val) != list):
+                cfg[param][field] =  str(val)
             #return field
             return cfg[param][field]
         #get leaf cell (all_args=param)
@@ -760,13 +763,23 @@ class Chip:
 
 
     ###########################################################################
-    def extend(self, filename, cfg=None):
+    def extend(self, filename, chip=None, cfg=None):
         '''
-        Read in a dictionary from a file to extend the SC cfg.
+        Reads in an SC compatible configuration dictionary from a JSON file
+        and adds all legal entries to the existing dictionary. All dictionary
+        entries must include a filled out fields for: type, defvalue, switch,
+        requirment, type, lock, param_help, short_help, example, and help.
+        In addition, entry of file/dir type must include fields for lock,
+        copym filehash, data, and signature.
+
+        Args:
+            filename (string): A path to the file containing the json
+                dictionary to be processd.
+            chip(object): The Chip object to extend
+            cfg(dict): The cfg dictionary within the Chip object to extend
+
         '''
 
-        #1. Check format/legality (keywords, missing information)
-        #2. Create an entry for every key not found
         pass
 
     ###########################################################################

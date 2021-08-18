@@ -145,7 +145,7 @@ def schema_typecheck(chip, cfg, leafkey, value):
                     try:
                         float(item)
                     except:
-                        errormsg = "Type mismatch. Cannot cast iteme to float."
+                        errormsg = "Type mismatch. Cannot cast item to float."
                         ok = False
                 elif (cfgtype == 'int'):
                     try:
