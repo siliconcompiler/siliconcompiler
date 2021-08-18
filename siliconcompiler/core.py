@@ -31,11 +31,13 @@ from siliconcompiler.schema import schema_reorder
 from siliconcompiler.client import client_decrypt
 
 class Chip:
-    """The core Siliconcompiler Class
+    """
+    Core Siliconcompiler Class
 
-    This is the main object  used to interact with configuration, data, and execution
-    for the SiliconCompiler API. Once the constructor has been called, access to
-    the object data is accompoushed through the core methods. (set,get,add,...).
+    This is the main object  used to interact with configuration, data, and
+    execution for the SiliconCompiler API. Once the constructor has been
+    called, access to the object data is accompoushed through the core methods.
+    (set, get, add, etc).
 
     Args:
         design (string): Specifies the name of the top level chip object.
@@ -112,8 +114,14 @@ class Chip:
         and help fields of the schema parameters within the 'schema.py' module.
         Custom command line apps can be created by restricting the schema
         parameters exposed at the command line. The priority of command line
-        switch settings is: 1.) design 2.) -loglevel 3.) -target, 4.) -cfg,
-        3.) all others. The cmdline interface is implemented using the Python
+        switch settings is:
+         1. design
+         2. loglevel
+         3. target
+         4. cfg
+         5. (all others)
+
+        The cmdline interface is implemented using the Python
         argparase package and the following user restrictions apply.
 
         * Help is accessed with the '-h' switch
@@ -253,6 +261,8 @@ class Chip:
         #Grab argument from pre-process sysargs
         cmdargs = vars(parser.parse_args(scargs))
 
+        # NOTE: The below order is by design and should not be modified.
+
         # set design name (override default)
         if 'design' in cmdargs.keys():
             self.name = cmdargs['design']
@@ -282,7 +292,8 @@ class Chip:
 
     ###########################################################################
     def target(self, arg=None, libs=True,  methodology=True ):
-        """Loads eda flow and technology targets based on a string.
+        """
+        Loads eda flow and technology targets based on a string.
 
         Dynamically loads eda flow and technology targets based on 'target'
         string specifed as <technology>_<edaflow>. The edaflow part of the
@@ -393,12 +404,12 @@ class Chip:
 
     ###########################################################################
     def help(self, *args):
-        '''
-        Returns a help summary based on the the schema key list provided.
+        """
+        Returns a formatted help string based on the schema key list provided.
 
         Args:
             *args (string): A non-keyworded variable length argument list for
-        which to dsiplay help.
+                which to display help.
 
         Returns:
             Returns a formatted multi-line help string.
@@ -409,7 +420,7 @@ class Chip:
             >>> help('asic','diesize', short=True)
             Return a short description of the 'asic diesize' parametet
 
-        '''
+        """
 
         self.logger.debug('Fetching help for %s', args)
 
@@ -456,53 +467,71 @@ class Chip:
 
     ###########################################################################
     def get(self, *args, chip=None, cfg=None, field='value'):
-        '''
-        Returns value from the Chip dictionary based on the key tree supplied.
+        """
+        Returns value from the Chip dictionary based on keylist provided.
+
+        Accesses to non-existing dictionary entries results in a logger error
+        and in the setting the 'chip.error' flag to 1.  In the case of int and
+        float types, the string value stored in the dictionary are cast
+        to the appropriate type base don the dictionary 'type' field.
+        In the case of boolean values, a string value of "true" returns True,
+        all other values return False.
 
         Args:
-            *args (string): A non-keyworded variable length argument list to
-                used to look up non-leaf key tree in the Chip dictionary.
-                Specifying a non-existent key tree results in a program exit.
-            field (string): Specifies the leaf-key value to fetch.
+            args(string): A variable length key list used to look
+                up a Chip dictionary entry. For a complete description of
+                the valid key lists, see the schema.py module.
+            chip(object): A valid Chip object to use for cfg query.
+            cfg(dict): A dictionary within the Chip object to use for
+                key list query.
+            field(string): Specifies the leaf cell field to fetch. Any
+                valid leaf cell field can be specified. Examples of
+                common fields include 'value', 'defvalue', 'type'. For
+                a complete description of the valid entries, see the
+                schema.py module.
 
         Returns:
-            Value(s) found for the key tree supplied. The returned value
-        can be a boolean, list, or string depending on the parameter type.
+            Value found for the key tree supplied. The returned value
+            returned is based on the type field in the dictionary parameter.
 
         Examples:
             >>> get('pdk', 'foundry')
-            Returns the name of the foundry in the Chip dictionary.
+            Returns the name of the foundry.
 
-        '''
+        """
 
         if chip == None:
             chip = self
 
-        chip.logger.debug('Reading config dictionary value: %s', args)
-
         if cfg is None:
             cfg = chip.cfg
+
+        chip.logger.debug('Reading config dictionary value: %s', args)
 
         keys = list(args)
         for k in keys:
             if isinstance(k, list):
-                chip.logger.critical("Illegal format, keys cannot be lists. Keys=%s", k)
-                sys.exit()
+                chip.logger.error("Illegal format. Args cannot be lists. Keys=%s", k)
         return self._search(chip, cfg, *args, field=field, mode='get')
 
     ###########################################################################
     def getkeys(self, *args, chip=None, cfg=None):
-        '''
-        Returns a list of keys from the Chip dicionary based on the key
-        tree supplied.
+        """
+        Returns keys found in dictionary node based on key list provided.
+
+        Accesses to non-existing dictionary entries results in a logger error
+        and in the setting the 'chip.error' flag to 1.
 
         Args:
-            *args (string): A non-keyworded variable length argument list to
-                used to look up non-leaf key tree in the Chip dictionary.
-                The key-tree is supplied in order. If the argument list is empty,
-                all Chip dictionary trees are returned as as a list of lists.
-                Specifying a non-existent key tree results in a program exit.
-ss
+            args (string): A variable length key list used to look
+                up a Chip dictionary entry. For a complete description of the
+                valid key lists, see the schema.py module. The key-tree is
+                supplied in order. If the argument list is empty, all
+                dictionary trees are returned as as a list of lists.
+            chip (object): A valid Chip object to use for cfg query.
+            cfg (dict): A dictionary within the Chip object to use for
+                key list query.
+
         Returns:
             A list of keys found for the key tree supplied.
 
@@ -511,7 +540,7 @@ ss
             Returns all keys associated for the 'pdk' dictionary.
             >>> getkeys()
             Returns all key trees in the dictionary as a list of lists.
-        '''
+        """
 
         if chip == None:
             chip = self
@@ -530,12 +559,108 @@ ss
 
         return keys
 
+
+
+    ###########################################################################
+    def set(self, *args, chip=None, cfg=None):
+        '''
+        Sets a parameter based on a keylist and data argument provided.
+
+        The set operation is destructive and overwrites the current dictionary
+        value. For built in dictionary keys with the 'default' keyworkd entry,
+        new leaf trees are automatically created by the set method by copying
+        the default tree to the the tree described by the keylist as
+        needed.
+
+        Accesses to non-existing dictionary entries results in a logger
+        error and in the setting the 'chip.error' flag to 1. The type of the
+        value provided must agree with the dictionary parameter 'type'. Before
+        setting the parameter, the data value is type checked. Any type
+        descrepancy results in a logger error and in setting the chip.error
+        flag to 1. For descriptions of the legal values for a specific
+        parameter, refer to the schema.py documentation. Legal values are
+        cast to strings before writing to the dictionary. Illegal values
+        are not written to the dictionary.
+
+        Args:
+            args (string): A variable length key list used to look
+                up a Chip dictionary entry. For a complete description of the
+                valid key lists, see the schema.py module. The key-tree is
+                supplied in order.
+            chip (object): A valid Chip object to use for cfg query.
+            cfg (dict): A dictionary within the Chip object to use for
+                key list query.
+
+            *args (string): A non-keyworded variable length argument list to
+                used to look up non-leaf key tree in the Chip dictionary.The
+                key-tree is supplied in order, with the data list supplied as
+                the last argument. Specifying a non-existent key tree
+                results in a program exit.
+
+        Examples:
+            >>> set('design', 'mydesign')
+            Sets the parameter 'design' name to 'mydesign'
+        '''
+
+        if chip == None:
+            chip = self
+
+        if cfg is None:
+            cfg = chip.cfg
+
+        chip.logger.debug('Setting config dictionary value: %s', args)
+
+        all_args = list(args)
+
+        return self._search(chip, cfg, *all_args, field='value', mode='set')
+
+    ###########################################################################
+    def add(self, *args, chip=None, cfg=None):
+        '''
+        Appends value to current parameter list based on a keylist provided.
+
+        Accesses to non-existing dictionary entries results in a logger
+        error and in the setting the 'chip.error' flag to 1. For non list
+        based types, the method is equivalent to to the set method and the
+        value is overriden. The data type provided must agree with the
+        dictionary parameter 'type'. Before setting the parameter, the data
+        value is type checked. Any type descrepancy results in a logger error
+        and in setting the chip.error flag to 1. For descriptions of the legal
+        values for a specific parameter, refer to the schema.py documentation.
+        Legal values are cast to strings before writing to the dictionary.
+        Illegal values are not written to the dictionary.
+
+        Args:
+            args (string): A variable length key list used to look
+                up a Chip dictionary entry. For a complete description of the
+                valid key lists, see the schema.py module. The key-tree is
+                supplied in order.
+            chip (object): A valid Chip object to use for cfg query.
+            cfg (dict): A dictionary within the Chip object to use for
+                key list query.
+
+        Examples:
+            >>> add('source', 'mydesign.v')
+            Adds the file 'mydesign.v' to the list of sources.
+        '''
+
+        if chip == None:
+            chip = self
+        if cfg is None:
+            cfg = chip.cfg
+
+        chip.logger.debug('Adding config dictionary value: %s', args)
+
+        all_args = list(args)
+
+        # Convert val to list if not a list
+        return self._search(chip, cfg, *all_args, field='value', mode='add')
+
     ###########################################################################
     def _allkeys(self, chip, cfg, keys=None, allkeys=None):
         '''
-        A recursive function that returns all the non-leaf keys in the Chip
-        dictionary.
-
+        Internal recursive function that returns list of list of all
+        keylists for all leaf cells in the dictionary defined by schema.py.
         '''
 
         if keys is None:
@@ -551,73 +676,11 @@ ss
         return allkeys
 
     ###########################################################################
-    def set(self, *args, chip=None, cfg=None, field='value'):
-        '''
-        Sets the value field of the key-tree in the argument list to the
-        data list supplied.
-
-        Args:
-            *args (string): A non-keyworded variable length argument list to
-                used to look up non-leaf key tree in the Chip dictionary.The
-                key-tree is supplied in order, with the data list supplied as
-                the last argument. Specifying a non-existent key tree
-                results in a program exit.
-
-        Examples:
-            >>> set('design', 'mydesign')
-            Sets the Chip 'design' name to 'mydesign'
-        '''
-
-        if chip == None:
-            chip = self
-
-        if cfg is None:
-            cfg = chip.cfg
-
-        chip.logger.debug('Setting config dictionary value: %s', args)
-
-        all_args = list(args)
-
-        return self._search(chip, cfg, *all_args, field=field, mode='set')
-
-    ###########################################################################
-    def add(self, *args, chip=None, cfg=None, field='value'):
-        '''
-        Appends the data list supplied to the list currently in the leaf-value
-        of the key-tree in the argument list.
-
-        Args:
-            *args (string): A non-keyworded variable length argument list to
-                used to look up non-leaf key tree in the Chip dictionary. The
-                key-tree is supplied in order, with the data list supplied as
-                the last argument. Specifying a non-existent key tree
-                results in a program exit.
-
-        Examples:
-            >>> add('source', 'mydesign.v')
-            Adds the file 'mydesign.v' to the list of sources.
-        '''
-
-        if chip == None:
-            chip = self
-
-        chip.logger.debug('Adding config dictionary value: %s', args)
-
-        if cfg is None:
-            cfg = chip.cfg
-
-        all_args = list(args)
-
-        # Convert val to list if not a list
-        return self._search(chip, cfg, *all_args, field=field, mode='add')
-
-
-    ###########################################################################
     def _search(self, chip, cfg, *args, field='value', mode='get'):
         '''
-        Recursive function that searches a Chip dictionary for a match to
-        the combination of *args and fields supplied. The function is used
-        to set and get data within the dictionary.
+        Internal recursive function that searches a Chip dictionary for a
+        match to the combination of *args and fields supplied. The function is
+        used to set and get data within the dictionary.
         '''
 
         all_args = list(args)
@@ -844,12 +907,15 @@ ss
                                prefix=prefix)
 
     ###########################################################################
-    def mergecfg(self, d2, d1=None):
-        '''Recursively copies values in dictionary d2 to the Chip dictionary.
+    def _mergecfg(self, d1, d2):
+        '''Recursively merges d2 dicationary with the d1 dictionary.
+
+        Args:
+            d1 (dict): Original SC dictionary.
+            d2 (dict): Dictionary to merge into d1 dictionary.
+
         '''
 
-        if d1 is None:
-            d1 = self.cfg
         for k, v in d2.items():
             #Checking if dict exists in self.cfg and new dict
             if k in d1 and isinstance(d1[k], dict) and isinstance(d2[k], dict):
@@ -867,7 +933,7 @@ ss
                         d1[k]['value'] = d2[k]['value']
                     #if not in leaf keep descending
                 else:
-                    self.mergecfg(d2[k], d1=d1[k])
+                    self._mergecfg(d1[k], d2[k])
                 #if a new d2 key is found do a deep copy
             else:
                 d1[k] = d2[k].copy()
@@ -936,7 +1002,7 @@ ss
             read_args = self.readmake(abspath)
 
         #Merging arguments with the Chip configuration
-        self.mergecfg(read_args)
+        self._mergecfg(self.cfg, read_args)
 
     ###########################################################################
     def writecfg(self, filename, step=None, cfg=None, prune=True, abspath=False):
