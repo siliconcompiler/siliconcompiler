@@ -14,6 +14,11 @@ from siliconcompiler.schema import schema_path
 
 def setup_tool(chip, step, index):
     ''' Tool specific function to run before step execution
+
+    Tool-specific options:
+
+    * drc_ignore: list of names of libraries whose cells will be abstracted
+      during DRC.
     '''
 
     tool = 'magic'
@@ -94,8 +99,8 @@ def pdk_path(chip):
     sc_path = sc_root + '/third_party/foundry'
 
     libname = chip.get('asic', 'targetlib')[0]
-    pdk_rev = chip.get('pdk', 'rev')
-    lib_rev = chip.get('stdcell', libname, 'rev')
+    pdk_rev = chip.get('pdk', 'version')
+    lib_rev = chip.get('library', libname, 'version')
 
     target_tech = chip.get('target').split('_')[0]
 

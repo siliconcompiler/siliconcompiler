@@ -15,7 +15,25 @@
 
 source ./sc_manifest.tcl
 
-set sc_design     [lindex [dict get $sc_cfg design] end]
+set sc_design    [dict get $sc_cfg design]
+set sc_macrolibs [dict get $sc_cfg asic macrolib]
+set sc_step       [dict get $sc_cfg arg step]
+set sc_index      [dict get $sc_cfg arg index]
+if {[dict exists $sc_cfg eda magic $sc_step $sc_index option drc_ignore]} {
+    set sc_ignore [dict get $sc_cfg eda magic $sc_step $sc_index option drc_ignore]
+} else {
+    set sc_ignore ""
+}
+
+# Ignore specific libraries by reading their LEFs (causes magic to abstract them)
+foreach lib $sc_macrolibs {
+    puts $lib
+    if {[lsearch -exact $sc_ignore $lib] >= 0} {
+        lef read [dict get $sc_cfg library $lib lef]
+    }
+}
+
+gds noduplicates true
 
 gds read inputs/$sc_design.gds
 puts $sc_design.gds
