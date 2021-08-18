@@ -780,7 +780,19 @@ class Chip:
 
         '''
 
-        pass
+        if chip == None:
+            chip = self
+        if cfg is None:
+            cfg = chip.cfg
+        
+        abspath = os.path.abspath(filename)
+        chip.logger.debug('Reading configuration file %s', abspath)    
+
+        localcfg = self.readcfg(abspath, merge=False)
+
+        all_keys = self.getkeys(cfg=localcfg)
+        
+        print(json.dumps(localcfg, indent=4))
 
     ###########################################################################
     def include(self, name, filename=None):
@@ -921,15 +933,29 @@ class Chip:
                                prefix=prefix)
 
     ###########################################################################
-    def _mergecfg(self, d1, d2):
-        '''Recursively merges d2 dicationary with the d1 dictionary.
+    def _mergecfg(self, d1, d2, path=None, check=False):
+        '''
+        Recursively copies d2 into the d1 dictionary.
 
         Args:
             d1 (dict): Original SC dictionary.
-            d2 (dict): Dictionary to merge into d1 dictionary.
+            d2 (dict): Dictionary to merge into d1 dictionary
+            check (bool): If True, d1 is considered the golden reference
+                and only d2 with identical keylists are merged.
 
         '''
 
+        for key in d2:
+            if key in d1:
+                if isinstance(d1[key], dict) and isinstance(d2[key], dict):
+                    merge(d1[key], d1[key], path + [str(key)])
+                else:
+                    d1[key] = d2[key]
+            else:
+                d1[key] = d2[key]
+        return d1
+
+        
         for k, v in d2.items():
             #Checking if dict exists in self.cfg and new dict
             if k in d1 and isinstance(d1[k], dict) and isinstance(d2[k], dict):
@@ -1010,21 +1036,19 @@ class Chip:
         #Read arguments from file based on file type
         if abspath.endswith('.json'):
             with open(abspath, 'r') as f:
-                read_args = json.load(f)
+                localcfg = json.load(f)
         elif abspath.endswith('.yaml'):
             with open(abspath, 'r') as f:
-                read_args = yaml.load(f, Loader=yaml.SafeLoader)
-        elif abspath.endswith('.tcl'):
-            read_args = self.readtcl(abspath)
-        else:
-            read_args = self.readmake(abspath)
+                localcfg = yaml.load(f, Loader=yaml.SafeLoader)
 
         #Merging arguments with the Chip configuration
         if merge:
-            self._mergecfg(cfg, read_args)
-        else:
-            cfg = copy.deepcopy(read_args)
+            self._mergecfg(cfg, localcfg)
 
+        return localcfg
+        
+        
+            
     ###########################################################################
     def writecfg(self, filename, step=None, cfg=None, prune=True, abspath=False):
         '''Writes out Chip dictionary in json, yaml, or TCL file format.
