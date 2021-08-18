@@ -762,8 +762,9 @@ class Chip:
     ###########################################################################
     def extend(self, filename, cfg=None):
         '''
-        Read in a json dictionary and add to the SC cfg.
+        Read in a dictionary from a file to extend the SC cfg.
         '''
+
         #1. Check format/legality (keywords, missing information)
         #2. Create an entry for every key not found
         pass
@@ -973,7 +974,7 @@ class Chip:
             sys.exit()
 
     ###########################################################################
-    def readcfg(self, filename):
+    def readcfg(self, filename, merge=True, chip=None, cfg=None):
         '''Reads a json or yaml formatted file into the Chip dictionary.
 
         Args:
@@ -985,9 +986,13 @@ class Chip:
             Loads the file mychip.json into the current Chip dictionary.
         '''
 
-        abspath = os.path.abspath(filename)
+        if chip == None:
+            chip = self
+        if cfg is None:
+            cfg = chip.cfg
 
-        self.logger.debug('Reading configuration file %s', abspath)
+        abspath = os.path.abspath(filename)
+        chip.logger.debug('Reading configuration file %s', abspath)
 
         #Read arguments from file based on file type
         if abspath.endswith('.json'):
@@ -1002,7 +1007,10 @@ class Chip:
             read_args = self.readmake(abspath)
 
         #Merging arguments with the Chip configuration
-        self._mergecfg(self.cfg, read_args)
+        if merge:
+            self._mergecfg(cfg, read_args)
+        else:
+            cfg = copy.deepcopy(read_args)
 
     ###########################################################################
     def writecfg(self, filename, step=None, cfg=None, prune=True, abspath=False):
