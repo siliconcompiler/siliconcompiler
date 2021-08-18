@@ -172,7 +172,7 @@ def schema_typecheck(chip, cfg, leafkey, value):
     return ok
 
 
-def schema_reorder_keys(param_help, item):
+def schema_reorder(param_help, item):
     ''' Returns a keylist used to access the dictionary based on the
     cmdline switch argument and the param_help field.
     '''

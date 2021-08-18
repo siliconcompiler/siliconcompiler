@@ -1,5 +1,9 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
+from argparse import HelpFormatter
+import argparse
+import time
+import multiprocessing
 import asyncio
 import subprocess
 import os
@@ -12,26 +16,19 @@ import time
 import shutil
 import copy
 import importlib
-import code
 import textwrap
 import uuid
 import math
 import pandas
 import yaml
-import argparse
 import graphviz
-import threading
 import pyfiglet
 
-from time import sleep
-import multiprocessing
-
-from argparse import ArgumentParser, HelpFormatter
-
-from importlib.machinery import SourceFileLoader
-
-from siliconcompiler.schema import *
-from siliconcompiler.client import *
+from siliconcompiler.schema import schema_path
+from siliconcompiler.schema import schema_cfg
+from siliconcompiler.schema import schema_typecheck
+from siliconcompiler.schema import schema_reorder
+from siliconcompiler.client import client_decrypt
 
 class Chip:
     """The core Siliconcompiler Class
@@ -55,12 +52,7 @@ class Chip:
     ###########################################################################
     def __init__(self, design="root", loglevel="INFO", defaults=True):
         """Initializes Chip object
-
-        Args:
-            loglevel (str): Level of debugging (INFO, DEBUG, WARNING,
-                CRITICAL, ERROR).
         """
-
 
         # Local variables
         self.design = design
@@ -285,7 +277,7 @@ class Chip:
             else:
                 val_list = [val]
             for item in val_list:
-                args = schema_reorder_keys(argmap[key], item)
+                args = schema_reorder(argmap[key], item)
                 self.add(*args)
 
     ###########################################################################
@@ -361,7 +353,7 @@ class Chip:
             self.logger.error('Target not defined.')
             sys.exit()
         elif len(self.get('target').split('_')) > 2:
-            self.logger.error('Target format should be one or two strings sepaated by underscore')
+            self.logger.error('Target should have zero or one underscore.')
             sys.exit()
 
         # Technology platform
@@ -1532,7 +1524,7 @@ ss
 
             if not pending:
                 break
-            sleep(1)
+            time.sleep(1)
 
         self.logger.info('Starting step %s', step)
 
@@ -1788,31 +1780,6 @@ ss
             cmdstr = ' '.join(cmdlist)
             subprocess.run(cmdstr, shell=True, executable='/bin/bash')
 
-
-    ###########################################################################
-    def set_jobid(self):
-
-        # Return if jobid is already set.
-        if self.get('jobid'):
-            return
-
-        design = self.get('design')
-        dirname = self.get('build_dir')
-        jobname = self.get('jobname')
-
-        try:
-            alljobs = os.listdir(dirname + "/" + design)
-            if self.get('jobincr'):
-                jobid = 0
-                for item in alljobs:
-                    m = re.match(jobname+r'(\d+)', item)
-                    if m:
-                        jobid = max(jobid, int(m.group(1)))
-                jobid = jobid + 1
-                self.set('jobid', jobid)
-        except FileNotFoundError:
-            pass
-
 ################################################################################
 # Annoying helper classes
 
@@ -1823,93 +1790,3 @@ class YamlIndentDumper(yaml.Dumper):
 class RawFormatter(HelpFormatter):
     def _fill_text(self, text, width, indent):
         return "\n".join([textwrap.fill(line, width) for line in textwrap.indent(textwrap.dedent(text), indent).splitlines()])
-
-################################################################################
-def get_permutations(base_chip, cmdlinecfg):
-    '''Helper method to generate one or more Chip objects depending on
-       whether a permutations file was passed in.
-    '''
-
-    chips = []
-    cmdkeys = cmdlinecfg.keys()
-
-    # Set default target if not set and there is nothing set
-    if not base_chip.get('target'):
-        base_chip.logger.info('No target set, setting to %s','freepdk45_asicflow')
-        base_chip.set('target', 'freepdk4>>>>>>> main5_asicflow')
-
-    # Assign a new 'job_hash' to the chip if necessary.
-    if not base_chip.get('remote', 'hash'):
-        job_hash = uuid.uuid4().hex
-        base_chip.set('remote', 'hash', job_hash)
-
-    loglevel = cmdlinecfg['loglevel'] \
-        if 'loglevel' in cmdkeys else "INFO"
-
-    # Fetch the generator for multiple job permutations if necessary.
-    if 'permutations' in cmdkeys:
-        # TODO: should there be different behavior for >1 permutations file?
-        perm_path = os.path.abspath(cmdlinecfg['permutations'][0])
-        perm_script = SourceFileLoader('job_perms', perm_path).load_module()
-        perms = perm_script.permutations(base_chip.cfg)
-    else:
-        perms = [base_chip.cfg]
-
-    # Set '-remote_start' to '-start' if only '-start' is passed in at cmdline.
-    if (not 'remote_start' in cmdkeys) and \
-       ('start' in cmdkeys):
-        base_chip.set('remote', 'start', cmdlinecfg['start'])
-        base_chip.set('start', cmdlinecfg['start'])
-    # Ditto for '-remote_stop' and '-stop'.
-    if (not 'remote_stop' in cmdkeys) and \
-       ('stop' in cmdkeys):
-        base_chip.set('remote', 'stop', cmdlinecfg['stop'])
-        base_chip.set('stop', cmdlinecfg['stop'])
-    # Mark whether a local 'import' stage should be run.
-    base_chip.status['local_import'] = (not base_chip.get('start') or \
-                                       (base_chip.get('start') == 'import'))
-
-    # Fetch an initial 'jobid' value for the first permutation.
-    base_chip.set_jobid()
-    cur_jobid = base_chip.get('jobid')
-    base_chip.cfg['jobid']['value'] = None
-    perm_ids = []
-
-    # Create a new Chip object with the same job hash for each permutation.
-    for chip_cfg in perms:
-        new_chip = Chip(loglevel=loglevel)
-
-        # JSON dump/load is a simple way to deep-copy a Python
-        # dictionary which does not contain custom classes/objects.
-        new_chip.status = json.loads(json.dumps(base_chip.status))
-        new_chip.cfg = json.loads(json.dumps(chip_cfg))
-
-        # Avoid re-setting values if the Chip was loaded from an existing config.
-        if not 'cfg' in cmdkeys:
-            # Set values for the new Chip's PDK/target.
-            new_chip.target()
-
-        # Skip the 'import' stage for remote jobs; it will be run locally and uploaded.
-        if new_chip.get('remote', 'addr'):
-            new_chip.set('start', new_chip.get('remote', 'start'))
-            new_chip.set('stop', new_chip.get('remote', 'stop'))
-        elif new_chip.get('remote', 'key'):
-            # If 'remote_key' exists without 'remote_addr', it represents an
-            # encoded key string in an ongoing remote job. It should be
-            # moved from the config dictionary to the status one to avoid logging.
-            new_chip.status['decrypt_key'] = new_chip.get('remote', 'key')
-            new_chip.cfg['remote']['key']['value'] = []
-
-        # Set and increment the "job ID" so multiple chips don't share the same directory.
-        new_chip.set('jobid', int(cur_jobid))
-        perm_ids.append(cur_jobid)
-        cur_jobid = str(int(cur_jobid) + 1)
-
-        chips.append(new_chip)
-
-    # Mark permutations associated with the job in each Chip object.
-    for chip in chips:
-        chip.status['perm_ids'] = perm_ids
-
-    # Done; return the list of Chips.
-    return chips
