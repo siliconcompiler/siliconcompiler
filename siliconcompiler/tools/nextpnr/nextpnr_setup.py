@@ -5,18 +5,17 @@ from siliconcompiler.schema import schema_path
 # Setup NextPNR
 ################################
 
-def setup_tool(chip, step):
+def setup_tool(chip, step, index):
     ''' Sets up default settings on a per step basis
     '''
 
     refdir = 'siliconcompiler/tools/nextpnr'
     tool = 'nextpnr'
-    chip.add('eda', tool, step, 'threads', 4)
-    chip.add('eda', tool, step, 'format', 'cmdline')
-    chip.add('eda', tool, step, 'vendor', 'nextpnr')
-    chip.add('eda', tool, step, 'refdir', refdir)
-    chip.add('eda', tool, step, 'copy', 'false')
-    chip.add('eda',tool, step, 'exe', 'nextpnr-ice40')
+    chip.add('eda', tool, step, index, 'format', 'cmdline')
+    chip.add('eda', tool, step, index, 'vendor', 'nextpnr')
+    chip.add('eda', tool, step, index, 'refdir', refdir)
+    chip.add('eda', tool, step, index, 'copy', 'false')
+    chip.add('eda', tool, step, index, 'exe', 'nextpnr-ice40')
 
     # Check FPGA schema to determine which device to target
     if len(chip.get('fpga', 'partname')) == 0:
@@ -48,13 +47,13 @@ def setup_tool(chip, step):
     options.append('--pcf ' + pcf_file)
     options.append('--json inputs/' + topmodule + '_netlist.json')
     options.append('--asc outputs/' + topmodule + '.asc')
-    chip.add('eda', tool, step, 'option', 'cmdline', options)
+    chip.add('eda', tool, step, index, 'option', 'cmdline', options)
 
 ################################
 # Setup Tool (pre executable)
 ################################
 
-def post_process(chip, step):
+def post_process(chip, step, index):
     ''' Tool specific function to run after step execution
     '''
     #TODO: return error code
