@@ -134,7 +134,7 @@ class Server:
         cfg['remote']['addr']['value'] = []
         # Rename source files in the config dict; the 'import' step already
         # ran and collected the sources into a single 'verilator.sv' file.
-        cfg['source']['value'] = ['%s/import/verilator.sv'%build_dir]
+        cfg['source']['value'] = ['%s/import0/verilator.sv'%build_dir]
 
         # Write JSON config to shared compute storage.
         cur_id = cfg['jobid']['value']
@@ -333,7 +333,7 @@ class Server:
         # Assemble core job parameters.
         top_module = jobs_cfg['design']['value']
         sc_sources = jobs_cfg['source']['value']
-        cur_id = jobs_cfg['jobid']['value']
+        cur_id = '0'
         job_nameid = jobs_cfg['jobname']['value'] + cur_id
 
         # Mark the job run as busy.
@@ -356,7 +356,7 @@ class Server:
 
         # Rename source files in the config dict; the 'import' step already
         # ran and collected the sources into a single 'verilator.sv' file.
-        jobs_cfg['source']['value'] = ['%s/%s/%s/import/verilator.sv'%\
+        jobs_cfg['source']['value'] = ['%s/%s/%s/import0/verilator.sv'%\
             (build_dir, jobs_cfg['design']['value'], job_nameid)]
 
         run_cmd = ''
@@ -372,13 +372,13 @@ class Server:
             # Run the build command locally.
             from_dir = '%s/%s'%(nfs_mount, job_hash)
             to_dir   = '/tmp/%s_%s'%(job_hash, job_nameid)
-            run_cmd  = '''mkdir -p %s/ &&
-                          cp %s/%s.crypt %s/%s.crypt &&
-                          cp %s/%s.iv %s/%s.iv &&
-                          cp %s/import.bin %s/import.bin &&
-                          sc /dev/null -cfg %s/configs/chip%s.json -remote_key "%s" &&
-                          cp %s/%s.crypt %s/%s.crypt &&
-                          cp %s/%s.iv %s/%s.iv &&
+            run_cmd  = '''mkdir -p %s/ ;
+                          cp %s/%s.crypt %s/%s.crypt ;
+                          cp %s/%s.iv %s/%s.iv ;
+                          cp %s/import.bin %s/import.bin ;
+                          sc /dev/null -cfg %s/configs/chip%s.json -remote_key "%s" ;
+                          cp %s/%s.crypt %s/%s.crypt ;
+                          cp %s/%s.iv %s/%s.iv ;
                           rm -r %s
                        '''%(to_dir,
                             from_dir, job_nameid, to_dir, job_nameid,

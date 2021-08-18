@@ -125,7 +125,6 @@ def client_encrypt(chip):
     # Zip the new job results.
     subprocess.run(['zip',
                     '-r',
-                    '-y',
                     '%s.zip'%job_nameid,
                     '.'],
                    cwd='%s/%s/%s'%(root_dir, chip.get('design'), job_nameid))
@@ -555,8 +554,8 @@ def fetch_results(chip):
         subprocess.run(['unzip', '-d', perm_dir, '%s.zip'%job_nameid], cwd=job_hash)
 
     # Remove dangling 'import' symlinks if necessary.
-    for import_link in glob.iglob(job_hash + '/' + top_design + '/**/import',
-                               recursive=True):
+    for import_link in glob.iglob(job_hash + '/' + top_design + '/**/import0',
+                                  recursive=True):
         if os.path.islink(import_link):
             os.remove(import_link)
     # Copy the results into the local build directory, and remove the
