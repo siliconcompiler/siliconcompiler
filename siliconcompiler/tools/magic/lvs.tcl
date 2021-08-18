@@ -7,11 +7,15 @@ set sc_stackup [lindex [dict get $sc_cfg asic stackup] end]
 set sc_libtype [lindex [dict get $sc_cfg stdcell $sc_mainlib libtype] end]
 set sc_techlef [dict get $sc_cfg pdk aprtech $sc_stackup $sc_libtype lef]
 set sc_liblef  [dict get $sc_cfg stdcell $sc_mainlib lef]
+set sc_macrolibs [dict get $sc_cfg asic macrolib]
 
 lef read $sc_techlef
 lef read $sc_liblef
 
-# TODO: may have to read additional LEFs (such as macros), but not sure
+# Macrolibs
+foreach lib $sc_macrolibs {
+    lef read [dict get $sc_cfg macro $lib lef]
+}
 
 # Read DEF and load design
 def read "inputs/${sc_design}.def"
