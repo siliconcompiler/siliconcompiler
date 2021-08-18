@@ -1,12 +1,12 @@
 source ./sc_manifest.tcl
 source ./pdkpath.tcl
 
-set sc_design  [lindex [dict get $sc_cfg design] end]
-set sc_mainlib [lindex [dict get $sc_cfg asic targetlib] 0]
-set sc_stackup [lindex [dict get $sc_cfg asic stackup] end]
-set sc_libtype [lindex [dict get $sc_cfg stdcell $sc_mainlib libtype] end]
+set sc_design  [dict get $sc_cfg design]
+set sc_mainlib [dict get $sc_cfg asic targetlib]
+set sc_stackup [dict get $sc_cfg asic stackup]
+set sc_libtype [dict get $sc_cfg library $sc_mainlib arch]
 set sc_techlef [dict get $sc_cfg pdk aprtech $sc_stackup $sc_libtype lef]
-set sc_liblef  [dict get $sc_cfg stdcell $sc_mainlib lef]
+set sc_liblef  [dict get $sc_cfg library $sc_mainlib lef]
 set sc_macrolibs [dict get $sc_cfg asic macrolib]
 
 lef read $sc_techlef
@@ -14,7 +14,7 @@ lef read $sc_liblef
 
 # Macrolibs
 foreach lib $sc_macrolibs {
-    lef read [dict get $sc_cfg macro $lib lef]
+    lef read [dict get $sc_cfg library $lib lef]
 }
 
 # Read DEF and load design
