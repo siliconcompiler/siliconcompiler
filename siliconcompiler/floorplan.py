@@ -59,7 +59,7 @@ class Floorplan:
                 .. code-block:: python
 
                     chip.add('asic', 'macrolib', libname)
-                    chip.set('macro', libname, 'lef', lef_path)
+                    chip.set('library', libname, 'lef', lef_path)
 
             In order to make the macros in a library accessible from the
             Floorplan API, each macro must be provided a tech-agnostic name
@@ -68,7 +68,7 @@ class Floorplan:
 
                 .. code-block:: python
 
-                    chip.set('macro', libname, 'cells', macro_name, tech_name)
+                    chip.set('library', libname, 'cells', macro_name, tech_name)
 
             All Floorplan API calls related to macros must use the tech-agnostic
             macro name.
@@ -120,16 +120,16 @@ class Floorplan:
 
         # extract std cell info based on libname
         self.libname = self.chip.get('asic', 'targetlib')[0]
-        self.std_cell_name = self.chip.get('stdcell', self.libname, 'site')
-        self.std_cell_width = self.chip.get('stdcell', self.libname, 'width')
-        self.std_cell_height = self.chip.get('stdcell', self.libname, 'height')
+        self.std_cell_name = self.chip.get('library', self.libname, 'site')
+        self.std_cell_width = self.chip.get('library', self.libname, 'width')
+        self.std_cell_height = self.chip.get('library', self.libname, 'height')
 
         # Extract data from LEFs
         lef_parser = Lef()
         stackup = chip.get('asic', 'stackup')
-        libtype = chip.get('stdcell', self.libname, 'libtype')
+        libtype = chip.get('library', self.libname, 'arch')
 
-        tech_lef = schema_path(chip.get('pdk','aprtech', stackup, libtype, 'lef')[0])
+        tech_lef = schema_path(chip.get('pdk', 'aprtech', stackup, libtype, 'lef')[0])
         with open(tech_lef, 'r') as f:
             tech_lef_data = lef_parser.parse(f.read())
 
@@ -137,12 +137,12 @@ class Floorplan:
         self.available_cells = {}
 
         for macrolib in self.chip.get('asic', 'macrolib'):
-            lef_path = schema_path(self.chip.get('macro', macrolib, 'lef')[0])
+            lef_path = schema_path(self.chip.get('library', macrolib, 'lef')[0])
             with open(lef_path, 'r') as f:
                 lef_data = lef_parser.lib_parse(f.read())
 
-            for name in self.chip.getkeys('macro', macrolib, 'cells'):
-                tech_name = self.chip.get('macro', macrolib, 'cells', name)[0]
+            for name in self.chip.getkeys('library', macrolib, 'cells'):
+                tech_name = self.chip.get('library', macrolib, 'cells', name)[0]
                 if tech_name in lef_data['macros']:
                     width, height = lef_data['macros'][tech_name]['size']
                 else:
