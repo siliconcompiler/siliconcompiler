@@ -42,9 +42,9 @@ def remote_preprocess(chip):
         job_hash = uuid.uuid4().hex
         chip.set('remote', 'hash', job_hash)
 
-    # Run the local 'import' step if necessary.
+    # Run the local 'import' step once if necessary.
     if 'import' in chip.getkeys('flowgraph'):
-        chip.runstep('import', {}, multiprocessing.Event())
+        chip.runstep('import', '', {}, multiprocessing.Event())
 
         # Remove the 'import' step from the flow graph.
         # (Leave the 'input' list intact so following step(s) know where to look)

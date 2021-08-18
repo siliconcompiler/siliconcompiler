@@ -1496,7 +1496,8 @@ ss
             for input_step in self.get('flowgraph', step, 'input'):
                 for input_index in range(self.get('flowgraph', input_step, 'nproc')):
                     input_str = input_step + str(input_index)
-                    pending = pending + active[input_str]
+                    if input_str in active:
+                        pending = pending + active[input_str]
 
             if not pending:
                 break
@@ -1527,7 +1528,18 @@ ss
             #select the previous step outputs to copy over
             steplist, mindex = self.select(step)
             for item in steplist:
-                shutil.copytree("../"+item+str(mindex)+"/outputs", 'inputs/')
+                indexed_output = f'../{item}{str(mindex)}/outputs'
+                flat_output = f'../{item}/outputs'
+                if os.path.isdir(indexed_output):
+                    # First, try to import the prior step with the same proc ID.
+                    shutil.copytree(indexed_output, 'inputs/')
+                elif os.path.isdir(flat_output):
+                    # Fallback to importing the step independent of proc ID.
+                    shutil.copytree(flat_output, 'inputs/')
+                else:
+                    # Cannot find files to import from previous step; error.
+                    chip.logger.error(f"No 'outputs/' directory found for previous step: {step}")
+                    sys.exit(1)
 
         # Dynamic EDA tool module load
         tool = self.get('flowgraph', step, 'tool')
