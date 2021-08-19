@@ -1,6 +1,5 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
-from argparse import HelpFormatter
 import argparse
 import time
 import multiprocessing
@@ -171,8 +170,7 @@ class Chip:
         # Argparse
         parser = argparse.ArgumentParser(prog=progname,
                                          prefix_chars='-+',
-                                         description=description,
-                                         formatter_class=RawFormatter)
+                                         description=description)
 
         # Required positional source file argument
         if (switchlist==[]) | ('source' in switchlist):
@@ -1879,7 +1877,3 @@ class Chip:
 class YamlIndentDumper(yaml.Dumper):
     def increase_indent(self, flow=False, indentless=False):
         return super(YamlIndentDumper, self).increase_indent(flow, False)
-
-class RawFormatter(HelpFormatter):
-    def _fill_text(self, text, width, indent):
-        return "\n".join([textwrap.fill(line, width) for line in textwrap.indent(textwrap.dedent(text), indent).splitlines()])
