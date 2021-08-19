@@ -10,9 +10,11 @@ def make_fp():
     c = Chip(loglevel='INFO')
     c.set('design', 'test')
     c.target('freepdk45_asicflow')
-    c.add('asic', 'macrolib', 'ram')
-    c.add('macro', 'ram', 'lef', test_dir + '/test_floorplan/ram.lef')
-    c.set('macro', 'ram', 'cells', 'ram', 'RAM')
+    lib = 'ram'
+    c.add('asic', 'macrolib', lib)
+    c.add('library', lib, 'type', 'component')
+    c.add('library', lib, 'lef', test_dir + '/test_floorplan/ram.lef')
+    c.set('library', lib, 'cells', 'ram', 'RAM')
 
     fp = Floorplan(c)
     cell_w = fp.std_cell_width
@@ -83,21 +85,21 @@ def test_padring():
 
     macro = 'io'
     chip.add('asic', 'macrolib', macro)
-    chip.set('macro', macro, 'lef', f'{test_dir}/test_floorplan/iocells.lef')
-    chip.set('macro', macro, 'cells', 'gpio', 'IOPAD')
-    chip.set('macro', macro, 'cells', 'pwr', 'PWRPAD')
-    chip.set('macro', macro, 'cells', 'corner', 'CORNER')
-    chip.set('macro', macro, 'cells', 'fill1',  'FILLER01')
-    chip.set('macro', macro, 'cells', 'fill2',  'FILLER02')
-    chip.set('macro', macro, 'cells', 'fill5',  'FILLER05')
-    chip.set('macro', macro, 'cells', 'fill10', 'FILLER10')
-    chip.set('macro', macro, 'cells', 'fill25', 'FILLER25')
-    chip.set('macro', macro, 'cells', 'fill50', 'FILLER50')
+    chip.set('library', macro, 'lef', f'{test_dir}/test_floorplan/iocells.lef')
+    chip.set('library', macro, 'cells', 'gpio', 'IOPAD')
+    chip.set('library', macro, 'cells', 'pwr', 'PWRPAD')
+    chip.set('library', macro, 'cells', 'corner', 'CORNER')
+    chip.set('library', macro, 'cells', 'fill1',  'FILLER01')
+    chip.set('library', macro, 'cells', 'fill2',  'FILLER02')
+    chip.set('library', macro, 'cells', 'fill5',  'FILLER05')
+    chip.set('library', macro, 'cells', 'fill10', 'FILLER10')
+    chip.set('library', macro, 'cells', 'fill25', 'FILLER25')
+    chip.set('library', macro, 'cells', 'fill50', 'FILLER50')
 
     macro = 'sram_32x2048_1rw'
     chip.add('asic', 'macrolib', macro)
-    chip.set('macro', macro, 'lef', f'{test_dir}/test_floorplan/{macro}.lef')
-    chip.set('macro', macro, 'cells', 'ram', 'sram_32x2048_1rw')
+    chip.set('library', macro, 'lef', f'{test_dir}/test_floorplan/{macro}.lef')
+    chip.set('library', macro, 'cells', 'ram', 'sram_32x2048_1rw')
 
     fp = Floorplan(chip, db_units=1000)
 
