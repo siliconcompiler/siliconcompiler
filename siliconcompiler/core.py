@@ -268,6 +268,10 @@ class Chip:
         if 'loglevel' in cmdargs.keys():
             self.logger.setLevel(cmdargs['loglevel'])
 
+        # set mode (needed for target)
+        if 'mode' in cmdargs.keys():
+            self.set('mode', cmdargs['mode'])
+
         # read in target if set
         if 'target' in cmdargs.keys():
             self.target(cmdargs['target'])
