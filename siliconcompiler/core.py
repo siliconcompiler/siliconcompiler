@@ -289,7 +289,7 @@ class Chip:
                 val_list = [val]
             for item in val_list:
                 args = schema_reorder(argmap[key], item)
-                self.add(*args)
+                self.set(*args)
 
     ###########################################################################
     def target(self, arg=None, libs=True, methodology=True):
@@ -560,63 +560,8 @@ class Chip:
 
         return keys
 
-
-
     ###########################################################################
     def set(self, *args, chip=None, cfg=None):
-        '''
-        Sets a Chip dictionary value based key-sequence and data provided.
-
-        The set operation is destructive and overwrites the current dictionary
-        value. For built in dictionary keys with the 'default' keyworkd entry,
-        new leaf trees are automatically created by the set method by copying
-        the default tree to the the tree described by the keylist as
-        needed.
-
-        Accesses to non-existing dictionary entries results in a logger
-        error and in the setting the 'chip.error' flag to 1. The type of the
-        value provided must agree with the dictionary parameter 'type'. Before
-        setting the parameter, the data value is type checked. Any type
-        descrepancy results in a logger error and in setting the chip.error
-        flag to 1. For descriptions of the legal values for a specific
-        parameter, refer to the schema.py documentation. Legal values are
-        cast to strings before writing to the dictionary. Illegal values
-        are not written to the dictionary.
-
-        Args:
-            args(string): A variable length argument list specifying the
-                key sequence for accessing the cfg nested dictionary.
-                For a complete description of the valid key sequence,
-                see the schema.py module.
-            chip (object): A valid Chip object to use for cfg query.
-            cfg (dict): A dictionary within the Chip object to use for
-                key-sequence query.
-
-            *args (string): A non-keyworded variable length argument list to
-                used to look up non-leaf key tree in the Chip dictionary.The
-                key-tree is supplied in order, with the data list supplied as
-                the last argument. Specifying a non-existent key tree
-                results in a program exit.
-
-        Examples:
-            >>> set('design', 'mydesign')
-            Sets the parameter 'design' name to 'mydesign'
-        '''
-
-        if chip is None:
-            chip = self
-
-        if cfg is None:
-            cfg = chip.cfg
-
-        chip.logger.debug('Setting config dictionary value: %s', args)
-
-        all_args = list(args)
-
-        return self._search(chip, cfg, *all_args, field='value', mode='set')
-
-    ###########################################################################
-    def add(self, *args, chip=None, cfg=None, clear=False):
         '''
         Sets a Chip dictionary value based key-sequence and data provided.
 
@@ -624,19 +569,14 @@ class Chip:
         error and in the setting the 'chip.error' flag to 1. For built in
         dictionary keys with the 'default' keywork entry, new leaf trees
         are automatically created by the set method by copying the default
-        tree to the the tree described by the keylist as needed.
+        tree to the tree described by the key-sequence as needed.
 
         The data type provided must agree with the dictionary parameter 'type'.
         Before setting the parameter, the data value is type checked.
         Any type descrepancy results in a logger error and in setting the
         chip.error flag to 1. For descriptions of the legal values for a
         specific parameter, refer to the schema.py documentation. Legal values
-        are cast to strings before writing to the dictionary. Illegal value
-        are not written to the dictionary.
-
-        For list types, if the clear option is set to False, the value provided
-        is appended to the old list. For scalar values, the old value is always
-        cleared before being updated by the value provided.
+        are cast to strings before writing to the dictionary.
 
         Args:
             args (string): A variable length key list used to look
@@ -646,12 +586,9 @@ class Chip:
             chip (object): A valid Chip object to use for cfg query.
             cfg (dict): A dictionary within the Chip object to use for
                 key list query.
-            clear (bool): If True, the new data value overwrites the old value,
-                otherwise the new value is appended to the current list. In the
-                case of scalar types, the clear option is always in effect.
 
         Examples:
-            >>> ('source', 'mydesign.v')
+            >>> set('source', 'mydesign.v')
             Sets the file 'mydesign.v' to the list of sources.
         '''
 
@@ -665,6 +602,50 @@ class Chip:
         all_args = list(args)
 
         # Convert val to list if not a list
+        return self._search(chip, cfg, *all_args, field='value', mode='set')
+
+    ###########################################################################
+    def add(self, *args, chip=None, cfg=None):
+        '''
+        Appends the value to an existing Chip dictionary value of list type
+
+        Accesses to non-existing dictionary entries results in a logger
+        error and in the setting the 'chip.error' flag to 1. For built in
+        dictionary keys with the 'default' keywork entry, new leaf trees
+        are automatically created by the set method by copying the default
+        tree to the tree described by the key-sequence as needed.
+
+        The data type provided must agree with the dictionary parameter 'type'.
+        Before setting the parameter, the data value is type checked.
+        Any type descrepancy results in a logger error and in setting the
+        chip.error flag to 1. For descriptions of the legal values for a
+        specific parameter, refer to the schema.py documentation.
+
+        The add operation is not legal for scalar types.
+
+        Args:
+            args (string): A variable length key list used to look
+                up a Chip dictionary entry. For a complete description of the
+                valid key lists, see the schema.py module. The key-tree is
+                supplied in order.
+            chip (object): A valid Chip object to use for cfg query.
+            cfg (dict): A dictionary within the Chip object to use for
+                key list query.
+
+        Examples:
+            >>> add('source', 'mydesign.v')
+            Sets the file 'mydesign.v' to the list of sources.
+        '''
+
+        if chip is None:
+            chip = self
+        if cfg is None:
+            cfg = chip.cfg
+
+        chip.logger.debug('Adding config dictionary value: %s', args)
+
+        all_args = list(args)
+
         return self._search(chip, cfg, *all_args, field='value', mode='add')
 
     ###########################################################################
@@ -706,6 +687,7 @@ class Chip:
                     chip.error = 1
                 else:
                     cfg[param] = copy.deepcopy(cfg['default'])
+            list_type =bool(re.match(r'\[', cfg[param]['type']))
             #setting or extending value based on set/get mode
             if not field in cfg[param]:
                 chip.logger.error('Search failed. Field not found for \'%s\'', param)
@@ -713,18 +695,25 @@ class Chip:
             #check legality of value
             if not schema_typecheck(chip, cfg[param], param, val):
                 chip.error = 1
-            #Converting scalar to list for entries whose type is 'list'
-            if (not isinstance(val, list)) & (field == 'value') & bool(re.match(r'\[', cfg[param]['type'])):
-                val = [str(val)]
-            #set value based on scalar/list/set/add
-            if (mode == 'add') & isinstance(val, list):
-                cfg[param][field].extend(val)
-            elif (mode == 'set') & isinstance(val, list):
-                cfg[param][field] = val
-            #ignore add commmand for scalars
-            elif not isinstance(val, list):
-                cfg[param][field] = str(val)
-            #return field
+            #updating values
+            if (mode == 'set'):
+                if (not list_type) & (not isinstance(val, list)):
+                    cfg[param][field] = str(val)
+                elif list_type & (not isinstance(val, list)):
+                    cfg[param][field] = [str(val)]
+                elif list_type & isinstance(val, list):
+                    cfg[param][field] = val
+                else:
+                    chip.logger.error("Illegal to assign a list to a scalar. %s", param)
+                    chip.error = 1
+            elif (mode == 'add'):
+                if list_type & (not isinstance(val, list)):
+                    cfg[param][field].append(str(val))
+                elif list_type & isinstance(val, list):
+                    cfg[param][field].extend(val)
+                else:
+                    chip.logger.error("Illegal to use add() method with scalar. %s", param)
+                    chip.error = 1
             return cfg[param][field]
         #get leaf cell (all_args=param)
         elif len(all_args) == 1:
