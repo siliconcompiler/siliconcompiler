@@ -764,10 +764,10 @@ class Chip:
 
     ###########################################################################
     def extend(self, filename, chip=None, cfg=None):
-        '''
+        """
         Reads in an SC compatible configuration dictionary from a JSON file
-        and adds all legal entries to the existing dictionary. All dictionary
-        entries must include a filled out fields for: type, defvalue, switch,
+        and adds legal entries to the existing dictionary. All dictionary
+        entries must include a fields for: type, defvalue, switch,
         requirment, type, lock, param_help, short_help, example, and help.
         In addition, entry of file/dir type must include fields for lock,
         copym filehash, data, and signature.
@@ -778,21 +778,23 @@ class Chip:
             chip(object): The Chip object to extend
             cfg(dict): The cfg dictionary within the Chip object to extend
 
-        '''
+        """
 
         if chip == None:
             chip = self
         if cfg is None:
             cfg = chip.cfg
-        
+
         abspath = os.path.abspath(filename)
-        chip.logger.debug('Reading configuration file %s', abspath)    
 
-        localcfg = self.readcfg(abspath, merge=False)
+        chip.logger.info('Extending SC schema with file %s', abspath)
 
-        all_keys = self.getkeys(cfg=localcfg)
-        
-        print(json.dumps(localcfg, indent=4))
+        with open(abspath, 'r') as f:
+            localcfg = json.load(f)
+
+        self._mergedict(chip, cfg, localcfg, strict=False)
+
+        return localcfg
 
     ###########################################################################
     def include(self, name, filename=None):
@@ -812,9 +814,8 @@ class Chip:
 
         return chip
 
-
     ###########################################################################
-    def _prune(self, cfg=None, top=True):
+    def _prune(self, cfg, top=True):
         '''
         Recursive function that creates a copy of the Chip dictionary and
         then removes all sub trees with non-set values and sub-trees
@@ -825,9 +826,6 @@ class Chip:
         maxdepth = 10
         i = 0
 
-        if cfg is None:
-            cfg = copy.deepcopy(self.cfg)
-
         #When at top of tree loop maxdepth times to make sure all stale
         #branches have been removed, not eleagnt, but stupid-simple
         while i < maxdepth:
@@ -836,13 +834,13 @@ class Chip:
                 #removing all default/template keys
                 if k == 'default':
                     del cfg[k]
-                #remove long help from printing
-                elif 'help' in cfg[k].keys():
-                    del cfg[k]['help']
                 #removing empty values from json file
                 elif 'value' in cfg[k].keys():
                     if (not cfg[k]['value']) | (cfg[k]['value'] == None):
                         del cfg[k]
+                #remove long help from printing
+                elif 'help' in cfg[k].keys():
+                    del cfg[k]['help']
                 #removing stale branches
                 elif not cfg[k]:
                     cfg.pop(k)
@@ -853,6 +851,7 @@ class Chip:
                 i += 1
             else:
                 break
+
         return cfg
 
     ###########################################################################
@@ -933,50 +932,34 @@ class Chip:
                                prefix=prefix)
 
     ###########################################################################
-    def _mergecfg(self, d1, d2, path=None, check=False):
-        '''
-        Recursively copies d2 into the d1 dictionary.
+    def _mergedict(self, chip, d1, d2, strict=True, path=None):
+        """
+        Copies d2 into the d1 dictionary.
 
         Args:
-            d1 (dict): Original SC dictionary.
+            d1 (dict): Original dictionary.
             d2 (dict): Dictionary to merge into d1 dictionary
-            check (bool): If True, d1 is considered the golden reference
+            strict (bool): If True, d1 is considered the golden reference
                 and only d2 with identical keylists are merged.
+            path (sring): Temporary variable tracking key path
 
-        '''
-
+        """
+        if path is None: path = []
         for key in d2:
+            path = path + [str(key)]
+            pathstr = '.'.join(path)
             if key in d1:
                 if isinstance(d1[key], dict) and isinstance(d2[key], dict):
-                    merge(d1[key], d1[key], path + [str(key)])
+                    _mergedict(chip, d1[key], d1[key], path=path, check=check)
                 else:
+                    chip.logger.warning('Mergedict overwrites existing key %s', pathstr)
                     d1[key] = d2[key]
-            else:
+            elif not strict:
+                chip.logger.info('Extending dictionary with key %s', pathstr)
                 d1[key] = d2[key]
-        return d1
-
-        
-        for k, v in d2.items():
-            #Checking if dict exists in self.cfg and new dict
-            if k in d1 and isinstance(d1[k], dict) and isinstance(d2[k], dict):
-                #if we reach a leaf copy d2 to d1
-                if 'value' in d1[k].keys():
-                    if ('type' in d1[k].keys()) and ('[' in d1[k]['type']):
-                        #only add items that are not in the current list
-                        new_items = []
-                        for i in range(len(d2[k]['value'])):
-                            if d2[k]['value'][i] not in d1[k]['value']:
-                                new_items.append(d2[k]['value'][i])
-                        d1[k]['value'].extend(new_items)
-                    else:
-                        # Scalar copy.
-                        d1[k]['value'] = d2[k]['value']
-                    #if not in leaf keep descending
-                else:
-                    self._mergecfg(d1[k], d2[k])
-                #if a new d2 key is found do a deep copy
             else:
-                d1[k] = d2[k].copy()
+                chip.logger.error('Keypath not found in dictionary%s', pathstr)
+        return d1
 
     ###########################################################################
     def check(self):
@@ -1014,7 +997,8 @@ class Chip:
 
     ###########################################################################
     def readcfg(self, filename, merge=True, chip=None, cfg=None):
-        '''Reads a json or yaml formatted file into the Chip dictionary.
+        """
+        Reads a json or yaml formatted file into the Chip dictionary.
 
         Args:
             filename (file): A relative or absolute path toe a file to load
@@ -1023,7 +1007,7 @@ class Chip:
         Examples:
             >>> readcfg('mychip.json')
             Loads the file mychip.json into the current Chip dictionary.
-        '''
+        """
 
         if chip == None:
             chip = self
@@ -1043,14 +1027,12 @@ class Chip:
 
         #Merging arguments with the Chip configuration
         if merge:
-            self._mergecfg(cfg, localcfg)
+            self._mergedict(chip, cfg, localcfg, strict=True)
 
         return localcfg
-        
-        
-            
+
     ###########################################################################
-    def writecfg(self, filename, step=None, cfg=None, prune=True, abspath=False):
+    def writecfg(self, filename, chip=None, cfg=None, prune=True, abspath=False):
         '''Writes out Chip dictionary in json, yaml, or TCL file format.
 
         Args:
@@ -1071,19 +1053,20 @@ class Chip:
             Dumps the complete current Chip dictionary into bigdump.json
         '''
 
+        if chip == None:
+            chip = self
+        if cfg is None:
+            cfg = chip.cfg
+
         filepath = os.path.abspath(filename)
         self.logger.debug('Writing configuration to file %s', filepath)
 
         if not os.path.exists(os.path.dirname(filepath)):
             os.makedirs(os.path.dirname(filepath))
 
-        #prune cfg if option set
-        if (cfg is None) & (prune==True):
-            cfgcopy = self._prune(self.cfg)
-        elif (cfg is not None) & (prune==True):
-            cfgcopy = self._prune(cfg)
-        elif (cfg is None) & (prune==False):
-            cfgcopy = copy.deepcopy(self.cfg)
+        if prune:
+            chip.logger.debug('Pruning dictionary before writing file %s', filepath)
+            cfgcopy = self._prune(copy.deepcopy(cfg))
         else:
             cfgcopy = copy.deepcopy(cfg)
 
@@ -1101,7 +1084,6 @@ class Chip:
                 print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
                 print("#############################################", file=f)
                 print(yaml.dump(cfgcopy, Dumper=YamlIndentDumper, default_flow_style=False), file=f)
-
         elif filepath.endswith('.tcl'):
             with open(filepath, 'w') as f:
                 print("#############################################", file=f)
