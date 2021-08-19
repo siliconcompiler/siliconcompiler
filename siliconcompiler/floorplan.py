@@ -95,6 +95,7 @@ class Floorplan:
         self.rows = []
         self.tracks = []
         self.nets = {}
+        self.viarules = []
 
         self.blockage_layers = []
 
@@ -381,26 +382,24 @@ class Floorplan:
             raise ValueError('Invalid shape')
 
         for net_name in nets:
-            # we place pins by center point internally to make sure we can
-            # easily snap them so that the center is aligned with the
-            # appropriate track
-            start = x, y + height/2
-            end = x + width, y + height/2
-            wire_width = height
-            if snap:
-                layer_dir = self.layers[layer]['direction']
-                if layer_dir == 'HORIZONTAL':
+            if width > height:
+                # horizontal
+                if snap:
                     start = x, self.snap_to_y_track(y + height/2, layer)
                     end = x + width, self.snap_to_y_track(y + height/2, layer)
-                    wire_width = height
-                elif layer_dir == 'VERTICAL':
+                else:
+                    start = x, y + height/2
+                    end = x + width, y + height/2
+                wire_width = height
+            else:
+                # vertical
+                if snap:
                     start = self.snap_to_x_track(x + width/2, layer), y
                     end = self.snap_to_y_track(x + width/2, layer), y + height
-                    wire_width = width
                 else:
-                    # TODO: do we have a warning log level?
-                    logging.warning(f'Unable to snap wire on layer with '
-                        f'preferred direction {layer_dir}')
+                    start = x + width/2, y
+                    end = x + width/2, y + height
+                wire_width = width
 
             wire = {
                 'layer': self.layers[layer]['name'],
@@ -416,10 +415,56 @@ class Floorplan:
                 self.nets[net_name]['wires'].append(wire)
             else:
                 raise ValueError(f'Net {net_name} not found. Please initialize '
-                    f'it by calling init_net()')
+                    f'it by calling configure_net()')
 
             x += xpitch
             y += ypitch
+
+    def place_vias(self, nets, x0, y0, xpitch, ypitch, layer, rule):
+        # TODO: document
+        # TODO: add snap arg?
+
+        x = x0
+        y = y0
+        for net_name in nets:
+            via = {
+                'point': (x, y),
+                'layer': self.layers[layer]['name'],
+                'rule': rule
+            }
+
+            if net_name in self.nets:
+                self.nets[net_name]['vias'].append(via)
+            else:
+                raise ValueError(f'Net {net_name} not found. Please initialize '
+                    f'it by calling configure_net()')
+
+            x += xpitch
+            y += ypitch
+
+    def add_viarule(self, name, rule, cutsize, layers, cutspacing, enclosure, rowcol=None):
+        # TODO: document
+        # TODO: look at VIA docs in DEF to see if this makes sense/if I should
+        # add anything else
+
+        # TODO: do we want SC-agnostic via layer names? For now, just pass
+        # through non metal layers
+        tech_layers = []
+        for layer in layers:
+            if layer in self.layers:
+                tech_layers.append(self.layers[layer]['name'])
+            else:
+                tech_layers.append(layer)
+
+        self.viarules.append({
+            'name': name,
+            'rule': rule,
+            'cutsize': cutsize,
+            'layers': tech_layers,
+            'cutspacing': cutspacing,
+            'enclosure': enclosure,
+            'rowcol': rowcol
+        })
 
     def generate_rows(self, site_name=None, flip_first_row=False, area=None):
         '''Auto-generates placement rows based on floorplan parameters and tech
@@ -656,7 +701,7 @@ class Floorplan:
                     self.place_macros([(name, cell)], region_min_x, start, 0, 0, orientation, snap=False)
                 start += width
 
-    def configure_net(self, net, pin_name, use):
+    def configure_net(self, net, pins, use):
         '''Configure net.
 
         Must be called before placing a wire for a net. Calls after the first
@@ -664,7 +709,7 @@ class Floorplan:
 
         Args:
             net (str): Name of net.
-            pin_name (str): Name of pins in macro to associate with this net.
+            pins (list of str): Name of pins in macro to associate with this net.
             use (str): Use of net. Must be valid LEF/DEF use.
         '''
 
@@ -673,12 +718,13 @@ class Floorplan:
 
         if net in self.nets:
             self.nets[net]['use'] = use
-            self.nets[net]['pin_name'] = pin_name
+            self.nets[net]['pins'] = pins
         else:
             self.nets[net] = {
                 'use': use,
-                'pin_name': pin_name,
-                'wires': []
+                'pins': pins,
+                'wires': [],
+                'vias': []
             }
 
     def snap(self, val, grid):
