@@ -9,8 +9,8 @@ import re
 def setup_flow(chip, partname):
     '''
     This is a standard open source FPGA flow based on high quality tools.
-    The flow supports SystemVerilog, VHDL, and mixed SystemVerilog/VHDL 
-    flows. The asic flow is a linera pipeline that includes the 
+    The flow supports SystemVerilog, VHDL, and mixed SystemVerilog/VHDL
+    flows. The asic flow is a linera pipeline that includes the
     stages below. To skip the last three verification steps, you can
     specify "-stop export" at the command line.
 
@@ -24,14 +24,14 @@ def setup_flow(chip, partname):
     bitstream: Bistream generation
 
     program: Download bitstream to hardware (requires physical connection).
-         
+
     Args:
         partname (string): Mandatory argument specifying the compiler target
             partname. The partname is needed in syn, apr, bitstream, and
             program steps to produce correct results.
- 
+
     '''
-    
+
     # A simple linear flow
     flowpipe = ['import',
                 'syn',
@@ -43,7 +43,7 @@ def setup_flow(chip, partname):
     for i, step in enumerate(flowpipe):
         if i > 0:
             chip.add('flowgraph', flowpipe[i], 'input', flowpipe[i-1])
-        
+
     # Per step tool selection
     for step in flowpipe:
         if step == 'import':
@@ -69,7 +69,7 @@ def setup_flow(chip, partname):
             else:
                 tool = 'openfpga'
         chip.set('flowgraph', step, 'tool', tool)
-            
+
 ##################################################
 if __name__ == "__main__":
 

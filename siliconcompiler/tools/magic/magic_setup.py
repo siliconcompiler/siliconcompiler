@@ -45,7 +45,7 @@ def setup_tool(chip, step, index):
     options.append('-noc')
     options.append('-dnull')
 
-    chip.set('eda', tool, step, index, 'option', 'cmdline', options)
+    chip.add('eda', tool, step, index, 'option', 'cmdline', options)
 
     # Dumps path to PDK to tcl file so that .magicrc can find tech file
     with open('pdkpath.tcl', 'w') as f:
@@ -113,6 +113,7 @@ if __name__ == "__main__":
     # create a chip instance
     chip = siliconcompiler.Chip(defaults=False)
     # load configuration
-    setup_tool(chip, step='drc')
+    chip.set('target', 'freepdk45_asicflow')
+    setup_tool(chip, step='drc', index='0')
     # write out results
     chip.writecfg(output)

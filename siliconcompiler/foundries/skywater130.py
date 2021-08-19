@@ -134,19 +134,20 @@ def setup_libs(chip, vendor=None):
     chip.set('library', libname, 'rev', rev)
 
     # timing
-    chip.set('library', libname, 'model', corner, 'nldm', 'lib',
+    chip.add('library', libname, 'model', corner, 'nldm', 'lib',
              libdir+'/lib/sky130_fd_sc_hd__tt_025C_1v80.lib')
 
-    chip.set('library', libname, 'model', corner, 'nldm', 'lib_synth',
+    chip.add('library', libname, 'model', corner, 'nldm', 'lib_synth',
              libdir+'/lib/sky130_fd_sc_hd__tt_025C_1v80_synth.lib')
     # lef
-    chip.set('library', libname, 'lef',
+    chip.add('library', libname, 'lef',
              libdir+'/lef/sky130_fd_sc_hd_merged.lef')
     # gds
-    chip.set('library', libname, 'gds',
+    chip.add('library', libname, 'gds',
              libdir+'/gds/sky130_fd_sc_hd.gds')
     # site name
     chip.set('library', libname, 'site', 'unithd')
+
     # lib arch
     chip.set('library', libname, 'arch', libtype)
 
@@ -214,7 +215,7 @@ def setup_libs(chip, vendor=None):
     # TODO: should probably fill these in, but they're currently unused by
     # OpenROAD flow
     #driver
-    chip.set('library', libname, 'driver', '')
+    chip.add('library', libname, 'driver', '')
 
     # tie cells
     chip.add('library', libname, 'cells', 'tie', ['sky130_fd_sc_hd__conb_1/HI',
@@ -223,12 +224,11 @@ def setup_libs(chip, vendor=None):
 #########################
 def setup_methodology(chip):
 
+    chip.add('asic', 'targetlib', chip.getkeys('library'))
     chip.set('asic', 'stackup', chip.get('pdk', 'stackup')[0])
-    chip.set('asic', 'targetlib', chip.getkeys('library'))
     # TODO: how does LI get taken into account?
     chip.set('asic', 'minlayer', "m1")
     chip.set('asic', 'maxlayer', "m5")
-
     chip.set('asic', 'maxfanout', 5) # TODO: fix this
     chip.set('asic', 'maxlength', 21000)
     chip.set('asic', 'maxslew', 1.5e-9)
@@ -244,7 +244,7 @@ def setup_methodology(chip):
     chip.set('mcmm','worst','libcorner', corner)
     chip.set('mcmm','worst','pexcorner', corner)
     chip.set('mcmm','worst','mode', 'func')
-    chip.set('mcmm','worst','check', ['setup','hold'])
+    chip.add('mcmm','worst','check', ['setup','hold'])
 
 #########################
 if __name__ == "__main__":
