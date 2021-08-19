@@ -64,9 +64,12 @@ Ubuntu based install scripts can be found in the [./setup](setup) directory. The
 - **OpenRoad:** https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts
   - Following the directions in the OpenROAD-flow-scripts repository will
     install other required dependencies, such as [Yosys](https://github.com/YosysHQ/yosys),
-    along with OpenROAD itself.
+    along with OpenROAD itself. This repository is added as a git submodule under `third_party/tools`.
+    We recommend installing from this submodule, since the OpenROAD API is unstable and this
+    version is known compatible with SiliconCompiler.
 - **Verilator:** https://github.com/verilator/verilator
 - **Klayout:** https://github.com/KLayout/klayout
+  -  Requires version >=0.26.11.
 - **Surelog:** https://github.com/chipsalliance/Surelog
 - **sv2v:** https://github.com/zachjs/sv2v
 
