@@ -44,13 +44,13 @@ def setup_tool(chip, step, index):
     options.append('--pcf ' + pcf_file)
     options.append('--json inputs/' + topmodule + '_netlist.json')
     options.append('--asc outputs/' + topmodule + '.asc')
-    chip.add('eda', tool, step, 'option', 'cmdline', options)
+    chip.add('eda', tool, step, index, 'option', 'cmdline', options)
 
 ################################
 # Setup Tool (pre executable)
 ################################
 
-def post_process(chip, step):
+def post_process(chip, step, index):
     ''' Tool specific function to run after step execution
     '''
     #TODO: return error code
