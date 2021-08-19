@@ -2,6 +2,7 @@ import glob
 import os
 import re
 import shutil
+import siliconcompiler
 from siliconcompiler.schema import schema_path
 
 ################################
@@ -15,12 +16,12 @@ def setup_tool(chip, step):
     tool = 'fusesoc'
     refdir = 'siliconcompiler/tools/fusesoc'
 
-    chip.add('eda', tool, step, 'exe', tool)
-    chip.add('eda', tool, step, 'vendor', tool)
-    chip.add('eda', tool, step, 'format', 'cmdline')
-    chip.add('eda', tool, step, 'threads', '4')
-    chip.add('eda', tool, step, 'refdir', refdir)
-    chip.add('eda', tool, step, 'copy', 'false')
+    chip.set('eda', tool, step, 'exe', tool)
+    chip.set('eda', tool, step, 'vendor', tool)
+    chip.set('eda', tool, step, 'format', 'cmdline')
+    chip.set('eda', tool, step, 'threads', '4')
+    chip.set('eda', tool, step, 'refdir', refdir)
+    chip.set('eda', tool, step, 'copy', 'false')
 
     # Check FPGA schema to determine which device to target
     if len(chip.get('fpga', 'vendor')) == 0 or len(chip.get('fpga', 'device')) == 0:

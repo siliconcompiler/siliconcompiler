@@ -7,18 +7,15 @@ from siliconcompiler.schema import schema_path
 ################################
 # Setup Tool (pre executable)
 ################################
-def setup_tool(chip, step):
+def setup_tool(chip, step, index):
 
      tool = 'xyce'
 
-     chip.set('eda', tool, step, 'threads', '4')
-     chip.set('eda', tool, step, 'copy', 'false')
-     chip.set('eda', tool, step, 'format', 'cmdline')
-     chip.set('eda', tool, step, 'vendor', tool)
-     chip.set('eda', tool, step, 'exe', tool)
-
-
-
+     chip.set('eda', tool, step, index, 'threads', '4')
+     chip.set('eda', tool, step, index, 'copy', 'false')
+     chip.set('eda', tool, step, index, 'format', 'cmdline')
+     chip.set('eda', tool, step, index, 'vendor', tool)
+     chip.set('eda', tool, step, index, 'exe', tool)
 
 ################################
 # Post_process (post executable)
@@ -40,6 +37,6 @@ if __name__ == "__main__":
     # create a chip instance
     chip = siliconcompiler.Chip(defaults=False)
     # load configuration
-    setup_tool(chip, step='spice')
+    setup_tool(chip, step='spice', index='0')
     # write out results
     chip.writecfg(output)

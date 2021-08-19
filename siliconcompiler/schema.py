@@ -86,8 +86,8 @@ def schema_path(filename):
         if varpath is None:
             print("ERROR: Missing environment variable:", var)
             sys.exit()
-        relpath = varmatch.group(2)
-        filename = varpath + relpath
+            relpath = varmatch.group(2)
+            filename = varpath + relpath
 
     return filename
 
@@ -97,18 +97,18 @@ def schema_typecheck(chip, cfg, leafkey, value):
 
     # Check that value is list when type is scalar
     ok = True
-    valuetype =type(value)
+    valuetype = type(value)
     if (not re.match(r'\[',cfg['type'])) & (valuetype==list):
-        errormsg = "Value should be a scalar."
+        errormsg = "Value must be scalar."
         ok = False
-    # Iterate over list
+        # Iterate over list
     else:
         # Create list for iteration
         if valuetype == list:
             valuelist = value
         else:
             valuelist = [value]
-        # Make type python compatible
+            # Make type python compatible
         cfgtype = re.sub(r'[\[\]]', '', cfg['type'])
         for item in valuelist:
             valuetype =  type(item)

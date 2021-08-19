@@ -133,14 +133,14 @@ def setup_libs(chip, vendor=None):
     chip.set('library',libname,'rev',rev)
 
     # timing
-    chip.set('library',libname, 'model', corner, 'nldm', 'lib',
+    chip.add('library',libname, 'model', corner, 'nldm', 'lib',
              libdir+'/lib/NangateOpenCellLibrary_typical.lib')
 
     # lef
-    chip.set('library',libname,'lef',
+    chip.add('library',libname,'lef',
              libdir+'/lef/NangateOpenCellLibrary.macro.mod.lef')
     # gds
-    chip.set('library',libname,'gds',
+    chip.add('library',libname,'gds',
              libdir+'/gds/NangateOpenCellLibrary.gds')
     # site name
     chip.set('library',libname,'site', 'FreePDK45_38x28_10R_NP_162NW_34O')
@@ -184,12 +184,11 @@ def setup_libs(chip, vendor=None):
     # Endcap
     chip.add('library',libname,'cells','endcap', "FILLCELL_X1")
 
-
 #########################
 def setup_methodology(chip):
 
     chip.set('asic', 'stackup', chip.get('pdk', 'stackup')[0])
-    chip.set('asic', 'targetlib', chip.getkeys('library'))
+    chip.add('asic', 'targetlib', chip.getkeys('library'))
     chip.set('asic', 'minlayer', "m1")
     chip.set('asic', 'maxlayer', "m10")
     chip.set('asic', 'maxfanout', 64)
