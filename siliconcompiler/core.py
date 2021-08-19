@@ -11,7 +11,6 @@ import re
 import json
 import logging
 import hashlib
-import time
 import shutil
 import copy
 import importlib
@@ -159,10 +158,10 @@ class Chip:
         authorfile = schema_path("AUTHORS")
         f = open(authorfile, "r")
         for line in f:
-            name = re.match(r'^(\w+\s+\w+)',line)
+            name = re.match(r'^(\w+\s+\w+)', line)
             if name:
                 authors.append(name.group(1))
-        print("Authors:",", ".join(authors),"\n")
+        print("Authors:", ", ".join(authors), "\n")
         print("-"*80)
 
         os.environ["COLUMNS"] = '80'
@@ -173,10 +172,10 @@ class Chip:
                                          description=description)
 
         # Required positional source file argument
-        if (switchlist==[]) | ('source' in switchlist):
+        if (switchlist == []) | ('source' in switchlist):
             parser.add_argument('source',
                                 nargs='+',
-                                help=self.get('source',field='short_help'))
+                                help=self.get('source', field='short_help'))
 
         # Get all keys from global dictionary or override at command line
         allkeys = self.getkeys()
@@ -193,14 +192,14 @@ class Chip:
             #Special gcc/verilator compatible short switches get mapped to
             #the key, all others get mapped to switch
             if '_' in switchstr:
-                dest = switchstr.replace('-','')
+                dest = switchstr.replace('-', '')
             else:
                 dest = key[0]
 
             #print(switchstr, switchlist)
             if 'source' in key:
                 argmap['source'] = paramstr
-            elif (switchlist==[]) | (dest in switchlist):
+            elif (switchlist == []) | (dest in switchlist):
                 if typestr == 'bool':
                     argmap[dest] = paramstr
                     parser.add_argument(switchstr,
@@ -209,9 +208,9 @@ class Chip:
                                         action='store_const',
                                         const="true",
                                         help=helpstr,
-                                        default = argparse.SUPPRESS)
+                                        default=argparse.SUPPRESS)
                 #list type arguments
-                elif re.match(r'\[',typestr):
+                elif re.match(r'\[', typestr):
                     #all the rest
                     argmap[dest] = paramstr
                     parser.add_argument(switchstr,
@@ -219,7 +218,7 @@ class Chip:
                                         dest=dest,
                                         action='append',
                                         help=helpstr,
-                                        default = argparse.SUPPRESS)
+                                        default=argparse.SUPPRESS)
 
                 else:
                     #all the rest
@@ -228,7 +227,7 @@ class Chip:
                                         metavar='',
                                         dest=dest,
                                         help=helpstr,
-                                        default = argparse.SUPPRESS)
+                                        default=argparse.SUPPRESS)
 
 
         #Preprocess sys.argv to enable linux commandline switch formats
@@ -239,11 +238,11 @@ class Chip:
         # 'source' positional argument
         for item in sys.argv[1:]:
             #Split switches with one character and a number after (O0,O1,O2)
-            opt = re.match(r'(\-\w)(\d+)',item)
+            opt = re.match(r'(\-\w)(\d+)', item)
             #Split assign switches (-DCFG_ASIC=1)
-            assign = re.search(r'(\-\w)(\w+\=\w+)',item)
+            assign = re.search(r'(\-\w)(\w+\=\w+)', item)
             #Split plusargs (+incdir+/path)
-            plusarg = re.search(r'(\+\w+\+)(.*)',item)
+            plusarg = re.search(r'(\+\w+\+)(.*)', item)
             if opt:
                 scargs.append(opt.group(1))
                 scargs.append(opt.group(2))
@@ -280,7 +279,7 @@ class Chip:
 
         # insert all parameters in dictionary
         for key, val in cmdargs.items():
-            if type(val)==list:
+            if isinstance(val, list):
                 val_list = val
             else:
                 val_list = [val]
@@ -289,7 +288,7 @@ class Chip:
                 self.add(*args)
 
     ###########################################################################
-    def target(self, arg=None, libs=True,  methodology=True ):
+    def target(self, arg=None, libs=True, methodology=True):
         """
         Loads eda flow and technology targets based on a string.
 
@@ -384,7 +383,7 @@ class Chip:
                 self.logger.critical("Platform %s not found.", platform)
                 sys.exit()
         else:
-            self.set('fpga','partname', platform)
+            self.set('fpga', 'partname', platform)
 
 
         # EDA flow
@@ -435,9 +434,6 @@ class Chip:
         helpstr = helpstr.rstrip()
         helpstr = helpstr.replace("\n", "")
         helpstr = ' '.join(helpstr.split())
-
-        #Removing extra spaces in example string
-        cli = ' '.join(example[0].split())
 
         for idx, item in enumerate(example):
             example[idx] = ' '.join(item.split())
@@ -498,7 +494,7 @@ class Chip:
 
         """
 
-        if chip == None:
+        if chip is None:
             chip = self
 
         if cfg is None:
@@ -540,7 +536,7 @@ class Chip:
             Returns all key trees in the dictionary as a list of lists.
         """
 
-        if chip == None:
+        if chip is None:
             chip = self
 
         if cfg is None:
@@ -600,7 +596,7 @@ class Chip:
             Sets the parameter 'design' name to 'mydesign'
         '''
 
-        if chip == None:
+        if chip is None:
             chip = self
 
         if cfg is None:
@@ -644,7 +640,7 @@ class Chip:
             Adds the file 'mydesign.v' to the list of sources.
         '''
 
-        if chip == None:
+        if chip is None:
             chip = self
         if cfg is None:
             cfg = chip.cfg
@@ -703,16 +699,16 @@ class Chip:
             if not schema_typecheck(chip, cfg[param], param, val):
                 chip.error = 1
             #Converting scalar to list for entries whose type is 'list'
-            if (type(val) != list) & (field == 'value') & bool(re.match(r'\[',cfg[param]['type'])):
+            if (not isinstance(val, list)) & (field == 'value') & bool(re.match(r'\[', cfg[param]['type'])):
                 val = [str(val)]
             #set value based on scalar/list/set/add
-            if (mode == 'add') & (type(val) == list):
+            if (mode == 'add') & isinstance(val, list):
                 cfg[param][field].extend(val)
-            elif (mode == 'set') & (type(val) == list):
+            elif (mode == 'set') & isinstance(val, list):
                 cfg[param][field] = val
             #ignore add commmand for scalars
-            elif (type(val) != list):
-                cfg[param][field] =  str(val)
+            elif not isinstance(val, list):
+                cfg[param][field] = str(val)
             #return field
             return cfg[param][field]
         #get leaf cell (all_args=param)
@@ -725,7 +721,7 @@ class Chip:
                     chip.error = 1
                 elif field == 'value':
                         #check for list/vs scalar
-                    if bool(re.match(r'\[',cfg[param]['type'])):
+                    if bool(re.match(r'\[', cfg[param]['type'])):
                         return_list = []
                         for item in cfg[param]['value']:
                             if re.search('int', cfg[param]['type']):
@@ -778,7 +774,7 @@ class Chip:
 
         """
 
-        if chip == None:
+        if chip is None:
             chip = self
         if cfg is None:
             cfg = chip.cfg
@@ -800,7 +796,7 @@ class Chip:
         Include a component
         '''
 
-        if filename == None:
+        if filename is None:
             module = importlib.import_module(name)
             setup_design = getattr(module, "setup_design")
             chip = setup_design()
@@ -834,7 +830,7 @@ class Chip:
                     del cfg[k]
                 #removing empty values from json file
                 elif 'value' in cfg[k].keys():
-                    if (not cfg[k]['value']) | (cfg[k]['value'] == None):
+                    if (not cfg[k]['value']) | (cfg[k]['value'] is None):
                         del cfg[k]
                 #remove long help from printing
                 elif 'help' in cfg[k].keys():
@@ -864,15 +860,13 @@ class Chip:
             if isinstance(v, dict):
                 #indicates leaf cell
                 if 'value' in cfg[k].keys():
-                    #print(cfg[k]['value'])
-                    #print("dict=",cfg[k])
                     #only do something if type is file
                     if re.search('file|dir', cfg[k]['type']):
                         #iterate if list
                         if re.match(r'\[', cfg[k]['type']):
-                            for i, v in enumerate(list(cfg[k]['value'])):
+                            for i, val in enumerate(list(cfg[k]['value'])):
                                 #Look for relative paths in search path
-                                cfg[k]['value'][i] = schema_path(v)
+                                cfg[k]['value'][i] = schema_path(val)
                         else:
                             cfg[k]['value'] = schema_path(cfg[k]['value'])
                 else:
@@ -893,7 +887,7 @@ class Chip:
             #detect leaf cell
             if 'defvalue' in cfg[k]:
                 if mode == 'tcl':
-                    if bool(re.match(r'\[',str(cfg[k]['type']))) & (field == 'value'):
+                    if bool(re.match(r'\[', str(cfg[k]['type']))) & (field == 'value'):
                         alist = cfg[k][field].copy()
                     else:
                         alist = [cfg[k][field]]
@@ -909,7 +903,7 @@ class Chip:
 
                     #create a TCL dict
                     keystr = ' '.join(newkeys)
-                    valstr = ' '.join(map(str,alist)).replace(';', '\\;')
+                    valstr = ' '.join(map(str, alist)).replace(';', '\\;')
                     outlst = [prefix,
                               keystr,
                               '[list ',
@@ -1007,7 +1001,7 @@ class Chip:
             Loads the file mychip.json into the current Chip dictionary.
         """
 
-        if chip == None:
+        if chip is None:
             chip = self
         if cfg is None:
             cfg = chip.cfg
@@ -1051,7 +1045,7 @@ class Chip:
             Dumps the complete current Chip dictionary into bigdump.json
         '''
 
-        if chip == None:
+        if chip is None:
             chip = self
         if cfg is None:
             cfg = chip.cfg
@@ -1099,7 +1093,7 @@ class Chip:
 
         '''
 
-        if chip == None:
+        if chip is None:
             chip = self
 
         if cfg is None:
@@ -1108,7 +1102,7 @@ class Chip:
         chip.logger.debug('Calculating score for step %s, index %s', step, index)
 
         score = 0
-        for metric in self.getkeys('metric', 'default', index, 'default',chip=chip, cfg=cfg):
+        for metric in self.getkeys('metric', 'default', index, 'default', chip=chip, cfg=cfg):
             value = self.get('metric', step, index, 'real', metric, chip=chip, cfg=cfg)
             if metric in self.getkeys('flowgraph', step, 'weight', chip=chip, cfg=cfg):
                 product = value * self.get('flowgraph', step, 'weight', metric, chip=chip, cfg=cfg)
@@ -1125,7 +1119,7 @@ class Chip:
 
         '''
 
-        if chip == None:
+        if chip is None:
             chip = self
 
         if cfg is None:
@@ -1151,18 +1145,17 @@ class Chip:
         filepath = os.path.abspath(filename)
         self.logger.debug('Writing flowgraph to file %s', filepath)
         fileroot, ext = os.path.splitext(filepath)
-        fileformat = ext.replace(".","")
-        gvfile = fileroot+".gv"
+        fileformat = ext.replace(".", "")
         dot = graphviz.Digraph(format=fileformat)
         dot.attr(bgcolor='transparent')
         if graph == 'flowgraph':
             for step in self.getkeys('flowgraph'):
-                if self.get('flowgraph',step, 'tool'):
-                    labelname = step+'\\n('+self.get('flowgraph',step, 'tool')+")"
+                if self.get('flowgraph', step, 'tool'):
+                    labelname = step+'\\n('+self.get('flowgraph', step, 'tool')+")"
                 else:
                     labelname = step
-                dot.node(step,label=labelname)
-                for prev_step in self.get('flowgraph',step,'input'):
+                dot.node(step, label=labelname)
+                for prev_step in self.get('flowgraph', step, 'input'):
                     dot.edge(prev_step, step)
         elif graph == 'hier':
             for parent in self.getkeys('hier'):
@@ -1183,7 +1176,7 @@ class Chip:
             if isinstance(v, dict):
                 if 'defvalue' in cfg[k].keys():
                     #list type
-                    if re.match(r'\[',cfg[k]['type']):
+                    if re.match(r'\[', cfg[k]['type']):
                         if defaults:
                             cfg[k]['value'] = cfg[k]['defvalue'].copy()
                         else:
@@ -1196,32 +1189,9 @@ class Chip:
                 else:
                     self._reset(defaults, cfg=cfg[k])
 
-    ###########################################################################
-    def wait(self, step=None):
-        '''Waits for specific step to complete
-        '''
-
-        if step is None:
-            steplist = self.getsteps()
-        else:
-            steplist = [step]
-
-        while True:
-            busy = False
-            for step in steplist:
-                if self.get('status', step, 'active'):
-                    self.logger.info("Step '%s' is still active", step)
-                    busy = True
-            if busy:
-                #TODO: Change this timeout
-                self.logger.info("Waiting 10sec for step to finish")
-                time.sleep(10)
-            else:
-                break
-
 
     ########################################################################
-    def collect(self, chip=None, dir='output'):
+    def collect(self, chip=None, outdir='output'):
         '''
         Collects files found in the configuration dictionary and places
         them in 'dir'. The function only copies in files that have the 'copy'
@@ -1239,25 +1209,25 @@ class Chip:
 
         '''
 
-        if chip == None:
+        if chip is None:
             chip = self
 
-        if not os.path.exists(dir):
-            os.makedirs(dir)
+        if not os.path.exists(outdir):
+            os.makedirs(outdir)
         allkeys = self.getkeys(chip=chip)
         copyall = self.get('copyall', chip=chip)
         for key in allkeys:
             leaftype = self.get(*key, field='type', chip=chip)
             if leaftype == 'file':
-                copy = self.get(*key, field='copy',chip=chip)
-                value = self.get(*key, field='value',chip=chip)
+                copy = self.get(*key, field='copy', chip=chip)
+                value = self.get(*key, field='value', chip=chip)
                 if copyall | (copy == 'true'):
-                    if type(value) != list:
+                    if not isinstance(value, list):
                         value = [value]
                     for item in value:
                         if item:
                             filepath = schema_path(item)
-                            shutil.copy(filepath, dir)
+                            shutil.copy(filepath, outdir)
 
     ###########################################################################
     def hash(self, cfg=None):
@@ -1278,8 +1248,8 @@ class Chip:
                     if 'filehash' in cfg[k].keys():
                         #clear out old values (do comp?)
                         cfg[k]['hash'] = []
-                        for i, v in enumerate(cfg[k]['value']):
-                            filename = schema_path(v)
+                        for i, val in enumerate(cfg[k]['value']):
+                            filename = schema_path(val)
                             self.logger.debug('Computing hash value for %s', filename)
                             if os.path.isfile(filename):
                                 sha256_hash = hashlib.sha256()
@@ -1291,52 +1261,20 @@ class Chip:
                     else:
                         self.hash(cfg=cfg[k])
 
-    ###########################################################################
-    def _compare(self, file1, file2):
-        '''Compares Chip configurations contained in two different json files
-        Useful??
-
-        '''
-
-        #TODO: Solve recursively
-        pass
-
-        abspath1 = os.path.abspath(file1)
-        abspath2 = os.path.abspath(file2)
-
-        self.logger.info('Comparing JSON format configuration file %s and %s ',
-                         abspath1,
-                         abspath2)
-
-        #Read arguments from file
-        with open(abspath1, "r") as f:
-            file1_args = json.load(f)
-        with open(abspath2, "r") as f:
-            file2_args = json.load(f)
-
-        file1_keys = self.getkeys(cfg=file1_args)
-        file2_keys = self.getkeys(cfg=file2_args)
-        same = True
-        ##TODO: Implement...
-        #1. Sorted key list should be identical
-        #2. If keylists are identical, then compare values
-
 
     ###########################################################################
     def audit(self, filename=None):
         '''Performance an an audit of each step in the flow
         '''
-
-        pass
-
+        return filename
 
     ###########################################################################
     def calcyield(self, model='poisson'):
         '''Calculates the die yield
         '''
 
-        d0 = self.get('pdk','d0')
-        diesize = self.get('asic','diesize').split()
+        d0 = self.get('pdk', 'd0')
+        diesize = self.get('asic', 'diesize').split()
         diewidth = (diesize[2] - diesize[0])/1000
         dieheight = (diesize[3] - diesize[1])/1000
         diearea = diewidth * dieheight
@@ -1365,7 +1303,7 @@ class Chip:
         vscribe = self.get('pdk', 'vscribe', 'value')
 
         #Design parameters
-        diesize = self.get('asic','diesize').split()
+        diesize = self.get('asic', 'diesize').split()
         diewidth = (diesize[2] - diesize[0])/1000
         dieheight = (diesize[3] - diesize[1])/1000
 
@@ -1410,7 +1348,7 @@ class Chip:
 
         '''
 
-        return cost
+        return n
 
     ###########################################################################
     def summary(self, filename=None):
@@ -1432,9 +1370,7 @@ class Chip:
         else:
             steplist = self.getsteps()
 
-        #TODO, FIX FOR GRAPH!!
-        #TODO, FIX FOR INDEX
-        jobdir = "/".join([self.get('build_dir') ,
+        jobdir = "/".join([self.get('build_dir'),
                            self.get('design'),
                            self.get('jobname') + str(self.get('jobid'))])
 
@@ -1497,7 +1433,7 @@ class Chip:
         metrics.append(" " + '**score**')
         row = []
         for step in steplist:
-            step_score =  round(self.score(step, index),2)
+            step_score = round(self.score(step, index), 2)
             row.append(" " + str(step_score).center(colwidth))
         data.append(row)
 
@@ -1516,7 +1452,7 @@ class Chip:
         Returns an ordered list based on the flowgraph
         '''
 
-        if chip == None:
+        if chip is None:
             chip = self
 
         if cfg is None:
@@ -1528,18 +1464,6 @@ class Chip:
                 outputs.append(item)
 
         return outputs
-    ###########################################################################
-    def _allpaths(self, node, path=None, allpaths=None, cfg=None):
-
-        if path is None:
-            allpaths = []
-            path = []
-        for node in self.get('flowgraph', node, 'input', chip=chip, cfg=cfg):
-            newpath = path.copy()
-            newpath.append(node)
-            allpaths.append(newpath)
-            return self._allpaths(node, path=newpath, allpaths=allpaths,chip=chip, cfg=cfg)
-        return allpaths
 
     ###########################################################################
     def getsteps(self, chip=None, cfg=None):
@@ -1547,7 +1471,7 @@ class Chip:
         Returns an ordered list based on the flowgraph
         '''
 
-        if chip == None:
+        if chip is None:
             chip = self
 
         if cfg is None:
@@ -1556,9 +1480,8 @@ class Chip:
         #Get length of paths from step to root
         depth = {}
         for step in self.getkeys('flowgraph', chip=chip, cfg=cfg):
-            max_length = 0
             depth[step] = 0
-            for path in self._allpaths(chip, step):
+            for path in self._allpaths(chip, cfg, step):
                 if len(list(path)) > depth[step]:
                     depth[step] = len(path)
 
@@ -1567,18 +1490,18 @@ class Chip:
         return list(sorted_dict.keys())
 
     ###########################################################################
-    def _allpaths(self, chip, node, path=None, allpaths=None):
+    def _allpaths(self, chip, cfg, node, path=None, allpaths=None):
 
         if path is None:
             allpaths = []
             path = []
-        if not self.get('flowgraph', node, 'input', chip=chip):
+        if not self.get('flowgraph', node, 'input', chip=chip, cfg=cfg):
             allpaths.append(path)
         else:
-            for node in self.get('flowgraph', node, 'input', chip=chip):
+            for nextnode in self.get('flowgraph', node, 'input', chip=chip, cfg=cfg):
                 newpath = path.copy()
-                newpath.append(node)
-                return self._allpaths(chip, node, path=newpath, allpaths=allpaths)
+                newpath.append(nextnode)
+                return self._allpaths(chip, cfg, nextnode, path=newpath, allpaths=allpaths)
         return list(allpaths)
 
     ###########################################################################
@@ -1601,7 +1524,6 @@ class Chip:
         # This should be a shared object to not be messy
 
         self.logger.info('Step %s waiting on inputs', step)
-        stepstr = step + index
         while True:
             #global shared event signaling error
             if event.is_set():
@@ -1627,7 +1549,7 @@ class Chip:
 
         # Directory manipulation
         cwd = os.getcwd()
-        if os.path.isdir(stepdir) and (not self.get('remote','addr')):
+        if os.path.isdir(stepdir) and (not self.get('remote', 'addr')):
             shutil.rmtree(stepdir)
         os.makedirs(stepdir, exist_ok=True)
         os.chdir(stepdir)
@@ -1637,8 +1559,8 @@ class Chip:
         # Copy files from previous step unless first step
         # Package/import step is special in that it has no inputs
         if not self.get('flowgraph', step, 'input'):
-            self.collect(dir='inputs')
-        elif not self.get('remote','addr'):
+            self.collect(outdir='inputs')
+        elif not self.get('remote', 'addr'):
             #select the previous step outputs to copy over
             steplist, mindex = self.select(step)
             for item in steplist:
@@ -1654,7 +1576,7 @@ class Chip:
 
         # Check installation
         exe = self.get('eda', tool, step, index, 'exe')
-        exepath = subprocess.run("command -v "+exe+">/dev/null", shell=True)
+        exepath = subprocess.run("command -v "+exe+">/dev/null", shell=True, check=True)
         if exepath.returncode > 0:
             self.logger.critical('Executable %s not installed.', exe)
             sys.exit()
@@ -1675,7 +1597,7 @@ class Chip:
                 abspath = schema_path(value)
                 scripts.append(abspath)
 
-        cmdlist =  [exe]
+        cmdlist = [exe]
         cmdlist.extend(options)
         cmdlist.extend(scripts)
 
@@ -1690,7 +1612,7 @@ class Chip:
         # Create rerun command
         cmdstr = ' '.join(cmdlist)
         with open('run.sh', 'w') as f:
-            print('#!/bin/bash\n',cmdstr, file=f)
+            print('#!/bin/bash\n', cmdstr, file=f)
         os.chmod("run.sh", 0o755)
 
         # Save config files required by EDA tools
@@ -1715,14 +1637,14 @@ class Chip:
         # Run exeucutable
         self.logger.info("Running %s in %s", step, os.path.abspath(stepdir))
         self.logger.info('%s', cmdstr)
-        error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
+        error = subprocess.run(cmdstr, shell=True, executable='/bin/bash', check=True)
 
         # Post Process (and error checking)
         post_process = getattr(module, "post_process")
         post_error = post_process(self, step, index)
 
         # Check for errors
-        if (error.returncode | post_error):
+        if error.returncode | post_error:
             self.logger.error('Command failed. See log file %s', os.path.abspath(logfile))
             #Signal an error event
             event.set()
@@ -1838,13 +1760,13 @@ class Chip:
 
         #Figure out which tool to use for opening data
         if filename.endswith(".json"):
-            if kind==None:
+            if kind is None:
                 self.logger.error("No 'kind' argument supplied for json file.")
-            elif kind=="flowgraph":
+            elif kind == "flowgraph":
                 pass
-            elif kind=="metric":
+            elif kind == "metric":
                 pass
-            elif kind=="hier":
+            elif kind == "hier":
                 pass
         elif filext in ('.def', '.gds', '.gbr', '.brd'):
             #exrtract step from filename
@@ -1859,7 +1781,7 @@ class Chip:
             setup_tool(self, 'show')
 
             # construct command string
-            cmdlist =  [self.get('eda', showtool, 'show', 'exe')]
+            cmdlist = [self.get('eda', showtool, 'show', 'exe')]
             cmdlist.extend(self.get('eda', showtool, 'show', 'option'))
 
             if 'script' in self.getkeys('eda', showtool, 'show'):
@@ -1869,7 +1791,7 @@ class Chip:
             if self.get('quiet'):
                 cmdlist.append("> /dev/null")
             cmdstr = ' '.join(cmdlist)
-            subprocess.run(cmdstr, shell=True, executable='/bin/bash')
+            subprocess.run(cmdstr, shell=True, executable='/bin/bash', check=True)
 
 ################################################################################
 # Annoying helper classes
