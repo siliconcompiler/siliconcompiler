@@ -175,10 +175,10 @@ if {$sc_step == "route"} {
 
 # Macrolibs
 foreach lib $sc_macrolibs {
-    if {[dict exists $sc_cfg macro $lib model]} {
-        read_liberty [dict get $sc_cfg macro $lib model typical nldm lib]
+    if {[dict exists $sc_cfg library $lib model]} {
+        read_liberty [dict get $sc_cfg library $lib model typical nldm lib]
     }
-    read_lef [dict get $sc_cfg macro $lib lef]
+    read_lef [dict get $sc_cfg library $lib lef]
 }
 
 # Floorplan reads synthesis verilog, others read def

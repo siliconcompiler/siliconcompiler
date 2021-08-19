@@ -186,7 +186,7 @@ def setup_libs(chip, vendor=None):
 
 
 #########################
-def setup_design(chip):
+def setup_methodology(chip):
 
     chip.set('asic', 'stackup', chip.get('pdk', 'stackup')[0])
     chip.set('asic', 'targetlib', chip.getkeys('library'))
