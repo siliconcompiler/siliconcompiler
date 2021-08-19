@@ -3,16 +3,17 @@ import json
 
 chip = siliconcompiler.Chip()
 
-chip.writecfg("sc_old.json")
 
-#Create cfg
+#Create new config entry
 cfg = {}
-cfg['extension'] = {
+cfg['acme'] = {}
+cfg['acme']['extension'] = {
     'switch': '-extension',
     'type': 'str',
     'lock': 'false',
     'requirement': 'optional',
     'defvalue': None,
+    'value': None,
     'short_help': 'A user extension',
     'param_help': "extension <str>",
     'example': ["cli: -extension secret",
@@ -22,10 +23,11 @@ cfg['extension'] = {
     """
 }
 
-#dump file
+#dump into file
 with open("extend.json", 'w') as f:
     f.write(json.dumps(cfg, indent=4))
-chip.extend("extend.json")
-chip.writecfg("sc_new.json")
 
-    
+#compare before and after
+chip.writecfg("old.json", prune=False)
+chip.extend("extend.json")
+chip.writecfg("new.json", prune=False)
