@@ -1724,10 +1724,13 @@ class Chip:
             event = multiprocessing.Event()
             active = manager.dict()
             # Set all procs to active
-            for step in steplist:
+            for step in self.getkeys('flowgraph'):
                 for index in range(self.get('flowgraph', step, 'nproc')):
                     stepstr = step + str(index)
-                    active[stepstr] = 1
+                    if step in steplist:
+                        active[stepstr] = 1
+                    else:
+                        active[stepstr] = 0
 
             # Create procs
             processes = []
