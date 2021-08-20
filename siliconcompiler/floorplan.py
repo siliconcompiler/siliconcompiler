@@ -98,6 +98,7 @@ class Floorplan:
         self.tracks = []
         self.nets = {}
         self.viarules = []
+        self.blockages = []
 
         self.blockage_layers = []
 
@@ -564,7 +565,15 @@ class Floorplan:
             self.tracks.append(track_x)
             self.tracks.append(track_y)
 
-    def place_blockage(self, layers=None):
+    def place_blockage(self, x0, y0, width, height):
+        # TODO: expand to routing blockages, document
+
+        self.blockages.append({
+            'll': (x0, y0),
+            'ur': (x0 + width, y0 + height)
+        })
+
+    def place_obs(self, layers=None):
         '''Places full-area blockages on the specified layers.
 
         The blockages specified using this method only take effect when dumping
