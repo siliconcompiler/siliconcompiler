@@ -51,7 +51,7 @@ def strong(text):
     return p
 
 def is_leaf(schema):
-    if 'help' in schema:
+    if 'defvalue' in schema:
         return True
     elif len(schema.keys()) == 1 and 'default' in schema:
         return is_leaf(schema['default'])
