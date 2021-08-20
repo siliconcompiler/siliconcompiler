@@ -17,19 +17,19 @@ def setup_tool(chip, step, index):
     refdir = 'siliconcompiler/tools/openfpga'
 
     tool = 'openfpga'
-    chip.add('eda', tool, step, index, 'format', 'cmdline')
+    chip.set('eda', tool, step, index, 'format', 'cmdline')
 
-    chip.add('eda', tool, step, index, 'vendor', 'openfpga')
-    chip.add('eda', tool, step, index, 'refdir', refdir)
+    chip.set('eda', tool, step, index, 'vendor', 'openfpga')
+    chip.set('eda', tool, step, index, 'refdir', refdir)
     if step == 'apr':
-        chip.add('eda', tool, step, index, 'exe', 'openfpga')
+        chip.set('eda', tool, step, index, 'exe', 'openfpga')
         chip.add('eda', tool, step, index, 'option', 'cmdline', '-batch -f ' + OPENFPGA_SCRIPT)
     elif step == 'bitstream':
         # bitstream step is currently a NOP, since apr and bitstream generation
         # are integrated in shell script
-        chip.add('eda', tool, step, index, 'exe', 'cp')
+        chip.set('eda', tool, step, index, 'exe', 'cp')
         chip.add('eda', tool, step, index, 'option', 'cmdline', ' -r inputs/ outputs/')
-    chip.add('eda', tool, step, index, 'copy', 'true')
+    chip.set('eda', tool, step, index, 'copy', 'true')
 
     topmodule = chip.get('design')
 
