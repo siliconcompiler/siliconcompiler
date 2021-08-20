@@ -3,7 +3,6 @@ import sys
 import siliconcompiler
 
 def main():
-    progname = "sc-echo"
     chip = siliconcompiler.Chip(loglevel="INFO")
     allkeys = chip.getkeys()
     for key in allkeys:
