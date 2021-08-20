@@ -24,6 +24,6 @@ def test_openfpga():
                    stdout = subprocess.DEVNULL)
 
     # Verify that a bitstream was generated
-    assert os.path.isfile('build/and2/job1/apr/outputs/and2_fabric_bitstream.txt')
-    assert os.path.isfile('build/and2/job1/apr/outputs/and2_fabric_bitstream.xml')
-    assert os.path.isfile('build/and2/job1/apr/outputs/and2_fabric_independent_bitstream.xml')
+    assert os.path.isfile('build/and2/job0/apr0/outputs/and2_fabric_bitstream.txt')
+    assert os.path.isfile('build/and2/job0/apr0/outputs/and2_fabric_bitstream.xml')
+    assert os.path.isfile('build/and2/job0/apr0/outputs/and2_fabric_independent_bitstream.xml')

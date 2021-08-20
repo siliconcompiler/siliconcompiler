@@ -456,14 +456,14 @@ class Chip:
         para_list = para.wrap(text=helpstr)
 
         #Full Doc String
-        fullstr = ("-"*3 +
-                   "\nDescription: " + description.lstrip() + "\n" +
-                   "\nOrder:       " + param.lstrip() + "\n"  +
-                   "\nType:        " + typestr.lstrip() + "\n"  +
-                   "\nRequirement: " + requirement.lstrip() + "\n"  +
-                   "\nDefault:     " + defstr.lstrip() + "\n"  +
+        fullstr = ("-"*80 +
+                   "\nDescription: " + description.lstrip() +
+                   "\nOrder:       " + param.lstrip() +
+                   "\nType:        " + typestr.lstrip()  +
+                   "\nRequirement: " + requirement.lstrip()   +
+                   "\nDefault:     " + defstr.lstrip()   +
                    "\nExamples:    " + example[0].lstrip() +
-                   "\n             " + example[1].lstrip() + "\n" +
+                   "\n             " + example[1].lstrip() +
                    "\nHelp:        " + para_list[0].lstrip() + "\n")
         for line in para_list[1:]:
             fullstr = (fullstr +
@@ -696,48 +696,52 @@ class Chip:
         val = all_args[-1]
         #set/add leaf cell (all_args=(param,val))
         if (mode in ('set', 'add')) & (len(all_args) == 2):
-            #making an 'instance' of default if not found
-            if not param in cfg:
-                if not 'default' in cfg:
-                    chip.logger.error('Search failed. \'%s\' is not a valid key', all_args)
-                    chip.error = 1
-                else:
+            # clean error if key not found
+            if (not param in cfg) & (not 'default' in cfg):
+                chip.logger.error("Key '%s' does not exist", param)
+                chip.error = 1
+            else:
+                #making an 'instance' of default if not found
+                if (not param in cfg) & ('default' in cfg):
                     cfg[param] = copy.deepcopy(cfg['default'])
-            list_type =bool(re.match(r'\[', cfg[param]['type']))
-            #setting or extending value based on set/get mode
-            if not field in cfg[param]:
-                chip.logger.error('Search failed. Field not found for \'%s\'', param)
-                chip.error = 1
-            #check legality of value
-            if not schema_typecheck(chip, cfg[param], param, val):
-                chip.error = 1
-            #updating values
-            if (mode == 'set'):
-                if (not list_type) & (not isinstance(val, list)):
-                    cfg[param][field] = str(val)
-                elif list_type & (not isinstance(val, list)):
-                    cfg[param][field] = [str(val)]
-                elif list_type & isinstance(val, list):
-                    cfg[param][field] = val
-                else:
-                    chip.logger.error("Illegal to assign a list to a scalar. %s", param)
+                list_type =bool(re.match(r'\[', cfg[param]['type']))
+                #setting or extending value based on set/get mode
+                if not field in cfg[param]:
+                    chip.logger.error("Search failed. Field not found for '%s'", param)
                     chip.error = 1
-            elif (mode == 'add'):
-                if list_type & (not isinstance(val, list)):
-                    cfg[param][field].append(str(val))
-                elif list_type & isinstance(val, list):
-                    cfg[param][field].extend(val)
-                else:
-                    chip.logger.error("Illegal to use add() method with scalar. %s", param)
+                #check legality of value
+                if not schema_typecheck(chip, cfg[param], param, val):
                     chip.error = 1
-            return cfg[param][field]
+                #updating values
+                if (mode == 'set'):
+                    if (not list_type) & (not isinstance(val, list)):
+                        cfg[param][field] = str(val)
+                    elif list_type & (not isinstance(val, list)):
+                        cfg[param][field] = [str(val)]
+                    elif list_type & isinstance(val, list):
+                        cfg[param][field] = val
+                    else:
+                        chip.logger.error("Illegal to assign a list to a scalar. Parameter='%s'", param)
+                        chip.error = 1
+                elif (mode == 'add'):
+                    if list_type & (not isinstance(val, list)):
+                        cfg[param][field].append(str(val))
+                    elif list_type & isinstance(val, list):
+                        cfg[param][field].extend(val)
+                    else:
+                        chip.logger.error("Illegal to use add() method with scalar. Parameter='%s'", param)
+                        chip.error = 1
+                return cfg[param][field]
         #get leaf cell (all_args=param)
         elif len(all_args) == 1:
-            if mode == 'getkeys':
+            if not param in cfg:
+                chip.logger.error("Key '%s' does not exist", param)
+                chip.error = 1
+            elif mode == 'getkeys':
                 return cfg[param].keys()
             else:
                 if not field in cfg[param]:
-                    chip.logger.error('Key error, leaf param not found %s', field)
+                    chip.logger.error("Key error, field '%s' not found for '%s'", field, param)
                     chip.error = 1
                 elif field == 'value':
                         #check for list/vs scalar
@@ -1291,7 +1295,6 @@ class Chip:
                                 cfg[k]['hash'].append(hash_value)
                     else:
                         self.hash(cfg=cfg[k])
-
 
     ###########################################################################
     def audit(self, filename=None):
