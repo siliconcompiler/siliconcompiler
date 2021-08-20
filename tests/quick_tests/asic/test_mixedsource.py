@@ -1,8 +1,10 @@
 import os
+import pytest
 import siliconcompiler
 from tests.fixtures import test_wrapper
 
 ##################################
+@pytest.mark.skip(reason="Mixed-source functionality is still a work-in-progress.")
 def test_mixedsrc_local_py():
     '''Basic Python API test: build the mixed-source example using only Python code.
     '''
