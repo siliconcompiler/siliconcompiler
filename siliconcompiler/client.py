@@ -44,11 +44,14 @@ def remote_preprocess(chip):
 
     # Run the local 'import' step if necessary.
     if 'import' in chip.getkeys('flowgraph'):
-        chip.runstep('import', {}, multiprocessing.Event())
+        chip.runstep('import', '0', {}, multiprocessing.Event())
 
-        # Remove the 'import' step from the flow graph.
-        # (Leave the 'input' list intact so following step(s) know where to look)
-        chip.cfg['flowgraph'].pop('import')
+        # Set 'steplist' to all steps, sans 'import'.
+        remote_steplist = []
+        for step in chip.getkeys('flowgraph'):
+            if step != 'import':
+                remote_steplist.append(step)
+        chip.set('steplist', remote_steplist)
 
         # Upload the results of the local import stage.
         upload_sources_to_cluster(chip)
@@ -59,7 +62,7 @@ def client_decrypt(chip):
     '''
 
     root_dir = chip.get('build_dir')
-    job_nameid = chip.get('jobname') + str(chip.get('jobid'))
+    job_nameid = f"{chip.get('jobname')}0"
 
     # Create cipher for decryption.
     dk = base64.urlsafe_b64decode(chip.status['decrypt_key'])
@@ -107,7 +110,7 @@ def client_encrypt(chip):
     '''
 
     root_dir = chip.get('build_dir')
-    job_nameid = chip.get('jobname') + str(chip.get('jobid'))
+    job_nameid = f"{chip.get('jobname')}0"
 
     # Create cipher for decryption.
     dk = base64.urlsafe_b64decode(chip.status['decrypt_key'])
@@ -125,7 +128,6 @@ def client_encrypt(chip):
     # Zip the new job results.
     subprocess.run(['zip',
                     '-r',
-                    '-y',
                     '%s.zip'%job_nameid,
                     '.'],
                    cwd='%s/%s/%s'%(root_dir, chip.get('design'), job_nameid))
@@ -245,7 +247,7 @@ async def is_job_busy(chip):
         # Set common parameters.
         post_params = {
             'job_hash': chip.get('remote', 'hash'),
-            'job_id': str(chip.get('jobid')),
+            'job_id': '0',
         }
 
         # Set authentication parameters if necessary.
@@ -361,14 +363,10 @@ async def upload_import_dir(chip):
             # Open both 'import.zip' and 'import.crypt' files.
             # We're using a stream cipher to support large files which may not fit
             # in memory, so we'll read and write data one 'chunk' at a time.
-            if chip.get('jobid'):
-                jobid = chip.get('jobid');
-            else:
-                jobid = 1
             local_build_dir = stepdir = '/'.join([chip.get('build_dir'),
                                                   chip.get('design'),
-                                                  chip.get('jobname') + str(jobid),
-                                                  'import'])
+                                                  f"{chip.get('jobname')}0",
+                                                  'import0'])
             with open(local_build_dir + '/import.crypt', 'wb') as wf:
                 with open(local_build_dir + '/import.zip', 'rb') as rf:
                     while True:
@@ -402,14 +400,10 @@ async def upload_import_dir(chip):
 
         else:
             # No authorizaion configured; upload the unencrypted archive.
-            if chip.get('jobid'):
-                jobid = chip.get('jobid');
-            else:
-                jobid = 1
             import_loc = '/'.join([chip.get('build_dir'),
                                    chip.get('design'),
-                                   chip.get('jobname') + str(jobid),
-                                   'import',
+                                   f"{chip.get('jobname')}0",
+                                   'import0',
                                    'import.zip'])
             upload_file = os.path.abspath(import_loc)
 
@@ -436,23 +430,16 @@ def upload_sources_to_cluster(chip):
     '''Helper method to upload Verilog source files to a cloud compute
     cluster's shared storage. Required before the cluster will be able
     to run any job steps.
-
-    TODO: This method will shortly be replaced with a server call.
-
     '''
 
     # Zip the 'import' directory.
-    if chip.get('jobid'):
-        jobid = chip.get('jobid');
-    else:
-        jobid = 1
     local_build_dir = stepdir = '/'.join([chip.get('build_dir'),
                                           chip.get('design'),
-                                          chip.get('jobname') + str(jobid)])
+                                          f"{chip.get('jobname')}0"])
     subprocess.run(['zip',
                     '-r',
-                    'import/import.zip',
-                    'import/'],
+                    'import0/import.zip',
+                    'import0/'],
                    cwd=local_build_dir)
 
     # Upload the archive to the 'import' server endpoint.
@@ -545,7 +532,7 @@ def fetch_results(chip):
 
         # Decrypt the results using the original initialization vector.
         # Read in the iv.
-        job_nameid = chip.get('jobname') + str(chip.get('jobid'))
+        job_nameid = f"{chip.get('jobname')}0"
         with open('%s/%s.iv'%(job_hash, job_nameid), 'rb') as f:
             aes_iv = f.read()
 
@@ -570,8 +557,8 @@ def fetch_results(chip):
         subprocess.run(['unzip', '-d', perm_dir, '%s.zip'%job_nameid], cwd=job_hash)
 
     # Remove dangling 'import' symlinks if necessary.
-    for import_link in glob.iglob(job_hash + '/' + top_design + '/**/import',
-                               recursive=True):
+    for import_link in glob.iglob(job_hash + '/' + top_design + '/**/import0',
+                                  recursive=True):
         if os.path.islink(import_link):
             os.remove(import_link)
     # Copy the results into the local build directory, and remove the
@@ -586,7 +573,7 @@ def fetch_results(chip):
     os.environ['QT_QPA_PLATFORM'] = ''
     # Find a list of GDS files to open.
     klayout_cmd = []
-    for gds_file in glob.iglob(os.path.abspath(local_dir) + '/**/*.[gG][dD][sS]',
+    for gds_file in glob.iglob(f'{os.path.abspath(local_dir)}/{top_design}/**/*.[gG][dD][sS]',
                                recursive=True):
         klayout_cmd.append(gds_file)
 

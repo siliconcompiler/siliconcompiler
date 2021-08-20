@@ -128,13 +128,13 @@ class Server:
         subprocess.run(['mkdir', '-p', jobs_dir])
         # Link to the 'import' directory if necessary.
         subprocess.run(['mkdir', '-p', '%s/%s'%(jobs_dir, job_nameid)])
-        subprocess.run(['ln', '-s', '%s/import'%build_dir, '%s/%s/import'%(jobs_dir, job_nameid)])
+        subprocess.run(['ln', '-s', '%s/import0'%build_dir, '%s/%s/import0'%(jobs_dir, job_nameid)])
 
         # Remove 'remote' JSON config value to run locally on compute node.
         cfg['remote']['addr']['value'] = []
         # Rename source files in the config dict; the 'import' step already
         # ran and collected the sources into a single 'verilator.sv' file.
-        cfg['source']['value'] = ['%s/import/verilator.sv'%build_dir]
+        cfg['source']['value'] = ['%s/import0/verilator.sv'%build_dir]
 
         # Write JSON config to shared compute storage.
         cur_id = cfg['jobid']['value']
@@ -233,7 +233,7 @@ class Server:
                         encrypted_key.write(base64.urlsafe_b64decode(aes_iv))
                 else:
                     # Ensure that the required directories exists.
-                    subprocess.run(['mkdir', '-p', '%s/import'%job_root])
+                    subprocess.run(['mkdir', '-p', '%s/import0'%job_root])
                     # Move the uploaded archive and un-zip it.
                     os.replace(tmp_file, '%s/import.zip'%job_root)
                     subprocess.run(['unzip', '-o', '%s/import.zip'%(job_root)], cwd=job_root)
@@ -333,7 +333,7 @@ class Server:
         # Assemble core job parameters.
         top_module = jobs_cfg['design']['value']
         sc_sources = jobs_cfg['source']['value']
-        cur_id = jobs_cfg['jobid']['value']
+        cur_id = '0'
         job_nameid = jobs_cfg['jobname']['value'] + cur_id
 
         # Mark the job run as busy.
@@ -356,7 +356,7 @@ class Server:
 
         # Rename source files in the config dict; the 'import' step already
         # ran and collected the sources into a single 'verilator.sv' file.
-        jobs_cfg['source']['value'] = ['%s/%s/%s/import/verilator.sv'%\
+        jobs_cfg['source']['value'] = ['%s/%s/%s/import0/verilator.sv'%\
             (build_dir, jobs_cfg['design']['value'], job_nameid)]
 
         run_cmd = ''
@@ -372,13 +372,13 @@ class Server:
             # Run the build command locally.
             from_dir = '%s/%s'%(nfs_mount, job_hash)
             to_dir   = '/tmp/%s_%s'%(job_hash, job_nameid)
-            run_cmd  = '''mkdir -p %s/ &&
-                          cp %s/%s.crypt %s/%s.crypt &&
-                          cp %s/%s.iv %s/%s.iv &&
-                          cp %s/import.bin %s/import.bin &&
-                          sc /dev/null -cfg %s/configs/chip%s.json -remote_key "%s" &&
-                          cp %s/%s.crypt %s/%s.crypt &&
-                          cp %s/%s.iv %s/%s.iv &&
+            run_cmd  = '''mkdir -p %s/ ;
+                          cp %s/%s.crypt %s/%s.crypt ;
+                          cp %s/%s.iv %s/%s.iv ;
+                          cp %s/import.bin %s/import.bin ;
+                          sc /dev/null -cfg %s/configs/chip%s.json -remote_key "%s" ;
+                          cp %s/%s.crypt %s/%s.crypt ;
+                          cp %s/%s.iv %s/%s.iv ;
                           rm -r %s
                        '''%(to_dir,
                             from_dir, job_nameid, to_dir, job_nameid,
@@ -395,7 +395,6 @@ class Server:
         # Zip results after all job stages have finished.
         subprocess.run(['zip',
                         '-r',
-                        '-y',
                         '%s.zip'%job_hash,
                         '%s'%job_hash],
                        cwd = nfs_mount)
@@ -448,7 +447,6 @@ class Server:
         # Create a single-file archive to return if results are requested.
         subprocess.run(['zip',
                         '-r',
-                        '-y',
                         '%s.zip'%job_hash,
                         '%s'%job_hash],
                        cwd=self.cfg['nfsmount']['value'][-1])

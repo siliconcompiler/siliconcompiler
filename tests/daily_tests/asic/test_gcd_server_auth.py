@@ -55,7 +55,7 @@ def test_gcd_server_authenticated():
     srv_proc.kill()
 
     # Verify that GDS and SVG files were generated and returned.
-    assert os.path.isfile('build/gcd/job1/export/outputs/gcd.gds')
+    assert os.path.isfile('build/gcd/job0/export0/outputs/gcd.gds')
 
 ###########################
 def test_gcd_server_not_authenticated():
@@ -106,4 +106,4 @@ def test_gcd_server_not_authenticated():
     srv_proc.kill()
 
     # Verify that GDS and SVG files were generated and returned.
-    assert (not os.path.isfile('build/gcd/job1/export/outputs/gcd.gds'))
+    assert (not os.path.isfile('build/gcd/job0/export0/outputs/gcd.gds'))

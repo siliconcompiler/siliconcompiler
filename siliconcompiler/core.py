@@ -27,6 +27,9 @@ from siliconcompiler.schema import schema_cfg
 from siliconcompiler.schema import schema_typecheck
 from siliconcompiler.schema import schema_reorder
 from siliconcompiler.client import client_decrypt
+from siliconcompiler.client import fetch_results
+from siliconcompiler.client import remote_preprocess
+from siliconcompiler.client import remote_run
 
 class Chip:
     """
@@ -1051,7 +1054,8 @@ class Chip:
 
         #Merging arguments with the Chip configuration
         if merge:
-            self._mergedict(chip, cfg, localcfg, strict=True)
+            # TODO: Temporary workaround, set 'strict' to False for client/server flow.
+            self._mergedict(chip, cfg, localcfg, strict=False)
 
         return localcfg
 
