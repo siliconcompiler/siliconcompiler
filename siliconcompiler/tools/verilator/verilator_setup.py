@@ -53,8 +53,14 @@ def setup_tool(chip, step, index):
         chip.add('eda', tool, step, index, 'option', 'cmdline', '-D' + schema_path(value))
     for value in chip.get('cmdfile'):
         chip.add('eda', tool, step, index, 'option', 'cmdline', '-f ' + schema_path(value))
-    for value in chip.get('source'):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', schema_path(value))
+
+    if 'rtlgen' in chip.get('flowgraph', step, 'input'):
+        # If the prior step used the 'source' arg to generate verilog, use that.
+        chip.add('eda', tool, step, index, 'option', 'cmdline', schema_path(f'../rtlgen{index}/outputs/SRC/fabric_netlists.v'))
+    else:
+        # Otherwise, use the source files.
+        for value in chip.get('source'):
+            chip.add('eda', tool, step, index, 'option', 'cmdline', schema_path(value))
 
     #Make warnings non-fatal in relaxed mode
     if chip.get('relax'):

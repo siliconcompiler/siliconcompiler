@@ -15,15 +15,15 @@ def test_k4n4_openfpga_py():
     top_module = 'fpga_top'
 
     # Inserting value into configuration
+    chip.set('target', "freepdk45_openfpgaflow")
+    chip.target('freepdk45_openfpgaflow')
+
     chip.add('source', k4n4_ex_dir + '/config/task.conf')
-    chip.add('design', top_module)
+    chip.set('design', top_module)
     chip.add('clock', 'clock_name', 'pin', 'clk')
     chip.add('clock', 'clock_name', 'pin', 'prog_clk')
-    chip.set('target', "freepdk45_openfpgaflow")
     chip.set('asic', 'diesize', "0 0 100.13 100.8")
     chip.set('asic', 'coresize', "10.07 11.2 90.25 91")
-    chip.set_jobid()
-    chip.target()
     chip.set('quiet', 'true')
     chip.set('relax', 'true')
 

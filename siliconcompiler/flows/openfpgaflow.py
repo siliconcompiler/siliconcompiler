@@ -106,17 +106,6 @@ def setup_flow(chip, process):
         if showtool:
             chip.set('flowgraph', step, 'showtool', showtool)
 
-    # Save the FPGA design path, even though it is only used in the 'rtlgen' step.
-    chip.status['openfpga_task_dir'] = os.path.abspath(os.path.dirname(chip.get('source')[0]) + '/..')
-    # Configure the config dictionary for the ASIC flow.
-    rtlgen_path = '/'.join([os.path.abspath(chip.get('build_dir')),
-                            chip.get('design'),
-                            f"job{chip.get('jobid')}",
-                            f"rtlgen{chip.get('jobid')}"])
-    # To avoid errors, bypass 'chip.set()' because the files don't exist yet.
-    chip.cfg['source']['value'] = [rtlgen_path + '/outputs/SRC/fabric_netlists.v']
-    chip.cfg['constraint']['value'] = [rtlgen_path + '/outputs/global_ports.sdc']
-
 ##################################################
 if __name__ == "__main__":
 

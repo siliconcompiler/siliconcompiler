@@ -32,7 +32,7 @@ def setup_tool(chip, step, index):
         os.sys.exit()
 
     ofpga_run_path = os.environ['OPENFPGA_PATH'] + '/openfpga_flow/scripts/run_fpga_task.py'
-    ofpga_task_dir = chip.status['openfpga_task_dir']
+    ofpga_task_dir = os.path.abspath(os.path.dirname(chip.get('source')[0]) + '/..')
     chip.add('eda', tool, step, index, 'option', 'cmdline', ofpga_run_path)
     chip.add('eda', tool, step, index, 'option', 'cmdline', ofpga_task_dir)
 
@@ -44,7 +44,7 @@ def post_process(chip, step, index):
     '''
 
     # Copy generated sources and relevant SDC file[s].
-    ofpga_task_dir = chip.status['openfpga_task_dir']
+    ofpga_task_dir = os.path.abspath(os.path.dirname(chip.get('source')[0]) + '/..')
     src_glob = f'{ofpga_task_dir}/latest/*/*/*/'
     # There should only be one generated-code directory.
     src_dir = next(glob.iglob(src_glob))
