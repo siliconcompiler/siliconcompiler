@@ -26,13 +26,13 @@ def setup_platform(chip):
     hscribe = 0.1
     vscribe = 0.1
     edgemargin = 2
-    
+
     pdkdir = '/'.join(['third_party/foundry',
                        foundry,
                        process,
                        'pdk',
                        rev])
-    
+
 
     #if you are calling this file, you are in asic mode
     chip.set('mode','asic')
@@ -107,7 +107,7 @@ def setup_platform(chip):
 # Library Setup
 ####################################################
 def setup_libs(chip, vendor=None):
- 
+
     foundry = 'skywater'
     process = 'skywater130'
     rev = 'v0_0_2'
@@ -126,50 +126,54 @@ def setup_libs(chip, vendor=None):
                        'libs',
                        libname,
                        rev])
-    
+
+
+    chip.set('library', libname, 'type', 'stdcell')
+
     # rev
-    chip.set('stdcell',libname,'rev',rev)    
+    chip.set('library', libname, 'rev', rev)
 
     # timing
-    chip.set('stdcell',libname, 'model', corner, 'nldm', 'lib',
+    chip.add('library', libname, 'model', corner, 'nldm', 'lib',
              libdir+'/lib/sky130_fd_sc_hd__tt_025C_1v80.lib')
 
-    chip.set('stdcell',libname, 'model', corner, 'nldm', 'lib_synth',
+    chip.add('library', libname, 'model', corner, 'nldm', 'lib_synth',
              libdir+'/lib/sky130_fd_sc_hd__tt_025C_1v80_synth.lib')
     # lef
-    chip.set('stdcell',libname,'lef',
+    chip.add('library', libname, 'lef',
              libdir+'/lef/sky130_fd_sc_hd_merged.lef')
     # gds
-    chip.set('stdcell',libname,'gds',
+    chip.add('library', libname, 'gds',
              libdir+'/gds/sky130_fd_sc_hd.gds')
     # site name
-    chip.set('stdcell',libname,'site', 'unithd')
+    chip.set('library', libname, 'site', 'unithd')
+
     # lib arch
-    chip.set('stdcell',libname,'libtype',libtype)
+    chip.set('library', libname, 'arch', libtype)
 
     # lib site/tile/size
-    chip.set('stdcell',libname,'width', libwidth)
-    chip.set('stdcell',libname,'height', libheight)
+    chip.set('library', libname, 'width', libwidth)
+    chip.set('library', libname, 'height', libheight)
 
     # clock buffers
-    chip.add('stdcell',libname,'cells','clkbuf', 'sky130_fd_sc_hd__clkbuf_1')
+    chip.add('library', libname, 'cells', 'clkbuf', 'sky130_fd_sc_hd__clkbuf_1')
 
     # hold cells
-    chip.add('stdcell',libname,'cells','hold', 'sky130_fd_sc_hd__buf_1')
+    chip.add('library', libname, 'cells', 'hold', 'sky130_fd_sc_hd__buf_1')
 
     # filler
-    chip.add('stdcell',libname,'cells','filler', ['sky130_fd_sc_hd__fill_1',
-                                                  'sky130_fd_sc_hd__fill_2',
-                                                  'sky130_fd_sc_hd__fill_4',
-                                                  'sky130_fd_sc_hd__fill_8'])
+    chip.add('library', libname, 'cells', 'filler', ['sky130_fd_sc_hd__fill_1',
+                                                     'sky130_fd_sc_hd__fill_2',
+                                                     'sky130_fd_sc_hd__fill_4',
+                                                     'sky130_fd_sc_hd__fill_8'])
 
     # Tapcell
-    chip.add('stdcell',libname,'cells','tapcell', 'sky130_fd_sc_hd__tapvpwrvgnd_1')
+    chip.add('library', libname, 'cells','tapcell', 'sky130_fd_sc_hd__tapvpwrvgnd_1')
 
     # Endcap
-    chip.add('stdcell',libname,'cells','endcap', 'sky130_fd_sc_hd__decap_4')
+    chip.add('library', libname, 'cells', 'endcap', 'sky130_fd_sc_hd__decap_4')
 
-    chip.add('stdcell',libname,'cells','ignore', [
+    chip.add('library', libname, 'cells', 'ignore', [
         'sky130_fd_sc_hd__probe_p_8',
         'sky130_fd_sc_hd__probec_p_8',
         'sky130_fd_sc_hd__lpflow_bleeder_1',
@@ -211,21 +215,20 @@ def setup_libs(chip, vendor=None):
     # TODO: should probably fill these in, but they're currently unused by
     # OpenROAD flow
     #driver
-    chip.set('stdcell',libname,'driver', '')
+    chip.add('library', libname, 'driver', '')
 
     # tie cells
-    chip.add('stdcell',libname,'cells','tie', ['sky130_fd_sc_hd__conb_1/HI',
-                                               'sky130_fd_sc_hd__conb_1/LO'])
+    chip.add('library', libname, 'cells', 'tie', ['sky130_fd_sc_hd__conb_1/HI',
+                                                  'sky130_fd_sc_hd__conb_1/LO'])
 
 #########################
-def setup_design(chip):
+def setup_methodology(chip):
 
+    chip.add('asic', 'targetlib', chip.getkeys('library'))
     chip.set('asic', 'stackup', chip.get('pdk', 'stackup')[0])
-    chip.set('asic', 'targetlib', chip.getkeys('stdcell'))
     # TODO: how does LI get taken into account?
     chip.set('asic', 'minlayer', "m1")
     chip.set('asic', 'maxlayer', "m5")
-
     chip.set('asic', 'maxfanout', 5) # TODO: fix this
     chip.set('asic', 'maxlength', 21000)
     chip.set('asic', 'maxslew', 1.5e-9)
@@ -241,10 +244,10 @@ def setup_design(chip):
     chip.set('mcmm','worst','libcorner', corner)
     chip.set('mcmm','worst','pexcorner', corner)
     chip.set('mcmm','worst','mode', 'func')
-    chip.set('mcmm','worst','check', ['setup','hold'])
-    
+    chip.add('mcmm','worst','check', ['setup','hold'])
+
 #########################
-if __name__ == "__main__":    
+if __name__ == "__main__":
 
     # File being executed
     prefix = os.path.splitext(os.path.basename(__file__))[0]
@@ -257,5 +260,3 @@ if __name__ == "__main__":
     setup_libs(chip)
     # write out result
     chip.writecfg(output)
-
-   

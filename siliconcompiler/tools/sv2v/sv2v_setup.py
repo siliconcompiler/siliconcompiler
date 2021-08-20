@@ -11,7 +11,7 @@ from siliconcompiler.schema import schema_path
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip, step):
+def setup_tool(chip, step, index):
     ''' Per tool function that returns a dynamic options string based on
     the dictionary settings.
     '''
@@ -21,11 +21,11 @@ def setup_tool(chip, step):
 
     tool = 'sv2v'
 
-    chip.set('eda', tool, step, 'threads', '4')
-    chip.set('eda', tool, step, 'format', 'cmdline')
-    chip.set('eda', tool, step, 'copy', 'false')
-    chip.set('eda', tool, step, 'exe', tool)
-    chip.set('eda', tool, step, 'vendor', tool)
+    chip.set('eda', tool, step, index, 'threads', 4)
+    chip.set('eda', tool, step, index, 'format', 'cmdline')
+    chip.set('eda', tool, step, index, 'copy', 'false')
+    chip.set('eda', tool, step, index, 'exe', tool)
+    chip.set('eda', tool, step, index, 'vendor', tool)
 
     # Since we run sv2v after the import/preprocess step, there should be no
     # need for specifying include dirs/defines. However we don't want to pass
@@ -37,14 +37,14 @@ def setup_tool(chip, step):
     # set and we can read the pickled Verilog without accessing the original
     # sources
     topmodule = chip.get('design')
-    chip.add('eda', tool, step, 'option', 'cmdline', "inputs/" + topmodule + ".v")
-    chip.add('eda', tool, step, 'option', 'cmdline', "--write=outputs/" + topmodule + ".v")
+    chip.add('eda', tool, step, index, 'option', 'cmdline', "inputs/" + topmodule + ".v")
+    chip.add('eda', tool, step, index, 'option', 'cmdline', "--write=outputs/" + topmodule + ".v")
 
 ################################
 # Post_process (post executable)
 ################################
 
-def post_process(chip, step):
+def post_process(chip, step, index):
     ''' Tool specific function to run after step execution
     '''
     return 0
@@ -59,6 +59,6 @@ if __name__ == "__main__":
     # create a chip instance
     chip = siliconcompiler.Chip(defaults=False)
     # load configuration
-    setup_tool(chip, step='transalate')
+    setup_tool(chip, step='transalate', index='0')
     # write out results
     chip.writecfg(output)

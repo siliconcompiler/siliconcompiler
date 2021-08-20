@@ -8,30 +8,27 @@ from siliconcompiler.schema import schema_path
 ################################
 # Setup Tool (pre executable)
 ################################
-def setup_tool(chip, step):
+def setup_tool(chip, step, index):
 
      tool = 'vpr'
-     refdir = 'eda/vpr/'
+     refdir = 'siliconcompiler/tools/vpr'
 
-     chip.set('eda', tool, step, 'threads', '4')
-     chip.set('eda', tool, step, 'copy', 'false')
-     chip.set('eda', tool, step, 'format', 'cmdline')
-     chip.set('eda', tool, step, 'vendor', tool)
-     chip.set('eda', tool, step, 'exe', tool)
+     chip.set('eda', tool, step, index, 'threads', '4')
+     chip.set('eda', tool, step, index, 'copy', 'false')
+     chip.set('eda', tool, step, index, 'format', 'cmdline')
+     chip.set('eda', tool, step, index, 'vendor', tool)
+     chip.set('eda', tool, step, index, 'exe', tool)
 
-     #TODO: this flow is broken!
-     if step in ("floorplan"):
-          chip.set('eda', tool, step, 'exe', tool)
-     else:
-          #ignore stages withh echo
-          chip.set('eda', tool, step, 'exe', 'echo')
-
-     arch = chip.get('fpga','arch')
      topmodule = chip.get('design')
      blif = "inputs/" + topmodule + ".blif"
-     options = [arch, blif]
 
-     chip.set('eda', tool, step, 'option', 'cmdline', options)
+     options = []
+     for arch in chip.get('fpga','arch'):
+          options.append(arch)
+
+     options.append(blif)
+
+     chip.add('eda', tool, step, index, 'option', 'cmdline', options)
 
 ################################
 # Post_process (post executable)
@@ -54,6 +51,6 @@ if __name__ == "__main__":
     # create a chip instance
     chip = siliconcompiler.Chip(defaults=False)
     # load configuration
-    setup_tool(chip, step='apr')
+    setup_tool(chip, step='apr', index='0')
     # write out results
     chip.writecfg(output)

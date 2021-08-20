@@ -23,9 +23,9 @@ def setup_tool(chip, step, index):
      chip.set('eda', tool, step, index, 'refdir', refdir)
 
      if step == 'gdsview':
-          chip.set('eda', tool, step, index, 'option', 'cmdline', '-nn')
+          chip.add('eda', tool, step, index, 'option', 'cmdline', '-nn')
      elif step == 'export':
-          chip.set('eda', tool, step, index, 'option', 'cmdline', '-zz')
+          chip.add('eda', tool, step, index, 'option', 'cmdline', '-zz')
 
      scriptdir = os.path.dirname(os.path.abspath(__file__))
      sc_root   =  re.sub('siliconcompiler/siliconcompiler/tools/klayout',
@@ -70,7 +70,7 @@ def setup_tool(chip, step, index):
           stdcell_gds = chip.get('library', libname, 'gds')[0]
           gds_files = [f'{sc_root}/{stdcell_gds}']
           for macrolib in chip.get('asic', 'macrolib'):
-               for gds in chip.get('macro', macrolib, 'gds'):
+               for gds in chip.get('library', macrolib, 'gds'):
                     gds_files.append(schema_path(gds))
           gds_list = ' '.join(gds_files)
           options.append(f'in_files="{gds_list}"')
@@ -91,7 +91,7 @@ def setup_tool(chip, step, index):
           options.append('-rd')
           lef_files = []
           for macrolib in chip.get('asic', 'macrolib'):
-               for lef in chip.get('macro', macrolib, 'lef'):
+               for lef in chip.get('library', macrolib, 'lef'):
                     lef_files.append(schema_path(lef))
           lef_list = ' '.join(lef_files)
           options.append(f'macro_lefs="{lef_list}"')

@@ -12,7 +12,7 @@ from siliconcompiler.schema import schema_path
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip, step):
+def setup_tool(chip, step, index):
     ''' Tool specific function to run before step execution
     '''
 
@@ -30,13 +30,13 @@ def setup_tool(chip, step):
     elif step == 'lvs':
         script = 'lvs.tcl'
 
-    chip.set('eda', tool, step, 'vendor', tool)
-    chip.set('eda', tool, step, 'exe', tool)
-    chip.set('eda', tool, step, 'format', 'tcl')
-    chip.set('eda', tool, step, 'threads', '4')
-    chip.set('eda', tool, step, 'copy', 'false')
-    chip.set('eda', tool, step, 'refdir', refdir)
-    chip.set('eda', tool, step, 'script', refdir + '/' + script)
+    chip.set('eda', tool, step, index, 'vendor', tool)
+    chip.set('eda', tool, step, index, 'exe', tool)
+    chip.set('eda', tool, step, index, 'format', 'tcl')
+    chip.set('eda', tool, step, index, 'threads', 4)
+    chip.set('eda', tool, step, index, 'copy', 'false')
+    chip.set('eda', tool, step, index, 'refdir', refdir)
+    chip.set('eda', tool, step, index, 'script', refdir + '/' + script)
 
     # set options
     options = []
@@ -45,7 +45,7 @@ def setup_tool(chip, step):
     options.append('-noc')
     options.append('-dnull')
 
-    chip.set('eda', tool, step, 'option', 'cmdline', options)
+    chip.add('eda', tool, step, index, 'option', 'cmdline', options)
 
     # Dumps path to PDK to tcl file so that .magicrc can find tech file
     with open('pdkpath.tcl', 'w') as f:
@@ -55,7 +55,7 @@ def setup_tool(chip, step):
 # Post_process (post executable)
 ################################
 
-def post_process(chip, step):
+def post_process(chip, step, index):
     ''' Tool specific function to run after step execution
 
     Reads error count from output and fills in appropriate entry in metrics
@@ -113,6 +113,7 @@ if __name__ == "__main__":
     # create a chip instance
     chip = siliconcompiler.Chip(defaults=False)
     # load configuration
-    setup_tool(chip, step='drc')
+    chip.set('target', 'freepdk45_asicflow')
+    setup_tool(chip, step='drc', index='0')
     # write out results
     chip.writecfg(output)

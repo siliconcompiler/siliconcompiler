@@ -151,21 +151,21 @@ def setup_libs(chip, vendor=None, type=None):
     #TODO: Fill in with asic cell values
 
     #driver
-    chip.add('stdcell',libname,'driver', "BUF_X4")
+    chip.set('stdcell',libname,'driver', "BUF_X4")
 
     # clock buffers
-    chip.add('stdcell',libname,'cells','clkbuf', "BUF_X4")
+    chip.set('stdcell',libname,'cells','clkbuf', "BUF_X4")
 
     # tie cells
-    chip.add('stdcell',libname,'cells','tie', ["LOGIC1_X1",
+    chip.set('stdcell',libname,'cells','tie', ["LOGIC1_X1",
                                                "LOGIC0_X1"])
 
 
     # hold cells
-    chip.add('stdcell',libname,'cells','hold', "BUF_X1")
+    chip.set('stdcell',libname,'cells','hold', "BUF_X1")
 
     # filler
-    chip.add('stdcell',libname,'cells','filler', ["FILLCELL_X1",
+    chip.set('stdcell',libname,'cells','filler', ["FILLCELL_X1",
                                                   "FILLCELL_X2",
                                                   "FILLCELL_X4",
                                                   "FILLCELL_X8",
@@ -173,14 +173,14 @@ def setup_libs(chip, vendor=None, type=None):
                                                   "FILLCELL_X32"])
 
     # Stupid small cells
-    chip.add('stdcell',libname,'cells','ignore', ["AOI211_X1",
+    chip.set('stdcell',libname,'cells','ignore', ["AOI211_X1",
                                                   "OAI211_X1"])
 
     # Tapcell
-    chip.add('stdcell',libname,'cells','tapcell', "FILLCELL_X1")
+    chip.set('stdcell',libname,'cells','tapcell', "FILLCELL_X1")
 
     # Endcap
-    chip.add('stdcell',libname,'cells','endcap', "FILLCELL_X1")
+    chip.set('stdcell',libname,'cells','endcap', "FILLCELL_X1")
 
     #####################
     # Dynamic variables

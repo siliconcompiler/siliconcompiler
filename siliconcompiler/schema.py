@@ -86,8 +86,8 @@ def schema_path(filename):
         if varpath is None:
             print("ERROR: Missing environment variable:", var)
             sys.exit()
-        relpath = varmatch.group(2)
-        filename = varpath + relpath
+            relpath = varmatch.group(2)
+            filename = varpath + relpath
 
     return filename
 
@@ -97,18 +97,18 @@ def schema_typecheck(chip, cfg, leafkey, value):
 
     # Check that value is list when type is scalar
     ok = True
-    valuetype =type(value)
+    valuetype = type(value)
     if (not re.match(r'\[',cfg['type'])) & (valuetype==list):
-        errormsg = "Value should be a scalar."
+        errormsg = "Value must be scalar."
         ok = False
-    # Iterate over list
+        # Iterate over list
     else:
         # Create list for iteration
         if valuetype == list:
             valuelist = value
         else:
             valuelist = [value]
-        # Make type python compatible
+            # Make type python compatible
         cfgtype = re.sub(r'[\[\]]', '', cfg['type'])
         for item in valuelist:
             valuetype =  type(item)
@@ -145,7 +145,7 @@ def schema_typecheck(chip, cfg, leafkey, value):
                     try:
                         float(item)
                     except:
-                        errormsg = "Type mismatch. Cannot cast iteme to float."
+                        errormsg = "Type mismatch. Cannot cast item to float."
                         ok = False
                 elif (cfgtype == 'int'):
                     try:
@@ -172,7 +172,7 @@ def schema_typecheck(chip, cfg, leafkey, value):
     return ok
 
 
-def schema_reorder_keys(param_help, item):
+def schema_reorder(param_help, item):
     ''' Returns a keylist used to access the dictionary based on the
     cmdline switch argument and the param_help field.
     '''
@@ -2460,7 +2460,7 @@ def schema_metric(cfg, group='default', step='default', index='default'):
 # Design Tracking
 ###########################################################################
 
-def schema_record(cfg, step='default', index=1):
+def schema_record(cfg, step='default', index='default'):
 
     cfg['record'] = {}
 
@@ -2974,22 +2974,6 @@ def schema_options(cfg):
         Specifies that all used files should be copied into the jobdir,
         overriding the per schema entry copy settings. The default
         is false.
-        """
-    }
-
-    cfg['show'] = {
-        'switch': '-show',
-        'type': 'str',
-        'lock': 'false',
-        'requirement': 'optional',
-        'defvalue': None,
-        'short_help': "Display step output",
-        'param_help': "show <step>",
-        'example': ["cli: -show route",
-                    "api: chip.set('show', 'route')"],
-        'help': """
-        Step output to display using thee graphical
-        viewer defined by the flowgraph showtool parameter.
         """
     }
 

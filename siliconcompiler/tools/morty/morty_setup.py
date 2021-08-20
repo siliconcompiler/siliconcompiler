@@ -10,45 +10,45 @@ from siliconcompiler.schema import schema_path
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip, step):
+def setup_tool(chip, step, index):
     ''' Per tool function that returns a dynamic options string based on
     the dictionary settings.
     '''
 
     # Standard Setup
     tool = 'morty'
-    chip.add('eda', tool, step, 'threads', '4')
-    chip.add('eda', tool, step, 'format', 'cmdline')
-    chip.add('eda', tool, step, 'copy', 'false')
-    chip.add('eda', tool, step, 'exe', 'morty')
-    chip.add('eda', tool, step, 'vendor', 'morty')
+    chip.set('eda', tool, step, index, 'threads', 4)
+    chip.set('eda', tool, step, index, 'format', 'cmdline')
+    chip.set('eda', tool, step, index, 'copy', 'false')
+    chip.set('eda', tool, step, index, 'exe', 'morty')
+    chip.set('eda', tool, step, index, 'vendor', 'morty')
 
     # output single file to `morty.v`
-    chip.add('eda', tool, step, 'option', 'cmdline', '-o morty.v')
+    chip.add('eda', tool, step, index, 'option', 'cmdline', '-o morty.v')
     # write additional information to `manifest.json`
-    chip.add('eda', tool, step, 'option', 'cmdline', '--manifest manifest.json')
+    chip.add('eda', tool, step, index, 'option', 'cmdline', '--manifest manifest.json')
 
-    chip.add('eda', tool, step, 'option', 'cmdline', '-I ../../../')
+    chip.add('eda', tool, step, index, 'option', 'cmdline', '-I ../../../')
 
     for value in chip.cfg['ydir']['value']:
-        chip.add('eda', tool, step, 'option', 'cmdline', '--library-dir ' + schema_path(value))
+        chip.add('eda', tool, step, index, 'option', 'cmdline', '--library-dir ' + schema_path(value))
     for value in chip.cfg['vlib']['value']:
-        chip.add('eda', tool, step, 'option', 'cmdline', '--library-file ' + schema_path(value))
+        chip.add('eda', tool, step, index, 'option', 'cmdline', '--library-file ' + schema_path(value))
     for value in chip.cfg['idir']['value']:
-        chip.add('eda', tool, step, 'option', 'cmdline', '-I ' + schema_path(value))
+        chip.add('eda', tool, step, index, 'option', 'cmdline', '-I ' + schema_path(value))
     for value in chip.cfg['define']['value']:
-        chip.add('eda', tool, step, 'option', 'cmdline', '-D ' + schema_path(value))
+        chip.add('eda', tool, step, index, 'option', 'cmdline', '-D ' + schema_path(value))
     for value in chip.cfg['source']['value']:
         # only pickle Verilog or SystemVerilog files
         if value.endswith('.v') or value.endswith('.vh') or \
                 value.endswith('.sv') or value.endswith('.svh'):
-            chip.add('eda', tool, step, 'option', 'cmdline', schema_path(value))
+            chip.add('eda', tool, step, index, 'option', 'cmdline', schema_path(value))
 
 ################################
 # Post_process (post executable)
 ################################
 
-def post_process(chip, step):
+def post_process(chip, step, index):
     ''' Tool specific function to run after step execution
     '''
 
@@ -83,6 +83,6 @@ if __name__ == "__main__":
     # create a chip instance
     chip = siliconcompiler.Chip(defaults=False)
     # load configuration
-    setup_tool(chip, step='import')
+    setup_tool(chip, step='import', index='0')
     # write out results
     chip.writecfg(output)
