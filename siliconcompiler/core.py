@@ -365,10 +365,10 @@ class Chip:
         # Error checking
         if not self.get('target'):
             self.logger.error('Target not defined.')
-            sys.exit()
+            sys.exit(1)
         elif len(self.get('target').split('_')) > 2:
             self.logger.error('Target should have zero or one underscore.')
-            sys.exit()
+            sys.exit(1)
 
         # Technology platform
         platform = self.get('target').split('_')[0]
@@ -387,7 +387,7 @@ class Chip:
                 self.logger.info("Loaded platform '%s'", platform)
             except ModuleNotFoundError:
                 self.logger.critical("Platform %s not found.", platform)
-                sys.exit()
+                sys.exit(1)
         else:
             self.set('fpga', 'partname', platform)
 
@@ -403,7 +403,7 @@ class Chip:
                 self.logger.info("Loaded edaflow '%s'", edaflow)
             except ModuleNotFoundError:
                 self.logger.critical("EDA flow %s not found.", edaflow)
-                sys.exit()
+                sys.exit(1)
 
     ###########################################################################
     def help(self, *args):
@@ -988,8 +988,7 @@ class Chip:
             error = True
 
         if error:
-
-            sys.exit()
+            sys.exit(1)
 
     ###########################################################################
     def readcfg(self, filename, merge=True, chip=None, cfg=None):
@@ -1571,19 +1570,26 @@ class Chip:
                 shutil.copytree("../"+item+str(mindex)+"/outputs", 'inputs/')
 
         # Dynamic EDA tool module load
-        tool = self.get('flowgraph', step, 'tool')
-        searchdir = "siliconcompiler.tools." + tool
-        modulename = '.'+tool+'_setup'
-        module = importlib.import_module(modulename, package=searchdir)
-        setup_tool = getattr(module, "setup_tool")
-        setup_tool(self, step, index)
+        try:
+            tool = self.get('flowgraph', step, 'tool')
+            searchdir = "siliconcompiler.tools." + tool
+            modulename = '.'+tool+'_setup'
+            module = importlib.import_module(modulename, package=searchdir)
+            setup_tool = getattr(module, "setup_tool")
+            setup_tool(self, step, index)
+        except:
+            self.logger.error("Setup failed for '%s' tool in step '%s'.", tool, step)
+            event.set()
+            sys.exit(1)
 
         # Check installation
         exe = self.get('eda', tool, step, index, 'exe')
-        exepath = subprocess.run("command -v "+exe+">/dev/null", shell=True, check=True)
-        if exepath.returncode > 0:
-            self.logger.critical('Executable %s not installed.', exe)
-            sys.exit()
+        try:
+            exepath = subprocess.run("command -v "+exe+">/dev/null", shell=True)
+        except exepath.returncode > 0:
+            self.logger.error('Executable %s not installed.', exe)
+            event.set()
+            sys.exit(1)
 
         #Copy Reference Scripts
         if self.get('eda', tool, step, index, 'copy'):
@@ -1641,18 +1647,23 @@ class Chip:
         # Run exeucutable
         self.logger.info("Running %s in %s", step, os.path.abspath(stepdir))
         self.logger.info('%s', cmdstr)
-        error = subprocess.run(cmdstr, shell=True, executable='/bin/bash', check=True)
+
+        try:
+            error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
+        except error.returncode != 0:
+            self.logger.error('Command failed. See log file %s', os.path.abspath(logfile))
+            event.set()
+            sys.exit(1)
 
         # Post Process (and error checking)
         post_process = getattr(module, "post_process")
         post_error = post_process(self, step, index)
 
         # Check for errors
-        if error.returncode | post_error:
-            self.logger.error('Command failed. See log file %s', os.path.abspath(logfile))
-            #Signal an error event
+        if post_error:
+            self.logger.error('Post-processing check failed for step %s', step)
             event.set()
-            sys.exit()
+            sys.exit(1)
 
         # save output manifest
         self.writecfg("outputs/" + self.get('design') +'.pkg.json')
@@ -1741,6 +1752,11 @@ class Chip:
             # Mandatory procs cleanup
             for p in processes:
                 p.join()
+
+            # Make a clean exit if a process failed
+            if event.is_set():
+                self.logger.error('Run() failed, exiting! See previous errors.')
+                sys.exit(1)
 
             # For local encrypted jobs, re-encrypt and delete the decrypted data.
             if 'decrypt_key' in self.status:
