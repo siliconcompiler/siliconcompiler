@@ -291,6 +291,13 @@ class Chip:
                 args = schema_reorder(argmap[key], item)
                 self.set(*args)
 
+        # ensure all source files have absolute paths; we will chdir later, so
+        # relative paths may interfere with logic such as tool setup scripts.
+        abs_sources = []
+        for src in self.get('source'):
+            abs_sources.append(os.path.abspath(src))
+        self.set('source', abs_sources)
+
     ###########################################################################
     def target(self, arg=None, libs=True, methodology=True):
         """
