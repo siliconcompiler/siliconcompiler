@@ -32,10 +32,8 @@ class Chip:
     """
     Core Siliconcompiler Class
 
-    This is the main object  used to interact with configuration, data, and
-    execution flow for the SiliconCompiler API. Once the constructor has been
-    called, access to the object data is accomplished through the Class methods
-    (set, get, add, etc).
+    This is the main object used to interact with configuration, data, and
+    execution flow for the SiliconCompiler API.
 
     Args:
         design (string): Name of the top level chip design object.
@@ -107,7 +105,7 @@ class Chip:
     def cmdline(self, progname, description=None, switchlist=[]):
         """Command line interface method for the SiliconCompiler project.
 
-        The method exposes parameters in the SC echema as command line switches.
+        The method exposes parameters in the SC schema as command line switches.
         Exact format for all command line switches can be found in the example
         and help fields of the schema parameters within the 'schema.py' module.
         Custom command line apps can be created by restricting the schema
@@ -289,7 +287,11 @@ class Chip:
                 val_list = [val]
             for item in val_list:
                 args = schema_reorder(argmap[key], item)
-                self.set(*args)
+                typestr = self.get(*args[:-1], field='type')
+                if re.match(r'\[', typestr):
+                    self.add(*args)
+                else:
+                    self.set(*args)
 
     ###########################################################################
     def target(self, arg=None, libs=True, methodology=True):
@@ -303,8 +305,8 @@ class Chip:
         the PYTHON environment variable.
 
         The target function supports ASIC as well as FPGA design flows. For
-        FPGA flows, the function simpply sets the partname to the technology
-        part of the target string. For ASIC flows,the target is used to
+        FPGA flows, the function simply sets the partname to the technology
+        part of the target string. For ASIC flows, the target is used to
         bundle and simplify the setup of SC schema parameters en masse. Modern
         silicon process PDKs can contain hundreds of files and setup variables.
         Doing this setup once and creating a named target significantly
@@ -323,11 +325,11 @@ class Chip:
         schema acess methods to set/get parameters. To maximize reuse it
         is recommended that the setup_platform function includes only core
         PDK information and does not include settings for IPs such as
-        libraries or design methodology information such as maximum fanout.
+        libraries or design methodology settings.
 
         **setup_libs (chip, vendor=None):** Configures the core digital
         library IP for the process. The vendor argument is used to select
-        the the vendor for foundry nodes that support multiple IP vendors.
+        the vendor for foundry nodes that support multiple IP vendors.
         The function works as an abstraction layer for the designer by
         encapsulating all the low level details of the libraries such as
         filename, directory structures, and cell naming methodologies.
@@ -335,20 +337,19 @@ class Chip:
         **EDAFLOW:**
 
         **setup_flow (platform):** Configures the edaflow by setting
-        up the steps of the execution graph (eg. 'flowgraph') and
-        binding each step to a an EDA tool. The tools are dynamically
-        loaded in the 'runstep' method based on the name of these tools.
-        The platform argument can be used as a selector by the
-        setup_flow to alter the execution flow and tool selection for
-        a specific process node.
+        up the steps of the execution flow (eg. 'flowgraph') and
+        binding each step to an EDA tool. The tools are dynamically
+        loaded in the 'runstep' method based on the step tool selected.
+        The platform argument can be used setup_flow function to
+        make selections based on specific platforms.
 
         Args:
             arg (string): Name of target to load. If None, the target is
                 read from the SC schema.
-            libs (bool): If True, the setup_libs function is executed from
-                the technology target module.
-            methodology (bool): If True, the setup_methodology is executd from
-                the technology target module.
+            libs (bool): If True, the setup_libs function is executed
+                from the technology target module.
+            methodology (bool): If True, the setup_methodology is executd
+                from the technology target module.
 
         Examples:
             >>> target("freepdk45_asicflow")
@@ -413,7 +414,7 @@ class Chip:
         Args:
             *args(string): A variable length argument list specifying the
                 key sequence for accessing the cfg nested dictionary.
-                For a complete description of he valid key sequence,
+                For a complete description of the valid key sequence,
                 see the schema.py module.
 
         Returns:
@@ -518,7 +519,7 @@ class Chip:
     ###########################################################################
     def getkeys(self, *args, chip=None, cfg=None):
         """
-        Returns keys from dictionary node based on key-sequence provided.
+        Returns keys from Chip dictionary based on key-sequence provided.
 
         Accesses to non-existing dictionary entries results in a logger error
         and in the setting the 'chip.error' flag to 1.
@@ -563,7 +564,7 @@ class Chip:
     ###########################################################################
     def set(self, *args, chip=None, cfg=None):
         '''
-        Sets a Chip dictionary value based key-sequence and data provided.
+        Sets a Chip dictionary value based on key-sequence and data provided.
 
         Accesses to non-existing dictionary entries results in a logger
         error and in the setting the 'chip.error' flag to 1. For built in
@@ -607,18 +608,18 @@ class Chip:
     ###########################################################################
     def add(self, *args, chip=None, cfg=None):
         '''
-        Appends the value to an existing Chip dictionary value of list type
+        Appends a Chip dictionary value based on key-sequence and data provided.
 
-        Accesses to non-existing dictionary entries results in a logger
-        error and in the setting the 'chip.error' flag to 1. For built in
-        dictionary keys with the 'default' keywork entry, new leaf trees
-        are automatically created by the set method by copying the default
-        tree to the tree described by the key-sequence as needed.
+        Access to non-existing dictionary entries results in a logger error
+        and in the setting the 'chip.error' flag to 1. For built in dictionary
+        keys with the 'default' keywork entry, new leaf trees are automatically
+        created by copying the default tree to the tree described by the
+        key-sequence as needed.
 
-        The data type provided must agree with the dictionary parameter 'type'.
-        Before setting the parameter, the data value is type checked.
-        Any type descrepancy results in a logger error and in setting the
-        chip.error flag to 1. For descriptions of the legal values for a
+        The data type provided must agree with the dictionary parameter
+        'type'. Before setting the parameter, the data value is type
+        checked. Any type descrepancy results in a logger error and in setting
+        the chip.error flag to 1. For descriptions of the legal values for a
         specific parameter, refer to the schema.py documentation.
 
         The add operation is not legal for scalar types.
@@ -651,8 +652,8 @@ class Chip:
     ###########################################################################
     def _allkeys(self, chip, cfg, keys=None, allkeys=None):
         '''
-        Internal recursive function that returns list of list of all
-        keylists for all leaf cells in the dictionary defined by schema.py.
+        Internal recursive function that returns list of all key-lists for
+        leaf cells in the dictionary defined by schema.py.
         '''
 
         if keys is None:
@@ -673,6 +674,18 @@ class Chip:
         Internal recursive function that searches a Chip dictionary for a
         match to the combination of *args and fields supplied. The function is
         used to set and get data within the dictionary.
+
+        Args:
+            args (string): A variable length key list used to look
+                up a Chip dictionary entry.
+            chip(object): The Chip object to extend
+            cfg(dict): The cfg dictionary within the Chip object to extend
+            field(string): Leaf cell field to fetch. Examples of
+                valid fields include 'value', 'defvalue', 'type'. For
+                a complete description of the valid entries, see the
+                schema.py module.
+            mode(string): Specifies what to do (set/get/add/getkeys)
+
         '''
 
         all_args = list(args)
@@ -763,12 +776,15 @@ class Chip:
     ###########################################################################
     def extend(self, filename, chip=None, cfg=None):
         """
-        Reads in an SC compatible configuration dictionary from a JSON file
-        and adds legal entries to the existing dictionary. All dictionary
-        entries must include a fields for: type, defvalue, switch,
-        requirment, type, lock, param_help, short_help, example, and help.
-        In addition, entry of file/dir type must include fields for lock,
-        copym filehash, data, and signature.
+        Extends the SC dictionary based on the provided JSON file.
+
+        Reads in an SC compatible dictionary from a JSON file and copies
+        all entries to the dictionary specified by the 'chip' and
+        'cfg' arguments. All dictionary entries must include fields for: type,
+        defvalue, switch, requirment, type, lock, param_help, short_help,
+        example, and help. In addition, extensions for file/dir types must
+        include fields for lock, copy, filehash, data, and signature. For
+        complete information about these fields, refer to the schema.py
 
         Args:
             filename (string): A path to the file containing the json
@@ -815,7 +831,7 @@ class Chip:
     ###########################################################################
     def _prune(self, cfg, top=True):
         '''
-        Recursive function that creates a copy of the Chip dictionary and
+        Recursive function that takes a copy of the Chip dictionary and
         then removes all sub trees with non-set values and sub-trees
         that contain a 'default' key.
         '''
@@ -825,20 +841,23 @@ class Chip:
         i = 0
 
         #When at top of tree loop maxdepth times to make sure all stale
-        #branches have been removed, not eleagnt, but stupid-simple
+        #branches have been removed, not elegant, but stupid-simple
+        #"good enough"
         while i < maxdepth:
             #Loop through all keys starting at the top
             for k in list(cfg.keys()):
                 #removing all default/template keys
                 if k == 'default':
                     del cfg[k]
+                #remove long help from printing
+                elif 'help' in cfg[k].keys():
+                    del cfg[k]['help']
+                elif 'example' in cfg[k].keys():
+                    del cfg[k]['example']
                 #removing empty values from json file
                 elif 'value' in cfg[k].keys():
                     if (not cfg[k]['value']) | (cfg[k]['value'] is None):
                         del cfg[k]
-                #remove long help from printing
-                elif 'help' in cfg[k].keys():
-                    del cfg[k]['help']
                 #removing stale branches
                 elif not cfg[k]:
                     cfg.pop(k)
@@ -878,9 +897,9 @@ class Chip:
 
     ###########################################################################
     def _printcfg(self, cfg, keys=None, file=None, mode="", field='value', prefix=""):
-        '''Recursive function that goes through Chip dictionary and prints out
-        configuration commands with one line per value. Currently only TCL is
-        supported.
+        '''
+        Prints out Chip dictionary values one command at a time. Currently only
+        TCL is supported.
         '''
 
         if keys is None:
@@ -930,7 +949,7 @@ class Chip:
     ###########################################################################
     def _mergedict(self, chip, d1, d2, strict=True, path=None):
         """
-        Copies d2 into the d1 dictionary.
+        Merges the d2 into the d1 dictionary.
 
         Args:
             d1 (dict): Original dictionary.
@@ -942,19 +961,22 @@ class Chip:
         """
         if path is None: path = []
         for key in d2:
-            path = path + [str(key)]
-            pathstr = '.'.join(path)
+            print(key)
             if key in d1:
                 if isinstance(d1[key], dict) and isinstance(d2[key], dict):
-                    _mergedict(chip, d1[key], d1[key], path=path, check=check)
+                    self._mergedict(chip, d1[key], d2[key], path=path + [str(key)], strict=strict)
                 else:
-                    chip.logger.warning('Mergedict overwrites existing key %s', pathstr)
                     d1[key] = d2[key]
+                    pathstr = ",".join(path + [str(key)])
+                    if str(key) == 'value':
+                        chip.logger.debug('Mergedict overwrites existing key %s', pathstr)
             elif not strict:
+                pathstr = ",".join( path + [str(key)])
                 chip.logger.info('Extending dictionary with key %s', pathstr)
                 d1[key] = d2[key]
             else:
-                chip.logger.error('Keypath not found in dictionary%s', pathstr)
+                pathstr = ",".join(path + [str(key)])
+                chip.logger.error('Keypath not found in dictionary %s', pathstr )
         return d1
 
     ###########################################################################
@@ -1019,6 +1041,9 @@ class Chip:
         elif abspath.endswith('.yaml'):
             with open(abspath, 'r') as f:
                 localcfg = yaml.load(f, Loader=yaml.SafeLoader)
+        else:
+            chip.error = 1
+            chip.logger.error('Illegal file format. Only json/yaml supported. %s', abspath)
 
         #Merging arguments with the Chip configuration
         if merge:
@@ -1636,8 +1661,8 @@ class Chip:
         self.set('arg', 'index', index, cfg=cfglocal)
 
         # Writing out files
-        self.writecfg("sc_manifest.json", cfg=cfglocal, prune=False)
-        self.writecfg("sc_manifest.yaml", cfg=cfglocal, prune=False)
+        self.writecfg("sc_manifest.json", cfg=cfglocal)
+        self.writecfg("sc_manifest.yaml", cfg=cfglocal)
         self.writecfg("sc_manifest.tcl", cfg=cfglocal, abspath=True)
 
         # Resetting metrics
