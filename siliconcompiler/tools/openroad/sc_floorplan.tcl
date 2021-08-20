@@ -131,19 +131,19 @@ if {[llength $sc_def] > 0} {
     }
 
     ###########################
-    # Tap Cells
-    ###########################
-    tapcell \
-      -endcap_cpp $sc_tapoffset \
-      -distance $sc_tapmax \
-      -tapcell_master $sc_tapcell \
-      -endcap_master $sc_endcap
-
-    ###########################
     # Power Network (not good)
     ###########################
     #pdngen $::env(PDN_CFG) -verbose
 
 }
+
+###########################
+# Tap Cells
+###########################
+tapcell \
+    -endcap_cpp $sc_tapoffset \
+    -distance $sc_tapmax \
+    -tapcell_master $sc_tapcell \
+    -endcap_master $sc_endcap
 
 remove_buffers

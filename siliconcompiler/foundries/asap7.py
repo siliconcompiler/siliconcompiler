@@ -122,63 +122,63 @@ def setup_libs(chip, vendor=None):
                        rev])
 
     # rev
-    chip.set('stdcell',libname,'rev',rev)
+    chip.set('library',libname,'rev',rev)
 
     # timing
-    chip.set('stdcell',libname, 'model', corner, 'nldm', 'lib',
+    chip.add('library',libname, 'model', corner, 'nldm', 'lib',
              libdir+'/nldm/'+libname+'_ff.lib')
 
     # lef
-    chip.set('stdcell',libname,'lef',
+    chip.add('library',libname,'lef',
              libdir+'/lef/'+libname+'.lef')
     # gds
-    chip.set('stdcell',libname,'gds',
+    chip.add('library',libname,'gds',
              libdir+'/gds/'+libname+'.gds')
     # site name
-    chip.set('stdcell',libname,'site', 'asap7sc7p5t')
+    chip.set('library',libname,'site', 'asap7sc7p5t')
 
     # lib arch
-    chip.set('stdcell',libname,'libtype',libtype)
+    chip.set('library',libname,'arch',libtype)
 
     # lib site/tile/size
-    chip.set('stdcell',libname,'width', libwidth)
-    chip.set('stdcell',libname,'height', libheight)
+    chip.set('library',libname,'width', libwidth)
+    chip.set('library',libname,'height', libheight)
 
     #driver
-    chip.add('stdcell',libname,'driver', "BUFx2_ASAP7_75t_R")
+    chip.add('library',libname,'driver', "BUFx2_ASAP7_75t_R")
 
     # clock buffers
-    chip.add('stdcell',libname,'cells','clkbuf', "BUFx2_ASAP7_75t_R")
+    chip.add('library',libname,'cells','clkbuf', "BUFx2_ASAP7_75t_R")
 
     # tie cells
-    chip.add('stdcell',libname,'cells','tie', ["TIEHIx1_ASAP7_75t_R/H",
+    chip.add('library',libname,'cells','tie', ["TIEHIx1_ASAP7_75t_R/H",
                                                "TIELOx1_ASAP7_75t_R/L"])
 
 
     # hold cells
-    chip.add('stdcell',libname,'cells','hold', "BUFx2_ASAP7_75t_R")
+    chip.add('library',libname,'cells','hold', "BUFx2_ASAP7_75t_R")
 
     # filler
-    chip.add('stdcell',libname,'cells','filler', ["FILLER_ASAP7_75t_R"])
+    chip.add('library',libname,'cells','filler', ["FILLER_ASAP7_75t_R"])
 
     # Stupid small cells
-    chip.add('stdcell',libname,'cells','ignore', [
+    chip.add('library',libname,'cells','ignore', [
         "*x1_ASAP7*", "*x1p*_ASAP7*", "*xp*_ASAP7*",
         "SDF*", "ICG*", "DFFH*",
     ])
 
     # Tapcell
-    chip.add('stdcell',libname,'cells','tapcell', "TAPCELL_ASAP7_75t_R")
+    chip.add('library',libname,'cells','tapcell', "TAPCELL_ASAP7_75t_R")
 
     # Endcap
-    chip.add('stdcell',libname,'cells','endcap', "DECAPx1_ASAP7_75t_R")
+    chip.add('library',libname,'cells','endcap', "DECAPx1_ASAP7_75t_R")
 
 
 #########################
-def setup_design(chip):
+def setup_methodology(chip):
 
     chip.set('asic', 'stackup', chip.get('pdk', 'stackup')[0])
-    chip.set('asic', 'targetlib', chip.getkeys('stdcell'))
+    chip.add('asic', 'targetlib', chip.getkeys('library'))
     chip.set('asic', 'minlayer', "m2")
     chip.set('asic', 'maxlayer', "m7")
     chip.set('asic', 'maxfanout', 64)
@@ -196,7 +196,7 @@ def setup_design(chip):
     chip.set('mcmm','worst','libcorner', corner)
     chip.set('mcmm','worst','pexcorner', corner)
     chip.set('mcmm','worst','mode', 'func')
-    chip.set('mcmm','worst','check', ['setup','hold'])
+    chip.add('mcmm','worst','check', ['setup','hold'])
 
 #########################
 if __name__ == "__main__":

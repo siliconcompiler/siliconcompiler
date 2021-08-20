@@ -66,7 +66,7 @@ def flatten(cfg, prefix=()):
             flat_cfg[prefix + (key,)] = val
         else:
             flat_cfg.update(flatten(val, prefix + (key,)))
-    
+
     return flat_cfg
 
 # Main Sphinx plugin
@@ -80,14 +80,14 @@ class ToolGen(SphinxDirective):
 
         chip = siliconcompiler.Chip(defaults=False)
         # TODO: get "default" step
-        setup_tool(chip, 'import')
+        setup_tool(chip, 'import', '0')
 
         s = build_section(tool, tool)
         docstr = setup_tool.__doc__
         if docstr:
             self.parse_rst(docstr, s)
 
-        flat_cfg = flatten(chip._prune())
+        flat_cfg = flatten(chip._prune(chip.cfg))
 
         table = [[strong('Option'), strong('Value')]]
         for val in flat_cfg.values():
@@ -108,7 +108,7 @@ class ToolGen(SphinxDirective):
             sections.append(self.process_tool(tool))
 
         return sections
-    
+
     def parse_rst(self, content, s):
         rst = ViewList()
         # use fake filename 'inline' for error # reporting

@@ -22,12 +22,15 @@ def setup_tool(chip, step, index):
     chip.set('eda', tool, step, index, 'copy', 'true')
     chip.set('eda', tool, step, index, 'vendor', 'yosys')
     chip.set('eda', tool, step, index, 'exe', 'yosys')
-    chip.add('eda', tool, step, index, 'option', 'cmdline', '-c')
+    chip.set('eda', tool, step, index, 'option', 'cmdline', '-c')
     chip.set('eda', tool, step, index, 'refdir', refdir)
-    chip.add('eda', tool, step, index, 'script', refdir + '/sc_syn.tcl')
+    chip.set('eda', tool, step, index, 'script', refdir + '/sc_syn.tcl')
 
     #TODO: remove special treatment for fpga??
-    targetlist = chip.get('target').split('_')
+    if chip.get('target'):
+        targetlist = chip.get('target').split('_')
+    else:
+        targetlist = ['no','no']
     if targetlist[0] == 'openfpga':
         # Synthesis for OpenFPGA/VPR needs to know the size of the LUTs in the
         # FPGA architecture. We infer this from the VPR architecture file, then
@@ -86,6 +89,6 @@ if __name__ == "__main__":
     # create a chip instance
     chip = siliconcompiler.Chip(defaults=False)
     # load configuration
-    setup_tool(chip, step='syn')
+    setup_tool(chip, step='syn', index='0')
     # write out results
     chip.writecfg(output)
