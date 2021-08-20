@@ -845,13 +845,15 @@ class Chip:
                 #removing all default/template keys
                 if k == 'default':
                     del cfg[k]
+                #remove long help from printing
+                elif 'help' in cfg[k].keys():
+                    del cfg[k]['help']
+                elif 'example' in cfg[k].keys():
+                    del cfg[k]['example']
                 #removing empty values from json file
                 elif 'value' in cfg[k].keys():
                     if (not cfg[k]['value']) | (cfg[k]['value'] is None):
                         del cfg[k]
-                #remove long help from printing
-                elif 'help' in cfg[k].keys():
-                    del cfg[k]['help']
                 #removing stale branches
                 elif not cfg[k]:
                     cfg.pop(k)
@@ -891,9 +893,9 @@ class Chip:
 
     ###########################################################################
     def _printcfg(self, cfg, keys=None, file=None, mode="", field='value', prefix=""):
-        '''Recursive function that goes through Chip dictionary and prints out
-        configuration commands with one line per value. Currently only TCL is
-        supported.
+        '''
+        Prints out Chip dictionary values one command at a time. Currently only
+        TCL is supported.
         '''
 
         if keys is None:
@@ -943,7 +945,7 @@ class Chip:
     ###########################################################################
     def _mergedict(self, chip, d1, d2, strict=True, path=None):
         """
-        Copies d2 into the d1 dictionary.
+        Merges the d2 into the d1 dictionary.
 
         Args:
             d1 (dict): Original dictionary.
