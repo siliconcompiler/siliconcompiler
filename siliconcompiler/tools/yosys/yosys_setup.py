@@ -22,7 +22,9 @@ def setup_tool(chip, step, index):
     chip.set('eda', tool, step, index, 'copy', 'true')
     chip.set('eda', tool, step, index, 'vendor', 'yosys')
     chip.set('eda', tool, step, index, 'exe', 'yosys')
+    chip.set('eda', tool, step, index, 'version', '0.9+3672')
     chip.set('eda', tool, step, index, 'option', 'cmdline', '-c')
+    chip.set('eda', tool, step, index, 'option', 'version', '--version')
     chip.set('eda', tool, step, index, 'refdir', refdir)
     chip.set('eda', tool, step, index, 'script', refdir + '/sc_syn.tcl')
 

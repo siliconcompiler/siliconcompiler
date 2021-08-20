@@ -987,10 +987,9 @@ class Chip:
         return d1
 
     ###########################################################################
-    def check(self):
+    def check(self, step, chip=None, cfg=None):
         '''
-        Performs a validity check for Chip dictionary, printing out warnings
-        and error messages to stdout.
+        Performs a setup validity check and returns success status.
 
         Returns:
             Returns True of if the Chip dictionary is valid, else returns
@@ -1001,23 +1000,37 @@ class Chip:
            Returns True of the Chip dictionary checks out.
         '''
 
-        error = False
+        if chip is None:
+            chip = self
+        if cfg is None:
+            cfg = chip.cfg
 
-        #1. Get all keys
-        #2. For all keys:
-        #   -Get values
-        #   -Check requirements equation
+        chip.logger.info("Running check() for step '%s'", step)
 
+        # Checking requirements
+        allkeys = self.getkeys()
+        for key in allkeys:
+            if 'default' not in key:
+                requirement = self.get(*key, chip=chip, cfg=cfg, field='requirement')
+                sctype = self.get(*key, chip=chip, cfg=cfg, field='type')
+                value = self.get(*key, chip=chip, cfg=cfg)
+                if value is None:
+                    missing = True
+                else:
+                    missing = False;
+                # basic requirements
+                if missing & (requirement == 'all'):
+                    chip.error = 1
+                    chip.logger.error("Basic requirement missing '%s' for step '%s'", key, step)
+                # fpga/asic requirments
+                elif missing & (requirement == self.get('mode')):
+                    chip.error = 1
+                    chip.logger.error("%s requirement missing '%s' for step '%s'",
+                                      self.get('mode'), key, step)
 
-        if not self.get('design'):
-            self.logger.error('Design name has not been set.')
-            error = True
-        elif not self.getkeys('flowgraph'):
-            self.logger.error('Flowgraph has not been defined.')
-            error = True
-
-        if error:
-            sys.exit(1)
+        # Final check to see if there are any errors
+        # Aggregate of previous erros and requirements fial
+        return self.error
 
     ###########################################################################
     def readcfg(self, filename, merge=True, chip=None, cfg=None):
@@ -1616,12 +1629,17 @@ class Chip:
 
         # Check installation
         exe = self.get('eda', tool, step, index, 'exe')
+        veropt = str(self.get('eda', tool, step, index, 'option', 'version')[0])
+        cmdstr = f'{exe} {veropt} >/dev/null'
         try:
-            exepath = subprocess.run("command -v "+exe+">/dev/null", shell=True)
+            exepath = subprocess.run(cmdstr, shell=True)
         except exepath.returncode > 0:
             self.logger.error('Executable %s not installed.', exe)
             event.set()
             sys.exit(1)
+
+        # Exe version logic
+        # TODO: add here
 
         #Copy Reference Scripts
         if self.get('eda', tool, step, index, 'copy'):
@@ -1661,7 +1679,6 @@ class Chip:
         # Create a local copy with arguments set
         # The below snippet is how we communicate thread local data needed
         # for scripts. Anything done to the cfgcopy is only seen by this thread
-
         # Passing local arguments to EDA tool!
         cfglocal = copy.deepcopy(self.cfg)
         self.set('arg', 'step', step, cfg=cfglocal)
@@ -1676,11 +1693,16 @@ class Chip:
         for metric in self.getkeys('metric', 'default', 'default', 'default'):
             self.set('metric', step, index, 'real', metric, 0)
 
-        # Run exeucutable
-        self.logger.info("Running %s in %s", step, os.path.abspath(stepdir))
-        self.logger.info('%s', cmdstr)
+        # Final check
+        if self.check(step):
+            self.logger.error("Step check() for '%s' failed, exiting! See previous errors.", step)
+            event.set()
+            sys.exit(1)
 
+        # Run exeucutable
         try:
+            self.logger.info("Running %s in %s", step, os.path.abspath(stepdir))
+            self.logger.info('%s', cmdstr)
             error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
         except error.returncode != 0:
             self.logger.error('Command failed. See log file %s', os.path.abspath(logfile))
@@ -1756,7 +1778,9 @@ class Chip:
                 steplist = self.getsteps()
 
             # setup sanity check before you start run
-            self.check()
+            if self.check('run'):
+                self.logger.error('Global check() failed, exiting! See previous errors.')
+                sys.exit(1)
 
             # Set all threads to active before launching to avoid races
             # Sequence matters, do NOT merge this loop with loop below!
