@@ -21,10 +21,12 @@ def setup_tool(chip, step, index):
     chip.set('eda', tool, step, index, 'format', 'cmdline')
     chip.set('eda', tool, step, index, 'copy', 'false')
     chip.set('eda', tool, step, index, 'exe', 'verilator')
+    chip.set('eda', tool, step, index, 'version', '4.211')
     chip.set('eda', tool, step, index, 'vendor', 'verilator')
     chip.set('eda', tool, step, index, 'threads', 4)
 
     # Options driven on a per step basis
+    chip.set('eda', tool, step, index, 'option', 'version', '--version')
     chip.add('eda', tool, step, index, 'option', 'cmdline', '-sv')
 
     # Differentiate between import step and compilation

@@ -67,6 +67,7 @@ def setup_flow(chip, process):
 
     # Setting up flowgraph
     for i, step in enumerate(flowpipe):
+        chip.set('flowgraph', flowpipe[i], 'mergeop', 'min')
         #TODO: Set up metrics
         if i > 0:
             chip.add('flowgraph', flowpipe[i], 'input', flowpipe[i-1])
