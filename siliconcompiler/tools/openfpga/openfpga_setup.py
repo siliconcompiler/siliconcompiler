@@ -10,27 +10,26 @@ from siliconcompiler.schema import schema_path
 
 OPENFPGA_SCRIPT = 'openfpga_script.openfpga'
 
-def setup_tool(chip, step):
+def setup_tool(chip, step, index):
     ''' Sets up default settings on a per step basis
     '''
 
     refdir = 'siliconcompiler/tools/openfpga'
 
     tool = 'openfpga'
-    chip.add('eda', tool, step, 'threads', '4')
-    chip.add('eda', tool, step, 'format', 'cmdline')
+    chip.set('eda', tool, step, index, 'format', 'cmdline')
 
-    chip.add('eda', tool, step, 'vendor', 'openfpga')
-    chip.add('eda', tool, step, 'refdir', refdir)
+    chip.set('eda', tool, step, index, 'vendor', 'openfpga')
+    chip.set('eda', tool, step, index, 'refdir', refdir)
     if step == 'apr':
-        chip.add('eda', tool, step, 'exe', 'openfpga')
-        chip.add('eda', tool, step, 'option', 'cmdline', '-batch -f ' + OPENFPGA_SCRIPT)
+        chip.set('eda', tool, step, index, 'exe', 'openfpga')
+        chip.add('eda', tool, step, index, 'option', 'cmdline', '-batch -f ' + OPENFPGA_SCRIPT)
     elif step == 'bitstream':
         # bitstream step is currently a NOP, since apr and bitstream generation
         # are integrated in shell script
-        chip.add('eda', tool, step, 'exe', 'cp')
-        chip.add('eda', tool, step, 'option', 'cmdline', ' -r inputs/ outputs/')
-    chip.add('eda', tool, step, 'copy', 'true')
+        chip.set('eda', tool, step, index, 'exe', 'cp')
+        chip.add('eda', tool, step, index, 'option', 'cmdline', ' -r inputs/ outputs/')
+    chip.set('eda', tool, step, index, 'copy', 'true')
 
     topmodule = chip.get('design')
 
@@ -75,7 +74,7 @@ def setup_tool(chip, step):
 # Post Run Command
 ################################
 
-def post_process(chip, step):
+def post_process(chip, step, index):
     ''' Tool specific function to run after step execution
     '''
 
