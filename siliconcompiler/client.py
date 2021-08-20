@@ -46,9 +46,12 @@ def remote_preprocess(chip):
     if 'import' in chip.getkeys('flowgraph'):
         chip.runstep('import', '0', {}, multiprocessing.Event())
 
-        # Remove the 'import' step from the flow graph.
-        # (Leave the 'input' list intact so following step(s) know where to look)
-        chip.cfg['flowgraph'].pop('import')
+        # Set 'steplist' to all steps, sans 'import'.
+        remote_steplist = []
+        for step in chip.getkeys('flowgraph'):
+            if step != 'import':
+                remote_steplist.append(step)
+        chip.set('steplist', remote_steplist)
 
         # Upload the results of the local import stage.
         upload_sources_to_cluster(chip)

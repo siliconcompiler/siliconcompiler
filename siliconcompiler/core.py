@@ -1568,8 +1568,7 @@ class Chip:
             for input_step in self.get('flowgraph', step, 'input'):
                 for input_index in range(self.get('flowgraph', input_step, 'nproc')):
                     input_str = input_step + str(input_index)
-                    if input_str in active:
-                        pending = pending + active[input_str]
+                    pending = pending + active[input_str]
 
             if not pending:
                 break
