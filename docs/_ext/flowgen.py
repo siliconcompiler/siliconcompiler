@@ -73,7 +73,7 @@ def flatten(cfg, prefix=()):
             flat_cfg[prefix + (key,)] = val
         else:
             flat_cfg.update(flatten(val, prefix + (key,)))
-    
+
     return flat_cfg
 
 # Main Sphinx plugin
@@ -97,7 +97,7 @@ class FlowGen(SphinxDirective):
             self.parse_rst(docstr, s)
         s += image(flow_path, center=True)
 
-        flat_cfg = flatten(chip._prune())
+        flat_cfg = flatten(chip._prune(chip.cfg))
 
         table = [[strong('Option'), strong('Value')]]
         for val in flat_cfg.values():
@@ -118,7 +118,7 @@ class FlowGen(SphinxDirective):
             sections.append(self.process_target(target))
 
         return sections
-    
+
     def parse_rst(self, content, s):
         rst = ViewList()
         # use fake filename 'inline' for error # reporting

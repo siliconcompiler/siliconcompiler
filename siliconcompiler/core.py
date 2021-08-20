@@ -33,16 +33,16 @@ class Chip:
     Core Siliconcompiler Class
 
     This is the main object  used to interact with configuration, data, and
-    execution for the SiliconCompiler API. Once the constructor has been
-    called, access to the object data is accompoushed through the core methods.
+    execution flow for the SiliconCompiler API. Once the constructor has been
+    called, access to the object data is accomplished through the Class methods
     (set, get, add, etc).
 
     Args:
-        design (string): Specifies the name of the top level chip object.
-        loglevel (string): Sets the level of logging for the chip object. Valid
+        design (string): Name of the top level chip design object.
+        loglevel (string): Level of logging for the chip object. Valid
             levels are "DEBUG", "INFO", "WARNING", "ERROR".
-        defaults (bool)": If True, causes the schema dictionary values to
-            be loaded with default values, else they are left empty.
+        defaults (bool)": If True, schema dictionary values are loaded with
+            default values, else they are left as empty lists/None.
 
     Examples:
         >>> siliconcompiler.Chip(design="top", loglevel="DEBUG")
@@ -105,7 +105,7 @@ class Chip:
 
     ###########################################################################
     def cmdline(self, progname, description=None, switchlist=[]):
-        """Creates a command line interface for the SiliconCompiler project.
+        """Command line interface method for the SiliconCompiler project.
 
         The method exposes parameters in the SC echema as command line switches.
         Exact format for all command line switches can be found in the example
@@ -113,14 +113,16 @@ class Chip:
         Custom command line apps can be created by restricting the schema
         parameters exposed at the command line. The priority of command line
         switch settings is:
+
          1. design
          2. loglevel
-         3. target
-         4. cfg
-         5. (all others)
+         3. mode (asic/fpga)
+         4. target
+         5. cfg
+         6. (all others)
 
         The cmdline interface is implemented using the Python
-        argparase package and the following user restrictions apply.
+        argparse package and the following use restrictions apply.
 
         * Help is accessed with the '-h' switch
         * Arguments that include spaces must be enclosed with double quotes.
@@ -129,7 +131,7 @@ class Chip:
         * Special characters (such as '-') must be enclosed in double quotes.
 
         Args:
-            prog (string): Name of program to be exeucted at the command
+            progname (string): Name of program to be exeucted at the command
                  line. The default program name is 'sc'.
             description (string): Header help function to be displayed
                  by the command line program. By default a short
@@ -141,11 +143,9 @@ class Chip:
                  use 'source' as the switch.
 
         Examples:
-            >>> cmdline()
-            Creates the default sc command line interface
-            >>> cmdline(prog='sc-display', paramlist=['show'])
-            Creates a command line interface called sc-display with a
-            a single switch parameter ('show').
+            >>> cmdline(prog='sc-show', paramlist=['source', 'cfg'])
+            Creates a command line interface called sc-show that takes
+            in a source file to display based on the cfg file provided.
 
         """
 
@@ -289,31 +289,32 @@ class Chip:
                 val_list = [val]
             for item in val_list:
                 args = schema_reorder(argmap[key], item)
-                self.add(*args)
+                self.set(*args)
 
     ###########################################################################
     def target(self, arg=None, libs=True, methodology=True):
         """
-        Loads eda flow and technology targets based on a string.
+        Loads a technology target and EDA flow based on a named target string.
 
-        Dynamically loads eda flow and technology targets based on 'target'
-        string specifed as <technology>_<edaflow>. The edaflow part of the
-        string is optional. The 'technology' and 'edaflow' are used to search
-        and dynamically import modules based on the PYTHON environment variable.
+        The eda flow and technology targets are dynamically loaded at runtime
+        based on 'target' string specifed as <technology>_<edaflow>.
+        The edaflow part of the string is optional. The 'technology' and
+        'edaflow' are used to search and dynamically import modules based on
+        the PYTHON environment variable.
 
         The target function supports ASIC as well as FPGA design flows. For
         FPGA flows, the function simpply sets the partname to the technology
-        string portion. For ASIC flows,the target is used to  bundle and
-        simplify the setup of SC schema parameters en masse. Modern silicon
-        process PDKs can contain hundreds of files and setup variables. Doing
-        this setup once and creating a named target significantly improves
-        the ramp-up time for new users and reduces the chance of costly
-        setup errors.
+        part of the target string. For ASIC flows,the target is used to
+        bundle and simplify the setup of SC schema parameters en masse. Modern
+        silicon process PDKs can contain hundreds of files and setup variables.
+        Doing this setup once and creating a named target significantly
+        improves the ramp-up time for new users and reduces the chance of
+        costly setup errors.
 
         Imported modules implement a set of functions with standardized
         function names and interfaces as described below.
 
-        **TECHNOLOGY (ASIC ONLY):**
+        **TECHNOLOGY:**
 
         **setup_platform (chip):** Configures basic PDK information,
         including setting up wire tracks and setting filesystem pointers to
@@ -344,9 +345,10 @@ class Chip:
         Args:
             arg (string): Name of target to load. If None, the target is
                 read from the SC schema.
-            libs (bool): Setup_libs executed if libs is set to True
-            methodology (bool): Setup_methodology called if methodology
-                is set to True.
+            libs (bool): If True, the setup_libs function is executed from
+                the technology target module.
+            methodology (bool): If True, the setup_methodology is executd from
+                the technology target module.
 
         Examples:
             >>> target("freepdk45_asicflow")
@@ -363,10 +365,10 @@ class Chip:
         # Error checking
         if not self.get('target'):
             self.logger.error('Target not defined.')
-            sys.exit()
+            sys.exit(1)
         elif len(self.get('target').split('_')) > 2:
             self.logger.error('Target should have zero or one underscore.')
-            sys.exit()
+            sys.exit(1)
 
         # Technology platform
         platform = self.get('target').split('_')[0]
@@ -385,7 +387,7 @@ class Chip:
                 self.logger.info("Loaded platform '%s'", platform)
             except ModuleNotFoundError:
                 self.logger.critical("Platform %s not found.", platform)
-                sys.exit()
+                sys.exit(1)
         else:
             self.set('fpga', 'partname', platform)
 
@@ -401,25 +403,27 @@ class Chip:
                 self.logger.info("Loaded edaflow '%s'", edaflow)
             except ModuleNotFoundError:
                 self.logger.critical("EDA flow %s not found.", edaflow)
-                sys.exit()
+                sys.exit(1)
 
     ###########################################################################
     def help(self, *args):
         """
-        Returns a formatted help string based on the schema key list provided.
+        Returns a formatted help string based on the key-sequence provided.
 
         Args:
-            *args (string): A non-keyworded variable length argument list for
-                which to display help.
+            *args(string): A variable length argument list specifying the
+                key sequence for accessing the cfg nested dictionary.
+                For a complete description of he valid key sequence,
+                see the schema.py module.
 
         Returns:
-            Returns a formatted multi-line help string.
+            A formatted multi-line help string.
 
         Examples:
-            >>> help('target')
-            Returns help information about the 'target' parameter
-            >>> help('asic','diesize', short=True)
-            Return a short description of the 'asic diesize' parametet
+            >>> import siliconcompiler as sc
+            >>> chip = sc.Chip()
+            >>> chip.help('asic','diesize')
+            Displays help information about the 'asic, diesize' parameter
 
         """
 
@@ -466,7 +470,7 @@ class Chip:
     ###########################################################################
     def get(self, *args, chip=None, cfg=None, field='value'):
         """
-        Returns value from the Chip dictionary based on keylist provided.
+        Returns a Chip dictionary value based on key-sequence provided.
 
         Accesses to non-existing dictionary entries results in a logger error
         and in the setting the 'chip.error' flag to 1.  In the case of int and
@@ -476,21 +480,20 @@ class Chip:
         all other values return False.
 
         Args:
-            args(string): A variable length key list used to look
-                up a Chip dictionary entry. For a complete description of
-                the valid key lists, see the schema.py module.
+            args(string): A variable length argument list specifying the
+                key sequence for accessing the cfg nested dictionary.
+                For a complete description of the valid key sequence,
+                see the schema.py module.
             chip(object): A valid Chip object to use for cfg query.
             cfg(dict): A dictionary within the Chip object to use for
-                key list query.
-            field(string): Specifies the leaf cell field to fetch. Any
-                valid leaf cell field can be specified. Examples of
-                common fields include 'value', 'defvalue', 'type'. For
+                key-sequence query.
+            field(string): Leaf cell field to fetch. Examples of
+                valid fields include 'value', 'defvalue', 'type'. For
                 a complete description of the valid entries, see the
                 schema.py module.
 
         Returns:
-            Value found for the key tree supplied. The returned value
-            returned is based on the type field in the dictionary parameter.
+            Value found for the key sequence and field provided.
 
         Examples:
             >>> get('pdk', 'foundry')
@@ -515,27 +518,27 @@ class Chip:
     ###########################################################################
     def getkeys(self, *args, chip=None, cfg=None):
         """
-        Returns keys found in dictionary node based on key list provided.
+        Returns keys from dictionary node based on key-sequence provided.
 
         Accesses to non-existing dictionary entries results in a logger error
         and in the setting the 'chip.error' flag to 1.
 
         Args:
-            args (string): A variable length key list used to look
-                up a Chip dictionary entry. For a complete description of the
-                valid key lists, see the schema.py module. The key-tree is
-                supplied in order. If the argument list is empty, all
+            args(string): A variable length argument list specifying the
+                key sequence for accessing the cfg nested dictionary.
+                For a complete description of he valid key sequence,
+                see the schema.py module. If the argument list is empty, all
                 dictionary trees are returned as as a list of lists.
             chip (object): A valid Chip object to use for cfg query.
             cfg (dict): A dictionary within the Chip object to use for
                 key list query.
 
         Returns:
-            A list of keys found for the key tree supplied.
+            List of keys found for the key sequence provided.
 
         Examples:
             >>> getkeys('pdk')
-            Returns all keys associated for the 'pdk' dictionary.
+            Returns all keys for the 'pdk' dictionary.
             >>> getkeys()
             Returns all key trees in the dictionary as a list of lists.
         """
@@ -557,78 +560,23 @@ class Chip:
 
         return keys
 
-
-
     ###########################################################################
     def set(self, *args, chip=None, cfg=None):
         '''
-        Sets a parameter based on a keylist and data argument provided.
-
-        The set operation is destructive and overwrites the current dictionary
-        value. For built in dictionary keys with the 'default' keyworkd entry,
-        new leaf trees are automatically created by the set method by copying
-        the default tree to the the tree described by the keylist as
-        needed.
+        Sets a Chip dictionary value based key-sequence and data provided.
 
         Accesses to non-existing dictionary entries results in a logger
-        error and in the setting the 'chip.error' flag to 1. The type of the
-        value provided must agree with the dictionary parameter 'type'. Before
-        setting the parameter, the data value is type checked. Any type
-        descrepancy results in a logger error and in setting the chip.error
-        flag to 1. For descriptions of the legal values for a specific
-        parameter, refer to the schema.py documentation. Legal values are
-        cast to strings before writing to the dictionary. Illegal values
-        are not written to the dictionary.
-
-        Args:
-            args (string): A variable length key list used to look
-                up a Chip dictionary entry. For a complete description of the
-                valid key lists, see the schema.py module. The key-tree is
-                supplied in order.
-            chip (object): A valid Chip object to use for cfg query.
-            cfg (dict): A dictionary within the Chip object to use for
-                key list query.
-
-            *args (string): A non-keyworded variable length argument list to
-                used to look up non-leaf key tree in the Chip dictionary.The
-                key-tree is supplied in order, with the data list supplied as
-                the last argument. Specifying a non-existent key tree
-                results in a program exit.
-
-        Examples:
-            >>> set('design', 'mydesign')
-            Sets the parameter 'design' name to 'mydesign'
-        '''
-
-        if chip is None:
-            chip = self
-
-        if cfg is None:
-            cfg = chip.cfg
-
-        chip.logger.debug('Setting config dictionary value: %s', args)
-
-        all_args = list(args)
-
-        return self._search(chip, cfg, *all_args, field='value', mode='set')
-
-    ###########################################################################
-    def add(self, *args, chip=None, cfg=None):
-        '''
-        Adds value to dictionary based on a keylist provided.
-
-        Accesses to non-existing dictionary entries results in a logger
-        error and in the setting the 'chip.error' flag to 1. For non list
-        based types, the method is equivalent to to the set method and the
-        value is overriden.
+        error and in the setting the 'chip.error' flag to 1. For built in
+        dictionary keys with the 'default' keywork entry, new leaf trees
+        are automatically created by the set method by copying the default
+        tree to the tree described by the key-sequence as needed.
 
         The data type provided must agree with the dictionary parameter 'type'.
         Before setting the parameter, the data value is type checked.
         Any type descrepancy results in a logger error and in setting the
         chip.error flag to 1. For descriptions of the legal values for a
         specific parameter, refer to the schema.py documentation. Legal values
-        are cast to strings before writing to the dictionary. Illegal value
-        are not written to the dictionary.
+        are cast to strings before writing to the dictionary.
 
         Args:
             args (string): A variable length key list used to look
@@ -640,8 +588,8 @@ class Chip:
                 key list query.
 
         Examples:
-            >>> add('source', 'mydesign.v')
-            Adds the file 'mydesign.v' to the list of sources.
+            >>> set('source', 'mydesign.v')
+            Sets the file 'mydesign.v' to the list of sources.
         '''
 
         if chip is None:
@@ -654,6 +602,50 @@ class Chip:
         all_args = list(args)
 
         # Convert val to list if not a list
+        return self._search(chip, cfg, *all_args, field='value', mode='set')
+
+    ###########################################################################
+    def add(self, *args, chip=None, cfg=None):
+        '''
+        Appends the value to an existing Chip dictionary value of list type
+
+        Accesses to non-existing dictionary entries results in a logger
+        error and in the setting the 'chip.error' flag to 1. For built in
+        dictionary keys with the 'default' keywork entry, new leaf trees
+        are automatically created by the set method by copying the default
+        tree to the tree described by the key-sequence as needed.
+
+        The data type provided must agree with the dictionary parameter 'type'.
+        Before setting the parameter, the data value is type checked.
+        Any type descrepancy results in a logger error and in setting the
+        chip.error flag to 1. For descriptions of the legal values for a
+        specific parameter, refer to the schema.py documentation.
+
+        The add operation is not legal for scalar types.
+
+        Args:
+            args (string): A variable length key list used to look
+                up a Chip dictionary entry. For a complete description of the
+                valid key lists, see the schema.py module. The key-tree is
+                supplied in order.
+            chip (object): A valid Chip object to use for cfg query.
+            cfg (dict): A dictionary within the Chip object to use for
+                key list query.
+
+        Examples:
+            >>> add('source', 'mydesign.v')
+            Sets the file 'mydesign.v' to the list of sources.
+        '''
+
+        if chip is None:
+            chip = self
+        if cfg is None:
+            cfg = chip.cfg
+
+        chip.logger.debug('Adding config dictionary value: %s', args)
+
+        all_args = list(args)
+
         return self._search(chip, cfg, *all_args, field='value', mode='add')
 
     ###########################################################################
@@ -695,6 +687,7 @@ class Chip:
                     chip.error = 1
                 else:
                     cfg[param] = copy.deepcopy(cfg['default'])
+            list_type =bool(re.match(r'\[', cfg[param]['type']))
             #setting or extending value based on set/get mode
             if not field in cfg[param]:
                 chip.logger.error('Search failed. Field not found for \'%s\'', param)
@@ -702,18 +695,25 @@ class Chip:
             #check legality of value
             if not schema_typecheck(chip, cfg[param], param, val):
                 chip.error = 1
-            #Converting scalar to list for entries whose type is 'list'
-            if (not isinstance(val, list)) & (field == 'value') & bool(re.match(r'\[', cfg[param]['type'])):
-                val = [str(val)]
-            #set value based on scalar/list/set/add
-            if (mode == 'add') & isinstance(val, list):
-                cfg[param][field].extend(val)
-            elif (mode == 'set') & isinstance(val, list):
-                cfg[param][field] = val
-            #ignore add commmand for scalars
-            elif not isinstance(val, list):
-                cfg[param][field] = str(val)
-            #return field
+            #updating values
+            if (mode == 'set'):
+                if (not list_type) & (not isinstance(val, list)):
+                    cfg[param][field] = str(val)
+                elif list_type & (not isinstance(val, list)):
+                    cfg[param][field] = [str(val)]
+                elif list_type & isinstance(val, list):
+                    cfg[param][field] = val
+                else:
+                    chip.logger.error("Illegal to assign a list to a scalar. %s", param)
+                    chip.error = 1
+            elif (mode == 'add'):
+                if list_type & (not isinstance(val, list)):
+                    cfg[param][field].append(str(val))
+                elif list_type & isinstance(val, list):
+                    cfg[param][field].extend(val)
+                else:
+                    chip.logger.error("Illegal to use add() method with scalar. %s", param)
+                    chip.error = 1
             return cfg[param][field]
         #get leaf cell (all_args=param)
         elif len(all_args) == 1:
@@ -988,8 +988,7 @@ class Chip:
             error = True
 
         if error:
-
-            sys.exit()
+            sys.exit(1)
 
     ###########################################################################
     def readcfg(self, filename, merge=True, chip=None, cfg=None):
@@ -1571,19 +1570,26 @@ class Chip:
                 shutil.copytree("../"+item+str(mindex)+"/outputs", 'inputs/')
 
         # Dynamic EDA tool module load
-        tool = self.get('flowgraph', step, 'tool')
-        searchdir = "siliconcompiler.tools." + tool
-        modulename = '.'+tool+'_setup'
-        module = importlib.import_module(modulename, package=searchdir)
-        setup_tool = getattr(module, "setup_tool")
-        setup_tool(self, step, index)
+        try:
+            tool = self.get('flowgraph', step, 'tool')
+            searchdir = "siliconcompiler.tools." + tool
+            modulename = '.'+tool+'_setup'
+            module = importlib.import_module(modulename, package=searchdir)
+            setup_tool = getattr(module, "setup_tool")
+            setup_tool(self, step, index)
+        except:
+            self.logger.error("Setup failed for '%s' tool in step '%s'.", tool, step)
+            event.set()
+            sys.exit(1)
 
         # Check installation
         exe = self.get('eda', tool, step, index, 'exe')
-        exepath = subprocess.run("command -v "+exe+">/dev/null", shell=True, check=True)
-        if exepath.returncode > 0:
-            self.logger.critical('Executable %s not installed.', exe)
-            sys.exit()
+        try:
+            exepath = subprocess.run("command -v "+exe+">/dev/null", shell=True)
+        except exepath.returncode > 0:
+            self.logger.error('Executable %s not installed.', exe)
+            event.set()
+            sys.exit(1)
 
         #Copy Reference Scripts
         if self.get('eda', tool, step, index, 'copy'):
@@ -1641,18 +1647,23 @@ class Chip:
         # Run exeucutable
         self.logger.info("Running %s in %s", step, os.path.abspath(stepdir))
         self.logger.info('%s', cmdstr)
-        error = subprocess.run(cmdstr, shell=True, executable='/bin/bash', check=True)
+
+        try:
+            error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
+        except error.returncode != 0:
+            self.logger.error('Command failed. See log file %s', os.path.abspath(logfile))
+            event.set()
+            sys.exit(1)
 
         # Post Process (and error checking)
         post_process = getattr(module, "post_process")
         post_error = post_process(self, step, index)
 
         # Check for errors
-        if error.returncode | post_error:
-            self.logger.error('Command failed. See log file %s', os.path.abspath(logfile))
-            #Signal an error event
+        if post_error:
+            self.logger.error('Post-processing check failed for step %s', step)
             event.set()
-            sys.exit()
+            sys.exit(1)
 
         # save output manifest
         self.writecfg("outputs/" + self.get('design') +'.pkg.json')
@@ -1665,7 +1676,6 @@ class Chip:
 
     ###########################################################################
     def run(self):
-
         '''
         A unified thread safe per step execution method for the Chip.
         The options and modes of the run is setup up through the Chip
@@ -1725,10 +1735,13 @@ class Chip:
             event = multiprocessing.Event()
             active = manager.dict()
             # Set all procs to active
-            for step in steplist:
+            for step in self.getkeys('flowgraph'):
                 for index in range(self.get('flowgraph', step, 'nproc')):
                     stepstr = step + str(index)
-                    active[stepstr] = 1
+                    if step in steplist:
+                        active[stepstr] = 1
+                    else:
+                        active[stepstr] = 0
 
             # Create procs
             processes = []
@@ -1742,6 +1755,11 @@ class Chip:
             # Mandatory procs cleanup
             for p in processes:
                 p.join()
+
+            # Make a clean exit if a process failed
+            if event.is_set():
+                self.logger.error('Run() failed, exiting! See previous errors.')
+                sys.exit(1)
 
             # For local encrypted jobs, re-encrypt and delete the decrypted data.
             if 'decrypt_key' in self.status:

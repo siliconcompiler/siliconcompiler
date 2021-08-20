@@ -60,49 +60,46 @@ def setup_tool(chip, step, index):
         chip.set('eda', tool, step, index, 'threads', os.cpu_count())
     chip.set('eda', tool, step, index, 'copy', 'false')
     chip.set('eda', tool, step, index, 'refdir', refdir)
+    chip.set('eda', tool, step, index, 'script', refdir + '/sc_apr.tcl')
 
-    if step == 'show':
-        chip.set('eda', tool, step, index, 'option', 'cmdline', '-gui')
-        chip.set('eda', tool, step, index, 'script', refdir + '/sc_display.tcl')
-    else:
-        chip.set('eda', tool, step, index, 'option', 'cmdline', '-no_init')
-        chip.set('eda', tool, step, index, 'script', refdir + '/sc_apr.tcl')
-        # exit automatically unless bkpt
-        if (step not in chip.get('bkpt')):
-            chip.add('eda', tool, step, index, 'option', 'cmdline', '-exit')
+    chip.add('eda', tool, step, index, 'option', 'cmdline', '-no_init')
 
-        # enable programmatic pythonic floorplans
-        if step == 'floorplan':
-            floorplan_file = chip.get('asic', 'floorplan')
+    # exit automatically unless bkpt
+    if (step not in chip.get('bkpt')):
+        chip.add('eda', tool, step, index, 'option', 'cmdline', '-exit')
 
-            if len(floorplan_file) == 0:
-                 return
-            elif len(floorplan_file) > 1:
-                 chip.logger.warning('OpenROAD-based flows expect only one Python '
-                                     'floorplan, but multiple were provided. '
-                                     f'Defaulting to {floorplan_file[0]}.')
+    # enable programmatic pythonic floorplans
+    if step == 'floorplan':
+        floorplan_file = chip.get('asic', 'floorplan')
 
-            floorplan_file = schema_path(floorplan_file[0])
+        if len(floorplan_file) == 0:
+             return
+        elif len(floorplan_file) > 1:
+             chip.logger.warning('OpenROAD-based flows expect only one Python '
+                                 'floorplan, but multiple were provided. '
+                                 f'Defaulting to {floorplan_file[0]}.')
 
-            if os.path.splitext(floorplan_file)[-1] != '.py':
-                 return
+        floorplan_file = schema_path(floorplan_file[0])
 
-            fp = Floorplan(chip)
+        if os.path.splitext(floorplan_file)[-1] != '.py':
+             return
 
-            # Import user's floorplan file, call setup_floorplan to set up their
-            # floorplan, and save it as an input DEF
+        fp = Floorplan(chip)
 
-            mod_name = os.path.splitext(os.path.basename(floorplan_file))[0]
-            mod_spec = importlib.util.spec_from_file_location(mod_name, floorplan_file)
-            module = importlib.util.module_from_spec(mod_spec)
-            mod_spec.loader.exec_module(module)
-            setup_floorplan = getattr(module, "setup_floorplan")
+        # Import user's floorplan file, call setup_floorplan to set up their
+        # floorplan, and save it as an input DEF
 
-            fp = setup_floorplan(fp, chip)
+        mod_name = os.path.splitext(os.path.basename(floorplan_file))[0]
+        mod_spec = importlib.util.spec_from_file_location(mod_name, floorplan_file)
+        module = importlib.util.module_from_spec(mod_spec)
+        mod_spec.loader.exec_module(module)
+        setup_floorplan = getattr(module, "setup_floorplan")
 
-            topmodule = chip.get('design')
-            def_file = 'inputs/' + topmodule + '.def'
-            fp.write_def(def_file)
+        fp = setup_floorplan(fp, chip)
+
+        topmodule = chip.get('design')
+        def_file = 'inputs/' + topmodule + '.def'
+        fp.write_def(def_file)
 
 ################################
 # Post_process (post executable)
@@ -192,6 +189,6 @@ if __name__ == "__main__":
     # create a chip instance
     chip = siliconcompiler.Chip(defaults=False)
     # load configuration
-    setup_tool(chip, step='apr')
+    setup_tool(chip, step='apr', index='0')
     # write out results
     chip.writecfg(output)

@@ -87,7 +87,7 @@ class ToolGen(SphinxDirective):
         if docstr:
             self.parse_rst(docstr, s)
 
-        flat_cfg = flatten(chip._prune())
+        flat_cfg = flatten(chip._prune(chip.cfg))
 
         table = [[strong('Option'), strong('Value')]]
         for val in flat_cfg.values():

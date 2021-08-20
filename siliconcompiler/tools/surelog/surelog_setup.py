@@ -10,18 +10,18 @@ from siliconcompiler.schema import schema_path
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip, step):
+def setup_tool(chip, step, index):
     ''' Sets up default settings on a per step basis
     '''
 
     # Standard Setup
     tool = 'surelog'
 
-    chip.set('eda', tool, step, 'exe', tool)
-    chip.set('eda', tool, step, 'vendor', tool)
-    chip.set('eda', tool, step, 'format', 'cmdline')
-    chip.set('eda', tool, step, 'threads', '4')
-    chip.set('eda', tool, step, 'copy', 'false')
+    chip.set('eda', tool, step, index, 'exe', tool)
+    chip.set('eda', tool, step, index, 'vendor', tool)
+    chip.set('eda', tool, step, index, 'format', 'cmdline')
+    chip.set('eda', tool, step, index, 'threads', '4')
+    chip.set('eda', tool, step, index, 'copy', 'false')
 
     # -parse is slow but ensures the SV code is valid
     # we might want an option to control when to enable this
@@ -51,13 +51,13 @@ def setup_tool(chip, step):
         options.append(schema_path(value))
 
     # Wite back options tp cfg
-    chip.set('eda', tool, step, 'option', 'cmdline', options)
+    chip.add('eda', tool, step, index, 'option', 'cmdline', options)
 
 ################################
 # Post_process (post executable)
 ################################
 
-def post_process(chip, step):
+def post_process(chip, step, index):
     ''' Tool specific function to run after step execution
     '''
     # setting top module of design
@@ -97,6 +97,6 @@ if __name__ == "__main__":
     # create a chip instance
     chip = siliconcompiler.Chip(defaults=False)
     # load configuration
-    setup_tool(chip, step='lint')
+    setup_tool(chip, step='lint', index='0')
     # write out results
     chip.writecfg(output)

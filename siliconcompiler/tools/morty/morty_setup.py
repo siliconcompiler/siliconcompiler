@@ -17,11 +17,11 @@ def setup_tool(chip, step, index):
 
     # Standard Setup
     tool = 'morty'
-    chip.add('eda', tool, step, index, 'threads', 4)
-    chip.add('eda', tool, step, index, 'format', 'cmdline')
-    chip.add('eda', tool, step, index, 'copy', 'false')
-    chip.add('eda', tool, step, index, 'exe', 'morty')
-    chip.add('eda', tool, step, index, 'vendor', 'morty')
+    chip.set('eda', tool, step, index, 'threads', 4)
+    chip.set('eda', tool, step, index, 'format', 'cmdline')
+    chip.set('eda', tool, step, index, 'copy', 'false')
+    chip.set('eda', tool, step, index, 'exe', 'morty')
+    chip.set('eda', tool, step, index, 'vendor', 'morty')
 
     # output single file to `morty.v`
     chip.add('eda', tool, step, index, 'option', 'cmdline', '-o morty.v')
@@ -83,6 +83,6 @@ if __name__ == "__main__":
     # create a chip instance
     chip = siliconcompiler.Chip(defaults=False)
     # load configuration
-    setup_tool(chip, step='import')
+    setup_tool(chip, step='import', index='0')
     # write out results
     chip.writecfg(output)

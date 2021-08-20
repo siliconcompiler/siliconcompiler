@@ -16,7 +16,7 @@ def setup_tool(chip, step, index):
     tool = 'icepack'
     chip.set('eda', tool, step, index, 'vendor', tool)
     chip.set('eda', tool, step, index, 'exe', tool)
-    chip.add('eda', tool, step, index, 'format', 'cmdline')
+    chip.set('eda', tool, step, index, 'format', 'cmdline')
     chip.set('eda', tool, step, index, 'copy', 'false')
 
     #Get default opptions from setup
@@ -45,6 +45,6 @@ if __name__ == "__main__":
     # create a chip instance
     chip = siliconcompiler.Chip(defaults=False)
     # load configuration
-    setup_tool(chip, step='bitstream')
+    setup_tool(chip, step='bitstream', index='0')
     # write out results
     chip.writecfg(output)

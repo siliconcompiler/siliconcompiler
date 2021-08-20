@@ -16,7 +16,7 @@ def test_mixedsrc_local_py():
     # Inserting value into configuration
     chip.add('source', ex_dir + 'eq1.vhd')
     chip.add('source', ex_dir + 'eq2.v')
-    chip.add('design', 'eq2')
+    chip.set('design', 'eq2')
 
     chip.target("freepdk45")
 
@@ -29,8 +29,7 @@ def test_mixedsrc_local_py():
     for i, (step, tool) in enumerate(flow):
         if i > 0:
             chip.add('flowgraph', step, 'input', flow[i-1][0])
-        chip.add('flowgraph', step, 'tool', tool)
-    chip.set_jobid()
+        chip.set('flowgraph', step, 'tool', tool)
 
     # Run the chip's build process synchronously.
     chip.run()

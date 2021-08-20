@@ -1,4 +1,5 @@
 import os
+import siliconcompiler
 from siliconcompiler.schema import schema_path
 
 ################################
@@ -11,19 +12,14 @@ def setup_tool(chip, step, index):
 
     refdir = 'siliconcompiler/tools/nextpnr'
     tool = 'nextpnr'
-    chip.add('eda', tool, step, index, 'format', 'cmdline')
-    chip.add('eda', tool, step, index, 'vendor', 'nextpnr')
-    chip.add('eda', tool, step, index, 'refdir', refdir)
-    chip.add('eda', tool, step, index, 'copy', 'false')
-    chip.add('eda', tool, step, index, 'exe', 'nextpnr-ice40')
+    chip.set('eda', tool, step, index, 'format', 'cmdline')
+    chip.set('eda', tool, step, index, 'vendor', 'nextpnr')
+    chip.set('eda', tool, step, index, 'refdir', refdir)
+    chip.set('eda', tool, step, index, 'copy', 'false')
+    chip.set('eda', tool, step, index, 'exe', 'nextpnr-ice40')
 
     # Check FPGA schema to determine which device to target
-    if len(chip.get('fpga', 'partname')) == 0:
-        chip.logger.error(f"FPGA partname unspecified!")
-        os.sys.exit()
-    else:
-        partname = chip.get('fpga', 'partname')
-
+    partname = chip.get('fpga', 'partname')
 
     options = []
     if partname == 'ice40up5k-sg48':
@@ -41,7 +37,7 @@ def setup_tool(chip, step, index):
             pcf_file = schema_path(constraint_file)
 
     if pcf_file == None:
-        chip.logger.error('Pin constraint file required')
+        chip.logger.error('FPGA pin constraint file missing')
         os.sys.exit()
 
     options.append('--pcf ' + pcf_file)
@@ -68,7 +64,8 @@ if __name__ == "__main__":
 
     # create a chip instance
     chip = siliconcompiler.Chip(defaults=False)
+    chip.set('fpga', 'partname', 'ice40up5k-sg48')
     # load configuration
-    setup_tool(chip, step='syn')
+    setup_tool(chip, step='syn', index='0')
     # write out results
     chip.writecfg(output)
