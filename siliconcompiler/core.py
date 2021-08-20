@@ -453,14 +453,14 @@ class Chip:
         para_list = para.wrap(text=helpstr)
 
         #Full Doc String
-        fullstr = ("-"*3 +
-                   "\nDescription: " + description.lstrip() + "\n" +
-                   "\nOrder:       " + param.lstrip() + "\n"  +
-                   "\nType:        " + typestr.lstrip() + "\n"  +
-                   "\nRequirement: " + requirement.lstrip() + "\n"  +
-                   "\nDefault:     " + defstr.lstrip() + "\n"  +
+        fullstr = ("-"*80 +
+                   "\nDescription: " + description.lstrip() +
+                   "\nOrder:       " + param.lstrip() +
+                   "\nType:        " + typestr.lstrip()  +
+                   "\nRequirement: " + requirement.lstrip()   +
+                   "\nDefault:     " + defstr.lstrip()   +
                    "\nExamples:    " + example[0].lstrip() +
-                   "\n             " + example[1].lstrip() + "\n" +
+                   "\n             " + example[1].lstrip() +
                    "\nHelp:        " + para_list[0].lstrip() + "\n")
         for line in para_list[1:]:
             fullstr = (fullstr +
@@ -1288,7 +1288,6 @@ class Chip:
                                 cfg[k]['hash'].append(hash_value)
                     else:
                         self.hash(cfg=cfg[k])
-
 
     ###########################################################################
     def audit(self, filename=None):
