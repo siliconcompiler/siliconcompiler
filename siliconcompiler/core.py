@@ -984,12 +984,9 @@ class Chip:
         return d1
 
     ###########################################################################
-    def check(self, step=None):
+    def check(self, step, chip=None, cfg=None):
         '''
         Performs a setup validity check and returns success status.
-
-
-
 
         Returns:
             Returns True of if the Chip dictionary is valid, else returns
@@ -1000,24 +997,36 @@ class Chip:
            Returns True of the Chip dictionary checks out.
         '''
 
+        if chip is None:
+            chip = self
+        if cfg is None:
+            cfg = chip.cfg
 
-        # Check all schema hard requirements
-        if not self.get('design'):
-            self.error = 1
-            self.logger.error('Design name has not been set.')
+        chip.logger.info("Running check() for step '%s'", step)
 
-        # Check that flowgraph has been set up
-        if not self.getkeys('flowgraph'):
-            self.error = 1
-            self.logger.error('Flowgraph has not been defined.')
-
-
-
-        # Per step check
-        if step!=None:
-            print("Checking step")
+        # Checking requirements
+        allkeys = self.getkeys()
+        for key in allkeys:
+            if 'default' not in key:
+                requirement = self.get(*key, chip=chip, cfg=cfg, field='requirement')
+                sctype = self.get(*key, chip=chip, cfg=cfg, field='type')
+                value = self.get(*key, chip=chip, cfg=cfg)
+                if value is None:
+                    missing = True
+                else:
+                    missing = False;
+                # basic requirements
+                if missing & (requirement == 'all'):
+                    chip.error = 1
+                    chip.logger.error("Basic requirement missing '%s' for step '%s'", key, step)
+                # fpga/asic requirments
+                elif missing & (requirement == self.get('mode')):
+                    chip.error = 1
+                    chip.logger.error("%s requirement missing '%s' for step '%s'",
+                                      self.get('mode'), key, step)
 
         # Final check to see if there are any errors
+        # Aggregate of previous erros and requirements fial
         return self.error
 
     ###########################################################################
@@ -1616,12 +1625,17 @@ class Chip:
 
         # Check installation
         exe = self.get('eda', tool, step, index, 'exe')
+        veropt = str(self.get('eda', tool, step, index, 'option', 'version')[0])
+        cmdstr = f'{exe} {veropt} >/dev/null'
         try:
-            exepath = subprocess.run("command -v "+exe+">/dev/null", shell=True)
+            exepath = subprocess.run(cmdstr, shell=True)
         except exepath.returncode > 0:
             self.logger.error('Executable %s not installed.', exe)
             event.set()
             sys.exit(1)
+
+        # Exe version logic
+        # TODO: add here
 
         #Copy Reference Scripts
         if self.get('eda', tool, step, index, 'copy'):
@@ -1676,7 +1690,7 @@ class Chip:
             self.set('metric', step, index, 'real', metric, 0)
 
         # Final check
-        if self.check():
+        if self.check(step):
             self.logger.error("Step check() for '%s' failed, exiting! See previous errors.", step)
             event.set()
             sys.exit(1)
@@ -1760,7 +1774,7 @@ class Chip:
                 steplist = self.getsteps()
 
             # setup sanity check before you start run
-            if self.check():
+            if self.check('run'):
                 self.logger.error('Global check() failed, exiting! See previous errors.')
                 sys.exit(1)
 
