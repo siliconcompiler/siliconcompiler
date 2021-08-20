@@ -4,9 +4,9 @@ import siliconcompiler
 
 def main():
     progname = "sc-echo"
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip(loglevel="DEBUG")
     chip.cmdline(progname,
-                 switchlist=['source'],
+                 switchlist=['source', 'cfg'],
                  description="""
                  --------------------------------------------------------------
                  Restricted SC app that accepts one or more json based cfg files
@@ -18,7 +18,7 @@ def main():
         print(progname+": error: the following arguments are required: source")
         sys.exit()
     else:
-        print("SOURCES ENTERED = ", chip.get('source'))
+        chip.writecfg("sc_manifest.json")
 
 #########################
 if __name__ == "__main__":

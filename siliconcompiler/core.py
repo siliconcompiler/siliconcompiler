@@ -287,7 +287,11 @@ class Chip:
                 val_list = [val]
             for item in val_list:
                 args = schema_reorder(argmap[key], item)
-                self.set(*args)
+                typestr = self.get(*args[:-1], field='type')
+                if re.match(r'\[', typestr):
+                    self.add(*args)
+                else:
+                    self.set(*args)
 
     ###########################################################################
     def target(self, arg=None, libs=True, methodology=True):
@@ -957,19 +961,22 @@ class Chip:
         """
         if path is None: path = []
         for key in d2:
-            path = path + [str(key)]
-            pathstr = '.'.join(path)
+            print(key)
             if key in d1:
                 if isinstance(d1[key], dict) and isinstance(d2[key], dict):
-                    _mergedict(chip, d1[key], d1[key], path=path, check=check)
+                    self._mergedict(chip, d1[key], d2[key], path=path + [str(key)], strict=strict)
                 else:
-                    chip.logger.warning('Mergedict overwrites existing key %s', pathstr)
                     d1[key] = d2[key]
+                    pathstr = ",".join(path + [str(key)])
+                    if str(key) == 'value':
+                        chip.logger.debug('Mergedict overwrites existing key %s', pathstr)
             elif not strict:
+                pathstr = ",".join( path + [str(key)])
                 chip.logger.info('Extending dictionary with key %s', pathstr)
                 d1[key] = d2[key]
             else:
-                chip.logger.error('Keypath not found in dictionary%s', pathstr)
+                pathstr = ",".join(path + [str(key)])
+                chip.logger.error('Keypath not found in dictionary %s', pathstr )
         return d1
 
     ###########################################################################
@@ -1034,6 +1041,9 @@ class Chip:
         elif abspath.endswith('.yaml'):
             with open(abspath, 'r') as f:
                 localcfg = yaml.load(f, Loader=yaml.SafeLoader)
+        else:
+            chip.error = 1
+            chip.logger.error('Illegal file format. Only json/yaml supported. %s', abspath)
 
         #Merging arguments with the Chip configuration
         if merge:
