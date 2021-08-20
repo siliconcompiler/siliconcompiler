@@ -1726,6 +1726,7 @@ def schema_hier(cfg, parent='default', child='default'):
         'switch': '-hier_package',
         'type': '[file]',
         'lock': 'false',
+        'requirement': 'optional',
         'copy': 'false',
         'defvalue': [],
         'filehash': [],
@@ -1733,7 +1734,7 @@ def schema_hier(cfg, parent='default', child='default'):
         'author': [],
         'signature': [],
         'short_help': 'Component package file',
-        'param_help': "hier parentvar childvar 'package' <file>",
+        'param_help': "hier parentvar childvar package <file>",
         'example': ["cli: -hier_package 'top padring padring_package.json'",
                     "api:  chip.set('hier', 'top', 'padring','package', 'padring_package.json')"],
         'help': """
@@ -1750,7 +1751,7 @@ def schema_hier(cfg, parent='default', child='default'):
         'requirement': 'optional',
         'defvalue': "false",
         'short_help': 'Child ',
-        'param_help': "hiear parentvar childvar 'build' <bool>",
+        'param_help': "hiear parentvar childvar build <bool>",
         'example': ["cli: -hiear_build 'top padring true'",
                     "api:  chip.set('hier', 'build', 'top', 'padring','build', 'true')"],
         'help': """
