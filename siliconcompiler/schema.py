@@ -961,12 +961,12 @@ def schema_pdk(cfg):
 # Library Configuration
 ###############################################################################
 
-def schema_libs(cfg):
+def schema_libs(cfg, lib='default'):
 
     cfg['library'] = {}
-    cfg['library']['default'] = {}
+    cfg['library'][lib] = {}
 
-    cfg['library']['default']['type'] = {
+    cfg['library'][lib]['type'] = {
         'switch': '-library_type',
         'requirement': None,
         'type': 'str',
@@ -984,8 +984,8 @@ def schema_libs(cfg):
     }
 
 
-    cfg['library']['default']['testbench'] = {}
-    cfg['library']['default']['testbench']['default'] = {
+    cfg['library'][lib]['testbench'] = {}
+    cfg['library'][lib]['testbench']['default'] = {
         'switch': '-library_testbench',
         'requirement': None,
         'type': '[file]',
@@ -1007,7 +1007,7 @@ def schema_libs(cfg):
     }
 
 
-    cfg['library']['default']['rev'] = {
+    cfg['library'][lib]['rev'] = {
         'switch': '-library_rev',
         'requirement': None,
         'type': 'str',
@@ -1024,7 +1024,7 @@ def schema_libs(cfg):
         """
     }
 
-    cfg['library']['default']['origin'] = {
+    cfg['library'][lib]['origin'] = {
         'switch': '-library_origin',
         'requirement': None,
         'type': 'str',
@@ -1039,7 +1039,7 @@ def schema_libs(cfg):
         """
     }
 
-    cfg['library']['default']['license'] = {
+    cfg['library'][lib]['license'] = {
         'switch': '-library_license',
         'requirement': None,
         'type': '[file]',
@@ -1059,7 +1059,7 @@ def schema_libs(cfg):
         """
     }
 
-    cfg['library']['default']['doc'] = {
+    cfg['library'][lib]['doc'] = {
         'switch': '-library_doc',
         'requirement': None,
         'type': '[file]',
@@ -1082,7 +1082,7 @@ def schema_libs(cfg):
         """
     }
 
-    cfg['library']['default']['datasheet'] = {
+    cfg['library'][lib]['datasheet'] = {
         'switch': '-'+"library_datasheet",
         'requirement': None,
         'type': '[file]',
@@ -1106,7 +1106,7 @@ def schema_libs(cfg):
         """
     }
 
-    cfg['library']['default']['arch'] = {
+    cfg['library'][lib]['arch'] = {
         'switch': '-library_arch',
         'requirement': None,
         'type': 'str',
@@ -1126,7 +1126,7 @@ def schema_libs(cfg):
         """
     }
 
-    cfg['library']['default']['width'] = {
+    cfg['library'][lib]['width'] = {
         'switch': '-library_width',
         'requirement': None,
         'type': 'float',
@@ -1144,7 +1144,7 @@ def schema_libs(cfg):
         """
     }
 
-    cfg['library']['default']['height'] = {
+    cfg['library'][lib]['height'] = {
         'switch': '-library_height',
         'requirement': None,
         'type': 'float',
@@ -1166,11 +1166,11 @@ def schema_libs(cfg):
     #Models (Timing, Power, Noise)
     ###############################
 
-    cfg['library']['default']['model'] = {}
-    cfg['library']['default']['model']['default'] = {}
+    cfg['library'][lib]['model'] = {}
+    cfg['library'][lib]['model']['default'] = {}
 
     #Operating Conditions (per corner)
-    cfg['library']['default']['model']['default']['opcond'] = {
+    cfg['library'][lib]['model']['default']['opcond'] = {
         'switch': '-library_opcond',
         'requirement': None,
         'type': 'str',
@@ -1188,7 +1188,7 @@ def schema_libs(cfg):
     }
 
     #Checks To Do (per corner)
-    cfg['library']['default']['model']['default']['check'] = {
+    cfg['library'][lib]['model']['default']['check'] = {
         'switch': '-library_check',
         'requirement': None,
         'type': '[str]',
@@ -1211,8 +1211,8 @@ def schema_libs(cfg):
     }
 
     #NLDM
-    cfg['library']['default']['model']['default']['nldm'] = {}
-    cfg['library']['default']['model']['default']['nldm']['default'] = {
+    cfg['library'][lib]['model']['default']['nldm'] = {}
+    cfg['library'][lib]['model']['default']['nldm']['default'] = {
         'switch': '-library_nldm',
         'requirement': None,
         'type': '[file]',
@@ -1237,8 +1237,8 @@ def schema_libs(cfg):
     }
 
     #CCS
-    cfg['library']['default']['model']['default']['ccs'] = {}
-    cfg['library']['default']['model']['default']['ccs']['default'] = {
+    cfg['library'][lib]['model']['default']['ccs'] = {}
+    cfg['library'][lib]['model']['default']['ccs']['default'] = {
         'switch': '-library_ccs',
         'requirement': None,
         'type': '[file]',
@@ -1263,8 +1263,8 @@ def schema_libs(cfg):
     }
 
     #SCM
-    cfg['library']['default']['model']['default']['scm'] = {}
-    cfg['library']['default']['model']['default']['scm']['default'] = {
+    cfg['library'][lib]['model']['default']['scm'] = {}
+    cfg['library'][lib]['model']['default']['scm']['default'] = {
         'switch': '-library_scm',
         'requirement': None,
         'type': '[file]',
@@ -1289,7 +1289,7 @@ def schema_libs(cfg):
     }
 
     #AOCV
-    cfg['library']['default']['model']['default']['aocv'] = {
+    cfg['library'][lib]['model']['default']['aocv'] = {
         'switch': '-library_aocv',
         'requirement': None,
         'type': '[file]',
@@ -1312,8 +1312,8 @@ def schema_libs(cfg):
     }
 
     #APL
-    cfg['library']['default']['model']['default']['apl'] = {}
-    cfg['library']['default']['model']['default']['apl']['default'] = {
+    cfg['library'][lib]['model']['default']['apl'] = {}
+    cfg['library'][lib]['model']['default']['apl']['default'] = {
         'switch': '-library_apl',
         'requirement': None,
         'type': '[file]',
@@ -1336,7 +1336,7 @@ def schema_libs(cfg):
     }
 
     #LEF
-    cfg['library']['default']['lef'] = {
+    cfg['library'][lib]['lef'] = {
         'switch': '-library_lef',
         'requirement': None,
         'type': '[file]',
@@ -1359,7 +1359,7 @@ def schema_libs(cfg):
     }
 
     #GDS
-    cfg['library']['default']['gds'] = {
+    cfg['library'][lib]['gds'] = {
         'switch': '-library_gds',
         'requirement': None,
         'type': '[file]',
@@ -1383,7 +1383,7 @@ def schema_libs(cfg):
         """
     }
 
-    cfg['library']['default']['netlist'] = {
+    cfg['library'][lib]['netlist'] = {
         'switch': '-library_netlist',
         'requirement': None,
         'type': '[file]',
@@ -1406,8 +1406,8 @@ def schema_libs(cfg):
         level netlist.
         """
     }
-    cfg['library']['default']['spice'] = {}
-    cfg['library']['default']['spice']['default'] = {
+    cfg['library'][lib]['spice'] = {}
+    cfg['library'][lib]['spice']['default'] = {
         'switch': '-library_spice',
         'requirement': None,
         'type': '[file]',
@@ -1428,8 +1428,8 @@ def schema_libs(cfg):
         simulation, specified on a per format basis.
         """
     }
-    cfg['library']['default']['hdl'] = {}
-    cfg['library']['default']['hdl']['default'] = {
+    cfg['library'][lib]['hdl'] = {}
+    cfg['library'][lib]['hdl']['default'] = {
         'switch': '-library_hdl',
         'requirement': None,
         'type': '[file]',
@@ -1451,7 +1451,7 @@ def schema_libs(cfg):
         """
     }
 
-    cfg['library']['default']['atpg'] = {
+    cfg['library'][lib]['atpg'] = {
         'switch': '-library_atpg',
         'requirement': None,
         'type': '[file]',
@@ -1472,7 +1472,7 @@ def schema_libs(cfg):
         """
     }
 
-    cfg['library']['default']['pgmetal'] = {
+    cfg['library'][lib]['pgmetal'] = {
         'switch': '-library_pgmetal',
         'requirement': None,
         'type': 'str',
@@ -1489,7 +1489,7 @@ def schema_libs(cfg):
         """
     }
 
-    cfg['library']['default']['tag'] = {
+    cfg['library'][lib]['tag'] = {
         'switch': '-library_tag',
         'requirement': None,
         'type': '[str]',
@@ -1508,7 +1508,7 @@ def schema_libs(cfg):
         """
     }
 
-    cfg['library']['default']['driver'] = {
+    cfg['library'][lib]['driver'] = {
         'switch': '-library_driver',
         'requirement': None,
         'type': '[str]',
@@ -1527,7 +1527,7 @@ def schema_libs(cfg):
         """
     }
 
-    cfg['library']['default']['site'] = {
+    cfg['library'][lib]['site'] = {
         'switch': '-library_site',
         'requirement': None,
         'type': 'str',
@@ -1542,8 +1542,8 @@ def schema_libs(cfg):
         """
     }
 
-    cfg['library']['default']['cells'] = {}
-    cfg['library']['default']['cells']['default'] = {
+    cfg['library'][lib]['cells'] = {}
+    cfg['library'][lib]['cells']['default'] = {
         'switch': '-library_cells',
         'requirement': None,
         'type': '[str]',
@@ -1562,9 +1562,9 @@ def schema_libs(cfg):
         """
     }
 
-    cfg['library']['default']['layoutdb'] = {}
-    cfg['library']['default']['layoutdb']['default'] = {}
-    cfg['library']['default']['layoutdb']['default']['default'] = {
+    cfg['library'][lib]['layoutdb'] = {}
+    cfg['library'][lib]['layoutdb']['default'] = {}
+    cfg['library'][lib]['layoutdb']['default']['default'] = {
         'switch': '-library_layoutdb',
         'requirement': None,
         'type': '[file]',
