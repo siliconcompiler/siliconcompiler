@@ -950,10 +950,14 @@ class Chip:
             #detect leaf cell
             if 'defvalue' in cfg[k]:
                 if mode == 'tcl':
-                    if bool(re.match(r'\[', str(cfg[k]['type']))) & (field == 'value'):
-                        alist = cfg[k][field].copy()
+                    if 'value' not in cfg[k]:
+                        selval = cfg[k]['defvalue']
                     else:
-                        alist = [cfg[k][field]]
+                        selval =  cfg[k]['value']
+                    if bool(re.match(r'\[', str(cfg[k]['type']))) & (field == 'value'):
+                        alist = selval
+                    else:
+                        alist = [selval]
                     for i, val in enumerate(alist):
                         #replace $VAR with env(VAR) for tcl
                         m = re.match(r'\$(\w+)(.*)', str(val))
@@ -1161,9 +1165,6 @@ class Chip:
                 print(json.dumps(cfgcopy, indent=4), file=f)
         elif filepath.endswith('.yaml'):
             with open(filepath, 'w') as f:
-                print("#############################################", file=f)
-                print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
-                print("#############################################", file=f)
                 print(yaml.dump(cfgcopy, Dumper=YamlIndentDumper, default_flow_style=False), file=f)
         elif filepath.endswith('.tcl'):
             with open(filepath, 'w') as f:
@@ -1318,7 +1319,7 @@ class Chip:
         allkeys = self.getkeys(chip=chip, cfg=cfg)
 
         for keylist in allkeys:
-            if filehash in keylist:
+            if 'filehash' in keylist:
                 filelist = self.get(*keylist, chip=chip, cfg=cfg)
                 self.set([keylist,[]], chip=chip, cfg=cfg)
                 hashlist = []
@@ -1704,18 +1705,13 @@ class Chip:
         os.chmod("run.sh", 0o755)
 
         # Save config files required by EDA tools
-        # Create a local copy with arguments set
-        # The below snippet is how we communicate thread local data needed
-        # for scripts. Anything done to the cfgcopy is only seen by this thread
-        # Passing local arguments to EDA tool!
-        cfglocal = copy.deepcopy(self.cfg)
-        self.set('arg', 'step', step, cfg=cfglocal)
-        self.set('arg', 'index', index, cfg=cfglocal)
+        self.set('arg', 'step', step)
+        self.set('arg', 'index', index)
 
-        # Writing out files
-        self.writecfg("sc_manifest.json", cfg=cfglocal)
-        self.writecfg("sc_manifest.yaml", cfg=cfglocal)
-        self.writecfg("sc_manifest.tcl", cfg=cfglocal, abspath=True)
+        # Writing out command file
+        self.writecfg("sc_manifest.json")
+        self.writecfg("sc_manifest.yaml")
+        self.writecfg("sc_manifest.tcl", abspath=True)
 
         # Resetting metrics
         for metric in self.getkeys('metric', 'default', 'default', 'default'):

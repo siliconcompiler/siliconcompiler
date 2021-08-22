@@ -3991,7 +3991,7 @@ def schema_asic(cfg):
         'type': 'float',
         'lock': 'false',
         'requirement': None,
-        'defvalue': '1',
+        'defvalue': None,
         'short_help': 'APR Block Aspect Ratio',
         'param_help': "asic aspectratio <num>",
         'example': ["cli: -asic_aspectratio 2.0",
