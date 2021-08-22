@@ -31,40 +31,31 @@ def main():
     # Read command-line inputs and generate Chip objects to run the flow on.
     chip.cmdline("sc",
                  description="""
-                 --------------------------------------------------------------
-                 SiliconCompiler is an open source Python based hardware
-                 compiler project that aims to fully automate the translation
-                 of high level source code into manufacturable hardware. The program
-                 is a command line utility app around the SC APi and schema that
-                 calls executes the following functions in sequence:
+------------------------------------------------------------
+SiliconCompiler is an open source Python based meta compiler
+project that aims to fully automate the translation of high
+level source code into manufacturable hardware. This program
+is a command line utility app around the SC API/schema that
+executes the following operations in sequence:
 
-                 1. target(), if defined
+1. load setup files through target(),
+2. load settings from json files provided with -cfg switch
+3. override settings using other switches
+4. run()
+5. summary()
 
-                 2. hash()
-
-                 3. run()
-
-                 4. summary()
-
-                 5. show(), if defined
-
-                 Website: https://www.siliconcompiler.com
-                 Documentation: https://www.siliconcompiler.com/docs
-                 Community: https://www.siliconcompiler.com/community
-                 """)
-
-    #Creating hashes for all sourced files
-    chip.hash()
+**More Information:**
+Website:       https://www.siliconcompiler.com
+Documentation: https://www.siliconcompiler.com/docs
+Community:     https://www.siliconcompiler.com/community
+------------------------------------------------------------
+""")
 
     # Run flow
     chip.run()
 
     # Print Job Summary
     chip.summary()
-
-    # Show job if set
-    # if (chip.error < 1) and (chip.get('show')):
-    #   chip.show()
 
 #########################
 if __name__ == "__main__":

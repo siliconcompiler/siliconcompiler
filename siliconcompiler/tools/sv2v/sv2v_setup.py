@@ -20,12 +20,14 @@ def setup_tool(chip, step, index):
 
 
     tool = 'sv2v'
-
     chip.set('eda', tool, step, index, 'threads', 4)
     chip.set('eda', tool, step, index, 'format', 'cmdline')
     chip.set('eda', tool, step, index, 'copy', 'false')
-    chip.set('eda', tool, step, index, 'exe', tool)
-    chip.set('eda', tool, step, index, 'vendor', tool)
+    chip.set('eda', tool, step, index, 'exe', 'sv2v')
+    chip.set('eda', tool, step, index, 'vendor', 'sv2v')
+    chip.set('eda', tool, step, index, 'version', '0.0')
+
+
 
     # Since we run sv2v after the import/preprocess step, there should be no
     # need for specifying include dirs/defines. However we don't want to pass

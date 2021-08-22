@@ -238,6 +238,7 @@ def setup_methodology(chip):
     chip.set('asic', 'hpinlayer', "m3")
     chip.set('asic', 'vpinlayer', "m2")
     chip.set('asic', 'density', 0.6) # TODO: should density be 0.6 like in OpenROAD config.mk, or 1.0
+    chip.set('asic', 'aspectratio', 1.0)
 
     corner = 'typical'
     # hard coded mcmm settings (only one corner!)

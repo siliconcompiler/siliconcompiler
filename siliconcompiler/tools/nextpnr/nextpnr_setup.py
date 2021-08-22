@@ -17,6 +17,8 @@ def setup_tool(chip, step, index):
     chip.set('eda', tool, step, index, 'refdir', refdir)
     chip.set('eda', tool, step, index, 'copy', 'false')
     chip.set('eda', tool, step, index, 'exe', 'nextpnr-ice40')
+    chip.set('eda', tool, step, index, 'vswitch', '--version')
+    chip.set('eda', tool, step, index, 'version', 'c73d4cf6')
 
     # Check FPGA schema to determine which device to target
     partname = chip.get('fpga', 'partname')

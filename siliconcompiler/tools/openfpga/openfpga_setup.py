@@ -17,8 +17,8 @@ def setup_tool(chip, step, index):
     refdir = 'siliconcompiler/tools/openfpga'
 
     tool = 'openfpga'
+    chip.set('eda', tool, step, index, 'version', '0.0')
     chip.set('eda', tool, step, index, 'format', 'cmdline')
-
     chip.set('eda', tool, step, index, 'vendor', 'openfpga')
     chip.set('eda', tool, step, index, 'refdir', refdir)
     if step == 'apr':

@@ -9,13 +9,12 @@ from siliconcompiler.schema import schema_path
 ################################
 def setup_tool(chip, step, index):
 
-     tool = 'xyce'
-
      chip.set('eda', tool, step, index, 'threads', '4')
      chip.set('eda', tool, step, index, 'copy', 'false')
      chip.set('eda', tool, step, index, 'format', 'cmdline')
-     chip.set('eda', tool, step, index, 'vendor', tool)
-     chip.set('eda', tool, step, index, 'exe', tool)
+     chip.set('eda', tool, step, index, 'vendor', 'xyce')
+     chip.set('eda', tool, step, index, 'exe', 'xyce')
+     chip.set('eda', tool, step, index, 'version', '0.0')
 
 ################################
 # Post_process (post executable)

@@ -32,6 +32,11 @@ def setup_flow(chip, partname):
 
     '''
 
+    # Inferring vendor name based on part number
+    if re.match('ice', partname):
+        chip.set('fpga','vendor', 'lattice')
+
+
     # A simple linear flow
     flowpipe = ['import',
                 'syn',

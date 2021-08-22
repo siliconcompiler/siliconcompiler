@@ -61,9 +61,6 @@ class Chip:
         self.error = 0
         self.cfg = schema_cfg()
 
-        # Copy 'defvalue' to 'value'
-        self._reset(defaults)
-
         # Setting design variable
         self.cfg['design']['value'] = self.design
         logname = self.design.center(12)
@@ -77,6 +74,7 @@ class Chip:
         self.logger.setLevel(str(loglevel))
 
         # Set Environment Variable if not already set
+        # TODO: Better solution??
         scriptdir = os.path.dirname(os.path.abspath(__file__))
         rootdir = re.sub('siliconcompiler/siliconcompiler',
                          'siliconcompiler',
@@ -170,13 +168,10 @@ class Chip:
         # Argparse
         parser = argparse.ArgumentParser(prog=progname,
                                          prefix_chars='-+',
+                                         formatter_class=argparse.RawDescriptionHelpFormatter,
                                          description=description)
 
-        # Required positional source file argument
-        if (switchlist == []) | ('source' in switchlist):
-            parser.add_argument('source',
-                                nargs='+',
-                                help=self.get('source', field='short_help'))
+
 
         # Get all keys from global dictionary or override at command line
         allkeys = self.getkeys()
@@ -255,6 +250,12 @@ class Chip:
                 scargs.append(assign.group(2))
             else:
                 scargs.append(item)
+
+        # Required positional source file argument
+        if ((switchlist == []) & (not '-cfg' in scargs))| ('source' in switchlist) :
+            parser.add_argument('source',
+                                nargs='+',
+                                help=self.get('source', field='short_help'))
 
         #Grab argument from pre-process sysargs
         cmdargs = vars(parser.parse_args(scargs))
@@ -698,21 +699,25 @@ class Chip:
         if (mode in ('set', 'add')) & (len(all_args) == 2):
             # clean error if key not found
             if (not param in cfg) & (not 'default' in cfg):
+                print("ERROR", param, cfg)
                 chip.logger.error("Key '%s' does not exist", param)
                 chip.error = 1
             else:
-                #making an 'instance' of default if not found
+                # making an 'instance' of default if not found
                 if (not param in cfg) & ('default' in cfg):
                     cfg[param] = copy.deepcopy(cfg['default'])
                 list_type =bool(re.match(r'\[', cfg[param]['type']))
-                #setting or extending value based on set/get mode
-                if not field in cfg[param]:
-                    chip.logger.error("Search failed. Field not found for '%s'", param)
+                # copying over defvalue if value doesn't exist
+                if 'value' not in cfg[param]:
+                    cfg[param]['value'] = cfg[param]['defvalue']
+                # checking for illegal fields
+                if not field in cfg[param] and (field != 'value'):
+                    chip.logger.error("Field '%s' for param '%s'is not a valid field", field, param)
                     chip.error = 1
-                #check legality of value
+                # check legality of value
                 if not schema_typecheck(chip, cfg[param], param, val):
                     chip.error = 1
-                #updating values
+                # updating values
                 if (mode == 'set'):
                     if (not list_type) & (not isinstance(val, list)):
                         cfg[param][field] = str(val)
@@ -740,14 +745,19 @@ class Chip:
             elif mode == 'getkeys':
                 return cfg[param].keys()
             else:
-                if not field in cfg[param]:
+                if not (field in cfg[param]) and (field!='value'):
                     chip.logger.error("Key error, field '%s' not found for '%s'", field, param)
                     chip.error = 1
                 elif field == 'value':
-                        #check for list/vs scalar
+                    #Select default if no value has been set
+                    if field not in cfg[param]:
+                        selval = cfg[param]['defvalue']
+                    else:
+                        selval =  cfg[param]['value']
+                    #check for list/vs scalar
                     if bool(re.match(r'\[', cfg[param]['type'])):
                         return_list = []
-                        for item in cfg[param]['value']:
+                        for item in selval:
                             if re.search('int', cfg[param]['type']):
                                 return_list.append(int(item))
                             elif re.search('float', cfg[param]['type']):
@@ -756,17 +766,17 @@ class Chip:
                                 return_list.append(item)
                         return return_list
                     else:
-                        if cfg[param]['value'] is None:
+                        if selval is None:
                             # Unset scalar of any type
                             scalar = None
                         elif cfg[param]['type'] == "int":
-                            scalar = int(cfg[param]['value'])
+                            scalar = int(selval)
                         elif cfg[param]['type'] == "float":
-                            scalar = float(cfg[param]['value'])
+                            scalar = float(selval)
                         elif cfg[param]['type'] == "bool":
-                            scalar = (cfg[param]['value'] == 'true')
+                            scalar = (selval == 'true')
                         else:
-                            scalar = cfg[param]['value']
+                            scalar = selval
                         return scalar
                 #all non-value fields are strings
                 else:
@@ -813,7 +823,7 @@ class Chip:
         with open(abspath, 'r') as f:
             localcfg = json.load(f)
 
-        self._mergedict(chip, cfg, localcfg, strict=False)
+        self.merge(chip, cfg, localcfg, strict=False)
 
         return localcfg
 
@@ -836,47 +846,70 @@ class Chip:
         return chip
 
     ###########################################################################
-    def _prune(self, cfg, top=True):
+    def prune(self, cfg, chip=None, top=True):
         '''
         Recursive function that takes a copy of the Chip dictionary and
         then removes all sub trees with non-set values and sub-trees
         that contain a 'default' key.
+
+
+        Returns the prunted dictionary
+
         '''
+
+        # enables pruning objects from other objects (hierarchy)
+        if chip is None:
+            chip = self
+
+        # create a local copy of dict
+        if top:
+            localcfg = copy.deepcopy(chip.cfg)
+        else:
+            localcfg = cfg
 
         #10 should be enough for anyone...
         maxdepth = 10
         i = 0
+
+
+        #Prune when the default & value are set to the following
+        empty = ("null",None,[])
 
         #When at top of tree loop maxdepth times to make sure all stale
         #branches have been removed, not elegant, but stupid-simple
         #"good enough"
         while i < maxdepth:
             #Loop through all keys starting at the top
-            for k in list(cfg.keys()):
+            for k in list(localcfg.keys()):
                 #removing all default/template keys
+                # reached a default subgraph, delete it
                 if k == 'default':
-                    del cfg[k]
-                #remove long help from printing
-                elif 'help' in cfg[k].keys():
-                    del cfg[k]['help']
-                elif 'example' in cfg[k].keys():
-                    del cfg[k]['example']
-                #removing empty values from json file
-                elif 'value' in cfg[k].keys():
-                    if (not cfg[k]['value']) | (cfg[k]['value'] is None):
-                        del cfg[k]
+                    del localcfg[k]
+                # reached leaf-cell
+                elif 'help' in localcfg[k].keys():
+                    del localcfg[k]['help']
+                elif 'example' in localcfg[k].keys():
+                    del localcfg[k]['example']
+                elif 'defvalue' in localcfg[k].keys():
+
+                    if localcfg[k]['defvalue'] in empty:
+                        if 'value' in localcfg[k].keys():
+                            if localcfg[k]['value'] in empty:
+                                del localcfg[k]
+                        else:
+                            del localcfg[k]
                 #removing stale branches
-                elif not cfg[k]:
-                    cfg.pop(k)
+                elif not localcfg[k]:
+                    localcfg.pop(k)
                 #keep traversing tree
                 else:
-                    self._prune(cfg[k], top=False)
+                    self.prune(cfg=localcfg[k], chip=chip, top=False)
             if top:
                 i += 1
             else:
                 break
 
-        return cfg
+        return localcfg
 
     ###########################################################################
     def _abspath(self, cfg):
@@ -917,10 +950,14 @@ class Chip:
             #detect leaf cell
             if 'defvalue' in cfg[k]:
                 if mode == 'tcl':
-                    if bool(re.match(r'\[', str(cfg[k]['type']))) & (field == 'value'):
-                        alist = cfg[k][field].copy()
+                    if 'value' not in cfg[k]:
+                        selval = cfg[k]['defvalue']
                     else:
-                        alist = [cfg[k][field]]
+                        selval =  cfg[k]['value']
+                    if bool(re.match(r'\[', str(cfg[k]['type']))) & (field == 'value'):
+                        alist = selval
+                    else:
+                        alist = [selval]
                     for i, val in enumerate(alist):
                         #replace $VAR with env(VAR) for tcl
                         m = re.match(r'\$(\w+)(.*)', str(val))
@@ -954,37 +991,46 @@ class Chip:
                                prefix=prefix)
 
     ###########################################################################
-    def _mergedict(self, chip, d1, d2, strict=True, path=None):
+    def merge(self, cfg1, cfg2, path=None):
         """
-        Merges the d2 into the d1 dictionary.
+        Merges the SC configuration dict cfg2 into cfg1.
+
+        This is a dict merge routine built for the SC schema. The routine
+        takes into account the availabiltiy of the SC dictionary being
+        ac combination of static entries and dynamic entries specified by the
+        keyword 'default' specified as a key.
 
         Args:
-            d1 (dict): Original dictionary.
-            d2 (dict): Dictionary to merge into d1 dictionary
+            cfg1 (dict): Original dict within
+            cfg2 (dict): New dict to merge into the original dict
             strict (bool): If True, d1 is considered the golden reference
                 and only d2 with identical keylists are merged.
             path (sring): Temporary variable tracking key path
 
         """
-        if path is None: path = []
-        for key in d2:
-            print(key)
-            if key in d1:
-                if isinstance(d1[key], dict) and isinstance(d2[key], dict):
-                    self._mergedict(chip, d1[key], d2[key], path=path + [str(key)], strict=strict)
+
+        #creating local copy of original dict to be overwritten
+        #it would be nasty to set a global varaible inside a function
+        localcfg = copy.deepcopy(cfg1)
+
+        cfg1_keys = self.getkeys(cfg=localcfg)
+        cfg2_keys = self.getkeys(cfg=cfg2)
+
+        print(json.dumps(cfg2, indent=4))
+
+        for keylist in cfg2_keys:
+            if 'default' not in keylist:
+                typestr = self.get(*keylist, cfg=cfg2, field='type')
+                val = self.get(*keylist, cfg=cfg2)
+                arg = keylist.copy()
+                arg.append(val)
+                if re.match(r'\[', typestr):
+                    self.add(*arg, cfg=localcfg)
                 else:
-                    d1[key] = d2[key]
-                    pathstr = ",".join(path + [str(key)])
-                    if str(key) == 'value':
-                        chip.logger.debug('Mergedict overwrites existing key %s', pathstr)
-            elif not strict:
-                pathstr = ",".join( path + [str(key)])
-                chip.logger.info('Extending dictionary with key %s', pathstr)
-                d1[key] = d2[key]
-            else:
-                pathstr = ",".join(path + [str(key)])
-                chip.logger.error('Keypath not found in dictionary %s', pathstr )
-        return d1
+                    self.set(*arg, cfg=localcfg)
+
+        #returning dict
+        return localcfg
 
     ###########################################################################
     def check(self, step, chip=None, cfg=None):
@@ -1028,8 +1074,6 @@ class Chip:
                     chip.logger.error("%s requirement missing '%s' for step '%s'",
                                       self.get('mode'), key, step)
 
-        # Final check to see if there are any errors
-        # Aggregate of previous erros and requirements fial
         return self.error
 
     ###########################################################################
@@ -1068,7 +1112,7 @@ class Chip:
         #Merging arguments with the Chip configuration
         if merge:
             # TODO: Temporary workaround, set 'strict' to False for client/server flow.
-            self._mergedict(chip, cfg, localcfg, strict=False)
+            self.merge(chip, cfg, localcfg, strict=False)
 
         return localcfg
 
@@ -1107,7 +1151,7 @@ class Chip:
 
         if prune:
             chip.logger.debug('Pruning dictionary before writing file %s', filepath)
-            cfgcopy = self._prune(copy.deepcopy(cfg))
+            cfgcopy = self.prune(cfg)
         else:
             cfgcopy = copy.deepcopy(cfg)
 
@@ -1121,9 +1165,6 @@ class Chip:
                 print(json.dumps(cfgcopy, indent=4), file=f)
         elif filepath.endswith('.yaml'):
             with open(filepath, 'w') as f:
-                print("#############################################", file=f)
-                print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
-                print("#############################################", file=f)
                 print(yaml.dump(cfgcopy, Dumper=YamlIndentDumper, default_flow_style=False), file=f)
         elif filepath.endswith('.tcl'):
             with open(filepath, 'w') as f:
@@ -1213,31 +1254,6 @@ class Chip:
                     dot.edge(parent, child)
         dot.render(filename=fileroot, cleanup=True)
 
-    ###########################################################################
-    def _reset(self, defaults, cfg=None):
-        '''Recursively copies 'defvalue' to 'value' for all configuration
-        parameters
-        '''
-        #Setting initial dict so user doesn't have to
-        if cfg is None:
-            cfg = self.cfg
-        for k, v in cfg.items():
-            if isinstance(v, dict):
-                if 'defvalue' in cfg[k].keys():
-                    #list type
-                    if re.match(r'\[', cfg[k]['type']):
-                        if defaults:
-                            cfg[k]['value'] = cfg[k]['defvalue'].copy()
-                        else:
-                            cfg[k]['value'] = []
-                    #scalars
-                    elif defaults & bool(cfg[k]['defvalue']):
-                        cfg[k]['value'] = cfg[k]['defvalue']
-                    else:
-                        cfg[k]['value'] = None
-                else:
-                    self._reset(defaults, cfg=cfg[k])
-
 
     ########################################################################
     def collect(self, chip=None, outdir='output'):
@@ -1279,36 +1295,45 @@ class Chip:
                             shutil.copy(filepath, outdir)
 
     ###########################################################################
-    def hash(self, cfg=None):
-        '''Rescursive function that computes the hash values for files in the
-        Chip dictionary based on the setting of the hashmode.
+    def hash(self, step, chip=None, cfg=None):
+        '''Computes sha256 hash of files based on hashmode set in cfg dict.
+
+        Valid hashing modes:
+        * OFF: No hashing of files
+        * ALL: Compute hash of all files in dictionary. This couuld take
+        hours for a modern technology node with thousands of large setup
+        files.
+        * SELECTIVE: Compute hashes only on files accessed by the step
+        currently being executed.
+
         '''
 
-        #checking to see how much hashing to do
+        if chip is None:
+            chip = self
+        if cfg is None:
+            cfg = chip.cfg
+
         hashmode = self.get('hashmode')
-        if hashmode != 'NONE':
-            if cfg is None:
-                self.logger.info('Computing file hashes with mode %s', hashmode)
-                cfg = self.cfg
-            #Recursively going through dict
-            for k, v in cfg.items():
-                if isinstance(v, dict):
-                    #indicates leaf cell/file to act on
-                    if 'filehash' in cfg[k].keys():
-                        #clear out old values (do comp?)
-                        cfg[k]['hash'] = []
-                        for i, val in enumerate(cfg[k]['value']):
-                            filename = schema_path(val)
-                            self.logger.debug('Computing hash value for %s', filename)
-                            if os.path.isfile(filename):
-                                sha256_hash = hashlib.sha256()
-                                with open(filename, "rb") as f:
-                                    for byte_block in iter(lambda: f.read(4096), b""):
-                                        sha256_hash.update(byte_block)
-                                hash_value = sha256_hash.hexdigest()
-                                cfg[k]['hash'].append(hash_value)
-                    else:
-                        self.hash(cfg=cfg[k])
+        self.logger.info('Computing file hashes with hashmode=%s', hashmode)
+
+        allkeys = self.getkeys(chip=chip, cfg=cfg)
+
+        for keylist in allkeys:
+            if 'filehash' in keylist:
+                filelist = self.get(*keylist, chip=chip, cfg=cfg)
+                self.set([keylist,[]], chip=chip, cfg=cfg)
+                hashlist = []
+                for item in filelist:
+                    filename = schema_path(item)
+                    self.logger.debug('Computing hash value for %s', filename)
+                    if os.path.isfile(filename):
+                        sha256_hash = hashlib.sha256()
+                        with open(filename, "rb") as f:
+                            for byte_block in iter(lambda: f.read(4096), b""):
+                                sha256_hash.update(byte_block)
+                        hash_value = sha256_hash.hexdigest()
+                        hashlist.append(hash_value)
+                self.set([keylist,hashlist], chip=chip, cfg=cfg)
 
     ###########################################################################
     def audit(self, filename=None):
@@ -1345,10 +1370,10 @@ class Chip:
         '''
 
         #PDK information
-        wafersize = self.get('pdk', 'wafersize', 'value')
-        edgemargin = self.get('pdk', 'edgemargin', 'value')
-        hscribe = self.get('pdk', 'hscribe', 'value')
-        vscribe = self.get('pdk', 'vscribe', 'value')
+        wafersize = self.get('pdk', 'wafersize')
+        edgemargin = self.get('pdk', 'edgemargin')
+        hscribe = self.get('pdk', 'hscribe')
+        vscribe = self.get('pdk', 'vscribe')
 
         #Design parameters
         diesize = self.get('asic', 'diesize').split()
@@ -1535,6 +1560,7 @@ class Chip:
 
         #Sort steps based on path lenghts
         sorted_dict = dict(sorted(depth.items(), key=lambda depth: depth[1]))
+
         return list(sorted_dict.keys())
 
     ###########################################################################
@@ -1595,6 +1621,8 @@ class Chip:
                             self.get('jobname') + str(self.get('jobid')),
                             step + index])
 
+        stepdir = os.path.abspath(stepdir)
+
         # Directory manipulation
         cwd = os.getcwd()
         if os.path.isdir(stepdir) and (not self.get('remote', 'addr')):
@@ -1627,19 +1655,23 @@ class Chip:
             event.set()
             sys.exit(1)
 
-        # Check installation
-        exe = self.get('eda', tool, step, index, 'exe')
-        veropt = str(self.get('eda', tool, step, index, 'option', 'version')[0])
-        cmdstr = f'{exe} {veropt} >/dev/null'
-        try:
-            exepath = subprocess.run(cmdstr, shell=True)
-        except exepath.returncode > 0:
-            self.logger.error('Executable %s not installed.', exe)
-            event.set()
-            sys.exit(1)
+        # Check Version if switch exists
+        if self.getkeys('eda', tool, step, index, 'vswitch'):
+            exe = self.get('eda', tool, step, index, 'exe')
+            veropt =self.get('eda', tool, step, index, 'vswitch')
+            cmdstr = f'{exe} {veropt} >/dev/null'
+            try:
+                exepath = subprocess.run(cmdstr, shell=True)
+            except exepath.returncode > 0:
+                self.logger.error('Executable %s not installed.', exe)
+                event.set()
+                sys.exit(1)
 
         # Exe version logic
         # TODO: add here
+
+        # Run hash on files consumed by current step
+        self.hash(step)
 
         #Copy Reference Scripts
         if self.get('eda', tool, step, index, 'copy'):
@@ -1676,18 +1708,13 @@ class Chip:
         os.chmod("run.sh", 0o755)
 
         # Save config files required by EDA tools
-        # Create a local copy with arguments set
-        # The below snippet is how we communicate thread local data needed
-        # for scripts. Anything done to the cfgcopy is only seen by this thread
-        # Passing local arguments to EDA tool!
-        cfglocal = copy.deepcopy(self.cfg)
-        self.set('arg', 'step', step, cfg=cfglocal)
-        self.set('arg', 'index', index, cfg=cfglocal)
+        self.set('arg', 'step', step)
+        self.set('arg', 'index', index)
 
-        # Writing out files
-        self.writecfg("sc_manifest.json", cfg=cfglocal)
-        self.writecfg("sc_manifest.yaml", cfg=cfglocal)
-        self.writecfg("sc_manifest.tcl", cfg=cfglocal, abspath=True)
+        # Writing out command file
+        self.writecfg("sc_manifest.json")
+        self.writecfg("sc_manifest.yaml")
+        self.writecfg("sc_manifest.tcl", abspath=True)
 
         # Resetting metrics
         for metric in self.getkeys('metric', 'default', 'default', 'default'):
@@ -1701,7 +1728,7 @@ class Chip:
 
         # Run exeucutable
         try:
-            self.logger.info("Running %s in %s", step, os.path.abspath(stepdir))
+            self.logger.info("Running %s in %s", step, stepdir)
             self.logger.info('%s', cmdstr)
             error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
         except error.returncode != 0:
@@ -1749,6 +1776,11 @@ class Chip:
             Runs the route and dfm steps.
         '''
 
+        # setup sanity check before you start run
+        if self.check('run'):
+            self.logger.error('Global check() failed, exiting! See previous errors.')
+            sys.exit(1)
+
         # Remote workflow: Dispatch the Chip to a remote server for processing.
         if self.get('remote', 'addr'):
             # Pre-process: Run an 'import' stage locally, and upload the
@@ -1777,19 +1809,14 @@ class Chip:
             else:
                 steplist = self.getsteps()
 
-            # setup sanity check before you start run
-            if self.check('run'):
-                self.logger.error('Global check() failed, exiting! See previous errors.')
-                sys.exit(1)
-
-            # Set all threads to active before launching to avoid races
-            # Sequence matters, do NOT merge this loop with loop below!
-
             # Launch a thread for eact step in flowgraph
+            # Use a shared even for errors
+            # Use a manager.dict for keeping track of active processes
+            # (one unqiue dict entry per process),
             manager = multiprocessing.Manager()
-            # Create a shared
             event = multiprocessing.Event()
             active = manager.dict()
+
             # Set all procs to active
             for step in self.getkeys('flowgraph'):
                 for index in range(self.get('flowgraph', step, 'nproc')):
@@ -1877,3 +1904,7 @@ class Chip:
 class YamlIndentDumper(yaml.Dumper):
     def increase_indent(self, flow=False, indentless=False):
         return super(YamlIndentDumper, self).increase_indent(flow, False)
+
+#class CustomFormatter(argparse.HelpFormatter(max_help_position=27),
+#                      argparse.RawDescriptionHelpFormatter):
+#    pass
