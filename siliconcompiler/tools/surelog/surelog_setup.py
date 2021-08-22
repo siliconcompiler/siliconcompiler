@@ -15,10 +15,9 @@ def setup_tool(chip, step, index):
     '''
 
     # Standard Setup
-    tool = 'surelog'
-
-    chip.set('eda', tool, step, index, 'exe', tool)
-    chip.set('eda', tool, step, index, 'vendor', tool)
+    chip.set('eda', tool, step, index, 'exe', 'surelog')
+    chip.set('eda', tool, step, index, 'vendor', 'sureolog')
+    chip.set('eda', tool, step, index, 'version', '0.0')
     chip.set('eda', tool, step, index, 'format', 'cmdline')
     chip.set('eda', tool, step, index, 'threads', '4')
     chip.set('eda', tool, step, index, 'copy', 'false')

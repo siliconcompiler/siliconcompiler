@@ -22,7 +22,9 @@ def setup_tool(chip, step, index):
     chip.set('eda', tool, step, index, 'format', 'cmdline')
     chip.set('eda', tool, step, index, 'copy', 'false')
     chip.set('eda', tool, step, index, 'exe', 'yosys')
+    chip.set('eda', tool, step, index, 'version', '0.0')
     chip.set('eda', tool, step, index, 'vendor', 'ghdl')
+
 
     # ghdl is invoked via Yosys by running a command with the format:
     #   yosys -m ghdl -p 'ghdl --std=08 --no-formal sources...; write_ilang ghdl.ilang'

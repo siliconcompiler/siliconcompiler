@@ -16,8 +16,9 @@ def setup_tool(chip, step, index):
      chip.set('eda', tool, step, index, 'threads', '4')
      chip.set('eda', tool, step, index, 'copy', 'false')
      chip.set('eda', tool, step, index, 'format', 'cmdline')
-     chip.set('eda', tool, step, index, 'vendor', tool)
-     chip.set('eda', tool, step, index, 'exe', tool)
+     chip.set('eda', tool, step, index, 'vendor', 'vpr')
+     chip.set('eda', tool, step, index, 'exe', 'vpr')
+     chip.set('eda', tool, step, index, 'version', '0.0')
 
      topmodule = chip.get('design')
      blif = "inputs/" + topmodule + ".blif"
