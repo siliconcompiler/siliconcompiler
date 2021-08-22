@@ -190,6 +190,7 @@ def setup_methodology(chip):
     chip.set('asic', 'hpinlayer', "m4")
     chip.set('asic', 'vpinlayer', "m5")
     chip.set('asic', 'density', 1.0)
+    chip.set('asic', 'aspectratio', 1.0)
 
     corner = 'typical'
     # hard coded mcmm settings (only one corner!)
