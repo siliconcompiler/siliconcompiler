@@ -19,9 +19,9 @@ def setup_tool(chip, step, index):
      chip.set('eda', tool, step, index, 'copy', 'true')
      chip.set('eda', tool, step, index, 'vendor', 'klayout')
      chip.set('eda', tool, step, index, 'exe', 'klayout')
+     chip.set('eda', tool, step, index, 'vswitch', '-v')
      chip.set('eda', tool, step, index, 'version', '0.26.10')
      chip.set('eda', tool, step, index, 'refdir', refdir)
-     chip.set('eda', tool, step, index, 'option', 'version', '-v')
 
      if step == 'gdsview':
           chip.add('eda', tool, step, index, 'option', 'cmdline', '-nn')

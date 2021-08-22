@@ -1621,6 +1621,8 @@ class Chip:
                             self.get('jobname') + str(self.get('jobid')),
                             step + index])
 
+        stepdir = os.path.abspath(stepdir)
+
         # Directory manipulation
         cwd = os.getcwd()
         if os.path.isdir(stepdir) and (not self.get('remote', 'addr')):
@@ -1653,16 +1655,17 @@ class Chip:
             event.set()
             sys.exit(1)
 
-        # Check installation
-        exe = self.get('eda', tool, step, index, 'exe')
-        veropt = str(self.get('eda', tool, step, index, 'option', 'version')[0])
-        cmdstr = f'{exe} {veropt} >/dev/null'
-        try:
-            exepath = subprocess.run(cmdstr, shell=True)
-        except exepath.returncode > 0:
-            self.logger.error('Executable %s not installed.', exe)
-            event.set()
-            sys.exit(1)
+        # Check Version if switch exists
+        if self.getkeys('eda', tool, step, index, 'vswitch'):
+            exe = self.get('eda', tool, step, index, 'exe')
+            veropt =self.get('eda', tool, step, index, 'vswitch')
+            cmdstr = f'{exe} {veropt} >/dev/null'
+            try:
+                exepath = subprocess.run(cmdstr, shell=True)
+            except exepath.returncode > 0:
+                self.logger.error('Executable %s not installed.', exe)
+                event.set()
+                sys.exit(1)
 
         # Exe version logic
         # TODO: add here
@@ -1725,7 +1728,7 @@ class Chip:
 
         # Run exeucutable
         try:
-            self.logger.info("Running %s in %s", step, os.path.abspath(stepdir))
+            self.logger.info("Running %s in %s", step, stepdir)
             self.logger.info('%s', cmdstr)
             error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
         except error.returncode != 0:

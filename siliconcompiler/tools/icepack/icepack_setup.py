@@ -16,6 +16,7 @@ def setup_tool(chip, step, index):
     tool = 'icepack'
     chip.set('eda', tool, step, index, 'vendor', tool)
     chip.set('eda', tool, step, index, 'exe', tool)
+    chip.set('eda', tool, step, index, 'version', '0')
     chip.set('eda', tool, step, index, 'format', 'cmdline')
     chip.set('eda', tool, step, index, 'copy', 'false')
 

@@ -56,15 +56,15 @@ def setup_tool(chip, step, index):
     chip.set('eda', tool, step, index, 'format', 'tcl')
     chip.set('eda', tool, step, index, 'vendor', tool)
     chip.set('eda', tool, step, index, 'exe', tool)
+    chip.set('eda', tool, step, index, 'vswitch', '-version')
     chip.set('eda', tool, step, index, 'version', 'af9a0f9faafb7e61ae18e9496169c3527312b82a')
-    if chip.get('eda', tool, step, index, 'threads') is None:
-        chip.set('eda', tool, step, index, 'threads', os.cpu_count())
     chip.set('eda', tool, step, index, 'copy', 'false')
     chip.set('eda', tool, step, index, 'refdir', refdir)
     chip.set('eda', tool, step, index, 'script', refdir + '/sc_apr.tcl')
+    if chip.get('eda', tool, step, index, 'threads') is None:
+        chip.set('eda', tool, step, index, 'threads', os.cpu_count())
 
     chip.add('eda', tool, step, index, 'option', 'cmdline', '-no_init')
-    chip.add('eda', tool, step, index, 'option', 'version', '-version')
 
     # exit automatically unless bkpt
     if (step not in chip.get('bkpt')):

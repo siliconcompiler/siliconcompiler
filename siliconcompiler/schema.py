@@ -238,7 +238,7 @@ def schema_fpga(cfg):
 
     cfg['fpga']['vendor'] = {
         'switch': '-fpga_vendor',
-        'requirement': 'fpga',
+        'requirement': None,
         'type': 'str',
         'lock': 'false',
         'defvalue': None,
@@ -1790,6 +1790,24 @@ def schema_eda(cfg):
         'help': """
         Name of the exuctable step or the full path to the executable
         specified on a per tool and step basis.
+        """
+    }
+
+    # version-check
+    cfg['eda'][tool][step][index]['vswitch'] = {
+        'switch': '-eda_vswitch',
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'Executable version switch',
+        'param_help': "eda toolvar stepvar indexvar vswitch <str>",
+        'example': ["cli: -eda_vswitch 'cts 0 -version'",
+                    "api:  chip.set('eda', 'cts', '0', 'vswitch', '-version')"],
+        'help': """
+        Command line switch to use with executable used to print out
+        the version number. Commmon switches include -v, -version,
+        --version.
         """
     }
 
