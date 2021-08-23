@@ -125,34 +125,33 @@ def post_process(chip, step, index):
                warnmatch = re.match(r'^\[WARNING', line)
                area = re.search(r'^Design area (\d+)', line)
                tns = re.search(r'^tns (.*)',line)
-               vias = re.search(r'^total number of vias = (.*)',line)
-               wirelength = re.search(r'^total wire length = (.*) um',line)
+               vias = re.search(r'^Total number of vias = (.*).',line)
+               wirelength = re.search(r'^Total wire length = (.*) um',line)
                power = re.search(r'^Total(.*)',line)
                slack = re.search(r'^worst slack (.*)',line)
                if metricmatch:
-                    metric = metricmatch.group(1)
+                   metric = metricmatch.group(1)
                elif errmatch:
-                    errors = errors + 1
+                   errors = errors + 1
                elif warnmatch:
-                    warnings = warnings +1
+                   warnings = warnings +1
                elif area:
-                    chip.set('metric', step, index, 'real', 'area_cells', round(float(area.group(1)),2))
+                   chip.set('metric', step, index, 'real', 'area_cells', round(float(area.group(1)),2))
                elif tns:
-                    chip.set('metric', step, index, 'real', 'setup_tns', round(float(tns.group(1)),2))
+                   chip.set('metric', step, index, 'real', 'setup_tns', round(float(tns.group(1)),2))
                elif wirelength:
-                    chip.set('metric', step, index, 'real', 'wirelength', round(float(wirelength.group(1)),2))
+                   chip.set('metric', step, index, 'real', 'wirelength', round(float(wirelength.group(1)),2))
                elif vias:
-                    chip.set('metric', step, index, 'real', 'vias', round(float(vias.group(1)),2))
+                   chip.set('metric', step, index, 'real', 'vias', int(vias.group(1)))
                elif slack:
-                    chip.set('metric', step, index, 'real', metric, round(float(slack.group(1)),2))
+                   chip.set('metric', step, index, 'real', metric, round(float(slack.group(1)),2))
                elif metric == "power":
-                    if power:
-                         powerlist = power.group(1).split()
-                         leakage = powerlist[2]
-                         total = powerlist[3]
-                         chip.set('metric', step, index, 'real', 'power_total', float(total))
-                         chip.set('metric', step, index, 'real', 'power_leakage',  float(leakage))
-
+                   if power:
+                       powerlist = power.group(1).split()
+                       leakage = powerlist[2]
+                       total = powerlist[3]
+                       chip.set('metric', step, index, 'real', 'power_total', float(total))
+                       chip.set('metric', step, index, 'real', 'power_leakage',  float(leakage))
 
      #Setting Warnings and Errors
      chip.set('metric', step, index, 'real', 'errors', errors)
