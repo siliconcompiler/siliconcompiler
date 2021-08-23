@@ -66,10 +66,10 @@ Please remember that this minimal test server is only intended to demonstrate ho
 EXAMPLES
 ========
 
-Quickstart: start a server on its default port with no authentication support.
+Quickstart: start a server on its default port with no authentication support::
 
-`mkdir -p server_work/`
-`sc-server -nfs_mount server_work/ -cluster local`
+    mkdir -p server_work/
+    sc-server -nfs_mount server_work/ -cluster local
 
 Create a key pair for a test user, and start a server with asymmetric key authentication support:
 
@@ -117,23 +117,46 @@ When a user needs to authenticate a request, they provide the username and the p
 EXAMPLES
 ========
 
-The following command can be used to build the trivial `gcd` example locally using the FreePDK45 PDK with a die size inferred from post-synthesis estimates:
+The following command can be used to build the trivial `gcd` example locally using the FreePDK45 PDK with a die size inferred from post-synthesis estimates::
 
-`sc examples/gcd/gcd.v -constraint examples/gcd/gcd.sdc -design gcd -target freepdk45 -asic_density 10 -asic_aspectratio 1 -asic_coremargin 25`
+    sc examples/gcd/gcd.v \
+       -constraint examples/gcd/gcd.sdc \
+       -design gcd \
+       -target freepdk45_asicflow \
+       -asic_density 10 \
+       -asic_aspectratio 1 \
+       -asic_coremargin 25
 
-In order to run the same job on a remote server without authentication, you can simply add `-remote_addr [hostname] -remote_port [number]` to the local build command:
+In order to run the same job on a remote server without authentication, you can start a local server::
 
-`mkdir -p server_work`
-`sc-server -nfs_mount server_work -cluster local`
-`sc examples/gcd/gcd.v -constraint examples/gcd/gcd.sdc -design gcd -target freepdk45 -asic_density 10 -asic_aspectratio 1 -asic_coremargin 25 -remote_addr localhost -remote_port 8080`
+    mkdir -p server_work
+    sc-server -nfs_mount server_work -cluster local
 
-If you followed the server examples to set up a test user account for authentication, you can run the remote job with at-rest data encryption by adding the `-remote_user [username] -remote_key [/path/to/private/key]` options:
+And then add `-remote_addr [hostname] -remote_port [number]` to the local build command::
 
-`mkdir -p server_work`
-`TODO: echo/cat command to create user file`
-`sc-server -nfs_mount server_work -cluster local -auth`
-`sc examples/gcd/gcd.v -constraint examples/gcd/gcd.sdc -design gcd -target freepdk45 -asic_density 10 -asic_aspectratio 1 -asic_coremargin 25 -remote_addr localhost -remote_port 8080 -remote_user [username] -remote_key [/path/to/private/key]`
+    sc examples/gcd/gcd.v \
+       -constraint examples/gcd/gcd.sdc \
+       -design gcd \
+       -target freepdk45_asicflow \
+       -asic_density 10 \
+       -asic_aspectratio 1 \
+       -asic_coremargin 25 \
+       -remote_addr localhost \
+       -remote_port 8080
 
+If you followed the server examples to set up a test user account for authentication, you can run the remote job with at-rest data encryption by adding the `-remote_user [username] -remote_key [/path/to/private/key]` options::
+
+    sc examples/gcd/gcd.v \
+       -constraint examples/gcd/gcd.sdc \
+       -design gcd \
+       -target freepdk45_asicflow \
+       -asic_density 10 \
+       -asic_aspectratio 1 \
+       -asic_coremargin 25 \
+       -remote_addr localhost \
+       -remote_port 8080 \
+       -remote_user test_user \
+       -remote_key [/path/to/private/key]
 
 API Reference
 -------------
