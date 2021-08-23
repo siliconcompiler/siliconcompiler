@@ -1675,10 +1675,12 @@ class Chip:
             sys.exit(1)
 
         # Check Version if switch exists
-        if self.getkeys('eda', tool, step, index, 'vswitch'):
-            exe = self.get('eda', tool, step, index, 'exe')
-            veropt =self.get('eda', tool, step, index, 'vswitch')
-            cmdstr = f'{exe} {veropt} >/dev/null'
+        #if self.getkeys('eda', tool, step, str(index), 'vswitch'):
+        self.logger.info("%s",self.getkeys('eda', tool, step, index, 'vswitch'))
+        exe = self.get('eda', tool, step, index, 'exe')
+        veropt =self.get('eda', tool, step, index, 'vswitch')
+        if veropt!=None:
+            cmdstr = f'{exe} {veropt} &> {exe}.log'
             self.logger.info("Checking version of '%s' tool in step '%s'.", tool, step)
             exepath = subprocess.run(cmdstr, shell=True)
             if exepath.returncode > 0:
@@ -1686,6 +1688,8 @@ class Chip:
                 active[step + str(index)] = 0
                 error[step + str(index)] = 1
                 sys.exit(1)
+        else:
+            self.logger.info("Skipping version checking of '%s' tool in step '%s'.", tool, step)
 
         # Exe version logic
         # TODO: add here
