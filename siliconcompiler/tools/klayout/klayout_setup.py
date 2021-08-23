@@ -36,8 +36,8 @@ def setup_tool(chip, step, index):
 
      # TODO: should support multiple target libs?
      libname = chip.get('asic', 'targetlib')[0]
-     pdk_rev = chip.get('pdk', 'rev')
-     lib_rev = chip.get('library', libname, 'rev')
+     pdk_rev = chip.get('pdk', 'version')
+     lib_rev = chip.get('library', libname, 'version')
      targetlist = chip.get('target').split('_')
      platform =  targetlist[0]
 

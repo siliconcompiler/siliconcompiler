@@ -482,19 +482,19 @@ def schema_pdk(cfg):
         """
     }
 
-    cfg['pdk']['rev'] = {
-        'switch': '-pdk_rev',
+    cfg['pdk']['version'] = {
+        'switch': '-pdk_version',
         'requirement': None,
         'type': 'str',
         'lock': 'false',
         'defvalue': None,
-        'short_help': 'Process Revision',
+        'short_help': 'Process Version',
         'param_help': "pdk rev <str>",
-        'example': ["cli: -pdk_rev 1.0",
-                    "api:  chip.set('pdk', 'rev', '1.0')"],
+        'example': ["cli: -pdk_version 1.0",
+                    "api:  chip.set('pdk', 'version', '1.0')"],
         'help': """
-        Alphanumeric string specifying the revision of the current PDK.
-        Verification of correct PDK and IP revisions revisions is an ASIC
+        Alphanumeric string specifying the version of the current PDK.
+        Verification of correct PDK and IP versionss is an ASIC
         tapeout requirement in all commercial foundries. The value is used
         to for design manifest tracking and tapeout checklists.
         """
@@ -1007,19 +1007,19 @@ def schema_libs(cfg, lib='default'):
     }
 
 
-    cfg['library'][lib]['rev'] = {
-        'switch': '-library_rev',
+    cfg['library'][lib]['version'] = {
+        'switch': '-library_version',
         'requirement': None,
         'type': 'str',
         'lock': 'false',
         'defvalue': None,
-        'short_help': 'Library Release Revision',
+        'short_help': 'Library Release Version',
         'param_help': "library libvar rev <str>",
-        'example': ["cli: -library_rev 'mylib 1.0'",
-                    "api: chip.set('library','mylib','rev','1.0')"],
+        'example': ["cli: -library_version 'mylib 1.0'",
+                    "api: chip.set('library','mylib','version','1.0')"],
         'help': """
-        String specifying revision on a per library basis. Verification of
-        correct PDK and IP revisions is an ASIC tapeout requirement in all
+        String specifying version on a per library basis. Verification of
+        correct PDK and IP versions is an ASIC tapeout requirement in all
         commercial foundries.
         """
     }
@@ -1873,6 +1873,46 @@ def schema_eda(cfg):
         """
     }
 
+    # input files
+    cfg['eda'][tool][step][index]['input'] = {
+        'switch': '-eda_input',
+        'type': '[file]',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'List of input files',
+        'param_help': "eda toolvar stepvar indexvar input <file>",
+        'example': ["cli: -eda_input 'openroad place 0 oh_add.def'",
+                    "api: chip.set('eda','openroad, 'place','0', 'input', 'oh_add.def')"],
+        'help': """
+        List of data files to be copied from previous flowgraph steps 'output'
+        directory. The list of steps to copy files from is defined by the
+        list defined by the dictionary key ['flowgraph', step, 'input'].
+        'All files must be available for flow to continue. If a file
+        is missing, the program exists on an error.
+        """
+    }
+
+    # list of parameters used by tool
+    cfg['eda'][tool][step][index]['param'] = {
+        'switch': '-eda_param',
+        'type': '[str]',
+        'lock': 'false',
+        'requirement': 'all',
+        'defvalue': None,
+        'short_help': 'List of parameters used by tool',
+        'param_help': "eda toolvar stepvar indexvar param <keypath>",
+        'example': ["cli: -eda_param 'openroad place 0 design'",
+                    "api: chip.add('eda','openroad, 'place','0', 'param', 'design')"],
+        'help': """
+        List of keypaths to SC parameters used by the tool. The list is used
+        by check() to verify that all parameters have been set up before
+        step execution begins.
+        """
+    }
+
+
+
     # refdir
     cfg['eda'][tool][step][index]['refdir'] = {
         'switch': '-eda_refdir',
@@ -1998,6 +2038,9 @@ def schema_eda(cfg):
         for executables without TCL interfaces.
         """
     }
+
+
+
 
     # parallelism
     cfg['eda'][tool][step][index]['threads'] = {
@@ -3282,18 +3325,18 @@ def schema_design(cfg):
         """
     }
 
-    cfg['rev'] = {
-        'switch': '-rev',
+    cfg['version'] = {
+        'switch': '-version',
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'short_help': 'Design Revision',
-        'param_help': "rev <str>",
-        'example': ["cli: -rev 1.0",
-                    "api: chip.add('rev', '1.0')"],
+        'short_help': 'Design Version',
+        'param_help': "version <str>",
+        'example': ["cli: -version 1.0",
+                    "api: chip.add('version', '1.0')"],
         'help': """
-        Specifies the revision of the current design. Can be a branch, tag, or
+        Specifies the version of the current design. Can be a branch, tag, or
         commit has or simple string.
         """
     }

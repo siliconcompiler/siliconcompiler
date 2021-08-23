@@ -699,7 +699,6 @@ class Chip:
         if (mode in ('set', 'add')) & (len(all_args) == 2):
             # clean error if key not found
             if (not param in cfg) & (not 'default' in cfg):
-                print("ERROR", param, cfg)
                 chip.logger.error("Key '%s' does not exist", param)
                 chip.error = 1
             else:
@@ -1056,7 +1055,9 @@ class Chip:
         # Checking requirements
         allkeys = self.getkeys()
         for key in allkeys:
-            if 'default' not in key:
+            #print(key)
+            if False:
+            #if 'default' not in key:
                 requirement = self.get(*key, chip=chip, cfg=cfg, field='requirement')
                 sctype = self.get(*key, chip=chip, cfg=cfg, field='type')
                 value = self.get(*key, chip=chip, cfg=cfg)
