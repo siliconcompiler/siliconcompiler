@@ -28,6 +28,17 @@ def setup_tool(chip, step, index):
     chip.set('eda', tool, step, index, 'refdir', refdir)
     chip.set('eda', tool, step, index, 'script', refdir + '/sc_syn.tcl')
 
+    #Input requirements
+    chip.add('eda', tool, step, index, 'input', chip.get('design') + '.v')
+
+    #Schema requirements
+    chip.add('eda', tool, step, index, 'param', 'constraint')
+    if chip.get('mode') == 'asic':
+        chip.add('eda', tool, step, index, 'param', ",".join(['pdk', 'process']))
+        chip.add('eda', tool, step, index, 'param', ",".join(['asic', 'targetlib']))
+    else:
+        chip.add('eda', tool, step, index, 'param', ",".join(['fpga','partname']))
+
     #TODO: remove special treatment for fpga??
     if chip.get('target'):
         targetlist = chip.get('target').split('_')

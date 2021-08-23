@@ -25,7 +25,7 @@ def setup_platform(chip):
     # process name
     chip.set('pdk','foundry', foundry)
     chip.set('pdk','process', process)
-    chip.set('pdk','rev', rev)
+    chip.set('pdk','version', rev)
     chip.set('pdk','stackup', stackup)
     chip.set('pdk','tapmax', 25)
     chip.set('pdk','tapoffset', 0)
@@ -122,7 +122,7 @@ def setup_libs(chip, vendor=None):
                        rev])
 
     # rev
-    chip.set('library',libname,'rev',rev)
+    chip.set('library',libname,'version',rev)
 
     # timing
     chip.add('library',libname, 'model', corner, 'nldm', 'lib',

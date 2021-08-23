@@ -41,7 +41,7 @@ def setup_platform(chip):
     chip.set('pdk','foundry', foundry)
     chip.set('pdk','process', process)
     chip.set('pdk','node', node)
-    chip.set('pdk','rev', rev)
+    chip.set('pdk','version', rev)
     chip.set('pdk','stackup', stackup)
     chip.set('pdk','wafersize', wafersize)
     chip.set('pdk','edgemargin', edgemargin)
@@ -130,7 +130,7 @@ def setup_libs(chip, vendor=None):
     chip.set('library',libname,'type','stdcell')
 
     # rev
-    chip.set('library',libname,'rev',rev)
+    chip.set('library',libname,'version',rev)
 
     # timing
     chip.add('library',libname, 'model', corner, 'nldm', 'lib',

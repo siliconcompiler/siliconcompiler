@@ -512,7 +512,7 @@ class Chip:
         if cfg is None:
             cfg = chip.cfg
 
-        chip.logger.debug('Reading config dictionary value: %s', args)
+        chip.logger.debug('Reading config dictionary. Keypath = [%s]', ','.join(args))
 
         keys = list(args)
         for k in keys:
@@ -602,7 +602,9 @@ class Chip:
         if cfg is None:
             cfg = chip.cfg
 
-        chip.logger.debug('Adding config dictionary value: %s', args)
+        chip.logger.debug('Setting value in config dictionary. Keypath = [%s] Value =%s',
+                          ','.join(args[:-1]),
+                          args[-1])
 
         all_args = list(args)
 
@@ -647,7 +649,10 @@ class Chip:
         if cfg is None:
             cfg = chip.cfg
 
-        chip.logger.debug('Adding config dictionary value: %s', args)
+        chip.logger.debug('Appending value in config dictionary. Keypath = [%s] Value =%s',
+                          ','.join(args[:-1]),
+                          args[-1])
+
 
         all_args = list(args)
 
@@ -699,7 +704,6 @@ class Chip:
         if (mode in ('set', 'add')) & (len(all_args) == 2):
             # clean error if key not found
             if (not param in cfg) & (not 'default' in cfg):
-                print("ERROR", param, cfg)
                 chip.logger.error("Key '%s' does not exist", param)
                 chip.error = 1
             else:
@@ -891,7 +895,6 @@ class Chip:
                 elif 'example' in localcfg[k].keys():
                     del localcfg[k]['example']
                 elif 'defvalue' in localcfg[k].keys():
-
                     if localcfg[k]['defvalue'] in empty:
                         if 'value' in localcfg[k].keys():
                             if localcfg[k]['value'] in empty:
@@ -1052,27 +1055,25 @@ class Chip:
             cfg = chip.cfg
 
         chip.logger.info("Running check() for step '%s'", step)
+        empty = ("null",None,[])
 
-        # Checking requirements
+        # Checking global requirements specified in schema.py
         allkeys = self.getkeys()
         for key in allkeys:
             if 'default' not in key:
                 requirement = self.get(*key, chip=chip, cfg=cfg, field='requirement')
-                sctype = self.get(*key, chip=chip, cfg=cfg, field='type')
                 value = self.get(*key, chip=chip, cfg=cfg)
-                if value is None:
-                    missing = True
-                else:
-                    missing = False;
-                # basic requirements
-                if missing & (requirement == 'all'):
+                defvalue = self.get(*key, chip=chip, cfg=cfg, field='defvalue')
+                if (defvalue in empty) & (value in empty) & (str(requirement) == 'all'):
                     chip.error = 1
-                    chip.logger.error("Basic requirement missing '%s' for step '%s'", key, step)
-                # fpga/asic requirments
-                elif missing & (requirement == self.get('mode')):
+                    chip.logger.error("Global requirement missing. Keypath = [%s]",
+                                      ",".join(key))
+                elif (defvalue in empty) & (value in empty) & (str(requirement) == self.get('mode')):
                     chip.error = 1
-                    chip.logger.error("%s requirement missing '%s' for step '%s'",
-                                      self.get('mode'), key, step)
+                    chip.logger.error("Mode requirement missing. Keypath = [%s]",
+                                      ",".join(key))
+        # Checking step based tool requirements
+
 
         return self.error
 
@@ -1483,14 +1484,16 @@ class Chip:
                 #Copying over metric one at a time
                 for metric in  self.getkeys('metric', 'default', 'default', 'default'):
                     value = self.get('metric', step, str(index), 'real', metric, cfg=sc_results)
-                    self.set('metric', step, index, 'real', metric, value)
+                    self.set('metric', step, str(index), 'real', metric, value)
 
 
         #Creating Header
         steps = []
         colwidth = 8
         for step in steplist:
-            steps.append(step.center(colwidth))
+            for index in range(self.get('flowgraph', step, 'nproc')):
+                stepstr = step + str(index)
+                steps.append(stepstr.center(colwidth))
 
         #Creating table of real values
         metrics = []
@@ -1498,16 +1501,18 @@ class Chip:
             metrics.append(" " + metric)
             row = []
             for step in steplist:
-                row.append(" " +
-                           str(self.get('metric', step, index, 'real', metric)).center(colwidth))
+                for index in range(self.get('flowgraph', step, 'nproc')):
+                    row.append(" " +
+                               str(self.get('metric', step, str(index), 'real', metric)).center(colwidth))
             data.append(row)
 
         #Creating goodness score for step
         metrics.append(" " + '**score**')
         row = []
         for step in steplist:
-            step_score = round(self.score(step, index), 2)
-            row.append(" " + str(step_score).center(colwidth))
+            for index in range(self.get('flowgraph', step, 'nproc')):
+                step_score = round(self.score(step, str(index)), 2)
+                row.append(" " + str(step_score).center(colwidth))
         data.append(row)
 
         pandas.set_option('display.max_rows', 500)
@@ -1592,27 +1597,40 @@ class Chip:
         return (steplist, index)
 
     ###########################################################################
-    def runstep(self, step, index, active, event):
+    def runstep(self, step, index, active, error):
 
         # Explicit wait loop until inputs have been resolved
         # This should be a shared object to not be messy
 
         self.logger.info('Step %s waiting on inputs', step)
         while True:
-            #global shared event signaling error
-            if event.is_set():
-                sys.exit(1)
-            pending = 0
 
+            # Checking that there are no pending jobs
+            pending = 0
             for input_step in self.get('flowgraph', step, 'input'):
                 for input_index in range(self.get('flowgraph', input_step, 'nproc')):
                     input_str = input_step + str(input_index)
                     pending = pending + active[input_str]
 
+            # beak out of loop when no all inputs are done
             if not pending:
-                break
-            time.sleep(1)
+                    break
+            # Short sleep
+            time.sleep(0.1)
 
+        #Checking that there were no errors in previous steps
+        halt = 0
+        for input_step in self.get('flowgraph', step, 'input'):
+                for input_index in range(self.get('flowgraph', input_step, 'nproc')):
+                    input_str = input_step + str(input_index)
+                    halt = halt + error[input_str]
+        if halt:
+            self.logger.error('Halting step %s due to previous errors', step)
+            active[step + str(index)] = 0
+            error[step + str(index)] = 1
+            sys.exit(1)
+
+        # starting actual step execution
         self.logger.info('Starting step %s', step)
 
         # Build directory
@@ -1651,21 +1669,26 @@ class Chip:
             setup_tool = getattr(module, "setup_tool")
             setup_tool(self, step, index)
         except:
-            self.logger.error("Setup failed for '%s' tool in step '%s'.", tool, step)
-            event.set()
+            self.logger.error("Tool module load failed for '%s' tool in step '%s'.", tool, step)
+            active[step + str(index)] = 0
+            error[step + str(index)] = 1
             sys.exit(1)
 
         # Check Version if switch exists
-        if self.getkeys('eda', tool, step, index, 'vswitch'):
-            exe = self.get('eda', tool, step, index, 'exe')
-            veropt =self.get('eda', tool, step, index, 'vswitch')
-            cmdstr = f'{exe} {veropt} >/dev/null'
-            try:
-                exepath = subprocess.run(cmdstr, shell=True)
-            except exepath.returncode > 0:
-                self.logger.error('Executable %s not installed.', exe)
-                event.set()
+        #if self.getkeys('eda', tool, step, str(index), 'vswitch'):
+        exe = self.get('eda', tool, step, index, 'exe')
+        veropt =self.get('eda', tool, step, index, 'vswitch')
+        if veropt!=None:
+            cmdstr = f'{exe} {veropt} &> {exe}.log'
+            self.logger.info("Checking version of '%s' tool in step '%s'.", tool, step)
+            exepath = subprocess.run(cmdstr, shell=True)
+            if exepath.returncode > 0:
+                self.logger.error('Version check failed for %s.', cmdstr)
+                active[step + str(index)] = 0
+                error[step + str(index)] = 1
                 sys.exit(1)
+        else:
+            self.logger.info("Skipping version checking of '%s' tool in step '%s'.", tool, step)
 
         # Exe version logic
         # TODO: add here
@@ -1723,17 +1746,18 @@ class Chip:
         # Final check
         if self.check(step):
             self.logger.error("Step check() for '%s' failed, exiting! See previous errors.", step)
-            event.set()
+            active[step + str(index)] = 0
+            error[step + str(index)] = 1
             sys.exit(1)
 
-        # Run exeucutable
-        try:
-            self.logger.info("Running %s in %s", step, stepdir)
-            self.logger.info('%s', cmdstr)
-            error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
-        except error.returncode != 0:
+        # Run executable
+        self.logger.info("Running %s in %s", step, stepdir)
+        self.logger.info('%s', cmdstr)
+        cmd_error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
+        if cmd_error.returncode != 0:
             self.logger.error('Command failed. See log file %s', os.path.abspath(logfile))
-            event.set()
+            active[step + str(index)] = 0
+            error[step + str(index)] = 1
             sys.exit(1)
 
         # Post Process (and error checking)
@@ -1743,7 +1767,8 @@ class Chip:
         # Check for errors
         if post_error:
             self.logger.error('Post-processing check failed for step %s', step)
-            event.set()
+            active[step + str(index)] = 0
+            error[step + str(index)] = 1
             sys.exit(1)
 
         # save output manifest
@@ -1753,7 +1778,7 @@ class Chip:
         os.chdir(cwd)
 
         # clearing active bit
-        active[step + index] = 0
+        active[step + str(index)] = 0
 
     ###########################################################################
     def run(self):
@@ -1814,13 +1839,14 @@ class Chip:
             # Use a manager.dict for keeping track of active processes
             # (one unqiue dict entry per process),
             manager = multiprocessing.Manager()
-            event = multiprocessing.Event()
+            error = manager.dict()
             active = manager.dict()
 
             # Set all procs to active
             for step in self.getkeys('flowgraph'):
                 for index in range(self.get('flowgraph', step, 'nproc')):
                     stepstr = step + str(index)
+                    error[stepstr] = 0
                     if step in steplist:
                         active[stepstr] = 1
                     else:
@@ -1831,7 +1857,7 @@ class Chip:
             for step in steplist:
                 for index in range(self.get('flowgraph', step, 'nproc')):
                     processes.append(multiprocessing.Process(target=self.runstep,
-                                                             args=(step, str(index), active, event,)))
+                                                             args=(step, str(index), active, error,)))
             # Start all procs
             for p in processes:
                 p.start()
@@ -1840,9 +1866,12 @@ class Chip:
                 p.join()
 
             # Make a clean exit if a process failed
-            if event.is_set():
-                self.logger.error('Run() failed, exiting! See previous errors.')
-                sys.exit(1)
+            for step in self.getkeys('flowgraph'):
+                for index in range(self.get('flowgraph', step, 'nproc')):
+                    stepstr = step + str(index)
+                    if  error[stepstr] > 0:
+                        self.logger.error('Run() failed, exiting! See previous errors.')
+                        sys.exit(1)
 
             # For local encrypted jobs, re-encrypt and delete the decrypted data.
             if 'decrypt_key' in self.status:

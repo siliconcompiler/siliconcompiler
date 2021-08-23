@@ -45,7 +45,7 @@ def setup_platform(chip):
     # Process details
     chip.set('pdk','foundry', foundry)
     chip.set('pdk','process', process)
-    chip.set('pdk','rev', rev)
+    chip.set('pdk','version', rev)
 
     ##################
     # Wafer Size
@@ -130,7 +130,7 @@ def setup_libs(chip, vendor=None, type=None):
 
     foundry = chip.get('pdk','foundry')
     process = chip.get('pdk','process')
-    pdkrev  = chip.get('pdk','rev')
+    pdkrev  = chip.get('pdk','version')
     stackup = chip.get('pdk','stackup')[0]
     #TODO: ugly and circular still...
     libtype = chip.getkeys('pdk','aprtech',stackup)
@@ -139,7 +139,7 @@ def setup_libs(chip, vendor=None, type=None):
     # Static settings
     ###################
 
-    chip.set('stdcell',libname,'rev', rev)
+    chip.set('stdcell',libname,'version', rev)
     chip.set('stdcell',libname,'site', sitename)
     chip.set('stdcell',libname,'libtype',libtype)
 
