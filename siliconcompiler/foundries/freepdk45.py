@@ -36,7 +36,6 @@ def setup_platform(chip):
                        'pdk',
                        rev])
 
-
     # process name
     chip.set('pdk','foundry', foundry)
     chip.set('pdk','process', process)

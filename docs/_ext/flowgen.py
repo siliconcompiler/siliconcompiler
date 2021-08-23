@@ -69,7 +69,7 @@ def flatten(cfg, prefix=()):
 
     for key, val in cfg.items():
         if key == 'default': continue
-        if 'value' in val:
+        if 'defvalue' in val:
             flat_cfg[prefix + (key,)] = val
         else:
             flat_cfg.update(flatten(val, prefix + (key,)))
@@ -97,11 +97,14 @@ class FlowGen(SphinxDirective):
             self.parse_rst(docstr, s)
         s += image(flow_path, center=True)
 
-        flat_cfg = flatten(chip._prune(chip.cfg))
+        flat_cfg = flatten(chip.prune(chip.cfg))
 
         table = [[strong('Option'), strong('Value')]]
         for val in flat_cfg.values():
-            table.append([code(val['switch']), code(val['value'])])
+            if 'value' in val:
+                table.append([code(val['switch']), code(val['value'])])
+            else:
+                table.append([code(val['switch']), code(val['defvalue'])])
 
         s += build_table(table)
 

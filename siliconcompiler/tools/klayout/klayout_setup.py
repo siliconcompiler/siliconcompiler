@@ -24,9 +24,9 @@ def setup_tool(chip, step, index):
      chip.set('eda', tool, step, index, 'refdir', refdir)
 
      if step == 'gdsview':
-          chip.add('eda', tool, step, index, 'option', 'cmdline', '-nn')
+          chip.set('eda', tool, step, index, 'option', 'cmdline', '-nn')
      elif step == 'export':
-          chip.add('eda', tool, step, index, 'option', 'cmdline', '-zz')
+          chip.set('eda', tool, step, index, 'option', 'cmdline', '-zz')
 
      scriptdir = os.path.dirname(os.path.abspath(__file__))
      sc_root   =  re.sub('siliconcompiler/siliconcompiler/tools/klayout',

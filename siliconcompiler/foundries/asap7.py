@@ -15,7 +15,7 @@ def setup_platform(chip):
     rev = 'r1p7'
     stackup = '10M'
     libtype = '7p5t'
-    pdkdir = '/'.join(["asic",
+    pdkdir = '/'.join(["third_party/foundry",
                        foundry,
                        process,
                        'pdk',

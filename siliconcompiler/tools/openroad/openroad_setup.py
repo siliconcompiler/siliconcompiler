@@ -64,7 +64,7 @@ def setup_tool(chip, step, index):
     if chip.get('eda', tool, step, index, 'threads') is None:
         chip.set('eda', tool, step, index, 'threads', os.cpu_count())
 
-    chip.add('eda', tool, step, index, 'option', 'cmdline', '-no_init')
+    chip.set('eda', tool, step, index, 'option', 'cmdline', '-no_init')
 
     # exit automatically unless bkpt
     if (step not in chip.get('bkpt')):
