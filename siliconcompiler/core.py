@@ -281,7 +281,7 @@ class Chip:
         # read in all cfg files
         if 'cfg' in cmdargs.keys():
             for item in cmdargs['cfg']:
-                self.readcfg(item)
+                self.cfg = self.readcfg(item)
 
         # insert all parameters in dictionary
         for key, val in cmdargs.items():
@@ -721,6 +721,12 @@ class Chip:
                 # check legality of value
                 if not schema_typecheck(chip, cfg[param], param, val):
                     chip.error = 1
+                # converting python True/False to lower case string
+                if (cfg[param]['type'] == 'bool' ):
+                    if val == True:
+                        val = "true"
+                    elif val == False:
+                        val = "false"
                 # updating values
                 if (mode == 'set'):
                     if (not list_type) & (not isinstance(val, list)):
@@ -827,7 +833,7 @@ class Chip:
         with open(abspath, 'r') as f:
             localcfg = json.load(f)
 
-        self.merge(chip, cfg, localcfg, strict=False)
+        self.merge(cfg, localcfg)
 
         return localcfg
 
@@ -844,8 +850,6 @@ class Chip:
         else:
             chip = siliconcompiler.Chip(design=name)
             chip.readcfg(filename)
-
-        print(chip.get('design'))
 
         return chip
 
@@ -965,7 +969,6 @@ class Chip:
                         #replace $VAR with env(VAR) for tcl
                         m = re.match(r'\$(\w+)(.*)', str(val))
                         if m:
-                            print("env replace")
                             alist[i] = ('$env(' +
                                         m.group(1) +
                                         ')' +
@@ -1018,8 +1021,6 @@ class Chip:
 
         cfg1_keys = self.getkeys(cfg=localcfg)
         cfg2_keys = self.getkeys(cfg=cfg2)
-
-        print(json.dumps(cfg2, indent=4))
 
         for keylist in cfg2_keys:
             if 'default' not in keylist:
@@ -1103,17 +1104,19 @@ class Chip:
         if abspath.endswith('.json'):
             with open(abspath, 'r') as f:
                 localcfg = json.load(f)
+            f.close()
         elif abspath.endswith('.yaml'):
             with open(abspath, 'r') as f:
                 localcfg = yaml.load(f, Loader=yaml.SafeLoader)
+            f.close()
         else:
             chip.error = 1
             chip.logger.error('Illegal file format. Only json/yaml supported. %s', abspath)
 
+
         #Merging arguments with the Chip configuration
         if merge:
-            # TODO: Temporary workaround, set 'strict' to False for client/server flow.
-            self.merge(chip, cfg, localcfg, strict=False)
+            localcfg = self.merge(cfg, localcfg)
 
         return localcfg
 
