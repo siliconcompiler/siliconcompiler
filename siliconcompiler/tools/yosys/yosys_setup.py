@@ -28,8 +28,9 @@ def setup_tool(chip, step, index):
     chip.set('eda', tool, step, index, 'refdir', refdir)
     chip.set('eda', tool, step, index, 'script', refdir + '/sc_syn.tcl')
 
-    #Input requirements
+    #Input/output requirements
     chip.add('eda', tool, step, index, 'input', chip.get('design') + '.v')
+    chip.add('eda', tool, step, index, 'output', chip.get('design') + '.v')
 
     #Schema requirements
     chip.add('eda', tool, step, index, 'param', 'constraint')

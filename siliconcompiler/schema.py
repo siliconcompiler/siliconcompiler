@@ -1893,6 +1893,24 @@ def schema_eda(cfg):
         """
     }
 
+    # input files
+    cfg['eda'][tool][step][index]['output'] = {
+        'switch': '-eda_output',
+        'type': '[str]',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': [],
+        'short_help': 'List of outputd files ',
+        'param_help': "eda toolvar stepvar indexvar output <file>",
+        'example': ["cli: -eda_output 'openroad place 0 oh_add.def'",
+                    "api: chip.set('eda','openroad, 'place','0', 'output', 'oh_add.def')"],
+        'help': """
+        List of data files produced by the current step and placed in the
+        'output' directory. During execuition, if a file is missing, the
+        program exists on an error.
+        """
+    }
+
     # list of parameters used by tool
     cfg['eda'][tool][step][index]['param'] = {
         'switch': '-eda_param',
