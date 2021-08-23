@@ -33,6 +33,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.imgconverter',
     'schemagen',
+    'clientservergen',
     'toolgen',
     'targetgen',
     'flowgen'
