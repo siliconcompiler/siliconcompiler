@@ -142,7 +142,7 @@ def post_process(chip, step, index):
                elif wirelength:
                     chip.set('metric', step, index, 'real', 'wirelength', round(float(wirelength.group(1)),2))
                elif vias:
-                    chip.set('metric', step, index, 'real', 'vias', round(float(vias.group(1)),2))
+                    chip.set('metric', step, index, 'real', 'vias', int(round(float(vias.group(1)),2)))
                elif slack:
                     chip.set('metric', step, index, 'real', metric, round(float(slack.group(1)),2))
                elif metric == "power":
