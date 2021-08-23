@@ -71,9 +71,13 @@ Quickstart: start a server on its default port with no authentication support::
     mkdir -p server_work/
     sc-server -nfs_mount server_work/ -cluster local
 
-Create a key pair for a test user, and start a server with asymmetric key authentication support:
+Create a key pair for a test user, and start a server with asymmetric key authentication support::
 
-`TODO`
+    ssh-keygen -t rsa -b 4096 -C '' -N '' -f [/path/to/new/keys]
+    echo "{\"users\":[{\
+           \"username\":\"test_user\",\
+           \"pub_key\":\"$(cat [/path/to/new/keys].pub)\"}]}" > server_work/users.json
+    sc-server -nfs_mount server_work/ -cluster local -auth
 
 Basic Usage: Client
 -------------------
@@ -144,7 +148,7 @@ And then add `-remote_addr [hostname] -remote_port [number]` to the local build 
        -remote_addr localhost \
        -remote_port 8080
 
-If you followed the server examples to set up a test user account for authentication, you can run the remote job with at-rest data encryption by adding the `-remote_user [username] -remote_key [/path/to/private/key]` options::
+If you followed the server examples to set up a test user account for authentication and started your server with the `-auth` option, you can run the remote job with at-rest data encryption by adding the `-remote_user [username] -remote_key [/path/to/private/key]` options::
 
     sc examples/gcd/gcd.v \
        -constraint examples/gcd/gcd.sdc \
@@ -157,6 +161,10 @@ If you followed the server examples to set up a test user account for authentica
        -remote_port 8080 \
        -remote_user test_user \
        -remote_key [/path/to/private/key]
+
+The key will be transmitted over the wire, so it is very important to use port 443 to enable TLS encryption when communicating with a server which is not on a local network. However, configuring a valid HTTPS certificate for a host is beyond the scope of these tutorials. Once again, this example development server is not intended for production use, and we cannot recommend using it to protect confidential designs or IP.
+
+Production implementations of the server API, such as server.siliconcompiler.com, must be careful to avoid logging the private key or otherwise storing it on disk. They must also support HTTPS connections to ensure that the key can be encrypted in transit.
 
 API Reference
 -------------
