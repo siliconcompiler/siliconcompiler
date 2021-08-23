@@ -32,6 +32,7 @@ Welcome to SiliconCompiler's documentation!
    reference_manual/schema
    reference_manual/api
    reference_manual/commandline
+   reference_manual/server_interface
    reference_manual/targets/index
    reference_manual/tools/index
 

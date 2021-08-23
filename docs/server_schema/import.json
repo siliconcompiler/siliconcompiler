@@ -1,0 +1,120 @@
+{
+    "title": "import/",
+    "description": "Schema describing parameters for importing project data prior to a siliconcompiler job.",
+    "examples": [
+        {
+            "job_hash": "0123456789abcdeffedcba9876543210",
+            "job_name": "job",
+            "job_ids": ["1"]
+        },
+        {
+            "username": "valid_user",
+            "key": "valid_base64_encoded_key",
+            "aes_key": "encrypted_blockcipher_key",
+            "aes_iv": "initialization_vector",
+            "job_hash": "0123456789abcdeffedcba9876543210",
+            "job_name": "job",
+            "job_ids": ["1", "2", "3", "4"],
+            "new_hosts": 2
+        }
+    ],
+
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "username": {
+            "title": "Username",
+            "description": "User account ID. Required if data is encrypted or temporary cloud hosts are requested.",
+            "examples": ["my_user", "account1234"],
+
+            "type": "string",
+            "pattern": "^[^\\s;]*$"
+        },
+
+        "key": {
+            "title": "Authentication Key",
+            "description": "Base64-encoded decryption key for the user account's public key. Required if 'username' is provided.",
+            "examples": ["PHlvdXJfa2V5X2hlcmU+"],
+
+            "type": "string"
+        },
+
+        "aes_key": {
+            "title": "AES Block Cipher Key",
+            "description": "Symmetric key used to decrypt project data. This key should be encrypted using the user account's public key.",
+
+            "type": "string"
+        },
+        "aes_iv": {
+            "title": "AES Initialization Vector",
+            "description": "Plaintext IV nonce to start the AES cipher. This value does not need to be kept secret, but it should be different for each piece of data which is encrypted using the same key.",
+
+            "type": "string"
+        },
+
+        "job_hash": {
+            "title": "Job Hash",
+            "description": "UUID to associate with the possibly-encrypted project data.",
+            "examples": ["01234567890abcdeffedcba0987654321"],
+
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+        },
+
+        "job_name": {
+            "title": "Job Name",
+            "description": "Name to use when creating project directories. This can be different from the name of the design being built.",
+            "examples": ["job"],
+
+            "type": "string",
+            "minLength": 1
+        },
+
+        "job_ids": {
+            "title": "Job IDs",
+            "description": "List of job IDs which will be run on the provided data. Multiple permutations are allowed with an appropriate chip configuration dictionary.",
+            "examples": ["1", "2"],
+
+            "type": "array",
+            "items": {"type": "string", "pattern": "^[0-9]+$"}
+        },
+
+        "new_hosts": {
+            "title": "New Hosts to Request",
+            "description": "Number of temporary cloud hosts to request for this job. Requires authentication.",
+            "examples": [0, 2],
+
+            "type": "integer"
+        },
+
+        "new_host_ram": {
+            "title": "New Host RAM (GiB)",
+            "description": "Amount of RAM to request in temporary hosts, in gigabytes. 0 = 'smallest available'.",
+            "examples": [4, 10],
+
+            "type": "integer",
+            "default": 0
+        },
+
+        "new_host_threads": {
+            "title": "New Host Threads",
+            "description": "Number of threads to request in temporary hosts. 0 = 'smallest available'.",
+            "examples": [2, 8],
+
+            "type": "integer",
+            "default": 0
+        }
+    },
+
+    "required": ["job_hash", "job_name", "job_ids"],
+
+    "dependencies": {
+        "username": ["key", "aes_key", "aes_iv"],
+        "key": ["username", "aes_key", "aes_iv"],
+        "aes_key": ["username", "key", "aes_iv"],
+        "aes_iv": ["username", "key", "aes_key"],
+        "new_hosts": ["key"],
+        "new_host_ram": ["new_hosts"],
+        "new_host_threads": ["new_hosts"]
+    }
+}

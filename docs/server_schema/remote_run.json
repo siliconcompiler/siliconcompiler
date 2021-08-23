@@ -1,0 +1,62 @@
+{
+    "title": "remote_run/",
+    "description": "Schema for metadata required to remotely run a siliconcompiler job stage.",
+    "examples": [
+        {
+            "job_hash": "0123456789abcdeffedcba9876543210",
+            "stage": "route"
+        },
+        {
+            "username": "valid_user",
+            "key": "valid_base64_encoded_key",
+            "job_hash": "0123456789abcdeffedcba9876543210",
+            "stage": "route"
+        }
+    ],
+
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "username": {
+            "title": "Username",
+            "description": "User account ID. Required if data is encrypted.",
+            "examples": ["my_user", "account1234"],
+
+            "type": "string",
+            "pattern": "^[^\\s;]*$"
+        },
+
+        "key": {
+            "title": "Authentication Key",
+            "description": "Base64-encoded decryption key for the user account's public key. Required if the uploaded data is encrypted.",
+            "examples": ["PHlvdXJfa2V5X2hlcmU+"],
+
+            "type": "string"
+        },
+
+        "job_hash": {
+            "title": "Job Hash",
+            "description": "UUID associated with the previously-imported project data.",
+            "examples": ["01234567890abcdeffedcba0987654321"],
+
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+        },
+
+        "stage": {
+            "title": "Stage",
+            "description": "Name of the workflow stage to run.",
+            "examples": ["syn", "place", "route"],
+
+            "type": "string",
+            "pattern": "^[^\\s;]*$"
+        }
+    },
+
+    "required": ["job_hash", "stage"],
+
+    "dependencies": {
+        "username": ["key"],
+        "key": ["username"]
+    }
+}
