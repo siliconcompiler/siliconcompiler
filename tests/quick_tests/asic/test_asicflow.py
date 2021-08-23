@@ -1,6 +1,8 @@
 import os
 import siliconcompiler
-from tests.fixtures import test_wrapper
+
+if __name__ != "__main__":
+    from tests.fixtures import test_wrapper
 
 ##################################
 def test_gcd_local_py():
@@ -8,7 +10,7 @@ def test_gcd_local_py():
     '''
 
     # Create instance of Chip class
-    chip = siliconcompiler.Chip(loglevel='NOTSET')
+    chip = siliconcompiler.Chip()
 
     gcd_ex_dir = os.path.abspath(__file__)
     gcd_ex_dir = gcd_ex_dir[:gcd_ex_dir.rfind('/tests/quick_tests/asic')] + '/examples/gcd/'
@@ -32,3 +34,6 @@ def test_gcd_local_py():
 
     # Verify that GDS and SVG files were generated.
     assert os.path.isfile('build/gcd/job0/export0/outputs/gcd.gds')
+
+if __name__ == "__main__":
+    test_gcd_local_py()

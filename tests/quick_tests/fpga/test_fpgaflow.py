@@ -1,7 +1,9 @@
 import os
 import subprocess
-# fixture automatically used when imported to create clean build dir
-from tests.fixtures import test_wrapper
+
+if __name__ != "__main__":
+    # fixture automatically used when imported to create clean build dir
+    from tests.fixtures import test_wrapper
 
 ##################################
 def test_icebreaker():
@@ -19,8 +21,10 @@ def test_icebreaker():
                     '-mode', 'fpga',
                     '-constraint', blinky_ex_dir + '/icebreaker.pcf',
                     '-design', 'blinky',
-                    '-target', 'ice40up5k-sg48_fpgaflow'],
-                   stdout = subprocess.DEVNULL)
+                    '-target', 'ice40up5k-sg48_fpgaflow'])
 
     # Verify that a bitstream was generated
     assert os.path.isfile('build/blinky/job0/bitstream0/outputs/blinky.bit')
+
+if __name__ == "__main__":
+    test_icebreaker()

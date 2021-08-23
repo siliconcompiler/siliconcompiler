@@ -1,7 +1,9 @@
 import os
 import re
 import subprocess
-from tests.fixtures import test_wrapper
+
+if __name__ != "__main__":
+    from tests.fixtures import test_wrapper
 
 ###########################
 def test_gcd_server():
@@ -13,8 +15,7 @@ def test_gcd_server():
     os.mkdir('local_server_work')
     srv_proc = subprocess.Popen(['sc-server',
                                  '-nfs_mount', './local_server_work',
-                                 '-cluster', 'local'],
-                                stdout = subprocess.DEVNULL)
+                                 '-cluster', 'local'])
 
     # Use subprocess to test running the `sc` scripts as a command-line program.
     # Pipe stdout to /dev/null to avoid printing to the terminal.
@@ -31,12 +32,13 @@ def test_gcd_server():
                     '-constraint', gcd_ex_dir + '/gcd.sdc',
                     '-remote_addr', 'localhost',
                     '-remote_port', '8080',
-                    '-relax',
-                    '-loglevel', 'NOTSET'],
-                   stdout = subprocess.DEVNULL)
+                    '-relax'])
 
     # Kill the server process.
     srv_proc.kill()
 
     # Verify that GDS and SVG files were generated and returned.
     assert os.path.isfile('build/gcd/job0/export0/outputs/gcd.gds')
+
+if __name__ == "__main__":
+    test_gcd_server()
