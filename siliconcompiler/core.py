@@ -1676,7 +1676,6 @@ class Chip:
 
         # Check Version if switch exists
         #if self.getkeys('eda', tool, step, str(index), 'vswitch'):
-        self.logger.info("%s",self.getkeys('eda', tool, step, index, 'vswitch'))
         exe = self.get('eda', tool, step, index, 'exe')
         veropt =self.get('eda', tool, step, index, 'vswitch')
         if veropt!=None:
