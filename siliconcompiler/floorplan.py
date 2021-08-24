@@ -206,11 +206,6 @@ class Floorplan:
         else:
             self.core_area = core_area
 
-        # TODO: is this necessary or a good idea?
-        self.chip.set('asic', 'diesize', f'0 0 {width} {height}')
-        self.chip.set('asic', 'coresize', f'{self.core_area[0]} {self.core_area[1]} '
-                                          f'{self.core_area[2]} {self.core_area[3]}')
-
         if generate_rows:
             self.generate_rows()
         if generate_tracks:
