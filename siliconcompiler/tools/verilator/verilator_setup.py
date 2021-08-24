@@ -18,12 +18,14 @@ def setup_tool(chip, step, index):
 
     # Standard Setup
     tool = 'verilator'
+    refdir = 'siliconcompiler/tools/verilator'
     chip.set('eda', tool, step, index, 'format', 'cmdline')
     chip.set('eda', tool, step, index, 'copy', 'false')
     chip.set('eda', tool, step, index, 'exe', 'verilator')
     chip.set('eda', tool, step, index, 'vswitch', '--version')
     chip.set('eda', tool, step, index, 'version', '4.211')
     chip.set('eda', tool, step, index, 'vendor', 'verilator')
+    chip.set('eda', tool, step, index, 'refdir', refdir)
     chip.set('eda', tool, step, index, 'threads', 4)
 
     # Options driven on a per step basis (use 'set' on first call!)
