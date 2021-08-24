@@ -4141,29 +4141,6 @@ def schema_asic(cfg):
         """
     }
 
-    # Parameterized floorplanning
-    cfg['asic']['floorplan'] = {
-        'switch': '-asic_floorplan',
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'true',
-        'requirement': None,
-        'defvalue': [],
-        'filehash': [],
-        'date': [],
-        'author': [],
-        'signature': [],
-        'short_help': 'Floorplanning Script',
-        'param_help': "asic floorplan <file>",
-        'example': ["cli: -asic_floorplan hello.py",
-                    "api: chip.add('asic', 'floorplan', 'hello.py')"],
-        'help': """
-        Provides a python based floorplan to be used during the floorplan step
-        of compilation to generate a fixed DEF ready for use by the APR tool.
-        Supported formats are tcl and py.
-        """
-    }
-
     # Def file
     cfg['asic']['def'] = {
         'switch': '-asic_def',
