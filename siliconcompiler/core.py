@@ -3,6 +3,7 @@
 import argparse
 import time
 import multiprocessing
+import traceback
 import asyncio
 import subprocess
 import os
@@ -1663,16 +1664,24 @@ class Chip:
             for item in steplist:
                 shutil.copytree("../"+item+str(mindex)+"/outputs", 'inputs/')
 
-        # Dynamic EDA tool module load
+        # EDA dynamic module load
         try:
             tool = self.get('flowgraph', step, 'tool')
             searchdir = "siliconcompiler.tools." + tool
             modulename = '.'+tool+'_setup'
             module = importlib.import_module(modulename, package=searchdir)
             setup_tool = getattr(module, "setup_tool")
+        except:
+            traceback.print_exc()
+            self.logger.error("Dynamic module load failed for tool '%s' in step '%s'.", tool, step)
+            self._halt(step,index, error, active)  
+
+        # EDA tool setup 
+        try:
             setup_tool(self, step, index)
         except:
-            self.logger.error("Tool module load failed for '%s' tool in step '%s'.", tool, step)
+            traceback.print_exc()
+            self.logger.error("Setup script failed for tool '%s' in step '%s'.", tool, step)
             self._halt(step,index, error, active)
 
         # Check Version if switch exists
@@ -1775,7 +1784,7 @@ class Chip:
 
     ###########################################################################
     def _halt(self, step, index, error, active):
-        error[strep + str(index)] = 1
+        error[step + str(index)] = 1
         active[step + str(index)] = 0
         sys.exit(1)
         
