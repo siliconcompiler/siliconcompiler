@@ -14,11 +14,6 @@ from siliconcompiler.schema import schema_path
 
 def setup_tool(chip, step, index):
     ''' Tool specific function to run before step execution
-
-    Tool-specific options:
-
-    * drc_ignore: list of names of libraries whose cells will be abstracted
-      during DRC.
     '''
 
     tool = 'magic'
