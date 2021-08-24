@@ -700,6 +700,11 @@ class Chip:
         all_args = list(args)
         param = all_args[0]
         val = all_args[-1]
+        # Return early if the value is 'None'. The reason for this is that
+        # str(None) == 'None', not None. So when we call .add or .set with None
+        # as a value, it gets saved in the dictionary as a string, causing bugs.
+        if val is None:
+            return
         #set/add leaf cell (all_args=(param,val))
         if (mode in ('set', 'add')) & (len(all_args) == 2):
             # clean error if key not found

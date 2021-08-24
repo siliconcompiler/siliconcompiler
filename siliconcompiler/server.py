@@ -121,7 +121,10 @@ class Server:
         # Reset 'build' directory in NFS storage.
         build_dir = '%s/%s'%(self.cfg['nfsmount']['value'][-1], job_hash)
         jobs_dir = '%s/%s'%(build_dir, cfg['design']['value'])
-        job_nameid = cfg['jobname']['value'] + cfg['jobid']['value']
+        if 'value' in cfg['jobname']:
+            job_nameid = f"{cfg['jobname']['value']}0"
+        else:
+            job_nameid = 'job0'
         cfg['build_dir']['value'] = build_dir
 
         # Create the working directory for the given 'job hash' if necessary.
@@ -131,13 +134,13 @@ class Server:
         subprocess.run(['ln', '-s', '%s/import0'%build_dir, '%s/%s/import0'%(jobs_dir, job_nameid)])
 
         # Remove 'remote' JSON config value to run locally on compute node.
-        cfg['remote']['addr']['value'] = []
+        cfg['remote']['addr']['value'] = ''
         # Rename source files in the config dict; the 'import' step already
-        # ran and collected the sources into a single 'verilator.sv' file.
-        cfg['source']['value'] = ['%s/import0/verilator.sv'%build_dir]
+        # ran and collected the sources into a single Verilog file.
+        cfg['source']['value'] = ['%s/import0/outputs/%s.v'%(build_dir, cfg['design']['value'])]
 
         # Write JSON config to shared compute storage.
-        cur_id = cfg['jobid']['value']
+        cur_id = '0'
         subprocess.run(['mkdir', '-p', '%s/configs'%build_dir])
         with open('%s/configs/chip%s.json'%(build_dir, cur_id), 'w') as f:
           f.write(json.dumps(cfg))
@@ -333,11 +336,13 @@ class Server:
         # Assemble core job parameters.
         top_module = jobs_cfg['design']['value']
         sc_sources = jobs_cfg['source']['value']
-        cur_id = '0'
-        job_nameid = jobs_cfg['jobname']['value'] + cur_id
+        if 'value' in jobs_cfg['jobname']:
+            job_nameid = f"{jobs_cfg['jobname']['value']}0"
+        else:
+            job_nameid = 'job0'
 
         # Mark the job run as busy.
-        self.sc_jobs["%s%s_%s"%(username, job_hash, cur_id)] = 'busy'
+        self.sc_jobs["%s%s_0"%(username, job_hash)] = 'busy'
 
         # Reset 'build' directory in NFS storage.
         build_dir = '/tmp/%s_%s/'%(job_hash, job_nameid)
@@ -355,9 +360,9 @@ class Server:
                         '%s/%s/%s.iv'%(nfs_mount, job_hash, job_nameid))
 
         # Rename source files in the config dict; the 'import' step already
-        # ran and collected the sources into a single 'verilator.sv' file.
-        jobs_cfg['source']['value'] = ['%s/%s/%s/import0/verilator.sv'%\
-            (build_dir, jobs_cfg['design']['value'], job_nameid)]
+        # ran and collected the sources into a single Verilog file.
+        jobs_cfg['source']['value'] = ['%s/%s/%s/import0/outputs/%s.v'%\
+            (build_dir, jobs_cfg['design']['value'], job_nameid, jobs_cfg['design']['value'])]
 
         run_cmd = ''
         if self.cfg['cluster']['value'][-1] == 'slurm':
@@ -366,7 +371,7 @@ class Server:
         else:
             # Write plaintext JSON config to the build directory.
             subprocess.run(['mkdir', '-p', '%s/configs'%build_dir])
-            with open('%s/configs/chip%s.json'%(build_dir, cur_id), 'w') as f:
+            with open('%s/configs/chip0.json'%(build_dir), 'w') as f:
                 f.write(json.dumps(jobs_cfg))
 
             # Run the build command locally.
@@ -376,7 +381,7 @@ class Server:
                           cp %s/%s.crypt %s/%s.crypt ;
                           cp %s/%s.iv %s/%s.iv ;
                           cp %s/import.bin %s/import.bin ;
-                          sc /dev/null -cfg %s/configs/chip%s.json -remote_key "%s" ;
+                          sc -cfg %s/configs/chip0.json -remote_key "%s" -relax ;
                           cp %s/%s.crypt %s/%s.crypt ;
                           cp %s/%s.iv %s/%s.iv ;
                           rm -r %s
@@ -384,7 +389,7 @@ class Server:
                             from_dir, job_nameid, to_dir, job_nameid,
                             from_dir, job_nameid, to_dir, job_nameid,
                             from_dir, to_dir,
-                            build_dir, cur_id, pk,
+                            build_dir, pk,
                             to_dir, job_nameid, from_dir, job_nameid,
                             to_dir, job_nameid, from_dir, job_nameid,
                             to_dir)
@@ -402,7 +407,7 @@ class Server:
         # (Email notifications can be sent here using your preferred API)
 
         # Mark the job hash as being done.
-        self.sc_jobs.pop("%s%s_%s"%(username, job_hash, cur_id))
+        self.sc_jobs.pop("%s%s_0"%(username, job_hash))
 
     ####################
     async def remote_sc(self, job_hash, top_module, sc_sources, build_dir, jobid):
@@ -429,14 +434,14 @@ class Server:
             export_path += ':/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin'
             # Send JSON config instead of using subset of flags.
             # TODO: Use slurmpy SDK?
-            run_cmd  = 'srun %s sc /dev/null '%(export_path)
+            run_cmd  = 'srun %s sc '%(export_path)
             run_cmd += '-cfg %s/configs/chip%s.json '%(build_dir, jobid)
         else:
             # Unrecognized or unset clusering option; run locally on the
             # server itself. (Note: local runs are mostly synchronous, so
             # this will probably block the server from responding to other
             # calls. It should only be used for testing and development.)
-            run_cmd = 'sc /dev/null -cfg %s/configs/chip%s.json'%(build_dir, jobid)
+            run_cmd = 'sc -cfg %s/configs/chip%s.json'%(build_dir, jobid)
 
         # Create async subprocess shell, and block this thread until it finishes.
         proc = await asyncio.create_subprocess_shell(run_cmd)
