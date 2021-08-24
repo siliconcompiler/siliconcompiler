@@ -20,6 +20,8 @@ env.filters['render_tuple'] = render_tuple
 
 _MacroInfo = namedtuple("_MacroInfo", "tech_name width height")
 
+# TODO: make sure all required schema entries are checked (and document!)
+
 class Floorplan:
     '''Floorplan layout class.
 
@@ -179,9 +181,8 @@ class Floorplan:
         '''Initializes die.
 
         Initializes the area of the die and generates placement rows and routing
-        tracks. This function must be called before calling `place_pins`. The
-        provided die and core dimensions will overwrite the die/core size
-        already present in the chip config.
+        tracks. The provided die and core dimensions will overwrite the die/core
+        size already present in the chip config.
 
         Args:
             width (float): Width of die in microns.
@@ -271,9 +272,6 @@ class Floorplan:
         if use.lower() not in ('signal', 'power', 'ground', 'clock', 'tieoff',
                                'analog', 'scan', 'reset'):
             raise ValueError('Invalid use')
-
-        if self.die_area is None:
-            raise ValueError('Die area must be initialized with create_die_area!')
 
         x = x0
         y = y0
