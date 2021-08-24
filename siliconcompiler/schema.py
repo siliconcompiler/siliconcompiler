@@ -1672,8 +1672,6 @@ def schema_flowgraph(cfg, step='default'):
         """
     }
 
-
-
     # Step tool
     cfg['flowgraph'][step]['tool'] = {
         'switch': '-flowgraph_tool',
@@ -3280,6 +3278,22 @@ def schema_design(cfg):
     ''' Design Sources
     '''
 
+    cfg['design'] = {
+        'switch': '-design',
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'Design Top Module Name',
+        'param_help': "design <str>",
+        'example': ["cli: -design hello_world",
+                    "api: chip.add('design', 'hello_world')"],
+        'help': """
+        Name of the top level design to compile. Required for all designs with
+        more than one module.
+        """
+    }
+    
     cfg['source'] = {
         'switch': 'None',
         'type': '[file]',
@@ -3376,22 +3390,6 @@ def schema_design(cfg):
                     "api: chip.add('license', './LICENSE')"],
         'help': """
         Filepath to the technology license for currrent design.
-        """
-    }
-
-    cfg['design'] = {
-        'switch': '-design',
-        'type': 'str',
-        'lock': 'false',
-        'requirement': None,
-        'defvalue': None,
-        'short_help': 'Design Top Module Name',
-        'param_help': "design <str>",
-        'example': ["cli: -design hello_world",
-                    "api: chip.add('design', 'hello_world')"],
-        'help': """
-        Name of the top level design to compile. Required for all designs with
-        more than one module.
         """
     }
 
@@ -3752,6 +3750,25 @@ def schema_design(cfg):
         """
     }
 
+    cfg['exclude'] = {
+        'switch': '-exclude',
+        'type': '[str]',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': [],
+        'short_help': 'List of cells to exclude',
+        'param_help': "exclude <str>",
+        'example': ["cli: -exclude sram_macro",
+                    "api: chip.add('exclude','sram_macro')"],
+        'help': """
+        List of physical cells to exclude during step execution. The process
+        of exclusion is controlled by the flow step and tool setup. The list
+        is commonly used by DRC tools and GDS export tools to direct the tool
+        to exclude GDS information during GDS merge/export.
+        """
+    }
+    
+    
     return cfg
 
 ###########################
