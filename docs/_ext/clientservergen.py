@@ -72,9 +72,9 @@ class RemoteAPIGen(SphinxDirective):
             relevant_keys = ['description', 'type', 'minLength', 'pattern', 'items', 'default']
             table = nodes.table()
             tgroup = nodes.tgroup(cols = 3)
-            tgroup += nodes.colspec(colwidth='10')
-            tgroup += nodes.colspec(colwidth='50')
-            tgroup += nodes.colspec(colwidth='100')
+            tgroup += nodes.colspec(colwidth=10)
+            tgroup += nodes.colspec(colwidth=50)
+            tgroup += nodes.colspec(colwidth=100)
             table += tgroup
             tbody = nodes.tbody()
             tgroup += tbody
