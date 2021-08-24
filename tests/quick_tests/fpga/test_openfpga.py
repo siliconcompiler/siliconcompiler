@@ -1,7 +1,9 @@
 import os
 import subprocess
-# fixture automatically used when imported to create clean build dir
-from tests.fixtures import test_wrapper
+
+if __name__ != "__main__":
+    # fixture automatically used when imported to create clean build dir
+    from tests.fixtures import test_wrapper
 
 ##################################
 def test_openfpga():
@@ -20,10 +22,12 @@ def test_openfpga():
                     '-fpga_arch', openfpga_ex_dir + '/k6_frac_N10_40nm_openfpga.xml',
                     '-fpga_arch', openfpga_ex_dir + '/k6_frac_N10_40nm_vpr.xml', 
                     '-mode', 'fpga',
-                    '-target', 'openfpga_fpgaflow'],
-                   stdout = subprocess.DEVNULL)
+                    '-target', 'openfpga_fpgaflow'])
 
     # Verify that a bitstream was generated
     assert os.path.isfile('build/and2/job0/apr0/outputs/and2_fabric_bitstream.txt')
     assert os.path.isfile('build/and2/job0/apr0/outputs/and2_fabric_bitstream.xml')
     assert os.path.isfile('build/and2/job0/apr0/outputs/and2_fabric_independent_bitstream.xml')
+
+if __name__ == "__main__":
+    test_openfpga()
