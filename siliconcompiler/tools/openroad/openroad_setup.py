@@ -66,6 +66,53 @@ def setup_tool(chip, step, index):
 
     chip.set('eda', tool, step, index, 'option', 'cmdline', '-no_init')
 
+    target_tech = chip.get('target').split('_')[0]
+    if target_tech == 'freepdk45':
+        default_options = {
+            'place_density': ['0.3'],
+            'pad_global_place': ['2'],
+            'pad_detail_place': ['1'],
+            'macro_place_halo': ['22.4', '15.12'],
+            'macro_place_channel': ['18.8', '19.95']
+        }
+    elif target_tech == 'asap7':
+       default_options = {
+            'place_density': ['0.77'],
+            'pad_global_place': ['2'],
+            'pad_detail_place': ['1'],
+            'macro_place_halo': ['22.4', '15.12'],
+            'macro_place_channel': ['18.8', '19.95']
+        }
+    elif target_tech == 'skywater130':
+       default_options = {
+            'place_density': ['0.6'],
+            'pad_global_place': ['4'],
+            'pad_detail_place': ['2'],
+            'macro_place_halo': ['1', '1'],
+            'macro_place_channel': ['80', '80']
+        }
+    else:
+        default_options = None
+
+    generic_default_options = {
+        'place_density': ['0.3'],
+        'pad_global_place': ['1'],
+        'pad_detail_place': ['1'],
+        'macro_place_halo': ['22.4', '15.12'],
+        'macro_place_channel': ['18.8', '19.95']
+    }
+
+    for option in generic_default_options.keys():
+        if (option not in chip.getkeys('eda', tool,  step, index, 'option') or
+            chip.get('eda', tool, step,  index, 'option', option) is None):
+            if default_options is not None:
+                chip.set('eda', tool, step, index, 'option', option, default_options[option])
+            else:
+                chip.logger.warning(f'No tech-specific default for OpenROAD '
+                                    f'option {option} and target_tech {target_tech}. '
+                                    f'Using generic default value.')
+                chip.get('eda', tool, step, index, 'option', option, generic_default_options[option])
+
     # exit automatically unless bkpt
     if (step not in chip.get('bkpt')):
         chip.add('eda', tool, step, index, 'option', 'cmdline', '-exit')
