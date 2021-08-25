@@ -52,7 +52,7 @@ class Chip:
     """
 
     ###########################################################################
-    def __init__(self, design="root", loglevel="INFO", defaults=True):
+    def __init__(self, design="root", loglevel="INFO"):
         """Initializes Chip object
         """
 
@@ -511,13 +511,15 @@ class Chip:
         if cfg is None:
             cfg = chip.cfg
 
-        chip.logger.debug('Reading config dictionary. Keypath = [%s]', ','.join(args))
+        keypath = ','.join(args[:-1])
+        chip.logger.debug('Reading config dictionary. Keypath = [%s]',
+                          keypath)
 
         keys = list(args)
         for k in keys:
             if isinstance(k, list):
                 chip.logger.error("Illegal format. Args cannot be lists. Keys=%s", k)
-        return self._search(chip, cfg, *args, field=field, mode='get')
+        return self._search(chip, cfg, keypath, *args, field=field, mode='get')
 
     ###########################################################################
     def getkeys(self, *args, chip=None, cfg=None):
@@ -554,8 +556,9 @@ class Chip:
             cfg = chip.cfg
 
         if len(list(args)) > 0:
+            keypath = ','.join(args[:-1])
             chip.logger.debug('Getting schema parameter keys for: %s', args)
-            keys = list(self._search(chip, cfg, *args, mode='getkeys'))
+            keys = list(self._search(chip, cfg, keypath, *args, mode='getkeys'))
             if 'default' in keys:
                 keys.remove('default')
         else:
@@ -565,7 +568,7 @@ class Chip:
         return keys
 
     ###########################################################################
-    def set(self, *args, chip=None, cfg=None):
+    def set(self, *args, chip=None, cfg=None, clobber=False):
         '''
         Sets a Chip dictionary value based on key-sequence and data provided.
 
@@ -601,14 +604,16 @@ class Chip:
         if cfg is None:
             cfg = chip.cfg
 
+        keypath = ','.join(args[:-1])
+
         chip.logger.debug('Setting value in config dictionary. Keypath = [%s] Value =%s',
-                          ','.join(args[:-1]),
+                          keypath,
                           args[-1])
 
         all_args = list(args)
 
         # Convert val to list if not a list
-        return self._search(chip, cfg, *all_args, field='value', mode='set')
+        return self._search(chip, cfg, keypath, *all_args, field='value', mode='set', clobber=clobber)
 
     ###########################################################################
     def add(self, *args, chip=None, cfg=None):
@@ -648,14 +653,16 @@ class Chip:
         if cfg is None:
             cfg = chip.cfg
 
+        keypath = ','.join(args[:-1])
+
         chip.logger.debug('Appending value in config dictionary. Keypath = [%s] Value =%s',
-                          ','.join(args[:-1]),
+                          keypath,
                           args[-1])
 
 
         all_args = list(args)
 
-        return self._search(chip, cfg, *all_args, field='value', mode='add')
+        return self._search(chip, cfg, keypath, *all_args, field='value', mode='add')
 
     ###########################################################################
     def _allkeys(self, chip, cfg, keys=None, allkeys=None):
@@ -677,7 +684,7 @@ class Chip:
         return allkeys
 
     ###########################################################################
-    def _search(self, chip, cfg, *args, field='value', mode='get'):
+    def _search(self, chip, cfg, keypath, *args, field='value', mode='get', clobber=True):
         '''
         Internal recursive function that searches a Chip dictionary for a
         match to the combination of *args and fields supplied. The function is
@@ -688,6 +695,7 @@ class Chip:
                 up a Chip dictionary entry.
             chip(object): The Chip object to extend
             cfg(dict): The cfg dictionary within the Chip object to extend
+            keypath (string): Concatenated keypath used for error logging.
             field(string): Leaf cell field to fetch. Examples of
                 valid fields include 'value', 'defvalue', 'type'. For
                 a complete description of the valid entries, see the
@@ -699,6 +707,7 @@ class Chip:
         all_args = list(args)
         param = all_args[0]
         val = all_args[-1]
+        empty = [None, 'null', [], 'false']
         # Return early if setting a value to 'None'. The reason for this is that
         # str(None) == 'None', not None. So when we call .add or .set with None
         # as a value, it gets saved in the dictionary as a string, causing bugs.
@@ -708,7 +717,7 @@ class Chip:
         if (mode in ('set', 'add')) & (len(all_args) == 2):
             # clean error if key not found
             if (not param in cfg) & (not 'default' in cfg):
-                chip.logger.error("Key '%s' does not exist", param)
+                chip.logger.error(f"Keypath [{keypath}] does not exist.")
                 chip.error = 1
             else:
                 # making an 'instance' of default if not found
@@ -720,7 +729,7 @@ class Chip:
                     cfg[param]['value'] = cfg[param]['defvalue']
                 # checking for illegal fields
                 if not field in cfg[param] and (field != 'value'):
-                    chip.logger.error("Field '%s' for param '%s'is not a valid field", field, param)
+                    chip.logger.error(f"Field '{field}' for keypath [{keypath}]' is not a valid field.")
                     chip.error = 1
                 # check legality of value
                 if not schema_typecheck(chip, cfg[param], param, val):
@@ -731,36 +740,45 @@ class Chip:
                         val = "true"
                     elif val == False:
                         val = "false"
+                # checking if value has been set
+                if field not in cfg[param]:
+                    selval = cfg[param]['defvalue']
+                else:
+                    selval =  cfg[param]['value']
                 # updating values
                 if (mode == 'set'):
-                    if (not list_type) & (not isinstance(val, list)):
-                        cfg[param][field] = str(val)
-                    elif list_type & (not isinstance(val, list)):
-                        cfg[param][field] = [str(val)]
-                    elif list_type & isinstance(val, list):
-                        cfg[param][field] = val
+                    if (selval in empty) | clobber:
+                        if (not list_type) & (not isinstance(val, list)):
+                            cfg[param][field] = str(val)
+                        elif list_type & (not isinstance(val, list)):
+                            cfg[param][field] = [str(val)]
+                        elif list_type & isinstance(val, list):
+                            cfg[param][field] = val
+                        else:
+                            chip.logger.error(f"Illegal list assignment to scalar for [{keypath}]")
+                            chip.error = 1
                     else:
-                        chip.logger.error("Illegal to assign a list to a scalar. Parameter='%s'", param)
-                        chip.error = 1
+                        chip.logger.info(f"Ignore set to [{keypath}], value already set. Use clobber option to override.")
+
                 elif (mode == 'add'):
                     if list_type & (not isinstance(val, list)):
                         cfg[param][field].append(str(val))
                     elif list_type & isinstance(val, list):
                         cfg[param][field].extend(val)
                     else:
-                        chip.logger.error("Illegal to use add() method with scalar. Parameter='%s'", param)
+                        chip.logger.error(f"Illegal use of add() for scalar parameter [{keypath}].")
                         chip.error = 1
                 return cfg[param][field]
         #get leaf cell (all_args=param)
         elif len(all_args) == 1:
             if not param in cfg:
-                chip.logger.error("Key '%s' does not exist", param)
+                chip.logger.error(f"Keypath [{keypath}] does not exist.")
                 chip.error = 1
             elif mode == 'getkeys':
                 return cfg[param].keys()
             else:
                 if not (field in cfg[param]) and (field!='value'):
-                    chip.logger.error("Key error, field '%s' not found for '%s'", field, param)
+                    chip.logger.error(f"Field '{field}' not found for keypath [{keypath}]")
                     chip.error = 1
                 elif field == 'value':
                     #Select default if no value has been set
@@ -801,7 +819,7 @@ class Chip:
             if not param in cfg:
                 cfg[param] = copy.deepcopy(cfg['default'])
             all_args.pop(0)
-            return self._search(chip, cfg[param], *all_args, field=field, mode=mode)
+            return self._search(chip, cfg[param], keypath, *all_args, field=field, mode=mode, clobber=clobber)
 
 
     ###########################################################################
@@ -1076,7 +1094,8 @@ class Chip:
                     chip.error = 1
                     chip.logger.error("Mode requirement missing. Keypath = [%s]",
                                       ",".join(key))
-        # Checking step based tool requirements
+        # Checking mode based settings
+
 
 
         return self.error
