@@ -94,8 +94,8 @@ def pdk_path(chip):
     sc_path = sc_root + '/third_party/foundry'
 
     libname = chip.get('asic', 'targetlib')[0]
-    pdk_rev = chip.get('pdk', 'rev')
-    lib_rev = chip.get('stdcell', libname, 'rev')
+    pdk_rev = chip.get('pdk', 'version')
+    lib_rev = chip.get('library', libname, 'version')
 
     target_tech = chip.get('target').split('_')[0]
 
