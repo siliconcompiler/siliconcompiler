@@ -117,39 +117,6 @@ def setup_tool(chip, step, index):
     if (step not in chip.get('bkpt')):
         chip.add('eda', tool, step, index, 'option', 'cmdline', '-exit')
 
-    # enable programmatic pythonic floorplans
-    if step == 'floorplan':
-        floorplan_file = chip.get('asic', 'floorplan')
-
-        if len(floorplan_file) == 0:
-             return
-        elif len(floorplan_file) > 1:
-             chip.logger.warning('OpenROAD-based flows expect only one Python '
-                                 'floorplan, but multiple were provided. '
-                                 f'Defaulting to {floorplan_file[0]}.')
-
-        floorplan_file = schema_path(floorplan_file[0])
-
-        if os.path.splitext(floorplan_file)[-1] != '.py':
-             return
-
-        fp = Floorplan(chip)
-
-        # Import user's floorplan file, call setup_floorplan to set up their
-        # floorplan, and save it as an input DEF
-
-        mod_name = os.path.splitext(os.path.basename(floorplan_file))[0]
-        mod_spec = importlib.util.spec_from_file_location(mod_name, floorplan_file)
-        module = importlib.util.module_from_spec(mod_spec)
-        mod_spec.loader.exec_module(module)
-        setup_floorplan = getattr(module, "setup_floorplan")
-
-        fp = setup_floorplan(fp, chip)
-
-        topmodule = chip.get('design')
-        def_file = 'inputs/' + topmodule + '.def'
-        fp.write_def(def_file)
-
 ################################
 # Post_process (post executable)
 ################################

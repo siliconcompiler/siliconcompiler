@@ -15,7 +15,19 @@
 
 source ./sc_manifest.tcl
 
-set sc_design     [lindex [dict get $sc_cfg design] end]
+set sc_design    [dict get $sc_cfg design]
+set sc_macrolibs [dict get $sc_cfg asic macrolib]
+set sc_exclude [dict get $sc_cfg exclude]
+
+# Ignore specific libraries by reading their LEFs (causes magic to abstract them)
+foreach lib $sc_macrolibs {
+    puts $lib
+    if {[lsearch -exact $sc_exclude $lib] >= 0} {
+        lef read [dict get $sc_cfg library $lib lef]
+    }
+}
+
+gds noduplicates true
 
 gds read inputs/$sc_design.gds
 puts $sc_design.gds

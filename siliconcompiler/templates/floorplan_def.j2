@@ -51,6 +51,13 @@ PINS {{ fp.pins | length }} ;
 {% endfor %}
 END PINS
 
+BLOCKAGES {{ fp.blockages | length }} ;
+    {% for blockage in fp.blockages %}
+    - PLACEMENT
+        RECT {{ blockage.ll | map('scale') | render_tuple }} {{ blockage.ur | map('scale') | render_tuple }} ;
+    {% endfor %}
+END BLOCKAGES
+
 SPECIALNETS {{ fp.nets | length }} ;
 {% for name, net in fp.nets.items() %}
     - {{ name }} {% for pin in net.pins %} ( * {{ pin }} ) {% endfor %} + USE {{ net.use }}
