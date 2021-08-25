@@ -18,7 +18,7 @@ def render_tuple(vals):
     return f"( {vals_str} )"
 env.filters['render_tuple'] = render_tuple
 
-_MacroInfo = namedtuple("_MacroInfo", "tech_name width height")
+_MacroInfo = namedtuple("_MacroInfo", "width height")
 
 # TODO: make sure all required schema entries are checked (and document!)
 
@@ -48,9 +48,8 @@ class Floorplan:
 
     Attributes:
         available_cells (dict): A dictionary mapping macro names to information
-            about each macro. The values stored in this dictionary have three
-            keys: `tech_name`, the technology-specific name corresponding to the
-            macro; `width`, the width of the macro in microns; and `height`, the
+            about each macro. The values stored in this dictionary have two
+            keys: `width`, the width of the macro in microns and `height`, the
             height of the macro in microns.
 
             In order to make macro libraries usable by the Floorplan API, a user
@@ -63,17 +62,6 @@ class Floorplan:
                     chip.add('asic', 'macrolib', libname)
                     chip.set('library', libname, 'lef', lef_path)
 
-            In order to make the macros in a library accessible from the
-            Floorplan API, each macro must be provided a tech-agnostic name
-            (`macro_name`), which maps to a tech-specific name (the name of the
-            macro in the associated LEF file, `tech_name`):
-
-                .. code-block:: python
-
-                    chip.set('library', libname, 'cells', macro_name, tech_name)
-
-            All Floorplan API calls related to macros must use the tech-agnostic
-            macro name.
         die_area (tuple): A tuple of two floats `(width, height)` storing the
             size of the die area in microns.
         layers (dict): A dictionary mapping SiliconCompiler layer names to
@@ -133,10 +121,6 @@ class Floorplan:
         stackup = chip.get('asic', 'stackup')
         libtype = chip.get('library', self.libname, 'arch')
 
-        tech_lef = schema_path(chip.get('pdk', 'aprtech', stackup, libtype, 'lef')[0])
-        with open(tech_lef, 'r') as f:
-            tech_lef_data = lef_parser.parse(f.read())
-
         # List of cells the user is able to place
         self.available_cells = {}
 
@@ -145,15 +129,13 @@ class Floorplan:
             with open(lef_path, 'r') as f:
                 lef_data = lef_parser.lib_parse(f.read())
 
-            for name in self.chip.getkeys('library', macrolib, 'cells'):
-                tech_name = self.chip.get('library', macrolib, 'cells', name)[0]
-                if tech_name in lef_data['macros']:
-                    width, height = lef_data['macros'][tech_name]['size']
-                else:
-                    raise KeyError(f'Implementation {tech_name} for macro {name} '
-                        f'not found in library {lef_path}')
+            for name in lef_data['macros']:
+                width, height = lef_data['macros'][name]['size']
+                self.available_cells[name] = _MacroInfo(width, height)
 
-                self.available_cells[name] = _MacroInfo(tech_name, width, height)
+        tech_lef = schema_path(chip.get('pdk', 'aprtech', stackup, libtype, 'lef')[0])
+        with open(tech_lef, 'r') as f:
+            tech_lef_data = lef_parser.parse(f.read())
 
         # extract layers based on stackup
         stackup = self.chip.get('asic', 'stackup')
@@ -335,7 +317,7 @@ class Floorplan:
         for instance_name, cell_name in macros:
             macro = {
                 'name': instance_name,
-                'cell': self.available_cells[cell_name].tech_name,
+                'cell': cell_name,
                 'info': self.available_cells[cell_name],
                 'x': self.snap(x, self.std_cell_width) if snap else x,
                 'y': self.snap(y, self.std_cell_height) if snap else y,
