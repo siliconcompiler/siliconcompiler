@@ -53,69 +53,73 @@ def setup_tool(chip, step, index):
     tool = 'openroad'
     refdir = 'siliconcompiler/tools/openroad'
 
-    chip.set('eda', tool, step, index, 'format', 'tcl')
-    chip.set('eda', tool, step, index, 'vendor', tool)
-    chip.set('eda', tool, step, index, 'exe', tool)
-    chip.set('eda', tool, step, index, 'vswitch', '-version')
-    chip.set('eda', tool, step, index, 'version', 'af9a0f9faafb7e61ae18e9496169c3527312b82a')
-    chip.set('eda', tool, step, index, 'copy', 'false')
-    chip.set('eda', tool, step, index, 'refdir', refdir)
-    chip.set('eda', tool, step, index, 'script', refdir + '/sc_apr.tcl')
-    if chip.get('eda', tool, step, index, 'threads') is None:
-        chip.set('eda', tool, step, index, 'threads', os.cpu_count())
+    chip.set('eda', 'format', tool, step, index, 'tcl')
+    chip.set('eda', 'vendor',tool, step, index, tool)
+    chip.set('eda', 'exe', tool, step, index, tool)
+    chip.set('eda', 'vswitch', tool, step, index, '-version')
+    chip.set('eda', 'version', tool, step, index, 'af9a0f9faafb7e61ae18e9496169c3527312b82a')
+    chip.set('eda', 'copy', tool, step, index, False)
+    chip.set('eda', 'refdir', tool, step, index, refdir)
+    chip.set('eda', 'script',tool, step, index, refdir + '/sc_apr.tcl')
+    chip.set('eda', 'option', tool, step, index, 'cmdline', '-no_init')
+    #Don't override command line arguments
+    chip.set('eda', 'threads', tool, step, index, os.cpu_count())
 
-    chip.set('eda', tool, step, index, 'option', 'cmdline', '-no_init')
-
-    target_tech = chip.get('target').split('_')[0]
-    if target_tech == 'freepdk45':
-        default_options = {
-            'place_density': ['0.3'],
-            'pad_global_place': ['2'],
-            'pad_detail_place': ['1'],
-            'macro_place_halo': ['22.4', '15.12'],
-            'macro_place_channel': ['18.8', '19.95']
-        }
-    elif target_tech == 'asap7':
-       default_options = {
-            'place_density': ['0.77'],
-            'pad_global_place': ['2'],
-            'pad_detail_place': ['1'],
-            'macro_place_halo': ['22.4', '15.12'],
-            'macro_place_channel': ['18.8', '19.95']
-        }
-    elif target_tech == 'skywater130':
-       default_options = {
-            'place_density': ['0.6'],
-            'pad_global_place': ['4'],
-            'pad_detail_place': ['2'],
-            'macro_place_halo': ['1', '1'],
-            'macro_place_channel': ['80', '80']
-        }
-    else:
-        default_options = None
-
-    generic_default_options = {
-        'place_density': ['0.3'],
-        'pad_global_place': ['1'],
-        'pad_detail_place': ['1'],
-        'macro_place_halo': ['22.4', '15.12'],
-        'macro_place_channel': ['18.8', '19.95']
+    # defining default dictionary
+    default_options = {
+        'place_density': [],
+        'pad_global_place': [],
+        'pad_detail_place': [],
+        'macro_place_halo': [],
+        'macro_place_channel': []
     }
 
-    for option in generic_default_options.keys():
-        if (option not in chip.getkeys('eda', tool,  step, index, 'option') or
-            chip.get('eda', tool, step,  index, 'option', option) is None):
-            if default_options is not None:
-                chip.set('eda', tool, step, index, 'option', option, default_options[option])
-            else:
-                chip.logger.warning(f'No tech-specific default for OpenROAD '
-                                    f'option {option} and target_tech {target_tech}. '
-                                    f'Using generic default value.')
-                chip.get('eda', tool, step, index, 'option', option, generic_default_options[option])
+    # Setting up technologies with default values
+    # NOTE: no reasonable defaults, for halo and channel.
+    # TODO: Could possibly scale with node number for default, but safer to error out?
+    # perhaps we should use node as comp instead?
+    if chip.get('pdk','process'):
+        process = chip.get('pdk','process')
+        if process == 'freepdk45':
+            default_options = {
+                'place_density': ['0.3'],
+                'pad_global_place': ['2'],
+                'pad_detail_place': ['1'],
+                'macro_place_halo': ['22.4', '15.12'],
+                'macro_place_channel': ['18.8', '19.95']
+            }
+        elif process == 'asap7':
+           default_options = {
+                'place_density': ['0.77'],
+                'pad_global_place': ['2'],
+                'pad_detail_place': ['1'],
+                'macro_place_halo': ['22.4', '15.12'],
+                'macro_place_channel': ['18.8', '19.95']
+            }
+        elif process == 'skywater130':
+           default_options = {
+                'place_density': ['0.6'],
+                'pad_global_place': ['4'],
+                'pad_detail_place': ['2'],
+                'macro_place_halo': ['1', '1'],
+                'macro_place_channel': ['80', '80']
+            }
+        else:
+            chip.error = 1
+            chip.logger.error(f'Process {process} not set up for OpenROAD.')
+
+    for option in default_options:
+        if option in chip.getkeys('eda', 'option', tool, step, index):
+            chip.logger.info('User provided option %s OpenROAD flow detected.', option)
+        elif not default_options[option]:
+            chip.error = 1
+            chip.logger.error('Missing option %s for OpenROAD.', option)
+        else:
+            chip.set('eda', 'option', tool, step, index, option, default_options[option])
 
     # exit automatically unless bkpt
     if (step not in chip.get('bkpt')):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', '-exit')
+        chip.add('eda', 'option', tool, step, index, 'cmdline', '-exit')
 
 ################################
 # Post_process (post executable)
@@ -171,7 +175,7 @@ def post_process(chip, step, index):
      chip.set('metric', step, index, 'real', 'errors', errors)
      chip.set('metric', step, index, 'real', 'warnings', warnings)
 
-     #Temporary superhack!
+     #Temporary superhack!rm
      #Getting cell count and net number from DEF
      if errors == 0:
           with open("outputs/" + design + ".def") as f:
@@ -202,8 +206,10 @@ if __name__ == "__main__":
     output = prefix + '.json'
 
     # create a chip instance
-    chip = siliconcompiler.Chip(defaults=False)
+    chip = siliconcompiler.Chip(loglevel='DEBUG')
+    chip.set('pdk','process','freepdk45')
+    chip.writecfg('tmp.json', prune=False)
     # load configuration
-    setup_tool(chip, step='apr', index='0')
+    setup_tool(chip, step='syn', index='0')
     # write out results
     chip.writecfg(output)
