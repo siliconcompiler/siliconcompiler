@@ -3,6 +3,7 @@
 import argparse
 import time
 import multiprocessing
+import traceback
 import asyncio
 import subprocess
 import os
@@ -191,8 +192,6 @@ class Chip:
                 dest = switchstr.replace('-', '')
             else:
                 dest = key[0]
-
-            #print(switchstr, switchlist)
             if 'source' in key:
                 argmap['source'] = paramstr
             elif (switchlist == []) | (dest in switchlist):
@@ -931,7 +930,6 @@ class Chip:
 
         #Recursively going through dict to set abspaths for files
         for k, v in cfg.items():
-            #print("abspath", k,v)
             if isinstance(v, dict):
                 #indicates leaf cell
                 if 'value' in cfg[k].keys():
@@ -1634,9 +1632,7 @@ class Chip:
                     halt = halt + error[input_str]
         if halt:
             self.logger.error('Halting step %s due to previous errors', step)
-            active[step + str(index)] = 0
-            error[step + str(index)] = 1
-            sys.exit(1)
+            self._halt(step, index, error, active)
 
         # starting actual step execution
         self.logger.info('Starting step %s', step)
@@ -1668,33 +1664,37 @@ class Chip:
             for item in steplist:
                 shutil.copytree("../"+item+str(mindex)+"/outputs", 'inputs/')
 
-        # Dynamic EDA tool module load
+        # EDA dynamic module load
         try:
             tool = self.get('flowgraph', step, 'tool')
             searchdir = "siliconcompiler.tools." + tool
             modulename = '.'+tool+'_setup'
             module = importlib.import_module(modulename, package=searchdir)
             setup_tool = getattr(module, "setup_tool")
+        except:
+            traceback.print_exc()
+            self.logger.error("Dynamic module load failed for tool '%s' in step '%s'.", tool, step)
+            self._halt(step, index, error, active)
+
+        # EDA tool setup
+        try:
             setup_tool(self, step, index)
         except:
-            self.logger.error("Tool module load failed for '%s' tool in step '%s'.", tool, step)
-            active[step + str(index)] = 0
-            error[step + str(index)] = 1
-            sys.exit(1)
+            traceback.print_exc()
+            self.logger.error("Setup script failed for tool '%s' in step '%s'.", tool, step)
+            self._halt(step, index, error, active)
 
         # Check Version if switch exists
         #if self.getkeys('eda', tool, step, str(index), 'vswitch'):
         exe = self.get('eda', tool, step, index, 'exe')
         veropt =self.get('eda', tool, step, index, 'vswitch')
         if veropt!=None:
-            cmdstr = f'{exe} {veropt} &> {exe}.log'
+            cmdstr = f'{exe} {veropt} > {exe}.log'
             self.logger.info("Checking version of '%s' tool in step '%s'.", tool, step)
             exepath = subprocess.run(cmdstr, shell=True)
             if exepath.returncode > 0:
                 self.logger.error('Version check failed for %s.', cmdstr)
-                active[step + str(index)] = 0
-                error[step + str(index)] = 1
-                sys.exit(1)
+                self._halt(step, index, error, active)
         else:
             self.logger.info("Skipping version checking of '%s' tool in step '%s'.", tool, step)
 
@@ -1751,12 +1751,10 @@ class Chip:
         for metric in self.getkeys('metric', 'default', 'default', 'default'):
             self.set('metric', step, index, 'real', metric, 0)
 
-        # Final check
+        # Final check() before run
         if self.check(step):
             self.logger.error("Step check() for '%s' failed, exiting! See previous errors.", step)
-            active[step + str(index)] = 0
-            error[step + str(index)] = 1
-            sys.exit(1)
+            self._halt(step, index, error, active)
 
         # Run executable
         self.logger.info("Running %s in %s", step, stepdir)
@@ -1764,9 +1762,9 @@ class Chip:
         cmd_error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
         if cmd_error.returncode != 0:
             self.logger.error('Command failed. See log file %s', os.path.abspath(logfile))
-            active[step + str(index)] = 0
-            error[step + str(index)] = 1
-            sys.exit(1)
+            # Override exit code if set
+            if not elf.get('eda', tool, step, index, 'persist'):
+                self._halt(step, index, error, active)
 
         # Post Process (and error checking)
         post_process = getattr(module, "post_process")
@@ -1775,9 +1773,7 @@ class Chip:
         # Check for errors
         if post_error:
             self.logger.error('Post-processing check failed for step %s', step)
-            active[step + str(index)] = 0
-            error[step + str(index)] = 1
-            sys.exit(1)
+            self._halt(step, index, error, active)
 
         # save output manifest
         self.writecfg("outputs/" + self.get('design') +'.pkg.json')
@@ -1787,6 +1783,12 @@ class Chip:
 
         # clearing active bit
         active[step + str(index)] = 0
+
+    ###########################################################################
+    def _halt(self, step, index, error, active):
+        error[step + str(index)] = 1
+        active[step + str(index)] = 0
+        sys.exit(1)
 
     ###########################################################################
     def run(self):
