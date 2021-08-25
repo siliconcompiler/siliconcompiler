@@ -48,9 +48,8 @@ class Floorplan:
 
     Attributes:
         available_cells (dict): A dictionary mapping macro names to information
-            about each macro. The values stored in this dictionary have three
-            keys: `tech_name`, the technology-specific name corresponding to the
-            macro; `width`, the width of the macro in microns; and `height`, the
+            about each macro. The values stored in this dictionary have two
+            keys: `width`, the width of the macro in microns and `height`, the
             height of the macro in microns.
 
             In order to make macro libraries usable by the Floorplan API, a user
@@ -63,17 +62,6 @@ class Floorplan:
                     chip.add('asic', 'macrolib', libname)
                     chip.set('library', libname, 'lef', lef_path)
 
-            In order to make the macros in a library accessible from the
-            Floorplan API, each macro must be provided a tech-agnostic name
-            (`macro_name`), which maps to a tech-specific name (the name of the
-            macro in the associated LEF file, `tech_name`):
-
-                .. code-block:: python
-
-                    chip.set('library', libname, 'cells', macro_name, tech_name)
-
-            All Floorplan API calls related to macros must use the tech-agnostic
-            macro name.
         die_area (tuple): A tuple of two floats `(width, height)` storing the
             size of the die area in microns.
         layers (dict): A dictionary mapping SiliconCompiler layer names to
