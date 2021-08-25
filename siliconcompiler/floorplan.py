@@ -18,7 +18,7 @@ def render_tuple(vals):
     return f"( {vals_str} )"
 env.filters['render_tuple'] = render_tuple
 
-_MacroInfo = namedtuple("_MacroInfo", "tech_name width height")
+_MacroInfo = namedtuple("_MacroInfo", "width height")
 
 # TODO: make sure all required schema entries are checked (and document!)
 
@@ -133,10 +133,6 @@ class Floorplan:
         stackup = chip.get('asic', 'stackup')
         libtype = chip.get('library', self.libname, 'arch')
 
-        tech_lef = schema_path(chip.get('pdk', 'aprtech', stackup, libtype, 'lef')[0])
-        with open(tech_lef, 'r') as f:
-            tech_lef_data = lef_parser.parse(f.read())
-
         # List of cells the user is able to place
         self.available_cells = {}
 
@@ -145,15 +141,13 @@ class Floorplan:
             with open(lef_path, 'r') as f:
                 lef_data = lef_parser.lib_parse(f.read())
 
-            for name in self.chip.getkeys('library', macrolib, 'cells'):
-                tech_name = self.chip.get('library', macrolib, 'cells', name)[0]
-                if tech_name in lef_data['macros']:
-                    width, height = lef_data['macros'][tech_name]['size']
-                else:
-                    raise KeyError(f'Implementation {tech_name} for macro {name} '
-                        f'not found in library {lef_path}')
+            for name in lef_data['macros']:
+                width, height = lef_data['macros'][name]['size']
+                self.available_cells[name] = _MacroInfo(width, height)
 
-                self.available_cells[name] = _MacroInfo(tech_name, width, height)
+        tech_lef = schema_path(chip.get('pdk', 'aprtech', stackup, libtype, 'lef')[0])
+        with open(tech_lef, 'r') as f:
+            tech_lef_data = lef_parser.parse(f.read())
 
         # extract layers based on stackup
         stackup = self.chip.get('asic', 'stackup')
@@ -335,7 +329,7 @@ class Floorplan:
         for instance_name, cell_name in macros:
             macro = {
                 'name': instance_name,
-                'cell': self.available_cells[cell_name].tech_name,
+                'cell': cell_name,
                 'info': self.available_cells[cell_name],
                 'x': self.snap(x, self.std_cell_width) if snap else x,
                 'y': self.snap(y, self.std_cell_height) if snap else y,
