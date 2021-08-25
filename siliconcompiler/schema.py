@@ -2097,6 +2097,22 @@ def schema_eda(cfg):
         """
     }
 
+    # continue
+    cfg['eda'][tool][step][index]['persist'] = {
+        'switch': '-eda_persist',
+        'type': 'bool',
+        'lock': 'false',
+        'requirement': 'all',
+        'defvalue': 'false',
+        'short_help': "Don't exit on error if set",
+        'param_help': "eda toolvar stepvar woff <file>",
+        'example': ["cli: -eda_persist 'verilator import 0 true'",
+                    "api: chip.set('eda','verilator', 'import', '0', True)"],
+        'help': """
+        Directs tool to not exit on error.
+        """
+    }
+
     return cfg
 
 ###########################################################################
@@ -3293,7 +3309,7 @@ def schema_design(cfg):
         more than one module.
         """
     }
-    
+
     cfg['source'] = {
         'switch': 'None',
         'type': '[file]',
@@ -3767,8 +3783,8 @@ def schema_design(cfg):
         to exclude GDS information during GDS merge/export.
         """
     }
-    
-    
+
+
     return cfg
 
 ###########################
