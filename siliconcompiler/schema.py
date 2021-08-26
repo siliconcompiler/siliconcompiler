@@ -1522,7 +1522,7 @@ def schema_flowgraph(cfg, step='default'):
         'requirement': 'all',
         'defvalue': None,
         'short_help': 'Flowgraph step parallelism',
-        'example': ["cli: -flowgraph_nprocs 'cts 10'",
+        'example': ["cli: -flowgraph_nproc 'cts 10'",
                     "api:  chip.set('flowgraph','nproc,'cts','10')"],
         'help': """
         Integer specifying how many parallel processes to launch for step
@@ -1538,13 +1538,15 @@ def schema_flowgraph(cfg, step='default'):
         'switch': "-flowgraph_input 'step <str>'",
         'type': '[str]',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': [],
         'short_help': 'Flowgraph Step Input',
         'example': ["cli: -flowgraph_input 'cts place'",
                     "api:  chip.set('flowgraph','input,'cts','place')"],
         'help': """
-        List of input step dependancies for the current step.
+        List of input step dependancies for the current step. A step
+        with no dependancies (like 'import') should set the value to
+        'source'.
         """
     }
 
@@ -1574,7 +1576,7 @@ def schema_flowgraph(cfg, step='default'):
         'switch': "-flowgraph_weight 'step metric <float>'",
         'type': 'float',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all,',
         'defvalue': [],
         'short_help': 'Flowgraph Metric Weights',
         'example': ["cli: -flowgraph_weight 'cts area_cells 1.0'",
