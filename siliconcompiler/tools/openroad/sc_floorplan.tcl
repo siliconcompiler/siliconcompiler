@@ -52,10 +52,13 @@ if {[llength $sc_def] > 0} {
     #########################
     #Init Floorplan
     #########################
-    if {[dict exists $sc_cfg asic diesize] &&
-        [dict exists $sc_cfg asic coresize]} {
-        set sc_diesize     [dict get $sc_cfg asic diesize]
-        set sc_coresize    [dict get $sc_cfg asic coresize]
+    if {[dict exists $sc_cfg asic diearea] &&
+        [dict exists $sc_cfg asic corearea]} {
+	#NOTE: assuming a two tuple value as lower left, upper right
+        set sc_diearea   [dict get $sc_cfg asic diearea]
+        set sc_corearea  [dict get $sc_cfg asic corearea]
+	set sc_diesize   [regsub -all {[\,\)\(]} $sc_diearea ""]
+	set sc_coresize  [regsub -all {[\,\)\(]} $sc_corearea ""]
     } else {
         set sc_density [dict get $sc_cfg asic density]
         set sc_coremargin [dict get $sc_cfg asic coremargin]

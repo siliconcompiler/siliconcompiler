@@ -16,21 +16,21 @@ set openroad_cluster_size 30
 # Schema Adapter
 ###############################
 
-set tool openroad
-set sc_step       [dict get $sc_cfg arg step]
-set sc_index      [dict get $sc_cfg arg index]
+set sc_tool    openroad
+set sc_step    [dict get $sc_cfg arg step]
+set sc_index   [dict get $sc_cfg arg index]
 
-set openroad_place_density [lindex [dict get $sc_cfg eda openroad $sc_step $sc_index option place_density] 0]
-set openroad_pad_global_place [lindex [dict get $sc_cfg eda openroad $sc_step $sc_index option pad_global_place] 0]
-set openroad_pad_detail_place [lindex [dict get $sc_cfg eda openroad $sc_step $sc_index option pad_detail_place] 0]
-set openroad_macro_place_halo [dict get $sc_cfg eda openroad $sc_step $sc_index option macro_place_halo]
-set openroad_macro_place_channel [dict get $sc_cfg eda openroad $sc_step $sc_index option macro_place_channel]
+set openroad_place_density [lindex [dict get $sc_cfg eda option $sc_tool $sc_step $sc_index place_density] 0]
+set openroad_pad_global_place [lindex [dict get $sc_cfg eda option $sc_tool $sc_step $sc_index pad_global_place] 0]
+set openroad_pad_detail_place [lindex [dict get $sc_cfg eda option $sc_tool $sc_step $sc_index pad_detail_place] 0]
+set openroad_macro_place_halo [dict get $sc_cfg eda option $sc_tool $sc_step $sc_index macro_place_halo]
+set openroad_macro_place_channel [dict get $sc_cfg eda option $sc_tool $sc_step $sc_index macro_place_channel]
 
 #Handling remote/local script execution
-if {[dict get $sc_cfg eda $tool $sc_step $sc_index copy] eq True} {
+if {[dict get $sc_cfg eda copy $sc_tool $sc_step $sc_index] eq True} {
     set sc_refdir "."
 } else {
-    set sc_refdir [dict get $sc_cfg eda $tool $sc_step $sc_index refdir]
+    set sc_refdir [dict get $sc_cfg eda refdir $sc_tool $sc_step $sc_index]
 }
 
 # Design
@@ -47,8 +47,8 @@ set sc_hpinlayer   [dict get $sc_cfg asic hpinlayer]
 set sc_vpinlayer   [dict get $sc_cfg asic vpinlayer]
 set sc_hpinmetal   [dict get $sc_cfg pdk grid $sc_stackup $sc_hpinlayer name]
 set sc_vpinmetal   [dict get $sc_cfg pdk grid $sc_stackup $sc_vpinlayer name]
-set sc_rclayer     [dict get $sc_cfg asic rclayer]
-set sc_clklayer    [dict get $sc_cfg asic clklayer]
+set sc_rclayer     [dict get $sc_cfg asic rclayer data]
+set sc_clklayer    [dict get $sc_cfg asic rclayer clk]
 set sc_rcmetal     [dict get $sc_cfg pdk grid $sc_stackup $sc_rclayer name]
 set sc_clkmetal    [dict get $sc_cfg pdk grid $sc_stackup $sc_clklayer name]
 set sc_aspectratio [dict get $sc_cfg asic aspectratio]
@@ -88,7 +88,7 @@ dict for {key value} [dict get $sc_cfg pdk grid $sc_stackup] {
     lappend sc_layers $key
 }
 
-set sc_threads [dict get $sc_cfg eda openroad $sc_step $sc_index threads]
+set sc_threads [dict get $sc_cfg eda threads $sc_tool $sc_step $sc_index]
 
 ###############################
 # Optional
