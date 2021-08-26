@@ -753,7 +753,7 @@ class Chip:
                             chip.logger.error(f"Illegal list assignment to scalar for [{keypath}]")
                             chip.error = 1
                     else:
-                        chip.logger.info(f"Ignore set to [{keypath}], value already set. Use clobber option to override.")
+                        chip.logger.warning(f"Ignore set to [{keypath}], value already set. Use clobber option to override.")
                 elif (mode == 'add'):
                     if list_type & (not isinstance(val, list)):
                         cfg[param][field].append(str(val))
@@ -1078,24 +1078,32 @@ class Chip:
             cfg = chip.cfg
 
         chip.logger.info("Running check() for step '%s'", step)
-        empty = ("null",None,[])
+        emptylist = ("null",None,[])
 
         # Checking global requirements specified in schema.py
         allkeys = self.getkeys()
         for key in allkeys:
+            keypath = ",".join(key)
             if 'default' not in key:
                 requirement = self.get(*key, chip=chip, cfg=cfg, field='requirement')
                 value = self.get(*key, chip=chip, cfg=cfg)
                 defvalue = self.get(*key, chip=chip, cfg=cfg, field='defvalue')
-                if (defvalue in empty) & (value in empty) & (str(requirement) == 'all'):
+                value_empty = (defvalue in emptylist) & (value in emptylist)
+                if value_empty & (str(requirement) == 'all'):
                     chip.error = 1
-                    chip.logger.error("Global requirement missing. Keypath = [%s]",
-                                      ",".join(key))
-                elif (defvalue in empty) & (value in empty) & (str(requirement) == self.get('mode')):
+                    chip.logger.error(f"Global requirement missing for [{keypath}].")
+                elif value_empty & (str(requirement) == self.get('mode')):
                     chip.error = 1
-                    chip.logger.error("Mode requirement missing. Keypath = [%s]",
-                                      ",".join(key))
+                    chip.logger.error(f"Mode requirement missing for [{keypath}].")
+
+        # Checking flowgraph setup
+
+        # Checking setup of each tool
+
         # Checking mode based settings
+
+        # Runtime check of inputs being ready
+
         return self.error
 
     ###########################################################################
@@ -1216,10 +1224,10 @@ class Chip:
         chip.logger.debug('Calculating score for step %s, index %s', step, index)
 
         score = 0
-        for metric in self.getkeys('metric', 'default', index, 'default', chip=chip, cfg=cfg):
-            value = self.get('metric', step, index, 'real', metric, chip=chip, cfg=cfg)
-            if metric in self.getkeys('flowgraph', step, 'weight', chip=chip, cfg=cfg):
-                product = value * self.get('flowgraph', step, 'weight', metric, chip=chip, cfg=cfg)
+        for metric in self.getkeys('metric', chip=chip, cfg=cfg):
+            value = self.get('metric', metric, step, index, 'real', chip=chip, cfg=cfg)
+            if metric in self.getkeys('flowgraph', 'weight', step, chip=chip, cfg=cfg):
+                product = value * self.get('flowgraph', 'weight', step, metric, chip=chip, cfg=cfg)
             else:
                 product = value * 1.0
             score = score + product
@@ -1263,13 +1271,13 @@ class Chip:
         dot = graphviz.Digraph(format=fileformat)
         dot.attr(bgcolor='transparent')
         if graph == 'flowgraph':
-            for step in self.getkeys('flowgraph'):
-                if self.get('flowgraph', step, 'tool'):
-                    labelname = step+'\\n('+self.get('flowgraph', step, 'tool')+")"
+            for step in self.getkeys('flowgraph','tool'):
+                if self.get('flowgraph', 'tool', step):
+                    labelname = step+'\\n('+self.get('flowgraph', 'tool', step)+")"
                 else:
                     labelname = step
                 dot.node(step, label=labelname)
-                for prev_step in self.get('flowgraph', step, 'input'):
+                for prev_step in self.get('flowgraph', 'input', step):
                     dot.edge(prev_step, step)
         elif graph == 'hier':
             for parent in self.getkeys('hier'):
@@ -1494,7 +1502,7 @@ class Chip:
         for step in steplist:
             #Creating centered columns
             steps.append(step.center(colwidth))
-            for index in range(self.get('flowgraph', step, 'nproc')):
+            for index in range(self.get('flowgraph', 'nproc', step)):
                 metricsfile = "/".join([jobdir,
                                         step+str(index),
                                         "outputs",
@@ -1505,35 +1513,35 @@ class Chip:
                     sc_results = json.load(f)
 
                 #Copying over metric one at a time
-                for metric in  self.getkeys('metric', 'default', 'default', 'default'):
-                    value = self.get('metric', step, str(index), 'real', metric, cfg=sc_results)
-                    self.set('metric', step, str(index), 'real', metric, value)
+                for metric in  self.getkeys('metric'):
+                    value = self.get('metric', metric, step, str(index), 'real', cfg=sc_results)
+                    self.set('metric', metric, step, str(index), 'real', value)
 
 
         #Creating Header
         steps = []
         colwidth = 8
         for step in steplist:
-            for index in range(self.get('flowgraph', step, 'nproc')):
+            for index in range(self.get('flowgraph', 'nproc', step)):
                 stepstr = step + str(index)
                 steps.append(stepstr.center(colwidth))
 
         #Creating table of real values
         metrics = []
-        for metric in  self.getkeys('metric', 'default', 'default', 'default'):
+        for metric in  self.getkeys('metric'):
             metrics.append(" " + metric)
             row = []
             for step in steplist:
-                for index in range(self.get('flowgraph', step, 'nproc')):
+                for index in range(self.get('flowgraph', 'nproc', step)):
                     row.append(" " +
-                               str(self.get('metric', step, str(index), 'real', metric)).center(colwidth))
+                               str(self.get('metric', metric, step, str(index), 'real')).center(colwidth))
             data.append(row)
 
         #Creating goodness score for step
         metrics.append(" " + '**score**')
         row = []
         for step in steplist:
-            for index in range(self.get('flowgraph', step, 'nproc')):
+            for index in range(self.get('flowgraph', 'nproc', step)):
                 step_score = round(self.score(step, str(index)), 2)
                 row.append(" " + str(step_score).center(colwidth))
         data.append(row)
@@ -1560,8 +1568,8 @@ class Chip:
             cfg = chip.cfg
 
         outputs = []
-        for item in self.getkeys('flowgraph'):
-            if step in self.get('flowgraph', item, 'input', chip=chip, cfg=cfg):
+        for item in self.getkeys('flowgraph','tool'):
+            if step in self.get('flowgraph', 'input', item, chip=chip, cfg=cfg):
                 outputs.append(item)
 
         return outputs
@@ -1580,7 +1588,7 @@ class Chip:
 
         #Get length of paths from step to root
         depth = {}
-        for step in self.getkeys('flowgraph', chip=chip, cfg=cfg):
+        for step in self.getkeys('flowgraph', 'input', chip=chip, cfg=cfg):
             depth[step] = 0
             for path in self._allpaths(chip, cfg, step):
                 if len(list(path)) > depth[step]:
@@ -1588,7 +1596,6 @@ class Chip:
 
         #Sort steps based on path lenghts
         sorted_dict = dict(sorted(depth.items(), key=lambda depth: depth[1]))
-
         return list(sorted_dict.keys())
 
     ###########################################################################
@@ -1597,10 +1604,10 @@ class Chip:
         if path is None:
             allpaths = []
             path = []
-        if not self.get('flowgraph', node, 'input', chip=chip, cfg=cfg):
+        if 'source' in self.get('flowgraph', 'input', node, chip=chip, cfg=cfg):
             allpaths.append(path)
         else:
-            for nextnode in self.get('flowgraph', node, 'input', chip=chip, cfg=cfg):
+            for nextnode in self.get('flowgraph', 'input', node, chip=chip, cfg=cfg):
                 newpath = path.copy()
                 newpath.append(nextnode)
                 return self._allpaths(chip, cfg, nextnode, path=newpath, allpaths=allpaths)
@@ -1613,7 +1620,7 @@ class Chip:
         The operation can be an 'or' operation or 'min' operation.
         '''
 
-        steplist = self.get('flowgraph', step, 'input')
+        steplist = self.get('flowgraph', 'input', step)
         #TODO: Add logic for stepping through procs, steps and selecting
 
         index = 0
@@ -1627,24 +1634,25 @@ class Chip:
 
         self.logger.info('Step %s waiting on inputs', step)
         while True:
-
             # Checking that there are no pending jobs
             pending = 0
-            for input_step in self.get('flowgraph', step, 'input'):
-                for input_index in range(self.get('flowgraph', input_step, 'nproc')):
-                    input_str = input_step + str(input_index)
-                    pending = pending + active[input_str]
+            for input_step in self.get('flowgraph', 'input', step):
+                if input_step != 'source':
+                    for input_index in range(self.get('flowgraph', 'nproc', input_step)):
+                        input_str = input_step + str(input_index)
+                        pending = pending + active[input_str]
 
             # beak out of loop when no all inputs are done
             if not pending:
-                    break
+                break
             # Short sleep
             time.sleep(0.1)
 
         #Checking that there were no errors in previous steps
         halt = 0
-        for input_step in self.get('flowgraph', step, 'input'):
-                for input_index in range(self.get('flowgraph', input_step, 'nproc')):
+        for input_step in self.get('flowgraph', 'input', step):
+             if input_step != 'source':
+                for input_index in range(self.get('flowgraph', 'nproc', input_step)):
                     input_str = input_step + str(input_index)
                     halt = halt + error[input_str]
         if halt:
@@ -1673,7 +1681,7 @@ class Chip:
 
         # Copy files from previous step unless first step
         # Package/import step is special in that it has no inputs
-        if not self.get('flowgraph', step, 'input'):
+        if 'source' in self.get('flowgraph', 'input', step):
             self.collect(outdir='inputs')
         elif not self.get('remote', 'addr'):
             #select the previous step outputs to copy over
@@ -1683,7 +1691,7 @@ class Chip:
 
         # EDA dynamic module load
         try:
-            tool = self.get('flowgraph', step, 'tool')
+            tool = self.get('flowgraph', 'tool', step)
             searchdir = "siliconcompiler.tools." + tool
             modulename = '.'+tool+'_setup'
             module = importlib.import_module(modulename, package=searchdir)
@@ -1703,8 +1711,8 @@ class Chip:
 
         # Check Version if switch exists
         #if self.getkeys('eda', tool, step, str(index), 'vswitch'):
-        exe = self.get('eda', tool, step, index, 'exe')
-        veropt =self.get('eda', tool, step, index, 'vswitch')
+        exe = self.get('eda', 'exe', tool, step, index)
+        veropt =self.get('eda', 'vswitch', tool, step, index)
         if veropt!=None:
             cmdstr = f'{exe} {veropt} > {exe}.log'
             self.logger.info("Checking version of '%s' tool in step '%s'.", tool, step)
@@ -1722,18 +1730,18 @@ class Chip:
         self.hash(step)
 
         #Copy Reference Scripts
-        if self.get('eda', tool, step, index, 'copy'):
-            refdir = schema_path(self.get('eda', tool, step, index, 'refdir'))
-            shutil.copytree(refdir, ".", dirs_exist_ok=True)
+        if 'cmdline' not in self.get('eda', 'format', tool, step, index):
+            if self.get('eda', 'copy', tool, step, index):
+                refdir = schema_path(self.get('eda', 'refdir', tool, step, index))
+                shutil.copytree(refdir, ".", dirs_exist_ok=True)
 
         # Construct command line
-        exe = self.get('eda', tool, step, index, 'exe')
         logfile = exe + ".log"
-        options = self.get('eda', tool, step, index, 'option', 'cmdline')
+        options = self.get('eda', 'option', tool, step, index, 'cmdline')
 
         scripts = []
-        if 'script' in self.getkeys('eda', tool, step, index):
-            for value in self.get('eda', tool, step, index, 'script'):
+        if 'cmdline' not in self.get('eda', 'format', tool, step, index):
+            for value in self.get('eda', 'script', tool, step, index):
                 abspath = schema_path(value)
                 scripts.append(abspath)
 
@@ -1765,8 +1773,8 @@ class Chip:
         self.writecfg("sc_manifest.tcl", abspath=True)
 
         # Resetting metrics
-        for metric in self.getkeys('metric', 'default', 'default', 'default'):
-            self.set('metric', step, index, 'real', metric, 0)
+        for metric in self.getkeys('metric'):
+            self.set('metric', metric, step, index, 'real', 0)
 
         # Final check() before run
         if self.check(step):
@@ -1780,7 +1788,7 @@ class Chip:
         if cmd_error.returncode != 0:
             self.logger.error('Command failed. See log file %s', os.path.abspath(logfile))
             # Override exit code if set
-            if not elf.get('eda', tool, step, index, 'persist'):
+            if not self.get('eda', tool, step, index, 'continue'):
                 self._halt(step, index, error, active)
 
         # Post Process (and error checking)
@@ -1870,8 +1878,8 @@ class Chip:
             active = manager.dict()
 
             # Set all procs to active
-            for step in self.getkeys('flowgraph'):
-                for index in range(self.get('flowgraph', step, 'nproc')):
+            for step in self.getkeys('flowgraph','input'):
+                for index in range(self.get('flowgraph', 'nproc', step)):
                     stepstr = step + str(index)
                     error[stepstr] = 0
                     if step in steplist:
@@ -1882,7 +1890,7 @@ class Chip:
             # Create procs
             processes = []
             for step in steplist:
-                for index in range(self.get('flowgraph', step, 'nproc')):
+                for index in range(self.get('flowgraph', 'nproc', step)):
                     processes.append(multiprocessing.Process(target=self.runstep,
                                                              args=(step, str(index), active, error,)))
             # Start all procs
@@ -1893,8 +1901,8 @@ class Chip:
                 p.join()
 
             # Make a clean exit if a process failed
-            for step in self.getkeys('flowgraph'):
-                for index in range(self.get('flowgraph', step, 'nproc')):
+            for step in self.getkeys('flowgraph', 'input'):
+                for index in range(self.get('flowgraph', 'nproc', step)):
                     stepstr = step + str(index)
                     if  error[stepstr] > 0:
                         self.logger.error('Run() failed, exiting! See previous errors.')
@@ -1934,7 +1942,7 @@ class Chip:
             #error if trying to show file frmo out of tree
 
             #load settings for showtool
-            showtool = self.get('flowgraph', step, 'showtool')
+            showtool = self.get('flowgraph', 'showtool', step)
             searchdir = "siliconcompiler.tools." + showtool
             modulename = '.'+showtool+'_setup'
             module = importlib.import_module(modulename, package=searchdir)
