@@ -5,8 +5,9 @@ import math
 import jinja2
 from collections import namedtuple
 
-from siliconcompiler.leflib import Lef
-from siliconcompiler.schema_utils import schema_path
+import pylef
+
+from siliconcompiler.schema import schema_path
 
 # Set up Jinja
 env = jinja2.Environment(loader=jinja2.PackageLoader('siliconcompiler'),
@@ -116,7 +117,6 @@ class Floorplan:
         self.std_cell_height = self.chip.get('library', self.libname, 'height')
 
         # Extract data from LEFs
-        lef_parser = Lef()
         stackup = chip.get('asic', 'stackup')
         libtype = chip.get('library', self.libname, 'arch')
 
@@ -125,16 +125,15 @@ class Floorplan:
 
         for macrolib in self.chip.get('asic', 'macrolib'):
             lef_path = schema_path(self.chip.get('library', macrolib, 'lef')[0])
-            with open(lef_path, 'r') as f:
-                lef_data = lef_parser.lib_parse(f.read())
+            lef_data = pylef.parse(lef_path)
 
-            for name in lef_data['macros']:
-                width, height = lef_data['macros'][name]['size']
+            for name in lef_data.macros.keys():
+                width = lef_data.macros[name]['width']
+                height = lef_data.macros[name]['height']
                 self.available_cells[name] = _MacroInfo(width, height)
 
         tech_lef = schema_path(chip.get('pdk', 'aprtech', stackup, libtype, 'lef')[0])
-        with open(tech_lef, 'r') as f:
-            tech_lef_data = lef_parser.parse(f.read())
+        tech_lef_data = pylef.parse(tech_lef)
 
         # extract layers based on stackup
         stackup = self.chip.get('asic', 'stackup')
@@ -145,8 +144,8 @@ class Floorplan:
             ypitch = self.chip.get('pdk', 'grid', stackup, name, 'ypitch')
             xoffset = self.chip.get('pdk', 'grid', stackup, name, 'xoffset')
             yoffset = self.chip.get('pdk', 'grid', stackup, name, 'yoffset')
-            width = float(tech_lef_data['LAYER'][pdk_name]['WIDTH'][-1])
-            direction = tech_lef_data['LAYER'][pdk_name]['DIRECTION'][-1]
+            width = tech_lef_data.layers[pdk_name]['width']
+            direction = tech_lef_data.layers[pdk_name]['direction']
 
             self.layers[name] = {
                 'name': pdk_name,
