@@ -12,13 +12,13 @@ def make_fp():
     c.target('freepdk45_asicflow')
     lib = 'ram'
     c.add('asic', 'macrolib', lib)
-    c.add('library', lib, 'type', 'component')
+    c.set('library', lib, 'type', 'component')
     c.add('library', lib, 'lef', test_dir + '/test_floorplan/ram.lef')
 
     fp = Floorplan(c)
     cell_w = fp.std_cell_width
     cell_h = fp.std_cell_height
-    fp.create_die_area(72 * cell_h, 72 * cell_h, core_area=(8 * cell_h, 8 * cell_h, 64 * cell_h, 64 * cell_h))
+    fp.create_die_area([(0, 0), (72 * cell_h, 72 * cell_h)], core_area=[(8 * cell_h, 8 * cell_h), (64 * cell_h, 64 * cell_h)])
 
     n = 4 # pins per side
 
@@ -31,7 +31,7 @@ def make_fp():
 
     fp.place_macros([('myram', 'RAM')], 25 * cell_w, 25 * cell_h, 0, 0, 'N')
 
-    die_w, die_h = fp.die_area
+    die_w, die_h = fp.die_area[1]
 
     spacing_x = die_w / (n + 1)
     spacing_y = die_h / (n + 1)
@@ -97,7 +97,7 @@ def test_padring():
     die_w = 1200
     die_h = 1200
 
-    fp.create_die_area(die_w, die_h)
+    fp.create_die_area([(0, 0), (die_w, die_h)])
 
     io_h = fp.available_cells['CORNER'].height
 

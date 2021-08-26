@@ -159,7 +159,7 @@ class Floorplan:
                 'yoffset': yoffset
             }
 
-    def create_die_area(self, width, height, core_area=None, generate_rows=True,
+    def create_die_area(self, die_area, core_area=None, generate_rows=True,
                         generate_tracks=True):
         '''Initializes die.
 
@@ -168,25 +168,38 @@ class Floorplan:
         size already present in the chip config.
 
         Args:
-            width (float): Width of die in microns.
-            height (float): Height of die in microns.
-            core_area (tuple of float): The core cell area of the physical
-                design. This is provided as a tuple (x0 y0 x1 y1), where (x0,
-                y0), specifes the lower left corner of the block and (x1, y1)
-                specifies the upper right corner. If `None`, core_area is set to
-                be equivalent to the die area. Dimensions are specified in
-                microns.
+            die_area (list of (float, float)): List of points that form the die
+                area. Currently only allowed to provide two points, specifying
+                the two bounding corners of a rectangular die. Dimensions are
+                specified in microns.
+            core_area (list of (float, float)): List of points that form the
+                core area of the physical design. If `None`, core_area is set to
+                be equivalent to the die area. Currently only allowed to provide
+                two points, specifying the two bounding corners of a rectangular
+                area.  Dimensions are specified in microns.
             generate_rows (bool): Automatically generate rows to fill entire
                 core area.
             generate_tracks (bool): Automatically generate tracks to fill entire
                 core area.
         '''
+        if len(die_area) != 2:
+            raise ValueError('Non-rectangular floorplans not yet supported: '
+                             'die_area must be list of two tuples.')
+        if die_area[0] != (0, 0):
+            # TODO: not sure if this would be a problem, except need to figure
+            # out what a non-origin initial point would mean for the LEF output.
+            raise ValueError('Non-origin initial die area point not yet supported.')
+
         # store die_area as 2-tuple since bottom left corner is always 0,0
-        self.die_area = (width, height)
+        self.die_area = die_area
         if core_area == None:
-            self.core_area = (0, 0, width, height)
+            self.core_area = self.die_area
         else:
             self.core_area = core_area
+
+        if len(self.core_area) != 2:
+            raise ValueError('Non-rectangular core areas not yet supported: '
+                             'core_area must be list of two tuples.')
 
         if generate_rows:
             self.generate_rows()
@@ -467,10 +480,9 @@ class Floorplan:
         if area is None:
             area = self.core_area
 
-        start_x = area[0]
-        start_y = area[1]
-        core_width = area[2] - start_x
-        core_height = area[3] - start_y
+        start_x, start_y = area[0]
+        core_width = area[1][0] - start_x
+        core_height = area[1][1] - start_y
 
         num_rows = int(core_height / self.std_cell_height)
         num_x = core_width // self.std_cell_width
@@ -508,9 +520,10 @@ class Floorplan:
         self.tracks.clear()
 
         if area is None:
-            area = (0, 0, self.die_area[0], self.die_area[1])
+            area = self.die_area
 
-        start_x, start_y, die_width, die_height = area
+        start_x, start_y = area[0]
+        die_width, die_height = area[1]
 
         for layer in self.layers.values():
             layer_name = layer['name']
