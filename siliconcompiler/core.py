@@ -745,13 +745,15 @@ class Chip:
                         elif list_type & (not isinstance(val, list)):
                             cfg[param][field] = [str(val)]
                         elif list_type & isinstance(val, list):
-                            cfg[param][field] = val
+                            if re.search(r'\(', cfg[param]['type']):
+                                cfg[param][field] = list(map(str,val))
+                            else:
+                                cfg[param][field] = val
                         else:
                             chip.logger.error(f"Illegal list assignment to scalar for [{keypath}]")
                             chip.error = 1
                     else:
                         chip.logger.info(f"Ignore set to [{keypath}], value already set. Use clobber option to override.")
-
                 elif (mode == 'add'):
                     if list_type & (not isinstance(val, list)):
                         cfg[param][field].append(str(val))
@@ -780,13 +782,16 @@ class Chip:
                         selval =  cfg[param]['value']
                     #check for list
                     if bool(re.match(r'\[', cfg[param]['type'])):
+                        sctype = re.sub(r'[\[\]]', '', cfg[param]['type'])
                         return_list = []
                         for item in selval:
-                            if re.search('int', cfg[param]['type']):
+                            if sctype == 'int':
                                 return_list.append(int(item))
-                            elif re.search('float', cfg[param]['type']):
-                                print(item)
+                            elif sctype == 'float':
                                 return_list.append(float(item))
+                            elif sctype == '(float,float)':
+                                tuplestr = re.sub(r'[\(\)\s]','',item)
+                                return_list.append(tuple(map(float, tuplestr.split(','))))
                             else:
                                 return_list.append(item)
                         return return_list
@@ -800,6 +805,9 @@ class Chip:
                             scalar = float(selval)
                         elif cfg[param]['type'] == "bool":
                             scalar = (selval == 'true')
+                        elif re.match(r'\(', cfg[param]['type']):
+                            tuplestr = re.sub(r'[\(\)\s]','',selval)
+                            scalar = tuple(map(float, tuplestr.split(',')))
                         else:
                             scalar = selval
                         return scalar
