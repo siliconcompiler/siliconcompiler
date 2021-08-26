@@ -18,27 +18,27 @@ def setup_tool(chip, step, index):
 
     tool = 'yosys'
     refdir = 'siliconcompiler/tools/yosys'
-    chip.set('eda', tool, step, index, 'format', 'tcl')
-    chip.set('eda', tool, step, index, 'copy', 'true')
-    chip.set('eda', tool, step, index, 'vendor', 'yosys')
-    chip.set('eda', tool, step, index, 'exe', 'yosys')
-    chip.set('eda', tool, step, index, 'vswitch', '--version')
-    chip.set('eda', tool, step, index, 'version', '0.9+3672')
-    chip.set('eda', tool, step, index, 'option', 'cmdline', '-c')
-    chip.set('eda', tool, step, index, 'refdir', refdir)
-    chip.set('eda', tool, step, index, 'script', refdir + '/sc_syn.tcl')
+    chip.set('eda', 'format',  tool, step, index, 'tcl')
+    chip.set('eda', 'copy',    tool, step, index, 'true')
+    chip.set('eda', 'vendor',  tool, step, index, 'yosys')
+    chip.set('eda', 'exe',     tool, step, index, 'yosys')
+    chip.set('eda', 'vswitch', tool, step, index, '--version')
+    chip.set('eda', 'version', tool, step, index, '0.9+3672')
+    chip.set('eda', 'option',  tool, step, index, 'cmdline', '-c')
+    chip.set('eda', 'refdir',  tool, step, index, refdir)
+    chip.set('eda', 'script',  tool, step, index, refdir + '/sc_syn.tcl')
 
     #Input/output requirements
-    chip.add('eda', tool, step, index, 'input', chip.get('design') + '.v')
-    chip.add('eda', tool, step, index, 'output', chip.get('design') + '.v')
+    chip.add('eda', 'input', tool, step, index, chip.get('design') + '.v')
+    chip.add('eda', 'output', tool, step, index, chip.get('design') + '.v')
 
     #Schema requirements
-    chip.add('eda', tool, step, index, 'param', 'constraint')
     if chip.get('mode') == 'asic':
-        chip.add('eda', tool, step, index, 'param', ",".join(['pdk', 'process']))
-        chip.add('eda', tool, step, index, 'param', ",".join(['asic', 'targetlib']))
+        chip.add('eda', 'param', tool, step, index, ",".join(['pdk', 'process']))
+        chip.add('eda', 'param', tool, step, index, ",".join(['asic', 'targetlib']))
     else:
-        chip.add('eda', tool, step, index, 'param', ",".join(['fpga','partname']))
+        chip.add('eda', 'param', tool, step, index, 'constraint')
+        chip.add('eda', 'param', tool, step, index, ",".join(['fpga','partname']))
 
     #TODO: remove special treatment for fpga??
     if chip.get('target'):
@@ -101,7 +101,7 @@ if __name__ == "__main__":
     output = prefix + '.json'
 
     # create a chip instance
-    chip = siliconcompiler.Chip(defaults=False)
+    chip = siliconcompiler.Chip()
     # load configuration
     setup_tool(chip, step='syn', index='0')
     # write out results

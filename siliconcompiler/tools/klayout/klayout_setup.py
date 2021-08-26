@@ -14,19 +14,19 @@ def setup_tool(chip, step, index):
 
      tool = 'klayout'
      refdir = 'siliconcompiler/tools/klayout'
-     chip.set('eda', tool, step, index, 'threads', 4)
-     chip.set('eda', tool, step, index, 'format', 'json')
-     chip.set('eda', tool, step, index, 'copy', 'true')
-     chip.set('eda', tool, step, index, 'vendor', 'klayout')
-     chip.set('eda', tool, step, index, 'exe', 'klayout')
-     chip.set('eda', tool, step, index, 'vswitch', '-zz -v')
-     chip.set('eda', tool, step, index, 'version', '0.26.10')
-     chip.set('eda', tool, step, index, 'refdir', refdir)
+     chip.set('eda', 'exe',     tool, step, index, 'klayout')
+     chip.set('eda', 'format',  tool, step, index, 'json')
+     chip.set('eda', 'copy',    tool, step, index, 'true')
+     chip.set('eda', 'vendor',  tool, step, index, 'klayout')
+     chip.set('eda', 'vswitch', tool, step, index, '-zz -v')
+     chip.set('eda', 'version', tool, step, index, '0.26.10')
+     chip.set('eda', 'refdir',  tool, step, index, refdir)
 
      if step == 'gdsview':
-          chip.set('eda', tool, step, index, 'option', 'cmdline', '-nn')
+          chip.set('eda', 'option', tool, step, index, 'cmdline', '-nn')
      elif step == 'export':
-          chip.set('eda', tool, step, index, 'option', 'cmdline', '-zz')
+          chip.set('eda', 'option', tool, step, index, 'cmdline', '-zz')
+
 
      scriptdir = os.path.dirname(os.path.abspath(__file__))
      sc_root   =  re.sub('siliconcompiler/siliconcompiler/tools/klayout',
@@ -35,6 +35,7 @@ def setup_tool(chip, step, index):
      sc_path = sc_root + '/third_party/foundry'
 
      # TODO: should support multiple target libs?
+
      libname = chip.get('asic', 'targetlib')[0]
      pdk_rev = chip.get('pdk', 'version')
      lib_rev = chip.get('library', libname, 'version')
@@ -100,7 +101,7 @@ def setup_tool(chip, step, index):
           options.append('-r')
           options.append('klayout_export.py')
           #add all options to dictionary
-          chip.add('eda', tool, step, index, 'option', 'cmdline', options)
+          chip.add('eda', 'option', tool, step, index, 'cmdline', options)
 
 
 def post_process(chip, step, index):
@@ -124,7 +125,8 @@ if __name__ == "__main__":
     output = prefix + '.json'
 
     # create a chip instance
-    chip = siliconcompiler.Chip(defaults=False)
+    chip = siliconcompiler.Chip()
+    chip.target("freepdk45_asicflow")
     # load configuration
     setup_tool(chip, step='export', index='0')
     # write out results

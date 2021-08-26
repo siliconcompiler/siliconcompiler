@@ -19,47 +19,46 @@ def setup_tool(chip, step, index):
     # Standard Setup
     tool = 'verilator'
     refdir = 'siliconcompiler/tools/verilator'
-    chip.set('eda', tool, step, index, 'format', 'cmdline')
-    chip.set('eda', tool, step, index, 'copy', 'false')
-    chip.set('eda', tool, step, index, 'exe', 'verilator')
-    chip.set('eda', tool, step, index, 'vswitch', '--version')
-    chip.set('eda', tool, step, index, 'version', '4.211')
-    chip.set('eda', tool, step, index, 'vendor', 'verilator')
-    chip.set('eda', tool, step, index, 'refdir', refdir)
-    chip.set('eda', tool, step, index, 'threads', 4)
+    chip.set('eda', 'format',  tool, step, index, 'cmdline')
+    chip.set('eda', 'exe',     tool, step, index, 'verilator')
+    chip.set('eda', 'vswitch', tool, step, index, '--version')
+    chip.set('eda', 'version', tool, step, index, '4.211')
+    chip.set('eda', 'vendor',  tool, step, index, 'verilator')
+    chip.set('eda', 'refdir',  tool, step, index, refdir)
+    chip.set('eda', 'threads', tool, step, index, 4)
 
     # Options driven on a per step basis (use 'set' on first call!)
-    chip.set('eda', tool, step, index, 'option', 'cmdline', '-sv')
+    chip.set('eda', 'option', tool, step, index, 'cmdline', '-sv')
 
     # Differentiate between import step and compilation
     if step in ['import', 'lint']:
-        chip.add('eda', tool, step, index, 'option', 'cmdline', '--lint-only --debug')
+        chip.add('eda', 'option', tool, step, index, 'cmdline', '--lint-only --debug')
     elif (step == 'sim'):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', '--cc')
+        chip.add('eda', 'option', tool, step, index, 'cmdline', '--cc')
     else:
         chip.logger.error('Step %s not supported for verilator', step)
         sys.exit()
 
     #Include cwd in search path (verilator default)
-    chip.add('eda', tool, step, index, 'option', 'cmdline', '-I../../../')
+    chip.add('eda', 'option', tool, step, index, 'cmdline', '-I../../../')
 
     #Source Level Controls
     for value in chip.get('ydir'):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', '-y ' + schema_path(value))
+        chip.add('eda', 'option', tool, step, index, 'cmdline', '-y ' + schema_path(value))
     for value in chip.get('vlib'):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', '-v ' + schema_path(value))
+        chip.add('eda', 'option', tool, step, index, 'cmdline', '-v ' + schema_path(value))
     for value in chip.get('idir'):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', '-I' + schema_path(value))
+        chip.add('eda', 'option', tool, step, index, 'cmdline', '-I' + schema_path(value))
     for value in chip.get('define'):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', '-D' + schema_path(value))
+        chip.add('eda', 'option', tool, step, index, 'cmdline', '-D' + schema_path(value))
     for value in chip.get('cmdfile'):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', '-f ' + schema_path(value))
+        chip.add('eda', 'option', tool, step, index, 'cmdline', '-f ' + schema_path(value))
     for value in chip.get('source'):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', schema_path(value))
+        chip.add('eda', 'option', tool, step, index, 'cmdline', schema_path(value))
 
     #Make warnings non-fatal in relaxed mode
     if chip.get('relax'):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', '-Wno-fatal')
+        chip.add('eda', 'option', tool, step, index, 'cmdline', '-Wno-fatal')
 
 ################################
 # Post_process (post executable)
@@ -113,7 +112,7 @@ if __name__ == "__main__":
     output = prefix + '.json'
 
     # create a chip instance
-    chip = siliconcompiler.Chip(defaults=False)
+    chip = siliconcompiler.Chip()
     # load configuration
     setup_tool(chip, step='import', index='0')
     # write out results
