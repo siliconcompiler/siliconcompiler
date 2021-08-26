@@ -3,7 +3,7 @@ DIVIDERCHAR "/" ;
 BUSBITCHARS "[]" ;
 DESIGN {{ fp.design }} ;
 UNITS DISTANCE MICRONS {{ fp.db_units }} ;
-DIEAREA ( 0 0 ) ( {{ fp.die_area[0] | scale }} {{ fp.die_area[1] | scale }} ) ;
+DIEAREA {{ fp.die_area | map('scale') | map('render_tuple') | join(' ') }} ;
 
 {% for row in fp.rows %}
 ROW {{ row.name }} {{ row.site }} {{ row.x | scale }} {{ row.y | scale }} {{ row.orientation }}
