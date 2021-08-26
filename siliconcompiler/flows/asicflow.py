@@ -67,10 +67,15 @@ def setup_flow(chip, process):
 
     # Setting up flowgraph
     for i, step in enumerate(flowpipe):
-        chip.set('flowgraph', flowpipe[i], 'mergeop', 'min')
+        chip.set('flowgraph', 'mergeop', flowpipe[i], 'min')
+        chip.set('flowgraph', 'nproc', flowpipe[i], 1)
+        for metric in chip.getkeys('metric'):
+            chip.set('flowgraph', 'weight', flowpipe[i], metric, 1.0)
         #TODO: Set up metrics
         if i > 0:
-            chip.add('flowgraph', flowpipe[i], 'input', flowpipe[i-1])
+            chip.add('flowgraph', 'input', flowpipe[i], flowpipe[i-1])
+        else:
+            chip.set('flowgraph', 'input', flowpipe[i], 'source')
 
     # Per step tool selection
     for step in flowpipe:
@@ -97,9 +102,9 @@ def setup_flow(chip, process):
         else:
             tool = 'openroad'
             showtool = 'openroad'
-        chip.set('flowgraph', step, 'tool', tool)
+        chip.set('flowgraph', 'tool', step, tool)
         if showtool:
-            chip.set('flowgraph', step, 'showtool', showtool)
+            chip.set('flowgraph', 'showtool', step, showtool)
 
 ##################################################
 if __name__ == "__main__":
@@ -109,9 +114,9 @@ if __name__ == "__main__":
     output = prefix + '.json'
 
     # create a chip instance
-    chip = siliconcompiler.Chip(defaults=False)
+    chip = siliconcompiler.Chip()
     # load configuration
     setup_flow(chip, "freepdk45")
     # write out results
     chip.writecfg(output)
-    chip.write_flowgraph(prefix + ".svg")
+    #chip.write_flowgraph(prefix + ".svg")
