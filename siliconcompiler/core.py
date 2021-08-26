@@ -23,14 +23,8 @@ import yaml
 import graphviz
 import pyfiglet
 
-from siliconcompiler.schema import schema_path
-from siliconcompiler.schema import schema_cfg
-from siliconcompiler.schema import schema_typecheck
-from siliconcompiler.schema import schema_reorder
-from siliconcompiler.client import client_decrypt
-from siliconcompiler.client import fetch_results
-from siliconcompiler.client import remote_preprocess
-from siliconcompiler.client import remote_run
+from siliconcompiler.schema import *
+from siliconcompiler.client import *
 
 class Chip:
     """
@@ -294,7 +288,7 @@ class Chip:
                 if re.match(r'\[', typestr):
                     self.add(*args)
                 else:
-                    self.set(*args)
+                    self.set(*args, clobber=True)
 
     ###########################################################################
     def target(self, arg=None, libs=True, methodology=True):
@@ -511,14 +505,13 @@ class Chip:
         if cfg is None:
             cfg = chip.cfg
 
-        keypath = ','.join(args[:-1])
-        chip.logger.debug('Reading config dictionary. Keypath = [%s]',
-                          keypath)
+        keypath = ','.join(args)
+        if(field != 'value'):
+            fieldstr = "Field = " + field
+        else:
+            fieldstr = ""
+        chip.logger.debug(f"Reading from [{keypath}]. Field = '{field}'")
 
-        keys = list(args)
-        for k in keys:
-            if isinstance(k, list):
-                chip.logger.error("Illegal format. Args cannot be lists. Keys=%s", k)
         return self._search(chip, cfg, keypath, *args, field=field, mode='get')
 
     ###########################################################################
@@ -606,9 +599,7 @@ class Chip:
 
         keypath = ','.join(args[:-1])
 
-        chip.logger.debug('Setting value in config dictionary. Keypath = [%s] Value =%s',
-                          keypath,
-                          args[-1])
+        chip.logger.debug(f"Setting [{keypath}] to {args[-1]}")
 
         all_args = list(args)
 
@@ -708,6 +699,7 @@ class Chip:
         param = all_args[0]
         val = all_args[-1]
         empty = [None, 'null', [], 'false']
+
         # Return early if setting a value to 'None'. The reason for this is that
         # str(None) == 'None', not None. So when we call .add or .set with None
         # as a value, it gets saved in the dictionary as a string, causing bugs.
@@ -786,13 +778,14 @@ class Chip:
                         selval = cfg[param]['defvalue']
                     else:
                         selval =  cfg[param]['value']
-                    #check for list/vs scalar
+                    #check for list
                     if bool(re.match(r'\[', cfg[param]['type'])):
                         return_list = []
                         for item in selval:
                             if re.search('int', cfg[param]['type']):
                                 return_list.append(int(item))
                             elif re.search('float', cfg[param]['type']):
+                                print(item)
                                 return_list.append(float(item))
                             else:
                                 return_list.append(item)
@@ -1095,9 +1088,6 @@ class Chip:
                     chip.logger.error("Mode requirement missing. Keypath = [%s]",
                                       ",".join(key))
         # Checking mode based settings
-
-
-
         return self.error
 
     ###########################################################################
