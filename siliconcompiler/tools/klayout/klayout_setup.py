@@ -14,13 +14,15 @@ def setup_tool(chip, step, index):
 
      tool = 'klayout'
      refdir = 'siliconcompiler/tools/klayout'
+
      chip.set('eda', 'exe',     tool, step, index, 'klayout')
      chip.set('eda', 'format',  tool, step, index, 'json')
      chip.set('eda', 'copy',    tool, step, index, 'true')
+     chip.set('eda', 'refdir',  tool, step, index, refdir)
+     chip.set('eda', 'script',  tool, step, index, refdir + '/klayout_export.py')
      chip.set('eda', 'vendor',  tool, step, index, 'klayout')
      chip.set('eda', 'vswitch', tool, step, index, '-zz -v')
      chip.set('eda', 'version', tool, step, index, '0.26.10')
-     chip.set('eda', 'refdir',  tool, step, index, refdir)
 
      if step == 'gdsview':
           chip.set('eda', 'option', tool, step, index, 'cmdline', '-nn')

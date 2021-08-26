@@ -134,7 +134,7 @@ def post_process(chip, step, index):
      errors = 0
      warnings = 0
      metric = None
-     exe = chip.get('eda', tool, step, index, 'exe')
+     exe = chip.get('eda', 'exe', tool, step, index)
      design = chip.get('design')
      with open(exe + ".log") as f:
           for line in f:
@@ -154,26 +154,26 @@ def post_process(chip, step, index):
                elif warnmatch:
                    warnings = warnings +1
                elif area:
-                   chip.set('metric', step, index, 'real', 'area_cells', round(float(area.group(1)),2))
+                   chip.set('metric', 'area_cells',  step, index, 'real', round(float(area.group(1)),2), clobber=True)
                elif tns:
-                   chip.set('metric', step, index, 'real', 'setup_tns', round(float(tns.group(1)),2))
+                   chip.set('metric', 'setup_tns',  step, index, 'real', round(float(tns.group(1)),2), clobber=True)
                elif wirelength:
-                   chip.set('metric', step, index, 'real', 'wirelength', round(float(wirelength.group(1)),2))
+                   chip.set('metric', 'wirelength',  step, index, 'real', round(float(wirelength.group(1)),2), clobber=True)
                elif vias:
-                   chip.set('metric', step, index, 'real', 'vias', int(vias.group(1)))
+                   chip.set('metric', 'vias',  step, index, 'real', int(vias.group(1)), clobber=True)
                elif slack:
-                   chip.set('metric', step, index, 'real', metric, round(float(slack.group(1)),2))
+                   chip.set('metric', metric, step, index, 'real', round(float(slack.group(1)),2), clobber=True)
                elif metric == "power":
                    if power:
                        powerlist = power.group(1).split()
                        leakage = powerlist[2]
                        total = powerlist[3]
-                       chip.set('metric', step, index, 'real', 'power_total', float(total))
-                       chip.set('metric', step, index, 'real', 'power_leakage',  float(leakage))
+                       chip.set('metric', 'power_total', step, index, 'real',  float(total), clobber=True)
+                       chip.set('metric', 'power_leakage', step, index, 'real', float(leakage), clobber=True)
 
      #Setting Warnings and Errors
-     chip.set('metric', step, index, 'real', 'errors', errors)
-     chip.set('metric', step, index, 'real', 'warnings', warnings)
+     chip.set('metric', 'errors', step, index, 'real',  errors , clobber=True)
+     chip.set('metric', 'warnings', step, index, 'real', warnings, clobber=True)
 
      #Temporary superhack!rm
      #Getting cell count and net number from DEF
@@ -184,11 +184,11 @@ def post_process(chip, step, index):
                     nets = re.search(r'^NETS (\d+)',line)
                     pins = re.search(r'^PINS (\d+)',line)
                     if cells:
-                         chip.set('metric', step, index, 'real', 'cells', int(cells.group(1)))
+                         chip.set('metric', 'cells', step, index, 'real', int(cells.group(1)), clobber=True)
                     elif nets:
-                         chip.set('metric', step, index, 'real', 'nets', int(nets.group(1)))
+                         chip.set('metric', 'nets', step, index, 'real', int(nets.group(1)), clobber=True)
                     elif pins:
-                         chip.set('metric', step, index, 'real', 'pins', int(pins.group(1)))
+                         chip.set('metric', 'pins', step, index, 'real', int(pins.group(1)), clobber=True)
 
      if step == 'sta':
           # Copy along GDS for verification steps that rely on it

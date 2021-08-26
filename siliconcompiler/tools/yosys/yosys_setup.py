@@ -76,7 +76,7 @@ def post_process(chip, step, index):
     ''' Tool specific function to run after step execution
     '''
     tool = 'yosys'
-    exe = chip.get('eda',tool, step, index, 'exe')
+    exe = chip.get('eda', 'exe', tool, step, index)
     with open(exe + ".log") as f:
         for line in f:
             area = re.search(r'Chip area for module.*\:\s+(.*)', line)
@@ -84,11 +84,11 @@ def post_process(chip, step, index):
             warnings = re.search(r'Warnings.*\s(\d+)\s+total', line)
 
             if area:
-                chip.set('metric', step, index, 'real', 'area_cells', round(float(area.group(1)),2))
+                chip.set('metric', 'area_cells', step, index, 'real', round(float(area.group(1)),2), clobber=True)
             elif cells:
-                chip.set('metric', step, index, 'real', 'cells', int(cells.group(1)))
+                chip.set('metric', 'cells', step, index, 'real', int(cells.group(1)), clobber=True)
             elif warnings:
-                chip.set('metric', step, index, 'real', 'warnings', int(warnings.group(1)))
+                chip.set('metric', 'warnings', step, index, 'real', int(warnings.group(1)), clobber=True)
 
     #Return 0 if successful
     return 0
