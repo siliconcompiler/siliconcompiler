@@ -4,8 +4,7 @@ import siliconcompiler
 import re
 
 def main():
-    chip = siliconcompiler.Chip(loglevel="DEBUG")
-
+    chip = siliconcompiler.Chip(loglevel="INFO")
     error = 0
 
     allkeys = chip.getkeys()
@@ -18,7 +17,9 @@ def main():
             tuplematch = re.match(r'(.*?),\((.*,.*)\)', argstring)
             if tuplematch:
                 keypath = tuplematch.group(1).split(',')
-                value = tuplematch.group(2)
+                value = tuple(map(float, tuplematch.group(2).split(',')))
+                if re.match(r'\[',sctype):
+                    value = [value]
                 args =  keypath + [value]
             else:
                 keypath =  argstring.split(',')[:-1]
@@ -35,12 +36,13 @@ def main():
             chip.set(*args, clobber=True)
             result = chip.get(*keypath)
             if result != value:
+                error = 1
                 print(f"ERROR: expected = {value} result = {result} keypath={keypath}")
-                sys.exit(1)
         else:
             print("ERROR: illegal example")
             error = 1
 
+    chip.writecfg('allvals.json')
 
     if error:
         print("FAIL")
