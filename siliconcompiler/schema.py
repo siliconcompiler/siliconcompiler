@@ -56,136 +56,6 @@ def schema_cfg():
     return cfg
 
 ###############################################################################
-# UTILITY FUNCTIONS TIED TO SC SPECIFICATIONS
-###############################################################################
-
-def schema_path(filename):
-    ''' Resolves file paths using SCPATH and resolve environment variables
-    starting with $
-    '''
-
-    if filename==None:
-        return None
-
-    #Resolve absolute path usign SCPATH
-    #list is read left to right
-    scpaths = str(os.environ['SCPATH']).split(':')
-    for searchdir in scpaths:
-        abspath = searchdir + "/" + filename
-        if os.path.exists(abspath):
-            filename = abspath
-            break
-    #Replace $ Variables
-    varmatch = re.match(r'^\$(\w+)(.*)', filename)
-    if varmatch:
-        var = varmatch.group(1)
-        varpath = os.getenv(var)
-        if varpath is None:
-            print("ERROR: Missing environment variable:", var)
-            sys.exit()
-            relpath = varmatch.group(2)
-            filename = varpath + relpath
-
-    return filename
-
-def schema_typecheck(chip, cfg, leafkey, value):
-    ''' Schema type checking
-    '''
-
-    # Check that value is list when type is scalar
-    ok = True
-    valuetype = type(value)
-    if (not re.match(r'\[',cfg['type'])) & (valuetype==list):
-        errormsg = "Value must be scalar."
-        ok = False
-        # Iterate over list
-    else:
-        # Create list for iteration
-        if valuetype == list:
-            valuelist = value
-        else:
-            valuelist = [value]
-            # Make type python compatible
-        cfgtype = re.sub(r'[\[\]]', '', cfg['type'])
-        for item in valuelist:
-            valuetype =  type(item)
-            if (cfgtype != valuetype.__name__):
-                tupletype = re.match(r'\([\w\,]+\)',cfgtype)
-                #TODO: check tuples!
-                if tupletype:
-                    pass
-                elif cfgtype == 'bool':
-                    if not item in ['true', 'false']:
-                        errormsg = "Valid boolean values are True/False/'true'/'false'"
-                        ok = False
-                elif cfgtype == 'file':
-                    pass
-                elif cfgtype == 'dir':
-                    pass
-                elif (cfgtype == 'float'):
-                    try:
-                        float(item)
-                    except:
-                        errormsg = "Type mismatch. Cannot cast item to float."
-                        ok = False
-                elif (cfgtype == 'int'):
-                    try:
-                        int(item)
-                    except:
-                        errormsg = "Type mismatch. Cannot cast item to int."
-                        ok = False
-                else:
-                    errormsg = "Type mismach."
-                    ok = False
-    # Logger message
-    if not ok:
-        if type(value) == list:
-            printvalue = ','.join(map(str, value))
-        else:
-            printvalue = str(value)
-        errormsg = (errormsg +
-                    " Key=" + str(leafkey) +
-                    ", Expected Type=" + cfg['type'] +
-                    ", Entered Type=" + valuetype.__name__ +
-                    ", Value=" + printvalue)
-        chip.logger.error("%s", errormsg)
-
-    return ok
-
-
-def schema_reorder(param_help, item):
-    ''' Returns a keylist used to access the dictionary based on the
-    cmdline switch argument and the param_help field.
-    '''
-    #Split param help into keys and data based in <>
-    m = re.search('(.*?)(<.*)', param_help)
-    paramlist = m.group(1).split()
-    datalist = m.group(2).split()
-    itemlist = item.split()
-
-    depth = len(paramlist)+1
-    args = [None] * depth
-
-    #Combine keys from param_help and cmdline field
-    j = 0
-    for i in range(depth-1):
-        if paramlist[i].endswith('var'):
-            args[i] = itemlist[j]
-            j = j + 1
-        else:
-            args[i] = paramlist[i]
-
-    #Insert data field as last entry (some are string tuples)
-    #ugly, not planning a lot these, keep for now...
-    if re.search('float float float float', param_help):
-        args[-1] = ' '.join(map(str, itemlist))
-    else:
-        args[-1] = itemlist[-1]
-
-    return args
-
-
-###############################################################################
 # FPGA
 ###############################################################################
 
@@ -908,12 +778,12 @@ def schema_pdk(cfg):
 # Library Configuration
 ###############################################################################
 
-def schema_libs(cfg, lib='default'):
+def schema_libs(cfg, lib='default', corner='default'):
 
     cfg['library'] = {}
-    cfg['library'][lib] = {}
 
-    cfg['library'][lib]['type'] = {
+    cfg['library']['type'] = {}
+    cfg['library']['type'][lib] = {
         'switch': "-library_type 'lib <str>'",
         'requirement': None,
         'type': 'str',
@@ -921,7 +791,7 @@ def schema_libs(cfg, lib='default'):
         'defvalue': None,
         'short_help': 'Library Type',
         'example': ["cli: -library_type 'mylib stdcell'",
-                    "api: chip.set('library', 'mylib', 'type', 'stdcell')"],
+                    "api: chip.set('library','type','mylib','stdcell')"],
         'help': """
         String specifying the library type. A 'stdcell' type is reserved
         for fixed height stadnard cell libraries used for synthesis and
@@ -929,9 +799,9 @@ def schema_libs(cfg, lib='default'):
         """
     }
 
-
-    cfg['library'][lib]['testbench'] = {}
-    cfg['library'][lib]['testbench']['default'] = {
+    cfg['library']['testbench'] = {}
+    cfg['library']['testbench'][lib] = {}
+    cfg['library']['testbench'][lib]['default'] = {
         'switch': "-library_testbench 'lib simtype <file>'",
         'requirement': None,
         'type': '[file]',
@@ -943,15 +813,17 @@ def schema_libs(cfg, lib='default'):
         'author': [],
         'signature': [],
         'short_help': 'Library Testbench',
-        'example': ["cli: -library_testbench 'mylib verilog ./mylib_tb.v'",
-                    "api: chip.set('library', 'mylib', 'testbench', 'verilog, '/mylib_tb.v')"],
+        'example': [
+            "cli: -library_testbench 'mylib verilog ./mylib_tb.v'",
+            "api: chip.set('library','testbench','mylib','verilog,'/mylib_tb.v')"],
         'help': """
         Path to testbench specified based on a per library and per
         simluation type basis. Typical simulation types include verilog, spice.
         """
     }
 
-    cfg['library'][lib]['version'] = {
+    cfg['library']['version'] = {}
+    cfg['library']['version'][lib] = {
         'switch': "-library_version 'lib <str>'",
         'requirement': None,
         'type': 'str',
@@ -959,7 +831,7 @@ def schema_libs(cfg, lib='default'):
         'defvalue': None,
         'short_help': 'Library Version',
         'example': ["cli: -library_version 'mylib 1.0'",
-                    "api: chip.set('library','mylib','version','1.0')"],
+                    "api: chip.set('library','version','mylib','1.0')"],
         'help': """
         String specifying version on a per library basis. Verification of
         correct PDK and IP versions is an ASIC tapeout requirement in all
@@ -967,7 +839,8 @@ def schema_libs(cfg, lib='default'):
         """
     }
 
-    cfg['library'][lib]['origin'] = {
+    cfg['library']['origin'] = {}
+    cfg['library']['origin'][lib] = {
         'switch': "-library_origin 'lib <str>'",
         'requirement': None,
         'type': 'str',
@@ -975,13 +848,14 @@ def schema_libs(cfg, lib='default'):
         'defvalue': None,
         'short_help': 'Library Origin',
         'example': ["cli: -library_origin 'mylib US'",
-                    "api: chip.set('library','mylib','origin','US')"],
+                    "api: chip.set('library','origin', 'mylib','US')"],
         'help': """
         String specifying library country of origin.
         """
     }
 
-    cfg['library'][lib]['license'] = {
+    cfg['library']['license'] = {}
+    cfg['library']['license'][lib] = {
         'switch': "-library_license 'lib <file>'",
         'requirement': None,
         'type': '[file]',
@@ -993,14 +867,16 @@ def schema_libs(cfg, lib='default'):
         'author': [],
         'signature': [],
         'short_help': 'Library License File',
-        'example': ["cli: -library_license 'mylib ./LICENSE'",
-                    "api: chip.set('library','mylib','license','./LICENSE')"],
+        'example': [
+            "cli: -library_license 'mylib ./LICENSE'",
+            "api: chip.set('library','license','mylib','./LICENSE')"],
         'help': """
         Filepath to library license
         """
     }
 
-    cfg['library'][lib]['doc'] = {
+    cfg['library']['doc'] = {}
+    cfg['library']['doc'][lib] = {
         'switch': "-library_doc 'lib <file>'",
         'requirement': None,
         'type': '[file]',
@@ -1013,7 +889,7 @@ def schema_libs(cfg, lib='default'):
         'signature': [],
         'short_help': 'Library Documentation',
         'example': ["cli: -library_doc 'lib lib_guide.pdf'",
-                    "api: chip.set('library','lib','doc','lib_guide.pdf')"],
+                    "api: chip.set('library','doc,'lib','lib_guide.pdf')"],
         'help': """
         A list of critical library documents entered in order of importance.
         The first item in thelist should be the primary library user guide.
@@ -1022,7 +898,8 @@ def schema_libs(cfg, lib='default'):
         """
     }
 
-    cfg['library'][lib]['datasheet'] = {
+    cfg['library']['datasheet'] = {}
+    cfg['library']['datasheet'][lib] = {
         'switch': "-library_datasheet 'lib <file>'",
         'requirement': None,
         'type': '[file]',
@@ -1036,7 +913,7 @@ def schema_libs(cfg, lib='default'):
         'short_help': 'Library Datasheets',
         'example': [
             "cli: -library_datasheet 'lib lib_ds.pdf'",
-            "api: chip.set('library','lib','datasheet','lib_ds.pdf')"],
+            "api: chip.set('library','datasheet','lib','lib_ds.pdf')"],
         'help': """
         A complete collection of library datasheets. The documentation can be
         provied as a PDF or as a filepath to a directory with one HTMl file
@@ -1045,7 +922,8 @@ def schema_libs(cfg, lib='default'):
         """
     }
 
-    cfg['library'][lib]['arch'] = {
+    cfg['library']['arch'] = {}
+    cfg['library']['arch'][lib] = {
         'switch': "-library_arch 'lib <str>'",
         'requirement': None,
         'type': 'str',
@@ -1054,7 +932,7 @@ def schema_libs(cfg, lib='default'):
         'short_help': 'Library Type',
         'example': [
             "cli: -library_arch 'mylib 12t'",
-            "api: chip.set('library','mylib','arch', '12t')"],
+            "api: chip.set('library','arch,'mylib','12t')"],
         'help': """
         A unique string that identifies the row height or performance
         class of the library for APR. The arch must match up with the name
@@ -1063,8 +941,8 @@ def schema_libs(cfg, lib='default'):
         6 track libraries, 9 track libraries, 10 track libraries, etc.
         """
     }
-
-    cfg['library'][lib]['width'] = {
+    cfg['library']['width'] = {}
+    cfg['library']['width'][lib] = {
         'switch': "-library_width 'lib <float>'",
         'requirement': None,
         'type': 'float',
@@ -1072,7 +950,7 @@ def schema_libs(cfg, lib='default'):
         'defvalue': None,
         'short_help': 'Library Width',
         'example': ["cli: -library_width 'mylib 0.1'",
-                    "api: chip.set('library','mylib','width', '0.1')"],
+                    "api: chip.set('library','width','mylib','0.1')"],
 
         'help': """
         Specifies the width of a unit cell. The value can usually be
@@ -1080,8 +958,8 @@ def schema_libs(cfg, lib='default'):
         schema to simplify the process of creating parametrized floorplans.
         """
     }
-
-    cfg['library'][lib]['height'] = {
+    cfg['library']['height'] = {}
+    cfg['library']['height'][lib] = {
         'switch': "-library_height 'lib <float>'",
         'requirement': None,
         'type': 'float',
@@ -1102,20 +980,19 @@ def schema_libs(cfg, lib='default'):
     #Models (Timing, Power, Noise)
     ###############################
 
-    cfg['library'][lib]['model'] = {}
-    cfg['library'][lib]['model']['default'] = {}
-
     #Operating Conditions (per corner)
-    cfg['library'][lib]['model']['default']['opcond'] = {
-        'switch': "-library_opcond 'lib model corner <str>'",
+    cfg['library']['opcond'] = {}
+    cfg['library']['opcond'][lib] = {}
+    cfg['library']['opcond'][lib][corner] = {
+        'switch': "-library_opcond 'lib corner <str>'",
         'requirement': None,
         'type': 'str',
         'lock': 'false',
         'defvalue': None,
         'short_help': 'Library Operating Condition',
         'example': [
-            "cli: -library_opcond 'lib model ss_1.0v_125c WORST'",
-            "api: chip.set('library','lib','model','ss_1.0v_125c','opcond','WORST')"],
+            "cli: -library_opcond 'lib ss_1.0v_125c WORST'",
+            "api: chip.set('library','opcond,'lib','ss_1.0v_125c','WORST')"],
         'help': """
         The default operating condition to use for mcmm optimization and
         signoff on a per corner basis.
@@ -1123,16 +1000,18 @@ def schema_libs(cfg, lib='default'):
     }
 
     #Checks To Do (per corner)
-    cfg['library'][lib]['model']['default']['check'] = {
-        'switch': "-library_check 'lib model corner <str>'",
+    cfg['library']['check'] = {}
+    cfg['library']['check'][lib] = {}
+    cfg['library']['check'][lib][corner] = {
+        'switch': "-library_check 'lib corner <str>'",
         'requirement': None,
         'type': '[str]',
         'lock': 'false',
         'defvalue': [],
         'short_help': 'Library Corner Checks',
         'example': [
-            "cli: -library_check 'lib model ss_1.0v_125c setup'",
-            "api: chip.set('library','lib','model','ss_1.0v_125c','check','setup')"],
+            "cli: -library_check 'lib ss_1.0v_125c setup'",
+            "api: chip.set('library','check','lib','ss_1.0v_125c','setup')"],
         'help': """
         Per corner checks to perform during optimization and STA signoff.
         Names used in the 'mcmm' scenarios must align with the 'check' names
@@ -1145,9 +1024,11 @@ def schema_libs(cfg, lib='default'):
     }
 
     #NLDM
-    cfg['library'][lib]['model']['default']['nldm'] = {}
-    cfg['library'][lib]['model']['default']['nldm']['default'] = {
-        'switch': "-library_nldm 'lib model corner format <file>'",
+    cfg['library']['nldm'] = {}
+    cfg['library']['nldm'][lib] = {}
+    cfg['library']['nldm'][lib][corner] = {}
+    cfg['library']['nldm'][lib][corner]['default'] = {
+        'switch': "-library_nldm 'lib corner format <file>'",
         'requirement': None,
         'type': '[file]',
         'lock': 'false',
@@ -1159,8 +1040,8 @@ def schema_libs(cfg, lib='default'):
         'signature': [],
         'short_help': 'Library NLDM Timing Model',
         'example': [
-            "cli: -library_nldm 'lib model ss gz ss.lib.gz'",
-            "api: chip.set('library','lib','model','ss','nldm','gz','ss.lib.gz')"],
+            "cli: -library_nldm 'lib ss gz ss.lib.gz'",
+            "api: chip.set('library','nldm','lib','ss','gz','ss.lib.gz')"],
         'help': """
         Filepaths to NLDM models. Timing files are specified on a per lib,
         per corner, and per format basis. The format is driven by EDA tool
@@ -1170,9 +1051,11 @@ def schema_libs(cfg, lib='default'):
     }
 
     #CCS
-    cfg['library'][lib]['model']['default']['ccs'] = {}
-    cfg['library'][lib]['model']['default']['ccs']['default'] = {
-        'switch': "-library_ccs 'lib model corner format <file>'",
+    cfg['library']['ccs'] = {}
+    cfg['library']['ccs'][lib] = {}
+    cfg['library']['ccs'][lib][corner] = {}
+    cfg['library']['ccs'][lib][corner]['default'] = {
+        'switch': "-library_ccs 'lib corner format <file>'",
         'requirement': None,
         'type': '[file]',
         'lock': 'false',
@@ -1184,8 +1067,8 @@ def schema_libs(cfg, lib='default'):
         'signature': [],
         'short_help': 'Library CCS Timing Model',
         'example': [
-            "cli: -library_ccs 'lib model ss lib.gz ss.lib.gz'",
-            "api: chip.set('library','lib','model','ss','ccs','gz','ss.lib.gz')"],
+            "cli: -library_ccs 'lib ss lib.gz ss.lib.gz'",
+            "api: chip.set('library','ccs','lib','ss','gz','ss.lib.gz')"],
         'help': """
         Filepaths to CCS models. Timing files are specified on a per lib,
         per corner, and per format basis. The format is driven by EDA tool
@@ -1195,9 +1078,11 @@ def schema_libs(cfg, lib='default'):
     }
 
     #SCM
-    cfg['library'][lib]['model']['default']['scm'] = {}
-    cfg['library'][lib]['model']['default']['scm']['default'] = {
-        'switch': "-library_scm 'lib model corner format <file>'",
+    cfg['library']['scm'] = {}
+    cfg['library']['scm'][lib] = {}
+    cfg['library']['scm'][lib][corner] = {}
+    cfg['library']['scm'][lib][corner]['default'] = {
+        'switch': "-library_scm 'lib corner format <file>'",
         'requirement': None,
         'type': '[file]',
         'lock': 'false',
@@ -1209,8 +1094,8 @@ def schema_libs(cfg, lib='default'):
         'signature': [],
         'short_help': 'Library SCM Timing Model',
         'example': [
-            "cli: -library_scm 'lib model ss lib.gz ss.lib.gz'",
-            "api: chip.set('library','lib','model','ss', 'scm','gz','ss.lib.gz')"],
+            "cli: -library_scm 'lib ss lib.gz ss.lib.gz'",
+            "api: chip.set('library','scm,'lib','ss','gz','ss.lib.gz')"],
         'help': """
         Filepaths to SCM models. Timing files are specified on a per lib,
         per corner, and per format basis. The format is driven by EDA tool
@@ -1220,8 +1105,10 @@ def schema_libs(cfg, lib='default'):
     }
 
     #AOCV
-    cfg['library'][lib]['model']['default']['aocv'] = {
-        'switch': "-library_aocv 'lib model corner <file>'",
+    cfg['library']['aocv'] = {}
+    cfg['library']['aocv'][lib] = {}
+    cfg['library']['aocv'][lib][corner] = {
+        'switch': "-library_aocv 'lib corner <file>'",
         'requirement': None,
         'type': '[file]',
         'lock': 'false',
@@ -1233,8 +1120,8 @@ def schema_libs(cfg, lib='default'):
         'signature': [],
         'short_help': 'Library AOCV Timing Model',
         'example': [
-            "cli: -library_aocv 'lib model ss lib.aocv'",
-            "api: chip.set('library','lib','model','ss','aocv','lib_ss.aocv')"],
+            "cli: -library_aocv 'lib ss lib.aocv'",
+            "api: chip.set('library','aocv','lib','ss','lib_ss.aocv')"],
         'help': """
         Filepaths to AOCV models. Timing files are specified on a per lib,
         per corner basis.
@@ -1242,9 +1129,11 @@ def schema_libs(cfg, lib='default'):
     }
 
     #APL
-    cfg['library'][lib]['model']['default']['apl'] = {}
-    cfg['library'][lib]['model']['default']['apl']['default'] = {
-        'switch': "-library_apl 'lib model corner format <file>'",
+    cfg['library']['apl'] = {}
+    cfg['library']['apl'][lib] = {}
+    cfg['library']['apl'][lib][corner] = {}
+    cfg['library']['apl'][lib][corner]['default'] = {
+        'switch': "-library_apl 'lib corner format <file>'",
         'requirement': None,
         'type': '[file]',
         'lock': 'false',
@@ -1256,8 +1145,8 @@ def schema_libs(cfg, lib='default'):
         'signature': [],
         'short_help': 'Library APL Power Model',
         'example': [
-            "cli: -library_apl 'lib model ss cdev lib_tt.cdev'",
-            "api: chip.set('library','lib','model','ss','apl','cdev','lib_tt.cdev')"],
+            "cli: -library_apl 'lib ss cdev lib_tt.cdev'",
+            "api: chip.set('library','apl,'lib','ss','cdev','lib_tt.cdev')"],
         'help': """
         Filepaths to APL power models. Power files are specified on a per
         lib, per corner, and per format basis.
@@ -1265,7 +1154,8 @@ def schema_libs(cfg, lib='default'):
     }
 
     #LEF
-    cfg['library'][lib]['lef'] = {
+    cfg['library']['lef'] = {}
+    cfg['library']['lef'][lib] = {
         'switch': "-library_lef 'lib <file>'",
         'requirement': None,
         'type': '[file]',
@@ -1278,7 +1168,7 @@ def schema_libs(cfg, lib='default'):
         'signature': [],
         'short_help': 'Library LEF',
         'example': ["cli: -library_lef 'mylib mylib.lef'",
-                    "api: chip.set('library','mylib','lef','mylib.lef')"],
+                    "api: chip.set('library','lef,'mylib','mylib.lef')"],
         'help': """
         An abstracted view of library cells that gives a complete description
         of the cell's place and route boundary, pin positions, pin metals, and
@@ -1287,7 +1177,8 @@ def schema_libs(cfg, lib='default'):
     }
 
     #GDS
-    cfg['library'][lib]['gds'] = {
+    cfg['library']['gds'] = {}
+    cfg['library']['gds'][lib] = {
         'switch': "-library_gds 'lib <file>'",
         'requirement': None,
         'type': '[file]',
@@ -1300,7 +1191,7 @@ def schema_libs(cfg, lib='default'):
         'signature': [],
         'short_help': 'Library GDS',
         'example': ["cli: -library_gds 'mylib mylib.gds'",
-                    "api: chip.set('library','mylib','gds','mylib.gds')"],
+                    "api: chip.set('library','gds','mylib','mylib.gds')"],
         'help': """
         The complete mask layout of the library cells ready to be merged with
         the rest of the design for tapeout. In some cases, the GDS merge
@@ -1310,7 +1201,8 @@ def schema_libs(cfg, lib='default'):
         """
     }
 
-    cfg['library'][lib]['netlist'] = {
+    cfg['library']['netlist'] = {}
+    cfg['library']['netlist'][lib] = {
         'switch': "-library_netlist 'lib <file>'",
         'requirement': None,
         'type': '[file]',
@@ -1323,7 +1215,7 @@ def schema_libs(cfg, lib='default'):
         'signature': [],
         'short_help': 'Library Netlist',
         'example': ["cli: -library_netlist 'mylib mylib.cdl'",
-                    "api: chip.set('library','mylib','netlist','mylib.cdl')"],
+                    "api: chip.set('library','netlist','mylib','mylib.cdl')"],
         'help': """
         Files containing the netlist used for layout versus schematic (LVS)
         checks. For transistor level libraries such as standard cell libraries
@@ -1332,8 +1224,10 @@ def schema_libs(cfg, lib='default'):
         level netlist.
         """
     }
-    cfg['library'][lib]['spice'] = {}
-    cfg['library'][lib]['spice']['default'] = {
+
+    cfg['library']['spice'] = {}
+    cfg['library']['spice'][lib] = {}
+    cfg['library']['spice'][lib]['default'] = {
         'switch': "-library_spice 'lib format <file>'",
         'requirement': None,
         'type': '[file]',
@@ -1346,15 +1240,17 @@ def schema_libs(cfg, lib='default'):
         'signature': [],
         'short_help': 'Library Spice Netlist',
         'example': ["cli: -library_spice 'mylib pspice mylib.sp'",
-                    "api: chip.set('library','mylib','spice', 'pspice',"
+                    "api: chip.set('library','spice', 'mylib', 'pspice',"
                     "'mylib.sp')"],
         'help': """
         Files containing library spice netlists used for circuit
         simulation, specified on a per format basis.
         """
     }
-    cfg['library'][lib]['hdl'] = {}
-    cfg['library'][lib]['hdl']['default'] = {
+
+    cfg['library']['hdl'] = {}
+    cfg['library']['hdl'][lib] = {}
+    cfg['library']['hdl'][lib]['default'] = {
         'switch': "-library_hdl 'lib format <file>'",
         'requirement': None,
         'type': '[file]',
@@ -1367,15 +1263,17 @@ def schema_libs(cfg, lib='default'):
         'signature': [],
         'short_help': 'Library HDL Model',
         'example': ["cli: -library_hdl 'mylib verilog mylib.v'",
-                    "api: chip.set('library','mylib','hdl', 'verilog',"
+                    "api: chip.set('library','hdl','mylib','verilog',"
                     "'mylib.v')"],
         'help': """
         Library HDL models, specifed on a per format basis. Examples
-        of legal formats include Verilog,  VHDL.
+        of legal formats include verilog, vhdl, systemc, c++, python.
+        All formats should be specified in lower case.
         """
     }
 
-    cfg['library'][lib]['atpg'] = {
+    cfg['library']['atpg'] = {}
+    cfg['library']['atpg'][lib] = {
         'switch': "-library_atpg 'lib <file>'",
         'requirement': None,
         'type': '[file]',
@@ -1387,15 +1285,15 @@ def schema_libs(cfg, lib='default'):
         'author': [],
         'signature': [],
         'short_help': 'Library ATPG Model',
-        'example': ["cli: -library_atpg 'mylib atpg mylib.atpg'",
-                    "api: chip.set('library','mylib','atpg','mylib.atpg')"],
+        'example': ["cli: -library_atpg 'mylib mylib.atpg'",
+                    "api: chip.set('library','atpg','mylib','mylib.atpg')"],
         'help': """
         Library models used for ATPG based automated faultd based post
         manufacturing testing.
         """
     }
-
-    cfg['library'][lib]['pgmetal'] = {
+    cfg['library']['pgmetal'] = {}
+    cfg['library']['pgmetal'][lib] = {
         'switch': "-library_pgmetal 'lib <str>'",
         'requirement': None,
         'type': 'str',
@@ -1403,7 +1301,7 @@ def schema_libs(cfg, lib='default'):
         'defvalue': None,
         'short_help': 'Library Power/Ground Layer',
         'example': ["cli: -library_pgmetal 'mylib m1'",
-                    "api: chip.set('library','mylib','pgmetal','m1')"],
+                    "api: chip.set('library','pgmetal','mylib','m1')"],
         'help': """
         Specifies the top metal layer used for power and ground routing within
         the library. The parameter can be used to guide cell power grid hookup
@@ -1411,7 +1309,8 @@ def schema_libs(cfg, lib='default'):
         """
     }
 
-    cfg['library'][lib]['tag'] = {
+    cfg['library']['tag'] = {}
+    cfg['library']['tag'][lib] = {
         'switch': "-library_tag 'lib <str>'",
         'requirement': None,
         'type': '[str]',
@@ -1419,7 +1318,7 @@ def schema_libs(cfg, lib='default'):
         'defvalue': [],
         'short_help': 'Library Identifier Tags',
         'example': ["cli: -library_tag 'mylib virtual'",
-                    "api: chip.set('library','mylib','tag','virtual')"],
+                    "api: chip.set('library','tag','mylib','virtual')"],
         'help': """
         Marks a library with a set of tags that can be used by the designer
         and EDA tools for optimization purposes. The tags are meant to cover
@@ -1429,25 +1328,27 @@ def schema_libs(cfg, lib='default'):
         """
     }
 
-    cfg['library'][lib]['driver'] = {
+    cfg['library']['driver'] = {}
+    cfg['library']['driver'][lib] = {
         'switch': "-library_driver 'lib <str>'",
         'requirement': None,
         'type': '[str]',
         'lock': 'false',
         'defvalue': [],
         'short_help': 'Library Default Driver Cell',
-        'example': ["cli: -library_driver 'mylib BUFX1'",
-                    "api: chip.set('library','mylib','driver','BUFX1')"],
+        'example': ["cli: -library_driver 'mylib BUFX1/Z'",
+                    "api: chip.set('library','driver','mylib','BUFX1/Z')"],
         'help': """
         The name of a library cell to be used as the default driver for
         block timing constraints. The cell should be strong enough to drive
         a block input from another block including wire capacitance.
         In cases where the actual driver is known, the actual driver cell
-        should be used.
+        should be used. The output driver should include the output pin.
         """
     }
 
-    cfg['library'][lib]['site'] = {
+    cfg['library']['site'] = {}
+    cfg['library']['site'][lib] = {
         'switch': "-library_site 'lib <str>'",
         'requirement': None,
         'type': 'str',
@@ -1455,23 +1356,24 @@ def schema_libs(cfg, lib='default'):
         'defvalue': None,
         'short_help': 'Library Site/Tile Name',
         'example': ["cli: -library_site 'mylib core'",
-                    "api: chip.set('library','mylib','site','core')"],
+                    "api: chip.set('library','site','mylib','core')"],
         'help': """
         Provides the primary site name to use for placement.
         """
     }
 
-    cfg['library'][lib]['cells'] = {}
-    cfg['library'][lib]['cells']['default'] = {
+    cfg['library']['cells'] = {}
+    cfg['library']['cells'][lib] = {}
+    cfg['library']['cells'][lib]['default'] = {
         'switch': "-library_cells 'lib group <str>'",
         'requirement': None,
         'type': '[str]',
         'lock': 'false',
         'defvalue': [],
         'short_help': 'Library Cell Lists',
-        'example': ["cli: -library_cells 'mylib dontuse *eco*'",
-                    "api: chip.set('library','mylib','cells','dontuse',"
-                    "'*eco*')"],
+        'example': [
+            "cli: -library_cells 'mylib dontuse *eco*'",
+            "api: chip.set('library','cells','mylib','dontuse','*eco*')"],
         'help': """
         A named list of cells grouped by a property that can be accessed
         directly by the designer and EDA tools. The example below shows how
@@ -1480,9 +1382,10 @@ def schema_libs(cfg, lib='default'):
         """
     }
 
-    cfg['library'][lib]['layoutdb'] = {}
-    cfg['library'][lib]['layoutdb']['default'] = {}
-    cfg['library'][lib]['layoutdb']['default']['default'] = {
+    cfg['library']['layoutdb'] = {}
+    cfg['library']['layoutdb'][lib] = {}
+    cfg['library']['layoutdb'][lib]['default'] = {}
+    cfg['library']['layoutdb'][lib]['default']['default'] = {
         'switch': "-library_layoutdb 'lib stackup format <file>'",
         'requirement': None,
         'type': '[file]',
@@ -1494,9 +1397,9 @@ def schema_libs(cfg, lib='default'):
         'author': [],
         'signature': [],
         'short_help': 'Library Layout Database',
-        'example': ["cli: -library_layoutdb 'mylib M10 oa /disk/mylibdb'",
-                    "api: chip.set('library','mylib','layoutdb','M10',"
-                    "'oa', '/disk/mylibdb')"],
+        'example': [
+            "cli: -library_layoutdb 'lib M10 oa ~/libdb'",
+            "api: chip.set('library','layoutdb','lib','M10','oa','~/libdb')"],
         'help': """
         Filepaths to compiled library layout database specified on a per format
         basis. Example formats include oa, mw, ndm.
@@ -1682,11 +1585,6 @@ def schema_hier(cfg, parent='default', child='default'):
 def schema_eda(cfg, tool='default', step='default', index='default'):
 
     cfg['eda'] = {}
-
-
-    cfg['eda'][tool] = {}
-    cfg['eda'][tool][step] = {}
-    cfg['eda'][tool][step][index] = {}
 
     # exe
     cfg['eda']['exe'] = {}
@@ -2118,8 +2016,7 @@ def schema_arg(cfg):
 
 def schema_metric(cfg, group='default', step='default', index='default'):
 
-    if not 'metric' in cfg:
-        cfg['metric'] = {}
+    cfg['metric'] = {}
 
     cfg['metric']['registers'] = {}
     cfg['metric']['registers'][step] = {}
@@ -4041,15 +3938,15 @@ def schema_asic(cfg):
     return cfg
 
 ############################################
-# Constraints
+# MCMM Constraints
 ############################################
 
-def schema_mcmm(cfg):
+def schema_mcmm(cfg, scenario='default'):
 
     cfg['mcmm'] = {}
-    cfg['mcmm']['default'] = {}
 
-    cfg['mcmm']['default']['voltage'] = {
+    cfg['mcmm']['voltage'] = {}
+    cfg['mcmm']['voltage'][scenario] = {
         'switch': "-mcmm_voltage 'scenario <float>'",
         'type': 'float',
         'lock': 'false',
@@ -4057,29 +3954,30 @@ def schema_mcmm(cfg):
         'defvalue': None,
         'short_help': 'MCMM Voltage',
         'example': ["cli: -mcmm_voltage 'worst 0.9'",
-                    "api: chip.set('mcmm', 'worst', 'voltage', '0.9')"],
+                    "api: chip.set('mcmm', 'voltage', 'worst',  '0.9')"],
         'help': """
         Specifies the on chip primary core operating voltage for the scenario.
         The value is specified in Volts.
         """
     }
 
-    cfg['mcmm']['default']['temperature'] = {
-        'switch': "-mcmm_temperature 'scenario <float>'",
+    cfg['mcmm']['temperature'] = {}
+    cfg['mcmm']['temperature'][scenario] = {
+        'switch': "-mcmm_temp 'scenario <float>'",
         'type': 'float',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
         'short_help': 'MCMM Temperature',
-        'example': ["cli: -mcmm_temperature 'worst 0.9'",
-                    "api: chip.set('mcmm', 'worst', 'temperature', '125')"],
+        'example': ["cli: -mcmm_temperature 'worst 125'",
+                    "api: chip.set('mcmm', 'temperature', 'worst',  '125')"],
         'help': """
         Specifies the on chip temperature for the scenario. The value is specified in
         degrees Celsius.
         """
     }
-
-    cfg['mcmm']['default']['libcorner'] = {
+    cfg['mcmm']['libcorner'] = {}
+    cfg['mcmm']['libcorner'][scenario] = {
         'switch': "-mcmm_libcorner 'scenario <str>'",
         'type': 'str',
         'lock': 'false',
@@ -4087,7 +3985,7 @@ def schema_mcmm(cfg):
         'defvalue': None,
         'short_help': 'MCMM Library Corner Name',
         'example': ["cli: -mcmm_libcorner 'worst ttt'",
-                    "api: chip.set('mcmm', 'worst', 'libcorner', 'ttt')"],
+                    "api: chip.set('mcmm', 'libcorner', 'worst', 'ttt')"],
         'help': """
         Specifies the library corner for the scenario. The value is used to access the
         stdcells library timing model. The 'libcorner' value must match the corner
@@ -4095,7 +3993,8 @@ def schema_mcmm(cfg):
         """
     }
 
-    cfg['mcmm']['default']['opcond'] = {
+    cfg['mcmm']['opcond'] = {}
+    cfg['mcmm']['opcond'][scenario] = {
         'switch': "-mcmm_opcond 'scenario <str>'",
         'type': 'str',
         'lock': 'false',
@@ -4103,7 +4002,7 @@ def schema_mcmm(cfg):
         'defvalue': None,
         'short_help': 'MCMM Operating Condition',
         'example': ["cli: -mcmm_opcond 'worst typical_1.0'",
-                    "api: chip.set('mcmm', 'worst', 'opcond', 'typical_1.0')"],
+                    "api: chip.set('mcmm', 'opcond', 'worst', 'typical_1.0')"],
         'help': """
         Specifies the operating condition for the scenario. The value can be used
         to access specific conditions within the library timing models of the
@@ -4112,7 +4011,8 @@ def schema_mcmm(cfg):
         """
     }
 
-    cfg['mcmm']['default']['pexcorner'] = {
+    cfg['mcmm']['pexcorner'] = {}
+    cfg['mcmm']['pexcorner'][scenario] = {
         'switch': "-mcmm_pexcorner 'scenario <str>'",
         'type': 'str',
         'lock': 'false',
@@ -4120,14 +4020,14 @@ def schema_mcmm(cfg):
         'defvalue': None,
         'short_help': 'MCMM PEX Corner Name',
         'example': ["cli: -mcmm_pexcorner 'worst max'",
-                    "api: chip.set('mcmm','worst','pexcorner','max')"],
+                    "api: chip.set('mcmm','pexcorner','worst','max')"],
         'help': """
         Specifies the parasitic corner for the scenario. The 'pexcorner' string must
         match the value 'pdk','pexmodel' dictionary exactly.
         """
     }
-
-    cfg['mcmm']['default']['mode'] = {
+    cfg['mcmm']['mode'] = {}
+    cfg['mcmm']['mode'][scenario] = {
         'switch': "-mcmm_mode 'scenario <str>'",
         'type': 'str',
         'lock': 'false',
@@ -4135,14 +4035,14 @@ def schema_mcmm(cfg):
         'defvalue': None,
         'short_help': 'MCMM Mode Name',
         'example': ["cli: -mcmm_mode 'worst test'",
-                    "api: chip.set('mcmm', 'worst', 'mode', 'test')"],
+                    "api: chip.set('mcmm', 'mode', 'worst', 'test')"],
         'help': """
         Specifies the operating mode for the scenario. Operating mode strings can be
         values such as "test, functional, standby".
         """
     }
-
-    cfg['mcmm']['default']['constraint'] = {
+    cfg['mcmm']['constraint'] = {}
+    cfg['mcmm']['constraint'][scenario] = {
         'switch': "-mcmm_constraint 'scenario <file>'",
         'type': '[file]',
         'lock': 'false',
@@ -4155,7 +4055,7 @@ def schema_mcmm(cfg):
         'defvalue': [],
         'short_help': 'MCMM Timing Constraints',
         'example': ["cli: -mcmm_constraint 'worst hello.sdc'",
-                    "api: chip.set('mcmm','worst','constraint','hello.sdc')"],
+                    "api: chip.set('mcmm','constraint', 'worst', 'hello.sdc')"],
         'help': """
         Specifies a list of timing contstraint files to use for the scenario.
         The values are combined with any constraints specified by the design
@@ -4163,8 +4063,8 @@ def schema_mcmm(cfg):
         file is used based on the clock definitions.
         """
     }
-
-    cfg['mcmm']['default']['check'] = {
+    cfg['mcmm']['check'] = {}
+    cfg['mcmm']['check'][scenario] = {
         'switch': "-mcmm_check 'scenario <str>'",
         'type': '[str]',
         'lock': 'false',
