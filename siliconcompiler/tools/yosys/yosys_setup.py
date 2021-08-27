@@ -4,7 +4,7 @@ import sys
 import defusedxml.ElementTree as ET
 
 import siliconcompiler
-from siliconcompiler.schema import schema_path
+from siliconcompiler.schema_utils import schema_path
 
 ################################
 # Setup Tool (pre executable)
@@ -18,27 +18,27 @@ def setup_tool(chip, step, index):
 
     tool = 'yosys'
     refdir = 'siliconcompiler/tools/yosys'
-    chip.set('eda', 'format',  tool, step, index, 'tcl')
-    chip.set('eda', 'copy',    tool, step, index, 'true')
-    chip.set('eda', 'vendor',  tool, step, index, 'yosys')
-    chip.set('eda', 'exe',     tool, step, index, 'yosys')
-    chip.set('eda', 'vswitch', tool, step, index, '--version')
-    chip.set('eda', 'version', tool, step, index, '0.9+3672')
-    chip.set('eda', 'option',  tool, step, index, 'cmdline', '-c')
-    chip.set('eda', 'refdir',  tool, step, index, refdir)
-    chip.set('eda', 'script',  tool, step, index, refdir + '/sc_syn.tcl')
+    chip.set('eda', tool, step, index, 'format', 'tcl')
+    chip.set('eda', tool, step, index, 'copy', 'true')
+    chip.set('eda', tool, step, index, 'vendor', 'yosys')
+    chip.set('eda', tool, step, index, 'exe', 'yosys')
+    chip.set('eda', tool, step, index, 'vswitch', '--version')
+    chip.set('eda', tool, step, index, 'version', '0.9+3672')
+    chip.set('eda', tool, step, index, 'option', 'cmdline', '-c')
+    chip.set('eda', tool, step, index, 'refdir', refdir)
+    chip.set('eda', tool, step, index, 'script', refdir + '/sc_syn.tcl')
 
     #Input/output requirements
-    chip.add('eda', 'input', tool, step, index, chip.get('design') + '.v')
-    chip.add('eda', 'output', tool, step, index, chip.get('design') + '.v')
+    chip.add('eda', tool, step, index, 'input', chip.get('design') + '.v')
+    chip.add('eda', tool, step, index, 'output', chip.get('design') + '.v')
 
     #Schema requirements
     if chip.get('mode') == 'asic':
-        chip.add('eda', 'param', tool, step, index, ",".join(['pdk', 'process']))
-        chip.add('eda', 'param', tool, step, index, ",".join(['asic', 'targetlib']))
+        chip.add('eda', tool, step, index, 'param', ",".join(['pdk', 'process']))
+        chip.add('eda', tool, step, index, 'param', ",".join(['asic', 'targetlib']))
     else:
-        chip.add('eda', 'param', tool, step, index, 'constraint')
-        chip.add('eda', 'param', tool, step, index, ",".join(['fpga','partname']))
+        chip.add('eda', tool, step, index, 'param', 'constraint')
+        chip.add('eda', tool, step, index, 'param', ",".join(['fpga','partname']))
 
     #TODO: remove special treatment for fpga??
     if chip.get('target'):
@@ -84,11 +84,11 @@ def post_process(chip, step, index):
             warnings = re.search(r'Warnings.*\s(\d+)\s+total', line)
 
             if area:
-                chip.set('metric', 'area_cells', step, index, 'real', round(float(area.group(1)),2), clobber=True)
+                chip.set('metric', step, index, 'area_cells', 'real', round(float(area.group(1)),2), clobber=True)
             elif cells:
-                chip.set('metric', 'cells', step, index, 'real', int(cells.group(1)), clobber=True)
+                chip.set('metric', step, index, 'cells', 'real', int(cells.group(1)), clobber=True)
             elif warnings:
-                chip.set('metric', 'warnings', step, index, 'real', int(warnings.group(1)), clobber=True)
+                chip.set('metric', step, index, 'warnings', 'real', int(warnings.group(1)), clobber=True)
 
     #Return 0 if successful
     return 0

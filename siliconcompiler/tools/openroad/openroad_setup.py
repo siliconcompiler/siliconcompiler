@@ -5,7 +5,7 @@ import shutil
 import sys
 import siliconcompiler
 from siliconcompiler.floorplan import *
-from siliconcompiler.schema import schema_path
+from siliconcompiler.schema_utils import schema_path
 
 ################################
 # Setup Tool (pre executable)
@@ -53,17 +53,20 @@ def setup_tool(chip, step, index):
     tool = 'openroad'
     refdir = 'siliconcompiler/tools/openroad'
 
-    chip.set('eda', 'format', tool, step, index, 'tcl')
-    chip.set('eda', 'vendor',tool, step, index, tool)
-    chip.set('eda', 'exe', tool, step, index, tool)
-    chip.set('eda', 'vswitch', tool, step, index, '-version')
-    chip.set('eda', 'version', tool, step, index, 'af9a0f9faafb7e61ae18e9496169c3527312b82a')
-    chip.set('eda', 'copy', tool, step, index, False)
-    chip.set('eda', 'refdir', tool, step, index, refdir)
-    chip.set('eda', 'script',tool, step, index, refdir + '/sc_apr.tcl')
-    chip.set('eda', 'option', tool, step, index, 'cmdline', '-no_init')
+    chip.set('eda', tool, step, index, 'format', 'tcl')
+    chip.set('eda', tool, step, index, 'vendor', tool)
+    chip.set('eda', tool, step, index, 'exe', tool)
+    chip.set('eda', tool, step, index, 'vswitch', '-version')
+    chip.set('eda', tool, step, index, 'version', 'af9a0f9faafb7e61ae18e9496169c3527312b82a')
+    chip.set('eda', tool, step, index, 'refdir', refdir)
+    chip.set('eda', tool, step, index, 'script', refdir + '/sc_apr.tcl')
+    chip.set('eda', tool, step, index, 'option', 'cmdline', '-no_init')
     #Don't override command line arguments
-    chip.set('eda', 'threads', tool, step, index, os.cpu_count())
+    chip.set('eda', tool, step, index, 'threads', os.cpu_count())
+
+    # exit automatically unless bkpt
+    if (step not in chip.get('bkpt')):
+        chip.add('eda', tool, step, index, 'option', 'cmdline', '-exit')
 
     # defining default dictionary
     default_options = {
@@ -109,17 +112,14 @@ def setup_tool(chip, step, index):
             chip.logger.error(f'Process {process} not set up for OpenROAD.')
 
     for option in default_options:
-        if option in chip.getkeys('eda', 'option', tool, step, index):
+        if option in chip.getkeys('eda', tool, step, index, 'option'):
             chip.logger.info('User provided option %s OpenROAD flow detected.', option)
         elif not default_options[option]:
             chip.error = 1
             chip.logger.error('Missing option %s for OpenROAD.', option)
         else:
-            chip.set('eda', 'option', tool, step, index, option, default_options[option])
+            chip.set('eda', tool, step, index, 'option', option, default_options[option])
 
-    # exit automatically unless bkpt
-    if (step not in chip.get('bkpt')):
-        chip.add('eda', 'option', tool, step, index, 'cmdline', '-exit')
 
 ################################
 # Post_process (post executable)
@@ -154,26 +154,26 @@ def post_process(chip, step, index):
                elif warnmatch:
                    warnings = warnings +1
                elif area:
-                   chip.set('metric', 'area_cells',  step, index, 'real', round(float(area.group(1)),2), clobber=True)
+                   chip.set('metric', step, index, 'area_cells', 'real', round(float(area.group(1)),2), clobber=True)
                elif tns:
-                   chip.set('metric', 'setup_tns',  step, index, 'real', round(float(tns.group(1)),2), clobber=True)
+                   chip.set('metric', step, index, 'setup_tns', 'real', round(float(tns.group(1)),2), clobber=True)
                elif wirelength:
-                   chip.set('metric', 'wirelength',  step, index, 'real', round(float(wirelength.group(1)),2), clobber=True)
+                   chip.set('metric', step, index, 'wirelength', 'real', round(float(wirelength.group(1)),2), clobber=True)
                elif vias:
-                   chip.set('metric', 'vias',  step, index, 'real', int(vias.group(1)), clobber=True)
+                   chip.set('metric', step, index, 'vias', 'real', int(vias.group(1)), clobber=True)
                elif slack:
-                   chip.set('metric', metric, step, index, 'real', round(float(slack.group(1)),2), clobber=True)
+                   chip.set('metric', step, index, metric, 'real', round(float(slack.group(1)),2), clobber=True)
                elif metric == "power":
                    if power:
                        powerlist = power.group(1).split()
                        leakage = powerlist[2]
                        total = powerlist[3]
-                       chip.set('metric', 'power_total', step, index, 'real',  float(total), clobber=True)
-                       chip.set('metric', 'power_leakage', step, index, 'real', float(leakage), clobber=True)
+                       chip.set('metric', step, index, 'power_total', 'real',  float(total), clobber=True)
+                       chip.set('metric', step, index, 'power_leakage', 'real', float(leakage), clobber=True)
 
      #Setting Warnings and Errors
-     chip.set('metric', 'errors', step, index, 'real',  errors , clobber=True)
-     chip.set('metric', 'warnings', step, index, 'real', warnings, clobber=True)
+     chip.set('metric', step, index, 'errors', 'real',  errors , clobber=True)
+     chip.set('metric', step, index, 'warnings', 'real', warnings, clobber=True)
 
      #Temporary superhack!rm
      #Getting cell count and net number from DEF
@@ -184,11 +184,11 @@ def post_process(chip, step, index):
                     nets = re.search(r'^NETS (\d+)',line)
                     pins = re.search(r'^PINS (\d+)',line)
                     if cells:
-                         chip.set('metric', 'cells', step, index, 'real', int(cells.group(1)), clobber=True)
+                         chip.set('metric', step, index, 'cells', 'real', int(cells.group(1)), clobber=True)
                     elif nets:
-                         chip.set('metric', 'nets', step, index, 'real', int(nets.group(1)), clobber=True)
+                         chip.set('metric', step, index, 'nets', 'real', int(nets.group(1)), clobber=True)
                     elif pins:
-                         chip.set('metric', 'pins', step, index, 'real', int(pins.group(1)), clobber=True)
+                         chip.set('metric', step, index, 'pins', 'real', int(pins.group(1)), clobber=True)
 
      if step == 'sta':
           # Copy along GDS for verification steps that rely on it
@@ -206,7 +206,7 @@ if __name__ == "__main__":
     output = prefix + '.json'
 
     # create a chip instance
-    chip = siliconcompiler.Chip(loglevel='DEBUG')
+    chip = siliconcompiler.Chip(loglevel='INFO')
     chip.set('pdk','process','freepdk45')
     chip.writecfg('tmp.json', prune=False)
     # load configuration

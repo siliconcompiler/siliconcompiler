@@ -57,7 +57,7 @@ def setup_platform(chip):
 
     # Routing Grid Definitions
     for sc_name, pdk_name in [('m1', 'metal1')]:
-        chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)
+        chip.set('pdk','grid', stackup, sc_name, 'name',    pdk_name)
         chip.set('pdk','grid', stackup, sc_name, 'xoffset', 0.095)
         chip.set('pdk','grid', stackup, sc_name, 'xpitch',  0.19)
         chip.set('pdk','grid', stackup, sc_name, 'yoffset', 0.07)
@@ -65,7 +65,7 @@ def setup_platform(chip):
         chip.set('pdk','grid', stackup, sc_name, 'adj',     1.0)
 
     for sc_name, pdk_name in [('m2', 'metal2')]:
-        chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)
+        chip.set('pdk','grid', stackup, sc_name, 'name',    pdk_name)
         chip.set('pdk','grid', stackup, sc_name, 'xoffset', 0.095)
         chip.set('pdk','grid', stackup, sc_name, 'xpitch',  0.19)
         chip.set('pdk','grid', stackup, sc_name, 'yoffset', 0.07)
@@ -73,7 +73,7 @@ def setup_platform(chip):
         chip.set('pdk','grid', stackup, sc_name, 'adj',     0.8)
 
     for sc_name, pdk_name in [('m3', 'metal3')]:
-        chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)
+        chip.set('pdk','grid', stackup, sc_name, 'name',    pdk_name)
         chip.set('pdk','grid', stackup, sc_name, 'xoffset', 0.095)
         chip.set('pdk','grid', stackup, sc_name, 'xpitch',  0.19)
         chip.set('pdk','grid', stackup, sc_name, 'yoffset', 0.07)
@@ -81,7 +81,7 @@ def setup_platform(chip):
         chip.set('pdk','grid', stackup, sc_name, 'adj',     0.7)
 
     for sc_name, pdk_name in [('m4', 'metal4'), ('m5', 'metal5'), ('m6', 'metal6')]:
-        chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)
+        chip.set('pdk','grid', stackup, sc_name, 'name',    pdk_name)
         chip.set('pdk','grid', stackup, sc_name, 'xoffset', 0.095)
         chip.set('pdk','grid', stackup, sc_name, 'xpitch',  0.28)
         chip.set('pdk','grid', stackup, sc_name, 'yoffset', 0.07)
@@ -89,7 +89,7 @@ def setup_platform(chip):
         chip.set('pdk','grid', stackup, sc_name, 'adj',     0.4)
 
     for sc_name, pdk_name in [('m7', 'metal7'), ('m8', 'metal8')]:
-        chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)
+        chip.set('pdk','grid', stackup, sc_name, 'name',    pdk_name)
         chip.set('pdk','grid', stackup, sc_name, 'xoffset', 0.095)
         chip.set('pdk','grid', stackup, sc_name, 'xpitch',  0.8)
         chip.set('pdk','grid', stackup, sc_name, 'yoffset', 0.07)
@@ -97,7 +97,7 @@ def setup_platform(chip):
         chip.set('pdk','grid', stackup, sc_name, 'adj',     0.4)
 
     for sc_name, pdk_name in [('m9', 'metal9'), ('m10', 'metal10')]:
-        chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)
+        chip.set('pdk','grid', stackup, sc_name, 'name',    pdk_name)
         chip.set('pdk','grid', stackup, sc_name, 'xoffset', 0.095)
         chip.set('pdk','grid', stackup, sc_name, 'xpitch',  1.6)
         chip.set('pdk','grid', stackup, sc_name, 'yoffset', 0.07)
@@ -132,7 +132,7 @@ def setup_libs(chip, vendor=None):
     chip.set('library',libname,'version',rev)
 
     # timing
-    chip.add('library',libname, 'model', corner, 'nldm', 'lib',
+    chip.add('library',libname, 'nldm', corner, 'lib',
              libdir+'/lib/NangateOpenCellLibrary_typical.lib')
 
     # lef
