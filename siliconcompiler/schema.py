@@ -404,9 +404,9 @@ def schema_pdk(cfg, stackup='default'):
     }
 
     cfg['pdk']['devicemodel'] = {}
-    cfg['pdk']['devicemodel']['default'] = {}
-    cfg['pdk']['devicemodel']['default']['default'] = {}
-    cfg['pdk']['devicemodel']['default']['default']['default'] = {
+    cfg['pdk']['devicemodel'][stackup] = {}
+    cfg['pdk']['devicemodel'][stackup]['default'] = {}
+    cfg['pdk']['devicemodel'][stackup]['default']['default'] = {
         'switch': "-pdk_devicemodel 'stackup simtype tool <file>'",
         'requirement': None,
         'type': '[file]',
@@ -433,9 +433,9 @@ def schema_pdk(cfg, stackup='default'):
     }
 
     cfg['pdk']['pexmodel'] = {}
-    cfg['pdk']['pexmodel']['default'] = {}
-    cfg['pdk']['pexmodel']['default']['default'] = {}
-    cfg['pdk']['pexmodel']['default']['default']['default'] = {
+    cfg['pdk']['pexmodel'][stackup] = {}
+    cfg['pdk']['pexmodel'][stackup]['default'] = {}
+    cfg['pdk']['pexmodel'][stackup]['default']['default'] = {
         'switch': "-pdk_pexmodel 'stackup corner tool <file>'",
         'requirement': None,
         'type': '[file]',
@@ -572,12 +572,16 @@ def schema_pdk(cfg, stackup='default'):
         """
     }
 
+    #############################
+    # Routing grid
+    #############################
+
     cfg['pdk']['grid'] = {}
-    cfg['pdk']['grid']['default'] = {}
-    cfg['pdk']['grid']['default']['default'] = {}
 
     #Name Map
-    cfg['pdk']['grid']['default']['default']['name'] = {
+    cfg['pdk']['grid']['name'] = {}
+    cfg['pdk']['grid']['name'][stackup] = {}
+    cfg['pdk']['grid']['name'][stackup]['default'] = {
         'switch': "-pdk_grid_name 'stackup layer <str>'",
         'requirement': None,
         'type': 'str',
@@ -586,7 +590,7 @@ def schema_pdk(cfg, stackup='default'):
         'short_help': 'Grid Layer Name Map',
         'example': [
             "cli: -pdk_grid_name 'M10 m1 metal1'""",
-            "api: chip.set('pdk', 'grid', 'M10', 'm1', 'name', 'metal1')"],
+            "api: chip.set('pdk','grid','name','M10','m1','metal1')"],
         'help': """
         Map betwen the custom PDK metal names found in the tech,lef and the
         SC standardized metal naming schem that starts with m1 (lowest
@@ -594,8 +598,11 @@ def schema_pdk(cfg, stackup='default'):
         specified on a per metal stack basis.
         """
     }
-    # Vertical Grid
-    cfg['pdk']['grid']['default']['default']['xpitch'] = {
+
+    # Vertical Wires
+    cfg['pdk']['grid']['xpitch'] = {}
+    cfg['pdk']['grid']['xpitch'][stackup] = {}
+    cfg['pdk']['grid']['xpitch'][stackup]['default'] = {
         'switch': "-pdk_grid_xpitch 'stackup layer <float>'",
         'requirement': None,
         'type': 'float',
@@ -604,7 +611,7 @@ def schema_pdk(cfg, stackup='default'):
         'short_help': 'Grid Layer Horizontal Grid',
         'example': [
             "cli: -pdk_grid_xpitch 'M10 m1 0.5'",
-            "api: chip.set('pdk','grid','M10','m1','xpitch', '0.5')"],
+            "api: chip.set('pdk','grid','xpitch','M10','m1','0.5')"],
         'help': """
         Defines the routing pitch for vertical wires on a per stackup and
         per metal basis. Values are specified in um. Metal layers are ordered
@@ -612,8 +619,10 @@ def schema_pdk(cfg, stackup='default'):
         """
     }
 
-    # Horizontal Grid
-    cfg['pdk']['grid']['default']['default']['ypitch'] = {
+    # Horizontal Wires
+    cfg['pdk']['grid']['ypitch'] = {}
+    cfg['pdk']['grid']['ypitch'][stackup] = {}
+    cfg['pdk']['grid']['ypitch'][stackup]['default'] = {
         'switch': "-pdk_grid_ypitch 'stackup layer <float>'",
         'requirement': None,
         'type': 'float',
@@ -631,7 +640,9 @@ def schema_pdk(cfg, stackup='default'):
     }
 
     # Vertical Grid Offset
-    cfg['pdk']['grid']['default']['default']['xoffset'] = {
+    cfg['pdk']['grid']['xoffset'] = {}
+    cfg['pdk']['grid']['xoffset'][stackup] = {}
+    cfg['pdk']['grid']['xoffset'][stackup]['default'] = {
         'switch': "-pdk_grid_xoffset 'stackup layer <float>'",
         'requirement': None,
         'type': 'float',
@@ -640,7 +651,7 @@ def schema_pdk(cfg, stackup='default'):
         'short_help': 'Grid Layer Preferred Direction',
         'example': [
             "cli: -pdk_grid_xoffset 'M10 m2 0.5'",
-            "api: chip.set('pdk','grid','M10','m2','xoffset','0.5')"],
+            "api: chip.set('pdk','grid','xoffset','M10','m2','0.5')"],
         'help': """
         Defines the grid offset of a vertical metal layer specified on a per
         stackup and per metal basis. Values are specified in um.
@@ -648,7 +659,9 @@ def schema_pdk(cfg, stackup='default'):
     }
 
     # Horizontal Grid Offset
-    cfg['pdk']['grid']['default']['default']['yoffset'] = {
+    cfg['pdk']['grid']['yoffset'] = {}
+    cfg['pdk']['grid']['yoffset'][stackup] = {}
+    cfg['pdk']['grid']['yoffset'][stackup]['default'] = {
         'switch': "-pdk_grid_yoffset 'stackup layer <float>'",
         'requirement': None,
         'type': 'float',
@@ -657,7 +670,7 @@ def schema_pdk(cfg, stackup='default'):
         'short_help': 'Grid Layer Preferred Direction',
         'example': [
             "cli: -pdk_grid_yoffset 'M10 m2 0.5'",
-            "api: chip.set('pdk','grid','M10','m2','yoffset', '0.5')"],
+            "api: chip.set('pdk','grid','yoffset','M10','m2','0.5')"],
         'help': """
         Defines the grid offset of a horizontal metal layer specified on a per
         stackup and per metal basis. Values are specified in um.
@@ -665,7 +678,9 @@ def schema_pdk(cfg, stackup='default'):
     }
 
     # Routing Layer Adjustment
-    cfg['pdk']['grid']['default']['default']['adj'] = {
+    cfg['pdk']['grid']['adj'] = {}
+    cfg['pdk']['grid']['adj'][stackup] = {}
+    cfg['pdk']['grid']['adj'][stackup]['default'] = {
         'switch': "-pdk_grid_adj 'stackup layer <float>'",
         'requirement': None,
         'type': 'float',
@@ -674,7 +689,7 @@ def schema_pdk(cfg, stackup='default'):
         'short_help': 'Grid Layer Routing Adjustment',
         'example': [
             "cli: -pdk_grid_adj 'M10 m2 0.5'",
-            "api: chip.set('pdk','grid','M10','m2','adj','0.5')"],
+            "api: chip.set('pdk','grid','adj','M10','m2','0.5')"],
         'help': """
         Defines the routing resources adjustments for the design on a per layer
         basis. The value is expressed as a fraction from 0 to 1. A value of
@@ -683,7 +698,9 @@ def schema_pdk(cfg, stackup='default'):
     }
 
     # Routing Layer Capacitance
-    cfg['pdk']['grid']['default']['default']['cap'] = {
+    cfg['pdk']['grid']['cap'] = {}
+    cfg['pdk']['grid']['cap'][stackup] = {}
+    cfg['pdk']['grid']['cap'][stackup]['default'] = {
         'switch': "-pdk_grid_cap 'stackup layer <float>'",
         'requirement': None,
         'type': 'float',
@@ -692,7 +709,7 @@ def schema_pdk(cfg, stackup='default'):
         'short_help': 'Grid Layer Routing Layer Capacitance',
         'example': [
             "cli: -pdk_grid_cap 'M10 m2 0.2'",
-            "api: chip.set('pdk','grid','M10','m2','cap','0.2')"],
+            "api: chip.set('pdk','grid','cap','M10','m2','0.2')"],
         'help': """
         Unit capacitance of a wire defined by the grid width and spacing values
         in the 'grid' structure. The value is specifed as ff/um on a per
@@ -703,7 +720,9 @@ def schema_pdk(cfg, stackup='default'):
     }
 
     # Routing Layer Resistance
-    cfg['pdk']['grid']['default']['default']['res'] = {
+    cfg['pdk']['grid']['res'] = {}
+    cfg['pdk']['grid']['res'][stackup] = {}
+    cfg['pdk']['grid']['res'][stackup]['default'] = {
         'switch': "-pdk_grid_res 'stackup layer <float>'",
         'requirement': None,
         'type': 'float',
@@ -712,7 +731,7 @@ def schema_pdk(cfg, stackup='default'):
         'short_help': 'Grid Layer Routing Layer Resistance',
         'example': [
             "cli: -pdk_grid_res 'M10 m2 0.2'",
-            "api: chip.set('pdk','grid','M10','m2','res','0.2')"],
+            "api: chip.set('pdk','grid','res','M10','m2','0.2')"],
         'help': """
         Resistance of a wire defined by the grid width and spacing values
         in the 'grid' structure.  The value is specifed as ohms/um. The number
@@ -722,7 +741,9 @@ def schema_pdk(cfg, stackup='default'):
     }
 
     # Wire Temperature Coefficient
-    cfg['pdk']['grid']['default']['default']['tcr'] = {
+    cfg['pdk']['grid']['tcr'] = {}
+    cfg['pdk']['grid']['tcr'][stackup] = {}
+    cfg['pdk']['grid']['tcr'][stackup]['default'] = {
         'switch': "-pdk_grid_tcr 'stackup layer <float>'",
         'requirement': None,
         'type': 'float',
@@ -731,7 +752,7 @@ def schema_pdk(cfg, stackup='default'):
         'short_help': 'Grid Layer Temperature Coefficent',
         'example': [
             "cli: -pdk_grid_tcr 'M10 m2 0.1'",
-            "api: chip.set('pdk','grid','M10','m2','tcr','0.1')"],
+            "api: chip.set('pdk','grid','tcr','M10','m2','0.1')"],
         'help': """
         Temperature coefficient of resistance of the wire defined by the grid
         width and spacing values in the 'grid' structure. The value is specifed
@@ -781,9 +802,11 @@ def schema_pdk(cfg, stackup='default'):
 def schema_libs(cfg, lib='default', corner='default'):
 
     cfg['library'] = {}
+    cfg['library'][lib] = {}
+    cfg['library'][lib][corner] = {}
 
-    cfg['library']['type'] = {}
-    cfg['library']['type'][lib] = {
+
+    cfg['library'][lib]['type'] = {
         'switch': "-library_type 'lib <str>'",
         'requirement': None,
         'type': 'str',
@@ -791,7 +814,7 @@ def schema_libs(cfg, lib='default', corner='default'):
         'defvalue': None,
         'short_help': 'Library Type',
         'example': ["cli: -library_type 'mylib stdcell'",
-                    "api: chip.set('library','type','mylib','stdcell')"],
+                    "api: chip.set('library','mylib','type','stdcell')"],
         'help': """
         String specifying the library type. A 'stdcell' type is reserved
         for fixed height stadnard cell libraries used for synthesis and
@@ -799,9 +822,8 @@ def schema_libs(cfg, lib='default', corner='default'):
         """
     }
 
-    cfg['library']['testbench'] = {}
-    cfg['library']['testbench'][lib] = {}
-    cfg['library']['testbench'][lib]['default'] = {
+    cfg['library'][lib]['testbench'] = {}
+    cfg['library'][lib]['testbench']['default'] = {
         'switch': "-library_testbench 'lib simtype <file>'",
         'requirement': None,
         'type': '[file]',
@@ -815,15 +837,14 @@ def schema_libs(cfg, lib='default', corner='default'):
         'short_help': 'Library Testbench',
         'example': [
             "cli: -library_testbench 'mylib verilog ./mylib_tb.v'",
-            "api: chip.set('library','testbench','mylib','verilog,'/mylib_tb.v')"],
+            "api: chip.set('library','mylib','testbench','verilog,'/mylib_tb.v')"],
         'help': """
         Path to testbench specified based on a per library and per
         simluation type basis. Typical simulation types include verilog, spice.
         """
     }
 
-    cfg['library']['version'] = {}
-    cfg['library']['version'][lib] = {
+    cfg['library'][lib]['version'] = {
         'switch': "-library_version 'lib <str>'",
         'requirement': None,
         'type': 'str',
@@ -831,7 +852,7 @@ def schema_libs(cfg, lib='default', corner='default'):
         'defvalue': None,
         'short_help': 'Library Version',
         'example': ["cli: -library_version 'mylib 1.0'",
-                    "api: chip.set('library','version','mylib','1.0')"],
+                    "api: chip.set('library','mylib','version','1.0')"],
         'help': """
         String specifying version on a per library basis. Verification of
         correct PDK and IP versions is an ASIC tapeout requirement in all
@@ -839,8 +860,7 @@ def schema_libs(cfg, lib='default', corner='default'):
         """
     }
 
-    cfg['library']['origin'] = {}
-    cfg['library']['origin'][lib] = {
+    cfg['library'][lib]['origin'] = {
         'switch': "-library_origin 'lib <str>'",
         'requirement': None,
         'type': 'str',
@@ -848,14 +868,13 @@ def schema_libs(cfg, lib='default', corner='default'):
         'defvalue': None,
         'short_help': 'Library Origin',
         'example': ["cli: -library_origin 'mylib US'",
-                    "api: chip.set('library','origin', 'mylib','US')"],
+                    "api: chip.set('library','mylib','origin', 'US')"],
         'help': """
         String specifying library country of origin.
         """
     }
 
-    cfg['library']['license'] = {}
-    cfg['library']['license'][lib] = {
+    cfg['library'][lib]['license'] = {
         'switch': "-library_license 'lib <file>'",
         'requirement': None,
         'type': '[file]',
@@ -869,14 +888,13 @@ def schema_libs(cfg, lib='default', corner='default'):
         'short_help': 'Library License File',
         'example': [
             "cli: -library_license 'mylib ./LICENSE'",
-            "api: chip.set('library','license','mylib','./LICENSE')"],
+            "api: chip.set('library','mylib','license','./LICENSE')"],
         'help': """
         Filepath to library license
         """
     }
 
-    cfg['library']['doc'] = {}
-    cfg['library']['doc'][lib] = {
+    cfg['library'][lib]['doc'] = {
         'switch': "-library_doc 'lib <file>'",
         'requirement': None,
         'type': '[file]',
@@ -889,7 +907,7 @@ def schema_libs(cfg, lib='default', corner='default'):
         'signature': [],
         'short_help': 'Library Documentation',
         'example': ["cli: -library_doc 'lib lib_guide.pdf'",
-                    "api: chip.set('library','doc,'lib','lib_guide.pdf')"],
+                    "api: chip.set('library','lib','doc,'lib_guide.pdf')"],
         'help': """
         A list of critical library documents entered in order of importance.
         The first item in thelist should be the primary library user guide.
@@ -898,8 +916,7 @@ def schema_libs(cfg, lib='default', corner='default'):
         """
     }
 
-    cfg['library']['datasheet'] = {}
-    cfg['library']['datasheet'][lib] = {
+    cfg['library'][lib]['datasheet'] = {
         'switch': "-library_datasheet 'lib <file>'",
         'requirement': None,
         'type': '[file]',
@@ -913,7 +930,7 @@ def schema_libs(cfg, lib='default', corner='default'):
         'short_help': 'Library Datasheets',
         'example': [
             "cli: -library_datasheet 'lib lib_ds.pdf'",
-            "api: chip.set('library','datasheet','lib','lib_ds.pdf')"],
+            "api: chip.set('library','lib','datasheet','lib_ds.pdf')"],
         'help': """
         A complete collection of library datasheets. The documentation can be
         provied as a PDF or as a filepath to a directory with one HTMl file
@@ -922,8 +939,7 @@ def schema_libs(cfg, lib='default', corner='default'):
         """
     }
 
-    cfg['library']['arch'] = {}
-    cfg['library']['arch'][lib] = {
+    cfg['library'][lib]['arch'] = {
         'switch': "-library_arch 'lib <str>'",
         'requirement': None,
         'type': 'str',
@@ -932,7 +948,7 @@ def schema_libs(cfg, lib='default', corner='default'):
         'short_help': 'Library Type',
         'example': [
             "cli: -library_arch 'mylib 12t'",
-            "api: chip.set('library','arch,'mylib','12t')"],
+            "api: chip.set('library','mylib','arch,'12t')"],
         'help': """
         A unique string that identifies the row height or performance
         class of the library for APR. The arch must match up with the name
@@ -941,8 +957,8 @@ def schema_libs(cfg, lib='default', corner='default'):
         6 track libraries, 9 track libraries, 10 track libraries, etc.
         """
     }
-    cfg['library']['width'] = {}
-    cfg['library']['width'][lib] = {
+
+    cfg['library'][lib]['width'] = {
         'switch': "-library_width 'lib <float>'",
         'requirement': None,
         'type': 'float',
@@ -950,7 +966,7 @@ def schema_libs(cfg, lib='default', corner='default'):
         'defvalue': None,
         'short_help': 'Library Width',
         'example': ["cli: -library_width 'mylib 0.1'",
-                    "api: chip.set('library','width','mylib','0.1')"],
+                    "api: chip.set('library','mylib','width','0.1')"],
 
         'help': """
         Specifies the width of a unit cell. The value can usually be
@@ -958,8 +974,8 @@ def schema_libs(cfg, lib='default', corner='default'):
         schema to simplify the process of creating parametrized floorplans.
         """
     }
-    cfg['library']['height'] = {}
-    cfg['library']['height'][lib] = {
+
+    cfg['library'][lib]['height'] = {
         'switch': "-library_height 'lib <float>'",
         'requirement': None,
         'type': 'float',
@@ -981,9 +997,8 @@ def schema_libs(cfg, lib='default', corner='default'):
     ###############################
 
     #Operating Conditions (per corner)
-    cfg['library']['opcond'] = {}
-    cfg['library']['opcond'][lib] = {}
-    cfg['library']['opcond'][lib][corner] = {
+    cfg['library'][lib]['opcond'] = {}
+    cfg['library'][lib]['opcond'][corner] = {
         'switch': "-library_opcond 'lib corner <str>'",
         'requirement': None,
         'type': 'str',
@@ -992,7 +1007,7 @@ def schema_libs(cfg, lib='default', corner='default'):
         'short_help': 'Library Operating Condition',
         'example': [
             "cli: -library_opcond 'lib ss_1.0v_125c WORST'",
-            "api: chip.set('library','opcond,'lib','ss_1.0v_125c','WORST')"],
+            "api: chip.set('library','lib','opcond','ss_1.0v_125c','WORST')"],
         'help': """
         The default operating condition to use for mcmm optimization and
         signoff on a per corner basis.
@@ -1000,9 +1015,8 @@ def schema_libs(cfg, lib='default', corner='default'):
     }
 
     #Checks To Do (per corner)
-    cfg['library']['check'] = {}
-    cfg['library']['check'][lib] = {}
-    cfg['library']['check'][lib][corner] = {
+    cfg['library'][lib]['check'] = {}
+    cfg['library'][lib]['check'][corner] = {
         'switch': "-library_check 'lib corner <str>'",
         'requirement': None,
         'type': '[str]',
@@ -1011,7 +1025,7 @@ def schema_libs(cfg, lib='default', corner='default'):
         'short_help': 'Library Corner Checks',
         'example': [
             "cli: -library_check 'lib ss_1.0v_125c setup'",
-            "api: chip.set('library','check','lib','ss_1.0v_125c','setup')"],
+            "api: chip.set('library','lib','check','ss_1.0v_125c','setup')"],
         'help': """
         Per corner checks to perform during optimization and STA signoff.
         Names used in the 'mcmm' scenarios must align with the 'check' names
@@ -1024,10 +1038,9 @@ def schema_libs(cfg, lib='default', corner='default'):
     }
 
     #NLDM
-    cfg['library']['nldm'] = {}
-    cfg['library']['nldm'][lib] = {}
-    cfg['library']['nldm'][lib][corner] = {}
-    cfg['library']['nldm'][lib][corner]['default'] = {
+    cfg['library'][lib]['nldm'] = {}
+    cfg['library'][lib]['nldm'][corner] = {}
+    cfg['library'][lib]['nldm'][corner]['default'] = {
         'switch': "-library_nldm 'lib corner format <file>'",
         'requirement': None,
         'type': '[file]',
@@ -1041,7 +1054,7 @@ def schema_libs(cfg, lib='default', corner='default'):
         'short_help': 'Library NLDM Timing Model',
         'example': [
             "cli: -library_nldm 'lib ss gz ss.lib.gz'",
-            "api: chip.set('library','nldm','lib','ss','gz','ss.lib.gz')"],
+            "api: chip.set('library','lib','nldm','ss','gz','ss.lib.gz')"],
         'help': """
         Filepaths to NLDM models. Timing files are specified on a per lib,
         per corner, and per format basis. The format is driven by EDA tool
@@ -1051,10 +1064,9 @@ def schema_libs(cfg, lib='default', corner='default'):
     }
 
     #CCS
-    cfg['library']['ccs'] = {}
-    cfg['library']['ccs'][lib] = {}
-    cfg['library']['ccs'][lib][corner] = {}
-    cfg['library']['ccs'][lib][corner]['default'] = {
+    cfg['library'][lib]['ccs'] = {}
+    cfg['library'][lib]['ccs'][corner] = {}
+    cfg['library'][lib]['ccs'][corner]['default'] = {
         'switch': "-library_ccs 'lib corner format <file>'",
         'requirement': None,
         'type': '[file]',
@@ -1068,7 +1080,7 @@ def schema_libs(cfg, lib='default', corner='default'):
         'short_help': 'Library CCS Timing Model',
         'example': [
             "cli: -library_ccs 'lib ss lib.gz ss.lib.gz'",
-            "api: chip.set('library','ccs','lib','ss','gz','ss.lib.gz')"],
+            "api: chip.set('library','lib','ccs','ss','gz','ss.lib.gz')"],
         'help': """
         Filepaths to CCS models. Timing files are specified on a per lib,
         per corner, and per format basis. The format is driven by EDA tool
@@ -1078,10 +1090,9 @@ def schema_libs(cfg, lib='default', corner='default'):
     }
 
     #SCM
-    cfg['library']['scm'] = {}
-    cfg['library']['scm'][lib] = {}
-    cfg['library']['scm'][lib][corner] = {}
-    cfg['library']['scm'][lib][corner]['default'] = {
+    cfg['library'][lib]['scm'] = {}
+    cfg['library'][lib]['scm'][corner] = {}
+    cfg['library'][lib]['scm'][corner]['default'] = {
         'switch': "-library_scm 'lib corner format <file>'",
         'requirement': None,
         'type': '[file]',
@@ -1095,7 +1106,7 @@ def schema_libs(cfg, lib='default', corner='default'):
         'short_help': 'Library SCM Timing Model',
         'example': [
             "cli: -library_scm 'lib ss lib.gz ss.lib.gz'",
-            "api: chip.set('library','scm,'lib','ss','gz','ss.lib.gz')"],
+            "api: chip.set('library','lib','scm,'ss','gz','ss.lib.gz')"],
         'help': """
         Filepaths to SCM models. Timing files are specified on a per lib,
         per corner, and per format basis. The format is driven by EDA tool
@@ -1105,9 +1116,8 @@ def schema_libs(cfg, lib='default', corner='default'):
     }
 
     #AOCV
-    cfg['library']['aocv'] = {}
-    cfg['library']['aocv'][lib] = {}
-    cfg['library']['aocv'][lib][corner] = {
+    cfg['library'][lib]['aocv'] = {}
+    cfg['library'][lib]['aocv'][corner] = {
         'switch': "-library_aocv 'lib corner <file>'",
         'requirement': None,
         'type': '[file]',
@@ -1121,7 +1131,7 @@ def schema_libs(cfg, lib='default', corner='default'):
         'short_help': 'Library AOCV Timing Model',
         'example': [
             "cli: -library_aocv 'lib ss lib.aocv'",
-            "api: chip.set('library','aocv','lib','ss','lib_ss.aocv')"],
+            "api: chip.set('library','lib','aocv','ss','lib_ss.aocv')"],
         'help': """
         Filepaths to AOCV models. Timing files are specified on a per lib,
         per corner basis.
@@ -1129,10 +1139,9 @@ def schema_libs(cfg, lib='default', corner='default'):
     }
 
     #APL
-    cfg['library']['apl'] = {}
-    cfg['library']['apl'][lib] = {}
-    cfg['library']['apl'][lib][corner] = {}
-    cfg['library']['apl'][lib][corner]['default'] = {
+    cfg['library'][lib]['apl'] = {}
+    cfg['library'][lib]['apl'][corner] = {}
+    cfg['library'][lib]['apl'][corner]['default'] = {
         'switch': "-library_apl 'lib corner format <file>'",
         'requirement': None,
         'type': '[file]',
@@ -1146,7 +1155,7 @@ def schema_libs(cfg, lib='default', corner='default'):
         'short_help': 'Library APL Power Model',
         'example': [
             "cli: -library_apl 'lib ss cdev lib_tt.cdev'",
-            "api: chip.set('library','apl,'lib','ss','cdev','lib_tt.cdev')"],
+            "api: chip.set('library','lib','apl,'ss','cdev','lib_tt.cdev')"],
         'help': """
         Filepaths to APL power models. Power files are specified on a per
         lib, per corner, and per format basis.
@@ -1154,8 +1163,7 @@ def schema_libs(cfg, lib='default', corner='default'):
     }
 
     #LEF
-    cfg['library']['lef'] = {}
-    cfg['library']['lef'][lib] = {
+    cfg['library'][lib]['lef'] = {
         'switch': "-library_lef 'lib <file>'",
         'requirement': None,
         'type': '[file]',
@@ -1168,7 +1176,7 @@ def schema_libs(cfg, lib='default', corner='default'):
         'signature': [],
         'short_help': 'Library LEF',
         'example': ["cli: -library_lef 'mylib mylib.lef'",
-                    "api: chip.set('library','lef,'mylib','mylib.lef')"],
+                    "api: chip.set('library','mylib','lef,'mylib.lef')"],
         'help': """
         An abstracted view of library cells that gives a complete description
         of the cell's place and route boundary, pin positions, pin metals, and
@@ -1177,8 +1185,7 @@ def schema_libs(cfg, lib='default', corner='default'):
     }
 
     #GDS
-    cfg['library']['gds'] = {}
-    cfg['library']['gds'][lib] = {
+    cfg['library'][lib]['gds'] = {
         'switch': "-library_gds 'lib <file>'",
         'requirement': None,
         'type': '[file]',
@@ -1191,7 +1198,7 @@ def schema_libs(cfg, lib='default', corner='default'):
         'signature': [],
         'short_help': 'Library GDS',
         'example': ["cli: -library_gds 'mylib mylib.gds'",
-                    "api: chip.set('library','gds','mylib','mylib.gds')"],
+                    "api: chip.set('library','mylib','gds','mylib.gds')"],
         'help': """
         The complete mask layout of the library cells ready to be merged with
         the rest of the design for tapeout. In some cases, the GDS merge
@@ -1200,10 +1207,9 @@ def schema_libs(cfg, lib='default', corner='default'):
         enable LVS checks pre tapout
         """
     }
-
-    cfg['library']['netlist'] = {}
-    cfg['library']['netlist'][lib] = {
-        'switch': "-library_netlist 'lib <file>'",
+    cfg['library'][lib]['netlist'] = {}
+    cfg['library'][lib]['netlist']['default'] = {
+        'switch': "-library_netlist 'lib cdl <file>'",
         'requirement': None,
         'type': '[file]',
         'lock': 'false',
@@ -1214,8 +1220,8 @@ def schema_libs(cfg, lib='default', corner='default'):
         'author': [],
         'signature': [],
         'short_help': 'Library Netlist',
-        'example': ["cli: -library_netlist 'mylib mylib.cdl'",
-                    "api: chip.set('library','netlist','mylib','mylib.cdl')"],
+        'example': ["cli: -library_netlist 'mylib cdl mylib.cdl'",
+                    "api: chip.set('library','mylib','netlist','cdl','mylib.cdl')"],
         'help': """
         Files containing the netlist used for layout versus schematic (LVS)
         checks. For transistor level libraries such as standard cell libraries
@@ -1224,10 +1230,8 @@ def schema_libs(cfg, lib='default', corner='default'):
         level netlist.
         """
     }
-
-    cfg['library']['spice'] = {}
-    cfg['library']['spice'][lib] = {}
-    cfg['library']['spice'][lib]['default'] = {
+    cfg['library'][lib]['spice'] = {}
+    cfg['library'][lib]['spice']['default'] = {
         'switch': "-library_spice 'lib format <file>'",
         'requirement': None,
         'type': '[file]',
@@ -1239,18 +1243,17 @@ def schema_libs(cfg, lib='default', corner='default'):
         'author': [],
         'signature': [],
         'short_help': 'Library Spice Netlist',
-        'example': ["cli: -library_spice 'mylib pspice mylib.sp'",
-                    "api: chip.set('library','spice', 'mylib', 'pspice',"
-                    "'mylib.sp')"],
+        'example': [
+            "cli: -library_spice 'mylib pspice mylib.sp'",
+            "api: chip.set('library','mylib','spice','pspice','mylib.sp')"],
         'help': """
         Files containing library spice netlists used for circuit
         simulation, specified on a per format basis.
         """
     }
 
-    cfg['library']['hdl'] = {}
-    cfg['library']['hdl'][lib] = {}
-    cfg['library']['hdl'][lib]['default'] = {
+    cfg['library'][lib]['hdl'] = {}
+    cfg['library'][lib]['hdl']['default'] = {
         'switch': "-library_hdl 'lib format <file>'",
         'requirement': None,
         'type': '[file]',
@@ -1262,9 +1265,9 @@ def schema_libs(cfg, lib='default', corner='default'):
         'author': [],
         'signature': [],
         'short_help': 'Library HDL Model',
-        'example': ["cli: -library_hdl 'mylib verilog mylib.v'",
-                    "api: chip.set('library','hdl','mylib','verilog',"
-                    "'mylib.v')"],
+        'example': [
+            "cli: -library_hdl 'mylib verilog mylib.v'",
+            "api: chip.set('library','mylib','hdl','verilog','mylib.v')"],
         'help': """
         Library HDL models, specifed on a per format basis. Examples
         of legal formats include verilog, vhdl, systemc, c++, python.
@@ -1272,8 +1275,7 @@ def schema_libs(cfg, lib='default', corner='default'):
         """
     }
 
-    cfg['library']['atpg'] = {}
-    cfg['library']['atpg'][lib] = {
+    cfg['library'][lib]['atpg'] = {
         'switch': "-library_atpg 'lib <file>'",
         'requirement': None,
         'type': '[file]',
@@ -1286,14 +1288,14 @@ def schema_libs(cfg, lib='default', corner='default'):
         'signature': [],
         'short_help': 'Library ATPG Model',
         'example': ["cli: -library_atpg 'mylib mylib.atpg'",
-                    "api: chip.set('library','atpg','mylib','mylib.atpg')"],
+                    "api: chip.set('library','mylib','atpg','mylib.atpg')"],
         'help': """
         Library models used for ATPG based automated faultd based post
         manufacturing testing.
         """
     }
-    cfg['library']['pgmetal'] = {}
-    cfg['library']['pgmetal'][lib] = {
+
+    cfg['library'][lib]['pgmetal'] = {
         'switch': "-library_pgmetal 'lib <str>'",
         'requirement': None,
         'type': 'str',
@@ -1301,7 +1303,7 @@ def schema_libs(cfg, lib='default', corner='default'):
         'defvalue': None,
         'short_help': 'Library Power/Ground Layer',
         'example': ["cli: -library_pgmetal 'mylib m1'",
-                    "api: chip.set('library','pgmetal','mylib','m1')"],
+                    "api: chip.set('library','mylib','pgmetal','m1')"],
         'help': """
         Specifies the top metal layer used for power and ground routing within
         the library. The parameter can be used to guide cell power grid hookup
@@ -1309,8 +1311,8 @@ def schema_libs(cfg, lib='default', corner='default'):
         """
     }
 
-    cfg['library']['tag'] = {}
-    cfg['library']['tag'][lib] = {
+
+    cfg['library'][lib]['tag'] = {
         'switch': "-library_tag 'lib <str>'",
         'requirement': None,
         'type': '[str]',
@@ -1318,7 +1320,7 @@ def schema_libs(cfg, lib='default', corner='default'):
         'defvalue': [],
         'short_help': 'Library Identifier Tags',
         'example': ["cli: -library_tag 'mylib virtual'",
-                    "api: chip.set('library','tag','mylib','virtual')"],
+                    "api: chip.set('library','mylib','tag','virtual')"],
         'help': """
         Marks a library with a set of tags that can be used by the designer
         and EDA tools for optimization purposes. The tags are meant to cover
@@ -1328,8 +1330,8 @@ def schema_libs(cfg, lib='default', corner='default'):
         """
     }
 
-    cfg['library']['driver'] = {}
-    cfg['library']['driver'][lib] = {
+
+    cfg['library'][lib]['driver'] = {
         'switch': "-library_driver 'lib <str>'",
         'requirement': None,
         'type': '[str]',
@@ -1337,7 +1339,7 @@ def schema_libs(cfg, lib='default', corner='default'):
         'defvalue': [],
         'short_help': 'Library Default Driver Cell',
         'example': ["cli: -library_driver 'mylib BUFX1/Z'",
-                    "api: chip.set('library','driver','mylib','BUFX1/Z')"],
+                    "api: chip.set('library','mylib','driver','BUFX1/Z')"],
         'help': """
         The name of a library cell to be used as the default driver for
         block timing constraints. The cell should be strong enough to drive
@@ -1347,8 +1349,8 @@ def schema_libs(cfg, lib='default', corner='default'):
         """
     }
 
-    cfg['library']['site'] = {}
-    cfg['library']['site'][lib] = {
+
+    cfg['library'][lib]['site'] = {
         'switch': "-library_site 'lib <str>'",
         'requirement': None,
         'type': 'str',
@@ -1356,15 +1358,14 @@ def schema_libs(cfg, lib='default', corner='default'):
         'defvalue': None,
         'short_help': 'Library Site/Tile Name',
         'example': ["cli: -library_site 'mylib core'",
-                    "api: chip.set('library','site','mylib','core')"],
+                    "api: chip.set('library','mylib','site','core')"],
         'help': """
         Provides the primary site name to use for placement.
         """
     }
 
-    cfg['library']['cells'] = {}
-    cfg['library']['cells'][lib] = {}
-    cfg['library']['cells'][lib]['default'] = {
+    cfg['library'][lib]['cells'] = {}
+    cfg['library'][lib]['cells']['default'] = {
         'switch': "-library_cells 'lib group <str>'",
         'requirement': None,
         'type': '[str]',
@@ -1373,7 +1374,7 @@ def schema_libs(cfg, lib='default', corner='default'):
         'short_help': 'Library Cell Lists',
         'example': [
             "cli: -library_cells 'mylib dontuse *eco*'",
-            "api: chip.set('library','cells','mylib','dontuse','*eco*')"],
+            "api: chip.set('library','mylib','cells','dontuse','*eco*')"],
         'help': """
         A named list of cells grouped by a property that can be accessed
         directly by the designer and EDA tools. The example below shows how
@@ -1381,11 +1382,9 @@ def schema_libs(cfg, lib='default', corner='default'):
         for the tool.
         """
     }
-
-    cfg['library']['layoutdb'] = {}
-    cfg['library']['layoutdb'][lib] = {}
-    cfg['library']['layoutdb'][lib]['default'] = {}
-    cfg['library']['layoutdb'][lib]['default']['default'] = {
+    cfg['library'][lib]['layoutdb'] = {}
+    cfg['library'][lib]['layoutdb']['default'] = {}
+    cfg['library'][lib]['layoutdb']['default']['default'] = {
         'switch': "-library_layoutdb 'lib stackup format <file>'",
         'requirement': None,
         'type': '[file]',
@@ -1399,7 +1398,7 @@ def schema_libs(cfg, lib='default', corner='default'):
         'short_help': 'Library Layout Database',
         'example': [
             "cli: -library_layoutdb 'lib M10 oa ~/libdb'",
-            "api: chip.set('library','layoutdb','lib','M10','oa','~/libdb')"],
+            "api: chip.set('library','lib','layoutdb','M10','oa','~/libdb')"],
         'help': """
         Filepaths to compiled library layout database specified on a per format
         basis. Example formats include oa, mw, ndm.
@@ -1415,18 +1414,19 @@ def schema_libs(cfg, lib='default', corner='default'):
 def schema_flowgraph(cfg, step='default'):
 
     cfg['flowgraph'] = {}
+    cfg['flowgraph'][step] =  {}
 
     # Flow step parallelism
-    cfg['flowgraph']['nproc'] =  {}
-    cfg['flowgraph']['nproc'][step] = {
+    cfg['flowgraph'][step]['nproc'] = {
         'switch': "-flowgraph_nproc 'step <int>'",
         'type': 'int',
         'lock': 'false',
         'requirement': 'all',
         'defvalue': None,
         'short_help': 'Flowgraph step parallelism',
-        'example': ["cli: -flowgraph_nproc 'cts 10'",
-                    "api:  chip.set('flowgraph','nproc,'cts','10')"],
+        'example': [
+            "cli: -flowgraph_nproc 'cts 10'",
+            "api:  chip.set('flowgraph','cts','nproc,'10')"],
         'help': """
         Integer specifying how many parallel processes to launch for step
         the step specified Each forked process operates on the same input
@@ -1436,16 +1436,16 @@ def schema_flowgraph(cfg, step='default'):
     }
 
     # Flow input dependancy
-    cfg['flowgraph']['input'] =  {}
-    cfg['flowgraph']['input'][step] = {
+    cfg['flowgraph'][step]['input'] = {
         'switch': "-flowgraph_input 'step <str>'",
         'type': '[str]',
         'lock': 'false',
         'requirement': 'all',
         'defvalue': [],
         'short_help': 'Flowgraph Step Input',
-        'example': ["cli: -flowgraph_input 'cts place'",
-                    "api:  chip.set('flowgraph','input,'cts','place')"],
+        'example': [
+            "cli: -flowgraph_input 'cts place'",
+            "api:  chip.set('flowgraph','cts','input,'place')"],
         'help': """
         List of input step dependancies for the current step. A step
         with no dependancies (like 'import') should set the value to
@@ -1456,16 +1456,16 @@ def schema_flowgraph(cfg, step='default'):
 
 
     # Flow input merging
-    cfg['flowgraph']['mergeop'] = {}
-    cfg['flowgraph']['mergeop'][step] = {
+    cfg['flowgraph'][step]['mergeop'] = {
         'switch': "-flowgraph_mergeop 'step <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': 'all',
         'defvalue': [],
         'short_help': 'Flowgraph Merge Operation',
-        'example': ["cli: -flowgraph_mergeop 'cts min'",
-                    "api:  chip.set('flowgraph', 'mergeop', 'cts', 'min')"],
+        'example': [
+            "cli: -flowgraph_mergeop 'cts min'",
+            "api:  chip.set('flowgraph','cts','mergeop','min')"],
         'help': """
         Function to use when merging data from multiple inputs. Valid
         options are 'or' and 'min'.
@@ -1473,17 +1473,17 @@ def schema_flowgraph(cfg, step='default'):
     }
 
     # Flow graph score weights
-    cfg['flowgraph']['weight'] = {}
-    cfg['flowgraph']['weight'][step] = {}
-    cfg['flowgraph']['weight'][step]['default'] = {
+    cfg['flowgraph'][step]['weight'] = {}
+    cfg['flowgraph'][step]['weight']['default'] = {
         'switch': "-flowgraph_weight 'step metric <float>'",
         'type': 'float',
         'lock': 'false',
         'requirement': 'all,',
         'defvalue': [],
         'short_help': 'Flowgraph Metric Weights',
-        'example': ["cli: -flowgraph_weight 'cts area_cells 1.0'",
-                    "api:  chip.set('flowgraph','weight','cts', 'area_cells', 1.0)"],
+        'example': [
+            "cli: -flowgraph_weight 'cts area_cells 1.0'",
+            "api:  chip.set('flowgraph','cts','weight','area_cells',1.0)"],
         'help': """
         Weights specified on a per step and per metric basis used to give
         effective "goodnes" score for a step by calculating the sum all step
@@ -1492,8 +1492,7 @@ def schema_flowgraph(cfg, step='default'):
     }
 
     # Step tool
-    cfg['flowgraph']['tool'] = {}
-    cfg['flowgraph']['tool'][step] = {
+    cfg['flowgraph'][step]['tool'] = {
         'switch': "-flowgraph_tool 'step <str>'",
         'type': 'str',
         'lock': 'false',
@@ -1501,7 +1500,7 @@ def schema_flowgraph(cfg, step='default'):
         'defvalue': None,
         'short_help': 'Flowgraph Tool Selection',
         'example': ["cli: -flowgraph_tool 'place openroad'",
-                    "api: chip.set('flowgraph','tool','place','openroad')"],
+                    "api: chip.set('flowgraph','place','tool','openroad')"],
         'help': """
         Name of the EDA tool to use for a specific step in the exeecution flow
         graph.
@@ -1509,8 +1508,7 @@ def schema_flowgraph(cfg, step='default'):
     }
 
     # Step showtool
-    cfg['flowgraph']['showtool'] = {}
-    cfg['flowgraph']['showtool'][step] = {
+    cfg['flowgraph'][step]['showtool'] = {
         'switch': "-flowgraph_showtool 'step <str>'",
         'type': 'str',
         'lock': 'false',
@@ -1518,7 +1516,7 @@ def schema_flowgraph(cfg, step='default'):
         'defvalue': None,
         'short_help': 'Flowgraph Show Tool Selection',
         'example': ["cli: -flowgraph_showtool 'place openroad'",
-                    "api: chip.set('flowgraph','showtool','place','openroad')"],
+                    "api: chip.set('flowgraph','place','showtool','openroad')"],
         'help': """
         Name of the tool to use for showing the output file for a specific step in
         the exeecution flowgraph.
@@ -1535,11 +1533,11 @@ def schema_hier(cfg, parent='default', child='default'):
 
 
     cfg['hier'] = {}
+    cfg['hier'][parent] = {}
+    cfg['hier'][parent][child] = {}
 
     # Flow graph definition
-    cfg['hier']['package'] = {}
-    cfg['hier']['package'][parent] =  {}
-    cfg['hier']['package'][parent][child] = {
+    cfg['hier'][parent][child]['package'] = {
         'switch': "-hier_package 'parent child <file>'",
         'type': '[file]',
         'lock': 'false',
@@ -1552,7 +1550,7 @@ def schema_hier(cfg, parent='default', child='default'):
         'signature': [],
         'short_help': 'Component package file',
         'example': ["cli: -hier_package 'top padring padring_package.json'",
-                    "api:  chip.set('hier','package','top','padring','padring_package.json')"],
+                    "api:  chip.set('hier','top','padring','package','padring_package.json')"],
         'help': """
         Path to an instantiated child component package file. The file format is
         the standard JSON format exported by SC.
@@ -1560,9 +1558,7 @@ def schema_hier(cfg, parent='default', child='default'):
     }
 
     # Hierarchical build indicator
-    cfg['hier']['build'] = {}
-    cfg['hier']['build'][parent] =  {}
-    cfg['hier']['build'][parent][child] = {
+    cfg['hier'][parent][child]['build'] = {
         'switch': "-hier_build 'parent child <bool>'",
         'type': 'bool',
         'lock': 'false',
@@ -1570,7 +1566,7 @@ def schema_hier(cfg, parent='default', child='default'):
         'defvalue': "false",
         'short_help': 'Child ',
         'example': ["cli: -hiear_build 'top padring true'",
-                    "api:  chip.set('hier', 'build', 'top', 'padring', 'true')"],
+                    "api:  chip.set('hier', 'top', 'padring', 'build', 'true')"],
         'help': """
         Path to an instantiated child cell package file.
         """
@@ -1585,12 +1581,11 @@ def schema_hier(cfg, parent='default', child='default'):
 def schema_eda(cfg, tool='default', step='default', index='default'):
 
     cfg['eda'] = {}
+    cfg['eda'][tool] = {}
+    cfg['eda'][tool][step] = {}
+    cfg['eda'][tool][step][index] = {}
 
-    # exe
-    cfg['eda']['exe'] = {}
-    cfg['eda']['exe'][tool] = {}
-    cfg['eda']['exe'][tool][step] = {}
-    cfg['eda']['exe'][tool][step][index] = {
+    cfg['eda'][tool][step][index]['exe'] = {
         'switch': "-eda_exe 'tool step index <str>'",
         'type': 'str',
         'lock': 'false',
@@ -1599,7 +1594,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'short_help': 'Executable Name',
         'example': [
             "cli: -eda_exe 'openroad cts 0 openroad'",
-            "api:  chip.set('eda','exe','openroad,'cts','0','openroad')"],
+            "api:  chip.set('eda','openroad','cts','0','exe','openroad')"],
         'help': """
         Name of the exuctable step or the full path to the executable
         specified on a per tool and step basis.
@@ -1607,10 +1602,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     }
 
     # version-check
-    cfg['eda']['vswitch'] = {}
-    cfg['eda']['vswitch'][tool] = {}
-    cfg['eda']['vswitch'][tool][step] = {}
-    cfg['eda']['vswitch'][tool][step][index] = {
+    cfg['eda'][tool][step][index]['vswitch'] = {
         'switch': "-eda_vswitch 'tool step index <str>'",
         'type': 'str',
         'lock': 'false',
@@ -1619,7 +1611,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'short_help': 'Executable version switch',
         'example': [
             "cli: -eda_vswitch 'openroad cts 0 -version'",
-            "api:  chip.set('eda','vswitch,'openroad','cts','0','-version')"],
+            "api:  chip.set('eda','openroad','cts','0','vswitch','-version')"],
         'help': """
         Command line switch to use with executable used to print out
         the version number. Commmon switches include -v, -version,
@@ -1628,10 +1620,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     }
 
     # exe vendor
-    cfg['eda']['vendor'] = {}
-    cfg['eda']['vendor'][tool] = {}
-    cfg['eda']['vendor'][tool][step] = {}
-    cfg['eda']['vendor'][tool][step][index] = {
+    cfg['eda'][tool][step][index]['vendor'] = {
         'switch': "-eda_vendor 'tool step index <str>'",
         'type': 'str',
         'lock': 'false',
@@ -1639,7 +1628,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'defvalue': None,
         'short_help': 'Tool Vendor',
         'example': ["cli: -eda_vendor 'yosys syn 0 yosys'",
-                    "api: chip.set('eda','vendor','yosys,'syn','0','yosys')"],
+                    "api: chip.set('eda','yosys','syn','0','vendor','yosys')"],
         'help': """
         Name of the tool vendor specified on a per tool and step basis.
         Parameter can be used to set vendor specific technology variables
@@ -1649,10 +1638,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     }
 
     # exe version
-    cfg['eda']['version'] = {}
-    cfg['eda']['version'][tool] = {}
-    cfg['eda']['version'][tool][step] = {}
-    cfg['eda']['version'][tool][step][index] = {
+    cfg['eda'][tool][step][index]['version'] = {
         'switch': "-eda_version 'tool step index <str>'",
         'type': 'str',
         'lock': 'false',
@@ -1661,7 +1647,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'short_help': 'Executable Version',
         'example': [
             "cli: -eda_version 'openroad cts 0 1.0'",
-            "api:  chip.set('eda','version,'openroad','cts','0','1.0')"],
+            "api:  chip.set('eda','openroad','cts','0','version','1.0')"],
         'help': """
         Version of the tool executable specified on a per tool and per step
         basis. Mismatch between the step specifed and the step avalable results
@@ -1670,11 +1656,8 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     }
 
     # options
-    cfg['eda']['option'] = {}
-    cfg['eda']['option'][tool] = {}
-    cfg['eda']['option'][tool][step] = {}
-    cfg['eda']['option'][tool][step][index] = {}
-    cfg['eda']['option'][tool][step][index]['default'] = {
+    cfg['eda'][tool][step][index]['option'] = {}
+    cfg['eda'][tool][step][index]['option']['default'] = {
         'switch': "-eda_option 'tool step index name <str>'",
         'type': '[str]',
         'lock': 'false',
@@ -1683,7 +1666,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'short_help': 'Executable Options',
         'example': [
             "cli: -eda_option 'openroad cts 0 cmdline -no_init'",
-            "api:  chip.set('eda','option,'openroad,'cts','0','cmdline','-no_init')"],
+            "api:  chip.set('eda','openroad','cts','0','option','cmdline','-no_init')"],
         'help': """
         List of command line options for the tool executable, specified on
         a per tool and per step basis. For multiple argument options, enter
@@ -1698,10 +1681,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     }
 
     # input files
-    cfg['eda']['input'] = {}
-    cfg['eda']['input'][tool] = {}
-    cfg['eda']['input'][tool][step] = {}
-    cfg['eda']['input'][tool][step][index] = {
+    cfg['eda'][tool][step][index]['input'] = {
         'switch': "-eda_input 'tool step index <str>'",
         'type': '[str]',
         'lock': 'false',
@@ -1710,7 +1690,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'short_help': 'List of input files',
         'example': [
             "cli: -eda_input 'openroad place 0 oh_add.def'",
-            "api: chip.set('eda','input','openroad,'place','0','oh_add.def')"],
+            "api: chip.set('eda','openroad','place','0','input','oh_add.def')"],
         'help': """
         List of data files to be copied from previous flowgraph steps 'output'
         directory. The list of steps to copy files from is defined by the
@@ -1721,10 +1701,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     }
 
     # output files
-    cfg['eda']['output'] = {}
-    cfg['eda']['output'][tool] = {}
-    cfg['eda']['output'][tool][step] = {}
-    cfg['eda']['output'][tool][step][index] = {
+    cfg['eda'][tool][step][index]['output'] = {
         'switch': "-eda_output 'tool step index <str>'",
         'type': '[str]',
         'lock': 'false',
@@ -1732,7 +1709,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'defvalue': [],
         'short_help': 'List of outputd files ',
         'example': ["cli: -eda_output 'openroad place 0 oh_add.def'",
-                    "api: chip.set('eda','output','openroad, 'place','0','oh_add.def')"],
+                    "api: chip.set('eda','openroad','place','0','output','oh_add.def')"],
         'help': """
         List of data files produced by the current step and placed in the
         'output' directory. During execuition, if a file is missing, the
@@ -1741,10 +1718,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     }
 
     # list of parameters used by tool
-    cfg['eda']['param'] = {}
-    cfg['eda']['param'][tool] = {}
-    cfg['eda']['param'][tool][step] = {}
-    cfg['eda']['param'][tool][step][index] = {
+    cfg['eda'][tool][step][index]['param'] = {
         'switch': "-eda_param 'tool step index <str>'",
         'type': '[str]',
         'lock': 'false',
@@ -1753,7 +1727,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'short_help': 'List of parameters used by tool',
         'example': [
             "cli: -eda_param 'openroad place 0 design'",
-            "api: chip.set('eda','param','openroad, 'place','0','design')"],
+            "api: chip.set('eda','openroad', 'place','0','param','design')"],
         'help': """
         List of keypaths to SC parameters used by the tool. The list is used
         by check() to verify that all parameters have been set up before
@@ -1762,10 +1736,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     }
 
     # refdir
-    cfg['eda']['refdir'] = {}
-    cfg['eda']['refdir'][tool] = {}
-    cfg['eda']['refdir'][tool][step] = {}
-    cfg['eda']['refdir'][tool][step][index] = {
+    cfg['eda'][tool][step][index]['refdir'] = {
         'switch': "-eda_refdir 'tool step index <dir>'",
         'type': 'dir',
         'lock': 'false',
@@ -1774,7 +1745,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'short_help': 'Reference Directory',
         'example': [
             "cli: -eda_refdir 'yosys syn 0 ./myref'",
-            "api:  chip.set('eda','refdir,'yosys','syn','0','./myref')"],
+            "api:  chip.set('eda','yosys','syn','0','refdir','./myref')"],
         'help': """
         Path to directories  containing compilation scripts, specified
         on a per step basis.
@@ -1782,10 +1753,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     }
 
     # entry point scripts
-    cfg['eda']['script'] = {}
-    cfg['eda']['script'][tool] = {}
-    cfg['eda']['script'][tool][step] = {}
-    cfg['eda']['script'][tool][step][index] = {
+    cfg['eda'][tool][step][index]['script'] = {
         'switch': "-eda_script 'tool step index <file>'",
         'requirement': None,
         'type': '[file]',
@@ -1799,7 +1767,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'short_help': 'Entry Point script',
         'example': [
             "cli: -eda_script 'yosys syn 0 syn.tcl'",
-            "api: chip.set('eda','script','yosys','syn','0','syn.tcl')"],
+            "api: chip.set('eda','yosys','syn','0','script','syn.tcl')"],
         'help': """
         Path to the entry point compilation script called by the executable,
         specified on a per tool and per step basis.
@@ -1807,10 +1775,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     }
 
     # pre execution script
-    cfg['eda']['prescript'] = {}
-    cfg['eda']['prescript'][tool] = {}
-    cfg['eda']['prescript'][tool][step] = {}
-    cfg['eda']['prescript'][tool][step][index] = {
+    cfg['eda'][tool][step][index]['prescript'] = {
         'switch': "-eda_prescript 'tool step index <file>'",
         'requirement': None,
         'type': '[file]',
@@ -1824,7 +1789,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'short_help': 'Pre step script',
         'example': [
             "cli: -eda_prescript 'yosys syn 0 pre.tcl'",
-            "api: chip.set('eda','prescript','yosys','syn','0','pre.tcl')"],
+            "api: chip.set('eda','yosys','syn','0','prescript','pre.tcl')"],
         'help': """
         Path to a user supplied script to execute after reading in the design
         but before the main execution stage of the step. Exact entry point
@@ -1835,10 +1800,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     }
 
     # post execution script
-    cfg['eda']['postscript'] = {}
-    cfg['eda']['postscript'][tool] = {}
-    cfg['eda']['postscript'][tool][step] = {}
-    cfg['eda']['postscript'][tool][step][index] = {
+    cfg['eda'][tool][step][index]['postscript'] = {
         'switch': "-eda_postscript 'tool step index <file>'",
         'requirement': None,
         'type': '[file]',
@@ -1851,7 +1813,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'signature': [],
         'short_help': 'Post step script',
         'example': ["cli: -eda_postscript 'yosys syn 0 post.tcl'",
-                    "api: chip.set('eda','postscript,'yosys','syn','0','post.tcl')"],
+                    "api: chip.set('eda','yosys','syn','0','postscript','post.tcl')"],
         'help': """
         Path to a user supplied script to execute after reading in the design
         but before the main execution stage of the step. Exact entry point
@@ -1862,10 +1824,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     }
 
     # copy
-    cfg['eda']['copy'] = {}
-    cfg['eda']['copy'][tool] = {}
-    cfg['eda']['copy'][tool][step] = {}
-    cfg['eda']['copy'][tool][step][index] = {
+    cfg['eda'][tool][step][index]['copy'] = {
         'switch': "-eda_copy 'tool step index <bool>'",
         'type': 'bool',
         'lock': 'false',
@@ -1873,7 +1832,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'defvalue': "false",
         'short_help': 'Copy Local Option',
         'example': ["cli: -eda_copy 'openroad cts 0 true'",
-                    "api: chip.set('eda','copy','openroad', 'cts','0', true)"],
+                    "api: chip.set('eda','openroad','cts','0','copy',true)"],
         'help': """
         Specifies that the reference script directory should be copied and run
         from the local run directory. The option is specified on a per tool and
@@ -1882,10 +1841,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     }
 
     # exe type/format
-    cfg['eda']['format'] = {}
-    cfg['eda']['format'][tool] = {}
-    cfg['eda']['format'][tool][step] = {}
-    cfg['eda']['format'][tool][step][index] = {
+    cfg['eda'][tool][step][index]['format'] = {
         'switch': "-eda_format 'tool step index <str>'",
         'type': 'str',
         'lock': 'false',
@@ -1893,7 +1849,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'defvalue': None,
         'short_help': 'Script Format',
         'example': ["cli: -eda_format 'openroad cts 0 tcl'",
-                    "api: chip.set('eda','format','openroad, 'cts','0','tcl')"],
+                    "api: chip.set('eda','openroad, 'cts','0','format','tcl')"],
         'help': """
         Format of the configuration file specified on a per tool and per
         step basis. Valid formats depend on the type of tool. Supported formats
@@ -1903,10 +1859,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     }
 
     # parallelism
-    cfg['eda']['threads'] = {}
-    cfg['eda']['threads'][tool] = {}
-    cfg['eda']['threads'][tool][step] = {}
-    cfg['eda']['threads'][tool][step][index] = {
+    cfg['eda'][tool][step][index]['threads'] = {
         'switch': "-eda_threads 'tool step index <int>'",
         'type': 'int',
         'lock': 'false',
@@ -1914,7 +1867,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'defvalue': None,
         'short_help': 'Job Parallelism',
         'example': ["cli: -eda_threads 'magic drc 0 64'",
-                    "api: chip.set('eda','threads','magic','drc','0','64')"],
+                    "api: chip.set('eda','magic','drc','0','threads','64')"],
         'help': """
         Thread parallelism to use for execution specified on a per tool and per
         step basis. If not specified, SC queries the operating system and sets
@@ -1924,10 +1877,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     }
 
     # turn off warning
-    cfg['eda']['woff'] = {}
-    cfg['eda']['woff'][tool] = {}
-    cfg['eda']['woff'][tool][step] = {}
-    cfg['eda']['woff'][tool][step][index] = {
+    cfg['eda'][tool][step][index]['woff'] = {
         'switch': "-eda_woff 'tool step index name <str>'",
         'type': 'str',
         'lock': 'false',
@@ -1935,7 +1885,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'defvalue': None,
         'short_help': 'Warning Filter',
         'example': ["cli: -eda_woff 'verilator import 0 COMBDLY'",
-                    "api: chip.set('eda','woff','verilator','import','0','COMBDLY')"],
+                    "api: chip.set('eda','verilator','import','0','woff','COMBDLY')"],
         'help': """
         A list of EDA warnings for which printing should be supressed specified
         on a per tool and per step basis. Generally this is done on a per
@@ -1946,10 +1896,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     }
 
     # continue
-    cfg['eda']['continue'] = {}
-    cfg['eda']['continue'][tool] = {}
-    cfg['eda']['continue'][tool][step] = {}
-    cfg['eda']['continue'][tool][step][index] = {
+    cfg['eda'][tool][step][index]['continue'] = {
         'switch': "-eda_continue 'tool step index <bool>'",
         'type': 'bool',
         'lock': 'false',
@@ -1958,7 +1905,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'short_help': "Continue on error",
         'example': [
             "cli: -eda_continue 'verilator import 0 true'",
-            "api: chip.set('eda','continue','verilator','import','0',true)"],
+            "api: chip.set('eda','verilator','import','0','continue',true)"],
         'help': """
         Directs tool to not exit on error.
         """
@@ -2014,15 +1961,187 @@ def schema_arg(cfg):
 # Metrics to Track
 ###########################################################################
 
-def schema_metric(cfg, group='default', step='default', index='default'):
+def schema_metric(cfg, step='default', index='default',group='default', ):
 
     cfg['metric'] = {}
+    cfg['metric'][step] = {}
+    cfg['metric'][step][index] = {}
 
-    cfg['metric']['registers'] = {}
-    cfg['metric']['registers'][step] = {}
-    cfg['metric']['registers'][step][index] = {}
-    cfg['metric']['registers'][step][index][group] = {
-        'switch': '-metric_registers step index group <int>',
+    cfg['metric'][step][index]['errors'] = {}
+    cfg['metric'][step][index]['errors'][group] = {
+        'switch': "-metric_errors 'step index group <int>'",
+        'type': 'int',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'Total Errors Metric',
+        'example': [
+            "cli: -metric_errors 'dfm 0 goal 0'",
+            "api: chip.set('metric','dfm','0','errors','real','0')"],
+        'help': """
+        Metric tracking the total number of errors on a per step basis.
+        """
+    }
+
+    cfg['metric'][step][index]['warnings'] = {}
+    cfg['metric'][step][index]['warnings'][group] = {
+        'switch': "-metric_warnings 'step index group <int>'",
+        'type': 'int',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'Total Warnings Metric',
+        'example': [
+            "cli: -metric_warnings 'dfm 0 goal 0'",
+            "api: chip.set('metric','dfm','0','warnings','real','0')"],
+
+        'help': """
+        Metric tracking the total number of warnings on a per step basis.
+        """
+    }
+
+    cfg['metric'][step][index]['drv'] = {}
+    cfg['metric'][step][index]['drv'][group] = {
+        'switch': "-metric_drv 'step index group <int>'",
+        'type': 'int',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'Design Rule Violations Metric',
+        'example': [
+            "cli: -metric_drv 'dfm 0 goal 0'",
+            "api: chip.set('metric','dfm','0','drv','real','0')"],
+        'help': """
+        Metric tracking the total number of design rule violations on per step
+        basis.
+        """
+    }
+
+    cfg['metric'][step][index]['area_cells'] = {}
+    cfg['metric'][step][index]['area_cells'][group] = {
+        'switch': '-metric_area_cells step index group <float>',
+        'type': 'float',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'Cell Area Metric',
+        'example': [
+            "cli: -metric_area_cells 'place 0 goal 100.00'",
+            "api: chip.set('metric','place','0','area_cells','real','100.00')"],
+        'help': """
+        Metric tracking the sum of all non-filler standard cells on a per and per
+        index basis specified in um^2.
+        """
+    }
+
+    cfg['metric'][step][index]['power_total'] = {}
+    cfg['metric'][step][index]['power_total'][group] = {
+        'switch': '-metric_power_total step index group <float>',
+        'type': 'float',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'Total Power Metric',
+        'example': [
+            "cli: -metric_power_total 'place 0 real 0.001'",
+            "api: chip.set('metric','place','0','power_total','real','0.001')"],
+        'help': """
+        Metric tracking the worst case total power of the design on a per
+        step basis calculated based on setup config and VCD stimulus.
+        stimulus. Metric unit is Watts.
+        """
+    }
+
+    cfg['metric'][step][index]['power_leakage'] = {}
+    cfg['metric'][step][index]['power_leakage'][group] = {
+        'switch': '-metric_power_leakage step index group <float>',
+        'type': 'float',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'Leakage Power Metric',
+        'example': [
+            "cli: -metric_power_leakage 'place 0 real 1e-6'",
+            "api: chip.set('metric',place','0','power_leakage','real','1e-6')"],
+        'help': """
+        Metric tracking the leakage power of the design on a per step
+        basis. Metric unit is Watts.
+        """
+    }
+
+    cfg['metric'][step][index]['hold_slack'] = {}
+    cfg['metric'][step][index]['hold_slack'][group] = {
+        'switch': "-metric_hold_slack 'step index group <float>'",
+        'type': 'float',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'Hold Slack Metric',
+        'example': [
+            "cli: -metric_hold_slack 'place 0 real 0.42",
+            "api: chip.set('metric','place','0','hold_slack','real,'0.43')"],
+        'help': """
+        Metric tracking the worst hold/min timing path slack in the design.
+        Positive values means there is spare/slack, negative slack means the design
+        is failing a hold timing constrainng. The metric unit is nanoseconds.
+        """
+    }
+
+    cfg['metric'][step][index]['hold_tns'] = {}
+    cfg['metric'][step][index]['hold_tns'][group] = {
+        'switch': "-metric_hold_tns 'step index group <float>'",
+        'type': 'float',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'Hold TNS Metric',
+        'example': [
+            "cli: -metric_hold_tns 'place 0 real 0.0'",
+            "api: chip.set('metric','place','0','hold_tns','real','0')"],
+        'help': """
+        Metric tracking of total negative hold slack (TNS) on a per step basis.
+        Metric unit is nanoseconds.
+        """
+    }
+
+    cfg['metric'][step][index]['setup_slack'] = {}
+    cfg['metric'][step][index]['setup_slack'][group] = {
+        'switch': "-metric_setup_slack 'step index group <float>'",
+        'type': 'float',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'Setup Slack Metric',
+        'example': [
+            "cli: -metric_setup_slack 'place 0 goal 0.0",
+            "api: chip.set('metric','place','0','setup_slack','real','0.0')"],
+        'help': """
+        Metric tracking the worst setup/min timing path slack in the design.
+        Positive values means there is spare/slack, negative slack means the design
+        is failing a setup timing constrainng. The metric unit is nanoseconds.
+        """
+    }
+
+    cfg['metric'][step][index]['setup_tns'] = {}
+    cfg['metric'][step][index]['setup_tns'][group] = {
+        'switch': "-metric_setup_tns 'step index group <float>'",
+        'type': 'float',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'Setup TNS Metric',
+        'example': [
+            "cli: -metric_setup_tns 'place 0 goal 0.0'",
+            "api: chip.set('metric','place','0','setup_tns','real','0.0')"],
+        'help': """
+        Metric tracking of total negative setup slack (TNS) on a per step basis.
+        Metric unit is nanoseconds.
+        """
+    }
+
+    cfg['metric'][step][index]['registers'] = {}
+    cfg['metric'][step][index]['registers'][group] = {
+        'switch': "-metric_registers 'step index group <int>'",
         'type': 'int',
         'lock': 'false',
         'requirement': None,
@@ -2030,16 +2149,13 @@ def schema_metric(cfg, group='default', step='default', index='default'):
         'short_help': 'Total Registers Metric',
         'example': [
             "cli: -metric_registers 'place 0 real 100'",
-            "api: chip.set('metric','registers','place','0','goal','100')"],
+            "api: chip.set('metric','place','0','registers','real','100')"],
         'help': """
         Metric tracking the total number of register cells on a per step basis.
         """
     }
-
-    cfg['metric']['cells'] = {}
-    cfg['metric']['cells'][step] = {}
-    cfg['metric']['cells'][step][index] = {}
-    cfg['metric']['cells'][step][index][group] = {
+    cfg['metric'][step][index]['cells'] = {}
+    cfg['metric'][step][index]['cells'][group] = {
         'switch': '-metric_cells step index group <int>',
         'type': 'int',
         'lock': 'false',
@@ -2048,18 +2164,15 @@ def schema_metric(cfg, group='default', step='default', index='default'):
         'short_help': 'Total Cell Instances Metric',
         'example': [
             "cli: -metric_cells 'place 0 goal 100'",
-            "api: chip.set('metric','cells','place','0','goal,'100')"],
+            "api: chip.set('metric','place','0','cells','goal,'100')"],
         'help': """
         Metric tracking the total number of instances on a per step basis.
         Total cells includes registers. In the case of FPGAs, the it
         represents the number of LUTs.
         """
     }
-
-    cfg['metric']['rambits'] = {}
-    cfg['metric']['rambits'][step] = {}
-    cfg['metric']['rambits'][step][index] = {}
-    cfg['metric']['rambits'][step][index][group] = {
+    cfg['metric'][step][index]['rambits'] = {}
+    cfg['metric'][step][index]['rambits'][group] = {
         'switch': '-metric_rambits step index group <int>',
         'type': 'int',
         'lock': 'false',
@@ -2068,17 +2181,15 @@ def schema_metric(cfg, group='default', step='default', index='default'):
         'short_help': 'Total RAM Macro Bits Metric',
         'example': [
             "cli: -metric_rambits 'place 0 goal 100'",
-            "api: chip.set('metric','rambits','place','0','goal','100')"],
+            "api: chip.set('metric','place','0','rambits','goal','100')"],
         'help': """
         Metric tracking the total number of RAM bits in the design
         on a per step basis. In the case of FPGAs, the it
         represents the number of bits mapped to block ram.
         """
     }
-    cfg['metric']['xtors'] = {}
-    cfg['metric']['xtors'][step] = {}
-    cfg['metric']['xtors'][step][index] = {}
-    cfg['metric']['xtors'][step][index][group] = {
+    cfg['metric'][step][index]['xtors'] = {}
+    cfg['metric'][step][index]['xtors'][group] = {
         'switch': '-metric_xtors step index group <int>',
         'type': 'int',
         'lock': 'false',
@@ -2087,17 +2198,14 @@ def schema_metric(cfg, group='default', step='default', index='default'):
         'short_help': 'Total Transistors Metric',
         'example': [
             "cli: -metric_xtors 'place 0 goal 100'",
-            "api: chip.set('metric','xtors','place','0','real','100')"],
+            "api: chip.set('metric','place','0','xtors','real','100')"],
         'help': """
         Metric tracking the total number of transistors in the design
         on a per step basis.
         """
     }
-
-    cfg['metric']['nets'] = {}
-    cfg['metric']['nets'][step] = {}
-    cfg['metric']['nets'][step][index] = {}
-    cfg['metric']['nets'][step][index][group] = {
+    cfg['metric'][step][index]['nets'] = {}
+    cfg['metric'][step][index]['nets'][group] = {
         'switch': '-metric_nets step index group <int>',
         'type': 'int',
         'lock': 'false',
@@ -2106,17 +2214,14 @@ def schema_metric(cfg, group='default', step='default', index='default'):
         'short_help': 'Total Nets Metric',
         'example': [
             "cli: -metric_nets 'place 0 real 100'",
-            "api: chip.set('metric','nets','place','0','real','100')"],
+            "api: chip.set('metric','place','0','nets','real','100')"],
         'help': """
         Metric tracking the total number of net segments on a per step
         basis.
         """
     }
-
-    cfg['metric']['pins'] = {}
-    cfg['metric']['pins'][step] = {}
-    cfg['metric']['pins'][step][index] = {}
-    cfg['metric']['pins'][step][index][group] = {
+    cfg['metric'][step][index]['pins'] = {}
+    cfg['metric'][step][index]['pins'][group] = {
         'switch': '-metric_pins step index group <int>',
         'type': 'int',
         'lock': 'false',
@@ -2125,17 +2230,14 @@ def schema_metric(cfg, group='default', step='default', index='default'):
         'short_help': 'Total Pins Metric',
         'example': [
             "cli: -metric_pins 'place 0 real 100'",
-            "api: chip.set('metric','pins','place','0','real','100')"],
+            "api: chip.set('metric','place','0','pins','real','100')"],
         'help': """
         Metric tracking the total number of I/O pins on a per step
         basis.
         """
     }
-
-    cfg['metric']['vias'] = {}
-    cfg['metric']['vias'][step] = {}
-    cfg['metric']['vias'][step][index] = {}
-    cfg['metric']['vias'][step][index][group] = {
+    cfg['metric'][step][index]['vias'] = {}
+    cfg['metric'][step][index]['vias'][group] = {
         'switch': '-metric_vias step index group <int>',
         'type': 'int',
         'lock': 'false',
@@ -2144,15 +2246,13 @@ def schema_metric(cfg, group='default', step='default', index='default'):
         'short_help': 'Total Vias metric',
         'example': [
             "cli: -metric_vias 'route 0 real 100'",
-            "api: chip.set('metric','vias','place','0','real','100')"],
+            "api: chip.set('metric','place','0','vias','real','100')"],
         'help': """
         Metric tracking the total number of vias in the design.
         """
     }
-    cfg['metric']['wirelength'] = {}
-    cfg['metric']['wirelength'][step] = {}
-    cfg['metric']['wirelength'][step][index] = {}
-    cfg['metric']['wirelength'][step][index][group] = {
+    cfg['metric'][step][index]['wirelength'] = {}
+    cfg['metric'][step][index]['wirelength'][group] = {
         'switch': '-metric_wirelength step index group <float>',
         'type': 'float',
         'lock': 'false',
@@ -2161,15 +2261,14 @@ def schema_metric(cfg, group='default', step='default', index='default'):
         'short_help': 'Total Wirelength Metric',
         'example': [
             "cli: -metric_wirelength 'route 0 real 100.00'",
-            "api: chip.set('metric','wirelength','place','0','real','100.42')"],
+            "api: chip.set('metric','place','0','wirelength','real','100.42')"],
         'help': """
         Metric tracking the total wirelength in the design in meters.
         """
     }
-    cfg['metric']['overflow'] = {}
-    cfg['metric']['overflow'][step] = {}
-    cfg['metric']['overflow'][step][index] = {}
-    cfg['metric']['overflow'][step][index][group] = {
+
+    cfg['metric'][step][index]['overflow'] = {}
+    cfg['metric'][step][index]['overflow'][group] = {
         'switch': '-metric_overflow step index group <int>',
         'type': 'int',
         'lock': 'false',
@@ -2187,28 +2286,9 @@ def schema_metric(cfg, group='default', step='default', index='default'):
         routing hotspots.
         """
     }
-    cfg['metric']['area_cells'] = {}
-    cfg['metric']['area_cells'][step] = {}
-    cfg['metric']['area_cells'][step][index] = {}
-    cfg['metric']['area_cells'][step][index][group] = {
-        'switch': '-metric_area_cells step index group <float>',
-        'type': 'float',
-        'lock': 'false',
-        'requirement': None,
-        'defvalue': None,
-        'short_help': 'Cell Area Metric',
-        'example': [
-            "cli: -metric_area_cells 'place 0 goal 100.00'",
-            "api: chip.set('metric','area_cells','place','0','real','100.00')"],
-        'help': """
-        Metric tracking the sum of all non-filler standard cells on a per and per
-        index basis specified in um^2.
-        """
-    }
-    cfg['metric']['area_density'] = {}
-    cfg['metric']['area_density'][step] = {}
-    cfg['metric']['area_density'][step][index] = {}
-    cfg['metric']['area_density'][step][index][group] = {
+
+    cfg['metric'][step][index]['area_density'] = {}
+    cfg['metric'][step][index]['area_density'][group] = {
         'switch': '-metric_area_density step index group <float>',
         'type': 'float',
         'lock': 'false',
@@ -2217,7 +2297,7 @@ def schema_metric(cfg, group='default', step='default', index='default'):
         'short_help': 'Area Density Metric',
         'example': [
             "cli: -metric_area_density 'place 0 goal 99.9'",
-            "api: chip.set('metric','area_density','place','0','real','99.9')"],
+            "api: chip.set('metric','place','0','area_density','real','99.9')"],
         'help': """
         Metric tracking the effective area utilization/desnity calculated as the
         ratio of cell area divided by the total core area available for
@@ -2226,182 +2306,9 @@ def schema_metric(cfg, group='default', step='default', index='default'):
         """
     }
 
-    cfg['metric']['power_total'] = {}
-    cfg['metric']['power_total'][step] = {}
-    cfg['metric']['power_total'][step][index] = {}
-    cfg['metric']['power_total'][step][index][group] = {
-        'switch': '-metric_power_total step index group <float>',
-        'type': 'float',
-        'lock': 'false',
-        'requirement': None,
-        'defvalue': None,
-        'short_help': 'Total Power Metric',
-        'example': [
-            "cli: -metric_power_total 'place 0 real 0.001'",
-            "api: chip.set('metric','power_total','place','0','real','0.001')"],
-        'help': """
-        Metric tracking the worst case total power of the design on a per
-        step basis calculated based on setup config and VCD stimulus.
-        stimulus. Metric unit is Watts.
-        """
-    }
-
-    cfg['metric']['power_leakage'] = {}
-    cfg['metric']['power_leakage'][step] = {}
-    cfg['metric']['power_leakage'][step][index] = {}
-    cfg['metric']['power_leakage'][step][index][group] = {
-        'switch': '-metric_power_leakage step index group <float>',
-        'type': 'float',
-        'lock': 'false',
-        'requirement': None,
-        'defvalue': None,
-        'short_help': 'Leakage Power Metric',
-        'example': [
-            "cli: -metric_power_leakage 'place 0 real 1e-6'",
-            "api: chip.set('metric','power_leakage','place','0','real','1e-6')"],
-        'help': """
-        Metric tracking the leakage power of the design on a per step
-        basis. Metric unit is Watts.
-        """
-    }
-
-    cfg['metric']['hold_slack'] = {}
-    cfg['metric']['hold_slack'][step] = {}
-    cfg['metric']['hold_slack'][step][index] = {}
-    cfg['metric']['hold_slack'][step][index][group] = {
-        'switch': '-metric_hold_slack step index group <float>',
-        'type': 'float',
-        'lock': 'false',
-        'requirement': None,
-        'defvalue': None,
-        'short_help': 'Hold Slack Metric',
-        'example': [
-            "cli: -metric_hold_slack 'place 0 real 0.42",
-            "api: chip.set('metric','hold_slack','place','0','real,'0.43')"],
-        'help': """
-        Metric tracking the worst hold/min timing path slack in the design.
-        Positive values means there is spare/slack, negative slack means the design
-        is failing a hold timing constrainng. The metric unit is nanoseconds.
-        """
-    }
-
-    cfg['metric']['hold_tns'] = {}
-    cfg['metric']['hold_tns'][step] = {}
-    cfg['metric']['hold_tns'][step][index] = {}
-    cfg['metric']['hold_tns'][step][index][group] = {
-        'switch': '-metric_hold_tns step index group <float>',
-        'type': 'float',
-        'lock': 'false',
-        'requirement': None,
-        'defvalue': None,
-        'short_help': 'Hold TNS Metric',
-        'example': [
-            "cli: -metric_hold_tns 'place 0 real 0.0'",
-            "api: chip.set('metric','hold_tns','place','0','real','0')"],
-        'help': """
-        Metric tracking of total negative hold slack (TNS) on a per step basis.
-        Metric unit is nanoseconds.
-        """
-    }
-
-    cfg['metric']['setup_slack'] = {}
-    cfg['metric']['setup_slack'][step] = {}
-    cfg['metric']['setup_slack'][step][index] = {}
-    cfg['metric']['setup_slack'][step][index][group] = {
-        'switch': '-metric_setup_slack step index group <float>',
-        'type': 'float',
-        'lock': 'false',
-        'requirement': None,
-        'defvalue': None,
-        'short_help': 'Setup Slack Metric',
-        'example': [
-            "cli: -metric_setup_slack 'place 0 goal 0.0",
-            "api: chip.set('metric','setup_slack','place','0','real','0.0')"],
-        'help': """
-        Metric tracking the worst setup/min timing path slack in the design.
-        Positive values means there is spare/slack, negative slack means the design
-        is failing a setup timing constrainng. The metric unit is nanoseconds.
-        """
-    }
-
-    cfg['metric']['setup_tns'] = {}
-    cfg['metric']['setup_tns'][step] = {}
-    cfg['metric']['setup_tns'][step][index] = {}
-    cfg['metric']['setup_tns'][step][index][group] = {
-        'switch': '-metric_setup_tns step index group <float>',
-        'type': 'float',
-        'lock': 'false',
-        'requirement': None,
-        'defvalue': None,
-        'short_help': 'Setup TNS Metric',
-        'example': [
-            "cli: -metric_setup_tns 'place 0 goal 0.0'",
-            "api: chip.set('metric','setup_tns','place','0','real','0.0')"],
-        'help': """
-        Metric tracking of total negative setup slack (TNS) on a per step basis.
-        Metric unit is nanoseconds.
-        """
-    }
-
-    cfg['metric']['drv'] = {}
-    cfg['metric']['drv'][step] = {}
-    cfg['metric']['drv'][step][index] = {}
-    cfg['metric']['drv'][step][index][group] = {
-        'switch': '-metric_drv step index group <int>',
-        'type': 'int',
-        'lock': 'false',
-        'requirement': None,
-        'defvalue': None,
-        'short_help': 'Design Rule Violations Metric',
-        'example': [
-            "cli: -metric_drv 'dfm 0 goal 0'",
-            "api: chip.set('metric','drv','dfm','0','real','0')"],
-        'help': """
-        Metric tracking the total number of design rule violations on per step
-        basis.
-        """
-    }
-    cfg['metric']['warnings'] = {}
-    cfg['metric']['warnings'][step] = {}
-    cfg['metric']['warnings'][step][index] = {}
-    cfg['metric']['warnings'][step][index][group] = {
-        'switch': '-metric_warnings step index group <int>',
-        'type': 'int',
-        'lock': 'false',
-        'requirement': None,
-        'defvalue': None,
-        'short_help': 'Total Warnings Metric',
-        'example': [
-            "cli: -metric_warnings 'dfm 0 goal 0'",
-            "api: chip.set('metric','warnings','dfm','0','real','0')"],
-
-        'help': """
-        Metric tracking the total number of warnings on a per step basis.
-        """
-    }
-    cfg['metric']['errors'] = {}
-    cfg['metric']['errors'][step] = {}
-    cfg['metric']['errors'][step][index] = {}
-    cfg['metric']['errors'][step][index][group] = {
-        'switch': '-metric_errors step index group <int>',
-        'type': 'int',
-        'lock': 'false',
-        'requirement': None,
-        'defvalue': None,
-        'short_help': 'Total Errors Metric',
-        'example': [
-            "cli: -metric_errors 'dfm 0 goal 0'",
-            "api: chip.set('metric','errors','dfm','0','real','0')"],
-        'help': """
-        Metric tracking the total number of errors on a per step basis.
-        """
-    }
-
-    cfg['metric']['runtime'] = {}
-    cfg['metric']['runtime'][step] = {}
-    cfg['metric']['runtime'][step][index] = {}
-    cfg['metric']['runtime'][step][index][group] = {
-        'switch': '-metric_runtime step index group <float>',
+    cfg['metric'][step][index]['runtime'] = {}
+    cfg['metric'][step][index]['runtime'][group] = {
+        'switch': "-metric_runtime 'step index group <float>",
         'type': 'float',
         'lock': 'false',
         'requirement': None,
@@ -2409,18 +2316,16 @@ def schema_metric(cfg, group='default', step='default', index='default'):
         'short_help': 'Total Runtime Metric',
         'example': [
             "cli: -metric_runtime 'dfm 0 goal 35.3'",
-            "api: chip.set('metric','runtime','dfm','0','real','35.3')"],
+            "api: chip.set('metric','dfm','0','runtime','real','35.3')"],
         'help': """
         Metric tracking the total runtime on a per step basis. Time recorded
         as wall clock time specified in seconds.
         """
     }
 
-    cfg['metric']['memory'] = {}
-    cfg['metric']['memory'][step] = {}
-    cfg['metric']['memory'][step][index] = {}
-    cfg['metric']['memory'][step][index][group] = {
-        'switch': '-metric_memory step index group <float>',
+    cfg['metric'][step][index]['memory'] = {}
+    cfg['metric'][step][index]['memory'][group] = {
+        'switch': "-metric_memory 'step index group <float>'",
         'type': 'float',
         'lock': 'false',
         'requirement': None,
@@ -2428,7 +2333,7 @@ def schema_metric(cfg, group='default', step='default', index='default'):
         'short_help': 'Total Memory Metric',
         'example': [
             "cli: -metric_memory 'dfm 0 goal 10e9'",
-            "api: chip.set('metric','memory','dfm','0','real,'10e6')"],
+            "api: chip.set('metric','dfm','0','memory','real,'10e6')"],
         'help': """
         Metric tracking the total memory on a per step basis, specified
         in bytes.
@@ -2444,10 +2349,10 @@ def schema_metric(cfg, group='default', step='default', index='default'):
 def schema_record(cfg, step='default', index='default'):
 
     cfg['record'] = {}
+    cfg['record'][step] = {}
+    cfg['record'][step][index] = {}
 
-    cfg['record']['input'] = {}
-    cfg['record']['input'][step] = {}
-    cfg['record']['input'][step][index] = {
+    cfg['record'][step][index]['input'] = {
         'switch': "-record_input 'step index <file>'",
         'requirement': None,
         'type': '[file]',
@@ -2460,7 +2365,7 @@ def schema_record(cfg, step='default', index='default'):
         'signature': [],
         'short_help': 'Step Inputs',
         'example': ["cli: -record_input 'import 0 gcd.v'",
-                    "api: chip.set('record','input','import','0','gcd.v')"],
+                    "api: chip.set('record','import','0','input','gcd.v')"],
         'help': """
         Metric tracking all input files on a per step basis. This list
         include files entered by the user and files automatically found
@@ -2468,9 +2373,7 @@ def schema_record(cfg, step='default', index='default'):
         """
     }
 
-    cfg['record']['author'] = {}
-    cfg['record']['author'][step] = {}
-    cfg['record']['author'][step][index] = {
+    cfg['record'][step][index]['author'] = {
         'switch': "-record_author 'step index <str>'",
         'type': 'str',
         'lock': 'false',
@@ -2478,15 +2381,13 @@ def schema_record(cfg, step='default', index='default'):
         'defvalue': None,
         'short_help': 'Step Author',
         'example': ["cli: -record_author 'dfm 0 coyote'",
-                    "api: chip.set('record','author','dfm','0','wcoyote')"],
+                    "api: chip.set('record','dfm','0','author','wcoyote')"],
         'help': """
         Metric tracking the author on a per step basis.
         """
     }
 
-    cfg['record']['userid'] = {}
-    cfg['record']['userid'][step] = {}
-    cfg['record']['userid'][step][index] = {
+    cfg['record'][step][index]['userid'] = {
         'switch': "-record_userid 'step index <str>'",
         'type': 'str',
         'lock': 'false',
@@ -2494,14 +2395,13 @@ def schema_record(cfg, step='default', index='default'):
         'defvalue': None,
         'short_help': 'Step User ID',
         'example': ["cli: -record_userid 'dfm 0 0982acea'",
-                    "api: chip.set('record','userid','dfm','0','0982acea')"],
+                    "api: chip.set('record','dfm','0','userid','0982acea')"],
         'help': """
         Metric tracking the run userid on a per step basis.
         """
     }
-    cfg['record']['signature'] = {}
-    cfg['record']['signature'][step] = {}
-    cfg['record']['signature'][step][index] = {
+
+    cfg['record'][step][index]['signature'] = {
         'switch': "-record_signature 'step index <str>'",
         'type': 'str',
         'lock': 'false',
@@ -2509,15 +2409,13 @@ def schema_record(cfg, step='default', index='default'):
         'defvalue': None,
         'short_help': 'Step Signature',
         'example': ["cli: -record_signature 'dfm 0 473c04b'",
-                    "api: chip.set('record','signature','dfm','0','473c04b')"],
+                    "api: chip.set('record','dfm','0','signature','473c04b')"],
         'help': """
         Metric tracking the execution signature/hashid on a per step basis.
         """
     }
 
-    cfg['record']['org'] = {}
-    cfg['record']['org'][step] = {}
-    cfg['record']['org'][step][index] = {
+    cfg['record'][step][index]['org'] = {
         'switch': "-record_org 'step index <str>'",
         'type': 'str',
         'lock': 'false',
@@ -2525,15 +2423,13 @@ def schema_record(cfg, step='default', index='default'):
         'defvalue': None,
         'short_help': 'Step Organization',
         'example': ["cli: -record_org 'dfm 0 earth'",
-                    "api: chip.set('record','org','dfm','0','earth')"],
+                    "api: chip.set('record','dfm','0','org','earth')"],
         'help': """
         Metric tracking the user's organization on a per step basis.
         """
     }
 
-    cfg['record']['location'] = {}
-    cfg['record']['location'][step] = {}
-    cfg['record']['location'][step][index] = {
+    cfg['record'][step][index]['location'] = {
         'switch': "-record_location 'step index <str>'",
         'type': 'str',
         'lock': 'false',
@@ -2541,15 +2437,13 @@ def schema_record(cfg, step='default', index='default'):
         'defvalue': None,
         'short_help': 'Step Location',
         'example': ["cli: -record_location 'dfm 0 Boston'",
-                    "api: chip.set('record','location,'dfm','0','Boston')"],
+                    "api: chip.set('record','dfm','0','location,'Boston')"],
         'help': """
         Metric tracking the user's location/site on a per step basis.
         """
     }
 
-    cfg['record']['date'] = {}
-    cfg['record']['date'][step] = {}
-    cfg['record']['date'][step][index] = {
+    cfg['record'][step][index]['date'] = {
         'switch': "-record_date 'step index <str>'",
         'type': 'str',
         'lock': 'false',
@@ -2557,16 +2451,14 @@ def schema_record(cfg, step='default', index='default'):
         'defvalue': None,
         'short_help': 'Step Date Stamp',
         'example': ["cli: -record_date 'dfm 2021-05-01'",
-                    "api: chip.set('record','date','dfm','0','2021-05-01')"],
+                    "api: chip.set('record','dfm','0','date','2021-05-01')"],
         'help': """
         Metric tracking the run date stamp on a per step basis.
         The date format is the ISO 8601 format YYYY-MM-DD.
         """
     }
 
-    cfg['record']['time'] = {}
-    cfg['record']['time'][step] = {}
-    cfg['record']['time'][step][index] = {
+    cfg['record'][step][index]['time'] = {
         'switch': "-record_time 'step index <str>'",
         'type': 'str',
         'lock': 'false',
@@ -2574,7 +2466,7 @@ def schema_record(cfg, step='default', index='default'):
         'defvalue': None,
         'short_help': 'Step Time Stamp',
         'example': ["cli: -record_time 'dfm 0 11:35:40'",
-                    "api: chip.set('record','time','dfm','0', '11:35:40')"],
+                    "api: chip.set('record','dfm','0','time','11:35:40')"],
         'help': """
         Metric tracking the local run start time on a per step basis.
         The time format is specified in 24h-hr format hr:min:sec
@@ -3944,9 +3836,10 @@ def schema_asic(cfg):
 def schema_mcmm(cfg, scenario='default'):
 
     cfg['mcmm'] = {}
+    cfg['mcmm'][scenario] = {}
 
-    cfg['mcmm']['voltage'] = {}
-    cfg['mcmm']['voltage'][scenario] = {
+
+    cfg['mcmm'][scenario]['voltage'] = {
         'switch': "-mcmm_voltage 'scenario <float>'",
         'type': 'float',
         'lock': 'false',
@@ -3954,15 +3847,14 @@ def schema_mcmm(cfg, scenario='default'):
         'defvalue': None,
         'short_help': 'MCMM Voltage',
         'example': ["cli: -mcmm_voltage 'worst 0.9'",
-                    "api: chip.set('mcmm', 'voltage', 'worst',  '0.9')"],
+                    "api: chip.set('mcmm', 'worst','voltage', '0.9')"],
         'help': """
         Specifies the on chip primary core operating voltage for the scenario.
         The value is specified in Volts.
         """
     }
 
-    cfg['mcmm']['temperature'] = {}
-    cfg['mcmm']['temperature'][scenario] = {
+    cfg['mcmm'][scenario]['temperature'] = {
         'switch': "-mcmm_temp 'scenario <float>'",
         'type': 'float',
         'lock': 'false',
@@ -3970,14 +3862,13 @@ def schema_mcmm(cfg, scenario='default'):
         'defvalue': None,
         'short_help': 'MCMM Temperature',
         'example': ["cli: -mcmm_temperature 'worst 125'",
-                    "api: chip.set('mcmm', 'temperature', 'worst',  '125')"],
+                    "api: chip.set('mcmm', 'worst', 'temperature','125')"],
         'help': """
         Specifies the on chip temperature for the scenario. The value is specified in
         degrees Celsius.
         """
     }
-    cfg['mcmm']['libcorner'] = {}
-    cfg['mcmm']['libcorner'][scenario] = {
+    cfg['mcmm'][scenario]['libcorner'] = {
         'switch': "-mcmm_libcorner 'scenario <str>'",
         'type': 'str',
         'lock': 'false',
@@ -3993,8 +3884,7 @@ def schema_mcmm(cfg, scenario='default'):
         """
     }
 
-    cfg['mcmm']['opcond'] = {}
-    cfg['mcmm']['opcond'][scenario] = {
+    cfg['mcmm'][scenario]['opcond'] = {
         'switch': "-mcmm_opcond 'scenario <str>'",
         'type': 'str',
         'lock': 'false',
@@ -4002,7 +3892,7 @@ def schema_mcmm(cfg, scenario='default'):
         'defvalue': None,
         'short_help': 'MCMM Operating Condition',
         'example': ["cli: -mcmm_opcond 'worst typical_1.0'",
-                    "api: chip.set('mcmm', 'opcond', 'worst', 'typical_1.0')"],
+                    "api: chip.set('mcmm', 'worst', 'opcond',  'typical_1.0')"],
         'help': """
         Specifies the operating condition for the scenario. The value can be used
         to access specific conditions within the library timing models of the
@@ -4011,8 +3901,7 @@ def schema_mcmm(cfg, scenario='default'):
         """
     }
 
-    cfg['mcmm']['pexcorner'] = {}
-    cfg['mcmm']['pexcorner'][scenario] = {
+    cfg['mcmm'][scenario]['pexcorner'] = {
         'switch': "-mcmm_pexcorner 'scenario <str>'",
         'type': 'str',
         'lock': 'false',
@@ -4020,14 +3909,13 @@ def schema_mcmm(cfg, scenario='default'):
         'defvalue': None,
         'short_help': 'MCMM PEX Corner Name',
         'example': ["cli: -mcmm_pexcorner 'worst max'",
-                    "api: chip.set('mcmm','pexcorner','worst','max')"],
+                    "api: chip.set('mcmm','worst','pexcorner','max')"],
         'help': """
         Specifies the parasitic corner for the scenario. The 'pexcorner' string must
         match the value 'pdk','pexmodel' dictionary exactly.
         """
     }
-    cfg['mcmm']['mode'] = {}
-    cfg['mcmm']['mode'][scenario] = {
+    cfg['mcmm'][scenario]['mode'] = {
         'switch': "-mcmm_mode 'scenario <str>'",
         'type': 'str',
         'lock': 'false',
@@ -4035,14 +3923,13 @@ def schema_mcmm(cfg, scenario='default'):
         'defvalue': None,
         'short_help': 'MCMM Mode Name',
         'example': ["cli: -mcmm_mode 'worst test'",
-                    "api: chip.set('mcmm', 'mode', 'worst', 'test')"],
+                    "api: chip.set('mcmm',  'worst','mode', 'test')"],
         'help': """
         Specifies the operating mode for the scenario. Operating mode strings can be
         values such as "test, functional, standby".
         """
     }
-    cfg['mcmm']['constraint'] = {}
-    cfg['mcmm']['constraint'][scenario] = {
+    cfg['mcmm'][scenario]['constraint'] = {
         'switch': "-mcmm_constraint 'scenario <file>'",
         'type': '[file]',
         'lock': 'false',
@@ -4055,7 +3942,7 @@ def schema_mcmm(cfg, scenario='default'):
         'defvalue': [],
         'short_help': 'MCMM Timing Constraints',
         'example': ["cli: -mcmm_constraint 'worst hello.sdc'",
-                    "api: chip.set('mcmm','constraint', 'worst', 'hello.sdc')"],
+                    "api: chip.set('mcmm','worst','constraint',  'hello.sdc')"],
         'help': """
         Specifies a list of timing contstraint files to use for the scenario.
         The values are combined with any constraints specified by the design
@@ -4063,8 +3950,7 @@ def schema_mcmm(cfg, scenario='default'):
         file is used based on the clock definitions.
         """
     }
-    cfg['mcmm']['check'] = {}
-    cfg['mcmm']['check'][scenario] = {
+    cfg['mcmm'][scenario]['check'] = {
         'switch': "-mcmm_check 'scenario <str>'",
         'type': '[str]',
         'lock': 'false',
