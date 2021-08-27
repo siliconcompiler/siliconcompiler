@@ -134,7 +134,7 @@ def post_process(chip, step, index):
      errors = 0
      warnings = 0
      metric = None
-     exe = chip.get('eda', 'exe', tool, step, index)
+     exe = chip.get('eda', tool, step, index, 'exe')
      design = chip.get('design')
      with open(exe + ".log") as f:
           for line in f:

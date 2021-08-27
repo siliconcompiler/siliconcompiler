@@ -67,15 +67,15 @@ def setup_flow(chip, process):
 
     # Setting up flowgraph
     for i, step in enumerate(flowpipe):
-        chip.set('flowgraph', 'mergeop', flowpipe[i], 'min')
-        chip.set('flowgraph', 'nproc', flowpipe[i], 1)
-        for metric in chip.getkeys('metric'):
-            chip.set('flowgraph', 'weight', flowpipe[i], metric, 1.0)
+        chip.set('flowgraph', flowpipe[i], 'mergeop',  'min')
+        chip.set('flowgraph', flowpipe[i], 'nproc',  1)
+        for metric in chip.getkeys('metric','default', 'default'):
+            chip.set('flowgraph', flowpipe[i], 'weight',  metric, 1.0)
         #TODO: Set up metrics
         if i > 0:
-            chip.add('flowgraph', 'input', flowpipe[i], flowpipe[i-1])
+            chip.add('flowgraph', flowpipe[i], 'input',  flowpipe[i-1])
         else:
-            chip.set('flowgraph', 'input', flowpipe[i], 'source')
+            chip.set('flowgraph', flowpipe[i], 'input',  'source')
 
     # Per step tool selection
     for step in flowpipe:
@@ -102,9 +102,9 @@ def setup_flow(chip, process):
         else:
             tool = 'openroad'
             showtool = 'openroad'
-        chip.set('flowgraph', 'tool', step, tool)
+        chip.set('flowgraph', step, 'tool', tool)
         if showtool:
-            chip.set('flowgraph', 'showtool', step, showtool)
+            chip.set('flowgraph', step, 'showtool', showtool)
 
 ##################################################
 if __name__ == "__main__":

@@ -13,10 +13,10 @@ yosys echo on
 set sc_step   [dict get $sc_cfg arg step]
 set sc_index  [dict get $sc_cfg arg index]
 
-if {[dict get $sc_cfg eda copy $tool $sc_step $sc_index] eq True} {
+if {[dict get $sc_cfg eda $tool $sc_step $sc_index copy ] eq True} {
     set sc_refdir "."
 } else {
-    set sc_refdir [dict get $sc_cfg eda refdir $tool $sc_step $sc_index]
+    set sc_refdir [dict get $sc_cfg eda $tool $sc_step $sc_index refdir]
 }
 
 # Design

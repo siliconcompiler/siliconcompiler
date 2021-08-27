@@ -20,23 +20,22 @@ set sc_tool    openroad
 set sc_step    [dict get $sc_cfg arg step]
 set sc_index   [dict get $sc_cfg arg index]
 
-set openroad_place_density [lindex [dict get $sc_cfg eda option $sc_tool $sc_step $sc_index place_density] 0]
-set openroad_pad_global_place [lindex [dict get $sc_cfg eda option $sc_tool $sc_step $sc_index pad_global_place] 0]
-set openroad_pad_detail_place [lindex [dict get $sc_cfg eda option $sc_tool $sc_step $sc_index pad_detail_place] 0]
-set openroad_macro_place_halo [dict get $sc_cfg eda option $sc_tool $sc_step $sc_index macro_place_halo]
-set openroad_macro_place_channel [dict get $sc_cfg eda option $sc_tool $sc_step $sc_index macro_place_channel]
+set openroad_place_density [lindex [dict get $sc_cfg eda $sc_tool $sc_step $sc_index option  place_density] 0]
+set openroad_pad_global_place [lindex [dict get $sc_cfg eda $sc_tool $sc_step $sc_index option  pad_global_place] 0]
+set openroad_pad_detail_place [lindex [dict get $sc_cfg eda $sc_tool $sc_step $sc_index option  pad_detail_place] 0]
+set openroad_macro_place_halo [dict get $sc_cfg eda $sc_tool $sc_step $sc_index option  macro_place_halo]
+set openroad_macro_place_channel [dict get $sc_cfg eda $sc_tool $sc_step $sc_index option  macro_place_channel]
 
 #Handling remote/local script execution
-if {[dict get $sc_cfg eda copy $sc_tool $sc_step $sc_index] eq True} {
+if {[dict get $sc_cfg eda $sc_tool $sc_step $sc_index copy] eq True} {
     set sc_refdir "."
 } else {
-    set sc_refdir [dict get $sc_cfg eda refdir $sc_tool $sc_step $sc_index]
+    set sc_refdir [dict get $sc_cfg eda $sc_tool $sc_step $sc_index refdir]
 }
 
 # Design
 set sc_design     [dict get $sc_cfg design]
 set sc_optmode    [dict get $sc_cfg optmode]
-
 
 # APR Parameters
 set sc_mainlib     [lindex [dict get $sc_cfg asic targetlib] 0]
@@ -88,7 +87,7 @@ dict for {key value} [dict get $sc_cfg pdk grid $sc_stackup] {
     lappend sc_layers $key
 }
 
-set sc_threads [dict get $sc_cfg eda threads $sc_tool $sc_step $sc_index]
+set sc_threads [dict get $sc_cfg eda $sc_tool $sc_step $sc_index threads]
 
 ###############################
 # Optional
@@ -139,7 +138,7 @@ if {$sc_step == "route"} {
     read_lef  $sc_techlef
     # Stdcells
     foreach lib $sc_targetlibs {
-	read_liberty [dict get $sc_cfg library $lib model typical nldm lib]
+	read_liberty [dict get $sc_cfg library $lib nldm typical lib]
 	read_lef [dict get $sc_cfg library $lib lef]
     }
 }
@@ -147,7 +146,7 @@ if {$sc_step == "route"} {
 # Macrolibs
 foreach lib $sc_macrolibs {
     if {[dict exists $sc_cfg library $lib model]} {
-        read_liberty [dict get $sc_cfg library $lib model typical nldm lib]
+        read_liberty [dict get $sc_cfg library $lib nldm typical lib]
     }
     read_lef [dict get $sc_cfg library $lib lef]
 }

@@ -76,7 +76,7 @@ def post_process(chip, step, index):
     ''' Tool specific function to run after step execution
     '''
     tool = 'yosys'
-    exe = chip.get('eda', 'exe', tool, step, index)
+    exe = chip.get('eda', tool, step, index, 'exe')
     with open(exe + ".log") as f:
         for line in f:
             area = re.search(r'Chip area for module.*\:\s+(.*)', line)
