@@ -576,12 +576,13 @@ def schema_pdk(cfg, stackup='default'):
     # Routing grid
     #############################
 
+    layer = 'default'
     cfg['pdk']['grid'] = {}
+    cfg['pdk']['grid'][stackup] = {}
+    cfg['pdk']['grid'][stackup][layer] = {}
 
     #Name Map
-    cfg['pdk']['grid']['name'] = {}
-    cfg['pdk']['grid']['name'][stackup] = {}
-    cfg['pdk']['grid']['name'][stackup]['default'] = {
+    cfg['pdk']['grid'][stackup][layer]['name'] = {
         'switch': "-pdk_grid_name 'stackup layer <str>'",
         'requirement': None,
         'type': 'str',
@@ -590,7 +591,7 @@ def schema_pdk(cfg, stackup='default'):
         'short_help': 'Grid Layer Name Map',
         'example': [
             "cli: -pdk_grid_name 'M10 m1 metal1'""",
-            "api: chip.set('pdk','grid','name','M10','m1','metal1')"],
+            "api: chip.set('pdk','grid','M10','m1','name','metal1')"],
         'help': """
         Map betwen the custom PDK metal names found in the tech,lef and the
         SC standardized metal naming schem that starts with m1 (lowest
@@ -600,9 +601,7 @@ def schema_pdk(cfg, stackup='default'):
     }
 
     # Vertical Wires
-    cfg['pdk']['grid']['xpitch'] = {}
-    cfg['pdk']['grid']['xpitch'][stackup] = {}
-    cfg['pdk']['grid']['xpitch'][stackup]['default'] = {
+    cfg['pdk']['grid'][stackup][layer]['xpitch'] = {
         'switch': "-pdk_grid_xpitch 'stackup layer <float>'",
         'requirement': None,
         'type': 'float',
@@ -611,7 +610,7 @@ def schema_pdk(cfg, stackup='default'):
         'short_help': 'Grid Layer Horizontal Grid',
         'example': [
             "cli: -pdk_grid_xpitch 'M10 m1 0.5'",
-            "api: chip.set('pdk','grid','xpitch','M10','m1','0.5')"],
+            "api: chip.set('pdk','grid','M10','m1','xpitch','0.5')"],
         'help': """
         Defines the routing pitch for vertical wires on a per stackup and
         per metal basis. Values are specified in um. Metal layers are ordered
@@ -620,9 +619,7 @@ def schema_pdk(cfg, stackup='default'):
     }
 
     # Horizontal Wires
-    cfg['pdk']['grid']['ypitch'] = {}
-    cfg['pdk']['grid']['ypitch'][stackup] = {}
-    cfg['pdk']['grid']['ypitch'][stackup]['default'] = {
+    cfg['pdk']['grid'][stackup][layer]['ypitch'] = {
         'switch': "-pdk_grid_ypitch 'stackup layer <float>'",
         'requirement': None,
         'type': 'float',
@@ -631,7 +628,7 @@ def schema_pdk(cfg, stackup='default'):
         'short_help': 'Grid Layer Vertical Grid',
         'example': [
             "cli: -pdk_grid_ypitch 'M10 m2 0.5'",
-            "api: chip.set('pdk','grid','M10','m2','ypitch', '0.5')"],
+            "api: chip.set('pdk','grid','M10','m2','ypitch','0.5')"],
         'help': """
         Defines the routing pitch for horizontal wires on a per stackup and
         per metal basis. Values are specified in um. Metal layers are ordered
@@ -640,9 +637,7 @@ def schema_pdk(cfg, stackup='default'):
     }
 
     # Vertical Grid Offset
-    cfg['pdk']['grid']['xoffset'] = {}
-    cfg['pdk']['grid']['xoffset'][stackup] = {}
-    cfg['pdk']['grid']['xoffset'][stackup]['default'] = {
+    cfg['pdk']['grid'][stackup][layer]['xoffset'] = {
         'switch': "-pdk_grid_xoffset 'stackup layer <float>'",
         'requirement': None,
         'type': 'float',
@@ -651,7 +646,7 @@ def schema_pdk(cfg, stackup='default'):
         'short_help': 'Grid Layer Preferred Direction',
         'example': [
             "cli: -pdk_grid_xoffset 'M10 m2 0.5'",
-            "api: chip.set('pdk','grid','xoffset','M10','m2','0.5')"],
+            "api: chip.set('pdk','grid','M10','m2','xoffset','0.5')"],
         'help': """
         Defines the grid offset of a vertical metal layer specified on a per
         stackup and per metal basis. Values are specified in um.
@@ -659,9 +654,7 @@ def schema_pdk(cfg, stackup='default'):
     }
 
     # Horizontal Grid Offset
-    cfg['pdk']['grid']['yoffset'] = {}
-    cfg['pdk']['grid']['yoffset'][stackup] = {}
-    cfg['pdk']['grid']['yoffset'][stackup]['default'] = {
+    cfg['pdk']['grid'][stackup][layer]['yoffset'] = {
         'switch': "-pdk_grid_yoffset 'stackup layer <float>'",
         'requirement': None,
         'type': 'float',
@@ -670,7 +663,7 @@ def schema_pdk(cfg, stackup='default'):
         'short_help': 'Grid Layer Preferred Direction',
         'example': [
             "cli: -pdk_grid_yoffset 'M10 m2 0.5'",
-            "api: chip.set('pdk','grid','yoffset','M10','m2','0.5')"],
+            "api: chip.set('pdk','grid','M10','m2','yoffset','0.5')"],
         'help': """
         Defines the grid offset of a horizontal metal layer specified on a per
         stackup and per metal basis. Values are specified in um.
@@ -678,9 +671,7 @@ def schema_pdk(cfg, stackup='default'):
     }
 
     # Routing Layer Adjustment
-    cfg['pdk']['grid']['adj'] = {}
-    cfg['pdk']['grid']['adj'][stackup] = {}
-    cfg['pdk']['grid']['adj'][stackup]['default'] = {
+    cfg['pdk']['grid'][stackup][layer]['adj'] = {
         'switch': "-pdk_grid_adj 'stackup layer <float>'",
         'requirement': None,
         'type': 'float',
@@ -689,7 +680,7 @@ def schema_pdk(cfg, stackup='default'):
         'short_help': 'Grid Layer Routing Adjustment',
         'example': [
             "cli: -pdk_grid_adj 'M10 m2 0.5'",
-            "api: chip.set('pdk','grid','adj','M10','m2','0.5')"],
+            "api: chip.set('pdk','grid','M10','m2','adj','0.5')"],
         'help': """
         Defines the routing resources adjustments for the design on a per layer
         basis. The value is expressed as a fraction from 0 to 1. A value of
@@ -698,9 +689,7 @@ def schema_pdk(cfg, stackup='default'):
     }
 
     # Routing Layer Capacitance
-    cfg['pdk']['grid']['cap'] = {}
-    cfg['pdk']['grid']['cap'][stackup] = {}
-    cfg['pdk']['grid']['cap'][stackup]['default'] = {
+    cfg['pdk']['grid'][stackup][layer]['cap'] = {
         'switch': "-pdk_grid_cap 'stackup layer <float>'",
         'requirement': None,
         'type': 'float',
@@ -709,7 +698,7 @@ def schema_pdk(cfg, stackup='default'):
         'short_help': 'Grid Layer Routing Layer Capacitance',
         'example': [
             "cli: -pdk_grid_cap 'M10 m2 0.2'",
-            "api: chip.set('pdk','grid','cap','M10','m2','0.2')"],
+            "api: chip.set('pdk','grid','M10','m2','cap','0.2')"],
         'help': """
         Unit capacitance of a wire defined by the grid width and spacing values
         in the 'grid' structure. The value is specifed as ff/um on a per
@@ -720,9 +709,7 @@ def schema_pdk(cfg, stackup='default'):
     }
 
     # Routing Layer Resistance
-    cfg['pdk']['grid']['res'] = {}
-    cfg['pdk']['grid']['res'][stackup] = {}
-    cfg['pdk']['grid']['res'][stackup]['default'] = {
+    cfg['pdk']['grid'][stackup][layer]['res'] = {
         'switch': "-pdk_grid_res 'stackup layer <float>'",
         'requirement': None,
         'type': 'float',
@@ -731,7 +718,7 @@ def schema_pdk(cfg, stackup='default'):
         'short_help': 'Grid Layer Routing Layer Resistance',
         'example': [
             "cli: -pdk_grid_res 'M10 m2 0.2'",
-            "api: chip.set('pdk','grid','res','M10','m2','0.2')"],
+            "api: chip.set('pdk','grid','M10','m2','res','0.2')"],
         'help': """
         Resistance of a wire defined by the grid width and spacing values
         in the 'grid' structure.  The value is specifed as ohms/um. The number
@@ -741,9 +728,7 @@ def schema_pdk(cfg, stackup='default'):
     }
 
     # Wire Temperature Coefficient
-    cfg['pdk']['grid']['tcr'] = {}
-    cfg['pdk']['grid']['tcr'][stackup] = {}
-    cfg['pdk']['grid']['tcr'][stackup]['default'] = {
+    cfg['pdk']['grid'][stackup][layer]['tcr'] = {
         'switch': "-pdk_grid_tcr 'stackup layer <float>'",
         'requirement': None,
         'type': 'float',
@@ -752,7 +737,7 @@ def schema_pdk(cfg, stackup='default'):
         'short_help': 'Grid Layer Temperature Coefficent',
         'example': [
             "cli: -pdk_grid_tcr 'M10 m2 0.1'",
-            "api: chip.set('pdk','grid','tcr','M10','m2','0.1')"],
+            "api: chip.set('pdk','grid','M10','m2','tcr','0.1')"],
         'help': """
         Temperature coefficient of resistance of the wire defined by the grid
         width and spacing values in the 'grid' structure. The value is specifed
