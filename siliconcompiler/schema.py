@@ -122,7 +122,7 @@ def schema_fpga(cfg):
 # PDK
 ###############################################################################
 
-def schema_pdk(cfg):
+def schema_pdk(cfg, stackup='default'):
     ''' Process Design Kit Setup
     '''
     cfg['pdk'] = {}
@@ -461,9 +461,9 @@ def schema_pdk(cfg):
     }
 
     cfg['pdk']['layermap'] = {}
-    cfg['pdk']['layermap']['default'] = {}
-    cfg['pdk']['layermap']['default']['default'] = {}
-    cfg['pdk']['layermap']['default']['default']['default'] = {
+    cfg['pdk']['layermap'][stackup] = {}
+    cfg['pdk']['layermap'][stackup]['default'] = {}
+    cfg['pdk']['layermap'][stackup]['default']['default'] = {
         'switch': "-pdk_layermap 'stackup src dst <file>'",
         'requirement': None,
         'type': '[file]',
@@ -491,9 +491,9 @@ def schema_pdk(cfg):
     }
 
     cfg['pdk']['display'] = {}
-    cfg['pdk']['display']['default'] = {}
-    cfg['pdk']['display']['default']['default'] = {}
-    cfg['pdk']['display']['default']['default']['default'] = {
+    cfg['pdk']['display'][stackup] = {}
+    cfg['pdk']['display'][stackup]['default'] = {}
+    cfg['pdk']['display'][stackup]['default']['default'] = {
         'switch': "-pdk_display 'stackup tool format <file>'",
         'requirement': None,
         'type': '[file]',
@@ -516,9 +516,9 @@ def schema_pdk(cfg):
     }
 
     cfg['pdk']['plib'] = {}
-    cfg['pdk']['plib']['default'] = {}
-    cfg['pdk']['plib']['default']['default'] = {}
-    cfg['pdk']['plib']['default']['default']['default'] = {
+    cfg['pdk']['plib'][stackup] = {}
+    cfg['pdk']['plib'][stackup]['default'] = {}
+    cfg['pdk']['plib'][stackup]['default']['default'] = {
         'switch': "-pdk_plib 'stackup tool format <file>'",
         'requirement': None,
         'type': '[file]',
@@ -543,9 +543,9 @@ def schema_pdk(cfg):
     }
 
     cfg['pdk']['aprtech'] = {}
-    cfg['pdk']['aprtech']['default'] = {}
-    cfg['pdk']['aprtech']['default']['default'] = {}
-    cfg['pdk']['aprtech']['default']['default']['default'] = {
+    cfg['pdk']['aprtech'][stackup] = {}
+    cfg['pdk']['aprtech'][stackup]['default'] = {}
+    cfg['pdk']['aprtech'][stackup]['default']['default'] = {
         'switch': "-pdk_aprtech 'stackup libarch filetype <file>'",
         'requirement': None,
         'type': '[file]',

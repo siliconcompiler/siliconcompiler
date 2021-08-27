@@ -23,8 +23,9 @@ import yaml
 import graphviz
 import pyfiglet
 
-from siliconcompiler.schema import *
 from siliconcompiler.client import *
+from siliconcompiler.schema import *
+from siliconcompiler.schema_utils import *
 
 class Chip:
     """
@@ -176,21 +177,30 @@ class Chip:
             #Fetch fields from leaf cell
             helpstr = self.get(*key, field='short_help')
             typestr = self.get(*key, field='type')
-            paramstr = self.get(*key, field='param_help')
-            switchstr = self.get(*key, field='switch')
-
-            #Create a map from parser args back to dictionary
-            #Special gcc/verilator compatible short switches get mapped to
-            #the key, all others get mapped to switch
-            if '_' in switchstr:
-                dest = switchstr.replace('-', '')
-            else:
-                dest = key[0]
+            #Switch field fully describes switch format
+            if 'source' not in key:
+                switch = self.get(*key, field='switch')
+                switchmatch = re.match(r'(-[\w_]+)\s+(.*)', switch)
+                gccmatch = re.match(r'(-[\w_]+)(.*)', switch)
+                plusmatch = re.match(r'(\+[\w_\+]+)(.*)', switch)
+                if switchmatch:
+                    switchstr = switchmatch.group(1)
+                    paramstr = switchmatch.group(2)
+                    dest = re.sub('-','',switchstr)
+                elif gccmatch:
+                    switchstr = gccmatch.group(1)
+                    paramstr = gccmatch.group(2)
+                    dest = key[0]
+                elif plusmatch:
+                    switchstr = plusmatch.group(1)
+                    paramstr = plusmatch.group(2)
+                    dest = key[0]
+            #Four switch types (source, scalar, list, bool)
+            argmap[dest] = paramstr
             if 'source' in key:
-                argmap['source'] = paramstr
+                argmap['source'] = None
             elif (switchlist == []) | (dest in switchlist):
                 if typestr == 'bool':
-                    argmap[dest] = paramstr
                     parser.add_argument(switchstr,
                                         metavar='',
                                         dest=dest,
@@ -201,7 +211,6 @@ class Chip:
                 #list type arguments
                 elif re.match(r'\[', typestr):
                     #all the rest
-                    argmap[dest] = paramstr
                     parser.add_argument(switchstr,
                                         metavar='',
                                         dest=dest,
@@ -211,7 +220,6 @@ class Chip:
 
                 else:
                     #all the rest
-                    argmap[dest] = paramstr
                     parser.add_argument(switchstr,
                                         metavar='',
                                         dest=dest,
@@ -253,6 +261,9 @@ class Chip:
         #Grab argument from pre-process sysargs
         cmdargs = vars(parser.parse_args(scargs))
 
+        print(cmdargs)
+        #sys.exit()
+
         # NOTE: The below order is by design and should not be modified.
 
         # set design name (override default)
@@ -283,7 +294,8 @@ class Chip:
             else:
                 val_list = [val]
             for item in val_list:
-                args = schema_reorder(argmap[key], item)
+                print(item)
+                args = ['design', item]
                 typestr = self.get(*args[:-1], field='type')
                 if re.match(r'\[', typestr):
                     self.add(*args)

@@ -4,7 +4,7 @@ import os
 import sys
 
 ##############################################################
-def switchparse (switch_help):
+def schema_switchparse (switch_field):
     '''
     Routine for parsing the switch and example[0] and returns
     an argument list. The following schema assumptions are made:
@@ -15,11 +15,11 @@ def switchparse (switch_help):
     '''
 
     # removing doc prefix help
-    example = re.sub('^cli:\s+','',switch_help)
+    example = re.sub('^cli:\s+','', switch_field)
     # removing all quotes
     example = re.sub('\'','',example)
     # splitting into switch field and the rest
-    plusmatch = re.match('\+(\w+)\+(.*)',example)
+    plusmatch = re.match('\+(\w+)\+(.*)', example)
     if plusmatch:
         arglist = [plusmatch.group(1),
                    plusmatch.group(2)]
@@ -29,7 +29,7 @@ def switchparse (switch_help):
     return(arglist)
 
 ################################################################
-def typecheck(chip, cfg, leafkey, value):
+def schema_typecheck(chip, cfg, leafkey, value):
     ''' Schema type checking
     '''
 

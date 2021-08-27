@@ -10,8 +10,8 @@ def main():
     allkeys = chip.getkeys()
     for key in allkeys:
         sctype = chip.get(*key, field='type')
-        example = chip.get(*key, field='example')[1]
-        match = re.match(r'api\:\s+chip.set\((.*)\)', example)
+        example = chip.get(*key, field='example')[0]
+        match = re.match(r'cli\:\s+chip.set\((.*)\)', example)
         if match:
             argstring = re.sub(r'[\'\s]', '', match.group(1))
             tuplematch = re.match(r'(.*?),\((.*,.*)\)', argstring)
