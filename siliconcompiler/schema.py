@@ -871,7 +871,7 @@ def schema_pdk(cfg):
     }
 
     cfg['pdk']['tapmax'] = {
-        'switch': '-pdk_tapmax',
+        'switch': '-pdk_tapmax <float>',
         'requirement': None,
         'type': 'float',
         'lock': 'false',
@@ -2163,7 +2163,7 @@ def schema_metric(cfg, group='default', step='default', index='default'):
     cfg['metric']['rambits'][step] = {}
     cfg['metric']['rambits'][step][index] = {}
     cfg['metric']['rambits'][step][index][group] = {
-        'switch': '-metric_rambits step index rambits <int>',
+        'switch': '-metric_rambits step index group <int>',
         'type': 'int',
         'lock': 'false',
         'requirement': None,
@@ -2182,7 +2182,7 @@ def schema_metric(cfg, group='default', step='default', index='default'):
     cfg['metric']['xtors'][step] = {}
     cfg['metric']['xtors'][step][index] = {}
     cfg['metric']['xtors'][step][index][group] = {
-        'switch': '-metric_cells step index xtors <int>',
+        'switch': '-metric_xtors step index group <int>',
         'type': 'int',
         'lock': 'false',
         'requirement': None,
@@ -2939,7 +2939,7 @@ def schema_options(cfg):
     }
 
     cfg['optmode'] = {
-        'switch': '-O <str>',
+        'switch': '-O<str>',
         'type': 'str',
         'lock': 'false',
         'requirement': 'all',
@@ -3003,6 +3003,20 @@ def schema_options(cfg):
         a TCL based tool, then the breakpoints stops the flow inside the EDA
         tool. If the step is a command line tool, then the flow drops into
         a Python interpreter.
+        """
+    }
+
+    cfg['checkonly'] = {
+        'switch': "-checkonly <bool>",
+        'type': 'bool',
+        'lock': 'false',
+        'requirement': 'all',
+        'defvalue': "false",
+        'short_help': "Checks config legality without running flow",
+        'example': ["cli: -checkonly true",
+                    "api: chip.set('checkonly','true')"],
+        'help': """
+        Checks the legality of the configuration but doesn't run the flow.
         """
     }
 
@@ -3457,7 +3471,7 @@ def schema_design(cfg):
         'requirement': None,
         'defvalue': [],
         'short_help': 'Design Preprocessor Symbols',
-        'example': ["cli: -D 'CFG_ASIC=1'",
+        'example': ["cli: -DCFG_ASIC=1",
                     "api: chip.set('define','CFG_ASIC=1')"],
         'help': """
         Sets a preprocessor symbol for verilog source imports.
@@ -4082,7 +4096,7 @@ def schema_mcmm(cfg):
     }
 
     cfg['mcmm']['default']['opcond'] = {
-        'switch': "-mcmm_libcorner 'scenario <str>'",
+        'switch': "-mcmm_opcond 'scenario <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
@@ -4129,7 +4143,7 @@ def schema_mcmm(cfg):
     }
 
     cfg['mcmm']['default']['constraint'] = {
-        'switch': "-mcmm_mode 'scenario <file>'",
+        'switch': "-mcmm_constraint 'scenario <file>'",
         'type': '[file]',
         'lock': 'false',
         'copy': 'true',
