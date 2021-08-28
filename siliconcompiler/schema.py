@@ -15,6 +15,21 @@ def schema_cfg():
 
     cfg = {}
 
+    # Software Version
+    cfg['version'] = {
+        'switch': "-version <bool>",
+        'type': 'bool',
+        'lock': 'false',
+        'requirement': 'all',
+        'defvalue': 'false',
+        'short_help': 'Prints version number',
+        'example': ["cli: -v",
+                    "api: chip.get('version')"],
+        'help': """
+        Prints out the SC software version number.
+        """
+    }
+
     # Flow graph Setup
     cfg = schema_flowgraph(cfg)
 
@@ -2002,8 +2017,8 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
-    cfg['metric'][step][index]['area_cells'] = {}
-    cfg['metric'][step][index]['area_cells'][group] = {
+    cfg['metric'][step][index]['cellarea'] = {}
+    cfg['metric'][step][index]['cellarea'][group] = {
         'switch': '-metric_area_cells step index group <float>',
         'type': 'float',
         'lock': 'false',
@@ -2011,16 +2026,16 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'defvalue': None,
         'short_help': 'Cell Area Metric',
         'example': [
-            "cli: -metric_area_cells 'place 0 goal 100.00'",
-            "api: chip.set('metric','place','0','area_cells','real','100.00')"],
+            "cli: -metric_cellarea 'place 0 goal 100.00'",
+            "api: chip.set('metric','place','0','cellarea','real','100.00')"],
         'help': """
         Metric tracking the sum of all non-filler standard cells on a per and per
         index basis specified in um^2.
         """
     }
 
-    cfg['metric'][step][index]['power_total'] = {}
-    cfg['metric'][step][index]['power_total'][group] = {
+    cfg['metric'][step][index]['peakpower'] = {}
+    cfg['metric'][step][index]['peakpower'][group] = {
         'switch': '-metric_power_total step index group <float>',
         'type': 'float',
         'lock': 'false',
@@ -2028,8 +2043,8 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'defvalue': None,
         'short_help': 'Total Power Metric',
         'example': [
-            "cli: -metric_power_total 'place 0 real 0.001'",
-            "api: chip.set('metric','place','0','power_total','real','0.001')"],
+            "cli: -metric_peakpower 'place 0 real 0.001'",
+            "api: chip.set('metric','place','0','peakpower','real','0.001')"],
         'help': """
         Metric tracking the worst case total power of the design on a per
         step basis calculated based on setup config and VCD stimulus.
@@ -2037,34 +2052,34 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
-    cfg['metric'][step][index]['power_leakage'] = {}
-    cfg['metric'][step][index]['power_leakage'][group] = {
-        'switch': '-metric_power_leakage step index group <float>',
+    cfg['metric'][step][index]['standbypower'] = {}
+    cfg['metric'][step][index]['standbypower'][group] = {
+        'switch': '-metric_standbypower step index group <float>',
         'type': 'float',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
         'short_help': 'Leakage Power Metric',
         'example': [
-            "cli: -metric_power_leakage 'place 0 real 1e-6'",
-            "api: chip.set('metric',place','0','power_leakage','real','1e-6')"],
+            "cli: -metric_standbypower 'place 0 real 1e-6'",
+            "api: chip.set('metric',place','0','standbypower','real','1e-6')"],
         'help': """
         Metric tracking the leakage power of the design on a per step
         basis. Metric unit is Watts.
         """
     }
 
-    cfg['metric'][step][index]['hold_slack'] = {}
-    cfg['metric'][step][index]['hold_slack'][group] = {
-        'switch': "-metric_hold_slack 'step index group <float>'",
+    cfg['metric'][step][index]['holdwns'] = {}
+    cfg['metric'][step][index]['holdwns'][group] = {
+        'switch': "-metric_holdwns 'step index group <float>'",
         'type': 'float',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
         'short_help': 'Hold Slack Metric',
         'example': [
-            "cli: -metric_hold_slack 'place 0 real 0.42",
-            "api: chip.set('metric','place','0','hold_slack','real,'0.43')"],
+            "cli: -metric_holdwns 'place 0 real 0.42",
+            "api: chip.set('metric','place','0','holdwns','real,'0.43')"],
         'help': """
         Metric tracking the worst hold/min timing path slack in the design.
         Positive values means there is spare/slack, negative slack means the design
@@ -2072,34 +2087,34 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
-    cfg['metric'][step][index]['hold_tns'] = {}
-    cfg['metric'][step][index]['hold_tns'][group] = {
-        'switch': "-metric_hold_tns 'step index group <float>'",
+    cfg['metric'][step][index]['holdtns'] = {}
+    cfg['metric'][step][index]['holdtns'][group] = {
+        'switch': "-metric_holdtns 'step index group <float>'",
         'type': 'float',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
         'short_help': 'Hold TNS Metric',
         'example': [
-            "cli: -metric_hold_tns 'place 0 real 0.0'",
-            "api: chip.set('metric','place','0','hold_tns','real','0')"],
+            "cli: -metric_holdtns 'place 0 real 0.0'",
+            "api: chip.set('metric','place','0','holdtns','real','0')"],
         'help': """
         Metric tracking of total negative hold slack (TNS) on a per step basis.
         Metric unit is nanoseconds.
         """
     }
 
-    cfg['metric'][step][index]['setup_slack'] = {}
-    cfg['metric'][step][index]['setup_slack'][group] = {
-        'switch': "-metric_setup_slack 'step index group <float>'",
+    cfg['metric'][step][index]['setupwns'] = {}
+    cfg['metric'][step][index]['setupwns'][group] = {
+        'switch': "-metric_setupwns 'step index group <float>'",
         'type': 'float',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
         'short_help': 'Setup Slack Metric',
         'example': [
-            "cli: -metric_setup_slack 'place 0 goal 0.0",
-            "api: chip.set('metric','place','0','setup_slack','real','0.0')"],
+            "cli: -metric_setupwns 'place 0 goal 0.0",
+            "api: chip.set('metric','place','0','setupwns','real','0.0')"],
         'help': """
         Metric tracking the worst setup/min timing path slack in the design.
         Positive values means there is spare/slack, negative slack means the design
@@ -2107,17 +2122,17 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
-    cfg['metric'][step][index]['setup_tns'] = {}
-    cfg['metric'][step][index]['setup_tns'][group] = {
-        'switch': "-metric_setup_tns 'step index group <float>'",
+    cfg['metric'][step][index]['setuptns'] = {}
+    cfg['metric'][step][index]['setuptns'][group] = {
+        'switch': "-metric_setuptns 'step index group <float>'",
         'type': 'float',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
         'short_help': 'Setup TNS Metric',
         'example': [
-            "cli: -metric_setup_tns 'place 0 goal 0.0'",
-            "api: chip.set('metric','place','0','setup_tns','real','0.0')"],
+            "cli: -metric_setuptns 'place 0 goal 0.0'",
+            "api: chip.set('metric','place','0','setuptns','real','0.0')"],
         'help': """
         Metric tracking of total negative setup slack (TNS) on a per step basis.
         Metric unit is nanoseconds.
@@ -2272,8 +2287,8 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
-    cfg['metric'][step][index]['area_density'] = {}
-    cfg['metric'][step][index]['area_density'][group] = {
+    cfg['metric'][step][index]['density'] = {}
+    cfg['metric'][step][index]['density'][group] = {
         'switch': '-metric_area_density step index group <float>',
         'type': 'float',
         'lock': 'false',
@@ -2603,15 +2618,15 @@ def schema_options(cfg):
         """
     }
 
-    cfg['build_dir'] = {
-        'switch': "-build_dir <dir>",
+    cfg['dir'] = {
+        'switch': "-dir <dir>",
         'type': 'dir',
         'lock': 'false',
         'requirement': 'all',
         'defvalue': 'build',
         'short_help': 'Build Directory',
-        'example': ["cli: -build_dir ./build_the_future",
-                    "api: chip.set('build_dir','./build_the_future')"],
+        'example': ["cli: -dir ./build_the_future",
+                    "api: chip.set('dir','./build_the_future')"],
         'help': """
         The default build directoryis './build'. The 'dir' parameters can be
         used to set an alternate compilation directory path.
@@ -3000,8 +3015,23 @@ def schema_design(cfg):
         """
     }
 
+    cfg['designversion'] = {
+        'switch': "-designversion <str>",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'Design Version',
+        'example': ["cli: -designversion 1.0",
+                    "api: chip.set('designversion', '1.0')"],
+        'help': """
+        Specifies the version of the current design. Can be a branch, tag, or
+        commit has or simple string.
+        """
+    }
+
     cfg['source'] = {
-        'switch': '<file>',
+        'switch': None,
         'type': '[file]',
         'lock': 'false',
         'copy': 'true',
@@ -3018,6 +3048,32 @@ def schema_design(cfg):
         A list of source files to read in for elaboration. The files are read
         in order from first to last entered. File type is inferred from the
         file suffix:
+        (\\*.v, \\*.vh) = Verilog
+        (\\*.vhd)      = VHDL
+        (\\*.sv)       = SystemVerilog
+        (\\*.c)        = C
+        (\\*.cpp, .cc) = C++
+        (\\*.py)       = Python
+        """
+    }
+
+    cfg['testbench'] = {
+        'switch': '-testbench <file>',
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'true',
+        'requirement': None,
+        'defvalue': [],
+        'filehash': [],
+        'date': [],
+        'author': [],
+        'signature': [],
+        'short_help': 'Testbench Files',
+        'example': ["cli: -testbench tb_top.v",
+                    "api: chip.set('testbench', 'tb_top.v')"],
+        'help': """
+        A list of testbench sources. The files are read in order from first to
+        last entered. File type is inferred from the file suffix:
         (\\*.v, \\*.vh) = Verilog
         (\\*.vhd)      = VHDL
         (\\*.sv)       = SystemVerilog
@@ -3060,20 +3116,7 @@ def schema_design(cfg):
         """
     }
 
-    cfg['version'] = {
-        'switch': "-version <str>",
-        'type': 'str',
-        'lock': 'false',
-        'requirement': None,
-        'defvalue': None,
-        'short_help': 'Design Version',
-        'example': ["cli: -version 1.0",
-                    "api: chip.set('version', '1.0')"],
-        'help': """
-        Specifies the version of the current design. Can be a branch, tag, or
-        commit has or simple string.
-        """
-    }
+
 
     cfg['license'] = {
         'switch': "-license <file>",
