@@ -5,7 +5,7 @@ import shutil
 import sys
 import siliconcompiler
 from siliconcompiler.floorplan import *
-from siliconcompiler.schema import schema_path
+from siliconcompiler.schema_utils import schema_path
 
 ################################
 # Setup Tool (pre executable)
@@ -58,64 +58,68 @@ def setup_tool(chip, step, index):
     chip.set('eda', tool, step, index, 'exe', tool)
     chip.set('eda', tool, step, index, 'vswitch', '-version')
     chip.set('eda', tool, step, index, 'version', 'af9a0f9faafb7e61ae18e9496169c3527312b82a')
-    chip.set('eda', tool, step, index, 'copy', 'false')
     chip.set('eda', tool, step, index, 'refdir', refdir)
     chip.set('eda', tool, step, index, 'script', refdir + '/sc_apr.tcl')
-    if chip.get('eda', tool, step, index, 'threads') is None:
-        chip.set('eda', tool, step, index, 'threads', os.cpu_count())
-
     chip.set('eda', tool, step, index, 'option', 'cmdline', '-no_init')
-
-    target_tech = chip.get('target').split('_')[0]
-    if target_tech == 'freepdk45':
-        default_options = {
-            'place_density': ['0.3'],
-            'pad_global_place': ['2'],
-            'pad_detail_place': ['1'],
-            'macro_place_halo': ['22.4', '15.12'],
-            'macro_place_channel': ['18.8', '19.95']
-        }
-    elif target_tech == 'asap7':
-       default_options = {
-            'place_density': ['0.77'],
-            'pad_global_place': ['2'],
-            'pad_detail_place': ['1'],
-            'macro_place_halo': ['22.4', '15.12'],
-            'macro_place_channel': ['18.8', '19.95']
-        }
-    elif target_tech == 'skywater130':
-       default_options = {
-            'place_density': ['0.6'],
-            'pad_global_place': ['4'],
-            'pad_detail_place': ['2'],
-            'macro_place_halo': ['1', '1'],
-            'macro_place_channel': ['80', '80']
-        }
-    else:
-        default_options = None
-
-    generic_default_options = {
-        'place_density': ['0.3'],
-        'pad_global_place': ['1'],
-        'pad_detail_place': ['1'],
-        'macro_place_halo': ['22.4', '15.12'],
-        'macro_place_channel': ['18.8', '19.95']
-    }
-
-    for option in generic_default_options.keys():
-        if (option not in chip.getkeys('eda', tool,  step, index, 'option') or
-            chip.get('eda', tool, step,  index, 'option', option) is None):
-            if default_options is not None:
-                chip.set('eda', tool, step, index, 'option', option, default_options[option])
-            else:
-                chip.logger.warning(f'No tech-specific default for OpenROAD '
-                                    f'option {option} and target_tech {target_tech}. '
-                                    f'Using generic default value.')
-                chip.get('eda', tool, step, index, 'option', option, generic_default_options[option])
+    #Don't override command line arguments
+    chip.set('eda', tool, step, index, 'threads', os.cpu_count())
 
     # exit automatically unless bkpt
     if (step not in chip.get('bkpt')):
         chip.add('eda', tool, step, index, 'option', 'cmdline', '-exit')
+
+    # defining default dictionary
+    default_options = {
+        'place_density': [],
+        'pad_global_place': [],
+        'pad_detail_place': [],
+        'macro_place_halo': [],
+        'macro_place_channel': []
+    }
+
+    # Setting up technologies with default values
+    # NOTE: no reasonable defaults, for halo and channel.
+    # TODO: Could possibly scale with node number for default, but safer to error out?
+    # perhaps we should use node as comp instead?
+    if chip.get('pdk','process'):
+        process = chip.get('pdk','process')
+        if process == 'freepdk45':
+            default_options = {
+                'place_density': ['0.3'],
+                'pad_global_place': ['2'],
+                'pad_detail_place': ['1'],
+                'macro_place_halo': ['22.4', '15.12'],
+                'macro_place_channel': ['18.8', '19.95']
+            }
+        elif process == 'asap7':
+           default_options = {
+                'place_density': ['0.77'],
+                'pad_global_place': ['2'],
+                'pad_detail_place': ['1'],
+                'macro_place_halo': ['22.4', '15.12'],
+                'macro_place_channel': ['18.8', '19.95']
+            }
+        elif process == 'skywater130':
+           default_options = {
+                'place_density': ['0.6'],
+                'pad_global_place': ['4'],
+                'pad_detail_place': ['2'],
+                'macro_place_halo': ['1', '1'],
+                'macro_place_channel': ['80', '80']
+            }
+        else:
+            chip.error = 1
+            chip.logger.error(f'Process {process} not set up for OpenROAD.')
+
+    for option in default_options:
+        if option in chip.getkeys('eda', tool, step, index, 'option'):
+            chip.logger.info('User provided option %s OpenROAD flow detected.', option)
+        elif not default_options[option]:
+            chip.error = 1
+            chip.logger.error('Missing option %s for OpenROAD.', option)
+        else:
+            chip.set('eda', tool, step, index, 'option', option, default_options[option])
+
 
 ################################
 # Post_process (post executable)
@@ -139,10 +143,10 @@ def post_process(chip, step, index):
                warnmatch = re.match(r'^\[WARNING', line)
                area = re.search(r'^Design area (\d+)', line)
                tns = re.search(r'^tns (.*)',line)
+               wns = re.search(r'^tns (.*)',line)
                vias = re.search(r'^Total number of vias = (.*).',line)
                wirelength = re.search(r'^Total wire length = (.*) um',line)
                power = re.search(r'^Total(.*)',line)
-               slack = re.search(r'^worst slack (.*)',line)
                if metricmatch:
                    metric = metricmatch.group(1)
                elif errmatch:
@@ -150,28 +154,28 @@ def post_process(chip, step, index):
                elif warnmatch:
                    warnings = warnings +1
                elif area:
-                   chip.set('metric', step, index, 'real', 'area_cells', round(float(area.group(1)),2))
+                   chip.set('metric', step, index, 'cellarea', 'real', round(float(area.group(1)),2), clobber=True)
                elif tns:
-                   chip.set('metric', step, index, 'real', 'setup_tns', round(float(tns.group(1)),2))
+                   chip.set('metric', step, index, 'setuptns', 'real', round(float(tns.group(1)),2), clobber=True)
+               elif wns:
+                   chip.set('metric', step, index, 'setupwns', 'real', round(float(wns.group(1)),2), clobber=True)
                elif wirelength:
-                   chip.set('metric', step, index, 'real', 'wirelength', round(float(wirelength.group(1)),2))
+                   chip.set('metric', step, index, 'wirelength', 'real', round(float(wirelength.group(1)),2), clobber=True)
                elif vias:
-                   chip.set('metric', step, index, 'real', 'vias', int(vias.group(1)))
-               elif slack:
-                   chip.set('metric', step, index, 'real', metric, round(float(slack.group(1)),2))
+                   chip.set('metric', step, index, 'vias', 'real', int(vias.group(1)), clobber=True)
                elif metric == "power":
                    if power:
                        powerlist = power.group(1).split()
                        leakage = powerlist[2]
                        total = powerlist[3]
-                       chip.set('metric', step, index, 'real', 'power_total', float(total))
-                       chip.set('metric', step, index, 'real', 'power_leakage',  float(leakage))
+                       chip.set('metric', step, index, 'peakpower', 'real',  float(total), clobber=True)
+                       chip.set('metric', step, index, 'standbypower', 'real', float(leakage), clobber=True)
 
      #Setting Warnings and Errors
-     chip.set('metric', step, index, 'real', 'errors', errors)
-     chip.set('metric', step, index, 'real', 'warnings', warnings)
+     chip.set('metric', step, index, 'errors', 'real',  errors , clobber=True)
+     chip.set('metric', step, index, 'warnings', 'real', warnings, clobber=True)
 
-     #Temporary superhack!
+     #Temporary superhack!rm
      #Getting cell count and net number from DEF
      if errors == 0:
           with open("outputs/" + design + ".def") as f:
@@ -180,11 +184,11 @@ def post_process(chip, step, index):
                     nets = re.search(r'^NETS (\d+)',line)
                     pins = re.search(r'^PINS (\d+)',line)
                     if cells:
-                         chip.set('metric', step, index, 'real', 'cells', int(cells.group(1)))
+                         chip.set('metric', step, index, 'cells', 'real', int(cells.group(1)), clobber=True)
                     elif nets:
-                         chip.set('metric', step, index, 'real', 'nets', int(nets.group(1)))
+                         chip.set('metric', step, index, 'nets', 'real', int(nets.group(1)), clobber=True)
                     elif pins:
-                         chip.set('metric', step, index, 'real', 'pins', int(pins.group(1)))
+                         chip.set('metric', step, index, 'pins', 'real', int(pins.group(1)), clobber=True)
 
      if step == 'sta':
           # Copy along GDS for verification steps that rely on it
@@ -202,8 +206,10 @@ if __name__ == "__main__":
     output = prefix + '.json'
 
     # create a chip instance
-    chip = siliconcompiler.Chip(defaults=False)
+    chip = siliconcompiler.Chip(loglevel='INFO')
+    chip.set('pdk','process','freepdk45')
+    chip.writecfg('tmp.json', prune=False)
     # load configuration
-    setup_tool(chip, step='apr', index='0')
+    setup_tool(chip, step='syn', index='0')
     # write out results
     chip.writecfg(output)

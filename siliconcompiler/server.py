@@ -125,7 +125,7 @@ class Server:
             job_nameid = f"{cfg['jobname']['value']}0"
         else:
             job_nameid = 'job0'
-        cfg['build_dir']['value'] = build_dir
+        cfg['dir']['value'] = build_dir
 
         # Create the working directory for the given 'job hash' if necessary.
         subprocess.run(['mkdir', '-p', jobs_dir])
@@ -347,7 +347,7 @@ class Server:
         # Reset 'build' directory in NFS storage.
         build_dir = '/tmp/%s_%s/'%(job_hash, job_nameid)
         jobs_dir = '%s/%s'%(build_dir, jobs_cfg['design']['value'])
-        jobs_cfg['build_dir']['value'] = build_dir
+        jobs_cfg['dir']['value'] = build_dir
 
         # Copy the 'import' directory for a new run if necessary.
         nfs_mount = self.cfg['nfsmount']['value'][-1]

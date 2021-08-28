@@ -1,25 +1,35 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import sys
 import siliconcompiler
+import re
+from siliconcompiler import schema_utils
+if __name__ != "__main__":
+    from tests.fixtures import test_wrapper
 
-def main():
-    progname = "sc-echo"
-    chip = siliconcompiler.Chip(loglevel="DEBUG")
-    chip.cmdline(progname,
-                 switchlist=['source', 'cfg'],
-                 description="""
-                 --------------------------------------------------------------
-                 Restricted SC app that accepts one or more json based cfg files
-                 as inputs and executes the SC run() method.
-                 """)
+#######################################################
+def test_cmdline():
+    '''
+    Cycles through all keys and looks at cli to create
+    a command lile argument.
+    * booleans not tested
+    * check-only asserted
+    *
+    '''
+    chip = siliconcompiler.Chip(loglevel="INFO")
+    error = 0
+    allkeys = chip.getkeys()
+    for key in allkeys:
+        #print(key)
+        sctype = chip.get(*key, field='type')
+        switch = chip.get(*key, field='switch')
+        example = chip.get(*key, field='example')[0]
+        arglist = schema_utils.switchparse(example)
+        #Construct switch
+        #Assemble args
 
-    #Error checking
-    if not chip.get('source'):
-        print(progname+": error: the following arguments are required: source")
-        sys.exit()
-    else:
-        chip.writecfg("sc_manifest.json")
 
-#########################
+        print(switch, arglist)
+
+#########################################################
 if __name__ == "__main__":
-    sys.exit(main())
+    test_cmdline()

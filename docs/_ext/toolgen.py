@@ -78,7 +78,7 @@ class ToolGen(SphinxDirective):
         module = importlib.import_module(modulename, package=packdir)
         setup_tool = getattr(module, 'setup_tool')
 
-        chip = siliconcompiler.Chip(defaults=False)
+        chip = siliconcompiler.Chip()
         # TODO: get "default" step
         setup_tool(chip, 'import', '0')
 

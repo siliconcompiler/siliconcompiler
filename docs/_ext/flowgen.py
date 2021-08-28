@@ -85,7 +85,7 @@ class FlowGen(SphinxDirective):
         module = importlib.import_module(modulename, package=packdir)
         setup = getattr(module, 'setup_flow')
 
-        chip = siliconcompiler.Chip(defaults=False)
+        chip = siliconcompiler.Chip()
         # TODO: how to choose "default" process
         setup(chip, 'freepdk45')
         flow_path = f'_images/gen/{target}.svg'

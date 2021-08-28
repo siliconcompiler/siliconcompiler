@@ -1,51 +1,48 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import sys
 import siliconcompiler
+import re
 
 def main():
     chip = siliconcompiler.Chip(loglevel="INFO")
-
     error = 0
 
-    #basic get/set test
-    chip.set('design', 'top' )
-    design = chip.get('design')
-    if design != "top":
-        error = 1
+    allkeys = chip.getkeys()
+    for key in allkeys:
+        sctype = chip.get(*key, field='type')
+        example = chip.get(*key, field='example')[0]
+        match = re.match(r'cli\:\s+chip.set\((.*)\)', example)
+        if match:
+            argstring = re.sub(r'[\'\s]', '', match.group(1))
+            tuplematch = re.match(r'(.*?),\((.*,.*)\)', argstring)
+            if tuplematch:
+                keypath = tuplematch.group(1).split(',')
+                value = tuple(map(float, tuplematch.group(2).split(',')))
+                if re.match(r'\[',sctype):
+                    value = [value]
+                args =  keypath + [value]
+            else:
+                keypath =  argstring.split(',')[:-1]
+                value = argstring.split(',')[-1]
+                if sctype == "float":
+                    value = float(value)
+                elif sctype == "bool":
+                     value = bool(sctype=='true')
+                elif sctype == "int":
+                    value = int(value)
+                if re.match(r'\[',sctype):
+                    value = [value]
+                args = keypath + [value]
+            chip.set(*args, clobber=True)
+            result = chip.get(*keypath)
+            if result != value:
+                error = 1
+                print(f"ERROR: expected = {value} result = {result} keypath={keypath}")
+        else:
+            print("ERROR: illegal example")
+            error = 1
 
-    #Check list access
-    inlist = ['import','syn']
-    chip.set('steplist', inlist)
-    if (inlist != chip.get('steplist')):
-        error = 1
-
-    #Check scalar to list access
-    inscalar = 'import'
-    chip.set('steplist', 'import')
-    outlist = chip.get('steplist')
-    if (outlist != [inscalar]):
-        error = 1
-
-    #check illegal key (expected error)
-    chip.set('badquery', 'top')
-    if not chip.error:
-        error = 1
-    else:
-        chip.error = 0
-
-    #check error on scalar add
-    chip.add('design', 'top')
-    if not chip.error:
-        error = 1
-    else:
-        chip.error = 0
-
-    #check assigning list to scalar
-    chip.set('design', ['top'])
-    if not chip.error:
-        error = 1
-    else:
-        chip.error = 0
+    chip.writecfg('allvals.json')
 
     if error:
         print("FAIL")

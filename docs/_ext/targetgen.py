@@ -78,7 +78,7 @@ class TargetGen(SphinxDirective):
         module = importlib.import_module(modulename, package=packdir)
         setup_platform = getattr(module, 'setup_platform')
 
-        chip = siliconcompiler.Chip(defaults=False)
+        chip = siliconcompiler.Chip()
         # TODO: get "default" step
         setup_platform(chip)
 

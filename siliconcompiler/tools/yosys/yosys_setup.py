@@ -4,7 +4,7 @@ import sys
 import defusedxml.ElementTree as ET
 
 import siliconcompiler
-from siliconcompiler.schema import schema_path
+from siliconcompiler.schema_utils import schema_path
 
 ################################
 # Setup Tool (pre executable)
@@ -33,12 +33,12 @@ def setup_tool(chip, step, index):
     chip.add('eda', tool, step, index, 'output', chip.get('design') + '.v')
 
     #Schema requirements
-    chip.add('eda', tool, step, index, 'param', 'constraint')
     if chip.get('mode') == 'asic':
-        chip.add('eda', tool, step, index, 'param', ",".join(['pdk', 'process']))
-        chip.add('eda', tool, step, index, 'param', ",".join(['asic', 'targetlib']))
+        chip.add('eda', tool, step, index, 'req', ",".join(['pdk', 'process']))
+        chip.add('eda', tool, step, index, 'req', ",".join(['asic', 'targetlib']))
     else:
-        chip.add('eda', tool, step, index, 'param', ",".join(['fpga','partname']))
+        chip.add('eda', tool, step, index, 'req', 'constraint')
+        chip.add('eda', tool, step, index, 'req', ",".join(['fpga','partname']))
 
     #TODO: remove special treatment for fpga??
     if chip.get('target'):
@@ -76,7 +76,7 @@ def post_process(chip, step, index):
     ''' Tool specific function to run after step execution
     '''
     tool = 'yosys'
-    exe = chip.get('eda',tool, step, index, 'exe')
+    exe = chip.get('eda', tool, step, index, 'exe')
     with open(exe + ".log") as f:
         for line in f:
             area = re.search(r'Chip area for module.*\:\s+(.*)', line)
@@ -84,11 +84,11 @@ def post_process(chip, step, index):
             warnings = re.search(r'Warnings.*\s(\d+)\s+total', line)
 
             if area:
-                chip.set('metric', step, index, 'real', 'area_cells', round(float(area.group(1)),2))
+                chip.set('metric', step, index, 'cellarea', 'real', round(float(area.group(1)),2), clobber=True)
             elif cells:
-                chip.set('metric', step, index, 'real', 'cells', int(cells.group(1)))
+                chip.set('metric', step, index, 'cells', 'real', int(cells.group(1)), clobber=True)
             elif warnings:
-                chip.set('metric', step, index, 'real', 'warnings', int(warnings.group(1)))
+                chip.set('metric', step, index, 'warnings', 'real', int(warnings.group(1)), clobber=True)
 
     #Return 0 if successful
     return 0
@@ -101,7 +101,7 @@ if __name__ == "__main__":
     output = prefix + '.json'
 
     # create a chip instance
-    chip = siliconcompiler.Chip(defaults=False)
+    chip = siliconcompiler.Chip()
     # load configuration
     setup_tool(chip, step='syn', index='0')
     # write out results

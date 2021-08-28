@@ -14,13 +14,8 @@ from multiprocessing import Process
 
 #Shorten siliconcompiler as sc
 import siliconcompiler
-from siliconcompiler.schema import schema_cfg
-from siliconcompiler.schema import schema_path
-from siliconcompiler.client import fetch_results
-from siliconcompiler.client import client_decrypt
-from siliconcompiler.client import client_encrypt
-from siliconcompiler.client import remote_preprocess
-from siliconcompiler.client import remote_run
+import siliconcompiler.schema_utils
+import siliconcompiler.client
 
 ###########################
 def main():
