@@ -8,11 +8,11 @@ def make_fp():
     test_dir = os.path.dirname(os.path.abspath(__file__))
 
     c = Chip(loglevel='INFO')
-    c.set('design', 'test')
+    c.set('design', 'test', clobber=True)
     c.target('freepdk45_asicflow')
     lib = 'ram'
     c.add('asic', 'macrolib', lib)
-    c.add('library', lib, 'type', 'component')
+    c.set('library', lib, 'type', 'component')
     c.add('library', lib, 'lef', test_dir + '/test_floorplan/ram.lef')
     c.set('library', lib, 'cells', 'ram', 'RAM')
 
@@ -80,7 +80,7 @@ def test_padring():
     test_dir = os.path.dirname(os.path.abspath(__file__))
 
     chip = Chip(loglevel='INFO')
-    chip.set('design', 'mypadring')
+    chip.set('design', 'mypadring', clobber=True)
     chip.target('freepdk45_asicflow')
 
     macro = 'io'
