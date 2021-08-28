@@ -84,7 +84,7 @@ def post_process(chip, step, index):
             warnings = re.search(r'Warnings.*\s(\d+)\s+total', line)
 
             if area:
-                chip.set('metric', step, index, 'area_cells', 'real', round(float(area.group(1)),2), clobber=True)
+                chip.set('metric', step, index, 'cellarea', 'real', round(float(area.group(1)),2), clobber=True)
             elif cells:
                 chip.set('metric', step, index, 'cells', 'real', int(cells.group(1)), clobber=True)
             elif warnings:

@@ -143,10 +143,10 @@ def post_process(chip, step, index):
                warnmatch = re.match(r'^\[WARNING', line)
                area = re.search(r'^Design area (\d+)', line)
                tns = re.search(r'^tns (.*)',line)
+               wns = re.search(r'^tns (.*)',line)
                vias = re.search(r'^Total number of vias = (.*).',line)
                wirelength = re.search(r'^Total wire length = (.*) um',line)
                power = re.search(r'^Total(.*)',line)
-               slack = re.search(r'^worst slack (.*)',line)
                if metricmatch:
                    metric = metricmatch.group(1)
                elif errmatch:
@@ -154,22 +154,22 @@ def post_process(chip, step, index):
                elif warnmatch:
                    warnings = warnings +1
                elif area:
-                   chip.set('metric', step, index, 'area_cells', 'real', round(float(area.group(1)),2), clobber=True)
+                   chip.set('metric', step, index, 'cellarea', 'real', round(float(area.group(1)),2), clobber=True)
                elif tns:
-                   chip.set('metric', step, index, 'setup_tns', 'real', round(float(tns.group(1)),2), clobber=True)
+                   chip.set('metric', step, index, 'setuptns', 'real', round(float(tns.group(1)),2), clobber=True)
+               elif wns:
+                   chip.set('metric', step, index, 'setupwns', 'real', round(float(wns.group(1)),2), clobber=True)
                elif wirelength:
                    chip.set('metric', step, index, 'wirelength', 'real', round(float(wirelength.group(1)),2), clobber=True)
                elif vias:
                    chip.set('metric', step, index, 'vias', 'real', int(vias.group(1)), clobber=True)
-               elif slack:
-                   chip.set('metric', step, index, metric, 'real', round(float(slack.group(1)),2), clobber=True)
                elif metric == "power":
                    if power:
                        powerlist = power.group(1).split()
                        leakage = powerlist[2]
                        total = powerlist[3]
-                       chip.set('metric', step, index, 'power_total', 'real',  float(total), clobber=True)
-                       chip.set('metric', step, index, 'power_leakage', 'real', float(leakage), clobber=True)
+                       chip.set('metric', step, index, 'peakpower', 'real',  float(total), clobber=True)
+                       chip.set('metric', step, index, 'standbypower', 'real', float(leakage), clobber=True)
 
      #Setting Warnings and Errors
      chip.set('metric', step, index, 'errors', 'real',  errors , clobber=True)
