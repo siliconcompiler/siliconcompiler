@@ -15,7 +15,6 @@ def setup_tool(chip, step, index):
     chip.set('eda', tool, step, index, 'format', 'cmdline')
     chip.set('eda', tool, step, index, 'vendor', 'nextpnr')
     chip.set('eda', tool, step, index, 'refdir', refdir)
-    chip.set('eda', tool, step, index, 'copy', 'false')
     chip.set('eda', tool, step, index, 'exe', 'nextpnr-ice40')
     chip.set('eda', tool, step, index, 'vswitch', '--version')
     chip.set('eda', tool, step, index, 'version', 'c73d4cf6')
@@ -65,7 +64,7 @@ if __name__ == "__main__":
     output = prefix + '.json'
 
     # create a chip instance
-    chip = siliconcompiler.Chip(defaults=False)
+    chip = siliconcompiler.Chip()
     chip.set('fpga', 'partname', 'ice40up5k-sg48')
     # load configuration
     setup_tool(chip, step='syn', index='0')

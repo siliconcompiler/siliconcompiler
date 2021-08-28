@@ -3,7 +3,6 @@ import os
 
 import siliconcompiler
 from siliconcompiler.floorplan import *
-from siliconcompiler.schema import schema_path
 
 ################################
 # Setup Tool (pre executable)
@@ -50,7 +49,7 @@ if __name__ == "__main__":
     output = prefix + '.json'
 
     # create a chip instance
-    chip = siliconcompiler.Chip(defaults=False)
+    chip = siliconcompiler.Chip()
     # load configuration
     setup_tool(chip, step='apr', index='0')
     # write out results
