@@ -34,11 +34,11 @@ def setup_tool(chip, step, index):
 
     #Schema requirements
     if chip.get('mode') == 'asic':
-        chip.add('eda', tool, step, index, 'param', ",".join(['pdk', 'process']))
-        chip.add('eda', tool, step, index, 'param', ",".join(['asic', 'targetlib']))
+        chip.add('eda', tool, step, index, 'req', ",".join(['pdk', 'process']))
+        chip.add('eda', tool, step, index, 'req', ",".join(['asic', 'targetlib']))
     else:
-        chip.add('eda', tool, step, index, 'param', 'constraint')
-        chip.add('eda', tool, step, index, 'param', ",".join(['fpga','partname']))
+        chip.add('eda', tool, step, index, 'req', 'constraint')
+        chip.add('eda', tool, step, index, 'req', ",".join(['fpga','partname']))
 
     #TODO: remove special treatment for fpga??
     if chip.get('target'):

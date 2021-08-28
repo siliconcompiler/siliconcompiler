@@ -23,7 +23,7 @@ def schema_cfg():
         'requirement': 'all',
         'defvalue': 'false',
         'short_help': 'Prints version number',
-        'example': ["cli: -v",
+        'example': ["cli: -version",
                     "api: chip.get('version')"],
         'help': """
         Prints out the SC software version number.
@@ -1718,18 +1718,18 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     }
 
     # list of parameters used by tool
-    cfg['eda'][tool][step][index]['param'] = {
-        'switch': "-eda_param 'tool step index <str>'",
+    cfg['eda'][tool][step][index]['req'] = {
+        'switch': "-eda_req 'tool step index <str>'",
         'type': '[str]',
         'lock': 'false',
         'requirement': None,
         'defvalue': [],
-        'short_help': 'List of parameters used by tool',
+        'short_help': 'List of required tool parameters',
         'example': [
-            "cli: -eda_param 'openroad place 0 design'",
-            "api: chip.set('eda','openroad', 'place','0','param','design')"],
+            "cli: -eda_req 'openroad place 0 design'",
+            "api: chip.set('eda','openroad', 'place','0','req','design')"],
         'help': """
-        List of keypaths to SC parameters used by the tool. The list is used
+        List of keypaths to required toool parameters. The list is used
         by check() to verify that all parameters have been set up before
         step execution begins.
         """

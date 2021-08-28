@@ -320,22 +320,24 @@ class Chip:
             else:
                 val_list = [val]
 
-            # Place extrakeys in default slots
             for item in val_list:
+                #space used to separate values!
                 extrakeys = item.split(' ')
                 for i in range(len(extrakeys)):
+                    # look for the first default statement
+                    # "delete' default in temp list by setting to None
                     if 'default' in chosenpath:
                         next_default = chosenpath.index('default')
                         orderhash[extrakeys[i]] = next_default
                         chosenpath[next_default] = None
                     else:
                         # Creating a sorted list based on key placement
-                        args = list(dict(sorted(orderhash.items(), key=lambda orderhash: orderhash[1])))
+                        args = list(dict(sorted(orderhash.items(),
+                                                key=lambda orderhash: orderhash[1])))
                         # Adding data value
                         args = args + [extrakeys[i]]
-                        typestr = self.get(*args[:-1], field='type')
-                        # Set value
-                        if re.match(r'\[', typestr):
+                        # Set/add value based on type
+                        if re.match(r'\[', self.get(*args[:-1], field='type')):
                             self.add(*args)
                         else:
                             self.set(*args, clobber=True)
