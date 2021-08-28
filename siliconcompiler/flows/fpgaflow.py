@@ -47,8 +47,11 @@ def setup_flow(chip, partname):
 
     for i, step in enumerate(flowpipe):
         chip.set('flowgraph', flowpipe[i], 'mergeop', 'min')
+        chip.set('flowgraph', flowpipe[i], 'nproc',  1)
         if i > 0:
             chip.add('flowgraph', flowpipe[i], 'input', flowpipe[i-1])
+        else:
+            chip.add('flowgraph', flowpipe[i], 'input', 'source')
 
     # Per step tool selection
     for step in flowpipe:
