@@ -2,7 +2,7 @@ import os
 from string import Template
 import defusedxml.ElementTree as ET
 import siliconcompiler
-from siliconcompiler.schema import schema_path
+from siliconcompiler.schema_utils import schema_path
 
 ################################
 # Setup OpenFPGA

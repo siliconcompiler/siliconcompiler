@@ -4,7 +4,7 @@ import re
 import sys
 import siliconcompiler
 from siliconcompiler.floorplan import *
-from siliconcompiler.schema import schema_path
+from siliconcompiler.schema_utils import schema_path
 
 ################################
 # Setup Tool (pre executable)

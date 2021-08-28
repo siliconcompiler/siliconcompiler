@@ -1,6 +1,6 @@
 import os
 import siliconcompiler
-from siliconcompiler.schema import schema_path
+from siliconcompiler.schema_utils import schema_path
 
 ################################
 # Setup NextPNR
