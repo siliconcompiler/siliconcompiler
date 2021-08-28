@@ -281,7 +281,7 @@ class Chip:
 
         # set mode (needed for target)
         if 'mode' in cmdargs.keys():
-            self.set('mode', cmdargs['mode'])
+            self.set('mode', cmdargs['mode'], clobber=True)
 
         # read in target if set
         if 'target' in cmdargs.keys():
@@ -841,8 +841,11 @@ class Chip:
                             elif sctype == 'float':
                                 return_list.append(float(item))
                             elif sctype == '(float,float)':
-                                tuplestr = re.sub(r'[\(\)\s]','',item)
-                                return_list.append(tuple(map(float, tuplestr.split(','))))
+                                if isinstance(item,tuple):
+                                    return_list.append(item)
+                                else:
+                                    tuplestr = re.sub(r'[\(\)\s]','',item)
+                                    return_list.append(tuple(map(float, tuplestr.split(','))))
                             else:
                                 return_list.append(item)
                         return return_list
@@ -1104,7 +1107,7 @@ class Chip:
                 if re.match(r'\[', typestr):
                     self.add(*arg, cfg=localcfg)
                 else:
-                    self.set(*arg, cfg=localcfg)
+                    self.set(*arg, clobber=True, cfg=localcfg)
 
         #returning dict
         return localcfg
@@ -1812,8 +1815,8 @@ class Chip:
         os.chmod("run.sh", 0o755)
 
         # Save config files required by EDA tools
-        self.set('arg', 'step', step)
-        self.set('arg', 'index', index)
+        self.set('arg', 'step', step, clobber=True)
+        self.set('arg', 'index', index, clobber=True)
 
         # Writing out command file
         self.writecfg("sc_manifest.json")
