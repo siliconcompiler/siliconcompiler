@@ -52,6 +52,7 @@ class Chip:
         """
 
         # Local variables
+        self.version = "0.0.1"
         self.design = design
         self.status = {}
         self.error = 0
@@ -124,6 +125,8 @@ class Chip:
         * List parameters are entered indidually (ie. -y libdir1 -y libdir2)
         * For parameters with boolean types, the switch implies "true".
         * Special characters (such as '-') must be enclosed in double quotes.
+        * Compiler comptaible switces include: -D, -I, -O{0,1,2,3}
+        * Some Vrilog legacy switches: +libext+, +incdir+
 
         Args:
             progname (string): Name of program to be exeucted at the command
@@ -144,23 +147,6 @@ class Chip:
 
         """
 
-        # Print banner
-        ascii_banner = pyfiglet.figlet_format("Silicon Compiler")
-        print(ascii_banner)
-
-        # Print out SC project authors
-        authors = []
-        authorfile = schema_path("AUTHORS")
-        f = open(authorfile, "r")
-        for line in f:
-            name = re.match(r'^(\w+\s+\w+)', line)
-            if name:
-                authors.append(name.group(1))
-        print("Authors:", ", ".join(authors), "\n")
-        print("-"*80)
-
-        os.environ["COLUMNS"] = '80'
-
         # Argparse
         parser = argparse.ArgumentParser(prog=progname,
                                          prefix_chars='-+',
@@ -171,35 +157,33 @@ class Chip:
 
         # Get all keys from global dictionary or override at command line
         allkeys = self.getkeys()
-        argmap = {}
+
         # Iterate over all keys to add parser argument
         for key in allkeys:
             #Fetch fields from leaf cell
             helpstr = self.get(*key, field='short_help')
             typestr = self.get(*key, field='type')
             #Switch field fully describes switch format
-            if 'source' not in key:
-                switch = self.get(*key, field='switch')
+            switch = self.get(*key, field='switch')
+            if switch is not None:
                 switchmatch = re.match(r'(-[\w_]+)\s+(.*)', switch)
                 gccmatch = re.match(r'(-[\w_]+)(.*)', switch)
                 plusmatch = re.match(r'(\+[\w_\+]+)(.*)', switch)
                 if switchmatch:
                     switchstr = switchmatch.group(1)
-                    paramstr = switchmatch.group(2)
                     dest = re.sub('-','',switchstr)
                 elif gccmatch:
                     switchstr = gccmatch.group(1)
-                    paramstr = gccmatch.group(2)
                     dest = key[0]
                 elif plusmatch:
                     switchstr = plusmatch.group(1)
-                    paramstr = plusmatch.group(2)
                     dest = key[0]
+            else:
+                switchstr = None
+                dest = None
+
             #Four switch types (source, scalar, list, bool)
-            argmap[dest] = paramstr
-            if 'source' in key:
-                argmap['source'] = None
-            elif (switchlist == []) | (dest in switchlist):
+            if ('source' not in key) & ((switchlist == []) | (dest in switchlist)):
                 if typestr == 'bool':
                     parser.add_argument(switchstr,
                                         metavar='',
@@ -217,7 +201,6 @@ class Chip:
                                         action='append',
                                         help=helpstr,
                                         default=argparse.SUPPRESS)
-
                 else:
                     #all the rest
                     parser.add_argument(switchstr,
@@ -252,19 +235,41 @@ class Chip:
             else:
                 scargs.append(item)
 
+
+        # exit on version check
+        if '-version' in scargs:
+            print(self.version)
+            sys.exit(0)
+
         # Required positional source file argument
-        if ((switchlist == []) & (not '-cfg' in scargs))| ('source' in switchlist) :
+        if ((switchlist == []) &
+            (not '-cfg' in scargs)) | ('source' in switchlist) :
             parser.add_argument('source',
                                 nargs='+',
                                 help=self.get('source', field='short_help'))
 
         #Grab argument from pre-process sysargs
+        #print(scargs)
         cmdargs = vars(parser.parse_args(scargs))
-
-        print(cmdargs)
+        #print(cmdargs)
         #sys.exit()
 
-        # NOTE: The below order is by design and should not be modified.
+        # Print banner
+        ascii_banner = pyfiglet.figlet_format("Silicon Compiler")
+        print(ascii_banner)
+
+        # Print out SC project authors
+        authors = []
+        authorfile = schema_path("AUTHORS")
+        f = open(authorfile, "r")
+        for line in f:
+            name = re.match(r'^(\w+\s+\w+)', line)
+            if name:
+                authors.append(name.group(1))
+        print("Authors:", ", ".join(authors), "\n")
+        print("-"*80)
+
+        os.environ["COLUMNS"] = '80'
 
         # set design name (override default)
         if 'design' in cmdargs.keys():
@@ -288,19 +293,51 @@ class Chip:
                 self.cfg = self.readcfg(item)
 
         # insert all parameters in dictionary
+        self.logger.info('Setting commandline arguments')
+        allkeys = self.getkeys()
+
         for key, val in cmdargs.items():
+
+            # Unifying around no underscores for now
+            keylist = key.split('_')
+            orderhash = {}
+
+            # Find keypath with matching keys
+            for keypath in allkeys:
+                match = True
+                for item in keylist:
+                    if item in keypath:
+                        orderhash[item] = keypath.index(item)
+                    else:
+                        match = False
+                if match:
+                    chosenpath = keypath
+                    break
+
+            # Turn everything into a list for uniformity
             if isinstance(val, list):
                 val_list = val
             else:
                 val_list = [val]
+
+            # Place extrakeys in default slots
             for item in val_list:
-                print(item)
-                args = ['design', item]
-                typestr = self.get(*args[:-1], field='type')
-                if re.match(r'\[', typestr):
-                    self.add(*args)
-                else:
-                    self.set(*args, clobber=True)
+                extrakeys = item.split(' ')
+                for i in range(len(extrakeys)-1):
+                    next_default = chosenpath.index('default')
+                    orderhash[extrakeys[i]] = next_default
+                    chosenpath[next_default] = None
+
+            # Creating a sorted list based on key placement
+            args = list(dict(sorted(orderhash.items(), key=lambda orderhash: orderhash[1])))
+            # Adding data value
+            args = args + [extrakeys[-1]]
+            typestr = self.get(*args[:-1], field='type')
+            # Set value
+            if re.match(r'\[', typestr):
+                self.add(*args)
+            else:
+                self.set(*args, clobber=True)
 
     ###########################################################################
     def target(self, arg=None, libs=True, methodology=True):
@@ -1483,7 +1520,7 @@ class Chip:
         else:
             steplist = self.getsteps()
 
-        jobdir = "/".join([self.get('build_dir'),
+        jobdir = "/".join([self.get('dir'),
                            self.get('design'),
                            self.get('jobname') + str(self.get('jobid'))])
 
@@ -1671,7 +1708,7 @@ class Chip:
         self.logger.info('Starting step %s', step)
 
         # Build directory
-        stepdir = "/".join([self.get('build_dir'),
+        stepdir = "/".join([self.get('dir'),
                             self.get('design'),
                             self.get('jobname') + str(self.get('jobid')),
                             step + index])
