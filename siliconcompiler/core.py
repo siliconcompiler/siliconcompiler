@@ -323,21 +323,22 @@ class Chip:
             # Place extrakeys in default slots
             for item in val_list:
                 extrakeys = item.split(' ')
-                for i in range(len(extrakeys)-1):
-                    next_default = chosenpath.index('default')
-                    orderhash[extrakeys[i]] = next_default
-                    chosenpath[next_default] = None
-
-            # Creating a sorted list based on key placement
-            args = list(dict(sorted(orderhash.items(), key=lambda orderhash: orderhash[1])))
-            # Adding data value
-            args = args + [extrakeys[-1]]
-            typestr = self.get(*args[:-1], field='type')
-            # Set value
-            if re.match(r'\[', typestr):
-                self.add(*args)
-            else:
-                self.set(*args, clobber=True)
+                for i in range(len(extrakeys)):
+                    if 'default' in chosenpath:
+                        next_default = chosenpath.index('default')
+                        orderhash[extrakeys[i]] = next_default
+                        chosenpath[next_default] = None
+                    else:
+                        # Creating a sorted list based on key placement
+                        args = list(dict(sorted(orderhash.items(), key=lambda orderhash: orderhash[1])))
+                        # Adding data value
+                        args = args + [extrakeys[i]]
+                        typestr = self.get(*args[:-1], field='type')
+                        # Set value
+                        if re.match(r'\[', typestr):
+                            self.add(*args)
+                        else:
+                            self.set(*args, clobber=True)
 
     ###########################################################################
     def target(self, arg=None, libs=True, methodology=True):
