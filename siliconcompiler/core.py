@@ -26,6 +26,7 @@ from siliconcompiler.schema import schema_path
 from siliconcompiler.schema import schema_cfg
 from siliconcompiler.schema import schema_typecheck
 from siliconcompiler.schema import schema_reorder
+from siliconcompiler.client import client_encrypt
 from siliconcompiler.client import client_decrypt
 from siliconcompiler.client import fetch_results
 from siliconcompiler.client import remote_preprocess
@@ -1828,11 +1829,6 @@ class Chip:
             fetch_results(self)
         else:
             if self.get('remote', 'key'):
-                # If 'remote_key' is present in a local job, it represents an
-                # encoded key string to decrypt an in-progress job's data. The key
-                # must be removed from the config dictionary to avoid logging.
-                self.status['decrypt_key'] = self.get('remote', 'key')
-                self.set('remote', 'key', None)
                 # Decrypt the job's data for processing.
                 client_decrypt(self)
 
@@ -1882,7 +1878,7 @@ class Chip:
                         sys.exit(1)
 
             # For local encrypted jobs, re-encrypt and delete the decrypted data.
-            if 'decrypt_key' in self.status:
+            if self.get('remote', 'key'):
                 client_encrypt(self)
 
     ###########################################################################

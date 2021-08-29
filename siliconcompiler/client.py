@@ -65,7 +65,8 @@ def client_decrypt(chip):
     job_nameid = f"{chip.get('jobname')}0"
 
     # Create cipher for decryption.
-    dk = base64.urlsafe_b64decode(chip.status['decrypt_key'])
+    with open(chip.get('remote', 'key'), 'r') as keyin:
+        dk = keyin.read().encode()
     decrypt_key = serialization.load_ssh_private_key(dk, None, backend=default_backend())
     # Decrypt the block cipher key.
     with open('%s/import.bin'%root_dir, 'rb') as f:
@@ -113,7 +114,8 @@ def client_encrypt(chip):
     job_nameid = f"{chip.get('jobname')}0"
 
     # Create cipher for decryption.
-    dk = base64.urlsafe_b64decode(chip.status['decrypt_key'])
+    with open(chip.get('remote', 'key'), 'r') as keyin:
+        dk = keyin.read().encode()
     decrypt_key = serialization.load_ssh_private_key(dk, None, backend=default_backend())
     # Decrypt the block cipher key.
     with open('%s/import.bin'%root_dir, 'rb') as f:
