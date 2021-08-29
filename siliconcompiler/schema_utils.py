@@ -15,11 +15,11 @@ def schema_switchparse (switch_field):
     '''
 
     # removing doc prefix help
-    example = re.sub('^cli:\s+','', switch_field)
+    example = re.sub(r'^cli:\s\+','', switch_field)
     # removing all quotes
     example = re.sub('\'','',example)
     # splitting into switch field and the rest
-    plusmatch = re.match('\+(\w+)\+(.*)', example)
+    plusmatch = re.match(r'\+(\w+)\+(.*)', example)
     if plusmatch:
         arglist = [plusmatch.group(1),
                    plusmatch.group(2)]

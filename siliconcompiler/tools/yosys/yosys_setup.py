@@ -14,8 +14,6 @@ def setup_tool(chip, step, index):
     ''' Tool specific function to run before step execution
     '''
 
-    chip.logger.debug("Setting up Yosys")
-
     tool = 'yosys'
     refdir = 'siliconcompiler/tools/yosys'
     chip.set('eda', tool, step, index, 'format', 'tcl')

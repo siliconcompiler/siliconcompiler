@@ -1113,7 +1113,7 @@ class Chip:
         return localcfg
 
     ###########################################################################
-    def check(self, step, chip=None, cfg=None):
+    def check(self, step=None, chip=None, cfg=None):
         '''
         Performs a setup validity check and returns success status.
 
@@ -1132,9 +1132,11 @@ class Chip:
             cfg = chip.cfg
 
         chip.logger.info("Running check() for step '%s'", step)
-        emptylist = ("null",None,[])
+
+        # Checking
 
         # Checking global requirements specified in schema.py
+        emptylist = ("null",None,[])
         allkeys = self.getkeys()
         for key in allkeys:
             keypath = ",".join(key)
@@ -1158,7 +1160,7 @@ class Chip:
 
         # Runtime check of inputs being ready
 
-        return self.error
+        return chip.error
 
     ###########################################################################
     def readcfg(self, filename, merge=True, chip=None, cfg=None):
@@ -1683,7 +1685,7 @@ class Chip:
         # Explicit wait loop until inputs have been resolved
         # This should be a shared object to not be messy
 
-        self.logger.info('Step %s waiting on inputs', step)
+        self.logger.info(f"Step '{step}' waiting on inputs")
         while True:
             # Checking that there are no pending jobs
             pending = 0
@@ -1708,10 +1710,10 @@ class Chip:
                     halt = halt + error[input_str]
         if halt:
             self.logger.error('Halting step %s due to previous errors', step)
-            self._halt(step, index, error, active)
+            self._haltstep(step, index, error, active)
 
         # starting actual step execution
-        self.logger.info('Starting step %s', step)
+        self.logger.info(f"Starting step '{step}'")
 
         # Build directory
         stepdir = "/".join([self.get('dir'),
@@ -1740,28 +1742,9 @@ class Chip:
             for item in steplist:
                 shutil.copytree("../"+item+str(mindex)+"/outputs", 'inputs/')
 
-        # EDA dynamic module load
-        try:
-            tool = self.get('flowgraph', step, 'tool')
-            searchdir = "siliconcompiler.tools." + tool
-            modulename = '.'+tool+'_setup'
-            module = importlib.import_module(modulename, package=searchdir)
-            setup_tool = getattr(module, "setup_tool")
-        except:
-            traceback.print_exc()
-            self.logger.error("Dynamic module load failed for tool '%s' in step '%s'.", tool, step)
-            self._halt(step, index, error, active)
-
-        # EDA tool setup
-        try:
-            setup_tool(self, step, index)
-        except:
-            traceback.print_exc()
-            self.logger.error("Setup script failed for tool '%s' in step '%s'.", tool, step)
-            self._halt(step, index, error, active)
-
         # Check Version if switch exists
         #if self.getkeys('eda', tool, step, str(index), 'vswitch'):
+        tool = self.get('flowgraph', step, 'tool')
         exe = self.get('eda', tool, step, index, 'exe')
         veropt =self.get('eda', tool, step, index, 'vswitch')
         if veropt!=None:
@@ -1770,7 +1753,7 @@ class Chip:
             exepath = subprocess.run(cmdstr, shell=True)
             if exepath.returncode > 0:
                 self.logger.error('Version check failed for %s.', cmdstr)
-                self._halt(step, index, error, active)
+                self._haltstep(step, index, error, active)
         else:
             self.logger.info("Skipping version checking of '%s' tool in step '%s'.", tool, step)
 
@@ -1828,9 +1811,9 @@ class Chip:
             self.set('metric', step, index, metric, 'real', 0)
 
         # Final check() before run
-        if self.check(step):
+        if self.check(step=step):
             self.logger.error("Step check() for '%s' failed, exiting! See previous errors.", step)
-            self._halt(step, index, error, active)
+            self._haltstep(step, index, error, active)
 
         # Run executable
         self.logger.info("Running %s in %s", step, stepdir)
@@ -1840,16 +1823,32 @@ class Chip:
             self.logger.error('Command failed. See log file %s', os.path.abspath(logfile))
             # Override exit code if set
             if not self.get('eda', tool, step, index, 'continue'):
-                self._halt(step, index, error, active)
+                self._haltstep(step, index, error, active)
 
-        # Post Process (and error checking)
-        post_process = getattr(module, "post_process")
-        post_error = post_process(self, step, index)
+        # Load module (could fail)
+        try:
+            tool = self.get('flowgraph', step, 'tool')
+            searchdir = "siliconcompiler.tools." + tool
+            modulename = '.'+tool+'_setup'
+            module = importlib.import_module(modulename, package=searchdir)
+            post_process = getattr(module, "post_process")
+        except:
+            traceback.print_exc()
+            self.logger.error(f"Module load failed for '{tool}' in step '{step}'")
+            self._haltstep(step, index, error, active)
+
+        # Post process (could fail)
+        try:
+            post_error = post_process(self, step, index)
+        except:
+            traceback.print_exc()
+            self.logger.error(f"Post process failed for '{tool}' in step '{step}'")
+            self._haltstep(step, index, error, active)
 
         # Check for errors
         if post_error:
             self.logger.error('Post-processing check failed for step %s', step)
-            self._halt(step, index, error, active)
+            self._haltstep(step, index, error, active)
 
         # save output manifest
         self.writecfg("outputs/" + self.get('design') +'.pkg.json')
@@ -1861,7 +1860,7 @@ class Chip:
         active[step + str(index)] = 0
 
     ###########################################################################
-    def _halt(self, step, index, error, active):
+    def _haltstep(self, step, index, error, active):
         error[step + str(index)] = 1
         active[step + str(index)] = 0
         sys.exit(1)
@@ -1886,17 +1885,28 @@ class Chip:
             >>> run(steplist=['route', 'dfm'])
             Runs the route and dfm steps.
         '''
-
-        # setup sanity check before you start run
-        if self.check('run'):
-            self.logger.error('Global check() failed, exiting! See previous errors.')
-            sys.exit(1)
+        manager = multiprocessing.Manager()
+        error = manager.dict()
+        active = manager.dict()
 
         # Remote workflow: Dispatch the Chip to a remote server for processing.
         if self.get('remote', 'addr'):
             # Pre-process: Run an 'import' stage locally, and upload the
             # in-progress build directory to the remote server.
             # Data is encrypted if user / key were specified.
+            #setting step to active
+
+            #Loading all tool modules and checking for errors
+            tool = self.get('flowgraph', 'import', 'tool')
+            searchdir = "siliconcompiler.tools." + tool
+            modulename = '.'+tool+'_setup'
+            self.logger.info(f"Setting up tool '{tool}' for remote 'import' step")
+            module = importlib.import_module(modulename, package=searchdir)
+            setup_tool = getattr(module, "setup_tool")
+            setup_tool(self, 'import', str(0))
+            active['import0'] = 1
+
+            # run remote process
             remote_preprocess(self)
 
             # Run the async 'remote_run' method.
@@ -1914,40 +1924,63 @@ class Chip:
                 # Decrypt the job's data for processing.
                 client_decrypt(self)
 
+            # Launch a thread for eact step in flowgraph
+            # Use a shared even for errors
+            # Use a manager.dict for keeping track of active processes
+            # (one unqiue dict entry per process),
+
+
             # Run steps if set, otherwise run whole graph
             if self.get('steplist'):
                 steplist = self.get('steplist')
             else:
                 steplist = self.getsteps()
 
-            # Launch a thread for eact step in flowgraph
-            # Use a shared even for errors
-            # Use a manager.dict for keeping track of active processes
-            # (one unqiue dict entry per process),
-            manager = multiprocessing.Manager()
-            error = manager.dict()
-            active = manager.dict()
-
-            # Set all procs to active
+            # Set up tools and processes
             for step in self.getkeys('flowgraph'):
                 for index in range(self.get('flowgraph', step, 'nproc')):
                     stepstr = step + str(index)
                     error[stepstr] = 0
                     if step in steplist:
+                        #setting step to active
                         active[stepstr] = 1
+                        #Loading all tool modules and checking for errors
+                        tool = self.get('flowgraph', step, 'tool')
+                        searchdir = "siliconcompiler.tools." + tool
+                        modulename = '.'+tool+'_setup'
+                        # Load module (could fail)
+                        try:
+                            self.logger.info(f"Setting up tool '{tool}' in step '{step}'")
+                            module = importlib.import_module(modulename, package=searchdir)
+                            setup_tool = getattr(module, "setup_tool")
+                        except:
+                            traceback.print_exc()
+                            self.logger.error(f"Module load failed for '{tool}' in step '{step}'")
+                            self.error = 1
+                        # Setup tool (could fail)
+                        try:
+                            setup_tool(self, step, str(index))
+                        except:
+                            traceback.print_exc()
+                            self.logger.error(f"Setup failed for '{tool}' in step '{step}'")
                     else:
                         active[stepstr] = 0
 
-            # Create procs
+            # Check tool setup before run
+            if self.check(step='all'):
+                self.logger.error('Global check() failed, exiting! See previous errors.')
+                sys.exit(1)
+
+            # Create all processes
             processes = []
             for step in steplist:
                 for index in range(self.get('flowgraph', step, 'nproc')):
                     processes.append(multiprocessing.Process(target=self.runstep,
                                                              args=(step, str(index), active, error,)))
-            # Start all procs
+            # Start all processes
             for p in processes:
                 p.start()
-            # Mandatory procs cleanup
+            # Mandatory process cleanup
             for p in processes:
                 p.join()
 
