@@ -35,7 +35,7 @@ def setup_tool(chip, step, index):
 
     SC Configuration:
     All communiucation from siliconcompiler to openroad is done through
-    the file 'sc_manifeset.tcl'. The entry point for all openroad based steps
+    the file 'sc_manifest.tcl'. The entry point for all openroad based steps
     is the 'sc_apr.tcl' script. The script handles general input/output
     function and is the main interface to SC. Execution then branches off to
     separate files based on the step being executed (place, route, etc).
@@ -53,16 +53,16 @@ def setup_tool(chip, step, index):
     tool = 'openroad'
     refdir = 'siliconcompiler/tools/openroad'
 
-    chip.set('eda', tool, step, index, 'format', 'tcl')
-    chip.set('eda', tool, step, index, 'vendor', tool)
-    chip.set('eda', tool, step, index, 'exe', tool)
-    chip.set('eda', tool, step, index, 'vswitch', '-version')
-    chip.set('eda', tool, step, index, 'version', 'af9a0f9faafb7e61ae18e9496169c3527312b82a')
-    chip.set('eda', tool, step, index, 'refdir', refdir)
-    chip.set('eda', tool, step, index, 'script', refdir + '/sc_apr.tcl')
-    chip.set('eda', tool, step, index, 'option', 'cmdline', '-no_init')
+    chip.set('eda', tool, step, index, 'format', 'tcl', clobber=False)
+    chip.set('eda', tool, step, index, 'vendor', tool, clobber=False)
+    chip.set('eda', tool, step, index, 'exe', tool, clobber=False)
+    chip.set('eda', tool, step, index, 'vswitch', '-version', clobber=False)
+    chip.set('eda', tool, step, index, 'version', '0', clobber=False)
+    chip.set('eda', tool, step, index, 'refdir', refdir, clobber=False)
+    chip.set('eda', tool, step, index, 'script', refdir + '/sc_apr.tcl', clobber=False)
+    chip.set('eda', tool, step, index, 'option', 'cmdline', '-no_init', clobber=False)
     #Don't override command line arguments
-    chip.set('eda', tool, step, index, 'threads', os.cpu_count())
+    chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=False)
 
     # exit automatically unless bkpt
     if (step not in chip.get('bkpt')):
@@ -109,7 +109,7 @@ def setup_tool(chip, step, index):
             }
         else:
             chip.error = 1
-            chip.logger.error(f'Process {process} not set up for OpenROAD.')
+            chip.logger.error(f'Process {process} not supported with OpenROAD.')
 
     for option in default_options:
         if option in chip.getkeys('eda', tool, step, index, 'option'):
@@ -118,7 +118,7 @@ def setup_tool(chip, step, index):
             chip.error = 1
             chip.logger.error('Missing option %s for OpenROAD.', option)
         else:
-            chip.set('eda', tool, step, index, 'option', option, default_options[option])
+            chip.set('eda', tool, step, index, 'option', option, default_options[option], clobber=False)
 
 
 ################################

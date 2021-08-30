@@ -15,19 +15,19 @@ def setup_tool(chip, step, index):
      tool = 'klayout'
      refdir = 'siliconcompiler/tools/klayout'
 
-     chip.set('eda', tool, step, index, 'exe', 'klayout')
-     chip.set('eda', tool, step, index, 'format', 'json')
-     chip.set('eda', tool, step, index, 'copy', 'true')
-     chip.set('eda', tool, step, index, 'refdir', refdir)
-     chip.set('eda', tool, step, index, 'script', refdir + '/klayout_export.py')
-     chip.set('eda', tool, step, index, 'vendor', 'klayout')
-     chip.set('eda', tool, step, index, 'vswitch', '-zz -v')
-     chip.set('eda', tool, step, index, 'version', '0.26.10')
+     chip.set('eda', tool, step, index, 'exe', 'klayout', clobber=False)
+     chip.set('eda', tool, step, index, 'format', 'json', clobber=False)
+     chip.set('eda', tool, step, index, 'copy', 'true', clobber=False)
+     chip.set('eda', tool, step, index, 'refdir', refdir, clobber=False)
+     chip.set('eda', tool, step, index, 'script', refdir + '/klayout_export.py', clobber=False)
+     chip.set('eda', tool, step, index, 'vendor', 'klayout', clobber=False)
+     chip.set('eda', tool, step, index, 'vswitch', '-zz -v', clobber=False)
+     chip.set('eda', tool, step, index, 'version', '0.26.10', clobber=False)
 
      if step == 'gdsview':
-          chip.set('eda', tool, step, index, 'option', 'cmdline', '-nn')
+          chip.set('eda', tool, step, index, 'option', 'cmdline', '-nn', clobber=False)
      elif step == 'export':
-          chip.set('eda', tool, step, index, 'option', 'cmdline', '-zz')
+          chip.set('eda', tool, step, index, 'option', 'cmdline', '-zz', clobber=False)
 
 
      scriptdir = os.path.dirname(os.path.abspath(__file__))
