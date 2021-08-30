@@ -87,8 +87,7 @@ class Floorplan:
         self.nets = {}
         self.viarules = []
         self.blockages = []
-
-        self.blockage_layers = []
+        self.obstructions = []
 
         # Set up custom Jinja `scale` filter as a closure around `self` so we
         # don't have to pass in db_units
@@ -555,35 +554,65 @@ class Floorplan:
             self.tracks.append(track_x)
             self.tracks.append(track_y)
 
-    def place_blockage(self, x0, y0, width, height):
-        # TODO: expand to routing blockages, document
-
-        self.blockages.append({
-            'll': (x0, y0),
-            'ur': (x0 + width, y0 + height)
-        })
-
-    def place_obs(self, layers=None):
-        '''Places full-area blockages on the specified layers.
-
-        The blockages specified using this method only take effect when dumping
-        the floorplan as a LEF macro.
+    def place_blockage(self, x, y, width, height, layer=None, snap=False):
+        '''Places blockage at specified location.
 
         Args:
-            layers (list): List of layers to place blockages on. If `None`,
+            x (float): x-coordinate of blockage in microns.
+            y (float): y-coordinate of blockage in microns.
+            width (float): Width of blockage in microns.
+            height (float): Height of blockage in microns.
+            layers (str): Metal layer to block routing on. If `None`, mark as
+                placement blockage.
+            snap (bool): Whether or not to snap blockage position to be aligned
+                with the nearest placement site.
+        '''
+
+        if snap:
+            x = fp.snap(x, self.std_cell_width)
+            y = fp.snap(y, self.std_cell_height)
+
+        self.blockages.append({
+            'll': (x, y),
+            'ur': (x + width, y + height),
+            'layer': self.layers[layer]['name'] if layer is not None else None
+        })
+
+    def place_obstruction(self, x, y, width, height, layers=None, snap=False):
+        '''Places obstruction at specified location.
+
+        The obstructions specified using this method only take effect when
+        dumping the floorplan as a LEF macro.
+
+        Args:
+            x (float): x-coordinate of blockage in microns.
+            y (float): y-coordinate of blockage in microns.
+            width (float): Width of blockage in microns.
+            height (float): Height of blockage in microns.
+            layers (list): List of layers to place obstructions on. If `None`,
                 block all metal layers.
+            snap (bool): Whether or not to snap obstruction position to be
+                aligned with the nearest placement site.
         '''
 
         if layers is None:
             layers = list(self.layers.keys())
 
+        if snap:
+            x = fp.snap(x, self.std_cell_width)
+            y = fp.snap(y, self.std_cell_height)
+
         for layer in layers:
             if layer in self.layers:
-                self.blockage_layers.append(self.layers[layer]['name'])
+                self.obstructions.append({
+                    'll': (x, y),
+                    'ur': (x + width, y + height),
+                    'layer': self.layers[layer]['name']
+                })
             else:
                 raise ValueError(f'Layer {layer} not found in tech info!')
 
-    def fill_io_region(self, region, fill_cells, orientation):
+    def fill_io_region(self, region, fill_cells, orientation, direction):
         '''Fill empty space in region with I/O filler cells.
 
         Args:
@@ -592,6 +621,8 @@ class Floorplan:
             fill_cells (list of str): List of names of I/O filler cells to use.
             orientation (str): The orientation the filler cells are placed in
                 (must be valid LEF/DEF orientation).
+            direction (str): The direction to place fill cells along. Must be
+                'h' for horizontal or 'v' for vertical.
 
         Raises:
             ValueError: Region contains macros such that it is unfillable.
@@ -602,13 +633,12 @@ class Floorplan:
         region_min_x, region_min_y = region[0]
         region_max_x, region_max_y = region[1]
 
-        # TODO: should direction be passed in explicitly?
-        if orientation[-1].lower() in ('e', 'w'):
-            direction = 'v'
+        if direction == 'v':
             region_height = region_max_x - region_min_x
-        else:
-            direction = 'h'
+        elif direction == 'h':
             region_height = region_max_y - region_min_y
+        else:
+            raise ValueError("Invalid direction specified, must be 'h' or 'v'")
 
         # Gather macros in region. Macros in region must be aligned with the
         # direction of the region, and no macros may be partially contained
