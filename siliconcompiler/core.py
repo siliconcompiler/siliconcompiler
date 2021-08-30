@@ -612,7 +612,7 @@ class Chip:
         return keys
 
     ###########################################################################
-    def set(self, *args, chip=None, cfg=None, clobber=False):
+    def set(self, *args, chip=None, cfg=None, clobber=True):
         '''
         Sets a Chip dictionary value based on key-sequence and data provided.
 
@@ -804,7 +804,7 @@ class Chip:
                             chip.logger.error(f"Illegal list assignment to scalar for [{keypath}]")
                             chip.error = 1
                     else:
-                        chip.logger.warning(f"Ignore set to [{keypath}], value already set. Use clobber option to override.")
+                        chip.logger.info(f"Ignoring set() to [{keypath}], value already set. Use clobber=true to override.")
                 elif (mode == 'add'):
                     if list_type & (not isinstance(val, list)):
                         cfg[param][field].append(str(val))
@@ -1250,7 +1250,7 @@ class Chip:
         # Write out configuration based on file type
         if filepath.endswith('.json'):
             with open(filepath, 'w') as f:
-                print(json.dumps(cfgcopy, indent=4), file=f)
+                print(json.dumps(cfgcopy, indent=4, sort_keys=True), file=f)
         elif filepath.endswith('.yaml'):
             with open(filepath, 'w') as f:
                 print(yaml.dump(cfgcopy, Dumper=YamlIndentDumper, default_flow_style=False), file=f)
@@ -1406,7 +1406,7 @@ class Chip:
         for keylist in allkeys:
             if 'filehash' in keylist:
                 filelist = self.get(*keylist, chip=chip, cfg=cfg)
-                self.set([keylist,[]], chip=chip, cfg=cfg)
+                self.set([keylist,[]], chip=chip, cfg=cfg, clobber=True)
                 hashlist = []
                 for item in filelist:
                     filename = schema_path(item)
@@ -1418,7 +1418,7 @@ class Chip:
                                 sha256_hash.update(byte_block)
                         hash_value = sha256_hash.hexdigest()
                         hashlist.append(hash_value)
-                self.set([keylist,hashlist], chip=chip, cfg=cfg)
+                self.set([keylist,hashlist], chip=chip, cfg=cfg, clobber=True)
 
     ###########################################################################
     def audit(self, filename=None):
@@ -1568,7 +1568,7 @@ class Chip:
                 #Copying over metric one at a time
                 for metric in self.getkeys('metric', 'default', 'default'):
                     value = self.get('metric', step, str(index), metric, 'real', cfg=sc_results)
-                    self.set('metric', step, str(index), metric, 'real', value)
+                    self.set('metric', step, str(index), metric, 'real', value, clobber=True)
 
 
         #Creating Header
@@ -1825,24 +1825,17 @@ class Chip:
             if not self.get('eda', tool, step, index, 'continue'):
                 self._haltstep(step, index, error, active)
 
-        # Load module (could fail)
+        # Post process (could fail)
         try:
             tool = self.get('flowgraph', step, 'tool')
             searchdir = "siliconcompiler.tools." + tool
             modulename = '.'+tool+'_setup'
             module = importlib.import_module(modulename, package=searchdir)
             post_process = getattr(module, "post_process")
-        except:
-            traceback.print_exc()
-            self.logger.error(f"Module load failed for '{tool}' in step '{step}'")
-            self._haltstep(step, index, error, active)
-
-        # Post process (could fail)
-        try:
             post_error = post_process(self, step, index)
         except:
             traceback.print_exc()
-            self.logger.error(f"Post process failed for '{tool}' in step '{step}'")
+            self.logger.error(f"Post-processing failed for '{tool}' in step '{step}'")
             self._haltstep(step, index, error, active)
 
         # Check for errors
@@ -1944,25 +1937,19 @@ class Chip:
                     if step in steplist:
                         #setting step to active
                         active[stepstr] = 1
-                        #Loading all tool modules and checking for errors
-                        tool = self.get('flowgraph', step, 'tool')
-                        searchdir = "siliconcompiler.tools." + tool
-                        modulename = '.'+tool+'_setup'
                         # Load module (could fail)
                         try:
+                            tool = self.get('flowgraph', step, 'tool')
+                            searchdir = "siliconcompiler.tools." + tool
+                            modulename = '.'+tool+'_setup'
                             self.logger.info(f"Setting up tool '{tool}' in step '{step}'")
                             module = importlib.import_module(modulename, package=searchdir)
                             setup_tool = getattr(module, "setup_tool")
-                        except:
-                            traceback.print_exc()
-                            self.logger.error(f"Module load failed for '{tool}' in step '{step}'")
-                            self.error = 1
-                        # Setup tool (could fail)
-                        try:
                             setup_tool(self, step, str(index))
                         except:
                             traceback.print_exc()
-                            self.logger.error(f"Setup failed for '{tool}' in step '{step}'")
+                            self.logger.error(f"Tool setup failed for '{tool}' in step '{step}'")
+                            self.error = 1
                     else:
                         active[stepstr] = 0
 
