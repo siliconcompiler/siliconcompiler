@@ -25,8 +25,6 @@ def test_gcd_floorplan():
     chip.add('source', gcd_ex_dir + 'gcd.v')
     chip.set('clock', 'clock_name', 'pin', 'clk')
     chip.add('constraint', gcd_ex_dir + 'gcd.sdc')
-    chip.set('asic', 'diesize', "0 0 100.13 100.8")
-    chip.set('asic', 'coresize', "10.07 11.2 90.25 91")
     chip.set('quiet', 'true')
     chip.set('relax', 'true')
 

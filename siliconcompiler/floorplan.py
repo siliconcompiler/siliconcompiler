@@ -6,8 +6,7 @@ import jinja2
 from collections import namedtuple
 
 import pylef
-
-from siliconcompiler.schema import schema_path
+from siliconcompiler.schema_utils import schema_path
 
 # Set up Jinja
 env = jinja2.Environment(loader=jinja2.PackageLoader('siliconcompiler'),
