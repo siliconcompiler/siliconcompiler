@@ -9,7 +9,7 @@ vpr ${VPR_ARCH_FILE} ${VPR_TESTBENCH_BLIF} --clock_modeling route --absorb_buffe
 read_openfpga_arch -f ${OPENFPGA_ARCH_FILE}
 
 # Read OpenFPGA simulation settings
-read_openfpga_simulation_setting -f sim_settings.xml
+read_openfpga_simulation_setting -f ${OPENFPGA_SIM_FILE}
 
 # Annotate the OpenFPGA architecture to VPR data base
 # to debug use --verbose options
