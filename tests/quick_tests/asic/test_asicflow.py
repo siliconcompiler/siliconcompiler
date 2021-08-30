@@ -23,8 +23,8 @@ def test_gcd_local_py():
     chip.add('constraint', gcd_ex_dir + 'gcd.sdc')
     chip.set('asic', 'diearea', [(0,0), (100.13,100.8)])
     chip.set('asic', 'corearea', [(10.07,11.2), (90.25,91)])
-    chip.set('quiet', 'true')
-    chip.set('relax', 'true')
+    chip.set('quiet', 'true', clobber=True)
+    chip.set('relax', 'true', clobber=True)
 
     # Run the chip's build process synchronously.
     chip.run()

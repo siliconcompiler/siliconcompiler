@@ -14,19 +14,17 @@ def setup_tool(chip, step, index):
     ''' Tool specific function to run before step execution
     '''
 
-    chip.logger.debug("Setting up Yosys")
-
     tool = 'yosys'
     refdir = 'siliconcompiler/tools/yosys'
-    chip.set('eda', tool, step, index, 'format', 'tcl')
-    chip.set('eda', tool, step, index, 'copy', 'true')
-    chip.set('eda', tool, step, index, 'vendor', 'yosys')
-    chip.set('eda', tool, step, index, 'exe', 'yosys')
-    chip.set('eda', tool, step, index, 'vswitch', '--version')
-    chip.set('eda', tool, step, index, 'version', '0.9+3672')
-    chip.set('eda', tool, step, index, 'option', 'cmdline', '-c')
-    chip.set('eda', tool, step, index, 'refdir', refdir)
-    chip.set('eda', tool, step, index, 'script', refdir + '/sc_syn.tcl')
+    chip.set('eda', tool, step, index, 'format', 'tcl', clobber=False)
+    chip.set('eda', tool, step, index, 'copy', 'true', clobber=False)
+    chip.set('eda', tool, step, index, 'vendor', 'yosys', clobber=False)
+    chip.set('eda', tool, step, index, 'exe', 'yosys', clobber=False)
+    chip.set('eda', tool, step, index, 'vswitch', '--version', clobber=False)
+    chip.set('eda', tool, step, index, 'version', '0.9+3672', clobber=False)
+    chip.set('eda', tool, step, index, 'option', 'cmdline', '-c', clobber=False)
+    chip.set('eda', tool, step, index, 'refdir', refdir, clobber=False)
+    chip.set('eda', tool, step, index, 'script', refdir + '/sc_syn.tcl', clobber=False)
 
     #Input/output requirements
     chip.add('eda', tool, step, index, 'input', chip.get('design') + '.v')
