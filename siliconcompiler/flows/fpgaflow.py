@@ -48,6 +48,8 @@ def setup_flow(chip, partname):
     for i, step in enumerate(flowpipe):
         chip.set('flowgraph', flowpipe[i], 'mergeop', 'min')
         chip.set('flowgraph', flowpipe[i], 'nproc',  1)
+        for metric in chip.getkeys('metric','default', 'default'):
+            chip.set('flowgraph', flowpipe[i], 'weight',  metric, 1.0)
         if i > 0:
             chip.add('flowgraph', flowpipe[i], 'input', flowpipe[i-1])
         else:

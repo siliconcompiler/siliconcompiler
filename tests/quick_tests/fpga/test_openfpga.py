@@ -21,6 +21,7 @@ def test_openfpga():
                     '-design', 'and2',
                     '-fpga_arch', openfpga_ex_dir + '/k6_frac_N10_40nm_openfpga.xml',
                     '-fpga_arch', openfpga_ex_dir + '/k6_frac_N10_40nm_vpr.xml', 
+                    '-fpga_arch', openfpga_ex_dir + '/sim_settings.xml',
                     '-mode', 'fpga',
                     '-target', 'openfpga_fpgaflow'])
 

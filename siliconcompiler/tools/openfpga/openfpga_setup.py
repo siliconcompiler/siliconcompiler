@@ -39,6 +39,7 @@ def setup_tool(chip, step, index):
     # files
     vpr_arch_file = None
     openfpga_arch_file = None
+    openfpga_sim_file = None
 
     for arch_file in chip.get('fpga', 'arch'):
         path = schema_path(arch_file)
@@ -47,12 +48,17 @@ def setup_tool(chip, step, index):
             vpr_arch_file = path
         elif root_tag == 'openfpga_architecture':
             openfpga_arch_file = path
+        elif root_tag == 'openfpga_simulation_setting':
+            openfpga_sim_file = path
 
     if vpr_arch_file == None:
         chip.logger.error('No VPR architecture file was specified')
         os.sys.exit()
     if openfpga_arch_file == None:
         chip.logger.error('No OpenFPGA architecture file was specified')
+        os.sys.exit()
+    if openfpga_sim_file == None:
+        chip.logger.error('No OpenFPGA simulation file was specified')
         os.sys.exit()
 
     # Fill in OpenFPGA shell script template
@@ -63,6 +69,7 @@ def setup_tool(chip, step, index):
     tmpl_vars = {'VPR_ARCH_FILE': vpr_arch_file,
                  'VPR_TESTBENCH_BLIF': input_blif,
                  'OPENFPGA_ARCH_FILE': openfpga_arch_file,
+                 'OPENFPGA_SIM_FILE': openfpga_sim_file,
                  'TOP': topmodule
                  }
 
