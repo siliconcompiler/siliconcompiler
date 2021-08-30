@@ -1892,22 +1892,48 @@ class Chip:
         error = manager.dict()
         active = manager.dict()
 
+        # Launch a thread for eact step in flowgraph
+        # Use a shared even for errors
+        # Use a manager.dict for keeping track of active processes
+        # (one unqiue dict entry per process),
+
+        # Run steps if set, otherwise run whole graph
+        if self.get('steplist'):
+            steplist = self.get('steplist')
+        else:
+            steplist = self.getsteps()
+
+        # Set up tools and processes
+        for step in self.getkeys('flowgraph'):
+            for index in range(self.get('flowgraph', step, 'nproc')):
+                stepstr = step + str(index)
+                error[stepstr] = 0
+                if step in steplist:
+                    #setting step to active
+                    active[stepstr] = 1
+                    # Load module (could fail)
+                    try:
+                        tool = self.get('flowgraph', step, 'tool')
+                        searchdir = "siliconcompiler.tools." + tool
+                        modulename = '.'+tool+'_setup'
+                        self.logger.info(f"Setting up tool '{tool}' in step '{step}'")
+                        module = importlib.import_module(modulename, package=searchdir)
+                        setup_tool = getattr(module, "setup_tool")
+                        setup_tool(self, step, str(index))
+                    except:
+                        traceback.print_exc()
+                        self.logger.error(f"Tool setup failed for '{tool}' in step '{step}'")
+                        self.error = 1
+                else:
+                    active[stepstr] = 0
+
+
         # Remote workflow: Dispatch the Chip to a remote server for processing.
         if self.get('remote', 'addr'):
             # Pre-process: Run an 'import' stage locally, and upload the
             # in-progress build directory to the remote server.
             # Data is encrypted if user / key were specified.
             #setting step to active
-
-            #Loading all tool modules and checking for errors
-            tool = self.get('flowgraph', 'import', 'tool')
-            searchdir = "siliconcompiler.tools." + tool
-            modulename = '.'+tool+'_setup'
-            self.logger.info(f"Setting up tool '{tool}' for remote 'import' step")
-            module = importlib.import_module(modulename, package=searchdir)
-            setup_tool = getattr(module, "setup_tool")
-            setup_tool(self, 'import', str(0))
-            active['import0'] = 1
 
             # run remote process
             remote_preprocess(self)
@@ -1921,41 +1947,6 @@ class Chip:
             if self.get('remote', 'key'):
                 # Decrypt the job's data for processing.
                 client_decrypt(self)
-
-            # Launch a thread for eact step in flowgraph
-            # Use a shared even for errors
-            # Use a manager.dict for keeping track of active processes
-            # (one unqiue dict entry per process),
-
-            # Run steps if set, otherwise run whole graph
-            if self.get('steplist'):
-                steplist = self.get('steplist')
-            else:
-                steplist = self.getsteps()
-
-            # Set up tools and processes
-            for step in self.getkeys('flowgraph'):
-                for index in range(self.get('flowgraph', step, 'nproc')):
-                    stepstr = step + str(index)
-                    error[stepstr] = 0
-                    if step in steplist:
-                        #setting step to active
-                        active[stepstr] = 1
-                        # Load module (could fail)
-                        try:
-                            tool = self.get('flowgraph', step, 'tool')
-                            searchdir = "siliconcompiler.tools." + tool
-                            modulename = '.'+tool+'_setup'
-                            self.logger.info(f"Setting up tool '{tool}' in step '{step}'")
-                            module = importlib.import_module(modulename, package=searchdir)
-                            setup_tool = getattr(module, "setup_tool")
-                            setup_tool(self, step, str(index))
-                        except:
-                            traceback.print_exc()
-                            self.logger.error(f"Tool setup failed for '{tool}' in step '{step}'")
-                            self.error = 1
-                    else:
-                        active[stepstr] = 0
 
             # Check tool setup before run
             if self.hash():
@@ -1988,21 +1979,20 @@ class Chip:
                         self.logger.error('Run() failed, exiting! See previous errors.')
                         sys.exit(1)
 
-            # Merge cfg back from last executed step
-            # last step must have nproc = 1
-            laststep = steplist[-1]
-            self.set('flowstatus',laststep,'select',0)
-            design = self.get('design')
-            stepdir = "/".join([self.get('dir'),
-                                design,
-                                self.get('jobname') + str(self.get('jobid')),
-                                laststep + str(0)])
-
-            self.cfg = self.readcfg(f"{stepdir}/outputs/{design}.pkg.json")
-
             # For local encrypted jobs, re-encrypt and delete the decrypted data.
             if self.get('remote', 'key'):
                 client_encrypt(self)
+
+        # Merge cfg back from last executed step
+        # last step must have nproc = 1
+        laststep = steplist[-1]
+        self.set('flowstatus',laststep,'select',0)
+        design = self.get('design')
+        stepdir = "/".join([self.get('dir'),
+                            design,
+                            self.get('jobname') + str(self.get('jobid')),
+                            laststep + str(0)])
+        self.cfg = self.readcfg(f"{stepdir}/outputs/{design}.pkg.json")
 
     ###########################################################################
     def show(self, filename, kind=None):

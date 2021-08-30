@@ -44,7 +44,7 @@ def remote_preprocess(chip):
 
     # Run the local 'import' step if necessary.
     if 'import' in chip.getkeys('flowgraph'):
-        chip.runstep('import', '0', {}, multiprocessing.Event())
+        chip._runstep('import', '0', {}, multiprocessing.Event())
 
         # Set 'steplist' to all steps, sans 'import'.
         remote_steplist = []
