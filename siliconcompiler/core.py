@@ -1898,11 +1898,6 @@ class Chip:
             fetch_results(self)
         else:
             if self.get('remote', 'key'):
-                # If 'remote_key' is present in a local job, it represents an
-                # encoded key string to decrypt an in-progress job's data. The key
-                # must be removed from the config dictionary to avoid logging.
-                self.status['decrypt_key'] = self.get('remote', 'key')
-                self.set('remote', 'key', None)
                 # Decrypt the job's data for processing.
                 client_decrypt(self)
 
@@ -1981,7 +1976,7 @@ class Chip:
             self.cfg = self.readcfg(f"{stepdir}/outputs/{design}.pkg.json")
 
             # For local encrypted jobs, re-encrypt and delete the decrypted data.
-            if 'decrypt_key' in self.status:
+            if self.get('remote', 'key'):
                 client_encrypt(self)
 
     ###########################################################################

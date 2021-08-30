@@ -15,6 +15,7 @@ import uuid
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
+from siliconcompiler import Chip
 
 class Server:
     """
@@ -118,45 +119,40 @@ class Server:
             else:
                 return web.Response(text="Error: authentication parameters were passed in, but this server does not support that feature.")
 
+        # Create a dummy Chip object to make schema traversal easier.
+        chip = Chip()
+        chip.cfg = cfg
+
         # Reset 'build' directory in NFS storage.
         build_dir = '%s/%s'%(self.cfg['nfsmount']['value'][-1], job_hash)
-        jobs_dir = '%s/%s'%(build_dir, cfg['design']['value'])
-        if 'value' in cfg['jobname']:
-            job_nameid = f"{cfg['jobname']['value']}0"
-        else:
-            job_nameid = 'job0'
-        cfg['dir']['value'] = build_dir
+        jobs_dir = '%s/%s'%(build_dir, chip.get('design'))
+        cur_id = chip.get('jobid')
+        job_nameid = f"{chip.get('jobname')}{cur_id}"
 
         # Create the working directory for the given 'job hash' if necessary.
         subprocess.run(['mkdir', '-p', jobs_dir])
+        chip.set('dir', build_dir, clobber=True)
         # Link to the 'import' directory if necessary.
         subprocess.run(['mkdir', '-p', '%s/%s'%(jobs_dir, job_nameid)])
         subprocess.run(['ln', '-s', '%s/import0'%build_dir, '%s/%s/import0'%(jobs_dir, job_nameid)])
 
         # Remove 'remote' JSON config value to run locally on compute node.
-        cfg['remote']['addr']['value'] = ''
+        chip.set('remote', 'addr', '', clobber=True)
         # Rename source files in the config dict; the 'import' step already
         # ran and collected the sources into a single Verilog file.
-        cfg['source']['value'] = ['%s/import0/outputs/%s.v'%(build_dir, cfg['design']['value'])]
+        chip.set('source', '%s/import0/outputs/%s.v'%(build_dir, chip.get('design')), clobber=True)
 
         # Write JSON config to shared compute storage.
-        cur_id = '0'
         subprocess.run(['mkdir', '-p', '%s/configs'%build_dir])
-        with open('%s/configs/chip%s.json'%(build_dir, cur_id), 'w') as f:
-          f.write(json.dumps(cfg))
+        chip.writecfg('%s/configs/chip%s.json'%(build_dir, cur_id))
 
         # Run the job with the configured clustering option. (Non-blocking)
         if use_auth:
-            asyncio.create_task(self.remote_sc_auth(job_hash,
-                                                    cfg,
+            asyncio.create_task(self.remote_sc_auth(chip,
                                                     username,
                                                     key))
         else:
-            asyncio.create_task(self.remote_sc(job_hash,
-                                               cfg['design']['value'][0],
-                                               cfg['source']['value'],
-                                               build_dir,
-                                               cur_id))
+            asyncio.create_task(self.remote_sc(chip))
 
         # Return a response to the client.
         response_text = f"Starting job: {job_hash}"
@@ -325,7 +321,7 @@ class Server:
             return web.Response(text="Job has no running steps.")
 
     ####################
-    async def remote_sc_auth(self, job_hash, jobs_cfg, username, pk):
+    async def remote_sc_auth(self, chip, username, pk):
         '''
         Async method to delegate an 'sc' command to a slurm host,
         and send an email notification when the job completes.
@@ -334,20 +330,18 @@ class Server:
         '''
 
         # Assemble core job parameters.
-        top_module = jobs_cfg['design']['value']
-        sc_sources = jobs_cfg['source']['value']
-        if 'value' in jobs_cfg['jobname']:
-            job_nameid = f"{jobs_cfg['jobname']['value']}0"
-        else:
-            job_nameid = 'job0'
+        job_hash = chip.get('remote', 'jobhash')
+        top_module = chip.get('design')
+        job_nameid = f"{chip.get('jobname')}{chip.get('jobid')}"
 
         # Mark the job run as busy.
         self.sc_jobs["%s%s_0"%(username, job_hash)] = 'busy'
 
         # Reset 'build' directory in NFS storage.
-        build_dir = '/tmp/%s_%s/'%(job_hash, job_nameid)
-        jobs_dir = '%s/%s'%(build_dir, jobs_cfg['design']['value'])
-        jobs_cfg['dir']['value'] = build_dir
+        build_dir = '/tmp/%s_%s'%(job_hash, job_nameid)
+        jobs_dir = '%s/%s'%(build_dir, top_module)
+        os.mkdir(build_dir)
+        chip.set('dir', build_dir, clobber=True)
 
         # Copy the 'import' directory for a new run if necessary.
         nfs_mount = self.cfg['nfsmount']['value'][-1]
@@ -361,41 +355,53 @@ class Server:
 
         # Rename source files in the config dict; the 'import' step already
         # ran and collected the sources into a single Verilog file.
-        jobs_cfg['source']['value'] = ['%s/%s/%s/import0/outputs/%s.v'%\
-            (build_dir, jobs_cfg['design']['value'], job_nameid, jobs_cfg['design']['value'])]
+        chip.set('source', f"${build_dir}/{top_module}/{job_nameid}/import0/outputs/{top_module}.v", clobber=True)
 
         run_cmd = ''
         if self.cfg['cluster']['value'][-1] == 'slurm':
             # TODO: support encrypted jobs on a slurm cluster.
             pass
         else:
-            # Write plaintext JSON config to the build directory.
-            subprocess.run(['mkdir', '-p', '%s/configs'%build_dir])
-            with open('%s/configs/chip0.json'%(build_dir), 'w') as f:
-                f.write(json.dumps(jobs_cfg))
-
             # Run the build command locally.
             from_dir = '%s/%s'%(nfs_mount, job_hash)
             to_dir   = '/tmp/%s_%s'%(job_hash, job_nameid)
-            run_cmd  = '''mkdir -p %s/ ;
-                          cp %s/%s.crypt %s/%s.crypt ;
+            # Write plaintext JSON config to the build directory.
+            subprocess.run(['mkdir', '-p', to_dir])
+            subprocess.run(['mkdir', '-p', '%s/configs'%build_dir])
+            chip.writecfg(f"{build_dir}/configs/chip0.json")
+            # Write private key to a file.
+            # This should be okay, because we are already trusting the local
+            # "compute node" disk to store the decrypted data. Further, the
+            # file will be deleted immediately after the run.
+            # Even so, use the usual 400 permissions for key files.
+            keypath = f'{to_dir}/pk'
+            with open(os.open(keypath, os.O_CREAT | os.O_WRONLY, 0o400), 'w+') as keyfile:
+                keyfile.write(pk)
+            chip.set('remote', 'key', keypath, clobber=True)
+            # Create the command to run.
+            run_cmd  = '''cp %s/%s.crypt %s/%s.crypt ;
                           cp %s/%s.iv %s/%s.iv ;
                           cp %s/import.bin %s/import.bin ;
-                          sc -cfg %s/configs/chip0.json -remote_key "%s" -relax ;
+                          sc -cfg %s/configs/chip0.json ;
                           cp %s/%s.crypt %s/%s.crypt ;
                           cp %s/%s.iv %s/%s.iv ;
-                          rm -r %s
-                       '''%(to_dir,
-                            from_dir, job_nameid, to_dir, job_nameid,
+                          rm -rf %s
+                       '''%(from_dir, job_nameid, to_dir, job_nameid,
                             from_dir, job_nameid, to_dir, job_nameid,
                             from_dir, to_dir,
-                            build_dir, pk,
+                            build_dir,
                             to_dir, job_nameid, from_dir, job_nameid,
                             to_dir, job_nameid, from_dir, job_nameid,
                             to_dir)
 
             # Run the generated command.
             subprocess.run(run_cmd, shell = True)
+
+            # Ensure that the private key file was deleted.
+            # (The whole directory should already be gone,
+            #  but the subprocess command could fail)
+            if os.path.isfile(keypath):
+                os.remove(keypath)
 
         # Zip results after all job stages have finished.
         subprocess.run(['zip',
@@ -410,16 +416,18 @@ class Server:
         self.sc_jobs.pop("%s%s_0"%(username, job_hash))
 
     ####################
-    async def remote_sc(self, job_hash, top_module, sc_sources, build_dir, jobid):
+    async def remote_sc(self, chip):
         '''
         Async method to delegate an 'sc' command to a slurm host,
         and send an email notification when the job completes.
         '''
 
-        # Read config JSON, for multi-job configuration.
-        jobs_cfg = {}
-        with open('%s/configs/chip%s.json'%(build_dir, jobid), 'r') as cfgf:
-            jobs_cfg = json.load(cfgf)
+        # Collect a few bookkeeping values.
+        job_hash = chip.get('remote', 'jobhash')
+        top_module = chip.get('design')
+        sc_sources = chip.get('source')
+        build_dir = chip.get('dir')
+        jobid = chip.get('jobid')
 
         # Mark the job hash as being busy.
         self.sc_jobs["%s_%s"%(job_hash, jobid)] = 'busy'
