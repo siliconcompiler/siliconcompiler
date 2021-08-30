@@ -131,16 +131,16 @@ class Server:
 
         # Create the working directory for the given 'job hash' if necessary.
         subprocess.run(['mkdir', '-p', jobs_dir])
-        chip.set('build_dir', build_dir)
+        chip.set('dir', build_dir, clobber=True)
         # Link to the 'import' directory if necessary.
         subprocess.run(['mkdir', '-p', '%s/%s'%(jobs_dir, job_nameid)])
         subprocess.run(['ln', '-s', '%s/import0'%build_dir, '%s/%s/import0'%(jobs_dir, job_nameid)])
 
         # Remove 'remote' JSON config value to run locally on compute node.
-        chip.set('remote', 'addr', '')
+        chip.set('remote', 'addr', '', clobber=True)
         # Rename source files in the config dict; the 'import' step already
         # ran and collected the sources into a single Verilog file.
-        chip.set('source', '%s/import0/outputs/%s.v'%(build_dir, chip.get('design')))
+        chip.set('source', '%s/import0/outputs/%s.v'%(build_dir, chip.get('design')), clobber=True)
 
         # Write JSON config to shared compute storage.
         subprocess.run(['mkdir', '-p', '%s/configs'%build_dir])
@@ -330,7 +330,7 @@ class Server:
         '''
 
         # Assemble core job parameters.
-        job_hash = chip.get('remote', 'hash')
+        job_hash = chip.get('remote', 'jobhash')
         top_module = chip.get('design')
         job_nameid = f"{chip.get('jobname')}{chip.get('jobid')}"
 
@@ -341,7 +341,7 @@ class Server:
         build_dir = '/tmp/%s_%s'%(job_hash, job_nameid)
         jobs_dir = '%s/%s'%(build_dir, top_module)
         os.mkdir(build_dir)
-        chip.set('build_dir', build_dir)
+        chip.set('dir', build_dir, clobber=True)
 
         # Copy the 'import' directory for a new run if necessary.
         nfs_mount = self.cfg['nfsmount']['value'][-1]
@@ -355,7 +355,7 @@ class Server:
 
         # Rename source files in the config dict; the 'import' step already
         # ran and collected the sources into a single Verilog file.
-        chip.set('source', f"${build_dir}/{top_module}/{job_nameid}/import0/outputs/{top_module}.v")
+        chip.set('source', f"${build_dir}/{top_module}/{job_nameid}/import0/outputs/{top_module}.v", clobber=True)
 
         run_cmd = ''
         if self.cfg['cluster']['value'][-1] == 'slurm':
@@ -377,7 +377,7 @@ class Server:
             keypath = f'{to_dir}/pk'
             with open(os.open(keypath, os.O_CREAT | os.O_WRONLY, 0o400), 'w+') as keyfile:
                 keyfile.write(pk)
-            chip.set('remote', 'key', keypath)
+            chip.set('remote', 'key', keypath, clobber=True)
             # Create the command to run.
             run_cmd  = '''cp %s/%s.crypt %s/%s.crypt ;
                           cp %s/%s.iv %s/%s.iv ;
@@ -423,10 +423,10 @@ class Server:
         '''
 
         # Collect a few bookkeeping values.
-        job_hash = chip.get('remote', 'hash')
+        job_hash = chip.get('remote', 'jobhash')
         top_module = chip.get('design')
         sc_sources = chip.get('source')
-        build_dir = chip.get('build_dir')
+        build_dir = chip.get('dir')
         jobid = chip.get('jobid')
 
         # Mark the job hash as being busy.
