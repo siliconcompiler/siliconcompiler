@@ -612,7 +612,7 @@ class Floorplan:
             else:
                 raise ValueError(f'Layer {layer} not found in tech info!')
 
-    def fill_io_region(self, region, fill_cells, orientation):
+    def fill_io_region(self, region, fill_cells, orientation, direction):
         '''Fill empty space in region with I/O filler cells.
 
         Args:
@@ -621,6 +621,8 @@ class Floorplan:
             fill_cells (list of str): List of names of I/O filler cells to use.
             orientation (str): The orientation the filler cells are placed in
                 (must be valid LEF/DEF orientation).
+            direction (str): The direction to place fill cells along. Must be
+                'h' for horizontal or 'v' for vertical.
 
         Raises:
             ValueError: Region contains macros such that it is unfillable.
@@ -631,13 +633,12 @@ class Floorplan:
         region_min_x, region_min_y = region[0]
         region_max_x, region_max_y = region[1]
 
-        # TODO: should direction be passed in explicitly?
-        if orientation[-1].lower() in ('e', 'w'):
-            direction = 'v'
+        if direction == 'v':
             region_height = region_max_x - region_min_x
-        else:
-            direction = 'h'
+        elif direction == 'h':
             region_height = region_max_y - region_min_y
+        else:
+            raise ValueError("Invalid direction specified, must be 'h' or 'v'")
 
         # Gather macros in region. Macros in region must be aligned with the
         # direction of the region, and no macros may be partially contained

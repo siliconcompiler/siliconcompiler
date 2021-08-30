@@ -147,10 +147,10 @@ def test_padring():
     fp.place_macros([('ram1', 'sram_32x2048_1rw'), ('ram2', 'sram_32x2048_1rw')], die_w / 2, die_h / 2, 50 + ram_w, 0, 'N', snap=True)
 
     io_fill_cells = ['FILLER01', 'FILLER02', 'FILLER05', 'FILLER10', 'FILLER25', 'FILLER50']
-    fp.fill_io_region([(0, 0), (die_w, io_h)], io_fill_cells, 'N')
-    fp.fill_io_region([(0, 0), (io_h, die_h)], io_fill_cells, 'W')
-    fp.fill_io_region([(die_w - io_h, 0), (die_w, die_h)], io_fill_cells, 'E')
-    fp.fill_io_region([(0, die_h - io_h), (die_w, die_h)], io_fill_cells, 'S')
+    fp.fill_io_region([(0, 0), (die_w, io_h)], io_fill_cells, 'N', 'h')
+    fp.fill_io_region([(0, 0), (io_h, die_h)], io_fill_cells, 'W', 'v')
+    fp.fill_io_region([(die_w - io_h, 0), (die_w, die_h)], io_fill_cells, 'E', 'v')
+    fp.fill_io_region([(0, die_h - io_h), (die_w, die_h)], io_fill_cells, 'S', 'h')
 
     fp.configure_net('VDD', 'VDD', 'POWER')
     fp.configure_net('VSS', 'VSS', 'GROUND')
