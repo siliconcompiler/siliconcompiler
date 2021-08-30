@@ -31,6 +31,7 @@ def setup_tool(chip, step, index):
         chip.add('eda', tool, step, index, 'option', 'cmdline', ' -r inputs/ outputs/')
     chip.set('eda', tool, step, index, 'copy', 'true')
 
+def pre_process(chip, step, index):
     topmodule = chip.get('design')
 
     input_blif = 'inputs/' + topmodule + '.blif'
@@ -51,15 +52,14 @@ def setup_tool(chip, step, index):
         elif root_tag == 'openfpga_simulation_setting':
             openfpga_sim_file = path
 
+    # Raising exceptions here ensures the issue is caught by runstep() and
+    # everything is killed safely with regards to parallel processing.
     if vpr_arch_file == None:
-        chip.logger.error('No VPR architecture file was specified')
-        os.sys.exit()
+        raise ValueError('No VPR architecture file was specified')
     if openfpga_arch_file == None:
-        chip.logger.error('No OpenFPGA architecture file was specified')
-        os.sys.exit()
+        raise ValueError('No OpenFPGA architecture file was specified')
     if openfpga_sim_file == None:
-        chip.logger.error('No OpenFPGA simulation file was specified')
-        os.sys.exit()
+        raise ValueError('No OpenFPGA simulation file was specified')
 
     # Fill in OpenFPGA shell script template
     scriptdir = os.path.dirname(os.path.abspath(__file__))

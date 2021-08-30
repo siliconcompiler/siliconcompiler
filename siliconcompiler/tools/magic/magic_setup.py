@@ -48,6 +48,7 @@ def setup_tool(chip, step, index):
 
     chip.add('eda', tool, step, index, 'option', 'cmdline', options)
 
+def pre_process(chip, step, index):
     # Dumps path to PDK to tcl file so that .magicrc can find tech file
     with open('pdkpath.tcl', 'w') as f:
         f.write(f'set PDKPATH {pdk_path(chip)}')
