@@ -95,7 +95,7 @@ def test_padring():
     chip.set('library', macro, 'lef', f'{test_dir}/test_floorplan/{macro}.lef')
     chip.set('library', macro, 'cells', 'ram', 'sram_32x2048_1rw')
 
-    fp = Floorplan(chip, db_units=1000)
+    fp = Floorplan(chip)
 
     die_w = 1200
     die_h = 1200

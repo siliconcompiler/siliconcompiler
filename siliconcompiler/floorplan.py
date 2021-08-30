@@ -41,10 +41,6 @@ class Floorplan:
         chip (Chip): Object storing the chip config. The Floorplan API expects
             the chip's configuration to be populated with information from a
             tech library.
-        grid (float): Minimum manufacturing grid that all positions and
-            dimensions are automatically snapped to. If `None`, all received
-            values are kept as-is.
-        db_units (int): Scaling factor to go from microns to DEF DB units.
 
     Attributes:
         available_cells (dict): A dictionary mapping macro names to information
@@ -72,10 +68,8 @@ class Floorplan:
         std_cell_height (float): Height of standard cells in microns.
     '''
 
-    def __init__(self, chip, grid=0.005, db_units=2000):
+    def __init__(self, chip):
         self.chip = chip
-        self.grid = grid
-        self.db_units = db_units
 
         self.design = chip.get('design')
         self.die_area = None
@@ -133,6 +127,15 @@ class Floorplan:
 
         tech_lef = schema_path(chip.get('pdk', 'aprtech', stackup, libtype, 'lef')[0])
         tech_lef_data = pylef.parse(tech_lef)
+
+        try:
+            self.db_units = int(tech_lef_data.units['db'])
+        except KeyError:
+            raise ValueError('No DB units specified in tech LEF.')
+
+        # If unspecified in the LEF, tech_lef_data.grid will be None and
+        # snap_to_grid will just pass values through.
+        self.grid = tech_lef_data.mfg_grid
 
         # extract layers based on stackup
         stackup = self.chip.get('asic', 'stackup')
