@@ -1540,7 +1540,7 @@ def schema_flowstatus(cfg, step='default'):
         'switch': "-flowstatus_select 'step <int>'",
         'type': 'int',
         'lock': 'false',
-        'requirement': 'all',
+        'requirement': None,
         'defvalue': None,
         'short_help': 'Flowgraph index select status',
         'example': [
@@ -1551,6 +1551,21 @@ def schema_flowstatus(cfg, step='default'):
         the next step in the flowgraph.
         """
     }
+    cfg['flowstatus'][step]['error'] = {
+        'switch': "-flowstatus_error 'step <int>'",
+        'type': 'int',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'Flowgraph index error status',
+        'example': [
+            "cli: -flowstatus_error 'cts 10'",
+            "api:  chip.set('flowstatus','error','cts,'10')"],
+        'help': """
+        Status parameter that tracks runsteps that errored out.
+        """
+    }
+
 
     return cfg
 

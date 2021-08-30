@@ -1747,7 +1747,8 @@ class Chip:
                 for input_index in range(self.get('flowgraph', input_step, 'nproc')):
                     design = self.get('design')
                     cfgfile = f"../{input_step}{input_index}/outputs/{design}.pkg.json"
-                    self.cfg = self.readcfg(cfgfile)
+                    if os.path.isfile(cfgfile):
+                        self.cfg = self.readcfg(cfgfile)
                 # calculate the minimum index
                 min_index = self.minimum(input_step)
                 self.set('flowstatus', input_step, 'select', min_index, clobber=True)
