@@ -13,9 +13,9 @@ set sc_tie         [dict get $sc_cfg library $sc_mainlib cells tie]
 # for now everything needs to be concatenated into one library regardless)
 if {$sc_process eq "skywater130"} {
     # TODO: hack, we use separate synth library for Skywater
-    set library_file [dict get $sc_cfg library $sc_mainlib model typical nldm lib_synth]
+    set library_file [dict get $sc_cfg library $sc_mainlib nldm typical lib_synth]
 } else {
-    set library_file [dict get $sc_cfg library $sc_mainlib model typical nldm lib]
+    set library_file [dict get $sc_cfg library $sc_mainlib nldm typical lib]
 }
 
 if {[dict exists $sc_cfg asic macrolib]} {
@@ -30,8 +30,8 @@ set stat_libs ""
 foreach libname $sc_macrolibs {
     # TODO: we assume corner name is "typical" - this should probably be
     # documented somewhere?
-    if {[dict exists $sc_cfg library $libname model]} {
-        set macro_lib [dict get $sc_cfg library $libname model typical nldm lib]
+    if {[dict exists $sc_cfg library $libname]} {
+        set macro_lib [dict get $sc_cfg library $libname nldm typical lib]
         yosys read_liberty -lib $macro_lib
         append stat_libs "-liberty $macro_lib "
     }

@@ -2,7 +2,7 @@ import os
 from string import Template
 import defusedxml.ElementTree as ET
 import siliconcompiler
-from siliconcompiler.schema import schema_path
+from siliconcompiler.schema_utils import schema_path
 
 ################################
 # Setup OpenFPGA
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     output = prefix + '.json'
 
     # create a chip instance
-    chip = siliconcompiler.Chip(defaults=False)
+    chip = siliconcompiler.Chip()
     # load configuration
     setup_tool(chip, step='apr')
     # write out results

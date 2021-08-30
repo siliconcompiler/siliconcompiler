@@ -3,6 +3,7 @@
 import argparse
 import time
 import multiprocessing
+import traceback
 import asyncio
 import subprocess
 import os
@@ -22,15 +23,9 @@ import yaml
 import graphviz
 import pyfiglet
 
-from siliconcompiler.schema import schema_path
-from siliconcompiler.schema import schema_cfg
-from siliconcompiler.schema import schema_typecheck
-from siliconcompiler.schema import schema_reorder
-from siliconcompiler.client import client_encrypt
-from siliconcompiler.client import client_decrypt
-from siliconcompiler.client import fetch_results
-from siliconcompiler.client import remote_preprocess
-from siliconcompiler.client import remote_run
+from siliconcompiler.client import *
+from siliconcompiler.schema import *
+from siliconcompiler.schema_utils import *
 
 class Chip:
     """
@@ -52,11 +47,12 @@ class Chip:
     """
 
     ###########################################################################
-    def __init__(self, design="root", loglevel="INFO", defaults=True):
+    def __init__(self, design="root", loglevel="INFO"):
         """Initializes Chip object
         """
 
         # Local variables
+        self.version = "0.0.1"
         self.design = design
         self.status = {}
         self.error = 0
@@ -129,6 +125,8 @@ class Chip:
         * List parameters are entered indidually (ie. -y libdir1 -y libdir2)
         * For parameters with boolean types, the switch implies "true".
         * Special characters (such as '-') must be enclosed in double quotes.
+        * Compiler comptaible switces include: -D, -I, -O{0,1,2,3}
+        * Some Vrilog legacy switches: +libext+, +incdir+
 
         Args:
             progname (string): Name of program to be exeucted at the command
@@ -149,23 +147,6 @@ class Chip:
 
         """
 
-        # Print banner
-        ascii_banner = pyfiglet.figlet_format("Silicon Compiler")
-        print(ascii_banner)
-
-        # Print out SC project authors
-        authors = []
-        authorfile = schema_path("AUTHORS")
-        f = open(authorfile, "r")
-        for line in f:
-            name = re.match(r'^(\w+\s+\w+)', line)
-            if name:
-                authors.append(name.group(1))
-        print("Authors:", ", ".join(authors), "\n")
-        print("-"*80)
-
-        os.environ["COLUMNS"] = '80'
-
         # Argparse
         parser = argparse.ArgumentParser(prog=progname,
                                          prefix_chars='-+',
@@ -176,29 +157,34 @@ class Chip:
 
         # Get all keys from global dictionary or override at command line
         allkeys = self.getkeys()
-        argmap = {}
+
         # Iterate over all keys to add parser argument
         for key in allkeys:
             #Fetch fields from leaf cell
             helpstr = self.get(*key, field='short_help')
             typestr = self.get(*key, field='type')
-            paramstr = self.get(*key, field='param_help')
-            switchstr = self.get(*key, field='switch')
-
-            #Create a map from parser args back to dictionary
-            #Special gcc/verilator compatible short switches get mapped to
-            #the key, all others get mapped to switch
-            if '_' in switchstr:
-                dest = switchstr.replace('-', '')
+            #Switch field fully describes switch format
+            switch = self.get(*key, field='switch')
+            if switch is not None:
+                switchmatch = re.match(r'(-[\w_]+)\s+(.*)', switch)
+                gccmatch = re.match(r'(-[\w_]+)(.*)', switch)
+                plusmatch = re.match(r'(\+[\w_\+]+)(.*)', switch)
+                if switchmatch:
+                    switchstr = switchmatch.group(1)
+                    dest = re.sub('-','',switchstr)
+                elif gccmatch:
+                    switchstr = gccmatch.group(1)
+                    dest = key[0]
+                elif plusmatch:
+                    switchstr = plusmatch.group(1)
+                    dest = key[0]
             else:
-                dest = key[0]
+                switchstr = None
+                dest = None
 
-            #print(switchstr, switchlist)
-            if 'source' in key:
-                argmap['source'] = paramstr
-            elif (switchlist == []) | (dest in switchlist):
+            #Four switch types (source, scalar, list, bool)
+            if ('source' not in key) & ((switchlist == []) | (dest in switchlist)):
                 if typestr == 'bool':
-                    argmap[dest] = paramstr
                     parser.add_argument(switchstr,
                                         metavar='',
                                         dest=dest,
@@ -209,17 +195,14 @@ class Chip:
                 #list type arguments
                 elif re.match(r'\[', typestr):
                     #all the rest
-                    argmap[dest] = paramstr
                     parser.add_argument(switchstr,
                                         metavar='',
                                         dest=dest,
                                         action='append',
                                         help=helpstr,
                                         default=argparse.SUPPRESS)
-
                 else:
                     #all the rest
-                    argmap[dest] = paramstr
                     parser.add_argument(switchstr,
                                         metavar='',
                                         dest=dest,
@@ -252,16 +235,41 @@ class Chip:
             else:
                 scargs.append(item)
 
+
+        # exit on version check
+        if '-version' in scargs:
+            print(self.version)
+            sys.exit(0)
+
         # Required positional source file argument
-        if ((switchlist == []) & (not '-cfg' in scargs))| ('source' in switchlist) :
+        if ((switchlist == []) &
+            (not '-cfg' in scargs)) | ('source' in switchlist) :
             parser.add_argument('source',
                                 nargs='+',
                                 help=self.get('source', field='short_help'))
 
         #Grab argument from pre-process sysargs
+        #print(scargs)
         cmdargs = vars(parser.parse_args(scargs))
+        #print(cmdargs)
+        #sys.exit()
 
-        # NOTE: The below order is by design and should not be modified.
+        # Print banner
+        ascii_banner = pyfiglet.figlet_format("Silicon Compiler")
+        print(ascii_banner)
+
+        # Print out SC project authors
+        authors = []
+        authorfile = schema_path("AUTHORS")
+        f = open(authorfile, "r")
+        for line in f:
+            name = re.match(r'^(\w+\s+\w+)', line)
+            if name:
+                authors.append(name.group(1))
+        print("Authors:", ", ".join(authors), "\n")
+        print("-"*80)
+
+        os.environ["COLUMNS"] = '80'
 
         # set design name (override default)
         if 'design' in cmdargs.keys():
@@ -273,7 +281,7 @@ class Chip:
 
         # set mode (needed for target)
         if 'mode' in cmdargs.keys():
-            self.set('mode', cmdargs['mode'])
+            self.set('mode', cmdargs['mode'], clobber=True)
 
         # read in target if set
         if 'target' in cmdargs.keys():
@@ -285,18 +293,54 @@ class Chip:
                 self.cfg = self.readcfg(item)
 
         # insert all parameters in dictionary
+        self.logger.info('Setting commandline arguments')
+        allkeys = self.getkeys()
+
         for key, val in cmdargs.items():
+
+            # Unifying around no underscores for now
+            keylist = key.split('_')
+            orderhash = {}
+
+            # Find keypath with matching keys
+            for keypath in allkeys:
+                match = True
+                for item in keylist:
+                    if item in keypath:
+                        orderhash[item] = keypath.index(item)
+                    else:
+                        match = False
+                if match:
+                    chosenpath = keypath
+                    break
+
+            # Turn everything into a list for uniformity
             if isinstance(val, list):
                 val_list = val
             else:
                 val_list = [val]
+
             for item in val_list:
-                args = schema_reorder(argmap[key], item)
-                typestr = self.get(*args[:-1], field='type')
-                if re.match(r'\[', typestr):
-                    self.add(*args)
-                else:
-                    self.set(*args)
+                #space used to separate values!
+                extrakeys = item.split(' ')
+                for i in range(len(extrakeys)):
+                    # look for the first default statement
+                    # "delete' default in temp list by setting to None
+                    if 'default' in chosenpath:
+                        next_default = chosenpath.index('default')
+                        orderhash[extrakeys[i]] = next_default
+                        chosenpath[next_default] = None
+                    else:
+                        # Creating a sorted list based on key placement
+                        args = list(dict(sorted(orderhash.items(),
+                                                key=lambda orderhash: orderhash[1])))
+                        # Adding data value
+                        args = args + [extrakeys[i]]
+                        # Set/add value based on type
+                        if re.match(r'\[', self.get(*args[:-1], field='type')):
+                            self.add(*args)
+                        else:
+                            self.set(*args, clobber=True)
 
     ###########################################################################
     def target(self, arg=None, libs=True, methodology=True):
@@ -437,7 +481,6 @@ class Chip:
 
         #Fetch Values
         description = self.get(*args, field='short_help')
-        param = self.get(*args, field='param_help')
         typestr = str(self.get(*args, field='type'))
         defstr = str(self.get(*args, field='defvalue'))
         requirement = self.get(*args, field='requirement')
@@ -513,13 +556,14 @@ class Chip:
         if cfg is None:
             cfg = chip.cfg
 
-        chip.logger.debug('Reading config dictionary. Keypath = [%s]', ','.join(args))
+        keypath = ','.join(args)
+        if(field != 'value'):
+            fieldstr = "Field = " + field
+        else:
+            fieldstr = ""
+        chip.logger.debug(f"Reading from [{keypath}]. Field = '{field}'")
 
-        keys = list(args)
-        for k in keys:
-            if isinstance(k, list):
-                chip.logger.error("Illegal format. Args cannot be lists. Keys=%s", k)
-        return self._search(chip, cfg, *args, field=field, mode='get')
+        return self._search(chip, cfg, keypath, *args, field=field, mode='get')
 
     ###########################################################################
     def getkeys(self, *args, chip=None, cfg=None):
@@ -556,8 +600,9 @@ class Chip:
             cfg = chip.cfg
 
         if len(list(args)) > 0:
+            keypath = ','.join(args[:-1])
             chip.logger.debug('Getting schema parameter keys for: %s', args)
-            keys = list(self._search(chip, cfg, *args, mode='getkeys'))
+            keys = list(self._search(chip, cfg, keypath, *args, mode='getkeys'))
             if 'default' in keys:
                 keys.remove('default')
         else:
@@ -567,7 +612,7 @@ class Chip:
         return keys
 
     ###########################################################################
-    def set(self, *args, chip=None, cfg=None):
+    def set(self, *args, chip=None, cfg=None, clobber=False):
         '''
         Sets a Chip dictionary value based on key-sequence and data provided.
 
@@ -603,14 +648,14 @@ class Chip:
         if cfg is None:
             cfg = chip.cfg
 
-        chip.logger.debug('Setting value in config dictionary. Keypath = [%s] Value =%s',
-                          ','.join(args[:-1]),
-                          args[-1])
+        keypath = ','.join(args[:-1])
+
+        chip.logger.debug(f"Setting [{keypath}] to {args[-1]}")
 
         all_args = list(args)
 
         # Convert val to list if not a list
-        return self._search(chip, cfg, *all_args, field='value', mode='set')
+        return self._search(chip, cfg, keypath, *all_args, field='value', mode='set', clobber=clobber)
 
     ###########################################################################
     def add(self, *args, chip=None, cfg=None):
@@ -650,14 +695,16 @@ class Chip:
         if cfg is None:
             cfg = chip.cfg
 
+        keypath = ','.join(args[:-1])
+
         chip.logger.debug('Appending value in config dictionary. Keypath = [%s] Value =%s',
-                          ','.join(args[:-1]),
+                          keypath,
                           args[-1])
 
 
         all_args = list(args)
 
-        return self._search(chip, cfg, *all_args, field='value', mode='add')
+        return self._search(chip, cfg, keypath, *all_args, field='value', mode='add')
 
     ###########################################################################
     def _allkeys(self, chip, cfg, keys=None, allkeys=None):
@@ -679,7 +726,7 @@ class Chip:
         return allkeys
 
     ###########################################################################
-    def _search(self, chip, cfg, *args, field='value', mode='get'):
+    def _search(self, chip, cfg, keypath, *args, field='value', mode='get', clobber=True):
         '''
         Internal recursive function that searches a Chip dictionary for a
         match to the combination of *args and fields supplied. The function is
@@ -690,6 +737,7 @@ class Chip:
                 up a Chip dictionary entry.
             chip(object): The Chip object to extend
             cfg(dict): The cfg dictionary within the Chip object to extend
+            keypath (string): Concatenated keypath used for error logging.
             field(string): Leaf cell field to fetch. Examples of
                 valid fields include 'value', 'defvalue', 'type'. For
                 a complete description of the valid entries, see the
@@ -701,6 +749,8 @@ class Chip:
         all_args = list(args)
         param = all_args[0]
         val = all_args[-1]
+        empty = [None, 'null', [], 'false']
+
         # Return early if setting a value to 'None'. The reason for this is that
         # str(None) == 'None', not None. So when we call .add or .set with None
         # as a value, it gets saved in the dictionary as a string, causing bugs.
@@ -710,7 +760,7 @@ class Chip:
         if (mode in ('set', 'add')) & (len(all_args) == 2):
             # clean error if key not found
             if (not param in cfg) & (not 'default' in cfg):
-                chip.logger.error("Key '%s' does not exist", param)
+                chip.logger.error(f"Keypath [{keypath}] does not exist.")
                 chip.error = 1
             else:
                 # making an 'instance' of default if not found
@@ -722,7 +772,7 @@ class Chip:
                     cfg[param]['value'] = cfg[param]['defvalue']
                 # checking for illegal fields
                 if not field in cfg[param] and (field != 'value'):
-                    chip.logger.error("Field '%s' for param '%s'is not a valid field", field, param)
+                    chip.logger.error(f"Field '{field}' for keypath [{keypath}]' is not a valid field.")
                     chip.error = 1
                 # check legality of value
                 if not schema_typecheck(chip, cfg[param], param, val):
@@ -733,36 +783,47 @@ class Chip:
                         val = "true"
                     elif val == False:
                         val = "false"
+                # checking if value has been set
+                if field not in cfg[param]:
+                    selval = cfg[param]['defvalue']
+                else:
+                    selval =  cfg[param]['value']
                 # updating values
                 if (mode == 'set'):
-                    if (not list_type) & (not isinstance(val, list)):
-                        cfg[param][field] = str(val)
-                    elif list_type & (not isinstance(val, list)):
-                        cfg[param][field] = [str(val)]
-                    elif list_type & isinstance(val, list):
-                        cfg[param][field] = val
+                    if (selval in empty) | clobber:
+                        if (not list_type) & (not isinstance(val, list)):
+                            cfg[param][field] = str(val)
+                        elif list_type & (not isinstance(val, list)):
+                            cfg[param][field] = [str(val)]
+                        elif list_type & isinstance(val, list):
+                            if re.search(r'\(', cfg[param]['type']):
+                                cfg[param][field] = list(map(str,val))
+                            else:
+                                cfg[param][field] = val
+                        else:
+                            chip.logger.error(f"Illegal list assignment to scalar for [{keypath}]")
+                            chip.error = 1
                     else:
-                        chip.logger.error("Illegal to assign a list to a scalar. Parameter='%s'", param)
-                        chip.error = 1
+                        chip.logger.warning(f"Ignore set to [{keypath}], value already set. Use clobber option to override.")
                 elif (mode == 'add'):
                     if list_type & (not isinstance(val, list)):
                         cfg[param][field].append(str(val))
                     elif list_type & isinstance(val, list):
                         cfg[param][field].extend(val)
                     else:
-                        chip.logger.error("Illegal to use add() method with scalar. Parameter='%s'", param)
+                        chip.logger.error(f"Illegal use of add() for scalar parameter [{keypath}].")
                         chip.error = 1
                 return cfg[param][field]
         #get leaf cell (all_args=param)
         elif len(all_args) == 1:
             if not param in cfg:
-                chip.logger.error("Key '%s' does not exist", param)
+                chip.logger.error(f"Keypath [{keypath}] does not exist.")
                 chip.error = 1
             elif mode == 'getkeys':
                 return cfg[param].keys()
             else:
                 if not (field in cfg[param]) and (field!='value'):
-                    chip.logger.error("Key error, field '%s' not found for '%s'", field, param)
+                    chip.logger.error(f"Field '{field}' not found for keypath [{keypath}]")
                     chip.error = 1
                 elif field == 'value':
                     #Select default if no value has been set
@@ -770,14 +831,21 @@ class Chip:
                         selval = cfg[param]['defvalue']
                     else:
                         selval =  cfg[param]['value']
-                    #check for list/vs scalar
+                    #check for list
                     if bool(re.match(r'\[', cfg[param]['type'])):
+                        sctype = re.sub(r'[\[\]]', '', cfg[param]['type'])
                         return_list = []
                         for item in selval:
-                            if re.search('int', cfg[param]['type']):
+                            if sctype == 'int':
                                 return_list.append(int(item))
-                            elif re.search('float', cfg[param]['type']):
+                            elif sctype == 'float':
                                 return_list.append(float(item))
+                            elif sctype == '(float,float)':
+                                if isinstance(item,tuple):
+                                    return_list.append(item)
+                                else:
+                                    tuplestr = re.sub(r'[\(\)\s]','',item)
+                                    return_list.append(tuple(map(float, tuplestr.split(','))))
                             else:
                                 return_list.append(item)
                         return return_list
@@ -791,6 +859,9 @@ class Chip:
                             scalar = float(selval)
                         elif cfg[param]['type'] == "bool":
                             scalar = (selval == 'true')
+                        elif re.match(r'\(', cfg[param]['type']):
+                            tuplestr = re.sub(r'[\(\)\s]','',selval)
+                            scalar = tuple(map(float, tuplestr.split(',')))
                         else:
                             scalar = selval
                         return scalar
@@ -803,7 +874,7 @@ class Chip:
             if not param in cfg:
                 cfg[param] = copy.deepcopy(cfg['default'])
             all_args.pop(0)
-            return self._search(chip, cfg[param], *all_args, field=field, mode=mode)
+            return self._search(chip, cfg[param], keypath, *all_args, field=field, mode=mode, clobber=clobber)
 
 
     ###########################################################################
@@ -932,7 +1003,6 @@ class Chip:
 
         #Recursively going through dict to set abspaths for files
         for k, v in cfg.items():
-            #print("abspath", k,v)
             if isinstance(v, dict):
                 #indicates leaf cell
                 if 'value' in cfg[k].keys():
@@ -1037,7 +1107,7 @@ class Chip:
                 if re.match(r'\[', typestr):
                     self.add(*arg, cfg=localcfg)
                 else:
-                    self.set(*arg, cfg=localcfg)
+                    self.set(*arg, clobber=True, cfg=localcfg)
 
         #returning dict
         return localcfg
@@ -1062,25 +1132,31 @@ class Chip:
             cfg = chip.cfg
 
         chip.logger.info("Running check() for step '%s'", step)
-        empty = ("null",None,[])
+        emptylist = ("null",None,[])
 
         # Checking global requirements specified in schema.py
         allkeys = self.getkeys()
         for key in allkeys:
+            keypath = ",".join(key)
             if 'default' not in key:
                 requirement = self.get(*key, chip=chip, cfg=cfg, field='requirement')
                 value = self.get(*key, chip=chip, cfg=cfg)
                 defvalue = self.get(*key, chip=chip, cfg=cfg, field='defvalue')
-                if (defvalue in empty) & (value in empty) & (str(requirement) == 'all'):
+                value_empty = (defvalue in emptylist) & (value in emptylist)
+                if value_empty & (str(requirement) == 'all'):
                     chip.error = 1
-                    chip.logger.error("Global requirement missing. Keypath = [%s]",
-                                      ",".join(key))
-                elif (defvalue in empty) & (value in empty) & (str(requirement) == self.get('mode')):
+                    chip.logger.error(f"Global requirement missing for [{keypath}].")
+                elif value_empty & (str(requirement) == self.get('mode')):
                     chip.error = 1
-                    chip.logger.error("Mode requirement missing. Keypath = [%s]",
-                                      ",".join(key))
-        # Checking step based tool requirements
+                    chip.logger.error(f"Mode requirement missing for [{keypath}].")
 
+        # Checking flowgraph setup
+
+        # Checking setup of each tool
+
+        # Checking mode based settings
+
+        # Runtime check of inputs being ready
 
         return self.error
 
@@ -1202,12 +1278,9 @@ class Chip:
         chip.logger.debug('Calculating score for step %s, index %s', step, index)
 
         score = 0
-        for metric in self.getkeys('metric', 'default', index, 'default', chip=chip, cfg=cfg):
-            value = self.get('metric', step, index, 'real', metric, chip=chip, cfg=cfg)
-            if metric in self.getkeys('flowgraph', step, 'weight', chip=chip, cfg=cfg):
-                product = value * self.get('flowgraph', step, 'weight', metric, chip=chip, cfg=cfg)
-            else:
-                product = value * 1.0
+        for metric in self.getkeys('metric', 'default', 'default', chip=chip, cfg=cfg):
+            value = self.get('metric', step, index, metric, 'real', chip=chip, cfg=cfg)
+            product = value * self.get('flowgraph', step, 'weight', metric, chip=chip, cfg=cfg)
             score = score + product
 
         return score
@@ -1453,7 +1526,7 @@ class Chip:
         else:
             steplist = self.getsteps()
 
-        jobdir = "/".join([self.get('build_dir'),
+        jobdir = "/".join([self.get('dir'),
                            self.get('design'),
                            self.get('jobname') + str(self.get('jobid'))])
 
@@ -1491,9 +1564,9 @@ class Chip:
                     sc_results = json.load(f)
 
                 #Copying over metric one at a time
-                for metric in  self.getkeys('metric', 'default', 'default', 'default'):
-                    value = self.get('metric', step, str(index), 'real', metric, cfg=sc_results)
-                    self.set('metric', step, str(index), 'real', metric, value)
+                for metric in self.getkeys('metric', 'default', 'default'):
+                    value = self.get('metric', step, str(index), metric, 'real', cfg=sc_results)
+                    self.set('metric', step, str(index), metric, 'real', value)
 
 
         #Creating Header
@@ -1506,13 +1579,13 @@ class Chip:
 
         #Creating table of real values
         metrics = []
-        for metric in  self.getkeys('metric', 'default', 'default', 'default'):
+        for metric in self.getkeys('metric', 'default', 'default'):
             metrics.append(" " + metric)
             row = []
             for step in steplist:
                 for index in range(self.get('flowgraph', step, 'nproc')):
                     row.append(" " +
-                               str(self.get('metric', step, str(index), 'real', metric)).center(colwidth))
+                               str(self.get('metric', step, str(index), metric, 'real')).center(colwidth))
             data.append(row)
 
         #Creating goodness score for step
@@ -1547,7 +1620,7 @@ class Chip:
 
         outputs = []
         for item in self.getkeys('flowgraph'):
-            if step in self.get('flowgraph', item, 'input', chip=chip, cfg=cfg):
+            if step in self.get('flowgraph', 'input', item, chip=chip, cfg=cfg):
                 outputs.append(item)
 
         return outputs
@@ -1574,7 +1647,6 @@ class Chip:
 
         #Sort steps based on path lenghts
         sorted_dict = dict(sorted(depth.items(), key=lambda depth: depth[1]))
-
         return list(sorted_dict.keys())
 
     ###########################################################################
@@ -1583,7 +1655,7 @@ class Chip:
         if path is None:
             allpaths = []
             path = []
-        if not self.get('flowgraph', node, 'input', chip=chip, cfg=cfg):
+        if 'source' in self.get('flowgraph', node, 'input', chip=chip, cfg=cfg):
             allpaths.append(path)
         else:
             for nextnode in self.get('flowgraph', node, 'input', chip=chip, cfg=cfg):
@@ -1613,37 +1685,36 @@ class Chip:
 
         self.logger.info('Step %s waiting on inputs', step)
         while True:
-
             # Checking that there are no pending jobs
             pending = 0
             for input_step in self.get('flowgraph', step, 'input'):
-                for input_index in range(self.get('flowgraph', input_step, 'nproc')):
-                    input_str = input_step + str(input_index)
-                    pending = pending + active[input_str]
+                if input_step != 'source':
+                    for input_index in range(self.get('flowgraph', input_step, 'nproc')):
+                        input_str = input_step + str(input_index)
+                        pending = pending + active[input_str]
 
             # beak out of loop when no all inputs are done
             if not pending:
-                    break
+                break
             # Short sleep
             time.sleep(0.1)
 
         #Checking that there were no errors in previous steps
         halt = 0
         for input_step in self.get('flowgraph', step, 'input'):
+             if input_step != 'source':
                 for input_index in range(self.get('flowgraph', input_step, 'nproc')):
                     input_str = input_step + str(input_index)
                     halt = halt + error[input_str]
         if halt:
             self.logger.error('Halting step %s due to previous errors', step)
-            active[step + str(index)] = 0
-            error[step + str(index)] = 1
-            sys.exit(1)
+            self._halt(step, index, error, active)
 
         # starting actual step execution
         self.logger.info('Starting step %s', step)
 
         # Build directory
-        stepdir = "/".join([self.get('build_dir'),
+        stepdir = "/".join([self.get('dir'),
                             self.get('design'),
                             self.get('jobname') + str(self.get('jobid')),
                             step + index])
@@ -1661,7 +1732,7 @@ class Chip:
 
         # Copy files from previous step unless first step
         # Package/import step is special in that it has no inputs
-        if not self.get('flowgraph', step, 'input'):
+        if 'source' in self.get('flowgraph', step, 'input'):
             self.collect(outdir='inputs')
         elif not self.get('remote', 'addr'):
             #select the previous step outputs to copy over
@@ -1669,33 +1740,37 @@ class Chip:
             for item in steplist:
                 shutil.copytree("../"+item+str(mindex)+"/outputs", 'inputs/')
 
-        # Dynamic EDA tool module load
+        # EDA dynamic module load
         try:
             tool = self.get('flowgraph', step, 'tool')
             searchdir = "siliconcompiler.tools." + tool
             modulename = '.'+tool+'_setup'
             module = importlib.import_module(modulename, package=searchdir)
             setup_tool = getattr(module, "setup_tool")
+        except:
+            traceback.print_exc()
+            self.logger.error("Dynamic module load failed for tool '%s' in step '%s'.", tool, step)
+            self._halt(step, index, error, active)
+
+        # EDA tool setup
+        try:
             setup_tool(self, step, index)
         except:
-            self.logger.error("Tool module load failed for '%s' tool in step '%s'.", tool, step)
-            active[step + str(index)] = 0
-            error[step + str(index)] = 1
-            sys.exit(1)
+            traceback.print_exc()
+            self.logger.error("Setup script failed for tool '%s' in step '%s'.", tool, step)
+            self._halt(step, index, error, active)
 
         # Check Version if switch exists
         #if self.getkeys('eda', tool, step, str(index), 'vswitch'):
         exe = self.get('eda', tool, step, index, 'exe')
         veropt =self.get('eda', tool, step, index, 'vswitch')
         if veropt!=None:
-            cmdstr = f'{exe} {veropt} &> {exe}.log'
+            cmdstr = f'{exe} {veropt} > {exe}.log'
             self.logger.info("Checking version of '%s' tool in step '%s'.", tool, step)
             exepath = subprocess.run(cmdstr, shell=True)
             if exepath.returncode > 0:
                 self.logger.error('Version check failed for %s.', cmdstr)
-                active[step + str(index)] = 0
-                error[step + str(index)] = 1
-                sys.exit(1)
+                self._halt(step, index, error, active)
         else:
             self.logger.info("Skipping version checking of '%s' tool in step '%s'.", tool, step)
 
@@ -1706,17 +1781,17 @@ class Chip:
         self.hash(step)
 
         #Copy Reference Scripts
-        if self.get('eda', tool, step, index, 'copy'):
-            refdir = schema_path(self.get('eda', tool, step, index, 'refdir'))
-            shutil.copytree(refdir, ".", dirs_exist_ok=True)
+        if 'cmdline' not in self.get('eda', tool, step, index, 'format'):
+            if self.get('eda', tool, step, index, 'copy'):
+                refdir = schema_path(self.get('eda', tool, step, index, 'refdir'))
+                shutil.copytree(refdir, ".", dirs_exist_ok=True)
 
         # Construct command line
-        exe = self.get('eda', tool, step, index, 'exe')
         logfile = exe + ".log"
         options = self.get('eda', tool, step, index, 'option', 'cmdline')
 
         scripts = []
-        if 'script' in self.getkeys('eda', tool, step, index):
+        if 'cmdline' not in self.get('eda', tool, step, index, 'format' ):
             for value in self.get('eda', tool, step, index, 'script'):
                 abspath = schema_path(value)
                 scripts.append(abspath)
@@ -1740,8 +1815,8 @@ class Chip:
         os.chmod("run.sh", 0o755)
 
         # Save config files required by EDA tools
-        self.set('arg', 'step', step)
-        self.set('arg', 'index', index)
+        self.set('arg', 'step', step, clobber=True)
+        self.set('arg', 'index', index, clobber=True)
 
         # Writing out command file
         self.writecfg("sc_manifest.json")
@@ -1749,15 +1824,13 @@ class Chip:
         self.writecfg("sc_manifest.tcl", abspath=True)
 
         # Resetting metrics
-        for metric in self.getkeys('metric', 'default', 'default', 'default'):
-            self.set('metric', step, index, 'real', metric, 0)
+        for metric in self.getkeys('metric', 'default', 'default'):
+            self.set('metric', step, index, metric, 'real', 0)
 
-        # Final check
+        # Final check() before run
         if self.check(step):
             self.logger.error("Step check() for '%s' failed, exiting! See previous errors.", step)
-            active[step + str(index)] = 0
-            error[step + str(index)] = 1
-            sys.exit(1)
+            self._halt(step, index, error, active)
 
         # Run executable
         self.logger.info("Running %s in %s", step, stepdir)
@@ -1765,9 +1838,9 @@ class Chip:
         cmd_error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
         if cmd_error.returncode != 0:
             self.logger.error('Command failed. See log file %s', os.path.abspath(logfile))
-            active[step + str(index)] = 0
-            error[step + str(index)] = 1
-            sys.exit(1)
+            # Override exit code if set
+            if not self.get('eda', tool, step, index, 'continue'):
+                self._halt(step, index, error, active)
 
         # Post Process (and error checking)
         post_process = getattr(module, "post_process")
@@ -1776,9 +1849,7 @@ class Chip:
         # Check for errors
         if post_error:
             self.logger.error('Post-processing check failed for step %s', step)
-            active[step + str(index)] = 0
-            error[step + str(index)] = 1
-            sys.exit(1)
+            self._halt(step, index, error, active)
 
         # save output manifest
         self.writecfg("outputs/" + self.get('design') +'.pkg.json')
@@ -1788,6 +1859,12 @@ class Chip:
 
         # clearing active bit
         active[step + str(index)] = 0
+
+    ###########################################################################
+    def _halt(self, step, index, error, active):
+        error[step + str(index)] = 1
+        active[step + str(index)] = 0
+        sys.exit(1)
 
     ###########################################################################
     def run(self):

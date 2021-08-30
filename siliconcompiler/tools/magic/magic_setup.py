@@ -6,7 +6,7 @@ from siliconcompiler.tools.magic import count_lvs
 
 import siliconcompiler
 from siliconcompiler.floorplan import *
-from siliconcompiler.schema import schema_path
+from siliconcompiler.schema_utils import schema_path
 
 ################################
 # Setup Tool (pre executable)
@@ -94,8 +94,8 @@ def pdk_path(chip):
     sc_path = sc_root + '/third_party/foundry'
 
     libname = chip.get('asic', 'targetlib')[0]
-    pdk_rev = chip.get('pdk', 'rev')
-    lib_rev = chip.get('stdcell', libname, 'rev')
+    pdk_rev = chip.get('pdk', 'version')
+    lib_rev = chip.get('library', libname, 'version')
 
     target_tech = chip.get('target').split('_')[0]
 
@@ -112,7 +112,7 @@ if __name__ == "__main__":
     output = prefix + '.json'
 
     # create a chip instance
-    chip = siliconcompiler.Chip(defaults=False)
+    chip = siliconcompiler.Chip()
     # load configuration
     chip.set('target', 'freepdk45_asicflow')
     setup_tool(chip, step='drc', index='0')

@@ -12,60 +12,30 @@ set openroad_overflow_iter 100
 set openroad_cluster_diameter 100
 set openroad_cluster_size 30
 
-# These are magic tuning constants that vary per-technology. We set their values
-# here since they're OpenROAD-specific, and therefore we don't want to define
-# them in the schema.
-
-set target [dict get $sc_cfg target]
-set targetlist [split $target _]
-set target_tech [lindex [lindex $targetlist 0] end]
-
-if {$target_tech eq "freepdk45"} {
-    set openroad_place_density 0.3
-    set openroad_pad_global_place 2
-    set openroad_pad_detail_place 1
-    set openroad_macro_place_halo "22.4 15.12"
-    set openroad_macro_place_channel "18.8 19.95"
-} elseif {$target_tech eq "asap7"} {
-    set openroad_place_density 0.77
-    set openroad_pad_global_place 2
-    set openroad_pad_detail_place 1
-    set openroad_macro_place_halo "22.4 15.12"
-    set openroad_macro_place_channel "18.8 19.95"
-} elseif {$target_tech eq "skywater130"} {
-    set openroad_place_density 0.6
-    set openroad_pad_global_place 4
-    set openroad_pad_detail_place 2
-    set openroad_macro_place_halo "1 1"
-    set openroad_macro_place_channel "80 80"
-} else {
-    puts "WARNING: OpenROAD tuning constants not set for $target_tech in sc_apr.tcl, using generic values."
-    set openroad_place_density 0.3
-    set openroad_pad_global_place 2
-    set openroad_pad_detail_place 1
-    set openroad_macro_place_halo "22.4 15.12"
-    set openroad_macro_place_channel "18.8 19.95"
-}
-
-###############################
+##############################
 # Schema Adapter
 ###############################
 
-set tool openroad
-set sc_step       [dict get $sc_cfg arg step]
-set sc_index      [dict get $sc_cfg arg index]
+set sc_tool    openroad
+set sc_step    [dict get $sc_cfg arg step]
+set sc_index   [dict get $sc_cfg arg index]
+
+set openroad_place_density [lindex [dict get $sc_cfg eda $sc_tool $sc_step $sc_index option  place_density] 0]
+set openroad_pad_global_place [lindex [dict get $sc_cfg eda $sc_tool $sc_step $sc_index option  pad_global_place] 0]
+set openroad_pad_detail_place [lindex [dict get $sc_cfg eda $sc_tool $sc_step $sc_index option  pad_detail_place] 0]
+set openroad_macro_place_halo [dict get $sc_cfg eda $sc_tool $sc_step $sc_index option  macro_place_halo]
+set openroad_macro_place_channel [dict get $sc_cfg eda $sc_tool $sc_step $sc_index option  macro_place_channel]
 
 #Handling remote/local script execution
-if {[dict get $sc_cfg eda $tool $sc_step $sc_index copy] eq True} {
+if {[dict get $sc_cfg eda $sc_tool $sc_step $sc_index copy] eq True} {
     set sc_refdir "."
 } else {
-    set sc_refdir [dict get $sc_cfg eda $tool $sc_step $sc_index refdir]
+    set sc_refdir [dict get $sc_cfg eda $sc_tool $sc_step $sc_index refdir]
 }
 
 # Design
 set sc_design     [dict get $sc_cfg design]
 set sc_optmode    [dict get $sc_cfg optmode]
-
 
 # APR Parameters
 set sc_mainlib     [lindex [dict get $sc_cfg asic targetlib] 0]
@@ -76,8 +46,8 @@ set sc_hpinlayer   [dict get $sc_cfg asic hpinlayer]
 set sc_vpinlayer   [dict get $sc_cfg asic vpinlayer]
 set sc_hpinmetal   [dict get $sc_cfg pdk grid $sc_stackup $sc_hpinlayer name]
 set sc_vpinmetal   [dict get $sc_cfg pdk grid $sc_stackup $sc_vpinlayer name]
-set sc_rclayer     [dict get $sc_cfg asic rclayer]
-set sc_clklayer    [dict get $sc_cfg asic clklayer]
+set sc_rclayer     [dict get $sc_cfg asic rclayer data]
+set sc_clklayer    [dict get $sc_cfg asic rclayer clk]
 set sc_rcmetal     [dict get $sc_cfg pdk grid $sc_stackup $sc_rclayer name]
 set sc_clkmetal    [dict get $sc_cfg pdk grid $sc_stackup $sc_clklayer name]
 set sc_aspectratio [dict get $sc_cfg asic aspectratio]
@@ -117,7 +87,7 @@ dict for {key value} [dict get $sc_cfg pdk grid $sc_stackup] {
     lappend sc_layers $key
 }
 
-set sc_threads [dict get $sc_cfg eda openroad $sc_step $sc_index threads]
+set sc_threads [dict get $sc_cfg eda $sc_tool $sc_step $sc_index threads]
 
 ###############################
 # Optional
@@ -168,7 +138,7 @@ if {$sc_step == "route"} {
     read_lef  $sc_techlef
     # Stdcells
     foreach lib $sc_targetlibs {
-	read_liberty [dict get $sc_cfg library $lib model typical nldm lib]
+	read_liberty [dict get $sc_cfg library $lib nldm typical lib]
 	read_lef [dict get $sc_cfg library $lib lef]
     }
 }
@@ -176,7 +146,7 @@ if {$sc_step == "route"} {
 # Macrolibs
 foreach lib $sc_macrolibs {
     if {[dict exists $sc_cfg library $lib model]} {
-        read_liberty [dict get $sc_cfg library $lib model typical nldm lib]
+        read_liberty [dict get $sc_cfg library $lib nldm typical lib]
     }
     read_lef [dict get $sc_cfg library $lib lef]
 }

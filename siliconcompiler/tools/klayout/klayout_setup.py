@@ -4,7 +4,7 @@ import shutil
 
 import siliconcompiler
 
-from siliconcompiler.schema import schema_path
+from siliconcompiler.schema_utils import schema_path
 
 ################################
 # Setup Tool (pre executable)
@@ -14,19 +14,21 @@ def setup_tool(chip, step, index):
 
      tool = 'klayout'
      refdir = 'siliconcompiler/tools/klayout'
-     chip.set('eda', tool, step, index, 'threads', 4)
+
+     chip.set('eda', tool, step, index, 'exe', 'klayout')
      chip.set('eda', tool, step, index, 'format', 'json')
      chip.set('eda', tool, step, index, 'copy', 'true')
-     chip.set('eda', tool, step, index, 'vendor', 'klayout')
-     chip.set('eda', tool, step, index, 'exe', 'klayout')
-     chip.set('eda', tool, step, index, 'vswitch', '-v')
-     chip.set('eda', tool, step, index, 'version', '0.26.10')
      chip.set('eda', tool, step, index, 'refdir', refdir)
+     chip.set('eda', tool, step, index, 'script', refdir + '/klayout_export.py')
+     chip.set('eda', tool, step, index, 'vendor', 'klayout')
+     chip.set('eda', tool, step, index, 'vswitch', '-zz -v')
+     chip.set('eda', tool, step, index, 'version', '0.26.10')
 
      if step == 'gdsview':
-          chip.add('eda', tool, step, index, 'option', 'cmdline', '-nn')
+          chip.set('eda', tool, step, index, 'option', 'cmdline', '-nn')
      elif step == 'export':
-          chip.add('eda', tool, step, index, 'option', 'cmdline', '-zz')
+          chip.set('eda', tool, step, index, 'option', 'cmdline', '-zz')
+
 
      scriptdir = os.path.dirname(os.path.abspath(__file__))
      sc_root   =  re.sub('siliconcompiler/siliconcompiler/tools/klayout',
@@ -35,6 +37,7 @@ def setup_tool(chip, step, index):
      sc_path = sc_root + '/third_party/foundry'
 
      # TODO: should support multiple target libs?
+
      libname = chip.get('asic', 'targetlib')[0]
      pdk_rev = chip.get('pdk', 'version')
      lib_rev = chip.get('library', libname, 'version')
@@ -124,7 +127,8 @@ if __name__ == "__main__":
     output = prefix + '.json'
 
     # create a chip instance
-    chip = siliconcompiler.Chip(defaults=False)
+    chip = siliconcompiler.Chip()
+    chip.target("freepdk45")
     # load configuration
     setup_tool(chip, step='export', index='0')
     # write out results

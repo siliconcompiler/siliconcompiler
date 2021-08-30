@@ -6,7 +6,7 @@ import jinja2
 from collections import namedtuple
 
 from siliconcompiler.leflib import Lef
-from siliconcompiler.schema import schema_path
+from siliconcompiler.schema_utils import schema_path
 
 # Set up Jinja
 env = jinja2.Environment(loader=jinja2.PackageLoader('siliconcompiler'),
@@ -18,7 +18,9 @@ def render_tuple(vals):
     return f"( {vals_str} )"
 env.filters['render_tuple'] = render_tuple
 
-_MacroInfo = namedtuple("_MacroInfo", "tech_name width height")
+_MacroInfo = namedtuple("_MacroInfo", "width height")
+
+# TODO: make sure all required schema entries are checked (and document!)
 
 class Floorplan:
     '''Floorplan layout class.
@@ -46,9 +48,8 @@ class Floorplan:
 
     Attributes:
         available_cells (dict): A dictionary mapping macro names to information
-            about each macro. The values stored in this dictionary have three
-            keys: `tech_name`, the technology-specific name corresponding to the
-            macro; `width`, the width of the macro in microns; and `height`, the
+            about each macro. The values stored in this dictionary have two
+            keys: `width`, the width of the macro in microns and `height`, the
             height of the macro in microns.
 
             In order to make macro libraries usable by the Floorplan API, a user
@@ -61,17 +62,6 @@ class Floorplan:
                     chip.add('asic', 'macrolib', libname)
                     chip.set('library', libname, 'lef', lef_path)
 
-            In order to make the macros in a library accessible from the
-            Floorplan API, each macro must be provided a tech-agnostic name
-            (`macro_name`), which maps to a tech-specific name (the name of the
-            macro in the associated LEF file, `tech_name`):
-
-                .. code-block:: python
-
-                    chip.set('library', libname, 'cells', macro_name, tech_name)
-
-            All Floorplan API calls related to macros must use the tech-agnostic
-            macro name.
         die_area (tuple): A tuple of two floats `(width, height)` storing the
             size of the die area in microns.
         layers (dict): A dictionary mapping SiliconCompiler layer names to
@@ -96,6 +86,7 @@ class Floorplan:
         self.tracks = []
         self.nets = {}
         self.viarules = []
+        self.blockages = []
 
         self.blockage_layers = []
 
@@ -130,10 +121,6 @@ class Floorplan:
         stackup = chip.get('asic', 'stackup')
         libtype = chip.get('library', self.libname, 'arch')
 
-        tech_lef = schema_path(chip.get('pdk', 'aprtech', stackup, libtype, 'lef')[0])
-        with open(tech_lef, 'r') as f:
-            tech_lef_data = lef_parser.parse(f.read())
-
         # List of cells the user is able to place
         self.available_cells = {}
 
@@ -142,15 +129,13 @@ class Floorplan:
             with open(lef_path, 'r') as f:
                 lef_data = lef_parser.lib_parse(f.read())
 
-            for name in self.chip.getkeys('library', macrolib, 'cells'):
-                tech_name = self.chip.get('library', macrolib, 'cells', name)[0]
-                if tech_name in lef_data['macros']:
-                    width, height = lef_data['macros'][tech_name]['size']
-                else:
-                    raise KeyError(f'Implementation {tech_name} for macro {name} '
-                        f'not found in library {lef_path}')
+            for name in lef_data['macros']:
+                width, height = lef_data['macros'][name]['size']
+                self.available_cells[name] = _MacroInfo(width, height)
 
-                self.available_cells[name] = _MacroInfo(tech_name, width, height)
+        tech_lef = schema_path(chip.get('pdk', 'aprtech', stackup, libtype, 'lef')[0])
+        with open(tech_lef, 'r') as f:
+            tech_lef_data = lef_parser.parse(f.read())
 
         # extract layers based on stackup
         stackup = self.chip.get('asic', 'stackup')
@@ -174,40 +159,47 @@ class Floorplan:
                 'yoffset': yoffset
             }
 
-    def create_die_area(self, width, height, core_area=None, generate_rows=True,
+    def create_die_area(self, die_area, core_area=None, generate_rows=True,
                         generate_tracks=True):
         '''Initializes die.
 
         Initializes the area of the die and generates placement rows and routing
-        tracks. This function must be called before calling `place_pins`. The
-        provided die and core dimensions will overwrite the die/core size
-        already present in the chip config.
+        tracks. The provided die and core dimensions will overwrite the die/core
+        size already present in the chip config.
 
         Args:
-            width (float): Width of die in microns.
-            height (float): Height of die in microns.
-            core_area (tuple of float): The core cell area of the physical
-                design. This is provided as a tuple (x0 y0 x1 y1), where (x0,
-                y0), specifes the lower left corner of the block and (x1, y1)
-                specifies the upper right corner. If `None`, core_area is set to
-                be equivalent to the die area. Dimensions are specified in
-                microns.
+            die_area (list of (float, float)): List of points that form the die
+                area. Currently only allowed to provide two points, specifying
+                the two bounding corners of a rectangular die. Dimensions are
+                specified in microns.
+            core_area (list of (float, float)): List of points that form the
+                core area of the physical design. If `None`, core_area is set to
+                be equivalent to the die area. Currently only allowed to provide
+                two points, specifying the two bounding corners of a rectangular
+                area.  Dimensions are specified in microns.
             generate_rows (bool): Automatically generate rows to fill entire
                 core area.
             generate_tracks (bool): Automatically generate tracks to fill entire
                 core area.
         '''
+        if len(die_area) != 2:
+            raise ValueError('Non-rectangular floorplans not yet supported: '
+                             'die_area must be list of two tuples.')
+        if die_area[0] != (0, 0):
+            # TODO: not sure if this would be a problem, except need to figure
+            # out what a non-origin initial point would mean for the LEF output.
+            raise ValueError('Non-origin initial die area point not yet supported.')
+
         # store die_area as 2-tuple since bottom left corner is always 0,0
-        self.die_area = (width, height)
+        self.die_area = die_area
         if core_area == None:
-            self.core_area = (0, 0, width, height)
+            self.core_area = self.die_area
         else:
             self.core_area = core_area
 
-        # TODO: is this necessary or a good idea?
-        self.chip.set('asic', 'diesize', f'0 0 {width} {height}')
-        self.chip.set('asic', 'coresize', f'{self.core_area[0]} {self.core_area[1]} '
-                                          f'{self.core_area[2]} {self.core_area[3]}')
+        if len(self.core_area) != 2:
+            raise ValueError('Non-rectangular core areas not yet supported: '
+                             'core_area must be list of two tuples.')
 
         if generate_rows:
             self.generate_rows()
@@ -271,9 +263,6 @@ class Floorplan:
         if use.lower() not in ('signal', 'power', 'ground', 'clock', 'tieoff',
                                'analog', 'scan', 'reset'):
             raise ValueError('Invalid use')
-
-        if self.die_area is None:
-            raise ValueError('Die area must be initialized with create_die_area!')
 
         x = x0
         y = y0
@@ -341,7 +330,7 @@ class Floorplan:
         for instance_name, cell_name in macros:
             macro = {
                 'name': instance_name,
-                'cell': self.available_cells[cell_name].tech_name,
+                'cell': cell_name,
                 'info': self.available_cells[cell_name],
                 'x': self.snap(x, self.std_cell_width) if snap else x,
                 'y': self.snap(y, self.std_cell_height) if snap else y,
@@ -491,10 +480,9 @@ class Floorplan:
         if area is None:
             area = self.core_area
 
-        start_x = area[0]
-        start_y = area[1]
-        core_width = area[2] - start_x
-        core_height = area[3] - start_y
+        start_x, start_y = area[0]
+        core_width = area[1][0] - start_x
+        core_height = area[1][1] - start_y
 
         num_rows = int(core_height / self.std_cell_height)
         num_x = core_width // self.std_cell_width
@@ -532,9 +520,10 @@ class Floorplan:
         self.tracks.clear()
 
         if area is None:
-            area = (0, 0, self.die_area[0], self.die_area[1])
+            area = self.die_area
 
-        start_x, start_y, die_width, die_height = area
+        start_x, start_y = area[0]
+        die_width, die_height = area[1]
 
         for layer in self.layers.values():
             layer_name = layer['name']
@@ -566,7 +555,15 @@ class Floorplan:
             self.tracks.append(track_x)
             self.tracks.append(track_y)
 
-    def place_blockage(self, layers=None):
+    def place_blockage(self, x0, y0, width, height):
+        # TODO: expand to routing blockages, document
+
+        self.blockages.append({
+            'll': (x0, y0),
+            'ur': (x0 + width, y0 + height)
+        })
+
+    def place_obs(self, layers=None):
         '''Places full-area blockages on the specified layers.
 
         The blockages specified using this method only take effect when dumping

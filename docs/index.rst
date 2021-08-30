@@ -23,6 +23,7 @@ Welcome to SiliconCompiler's documentation!
    :numbered:
 
    tutorials/index
+   tutorials/zerosoc
 
 .. toctree::
    :maxdepth: 3

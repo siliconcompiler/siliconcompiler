@@ -5,7 +5,7 @@ import sys
 import siliconcompiler
 import shutil
 
-from siliconcompiler.schema import schema_path
+from siliconcompiler.schema_utils import schema_path
 
 ################################
 # Setup Tool (pre executable)
@@ -20,7 +20,6 @@ def setup_tool(chip, step, index):
     tool = 'verilator'
     refdir = 'siliconcompiler/tools/verilator'
     chip.set('eda', tool, step, index, 'format', 'cmdline')
-    chip.set('eda', tool, step, index, 'copy', 'false')
     chip.set('eda', tool, step, index, 'exe', 'verilator')
     chip.set('eda', tool, step, index, 'vswitch', '--version')
     chip.set('eda', tool, step, index, 'version', '4.211')
@@ -28,8 +27,8 @@ def setup_tool(chip, step, index):
     chip.set('eda', tool, step, index, 'refdir', refdir)
     chip.set('eda', tool, step, index, 'threads', 4)
 
-    # Options driven on a per step basis
-    chip.add('eda', tool, step, index, 'option', 'cmdline', '-sv')
+    # Options driven on a per step basis (use 'set' on first call!)
+    chip.set('eda', tool, step, index, 'option', 'cmdline', '-sv')
 
     # Differentiate between import step and compilation
     if step in ['import', 'lint']:
@@ -113,7 +112,7 @@ if __name__ == "__main__":
     output = prefix + '.json'
 
     # create a chip instance
-    chip = siliconcompiler.Chip(defaults=False)
+    chip = siliconcompiler.Chip()
     # load configuration
     setup_tool(chip, step='import', index='0')
     # write out results

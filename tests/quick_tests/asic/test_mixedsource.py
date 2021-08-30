@@ -1,7 +1,9 @@
 import os
 import pytest
 import siliconcompiler
-from tests.fixtures import test_wrapper
+
+if __name__ != "__main__":
+    from tests.fixtures import test_wrapper
 
 ##################################
 @pytest.mark.skip(reason="Mixed-source functionality is still a work-in-progress.")
@@ -10,7 +12,7 @@ def test_mixedsrc_local_py():
     '''
 
     # Create instance of Chip class
-    chip = siliconcompiler.Chip(loglevel='NOTSET')
+    chip = siliconcompiler.Chip()
 
     ex_dir = os.path.abspath(__file__)
     ex_dir = ex_dir[:ex_dir.rfind('/tests/quick_tests/asic')] + '/examples/mixed-source/'
@@ -38,3 +40,6 @@ def test_mixedsrc_local_py():
 
     # Verify that the Verilog netlist is generated
     assert os.path.isfile('build/eq2/job0/syn0/outputs/eq2.v')
+
+if __name__ == "__main__":
+    test_mixedsrc_local_py()

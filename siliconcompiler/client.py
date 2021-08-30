@@ -38,9 +38,9 @@ def remote_preprocess(chip):
     '''
 
     # Assign a new 'job_hash' to the chip if necessary.
-    if not chip.get('remote', 'hash'):
+    if not chip.get('remote', 'jobhash'):
         job_hash = uuid.uuid4().hex
-        chip.set('remote', 'hash', job_hash)
+        chip.set('remote', 'jobhash', job_hash)
 
     # Run the local 'import' step if necessary.
     if 'import' in chip.getkeys('flowgraph'):
@@ -51,7 +51,7 @@ def remote_preprocess(chip):
         for step in chip.getkeys('flowgraph'):
             if step != 'import':
                 remote_steplist.append(step)
-        chip.set('steplist', remote_steplist)
+        chip.set('steplist', remote_steplist, clobber=True)
 
         # Upload the results of the local import stage.
         upload_sources_to_cluster(chip)
@@ -61,7 +61,7 @@ def client_decrypt(chip):
     '''Helper method to decrypt project data before running a job on it.
     '''
 
-    root_dir = chip.get('build_dir')
+    root_dir = chip.get('dir')
     job_nameid = f"{chip.get('jobname')}0"
 
     # Create cipher for decryption.
@@ -110,7 +110,7 @@ def client_encrypt(chip):
     '''Helper method to re-encrypt project data after processing.
     '''
 
-    root_dir = chip.get('build_dir')
+    root_dir = chip.get('dir')
     job_nameid = f"{chip.get('jobname')}0"
 
     # Create cipher for decryption.
@@ -213,11 +213,11 @@ async def request_remote_run(chip):
             post_params['params'] = {
                 'username': chip.get('remote', 'user'),
                 'key': b64_key,
-                'job_hash': chip.get('remote', 'hash'),
+                'job_hash': chip.get('remote', 'jobhash'),
             }
         else:
             post_params['params'] = {
-                'job_hash': chip.get('remote', 'hash'),
+                'job_hash': chip.get('remote', 'jobhash'),
             }
 
         # Make the actual request.
@@ -248,7 +248,7 @@ async def is_job_busy(chip):
 
         # Set common parameters.
         post_params = {
-            'job_hash': chip.get('remote', 'hash'),
+            'job_hash': chip.get('remote', 'jobhash'),
             'job_id': '0',
         }
 
@@ -284,7 +284,7 @@ async def delete_job(chip):
 
         # Set common parameter.
         post_params = {
-            'job_hash': chip.get('remote', 'hash'),
+            'job_hash': chip.get('remote', 'jobhash'),
         }
 
         # Set authentication parameters if necessary.
@@ -320,7 +320,7 @@ async def upload_import_dir(chip):
 
         # Set common parameters.
         post_params = {
-            'job_hash': chip.get('remote', 'hash'),
+            'job_hash': chip.get('remote', 'jobhash'),
             'job_name': chip.get('jobname'),
         }
 
@@ -365,7 +365,7 @@ async def upload_import_dir(chip):
             # Open both 'import.zip' and 'import.crypt' files.
             # We're using a stream cipher to support large files which may not fit
             # in memory, so we'll read and write data one 'chunk' at a time.
-            local_build_dir = stepdir = '/'.join([chip.get('build_dir'),
+            local_build_dir = stepdir = '/'.join([chip.get('dir'),
                                                   chip.get('design'),
                                                   f"{chip.get('jobname')}0",
                                                   'import0'])
@@ -402,7 +402,7 @@ async def upload_import_dir(chip):
 
         else:
             # No authorizaion configured; upload the unencrypted archive.
-            import_loc = '/'.join([chip.get('build_dir'),
+            import_loc = '/'.join([chip.get('dir'),
                                    chip.get('design'),
                                    f"{chip.get('jobname')}0",
                                    'import0',
@@ -435,7 +435,7 @@ def upload_sources_to_cluster(chip):
     '''
 
     # Zip the 'import' directory.
-    local_build_dir = stepdir = '/'.join([chip.get('build_dir'),
+    local_build_dir = stepdir = '/'.join([chip.get('dir'),
                                           chip.get('design'),
                                           f"{chip.get('jobname')}0"])
     subprocess.run(['zip',
@@ -455,7 +455,7 @@ async def fetch_results_request(chip):
 
     async with aiohttp.ClientSession() as session:
         # Set the request URL.
-        job_hash = chip.get('remote', 'hash')
+        job_hash = chip.get('remote', 'jobhash')
         remote_run_url = get_base_url(chip) + '/get_results/' + job_hash + '.zip'
 
 
@@ -505,7 +505,7 @@ def fetch_results(chip):
 
     # Unzip the results.
     top_design = chip.get('design')
-    job_hash = chip.get('remote', 'hash')
+    job_hash = chip.get('remote', 'jobhash')
     subprocess.run(['unzip', '%s.zip'%job_hash])
     # Remove the results archive after it is extracted.
     os.remove('%s.zip'%job_hash)
@@ -565,7 +565,7 @@ def fetch_results(chip):
             os.remove(import_link)
     # Copy the results into the local build directory, and remove the
     # unzipped directory (including encrypted archives).
-    local_dir = chip.get('build_dir')
+    local_dir = chip.get('dir')
     shutil.copytree(job_hash + '/' + top_design,
                     local_dir + '/' + top_design,
                     dirs_exist_ok = True)

@@ -4,7 +4,7 @@ import re
 import sys
 import siliconcompiler
 
-from siliconcompiler.schema import schema_path
+from siliconcompiler.schema_utils import schema_path
 
 ################################
 # Setup Tool (pre executable)
@@ -31,15 +31,15 @@ def setup_tool(chip, step, index):
 
     chip.add('eda', tool, step, index, 'option', 'cmdline', '-I ../../../')
 
-    for value in chip.cfg['ydir']['value']:
+    for value in chip.get('ydir'):
         chip.add('eda', tool, step, index, 'option', 'cmdline', '--library-dir ' + schema_path(value))
-    for value in chip.cfg['vlib']['value']:
+    for value in chip.get('vlib'):
         chip.add('eda', tool, step, index, 'option', 'cmdline', '--library-file ' + schema_path(value))
-    for value in chip.cfg['idir']['value']:
+    for value in chip.get('idir'):
         chip.add('eda', tool, step, index, 'option', 'cmdline', '-I ' + schema_path(value))
-    for value in chip.cfg['define']['value']:
+    for value in chip.get('define'):
         chip.add('eda', tool, step, index, 'option', 'cmdline', '-D ' + schema_path(value))
-    for value in chip.cfg['source']['value']:
+    for value in chip.get('source'):
         # only pickle Verilog or SystemVerilog files
         if value.endswith('.v') or value.endswith('.vh') or \
                 value.endswith('.sv') or value.endswith('.svh'):
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     output = prefix + '.json'
 
     # create a chip instance
-    chip = siliconcompiler.Chip(defaults=False)
+    chip = siliconcompiler.Chip()
     # load configuration
     setup_tool(chip, step='import', index='0')
     # write out results

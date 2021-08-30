@@ -6,10 +6,9 @@ def main():
     progname = "sc-check"
     chip = siliconcompiler.Chip()
     chip.cmdline(progname,
-                 switchlist=['cfg', 'loglevel'],
                  description="""
                  --------------------------------------------------------------
-                 Restricted SC app that accepts one or more json based cfg files
+                 Restricted SC app that checks the setup without running accepts one or more json based cfg files
                  as inputs and executes the SC check() method.
                  """)
 

@@ -3,7 +3,6 @@ import os
 import re
 import shutil
 import siliconcompiler
-from siliconcompiler.schema import schema_path
 
 ################################
 # Setup fusesoc
@@ -93,7 +92,7 @@ if __name__ == "__main__":
     output = prefix + '.json'
 
     # create a chip instance
-    chip = siliconcompiler.Chip(defaults=False)
+    chip = siliconcompiler.Chip()
     # load configuration
     setup_tool(chip, step='apr')
     # write out results

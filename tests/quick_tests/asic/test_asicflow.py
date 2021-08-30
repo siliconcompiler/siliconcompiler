@@ -1,6 +1,8 @@
 import os
 import siliconcompiler
-from tests.fixtures import test_wrapper
+
+if __name__ != "__main__":
+    from tests.fixtures import test_wrapper
 
 ##################################
 def test_gcd_local_py():
@@ -8,19 +10,19 @@ def test_gcd_local_py():
     '''
 
     # Create instance of Chip class
-    chip = siliconcompiler.Chip(loglevel='NOTSET')
+    chip = siliconcompiler.Chip()
 
     gcd_ex_dir = os.path.abspath(__file__)
     gcd_ex_dir = gcd_ex_dir[:gcd_ex_dir.rfind('/tests/quick_tests/asic')] + '/examples/gcd/'
 
     # Inserting value into configuration
-    chip.set('design', 'gcd')
+    chip.set('design', 'gcd', clobber=True)
     chip.target("freepdk45_asicflow")
     chip.add('source', gcd_ex_dir + 'gcd.v')
     chip.set('clock', 'clock_name', 'pin', 'clk')
     chip.add('constraint', gcd_ex_dir + 'gcd.sdc')
-    chip.set('asic', 'diesize', "0 0 100.13 100.8")
-    chip.set('asic', 'coresize', "10.07 11.2 90.25 91")
+    chip.set('asic', 'diearea', [(0,0), (100.13,100.8)])
+    chip.set('asic', 'corearea', [(10.07,11.2), (90.25,91)])
     chip.set('quiet', 'true')
     chip.set('relax', 'true')
 
@@ -32,3 +34,6 @@ def test_gcd_local_py():
 
     # Verify that GDS and SVG files were generated.
     assert os.path.isfile('build/gcd/job0/export0/outputs/gcd.gds')
+
+if __name__ == "__main__":
+    test_gcd_local_py()
