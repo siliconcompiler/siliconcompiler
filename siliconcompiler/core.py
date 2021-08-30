@@ -1779,6 +1779,20 @@ class Chip:
                 refdir = schema_path(self.get('eda', tool, step, index, 'refdir'))
                 shutil.copytree(refdir, ".", dirs_exist_ok=True)
 
+        # If it exists, run pre_process in stepdir
+        try:
+            tool = self.get('flowgraph', step, 'tool')
+            searchdir = "siliconcompiler.tools." + tool
+            modulename = '.'+tool+'_setup'
+            module = importlib.import_module(modulename, package=searchdir)
+            if hasattr(module, "pre_process"):
+                pre_process = getattr(module, "pre_process")
+                pre_process(self, step, index)
+        except:
+            traceback.print_exc()
+            self.logger.error(f"Pre-processing failed for '{tool}' in step '{step}'")
+            self._haltstep(step, index, error, active)
+
         # Construct command line
         logfile = exe + ".log"
         options = self.get('eda', tool, step, index, 'option', 'cmdline')
