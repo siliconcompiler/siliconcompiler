@@ -128,10 +128,10 @@ class Server:
         jobs_dir = '%s/%s'%(build_dir, chip.get('design'))
         cur_id = chip.get('jobid')
         job_nameid = f"{chip.get('jobname')}{cur_id}"
-        chip.set('build_dir', build_dir)
 
         # Create the working directory for the given 'job hash' if necessary.
         subprocess.run(['mkdir', '-p', jobs_dir])
+        chip.set('build_dir', build_dir)
         # Link to the 'import' directory if necessary.
         subprocess.run(['mkdir', '-p', '%s/%s'%(jobs_dir, job_nameid)])
         subprocess.run(['ln', '-s', '%s/import0'%build_dir, '%s/%s/import0'%(jobs_dir, job_nameid)])
@@ -340,6 +340,7 @@ class Server:
         # Reset 'build' directory in NFS storage.
         build_dir = '/tmp/%s_%s'%(job_hash, job_nameid)
         jobs_dir = '%s/%s'%(build_dir, top_module)
+        os.mkdir(build_dir)
         chip.set('build_dir', build_dir)
 
         # Copy the 'import' directory for a new run if necessary.
