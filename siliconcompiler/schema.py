@@ -135,8 +135,9 @@ def schema_typecheck(chip, cfg, leafkey, value):
                         ok = False
                 elif cfgtype == 'file':
                     if not os.path.isfile(schema_path(item)):
-                        errormsg = "Invalid path or missing file."
-                        ok = False
+                        # Only print a warning if a file-type parameter doesn't
+                        # exist. it may be generated later in the workflow.
+                        chip.logger.warning(f"File does not exist: {schema_path(item)}")
                 elif cfgtype == 'dir':
                     if not os.path.isdir(schema_path(item)):
                         errormsg = "Invalid path or missing directory."
