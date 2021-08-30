@@ -1365,7 +1365,7 @@ class Chip:
                             shutil.copy(filepath, outdir)
 
     ###########################################################################
-    def hash(self, step, chip=None, cfg=None):
+    def hash(self, chip=None, cfg=None):
         '''Computes sha256 hash of files based on hashmode set in cfg dict.
 
         Valid hashing modes:
@@ -1660,10 +1660,33 @@ class Chip:
         return winner
 
     ###########################################################################
-    def runstep(self, step, index, active, error):
+    def _runstep(self, step, index, active, error):
+        '''
+        Private per step run method called by run().
+        The method takes in a step string and index string to indicated what
+        to run. Execution state coordinated through the active/error
+        multiprocessing Manager dicts.
 
-        # Explicit wait loop until inputs have been resolved
-        # This should be a shared object to not be messy
+        Execution flow:
+        1. Wait in loop until all previous steps/indexes have completed
+        2. Check inputs for errors. Halt if one of the steps yielded
+           zero valid results
+        3. Create local working directory
+        4. Merge in results input steps (all indices).
+        5. Select winning index and set flowstatus
+        6. Check the execution version
+        8. Copy script/refdir to local dir
+        9. Construct command line
+        10. Set step/index parameters
+        11. Write out files
+        12. Runtime check to make sure all inputs are present.
+        13. Run EXE
+        14. Post process
+        15. Write out json file in output
+        16. Change dir
+        17. Lower active bit
+
+        '''
 
         self.logger.info(f"Step '{step}' waiting on inputs")
         while True:
@@ -1747,10 +1770,7 @@ class Chip:
             self.logger.info("Skipping version checking of '%s' tool in step '%s'.", tool, step)
 
         # Exe version logic
-        # TODO: add here
-
-        # Run hash on files consumed by current step
-        self.hash(step)
+        # TODO: add check
 
         #Copy Reference Scripts
         if 'cmdline' not in self.get('eda', tool, step, index, 'format'):
@@ -1906,7 +1926,6 @@ class Chip:
             # Use a manager.dict for keeping track of active processes
             # (one unqiue dict entry per process),
 
-
             # Run steps if set, otherwise run whole graph
             if self.get('steplist'):
                 steplist = self.get('steplist')
@@ -1938,6 +1957,11 @@ class Chip:
                         active[stepstr] = 0
 
             # Check tool setup before run
+            if self.hash():
+                self.logger.error('File hashing failed, exiting')
+                sys.exit(1)
+
+            # Check tool setup before run
             if self.check(step='all'):
                 self.logger.error('Global check() failed, exiting! See previous errors.')
                 sys.exit(1)
@@ -1946,7 +1970,7 @@ class Chip:
             processes = []
             for step in steplist:
                 for index in range(self.get('flowgraph', step, 'nproc')):
-                    processes.append(multiprocessing.Process(target=self.runstep,
+                    processes.append(multiprocessing.Process(target=self._runstep,
                                                              args=(step, str(index), active, error,)))
             # Start all processes
             for p in processes:
