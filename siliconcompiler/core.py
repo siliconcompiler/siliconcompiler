@@ -648,8 +648,12 @@ class Chip:
         if cfg is None:
             cfg = chip.cfg
 
-        keypath = ','.join(args[:-1])
+        # Verify that all keys are strings
+        for key in args[:-1]:
+            if not isinstance(key,str):
+                chip.logger.error(f"Key [{key}] is not a string [{args}]")
 
+        keypath = ','.join(args[:-1])
         chip.logger.debug(f"Setting [{keypath}] to {args[-1]}")
 
         all_args = list(args)
@@ -695,12 +699,14 @@ class Chip:
         if cfg is None:
             cfg = chip.cfg
 
+        # Verify that all keys are strings
+        for key in args[:-1]:
+            if not isinstance(key,str):
+                chip.logger.error(f"Key [{key}] is not a string [{args}]")
+
         keypath = ','.join(args[:-1])
 
-        chip.logger.debug('Appending value in config dictionary. Keypath = [%s] Value =%s',
-                          keypath,
-                          args[-1])
-
+        chip.logger.debug(f'Appending value {args[-1]} to [{keypath}]')
 
         all_args = list(args)
 
@@ -1073,7 +1079,7 @@ class Chip:
                                prefix=prefix)
 
     ###########################################################################
-    def merge(self, cfg1, cfg2, path=None):
+    def merge(self, cfg1, cfg2, append=False, path=None):
         """
         Merges the SC configuration dict cfg2 into cfg1.
 
@@ -1087,6 +1093,8 @@ class Chip:
             cfg2 (dict): New dict to merge into the original dict
             strict (bool): If True, d1 is considered the golden reference
                 and only d2 with identical keylists are merged.
+            append (bool): If True, for list variables,the new config valuse
+                are appended to the old values.
             path (sring): Temporary variable tracking key path
 
         """
@@ -1104,10 +1112,10 @@ class Chip:
                 val = self.get(*keylist, cfg=cfg2)
                 arg = keylist.copy()
                 arg.append(val)
-                if re.match(r'\[', typestr):
+                if bool(re.match(r'\[', typestr)) & append:
                     self.add(*arg, cfg=localcfg)
                 else:
-                    self.set(*arg, clobber=True, cfg=localcfg)
+                    self.set(*arg, cfg=localcfg, clobber=True)
 
         #returning dict
         return localcfg
@@ -1287,29 +1295,6 @@ class Chip:
 
         return score
 
-    ###########################################################################
-    def min(self, steplist, chip=None, cfg=None):
-        '''Return the the step with the minimum score (best) out of list
-        of steps provided.
-
-        '''
-
-        if chip is None:
-            chip = self
-
-        if cfg is None:
-            cfg = chip.cfg
-
-        chip.logger.debug('Calculating minimum from  %s', steplist)
-
-        minscore = Inf
-        minstep = None
-        for step in steplist:
-            score = self.score(step, chip=chip, cfg=cfg)
-            if score < minscore:
-                minstep = step
-
-        return minstep
 
     ###########################################################################
     def writegraph(self, graph, filename):
@@ -1548,36 +1533,20 @@ class Chip:
         print("-"*135)
         print(info, "\n")
 
+        #print(json.dumps(self.cfg, indent=4, sort_keys=True))
+
         # Stepping through all steps/indices and printing out metrics
         data = []
         steps = []
         colwidth = 8
-        for step in steplist:
-            #Creating centered columns
-            steps.append(step.center(colwidth))
-            for index in range(self.get('flowgraph', step, 'nproc')):
-                metricsfile = "/".join([jobdir,
-                                        step+str(index),
-                                        "outputs",
-                                        self.get('design') + ".pkg.json"])
-
-                #Load results from file (multi-thread safe)
-                with open(metricsfile, 'r') as f:
-                    sc_results = json.load(f)
-
-                #Copying over metric one at a time
-                for metric in self.getkeys('metric', 'default', 'default'):
-                    value = self.get('metric', step, str(index), metric, 'real', cfg=sc_results)
-                    self.set('metric', step, str(index), metric, 'real', value, clobber=True)
-
 
         #Creating Header
         steps = []
         colwidth = 8
         for step in steplist:
-            for index in range(self.get('flowgraph', step, 'nproc')):
-                stepstr = step + str(index)
-                steps.append(stepstr.center(colwidth))
+            index = self.get('flowstatus', step, 'select')
+            stepstr = step + str(index)
+            steps.append(stepstr.center(colwidth))
 
         #Creating table of real values
         metrics = []
@@ -1585,18 +1554,18 @@ class Chip:
             metrics.append(" " + metric)
             row = []
             for step in steplist:
-                for index in range(self.get('flowgraph', step, 'nproc')):
-                    row.append(" " +
-                               str(self.get('metric', step, str(index), metric, 'real')).center(colwidth))
+                index = self.get('flowstatus', step, 'select')
+                value = str(self.get('metric', step, str(index), metric, 'real'))
+                row.append(" " + value.center(colwidth))
             data.append(row)
 
         #Creating goodness score for step
         metrics.append(" " + '**score**')
         row = []
         for step in steplist:
-            for index in range(self.get('flowgraph', step, 'nproc')):
-                step_score = round(self.score(step, str(index)), 2)
-                row.append(" " + str(step_score).center(colwidth))
+            index = self.get('flowstatus', step, 'select')
+            step_score = round(self.score(step, str(index)), 2)
+            row.append(" " + str(step_score).center(colwidth))
         data.append(row)
 
         pandas.set_option('display.max_rows', 500)
@@ -1667,17 +1636,28 @@ class Chip:
         return list(allpaths)
 
     ###########################################################################
-    def select(self, step, op='min'):
+    def minimum(self, step, chip=None, cfg=None):
         '''
-        Merges multiple inputs into a single directory 'step/inputs'.
-        The operation can be an 'or' operation or 'min' operation.
+        Returns the index with the 'min' score for a step.
         '''
 
-        steplist = self.get('flowgraph', step, 'input')
-        #TODO: Add logic for stepping through procs, steps and selecting
+        if chip is None:
+            chip = self
 
-        index = 0
-        return (steplist, index)
+        if cfg is None:
+            cfg = chip.cfg
+
+
+        chip.logger.debug(f"Finding minimum index for step '{step}'")
+
+        min_score = float('Inf')
+        for index in range(self.get('flowgraph', step, 'nproc')):
+            index_score = self.score(step, str(index), chip=chip, cfg=cfg)
+            if (index_score <= min_score):
+                min_score = index_score
+                winner = index
+
+        return winner
 
     ###########################################################################
     def runstep(self, step, index, active, error):
@@ -1704,10 +1684,12 @@ class Chip:
         #Checking that there were no errors in previous steps
         halt = 0
         for input_step in self.get('flowgraph', step, 'input'):
-             if input_step != 'source':
+            if input_step != 'source':
+                index_error = 1
                 for input_index in range(self.get('flowgraph', input_step, 'nproc')):
                     input_str = input_step + str(input_index)
-                    halt = halt + error[input_str]
+                    index_error = index_error & error[input_str]
+                halt = halt + index_error
         if halt:
             self.logger.error('Halting step %s due to previous errors', step)
             self._haltstep(step, index, error, active)
@@ -1732,15 +1714,22 @@ class Chip:
         os.makedirs('outputs', exist_ok=True)
         os.makedirs('reports', exist_ok=True)
 
-        # Copy files from previous step unless first step
-        # Package/import step is special in that it has no inputs
+        # Collect source files for first step
         if 'source' in self.get('flowgraph', step, 'input'):
             self.collect(outdir='inputs')
         elif not self.get('remote', 'addr'):
-            #select the previous step outputs to copy over
-            steplist, mindex = self.select(step)
-            for item in steplist:
-                shutil.copytree("../"+item+str(mindex)+"/outputs", 'inputs/')
+            # Select inputs from previous steps
+            for input_step in self.get('flowgraph', step, 'input'):
+                # merge in all previous data
+                for input_index in range(self.get('flowgraph', input_step, 'nproc')):
+                    design = self.get('design')
+                    cfgfile = f"../{input_step}{input_index}/outputs/{design}.pkg.json"
+                    self.cfg = self.readcfg(cfgfile)
+                # calculate the minimum index
+                min_index = self.minimum(input_step)
+                self.set('flowstatus', input_step, 'select', min_index, clobber=True)
+                # copy files
+                shutil.copytree(f"../{input_step}{min_index}/outputs", 'inputs/')
 
         # Check Version if switch exists
         #if self.getkeys('eda', tool, step, str(index), 'vswitch'):
@@ -1978,6 +1967,18 @@ class Chip:
                     if  error[stepstr] > 0:
                         self.logger.error('Run() failed, exiting! See previous errors.')
                         sys.exit(1)
+
+            # Merge cfg back from last executed step
+            # last step must have nproc = 1
+            laststep = steplist[-1]
+            self.set('flowstatus',laststep,'select',0)
+            design = self.get('design')
+            stepdir = "/".join([self.get('dir'),
+                                design,
+                                self.get('jobname') + str(self.get('jobid')),
+                                laststep + str(0)])
+
+            self.cfg = self.readcfg(f"{stepdir}/outputs/{design}.pkg.json")
 
             # For local encrypted jobs, re-encrypt and delete the decrypted data.
             if 'decrypt_key' in self.status:
