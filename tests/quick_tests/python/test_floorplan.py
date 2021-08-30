@@ -42,7 +42,10 @@ def make_fp():
     fp.place_pins(pins[n:2*n], die_w - hwidth, spacing_y - hheight/2, 0, spacing_y, hwidth, hheight, hmetal, snap=True) # e
     fp.place_pins(pins[2*n:3*n], 0, spacing_y - hheight/2, 0, spacing_y, hwidth, hheight, hmetal, snap=True) # w
 
-    fp.place_obs(['m1', 'm2'])
+    fp.place_blockage(10, 10, 10, 10)
+    fp.place_blockage(10, 10, 10, 10, 'm1')
+
+    fp.place_obstruction(0, 0, die_w, die_h, ['m1', 'm2'])
 
     return fp
 
