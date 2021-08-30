@@ -53,7 +53,8 @@ END PINS
 
 BLOCKAGES {{ fp.blockages | length }} ;
     {% for blockage in fp.blockages %}
-    - PLACEMENT
+    - {% if blockage.layer %}LAYER {{ blockage.layer }}{% else %}PLACEMENT{% endif %}
+
         RECT {{ blockage.ll | map('scale') | render_tuple }} {{ blockage.ur | map('scale') | render_tuple }} ;
     {% endfor %}
 END BLOCKAGES

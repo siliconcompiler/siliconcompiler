@@ -206,17 +206,11 @@ MACRO test
 
   OBS
     LAYER metal1 ;
-    RECT 0
-         0
-         100.8
-         100.8 ;
+    RECT 0 0 100.8 100.8 ;
   END
   OBS
     LAYER metal2 ;
-    RECT 0
-         0
-         100.8
-         100.8 ;
+    RECT 0 0 100.8 100.8 ;
   END
 
 END test
