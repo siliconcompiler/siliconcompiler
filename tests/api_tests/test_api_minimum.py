@@ -1,11 +1,11 @@
-import os
+# Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
+import sys
 import siliconcompiler
+from siliconcompiler.schema import schema_cfg
+from siliconcompiler.schema import schema_flowgraph
 
 if __name__ != "__main__":
     from tests.fixtures import test_wrapper
-
-
-
 
 ##################################
 def test_api_minimum():
@@ -43,5 +43,6 @@ def test_api_minimum():
     # expected result
     assert chip.get('flowstatus', 'syn', 'select') == 9
 
+#########################
 if __name__ == "__main__":
     test_api_minimum()
