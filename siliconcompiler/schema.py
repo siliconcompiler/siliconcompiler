@@ -33,6 +33,9 @@ def schema_cfg():
     # Flow graph Setup
     cfg = schema_flowgraph(cfg)
 
+    # Keeping track of flow execution
+    cfg = schema_flowstatus(cfg)
+
     # Design Hiearchy
     cfg = schema_hier(cfg)
 
@@ -1453,8 +1456,6 @@ def schema_flowgraph(cfg, step='default'):
         """
     }
 
-
-
     # Flow input merging
     cfg['flowgraph'][step]['mergeop'] = {
         'switch': "-flowgraph_mergeop 'step <str>'",
@@ -1520,6 +1521,34 @@ def schema_flowgraph(cfg, step='default'):
         'help': """
         Name of the tool to use for showing the output file for a specific step in
         the exeecution flowgraph.
+        """
+    }
+
+    return cfg
+
+
+###########################################################################
+# Flow Status
+###########################################################################
+def schema_flowstatus(cfg, step='default'):
+
+    cfg['flowstatus'] = {}
+    cfg['flowstatus'][step] =  {}
+
+    # Flow step parallelism
+    cfg['flowstatus'][step]['select'] = {
+        'switch': "-flowstatus_select 'step <int>'",
+        'type': 'int',
+        'lock': 'false',
+        'requirement': 'all',
+        'defvalue': None,
+        'short_help': 'Flowgraph index select status',
+        'example': [
+            "cli: -flowstatus_select 'cts 10'",
+            "api:  chip.set('flowstatus','select','cts,'10')"],
+        'help': """
+        Status parameter that records the index selected as input by
+        the next step in the flowgraph.
         """
     }
 
