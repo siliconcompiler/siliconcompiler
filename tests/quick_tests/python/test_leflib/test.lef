@@ -1,0 +1,9 @@
+VERSION 5.8 ;
+
+UNITS
+	DATABASE MICRONS 1000 ;
+END UNITS
+
+MACRO test
+   SIZE 5 by 5 ;
+END macro

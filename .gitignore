@@ -31,3 +31,14 @@ MANIFEST
 
 # Test results
 pytest_tmp/
+
+# Scikit-build build directory
+_skbuild/
+
+# C++ module for leflib gets installed in leflib/ after running pip install -e .
+siliconcompiler/leflib/_core.*.so
+
+# These are unecessary extra outputs of the leflib build process, but I couldn't
+# figure out how to configure CMake not to copy them into leflib/
+siliconcompiler/leflib/lib/
+siliconcompiler/leflib/include/

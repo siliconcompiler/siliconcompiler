@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from setuptools import setup
+from skbuild import setup
 
 with open("README.md", "r", encoding="utf-8") as readme:
   long_desc = readme.read()
@@ -17,5 +17,5 @@ setup(
     packages=["siliconcompiler"],
     python_requires=">=3.6",
     entry_points={"console_scripts": ["sc=siliconcompiler.__main__:main", "sc-server=siliconcompiler.server:main"]},
-    
+    cmake_install_dir="siliconcompiler/leflib",
 )
