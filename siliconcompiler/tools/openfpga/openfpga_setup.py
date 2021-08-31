@@ -14,13 +14,14 @@ def setup_tool(chip, step, index):
     ''' Sets up default settings on a per step basis
     '''
 
+    tool = 'openfpga'
     refdir = 'siliconcompiler/tools/openfpga'
 
-    tool = 'openfpga'
     chip.set('eda', tool, step, index, 'version', '0.0')
-    chip.set('eda', tool, step, index, 'format', 'cmdline')
     chip.set('eda', tool, step, index, 'vendor', 'openfpga')
+    chip.set('eda', tool, step, index, 'copy', 'true')
     chip.set('eda', tool, step, index, 'refdir', refdir)
+
     if step == 'apr':
         chip.set('eda', tool, step, index, 'exe', 'openfpga')
         chip.add('eda', tool, step, index, 'option', 'cmdline', '-batch -f ' + OPENFPGA_SCRIPT)
@@ -29,7 +30,7 @@ def setup_tool(chip, step, index):
         # are integrated in shell script
         chip.set('eda', tool, step, index, 'exe', 'cp')
         chip.add('eda', tool, step, index, 'option', 'cmdline', ' -r inputs/ outputs/')
-    chip.set('eda', tool, step, index, 'copy', 'true')
+
 
 def pre_process(chip, step, index):
     topmodule = chip.get('design')

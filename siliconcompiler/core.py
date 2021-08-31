@@ -1139,7 +1139,10 @@ class Chip:
         if cfg is None:
             cfg = chip.cfg
 
-        chip.logger.info("Running check() for step '%s'", step)
+        if step ==None:
+            chip.logger.info("Running pre-run check.")
+        else:
+            chip.logger.info("Running check() for step '%s'", step)
 
         # Checking
 
@@ -1726,6 +1729,8 @@ class Chip:
                             self.get('jobname') + str(self.get('jobid')),
                             step + index])
 
+        self.logger.debug(f"Stepdir={stepdir}")
+
         stepdir = os.path.abspath(stepdir)
 
         # Directory manipulation
@@ -1774,10 +1779,9 @@ class Chip:
         # TODO: add check
 
         #Copy Reference Scripts
-        if 'cmdline' not in self.get('eda', tool, step, index, 'format'):
-            if self.get('eda', tool, step, index, 'copy'):
-                refdir = schema_path(self.get('eda', tool, step, index, 'refdir'))
-                shutil.copytree(refdir, ".", dirs_exist_ok=True)
+        if self.get('eda', tool, step, index, 'copy'):
+            refdir = schema_path(self.get('eda', tool, step, index, 'refdir'))
+            shutil.copytree(refdir, ".", dirs_exist_ok=True)
 
         # If it exists, run pre_process in stepdir
         try:
@@ -1797,15 +1801,16 @@ class Chip:
         logfile = exe + ".log"
         options = self.get('eda', tool, step, index, 'option', 'cmdline')
 
-        scripts = []
-        if 'cmdline' not in self.get('eda', tool, step, index, 'format' ):
-            for value in self.get('eda', tool, step, index, 'script'):
-                abspath = schema_path(value)
-                scripts.append(abspath)
 
         cmdlist = [exe]
         cmdlist.extend(options)
-        cmdlist.extend(scripts)
+
+        if self.get('eda', tool, step, index, 'script'):
+            scripts = []
+            for value in self.get('eda', tool, step, index, 'script'):
+                abspath = schema_path(value)
+                scripts.append(abspath)
+            cmdlist.extend(scripts)
 
         if self.get('quiet') & (step not in self.get('bkpt')):
             cmdlist.append(" &> " + logfile)
@@ -1941,6 +1946,36 @@ class Chip:
                 else:
                     active[stepstr] = 0
 
+        # Check tool setup before run
+        if self.hash():
+            self.logger.error('File hashing failed, exiting')
+            sys.exit(1)
+
+        # Check tool setup before run
+        if self.check():
+            self.logger.error('Global check() failed, exiting! See previous errors.')
+            sys.exit(1)
+
+        if self.get('checkonly'):
+            self.logger.info("Exiting after check() (checkonly=True)")
+            sys.exit()
+
+        # Implement auto-update of jobincrement
+        dirname = self.get('dir')
+        design = self.get('design')
+        jobname = self.get('jobname')
+
+        try:
+            alljobs = os.listdir(dirname + "/" + design)
+            if self.get('jobincr'):
+                jobid = 0
+                for item in alljobs:
+                    m = re.match(jobname+r'(\d+)', item)
+                    if m:
+                        jobid = max(jobid, int(m.group(1)))
+                self.set('jobid', jobid + 1)
+        except:
+            pass
 
         # Remote workflow: Dispatch the Chip to a remote server for processing.
         if self.get('remote', 'addr'):
@@ -1961,16 +1996,6 @@ class Chip:
             if self.get('remote', 'key'):
                 # Decrypt the job's data for processing.
                 client_decrypt(self)
-
-            # Check tool setup before run
-            if self.hash():
-                self.logger.error('File hashing failed, exiting')
-                sys.exit(1)
-
-            # Check tool setup before run
-            if self.check(step='all'):
-                self.logger.error('Global check() failed, exiting! See previous errors.')
-                sys.exit(1)
 
             # Create all processes
             processes = []
@@ -2000,13 +2025,13 @@ class Chip:
         # Merge cfg back from last executed step
         # last step must have nproc = 1
         laststep = steplist[-1]
-        self.set('flowstatus',laststep,'select',0)
-        design = self.get('design')
-        stepdir = "/".join([self.get('dir'),
+        lastdir = "/".join([dirname,
                             design,
-                            self.get('jobname') + str(self.get('jobid')),
+                            jobname + str(self.get('jobid')),
                             laststep + str(0)])
-        self.cfg = self.readcfg(f"{stepdir}/outputs/{design}.pkg.json")
+
+        self.cfg = self.readcfg(f"{lastdir}/outputs/{design}.pkg.json")
+        self.set('flowstatus',laststep,'select',0)
 
     ###########################################################################
     def show(self, filename, kind=None):

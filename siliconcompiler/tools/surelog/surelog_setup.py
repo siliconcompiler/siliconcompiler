@@ -18,9 +18,7 @@ def setup_tool(chip, step, index):
     chip.set('eda', tool, step, index, 'exe', 'surelog')
     chip.set('eda', tool, step, index, 'vendor', 'sureolog')
     chip.set('eda', tool, step, index, 'version', '0.0')
-    chip.set('eda', tool, step, index, 'format', 'cmdline')
     chip.set('eda', tool, step, index, 'threads', '4')
-    chip.set('eda', tool, step, index, 'copy', 'false')
 
     # -parse is slow but ensures the SV code is valid
     # we might want an option to control when to enable this

@@ -1884,24 +1884,6 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         """
     }
 
-    # exe type/format
-    cfg['eda'][tool][step][index]['format'] = {
-        'switch': "-eda_format 'tool step index <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'requirement': 'all',
-        'defvalue': None,
-        'short_help': 'Script Format',
-        'example': ["cli: -eda_format 'openroad cts 0 tcl'",
-                    "api: chip.set('eda','openroad, 'cts','0','format','tcl')"],
-        'help': """
-        Format of the configuration file specified on a per tool and per
-        step basis. Valid formats depend on the type of tool. Supported formats
-        include tcl, yaml, json, command line.The keyword 'cmdline' is reserved
-        for executables without TCL interfaces.
-        """
-    }
-
     # parallelism
     cfg['eda'][tool][step][index]['threads'] = {
         'switch': "-eda_threads 'tool step index <int>'",
@@ -2714,7 +2696,7 @@ def schema_options(cfg):
         'type': 'bool',
         'lock': 'false',
         'requirement': 'all',
-        'defvalue': 'true',
+        'defvalue': 'false',
         'short_help': 'Job ID Autoincrement Mode ',
         'example': ["cli: -jobincr",
                     "api: chip.set('jobincr', true)"],
@@ -2804,21 +2786,6 @@ def schema_options(cfg):
         Specifies that tools should be lenient and supress some warnigns that
         may or may not indicate design issues. The default is to enforce strict
         checks for all steps.
-        """
-    }
-
-    cfg['clean'] = {
-        'switch': "-clean <bool>",
-        'type': 'bool',
-        'lock': 'false',
-        'requirement': 'all',
-        'defvalue': 'false',
-        'short_help': 'Keep essential files only',
-        'example': ["cli: -clean",
-                    "api: chip.set('clean', 'true')"],
-        'help': """
-        Deletes all non-essential files at the end of each step and creates a
-        'zip' archive of the job folder.
         """
     }
 
