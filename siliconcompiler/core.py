@@ -1288,16 +1288,19 @@ class Chip:
         if cfg is None:
             cfg = chip.cfg
 
-        chip.logger.debug('Calculating score for step %s, index %s', step, index)
 
-        score = 0
-        for metric in self.getkeys('metric', 'default', 'default', chip=chip, cfg=cfg):
-            value = self.get('metric', step, index, metric, 'real', chip=chip, cfg=cfg)
-            product = value * self.get('flowgraph', step, 'weight', metric, chip=chip, cfg=cfg)
-            score = score + product
+        if not self.get('flowstatus', step, index, 'error'):
+            score = 0
+            for metric in self.getkeys('metric', 'default', 'default', chip=chip, cfg=cfg):
+                value = self.get('metric', step, index, metric, 'real', chip=chip, cfg=cfg)
+                product = value * self.get('flowgraph', step, 'weight', metric, chip=chip, cfg=cfg)
+                score = score + product
+        else:
+            score = float("inf")
 
+
+        chip.logger.info(f"Score is  {score} for step '{step}' and index '{index}'")
         return score
-
 
     ###########################################################################
     def writegraph(self, graph, filename):
@@ -1653,10 +1656,10 @@ class Chip:
 
         chip.logger.debug(f"Finding minimum index for step '{step}'")
 
-        min_score = float('Inf')
+        min_score = float('inf')
         for index in range(self.get('flowgraph', step, 'nproc')):
             index_score = self.score(step, str(index), chip=chip, cfg=cfg)
-            if (index_score <= min_score):
+            if (index_score < min_score):
                 min_score = index_score
                 winner = index
 
@@ -1707,21 +1710,7 @@ class Chip:
             # Short sleep
             time.sleep(0.1)
 
-        #Checking that there were no errors in previous steps
-        halt = 0
-        for input_step in self.get('flowgraph', step, 'input'):
-            if input_step != 'source':
-                index_error = 1
-                for input_index in range(self.get('flowgraph', input_step, 'nproc')):
-                    input_str = input_step + str(input_index)
-                    index_error = index_error & error[input_str]
-                halt = halt + index_error
-        if halt:
-            self.logger.error('Halting step %s due to previous errors', step)
-            self._haltstep(step, index, error, active)
-
-        # starting actual step execution
-        self.logger.info(f"Starting step '{step}'")
+      
 
         # Build directory
         stepdir = "/".join([self.get('dir'),
@@ -1743,6 +1732,7 @@ class Chip:
         os.makedirs('reports', exist_ok=True)
 
         # Collect source files for first step
+        design = self.get('design')
         if 'source' in self.get('flowgraph', step, 'input'):
             self.collect(outdir='inputs')
         elif not self.get('remote', 'addr'):
@@ -1750,16 +1740,37 @@ class Chip:
             for input_step in self.get('flowgraph', step, 'input'):
                 # merge in all previous data
                 for input_index in range(self.get('flowgraph', input_step, 'nproc')):
-                    design = self.get('design')
                     cfgfile = f"../{input_step}{input_index}/outputs/{design}.pkg.json"
                     if os.path.isfile(cfgfile):
                         self.cfg = self.readcfg(cfgfile)
-                # calculate the minimum index
+           
+
+        #Checking that there were no errors in previous steps
+        halt = 0
+        for input_step in self.get('flowgraph', step, 'input'):
+            if input_step != 'source':
+                step_error = 1
+                for input_index in range(self.get('flowgraph', input_step, 'nproc')):
+                    input_str = input_step + str(input_index)
+                    index_error = error[input_str]
+                    self.set('flowstatus', input_step, str(input_index), 'error', index_error)
+                    step_error = step_error & index_error
+                halt = halt + step_error
+        if halt:
+            self.logger.error('Halting step %s due to previous errors', step)
+            self._haltstep(step, index, error, active)
+
+        # starting actual step execution
+        self.logger.info(f"Starting step '{step}'")
+
+        # calculate the minimum index based on index data below
+        for input_step in self.get('flowgraph', step, 'input'):
+            if input_step != 'source':
                 min_index = self.minimum(input_step)
-                self.set('flowstatus', input_step, 'select', min_index, clobber=True)
+                self.set('flowstatus', input_step, 'select', str(min_index), clobber=True)
                 # copy files
                 shutil.copytree(f"../{input_step}{min_index}/outputs", 'inputs/')
-
+        
         # Check Version if switch exists
         #if self.getkeys('eda', tool, step, str(index), 'vswitch'):
         tool = self.get('flowgraph', step, 'tool')
@@ -1872,18 +1883,19 @@ class Chip:
             self.logger.error('Post-processing check failed for step %s', step)
             self._haltstep(step, index, error, active)
 
-        # save output manifest
+        # save a successful manifest with error = 0
+        self.set('flowstatus', step, str(index), 'error', 0)
         self.writecfg("outputs/" + self.get('design') +'.pkg.json')
 
         # return fo original directory
         os.chdir(cwd)
 
-        # clearing active bit
+        # clearing active and error bits for multi-processing
+        error[step + str(index)] = 0
         active[step + str(index)] = 0
 
     ###########################################################################
     def _haltstep(self, step, index, error, active):
-        error[step + str(index)] = 1
         active[step + str(index)] = 0
         sys.exit(1)
 
@@ -1941,8 +1953,9 @@ class Chip:
             # Set up tools and processes
             for step in self.getkeys('flowgraph'):
                 for index in range(self.get('flowgraph', step, 'nproc')):
+                    self.set('flowstatus', step, str(index), 'error', 1)
                     stepstr = step + str(index)
-                    error[stepstr] = 0
+                    error[stepstr] = 1
                     if step in steplist:
                         #setting step to active
                         active[stepstr] = 1
@@ -2010,13 +2023,16 @@ class Chip:
             for p in processes:
                 p.join()
 
-            # Make a clean exit if a process failed
+            # Make a clean exit if one of the steps failed
+            halt = 0
             for step in self.getkeys('flowgraph'):
+                index_error = 1
                 for index in range(self.get('flowgraph', step, 'nproc')):
                     stepstr = step + str(index)
-                    if  error[stepstr] > 0:
-                        self.logger.error('Run() failed, exiting! See previous errors.')
-                        sys.exit(1)
+                    index_error = index_error & error[stepstr]
+            if halt:
+                self.logger.error('Run() failed, exiting! See previous errors.')
+                sys.exit(1)
 
             # For local encrypted jobs, re-encrypt and delete the decrypted data.
             if self.get('remote', 'key'):
