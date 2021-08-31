@@ -10,11 +10,8 @@ def setup_tool(chip, step, index):
     ''' Sets up default settings on a per step basis
     '''
 
-    refdir = 'siliconcompiler/tools/nextpnr'
     tool = 'nextpnr'
-    chip.set('eda', tool, step, index, 'format', 'cmdline')
     chip.set('eda', tool, step, index, 'vendor', 'nextpnr')
-    chip.set('eda', tool, step, index, 'refdir', refdir)
     chip.set('eda', tool, step, index, 'exe', 'nextpnr-ice40')
     chip.set('eda', tool, step, index, 'vswitch', '--version')
     chip.set('eda', tool, step, index, 'version', 'c73d4cf6')

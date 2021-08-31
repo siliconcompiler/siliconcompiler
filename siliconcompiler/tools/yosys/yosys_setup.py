@@ -16,7 +16,6 @@ def setup_tool(chip, step, index):
 
     tool = 'yosys'
     refdir = 'siliconcompiler/tools/yosys'
-    chip.set('eda', tool, step, index, 'format', 'tcl', clobber=False)
     chip.set('eda', tool, step, index, 'copy', 'true', clobber=False)
     chip.set('eda', tool, step, index, 'vendor', 'yosys', clobber=False)
     chip.set('eda', tool, step, index, 'exe', 'yosys', clobber=False)
@@ -38,11 +37,12 @@ def setup_tool(chip, step, index):
         chip.add('eda', tool, step, index, 'req', 'constraint')
         chip.add('eda', tool, step, index, 'req', ",".join(['fpga','partname']))
 
+def pre_process(chip, step, index):
     #TODO: remove special treatment for fpga??
-    if chip.get('target'):
-        targetlist = chip.get('target').split('_')
-    else:
-        targetlist = ['no','no']
+    if chip.get('target') is None:
+        return
+    targetlist = chip.get('target').split('_')
+
     if targetlist[0] == 'openfpga':
         # Synthesis for OpenFPGA/VPR needs to know the size of the LUTs in the
         # FPGA architecture. We infer this from the VPR architecture file, then

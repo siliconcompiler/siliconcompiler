@@ -16,7 +16,6 @@ def setup_tool(chip, step, index):
      refdir = 'siliconcompiler/tools/klayout'
 
      chip.set('eda', tool, step, index, 'exe', 'klayout', clobber=False)
-     chip.set('eda', tool, step, index, 'format', 'json', clobber=False)
      chip.set('eda', tool, step, index, 'copy', 'true', clobber=False)
      chip.set('eda', tool, step, index, 'refdir', refdir, clobber=False)
      chip.set('eda', tool, step, index, 'script', refdir + '/klayout_export.py', clobber=False)

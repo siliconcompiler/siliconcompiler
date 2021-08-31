@@ -1139,7 +1139,10 @@ class Chip:
         if cfg is None:
             cfg = chip.cfg
 
-        chip.logger.info("Running check() for step '%s'", step)
+        if step ==None:
+            chip.logger.info("Running pre-run check.")
+        else:
+            chip.logger.info("Running check() for step '%s'", step)
 
         # Checking
 
@@ -1365,7 +1368,7 @@ class Chip:
                             shutil.copy(filepath, outdir)
 
     ###########################################################################
-    def hash(self, step, chip=None, cfg=None):
+    def hash(self, chip=None, cfg=None):
         '''Computes sha256 hash of files based on hashmode set in cfg dict.
 
         Valid hashing modes:
@@ -1660,10 +1663,33 @@ class Chip:
         return winner
 
     ###########################################################################
-    def runstep(self, step, index, active, error):
+    def _runstep(self, step, index, active, error):
+        '''
+        Private per step run method called by run().
+        The method takes in a step string and index string to indicated what
+        to run. Execution state coordinated through the active/error
+        multiprocessing Manager dicts.
 
-        # Explicit wait loop until inputs have been resolved
-        # This should be a shared object to not be messy
+        Execution flow:
+        1. Wait in loop until all previous steps/indexes have completed
+        2. Check inputs for errors. Halt if one of the steps yielded
+           zero valid results
+        3. Create local working directory
+        4. Merge in results input steps (all indices).
+        5. Select winning index and set flowstatus
+        6. Check the execution version
+        8. Copy script/refdir to local dir
+        9. Construct command line
+        10. Set step/index parameters
+        11. Write out files
+        12. Runtime check to make sure all inputs are present.
+        13. Run EXE
+        14. Post process
+        15. Write out json file in output
+        16. Change dir
+        17. Lower active bit
+
+        '''
 
         self.logger.info(f"Step '{step}' waiting on inputs")
         while True:
@@ -1703,6 +1729,8 @@ class Chip:
                             self.get('jobname') + str(self.get('jobid')),
                             step + index])
 
+        self.logger.debug(f"Stepdir={stepdir}")
+
         stepdir = os.path.abspath(stepdir)
 
         # Directory manipulation
@@ -1724,7 +1752,8 @@ class Chip:
                 for input_index in range(self.get('flowgraph', input_step, 'nproc')):
                     design = self.get('design')
                     cfgfile = f"../{input_step}{input_index}/outputs/{design}.pkg.json"
-                    self.cfg = self.readcfg(cfgfile)
+                    if os.path.isfile(cfgfile):
+                        self.cfg = self.readcfg(cfgfile)
                 # calculate the minimum index
                 min_index = self.minimum(input_step)
                 self.set('flowstatus', input_step, 'select', min_index, clobber=True)
@@ -1747,30 +1776,41 @@ class Chip:
             self.logger.info("Skipping version checking of '%s' tool in step '%s'.", tool, step)
 
         # Exe version logic
-        # TODO: add here
-
-        # Run hash on files consumed by current step
-        self.hash(step)
+        # TODO: add check
 
         #Copy Reference Scripts
-        if 'cmdline' not in self.get('eda', tool, step, index, 'format'):
-            if self.get('eda', tool, step, index, 'copy'):
-                refdir = schema_path(self.get('eda', tool, step, index, 'refdir'))
-                shutil.copytree(refdir, ".", dirs_exist_ok=True)
+        if self.get('eda', tool, step, index, 'copy'):
+            refdir = schema_path(self.get('eda', tool, step, index, 'refdir'))
+            shutil.copytree(refdir, ".", dirs_exist_ok=True)
+
+        # If it exists, run pre_process in stepdir
+        try:
+            tool = self.get('flowgraph', step, 'tool')
+            searchdir = "siliconcompiler.tools." + tool
+            modulename = '.'+tool+'_setup'
+            module = importlib.import_module(modulename, package=searchdir)
+            if hasattr(module, "pre_process"):
+                pre_process = getattr(module, "pre_process")
+                pre_process(self, step, index)
+        except:
+            traceback.print_exc()
+            self.logger.error(f"Pre-processing failed for '{tool}' in step '{step}'")
+            self._haltstep(step, index, error, active)
 
         # Construct command line
         logfile = exe + ".log"
         options = self.get('eda', tool, step, index, 'option', 'cmdline')
 
-        scripts = []
-        if 'cmdline' not in self.get('eda', tool, step, index, 'format' ):
-            for value in self.get('eda', tool, step, index, 'script'):
-                abspath = schema_path(value)
-                scripts.append(abspath)
 
         cmdlist = [exe]
         cmdlist.extend(options)
-        cmdlist.extend(scripts)
+
+        if self.get('eda', tool, step, index, 'script'):
+            scripts = []
+            for value in self.get('eda', tool, step, index, 'script'):
+                abspath = schema_path(value)
+                scripts.append(abspath)
+            cmdlist.extend(scripts)
 
         if self.get('quiet') & (step not in self.get('bkpt')):
             cmdlist.append(" &> " + logfile)
@@ -1871,8 +1911,77 @@ class Chip:
         error = manager.dict()
         active = manager.dict()
 
+        # Launch a thread for eact step in flowgraph
+        # Use a shared even for errors
+        # Use a manager.dict for keeping track of active processes
+        # (one unqiue dict entry per process),
+
+        # Run steps if set, otherwise run whole graph
+        if self.get('steplist'):
+            steplist = self.get('steplist')
+        else:
+            steplist = self.getsteps()
+
+        # Set up tools and processes
+        for step in self.getkeys('flowgraph'):
+            for index in range(self.get('flowgraph', step, 'nproc')):
+                stepstr = step + str(index)
+                error[stepstr] = 0
+                if step in steplist:
+                    #setting step to active
+                    active[stepstr] = 1
+                    # Load module (could fail)
+                    try:
+                        tool = self.get('flowgraph', step, 'tool')
+                        searchdir = "siliconcompiler.tools." + tool
+                        modulename = '.'+tool+'_setup'
+                        self.logger.info(f"Setting up tool '{tool}' in step '{step}'")
+                        module = importlib.import_module(modulename, package=searchdir)
+                        setup_tool = getattr(module, "setup_tool")
+                        setup_tool(self, step, str(index))
+                    except:
+                        traceback.print_exc()
+                        self.logger.error(f"Tool setup failed for '{tool}' in step '{step}'")
+                        self.error = 1
+                else:
+                    active[stepstr] = 0
+
+        # Check tool setup before run
+        if self.hash():
+            self.logger.error('File hashing failed, exiting')
+            sys.exit(1)
+
+        # Check tool setup before run
+        if self.check():
+            self.logger.error('Global check() failed, exiting! See previous errors.')
+            sys.exit(1)
+
+        if self.get('checkonly'):
+            self.logger.info("Exiting after check() (checkonly=True)")
+            sys.exit()
+
+        # Implement auto-update of jobincrement
+        dirname = self.get('dir')
+        design = self.get('design')
+        jobname = self.get('jobname')
+
+        try:
+            alljobs = os.listdir(dirname + "/" + design)
+            if self.get('jobincr'):
+                jobid = 0
+                for item in alljobs:
+                    m = re.match(jobname+r'(\d+)', item)
+                    if m:
+                        jobid = max(jobid, int(m.group(1)))
+                self.set('jobid', jobid + 1)
+        except:
+            pass
+
         # Remote workflow: Dispatch the Chip to a remote server for processing.
         if self.get('remote', 'addr'):
+            # Pre-process: Run an 'import' stage locally, and upload the
+            # in-progress build directory to the remote server.
+            # Data is encrypted if user / key were specified.
             # run remote process
             active['import0'] = 1
             remote_preprocess(self)
@@ -1888,52 +1997,11 @@ class Chip:
                 # Decrypt the job's data for processing.
                 client_decrypt(self)
 
-            # Launch a thread for eact step in flowgraph
-            # Use a shared even for errors
-            # Use a manager.dict for keeping track of active processes
-            # (one unqiue dict entry per process),
-
-
-            # Run steps if set, otherwise run whole graph
-            if self.get('steplist'):
-                steplist = self.get('steplist')
-            else:
-                steplist = self.getsteps()
-
-            # Set up tools and processes
-            for step in self.getkeys('flowgraph'):
-                for index in range(self.get('flowgraph', step, 'nproc')):
-                    stepstr = step + str(index)
-                    error[stepstr] = 0
-                    if step in steplist:
-                        #setting step to active
-                        active[stepstr] = 1
-                        # Load module (could fail)
-                        try:
-                            tool = self.get('flowgraph', step, 'tool')
-                            searchdir = "siliconcompiler.tools." + tool
-                            modulename = '.'+tool+'_setup'
-                            self.logger.info(f"Setting up tool '{tool}' in step '{step}'")
-                            module = importlib.import_module(modulename, package=searchdir)
-                            setup_tool = getattr(module, "setup_tool")
-                            setup_tool(self, step, str(index))
-                        except:
-                            traceback.print_exc()
-                            self.logger.error(f"Tool setup failed for '{tool}' in step '{step}'")
-                            self.error = 1
-                    else:
-                        active[stepstr] = 0
-
-            # Check tool setup before run
-            if self.check(step='all'):
-                self.logger.error('Global check() failed, exiting! See previous errors.')
-                sys.exit(1)
-
             # Create all processes
             processes = []
             for step in steplist:
                 for index in range(self.get('flowgraph', step, 'nproc')):
-                    processes.append(multiprocessing.Process(target=self.runstep,
+                    processes.append(multiprocessing.Process(target=self._runstep,
                                                              args=(step, str(index), active, error,)))
             # Start all processes
             for p in processes:
@@ -1950,21 +2018,20 @@ class Chip:
                         self.logger.error('Run() failed, exiting! See previous errors.')
                         sys.exit(1)
 
-            # Merge cfg back from last executed step
-            # last step must have nproc = 1
-            laststep = steplist[-1]
-            self.set('flowstatus',laststep,'select',0)
-            design = self.get('design')
-            stepdir = "/".join([self.get('dir'),
-                                design,
-                                self.get('jobname') + str(self.get('jobid')),
-                                laststep + str(0)])
-
             # For local encrypted jobs, re-encrypt and delete the decrypted data.
             if self.get('remote', 'key'):
                 client_encrypt(self)
 
-            self.cfg = self.readcfg(f"{stepdir}/outputs/{design}.pkg.json")
+        # Merge cfg back from last executed step
+        # last step must have nproc = 1
+        laststep = steplist[-1]
+        lastdir = "/".join([dirname,
+                            design,
+                            jobname + str(self.get('jobid')),
+                            laststep + str(0)])
+
+        self.cfg = self.readcfg(f"{lastdir}/outputs/{design}.pkg.json")
+        self.set('flowstatus',laststep,'select',0)
 
     ###########################################################################
     def show(self, filename, kind=None):

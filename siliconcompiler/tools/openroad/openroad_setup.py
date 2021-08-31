@@ -53,7 +53,6 @@ def setup_tool(chip, step, index):
     tool = 'openroad'
     refdir = 'siliconcompiler/tools/openroad'
 
-    chip.set('eda', tool, step, index, 'format', 'tcl', clobber=False)
     chip.set('eda', tool, step, index, 'vendor', tool, clobber=False)
     chip.set('eda', tool, step, index, 'exe', tool, clobber=False)
     chip.set('eda', tool, step, index, 'vswitch', '-version', clobber=False)

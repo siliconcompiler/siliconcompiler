@@ -125,7 +125,7 @@ def setup_libs(chip, vendor=None):
     chip.set('library',libname,'version',rev)
 
     # timing
-    chip.add('library',libname, 'model', corner, 'nldm', 'lib',
+    chip.add('library', libname, 'nldm', corner, 'lib',
              libdir+'/nldm/'+libname+'_ff.lib')
 
     # lef
@@ -185,8 +185,8 @@ def setup_methodology(chip):
     chip.set('asic', 'maxlength', 1000)
     chip.set('asic', 'maxslew', 1.5e-9)
     chip.set('asic', 'maxcap', 1e-12)
-    chip.set('asic', 'clklayer', "m5")
-    chip.set('asic', 'rclayer', "m3")
+    chip.set('asic', 'rclayer', 'clk', 'm5')
+    chip.set('asic', 'rclayer', 'data', 'm3')
     chip.set('asic', 'hpinlayer', "m4")
     chip.set('asic', 'vpinlayer', "m5")
     chip.set('asic', 'density', 1.0)

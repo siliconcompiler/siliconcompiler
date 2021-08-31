@@ -17,7 +17,6 @@ def setup_tool(chip, step):
 
     chip.set('eda', tool, step, 'exe', tool)
     chip.set('eda', tool, step, 'vendor', tool)
-    chip.set('eda', tool, step, 'format', 'cmdline')
     chip.set('eda', tool, step, 'threads', '4')
     chip.set('eda', tool, step, 'refdir', refdir)
     chip.set('eda', tool, step, 'copy', 'false')

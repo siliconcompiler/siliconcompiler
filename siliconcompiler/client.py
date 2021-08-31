@@ -45,9 +45,6 @@ def remote_preprocess(chip):
 
     # Run the local 'import' step if necessary.
     if 'import' in chip.getkeys('flowgraph'):
-        # Pre-process: Run an 'import' stage locally, and upload the
-        # in-progress build directory to the remote server.
-        # Data is encrypted if user / key were specified.
         #setting step to active
         tool = chip.get('flowgraph', 'import', 'tool')
         searchdir = "siliconcompiler.tools." + tool
@@ -60,7 +57,7 @@ def remote_preprocess(chip):
         setup_tool(chip, 'import', str(0))
 
         # Run the actual import step locally.
-        chip.runstep('import', '0', {}, multiprocessing.Event())
+        chip._runstep('import', '0', {}, multiprocessing.Event())
 
         # Set 'steplist' to all steps, sans 'import'.
         remote_steplist = []

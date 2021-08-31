@@ -4,14 +4,14 @@ import siliconcompiler
 from siliconcompiler.schema import schema_cfg
 from siliconcompiler.schema import schema_flowgraph
 
-def main():
+def test_api_check():
 
     chip = siliconcompiler.Chip(loglevel="INFO")
     chip.target("freepdk45_asicflow")
     chip.set('source', 'examples/gcd/gcd.v')
-    chip.check('route')
+
+    assert (chip.check() == 0)
 
 #########################
 if __name__ == "__main__":
-    sys.exit(main())
-    print("errorcode=",error)
+    test_api_check()
