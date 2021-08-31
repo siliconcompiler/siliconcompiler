@@ -11,6 +11,7 @@ import base64
 import glob
 import math
 import multiprocessing
+import importlib
 import json
 import os
 import shutil
@@ -44,6 +45,18 @@ def remote_preprocess(chip):
 
     # Run the local 'import' step if necessary.
     if 'import' in chip.getkeys('flowgraph'):
+        #setting step to active
+        tool = chip.get('flowgraph', 'import', 'tool')
+        searchdir = "siliconcompiler.tools." + tool
+        modulename = '.'+tool+'_setup'
+        chip.logger.info(f"Setting up tool '{tool}' for remote 'import' step")
+
+        #Loading all tool modules and checking for errors
+        module = importlib.import_module(modulename, package=searchdir)
+        setup_tool = getattr(module, "setup_tool")
+        setup_tool(chip, 'import', str(0))
+
+        # Run the actual import step locally.
         chip._runstep('import', '0', {}, multiprocessing.Event())
 
         # Set 'steplist' to all steps, sans 'import'.
@@ -54,7 +67,19 @@ def remote_preprocess(chip):
         chip.set('steplist', remote_steplist, clobber=True)
 
         # Upload the results of the local import stage.
-        upload_sources_to_cluster(chip)
+        # Zip the 'import' directory.
+        local_build_dir = stepdir = '/'.join([chip.get('dir'),
+                                              chip.get('design'),
+                                              f"{chip.get('jobname')}0"])
+        subprocess.run(['zip',
+                        '-r',
+                        'import0/import.zip',
+                        'import0/'],
+                       cwd=local_build_dir)
+
+        # Upload the archive to the 'import/' server endpoint.
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(upload_import_dir(chip))
 
 ###################################
 def client_decrypt(chip):
@@ -426,27 +451,6 @@ async def upload_import_dir(chip):
                     else:
                         chip.logger.info(await resp.text())
                         return
-
-###################################
-def upload_sources_to_cluster(chip):
-    '''Helper method to upload Verilog source files to a cloud compute
-    cluster's shared storage. Required before the cluster will be able
-    to run any job steps.
-    '''
-
-    # Zip the 'import' directory.
-    local_build_dir = stepdir = '/'.join([chip.get('dir'),
-                                          chip.get('design'),
-                                          f"{chip.get('jobname')}0"])
-    subprocess.run(['zip',
-                    '-r',
-                    'import0/import.zip',
-                    'import0/'],
-                   cwd=local_build_dir)
-
-    # Upload the archive to the 'import' server endpoint.
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(upload_import_dir(chip))
 
 ###################################
 async def fetch_results_request(chip):
