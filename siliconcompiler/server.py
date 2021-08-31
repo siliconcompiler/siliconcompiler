@@ -368,7 +368,6 @@ class Server:
             # Write plaintext JSON config to the build directory.
             subprocess.run(['mkdir', '-p', to_dir])
             subprocess.run(['mkdir', '-p', '%s/configs'%build_dir])
-            chip.writecfg(f"{build_dir}/configs/chip0.json")
             # Write private key to a file.
             # This should be okay, because we are already trusting the local
             # "compute node" disk to store the decrypted data. Further, the
@@ -376,8 +375,9 @@ class Server:
             # Even so, use the usual 400 permissions for key files.
             keypath = f'{to_dir}/pk'
             with open(os.open(keypath, os.O_CREAT | os.O_WRONLY, 0o400), 'w+') as keyfile:
-                keyfile.write(pk)
+                keyfile.write(base64.urlsafe_b64decode(pk).decode())
             chip.set('remote', 'key', keypath, clobber=True)
+            chip.writecfg(f"{build_dir}/configs/chip0.json")
             # Create the command to run.
             run_cmd  = '''cp %s/%s.crypt %s/%s.crypt ;
                           cp %s/%s.iv %s/%s.iv ;

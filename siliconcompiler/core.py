@@ -1873,23 +1873,10 @@ class Chip:
 
         # Remote workflow: Dispatch the Chip to a remote server for processing.
         if self.get('remote', 'addr'):
-            # Pre-process: Run an 'import' stage locally, and upload the
-            # in-progress build directory to the remote server.
-            # Data is encrypted if user / key were specified.
-            #setting step to active
-
-            #Loading all tool modules and checking for errors
-            tool = self.get('flowgraph', 'import', 'tool')
-            searchdir = "siliconcompiler.tools." + tool
-            modulename = '.'+tool+'_setup'
-            self.logger.info(f"Setting up tool '{tool}' for remote 'import' step")
-            module = importlib.import_module(modulename, package=searchdir)
-            setup_tool = getattr(module, "setup_tool")
-            setup_tool(self, 'import', str(0))
-            active['import0'] = 1
-
             # run remote process
+            active['import0'] = 1
             remote_preprocess(self)
+            active['import0'] = 0
 
             # Run the async 'remote_run' method.
             asyncio.get_event_loop().run_until_complete(remote_run(self))
@@ -1973,11 +1960,11 @@ class Chip:
                                 self.get('jobname') + str(self.get('jobid')),
                                 laststep + str(0)])
 
-            self.cfg = self.readcfg(f"{stepdir}/outputs/{design}.pkg.json")
-
             # For local encrypted jobs, re-encrypt and delete the decrypted data.
             if self.get('remote', 'key'):
                 client_encrypt(self)
+
+            self.cfg = self.readcfg(f"{stepdir}/outputs/{design}.pkg.json")
 
     ###########################################################################
     def show(self, filename, kind=None):
