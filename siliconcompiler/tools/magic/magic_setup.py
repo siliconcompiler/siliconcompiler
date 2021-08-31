@@ -68,11 +68,11 @@ def post_process(chip, step, index):
                 errors = re.search(r'^\[INFO\]: COUNT: (\d+)', line)
 
                 if errors:
-                    chip.set('metric', step, 'real', 'errors', errors.group(1))
+                    chip.set('metric', step, index, 'errors', 'real', errors.group(1))
     elif step == 'lvs':
         # Export metrics
         lvs_failures = count_lvs.count_LVS_failures(f'outputs/{design}.lvs.json')
-        chip.set('metric', step, 'real', 'errors', lvs_failures[0])
+        chip.set('metric', step, index, 'errors', 'real', lvs_failures[0])
 
     # Need to pass along DEF and GDS to future verification stages
     shutil.copy(f'inputs/{design}.def', f'outputs/{design}.def')
