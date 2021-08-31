@@ -17,8 +17,6 @@ def setup_tool(chip, step, index):
     chip.set('eda', tool, step, index, 'vendor', tool)
     chip.set('eda', tool, step, index, 'exe', tool)
     chip.set('eda', tool, step, index, 'version', '0')
-    chip.set('eda', tool, step, index, 'format', 'cmdline')
-    chip.set('eda', tool, step, index, 'copy', 'false')
 
     #Get default opptions from setup
     topmodule = chip.get('design')
