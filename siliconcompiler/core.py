@@ -1920,6 +1920,12 @@ class Chip:
             Runs the route and dfm steps.
         '''
 
+        # Run steps if set, otherwise run whole graph
+        if self.get('steplist'):
+            steplist = self.get('steplist')
+        else:
+            steplist = self.getsteps()
+
         # Remote workflow: Dispatch the Chip to a remote server for processing.
         if self.get('remote', 'addr'):
             # Pre-process: Run an 'import' stage locally, and upload the
@@ -1943,12 +1949,6 @@ class Chip:
             # Use a shared even for errors
             # Use a manager.dict for keeping track of active processes
             # (one unqiue dict entry per process),
-
-            # Run steps if set, otherwise run whole graph
-            if self.get('steplist'):
-                steplist = self.get('steplist')
-            else:
-                steplist = self.getsteps()
 
             # Set up tools and processes
             for step in self.getkeys('flowgraph'):
@@ -2039,16 +2039,16 @@ class Chip:
             if self.get('remote', 'key'):
                 client_encrypt(self)
 
-            # Merge cfg back from last executed step
-            # last step must have nproc = 1
-            laststep = steplist[-1]
-            lastdir = "/".join([dirname,
-                                design,
-                                jobname + str(self.get('jobid')),
-                                laststep + str(0)])
+        # Merge cfg back from last executed step
+        # last step must have nproc = 1
+        laststep = steplist[-1]
+        lastdir = "/".join([self.get('dir'),
+                            self.get('design'),
+                            self.get('jobname') + str(self.get('jobid')),
+                            laststep + str(0)])
 
-            self.cfg = self.readcfg(f"{lastdir}/outputs/{design}.pkg.json")
-            self.set('flowstatus',laststep,'select',0)
+        self.cfg = self.readcfg(f"{lastdir}/outputs/{self.get('design')}.pkg.json")
+        self.set('flowstatus',laststep,'select',0)
 
     ###########################################################################
     def show(self, filename, kind=None):
