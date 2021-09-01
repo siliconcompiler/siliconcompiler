@@ -355,7 +355,7 @@ class Server:
 
         # Rename source files in the config dict; the 'import' step already
         # ran and collected the sources into a single Verilog file.
-        chip.set('source', f"${build_dir}/{top_module}/{job_nameid}/import0/outputs/{top_module}.v", clobber=True)
+        chip.set('source', f"{build_dir}/{top_module}/{job_nameid}/import0/outputs/{top_module}.v", clobber=True)
 
         run_cmd = ''
         if self.cfg['cluster']['value'][-1] == 'slurm':

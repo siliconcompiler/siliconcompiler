@@ -59,6 +59,8 @@ def setup_flow(chip, process):
                 # TODO: sta is currently broken, don't include in flow
                 # 'sta'
                 ]
+    # Set the steplist which can run remotely (if required)
+    chip.set('remote', 'steplist', flowpipe[1:])
 
     # TODO: implement these steps for processes other than Skywater
     verification_steps = [ 'lvs', 'drc']
