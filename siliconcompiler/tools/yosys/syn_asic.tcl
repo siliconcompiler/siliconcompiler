@@ -30,7 +30,7 @@ set stat_libs ""
 foreach libname $sc_macrolibs {
     # TODO: we assume corner name is "typical" - this should probably be
     # documented somewhere?
-    if {[dict exists $sc_cfg library $libname]} {
+    if {[dict exists $sc_cfg library $libname nldm]} {
         set macro_lib [dict get $sc_cfg library $libname nldm typical lib]
         yosys read_liberty -lib $macro_lib
         append stat_libs "-liberty $macro_lib "
