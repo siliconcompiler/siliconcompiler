@@ -564,17 +564,3 @@ def fetch_results(chip):
                     local_dir + '/' + top_design,
                     dirs_exist_ok = True)
     shutil.rmtree(job_hash)
-
-    # Ensure that QT will open a GUI window.
-    os.environ['QT_QPA_PLATFORM'] = ''
-    # Find a list of GDS files to open.
-    klayout_cmd = []
-    for gds_file in glob.iglob(f'{os.path.abspath(local_dir)}/{top_design}/**/*.[gG][dD][sS]',
-                               recursive=True):
-        klayout_cmd.append(gds_file)
-
-    # Done; display the results using klayout.
-    # TODO: Raise an exception or print an error message if no GDS files exist?
-    if klayout_cmd:
-        klayout_cmd.insert(0, 'klayout')
-        subprocess.run(klayout_cmd)
