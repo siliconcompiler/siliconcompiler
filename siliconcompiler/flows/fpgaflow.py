@@ -42,6 +42,8 @@ def setup_flow(chip, partname):
                 'syn',
                 'apr',
                 'bitstream']
+    # Set the steplist which can run remotely (if required)
+    chip.set('remote', 'steplist', flowpipe[1:])
 
     #TODO: add 'program' stage
 

@@ -42,45 +42,50 @@ def remote_preprocess(chip):
         job_hash = uuid.uuid4().hex
         chip.set('remote', 'jobhash', job_hash)
 
-    # Run the local 'import' step if necessary.
-    if 'import' in chip.getkeys('flowgraph'):
+    # Run any local steps if necessary.
+    local_steps = []
+    for step in chip.getkeys('flowgraph'):
+        if not step in chip.get('remote', 'steplist'):
+            local_steps.append(step)
+
+    for step in local_steps:
         #setting step to active
-        tool = chip.get('flowgraph', 'import', 'tool')
+        tool = chip.get('flowgraph', step, 'tool')
         searchdir = "siliconcompiler.tools." + tool
         modulename = '.'+tool+'_setup'
-        chip.logger.info(f"Setting up tool '{tool}' for remote 'import' step")
+        chip.logger.info(f"Setting up tool '{tool}' for remote '{step}' step")
 
         #Loading all tool modules and checking for errors
         module = importlib.import_module(modulename, package=searchdir)
         setup_tool = getattr(module, "setup_tool")
-        setup_tool(chip, 'import', str(0))
+        setup_tool(chip, step, str(0))
 
         # Run the actual import step locally.
         manager = multiprocessing.Manager()
         error = manager.dict()
         active = manager.dict()
-        chip._runstep('import', '0', active, error)
+        chip._runstep(step, str(0), active, error)
 
-        # Set 'steplist' to all steps, sans 'import'.
-        remote_steplist = []
-        for step in chip.getkeys('flowgraph'):
-            if step != 'import':
-                remote_steplist.append(step)
-        chip.set('steplist', remote_steplist, clobber=True)
+    # Set 'steplist' to only the remote steps, for the future server-side run.
+    remote_steplist = []
+    for step in chip.getkeys('flowgraph'):
+        if not step in local_steps:
+            remote_steplist.append(step)
+    chip.set('steplist', remote_steplist, clobber=True)
 
-        # Upload the results of the local import stage.
-        # Zip the 'import' directory.
-        local_build_dir = stepdir = '/'.join([chip.get('dir'),
-                                              chip.get('design'),
-                                              f"{chip.get('jobname')}0"])
-        subprocess.run(['zip',
-                        '-r',
-                        'import0/import.zip',
-                        'import0/'],
-                       cwd=local_build_dir)
+    # Upload the results of the local import stage.
+    # Zip the 'import' directory.
+    local_build_dir = stepdir = '/'.join([chip.get('dir'),
+                                          chip.get('design'),
+                                          f"{chip.get('jobname')}0"])
+    subprocess.run(['zip',
+                    '-r',
+                    'import.zip',
+                    '.'],
+                   cwd=local_build_dir)
 
-        # Upload the archive to the 'import/' server endpoint.
-        upload_import_dir(chip)
+    # Upload the archive to the 'import/' server endpoint.
+    upload_import_dir(chip)
 
 ###################################
 def client_decrypt(chip):
@@ -388,8 +393,7 @@ def upload_import_dir(chip):
         # in memory, so we'll read and write data one 'chunk' at a time.
         local_build_dir = stepdir = '/'.join([chip.get('dir'),
                                               chip.get('design'),
-                                              f"{chip.get('jobname')}0",
-                                              'import0'])
+                                              f"{chip.get('jobname')}0"])
         with open(local_build_dir + '/import.crypt', 'wb') as wf:
             with open(local_build_dir + '/import.zip', 'rb') as rf:
                 while True:
@@ -427,7 +431,6 @@ def upload_import_dir(chip):
         import_loc = '/'.join([chip.get('dir'),
                                chip.get('design'),
                                f"{chip.get('jobname')}0",
-                               'import0',
                                'import.zip'])
         upload_file = os.path.abspath(import_loc)
 
