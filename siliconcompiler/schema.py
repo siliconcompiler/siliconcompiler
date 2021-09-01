@@ -1530,7 +1530,7 @@ def schema_flowgraph(cfg, step='default'):
 ###########################################################################
 # Flow Status
 ###########################################################################
-def schema_flowstatus(cfg, step='default'):
+def schema_flowstatus(cfg, step='default', index='default'):
 
     cfg['flowstatus'] = {}
     cfg['flowstatus'][step] =  {}
@@ -1551,8 +1551,10 @@ def schema_flowstatus(cfg, step='default'):
         the next step in the flowgraph.
         """
     }
-    cfg['flowstatus'][step]['error'] = {
-        'switch': "-flowstatus_error 'step <int>'",
+
+    cfg['flowstatus'][step][index] = {}
+    cfg['flowstatus'][step][index]['error'] = {
+        'switch': "-flowstatus_error 'step index <int>'",
         'type': 'int',
         'lock': 'false',
         'requirement': None,
@@ -1565,7 +1567,6 @@ def schema_flowstatus(cfg, step='default'):
         Status parameter that tracks runsteps that errored out.
         """
     }
-
 
     return cfg
 

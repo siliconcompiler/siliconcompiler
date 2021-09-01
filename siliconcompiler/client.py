@@ -56,7 +56,10 @@ def remote_preprocess(chip):
         setup_tool(chip, 'import', str(0))
 
         # Run the actual import step locally.
-        chip._runstep('import', '0', {}, multiprocessing.Event())
+        manager = multiprocessing.Manager()
+        error = manager.dict()
+        active = manager.dict()
+        chip._runstep('import', '0', active, error)
 
         # Set 'steplist' to all steps, sans 'import'.
         remote_steplist = []
