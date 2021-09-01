@@ -1710,7 +1710,7 @@ class Chip:
             # Short sleep
             time.sleep(0.1)
 
-      
+
 
         # Build directory
         stepdir = "/".join([self.get('dir'),
@@ -1743,7 +1743,7 @@ class Chip:
                     cfgfile = f"../{input_step}{input_index}/outputs/{design}.pkg.json"
                     if os.path.isfile(cfgfile):
                         self.cfg = self.readcfg(cfgfile)
-           
+
 
         #Checking that there were no errors in previous steps
         halt = 0
@@ -1770,7 +1770,7 @@ class Chip:
                 self.set('flowstatus', input_step, 'select', str(min_index), clobber=True)
                 # copy files
                 shutil.copytree(f"../{input_step}{min_index}/outputs", 'inputs/')
-        
+
         # Check Version if switch exists
         #if self.getkeys('eda', tool, step, str(index), 'vswitch'):
         tool = self.get('flowgraph', step, 'tool')
@@ -1955,10 +1955,10 @@ class Chip:
                 for index in range(self.get('flowgraph', step, 'nproc')):
                     self.set('flowstatus', step, str(index), 'error', 1)
                     stepstr = step + str(index)
-                    error[stepstr] = 1
                     if step in steplist:
                         #setting step to active
                         active[stepstr] = 1
+                        error[stepstr] = 1
                         # Load module (could fail)
                         try:
                             tool = self.get('flowgraph', step, 'tool')
@@ -1973,6 +1973,7 @@ class Chip:
                             self.logger.error(f"Tool setup failed for '{tool}' in step '{step}'")
                             self.error = 1
                     else:
+                        error[stepstr] = 0
                         active[stepstr] = 0
 
             # Check tool setup before run
