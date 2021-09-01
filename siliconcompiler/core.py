@@ -1916,8 +1916,8 @@ class Chip:
             # run remote process
             remote_preprocess(self)
 
-            # Run the async 'remote_run' method.
-            asyncio.get_event_loop().run_until_complete(remote_run(self))
+            # Run the job on the remote server, and wait for it to finish.
+            remote_run(self)
 
             # Fetch results (and delete the job's data from the server).
             fetch_results(self)

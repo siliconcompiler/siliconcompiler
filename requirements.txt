@@ -5,6 +5,7 @@ matplotlib >= 3.3
 numpy >= 1.19
 ply >= 3.11
 aiohttp >= 3.7.4.post0
+requests >= 2.22.0
 pyfiglet >= 0.8
 PyYAML >= 5.4.1
 pytest >= 6.2.4

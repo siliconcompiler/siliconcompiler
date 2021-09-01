@@ -395,7 +395,8 @@ class Server:
                             to_dir)
 
             # Run the generated command.
-            subprocess.run(run_cmd, shell = True)
+            proc = await asyncio.create_subprocess_shell(run_cmd)
+            await proc.wait()
 
             # Ensure that the private key file was deleted.
             # (The whole directory should already be gone,
