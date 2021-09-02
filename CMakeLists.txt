@@ -21,13 +21,15 @@ pybind11_add_module(_core MODULE siliconcompiler/leflib/main.cpp)
 
 # ** Stuff to include Si2 LEF library **
 
+set(LEF_DIR ${CMAKE_CURRENT_LIST_DIR}/third_party/tools/openroad/tools/OpenROAD/src/OpenDB/src/lef)
+
 # this lets us include lef headers
-INCLUDE_DIRECTORIES(third_party/lef/lef)
+INCLUDE_DIRECTORIES(${LEF_DIR}/lef)
 # this causes cmake to build lef/
-add_subdirectory(third_party/lef)
+add_subdirectory(${LEF_DIR})
 
 target_compile_definitions(_core PRIVATE VERSION_INFO=${PROJECT_VERSION})
-target_link_libraries(_core PRIVATE ${CMAKE_CURRENT_LIST_DIR}/third_party/lef/lib/liblef.a)
+target_link_libraries(_core PRIVATE lef)
 
 add_dependencies(_core lef)
 
