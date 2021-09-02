@@ -557,7 +557,7 @@ class Floorplan:
             x += xpitch
             y += ypitch
 
-    def add_viarule(self, name, rule, cutsize, layers, cutspacing, enclosure, rowcol=None):
+    def add_via(self, name, cutsize, layers, cutspacing, enclosure, rowcol=None, rule=None):
         # TODO: document
         # TODO: look at VIA docs in DEF to see if this makes sense/if I should
         # add anything else
@@ -884,7 +884,7 @@ class Floorplan:
     def place_ring(self):
         pass
 
-    def determine_num_via_cols(self, viarule, width, height, lower_dir, upper_dir, stack_bottom, stack_top):
+    def _determine_num_via_cols(self, viarule, width, height, lower_dir, upper_dir, stack_bottom, stack_top):
         lower_enclosure = viarule['bottom']['enclosure']
         upper_enclosure = viarule['top']['enclosure']
         cut_w, cut_h = viarule['cut']['size']
@@ -913,7 +913,7 @@ class Floorplan:
 
         return cols
 
-    def determine_num_via_rows(self, viarule, width, height, lower_dir, upper_dir, stack_bottom, stack_top):
+    def _determine_num_via_rows(self, viarule, width, height, lower_dir, upper_dir, stack_bottom, stack_top):
         lower_enclosure = viarule['bottom']['enclosure']
         upper_enclosure = viarule['top']['enclosure']
         cut_w, cut_h = viarule['cut']['size']
@@ -943,15 +943,14 @@ class Floorplan:
         return rows
 
     def _generate_via(self, viarule, width, height, lower_dir, upper_dir, stack_bottom, stack_top):
-        print("Generate via: w", width, "h", height)
         lower_enclosure = viarule['bottom']['enclosure']
         upper_enclosure = viarule['top']['enclosure']
         cut_w, cut_h = viarule['cut']['size']
         spacing_x, spacing_y = viarule['cut']['spacing']
 
         # Calculate maximum of rows and cols of cuts that can fit
-        rows = self.determine_num_via_rows(viarule, width, height, lower_dir, upper_dir, stack_bottom, stack_top)
-        cols = self.determine_num_via_cols(viarule, width, height, lower_dir, upper_dir, stack_bottom, stack_top)
+        rows = self._determine_num_via_rows(viarule, width, height, lower_dir, upper_dir, stack_bottom, stack_top)
+        cols = self._determine_num_via_cols(viarule, width, height, lower_dir, upper_dir, stack_bottom, stack_top)
 
         # Calculate enclosures based on leftover
         lower_enc_width = (width - (cut_w * cols + spacing_x * (cols - 1))) / 2
@@ -1004,7 +1003,6 @@ class Floorplan:
             top_i = _layer_i(top_layer)
             i = bottom_i
             while i != top_i:
-                # TODO: validate we have viarules
                 min_score = float('inf')
                 best_via = None
                 key = (i, i+1)
@@ -1012,7 +1010,6 @@ class Floorplan:
                     raise ValueError(f"Unable to automatically insert vias: tech "
                         f"file doesn't specify a viarule connecting layers m{i} and m{i+1}")
                 for viarule in self.viarules[key]:
-                    print("checking rule:", viarule)
                     score, via = self._generate_via(viarule, width, height, bottom_dir, top_dir, i == bottom_i, i + 1 == top_i)
                     if score < min_score:
                         best_via = via
@@ -1062,7 +1059,6 @@ class Floorplan:
 
                     if do_lines_intersect:
                         x, y = _get_intersection(bottom_start, bottom_end, top_start, top_end)
-                        print('intersection', x, y)
 
                         width = bottom_width if bottom_dir == 'v' else top_width
                         height = bottom_width if bottom_dir == 'h' else top_width

@@ -17,14 +17,17 @@ TRACKS {{ track.direction | upper }} {{ track.start | scale }} DO {{ track.total
 
 VIAS {{ fp.vias | length }} ;
     {% for via in fp.vias %}
-    - {{ via.name }} + VIARULE {{ via.rule }}
-                 + CUTSIZE {{ via.cutsize | map('scale') | join(' ') }}
-                 + LAYERS {{ via.layers | join(' ') }}
-                 + CUTSPACING {{ via.cutspacing | map('scale') | join(' ') }}
-                 + ENCLOSURE {{ via.enclosure | map('scale') | join(' ') }}
-                 {% if via.rowcol %}
-                 + ROWCOL {{ via.rowcol | join(' ') }}
-                 {% endif %};
+    - {{ via.name }} 
+        {% if via.rule %}
+        + VIARULE {{ via.rule }}
+        {% endif %}
+        + CUTSIZE {{ via.cutsize | map('scale') | join(' ') }}
+        + LAYERS {{ via.layers | join(' ') }}
+        + CUTSPACING {{ via.cutspacing | map('scale') | join(' ') }}
+        + ENCLOSURE {{ via.enclosure | map('scale') | join(' ') }}
+        {% if via.rowcol %}
+        + ROWCOL {{ via.rowcol | join(' ') }}
+        {% endif %};
     {% endfor %}
 END VIAS
 
