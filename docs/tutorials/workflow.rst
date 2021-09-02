@@ -1,4 +1,4 @@
-Python workflow
+ASIC Workflow
 =======================
 
 .. image:: _images/asicflow.png
@@ -157,7 +157,179 @@ There is a for amount of cool stuff in the above code to unpack!
       chip.set('flowgraph', flowpipe[i], 'input',  'source')
 
 
+
+EDA Setup
+---------------
+
+We have now set up the basic execution flow and metrics, but we haven't specified which tools to use for each step. In the below code, we connect execution stepss with specific tools.
+
+::
+
+  for step in flowpipe:
+        if step == 'import':
+            tool = 'verilator'
+        elif step == 'syn':
+            tool = 'yosys'
+        elif step == 'export':
+            tool = 'klayout'
+        else:
+            tool = 'openroad'
+        chip.set('flowgraph', step, 'tool', tool)
+
+The 'magic' of setting up these tools happens at runtime when calling the run() function, at which point point the <tool>.py module is loaded and a a fixed name function "setup_tool()" is exeucted. The setup of these tools is beyond the scope o this tutorial, but if you curious about the process, you can take a look at one of the setup files here. [TODO: Add link]
+
 Execution
 ------------------
+We are now ready to execute the flow we defined::
+
+    chip.run()
+
+That's it! The console output should look something like the trace below. You can observe each tool being et up sequentually after which processes are forked for each step. Steps with input dependancies wait until all inputs are ready before strating execution.
+
+.. code-block:: console
+
+  | INFO    | 2021-09-02 15:56:31 |     root     | Setting up tool 'verilator' in step 'import'
+  | INFO    | 2021-09-02 15:56:31 |     root     | Setting up tool 'yosys' in step 'syn'
+  | INFO    | 2021-09-02 15:56:31 |     root     | Setting up tool 'openroad' in step 'floorplan'
+  | INFO    | 2021-09-02 15:56:31 |     root     | Setting up tool 'openroad' in step 'synopt'
+  | INFO    | 2021-09-02 15:56:31 |     root     | Setting up tool 'openroad' in step 'place'
+  | INFO    | 2021-09-02 15:56:31 |     root     | Setting up tool 'openroad' in step 'cts'
+  | INFO    | 2021-09-02 15:56:31 |     root     | Setting up tool 'openroad' in step 'route'
+  | INFO    | 2021-09-02 15:56:31 |     root     | Setting up tool 'openroad' in step 'dfm'
+  | INFO    | 2021-09-02 15:56:31 |     root     | Setting up tool 'klayout' in step 'export'
+  | INFO    | 2021-09-02 15:56:31 |     root     | Computing file hashes with hashmode=OFF
+  | INFO    | 2021-09-02 15:56:31 |     root     | Step 'import' waiting on inputs
+  | INFO    | 2021-09-02 15:56:31 |     root     | Step 'syn' waiting on inputs
+  | INFO    | 2021-09-02 15:56:31 |     root     | Step 'floorplan' waiting on inputs
+  | INFO    | 2021-09-02 15:56:31 |     root     | Step 'synopt' waiting on inputs
+  | INFO    | 2021-09-02 15:56:31 |     root     | Step 'place' waiting on inputs
+  | INFO    | 2021-09-02 15:56:31 |     root     | Step 'dfm' waiting on inputs
+  | INFO    | 2021-09-02 15:56:31 |     root     | Step 'export' waiting on inputs
+  | INFO    | 2021-09-02 15:56:31 |     root     | Step 'route' waiting on inputs
+  | INFO    | 2021-09-02 15:56:31 |     root     | Step 'cts' waiting on inputs
+  | INFO    | 2021-09-02 15:56:31 |     root     | Running import in /home/aolofsson//build/gcd/job0/import0
 
 
+Metrics
+------------------
+Unless there was an ERROR printed to the STDERR, the run shuld have finished and we should now be able to view files and see metrics.
+As a simple example, to get the cell area after synthesis, simply get the parameter for the associated step and index. THe index refers to an individual thread/process within a step. Until now, all steps have only had one thread per step, so the index is zero::
+
+  print(chip.get('metric', 'syn', str(0), 'cellarea', 'real')
+
+To get a complete summary of the run from start to finish, we can use the summary function::
+
+  chip.summary()
+
+
+The console output should look something like the following.
+
+.. code-block:: console
+
+  SUMMARY:
+ 
+  design = gcd
+  foundry = virtual
+  process = freepdk45
+  targetlibs = NangateOpenCellLibrary
+  jobdir = build/gcd/job0 
+
+                  import0      syn0   floorplan0   synopt0     place0      cts0      route0      dfm0     export0 
+  errors            0          0          1          1          1          1          1          1          0    
+  warnings          0          72         1          0          2          3          4          0          0    
+  drv               0          0          0          0          0          0          0          0          0    
+  cellarea         0.0       413.63     414.0      414.0      490.0      499.0       0.0       499.0       0.0   
+  peakpower        0.0        0.0      0.000188   0.000188   0.000206   0.000279     0.0      0.000292     0.0   
+  standbypower     0.0        0.0      8.62e-06   8.62e-06   1.13e-05   1.17e-05     0.0      1.17e-05     0.0   
+  holdwns          0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0   
+  holdtns          0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0   
+  setupwns         0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0   
+  setuptns         0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0   
+  registers         0          0          0          0          0          0          0          0          0    
+  cells             0         249         0          0          0          0          0          0          0    
+  rambits           0          0          0          0          0          0          0          0          0    
+  xtors             0          0          0          0          0          0          0          0          0    
+  nets              0          0          0          0          0          0          0          0          0    
+  pins              0          0          0          0          0          0          0          0          0    
+  vias              0          0          0          0          0          0         2093        0          0    
+  wirelength       0.0        0.0        0.0        0.0        0.0        0.0       6251.0      0.0        0.0   
+  overflow          0          0          0          0          0          0          0          0          0    
+  density          0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0   
+  runtime          0.16       0.82       1.02       1.12       1.53       2.99       5.83       1.0        0.9   
+  memory           0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0   
+  --------------------------------------------------------------------------------------------------------------
+
+
+Show
+------------------
+
+Based on the results, it looks like we have a viable design, but twe still haven't seen any polygons. To display the layout, we use the show() method together with the filename. Note that technology specific layer defintions and dispaly settings are all set up "automagically' thanks to the target() function::
+
+
+  gdsfile = "build_dir/oh_add/job0/export0/output/oh_add.gds"
+  chip.show(gdsfile)
+
+If things worked out, you should see something like the image below pop-up. In this tutorual we conigured SC to use klayout for gds viewing.
+
+.. image:: _images/kalyout_workflow.png
+
+
+Extra Credit
+------------------
+
+Up to now, hopefully you have seen that SC is a simple but powerful framework for configuring automated ASIC compilation flows. Still, we have left the best part for last!  As mentioned earlier, modern process PDKs and EDA tools are incredibly complex and generally requires months of experimentation to tune them for best performance. To make matters more complicated, the optimal settigs for the process/tool combination may be design specific, meaning that the optimal settings for one type of design may be suboptimal for a different design.
+
+As a simple illustrative example, consider the placement_density variale for OpenRoad. Each technology node supported by the OpenROAD platform has a slightly different setting for this variable, but it's not clear that the value chosen is ideal for all designs being exercised at that node. With the small snipper of code below the run() function can cycle through the whole range of possibilities to select the one that works best::
+
+  N = 10
+  chip.set('flowgraph','place','nproc',N)
+  for index in range(N):
+      chip.set('eda', 'openroad', 'place', str(index),
+             'option', 'place_density', str(index*0.1))
+
+  chip.run()
+  chip.summary()
+
+One of the coolest features of SC is that all of the indices withina a step are run in parallel, so if you are runnign on a parallel machine, you get close to strong scaling up to the number of physical CPU cores (or servers) available!  Once all the indices have completed, a minimum() function is called under the hood to select the best index from the lot to use for the next step in the exeuction grap. Some indices will fail, but that's ok: we only need one great to succeed for the input of the cts step. Below you can see the output from the chip.summary() call. In this case it wasn't a huge gain  because our design was small and simple, but it should give you an idea of what is possible. A clever person could easily extend the example above to sweep interesting tool settings for every step in the flowgraph to realize significant per design gais.;-) 
+    
+
+.. code-block:: console
+
+  SUMMARY:
+ 
+  design = gcd
+  foundry = virtual
+  process = freepdk45
+  targetlibs = NangateOpenCellLibrary
+  jobdir = build/gcd/job0 
+
+                  import0      syn0   floorplan0   synopt0     place8      cts0      route0      dfm0     export0 
+  errors            0          0          1          1          1          1          1          1          0    
+  warnings          0          72         1          0          2          3          4          0          0    
+  drv               0          0          0          0          0          0          0          0          0    
+  cellarea         0.0       413.63     414.0      414.0      490.0      499.0       0.0       499.0       0.0   
+  peakpower        0.0        0.0      0.000188   0.000188   0.000206   0.000279     0.0      0.000292     0.0   
+  standbypower     0.0        0.0      8.62e-06   8.62e-06   1.13e-05   1.17e-05     0.0      1.17e-05     0.0   
+  holdwns          0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0   
+  holdtns          0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0   
+  setupwns         0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0   
+  setuptns         0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0   
+  registers         0          0          0          0          0          0          0          0          0    
+  cells             0         249         0          0          0          0          0          0          0    
+  rambits           0          0          0          0          0          0          0          0          0    
+  xtors             0          0          0          0          0          0          0          0          0    
+  nets              0          0          0          0          0          0          0          0          0    
+  pins              0          0          0          0          0          0          0          0          0    
+  vias              0          0          0          0          0          0         2093        0          0    
+  wirelength       0.0        0.0        0.0        0.0        0.0        0.0       6251.0      0.0        0.0   
+  overflow          0          0          0          0          0          0          0          0          0    
+  density          0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0   
+  runtime          0.16       0.82       1.02       1.12       1.53       2.99       5.83       1.0        0.9   
+  memory           0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0   
+  --------------------------------------------------------------------------------------------------------------
+
+  
+Conclusion
+------------------
+Awesome! You made it through the SC workflow tutorial. Hopefully, you have seen how simple yet powerful the SC approach is.
+Good luck.
