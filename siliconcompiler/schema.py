@@ -802,7 +802,7 @@ def schema_pdk(cfg, stackup='default'):
 # Library Configuration
 ###############################################################################
 
-def schema_libs(cfg, lib='default', corner='default'):
+def schema_libs(cfg, lib='default', stackup='default', corner='default'):
 
     cfg['library'] = {}
     cfg['library'][lib] = {}
@@ -1386,8 +1386,8 @@ def schema_libs(cfg, lib='default', corner='default'):
         """
     }
     cfg['library'][lib]['layoutdb'] = {}
-    cfg['library'][lib]['layoutdb']['default'] = {}
-    cfg['library'][lib]['layoutdb']['default']['default'] = {
+    cfg['library'][lib]['layoutdb'][stackup] = {}
+    cfg['library'][lib]['layoutdb'][stackup]['default'] = {
         'switch': "-library_layoutdb 'lib stackup format <file>'",
         'requirement': None,
         'type': '[file]',
@@ -1461,7 +1461,7 @@ def schema_flowgraph(cfg, step='default'):
         'switch': "-flowgraph_mergeop 'step <str>'",
         'type': 'str',
         'lock': 'false',
-        'requirement': 'all',
+        'requirement': None,
         'defvalue': [],
         'short_help': 'Flowgraph Merge Operation',
         'example': [
