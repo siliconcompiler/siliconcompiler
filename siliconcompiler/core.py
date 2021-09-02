@@ -860,7 +860,8 @@ class Chip:
                             # Unset scalar of any type
                             scalar = None
                         elif cfg[param]['type'] == "int":
-                            scalar = int(selval)
+                            #print(selval, type(selval))
+                            scalar = int(float(selval))
                         elif cfg[param]['type'] == "float":
                             scalar = float(selval)
                         elif cfg[param]['type'] == "bool":
@@ -1140,9 +1141,9 @@ class Chip:
             cfg = chip.cfg
 
         if step ==None:
-            chip.logger.info("Running pre-run check.")
+            chip.logger.debug("Running pre-run check.")
         else:
-            chip.logger.info("Running check() for step '%s'", step)
+            chip.logger.debug("Running check() for step '%s'", step)
 
         # Checking
 
@@ -1274,33 +1275,6 @@ class Chip:
         else:
             self.logger.error('File format not recognized %s', filepath)
             self.error = 1
-
-    ###########################################################################
-    def score(self, step, index, chip=None, cfg=None):
-        '''Return the sum of product of all metrics for measure step multiplied
-        by the values in a weight dictionary input.
-
-        '''
-
-        if chip is None:
-            chip = self
-
-        if cfg is None:
-            cfg = chip.cfg
-
-
-        if not self.get('flowstatus', step, index, 'error'):
-            score = 0
-            for metric in self.getkeys('metric', 'default', 'default', chip=chip, cfg=cfg):
-                value = self.get('metric', step, index, metric, 'real', chip=chip, cfg=cfg)
-                product = value * self.get('flowgraph', step, 'weight', metric, chip=chip, cfg=cfg)
-                score = score + product
-        else:
-            score = float("inf")
-
-
-        chip.logger.info(f"Score is  {score} for step '{step}' and index '{index}'")
-        return score
 
     ###########################################################################
     def writegraph(self, graph, filename):
@@ -1565,15 +1539,6 @@ class Chip:
                 row.append(" " + value.center(colwidth))
             data.append(row)
 
-        #Creating goodness score for step
-        metrics.append(" " + '**score**')
-        row = []
-        for step in steplist:
-            index = self.get('flowstatus', step, 'select')
-            step_score = round(self.score(step, str(index)), 2)
-            row.append(" " + str(step_score).center(colwidth))
-        data.append(row)
-
         pandas.set_option('display.max_rows', 500)
         pandas.set_option('display.max_columns', 500)
         pandas.set_option('display.width', 100)
@@ -1642,26 +1607,66 @@ class Chip:
         return list(allpaths)
 
     ###########################################################################
-    def minimum(self, step, chip=None, cfg=None):
+    def minimum(self, step):
         '''
-        Returns the index with the 'min' score for a step.
+        Returns the index with the 'min' score for a step. The algorithm for
+        minimum selection is as follows.
+        0. Tag indices as meeting or not meeting all requirements
+        1. A max/min value is computed for a metric category across all indices
+        2. Metrics are normalized as (metric - min)/(max - min)
+        3. An index score is the sum of all normalized metric scores
+        4. The index with the lowest score wins
+
         '''
 
-        if chip is None:
-            chip = self
+        self.logger.debug(f"Finding optimal index for step '{step}'")
 
-        if cfg is None:
-            cfg = chip.cfg
+        # Checking goals for each metric
+        index_failed = {}
+        goals_met = False
+        for i in range(self.get('flowgraph', step, 'nproc')):
+            if self.get('flowstatus', step, str(i), 'error'):
+                index_failed[i] = True
+            else:
+                index_failed[i] = False
+                for metric in self.getkeys('metric', step, str(i)):
+                    if 'goal' in self.getkeys('metric', step, str(i), metric):
+                        goal = self.get('metric', step, str(i), metric, 'goal')
+                        real = self.get('metric', step, str(i), metric, 'real')
+                        if bool(real > goal):
+                            index_failed[i] = True
+            if not index_failed[i]:
+                goals_met = True
 
+        # Calculate max/min values for each metric
+        max_val = {}
+        min_val = {}
+        for metric in self.getkeys('flowgraph', step, 'weight'):
+            max_val[metric] = 0
+            min_val[metric] = float("inf")
+            for i in range(self.get('flowgraph', step, 'nproc')):
+                if not self.get('flowstatus', step, str(i), 'error'):
+                    real = self.get('metric', step, str(i), metric, 'real')
+                    max_val[metric] = max(max_val[metric], real)
+                    min_val[metric] = min(min_val[metric], real)
 
-        chip.logger.debug(f"Finding minimum index for step '{step}'")
-
-        min_score = float('inf')
-        for index in range(self.get('flowgraph', step, 'nproc')):
-            index_score = self.score(step, str(index), chip=chip, cfg=cfg)
-            if (index_score < min_score):
-                min_score = index_score
-                winner = index
+        # Select the minimum score
+        min_score = float("inf")
+        winner = 0
+        goals_met = False
+        for i in range(self.get('flowgraph', step, 'nproc')):
+            if not self.get('flowstatus', step, str(i), 'error'):
+                score = 0.0
+                for metric in self.getkeys('flowgraph', step, 'weight'):
+                    real = self.get('metric', step, str(i), metric, 'real')
+                    if not (max_val[metric] - min_val[metric]) == 0:
+                        scaled = (real - min_val[metric]) / (max_val[metric] - min_val[metric])
+                    else:
+                        scaled = max_val[metric]
+                    score = score + scaled
+                if (score < min_score) & (not(index_failed[i] & goals_met)):
+                    min_score = score
+                    winner = i
 
         return winner
 
@@ -1709,8 +1714,6 @@ class Chip:
                 break
             # Short sleep
             time.sleep(0.1)
-
-
 
         # Build directory
         stepdir = "/".join([self.get('dir'),
@@ -1761,12 +1764,13 @@ class Chip:
             self._haltstep(step, index, error, active)
 
         # starting actual step execution
-        self.logger.info(f"Starting step '{step}'")
+        self.logger.debug(f"Starting step '{step}'")
 
         # calculate the minimum index based on index data below
         for input_step in self.get('flowgraph', step, 'input'):
             if input_step != 'source':
                 min_index = self.minimum(input_step)
+                self.logger.info(f"Step '{step}' selected index '{min_index}' from '{input_step}'.")
                 self.set('flowstatus', input_step, 'select', str(min_index), clobber=True)
                 # copy files
                 shutil.copytree(f"../{input_step}{min_index}/outputs", 'inputs/')
@@ -1778,7 +1782,7 @@ class Chip:
         veropt =self.get('eda', tool, step, index, 'vswitch')
         if veropt!=None:
             cmdstr = f'{exe} {veropt} > {exe}.log'
-            self.logger.info("Checking version of '%s' tool in step '%s'.", tool, step)
+            self.logger.debug("Checking version of '%s' tool in step '%s'.", tool, step)
             exepath = subprocess.run(cmdstr, shell=True)
             if exepath.returncode > 0:
                 self.logger.error('Version check failed for %s.', cmdstr)
