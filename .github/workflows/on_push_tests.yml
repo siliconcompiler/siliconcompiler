@@ -9,6 +9,8 @@ jobs:
     name: 'ASIC test builds'
     steps:
       - uses: actions/checkout@v2
+      - name: Checkout OR submodule
+        run: git submodule update --init --recursive third_party/tools/openroad
       - run: |
           python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
           source $GITHUB_WORKSPACE/clean_env/bin/activate
@@ -21,6 +23,8 @@ jobs:
     name: 'FPGA test builds'
     steps:
       - uses: actions/checkout@v2
+      - name: Checkout OR submodule
+        run: git submodule update --init --recursive third_party/tools/openroad
       - run: |
           python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
           source $GITHUB_WORKSPACE/clean_env/bin/activate
@@ -34,6 +38,8 @@ jobs:
     name: 'Python unit tests'
     steps:
       - uses: actions/checkout@v2
+      - name: Checkout OR submodule
+        run: git submodule update --init --recursive third_party/tools/openroad
       - run: |
           python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
           source $GITHUB_WORKSPACE/clean_env/bin/activate
