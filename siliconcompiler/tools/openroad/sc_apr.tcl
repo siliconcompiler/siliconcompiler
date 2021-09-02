@@ -152,7 +152,7 @@ foreach lib $sc_macrolibs {
 }
 
 # Floorplan reads synthesis verilog, others read def
-if {$sc_step == "floorplan" | $sc_step == "synopt"} {
+if {$sc_step == "floorplan"} {
     read_verilog "inputs/$sc_design.v"
     link_design $sc_design
     foreach sdc $sc_constraint {
@@ -183,13 +183,13 @@ set_placement_padding -global \
 source "$sc_refdir/sc_$sc_step.tcl"
 
 ###############################
-# Reporting
-###############################
-
-source "$sc_refdir/sc_metrics.tcl"
-
-###############################
 # Write Design Data
 ###############################
 
 source "$sc_refdir/sc_write.tcl"
+
+###############################
+# Reporting
+###############################
+
+source "$sc_refdir/sc_metrics.tcl"

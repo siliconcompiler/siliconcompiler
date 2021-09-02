@@ -49,8 +49,8 @@ def setup_flow(chip, process):
     # A simple linear flow
     flowpipe = ['import',
                 'syn',
-                'synopt',
                 'floorplan',
+                'synopt',
                 'place',
                 'cts',
                 'route',
