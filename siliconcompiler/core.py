@@ -22,6 +22,9 @@ import pandas
 import yaml
 import graphviz
 import pyfiglet
+import time
+from timeit import default_timer as timer
+
 
 from siliconcompiler.client import *
 from siliconcompiler.schema import *
@@ -1862,9 +1865,13 @@ class Chip:
         # Run executable
         self.logger.info("Running %s in %s", step, stepdir)
         self.logger.info('%s', cmdstr)
+        start = time.time()
         cmd_error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
+        end = time.time()
+        elapsed_time = end - start
+        self.set('metric',step,index,'runtime', 'real', round(elapsed_time,2))
         if cmd_error.returncode != 0:
-            self.logger.error('Command failed. See log file %s', os.path.abspath(logfile))
+            self.logger.warning('Command failed. See log file %s', os.path.abspath(logfile))
             # Override exit code if set
             if not self.get('eda', tool, step, index, 'continue'):
                 self._haltstep(step, index, error, active)
