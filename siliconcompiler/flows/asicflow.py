@@ -69,15 +69,29 @@ def setup_flow(chip, process):
 
     # Setting up flowgraph
     for i, step in enumerate(flowpipe):
-        chip.set('flowgraph', flowpipe[i], 'mergeop',  'min')
-        chip.set('flowgraph', flowpipe[i], 'nproc',  1)
-        for metric in chip.getkeys('metric','default', 'default'):
-            chip.set('flowgraph', flowpipe[i], 'weight',  metric, 1.0)
-        #TODO: Set up metrics
+
+        # Creating linear pipeline
         if i > 0:
             chip.add('flowgraph', flowpipe[i], 'input',  flowpipe[i-1])
         else:
             chip.set('flowgraph', flowpipe[i], 'input',  'source')
+
+        # Linear pipeline
+        chip.set('flowgraph', step, 'nproc',  1)
+
+        # Setting weights for index optimization
+        chip.set('flowgraph', step, 'weight',  'cellarea', 1.0)
+        chip.set('flowgraph', step, 'weight',  'peakpower', 1.0)
+        chip.set('flowgraph', step, 'weight',  'standbypower', 1.0)
+
+        # Setting hard targets
+        for index in range(chip.get('flowgraph', step, 'nproc')):
+            chip.set('metric', step, str(index), 'drv', 'goal', 0.0)
+            chip.set('metric', step, str(index), 'holdwns', 'goal', 0.0)
+            chip.set('metric', step, str(index), 'holdtns', 'goal', 0.0)
+            chip.set('metric', step, str(index), 'setupwns', 'goal', 0.0)
+            chip.set('metric', step, str(index), 'setuptns', 'goal', 0.0)
+
 
     # Per step tool selection
     for step in flowpipe:
