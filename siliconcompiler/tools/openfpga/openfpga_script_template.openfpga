@@ -1,0 +1,54 @@
+# This file is adapted from an OpenFPGA example script:
+# https://github.com/lnis-uofu/OpenFPGA/blob/master/openfpga_flow/openfpga_shell_scripts/generate_bitstream_example_script.openfpga
+
+# Run VPR for the 'and' design
+#--write_rr_graph example_rr_graph.xml
+vpr ${VPR_ARCH_FILE} ${VPR_TESTBENCH_BLIF} --clock_modeling route --absorb_buffer_luts off
+
+# Read OpenFPGA architecture definition
+read_openfpga_arch -f ${OPENFPGA_ARCH_FILE}
+
+# Read OpenFPGA simulation settings
+read_openfpga_simulation_setting -f ${OPENFPGA_SIM_FILE}
+
+# Annotate the OpenFPGA architecture to VPR data base
+# to debug use --verbose options
+link_openfpga_arch --sort_gsb_chan_node_in_edges
+
+# Check and correct any naming conflicts in the BLIF netlist
+check_netlist_naming_conflict --fix --report ./netlist_renaming.xml
+
+# Apply fix-up to clustering nets based on routing results
+pb_pin_fixup --verbose
+
+# Apply fix-up to Look-Up Table truth tables based on packing results
+lut_truth_table_fixup
+
+# Build the module graph
+#  - Enabled compression on routing architecture modules
+#  - Enabled frame view creation to save runtime and memory
+#    Note that this is turned on when bitstream generation 
+#    is the ONLY purpose of the flow!!!
+build_fabric --compress_routing --frame_view #--verbose
+
+# Repack the netlist to physical pbs
+# This must be done before bitstream generator and testbench generation
+# Strongly recommend it is done after all the fix-up have been applied
+repack #--verbose
+
+# Build the bitstream
+#  - Output the fabric-independent bitstream to a file
+build_architecture_bitstream --verbose --write_file outputs/${TOP}_fabric_independent_bitstream.xml
+
+# Build fabric-dependent bitstream
+build_fabric_bitstream --verbose 
+
+# Write fabric-dependent bitstream
+write_fabric_bitstream --file outputs/${TOP}_fabric_bitstream.txt --format plain_text
+write_fabric_bitstream --file outputs/${TOP}_fabric_bitstream.xml --format xml
+
+# Finish and exit OpenFPGA
+exit
+
+# Note :
+# To run verification at the end of the flow maintain source in ./SRC directory

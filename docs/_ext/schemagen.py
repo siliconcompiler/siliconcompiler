@@ -44,7 +44,7 @@ def strong(text):
     return p
 
 def is_leaf(schema):
-    if 'help' in schema:
+    if 'defvalue' in schema:
         return True
     elif len(schema.keys()) == 1 and 'default' in schema:
         return is_leaf(schema['default'])
@@ -79,6 +79,8 @@ class SchemaGen(SphinxDirective):
     def process_schema(self, schema, parents=[]):
         if 'help' in schema:
             entries = [[strong('Description'),   para(schema['short_help'])],
+                       [strong('Type'),          para(schema['type'])],
+                       [strong('Default Value'), para(schema['defvalue'])],
                        [strong('CLI Switch'),    code(schema['switch'])]]
             for example in schema['example']:
                 name, ex = example.split(':', 1)

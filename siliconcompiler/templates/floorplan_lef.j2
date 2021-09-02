@@ -14,7 +14,7 @@ MACRO {{ fp.design }}
   SYMMETRY X Y R90 ;
   {% endif %}
 
-  SIZE {{ fp.die_area[0] }} BY {{ fp.die_area[1] }} ;
+  SIZE {{ fp.die_area[1][0] }} BY {{ fp.die_area[1][1] }} ;
   CLASS BLOCK ;
   {% for pin in fp.pins %}
   PIN {{ pin.name }}
@@ -31,13 +31,10 @@ MACRO {{ fp.design }}
   END {{ pin.name }}
   {% endfor %}
 
-  {% for layer in fp.blockage_layers %}
+  {% for obs in fp.obstructions %}
   OBS
-    LAYER {{ layer }} ;
-    RECT 0
-         0
-         {{ fp.die_area[0] }}
-         {{ fp.die_area[1] }} ;
+    LAYER {{ obs.layer }} ;
+    RECT {{ obs.ll | join (' ') }} {{ obs.ur | join(' ') }} ;
   END
   {% endfor %}
 

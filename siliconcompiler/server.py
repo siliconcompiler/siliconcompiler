@@ -3,12 +3,19 @@
 import argparse
 from aiohttp import web
 import asyncio
+import base64
 import json
 import logging as log
 import os
+import re
 import subprocess
 import shutil
 import uuid
+
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding
+from siliconcompiler import Chip
 
 class Server:
     """
@@ -43,6 +50,23 @@ class Server:
         # Set up a dictionary to track running jobs.
         self.sc_jobs = {}
 
+        # If authentication is enabled, try connecting to the SQLite3 database.
+        # (An empty one will be created if it does not exist.)
+
+        # If authentication is enabled, load [username : public key] mappings.
+        if self.cfg['auth']['value'][-1]:
+            self.user_keys = {}
+            json_path = self.cfg['nfsmount']['value'][-1] + '/users.json'
+            try:
+                with open(json_path, 'r') as users_file:
+                    users_json = json.loads(users_file.read())
+                for mapping in users_json['users']:
+                    self.user_keys[mapping['username']] = mapping['pub_key']
+            except:
+                self.logger.warning("Could not find well-formatted 'users.json' "\
+                                    "file in the server's working directory. "\
+                                    "(User : Key) mappings were not imported.")
+
         # Create a minimal web server to process the 'remote_run' API call.
         self.app = web.Application()
         self.app.add_routes([
@@ -66,7 +90,6 @@ class Server:
         '''
         API handler for 'remote_run' commands. This method delegates
         a 'Chip.run(...)' method to a compute node using slurm.
-
         '''
 
         # Retrieve JSON config from the request body.
@@ -74,50 +97,65 @@ class Server:
         params = cfg['params']
         cfg = cfg['chip_cfg']
         if not 'job_hash' in params:
-          return web.Response(text="Error: no job hash provided.")
-        if not 'stage' in params:
-          return web.Response(text="Error: no stage provided.")
+            return web.Response(text="Error: no job hash provided.")
         job_hash = params['job_hash']
-        stage = params['stage']
+
+        # Retrieve authentication parameters if enabled.
+        use_auth = False
+        if ('username' in params) or ('key' in params):
+            if self.cfg['auth']['value'][-1]:
+                if ('username' in params) and ('key' in params):
+                    username = params['username']
+                    key = params['key']
+                    if not username in self.user_keys.keys():
+                        return web.Response(text="Error: invalid username provided.")
+                    # Authenticate the user.
+                    if self.auth_userkey(username, key):
+                        use_auth = True
+                    else:
+                        return web.Response(text="Authentication error.")
+                else:
+                    return web.Response(text="Error: some authentication parameters are missing.")
+            else:
+                return web.Response(text="Error: authentication parameters were passed in, but this server does not support that feature.")
+
+        # Create a dummy Chip object to make schema traversal easier.
+        chip = Chip()
+        chip.cfg = cfg
 
         # Reset 'build' directory in NFS storage.
         build_dir = '%s/%s'%(self.cfg['nfsmount']['value'][-1], job_hash)
-        jobs_dir = '%s/%s'%(build_dir, cfg['design']['value'][-1])
-        job_nameid = cfg['jobname']['value'][-1] + cfg['jobid']['value'][-1]
-        cfg['dir']['value'] = [build_dir]
+        jobs_dir = '%s/%s'%(build_dir, chip.get('design'))
+        cur_id = chip.get('jobid')
+        job_nameid = f"{chip.get('jobname')}{cur_id}"
 
         # Create the working directory for the given 'job hash' if necessary.
         subprocess.run(['mkdir', '-p', jobs_dir])
+        chip.set('dir', build_dir, clobber=True)
         # Link to the 'import' directory if necessary.
         subprocess.run(['mkdir', '-p', '%s/%s'%(jobs_dir, job_nameid)])
-        subprocess.run(['ln', '-s', '%s/import'%build_dir, '%s/%s/import'%(jobs_dir, job_nameid)])
+        subprocess.run(['ln', '-s', '%s/import0'%build_dir, '%s/%s/import0'%(jobs_dir, job_nameid)])
 
         # Remove 'remote' JSON config value to run locally on compute node.
-        cfg['remote']['addr']['value'] = []
+        chip.set('remote', 'addr', '', clobber=True)
         # Rename source files in the config dict; the 'import' step already
-        # ran and collected the sources into a single 'verilator.sv' file.
-        cfg['source']['value'] = ['%s/import/verilator.sv'%build_dir]
+        # ran and collected the sources into a single Verilog file.
+        chip.set('source', '%s/import0/outputs/%s.v'%(build_dir, chip.get('design')), clobber=True)
 
         # Write JSON config to shared compute storage.
-        cur_id = cfg['jobid']['value'][-1]
         subprocess.run(['mkdir', '-p', '%s/configs'%build_dir])
-        with open('%s/configs/chip%s.json'%(build_dir, cur_id), 'w') as f:
-          f.write(json.dumps(cfg))
+        chip.writecfg('%s/configs/chip%s.json'%(build_dir, cur_id))
 
-        # Run the job with the configured clustering option.
-        sc_sources = ''
-        for filename in cfg['source']['value']:
-          sc_sources += filename + " "
-        # (Non-blocking)
-        asyncio.create_task(self.remote_sc(job_hash,
-                                           cfg['design']['value'][0],
-                                           cfg['source']['value'],
-                                           build_dir,
-                                           stage,
-                                           cur_id))
+        # Run the job with the configured clustering option. (Non-blocking)
+        if use_auth:
+            asyncio.create_task(self.remote_sc_auth(chip,
+                                                    username,
+                                                    key))
+        else:
+            asyncio.create_task(self.remote_sc(chip))
 
         # Return a response to the client.
-        response_text = "Starting job stage: %s (%s)"%(job_hash, stage)
+        response_text = f"Starting job: {job_hash}"
         return web.Response(text=response_text)
 
     ####################
@@ -131,12 +169,15 @@ class Server:
         '''
 
         # Receive and parse the POST request body.
+        use_auth = False
         tmp_file = self.cfg['nfsmount']['value'][-1] + '/' + uuid.uuid4().hex
         reader = await request.multipart()
         while True:
             part = await reader.next()
             if part is None:
                 break
+            # If the data is encrypted, it is sent in a '.crypt' file. If not,
+            # it is sent in a '.zip' archive. Either way, stream the file to disk.
             if part.name == 'import':
                 # job hash may not be available yet; it's also sent in the body.
                 with open(tmp_file, 'wb') as f:
@@ -148,18 +189,55 @@ class Server:
             elif part.name == 'params':
                 # Get the job parameters.
                 job_params = await part.json()
-                # Get the job hash value.
+                # Get the job hash value, and verify it is a 32-char hex string.
                 if not 'job_hash' in job_params:
-                  return web.Response(text="Error: no job hash provided.")
+                    return web.Response(text="Error: no job hash provided.")
                 job_hash = job_params['job_hash']
-                job_root = '%s/%s'%(self.cfg['nfsmount']['value'][-1], job_hash)
-                # Ensure that the required directories exists.
-                subprocess.run(['mkdir', '-p', '%s/import'%job_root])
+                if not re.match("^[0-9A-Za-z]{32}$", job_hash):
+                    return web.Response(text="Error: invalid job hash.")
+                # Get the job's name.
+                if not 'job_name' in job_params:
+                    return web.Response(text="Error: no job name provided.")
+                job_name = job_params['job_name']
+                # Check for authentication parameters.
+                if ('username' in job_params) or ('key' in job_params) or ('aes_key' in job_params) or ('aes_iv' in job_params):
+                    if self.cfg['auth']['value'][-1]:
+                        if ('username' in job_params) and ('key' in job_params) and ('aes_key' in job_params) and ('aes_iv' in job_params):
+                            username = job_params['username']
+                            key = job_params['key']
+                            aes_key = job_params['aes_key']
+                            aes_iv = job_params['aes_iv']
+                            if not username in self.user_keys.keys():
+                                return web.Response(text="Error: invalid username provided.")
+                            # Authenticate the user.
+                            if self.auth_userkey(username, key):
+                                use_auth = True
+                            else:
+                                return web.Response(text="Authentication error.")
+                        else:
+                            return web.Response(text="Error: some authentication parameters are missing.")
+                    else:
+                        return web.Response(text="Error: authentication parameters were passed in, but this server does not support that feature.")
 
-        # Move the uploaded archive to the correct location and un-zip it.
-        os.replace(tmp_file, '%s/import.zip'%job_root)
-        subprocess.run(['unzip', '-o', '%s/import.zip'%(job_root)], cwd='%s/import'%job_root)
-        # Delete the temporary file.
+                # Ensure that the job's root directory exists.
+                job_root = '%s/%s'%(self.cfg['nfsmount']['value'][-1], job_hash)
+                subprocess.run(['mkdir', '-p', job_root])
+
+                if use_auth:
+                    # Move the encrypted archive, and save the AES cipher info.
+                    os.replace(tmp_file, '%s/import.crypt'%job_root)
+                    with open('%s/import.bin'%job_root, 'wb+') as encrypted_key:
+                        encrypted_key.write(base64.urlsafe_b64decode(aes_key))
+                    with open('%s/import.iv'%job_root, 'wb+') as encrypted_key:
+                        encrypted_key.write(base64.urlsafe_b64decode(aes_iv))
+                else:
+                    # Ensure that the required directories exists.
+                    subprocess.run(['mkdir', '-p', '%s/import0'%job_root])
+                    # Move the uploaded archive and un-zip it.
+                    os.replace(tmp_file, '%s/import.zip'%job_root)
+                    subprocess.run(['unzip', '-o', '%s/import.zip'%(job_root)], cwd=job_root)
+
+        # Delete the temporary file if it still exists.
         if os.path.exists(tmp_file):
             os.remove(tmp_file)
 
@@ -232,25 +310,125 @@ class Server:
         if not 'job_id' in params:
             return web.Response(text="Error: no job ID provided.")
         jobid = params['job_id']
+        username = ''
+        if 'username' in params:
+            username = params['username']
 
         # Determine if the job is running.
-        if "%s_%s"%(job_hash, jobid) in self.sc_jobs:
+        if "%s%s_%s"%(username, job_hash, jobid) in self.sc_jobs:
             return web.Response(text="Job is currently running on the cluster.")
         else:
             return web.Response(text="Job has no running steps.")
 
     ####################
-    async def remote_sc(self, job_hash, top_module, sc_sources, build_dir, stage, jobid):
+    async def remote_sc_auth(self, chip, username, pk):
         '''
         Async method to delegate an 'sc' command to a slurm host,
         and send an email notification when the job completes.
-
+        This method requires authentication to access client-encrypted data,
+        but the transport methods for this dev server aren't adequately secured.
         '''
 
-        # Read config JSON, for multi-job configuration.
-        jobs_cfg = {}
-        with open('%s/configs/chip%s.json'%(build_dir, jobid), 'r') as cfgf:
-            jobs_cfg = json.load(cfgf)
+        # Assemble core job parameters.
+        job_hash = chip.get('remote', 'jobhash')
+        top_module = chip.get('design')
+        job_nameid = f"{chip.get('jobname')}{chip.get('jobid')}"
+
+        # Mark the job run as busy.
+        self.sc_jobs["%s%s_0"%(username, job_hash)] = 'busy'
+
+        # Reset 'build' directory in NFS storage.
+        build_dir = '/tmp/%s_%s'%(job_hash, job_nameid)
+        jobs_dir = '%s/%s'%(build_dir, top_module)
+        os.mkdir(build_dir)
+        chip.set('dir', build_dir, clobber=True)
+
+        # Copy the 'import' directory for a new run if necessary.
+        nfs_mount = self.cfg['nfsmount']['value'][-1]
+        if not os.path.isfile('%s/%s/%s.crypt'%(nfs_mount, job_hash, job_nameid)):
+            shutil.copy('%s/%s/import.crypt'%(nfs_mount, job_hash),
+                        '%s/%s/%s.crypt'%(nfs_mount, job_hash, job_nameid))
+            # Also copy the iv nonce for decryption.
+            # New initialization vectors are generated before each *encrypt* step.
+            shutil.copy('%s/%s/import.iv'%(nfs_mount, job_hash),
+                        '%s/%s/%s.iv'%(nfs_mount, job_hash, job_nameid))
+
+        # Rename source files in the config dict; the 'import' step already
+        # ran and collected the sources into a single Verilog file.
+        chip.set('source', f"{build_dir}/{top_module}/{job_nameid}/import0/outputs/{top_module}.v", clobber=True)
+
+        run_cmd = ''
+        if self.cfg['cluster']['value'][-1] == 'slurm':
+            # TODO: support encrypted jobs on a slurm cluster.
+            pass
+        else:
+            # Run the build command locally.
+            from_dir = '%s/%s'%(nfs_mount, job_hash)
+            to_dir   = '/tmp/%s_%s'%(job_hash, job_nameid)
+            # Write plaintext JSON config to the build directory.
+            subprocess.run(['mkdir', '-p', to_dir])
+            subprocess.run(['mkdir', '-p', '%s/configs'%build_dir])
+            # Write private key to a file.
+            # This should be okay, because we are already trusting the local
+            # "compute node" disk to store the decrypted data. Further, the
+            # file will be deleted immediately after the run.
+            # Even so, use the usual 400 permissions for key files.
+            keypath = f'{to_dir}/pk'
+            with open(os.open(keypath, os.O_CREAT | os.O_WRONLY, 0o400), 'w+') as keyfile:
+                keyfile.write(base64.urlsafe_b64decode(pk).decode())
+            chip.set('remote', 'key', keypath, clobber=True)
+            chip.writecfg(f"{build_dir}/configs/chip0.json")
+            # Create the command to run.
+            run_cmd  = '''cp %s/%s.crypt %s/%s.crypt ;
+                          cp %s/%s.iv %s/%s.iv ;
+                          cp %s/import.bin %s/import.bin ;
+                          sc -cfg %s/configs/chip0.json ;
+                          cp %s/%s.crypt %s/%s.crypt ;
+                          cp %s/%s.iv %s/%s.iv ;
+                          rm -rf %s
+                       '''%(from_dir, job_nameid, to_dir, job_nameid,
+                            from_dir, job_nameid, to_dir, job_nameid,
+                            from_dir, to_dir,
+                            build_dir,
+                            to_dir, job_nameid, from_dir, job_nameid,
+                            to_dir, job_nameid, from_dir, job_nameid,
+                            to_dir)
+
+            # Run the generated command.
+            proc = await asyncio.create_subprocess_shell(run_cmd)
+            await proc.wait()
+
+            # Ensure that the private key file was deleted.
+            # (The whole directory should already be gone,
+            #  but the subprocess command could fail)
+            if os.path.isfile(keypath):
+                os.remove(keypath)
+
+        # Zip results after all job stages have finished.
+        subprocess.run(['zip',
+                        '-r',
+                        '%s.zip'%job_hash,
+                        '%s'%job_hash],
+                       cwd = nfs_mount)
+
+        # (Email notifications can be sent here using your preferred API)
+
+        # Mark the job hash as being done.
+        self.sc_jobs.pop("%s%s_0"%(username, job_hash))
+
+    ####################
+    async def remote_sc(self, chip):
+        '''
+        Async method to delegate an 'sc' command to a slurm host,
+        and send an email notification when the job completes.
+        '''
+
+        # Collect a few bookkeeping values.
+        job_hash = chip.get('remote', 'jobhash')
+        top_module = chip.get('design')
+        sc_sources = chip.get('source')
+        build_dir = chip.get('dir')
+        jobid = chip.get('jobid')
 
         # Mark the job hash as being busy.
         self.sc_jobs["%s_%s"%(job_hash, jobid)] = 'busy'
@@ -265,14 +443,14 @@ class Server:
             export_path += ':/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin'
             # Send JSON config instead of using subset of flags.
             # TODO: Use slurmpy SDK?
-            run_cmd  = 'srun %s sc /dev/null '%(export_path)
+            run_cmd  = 'srun %s sc '%(export_path)
             run_cmd += '-cfg %s/configs/chip%s.json '%(build_dir, jobid)
         else:
             # Unrecognized or unset clusering option; run locally on the
             # server itself. (Note: local runs are mostly synchronous, so
             # this will probably block the server from responding to other
             # calls. It should only be used for testing and development.)
-            run_cmd = 'sc /dev/null -cfg %s/configs/chip%s.json'%(build_dir, jobid)
+            run_cmd = 'sc -cfg %s/configs/chip%s.json'%(build_dir, jobid)
 
         # Create async subprocess shell, and block this thread until it finishes.
         proc = await asyncio.create_subprocess_shell(run_cmd)
@@ -283,13 +461,67 @@ class Server:
         # Create a single-file archive to return if results are requested.
         subprocess.run(['zip',
                         '-r',
-                        '-y',
                         '%s.zip'%job_hash,
                         '%s'%job_hash],
                        cwd=self.cfg['nfsmount']['value'][-1])
 
         # Mark the job hash as being done.
         self.sc_jobs.pop("%s_%s"%(job_hash, jobid))
+
+    ####################
+    def auth_userkey(self, username, private_key, enc='b64'):
+        '''Helper method to authenticate that a provided private key 'matches'
+           a stored public key. So, the private key must correctly decrypt
+           data which was encrypted using the public key.
+        '''
+
+        try:
+            # Get the user's public key.
+            if username in self.user_keys:
+                pubkey = self.user_keys[username]
+            else:
+                return False
+
+            if enc == 'b64':
+                # Decode base-64 value.
+                pk_str = base64.b64decode(private_key).decode()
+            else:
+                # Unknown encoding; treat it as a string.
+                pk_str = private_key
+
+            # Create cipher objects for the public and private keys.
+            encrypt_key = serialization.load_ssh_public_key(
+                pubkey.encode(),
+                backend=default_backend())
+            decrypt_key = serialization.load_ssh_private_key(
+                pk_str.encode(),
+                None,
+                backend=default_backend())
+
+            # Encrypt a test string using the public key.
+            nonce = uuid.uuid4().hex
+            test_encrypt = encrypt_key.encrypt(
+                nonce.encode(),
+                padding.OAEP(
+                    mgf=padding.MGF1(algorithm=hashes.SHA512()),
+                    algorithm=hashes.SHA512(),
+                    label=None,
+                ))
+
+            # Check that the message decrypts correctly using the private key.
+            test_decrypt = decrypt_key.decrypt(
+                test_encrypt,
+                padding.OAEP(
+                    mgf=padding.MGF1(algorithm=hashes.SHA512()),
+                    algorithm=hashes.SHA512(),
+                    label=None,
+                ))
+
+            # Authentication succeeds if decrypted nonce matches the original.
+            return (test_decrypt and (test_decrypt.decode() == nonce))
+        except:
+            # Authentication fails if any unexpected errors occur.
+            return False
 
     ####################
     def writecfg(self, filename, mode="all"):
@@ -336,6 +568,15 @@ def server_schema():
         'switch_args': '<str>',
         'type': ['string'],
         'defvalue' : ['/nfs/sc_compute'],
+        'help' : ["TBD"]
+    }
+
+    cfg['auth'] = {
+        'short_help': 'Flag determining whether to enable authenticated and encrypted jobs. Intended for testing client-side authentication flags, not for securing sensitive information.',
+        'switch': '-auth',
+        'switch_args': '<str>',
+        'type': ['bool'],
+        'defvalue' : [''],
         'help' : ["TBD"]
     }
 

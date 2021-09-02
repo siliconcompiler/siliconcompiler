@@ -43,35 +43,26 @@ class Lef:
                    "LEFTBRACKET",
                    "RIGHTBRACKET",
                    "QUOTE",
-                   "STRING",
+                   "ID",
                    "FLOAT"])
         
     # Reular exprssions ruls with some action code
-    t_VERSION             = r'VERSION'
-    t_BUSBITCHARS         = r'\[\]'
-    t_DIVIDERCHAR         = r'DIVIDERCHAR'
-    t_UNITS               = r'UNITS'
-    t_MANUFACTURINGGRID   = r'MANUFACTURINGGRID'
-    t_USEMINSPACING       = r'USEMINSPACING'
-    t_CLEARANCEMEASURE    = r'CLEARANCEMEASURE'
-    t_PROPERTYDEFINITIONS = r'PROPERTYDEFINITIONS'
-    t_LAYER               = r'LAYER'
-    t_MAXVIASTACK         = r'MAXVIASTACK'
-    t_VIA                 = r'VIA'
-    t_VIARULE             = r'VIARULE'
-    t_NONDEFAULTRULE      = r'NONDEFAULTRULE'
-    t_SITE                = r'SITE'
-    t_BEGINEXT            = r'BEGINEXT'
-    t_SIZE                = r'SIZE'
-    t_PIN                 = r'PIN'
-    t_OBS                 = r'OBS'
-    t_MACRO               = r'MACRO'
-    t_END                 = r'END'
     t_DIVIDER             = r'\/'
     t_SEMICOLON           = r'\;'
     t_QUOTE               = r'\"'
-    t_STRING              = r'\w+'
-    t_FLOAT               = r'[\d\.\-]+'
+
+    def t_FLOAT(self, t):
+        r'[\d\.\-]+'
+        t.value = float(t.value)
+        return t
+
+    # TODO: according to ref, identifiers can include basically anything besides
+    # whitespace -- make this less strict and test it
+    def t_ID(self, t):
+        r'[^#;\s]+'
+        if t.value in self.keywords:
+            t.type = t.value
+        return t
 
     def __init__ (self):
         self.lexer = lex.lex(module=self)
@@ -83,7 +74,7 @@ class Lef:
 
     # Ignore white space and comments
     t_ignore_COMMENT      = r'\#.*'
-    t_ignore              = ' \t'           
+    t_ignore              = ' \t'
         
     def t_error(self,t):
         print("Illegal character '%s'" % t.value[0])
@@ -97,6 +88,8 @@ class Lef:
             tok = self.lexer.token()
             if not tok: return None
 
+            # TODO: version technically might not be float, since
+            # it can be of form "x.x.x"
             if tok.type in ('VERSION', 'MANUFACTURINGGRID'):
                 # simple num statement
                 num = self.lexer.token()
@@ -137,7 +130,7 @@ class Lef:
             semi = self.lexer.token()
 
             # TODO: check unit type/unit unit are valid
-            if unit_type.type != 'STRING' or convert_factor.type != 'FLOAT' or semi.type != 'SEMICOLON':
+            if unit_type.type != 'ID' or convert_factor.type != 'FLOAT' or semi.type != 'SEMICOLON':
                 raise ParseError('Parse units')
 
             units.append({unit_type.value.lower(): float(convert_factor.value)})
@@ -151,7 +144,7 @@ class Lef:
     def parse_site(self):
         # TODO: parse site instead of just ignoring contents
         name = self.lexer.token()
-        if name.type != 'STRING':
+        if name.type != 'ID':
             raise ParseError("Parse site")
 
         tok = self.lexer.token()
@@ -165,7 +158,7 @@ class Lef:
 
     def parse_macro(self):
         name = self.lexer.token()
-        if name.type != 'STRING':
+        if name.type != 'ID':
             raise ParseError("Parse macro")
 
         macro = {}
@@ -182,7 +175,7 @@ class Lef:
             elif tok.type == 'PIN':
                 self.parse_pin()
             elif tok.type == 'OBS':
-                self.parse_obs()
+                self.chomp_till_end()
             else:
                 # every other sub-statement is terminated by the next semicolon
                 self.chomp_till_semi()
@@ -196,19 +189,17 @@ class Lef:
         name = self.lexer.token()
         tok = self.lexer.token()
         while tok.type != 'END':
-            if tok.type == 'STRING' and tok.value == 'PORT':
-                # big hack, but we just want to ignore port and it looks like
-                # obs (and parse_obs currently throws everything away)
-                self.parse_obs()
+            if tok.type == 'ID' and tok.value == 'PORT':
+                self.chomp_till_end()
             else:
                 self.chomp_till_semi()
             tok = self.lexer.token()
         name2 = self.lexer.token()
 
-    def parse_obs(self):
-        self.chomp_till_semi()
-        self.chomp_till_semi()
-        end = self.lexer.token()
+    def chomp_till_end(self):
+        tok = self.lexer.token()
+        while tok.type != 'END':
+            tok = self.lexer.token()
 
     def chomp_till_semi(self):
         tok = self.lexer.token()

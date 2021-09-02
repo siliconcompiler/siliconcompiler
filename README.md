@@ -1,8 +1,9 @@
 # SiliconCompiler
 
-![CI Tests](https://github.com/zeroasiccorp/siliconcompiler/workflows/CI%20Tests/badge.svg)
+[![Quick CI Tests](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/on_push_tests.yml/badge.svg)](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/on_push_tests.yml)
+[![Daily CI Tests](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/daily_tests.yml/badge.svg)](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/daily_tests.yml)
 
-SiliconCompiler is an end-to-end Python based open source platform for hardware compilation. It supports a comprehensive, flexible ecosystem of [tools](https://www.siliconcompiler.org/tools), [hardware targets](https://www.siliconcompiler.org/targets), and [community](https://www.siliconcompiler.org/community) resources that lowers the barrier to physical ASIC prototyping and high accuracy HW/SW codesign. 
+SiliconCompiler is an end-to-end Python based open source platform for hardware compilation. It supports a comprehensive, flexible ecosystem of [tools](https://www.siliconcompiler.org/tools), [hardware targets](https://www.siliconcompiler.org/targets), and [community](https://www.siliconcompiler.org/community) resources that lowers the barrier to physical ASIC prototyping and high accuracy HW/SW codesign.
 
 **Highlights:**
 * Configurable, extensible, and automated ASIC and FPGA compilation flows
@@ -11,7 +12,7 @@ SiliconCompiler is an end-to-end Python based open source platform for hardware 
 * Plain text single file JSON compilation record
 * Zero install client/server execution model
 * Simple name based target technology mapping
-* Python based technology agnostic ASIC floor-planning API  
+* Python based technology agnostic ASIC floor-planning API
 
 **App Example:**
 
@@ -30,7 +31,7 @@ chip.run()
 
 ## Documentation
 
-We take documentation serisouly and have crated detailed documentation of the architecture, options, configuration, Python API. 
+We take documentation serisouly and have crated detailed documentation of the architecture, options, configuration, Python API.
 
 Please spend a few minutes to review the docs before diving in:
 
@@ -49,22 +50,26 @@ To install from the active developer repository.
 ```sh
 $ git clone https://github.com/siliconcompiler/siliconcompiler
 $ cd siliconcompiler
+$ git submodule update --init --recursive
 $ pip install -r requirements.txt
 $ python -m pip install -e .
 ```
 
 ## Pre-requisites
 
-To compile designs using the included open source target flow, you will need to install the follwoing external packages: 
+To compile designs using the included open source target flow, you will need to install the follwoing external packages:
 
 Ubuntu based install scripts can be found in the [./setup](setup) directory. These scripts will install dependencies into `siliconcompiler/deps`, and usually build them from source.
 
 - **OpenRoad:** https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts
   - Following the directions in the OpenROAD-flow-scripts repository will
     install other required dependencies, such as [Yosys](https://github.com/YosysHQ/yosys),
-    along with OpenROAD itself.
+    along with OpenROAD itself. This repository is added as a git submodule under `third_party/tools`.
+    We recommend installing from this submodule, since the OpenROAD API is unstable and this
+    version is known compatible with SiliconCompiler.
 - **Verilator:** https://github.com/verilator/verilator
 - **Klayout:** https://github.com/KLayout/klayout
+  -  Requires version >=0.26.11.
 - **Surelog:** https://github.com/chipsalliance/Surelog
 - **sv2v:** https://github.com/zachjs/sv2v
 

@@ -6,7 +6,7 @@ import jinja2
 from collections import namedtuple
 
 from siliconcompiler.leflib import Lef
-from siliconcompiler.schema import schema_path
+from siliconcompiler.schema_utils import schema_path
 
 # Set up Jinja
 env = jinja2.Environment(loader=jinja2.PackageLoader('siliconcompiler'),
@@ -18,11 +18,9 @@ def render_tuple(vals):
     return f"( {vals_str} )"
 env.filters['render_tuple'] = render_tuple
 
-_MacroInfo = namedtuple("_MacroInfo", "tech_name width height")
+_MacroInfo = namedtuple("_MacroInfo", "width height")
 
-def snap(val, grid):
-    '''Helper function for snapping `val` to nearest multiple of `grid`.'''
-    return grid * round(val/grid)
+# TODO: make sure all required schema entries are checked (and document!)
 
 class Floorplan:
     '''Floorplan layout class.
@@ -50,9 +48,8 @@ class Floorplan:
 
     Attributes:
         available_cells (dict): A dictionary mapping macro names to information
-            about each macro. The values stored in this dictionary have three
-            keys: `tech_name`, the technology-specific name corresponding to the
-            macro; `width`, the width of the macro in microns; and `height`, the
+            about each macro. The values stored in this dictionary have two
+            keys: `width`, the width of the macro in microns and `height`, the
             height of the macro in microns.
 
             In order to make macro libraries usable by the Floorplan API, a user
@@ -63,19 +60,8 @@ class Floorplan:
                 .. code-block:: python
 
                     chip.add('asic', 'macrolib', libname)
-                    chip.set('macro', libname, 'lef', lef_path)
+                    chip.set('library', libname, 'lef', lef_path)
 
-            In order to make the macros in a library accessible from the
-            Floorplan API, each macro must be provided a tech-agnostic name
-            (`macro_name`), which maps to a tech-specific name (the name of the
-            macro in the associated LEF file, `tech_name`):
-
-                .. code-block:: python
-
-                    chip.set('macro', libname, 'cells', macro_name, tech_name)
-
-            All Floorplan API calls related to macros must use the tech-agnostic
-            macro name.
         die_area (tuple): A tuple of two floats `(width, height)` storing the
             size of the die area in microns.
         layers (dict): A dictionary mapping SiliconCompiler layer names to
@@ -91,7 +77,7 @@ class Floorplan:
         self.grid = grid
         self.db_units = db_units
 
-        self.design = chip.get('design')[-1]
+        self.design = chip.get('design')
         self.die_area = None
         self.core_area = None
         self.pins = []
@@ -99,8 +85,9 @@ class Floorplan:
         self.rows = []
         self.tracks = []
         self.nets = {}
-
-        self.blockage_layers = []
+        self.viarules = []
+        self.blockages = []
+        self.obstructions = []
 
         # Set up custom Jinja `scale` filter as a closure around `self` so we
         # don't have to pass in db_units
@@ -123,90 +110,95 @@ class Floorplan:
         ## Extract technology-specific info ##
 
         # extract std cell info based on libname
-        self.libname = self.chip.get('asic', 'targetlib')[-1]
-        self.std_cell_name = self.chip.get('stdcell', self.libname, 'site')[-1]
-        self.std_cell_width = float(self.chip.get('stdcell', self.libname, 'width')[-1])
-        self.std_cell_height = float(self.chip.get('stdcell', self.libname, 'height')[-1])
+        self.libname = self.chip.get('asic', 'targetlib')[0]
+        self.std_cell_name = self.chip.get('library', self.libname, 'site')
+        self.std_cell_width = self.chip.get('library', self.libname, 'width')
+        self.std_cell_height = self.chip.get('library', self.libname, 'height')
 
         # Extract data from LEFs
         lef_parser = Lef()
-        stackup = chip.get('asic', 'stackup')[-1]
-        libtype = chip.get('stdcell', self.libname, 'libtype')[-1]
-
-        tech_lef = schema_path(chip.get('pdk','aprtech', stackup, libtype, 'lef')[-1])
-        with open(tech_lef, 'r') as f:
-            tech_lef_data = lef_parser.parse(f.read())
+        stackup = chip.get('asic', 'stackup')
+        libtype = chip.get('library', self.libname, 'arch')
 
         # List of cells the user is able to place
         self.available_cells = {}
 
         for macrolib in self.chip.get('asic', 'macrolib'):
-            lef_path = schema_path(self.chip.get('macro', macrolib, 'lef')[-1])
+            lef_path = schema_path(self.chip.get('library', macrolib, 'lef')[0])
             with open(lef_path, 'r') as f:
                 lef_data = lef_parser.lib_parse(f.read())
 
-            for name in self.chip.cfg['macro'][macrolib]['cells']:
-                if name == 'default': continue
-                tech_name = self.chip.get('macro', macrolib, 'cells', name)[-1]
-                if tech_name in lef_data['macros']:
-                    width, height = lef_data['macros'][tech_name]['size']
-                else:
-                    raise KeyError(f'Implementation {tech_name} for macro {name}'
-                        f'not found in library {lef_path}')
+            for name in lef_data['macros']:
+                width, height = lef_data['macros'][name]['size']
+                self.available_cells[name] = _MacroInfo(width, height)
 
-                self.available_cells[name] = _MacroInfo(tech_name, width, height)
+        tech_lef = schema_path(chip.get('pdk', 'aprtech', stackup, libtype, 'lef')[0])
+        with open(tech_lef, 'r') as f:
+            tech_lef_data = lef_parser.parse(f.read())
 
         # extract layers based on stackup
-        stackup = self.chip.get('asic', 'stackup')[-1]
+        stackup = self.chip.get('asic', 'stackup')
         self.layers = {}
-        for name, layer in self.chip.cfg['pdk']['grid'][stackup].items():
-            if name == 'default': continue
-            self.layers[name] = {}
-            pdk_name = layer['name']['value'][-1]
-            self.layers[name]['name'] = pdk_name
-            self.layers[name]['width'] = float(tech_lef_data['LAYER'][pdk_name]['WIDTH'][-1])
-            self.layers[name]['xpitch'] = float(layer['xpitch']['value'][-1])
-            self.layers[name]['ypitch'] = float(layer['ypitch']['value'][-1])
-            self.layers[name]['xoffset'] = float(layer['xoffset']['value'][-1])
-            self.layers[name]['yoffset'] = float(layer['yoffset']['value'][-1])
+        for name in self.chip.getkeys('pdk', 'grid', stackup):
+            pdk_name = self.chip.get('pdk', 'grid', stackup, name, 'name')
+            xpitch = self.chip.get('pdk', 'grid', stackup, name, 'xpitch')
+            ypitch = self.chip.get('pdk', 'grid', stackup, name, 'ypitch')
+            xoffset = self.chip.get('pdk', 'grid', stackup, name, 'xoffset')
+            yoffset = self.chip.get('pdk', 'grid', stackup, name, 'yoffset')
+            width = float(tech_lef_data['LAYER'][pdk_name]['WIDTH'][-1])
+            direction = tech_lef_data['LAYER'][pdk_name]['DIRECTION'][-1]
 
+            self.layers[name] = {
+                'name': pdk_name,
+                'width': width,
+                'direction': direction,
+                'xpitch': xpitch,
+                'ypitch': ypitch,
+                'xoffset': xoffset,
+                'yoffset': yoffset
+            }
 
-    def create_die_area(self, width, height, core_area=None, generate_rows=True,
+    def create_die_area(self, die_area, core_area=None, generate_rows=True,
                         generate_tracks=True):
         '''Initializes die.
 
         Initializes the area of the die and generates placement rows and routing
-        tracks. This function must be called before calling `place_pins`. The
-        provided die and core dimensions will overwrite the die/core size
-        already present in the chip config.
+        tracks. The provided die and core dimensions will overwrite the die/core
+        size already present in the chip config.
 
         Args:
-            width (float): Width of die in microns.
-            height (float): Height of die in microns.
-            core_area (tuple of float): The core cell area of the physical
-                design. This is provided as a tuple (x0 y0 x1 y1), where (x0,
-                y0), specifes the lower left corner of the block and (x1, y1)
-                specifies the upper right corner. If `None`, core_area is set to
-                be equivalent to the die area. Dimensions are specified in
-                microns.
+            die_area (list of (float, float)): List of points that form the die
+                area. Currently only allowed to provide two points, specifying
+                the two bounding corners of a rectangular die. Dimensions are
+                specified in microns.
+            core_area (list of (float, float)): List of points that form the
+                core area of the physical design. If `None`, core_area is set to
+                be equivalent to the die area. Currently only allowed to provide
+                two points, specifying the two bounding corners of a rectangular
+                area.  Dimensions are specified in microns.
             generate_rows (bool): Automatically generate rows to fill entire
                 core area.
             generate_tracks (bool): Automatically generate tracks to fill entire
                 core area.
         '''
-        # store die_area as 2-tuple since bottom left corner is always 0,0
-        width = self.snap_to_grid(width)
-        height = self.snap_to_grid(height)
+        if len(die_area) != 2:
+            raise ValueError('Non-rectangular floorplans not yet supported: '
+                             'die_area must be list of two tuples.')
+        if die_area[0] != (0, 0):
+            # TODO: not sure if this would be a problem, except need to figure
+            # out what a non-origin initial point would mean for the LEF output.
+            raise ValueError('Non-origin initial die area point not yet supported.')
 
-        self.die_area = (width, height)
+        # store die_area as 2-tuple since bottom left corner is always 0,0
+        self.die_area = die_area
         if core_area == None:
-            self.core_area = (0, 0, width, height)
+            self.core_area = self.die_area
         else:
             self.core_area = core_area
 
-        # TODO: is this necessary or a good idea?
-        self.chip.set('asic', 'diesize', str((0, 0, width, height)))
-        self.chip.set('asic', 'coresize', str(self.core_area))
+        if len(self.core_area) != 2:
+            raise ValueError('Non-rectangular core areas not yet supported: '
+                             'core_area must be list of two tuples.')
 
         if generate_rows:
             self.generate_rows()
@@ -238,76 +230,61 @@ class Floorplan:
         with open(filename, 'w') as f:
             f.write(tmpl.render(fp=self))
 
-    def place_pins(self, pins, offset, spacing, side, width, depth, layer,
-                   pin_dir='inout', net_name=None, use='signal', fixed=True):
+    def place_pins(self, pins, x0, y0, xpitch, ypitch, width, height, layer,
+                   direction='inout', net_name=None, use='signal', fixed=True,
+                   snap=False):
         '''Places pins along edge of floorplan.
 
         Args:
             pins (list of str): List of pin names to place.
-            offset (int): How far to place first pin from edge, in microns.
-            spacing (int): Spacing between pins in microns.
-            side (str): Which side of the block to place the pins along. Options
-                are 'n', 's', 'e', or 'w' (case insensitive).
+            x0 (float): x-coordinate of first instance in microns.
+            y0 (float): y-coordinate of first instance in microns.
+            xpitch (float): Increment along x-axis in microns.
+            ypitch (float): Increment along y-axis in microns.
             width (float): Width of pin.
-            depth (float): Depth of pin.
+            height (float): Height of pin.
             layer (str): Which metal layer pin is placed on.
-            pin_dir (str): I/O direction of pins (must be valid LEF/DEF
+            direction (str): I/O direction of pins (must be valid LEF/DEF
                 direction).
             net_name (str): Name of net that each pin is connected to. If
                 `None`, the net name of each pin will correspond to the pin
                 name.
             use (str): Usage of pin (must be valid LEF/DEF use).
             fixed (bool): Whether pin status is 'FIXED' or 'PLACED'.
+            snap (bool): Whether to snap pin position to align it with the
+                nearest routing track. Track direction is determined by
+                preferred routing direction as specified in the tech LEF.
         '''
         logging.debug('Placing pins: %s', ' '.join(pins))
 
-        if pin_dir.lower() not in ('input', 'output', 'inout', 'feedthru'):
+        if direction.lower() not in ('input', 'output', 'inout', 'feedthru'):
             raise ValueError('Invalid pin direction')
         if use.lower() not in ('signal', 'power', 'ground', 'clock', 'tieoff',
                                'analog', 'scan', 'reset'):
             raise ValueError('Invalid use')
 
-        if self.die_area is None:
-            raise ValueError('Die area must be initialized with create_die_area!')
-
-
-        width = self.snap_to_grid(width)
-        depth = self.snap_to_grid(depth)
-
-        block_w, block_h = self.die_area
-
-        # TODO: should shape be snapped to grid?
-        if side.upper() == 'N':
-            x     = offset
-            y     = block_h - depth/2
-            xincr = spacing
-            yincr = 0.0
-            shape = [(-width/2, -depth/2), (width/2, depth/2)]
-        elif side.upper() == 'S':
-            x     = offset
-            y     = depth/2
-            xincr = spacing
-            yincr = 0.0
-            shape = [(-width/2, -depth/2), (width/2, depth/2)]
-        elif side.upper() == 'W':
-            x     = depth/2
-            y     = offset
-            xincr = 0
-            yincr = spacing
-            shape = [(-depth/2, -width/2), (depth/2, width/2)]
-        elif side.upper() == 'E':
-            x     = block_w - depth/2
-            y     = offset
-            xincr = 0
-            yincr = spacing
-            shape = [(-depth/2, -width/2), (depth/2, width/2)]
+        x = x0
+        y = y0
 
         for pin_name in pins:
-            pos = self.snap_to_grid(x), self.snap_to_grid(y)
+            # we place pins by center point internally to make sure we can
+            # easily snap them so that the center is aligned with the
+            # appropriate track
+
+            pos = x + width/2, y + height/2
+            if snap:
+                layer_dir = self.layers[layer]['direction']
+                if layer_dir == 'HORIZONTAL':
+                    pos = x + width/2, self.snap_to_y_track(y + height/2, layer)
+                elif layer_dir == 'VERTICAL':
+                    pos = self.snap_to_x_track(x + width/2, layer), y + height/2
+                else:
+                    logging.warning(f'Unable to snap pin on layer with '
+                        f'preferred direction {layer_dir}')
 
             port = {
                 'layer': self.layers[layer]['name'],
-                'box': shape,
+                'box': [(-width/2, -height/2), (width/2, height/2)],
                 'status': 'fixed' if fixed else 'placed',
                 'point': pos,
                 'orientation': 'N'
@@ -315,78 +292,77 @@ class Floorplan:
             pin = {
                 'name': pin_name,
                 'net': net_name if net_name else pin_name,
-                'direction': pin_dir,
+                'direction': direction,
                 'use': use,
                 'port': port
             }
             self.pins.append(pin)
 
-            x += xincr
-            y += yincr
+            x += xpitch
+            y += ypitch
 
-    def place_macros(self, macros, pos, spacing, direction, orientation,
-                    halo=(0, 0, 0, 0), fixed=True):
+    def place_macros(self, macros, x0, y0, xpitch, ypitch, orientation,
+                    halo=None, fixed=True, snap=False):
         '''Places macros on floorplan.
 
         Args:
             macros (list of (str, str)): List of macros to place as tuples of
                 (instance name, macro name).
-            pos (tuple): x, y coordinate where to place first instance, in
-                microns.
-            spacing (int): Distance between this macro and previous, in microns.
-            direction (str): Direction to place macros ('h' for east-west, 'v'
-                for north-south).
+            x0 (float): x-coordinate of first instance in microns.
+            y0 (float): y-coordinate of first instance in microns.
+            xpitch (float): Increment along x-axis in microns.
+            ypitch (float): Increment along y-axis in microns.
             orientation (str): Orientation of macros (must be valid LEF/DEF
                 orientation).
             halo (tuple of int): Halo around macro as tuple (left bottom right
                 top), in microns.
             fixed (bool): Whether or not macro placement is fixed or placed.
+            snap (bool): Whether or not to snap macro position to be aligned
+                with the nearest placement site.
         '''
 
         self._validate_orientation(orientation)
-        if direction.lower() not in ('h', 'v'):
-            raise ValueError('Invalid direction')
 
-        x, y = pos
+        x = x0
+        y = y0
 
         for instance_name, cell_name in macros:
-            cell = self.available_cells[cell_name]
-            width = cell.width
-            height = cell.height
-
             macro = {
                 'name': instance_name,
-                'cell': self.available_cells[cell_name].tech_name,
+                'cell': cell_name,
                 'info': self.available_cells[cell_name],
-                'x': self.snap_to_grid(x),
-                'y': self.snap_to_grid(y),
+                'x': self.snap(x, self.std_cell_width) if snap else x,
+                'y': self.snap(y, self.std_cell_height) if snap else y,
                 'status': 'fixed' if fixed else 'placed',
                 'orientation': orientation.upper(),
                 'halo': halo,
             }
             self.macros.append(macro)
 
-            if direction.lower() == 'h':
-                x += spacing
-            else:
-                y += spacing
+            x += xpitch
+            y += ypitch
 
-    def place_wires(self, nets, pos, spacing, direction, layer, width, length, shape):
+    def place_wires(self, nets, x0, y0, xpitch, ypitch, width, height, layer,
+                    shape, snap=False):
         '''Place wires on floorplan.
 
         Args:
             nets (list of str): List of net names of wires to place.
-            pos (tuple): x, y coordinate where to place first instance, in
-                microns.
-            spacing (int): Distance between this wire and previous, in microns.
-            direction (str): Direction to place wires along ('h' for east-west,
-                'v' for north-south). Note that the wires themselves will run in
-                the opposite direction.
-            layer (str): Which metal layer wire is placed on.
+            x0 (float): x-coordinate of first instance in microns.
+            y0 (float): y-coordinate of first instance in microns.
+            xpitch (float): Increment along x-axis in microns.
+            ypitch (float): Increment along y-axis in microns.
             width (float): Width of wire in microns.
-            length (float): Length of wire in microns.
+            height (float): Height of wire in microns.
+            layer (str): Which metal layer wire is placed on.
             shape (str): Shape of wire as LEF/DEF shape.
+            snap (bool): Whether to snap wire position to align it with the
+                nearest routing track. Track direction is determined by
+                preferred routing direction as specified in the tech LEF.
         '''
+
+        x = x0
+        y = y0
 
         if shape.lower() not in ('ring', 'padring', 'blockring', 'stripe',
             'followpin', 'iowire', 'corewire', 'blockwire', 'blockagewire',
@@ -394,19 +370,32 @@ class Floorplan:
             raise ValueError('Invalid shape')
 
         for net_name in nets:
-            x, y = pos
-            if direction.lower() == 'h':
-                end = x, y + length
-            elif direction.lower() == 'v':
-                end = x + length, y
+            if width > height:
+                # horizontal
+                if snap:
+                    start = x, self.snap_to_y_track(y + height/2, layer)
+                    end = x + width, self.snap_to_y_track(y + height/2, layer)
+                else:
+                    start = x, y + height/2
+                    end = x + width, y + height/2
+                wire_width = height
             else:
-                raise ValueError(f'Invalid direction {direction}')
+                # vertical
+                if snap:
+                    start = self.snap_to_x_track(x + width/2, layer), y
+                    end = self.snap_to_y_track(x + width/2, layer), y + height
+                else:
+                    start = x + width/2, y
+                    end = x + width/2, y + height
+                wire_width = width
 
             wire = {
                 'layer': self.layers[layer]['name'],
-                'width': width,
+                # TODO: I think this value has to be even, should probably
+                # ensure that? (I think that's in terms of DEF scale)
+                'width': wire_width,
                 'shape': shape,
-                'start': pos,
+                'start': start,
                 'end': end
             }
 
@@ -414,12 +403,56 @@ class Floorplan:
                 self.nets[net_name]['wires'].append(wire)
             else:
                 raise ValueError(f'Net {net_name} not found. Please initialize '
-                    f'it by calling init_net()')
+                    f'it by calling configure_net()')
 
-            if direction.lower() == 'h':
-                pos = x + spacing, y
-            elif direction.lower() == 'v':
-                pos = x, y + spacing
+            x += xpitch
+            y += ypitch
+
+    def place_vias(self, nets, x0, y0, xpitch, ypitch, layer, rule):
+        # TODO: document
+        # TODO: add snap arg?
+
+        x = x0
+        y = y0
+        for net_name in nets:
+            via = {
+                'point': (x, y),
+                'layer': self.layers[layer]['name'],
+                'rule': rule
+            }
+
+            if net_name in self.nets:
+                self.nets[net_name]['vias'].append(via)
+            else:
+                raise ValueError(f'Net {net_name} not found. Please initialize '
+                    f'it by calling configure_net()')
+
+            x += xpitch
+            y += ypitch
+
+    def add_viarule(self, name, rule, cutsize, layers, cutspacing, enclosure, rowcol=None):
+        # TODO: document
+        # TODO: look at VIA docs in DEF to see if this makes sense/if I should
+        # add anything else
+
+        # TODO: do we want SC-agnostic via layer names? For now, just pass
+        # through non metal layers
+        tech_layers = []
+        for layer in layers:
+            if layer in self.layers:
+                tech_layers.append(self.layers[layer]['name'])
+            else:
+                tech_layers.append(layer)
+
+        self.viarules.append({
+            'name': name,
+            'rule': rule,
+            'cutsize': cutsize,
+            'layers': tech_layers,
+            'cutspacing': cutspacing,
+            'enclosure': enclosure,
+            'rowcol': rowcol
+        })
 
     def generate_rows(self, site_name=None, flip_first_row=False, area=None):
         '''Auto-generates placement rows based on floorplan parameters and tech
@@ -446,10 +479,9 @@ class Floorplan:
         if area is None:
             area = self.core_area
 
-        start_x = area[0]
-        start_y = area[1]
-        core_width = area[2] - start_x
-        core_height = area[3] - start_y
+        start_x, start_y = area[0]
+        core_width = area[1][0] - start_x
+        core_height = area[1][1] - start_y
 
         num_rows = int(core_height / self.std_cell_height)
         num_x = core_width // self.std_cell_width
@@ -487,9 +519,10 @@ class Floorplan:
         self.tracks.clear()
 
         if area is None:
-            area = (0, 0, self.die_area[0], self.die_area[1])
+            area = self.die_area
 
-        start_x, start_y, die_width, die_height = area
+        start_x, start_y = area[0]
+        die_width, die_height = area[1]
 
         for layer in self.layers.values():
             layer_name = layer['name']
@@ -521,27 +554,65 @@ class Floorplan:
             self.tracks.append(track_x)
             self.tracks.append(track_y)
 
-    def place_blockage(self, layers=None):
-        '''Places full-area blockages on the specified layers.
-
-        The blockages specified using this method only take effect when dumping
-        the floorplan as a LEF macro.
+    def place_blockage(self, x, y, width, height, layer=None, snap=False):
+        '''Places blockage at specified location.
 
         Args:
-            layers (list): List of layers to place blockages on. If `None`,
+            x (float): x-coordinate of blockage in microns.
+            y (float): y-coordinate of blockage in microns.
+            width (float): Width of blockage in microns.
+            height (float): Height of blockage in microns.
+            layers (str): Metal layer to block routing on. If `None`, mark as
+                placement blockage.
+            snap (bool): Whether or not to snap blockage position to be aligned
+                with the nearest placement site.
+        '''
+
+        if snap:
+            x = fp.snap(x, self.std_cell_width)
+            y = fp.snap(y, self.std_cell_height)
+
+        self.blockages.append({
+            'll': (x, y),
+            'ur': (x + width, y + height),
+            'layer': self.layers[layer]['name'] if layer is not None else None
+        })
+
+    def place_obstruction(self, x, y, width, height, layers=None, snap=False):
+        '''Places obstruction at specified location.
+
+        The obstructions specified using this method only take effect when
+        dumping the floorplan as a LEF macro.
+
+        Args:
+            x (float): x-coordinate of blockage in microns.
+            y (float): y-coordinate of blockage in microns.
+            width (float): Width of blockage in microns.
+            height (float): Height of blockage in microns.
+            layers (list): List of layers to place obstructions on. If `None`,
                 block all metal layers.
+            snap (bool): Whether or not to snap obstruction position to be
+                aligned with the nearest placement site.
         '''
 
         if layers is None:
             layers = list(self.layers.keys())
 
+        if snap:
+            x = fp.snap(x, self.std_cell_width)
+            y = fp.snap(y, self.std_cell_height)
+
         for layer in layers:
             if layer in self.layers:
-                self.blockage_layers.append(self.layers[layer]['name'])
+                self.obstructions.append({
+                    'll': (x, y),
+                    'ur': (x + width, y + height),
+                    'layer': self.layers[layer]['name']
+                })
             else:
                 raise ValueError(f'Layer {layer} not found in tech info!')
 
-    def fill_io_region(self, region, fill_cells, orientation):
+    def fill_io_region(self, region, fill_cells, orientation, direction):
         '''Fill empty space in region with I/O filler cells.
 
         Args:
@@ -550,6 +621,8 @@ class Floorplan:
             fill_cells (list of str): List of names of I/O filler cells to use.
             orientation (str): The orientation the filler cells are placed in
                 (must be valid LEF/DEF orientation).
+            direction (str): The direction to place fill cells along. Must be
+                'h' for horizontal or 'v' for vertical.
 
         Raises:
             ValueError: Region contains macros such that it is unfillable.
@@ -560,13 +633,12 @@ class Floorplan:
         region_min_x, region_min_y = region[0]
         region_max_x, region_max_y = region[1]
 
-        # TODO: should direction be passed in explicitly?
-        if orientation[-1].lower() in ('e', 'w'):
-            direction = 'v'
+        if direction == 'v':
             region_height = region_max_x - region_min_x
-        else:
-            direction = 'h'
+        elif direction == 'h':
             region_height = region_max_y - region_min_y
+        else:
+            raise ValueError("Invalid direction specified, must be 'h' or 'v'")
 
         # Gather macros in region. Macros in region must be aligned with the
         # direction of the region, and no macros may be partially contained
@@ -585,10 +657,6 @@ class Floorplan:
                 if y >= region_max_y or max_y <= region_min_y:
                     # outside of region vertically
                     continue
-                if y != region_min_y and max_y != region_max_y:
-                    raise ValueError("Fill region must not contain cells that don't fill it vertically.")
-
-                # if we continue, cell is aligned to region vertically
 
                 left_edge_in = (x >= region_min_x)
                 right_edge_in = (max_x <= region_max_x)
@@ -599,10 +667,6 @@ class Floorplan:
                 if x >= region_max_x or max_x  <= region_min_x:
                     # outside of region horizontally
                     continue
-                if x != region_min_x and max_x != region_max_x:
-                    raise ValueError("Fill region must not contain cells that don't fill it horizontally.")
-
-                # if we continue, cell is aligned to region horizontally
 
                 bottom_edge_in = (y >= region_min_y)
                 top_edge_in = (max_y <= region_max_y)
@@ -628,7 +692,7 @@ class Floorplan:
             gaps.append((macros[i][1], macros[i+1][0]))
 
         if region_end > macros[-1][1]:
-            gaps.append((macros[-1][i], region_end))
+            gaps.append((macros[-1][1], region_end))
 
         # Iterate over gaps and place filler cells
         # TODO: this is only guaranteed to work if we have a width 1 filler
@@ -641,13 +705,6 @@ class Floorplan:
             if not cell in self.available_cells:
                 raise ValueError(f'Provided fill cell {cell} is not included in'
                     f'list of available macros')
-
-            cell_info = self.available_cells[cell]
-
-            if cell_info.height != region_height:
-                raise ValueError(f'Provided fill cell {cell} does not have '
-                    f'appropriate height to fill region')
-
             io_fill_cells.append((cell, self.available_cells[cell]))
 
         io_fill_cells = sorted(io_fill_cells, key=lambda c: c[1].width, reverse=True)
@@ -666,12 +723,12 @@ class Floorplan:
                 name = f'_sc_io_fill_cell_{self.fill_cell_id}'
                 self.fill_cell_id += 1
                 if direction == 'h':
-                    self.place_macros([(name, cell)], (start, region_min_y), 0, 'h', orientation)
+                    self.place_macros([(name, cell)], start, region_min_y, 0, 0, orientation, snap=False)
                 else:
-                    self.place_macros([(name, cell)], (region_min_x, start), 0, 'h', orientation)
+                    self.place_macros([(name, cell)], region_min_x, start, 0, 0, orientation, snap=False)
                 start += width
 
-    def configure_net(self, net, pin_name, use):
+    def configure_net(self, net, pins, use):
         '''Configure net.
 
         Must be called before placing a wire for a net. Calls after the first
@@ -679,7 +736,7 @@ class Floorplan:
 
         Args:
             net (str): Name of net.
-            pin_name (str): Name of pins in macro to associate with this net.
+            pins (list of str): Name of pins in macro to associate with this net.
             use (str): Use of net. Must be valid LEF/DEF use.
         '''
 
@@ -688,18 +745,23 @@ class Floorplan:
 
         if net in self.nets:
             self.nets[net]['use'] = use
-            self.nets[net]['pin_name'] = pin_name
+            self.nets[net]['pins'] = pins
         else:
             self.nets[net] = {
                 'use': use,
-                'pin_name': pin_name,
-                'wires': []
+                'pins': pins,
+                'wires': [],
+                'vias': []
             }
+
+    def snap(self, val, grid):
+        '''Helper function for snapping `val` to nearest multiple of `grid`.'''
+        return grid * round(val/grid)
 
     def snap_to_grid(self, val):
         if self.grid is None:
             return val
-        return snap(val, self.grid)
+        return self.snap(val, self.grid)
 
     def snap_to_x_track(self, x, layer):
         '''Helper function to snap a value `x` to the x coordinate of the
@@ -707,7 +769,8 @@ class Floorplan:
         '''
         offset = self.layers[layer]['xoffset']
         pitch = self.layers[layer]['xpitch']
-        return round((x - offset) / pitch) * pitch + offset
+        # snapping to grid cleans up floating point imprecision
+        return self.snap_to_grid(round((x - offset) / pitch) * pitch + offset)
 
     def snap_to_y_track(self, y, layer):
         '''Helper function to snap a value `y` to the y coordinate of the
@@ -715,7 +778,8 @@ class Floorplan:
         '''
         offset = self.layers[layer]['yoffset']
         pitch = self.layers[layer]['ypitch']
-        return round((y - offset) / pitch) * pitch + offset
+        # snapping to grid cleans up floating point imprecision
+        return self.snap_to_grid(round((y - offset) / pitch) * pitch + offset)
 
     def _validate_orientation(self, orientation):
         if orientation.lower() not in ('n', 's', 'w', 'e', 'fn', 'fs', 'fw', 'fe'):
