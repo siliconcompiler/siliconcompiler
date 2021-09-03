@@ -68,8 +68,9 @@ if {[llength $sc_def] > 0} {
             exit 1
         }
 
-        set syn_area [dict get $sc_cfg metric syn real area_cells]
-        set lib_height [dict get $sc_cfg stdcell $sc_mainlib height]
+        set syn_select [dict get $sc_cfg flowstatus syn select]
+        set syn_area [dict get $sc_cfg metric syn $syn_select cellarea real]
+        set lib_height [dict get $sc_cfg library $sc_mainlib height]
         set sc_coresize [calculate_core_size $sc_density $sc_coremargin $sc_aspectratio $syn_area $lib_height]
         set sc_diesize [calculate_die_size $sc_coresize $sc_coremargin]
 
