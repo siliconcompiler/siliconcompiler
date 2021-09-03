@@ -15,13 +15,12 @@ def test_gcd_checks():
 
     # Inserting value into configuration
     chip.add('source', gcd_ex_dir + 'gcd.v')
-    chip.add('design', 'gcd')
-    chip.add('clock', 'clock_name', 'pin', 'clk')
+    chip.set('design', 'gcd')
+    chip.set('clock', 'clock_name', 'pin', 'clk')
     chip.add('constraint', gcd_ex_dir + 'gcd.sdc')
     chip.set('target', 'skywater130_asicflow')
-    chip.set('asic', 'diesize', '0 0 200.56 201.28')
-    chip.set('asic', 'coresize', '20.24 21.76 180.32 184.96')
-    chip.set_jobid()
+    chip.set('asic', 'diearea', [(0, 0), (200.56, 201.28)])
+    chip.set('asic', 'corearea', [(20.24, 21.76), (180.32, 184.96)])
 
     chip.target()
 
@@ -31,8 +30,8 @@ def test_gcd_checks():
     chip.run()
 
     # Verify that GDS and SVG files were generated.
-    assert os.path.isfile('build/gcd/job1/export/outputs/gcd.gds')
+    assert os.path.isfile('build/gcd/job0/export0/outputs/gcd.gds')
 
     # Verify that the build was LVS and DRC clean.
-    assert chip.get('metric', 'lvs', 'real', 'errors') == 0
-    assert chip.get('metric', 'drc', 'real', 'errors') == 0
+    assert chip.get('metric', 'lvs', '0', 'real', 'errors') == 0
+    assert chip.get('metric', 'drc', '0', 'real', 'errors') == 0
