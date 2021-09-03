@@ -1,10 +1,5 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives import hashes, serialization
-
 import base64
 import glob
 import math
@@ -94,9 +89,9 @@ def client_decrypt(chip):
     '''Helper method to decrypt project data before running a job on it.
     '''
 
-    decrypt_job(chip.get('dir'),
-                chip.get('jobname') + str(chip.get('jobid')),
-                chip.get('design'),
+    job_path = f"{chip.get('dir')}/{chip.get('design')}/" \
+               f"{chip.get('jobname')}{chip.get('jobid')}"
+    decrypt_job(job_path,
                 chip.get('remote', 'key'))
 
 ###################################
@@ -104,9 +99,9 @@ def client_encrypt(chip):
     '''Helper method to re-encrypt project data after processing.
     '''
 
-    encrypt_job(chip.get('dir'),
-                chip.get('jobname') + str(chip.get('jobid')),
-                chip.get('design'),
+    job_path = f"{chip.get('dir')}/{chip.get('design')}/" \
+               f"{chip.get('jobname')}{chip.get('jobid')}"
+    encrypt_job(job_path,
                 chip.get('remote', 'key'))
 
 ###################################
@@ -280,51 +275,23 @@ def upload_import_dir(chip):
         # keys. Then the data itself can be encrypted with the symmetric cipher.
         # We'll use AES-256-CTR, because the Python 'cryptography' module's
         # recommended 'Fernet' algorithm only works on files that fit in memory.
+        pkpath = chip.get('remote', 'key')
+        job_nameid = f"{chip.get('jobname')}{chip.get('jobid')}"
+        job_path = f"{chip.get('dir')}/{chip.get('design')}/{job_nameid}"
 
-        # Generate AES key and iv nonce.
-        aes_key = os.urandom(32)
-        aes_iv  = os.urandom(16)
-
-        # Read in the user's public key.
+        # AES-encrypt the job data prior to uploading.
         # TODO: This assumes a common OpenSSL convention of using similar file
         # paths for private and public keys: /path/to/key and /path/to/key.pub
         # If the user has the account's private key, it is assumed that they
         # will also have the matching public key in the same locale.
-        with open('%s.pub'%os.path.abspath(chip.get('remote', 'key')), 'r') as f:
-            encrypt_key = serialization.load_ssh_public_key(
-                f.read().encode(),
-                backend=default_backend())
-        # Encrypt the AES key using the user's public key.
-        # (The IV nonce can be stored in plaintext)
-        aes_key_enc = encrypt_key.encrypt(
-            aes_key,
-            padding.OAEP(
-                mgf=padding.MGF1(algorithm=hashes.SHA512()),
-                algorithm=hashes.SHA512(),
-                label=None,
-            ))
-
-        # Create the AES cipher.
-        cipher = Cipher(algorithms.AES(aes_key), modes.CTR(aes_iv))
-        encryptor = cipher.encryptor()
-
-        # Open both 'import.zip' and 'import.crypt' files.
-        # We're using a stream cipher to support large files which may not fit
-        # in memory, so we'll read and write data one 'chunk' at a time.
-        local_build_dir = stepdir = '/'.join([chip.get('dir'),
-                                              chip.get('design'),
-                                              f"{chip.get('jobname')}0"])
-        with open(local_build_dir + '/import.crypt', 'wb') as wf:
-            with open(local_build_dir + '/import.zip', 'rb') as rf:
-                while True:
-                    chunk = rf.read(1024)
-                    if not chunk:
-                        break
-                    wf.write(encryptor.update(chunk))
-            # Write out any remaining data; CTR mode does not require padding.
-            wf.write(encryptor.finalize())
+        gen_cipher_key(chip.get('dir'), f"{os.path.abspath(pkpath)}.pub")
+        encrypt_job(job_path, pkpath)
 
         # Set up encryption and authentication parameters in the request body.
+        with open(f"{chip.get('dir')}/import.bin", 'rb') as f:
+            aes_key_enc = f.read()
+        with open(f"{chip.get('dir')}/{job_nameid}.iv", 'rb') as f:
+            aes_iv = f.read()
         with open(os.path.abspath(chip.get('remote', 'key')), 'rb') as f:
             key = f.read()
         b64_key = base64.urlsafe_b64encode(key).decode()
@@ -343,7 +310,7 @@ def upload_import_dir(chip):
                 post_params['new_host_threads'] = int(chip.get('remote', 'threads'))
 
         # Upload the encrypted file.
-        upload_file = os.path.abspath(local_build_dir + '/import.crypt')
+        upload_file = os.path.abspath(f"{chip.get('dir')}/{job_nameid}.crypt")
 
     # (If '-remote_user' and '-remote_key' are not both specified:)
     else:
@@ -423,6 +390,7 @@ def fetch_results(chip):
     # Unzip the results.
     top_design = chip.get('design')
     job_hash = chip.get('remote', 'jobhash')
+    job_nameid = f"{chip.get('jobname')}{chip.get('jobid')}"
     subprocess.run(['unzip', '%s.zip'%job_hash])
     # Remove the results archive after it is extracted.
     os.remove('%s.zip'%job_hash)
@@ -433,47 +401,14 @@ def fetch_results(chip):
     # For encrypted jobs each permutation's result is encrypted in its own archive.
     # For unencrypted jobs, results are simply stored in the archive.
     if ('key' in chip.getkeys('remote')) and chip.get('remote', 'key'):
-        # Decrypt the block cipher key using the user's private key.
-        with open('%s/import.bin'%job_hash, 'rb') as f:
-            aes_key_enc = f.read()
-        with open('%s'%os.path.abspath(chip.get('remote', 'key')), 'r') as f:
-            decrypt_key = serialization.load_ssh_private_key(
-                f.read().encode(),
-                None,
-                backend=default_backend())
-        aes_key = decrypt_key.decrypt(
-            aes_key_enc,
-            padding.OAEP(
-                mgf=padding.MGF1(algorithm=hashes.SHA512()),
-                algorithm=hashes.SHA512(),
-                label=None,
-            ))
-
-        # Decrypt the results using the original initialization vector.
-        # Read in the iv.
-        job_nameid = f"{chip.get('jobname')}0"
-        with open('%s/%s.iv'%(job_hash, job_nameid), 'rb') as f:
-            aes_iv = f.read()
-
-        # Create the AES cipher.
-        cipher = Cipher(algorithms.AES(aes_key), modes.CTR(aes_iv))
-        decryptor = cipher.decryptor()
-
-        # Decrypt the '.crypt' file in chunks.
-        with open('%s/%s.zip'%(job_hash, job_nameid), 'wb') as wf:
-            with open('%s/%s.crypt'%(job_hash, job_nameid), 'rb') as rf:
-                while True:
-                    chunk = rf.read(1024)
-                    if not chunk:
-                        break
-                    wf.write(decryptor.update(chunk))
-            # Write out any remaining data; CTR mode does not require padding.
-            wf.write(decryptor.finalize())
+        # Decrypt the job data.
+        decrypt_job(f"{job_hash}/{chip.get('design')}/{job_nameid}",
+                    os.path.abspath(chip.get('remote', 'key')))
 
         # Unzip the decrypted archive in the 'job_hash' working directory.
         perm_dir = '%s/%s'%(top_design, job_nameid)
         subprocess.run(['mkdir', '-p', perm_dir], cwd=job_hash)
-        subprocess.run(['unzip', '-d', perm_dir, '%s.zip'%job_nameid], cwd=job_hash)
+        subprocess.run(['unzip', '-o', '-d', perm_dir, '%s.zip'%job_nameid], cwd=job_hash)
 
     # Remove dangling 'import' symlinks if necessary.
     for import_link in glob.iglob(job_hash + '/' + top_design + '/**/import0',
