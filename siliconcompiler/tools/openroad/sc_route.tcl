@@ -55,7 +55,9 @@ check_antennas -report_file "reports/${sc_design}_antenna.rpt"
 
 set_thread_count $sc_threads
 
-detailed_route -output_drc "reports/${sc_design}_drc.rpt" \
+# Detailed routing must include -guide parameter!
+detailed_route -guide "route.guide" \
+               -output_drc "reports/${sc_design}_drc.rpt" \
                -output_maze "reports/${sc_design}_maze.log" \
                -output_guide "reports/${sc_design}_guide.mode" \
                -verbose 1
