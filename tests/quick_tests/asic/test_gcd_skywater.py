@@ -11,7 +11,7 @@ def test_gcd_checks():
     chip = siliconcompiler.Chip(loglevel='NOTSET')
 
     gcd_ex_dir = os.path.abspath(__file__)
-    gcd_ex_dir = gcd_ex_dir[:gcd_ex_dir.rfind('/tests/daily_tests/asic')] + '/examples/gcd/'
+    gcd_ex_dir = gcd_ex_dir[:gcd_ex_dir.rfind('/tests/quick_tests/asic')] + '/examples/gcd/'
 
     # Inserting value into configuration
     chip.add('source', gcd_ex_dir + 'gcd.v')
@@ -33,5 +33,5 @@ def test_gcd_checks():
     assert os.path.isfile('build/gcd/job0/export0/outputs/gcd.gds')
 
     # Verify that the build was LVS and DRC clean.
-    assert chip.get('metric', 'lvs', '0', 'real', 'errors') == 0
-    assert chip.get('metric', 'drc', '0', 'real', 'errors') == 0
+    assert chip.get('metric', 'lvs', '0', 'errors', 'real') == 0
+    assert chip.get('metric', 'drc', '0', 'errors', 'real') == 0
