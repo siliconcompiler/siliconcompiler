@@ -24,23 +24,8 @@ def test_crypto():
     with open('build/test/job0/import0/test_file', 'w') as f:
         f.write(test_msg)
 
-    # Create and encrypt AES cipher key for the encryption logic.
-    aes_key = os.urandom(32)
-    # Use the test public key to encrypt the cipher key.
-    with open(f'{crypto_key}.pub', 'r') as f:
-        encrypt_key = serialization.load_ssh_public_key(
-            f.read().encode(),
-            backend=default_backend())
-    aes_key_enc = encrypt_key.encrypt(
-        aes_key,
-        padding.OAEP(
-            mgf=padding.MGF1(algorithm=hashes.SHA512()),
-            algorithm=hashes.SHA512(),
-            label=None,
-        ))
-    # Write the encrypted key where the sc client would put it.
-    with open('build/import.bin', 'wb') as f:
-        f.write(aes_key_enc)
+    # Create an encrypted block cipher key for the job to use.
+    gen_cipher_key('build/', f'{crypto_key}.pub')
 
     # Encrypt the example data, and ensure that it is no longer on disk.
     encrypt_job('build/test/job0', crypto_key)

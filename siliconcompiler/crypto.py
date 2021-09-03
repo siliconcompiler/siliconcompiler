@@ -11,6 +11,26 @@ import shutil
 import subprocess
 import sys
 
+def gen_cipher_key(gen_dir, pubk_file):
+    # Create the key (32 random bytes = a 256-bit AES block cipher key)
+    aes_key = os.urandom(32)
+
+    # Use the public key file to encrypt the cipher key.
+    with open(pubk_file, 'r') as f:
+        encrypt_key = serialization.load_ssh_public_key(
+            f.read().encode(),
+            backend=default_backend())
+    aes_key_enc = encrypt_key.encrypt(
+        aes_key,
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA512()),
+            algorithm=hashes.SHA512(),
+            label=None,
+        ))
+
+    with open(f'{gen_dir}/import.bin', 'wb') as f:
+        f.write(aes_key_enc)
+
 def encrypt_job(job_dir, pk_file):
     # Collect some basic values.
     top_dir = os.path.abspath(f'{job_dir}/../..')
