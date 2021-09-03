@@ -30,9 +30,13 @@ def test_gcd_server():
                             gcd_ex_dir + '/gcd.v',
                             '-design', 'gcd',
                             '-target', 'freepdk45_asicflow',
-                            '-stop', 'floorplan',
-                            '-asic_diesize', '0 0 100.13 100.8',
-                            '-asic_coresize', '10.07 11.2 90.25 91',
+                            '-steplist', 'import',
+                            '-steplist', 'syn',
+                            '-steplist', 'floorplan',
+                            '-asic_diearea', "(0,0)",
+                            '-asic_diearea', "(100.13,100.8)",
+                            '-asic_corearea', "(10.07,11.2)",
+                            '-asic_corearea', "(90.25,91)",
                             '-constraint', gcd_ex_dir + '/gcd.sdc',
                             '-remote_addr', 'localhost',
                             '-remote_port', '8082',
@@ -41,11 +45,13 @@ def test_gcd_server():
 
     # Run another 'sc' step to resume, complete, and delete the prior job run.
     sproc = subprocess.run(['sc',
-                            '/dev/null',
-                            '-cfg', 'build/gcd/job1/floorplan/sc_manifest.json',
-                            '-build_dir', 'build/',
-                            '-start', 'place',
-                            '-stop', 'export',
+                            '-cfg', 'build/gcd/job0/floorplan0/sc_manifest.json',
+                            '-dir', 'build/',
+                            '-steplist', 'synopt',
+                            '-steplist', 'place',
+                            '-steplist', 'route',
+                            '-steplist', 'dfm',
+                            '-steplist', 'export',
                             '-remote_addr', 'localhost',
                             '-remote_port', '8082',
                             '-loglevel', 'NOTSET'],
@@ -55,4 +61,4 @@ def test_gcd_server():
     srv_proc.kill()
 
     # Verify that GDS and SVG files were generated and returned.
-    assert os.path.isfile('build/gcd/job1/export/outputs/gcd.gds')
+    assert os.path.isfile('build/gcd/job0/export0/outputs/gcd.gds')
