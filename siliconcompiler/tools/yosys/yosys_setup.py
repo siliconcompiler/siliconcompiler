@@ -12,6 +12,9 @@ from siliconcompiler.schema_utils import schema_path
 
 def setup_tool(chip, step, index):
     ''' Tool specific function to run before step execution
+
+    Tool-specific options:
+    - techmap: list of Verilog files used for mapping generic Yosys cells.
     '''
 
     # If the 'lock' bit is set, don't reconfigure.
@@ -43,6 +46,15 @@ def setup_tool(chip, step, index):
         chip.add('eda', tool, step, index, 'req', ",".join(['asic', 'targetlib']))
     else:
         chip.add('eda', tool, step, index, 'req', ",".join(['fpga','partname']))
+
+    # Since tool options are of type str (not file), we manually resolve the
+    # paths using schema_path and stuff them back into the options entry.
+    techmap_abs_paths = []
+    for mapfile in chip.get('eda', tool, step, index, 'option', 'techmap'):
+        abspath = schema_path(mapfile)
+        # TODO: should we check here that file exists? warning or error if not?
+        techmap_abs_paths.append(abspath)
+    chip.set('eda', tool, step, index, 'option', 'techmap', techmap_abs_paths)
 
 def pre_process(chip, step, index):
     #TODO: remove special treatment for fpga??

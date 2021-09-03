@@ -42,6 +42,16 @@ yosys opt -purge
 # Technology Mapping
 ########################################################
 
+if {[dict exists $sc_cfg eda yosys $sc_step $sc_index option techmap]} {
+    set sc_techmap [dict get $sc_cfg eda yosys $sc_step $sc_index option techmap]
+} else {
+    set sc_techmap ""
+}
+
+foreach mapfile $sc_techmap {
+    yosys techmap -map $mapfile
+}
+
 yosys dfflibmap -liberty $library_file
 
 yosys opt
