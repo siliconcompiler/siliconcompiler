@@ -19,6 +19,8 @@ import sys
 import time
 import uuid
 
+from siliconcompiler.crypto import *
+
 ###################################
 def get_base_url(chip):
     '''Helper method to get the root URL for API calls, given a Chip object.
@@ -92,102 +94,20 @@ def client_decrypt(chip):
     '''Helper method to decrypt project data before running a job on it.
     '''
 
-    root_dir = chip.get('dir')
-    job_nameid = f"{chip.get('jobname')}0"
-
-    # Create cipher for decryption.
-    with open(chip.get('remote', 'key'), 'r') as keyin:
-        dk = keyin.read().encode()
-    decrypt_key = serialization.load_ssh_private_key(dk, None, backend=default_backend())
-    # Decrypt the block cipher key.
-    with open('%s/import.bin'%root_dir, 'rb') as f:
-        aes_key = decrypt_key.decrypt(
-            f.read(),
-            padding.OAEP(
-                mgf=padding.MGF1(algorithm=hashes.SHA512()),
-                algorithm=hashes.SHA512(),
-                label=None,
-            ))
-
-    # Read in the iv nonce.
-    with open('%s/%s.iv'%(root_dir, job_nameid), 'rb') as f:
-        aes_iv = f.read()
-
-    # Decrypt .crypt file using the decrypted block cipher key.
-    job_crypt = '%s/%s.crypt'%(root_dir, job_nameid)
-    cipher = Cipher(algorithms.AES(aes_key), modes.CTR(aes_iv))
-    decryptor = cipher.decryptor()
-    # Same approach as encrypting: open both files, read/decrypt/write individual chunks.
-    with open('%s/%s.zip'%(root_dir, job_nameid), 'wb') as wf:
-        with open(job_crypt, 'rb') as rf:
-            while True:
-                chunk = rf.read(1024)
-                if not chunk:
-                    break
-                wf.write(decryptor.update(chunk))
-        wf.write(decryptor.finalize())
-
-    # Unzip the decrypted file to prepare for running the job.
-    subprocess.run(['mkdir',
-                    '-p',
-                    '%s/%s/%s'%(root_dir, chip.get('design'), job_nameid)])
-    subprocess.run(['unzip',
-                    '-o',
-                    '%s/%s.zip'%(root_dir, job_nameid)],
-                   cwd='%s/%s/%s'%(root_dir, chip.get('design'), job_nameid))
+    decrypt_job(chip.get('dir'),
+                chip.get('jobname') + str(chip.get('jobid')),
+                chip.get('design'),
+                chip.get('remote', 'key'))
 
 ###################################
 def client_encrypt(chip):
     '''Helper method to re-encrypt project data after processing.
     '''
 
-    root_dir = chip.get('dir')
-    job_nameid = f"{chip.get('jobname')}0"
-
-    # Create cipher for decryption.
-    with open(chip.get('remote', 'key'), 'r') as keyin:
-        dk = keyin.read().encode()
-    decrypt_key = serialization.load_ssh_private_key(dk, None, backend=default_backend())
-    # Decrypt the block cipher key.
-    with open('%s/import.bin'%root_dir, 'rb') as f:
-        aes_key = decrypt_key.decrypt(
-            f.read(),
-            padding.OAEP(
-                mgf=padding.MGF1(algorithm=hashes.SHA512()),
-                algorithm=hashes.SHA512(),
-                label=None,
-            ))
-
-    # Zip the new job results.
-    subprocess.run(['zip',
-                    '-r',
-                    '%s.zip'%job_nameid,
-                    '.'],
-                   cwd='%s/%s/%s'%(root_dir, chip.get('design'), job_nameid))
-
-    # Create a new initialization vector and write it to a file for future decryption.
-    # The iv does not need to be secret, but using the same iv and key to encrypt
-    # different data can provide an attack surface to potentially decrypt some data.
-    aes_iv  = os.urandom(16)
-    with open('%s/%s.iv'%(root_dir, job_nameid), 'wb') as f:
-        f.write(aes_iv)
-
-    # Encrypt the new zip file.
-    cipher = Cipher(algorithms.AES(aes_key), modes.CTR(aes_iv))
-    encryptor = cipher.encryptor()
-    with open('%s/%s.crypt'%(root_dir, job_nameid), 'wb') as wf:
-        with open('%s/%s/%s/%s.zip'%(root_dir, chip.get('design'), job_nameid, job_nameid), 'rb') as rf:
-            while True:
-                chunk = rf.read(1024)
-                if not chunk:
-                    break
-                wf.write(encryptor.update(chunk))
-        # Write out any remaining data; CTR mode does not require padding.
-        wf.write(encryptor.finalize())
-
-    # Delete decrypted data.
-    shutil.rmtree('%s/%s/%s'%(root_dir, chip.get('design'), job_nameid))
-    os.remove('%s/%s.zip'%(root_dir, job_nameid))
+    encrypt_job(chip.get('dir'),
+                chip.get('jobname') + str(chip.get('jobid')),
+                chip.get('design'),
+                chip.get('remote', 'key'))
 
 ###################################
 def remote_run(chip):
@@ -277,7 +197,7 @@ def is_job_busy(chip):
     # Set common parameters.
     post_params = {
         'job_hash': chip.get('remote', 'jobhash'),
-        'job_id': chip.get('jobid'),
+        'job_id': str(chip.get('jobid')),
     }
 
     # Set authentication parameters if necessary.
@@ -563,7 +483,7 @@ def fetch_results(chip):
     # Copy the results into the local build directory, and remove the
     # unzipped directory (including encrypted archives).
     local_dir = chip.get('dir')
-    shutil.copytree(job_hash + '/' + top_design,
-                    local_dir + '/' + top_design,
+    shutil.copytree(job_hash,
+                    local_dir,
                     dirs_exist_ok = True)
     shutil.rmtree(job_hash)
