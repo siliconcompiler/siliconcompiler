@@ -63,6 +63,7 @@ class Chip:
 
         # Setting design variable
         self.cfg['design']['value'] = self.design
+        self.cfg['scversion']['value'] = self.version
         logname = self.design.center(12)
 
         # Initialize logger
@@ -2062,54 +2063,57 @@ class Chip:
         self.set('flowstatus',laststep,'select',0)
 
     ###########################################################################
-    def show(self, filename, kind=None):
+    def show(self, filename, keypath=None):
         '''
-        Displays the filename using the appropriate program. Only files
-        taken from a valid SC directory path is supported.
-
-        filename=def,gds,json,etc
-        kind=used when there are multiple kinds of data inside like
-        metricss, hiearchym flowgraph
-        step is taken from args, which is when file was written!
+        Displays the filename using the appropriate program.
+        The file suffix is used to look up which tool to be used for file
+        display based on the 'showtool' schema parameters.
         '''
 
         self.logger.info("Showing file %s", filename)
-        filext = os.path.splitext(filename)[1].lower()
+
+        filetype = os.path.splitext(filename)[1].lower()
+        filetype = filetype.replace(".","")
 
         #Figure out which tool to use for opening data
-        if filename.endswith(".json"):
-            if kind is None:
-                self.logger.error("No 'kind' argument supplied for json file.")
-            elif kind == "flowgraph":
+        if filetype in ('json'):
+            if keypath == None:
                 pass
-            elif kind == "metric":
+            elif keypath[0] == "flowgraph":
                 pass
-            elif kind == "hier":
+            elif keypath[0] == "metric":
                 pass
-        elif filext in ('.def', '.gds', '.gbr', '.brd'):
-            #exrtract step from filename
-            #error if trying to show file frmo out of tree
+            elif keypath[0] == "hier":
+                pass
+        elif filetype in ('def', 'gds', 'gbr', 'brd'):
 
-            #load settings for showtool
-            showtool = self.get('flowgraph', step, 'showtool')
-            searchdir = "siliconcompiler.tools." + showtool
-            modulename = '.'+showtool+'_setup'
+            tool = self.get('showtool', filetype)
+            step = 'show'+filetype
+            index = "0"
+
+            searchdir = "siliconcompiler.tools." + tool
+            modulename = '.'+tool+'_setup'
+            self.logger.info(f"Using tool '{tool}' to display '{filename}'")
             module = importlib.import_module(modulename, package=searchdir)
             setup_tool = getattr(module, "setup_tool")
-            setup_tool(self, 'show')
+            setup_tool(self, step, index, mode='show')
 
             # construct command string
-            cmdlist = [self.get('eda', showtool, 'show', 'exe')]
-            cmdlist.extend(self.get('eda', showtool, 'show', 'option'))
-
-            if 'script' in self.getkeys('eda', showtool, 'show'):
-                for value in self.get('eda', showtool, 'show', 'script'):
+            cmdlist = [self.get('eda', tool, step, index, 'exe')]
+            cmdlist.extend(self.get('eda', tool, step, index, 'option', 'cmdline'))
+            if self.get('eda', tool, step, index, 'script'):
+                scripts = []
+                for value in self.get('eda', tool, step, index, 'script'):
                     abspath = schema_path(value)
-                    cmdlist.extend([abspath])
-            if self.get('quiet'):
-                cmdlist.append("> /dev/null")
+                    scripts.append(abspath)
+                cmdlist.extend(scripts)
+
+            # passing arguments
+            self.writecfg("sc_manifest.tcl", abspath=True)
+            os.environ['SC_FILENAME'] = filename
+            # run command
             cmdstr = ' '.join(cmdlist)
-            subprocess.run(cmdstr, shell=True, executable='/bin/bash', check=True)
+            cmd_error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
 
 ################################################################################
 # Annoying helper classes
