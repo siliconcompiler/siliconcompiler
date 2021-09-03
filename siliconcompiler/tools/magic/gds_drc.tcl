@@ -16,8 +16,16 @@
 source ./sc_manifest.tcl
 
 set sc_design    [dict get $sc_cfg design]
-set sc_macrolibs [dict get $sc_cfg asic macrolib]
-set sc_exclude [dict get $sc_cfg exclude]
+if {[dict exists $sc_cfg asic macrolib]} {
+    set sc_macrolibs [dict get $sc_cfg asic macrolib]
+} else {
+    set sc_macrolibs ""
+}
+if {[dict exists $sc_cfg exclude]} {
+    set sc_exclude [dict get $sc_cfg exclude]
+} else {
+    set sc_exclude ""
+}
 
 # Ignore specific libraries by reading their LEFs (causes magic to abstract them)
 foreach lib $sc_macrolibs {
