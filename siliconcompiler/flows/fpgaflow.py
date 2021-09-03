@@ -61,36 +61,27 @@ def setup_flow(chip, partname):
     for step in flowpipe:
         if step == 'import':
             tool = 'verilator'
-            showtool = 'cat'
         elif step == 'syn':
             tool = 'yosys'
-            showtool = 'cat'
         elif step == 'apr':
             if re.match('ice', partname):
                 tool = 'nextpnr'
-                showtool = 'cat'
             else:
                 # TODO: eventually we want to drive vpr directly without going
                 # through openfpga
                 # tool = 'vpr'
                 tool = 'openfpga'
-                showtool = 'cat'
         elif step == 'bitstream':
             if re.match('ice', partname):
                 tool = 'icepack'
-                showtool = 'cat'
             else:
                 tool = 'openfpga'
-                showtool = 'cat'
         elif step == 'program':
             if re.match('ice', partname):
                 tool = 'iceprog'
-                showtool = 'cat'
             else:
                 tool = 'openfpga'
-                showtool = 'cat'
         chip.set('flowgraph', step, 'tool', tool)
-        chip.set('flowgraph', step, 'showtool', tool)
 
 ##################################################
 if __name__ == "__main__":

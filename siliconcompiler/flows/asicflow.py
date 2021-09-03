@@ -92,6 +92,9 @@ def setup_flow(chip, process):
             chip.set('metric', step, str(index), 'setupwns', 'goal', 0.0)
             chip.set('metric', step, str(index), 'setuptns', 'goal', 0.0)
 
+    # Showtool definitions
+    chip.set('showtool', 'def', 'openroad')
+    chip.set('showtool', 'gds', 'klayout')
 
     # Per step tool selection
     for step in flowpipe:
@@ -99,28 +102,22 @@ def setup_flow(chip, process):
             #tool = 'morty'
             #tool = 'surelog'
             tool = 'verilator'
-            showtool = 'open'
         elif step == 'importvhdl':
             tool = 'ghdl'
-            showtool = None
         elif step == 'convert':
             tool = 'sv2v'
-            showtool = None
         elif step == 'syn':
             tool = 'yosys'
-            showtool = 'yosys'
         elif step == 'export':
             tool = 'klayout'
-            showtool = 'klayout'
         elif step in ('lvs', 'drc'):
             tool = 'magic'
-            showtool = 'klayout'
         else:
             tool = 'openroad'
-            showtool = 'openroad'
         chip.set('flowgraph', step, 'tool', tool)
-        if showtool:
-            chip.set('flowgraph', step, 'showtool', showtool)
+
+
+
 
 ##################################################
 if __name__ == "__main__":
