@@ -94,9 +94,9 @@ def client_decrypt(chip):
     '''Helper method to decrypt project data before running a job on it.
     '''
 
-    decrypt_job(chip.get('dir'),
-                chip.get('jobname') + str(chip.get('jobid')),
-                chip.get('design'),
+    job_path = f"{chip.get('dir')}/{chip.get('design')}/" \
+                "{chip.get('jobname')}{chip.get('jobid')}"
+    decrypt_job(job_path,
                 chip.get('remote', 'key'))
 
 ###################################
@@ -104,9 +104,9 @@ def client_encrypt(chip):
     '''Helper method to re-encrypt project data after processing.
     '''
 
-    encrypt_job(chip.get('dir'),
-                chip.get('jobname') + str(chip.get('jobid')),
-                chip.get('design'),
+    job_path = f"{chip.get('dir')}/{chip.get('design')}/" \
+                "{chip.get('jobname')}{chip.get('jobid')}"
+    encrypt_job(job_path,
                 chip.get('remote', 'key'))
 
 ###################################
