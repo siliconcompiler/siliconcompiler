@@ -11,7 +11,7 @@ from siliconcompiler.schema_utils import schema_path
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip, step, index):
+def setup_tool(chip, step, index, mode='batch'):
     ''' OpenROAD is an integrated chip physical design tool that takes a design
     from synthesized netlist to routed layout.
 
@@ -53,18 +53,26 @@ def setup_tool(chip, step, index):
     tool = 'openroad'
     refdir = 'siliconcompiler/tools/openroad'
 
-    chip.set('eda', tool, step, index, 'vendor', tool, clobber=False)
-    chip.set('eda', tool, step, index, 'exe', tool, clobber=False)
-    chip.set('eda', tool, step, index, 'vswitch', '-version', clobber=False)
-    chip.set('eda', tool, step, index, 'version', '0', clobber=False)
-    chip.set('eda', tool, step, index, 'refdir', refdir, clobber=False)
-    chip.set('eda', tool, step, index, 'script', refdir + '/sc_apr.tcl', clobber=False)
-    chip.set('eda', tool, step, index, 'option', 'cmdline', '-no_init', clobber=False)
-    #Don't override command line arguments
-    chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=False)
+    if mode == 'show':
+        clobber = True
+        script = '/sc_display.tcl'
+        option = "-no_init -gui"
+    else:
+        clobber = False
+        script = '/sc_apr.tcl'
+        option = "-no_init"
 
-    # exit automatically unless bkpt
-    if (step not in chip.get('bkpt')):
+    chip.set('eda', tool, step, index, 'vendor', tool, clobber=clobber)
+    chip.set('eda', tool, step, index, 'exe', tool, clobber=clobber)
+    chip.set('eda', tool, step, index, 'vswitch', '-version', clobber=clobber)
+    chip.set('eda', tool, step, index, 'version', '0', clobber=clobber)
+    chip.set('eda', tool, step, index, 'refdir', refdir, clobber=clobber)
+    chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=clobber)
+    chip.set('eda', tool, step, index, 'option', 'cmdline', option, clobber=clobber)
+    chip.set('eda', tool, step, index, 'script', refdir + script, clobber=clobber)
+
+    # exit automatically in batch mode and not bkpt
+    if (mode=='batch') & (step not in chip.get('bkpt')):
         chip.add('eda', tool, step, index, 'option', 'cmdline', '-exit')
 
     # defining default dictionary
@@ -117,7 +125,7 @@ def setup_tool(chip, step, index):
             chip.error = 1
             chip.logger.error('Missing option %s for OpenROAD.', option)
         else:
-            chip.set('eda', tool, step, index, 'option', option, default_options[option], clobber=False)
+            chip.set('eda', tool, step, index, 'option', option, default_options[option], clobber=clobber)
 
 
 ################################

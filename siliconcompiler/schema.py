@@ -15,7 +15,22 @@ def schema_cfg():
 
     cfg = {}
 
-    # Software Version
+      # Print Software Version
+    cfg['scversion'] = {
+        'switch': "-scversion <str>",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': 'all',
+        'defvalue': None,
+        'short_help': 'The SC version number',
+        'example': ["cli: -scversion",
+                    "api: chip.get('scversion')"],
+        'help': """
+        Holds the SC software version number.
+        """
+    }
+
+    # Print SC Version
     cfg['version'] = {
         'switch': "-version <bool>",
         'type': 'bool',
@@ -67,6 +82,9 @@ def schema_cfg():
 
     # Designer runtime options
     cfg = schema_options(cfg)
+
+    # Data showtool options
+    cfg = schema_showtool(cfg)
 
     # Remote options
     cfg = schema_remote(cfg)
@@ -1508,22 +1526,6 @@ def schema_flowgraph(cfg, step='default'):
         """
     }
 
-    # Step showtool
-    cfg['flowgraph'][step]['showtool'] = {
-        'switch': "-flowgraph_showtool 'step <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'requirement': 'all',
-        'defvalue': None,
-        'short_help': 'Flowgraph Show Tool Selection',
-        'example': ["cli: -flowgraph_showtool 'place openroad'",
-                    "api: chip.set('flowgraph','place','showtool','openroad')"],
-        'help': """
-        Name of the tool to use for showing the output file for a specific step in
-        the exeecution flowgraph.
-        """
-    }
-
     return cfg
 
 
@@ -2510,6 +2512,21 @@ def schema_options(cfg):
     ''' Run-time options
     '''
 
+    # Print Software Version
+    cfg['version'] = {
+        'switch': "-version <bool>",
+        'type': 'bool',
+        'lock': 'false',
+        'requirement': 'all',
+        'defvalue': 'false',
+        'short_help': 'Prints version number',
+        'example': ["cli: -version",
+                    "api: chip.get('version')"],
+        'help': """
+        Prints out the SC software version number.
+        """
+    }
+
     cfg['mode'] = {
         'switch': "-mode <str>",
         'type': 'str',
@@ -2834,6 +2851,31 @@ def schema_options(cfg):
         Specifies that all used files should be copied into the jobdir,
         overriding the per schema entry copy settings. The default
         is false.
+        """
+    }
+
+    return cfg
+
+############################################
+# Show tool configuration
+#############################################
+def schema_showtool(cfg, filetype='default'):
+
+    cfg['showtool'] = {}
+
+    # Remote IP address/host name running sc-server app
+    cfg['showtool'][filetype] = {
+        'switch': "-showtool 'filetype <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'Selects tool for file display',
+        'example': ["cli: -showtool 'gds klayout'",
+                    "api: chip.set('showtool', 'gds', 'klayout')"],
+        'help': """
+        Selects the tool to use by the show function for displaying the
+        specified filetype.
         """
     }
 
