@@ -15,11 +15,11 @@ def setup_flow(chip, process):
 
     * **syn**: Translates RTL to netlist using Yosys
 
-    * **synopt**: Timing driven synthesis
-
     * **floorplan**: Floorplanning
 
-    * **place**: Gloal placement
+    * **physyn**: Physical Synthesis
+
+    * **place**: Global and detailed placement
 
     * **cts**: Clock tree synthesis
 
@@ -50,7 +50,7 @@ def setup_flow(chip, process):
     flowpipe = ['import',
                 'syn',
                 'floorplan',
-                'synopt',
+                'physyn',
                 'place',
                 'cts',
                 'route',
