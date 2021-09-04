@@ -5,13 +5,6 @@ proc reopenStdout {file} {
 
 
 ###############################
-# Reload SDC and DEF
-###############################
-
-read_sdc "outputs/$sc_design.sdc"
-read_def "outputs/$sc_design.def" -continue_on_error
-
-###############################
 # Report Metrics
 ###############################
 
