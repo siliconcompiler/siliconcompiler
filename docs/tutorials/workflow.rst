@@ -13,21 +13,40 @@ project to teach you how to:
 * Run a flow
 * Report run metrics
 
+
+Pre-requisites
+------------------
+
 Before reading this tutorial, you should know a bit of Python. A good entry
 point is the official `Python tutorial
 <https://docs.python.org/dev/tutorial/index.html>`_.
 
-To run this tutorial you will need to have the siliconcompiler Python package a
-nd its dependancies installed. Too check the installation version, enter sc
-from your environment shell and check the only thing returned is a version
-number. (your version number may vary depending on which version of SC you are running). If you see anything else, something is wrong and you will need to check
-your installation.
+You will also need to have the siliconcompiler Python package installed.
+If you are running locally, you will also require an up to date installation of all the
+EDA tools (verilator, yosys,  openroad, and klayout). Too check the SC installation version,
+enter sc from your environment shell and check the only thing returned is a version
+number. (your version number may vary depending on which version of SC you are running).
+If you see anything else, something is wrong and you will need to check your installation.
 
-.. code-block:: bash
+.. code-block:: console
 
   $ sc -version
   0.0.1
 
+
+To check that you are ready for local execution:
+
+.. code-block:: console
+
+  $ sc third_party/designs/oh/stdlib/hdl/oh_add.v -remote_addr siliconc-asic_diearea -asic_corearea -design oh_add -quiet -relax
+
+If you have access to a remote try the same commmand with the -remote_addr <SERVER>, where server is an IP address that accepts SC
+requests (eg. server.siliconcompiler.com).
+
+.. code-block:: console
+
+  $ SC_SERVER="server.siliconcompiler.com"
+  sc third_party/designs/oh/stdlib/hdl/oh_add.v -asic_diearea -asic_corearea -design oh_add -quiet -relax -remote_addr $SC_SERVER
 
 Basics
 ------------------
@@ -179,7 +198,6 @@ We have now set up the basic execution flow and metrics, but we haven't specifie
       chip.set('flowgraph', step, 'tool', tool)
 
 The 'magic' of setting up these tools happens at runtime when calling the run() function, at which point point the <tool>.py module is loaded and a a fixed name function "setup_tool()" is exeucted. The setup of these tools is beyond the scope o this tutorial, but if you curious about the process, you can take a look at one of the setup files here. [TODO: Add link]
-
 
 
 Check
@@ -341,4 +359,5 @@ One of the coolest features of SC is that all of the indices withina a step are 
 Conclusion
 ------------------
 Awesome! You made it through the SC workflow tutorial. Hopefully, you have seen how simple yet powerful the SC approach is.
-Good luck.
+
+Good luck!
