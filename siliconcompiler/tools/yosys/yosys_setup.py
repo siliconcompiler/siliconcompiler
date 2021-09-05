@@ -35,7 +35,6 @@ def setup_tool(chip, step, index):
         chip.add('eda', tool, step, index, 'req', ",".join(['design']))
         chip.add('eda', tool, step, index, 'req', ",".join(['asic', 'targetlib']))
     else:
-        chip.add('eda', tool, step, index, 'req', 'constraint')
         chip.add('eda', tool, step, index, 'req', ",".join(['fpga','partname']))
 
 def pre_process(chip, step, index):

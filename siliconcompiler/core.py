@@ -1766,7 +1766,6 @@ class Chip:
                     if os.path.isfile(cfgfile):
                         self.cfg = self.readcfg(cfgfile)
 
-
         #Checking that there were no errors in previous steps
         halt = 0
         for input_step in self.get('flowgraph', step, 'input'):
@@ -1888,6 +1887,7 @@ class Chip:
         self.set('metric',step,index,'runtime', 'real', round(elapsed_time,2))
         if cmd_error.returncode != 0:
             self.logger.warning('Command failed. See log file %s', os.path.abspath(logfile))
+            self._haltstep(step, index, error, active)
             # Override exit code if set
             if not self.get('eda', tool, step, index, 'continue'):
                 self._haltstep(step, index, error, active)
@@ -1923,6 +1923,7 @@ class Chip:
 
     ###########################################################################
     def _haltstep(self, step, index, error, active):
+        self.logger.error(f"Halting step '{step}' index '{index}' due to errors.")
         active[step + str(index)] = 0
         sys.exit(1)
 
@@ -2059,6 +2060,7 @@ class Chip:
                 for index in range(self.get('flowgraph', step, 'nproc')):
                     stepstr = step + str(index)
                     index_error = index_error & error[stepstr]
+                halt = halt + index_error
             if halt:
                 self.logger.error('Run() failed, exiting! See previous errors.')
                 sys.exit(1)
