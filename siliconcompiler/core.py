@@ -8,6 +8,7 @@ import asyncio
 import subprocess
 import os
 import sys
+import gzip
 import re
 import json
 import logging
@@ -1830,34 +1831,9 @@ class Chip:
             self.logger.error(f"Pre-processing failed for '{tool}' in step '{step}'")
             self._haltstep(step, index, error, active)
 
-        # Construct command line
-        logfile = exe + ".log"
-        options = self.get('eda', tool, step, index, 'option', 'cmdline')
-
-
-        cmdlist = [exe]
-        cmdlist.extend(options)
-
-        if self.get('eda', tool, step, index, 'script'):
-            scripts = []
-            for value in self.get('eda', tool, step, index, 'script'):
-                abspath = schema_path(value)
-                scripts.append(abspath)
-            cmdlist.extend(scripts)
-
-        if self.get('quiet') & (step not in self.get('bkpt')):
-            cmdlist.append(" &> " + logfile)
-        else:
-            # the weird construct at the end ensures that this invocation returns the
-            # exit code of the command itself, rather than tee
-            # (source: https://stackoverflow.com/a/18295541)
-            cmdlist.append(" 2>&1 | tee " + logfile + " ; (exit ${PIPESTATUS[0]} )")
-
-        # Create rerun command
+        # Create a run commmand
+        cmdlist = self._makecmd(tool, step, index)
         cmdstr = ' '.join(cmdlist)
-        with open('run.sh', 'w') as f:
-            print('#!/bin/bash\n', cmdstr, file=f)
-        os.chmod("run.sh", 0o755)
 
         # Save config files required by EDA tools
         self.set('arg', 'step', step, clobber=True)
@@ -2081,57 +2057,123 @@ class Chip:
         self.set('flowstatus',laststep,'select',0)
 
     ###########################################################################
-    def show(self, filename, keypath=None):
+    def show(self, filename):
         '''
-        Displays the filename using the appropriate program.
-        The file suffix is used to look up which tool to be used for file
-        display based on the 'showtool' schema parameters.
+        Opens a graphical viewer for the filename provided.
+
+        The show function opens the filename specified using a viewer tool
+        selected based on the file suffix and the 'showtool' schema setup.
+        The 'showtool' parameter binds tools with file suffixes, enabling the
+        automated dynamic loading of tool setup functions from
+        siliconcompiler.tools.<tool>/tool_setup.py. Display settings and
+        technology settings for viewing the file are read read from the
+        in-memory chip object schema settings. All temporary render and
+        display files are saved in the <build_dir>/_show directory.
+
+        The show() command can also be used to display content from an SC
+        schema .json filename provided. In this case, the SC schema is
+        converted to html and displayed as a 'dashboard' in the browser.
+
+        Filenames with .gz and .zip extensions are automatically expanded
+        before being displayed.
+
+        Args:
+            filename: Name of file to open
+
+        Examples:
+            >>> show('myfile.def')
+            Opens up the def file with a viewer assigneed by 'showtool'
+            >>> show('myrun.json')
+            Displays SC schema in browser
         '''
 
         self.logger.info("Showing file %s", filename)
 
-        filetype = os.path.splitext(filename)[1].lower()
+        # Resolving abspath needed for build_dir
+        filepath = os.path.abspath(filename)
+        basename = os.path.basename(filepath)
+        localfile = basename.replace(".gz","")
+        filetype = os.path.splitext(localfile)[1].lower()
         filetype = filetype.replace(".","")
+
+        # Opening file from temp directory
+        cwd = os.getcwd()
+        showdir = self.get('dir') + "/_show"
+        os.makedirs(showdir, exist_ok=True)
+        os.chdir(showdir)
+
+        # Uncompress file if necessary
+        if os.path.splitext(filepath)[1].lower() == ".gz":
+            with gzip.open(filepath, 'rb') as f_in:
+                with open(localfile, 'wb') as f_out:
+                    shutil.copyfileobj(f_in, f_out)
+        else:
+            shutil.copy(filepath, localfile)
 
         #Figure out which tool to use for opening data
         if filetype in ('json'):
-            if keypath == None:
-                pass
-            elif keypath[0] == "flowgraph":
-                pass
-            elif keypath[0] == "metric":
-                pass
-            elif keypath[0] == "hier":
-                pass
-        elif filetype in ('def', 'gds', 'gbr', 'brd'):
-
+            localcfg = self.readcfg(localfile)
+            #1. Read in json to a local cfg
+            #1. Render flowgraph
+            #2. Render metrics per index per step
+            #3. Sphinx like tree of all settings with links to files
+            #4. Resolution of all ENV_VARS for files
+            pass
+        else:
+            # Using env variable and manifest to pass arguments
+            os.environ['SC_FILENAME'] = localfile
+            self.writecfg("sc_manifest.tcl", abspath=True)
+            self.writecfg("sc_manifest.json", abspath=True)
+            # Setting up tool
             tool = self.get('showtool', filetype)
             step = 'show'+filetype
             index = "0"
-
             searchdir = "siliconcompiler.tools." + tool
             modulename = '.'+tool+'_setup'
-            self.logger.info(f"Using tool '{tool}' to display '{filename}'")
             module = importlib.import_module(modulename, package=searchdir)
             setup_tool = getattr(module, "setup_tool")
             setup_tool(self, step, index, mode='show')
-
-            # construct command string
-            cmdlist = [self.get('eda', tool, step, index, 'exe')]
-            cmdlist.extend(self.get('eda', tool, step, index, 'option', 'cmdline'))
-            if self.get('eda', tool, step, index, 'script'):
-                scripts = []
-                for value in self.get('eda', tool, step, index, 'script'):
-                    abspath = schema_path(value)
-                    scripts.append(abspath)
-                cmdlist.extend(scripts)
-
-            # passing arguments
-            self.writecfg("sc_manifest.tcl", abspath=True)
-            os.environ['SC_FILENAME'] = filename
-            # run command
+            # Running command
+            cmdlist = self._makecmd(tool, step, index)
             cmdstr = ' '.join(cmdlist)
             cmd_error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
+
+        # Returning to original directory
+        os.chdir(cwd)
+
+    ############################################################################
+    # Chip helper Functions
+    ############################################################################
+    def _makecmd(self, tool, step, index):
+        '''
+        Constructs a subprocess run command based on eda tool setup.
+        Creates a replay.sh command in current directory.
+        '''
+
+        exe = self.get('eda', tool, step, index, 'exe')
+        options = self.get('eda', tool, step, index, 'option', 'cmdline')
+        scripts = []
+        for value in self.get('eda', tool, step, index, 'script'):
+            abspath = schema_path(value)
+            scripts.append(abspath)
+
+        cmdlist = [exe]
+        logfile = exe + ".log"
+        cmdlist.extend(options)
+        cmdlist.extend(scripts)
+        if self.get('quiet') & (step not in self.get('bkpt')):
+            cmdlist.append(" &> " + logfile)
+        else:
+            # the weird construct at the end ensures that this invocation returns the
+            # exit code of the command itself, rather than tee
+            # (source: https://stackoverflow.com/a/18295541)
+            cmdlist.append(" 2>&1 | tee " + logfile + " ; (exit ${PIPESTATUS[0]} )")
+
+        with open('replay.sh', 'w') as f:
+            print('#!/bin/bash\n', ' '.join(cmdlist), file=f)
+        os.chmod("replay.sh", 0o755)
+
+        return cmdlist
 
 ################################################################################
 # Annoying helper classes
