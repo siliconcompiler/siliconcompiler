@@ -8,6 +8,7 @@ import asyncio
 import subprocess
 import os
 import sys
+import gzip
 import re
 import json
 import logging
@@ -2073,9 +2074,11 @@ class Chip:
         schema .json filename provided. In this case, the SC schema is
         converted to html and displayed as a 'dashboard' in the browser.
 
+        Filenames with .gz and .zip extensions are automatically expanded
+        before being displayed.
+
         Args:
             filename: Name of file to open
-
 
         Examples:
             >>> show('myfile.def')
@@ -2086,28 +2089,43 @@ class Chip:
 
         self.logger.info("Showing file %s", filename)
 
-        filetype = os.path.splitext(filename)[1].lower()
-        filetype = filetype.replace(".","")
+        # Resolving abspath needed for build_dir
         filepath = os.path.abspath(filename)
+        basename = os.path.basename(filepath)
+        localfile = basename.replace(".gz","")
+        filetype = os.path.splitext(localfile)[1].lower()
+        filetype = filetype.replace(".","")
 
-        # Opening up design from temp directory
+        # Opening file from temp directory
         cwd = os.getcwd()
         showdir = self.get('dir') + "/_show"
         os.makedirs(showdir, exist_ok=True)
         os.chdir(showdir)
+
+        # Uncompress file if necessary
+        if os.path.splitext(filepath)[1].lower() == ".gz":
+            with gzip.open(filepath, 'rb') as f_in:
+                with open(localfile, 'wb') as f_out:
+                    shutil.copyfileobj(f_in, f_out)
+        else:
+            shutil.copy(filepath, localfile)
+
         #Figure out which tool to use for opening data
         if filetype in ('json'):
+            localcfg = self.readcfg(localfile)
+            #1. Read in json to a local cfg
             #1. Render flowgraph
             #2. Render metrics per index per step
             #3. Sphinx like tree of all settings with links to files
             #4. Resolution of all ENV_VARS for files
             pass
         else:
-            # using env variable and manifest to pass arguments
+            # Using env variable and manifest to pass arguments
+            os.environ['SC_FILENAME'] = localfile
             self.writecfg("sc_manifest.tcl", abspath=True)
             self.writecfg("sc_manifest.json", abspath=True)
+            # Setting up tool
             tool = self.get('showtool', filetype)
-            self.logger.info(f"Using tool '{tool}' to display '{filename}'")
             step = 'show'+filetype
             index = "0"
             searchdir = "siliconcompiler.tools." + tool
@@ -2115,11 +2133,9 @@ class Chip:
             module = importlib.import_module(modulename, package=searchdir)
             setup_tool = getattr(module, "setup_tool")
             setup_tool(self, step, index, mode='show')
+            # Running command
             cmdlist = self._makecmd(tool, step, index)
             cmdstr = ' '.join(cmdlist)
-            # pass file name through environment variable
-            os.environ['SC_FILENAME'] = filepath
-            # run command
             cmd_error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
 
         # Returning to original directory
@@ -2132,7 +2148,6 @@ class Chip:
         '''
         Constructs a subprocess run command based on eda tool setup.
         Creates a replay.sh command in current directory.
-
         '''
 
         exe = self.get('eda', tool, step, index, 'exe')
@@ -2154,11 +2169,9 @@ class Chip:
             # (source: https://stackoverflow.com/a/18295541)
             cmdlist.append(" 2>&1 | tee " + logfile + " ; (exit ${PIPESTATUS[0]} )")
 
-        cmdstr = ' '.join(cmdlist)
         with open('replay.sh', 'w') as f:
-            print('#!/bin/bash\n', cmdstr, file=f)
+            print('#!/bin/bash\n', ' '.join(cmdlist), file=f)
         os.chmod("replay.sh", 0o755)
-
 
         return cmdlist
 
