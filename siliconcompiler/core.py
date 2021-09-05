@@ -2078,7 +2078,7 @@ class Chip:
         before being displayed.
 
         Args:
-            filename: Name of file to open
+            filename: Name of file to display
 
         Examples:
             >>> show('myfile.def')
@@ -2089,12 +2089,16 @@ class Chip:
 
         self.logger.info("Showing file %s", filename)
 
-        # Resolving abspath needed for build_dir
+        # Parsing filepaths
         filepath = os.path.abspath(filename)
         basename = os.path.basename(filepath)
         localfile = basename.replace(".gz","")
-        filetype = os.path.splitext(localfile)[1].lower()
-        filetype = filetype.replace(".","")
+        filetype = os.path.splitext(localfile)[1].lower().replace(".","")
+
+        #Check that file exists
+        if not os.path.isfile(filepath):
+            self.logger.error(f"Invalid filepath {filepath}.")
+            return 1
 
         # Opening file from temp directory
         cwd = os.getcwd()
@@ -2111,7 +2115,7 @@ class Chip:
             shutil.copy(filepath, localfile)
 
         #Figure out which tool to use for opening data
-        if filetype in ('json'):
+        if filetype == 'json':
             localcfg = self.readcfg(localfile)
             #1. Read in json to a local cfg
             #1. Render flowgraph
@@ -2119,7 +2123,7 @@ class Chip:
             #3. Sphinx like tree of all settings with links to files
             #4. Resolution of all ENV_VARS for files
             pass
-        else:
+        elif filetype in self.getkeys('showtool'):
             # Using env variable and manifest to pass arguments
             os.environ['SC_FILENAME'] = localfile
             self.writecfg("sc_manifest.tcl", abspath=True)
@@ -2137,9 +2141,12 @@ class Chip:
             cmdlist = self._makecmd(tool, step, index)
             cmdstr = ' '.join(cmdlist)
             cmd_error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
+        else:
+            self.logger.error("Filetype '{filetype}' not set up in 'showtool' parameter.")
 
         # Returning to original directory
         os.chdir(cwd)
+        return 0
 
     ############################################################################
     # Chip helper Functions
