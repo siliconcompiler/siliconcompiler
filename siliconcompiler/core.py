@@ -770,7 +770,7 @@ class Chip:
         if (mode in ('set', 'add')) & (len(all_args) == 2):
             # clean error if key not found
             if (not param in cfg) & (not 'default' in cfg):
-                chip.logger.error(f"Keypath [{keypath}] does not exist.")
+                chip.logger.error(f"Set/Add keypath [{keypath}] does not exist.")
                 chip.error = 1
             else:
                 # making an 'instance' of default if not found
@@ -811,7 +811,7 @@ class Chip:
                             else:
                                 cfg[param][field] = val
                         else:
-                            chip.logger.error(f"Illegal list assignment to scalar for [{keypath}]")
+                            chip.logger.error(f"Assigning list to scalar for [{keypath}]")
                             chip.error = 1
                     else:
                         chip.logger.info(f"Ignoring set() to [{keypath}], value already set. Use clobber=true to override.")
@@ -827,14 +827,14 @@ class Chip:
         #get leaf cell (all_args=param)
         elif len(all_args) == 1:
             if not param in cfg:
-                chip.logger.error(f"Keypath [{keypath}] does not exist.")
                 chip.error = 1
+                chip.logger.error(f"Get keypath [{keypath}] does not exist.")
             elif mode == 'getkeys':
                 return cfg[param].keys()
             else:
                 if not (field in cfg[param]) and (field!='value'):
-                    chip.logger.error(f"Field '{field}' not found for keypath [{keypath}]")
                     chip.error = 1
+                    chip.logger.error(f"Field '{field}' not found for keypath [{keypath}]")
                 elif field == 'value':
                     #Select default if no value has been set
                     if field not in cfg[param]:
@@ -1126,7 +1126,7 @@ class Chip:
         return localcfg
 
     ###########################################################################
-    def check(self, step=None, chip=None, cfg=None):
+    def check(self, step, index, mode='static', chip=None, cfg=None):
         '''
         Performs a setup validity check and returns success status.
 
@@ -1144,15 +1144,19 @@ class Chip:
         if cfg is None:
             cfg = chip.cfg
 
-        if step ==None:
-            chip.logger.debug("Running pre-run check.")
-        else:
-            chip.logger.debug("Running check() for step '%s'", step)
-
-        # Checking
-
-        # Checking global requirements specified in schema.py
-        emptylist = ("null",None,[])
+        #1. Checking that flowgraph is legal
+        if not self.getkeys('flowgraph'):
+            chip.error = 1
+            chip.logger.error(f"No flowgraph defined.")
+        legal_steps = self.getkeys('flowgraph')
+        legal_steps.append('source')
+        for item in self.getkeys('flowgraph'):
+            for step_in in self.get('flowgraph', item, 'input'):
+                if step_in not in legal_steps:
+                    chip.error = 1
+                    chip.logger.error(f"Input '{item}' is not a legal step.")
+        #2. Check requirements list
+        emptylist = ("null", None, [])
         allkeys = self.getkeys()
         for key in allkeys:
             keypath = ",".join(key)
@@ -1167,14 +1171,25 @@ class Chip:
                 elif value_empty & (str(requirement) == self.get('mode')):
                     chip.error = 1
                     chip.logger.error(f"Mode requirement missing for [{keypath}].")
+        #3. Check per tool parameter requirements
+        tool = self.get('flowgraph', step, 'tool')
 
-        # Checking flowgraph setup
-
-        # Checking setup of each tool
-
-        # Checking mode based settings
-
-        # Runtime check of inputs being ready
+        if 'req' in  self.getkeys('eda', tool, step, index):
+            all_required = self.get('eda', tool, step, index, 'req')
+            for item in all_required:
+                keypath = item.split(',')
+                if not chip.get(*keypath):
+                    chip.error = 1
+                    chip.logger.error(f"Value empty for [{keypath}].")
+        #4. Check that input files exist
+        if mode=='dynamic':
+            #2. Check per step input requirements
+            all_inputs = self.get('eda', tool, step, index, 'input')
+            for item in all_inputs:
+                infile = f"inputs/{item}"
+                if not os.path.isfile(infile):
+                    chip.error = 1
+                    chip.logger.error(f"Required input '{infile}' is missing.")
 
         return chip.error
 
@@ -1751,7 +1766,6 @@ class Chip:
                     if os.path.isfile(cfgfile):
                         self.cfg = self.readcfg(cfgfile)
 
-
         #Checking that there were no errors in previous steps
         halt = 0
         for input_step in self.get('flowgraph', step, 'input'):
@@ -1859,8 +1873,8 @@ class Chip:
             self.set('metric', step, index, metric, 'real', 0)
 
         # Final check() before run
-        if self.check(step=step):
-            self.logger.error("Step check() for '%s' failed, exiting! See previous errors.", step)
+        if self.check(step,index, mode='dynamic'):
+            self.logger.error(f"Fatal error in check() of '{step}'! See previous errors.")
             self._haltstep(step, index, error, active)
 
         # Run executable
@@ -1873,6 +1887,7 @@ class Chip:
         self.set('metric',step,index,'runtime', 'real', round(elapsed_time,2))
         if cmd_error.returncode != 0:
             self.logger.warning('Command failed. See log file %s', os.path.abspath(logfile))
+            self._haltstep(step, index, error, active)
             # Override exit code if set
             if not self.get('eda', tool, step, index, 'continue'):
                 self._haltstep(step, index, error, active)
@@ -1908,6 +1923,7 @@ class Chip:
 
     ###########################################################################
     def _haltstep(self, step, index, error, active):
+        self.logger.error(f"Halting step '{step}' index '{index}' due to errors.")
         active[step + str(index)] = 0
         sys.exit(1)
 
@@ -1938,6 +1954,11 @@ class Chip:
         else:
             steplist = self.getsteps()
 
+        # Hash all files before run
+        if self.hash():
+            self.logger.error('File hashing failed, exiting')
+            sys.exit(1)
+
         # Remote workflow: Dispatch the Chip to a remote server for processing.
         if self.get('remote', 'addr'):
             # Pre-process: Run an 'import' stage locally, and upload the
@@ -1961,7 +1982,6 @@ class Chip:
             # Use a shared even for errors
             # Use a manager.dict for keeping track of active processes
             # (one unqiue dict entry per process),
-
             # Set up tools and processes
             for step in self.getkeys('flowgraph'):
                 for index in range(self.get('flowgraph', step, 'nproc')):
@@ -1982,31 +2002,18 @@ class Chip:
                             setup_tool(self, step, str(index))
                         except:
                             traceback.print_exc()
-                            self.logger.error(f"Tool setup failed for '{tool}' in step '{step}'")
+                            self.logger.error(f"Setup failed for '{tool}' in step '{step}'")
                             self.error = 1
+                        #run check for step, index
+                        self.check(step,str(index),mode='static')
                     else:
                         error[stepstr] = 0
                         active[stepstr] = 0
-
-            # Check tool setup before run
-            if self.hash():
-                self.logger.error('File hashing failed, exiting')
-                sys.exit(1)
-
-            # Check tool setup before run
-            if self.check():
-                self.logger.error('Global check() failed, exiting! See previous errors.')
-                sys.exit(1)
-
-            if self.get('checkonly'):
-                self.logger.info("Exiting after check() (checkonly=True)")
-                sys.exit()
 
             # Implement auto-update of jobincrement
             dirname = self.get('dir')
             design = self.get('design')
             jobname = self.get('jobname')
-
             try:
                 alljobs = os.listdir(dirname + "/" + design)
                 if self.get('jobincr'):
@@ -2022,6 +2029,16 @@ class Chip:
             if self.get('remote', 'key'):
                 # Decrypt the job's data for processing.
                 client_decrypt(self)
+
+            # Check if there were errors before proceeding with run
+            if self.error:
+                self.logger.error(f"Check failed. See previous errors.")
+                sys.exit()
+
+            # Enable checkonly mode
+            if self.get('checkonly'):
+                self.logger.info("Exiting after static check(), checkonly=True")
+                sys.exit()
 
             # Create all processes
             processes = []
@@ -2043,6 +2060,7 @@ class Chip:
                 for index in range(self.get('flowgraph', step, 'nproc')):
                     stepstr = step + str(index)
                     index_error = index_error & error[stepstr]
+                halt = halt + index_error
             if halt:
                 self.logger.error('Run() failed, exiting! See previous errors.')
                 sys.exit(1)

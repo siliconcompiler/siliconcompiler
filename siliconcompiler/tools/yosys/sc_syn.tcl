@@ -22,7 +22,6 @@ if {[dict get $sc_cfg eda $tool $sc_step $sc_index copy ] eq True} {
 # Design
 set sc_mode        [dict get $sc_cfg mode]
 set sc_design      [dict get $sc_cfg design]
-set sc_optmode     [dict get $sc_cfg optmode]
 
 set topmodule $sc_design
 
