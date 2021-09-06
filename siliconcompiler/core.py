@@ -2,6 +2,7 @@
 
 import argparse
 import time
+import datetime
 import multiprocessing
 import traceback
 import asyncio
@@ -908,7 +909,7 @@ class Chip:
         that contain a 'default' key.
 
 
-        Returns the prunted dictionary
+        Returns the pruned dictionary
 
         '''
 
@@ -925,9 +926,9 @@ class Chip:
         #Prune when the default & value are set to the following
         empty = ("null",None,[])
 
-        #When at top of tree loop maxdepth times to make sure all stale
-        #branches have been removed, not elegant, but stupid-simple
-        #"good enough"
+        # When at top of tree loop maxdepth times to make sure all stale
+        # branches have been removed, not elegant, but stupid-simple
+        # "good enough"
         while i < maxdepth:
             #Loop through all keys starting at the top
             for k in list(localcfg.keys()):
@@ -1658,6 +1659,9 @@ class Chip:
             # Short sleep
             time.sleep(0.1)
 
+        # Starting Date/Time
+        start = time.time()
+
         # Build directory
         stepdir = "/".join([self.get('dir'),
                             self.get('design'),
@@ -1779,11 +1783,7 @@ class Chip:
         # Run executable
         self.logger.info("Running %s in %s", step, stepdir)
         self.logger.info('%s', cmdstr)
-        start = time.time()
         cmd_error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
-        end = time.time()
-        elapsed_time = end - start
-        self.set('metric',step,index,'runtime', 'real', round(elapsed_time,2))
         if cmd_error.returncode != 0:
             self.logger.warning('Command failed. See log file %s', os.path.abspath(cmdlist[-1]))
             self._haltstep(step, index, error, active)
@@ -1804,13 +1804,24 @@ class Chip:
             self.logger.error(f"Post-processing failed for '{tool}' in step '{step}'")
             self._haltstep(step, index, error, active)
 
-        # Check for errors
+        # Check for non exception post_error
         if post_error:
             self.logger.error('Post-processing check failed for step %s', step)
             self._haltstep(step, index, error, active)
 
-        # save a successful manifest with error = 0
+        # clean run completed
         self.set('flowstatus', step, str(index), 'error', 0)
+        end = time.time()
+        elapsed_time = end - start
+        self.set('metric',step,index,'runtime', 'real', round(elapsed_time,2))
+
+
+        # record runstep provenance data
+        start_date = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
+        end_date = datetime.datetime.fromtimestamp(end).strftime('%Y-%m-%d %H:%M:%S')
+        self._makerecord(step, index, start_date, end_date)
+
+        # save a successful manifest
         self.writecfg("outputs/" + self.get('design') +'.pkg.json')
 
         # return fo original directory
@@ -2168,6 +2179,27 @@ class Chip:
         os.chmod("replay.sh", 0o755)
 
         return cmdlist
+
+    #######################################
+    def _makerecord(self, step, index, start, end):
+        '''
+        Records provenance details for a runstep.
+        '''
+        for key in self.getkeys('record', 'default', 'default'):
+            if key == 'starttime':
+                self.set('record', step, index,'starttime', start)
+            elif key == 'endtime':
+                self.set('record', step, index, 'endtime', end)
+            elif key == 'input':
+                #TODO
+                pass
+            elif key == 'hash':
+                #TODO
+                pass
+            elif self.get(key):
+                self.set('record', step, index, key, self.get(key))
+            else:
+                self.logger.debug(f"Record ignored for {key}, parameter not set up")
 
 ################################################################################
 # Annoying helper classes
