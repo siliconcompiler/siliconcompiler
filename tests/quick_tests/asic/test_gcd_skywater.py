@@ -1,6 +1,8 @@
 import os
 import siliconcompiler
-from tests.fixtures import test_wrapper
+
+if __name__ != "__main__":
+    from tests.fixtures import test_wrapper
 
 ##################################
 def test_gcd_checks():
@@ -16,6 +18,8 @@ def test_gcd_checks():
     # Inserting value into configuration
     chip.add('source', gcd_ex_dir + 'gcd.v')
     chip.set('design', 'gcd')
+    chip.set('relax', True)
+    chip.set('quiet', True)
     chip.set('clock', 'clock_name', 'pin', 'clk')
     chip.add('constraint', gcd_ex_dir + 'gcd.sdc')
     chip.set('target', 'skywater130_asicflow')
@@ -23,8 +27,6 @@ def test_gcd_checks():
     chip.set('asic', 'corearea', [(20.24, 21.76), (180.32, 184.96)])
 
     chip.target()
-
-    chip.set('quiet', 'true')
 
     # Run the chip's build process synchronously.
     chip.run()
@@ -35,3 +37,6 @@ def test_gcd_checks():
     # Verify that the build was LVS and DRC clean.
     assert chip.get('metric', 'lvs', '0', 'errors', 'real') == 0
     assert chip.get('metric', 'drc', '0', 'errors', 'real') == 0
+
+if __name__ == "__main__":
+    test_gcd_checks()
