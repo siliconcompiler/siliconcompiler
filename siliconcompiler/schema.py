@@ -2392,11 +2392,11 @@ def schema_record(cfg, step='default', index='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': 'Step Inputs',
+        'short_help': 'Record of source files accessed',
         'example': ["cli: -record_input 'import 0 gcd.v'",
                     "api: chip.set('record','import','0','input','gcd.v')"],
         'help': """
-        Metric tracking all input files on a per step basis. This list
+        Record tracking all input files on a per step basis. This list
         include files entered by the user and files automatically found
         by the flow like in the case of the "-y" auto-discovery path.
         """
@@ -2408,11 +2408,11 @@ def schema_record(cfg, step='default', index='default'):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'short_help': 'Step Author',
+        'short_help': 'Record of run author',
         'example': ["cli: -record_author 'dfm 0 coyote'",
-                    "api: chip.set('record','dfm','0','author','wcoyote')"],
+                    "api: chip.set('record','dfm','0','author','coyote')"],
         'help': """
-        Metric tracking the author on a per step basis.
+        Record tracking the author on a per step basis.
         """
     }
 
@@ -2422,25 +2422,42 @@ def schema_record(cfg, step='default', index='default'):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'short_help': 'Step User ID',
+        'short_help': 'Record of run user ID',
         'example': ["cli: -record_userid 'dfm 0 0982acea'",
                     "api: chip.set('record','dfm','0','userid','0982acea')"],
         'help': """
-        Metric tracking the run userid on a per step basis.
+        Record tracking the run userid on a per step and index basis.
         """
     }
 
-    cfg['record'][step][index]['signature'] = {
-        'switch': "-record_signature 'step index <str>'",
+    cfg['record'][step][index]['publickey'] = {
+        'switch': "-record_publickey 'step index <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'short_help': 'Step Signature',
-        'example': ["cli: -record_signature 'dfm 0 473c04b'",
-                    "api: chip.set('record','dfm','0','signature','473c04b')"],
+        'short_help': 'Record of public key of run user',
+        'example': [
+            "cli: -record_publickey 'dfm 0 6EB695706EB69570'",
+            "api: chip.set('record','dfm','0','publickey','6EB695706EB69570')"],
         'help': """
-        Metric tracking the execution signature/hashid on a per step basis.
+        Record tracking the run public key on a per step and index basis.
+        """
+    }
+
+    cfg['record'][step][index]['hash'] = {
+        'switch': "-record_hash 'step index <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'Record of output files hash values',
+        'example': ["cli: -record_hash 'dfm 0 473c04b'",
+                    "api: chip.set('record','dfm','0','hash','473c04b')"],
+        'help': """
+        Record with list of computed hash values for each output file produced.
+        The ordered list of step otputs is taken from the eda 'output'
+        'parameter'.
         """
     }
 
@@ -2450,11 +2467,11 @@ def schema_record(cfg, step='default', index='default'):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'short_help': 'Step Organization',
+        'short_help': 'Record of run organzation',
         'example': ["cli: -record_org 'dfm 0 earth'",
                     "api: chip.set('record','dfm','0','org','earth')"],
         'help': """
-        Metric tracking the user's organization on a per step basis.
+        Record tracking the user's organization on a per step basis.
         """
     }
 
@@ -2464,41 +2481,41 @@ def schema_record(cfg, step='default', index='default'):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'short_help': 'Step Location',
+        'short_help': 'Record of run location',
         'example': ["cli: -record_location 'dfm 0 Boston'",
                     "api: chip.set('record','dfm','0','location,'Boston')"],
         'help': """
-        Metric tracking the user's location/site on a per step basis.
+        Record tracking the user's location/site on a per step basis.
         """
     }
 
-    cfg['record'][step][index]['date'] = {
-        'switch': "-record_date 'step index <str>'",
+    cfg['record'][step][index]['starttime'] = {
+        'switch': "-record_starttime 'step index <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'short_help': 'Step Date Stamp',
-        'example': ["cli: -record_date 'dfm 2021-05-01'",
-                    "api: chip.set('record','dfm','0','date','2021-05-01')"],
+        'short_help': 'Record of run start time',
+        'example': ["cli: -record_starttime 'dfm 2021-09-06 12:20:20'",
+                    "api: chip.set('record','dfm','0','starttime','2021-09-06 12:20:20')"],
         'help': """
-        Metric tracking the run date stamp on a per step basis.
-        The date format is the ISO 8601 format YYYY-MM-DD.
+        Record tracking the start time stamp on a per step and index basis.
+        The date format is the ISO 8601 format YYYY-MM-DD HR:MIN:SEC.
         """
     }
 
-    cfg['record'][step][index]['time'] = {
-        'switch': "-record_time 'step index <str>'",
+    cfg['record'][step][index]['endtime'] = {
+        'switch': "-record_endtime 'step index <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'short_help': 'Step Time Stamp',
-        'example': ["cli: -record_time 'dfm 0 11:35:40'",
-                    "api: chip.set('record','dfm','0','time','11:35:40')"],
+        'short_help': 'Record of run end time',
+        'example': ["cli: -record_endtime 'dfm 0 2021-09-06 12:20:20'",
+                    "api: chip.set('record','dfm','0','endtime','2021-09-06 12:20:20')"],
         'help': """
-        Metric tracking the local run start time on a per step basis.
-        The time format is specified in 24h-hr format hr:min:sec
+        Record tracking the end time stamp on a per step and index basis.
+        The date format is the ISO 8601 format YYYY-MM-DD HR:MIN:SEC.
         """
     }
 
@@ -3209,17 +3226,73 @@ def schema_design(cfg):
         """
     }
 
-    cfg['origin'] = {
-        'switch': "-origin <str>",
+    cfg['location'] = {
+        'switch': "-location <str>",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'short_help': 'Design Origin',
-        'example': ["cli: -origin mars",
-                    "api: chip.set('origin', 'mars')"],
+        'short_help': 'Design Location',
+        'example': ["cli: -location mars",
+                    "api: chip.set('location', 'mars')"],
         'help': """
-        Record of design country of origin.
+        Optional location of origin for design.
+        """
+    }
+
+    cfg['org'] = {
+        'switch': "-org <str>",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'Design Organization',
+        'example': ["cli: -org humanity",
+                    "api: chip.set('org', 'humanity')"],
+        'help': """
+        Optional design organization
+        """
+    }
+
+    cfg['author'] = {
+        'switch': "-author <str>",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'User ID',
+        'example': ["cli: -author wiley",
+                    "api: chip.set('author', 'wiley')"],
+        'help': """
+        Optional author name.
+        """
+    }
+
+    cfg['userid'] = {
+        'switch': "-userid <str>",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'User ID',
+        'example': ["cli: -userid 0123",
+                    "api: chip.set('userid', '0123')"],
+        'help': """
+        Optional userid.
+        """
+    }
+
+    cfg['publickey'] = {
+        'switch': "-publickey <str>",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'User public key',
+        'example': ["cli: -publickey 6EB695706EB69570",
+                    "api: chip.set('signature', '6EB695706EB69570')"],
+        'help': """
+        Optional user public key.
         """
     }
 
