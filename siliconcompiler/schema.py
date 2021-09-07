@@ -1432,59 +1432,42 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
 # Flow Configuration
 ###############################################################################
 
-def schema_flowgraph(cfg, step='default'):
+def schema_flowgraph(cfg, step='default', index='default'):
 
     cfg['flowgraph'] = {}
     cfg['flowgraph'][step] =  {}
+    cfg['flowgraph'][step][index] =  {}
 
-    # Flow step parallelism
-    cfg['flowgraph'][step]['nproc'] = {
-        'switch': "-flowgraph_nproc 'step <int>'",
-        'type': 'int',
-        'lock': 'false',
-        'requirement': 'all',
-        'defvalue': None,
-        'short_help': 'Flowgraph step parallelism',
-        'example': [
-            "cli: -flowgraph_nproc 'cts 10'",
-            "api:  chip.set('flowgraph','cts','nproc,'10')"],
-        'help': """
-        Integer specifying how many parallel processes to launch for step
-        the step specified Each forked process operates on the same input
-        data but on slightly different setup parameters as configured on
-        a per fork basis.
-        """
-    }
-
-    # Flow input dependancy
-    cfg['flowgraph'][step]['input'] = {
-        'switch': "-flowgraph_input 'step <str>'",
+    # Execution flowgraph
+    stepin = 'default'
+    cfg['flowgraph'][step][index]['input'] = {}
+    cfg['flowgraph'][step][index]['input'][stepin] = {
+        'switch': "-flowgraph_input 'step index stepin <int>'",
         'type': '[str]',
         'lock': 'false',
-        'requirement': 'all',
+        'requirement': None,
         'defvalue': [],
-        'short_help': 'Flowgraph Step Input',
+        'short_help': 'Flowgraph step input',
         'example': [
-            "cli: -flowgraph_input 'cts place'",
-            "api:  chip.set('flowgraph','cts','input,'place')"],
+            "cli: -flowgraph_input 'cts 0 place 0'",
+            "api:  chip.set('flowgraph','cts','0','input,'place',0)"],
         'help': """
-        List of input step dependancies for the current step. A step
-        with no dependancies (like 'import') should set the value to
-        'source'.
+        List of inputs for the current step and index, listed as a
+        set of indices on a per step basis.
         """
     }
 
     # Flow input merging
-    cfg['flowgraph'][step]['mergeop'] = {
-        'switch': "-flowgraph_mergeop 'step <str>'",
+    cfg['flowgraph'][step][index]['mergeop'] = {
+        'switch': "-flowgraph_mergeop 'step 0 <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': [],
         'short_help': 'Flowgraph Merge Operation',
         'example': [
-            "cli: -flowgraph_mergeop 'cts min'",
-            "api:  chip.set('flowgraph','cts','mergeop','min')"],
+            "cli: -flowgraph_mergeop 'cts 0 min'",
+            "api:  chip.set('flowgraph','cts','mergeop','0', 'min')"],
         'help': """
         Function to use when merging data from multiple inputs. Valid
         options are 'or' and 'min'.
@@ -1492,8 +1475,8 @@ def schema_flowgraph(cfg, step='default'):
     }
 
     # Flow graph score weights
-    cfg['flowgraph'][step]['weight'] = {}
-    cfg['flowgraph'][step]['weight']['default'] = {
+    cfg['flowgraph'][step][index]['weight'] = {}
+    cfg['flowgraph'][step][index]['weight']['default'] = {
         'switch': "-flowgraph_weight 'step metric <float>'",
         'type': 'float',
         'lock': 'false',
@@ -1511,7 +1494,7 @@ def schema_flowgraph(cfg, step='default'):
     }
 
     # Step tool
-    cfg['flowgraph'][step]['tool'] = {
+    cfg['flowgraph'][step][index]['tool'] = {
         'switch': "-flowgraph_tool 'step <str>'",
         'type': 'str',
         'lock': 'false',
