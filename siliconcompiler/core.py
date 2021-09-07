@@ -1081,6 +1081,16 @@ class Chip:
         return localcfg
 
     ###########################################################################
+    def _keypath_empty(self, key, cfg):
+        emptylist = ("null", None, [])
+
+        value = self.get(*key, cfg=cfg)
+        defvalue = self.get(*key, cfg=cfg, field='defvalue')
+        value_empty = (defvalue in emptylist) and (value in emptylist)
+
+        return value_empty
+
+    ###########################################################################
     def check(self, step, index, mode='static', cfg=None):
         '''
         Performs a setup validity check and returns success status.
@@ -1109,21 +1119,18 @@ class Chip:
                     self.error = 1
                     self.logger.error(f"Input '{item}' is not a legal step.")
         #2. Check requirements list
-        emptylist = ("null", None, [])
         allkeys = self.getkeys()
         for key in allkeys:
             keypath = ",".join(key)
             if 'default' not in key:
+                key_empty = self._keypath_empty(key, cfg)
                 requirement = self.get(*key, cfg=cfg, field='requirement')
-                value = self.get(*key, cfg=cfg)
-                defvalue = self.get(*key, cfg=cfg, field='defvalue')
-                value_empty = (defvalue in emptylist) & (value in emptylist)
-                if value_empty & (str(requirement) == 'all'):
-                    self.error = 1
-                    self.logger.error(f"Global requirement missing for [{keypath}].")
-                elif value_empty & (str(requirement) == self.get('mode')):
-                    self.error = 1
-                    self.logger.error(f"Mode requirement missing for [{keypath}].")
+                if key_empty and (str(requirement) == 'all'):
+                    chip.error = 1
+                    chip.logger.error(f"Global requirement missing for [{keypath}].")
+                elif key_empty and (str(requirement) == self.get('mode')):
+                    chip.error = 1
+                    chip.logger.error(f"Mode requirement missing for [{keypath}].")
         #3. Check per tool parameter requirements
         tool = self.get('flowgraph', step, 'tool')
 
@@ -1131,9 +1138,18 @@ class Chip:
             all_required = self.get('eda', tool, step, index, 'req')
             for item in all_required:
                 keypath = item.split(',')
-                if not self.get(*keypath):
-                    self.error = 1
-                    self.logger.error(f"Value empty for [{keypath}].")
+                if self._keypath_empty(keypath, cfg):
+                    chip.error = 1
+                    chip.logger.error(f"Value empty for [{keypath}].")
+
+        if self._keypath_empty(['eda', tool, step, index, 'exe'], cfg):
+            chip.error = 1
+            chip.logger.error(f'Executable not specified for tool {tool} used in flowgraph step {step}')
+
+        if self._keypath_empty(['eda', tool, step, index, 'version'], cfg):
+            chip.error = 1
+            chip.logger.error(f'Version not specified for tool {tool} used in flowgraph step {step}')
+
         #4. Check that input files exist
         if mode=='dynamic':
             #2. Check per step input requirements
