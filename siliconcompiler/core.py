@@ -1678,9 +1678,9 @@ class Chip:
                         }
                     elif type(d[k]) == dict:
                         prune_cfg(d[k])
-            prune_cfg(chip.cfg)
+            prune_cfg(self.cfg)
             # Escape strings for placing in `bash -c "... echo '[cfg]' ..."`.
-            cfg_str = json.dumps(chip.cfg).replace("'", "\\'").replace('"', '\\"')
+            cfg_str = json.dumps(self.cfg).replace("'", "\\'").replace('"', '\\"')
 
             # Create an 'srun' command.
             run_cmd = 'srun --constraint="SHARED" bash -c "'
