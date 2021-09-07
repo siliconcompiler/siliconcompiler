@@ -1670,7 +1670,7 @@ class Chip:
             # some bookkeeping keys such as 'help' and 'short_help'.
             def prune_cfg(d):
                 for k in d.keys():
-                    if 'value' in d[k]:
+                    if d[k] and ('value' in d[k]):
                         d[k] = {
                             'defvalue': d[k]['defvalue'],
                             'type': d[k]['type'],
