@@ -1662,6 +1662,39 @@ class Chip:
         # Starting Date/Time
         start = time.time()
 
+        # If the job is configured to run on a cluster, collect the schema
+        # and send it to a compute node in a munge-encrypted 'srun' command.
+        if self.get('cluster') == 'slurm':
+            # Generate the config dictionary to pack into the 'srun' command.
+            # In order to mitigate some character length limits, we drop
+            # some bookkeeping keys such as 'help' and 'short_help'.
+            def prune_cfg(d):
+                for k in d.keys():
+                    if 'value' in d[k]:
+                        d[k] = {
+                            'defvalue': d[k]['defvalue'],
+                            'type': d[k]['type'],
+                            'value': d[k]['value'],
+                        }
+                    elif type(d[k]) == dict:
+                        prune_cfg(d[k])
+            prune_cfg(chip.cfg)
+            # Escape strings for placing in `bash -c "... echo '[cfg]' ..."`.
+            cfg_str = json.dumps(chip.cfg).replace("'", "\\'").replace('"', '\\"')
+
+            # Create an 'srun' command.
+            run_cmd = 'srun --constraint="SHARED" bash -c "'
+            run_cmd += f"echo '{cfg_str}' > {self.get('dir')}/config.json ; "
+            run_cmd += f"sc -cfg {self.get('dir')}/config.json"
+            run_cmd += '"'
+
+            # Clear active/error bits and return after the 'srun' command.
+            error[step + str(index)] = 0
+            active[step + str(index)] = 0
+            return
+
+        # If the job is configured to run on the local machine, run the step.
+
         # Build directory
         stepdir = "/".join([self.get('dir'),
                             self.get('design'),

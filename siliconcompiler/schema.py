@@ -2600,6 +2600,26 @@ def schema_options(cfg):
         """
         }
 
+    cfg['cluster'] = {
+        'switch': "-cluster <str>",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': 'all',
+        'defvalue': 'local',
+        'short_help': 'Cluster Type',
+        'example': ["cli: -cluster slurm",
+                    "api: chip.set('cluster','slurm')"],
+        'help': """
+        Sets the type of HPC cluster which should be used to run the individual
+        flowgraph steps. The default value is 'local', which will use the local
+        machine to perform computations. Currently, only 'local' and 'slurm'
+        are supported. If 'slurm' is used, the host running the 'sc' command
+        must be running a 'slurmctld' daemon managing a Slurm cluster.
+        Additionally, the build directory ('-dir') must be located in shared
+        storage which can be accessed by all hosts in the cluster.
+        """
+    }
+
     cfg['env'] = {}
     cfg['env']['default'] = {
         'switch': "-env 'var <str>'",
