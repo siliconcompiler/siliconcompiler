@@ -902,7 +902,7 @@ class Chip:
         return chip
 
     ###########################################################################
-    def prune(self, cfg, top=True):
+    def prune(self, cfg, top=True, keeplists=False):
         '''
         Recursive function that takes a copy of the Chip dictionary and
         then removes all sub trees with non-set values and sub-trees
@@ -924,7 +924,10 @@ class Chip:
         i = 0
 
         #Prune when the default & value are set to the following
-        empty = ("null",None,[])
+        if keeplists:
+            empty = ("null", None)
+        else:
+            empty = ("null", None, [])
 
         # When at top of tree loop maxdepth times to make sure all stale
         # branches have been removed, not elegant, but stupid-simple
@@ -953,7 +956,7 @@ class Chip:
                     localcfg.pop(k)
                 #keep traversing tree
                 else:
-                    self.prune(cfg=localcfg[k], top=False)
+                    self.prune(cfg=localcfg[k], top=False, keeplists=keeplists)
             if top:
                 i += 1
             else:
@@ -1187,7 +1190,7 @@ class Chip:
         return localcfg
 
     ###########################################################################
-    def writecfg(self, filename, cfg=None, prune=True, abspath=False):
+    def writecfg(self, filename, cfg=None, prune=True, keeplists=False, abspath=False):
         '''Writes out Chip dictionary in json, yaml, or TCL file format.
 
         Args:
@@ -1219,7 +1222,7 @@ class Chip:
 
         if prune:
             self.logger.debug('Pruning dictionary before writing file %s', filepath)
-            cfgcopy = self.prune(cfg)
+            cfgcopy = self.prune(cfg, keeplists=keeplists)
         else:
             cfgcopy = copy.deepcopy(cfg)
 
@@ -1237,7 +1240,7 @@ class Chip:
         elif filepath.endswith('.tcl'):
             with open(filepath, 'w') as f:
                 print("#############################################", file=f)
-                print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
+                print("#!!!! AUTO-GENERATED FILE. DO NOT EDIT!!!!!!", file=f)
                 print("#############################################", file=f)
                 self._printcfg(cfgcopy, mode="tcl", prefix="dict set sc_cfg", file=f)
         else:
@@ -1769,7 +1772,7 @@ class Chip:
         # Writing out command file
         self.writecfg("sc_manifest.json")
         self.writecfg("sc_manifest.yaml")
-        self.writecfg("sc_manifest.tcl", abspath=True)
+        self.writecfg("sc_manifest.tcl", abspath=True, keeplists=True)
 
         # Resetting metrics
         for metric in self.getkeys('metric', 'default', 'default'):
