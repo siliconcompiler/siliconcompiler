@@ -207,7 +207,8 @@ def setup_libs(chip, vendor=None):
         'sky130_fd_sc_hd__lpflow_lsbuf_lh_isowell_4',
         'sky130_fd_sc_hd__lpflow_lsbuf_lh_isowell_tap_1',
         'sky130_fd_sc_hd__lpflow_lsbuf_lh_isowell_tap_2',
-        'sky130_fd_sc_hd__lpflow_lsbuf_lh_isowell_tap_4'
+        'sky130_fd_sc_hd__lpflow_lsbuf_lh_isowell_tap_4',
+        'sky130_fd_sc_hd__buf_16'
     ])
 
     # TODO: should probably fill these in, but they're currently unused by
