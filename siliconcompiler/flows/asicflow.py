@@ -55,68 +55,63 @@ def setup_flow(chip, process):
                 'cts',
                 'route',
                 'dfm',
-                'export',
-                # TODO: sta is currently broken, don't include in flow
-                # 'sta'
-                ]
-    # Set the steplist which can run remotely (if required)
-    chip.set('remote', 'steplist', flowpipe[1:])
+                'export'
+    ]
+
+    tools = {
+        'import': 'verilator',
+        'syn': 'yosys',
+        'apr': 'openroad',
+        'floorplan': 'openroad',
+        'physyn': 'openroad',
+        'place': 'openroad',
+        'cts': 'openroad',
+        'route': 'openroad',
+        'dfm': 'openroad',
+        'drc': 'magic',
+        'lvs': 'magic',
+        'export': 'klayout'
+    }
 
     # TODO: implement these steps for processes other than Skywater
     verification_steps = [ 'lvs', 'drc']
     if process == 'skywater130':
         flowpipe += verification_steps
 
-    # Setting up flowgraph
-    for i, step in enumerate(flowpipe):
 
-        # Creating linear pipeline
-        if i > 0:
-            chip.add('flowgraph', flowpipe[i], 'input',  flowpipe[i-1])
-        else:
-            chip.set('flowgraph', flowpipe[i], 'input',  'source')
+    # Flow setup
+    N = 1
+    index = '0'
 
-        # Linear pipeline
-        chip.set('flowgraph', step, 'nproc',  1)
+    for i in range(len(flowpipe)):
+        step = flowpipe[i]
 
-        # Setting weights for index optimization
-        chip.set('flowgraph', step, 'weight',  'cellarea', 1.0)
-        chip.set('flowgraph', step, 'weight',  'peakpower', 1.0)
-        chip.set('flowgraph', step, 'weight',  'standbypower', 1.0)
+        # Tool
+        chip.set('flowgraph', step, index, 'tool', tools[step])
 
-        # Setting hard targets
-        for index in range(chip.get('flowgraph', step, 'nproc')):
-            chip.set('metric', step, str(index), 'drv', 'goal', 0.0)
-            chip.set('metric', step, str(index), 'holdwns', 'goal', 0.0)
-            chip.set('metric', step, str(index), 'holdtns', 'goal', 0.0)
-            chip.set('metric', step, str(index), 'setupwns', 'goal', 0.0)
-            chip.set('metric', step, str(index), 'setuptns', 'goal', 0.0)
+        # Flow
+        if step != 'import':
+            chip.add('flowgraph', step, index, 'input', flowpipe[i-1], "0")
+
+        # Metrics
+        chip.set('flowgraph', step, index, 'weight',  'cellarea', 1.0)
+        chip.set('flowgraph', step, index, 'weight',  'peakpower', 1.0)
+        chip.set('flowgraph', step, index, 'weight',  'standbypower', 1.0)
+
+        # Goals
+        chip.set('metric', step, index, 'drv', 'goal', 0.0)
+        chip.set('metric', step, index, 'holdwns', 'goal', 0.0)
+        chip.set('metric', step, index, 'holdtns', 'goal', 0.0)
+        chip.set('metric', step, index, 'setupwns', 'goal', 0.0)
+        chip.set('metric', step, index, 'setuptns', 'goal', 0.0)
+
+
+    # Set the steplist which can run remotely (if required)
+    chip.set('remote', 'steplist', flowpipe[1:])
 
     # Showtool definitions
     chip.set('showtool', 'def', 'openroad')
     chip.set('showtool', 'gds', 'klayout')
-
-    # Per step tool selection
-    for step in flowpipe:
-        if step == 'import':
-            #tool = 'morty'
-            #tool = 'surelog'
-            tool = 'verilator'
-        elif step == 'importvhdl':
-            tool = 'ghdl'
-        elif step == 'convert':
-            tool = 'sv2v'
-        elif step == 'syn':
-            tool = 'yosys'
-        elif step == 'export':
-            tool = 'klayout'
-        elif step in ('lvs', 'drc'):
-            tool = 'magic'
-        else:
-            tool = 'openroad'
-        chip.set('flowgraph', step, 'tool', tool)
-
-
 
 
 ##################################################
@@ -132,4 +127,4 @@ if __name__ == "__main__":
     setup_flow(chip, "freepdk45")
     # write out results
     chip.writecfg(output)
-    #chip.write_flowgraph(prefix + ".svg")
+    chip.writegraph(prefix + ".png")
