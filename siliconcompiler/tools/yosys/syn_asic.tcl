@@ -13,6 +13,8 @@ set sc_tie         [dict get $sc_cfg library $sc_mainlib cells tie]
 # for now everything needs to be concatenated into one library regardless)
 set library_file [dict get $sc_cfg library $sc_mainlib nldm typical lib]
 
+yosys read_liberty -lib $library_file
+
 if {[dict exists $sc_cfg asic macrolib]} {
     set sc_macrolibs [dict get $sc_cfg asic macrolib]
 } else {
