@@ -3,7 +3,7 @@ import subprocess
 from tests.fixtures import test_wrapper
 
 ##################################
-def test_gcd_local():
+def test_gcd_cli():
     '''Basic CLI test: build the GCD example by running `sc` as a command-line app.
     '''
 
@@ -13,15 +13,7 @@ def test_gcd_local():
     gcd_ex_dir = gcd_ex_dir[:gcd_ex_dir.rfind('/tests/daily_tests/asic')] + '/examples/gcd/'
 
     # Run the build command.
-    subprocess.run(['sc',
-                    gcd_ex_dir + '/gcd.v',
-                    '-design', 'gcd',
-                    '-target', 'freepdk45_asicflow',
-                    '-asic_diesize', '0 0 100.13 100.8',
-                    '-asic_coresize', '10.07 11.2 90.25 91',
-                    '-constraint', gcd_ex_dir + '/gcd.sdc',
-                    '-loglevel', 'NOTSET'],
-                   stdout = subprocess.DEVNULL)
+    subprocess.run([f'{gcd_ex_dir}/run.sh'], stdout = subprocess.DEVNULL)
 
     # Verify that GDS and SVG files were generated.
-    assert os.path.isfile('build/gcd/job1/export/outputs/gcd.gds')
+    assert os.path.isfile('build/gcd/job0/export0/outputs/gcd.gds')

@@ -3,6 +3,11 @@ proc reopenStdout {file} {
     open $file w        ;# The standard channels are special
 }
 
+
+###############################
+# Report Metrics
+###############################
+
 set fields "{capacitance slew input_pins nets fanout}"
 set PREFIX "SC_METRIC:"
 

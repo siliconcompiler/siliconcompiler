@@ -17,11 +17,10 @@ def test_failure_notquiet():
 
     # Inserting value into configuration
     chip.add('source', '../../tests/daily_tests/asic/test_failure/bad.v')
-    chip.add('design', 'bad')
-    chip.set('asic', 'diesize', '0 0 10 10')
-    chip.set('asic',  'coresize', '1 1 9 9')
+    chip.set('design', 'bad')
+    chip.set('asic', 'diearea', [(0, 0), (10, 10)])
+    chip.set('asic',  'corearea', [(1, 1), (9, 9)])
     chip.set('target', 'freepdk45_asicflow')
-    chip.set_jobid()
 
     chip.target()
 
@@ -43,11 +42,10 @@ def test_failure_quiet():
 
     # Inserting value into configuration
     chip.add('source', '../../tests/daily_tests/asic/test_failure/bad.v')
-    chip.add('design', 'bad')
-    chip.set('asic', 'diesize', '0 0 10 10')
-    chip.set('asic',  'coresize', '1 1 9 9')
+    chip.set('design', 'bad')
+    chip.set('asic', 'diearea', [(0, 0), (10, 10)])
+    chip.set('asic',  'corearea', [(1, 1), (9, 9)])
     chip.set('target', 'freepdk45_asicflow')
-    chip.set_jobid()
 
     chip.target()
 

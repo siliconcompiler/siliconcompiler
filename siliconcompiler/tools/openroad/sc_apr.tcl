@@ -125,23 +125,14 @@ if {[dict exists $sc_cfg asic floorplan]} {
 # Read Files
 ###############################
 
-# Triton Hack b/c it can't handle multiple LEFs!!
-# TODO: Fix as soon as triton is merged
-if {$sc_step == "route"} {
-    exec "$sc_refdir/mergeLef.py" --inputLef \
-	$sc_techlef \
-	[dict get $sc_cfg library $sc_mainlib lef] \
-	--outputLef "triton_merged.lef"
-    read_lef "triton_merged.lef"
-} else {
-    #Techlef
-    read_lef  $sc_techlef
-    # Stdcells
-    foreach lib $sc_targetlibs {
+# read techlef
+read_lef  $sc_techlef
+
+# read targetlibs
+foreach lib $sc_targetlibs {
 	read_liberty [dict get $sc_cfg library $lib nldm typical lib]
 	read_lef [dict get $sc_cfg library $lib lef]
-    }
-}
+ }
 
 # Macrolibs
 foreach lib $sc_macrolibs {
@@ -152,7 +143,7 @@ foreach lib $sc_macrolibs {
 }
 
 # Floorplan reads synthesis verilog, others read def
-if {$sc_step == "floorplan" | $sc_step == "synopt"} {
+if {$sc_step == "floorplan"} {
     read_verilog "inputs/$sc_design.v"
     link_design $sc_design
     foreach sdc $sc_constraint {
@@ -183,13 +174,13 @@ set_placement_padding -global \
 source "$sc_refdir/sc_$sc_step.tcl"
 
 ###############################
-# Reporting
-###############################
-
-source "$sc_refdir/sc_metrics.tcl"
-
-###############################
 # Write Design Data
 ###############################
 
 source "$sc_refdir/sc_write.tcl"
+
+###############################
+# Reporting
+###############################
+
+source "$sc_refdir/sc_metrics.tcl"

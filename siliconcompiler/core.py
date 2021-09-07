@@ -2,12 +2,14 @@
 
 import argparse
 import time
+import datetime
 import multiprocessing
 import traceback
 import asyncio
 import subprocess
 import os
 import sys
+import gzip
 import re
 import json
 import logging
@@ -22,34 +24,28 @@ import pandas
 import yaml
 import graphviz
 import pyfiglet
-
+import time
+from timeit import default_timer as timer
 from siliconcompiler.client import *
 from siliconcompiler.schema import *
 from siliconcompiler.schema_utils import *
 
 class Chip:
-    """
-    Core Siliconcompiler Class
+    """Object for configuring and executing hardware design flows.
 
-    This is the main object used to interact with configuration, data, and
-    execution flow for the SiliconCompiler API.
+    This is the main object used for configuration, data, and
+    execution within the SiliconCompiler platform.
 
     Args:
-        design (string): Name of the top level chip design object.
-        loglevel (string): Level of logging for the chip object. Valid
-            levels are "DEBUG", "INFO", "WARNING", "ERROR".
-        defaults (bool)": If True, schema dictionary values are loaded with
-            default values, else they are left as empty lists/None.
+        design (string): Name of the top level chip design module.
 
     Examples:
-        >>> siliconcompiler.Chip(design="top", loglevel="DEBUG")
-        Creates a chip object with name "top" and sets loglevel to "DEBUG".
+        >>> siliconcompiler.Chip(design="top")
+        Creates a chip object with name "top".
     """
 
     ###########################################################################
     def __init__(self, design="root", loglevel="INFO"):
-        """Initializes Chip object
-        """
 
         # Local variables
         self.version = "0.0.1"
@@ -60,6 +56,7 @@ class Chip:
 
         # Setting design variable
         self.cfg['design']['value'] = self.design
+        self.cfg['scversion']['value'] = self.version
         logname = self.design.center(12)
 
         # Initialize logger
@@ -101,21 +98,19 @@ class Chip:
 
     ###########################################################################
     def cmdline(self, progname, description=None, switchlist=[]):
-        """Command line interface method for the SiliconCompiler project.
+        """Creates an SC command line interface.
 
-        The method exposes parameters in the SC schema as command line switches.
-        Exact format for all command line switches can be found in the example
-        and help fields of the schema parameters within the 'schema.py' module.
-        Custom command line apps can be created by restricting the schema
-        parameters exposed at the command line. The priority of command line
-        switch settings is:
+        The method exposes parameters in the SC schema as command line
+        switches. Custom command line apps can be created by restricting
+        the schema parameters exposed at the command line. The priority of
+        command line switch settings is as follows:
 
          1. design
          2. loglevel
          3. mode (asic/fpga)
          4. target
          5. cfg
-         6. (all others)
+         6. all other switches
 
         The cmdline interface is implemented using the Python
         argparse package and the following use restrictions apply.
@@ -126,14 +121,13 @@ class Chip:
         * For parameters with boolean types, the switch implies "true".
         * Special characters (such as '-') must be enclosed in double quotes.
         * Compiler comptaible switces include: -D, -I, -O{0,1,2,3}
-        * Some Vrilog legacy switches: +libext+, +incdir+
+        * Some Verilog legacy switches are supported: +libext+, +incdir+
 
         Args:
             progname (string): Name of program to be exeucted at the command
-                 line. The default program name is 'sc'.
+                 line.
             description (string): Header help function to be displayed
-                 by the command line program. By default a short
-                 description of the main sc program is displayed.
+                 by the command line program.
             switchlist (list): List of SC parameter switches to expose
                  at the command line. By default all SC scema switches
                  are available. The switchlist entries should ommit
@@ -141,7 +135,7 @@ class Chip:
                  use 'source' as the switch.
 
         Examples:
-            >>> cmdline(prog='sc-show', paramlist=['source', 'cfg'])
+            >>> chip.cmdline(prog='sc-show', paramlist=['source', 'cfg'])
             Creates a command line interface called sc-show that takes
             in a source file to display based on the cfg file provided.
 
@@ -355,7 +349,7 @@ class Chip:
 
         The target function supports ASIC as well as FPGA design flows. For
         FPGA flows, the function simply sets the partname to the technology
-        part of the target string. For ASIC flows, the target is used to
+        field of the target string. For ASIC flows, the target is used to
         bundle and simplify the setup of SC schema parameters en masse. Modern
         silicon process PDKs can contain hundreds of files and setup variables.
         Doing this setup once and creating a named target significantly
@@ -377,7 +371,7 @@ class Chip:
         libraries or design methodology settings.
 
         **setup_libs (chip, vendor=None):** Configures the core digital
-        library IP for the process. The vendor argument is used to select
+        library IP for a process. The vendor argument is used to select
         the vendor for foundry nodes that support multiple IP vendors.
         The function works as an abstraction layer for the designer by
         encapsulating all the low level details of the libraries such as
@@ -401,10 +395,10 @@ class Chip:
                 from the technology target module.
 
         Examples:
-            >>> target("freepdk45_asicflow")
+            >>> chip.target("freepdk45_asicflow")
             Loads the 'freepdk45' and 'asicflow' settings.
-            >>> target()
-            Loads target settings based on self.get('target')
+            >>> chip.target()
+            Loads target settings from chip.get('target')
 
         """
 
@@ -458,20 +452,16 @@ class Chip:
     ###########################################################################
     def help(self, *args):
         """
-        Returns a formatted help string based on the key-sequence provided.
+        Returns a formatted help string based on the keypath provided.
 
         Args:
             *args(string): A variable length argument list specifying the
-                key sequence for accessing the cfg nested dictionary.
-                For a complete description of the valid key sequence,
-                see the schema.py module.
+                keypath for accessing the SC parameter schema.
 
         Returns:
             A formatted multi-line help string.
 
         Examples:
-            >>> import siliconcompiler as sc
-            >>> chip = sc.Chip()
             >>> chip.help('asic','diesize')
             Displays help information about the 'asic, diesize' parameter
 
@@ -517,23 +507,18 @@ class Chip:
         return fullstr
 
     ###########################################################################
-    def get(self, *args, chip=None, cfg=None, field='value'):
+    def get(self, *args, cfg=None, field='value'):
         """
-        Returns a Chip dictionary value based on key-sequence provided.
+        Returns a parameter value based on keypath input.
 
-        Accesses to non-existing dictionary entries results in a logger error
-        and in the setting the 'chip.error' flag to 1.  In the case of int and
-        float types, the string value stored in the dictionary are cast
-        to the appropriate type base don the dictionary 'type' field.
-        In the case of boolean values, a string value of "true" returns True,
-        all other values return False.
+        The method searches the SC cfg-schema for the keypath and field
+        provided and returns a paramater value of a type specified by the
+        parameter 'type' field. Accesses to non-existing dictionary entries
+        results in a logger error and in the setting the 'self.error' flag to 1.
 
         Args:
             args(string): A variable length argument list specifying the
-                key sequence for accessing the cfg nested dictionary.
-                For a complete description of the valid key sequence,
-                see the schema.py module.
-            chip(object): A valid Chip object to use for cfg query.
+                keypath for accessing the cfg schema.
             cfg(dict): A dictionary within the Chip object to use for
                 key-sequence query.
             field(string): Leaf cell field to fetch. Examples of
@@ -550,28 +535,26 @@ class Chip:
 
         """
 
-        if chip is None:
-            chip = self
-
         if cfg is None:
-            cfg = chip.cfg
+            cfg = self.cfg
 
         keypath = ','.join(args)
+
         if(field != 'value'):
             fieldstr = "Field = " + field
         else:
             fieldstr = ""
-        chip.logger.debug(f"Reading from [{keypath}]. Field = '{field}'")
 
-        return self._search(chip, cfg, keypath, *args, field=field, mode='get')
+        self.logger.debug(f"Reading from [{keypath}]. Field = '{field}'")
+        return self._search(cfg, keypath, *args, field=field, mode='get')
 
     ###########################################################################
-    def getkeys(self, *args, chip=None, cfg=None):
+    def getkeys(self, *args, cfg=None):
         """
         Returns keys from Chip dictionary based on key-sequence provided.
 
         Accesses to non-existing dictionary entries results in a logger error
-        and in the setting the 'chip.error' flag to 1.
+        and in the setting the 'self.error' flag to 1.
 
         Args:
             args(string): A variable length argument list specifying the
@@ -579,7 +562,6 @@ class Chip:
                 For a complete description of he valid key sequence,
                 see the schema.py module. If the argument list is empty, all
                 dictionary trees are returned as as a list of lists.
-            chip (object): A valid Chip object to use for cfg query.
             cfg (dict): A dictionary within the Chip object to use for
                 key list query.
 
@@ -593,31 +575,28 @@ class Chip:
             Returns all key trees in the dictionary as a list of lists.
         """
 
-        if chip is None:
-            chip = self
-
         if cfg is None:
-            cfg = chip.cfg
+            cfg = self.cfg
 
         if len(list(args)) > 0:
             keypath = ','.join(args[:-1])
-            chip.logger.debug('Getting schema parameter keys for: %s', args)
-            keys = list(self._search(chip, cfg, keypath, *args, mode='getkeys'))
+            self.logger.debug('Getting schema parameter keys for: %s', args)
+            keys = list(self._search(cfg, keypath, *args, mode='getkeys'))
             if 'default' in keys:
                 keys.remove('default')
         else:
             self.logger.debug('Getting all schema parameter keys.')
-            keys = list(self._allkeys(chip, cfg))
+            keys = list(self._allkeys(cfg))
 
         return keys
 
     ###########################################################################
-    def set(self, *args, chip=None, cfg=None, clobber=True):
+    def set(self, *args, cfg=None, clobber=True):
         '''
         Sets a Chip dictionary value based on key-sequence and data provided.
 
         Accesses to non-existing dictionary entries results in a logger
-        error and in the setting the 'chip.error' flag to 1. For built in
+        error and in the setting the 'self.error' flag to 1. For built in
         dictionary keys with the 'default' keywork entry, new leaf trees
         are automatically created by the set method by copying the default
         tree to the tree described by the key-sequence as needed.
@@ -625,7 +604,7 @@ class Chip:
         The data type provided must agree with the dictionary parameter 'type'.
         Before setting the parameter, the data value is type checked.
         Any type descrepancy results in a logger error and in setting the
-        chip.error flag to 1. For descriptions of the legal values for a
+        self.error flag to 1. For descriptions of the legal values for a
         specific parameter, refer to the schema.py documentation. Legal values
         are cast to strings before writing to the dictionary.
 
@@ -634,7 +613,6 @@ class Chip:
                 up a Chip dictionary entry. For a complete description of the
                 valid key lists, see the schema.py module. The key-tree is
                 supplied in order.
-            chip (object): A valid Chip object to use for cfg query.
             cfg (dict): A dictionary within the Chip object to use for
                 key list query.
 
@@ -643,49 +621,42 @@ class Chip:
             Sets the file 'mydesign.v' to the list of sources.
         '''
 
-        if chip is None:
-            chip = self
         if cfg is None:
-            cfg = chip.cfg
+            cfg = self.cfg
 
         # Verify that all keys are strings
         for key in args[:-1]:
             if not isinstance(key,str):
-                chip.logger.error(f"Key [{key}] is not a string [{args}]")
+                self.logger.error(f"Key [{key}] is not a string [{args}]")
 
         keypath = ','.join(args[:-1])
-        chip.logger.debug(f"Setting [{keypath}] to {args[-1]}")
-
         all_args = list(args)
 
-        # Convert val to list if not a list
-        return self._search(chip, cfg, keypath, *all_args, field='value', mode='set', clobber=clobber)
+        self.logger.debug(f"Setting [{keypath}] to {args[-1]}")
+        return self._search(cfg, keypath, *all_args, field='value', mode='set', clobber=clobber)
 
     ###########################################################################
-    def add(self, *args, chip=None, cfg=None):
+    def add(self, *args, cfg=None):
         '''
-        Appends a Chip dictionary value based on key-sequence and data provided.
+        Appends an item to the parameter value specified by the keypath.
 
         Access to non-existing dictionary entries results in a logger error
-        and in the setting the 'chip.error' flag to 1. For built in dictionary
+        and in the setting the 'self.error' flag to 1. For built in dictionary
         keys with the 'default' keywork entry, new leaf trees are automatically
         created by copying the default tree to the tree described by the
         key-sequence as needed.
 
         The data type provided must agree with the dictionary parameter
         'type'. Before setting the parameter, the data value is type
-        checked. Any type descrepancy results in a logger error and in setting
-        the chip.error flag to 1. For descriptions of the legal values for a
-        specific parameter, refer to the schema.py documentation.
+        checked. Any type descrepancy results in a logger error and the
+        self.error flag being raised.
 
         The add operation is not legal for scalar types.
 
         Args:
-            args (string): A variable length key list used to look
-                up a Chip dictionary entry. For a complete description of the
-                valid key lists, see the schema.py module. The key-tree is
-                supplied in order.
-            chip (object): A valid Chip object to use for cfg query.
+            args (string): A variable length argument list consisting of a
+                keypath to a schema parameter followed by the item(s) to add
+                to the parameter value.
             cfg (dict): A dictionary within the Chip object to use for
                 key list query.
 
@@ -694,45 +665,40 @@ class Chip:
             Sets the file 'mydesign.v' to the list of sources.
         '''
 
-        if chip is None:
-            chip = self
         if cfg is None:
-            cfg = chip.cfg
+            cfg = self.cfg
 
         # Verify that all keys are strings
         for key in args[:-1]:
             if not isinstance(key,str):
-                chip.logger.error(f"Key [{key}] is not a string [{args}]")
+                self.logger.error(f"Key [{key}] is not a string [{args}]")
 
         keypath = ','.join(args[:-1])
-
-        chip.logger.debug(f'Appending value {args[-1]} to [{keypath}]')
-
         all_args = list(args)
 
-        return self._search(chip, cfg, keypath, *all_args, field='value', mode='add')
+        self.logger.debug(f'Appending value {args[-1]} to [{keypath}]')
+        return self._search(cfg, keypath, *all_args, field='value', mode='add')
 
     ###########################################################################
-    def _allkeys(self, chip, cfg, keys=None, allkeys=None):
+    def _allkeys(self, cfg, keys=None, keylist=None):
         '''
-        Internal recursive function that returns list of all key-lists for
-        leaf cells in the dictionary defined by schema.py.
+        Returns list of all keypaths in the SC schema.
         '''
 
         if keys is None:
-            allkeys = []
+            keylist = []
             keys = []
         for k in cfg:
             newkeys = keys.copy()
             newkeys.append(k)
             if 'defvalue' in cfg[k]:
-                allkeys.append(newkeys)
+                keylist.append(newkeys)
             else:
-                self._allkeys(chip, cfg[k], keys=newkeys, allkeys=allkeys)
-        return allkeys
+                self._allkeys(cfg[k], keys=newkeys, keylist=keylist)
+        return keylist
 
     ###########################################################################
-    def _search(self, chip, cfg, keypath, *args, field='value', mode='get', clobber=True):
+    def _search(self, cfg, keypath, *args, field='value', mode='get', clobber=True):
         '''
         Internal recursive function that searches a Chip dictionary for a
         match to the combination of *args and fields supplied. The function is
@@ -741,7 +707,6 @@ class Chip:
         Args:
             args (string): A variable length key list used to look
                 up a Chip dictionary entry.
-            chip(object): The Chip object to extend
             cfg(dict): The cfg dictionary within the Chip object to extend
             keypath (string): Concatenated keypath used for error logging.
             field(string): Leaf cell field to fetch. Examples of
@@ -766,8 +731,8 @@ class Chip:
         if (mode in ('set', 'add')) & (len(all_args) == 2):
             # clean error if key not found
             if (not param in cfg) & (not 'default' in cfg):
-                chip.logger.error(f"Keypath [{keypath}] does not exist.")
-                chip.error = 1
+                self.logger.error(f"Set/Add keypath [{keypath}] does not exist.")
+                self.error = 1
             else:
                 # making an 'instance' of default if not found
                 if (not param in cfg) & ('default' in cfg):
@@ -778,11 +743,13 @@ class Chip:
                     cfg[param]['value'] = cfg[param]['defvalue']
                 # checking for illegal fields
                 if not field in cfg[param] and (field != 'value'):
-                    chip.logger.error(f"Field '{field}' for keypath [{keypath}]' is not a valid field.")
-                    chip.error = 1
+                    self.logger.error(f"Field '{field}' for keypath [{keypath}]' is not a valid field.")
+                    self.error = 1
                 # check legality of value
-                if not schema_typecheck(chip, cfg[param], param, val):
-                    chip.error = 1
+                (type_ok,type_error) = self._typecheck(cfg[param], param, val)
+                if not type_ok:
+                    self.logger.error("%s", type_error)
+                    self.error = 1
                 # converting python True/False to lower case string
                 if (cfg[param]['type'] == 'bool' ):
                     if val == True:
@@ -807,30 +774,30 @@ class Chip:
                             else:
                                 cfg[param][field] = val
                         else:
-                            chip.logger.error(f"Illegal list assignment to scalar for [{keypath}]")
-                            chip.error = 1
+                            self.logger.error(f"Assigning list to scalar for [{keypath}]")
+                            self.error = 1
                     else:
-                        chip.logger.info(f"Ignoring set() to [{keypath}], value already set. Use clobber=true to override.")
+                        self.logger.info(f"Ignoring set() to [{keypath}], value already set. Use clobber=true to override.")
                 elif (mode == 'add'):
                     if list_type & (not isinstance(val, list)):
                         cfg[param][field].append(str(val))
                     elif list_type & isinstance(val, list):
                         cfg[param][field].extend(val)
                     else:
-                        chip.logger.error(f"Illegal use of add() for scalar parameter [{keypath}].")
-                        chip.error = 1
+                        self.logger.error(f"Illegal use of add() for scalar parameter [{keypath}].")
+                        self.error = 1
                 return cfg[param][field]
         #get leaf cell (all_args=param)
         elif len(all_args) == 1:
             if not param in cfg:
-                chip.logger.error(f"Keypath [{keypath}] does not exist.")
-                chip.error = 1
+                self.error = 1
+                self.logger.error(f"Get keypath [{keypath}] does not exist.")
             elif mode == 'getkeys':
                 return cfg[param].keys()
             else:
                 if not (field in cfg[param]) and (field!='value'):
-                    chip.logger.error(f"Field '{field}' not found for keypath [{keypath}]")
-                    chip.error = 1
+                    self.error = 1
+                    self.logger.error(f"Field '{field}' not found for keypath [{keypath}]")
                 elif field == 'value':
                     #Select default if no value has been set
                     if field not in cfg[param]:
@@ -881,11 +848,11 @@ class Chip:
             if not param in cfg:
                 cfg[param] = copy.deepcopy(cfg['default'])
             all_args.pop(0)
-            return self._search(chip, cfg[param], keypath, *all_args, field=field, mode=mode, clobber=clobber)
+            return self._search(cfg[param], keypath, *all_args, field=field, mode=mode, clobber=clobber)
 
 
     ###########################################################################
-    def extend(self, filename, chip=None, cfg=None):
+    def extend(self, filename, cfg=None):
         """
         Extends the SC dictionary based on the provided JSON file.
 
@@ -900,19 +867,16 @@ class Chip:
         Args:
             filename (string): A path to the file containing the json
                 dictionary to be processd.
-            chip(object): The Chip object to extend
             cfg(dict): The cfg dictionary within the Chip object to extend
 
         """
 
-        if chip is None:
-            chip = self
         if cfg is None:
-            cfg = chip.cfg
+            cfg = self.cfg
 
         abspath = os.path.abspath(filename)
 
-        chip.logger.info('Extending SC schema with file %s', abspath)
+        self.logger.info('Extending SC schema with file %s', abspath)
 
         with open(abspath, 'r') as f:
             localcfg = json.load(f)
@@ -938,24 +902,20 @@ class Chip:
         return chip
 
     ###########################################################################
-    def prune(self, cfg, chip=None, top=True):
+    def prune(self, cfg, top=True):
         '''
         Recursive function that takes a copy of the Chip dictionary and
         then removes all sub trees with non-set values and sub-trees
         that contain a 'default' key.
 
 
-        Returns the prunted dictionary
+        Returns the pruned dictionary
 
         '''
 
-        # enables pruning objects from other objects (hierarchy)
-        if chip is None:
-            chip = self
-
         # create a local copy of dict
         if top:
-            localcfg = copy.deepcopy(chip.cfg)
+            localcfg = copy.deepcopy(cfg)
         else:
             localcfg = cfg
 
@@ -963,13 +923,12 @@ class Chip:
         maxdepth = 10
         i = 0
 
-
         #Prune when the default & value are set to the following
         empty = ("null",None,[])
 
-        #When at top of tree loop maxdepth times to make sure all stale
-        #branches have been removed, not elegant, but stupid-simple
-        #"good enough"
+        # When at top of tree loop maxdepth times to make sure all stale
+        # branches have been removed, not elegant, but stupid-simple
+        # "good enough"
         while i < maxdepth:
             #Loop through all keys starting at the top
             for k in list(localcfg.keys()):
@@ -994,7 +953,7 @@ class Chip:
                     localcfg.pop(k)
                 #keep traversing tree
                 else:
-                    self.prune(cfg=localcfg[k], chip=chip, top=False)
+                    self.prune(cfg=localcfg[k], top=False)
             if top:
                 i += 1
             else:
@@ -1122,7 +1081,7 @@ class Chip:
         return localcfg
 
     ###########################################################################
-    def check(self, step=None, chip=None, cfg=None):
+    def check(self, step, index, mode='static', cfg=None):
         '''
         Performs a setup validity check and returns success status.
 
@@ -1135,47 +1094,60 @@ class Chip:
            Returns True of the Chip dictionary checks out.
         '''
 
-        if chip is None:
-            chip = self
         if cfg is None:
-            cfg = chip.cfg
+            cfg = self.cfg
 
-        if step ==None:
-            chip.logger.debug("Running pre-run check.")
-        else:
-            chip.logger.debug("Running check() for step '%s'", step)
-
-        # Checking
-
-        # Checking global requirements specified in schema.py
-        emptylist = ("null",None,[])
+        #1. Checking that flowgraph is legal
+        if not self.getkeys('flowgraph'):
+            self.error = 1
+            self.logger.error(f"No flowgraph defined.")
+        legal_steps = self.getkeys('flowgraph')
+        legal_steps.append('source')
+        for item in self.getkeys('flowgraph'):
+            for step_in in self.get('flowgraph', item, 'input'):
+                if step_in not in legal_steps:
+                    self.error = 1
+                    self.logger.error(f"Input '{item}' is not a legal step.")
+        #2. Check requirements list
+        emptylist = ("null", None, [])
         allkeys = self.getkeys()
         for key in allkeys:
             keypath = ",".join(key)
             if 'default' not in key:
-                requirement = self.get(*key, chip=chip, cfg=cfg, field='requirement')
-                value = self.get(*key, chip=chip, cfg=cfg)
-                defvalue = self.get(*key, chip=chip, cfg=cfg, field='defvalue')
+                requirement = self.get(*key, cfg=cfg, field='requirement')
+                value = self.get(*key, cfg=cfg)
+                defvalue = self.get(*key, cfg=cfg, field='defvalue')
                 value_empty = (defvalue in emptylist) & (value in emptylist)
                 if value_empty & (str(requirement) == 'all'):
-                    chip.error = 1
-                    chip.logger.error(f"Global requirement missing for [{keypath}].")
+                    self.error = 1
+                    self.logger.error(f"Global requirement missing for [{keypath}].")
                 elif value_empty & (str(requirement) == self.get('mode')):
-                    chip.error = 1
-                    chip.logger.error(f"Mode requirement missing for [{keypath}].")
+                    self.error = 1
+                    self.logger.error(f"Mode requirement missing for [{keypath}].")
+        #3. Check per tool parameter requirements
+        tool = self.get('flowgraph', step, 'tool')
 
-        # Checking flowgraph setup
+        if 'req' in  self.getkeys('eda', tool, step, index):
+            all_required = self.get('eda', tool, step, index, 'req')
+            for item in all_required:
+                keypath = item.split(',')
+                if not self.get(*keypath):
+                    self.error = 1
+                    self.logger.error(f"Value empty for [{keypath}].")
+        #4. Check that input files exist
+        if mode=='dynamic':
+            #2. Check per step input requirements
+            all_inputs = self.get('eda', tool, step, index, 'input')
+            for item in all_inputs:
+                infile = f"inputs/{item}"
+                if not os.path.isfile(infile):
+                    self.error = 1
+                    self.logger.error(f"Required input '{infile}' is missing.")
 
-        # Checking setup of each tool
-
-        # Checking mode based settings
-
-        # Runtime check of inputs being ready
-
-        return chip.error
+        return self.error
 
     ###########################################################################
-    def readcfg(self, filename, merge=True, chip=None, cfg=None):
+    def readcfg(self, filename, merge=True, cfg=None):
         """
         Reads a json or yaml formatted file into the Chip dictionary.
 
@@ -1188,13 +1160,11 @@ class Chip:
             Loads the file mychip.json into the current Chip dictionary.
         """
 
-        if chip is None:
-            chip = self
         if cfg is None:
-            cfg = chip.cfg
+            cfg = self.cfg
 
         abspath = os.path.abspath(filename)
-        chip.logger.debug('Reading configuration file %s', abspath)
+        self.logger.debug('Reading configuration file %s', abspath)
 
         #Read arguments from file based on file type
         if abspath.endswith('.json'):
@@ -1206,8 +1176,8 @@ class Chip:
                 localcfg = yaml.load(f, Loader=yaml.SafeLoader)
             f.close()
         else:
-            chip.error = 1
-            chip.logger.error('Illegal file format. Only json/yaml supported. %s', abspath)
+            self.error = 1
+            self.logger.error('Illegal file format. Only json/yaml supported. %s', abspath)
 
 
         #Merging arguments with the Chip configuration
@@ -1217,7 +1187,7 @@ class Chip:
         return localcfg
 
     ###########################################################################
-    def writecfg(self, filename, chip=None, cfg=None, prune=True, abspath=False):
+    def writecfg(self, filename, cfg=None, prune=True, abspath=False):
         '''Writes out Chip dictionary in json, yaml, or TCL file format.
 
         Args:
@@ -1238,10 +1208,8 @@ class Chip:
             Dumps the complete current Chip dictionary into bigdump.json
         '''
 
-        if chip is None:
-            chip = self
         if cfg is None:
-            cfg = chip.cfg
+            cfg = self.cfg
 
         filepath = os.path.abspath(filename)
         self.logger.debug('Writing configuration to file %s', filepath)
@@ -1250,7 +1218,7 @@ class Chip:
             os.makedirs(os.path.dirname(filepath))
 
         if prune:
-            chip.logger.debug('Pruning dictionary before writing file %s', filepath)
+            self.logger.debug('Pruning dictionary before writing file %s', filepath)
             cfgcopy = self.prune(cfg)
         else:
             cfgcopy = copy.deepcopy(cfg)
@@ -1306,7 +1274,7 @@ class Chip:
 
 
     ########################################################################
-    def collect(self, chip=None, outdir='output'):
+    def collect(self, cfg=None, outdir='output'):
         '''
         Collects files found in the configuration dictionary and places
         them in 'dir'. The function only copies in files that have the 'copy'
@@ -1323,19 +1291,20 @@ class Chip:
            dir (filepath): Destination directory
 
         '''
-
-        if chip is None:
-            chip = self
+        if cfg is None:
+            cfg = self.cfg
 
         if not os.path.exists(outdir):
             os.makedirs(outdir)
-        allkeys = self.getkeys(chip=chip)
-        copyall = self.get('copyall', chip=chip)
+
+        #copy all parameter take from self dictionary
+        copyall = self.get('copyall')
+        allkeys = self.getkeys(cfg=cfg)
         for key in allkeys:
-            leaftype = self.get(*key, field='type', chip=chip)
+            leaftype = self.get(*key, cfg=cfg, field='type')
             if leaftype == 'file':
-                copy = self.get(*key, field='copy', chip=chip)
-                value = self.get(*key, field='value', chip=chip)
+                copy = self.get(*key, cfg=cfg, field='copy')
+                value = self.get(*key, cfg=cfg, field='value')
                 if copyall | (copy == 'true'):
                     if not isinstance(value, list):
                         value = [value]
@@ -1345,7 +1314,7 @@ class Chip:
                             shutil.copy(filepath, outdir)
 
     ###########################################################################
-    def hash(self, chip=None, cfg=None):
+    def hash(self, cfg=None):
         '''Computes sha256 hash of files based on hashmode set in cfg dict.
 
         Valid hashing modes:
@@ -1358,20 +1327,18 @@ class Chip:
 
         '''
 
-        if chip is None:
-            chip = self
         if cfg is None:
-            cfg = chip.cfg
+            cfg = self.cfg
 
         hashmode = self.get('hashmode')
         self.logger.info('Computing file hashes with hashmode=%s', hashmode)
 
-        allkeys = self.getkeys(chip=chip, cfg=cfg)
+        allkeys = self.getkeys(cfg=cfg)
 
         for keylist in allkeys:
             if 'filehash' in keylist:
-                filelist = self.get(*keylist, chip=chip, cfg=cfg)
-                self.set([keylist,[]], chip=chip, cfg=cfg, clobber=True)
+                filelist = self.get(*keylist, cfg=cfg)
+                self.set([keylist,[]], cfg=cfg, clobber=True)
                 hashlist = []
                 for item in filelist:
                     filename = schema_path(item)
@@ -1383,7 +1350,7 @@ class Chip:
                                 sha256_hash.update(byte_block)
                         hash_value = sha256_hash.hexdigest()
                         hashlist.append(hash_value)
-                self.set([keylist,hashlist], chip=chip, cfg=cfg, clobber=True)
+                self.set([keylist,hashlist], cfg=cfg, clobber=True)
 
     ###########################################################################
     def audit(self, filename=None):
@@ -1547,43 +1514,20 @@ class Chip:
             print(df.to_string())
             print("-"*135)
 
-
     ###########################################################################
-    def flowgraph_outputs(self, step, chip=None, cfg=None):
+    def getsteps(self, cfg=None):
         '''
         Returns an ordered list based on the flowgraph
         '''
 
-        if chip is None:
-            chip = self
-
         if cfg is None:
-            cfg = chip.cfg
-
-        outputs = []
-        for item in self.getkeys('flowgraph'):
-            if step in self.get('flowgraph', 'input', item, chip=chip, cfg=cfg):
-                outputs.append(item)
-
-        return outputs
-
-    ###########################################################################
-    def getsteps(self, chip=None, cfg=None):
-        '''
-        Returns an ordered list based on the flowgraph
-        '''
-
-        if chip is None:
-            chip = self
-
-        if cfg is None:
-            cfg = chip.cfg
+            cfg = self.cfg
 
         #Get length of paths from step to root
         depth = {}
-        for step in self.getkeys('flowgraph', chip=chip, cfg=cfg):
+        for step in self.getkeys('flowgraph', cfg=cfg):
             depth[step] = 0
-            for path in self._allpaths(chip, cfg, step):
+            for path in self._allpaths(cfg, step):
                 if len(list(path)) > depth[step]:
                     depth[step] = len(path)
 
@@ -1592,18 +1536,18 @@ class Chip:
         return list(sorted_dict.keys())
 
     ###########################################################################
-    def _allpaths(self, chip, cfg, node, path=None, allpaths=None):
+    def _allpaths(self, cfg, node, path=None, allpaths=None):
 
         if path is None:
             allpaths = []
             path = []
-        if 'source' in self.get('flowgraph', node, 'input', chip=chip, cfg=cfg):
+        if 'source' in self.get('flowgraph', node, 'input', cfg=cfg):
             allpaths.append(path)
         else:
-            for nextnode in self.get('flowgraph', node, 'input', chip=chip, cfg=cfg):
+            for nextnode in self.get('flowgraph', node, 'input', cfg=cfg):
                 newpath = path.copy()
                 newpath.append(nextnode)
-                return self._allpaths(chip, cfg, nextnode, path=newpath, allpaths=allpaths)
+                return self._allpaths(cfg, nextnode, path=newpath, allpaths=allpaths)
         return list(allpaths)
 
     ###########################################################################
@@ -1715,6 +1659,9 @@ class Chip:
             # Short sleep
             time.sleep(0.1)
 
+        # Starting Date/Time
+        start = time.time()
+
         # Build directory
         stepdir = "/".join([self.get('dir'),
                             self.get('design'),
@@ -1746,7 +1693,6 @@ class Chip:
                     cfgfile = f"../{input_step}{input_index}/outputs/{design}.pkg.json"
                     if os.path.isfile(cfgfile):
                         self.cfg = self.readcfg(cfgfile)
-
 
         #Checking that there were no errors in previous steps
         halt = 0
@@ -1812,34 +1758,9 @@ class Chip:
             self.logger.error(f"Pre-processing failed for '{tool}' in step '{step}'")
             self._haltstep(step, index, error, active)
 
-        # Construct command line
-        logfile = exe + ".log"
-        options = self.get('eda', tool, step, index, 'option', 'cmdline')
-
-
-        cmdlist = [exe]
-        cmdlist.extend(options)
-
-        if self.get('eda', tool, step, index, 'script'):
-            scripts = []
-            for value in self.get('eda', tool, step, index, 'script'):
-                abspath = schema_path(value)
-                scripts.append(abspath)
-            cmdlist.extend(scripts)
-
-        if self.get('quiet') & (step not in self.get('bkpt')):
-            cmdlist.append(" &> " + logfile)
-        else:
-            # the weird construct at the end ensures that this invocation returns the
-            # exit code of the command itself, rather than tee
-            # (source: https://stackoverflow.com/a/18295541)
-            cmdlist.append(" 2>&1 | tee " + logfile + " ; (exit ${PIPESTATUS[0]} )")
-
-        # Create rerun command
+        # Create a run commmand
+        cmdlist = self._makecmd(tool, step, index)
         cmdstr = ' '.join(cmdlist)
-        with open('run.sh', 'w') as f:
-            print('#!/bin/bash\n', cmdstr, file=f)
-        os.chmod("run.sh", 0o755)
 
         # Save config files required by EDA tools
         self.set('arg', 'step', step, clobber=True)
@@ -1855,8 +1776,8 @@ class Chip:
             self.set('metric', step, index, metric, 'real', 0)
 
         # Final check() before run
-        if self.check(step=step):
-            self.logger.error("Step check() for '%s' failed, exiting! See previous errors.", step)
+        if self.check(step,index, mode='dynamic'):
+            self.logger.error(f"Fatal error in check() of '{step}'! See previous errors.")
             self._haltstep(step, index, error, active)
 
         # Run executable
@@ -1864,7 +1785,8 @@ class Chip:
         self.logger.info('%s', cmdstr)
         cmd_error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
         if cmd_error.returncode != 0:
-            self.logger.error('Command failed. See log file %s', os.path.abspath(logfile))
+            self.logger.warning('Command failed. See log file %s', os.path.abspath(cmdlist[-1]))
+            self._haltstep(step, index, error, active)
             # Override exit code if set
             if not self.get('eda', tool, step, index, 'continue'):
                 self._haltstep(step, index, error, active)
@@ -1882,13 +1804,24 @@ class Chip:
             self.logger.error(f"Post-processing failed for '{tool}' in step '{step}'")
             self._haltstep(step, index, error, active)
 
-        # Check for errors
+        # Check for non exception post_error
         if post_error:
             self.logger.error('Post-processing check failed for step %s', step)
             self._haltstep(step, index, error, active)
 
-        # save a successful manifest with error = 0
+        # clean run completed
         self.set('flowstatus', step, str(index), 'error', 0)
+        end = time.time()
+        elapsed_time = end - start
+        self.set('metric',step,index,'runtime', 'real', round(elapsed_time,2))
+
+
+        # record runstep provenance data
+        start_date = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
+        end_date = datetime.datetime.fromtimestamp(end).strftime('%Y-%m-%d %H:%M:%S')
+        self._makerecord(step, index, start_date, end_date)
+
+        # save a successful manifest
         self.writecfg("outputs/" + self.get('design') +'.pkg.json')
 
         # return fo original directory
@@ -1900,6 +1833,7 @@ class Chip:
 
     ###########################################################################
     def _haltstep(self, step, index, error, active):
+        self.logger.error(f"Halting step '{step}' index '{index}' due to errors.")
         active[step + str(index)] = 0
         sys.exit(1)
 
@@ -1930,6 +1864,11 @@ class Chip:
         else:
             steplist = self.getsteps()
 
+        # Hash all files before run
+        if self.hash():
+            self.logger.error('File hashing failed, exiting')
+            sys.exit(1)
+
         # Remote workflow: Dispatch the Chip to a remote server for processing.
         if self.get('remote', 'addr'):
             # Pre-process: Run an 'import' stage locally, and upload the
@@ -1953,7 +1892,6 @@ class Chip:
             # Use a shared even for errors
             # Use a manager.dict for keeping track of active processes
             # (one unqiue dict entry per process),
-
             # Set up tools and processes
             for step in self.getkeys('flowgraph'):
                 for index in range(self.get('flowgraph', step, 'nproc')):
@@ -1974,31 +1912,18 @@ class Chip:
                             setup_tool(self, step, str(index))
                         except:
                             traceback.print_exc()
-                            self.logger.error(f"Tool setup failed for '{tool}' in step '{step}'")
+                            self.logger.error(f"Setup failed for '{tool}' in step '{step}'")
                             self.error = 1
+                        #run check for step, index
+                        self.check(step,str(index),mode='static')
                     else:
                         error[stepstr] = 0
                         active[stepstr] = 0
-
-            # Check tool setup before run
-            if self.hash():
-                self.logger.error('File hashing failed, exiting')
-                sys.exit(1)
-
-            # Check tool setup before run
-            if self.check():
-                self.logger.error('Global check() failed, exiting! See previous errors.')
-                sys.exit(1)
-
-            if self.get('checkonly'):
-                self.logger.info("Exiting after check() (checkonly=True)")
-                sys.exit()
 
             # Implement auto-update of jobincrement
             dirname = self.get('dir')
             design = self.get('design')
             jobname = self.get('jobname')
-
             try:
                 alljobs = os.listdir(dirname + "/" + design)
                 if self.get('jobincr'):
@@ -2014,6 +1939,16 @@ class Chip:
             if self.get('remote', 'key'):
                 # Decrypt the job's data for processing.
                 client_decrypt(self)
+
+            # Check if there were errors before proceeding with run
+            if self.error:
+                self.logger.error(f"Check failed. See previous errors.")
+                sys.exit()
+
+            # Enable checkonly mode
+            if self.get('checkonly'):
+                self.logger.info("Exiting after static check(), checkonly=True")
+                sys.exit()
 
             # Create all processes
             processes = []
@@ -2035,6 +1970,7 @@ class Chip:
                 for index in range(self.get('flowgraph', step, 'nproc')):
                     stepstr = step + str(index)
                     index_error = index_error & error[stepstr]
+                halt = halt + index_error
             if halt:
                 self.logger.error('Run() failed, exiting! See previous errors.')
                 sys.exit(1)
@@ -2055,54 +1991,215 @@ class Chip:
         self.set('flowstatus',laststep,'select',0)
 
     ###########################################################################
-    def show(self, filename, kind=None):
+    def show(self, filename):
         '''
-        Displays the filename using the appropriate program. Only files
-        taken from a valid SC directory path is supported.
+        Opens a graphical viewer for the filename provided.
 
-        filename=def,gds,json,etc
-        kind=used when there are multiple kinds of data inside like
-        metricss, hiearchym flowgraph
-        step is taken from args, which is when file was written!
+        The show function opens the filename specified using a viewer tool
+        selected based on the file suffix and the 'showtool' schema setup.
+        The 'showtool' parameter binds tools with file suffixes, enabling the
+        automated dynamic loading of tool setup functions from
+        siliconcompiler.tools.<tool>/tool_setup.py. Display settings and
+        technology settings for viewing the file are read read from the
+        in-memory chip object schema settings. All temporary render and
+        display files are saved in the <build_dir>/_show directory.
+
+        The show() command can also be used to display content from an SC
+        schema .json filename provided. In this case, the SC schema is
+        converted to html and displayed as a 'dashboard' in the browser.
+
+        Filenames with .gz and .zip extensions are automatically expanded
+        before being displayed.
+
+        Args:
+            filename: Name of file to display
+
+        Examples:
+            >>> show('myfile.def')
+            Opens up the def file with a viewer assigneed by 'showtool'
+            >>> show('myrun.json')
+            Displays SC schema in browser
         '''
 
         self.logger.info("Showing file %s", filename)
-        filext = os.path.splitext(filename)[1].lower()
+
+        # Parsing filepaths
+        filepath = os.path.abspath(filename)
+        basename = os.path.basename(filepath)
+        localfile = basename.replace(".gz","")
+        filetype = os.path.splitext(localfile)[1].lower().replace(".","")
+
+        #Check that file exists
+        if not os.path.isfile(filepath):
+            self.logger.error(f"Invalid filepath {filepath}.")
+            return 1
+
+        # Opening file from temp directory
+        cwd = os.getcwd()
+        showdir = self.get('dir') + "/_show"
+        os.makedirs(showdir, exist_ok=True)
+        os.chdir(showdir)
+
+        # Uncompress file if necessary
+        if os.path.splitext(filepath)[1].lower() == ".gz":
+            with gzip.open(filepath, 'rb') as f_in:
+                with open(localfile, 'wb') as f_out:
+                    shutil.copyfileobj(f_in, f_out)
+        else:
+            shutil.copy(filepath, localfile)
 
         #Figure out which tool to use for opening data
-        if filename.endswith(".json"):
-            if kind is None:
-                self.logger.error("No 'kind' argument supplied for json file.")
-            elif kind == "flowgraph":
-                pass
-            elif kind == "metric":
-                pass
-            elif kind == "hier":
-                pass
-        elif filext in ('.def', '.gds', '.gbr', '.brd'):
-            #exrtract step from filename
-            #error if trying to show file frmo out of tree
-
-            #load settings for showtool
-            showtool = self.get('flowgraph', step, 'showtool')
-            searchdir = "siliconcompiler.tools." + showtool
-            modulename = '.'+showtool+'_setup'
+        if filetype == 'json':
+            localcfg = self.readcfg(localfile)
+            # bokeh serve selection_histogram.py
+            #
+            #2. Render metrics per index per step
+            #3. Sphinx like tree of all settings with links to files
+            #4. Resolution of all ENV_VARS for files
+            pass
+        elif filetype in self.getkeys('showtool'):
+            # Using env variable and manifest to pass arguments
+            os.environ['SC_FILENAME'] = localfile
+            self.writecfg("sc_manifest.tcl", abspath=True)
+            self.writecfg("sc_manifest.json", abspath=True)
+            # Setting up tool
+            tool = self.get('showtool', filetype)
+            step = 'show'+filetype
+            index = "0"
+            searchdir = "siliconcompiler.tools." + tool
+            modulename = '.'+tool+'_setup'
             module = importlib.import_module(modulename, package=searchdir)
             setup_tool = getattr(module, "setup_tool")
-            setup_tool(self, 'show')
-
-            # construct command string
-            cmdlist = [self.get('eda', showtool, 'show', 'exe')]
-            cmdlist.extend(self.get('eda', showtool, 'show', 'option'))
-
-            if 'script' in self.getkeys('eda', showtool, 'show'):
-                for value in self.get('eda', showtool, 'show', 'script'):
-                    abspath = schema_path(value)
-                    cmdlist.extend([abspath])
-            if self.get('quiet'):
-                cmdlist.append("> /dev/null")
+            setup_tool(self, step, index, mode='show')
+            # Running command
+            cmdlist = self._makecmd(tool, step, index)
             cmdstr = ' '.join(cmdlist)
-            subprocess.run(cmdstr, shell=True, executable='/bin/bash', check=True)
+            cmd_error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
+        else:
+            self.logger.error("Filetype '{filetype}' not set up in 'showtool' parameter.")
+
+        # Returning to original directory
+        os.chdir(cwd)
+        return 0
+
+    ############################################################################
+    # Chip helper Functions
+    ############################################################################
+    def _typecheck(self, cfg, leafkey, value):
+        ''' Schema type checking
+        '''
+        ok = True
+        valuetype = type(value)
+        errormsg = ""
+        if (not re.match(r'\[',cfg['type'])) & (valuetype==list):
+            errormsg = "Value must be scalar."
+            ok = False
+            # Iterate over list
+        else:
+            # Create list for iteration
+            if valuetype == list:
+                valuelist = value
+            else:
+                valuelist = [value]
+                # Make type python compatible
+            cfgtype = re.sub(r'[\[\]]', '', cfg['type'])
+            for item in valuelist:
+                valuetype =  type(item)
+                if (cfgtype != valuetype.__name__):
+                    tupletype = re.match(r'\([\w\,]+\)',cfgtype)
+                    #TODO: check tuples!
+                    if tupletype:
+                        pass
+                    elif cfgtype == 'bool':
+                        if not item in ['true', 'false']:
+                            errormsg = "Valid boolean values are True/False/'true'/'false'"
+                            ok = False
+                    elif cfgtype == 'file':
+                        pass
+                    elif cfgtype == 'dir':
+                        pass
+                    elif (cfgtype == 'float'):
+                        try:
+                            float(item)
+                        except:
+                            errormsg = "Type mismatch. Cannot cast item to float."
+                            ok = False
+                    elif (cfgtype == 'int'):
+                        try:
+                            int(item)
+                        except:
+                            errormsg = "Type mismatch. Cannot cast item to int."
+                            ok = False
+                    else:
+                        errormsg = "Type mismach."
+                        ok = False
+
+        # Logger message
+        if type(value) == list:
+            printvalue = ','.join(map(str, value))
+        else:
+            printvalue = str(value)
+        errormsg = (errormsg +
+                    " Key=" + str(leafkey) +
+                    ", Expected Type=" + cfg['type'] +
+                    ", Entered Type=" + valuetype.__name__ +
+                    ", Value=" + printvalue)
+
+
+        return (ok, errormsg)
+    #######################################
+    def _makecmd(self, tool, step, index):
+        '''
+        Constructs a subprocess run command based on eda tool setup.
+        Creates a replay.sh command in current directory.
+        '''
+
+        exe = self.get('eda', tool, step, index, 'exe')
+        options = self.get('eda', tool, step, index, 'option', 'cmdline')
+        scripts = []
+        for value in self.get('eda', tool, step, index, 'script'):
+            abspath = schema_path(value)
+            scripts.append(abspath)
+
+        cmdlist = [exe]
+        logfile = exe + ".log"
+        cmdlist.extend(options)
+        cmdlist.extend(scripts)
+        if self.get('quiet') & (step not in self.get('bkpt')):
+            cmdlist.extend([" &> ",logfile])
+        else:
+            # the weird construct at the end ensures that this invocation returns the
+            # exit code of the command itself, rather than tee
+            # (source: https://stackoverflow.com/a/18295541)
+            cmdlist.extend([" 2>&1 | tee ",logfile," ; (exit ${PIPESTATUS[0]} )"])
+
+        #create replay file
+        with open('replay.sh', 'w') as f:
+            print('#!/bin/bash\n', ' '.join(cmdlist), file=f)
+        os.chmod("replay.sh", 0o755)
+
+        return cmdlist
+
+    #######################################
+    def _makerecord(self, step, index, start, end):
+        '''
+        Records provenance details for a runstep.
+        '''
+        for key in self.getkeys('record', 'default', 'default'):
+            if key == 'starttime':
+                self.set('record', step, index,'starttime', start)
+            elif key == 'endtime':
+                self.set('record', step, index, 'endtime', end)
+            elif key == 'input':
+                #TODO
+                pass
+            elif key == 'hash':
+                #TODO
+                pass
+            elif self.get(key):
+                self.set('record', step, index, key, self.get(key))
+            else:
+                self.logger.debug(f"Record ignored for {key}, parameter not set up")
 
 ################################################################################
 # Annoying helper classes
