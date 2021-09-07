@@ -137,8 +137,6 @@ def setup_libs(chip, vendor=None):
     chip.add('library', libname, 'nldm', corner, 'lib',
              libdir+'/lib/sky130_fd_sc_hd__tt_025C_1v80.lib')
 
-    chip.add('library', libname, 'nldm', corner, 'lib_synth',
-             libdir+'/lib/sky130_fd_sc_hd__tt_025C_1v80_synth.lib')
     # lef
     chip.add('library', libname, 'lef',
              libdir+'/lef/sky130_fd_sc_hd_merged.lef')
