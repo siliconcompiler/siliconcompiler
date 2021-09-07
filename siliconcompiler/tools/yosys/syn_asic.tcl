@@ -18,11 +18,7 @@ if {$sc_process eq "skywater130"} {
     set library_file [dict get $sc_cfg library $sc_mainlib nldm typical lib]
 }
 
-if {[dict exists $sc_cfg asic macrolib]} {
-    set sc_macrolibs [dict get $sc_cfg asic macrolib]
-} else {
-    set sc_macrolibs  ""
-}
+set sc_macrolibs [dict get $sc_cfg asic macrolib]
 
 # Read macro library files, and gather argument list to pass into stat later
 # on (for area estimation).
