@@ -16,16 +16,22 @@ def setup_tool(chip, step, index):
     the dictionary settings.
     '''
 
-    # Standard Setup
+    # If the 'lock' bit is set, don't reconfigure.
     tool = 'verilator'
+    if (chip.get('eda', tool, step, index, 'exe')) and \
+       (chip.cfg['eda'][tool][step][index]['lock'] != 'false'):
+        chip.logger.warning('Tool already configured: ' + tool)
+        return
+
+    # Standard Setup
     chip.set('eda', tool, step, index, 'exe', 'verilator', clobber=False)
     chip.set('eda', tool, step, index, 'vswitch', '--version', clobber=False)
     chip.set('eda', tool, step, index, 'version', '4.211', clobber=False)
     chip.set('eda', tool, step, index, 'vendor', 'verilator', clobber=False)
     chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=False)
 
-    # Options driven on a per step basis (use 'set' with clobber on first call!)
-    chip.set('eda', tool, step, index, 'option', 'cmdline', '-sv', clobber=True)
+    # Options driven on a per step basis (use 'set' on first call!)
+    chip.set('eda', tool, step, index, 'option', 'cmdline', '-sv', clobber=False)
 
     # Differentiate between import step and compilation
     if step in ['import', 'lint']:
@@ -56,6 +62,9 @@ def setup_tool(chip, step, index):
     #Make warnings non-fatal in relaxed mode
     if chip.get('relax'):
         chip.add('eda', tool, step, index, 'option', 'cmdline', '-Wno-fatal')
+
+    # Set the 'lock' bit for this field.
+    chip.cfg['eda'][tool][step][index]['lock'] = 'true'
 
 ################################
 # Post_process (post executable)
