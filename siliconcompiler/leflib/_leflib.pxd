@@ -67,10 +67,10 @@ ctypedef int (*lefrLayerCbkFnType) (lefrCallbackType_e,
                                   # lefiSite* l, 
                                   # lefiUserData);
  
-# # A declaration of the signature of all callbacks that return a lefiMacro. 
-# ctypedef int (*lefrMacroCbkFnType) (lefrCallbackType_e, 
-                                   # lefiMacro* l, 
-                                   # lefiUserData);
+# A declaration of the signature of all callbacks that return a lefiMacro. 
+ctypedef int (*lefrMacroCbkFnType) (lefrCallbackType_e, 
+                                   lefiMacro* l, 
+                                   lefiUserData);
  
 # # A declaration of the signature of all callbacks that return a lefiPin. 
 # ctypedef int (*lefrPinCbkFnType) (lefrCallbackType_e, 
@@ -171,7 +171,7 @@ cdef extern from "lefrReader.hpp":
     # void lefrSetPinCbk(lefrPinCbkFnType)
     # void lefrSetObstructionCbk(lefrObstructionCbkFnType)
     # void lefrSetArrayCbk(lefrArrayCbkFnType)
-    # void lefrSetMacroCbk(lefrMacroCbkFnType)
+    void lefrSetMacroCbk(lefrMacroCbkFnType)
     # void lefrSetLibraryEndCbk(lefrVoidCbkFnType)
     
     # void lefrSetTimingCbk(lefrTimingCbkFnType)
@@ -296,6 +296,7 @@ cdef extern from "lefrReader.hpp":
         int hasXYOffset()
         int hasWidth()
         int hasArea()
+        int hasDirection()
 
         char* name()
         const char* type()
@@ -308,6 +309,14 @@ cdef extern from "lefrReader.hpp":
         double offsetY()
         double width()
         double area()
+        const char* direction()
+
+    cdef cppclass lefiMacro:
+        int hasSize()
+
+        const char* name()
+        double sizeX()
+        double sizeY()
 
     cdef cppclass lefiDensity:
         int numLayer()

@@ -1,7 +1,7 @@
 # These imports let us use libc file I/O to communicate with C++ lef library
 from libc.stdio cimport fopen, fclose
 
-from cython.operator import dereference
+from cython.operator import dereference as deref
 
 cimport _leflib
 
@@ -17,7 +17,7 @@ cdef int units_cb(lefrCallbackType_e t, lefiUnits* unitsptr, lefiUserData data):
     if 'units' not in _data:
         _data['units'] = {}
     
-    cdef lefiUnits units = dereference(unitsptr)
+    cdef lefiUnits units = deref(unitsptr)
     if units.hasDatabase():
         _data['units']['database'] = units.databaseNumber()
     if units.hasCapacitance():
@@ -47,7 +47,7 @@ cdef int layer_cb(lefrCallbackType_e cb_type, lefiLayer* layer_ptr, void* data):
     if 'layers' not in _data:
         _data['layers'] = {}
 
-    cdef lefiLayer layer = dereference(layer_ptr)
+    cdef lefiLayer layer = deref(layer_ptr)
     name = layer.name().decode('ascii')
     _data['layers'][name] = {}
     
@@ -65,6 +65,27 @@ cdef int layer_cb(lefrCallbackType_e cb_type, lefiLayer* layer_ptr, void* data):
         _data['layers'][name]['width'] = layer.width()
     if layer.hasArea():
         _data['layers'][name]['area'] = layer.area()
+    if layer.hasDirection():
+        _data['layers'][name]['direction'] = layer.direction()
+
+    return 0
+
+cdef int macro_cb(lefrCallbackType_e cb_type, lefiMacro* m, void* data):
+    # TODO: for some reason assigning deref(m) with a cdef results in double
+    # free() error, so we have to just call functions directly on deref'd one.
+
+    global _data
+    if 'macros' not in _data:
+        _data['macros'] = {}
+
+    name = deref(m).name().decode('ascii')
+    _data['macros'][name] = {}
+   
+    if deref(m).hasSize():
+        _data['macros'][name]['size'] = {
+            'width': deref(m).sizeX(),
+            'height': deref(m).sizeY()
+        }
 
     return 0
 
@@ -78,6 +99,7 @@ def parse(path):
     lefrSetUnitsCbk(units_cb)
     lefrSetVersionCbk(version_cb)
     lefrSetLayerCbk(layer_cb)
+    lefrSetMacroCbk(macro_cb)
 
     # Use this to pass path to C++ functions
     path_bytes = path.encode('ascii')
