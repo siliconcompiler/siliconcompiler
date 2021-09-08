@@ -746,10 +746,11 @@ class Chip:
                     self.logger.error(f"Field '{field}' for keypath [{keypath}]' is not a valid field.")
                     self.error = 1
                 # check legality of value
-                (type_ok,type_error) = self._typecheck(cfg[param], param, val)
-                if not type_ok:
-                    self.logger.error("%s", type_error)
-                    self.error = 1
+                if field == 'value':
+                    (type_ok,type_error) = self._typecheck(cfg[param], param, val)
+                    if not type_ok:
+                        self.logger.error("%s", type_error)
+                        self.error = 1
                 # converting python True/False to lower case string
                 if (cfg[param]['type'] == 'bool' ):
                     if val == True:
@@ -762,7 +763,9 @@ class Chip:
                 else:
                     selval =  cfg[param]['value']
                 # updating values
-                if (mode == 'set'):
+                if cfg[param]['lock'] == "true":
+                    self.logger.debug("Ignoring {mode}{} to [{keypath}]. Lock bit is set.")
+                elif (mode == 'set'):
                     if (selval in empty) | clobber:
                         if (not list_type) & (not isinstance(val, list)):
                             cfg[param][field] = str(val)
@@ -1711,6 +1714,7 @@ class Chip:
         # Starting Date/Time
         start = time.time()
 
+
         # Build directory
         stepdir = "/".join([self.get('dir'),
                             self.get('design'),
@@ -1808,6 +1812,7 @@ class Chip:
             self._haltstep(step, index, error, active)
 
         # Save config files required by EDA tools
+        # (for tools and slurm)
         self.set('arg', 'step', step, clobber=True)
         self.set('arg', 'index', index, clobber=True)
 
@@ -1906,7 +1911,11 @@ class Chip:
         '''
 
         # Run steps if set, otherwise run whole graph
-        if self.get('steplist'):
+        print(json.dumps(self.cfg, indent=4, sort_keys=True))
+
+        if self.get('arg', 'step'):
+            steplist = [self.get('arg', 'step')]
+        elif self.get('steplist'):
             steplist = self.get('steplist')
         else:
             steplist = self.getsteps()
@@ -1940,32 +1949,32 @@ class Chip:
             # Use a manager.dict for keeping track of active processes
             # (one unqiue dict entry per process),
             # Set up tools and processes
-            for step in self.getkeys('flowgraph'):
-                for index in self.getkeys('flowgraph', step):
+            for step in steplist:
+                if self.get('arg', 'index'):
+                    indexlist = [self.get('arg', 'index')]
+                else:
+                    indexlist = self.getkeys('flowgraph', step)
+                for index in indexlist:
                     self.set('flowstatus', step, str(index), 'error', 1)
                     stepstr = step + index
-                    if step in steplist:
-                        #setting step to active
-                        active[stepstr] = 1
-                        error[stepstr] = 1
-                        # Load module (could fail)
-                        try:
-                            tool = self.get('flowgraph', step, index, 'tool')
-                            searchdir = "siliconcompiler.tools." + tool
-                            modulename = '.'+tool+'_setup'
-                            self.logger.info(f"Setting up tool '{tool}' in step '{step}'")
-                            module = importlib.import_module(modulename, package=searchdir)
-                            setup_tool = getattr(module, "setup_tool")
-                            setup_tool(self, step, index)
-                        except:
-                            traceback.print_exc()
-                            self.logger.error(f"Setup failed for '{tool}' in step '{step}'")
-                            self.error = 1
-                        #run check for step, index
-                        self.check(step, index, mode='static')
-                    else:
-                        error[stepstr] = 0
-                        active[stepstr] = 0
+                    #setting step to active
+                    active[stepstr] = 1
+                    error[stepstr] = 1
+                    # Load module (could fail)
+                    try:
+                        tool = self.get('flowgraph', step, index, 'tool')
+                        searchdir = "siliconcompiler.tools." + tool
+                        modulename = '.'+tool+'_setup'
+                        self.logger.info(f"Setting up tool '{tool}' in step '{step}'")
+                        module = importlib.import_module(modulename, package=searchdir)
+                        setup_tool = getattr(module, "setup_tool")
+                        setup_tool(self, step, index)
+                    except:
+                        traceback.print_exc()
+                        self.logger.error(f"Setup failed for '{tool}' in step '{step}'")
+                        self.error = 1
+                    #run check for step, index
+                    self.check(step, index, mode='static')
 
             # Implement auto-update of jobincrement
             dirname = self.get('dir')
@@ -2000,7 +2009,11 @@ class Chip:
             # Create all processes
             processes = []
             for step in steplist:
-                for index in self.getkeys('flowgraph', step):
+                if self.get('arg', 'index'):
+                    indexlist = [self.get('arg', 'index')]
+                else:
+                    indexlist = self.getkeys('flowgraph', step)
+                for index in indexlist:
                     processes.append(multiprocessing.Process(target=self._runstep,
                                                              args=(step, index, active, error,)))
             # Start all processes
@@ -2012,9 +2025,13 @@ class Chip:
 
             # Make a clean exit if one of the steps failed
             halt = 0
-            for step in self.getkeys('flowgraph'):
+            for step in steplist:
                 index_error = 1
-                for index in self.getkeys('flowgraph', step):
+                if self.get('arg', 'index'):
+                    indexlist = [self.get('arg', 'index')]
+                else:
+                    indexlist = self.getkeys('flowgraph', step)
+                for index in indexlist:
                     stepstr = step + index
                     index_error = index_error & error[stepstr]
                 halt = halt + index_error
