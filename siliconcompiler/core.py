@@ -722,11 +722,6 @@ class Chip:
         val = all_args[-1]
         empty = [None, 'null', [], 'false']
 
-        # Return early if setting a value to 'None'. The reason for this is that
-        # str(None) == 'None', not None. So when we call .add or .set with None
-        # as a value, it gets saved in the dictionary as a string, causing bugs.
-        if (mode in ('set', 'add')) and (val is None):
-            return
         #set/add leaf cell (all_args=(param,val))
         if (mode in ('set', 'add')) & (len(all_args) == 2):
             # clean error if key not found
@@ -767,7 +762,9 @@ class Chip:
                     self.logger.debug("Ignoring {mode}{} to [{keypath}]. Lock bit is set.")
                 elif (mode == 'set'):
                     if (selval in empty) | clobber:
-                        if (not list_type) & (not isinstance(val, list)):
+                        if (not list_type) & (val is None):
+                            cfg[param][field] = None
+                        elif (not list_type) & (not isinstance(val, list)):
                             cfg[param][field] = str(val)
                         elif list_type & (not isinstance(val, list)):
                             cfg[param][field] = [str(val)]
@@ -1132,11 +1129,11 @@ class Chip:
                 key_empty = self._keypath_empty(key, cfg)
                 requirement = self.get(*key, cfg=cfg, field='requirement')
                 if key_empty and (str(requirement) == 'all'):
-                    chip.error = 1
-                    chip.logger.error(f"Global requirement missing for [{keypath}].")
+                    self.error = 1
+                    self.logger.error(f"Global requirement missing for [{keypath}].")
                 elif key_empty and (str(requirement) == self.get('mode')):
-                    chip.error = 1
-                    chip.logger.error(f"Mode requirement missing for [{keypath}].")
+                    self.error = 1
+                    self.logger.error(f"Mode requirement missing for [{keypath}].")
         #3. Check per tool parameter requirements
         tool = self.get('flowgraph', step, index, 'tool')
         if 'req' in  self.getkeys('eda', tool, step, index):
@@ -1144,16 +1141,16 @@ class Chip:
             for item in all_required:
                 keypath = item.split(',')
                 if self._keypath_empty(keypath, cfg):
-                    chip.error = 1
-                    chip.logger.error(f"Value empty for [{keypath}].")
+                    self.error = 1
+                    self.logger.error(f"Value empty for [{keypath}].")
 
         if self._keypath_empty(['eda', tool, step, index, 'exe'], cfg):
-            chip.error = 1
-            chip.logger.error(f'Executable not specified for tool {tool} used in flowgraph step {step}')
+            self.error = 1
+            self.logger.error(f'Executable not specified for tool {tool} used in flowgraph step {step}')
 
         if self._keypath_empty(['eda', tool, step, index, 'version'], cfg):
-            chip.error = 1
-            chip.logger.error(f'Version not specified for tool {tool} used in flowgraph step {step}')
+            self.error = 1
+            self.logger.error(f'Version not specified for tool {tool} used in flowgraph step {step}')
 
         #4. Check that input files exist
         if mode=='dynamic':
@@ -1850,8 +1847,9 @@ class Chip:
             searchdir = "siliconcompiler.tools." + tool
             modulename = '.'+tool+'_setup'
             module = importlib.import_module(modulename, package=searchdir)
-            post_process = getattr(module, "post_process")
-            post_error = post_process(self, step, index)
+            if hasattr(module, "post_process"):
+                post_process = getattr(module, "post_process")
+                post_error = post_process(self, step, index)
         except:
             traceback.print_exc()
             self.logger.error(f"Post-processing failed for '{tool}' in step '{step}'")
@@ -1873,8 +1871,13 @@ class Chip:
         end_date = datetime.datetime.fromtimestamp(end).strftime('%Y-%m-%d %H:%M:%S')
         self._makerecord(step, index, start_date, end_date)
 
-        # save a successful manifest
+        # save a successful manifest (minus local args)
+        self.set('arg', 'step', None, clobber=True)
+        self.set('arg', 'index', None, clobber=True)
+        #print("HELLO", self.get('arg', 'index'))
+        #print("ERROR", self.error)
         self.writecfg("outputs/" + self.get('design') +'.pkg.json')
+        #print(json.dumps(self.cfg, indent=4, sort_keys=True))
 
         # return fo original directory
         os.chdir(cwd)
@@ -1947,32 +1950,38 @@ class Chip:
             # Use a manager.dict for keeping track of active processes
             # (one unqiue dict entry per process),
             # Set up tools and processes
-            for step in steplist:
-                if self.get('arg', 'index'):
-                    indexlist = [self.get('arg', 'index')]
-                else:
-                    indexlist = self.getkeys('flowgraph', step)
-                for index in indexlist:
+            for step in self.getkeys('flowgraph'):
+                for index in self.getkeys('flowgraph', step):
                     self.set('flowstatus', step, str(index), 'error', 1)
                     stepstr = step + index
-                    #setting step to active
-                    active[stepstr] = 1
-                    error[stepstr] = 1
-                    # Load module (could fail)
-                    try:
-                        tool = self.get('flowgraph', step, index, 'tool')
-                        searchdir = "siliconcompiler.tools." + tool
-                        modulename = '.'+tool+'_setup'
-                        self.logger.info(f"Setting up tool '{tool}' in step '{step}'")
-                        module = importlib.import_module(modulename, package=searchdir)
-                        setup_tool = getattr(module, "setup_tool")
-                        setup_tool(self, step, index)
-                    except:
-                        traceback.print_exc()
-                        self.logger.error(f"Setup failed for '{tool}' in step '{step}'")
-                        self.error = 1
-                    #run check for step, index
-                    self.check(step, index, mode='static')
+                    if self.get('arg', 'index'):
+                        indexlist = [self.get('arg', 'index')]
+                    else:
+                        indexlist = self.getkeys('flowgraph', step)
+                    if (step in steplist) & (index in indexlist):
+
+                        #setting step to active
+                        active[stepstr] = 1
+                        error[stepstr] = 1
+                        # Load module (could fail)
+                        try:
+                            tool = self.get('flowgraph', step, index, 'tool')
+                            searchdir = "siliconcompiler.tools." + tool
+                            modulename = '.'+tool+'_setup'
+                            self.logger.info(f"Setting up tool '{tool}' in step '{step}'")
+                            module = importlib.import_module(modulename, package=searchdir)
+                            setup_tool = getattr(module, "setup_tool")
+                            setup_tool(self, step, index)
+                        except:
+                            traceback.print_exc()
+                            self.logger.error(f"Setup failed for '{tool}' in step '{step}'")
+                            self.error = 1
+                        #run check for step, index
+                        self.check(step, index, mode='static')
+
+                    else:
+                        active[stepstr] = 0
+                        error[stepstr] = 0
 
             # Implement auto-update of jobincrement
             dirname = self.get('dir')
@@ -2192,7 +2201,7 @@ class Chip:
                         except:
                             errormsg = "Type mismatch. Cannot cast item to int."
                             ok = False
-                    else:
+                    elif item is not None:
                         errormsg = "Type mismach."
                         ok = False
 
