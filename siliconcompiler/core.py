@@ -590,7 +590,7 @@ class Chip:
         return keys
 
     ###########################################################################
-    def set(self, *args, cfg=None, clobber=True):
+    def set(self, *args, cfg=None, clobber=True, field='value'):
         '''
         Sets a Chip dictionary value based on key-sequence and data provided.
 
@@ -632,7 +632,7 @@ class Chip:
         all_args = list(args)
 
         self.logger.debug(f"Setting [{keypath}] to {args[-1]}")
-        return self._search(cfg, keypath, *all_args, field='value', mode='set', clobber=clobber)
+        return self._search(cfg, keypath, *all_args, field=field, mode='set', clobber=clobber)
 
     ###########################################################################
     def add(self, *args, cfg=None):

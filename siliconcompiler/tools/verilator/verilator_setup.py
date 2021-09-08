@@ -18,7 +18,7 @@ def setup_tool(chip, step, index):
 
     # If the 'lock' bit is set, don't reconfigure.
     tool = 'verilator'
-    configured = chip.get('eda', tool, step, index, field='lock')
+    configured = chip.get('eda', tool, step, index, 'exe', field='lock')
     if configured and (configured != 'false'):
         chip.logger.warning('Tool already configured: ' + tool)
         return
@@ -64,7 +64,8 @@ def setup_tool(chip, step, index):
         chip.add('eda', tool, step, index, 'option', 'cmdline', '-Wno-fatal')
 
     # Set the 'lock' bit for this field.
-    chip.cfg['eda'][tool][step][str(index)]['lock'] = 'true'
+    #chip.cfg['eda'][tool][step][str(index)]['exe']['lock'] = 'true'
+    chip.set('eda', tool, step, index, 'exe', 'true', field='lock')
 
 ################################
 # Post_process (post executable)
