@@ -1911,8 +1911,6 @@ class Chip:
         '''
 
         # Run steps if set, otherwise run whole graph
-        print(json.dumps(self.cfg, indent=4, sort_keys=True))
-
         if self.get('arg', 'step'):
             steplist = [self.get('arg', 'step')]
         elif self.get('steplist'):
