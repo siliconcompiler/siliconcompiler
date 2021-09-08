@@ -194,7 +194,7 @@ cdef extern from "lefrReader.hpp":
     # void lefrSetAntennaInoutCbk(lefrDoubleCbkFnType)
     # void lefrSetAntennaOutputCbk(lefrDoubleCbkFnType)
     # void lefrSetClearanceMeasureCbk(lefrStringCbkFnType)
-    # void lefrSetManufacturingCbk(lefrDoubleCbkFnType)
+    void lefrSetManufacturingCbk(lefrDoubleCbkFnType)
     # void lefrSetUseMinSpacingCbk(lefrUseMinSpacingCbkFnType)
     # void lefrSetMacroClassTypeCbk(lefrStringCbkFnType)
     # void lefrSetMacroOriginCbk(lefrMacroNumCbkFnType)

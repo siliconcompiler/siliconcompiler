@@ -13,7 +13,15 @@ cimport _leflib
 # class, but probably no need for the additional complexity.
 _data = {}
 
+cdef int double_cb(lefrCallbackType_e cb_type, double value, lefiUserData data):
+    global _data
+    if cb_type == lefrManufacturingCbkType:
+        _data['manufacturinggrid'] = value
+    elif cb_type == lefrVersionCbkType:
+        _data['version'] = value
+
 cdef int units_cb(lefrCallbackType_e t, lefiUnits* unitsptr, lefiUserData data):
+    global _data
     if 'units' not in _data:
         _data['units'] = {}
     
@@ -35,11 +43,6 @@ cdef int units_cb(lefrCallbackType_e t, lefiUnits* unitsptr, lefiUserData data):
     if units.hasFrequency():
         _data['units']['frequency'] = units.frequency()
 
-    return 0
-
-cdef int version_cb(lefrCallbackType_e type, double number, void* data):
-    global _data
-    _data['version'] = number
     return 0
 
 cdef int layer_cb(lefrCallbackType_e cb_type, lefiLayer* layer_ptr, void* data):
@@ -66,7 +69,7 @@ cdef int layer_cb(lefrCallbackType_e cb_type, lefiLayer* layer_ptr, void* data):
     if layer.hasArea():
         _data['layers'][name]['area'] = layer.area()
     if layer.hasDirection():
-        _data['layers'][name]['direction'] = layer.direction()
+        _data['layers'][name]['direction'] = layer.direction().decode()
 
     return 0
 
@@ -97,9 +100,10 @@ def parse(path):
         return None
 
     lefrSetUnitsCbk(units_cb)
-    lefrSetVersionCbk(version_cb)
+    lefrSetVersionCbk(double_cb)
     lefrSetLayerCbk(layer_cb)
     lefrSetMacroCbk(macro_cb)
+    lefrSetManufacturingCbk(double_cb)
 
     # Use this to pass path to C++ functions
     path_bytes = path.encode('ascii')
