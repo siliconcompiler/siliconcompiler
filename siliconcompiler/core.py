@@ -1662,6 +1662,46 @@ class Chip:
         # Starting Date/Time
         start = time.time()
 
+        # If the job is configured to run on a cluster, collect the schema
+        # and send it to a compute node in a munge-encrypted 'srun' command.
+        if self.get('cluster') == 'slurm':
+            # Generate the config dictionary to pack into the 'srun' command.
+            # In order to mitigate some character length limits, we drop
+            # some bookkeeping keys such as 'help' and 'short_help'.
+            '''
+            def prune_cfg(d):
+                for k in d.keys():
+                    if type(d[k]) == dict:
+                        for key in ['switch', 'example', 'help', 'short_help']:
+                            if key in d[k]:
+                                d[k].pop(key)
+                        prune_cfg(d[k])
+            prune_cfg(self.cfg)
+            # Escape strings for placing in `bash -c "... echo '[cfg]' ..."`.
+            cfg_str = json.dumps(self.cfg).replace("'", "\\'").replace('"', '\\"')
+            '''
+
+            # Create an 'srun' command.
+            jobdir = "/".join([self.get('dir'),
+                               self.get('design'),
+                               self.get('jobname') + str(self.get('jobid'))])
+            self.writecfg(f"{jobdir}/{step}{index}.json")
+            run_cmd = 'srun --constraint="SHARED" bash -c "'
+            #run_cmd += f"echo '{cfg_str}' > {self.get('dir')}/config.json ; "
+            #run_cmd += f"sc -cfg {self.get('dir')}/config.json"
+            run_cmd += f"sc -cfg {jobdir}/{step}{index}.json -steplist {step}"
+            run_cmd += '"'
+
+            # Run the 'srun' command.
+            subprocess.run(run_cmd, shell = True)
+
+            # Clear active/error bits and return after the 'srun' command.
+            error[step + str(index)] = 0
+            active[step + str(index)] = 0
+            return
+
+        # If the job is configured to run on the local machine, run the step.
+
         # Build directory
         stepdir = "/".join([self.get('dir'),
                             self.get('design'),
@@ -1727,10 +1767,7 @@ class Chip:
         exe = self.get('eda', tool, step, index, 'exe')
         veropt =self.get('eda', tool, step, index, 'vswitch')
         if veropt!=None:
-            # Ensure that the tool is installed on the local machine or cluster.
-            cmdstr = f'{exe} {veropt}'
-            if self.get('cluster') == 'slurm':
-                cmdstr = f'srun {cmdstr}'
+            cmdstr = f'{exe} {veropt} > {exe}.log'
             self.logger.debug("Checking version of '%s' tool in step '%s'.", tool, step)
             exepath = subprocess.run(cmdstr, shell=True)
             if exepath.returncode > 0:
@@ -1740,7 +1777,7 @@ class Chip:
             self.logger.info("Skipping version checking of '%s' tool in step '%s'.", tool, step)
 
         # Exe version logic
-        # TODO: add check for version string in exepath.stdout
+        # TODO: add check
 
         #Copy Reference Scripts
         if self.get('eda', tool, step, index, 'copy'):
@@ -1764,10 +1801,6 @@ class Chip:
         # Create a run commmand
         cmdlist = self._makecmd(tool, step, index)
         cmdstr = ' '.join(cmdlist)
-        # For clustered runs, run within 'bash -c' due to >|& etc characters.
-        if self.get('cluster') == 'slurm':
-            esc_cmdstr = cmdstr.replace('"', '\\"')
-            cmdstr = f'srun bash -c "{esc_cmdstr}"'
 
         # Save config files required by EDA tools
         self.set('arg', 'step', step, clobber=True)
