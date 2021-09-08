@@ -1,4 +1,4 @@
-ASIC Workflow
+ASIC compilation
 =======================
 
 .. image:: _images/asicflow.png
@@ -298,7 +298,7 @@ Based on the results, it looks like we have a viable design, but twe still haven
 
 If things worked out, you should see something like the image below pop-up. In this tutorual we conigured SC to use klayout for gds viewing.
 
-.. image:: _images/kalyout_workflow.png
+.. image:: _images/klayout_display.png
 
 
 Extra Credit
