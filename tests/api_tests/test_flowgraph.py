@@ -2,6 +2,7 @@
 import sys
 import siliconcompiler
 import re
+import os
 
 if __name__ != "__main__":
     from tests.fixtures import test_wrapper
@@ -68,7 +69,8 @@ def test_flowgraph():
             chip.add('flowgraph', step, str(0), 'input', 'route_minimum', '0')
             chip.set('flowgraph', step, str(0), 'tool', tools[step])
         elif re.search(r'minimum', step):
-            chip.set('flowgraph', step, str(0), 'mergeop', 'minimum')
+            chip.set('flowgraph', step, str(0), 'tool', 'builtin')
+            chip.set('flowgraph', step, str(0), 'function', 'minimum')
             for index in range(N):
                 chip.add('flowgraph', step, str(0), 'input', flow[i-1], str(index))
         else:
@@ -103,7 +105,8 @@ def test_flowgraph():
                 chip.set('flowgraph', step, str(index), 'tool', tools[step])
                 chip.add('flowgraph', step, str(index), 'input', 'syn', str(index))
         elif step == 'apr_minimum':
-            chip.set('flowgraph', step, str(0), 'mergeop', 'min')
+            chip.set('flowgraph', step, str(0), 'tool', 'builtin')
+            chip.set('flowgraph', step, str(0), 'function', 'minimum')
             for index in range(N):
                 chip.add('flowgraph', step, str(0), 'input', 'apr', str(index))
         elif step == 'export':
@@ -111,6 +114,11 @@ def test_flowgraph():
             chip.add('flowgraph', step, str(0), 'input', 'apr_minimum', str(0))
 
     chip.writegraph('pipes.png')
+
+    # basic compile to end check
+    os.path.isfile('pipes.png')
+    os.path.isfile('forkjoin.png')
+    os.path.isfile('serial.png')
 
 #########################
 if __name__ == "__main__":
