@@ -1688,10 +1688,13 @@ class Chip:
 
             # Get the prior step to use as an input. TODO: For now, use the same
             # 'last available config file' choice as the merge logic further down.
+            job_dir = "/".join([self.get('dir'),
+                                self.get('design'),
+                                self.get('jobname') + str(self.get('jobid'))])
             in_cfg = None
             for input_step in self.get('flowgraph', step, 'input'):
                 for input_index in range(self.get('flowgraph', input_step, 'nproc')):
-                    cfgfile = f"../{input_step}{input_index}/outputs/{self.get('design')}.pkg.json"
+                    cfgfile = f"{job_dir}/{input_step}{input_index}/outputs/{self.get('design')}.pkg.json"
                     if os.path.isfile(cfgfile):
                         in_cfg = cfgfile
 
