@@ -1667,25 +1667,6 @@ class Chip:
         # (Run the initial 'import' stages without srun)
         if (self.get('cluster') == 'slurm') and \
            (not 'source' in self.get('flowgraph', step, 'input')):
-            # Generate the config dictionary to pack into the 'srun' command.
-            # In order to mitigate some character length limits, we drop
-            # some bookkeeping keys such as 'help' and 'short_help'.
-            '''
-            def prune_cfg(d):
-                for k in d.keys():
-                    if type(d[k]) == dict:
-                        for key in ['switch', 'example', 'help', 'short_help']:
-                            if key in d[k]:
-                                d[k].pop(key)
-                        prune_cfg(d[k])
-            prune_cfg(self.cfg)
-            # Escape strings for placing in `bash -c "... echo '[cfg]' ..."`.
-            cfg_str = json.dumps(self.cfg).replace("'", "\\'").replace('"', '\\"')
-            '''
-
-            # Modify the schema so that the 'srun sc' command will run locally.
-            #self.set('cluster', 'local', clobber=True)
-
             # Get the prior step to use as an input. TODO: For now, use the same
             # 'last available config file' choice as the merge logic further down.
             job_dir = "/".join([self.get('dir'),
@@ -1700,9 +1681,6 @@ class Chip:
 
             # Create an 'srun' command.
             run_cmd = 'srun --constraint="SHARED" bash -c "'
-            #run_cmd += f"echo '{cfg_str}' > {self.get('dir')}/config.json ; "
-            #run_cmd += f"sc -cfg {self.get('dir')}/config.json"
-            #run_cmd += f"sc -cfg {jobdir}/{step}{index}.json -steplist {step}"
             run_cmd += f"sc -cfg {in_cfg} -steplist {step}"
             run_cmd += '"'
 
