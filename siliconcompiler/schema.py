@@ -1636,7 +1636,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'switch': "-eda_exe 'tool step index <str>'",
         'type': 'str',
         'lock': 'false',
-        'requirement': 'all',
+        'requirement': None,
         'defvalue': None,
         'short_help': 'Executable Name',
         'example': [
@@ -1689,7 +1689,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'switch': "-eda_version 'tool step index <str>'",
         'type': 'str',
         'lock': 'false',
-        'requirement': 'all',
+        'requirement': None,
         'defvalue': None,
         'short_help': 'Executable Version',
         'example': [
