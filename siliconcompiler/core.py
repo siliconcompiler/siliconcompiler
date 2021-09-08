@@ -1788,10 +1788,6 @@ class Chip:
             self.logger.error(f"Pre-processing failed for '{tool}' in step '{step}'")
             self._haltstep(step, index, error, active)
 
-        # Create a run commmand
-        cmdlist = self._makecmd(tool, step, index)
-        cmdstr = ' '.join(cmdlist)
-
         # Save config files required by EDA tools
         self.set('arg', 'step', step, clobber=True)
         self.set('arg', 'index', index, clobber=True)
@@ -1811,6 +1807,9 @@ class Chip:
             self._haltstep(step, index, error, active)
 
         # Run executable
+        # TODO: Make it possible to skip this command
+        cmdlist = self._makecmd(tool, step, index)
+        cmdstr = ' '.join(cmdlist)
         self.logger.info("Running %s in %s", step, stepdir)
         self.logger.info('%s', cmdstr)
         cmd_error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
@@ -1844,7 +1843,6 @@ class Chip:
         end = time.time()
         elapsed_time = end - start
         self.set('metric',step,index,'runtime', 'real', round(elapsed_time,2))
-
 
         # record runstep provenance data
         start_date = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
