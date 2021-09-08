@@ -1457,23 +1457,6 @@ def schema_flowgraph(cfg, step='default', index='default'):
         """
     }
 
-    # Flow input merging
-    cfg['flowgraph'][step][index]['mergeop'] = {
-        'switch': "-flowgraph_mergeop 'step 0 <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'requirement': None,
-        'defvalue': [],
-        'short_help': 'Flowgraph Merge Operation',
-        'example': [
-            "cli: -flowgraph_mergeop 'cts 0 min'",
-            "api:  chip.set('flowgraph','cts','mergeop','0', 'min')"],
-        'help': """
-        Function to use when merging data from multiple inputs. Valid
-        options are 'or' and 'min'.
-        """
-    }
-
     # Flow graph score weights
     cfg['flowgraph'][step][index]['weight'] = {}
     cfg['flowgraph'][step][index]['weight']['default'] = {
@@ -1505,7 +1488,59 @@ def schema_flowgraph(cfg, step='default', index='default'):
                     "api: chip.set('flowgraph','place','tool','openroad')"],
         'help': """
         Name of the EDA tool to use for a specific step in the exeecution flow
-        graph.
+        graph. The name 'builtin' is reserved for built-in SC operations.
+        """
+    }
+
+    # Function to execute within tool module
+    cfg['flowgraph'][step][index]['function'] = {
+        'switch': "-flowgraph_function 'step index <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': [],
+        'short_help': 'Flowgraph function selection',
+        'example': [
+            "cli: -flowgraph_function 'cts 0 min'",
+            "api:  chip.set('flowgraph','cts','function','0', 'min')"],
+        'help': """
+        Function to use during runstep. The function is used in place
+        of the 'exe' parameter within the 'eda' schema. If the tool
+        is 'builtin', then the core API operations min, max, assert,
+        join can be accessed.
+        """
+    }
+
+    # Arguments passed by user to function
+    cfg['flowgraph'][step][index]['args'] = {
+        'switch': "-flowgraph_args 'step 0 <str>'",
+        'type': '[str]',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': [],
+        'short_help': 'Flowgraph function selection',
+        'example': [
+            "cli: -flowgraph_args 'cts 0 0'",
+            "api:  chip.add('flowgraph','cts',','0','args', '0')"],
+        'help': """
+        Arguments to pass to tool step.
+        """
+    }
+
+    # Valid bits set by user
+    cfg['flowgraph'][step][index]['valid'] = {
+        'switch': "-flowgraph_valid 'step 0 <str>'",
+        'type': 'bool',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': [],
+        'short_help': 'Flowgraph step/index valid bit',
+        'example': [
+            "cli: -flowgraph_valid 'cts 0 true'",
+            "api:  chip.add('flowgraph','cts',','0','valid', True)"],
+        'help': """
+        Defines the step/index as a valid/invalid runstep. The parameter
+        is used to control flow execution.
         """
     }
 
