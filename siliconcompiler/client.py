@@ -47,7 +47,8 @@ def remote_preprocess(chip):
 
     for step in local_steps:
         #setting step to active
-        tool = chip.get('flowgraph', step, 'tool')
+        index = "0"
+        tool = chip.get('flowgraph', step, index, 'tool')
         searchdir = "siliconcompiler.tools." + tool
         modulename = '.'+tool+'_setup'
         chip.logger.info(f"Setting up tool '{tool}' for remote '{step}' step")
