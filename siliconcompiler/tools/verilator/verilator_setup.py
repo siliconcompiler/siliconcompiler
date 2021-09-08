@@ -24,8 +24,8 @@ def setup_tool(chip, step, index):
     chip.set('eda', tool, step, index, 'vendor', 'verilator', clobber=False)
     chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=False)
 
-    # Options driven on a per step basis (use 'set' on first call!)
-    chip.set('eda', tool, step, index, 'option', 'cmdline', '-sv', clobber=False)
+    # Options driven on a per step basis (use 'set' with clobber on first call!)
+    chip.set('eda', tool, step, index, 'option', 'cmdline', '-sv', clobber=True)
 
     # Differentiate between import step and compilation
     if step in ['import', 'lint']:
