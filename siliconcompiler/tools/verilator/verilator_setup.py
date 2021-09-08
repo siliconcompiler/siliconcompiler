@@ -16,8 +16,14 @@ def setup_tool(chip, step, index):
     the dictionary settings.
     '''
 
-    # Standard Setup
+    # If the 'lock' bit is set, don't reconfigure.
     tool = 'verilator'
+    configured = chip.get('eda', tool, step, index, 'exe', field='lock')
+    if configured and (configured != 'false'):
+        chip.logger.warning('Tool already configured: ' + tool)
+        return
+
+    # Standard Setup
     chip.set('eda', tool, step, index, 'exe', 'verilator', clobber=False)
     chip.set('eda', tool, step, index, 'vswitch', '--version', clobber=False)
     chip.set('eda', tool, step, index, 'version', '4.211', clobber=False)
@@ -56,6 +62,9 @@ def setup_tool(chip, step, index):
     #Make warnings non-fatal in relaxed mode
     if chip.get('relax'):
         chip.add('eda', tool, step, index, 'option', 'cmdline', '-Wno-fatal')
+
+    # Set the 'lock' bit for this tool.
+    chip.set('eda', tool, step, index, 'exe', 'true', field='lock')
 
 ################################
 # Post_process (post executable)

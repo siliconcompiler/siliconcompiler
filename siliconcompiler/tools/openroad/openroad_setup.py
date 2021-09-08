@@ -53,6 +53,12 @@ def setup_tool(chip, step, index, mode='batch'):
     tool = 'openroad'
     refdir = 'siliconcompiler/tools/openroad'
 
+    # If the 'lock' bit is set, don't reconfigure.
+    configured = chip.get('eda', tool, step, index, 'exe', field='lock')
+    if configured and (configured != 'false'):
+        chip.logger.warning('Tool already configured: ' + tool)
+        return
+
     if mode == 'show':
         clobber = True
         script = '/sc_display.tcl'
@@ -126,6 +132,9 @@ def setup_tool(chip, step, index, mode='batch'):
             chip.logger.error('Missing option %s for OpenROAD.', option)
         else:
             chip.set('eda', tool, step, index, 'option', option, default_options[option], clobber=clobber)
+
+    # Set the 'lock' bit for this tool.
+    chip.set('eda', tool, step, index, 'exe', 'true', field='lock')
 
 
 ################################
