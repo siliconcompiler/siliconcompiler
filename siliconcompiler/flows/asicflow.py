@@ -5,7 +5,7 @@ import siliconcompiler
 ####################################################
 # Flowgraph Setup
 ####################################################
-def setup_flow(chip, process):
+def setup_flow(chip, process, N=1):
     '''
     This is a standard open source ASIC flow. The flow supports SystemVerilog,
     VHDL, and mixed SystemVerilog/VHDL flows. The asic flow is a linera
@@ -78,13 +78,10 @@ def setup_flow(chip, process):
     if process == 'skywater130':
         flowpipe += verification_steps
 
-
     # Flow setup
-    N = 1
     index = '0'
 
-    for i in range(len(flowpipe)):
-        step = flowpipe[i]
+    for i, step in enumerate(flowpipe):
 
         # Tool
         chip.set('flowgraph', step, index, 'tool', tools[step])
@@ -99,12 +96,13 @@ def setup_flow(chip, process):
         chip.set('flowgraph', step, index, 'weight',  'standbypower', 1.0)
 
         # Goals
+        chip.set('metric', step, index, 'drv', 'errors', 0)
+        #chip.set('metric', step, index, 'drv', 'warnings', 0)
         chip.set('metric', step, index, 'drv', 'goal', 0.0)
         chip.set('metric', step, index, 'holdwns', 'goal', 0.0)
         chip.set('metric', step, index, 'holdtns', 'goal', 0.0)
         chip.set('metric', step, index, 'setupwns', 'goal', 0.0)
         chip.set('metric', step, index, 'setuptns', 'goal', 0.0)
-
 
     # Set the steplist which can run remotely (if required)
     chip.set('remote', 'steplist', flowpipe[1:])
@@ -112,7 +110,6 @@ def setup_flow(chip, process):
     # Showtool definitions
     chip.set('showtool', 'def', 'openroad')
     chip.set('showtool', 'gds', 'klayout')
-
 
 ##################################################
 if __name__ == "__main__":
