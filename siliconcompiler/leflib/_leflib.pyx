@@ -1,74 +1,7 @@
 # These imports let us use libc file I/O to communicate with C++ lef library
-from libc.stdio cimport FILE, fopen, fclose
+from libc.stdio cimport fopen, fclose
 
-ctypedef int (*lefrDoubleCbkFnType)(lefrCallbackType_e typ, double number, void* data)
-
-# Must "forward declare" everything we reference from lefrReader.hpp here
-cdef extern from "lefrReader.hpp":
-    int lefrInit()
-    int lefrRead()
-    int lefrRead (FILE *file, const char *fileName, void* userData)
-    void lefrSetVersionCbk(lefrDoubleCbkFnType cbk)
-    ctypedef enum lefrCallbackType_e:
-       lefrUnspecifiedCbkType,
-       lefrVersionCbkType,
-       lefrVersionStrCbkType,
-       lefrDividerCharCbkType,
-       lefrBusBitCharsCbkType,
-       lefrUnitsCbkType,
-       lefrCaseSensitiveCbkType,
-       lefrNoWireExtensionCbkType,
-       lefrPropBeginCbkType,
-       lefrPropCbkType,
-       lefrPropEndCbkType,
-       lefrLayerCbkType,
-       lefrViaCbkType,
-       lefrViaRuleCbkType,
-       lefrSpacingCbkType,
-       lefrIRDropCbkType,
-       lefrDielectricCbkType,
-       lefrMinFeatureCbkType,
-       lefrNonDefaultCbkType,
-       lefrSiteCbkType,
-       lefrMacroBeginCbkType,
-       lefrPinCbkType,
-       lefrMacroCbkType,
-       lefrObstructionCbkType,
-       lefrArrayCbkType,
-       lefrSpacingBeginCbkType,
-       lefrSpacingEndCbkType,
-       lefrArrayBeginCbkType,
-       lefrArrayEndCbkType,
-       lefrIRDropBeginCbkType,
-       lefrIRDropEndCbkType,
-       lefrNoiseMarginCbkType,
-       lefrEdgeRateThreshold1CbkType,
-       lefrEdgeRateThreshold2CbkType,
-       lefrEdgeRateScaleFactorCbkType,
-       lefrNoiseTableCbkType,
-       lefrCorrectionTableCbkType,
-       lefrInputAntennaCbkType,
-       lefrOutputAntennaCbkType,
-       lefrInoutAntennaCbkType,
-       lefrAntennaInputCbkType,
-       lefrAntennaInoutCbkType,
-       lefrAntennaOutputCbkType,
-       lefrManufacturingCbkType,
-       lefrUseMinSpacingCbkType,
-       lefrClearanceMeasureCbkType,
-       lefrTimingCbkType,
-       lefrMacroClassTypeCbkType,
-       lefrMacroOriginCbkType,
-       lefrMacroSizeCbkType,
-       lefrMacroFixedMaskCbkType,
-       lefrMacroEndCbkType,
-       lefrMaxStackViaCbkType,
-       lefrExtensionCbkType,
-       lefrDensityCbkType,
-       lefrFixedMaskCbkType,
-       lefrMacroSiteCbkType,
-       lefrMacroForeignCbkType,
-       lefrLibraryEndCbkType
+cimport _leflib
 
 # Hold parsed LEF data in a global that gets cleared by parse() on each call.
 # The intended use of the LEF parser library is to pass around this data

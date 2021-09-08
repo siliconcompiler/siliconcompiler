@@ -7,6 +7,9 @@ find_package(PythonInterp REQUIRED)
 find_package(PythonExtensions REQUIRED)
 find_package(Cython)
 
+# Needed to find *.pxd file
+include_directories(${CMAKE_CURRENT_LIST_DIR}/siliconcompiler/leflib)
+
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/siliconcompiler/leflib)
 add_cython_target(_leflib ${CMAKE_CURRENT_LIST_DIR}/siliconcompiler/leflib/_leflib.pyx CXX)
 
