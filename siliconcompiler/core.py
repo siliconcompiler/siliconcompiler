@@ -1681,6 +1681,9 @@ class Chip:
             cfg_str = json.dumps(self.cfg).replace("'", "\\'").replace('"', '\\"')
             '''
 
+            # Modify the schema so that the 'srun sc' command will run locally.
+            self.set('cluster', 'local', clobber=True)
+
             # Create an 'srun' command.
             jobdir = "/".join([self.get('dir'),
                                self.get('design'),
