@@ -544,7 +544,6 @@ class Chip:
             fieldstr = "Field = " + field
         else:
             fieldstr = ""
-
         self.logger.debug(f"Reading from [{keypath}]. Field = '{field}'")
         return self._search(cfg, keypath, *args, field=field, mode='get')
 
@@ -591,7 +590,7 @@ class Chip:
         return keys
 
     ###########################################################################
-    def set(self, *args, cfg=None, clobber=True):
+    def set(self, *args, cfg=None, clobber=True, field='value'):
         '''
         Sets a Chip dictionary value based on key-sequence and data provided.
 
@@ -633,7 +632,7 @@ class Chip:
         all_args = list(args)
 
         self.logger.debug(f"Setting [{keypath}] to {args[-1]}")
-        return self._search(cfg, keypath, *all_args, field='value', mode='set', clobber=clobber)
+        return self._search(cfg, keypath, *all_args, field=field, mode='set', clobber=clobber)
 
     ###########################################################################
     def add(self, *args, cfg=None):
@@ -1680,8 +1679,8 @@ class Chip:
                         in_cfg = cfgfile
 
             # Create an 'srun' command.
-            run_cmd = 'srun --constraint="SHARED" bash -c "'
-            run_cmd += f"sc -cfg {in_cfg} -steplist {step}"
+            run_cmd = 'srun bash -c "'
+            run_cmd += f"sc -cfg {in_cfg} -steplist {step} -cluster local"
             run_cmd += '"'
 
             # Run the 'srun' command.
@@ -1798,8 +1797,6 @@ class Chip:
         self.set('arg', 'step', step, clobber=True)
         self.set('arg', 'index', index, clobber=True)
 
-        # Override the 'cluster' option to prevent recursive job-spawning.
-        self.set('cluster', 'local', clobber=True)
         # Reset the steplist.
         self.set('steplist', [], clobber=True)
 
