@@ -64,7 +64,6 @@ def setup_tool(chip, step, index):
         chip.add('eda', tool, step, index, 'option', 'cmdline', '-Wno-fatal')
 
     # Set the 'lock' bit for this field.
-    #chip.cfg['eda'][tool][step][str(index)]['exe']['lock'] = 'true'
     chip.set('eda', tool, step, index, 'exe', 'true', field='lock')
 
 ################################
