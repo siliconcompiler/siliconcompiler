@@ -1822,6 +1822,8 @@ class Chip:
 
         # Override the 'cluster' option to prevent recursive job-spawning.
         self.set('cluster', 'local', clobber=True)
+        # Reset the steplist.
+        self.set('steplist', [], clobber=True)
 
         # Writing out command file
         self.writecfg("sc_manifest.json")
