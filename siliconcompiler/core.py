@@ -1668,25 +1668,32 @@ class Chip:
             # Generate the config dictionary to pack into the 'srun' command.
             # In order to mitigate some character length limits, we drop
             # some bookkeeping keys such as 'help' and 'short_help'.
+            '''
             def prune_cfg(d):
                 for k in d.keys():
-                    if d[k] and ('value' in d[k]):
-                        d[k] = {
-                            'defvalue': d[k]['defvalue'],
-                            'type': d[k]['type'],
-                            'value': d[k]['value'],
-                        }
-                    elif type(d[k]) == dict:
+                    if type(d[k]) == dict:
+                        for key in ['switch', 'example', 'help', 'short_help']:
+                            if key in d[k]:
+                                d[k].pop(key)
                         prune_cfg(d[k])
             prune_cfg(self.cfg)
             # Escape strings for placing in `bash -c "... echo '[cfg]' ..."`.
             cfg_str = json.dumps(self.cfg).replace("'", "\\'").replace('"', '\\"')
+            '''
 
             # Create an 'srun' command.
+            jobdir = "/".join([self.get('dir'),
+                               self.get('design'),
+                               self.get('jobname') + str(self.get('jobid'))])
+            self.writecfg(f"{jobdir}/{step}{index}.json")
             run_cmd = 'srun --constraint="SHARED" bash -c "'
-            run_cmd += f"echo '{cfg_str}' > {self.get('dir')}/config.json ; "
-            run_cmd += f"sc -cfg {self.get('dir')}/config.json"
+            #run_cmd += f"echo '{cfg_str}' > {self.get('dir')}/config.json ; "
+            #run_cmd += f"sc -cfg {self.get('dir')}/config.json"
+            run_cmd += f"sc -cfg {jobdir}/{step}{index}.json -steplist {step}"
             run_cmd += '"'
+
+            # Run the 'srun' command.
+            subprocess.run(run_cmd, shell = True)
 
             # Clear active/error bits and return after the 'srun' command.
             error[step + str(index)] = 0
