@@ -1664,7 +1664,9 @@ class Chip:
 
         # If the job is configured to run on a cluster, collect the schema
         # and send it to a compute node in a munge-encrypted 'srun' command.
-        if self.get('cluster') == 'slurm':
+        # (Run the initial 'import' stages without srun)
+        if (self.get('cluster') == 'slurm') and \
+           (not 'source' in self.get('flowgraph', step, 'input')):
             # Generate the config dictionary to pack into the 'srun' command.
             # In order to mitigate some character length limits, we drop
             # some bookkeeping keys such as 'help' and 'short_help'.
@@ -1682,17 +1684,23 @@ class Chip:
             '''
 
             # Modify the schema so that the 'srun sc' command will run locally.
-            self.set('cluster', 'local', clobber=True)
+            #self.set('cluster', 'local', clobber=True)
+
+            # Get the prior step to use as an input. TODO: For now, use the same
+            # 'last available config file' choice as the merge logic further down.
+            in_cfg = None
+            for input_step in self.get('flowgraph', step, 'input'):
+                for input_index in range(self.get('flowgraph', input_step, 'nproc')):
+                    cfgfile = f"../{input_step}{input_index}/outputs/{design}.pkg.json"
+                    if os.path.isfile(cfgfile):
+                        in_cfg = cfgfile
 
             # Create an 'srun' command.
-            jobdir = "/".join([self.get('dir'),
-                               self.get('design'),
-                               self.get('jobname') + str(self.get('jobid'))])
-            self.writecfg(f"{jobdir}/{step}{index}.json")
             run_cmd = 'srun --constraint="SHARED" bash -c "'
             #run_cmd += f"echo '{cfg_str}' > {self.get('dir')}/config.json ; "
             #run_cmd += f"sc -cfg {self.get('dir')}/config.json"
-            run_cmd += f"sc -cfg {jobdir}/{step}{index}.json -steplist {step}"
+            #run_cmd += f"sc -cfg {jobdir}/{step}{index}.json -steplist {step}"
+            run_cmd += f"sc -cfg {in_cfg} -steplist {step}"
             run_cmd += '"'
 
             # Run the 'srun' command.
@@ -1808,6 +1816,9 @@ class Chip:
         # Save config files required by EDA tools
         self.set('arg', 'step', step, clobber=True)
         self.set('arg', 'index', index, clobber=True)
+
+        # Override the 'cluster' option to prevent recursive job-spawning.
+        self.set('cluster', 'local', clobber=True)
 
         # Writing out command file
         self.writecfg("sc_manifest.json")
