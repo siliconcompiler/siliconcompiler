@@ -92,12 +92,15 @@ def parse(path):
 
     lefrSetVersionCbk(version_cb)
 
-    f_ptr = fopen(path, 'r')
+    # Use this to pass path to C++ functions
+    path_bytes = path.encode('ascii')
+
+    f_ptr = fopen(path_bytes, 'r')
     if f_ptr == NULL:
-        print(b"Couldn't open file " + path)
+        print("Couldn't open file " + path)
         return None
 
-    r = lefrRead(f_ptr, path, NULL)
+    r = lefrRead(f_ptr, path_bytes, NULL)
 
     fclose(f_ptr)
 
