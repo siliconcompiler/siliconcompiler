@@ -41,7 +41,7 @@ def test_api_minimum():
     chip.summary()
 
     # expected result
-    assert chip.get('flowstatus', 'syn', 'select') == 9
+    assert chip.get('flowstatus', 'syn', index, 'select') == 9
 
 #########################
 if __name__ == "__main__":
