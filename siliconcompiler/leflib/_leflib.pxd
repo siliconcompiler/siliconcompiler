@@ -27,10 +27,10 @@ ctypedef int (*lefrUnitsCbkFnType) (lefrCallbackType_e,
                                    lefiUnits* units, 
                                    lefiUserData);
  
-# # A declaration of the signature of all callbacks that return a lefiLayer. 
-# ctypedef int (*lefrLayerCbkFnType) (lefrCallbackType_e, 
-                                   # lefiLayer* l, 
-                                   # lefiUserData);
+# A declaration of the signature of all callbacks that return a lefiLayer. 
+ctypedef int (*lefrLayerCbkFnType) (lefrCallbackType_e, 
+                                   lefiLayer* l, 
+                                   lefiUserData);
  
 # # A declaration of the signature of all callbacks that return a lefiVia. 
 # ctypedef int (*lefrViaCbkFnType) (lefrCallbackType_e, 
@@ -158,7 +158,7 @@ cdef extern from "lefrReader.hpp":
     # void lefrSetPropBeginCbk(lefrVoidCbkFnType)
     # void lefrSetPropCbk(lefrPropCbkFnType)
     # void lefrSetPropEndCbk(lefrVoidCbkFnType)
-    # void lefrSetLayerCbk(lefrLayerCbkFnType)
+    void lefrSetLayerCbk(lefrLayerCbkFnType)
     # void lefrSetViaCbk(lefrViaCbkFnType)
     # void lefrSetViaRuleCbk(lefrViaRuleCbkFnType)
     # void lefrSetSpacingCbk(lefrSpacingCbkFnType)
@@ -286,6 +286,28 @@ cdef extern from "lefrReader.hpp":
         double current()
         double voltage()
         double frequency()
+    
+    cdef cppclass lefiLayer:
+        int hasType()
+        int hasMask()
+        int hasPitch()
+        int hasXYPitch()
+        int hasOffset()
+        int hasXYOffset()
+        int hasWidth()
+        int hasArea()
+
+        char* name()
+        const char* type()
+        double pitch()
+        int    mask()
+        double pitchX()
+        double pitchY()
+        double offset()
+        double offsetX()
+        double offsetY()
+        double width()
+        double area()
 
     cdef cppclass lefiDensity:
         int numLayer()
