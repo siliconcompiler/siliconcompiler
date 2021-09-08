@@ -733,59 +733,65 @@ class Chip:
                 self.logger.error(f"Set/Add keypath [{keypath}] does not exist.")
                 self.error = 1
             else:
-                # making an 'instance' of default if not found
-                if (not param in cfg) & ('default' in cfg):
-                    cfg[param] = copy.deepcopy(cfg['default'])
-                list_type =bool(re.match(r'\[', cfg[param]['type']))
-                # copying over defvalue if value doesn't exist
-                if 'value' not in cfg[param]:
-                    cfg[param]['value'] = cfg[param]['defvalue']
-                # checking for illegal fields
-                if not field in cfg[param] and (field != 'value'):
-                    self.logger.error(f"Field '{field}' for keypath [{keypath}]' is not a valid field.")
-                    self.error = 1
-                # check legality of value
-                (type_ok,type_error) = self._typecheck(cfg[param], param, val)
-                if not type_ok:
-                    self.logger.error("%s", type_error)
-                    self.error = 1
-                # converting python True/False to lower case string
-                if (cfg[param]['type'] == 'bool' ):
-                    if val == True:
-                        val = "true"
-                    elif val == False:
-                        val = "false"
-                # checking if value has been set
-                if field not in cfg[param]:
-                    selval = cfg[param]['defvalue']
-                else:
-                    selval =  cfg[param]['value']
-                # updating values
-                if (mode == 'set'):
-                    if (selval in empty) | clobber:
-                        if (not list_type) & (not isinstance(val, list)):
-                            cfg[param][field] = str(val)
-                        elif list_type & (not isinstance(val, list)):
-                            cfg[param][field] = [str(val)]
-                        elif list_type & isinstance(val, list):
-                            if re.search(r'\(', cfg[param]['type']):
-                                cfg[param][field] = list(map(str,val))
-                            else:
-                                cfg[param][field] = val
-                        else:
-                            self.logger.error(f"Assigning list to scalar for [{keypath}]")
-                            self.error = 1
-                    else:
-                        self.logger.info(f"Ignoring set() to [{keypath}], value already set. Use clobber=true to override.")
-                elif (mode == 'add'):
-                    if list_type & (not isinstance(val, list)):
-                        cfg[param][field].append(str(val))
-                    elif list_type & isinstance(val, list):
-                        cfg[param][field].extend(val)
-                    else:
-                        self.logger.error(f"Illegal use of add() for scalar parameter [{keypath}].")
+                # Only perform type/default value checks for 'value'.
+                if field == 'value':
+                    # making an 'instance' of default if not found
+                    if (not param in cfg) & ('default' in cfg):
+                        cfg[param] = copy.deepcopy(cfg['default'])
+                    list_type =bool(re.match(r'\[', cfg[param]['type']))
+                    # copying over defvalue if value doesn't exist
+                    if 'value' not in cfg[param]:
+                        cfg[param]['value'] = cfg[param]['defvalue']
+                    # checking for illegal fields
+                    if not field in cfg[param] and (field != 'value'):
+                        self.logger.error(f"Field '{field}' for keypath [{keypath}]' is not a valid field.")
                         self.error = 1
-                return cfg[param][field]
+                    # check legality of value
+                    (type_ok,type_error) = self._typecheck(cfg[param], param, val)
+                    if not type_ok:
+                        self.logger.error("%s", type_error)
+                        self.error = 1
+                    # converting python True/False to lower case string
+                    if (cfg[param]['type'] == 'bool' ):
+                        if val == True:
+                            val = "true"
+                        elif val == False:
+                            val = "false"
+                    # checking if value has been set
+                    if field not in cfg[param]:
+                        selval = cfg[param]['defvalue']
+                    else:
+                        selval =  cfg[param]['value']
+                    # updating values
+                    if (mode == 'set'):
+                        if (selval in empty) | clobber:
+                            if (not list_type) & (not isinstance(val, list)):
+                                cfg[param][field] = str(val)
+                            elif list_type & (not isinstance(val, list)):
+                                cfg[param][field] = [str(val)]
+                            elif list_type & isinstance(val, list):
+                                if re.search(r'\(', cfg[param]['type']):
+                                    cfg[param][field] = list(map(str,val))
+                                else:
+                                    cfg[param][field] = val
+                            else:
+                                self.logger.error(f"Assigning list to scalar for [{keypath}]")
+                                self.error = 1
+                        else:
+                            self.logger.info(f"Ignoring set() to [{keypath}], value already set. Use clobber=true to override.")
+                    elif (mode == 'add'):
+                        if list_type & (not isinstance(val, list)):
+                            cfg[param][field].append(str(val))
+                        elif list_type & isinstance(val, list):
+                            cfg[param][field].extend(val)
+                        else:
+                            self.logger.error(f"Illegal use of add() for scalar parameter [{keypath}].")
+                            self.error = 1
+                    return cfg[param][field]
+                # Set non-value fields directly.
+                else:
+                    cfg[param][field] = val
+                    return cfg[param][field]
         #get leaf cell (all_args=param)
         elif len(all_args) == 1:
             if not param in cfg:
