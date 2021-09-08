@@ -45,8 +45,6 @@ proc design_has_macros {} {
 if {[llength $sc_def] > 0} {
     #TODO: Only one def supported for now
     read_def -floorplan_initialize $sc_def
-} elseif {[llength $sc_floorplan] > 0} {
-    read_def -floorplan_initialize "inputs/$sc_design.def"
 } else {
 
     #########################
