@@ -2,145 +2,145 @@ from libc.stdio cimport FILE
 
 ctypedef void* lefiUserData
 
-# A declaration of the signature of all callbacks that return nothing. 
-ctypedef int (*lefrVoidCbkFnType) (lefrCallbackType_e, 
-                                  void* num, 
+# A declaration of the signature of all callbacks that return nothing.
+ctypedef int (*lefrVoidCbkFnType) (lefrCallbackType_e,
+                                  void* num,
                                   lefiUserData);
 
-# A declaration of the signature of all callbacks that return a string. 
-ctypedef int (*lefrStringCbkFnType) (lefrCallbackType_e, 
-                                    const char *string, 
-                                    lefiUserData);
- 
-# A declaration of the signature of all callbacks that return a integer. 
-ctypedef int (*lefrIntegerCbkFnType) (lefrCallbackType_e, 
-                                     int number, 
-                                     lefiUserData);
- 
-# A declaration of the signature of all callbacks that return a double. 
-ctypedef int (*lefrDoubleCbkFnType) (lefrCallbackType_e, 
-                                    double number, 
+# A declaration of the signature of all callbacks that return a string.
+ctypedef int (*lefrStringCbkFnType) (lefrCallbackType_e,
+                                    const char *string,
                                     lefiUserData);
 
-# A declaration of the signature of all callbacks that return a lefiUnits. 
-ctypedef int (*lefrUnitsCbkFnType) (lefrCallbackType_e, 
-                                   lefiUnits* units, 
+# A declaration of the signature of all callbacks that return a integer.
+ctypedef int (*lefrIntegerCbkFnType) (lefrCallbackType_e,
+                                     int number,
+                                     lefiUserData);
+
+# A declaration of the signature of all callbacks that return a double.
+ctypedef int (*lefrDoubleCbkFnType) (lefrCallbackType_e,
+                                    double number,
+                                    lefiUserData);
+
+# A declaration of the signature of all callbacks that return a lefiUnits.
+ctypedef int (*lefrUnitsCbkFnType) (lefrCallbackType_e,
+                                   lefiUnits* units,
                                    lefiUserData);
- 
-# A declaration of the signature of all callbacks that return a lefiLayer. 
-ctypedef int (*lefrLayerCbkFnType) (lefrCallbackType_e, 
-                                   lefiLayer* l, 
+
+# A declaration of the signature of all callbacks that return a lefiLayer.
+ctypedef int (*lefrLayerCbkFnType) (lefrCallbackType_e,
+                                   lefiLayer* l,
                                    lefiUserData);
- 
-# # A declaration of the signature of all callbacks that return a lefiVia. 
-# ctypedef int (*lefrViaCbkFnType) (lefrCallbackType_e, 
-                                 # lefiVia* l, 
+
+# # A declaration of the signature of all callbacks that return a lefiVia.
+# ctypedef int (*lefrViaCbkFnType) (lefrCallbackType_e,
+                                 # lefiVia* l,
                                  # lefiUserData);
- 
-# # A declaration of the signature of all callbacks that return a lefiViaRule. 
-# ctypedef int (*lefrViaRuleCbkFnType) (lefrCallbackType_e, 
-                                     # lefiViaRule* l, 
+
+# # A declaration of the signature of all callbacks that return a lefiViaRule.
+# ctypedef int (*lefrViaRuleCbkFnType) (lefrCallbackType_e,
+                                     # lefiViaRule* l,
                                      # lefiUserData);
- 
-# # A declaration of the signature of all callbacks that return a lefiSpacing. 
-# ctypedef int (*lefrSpacingCbkFnType) (lefrCallbackType_e, 
-                                     # lefiSpacing* l, 
+
+# # A declaration of the signature of all callbacks that return a lefiSpacing.
+# ctypedef int (*lefrSpacingCbkFnType) (lefrCallbackType_e,
+                                     # lefiSpacing* l,
                                      # lefiUserData);
- 
-# # A declaration of the signature of all callbacks that return a lefiIRDrop. 
-# ctypedef int (*lefrIRDropCbkFnType) (lefrCallbackType_e, 
-                                    # lefiIRDrop* l, 
+
+# # A declaration of the signature of all callbacks that return a lefiIRDrop.
+# ctypedef int (*lefrIRDropCbkFnType) (lefrCallbackType_e,
+                                    # lefiIRDrop* l,
                                     # lefiUserData);
- 
-# # A declaration of the signature of all callbacks that return a lefiMinFeature. 
-# ctypedef int (*lefrMinFeatureCbkFnType) (lefrCallbackType_e, 
-                                        # lefiMinFeature* l, 
+
+# # A declaration of the signature of all callbacks that return a lefiMinFeature.
+# ctypedef int (*lefrMinFeatureCbkFnType) (lefrCallbackType_e,
+                                        # lefiMinFeature* l,
                                         # lefiUserData);
- 
-# # A declaration of the signature of all callbacks that return a lefiNonDefault. 
-# ctypedef int (*lefrNonDefaultCbkFnType) (lefrCallbackType_e, 
-                                        # lefiNonDefault* l, 
+
+# # A declaration of the signature of all callbacks that return a lefiNonDefault.
+# ctypedef int (*lefrNonDefaultCbkFnType) (lefrCallbackType_e,
+                                        # lefiNonDefault* l,
                                         # lefiUserData);
- 
-# # A declaration of the signature of all callbacks that return a lefiSite. 
-# ctypedef int (*lefrSiteCbkFnType) (lefrCallbackType_e, 
-                                  # lefiSite* l, 
+
+# # A declaration of the signature of all callbacks that return a lefiSite.
+# ctypedef int (*lefrSiteCbkFnType) (lefrCallbackType_e,
+                                  # lefiSite* l,
                                   # lefiUserData);
- 
-# A declaration of the signature of all callbacks that return a lefiMacro. 
-ctypedef int (*lefrMacroCbkFnType) (lefrCallbackType_e, 
-                                   lefiMacro* l, 
+
+# A declaration of the signature of all callbacks that return a lefiMacro.
+ctypedef int (*lefrMacroCbkFnType) (lefrCallbackType_e,
+                                   lefiMacro* l,
                                    lefiUserData);
- 
-# # A declaration of the signature of all callbacks that return a lefiPin. 
-# ctypedef int (*lefrPinCbkFnType) (lefrCallbackType_e, 
-                                 # lefiPin* l, 
-                                 # lefiUserData);
- 
-# # A declaration of the signature of all callbacks that return a lefiObstruction. 
-# ctypedef int (*lefrObstructionCbkFnType) (lefrCallbackType_e, 
-                                         # lefiObstruction* l, 
+
+# A declaration of the signature of all callbacks that return a lefiPin.
+ctypedef int (*lefrPinCbkFnType) (lefrCallbackType_e,
+                                 lefiPin* l,
+                                 lefiUserData);
+
+# # A declaration of the signature of all callbacks that return a lefiObstruction.
+# ctypedef int (*lefrObstructionCbkFnType) (lefrCallbackType_e,
+                                         # lefiObstruction* l,
                                          # lefiUserData);
- 
-# # A declaration of the signature of all callbacks that return a lefiArray. 
-# ctypedef int (*lefrArrayCbkFnType) (lefrCallbackType_e, 
-                                   # lefiArray* l, 
+
+# # A declaration of the signature of all callbacks that return a lefiArray.
+# ctypedef int (*lefrArrayCbkFnType) (lefrCallbackType_e,
+                                   # lefiArray* l,
                                    # lefiUserData);
- 
-# # A declaration of the signature of all callbacks that return a lefiProp. 
-# ctypedef int (*lefrPropCbkFnType) (lefrCallbackType_e, 
-                                  # lefiProp* p, 
+
+# # A declaration of the signature of all callbacks that return a lefiProp.
+# ctypedef int (*lefrPropCbkFnType) (lefrCallbackType_e,
+                                  # lefiProp* p,
                                   # lefiUserData);
- 
-# # A declaration of the signature of all callbacks that return a lefiNoiseMargin. 
-# ctypedef int (*lefrNoiseMarginCbkFnType) (lefrCallbackType_e, 
-                                         # struct lefiNoiseMargin* p, 
+
+# # A declaration of the signature of all callbacks that return a lefiNoiseMargin.
+# ctypedef int (*lefrNoiseMarginCbkFnType) (lefrCallbackType_e,
+                                         # struct lefiNoiseMargin* p,
                                          # lefiUserData);
- 
-# # A declaration of the signature of all callbacks that return a lefiNoiseTable. 
-# ctypedef int (*lefrNoiseTableCbkFnType) (lefrCallbackType_e, 
-                                        # lefiNoiseTable* p, 
+
+# # A declaration of the signature of all callbacks that return a lefiNoiseTable.
+# ctypedef int (*lefrNoiseTableCbkFnType) (lefrCallbackType_e,
+                                        # lefiNoiseTable* p,
                                         # lefiUserData);
- 
-# # A declaration of the signature of all callbacks that return a lefiCorrectionTable. 
-# ctypedef int (*lefrCorrectionTableCbkFnType) (lefrCallbackType_e, 
-                                             # lefiCorrectionTable* p, 
+
+# # A declaration of the signature of all callbacks that return a lefiCorrectionTable.
+# ctypedef int (*lefrCorrectionTableCbkFnType) (lefrCallbackType_e,
+                                             # lefiCorrectionTable* p,
                                              # lefiUserData);
- 
-# # A declaration of the signature of all callbacks that return a lefiTiming. 
-# ctypedef int (*lefrTimingCbkFnType) (lefrCallbackType_e, 
-                                    # lefiTiming* p, 
+
+# # A declaration of the signature of all callbacks that return a lefiTiming.
+# ctypedef int (*lefrTimingCbkFnType) (lefrCallbackType_e,
+                                    # lefiTiming* p,
                                     # lefiUserData);
- 
-# # A declaration of the signature of all callbacks that return a lefiUseMinSpacing. 
-# ctypedef int (*lefrUseMinSpacingCbkFnType) (lefrCallbackType_e, 
-                                           # lefiUseMinSpacing* l, 
+
+# # A declaration of the signature of all callbacks that return a lefiUseMinSpacing.
+# ctypedef int (*lefrUseMinSpacingCbkFnType) (lefrCallbackType_e,
+                                           # lefiUseMinSpacing* l,
                                            # lefiUserData);
- 
+
   # # NEW CALLBACK - If your callback returns a pointer to a new class then
   # # you must add a type function here.
 
-# # A declaration of the signature of all callbacks that return a lefiMaxStackVia. 
-# ctypedef int (*lefrMaxStackViaCbkFnType) (lefrCallbackType_e, 
-                                         # lefiMaxStackVia* l, 
+# # A declaration of the signature of all callbacks that return a lefiMaxStackVia.
+# ctypedef int (*lefrMaxStackViaCbkFnType) (lefrCallbackType_e,
+                                         # lefiMaxStackVia* l,
                                          # lefiUserData);
 
-# ctypedef int (*lefrMacroNumCbkFnType) (lefrCallbackType_e, 
-                                      # lefiNum l, 
+# ctypedef int (*lefrMacroNumCbkFnType) (lefrCallbackType_e,
+                                      # lefiNum l,
                                       # lefiUserData);
 
-# ctypedef int (*lefrMacroSiteCbkFnType) (lefrCallbackType_e, 
+# ctypedef int (*lefrMacroSiteCbkFnType) (lefrCallbackType_e,
                                       # const lefiMacroSite *site,
                                       # lefiUserData);
 
-# ctypedef int (*lefrMacroForeignCbkFnType) (lefrCallbackType_e, 
+# ctypedef int (*lefrMacroForeignCbkFnType) (lefrCallbackType_e,
                                           # const lefiMacroForeign *foreign,
                                           # lefiUserData);
 
-# # 5.6 
-# # A declaration of the signature of all callbacks that return a lefiDensity. 
-# ctypedef int (*lefrDensityCbkFnType) (lefrCallbackType_e, 
-                                     # lefiDensity* l, 
+# # 5.6
+# # A declaration of the signature of all callbacks that return a lefiDensity.
+# ctypedef int (*lefrDensityCbkFnType) (lefrCallbackType_e,
+                                     # lefiDensity* l,
                                      # lefiUserData);
 # # Must "forward declare" everything we reference from lefrReader.hpp here
 cdef extern from "lefrReader.hpp":
@@ -167,13 +167,13 @@ cdef extern from "lefrReader.hpp":
     # void lefrSetMinFeatureCbk(lefrMinFeatureCbkFnType)
     # void lefrSetNonDefaultCbk(lefrNonDefaultCbkFnType)
     # void lefrSetSiteCbk(lefrSiteCbkFnType)
-    # void lefrSetMacroBeginCbk(lefrStringCbkFnType)
-    # void lefrSetPinCbk(lefrPinCbkFnType)
+    void lefrSetMacroBeginCbk(lefrStringCbkFnType)
+    void lefrSetPinCbk(lefrPinCbkFnType)
     # void lefrSetObstructionCbk(lefrObstructionCbkFnType)
     # void lefrSetArrayCbk(lefrArrayCbkFnType)
     void lefrSetMacroCbk(lefrMacroCbkFnType)
     # void lefrSetLibraryEndCbk(lefrVoidCbkFnType)
-    
+
     # void lefrSetTimingCbk(lefrTimingCbkFnType)
     # void lefrSetSpacingBeginCbk(lefrVoidCbkFnType)
     # void lefrSetSpacingEndCbk(lefrVoidCbkFnType)
@@ -269,6 +269,24 @@ cdef extern from "lefrReader.hpp":
        lefrMacroForeignCbkType,
        lefrLibraryEndCbkType
 
+    cdef enum lefiGeomEnum:
+        lefiGeomUnknown,
+        lefiGeomLayerE,
+        lefiGeomLayerExceptPgNetE,
+        lefiGeomLayerMinSpacingE,
+        lefiGeomLayerRuleWidthE,
+        lefiGeomWidthE,
+        lefiGeomPathE,
+        lefiGeomPathIterE,
+        lefiGeomRectE,
+        lefiGeomRectIterE,
+        lefiGeomPolygonE,
+        lefiGeomPolygonIterE,
+        lefiGeomViaE,
+        lefiGeomViaIterE,
+        lefiGeomClassE,
+        lefiGeomEnd
+
     cdef cppclass lefiUnits:
         int hasDatabase()
         int hasCapacitance()
@@ -286,7 +304,100 @@ cdef extern from "lefrReader.hpp":
         double current()
         double voltage()
         double frequency()
-    
+
+    cdef cppclass lefiPin:
+        const char* name()
+        int numPorts()
+        lefiGeometries* port(int index)
+
+    cdef cppclass lefiGeometries:
+        int numItems()
+        lefiGeomEnum itemType(int index)
+        const char* getLayer(int index)
+        double getLayerMinSpacing(int index)
+        double getLayerRuleWidth(int index)
+        double getWidth(int index)
+        lefiGeomPath* getPath(int index)
+        lefiGeomPathIter* getPathIter(int index)
+        lefiGeomRect* getRect(int index)
+        lefiGeomRectIter* getRectIter(int index)
+        lefiGeomPolygon* getPolygon(int index)
+        lefiGeomPolygonIter* getPolygonIter(int index)
+        lefiGeomVia* getVia(int index)
+        lefiGeomViaIter* getViaIter(int index)
+
+        const char* getClass(int index)
+
+    cdef struct lefiGeomRect:
+        double xl
+        double yl
+        double xh
+        double yh
+        int colorMask
+
+    cdef struct lefiGeomRectIter:
+        double xl
+        double yl
+        double xh
+        double yh
+        double xStart
+        double yStart
+        double xStep
+        double yStep
+        int    colorMask
+
+    cdef struct lefiGeomPath:
+        int numPoints
+        double* x
+        double* y
+        int colorMask
+
+    cdef struct lefiGeomPathIter:
+        int numPoints
+        double* x
+        double* y
+        double xStart
+        double yStart
+        double xStep
+        double yStep
+        int colorMask
+
+    cdef struct lefiGeomPolygon:
+        int numPoints
+        double* x
+        double* y
+        int colorMask
+
+    cdef struct lefiGeomPolygonIter:
+        int numPoints
+        double* x
+        double* y
+        double xStart
+        double yStart
+        double xStep
+        double yStep
+        int colorMask
+
+    cdef struct lefiGeomVia:
+        char* name
+        double x
+        double y
+        int topMaskNum
+        int cutMaskNum
+        int bottomMaskNum
+
+    cdef struct lefiGeomViaIter:
+        char* name
+        double x
+        double y
+        double xStart
+        double yStart
+        double xStep
+        double yStep
+        int topMaskNum
+        int cutMaskNum
+        int bottomMaskNum
+
     cdef cppclass lefiLayer:
         int hasType()
         int hasMask()
