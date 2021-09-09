@@ -1572,10 +1572,10 @@ def schema_flowstatus(cfg, step='default', index='default'):
         """
     }
 
-    # Flow step selector
+    # Flow input selector
     cfg['flowstatus'][step][index]['select'] = {
-        'switch': "-flowstatus_select 'step index <int>'",
-        'type': 'str',
+        'switch': "-flowstatus_select 'step index <str>'",
+        'type': '[str]',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
@@ -1584,8 +1584,8 @@ def schema_flowstatus(cfg, step='default', index='default'):
             "cli: -flowstatus_select 'cts 0 place42'",
             "api:  chip.set('flowstatus', 'cts, '0', 'select', 'place42')"],
         'help': """
-        Status parameter that records the 'step+index' string to indicate
-        the input selected in a merge/min/max/mux type step.
+        Status parameter that records the list of 'step+index' strings to
+        indicate the input selected/copied into the current step.
         """
     }
 
