@@ -133,7 +133,7 @@ def setup_tool(chip, step, index, mode='batch'):
         else:
             chip.set('eda', tool, step, index, 'option', option, default_options[option], clobber=clobber)
 
-    # Set the 'lock' bit for this field.
+    # Set the 'lock' bit for this tool.
     chip.set('eda', tool, step, index, 'exe', 'true', field='lock')
 
 

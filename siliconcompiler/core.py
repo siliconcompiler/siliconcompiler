@@ -721,11 +721,6 @@ class Chip:
         val = all_args[-1]
         empty = [None, 'null', [], 'false']
 
-        # Return early if setting a value to 'None'. The reason for this is that
-        # str(None) == 'None', not None. So when we call .add or .set with None
-        # as a value, it gets saved in the dictionary as a string, causing bugs.
-        if (mode in ('set', 'add')) and (val is None):
-            return
         #set/add leaf cell (all_args=(param,val))
         if (mode in ('set', 'add')) & (len(all_args) == 2):
             # clean error if key not found
@@ -745,10 +740,11 @@ class Chip:
                     self.logger.error(f"Field '{field}' for keypath [{keypath}]' is not a valid field.")
                     self.error = 1
                 # check legality of value
-                (type_ok,type_error) = self._typecheck(cfg[param], param, val)
-                if not type_ok:
-                    self.logger.error("%s", type_error)
-                    self.error = 1
+                if field == 'value':
+                    (type_ok,type_error) = self._typecheck(cfg[param], param, val)
+                    if not type_ok:
+                        self.logger.error("%s", type_error)
+                        self.error = 1
                 # converting python True/False to lower case string
                 if (cfg[param]['type'] == 'bool' ):
                     if val == True:
@@ -761,9 +757,13 @@ class Chip:
                 else:
                     selval =  cfg[param]['value']
                 # updating values
-                if (mode == 'set'):
+                if cfg[param]['lock'] == "true":
+                    self.logger.debug("Ignoring {mode}{} to [{keypath}]. Lock bit is set.")
+                elif (mode == 'set'):
                     if (selval in empty) | clobber:
-                        if (not list_type) & (not isinstance(val, list)):
+                        if (not list_type) & (val is None):
+                            cfg[param][field] = None
+                        elif (not list_type) & (not isinstance(val, list)):
                             cfg[param][field] = str(val)
                         elif list_type & (not isinstance(val, list)):
                             cfg[param][field] = [str(val)]
@@ -901,7 +901,7 @@ class Chip:
         return chip
 
     ###########################################################################
-    def prune(self, cfg, top=True):
+    def prune(self, cfg, top=True, keeplists=False):
         '''
         Recursive function that takes a copy of the Chip dictionary and
         then removes all sub trees with non-set values and sub-trees
@@ -923,7 +923,10 @@ class Chip:
         i = 0
 
         #Prune when the default & value are set to the following
-        empty = ("null",None,[])
+        if keeplists:
+            empty = ("null", None)
+        else:
+            empty = ("null", None, [])
 
         # When at top of tree loop maxdepth times to make sure all stale
         # branches have been removed, not elegant, but stupid-simple
@@ -952,7 +955,7 @@ class Chip:
                     localcfg.pop(k)
                 #keep traversing tree
                 else:
-                    self.prune(cfg=localcfg[k], top=False)
+                    self.prune(cfg=localcfg[k], top=False, keeplists=keeplists)
             if top:
                 i += 1
             else:
@@ -1080,6 +1083,16 @@ class Chip:
         return localcfg
 
     ###########################################################################
+    def _keypath_empty(self, key, cfg):
+        emptylist = ("null", None, [])
+
+        value = self.get(*key, cfg=cfg)
+        defvalue = self.get(*key, cfg=cfg, field='defvalue')
+        value_empty = (defvalue in emptylist) and (value in emptylist)
+
+        return value_empty
+
+    ###########################################################################
     def check(self, step, index, mode='static', cfg=None):
         '''
         Performs a setup validity check and returns success status.
@@ -1101,38 +1114,43 @@ class Chip:
             self.error = 1
             self.logger.error(f"No flowgraph defined.")
         legal_steps = self.getkeys('flowgraph')
-        legal_steps.append('source')
-        for item in self.getkeys('flowgraph'):
-            for step_in in self.get('flowgraph', item, 'input'):
-                if step_in not in legal_steps:
-                    self.error = 1
-                    self.logger.error(f"Input '{item}' is not a legal step.")
+        for a in self.getkeys('flowgraph'):
+            for b in self.getkeys('flowgraph', a):
+                for input in self.getkeys('flowgraph', a, b, 'input'):
+                    if not input in legal_steps:
+                        self.error = 1
+                        self.logger.error(f"Input '{a}' is not a legal step.")
         #2. Check requirements list
-        emptylist = ("null", None, [])
         allkeys = self.getkeys()
         for key in allkeys:
             keypath = ",".join(key)
             if 'default' not in key:
+                key_empty = self._keypath_empty(key, cfg)
                 requirement = self.get(*key, cfg=cfg, field='requirement')
-                value = self.get(*key, cfg=cfg)
-                defvalue = self.get(*key, cfg=cfg, field='defvalue')
-                value_empty = (defvalue in emptylist) & (value in emptylist)
-                if value_empty & (str(requirement) == 'all'):
+                if key_empty and (str(requirement) == 'all'):
                     self.error = 1
                     self.logger.error(f"Global requirement missing for [{keypath}].")
-                elif value_empty & (str(requirement) == self.get('mode')):
+                elif key_empty and (str(requirement) == self.get('mode')):
                     self.error = 1
                     self.logger.error(f"Mode requirement missing for [{keypath}].")
         #3. Check per tool parameter requirements
-        tool = self.get('flowgraph', step, 'tool')
-
+        tool = self.get('flowgraph', step, index, 'tool')
         if 'req' in  self.getkeys('eda', tool, step, index):
             all_required = self.get('eda', tool, step, index, 'req')
             for item in all_required:
                 keypath = item.split(',')
-                if not self.get(*keypath):
+                if self._keypath_empty(keypath, cfg):
                     self.error = 1
                     self.logger.error(f"Value empty for [{keypath}].")
+
+        if self._keypath_empty(['eda', tool, step, index, 'exe'], cfg):
+            self.error = 1
+            self.logger.error(f'Executable not specified for tool {tool} used in flowgraph step {step}')
+
+        if self._keypath_empty(['eda', tool, step, index, 'version'], cfg):
+            self.error = 1
+            self.logger.error(f'Version not specified for tool {tool} used in flowgraph step {step}')
+
         #4. Check that input files exist
         if mode=='dynamic':
             #2. Check per step input requirements
@@ -1186,7 +1204,7 @@ class Chip:
         return localcfg
 
     ###########################################################################
-    def writecfg(self, filename, cfg=None, prune=True, abspath=False):
+    def writecfg(self, filename, cfg=None, prune=True, keeplists=False, abspath=False):
         '''Writes out Chip dictionary in json, yaml, or TCL file format.
 
         Args:
@@ -1218,7 +1236,7 @@ class Chip:
 
         if prune:
             self.logger.debug('Pruning dictionary before writing file %s', filepath)
-            cfgcopy = self.prune(cfg)
+            cfgcopy = self.prune(cfg, keeplists=keeplists)
         else:
             cfgcopy = copy.deepcopy(cfg)
 
@@ -1236,7 +1254,7 @@ class Chip:
         elif filepath.endswith('.tcl'):
             with open(filepath, 'w') as f:
                 print("#############################################", file=f)
-                print("#!!!! AUTO-GENEREATED FILE. DO NOT EDIT!!!!!!", file=f)
+                print("#!!!! AUTO-GENERATED FILE. DO NOT EDIT!!!!!!", file=f)
                 print("#############################################", file=f)
                 self._printcfg(cfgcopy, mode="tcl", prefix="dict set sc_cfg", file=f)
         else:
@@ -1244,7 +1262,7 @@ class Chip:
             self.error = 1
 
     ###########################################################################
-    def writegraph(self, graph, filename):
+    def writegraph(self, filename, graphtype='flowgraph'):
         '''Exports the execution flow graph using the graphviz library.
         For graphviz formats supported, see https://graphviz.org/.
 
@@ -1255,22 +1273,29 @@ class Chip:
         fileformat = ext.replace(".", "")
         dot = graphviz.Digraph(format=fileformat)
         dot.attr(bgcolor='transparent')
-        if graph == 'flowgraph':
+        if graphtype == 'flowgraph':
             for step in self.getkeys('flowgraph'):
-                if self.get('flowgraph', step, 'tool'):
-                    labelname = step+'\\n('+self.get('flowgraph', step, 'tool')+")"
-                else:
-                    labelname = step
-                dot.node(step, label=labelname)
-                for prev_step in self.get('flowgraph', step, 'input'):
-                    dot.edge(prev_step, step)
-        elif graph == 'hier':
+                for index in self.getkeys('flowgraph', step):
+                    node = step+index
+                    # create step node
+                    if self.get('flowgraph', step, index, 'tool'):
+                        labelname = step+index+'\\n('+self.get('flowgraph', step, index, 'tool')+")"
+                    else:
+                        labelname = step
+                    dot.node(node, label=labelname)
+                    # get inputs
+                    all_inputs = []
+                    for i in self.getkeys('flowgraph', step, index, 'input'):
+                        for j in self.get('flowgraph', step, index, 'input', i):
+                            all_inputs.append(i+j)
+                    for item in all_inputs:
+                        dot.edge(item, node)
+        elif graphtype == 'hier':
             for parent in self.getkeys('hier'):
                 dot.node(parent)
                 for child in self.getkeys('hier', parent):
                     dot.edge(parent, child)
         dot.render(filename=fileroot, cleanup=True)
-
 
     ########################################################################
     def collect(self, cfg=None, outdir='output'):
@@ -1526,7 +1551,7 @@ class Chip:
         depth = {}
         for step in self.getkeys('flowgraph', cfg=cfg):
             depth[step] = 0
-            for path in self._allpaths(cfg, step):
+            for path in self._allpaths(cfg, step, str(0)):
                 if len(list(path)) > depth[step]:
                     depth[step] = len(path)
 
@@ -1535,18 +1560,43 @@ class Chip:
         return list(sorted_dict.keys())
 
     ###########################################################################
-    def _allpaths(self, cfg, node, path=None, allpaths=None):
+    def flowinputs(self, step, index, cfg=None):
+        '''
+        Returns a list of inputs to the current step as a list of concatenated
+        strings step+index.
+        '''
+
+        if cfg is None:
+            cfg = self.cfg
+
+        all_inputs = []
+        for a in self.getkeys('flowgraph'):
+            for b in self.getkeys('flowgraph', a):
+                for c in self.getkeys('flowgraph', a, b, 'output'):
+                    for d in self.get('flowgraph', a, b, 'output', c):
+                        if (c == step) & (str(d) == index):
+                            all_inputs.append(a + b)
+
+        return all_inputs
+
+    ###########################################################################
+    def _allpaths(self, cfg, step, index, path=None, allpaths=None):
 
         if path is None:
             allpaths = []
             path = []
-        if 'source' in self.get('flowgraph', node, 'input', cfg=cfg):
+        all_inputs = []
+        for a in self.getkeys('flowgraph', step, index, 'input', cfg=cfg):
+            for b in self.get('flowgraph', step, index, 'input', a, cfg=cfg):
+                all_inputs.append(a + b)
+        if not all_inputs:
             allpaths.append(path)
         else:
-            for nextnode in self.get('flowgraph', node, 'input', cfg=cfg):
-                newpath = path.copy()
-                newpath.append(nextnode)
-                return self._allpaths(cfg, nextnode, path=newpath, allpaths=allpaths)
+            for a in self.getkeys('flowgraph', step, index, 'input', cfg=cfg):
+                for b in self.get('flowgraph', step, index, 'input', a, cfg=cfg):
+                    newpath = path.copy()
+                    newpath.append(a+b)
+                    return self._allpaths(cfg, a, b, path=newpath, allpaths=allpaths)
         return list(allpaths)
 
     ###########################################################################
@@ -1567,29 +1617,29 @@ class Chip:
         # Checking goals for each metric
         index_failed = {}
         goals_met = False
-        for i in range(self.get('flowgraph', step, 'nproc')):
-            if self.get('flowstatus', step, str(i), 'error'):
-                index_failed[i] = True
+        for index in self.getkeys('flowgraph', step):
+            if self.get('flowstatus', step, index, 'error'):
+                index_failed[index] = True
             else:
-                index_failed[i] = False
-                for metric in self.getkeys('metric', step, str(i)):
-                    if 'goal' in self.getkeys('metric', step, str(i), metric):
-                        goal = self.get('metric', step, str(i), metric, 'goal')
-                        real = self.get('metric', step, str(i), metric, 'real')
+                index_failed[index] = False
+                for metric in self.getkeys('metric', step, index):
+                    if 'goal' in self.getkeys('metric', step, index, metric):
+                        goal = self.get('metric', step, index, metric, 'goal')
+                        real = self.get('metric', step, index, metric, 'real')
                         if bool(real > goal):
-                            index_failed[i] = True
-            if not index_failed[i]:
+                            index_failed[index] = True
+            if not index_failed[index]:
                 goals_met = True
 
         # Calculate max/min values for each metric
         max_val = {}
         min_val = {}
-        for metric in self.getkeys('flowgraph', step, 'weight'):
+        for metric in self.getkeys('flowgraph', step, '0', 'weight'):
             max_val[metric] = 0
             min_val[metric] = float("inf")
-            for i in range(self.get('flowgraph', step, 'nproc')):
-                if not self.get('flowstatus', step, str(i), 'error'):
-                    real = self.get('metric', step, str(i), metric, 'real')
+            for index in self.getkeys('flowgraph', step):
+                if not self.get('flowstatus', step, index, 'error'):
+                    real = self.get('metric', step, index, metric, 'real')
                     max_val[metric] = max(max_val[metric], real)
                     min_val[metric] = min(min_val[metric], real)
 
@@ -1597,19 +1647,19 @@ class Chip:
         min_score = float("inf")
         winner = 0
         goals_met = False
-        for i in range(self.get('flowgraph', step, 'nproc')):
-            if not self.get('flowstatus', step, str(i), 'error'):
+        for index in self.getkeys('flowgraph', step):
+            if not self.get('flowstatus', step, index, 'error'):
                 score = 0.0
-                for metric in self.getkeys('flowgraph', step, 'weight'):
-                    real = self.get('metric', step, str(i), metric, 'real')
+                for metric in self.getkeys('flowgraph', step, index, 'weight'):
+                    real = self.get('metric', step, index, metric, 'real')
                     if not (max_val[metric] - min_val[metric]) == 0:
                         scaled = (real - min_val[metric]) / (max_val[metric] - min_val[metric])
                     else:
                         scaled = max_val[metric]
                     score = score + scaled
-                if (score < min_score) & (not(index_failed[i] & goals_met)):
+                if (score < min_score) & (not(index_failed[index] & goals_met)):
                     min_score = score
-                    winner = i
+                    winner = index
 
         return winner
 
@@ -1646,11 +1696,10 @@ class Chip:
         while True:
             # Checking that there are no pending jobs
             pending = 0
-            for input_step in self.get('flowgraph', step, 'input'):
-                if input_step != 'source':
-                    for input_index in range(self.get('flowgraph', input_step, 'nproc')):
-                        input_str = input_step + str(input_index)
-                        pending = pending + active[input_str]
+            for input_step in self.getkeys('flowgraph', step, index, 'input'):
+                for input_index in self.get('flowgraph', step, index, 'input', input_step):
+                    input_str = input_step + input_index
+                    pending = pending + active[input_str]
 
             # beak out of loop when no all inputs are done
             if not pending:
@@ -1714,24 +1763,24 @@ class Chip:
 
         # Collect source files for first step
         design = self.get('design')
-        if 'source' in self.get('flowgraph', step, 'input'):
+        all_inputs = []
+        if not self.getkeys('flowgraph', step, index, 'input'):
             self.collect(outdir='inputs')
         elif not self.get('remote', 'addr'):
-            # Select inputs from previous steps
-            for input_step in self.get('flowgraph', step, 'input'):
-                # merge in all previous data
-                for input_index in range(self.get('flowgraph', input_step, 'nproc')):
-                    cfgfile = f"../{input_step}{input_index}/outputs/{design}.pkg.json"
+            for input_step in self.getkeys('flowgraph', step, index, 'input'):
+                for input_index in self.get('flowgraph', step, index, 'input', input_step):
+                    item = input_step + input_index
+                    cfgfile = f"../{item}/outputs/{design}.pkg.json"
                     if os.path.isfile(cfgfile):
                         self.cfg = self.readcfg(cfgfile)
 
         #Checking that there were no errors in previous steps
         halt = 0
-        for input_step in self.get('flowgraph', step, 'input'):
-            if input_step != 'source':
+        for input_step in self.getkeys('flowgraph', step, index, 'input'):
+            if self.get('flowgraph', step, index, 'input', input_step):
                 step_error = 1
-                for input_index in range(self.get('flowgraph', input_step, 'nproc')):
-                    input_str = input_step + str(input_index)
+                for input_index in self.get('flowgraph', step, index, 'input', input_step):
+                    input_str = input_step + input_index
                     index_error = error[input_str]
                     self.set('flowstatus', input_step, str(input_index), 'error', index_error)
                     step_error = step_error & index_error
@@ -1744,8 +1793,8 @@ class Chip:
         self.logger.debug(f"Starting step '{step}'")
 
         # calculate the minimum index based on index data below
-        for input_step in self.get('flowgraph', step, 'input'):
-            if input_step != 'source':
+        for input_step in self.getkeys('flowgraph', step, index, 'input'):
+            if self.get('flowgraph', step, index, 'input', input_step):
                 min_index = self.minimum(input_step)
                 self.logger.info(f"Step '{step}' selected index '{min_index}' from '{input_step}'.")
                 self.set('flowstatus', input_step, 'select', str(min_index), clobber=True)
@@ -1754,7 +1803,7 @@ class Chip:
 
         # Check Version if switch exists
         #if self.getkeys('eda', tool, step, str(index), 'vswitch'):
-        tool = self.get('flowgraph', step, 'tool')
+        tool = self.get('flowgraph', step, index, 'tool')
         exe = self.get('eda', tool, step, index, 'exe')
         veropt =self.get('eda', tool, step, index, 'vswitch')
         if veropt!=None:
@@ -1777,7 +1826,7 @@ class Chip:
 
         # If it exists, run pre_process in stepdir
         try:
-            tool = self.get('flowgraph', step, 'tool')
+            tool = self.get('flowgraph', step, index, 'tool')
             searchdir = "siliconcompiler.tools." + tool
             modulename = '.'+tool+'_setup'
             module = importlib.import_module(modulename, package=searchdir)
@@ -1789,11 +1838,8 @@ class Chip:
             self.logger.error(f"Pre-processing failed for '{tool}' in step '{step}'")
             self._haltstep(step, index, error, active)
 
-        # Create a run commmand
-        cmdlist = self._makecmd(tool, step, index)
-        cmdstr = ' '.join(cmdlist)
-
         # Save config files required by EDA tools
+        # (for tools and slurm)
         self.set('arg', 'step', step, clobber=True)
         self.set('arg', 'index', index, clobber=True)
 
@@ -1803,7 +1849,7 @@ class Chip:
         # Writing out command file
         self.writecfg("sc_manifest.json")
         self.writecfg("sc_manifest.yaml")
-        self.writecfg("sc_manifest.tcl", abspath=True)
+        self.writecfg("sc_manifest.tcl", abspath=True, keeplists=True)
 
         # Resetting metrics
         for metric in self.getkeys('metric', 'default', 'default'):
@@ -1815,6 +1861,9 @@ class Chip:
             self._haltstep(step, index, error, active)
 
         # Run executable
+        # TODO: Make it possible to skip this command
+        cmdlist = self._makecmd(tool, step, index)
+        cmdstr = ' '.join(cmdlist)
         self.logger.info("Running %s in %s", step, stepdir)
         self.logger.info('%s', cmdstr)
         cmd_error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
@@ -1827,12 +1876,13 @@ class Chip:
 
         # Post process (could fail)
         try:
-            tool = self.get('flowgraph', step, 'tool')
+            tool = self.get('flowgraph', step, index, 'tool')
             searchdir = "siliconcompiler.tools." + tool
             modulename = '.'+tool+'_setup'
             module = importlib.import_module(modulename, package=searchdir)
-            post_process = getattr(module, "post_process")
-            post_error = post_process(self, step, index)
+            if hasattr(module, "post_process"):
+                post_process = getattr(module, "post_process")
+                post_error = post_process(self, step, index)
         except:
             traceback.print_exc()
             self.logger.error(f"Post-processing failed for '{tool}' in step '{step}'")
@@ -1849,14 +1899,18 @@ class Chip:
         elapsed_time = end - start
         self.set('metric',step,index,'runtime', 'real', round(elapsed_time,2))
 
-
         # record runstep provenance data
         start_date = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
         end_date = datetime.datetime.fromtimestamp(end).strftime('%Y-%m-%d %H:%M:%S')
         self._makerecord(step, index, start_date, end_date)
 
-        # save a successful manifest
+        # save a successful manifest (minus local args)
+        self.set('arg', 'step', None, clobber=True)
+        self.set('arg', 'index', None, clobber=True)
+        #print("HELLO", self.get('arg', 'index'))
+        #print("ERROR", self.error)
         self.writecfg("outputs/" + self.get('design') +'.pkg.json')
+        #print(json.dumps(self.cfg, indent=4, sort_keys=True))
 
         # return fo original directory
         os.chdir(cwd)
@@ -1893,7 +1947,9 @@ class Chip:
         '''
 
         # Run steps if set, otherwise run whole graph
-        if self.get('steplist'):
+        if self.get('arg', 'step'):
+            steplist = [self.get('arg', 'step')]
+        elif self.get('steplist'):
             steplist = self.get('steplist')
         else:
             steplist = self.getsteps()
@@ -1928,31 +1984,37 @@ class Chip:
             # (one unqiue dict entry per process),
             # Set up tools and processes
             for step in self.getkeys('flowgraph'):
-                for index in range(self.get('flowgraph', step, 'nproc')):
+                for index in self.getkeys('flowgraph', step):
                     self.set('flowstatus', step, str(index), 'error', 1)
-                    stepstr = step + str(index)
-                    if step in steplist:
+                    stepstr = step + index
+                    if self.get('arg', 'index'):
+                        indexlist = [self.get('arg', 'index')]
+                    else:
+                        indexlist = self.getkeys('flowgraph', step)
+                    if (step in steplist) & (index in indexlist):
+
                         #setting step to active
                         active[stepstr] = 1
                         error[stepstr] = 1
                         # Load module (could fail)
                         try:
-                            tool = self.get('flowgraph', step, 'tool')
+                            tool = self.get('flowgraph', step, index, 'tool')
                             searchdir = "siliconcompiler.tools." + tool
                             modulename = '.'+tool+'_setup'
                             self.logger.info(f"Setting up tool '{tool}' in step '{step}'")
                             module = importlib.import_module(modulename, package=searchdir)
                             setup_tool = getattr(module, "setup_tool")
-                            setup_tool(self, step, str(index))
+                            setup_tool(self, step, index)
                         except:
                             traceback.print_exc()
                             self.logger.error(f"Setup failed for '{tool}' in step '{step}'")
                             self.error = 1
                         #run check for step, index
-                        self.check(step,str(index),mode='static')
+                        self.check(step, index, mode='static')
+
                     else:
-                        error[stepstr] = 0
                         active[stepstr] = 0
+                        error[stepstr] = 0
 
             # Implement auto-update of jobincrement
             dirname = self.get('dir')
@@ -1987,9 +2049,13 @@ class Chip:
             # Create all processes
             processes = []
             for step in steplist:
-                for index in range(self.get('flowgraph', step, 'nproc')):
+                if self.get('arg', 'index'):
+                    indexlist = [self.get('arg', 'index')]
+                else:
+                    indexlist = self.getkeys('flowgraph', step)
+                for index in indexlist:
                     processes.append(multiprocessing.Process(target=self._runstep,
-                                                             args=(step, str(index), active, error,)))
+                                                             args=(step, index, active, error,)))
             # Start all processes
             for p in processes:
                 p.start()
@@ -1999,10 +2065,14 @@ class Chip:
 
             # Make a clean exit if one of the steps failed
             halt = 0
-            for step in self.getkeys('flowgraph'):
+            for step in steplist:
                 index_error = 1
-                for index in range(self.get('flowgraph', step, 'nproc')):
-                    stepstr = step + str(index)
+                if self.get('arg', 'index'):
+                    indexlist = [self.get('arg', 'index')]
+                else:
+                    indexlist = self.getkeys('flowgraph', step)
+                for index in indexlist:
+                    stepstr = step + index
                     index_error = index_error & error[stepstr]
                 halt = halt + index_error
             if halt:
@@ -2164,7 +2234,7 @@ class Chip:
                         except:
                             errormsg = "Type mismatch. Cannot cast item to int."
                             ok = False
-                    else:
+                    elif item is not None:
                         errormsg = "Type mismach."
                         ok = False
 

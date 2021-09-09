@@ -45,15 +45,13 @@ proc design_has_macros {} {
 if {[llength $sc_def] > 0} {
     #TODO: Only one def supported for now
     read_def -floorplan_initialize $sc_def
-} elseif {[llength $sc_floorplan] > 0} {
-    read_def -floorplan_initialize "inputs/$sc_design.def"
 } else {
 
     #########################
     #Init Floorplan
     #########################
-    if {[dict exists $sc_cfg asic diearea] &&
-        [dict exists $sc_cfg asic corearea]} {
+    if {[llength [dict get $sc_cfg asic diearea]] > 0 &&
+        [llength [dict get $sc_cfg asic corearea]] > 0} {
 	#NOTE: assuming a two tuple value as lower left, upper right
         set sc_diearea   [dict get $sc_cfg asic diearea]
         set sc_corearea  [dict get $sc_cfg asic corearea]

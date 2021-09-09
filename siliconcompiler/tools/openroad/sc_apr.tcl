@@ -94,32 +94,13 @@ set sc_threads [dict get $sc_cfg eda $sc_tool $sc_step $sc_index threads]
 ###############################
 
 # MACROS
-if {[dict exists $sc_cfg asic macrolib]} {
-    set sc_macrolibs [dict get $sc_cfg asic macrolib]
-} else {
-    set sc_macrolibs    ""
-}
+set sc_macrolibs [dict get $sc_cfg asic macrolib]
 
 # CONSTRAINTS
-if {[dict exists $sc_cfg constraint]} {
-    set sc_constraint [dict get $sc_cfg constraint]
-} else {
-    set sc_constraint  ""
-}
+set sc_constraint [dict get $sc_cfg constraint]
 
 # DEF
-if {[dict exists $sc_cfg asic def]} {
-    set sc_def [dict get $sc_cfg asic def]
-} else {
-    set sc_def  ""
-}
-
-# FLOORPLAN
-if {[dict exists $sc_cfg asic floorplan]} {
-    set sc_floorplan [dict get $sc_cfg asic floorplan]
-} else {
-    set sc_floorplan  ""
-}
+set sc_def [dict get $sc_cfg asic def]
 
 ###############################
 # Read Files

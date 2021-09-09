@@ -22,7 +22,8 @@ Welcome to SiliconCompiler's documentation!
    :caption: Tutorials
    :numbered:
 
-   tutorials/workflow
+   tutorials/asicflow
+   tutorials/toolsetup
    tutorials/zerosoc
 
 .. toctree::
