@@ -50,8 +50,8 @@ if {[llength $sc_def] > 0} {
     #########################
     #Init Floorplan
     #########################
-    if {[dict exists $sc_cfg asic diearea] &&
-        [dict exists $sc_cfg asic corearea]} {
+    if {[llength [dict get $sc_cfg asic diearea]] > 0 &&
+        [llength [dict get $sc_cfg asic corearea]] > 0} {
 	#NOTE: assuming a two tuple value as lower left, upper right
         set sc_diearea   [dict get $sc_cfg asic diearea]
         set sc_corearea  [dict get $sc_cfg asic corearea]
