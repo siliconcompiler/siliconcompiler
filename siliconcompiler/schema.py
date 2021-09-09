@@ -1578,7 +1578,7 @@ def schema_flowstatus(cfg, step='default', index='default'):
         'type': '[str]',
         'lock': 'false',
         'requirement': None,
-        'defvalue': None,
+        'defvalue': [],
         'short_help': 'Flowgraph select record',
         'example': [
             "cli: -flowstatus_select 'cts 0 place42'",
