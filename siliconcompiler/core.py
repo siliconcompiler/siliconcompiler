@@ -1724,7 +1724,7 @@ class Chip:
 
         # Directory manipulation
         cwd = os.getcwd()
-        if os.path.isdir(stepdir) and (not self.get('remote', 'addr')):
+        if os.path.isdir(stepdir):
             shutil.rmtree(stepdir)
         os.makedirs(stepdir, exist_ok=True)
         os.chdir(stepdir)
