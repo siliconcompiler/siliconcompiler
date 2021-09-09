@@ -1714,7 +1714,7 @@ class Chip:
         # and send it to a compute node in a munge-encrypted 'srun' command.
         # (Run the initial 'import' stages without srun)
         if (self.get('cluster') == 'slurm') and \
-           (not 'source' in self.get('flowgraph', step, index, 'input')):
+           (not self.getkeys('flowgraph', step, index, 'input')):
             # Get the prior step to use as an input. TODO: For now, use the same
             # 'last available config file' choice as the merge logic further down.
             job_dir = "/".join([self.get('dir'),
