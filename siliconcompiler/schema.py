@@ -1442,7 +1442,7 @@ def schema_flowgraph(cfg, step='default', index='default'):
     stepin = 'default'
     cfg['flowgraph'][step][index]['input'] = {}
     cfg['flowgraph'][step][index]['input'][stepin] = {
-        'switch': "-flowgraph_input 'step index stepin <int>'",
+        'switch': "-flowgraph_input 'step index stepin <str>'",
         'type': '[str]',
         'lock': 'false',
         'requirement': None,
