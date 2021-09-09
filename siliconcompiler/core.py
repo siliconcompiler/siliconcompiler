@@ -1721,8 +1721,8 @@ class Chip:
                                 self.get('design'),
                                 self.get('jobname') + str(self.get('jobid'))])
             in_cfg = None
-            for input_step in self.get('flowgraph', step, index, 'input'):
-                for input_index in range(self.get('flowgraph', input_step, index, 'nproc')):
+            for input_step in self.getkeys('flowgraph', step, index, 'input'):
+                for input_index in self.get('flowgraph', step, index, 'input', input_step):
                     cfgfile = f"{job_dir}/{input_step}{input_index}/outputs/{self.get('design')}.pkg.json"
                     if os.path.isfile(cfgfile):
                         in_cfg = cfgfile
