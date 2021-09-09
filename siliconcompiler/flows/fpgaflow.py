@@ -6,7 +6,7 @@ import re
 ####################################################
 # Flowgraph Setup
 ####################################################
-def setup_flow(chip, partname):
+def setup_flow(chip, partname, N=1):
     '''
     This is a standard open source FPGA flow based on high quality tools.
     The flow supports SystemVerilog, VHDL, and mixed SystemVerilog/VHDL
@@ -36,26 +36,37 @@ def setup_flow(chip, partname):
     if re.match('ice', partname):
         chip.set('fpga','vendor', 'lattice')
 
-
     # A simple linear flow
     flowpipe = ['import',
                 'syn',
                 'apr',
                 'bitstream']
+
+    # Linear flow
+    index = '0'
+
     # Set the steplist which can run remotely (if required)
     chip.set('remote', 'steplist', flowpipe[1:])
 
-    #TODO: add 'program' stage
-
+    # Minimal setup
     for i, step in enumerate(flowpipe):
-        chip.set('flowgraph', flowpipe[i], 'mergeop', 'min')
-        chip.set('flowgraph', flowpipe[i], 'nproc',  1)
-        for metric in chip.getkeys('metric','default', 'default'):
-            chip.set('flowgraph', flowpipe[i], 'weight',  metric, 1.0)
+
+        # Metrics
+        chip.set('flowgraph', step, index, 'weight',  'cellarea', 1.0)
+        chip.set('flowgraph', step, index, 'weight',  'peakpower', 1.0)
+        chip.set('flowgraph', step, index, 'weight',  'standbypower', 1.0)
+
+        # Goals
+        chip.set('metric', step, index, 'drv', 'errors', 0)
+        #chip.set('metric', step, index, 'drv', 'warnings', 0)
+        chip.set('metric', step, index, 'drv', 'goal', 0.0)
+        chip.set('metric', step, index, 'holdwns', 'goal', 0.0)
+        chip.set('metric', step, index, 'holdtns', 'goal', 0.0)
+        chip.set('metric', step, index, 'setupwns', 'goal', 0.0)
+        chip.set('metric', step, index, 'setuptns', 'goal', 0.0)
+
         if i > 0:
-            chip.add('flowgraph', flowpipe[i], 'input', flowpipe[i-1])
-        else:
-            chip.add('flowgraph', flowpipe[i], 'input', 'source')
+            chip.add('flowgraph', flowpipe[i], index, 'input', flowpipe[i-1], "0")
 
     # Per step tool selection
     for step in flowpipe:
@@ -81,7 +92,7 @@ def setup_flow(chip, partname):
                 tool = 'iceprog'
             else:
                 tool = 'openfpga'
-        chip.set('flowgraph', step, 'tool', tool)
+        chip.set('flowgraph', step, index, 'tool', tool)
 
 ##################################################
 if __name__ == "__main__":
@@ -96,4 +107,4 @@ if __name__ == "__main__":
     setup_flow(chip, "partname")
     # write out results
     chip.writecfg(output)
-    chip.write_flowgraph(prefix + ".svg")
+    chip.writegraph(prefix + ".png")
