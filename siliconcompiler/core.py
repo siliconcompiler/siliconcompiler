@@ -1729,7 +1729,7 @@ class Chip:
 
             # Create an 'srun' command.
             run_cmd = 'srun bash -c "'
-            run_cmd += f"sc -cfg {in_cfg} -steplist {step} -cluster local"
+            run_cmd += f"sc -cfg {in_cfg} -arg_step {step} -cluster local"
             run_cmd += '"'
 
             # Run the 'srun' command.
@@ -1842,9 +1842,6 @@ class Chip:
         # (for tools and slurm)
         self.set('arg', 'step', step, clobber=True)
         self.set('arg', 'index', index, clobber=True)
-
-        # Reset the steplist.
-        self.set('steplist', [], clobber=True)
 
         # Writing out command file
         self.writecfg("sc_manifest.json")
