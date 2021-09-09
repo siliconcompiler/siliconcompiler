@@ -1723,8 +1723,7 @@ class Chip:
             in_cfg = None
             for input_step in self.getkeys('flowgraph', step, index, 'input'):
                 for input_index in self.get('flowgraph', step, index, 'input', input_step):
-                    item = input_step + input_index
-                    cfgfile = f"../{item}/outputs/{design}.pkg.json"
+                    cfgfile = f"{job_dir}/{input_step}{input_index}/outputs/{self.get('design')}.pkg.json"
                     if os.path.isfile(cfgfile):
                         in_cfg = cfgfile
 
