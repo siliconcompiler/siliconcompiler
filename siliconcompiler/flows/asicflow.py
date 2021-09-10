@@ -120,7 +120,8 @@ def setup_flow(chip, process, signoff=True):
 if __name__ == "__main__":
 
     prefix = os.path.splitext(os.path.basename(__file__))[0]
-    chip = siliconcompiler.Chip()
-    setup_flow(chip,"freepdk45")
-    chip.writecfg(prefix + '.json')
-    chip.writegraph(prefix + '.png')
+    for target in ('freepdk45', 'skywater130'):
+        chip = siliconcompiler.Chip()
+        setup_flow(chip, target)
+        chip.writecfg(f'{prefix}_{target}.json')
+        chip.writegraph(f'{prefix}_{target}.png')
