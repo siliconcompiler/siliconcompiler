@@ -1715,25 +1715,76 @@ class Chip:
         # (Run the initial 'import' stages without srun)
         if (self.get('cluster') == 'slurm') and \
            (self.getkeys('flowgraph', step, index, 'input')):
-            # Get the prior step to use as an input. TODO: For now, use the same
-            # 'last available config file' choice as the merge logic further down.
-            job_dir = "/".join([self.get('dir'),
-                                self.get('design'),
-                                self.get('jobname') + str(self.get('jobid'))])
-            in_cfg = None
-            for input_step in self.getkeys('flowgraph', step, index, 'input'):
-                for input_index in self.get('flowgraph', step, index, 'input', input_step):
-                    cfgfile = f"{job_dir}/{input_step}{input_index}/outputs/{self.get('design')}.pkg.json"
-                    if os.path.isfile(cfgfile):
-                        in_cfg = cfgfile
+            if self.status['decrypt_key']:
+                # Job data is encrypted, and it should only be decrypted in the
+                # compute node's local storage.
+                tmp_job_dir = f"/tmp/{self.get('remote', 'jobhash')}"
+                keypath = f"{tmp_job_dir}/dk"
+                job_nameid = f"{chip.get('jobname')}{chip.get('jobid')}"
+                in_cfg = None
+                for input_step in self.getkeys('flowgraph', step, index, 'input'):
+                    for input_index in self.get('flowgraph', step, index, 'input', input_step):
+                        # We have no way of checking whether these input files
+                        # exist, because the data is encrypted. But if they don't
+                        # exist, the step will quickly error out and the metrics
+                        # should reflect that.
+                        in_cfg = "/".join([tmp_job_dir,
+                                           self.get('design'),
+                                           job_nameid,
+                                           f'{input_step}{input_index}',
+                                           'outputs',
+                                           f'{self.get("design")}.pkg.json',
+                                          ])
+                # The 'srun' command needs to:
+                # * copy encrypted data/key and unencrypted IV into local storage.
+                # * store the provided key in local storage.
+                # * call 'sc' with the provided key, wait for the job to finish.
+                # * copy updated encrypted data back into shared storage.
+                # * delete all unencrypted data.
+                run_cmd = 'srun bash -c "'
+                run_cmd += f"cp {self.get('dir')}/{job_nameid}.crypt "\
+                               f"{tmp_job_dir}/{job_nameid}.crypt ; "
+                run_cmd += f"cp {self.get('dir')}/{job_nameid}.iv "\
+                               f"{tmp_job_dir}/{job_nameid}.iv ; "
+                run_cmd += f"cp {self.get('dir')}/import.bin "\
+                               f"{tmp_job_dir}/import.bin ; "
+                run_cmd += f"touch {keypath} ; chmod 400 {keypath} ; "
+                run_cmd += f"echo \"{self.status('decrypt_key')}\" > {keypath} ; "
+                run_cmd += f"sc -cfg {in_cfg} "\
+                               f"-arg_step {step} -arg_index {index} "\
+                               f"-remote_key {keypath} -dir {tmp_job_dir} "\
+                               f"-cluster local -remote_addr '' ; "
+                run_cmd += f"cp {tmp_job_dir}/{job_nameid}.crypt "\
+                               f"{self.get('dir')}/{job_nameid}.crypt ; "
+                run_cmd += f"cp {tmp_job_dir}/{job_nameid}.iv "\
+                               f"{self.get('dir')}/{job_nameid}.iv ; "
+                run_cmd += f"rm -rf {tmp_job_dir}"
+                run_cmd += '"'
+            else:
+                # Job data is not encrypted, so it can be run in shared storage.
+                # Get the prior step to use as an input.
+                job_dir = "/".join([self.get('dir'),
+                                    self.get('design'),
+                                    self.get('jobname') + str(self.get('jobid'))])
+                in_cfg = None
+                for input_step in self.getkeys('flowgraph', step, index, 'input'):
+                    for input_index in self.get('flowgraph', step, index, 'input', input_step):
+                        cfgfile = '/'.join([job_dir,
+                                            f'{input_step}{input_index}',
+                                            'outputs',
+                                            f'{self.get("design")}.pkg.json'])
+                        if os.path.isfile(cfgfile):
+                            in_cfg = cfgfile
 
-            # Create an 'srun' command.
-            run_cmd = 'srun bash -c "'
-            run_cmd += f"sc -cfg {in_cfg} -arg_step {step} -cluster local"
-            run_cmd += '"'
+                # Create an 'srun' command.
+                run_cmd = 'srun bash -c "'
+                run_cmd += f"sc -cfg {in_cfg} "\
+                           f"-arg_step {step} -arg_index {index} "\
+                            "-cluster local -remote_addr ''"
+                run_cmd += '"'
 
-            # Run the 'srun' command.
-            subprocess.run(run_cmd, shell = True)
+                # Run the 'srun' command.
+                subprocess.run(run_cmd, shell = True)
 
             # Clear active/error bits and return after the 'srun' command.
             error[step + str(index)] = 0
