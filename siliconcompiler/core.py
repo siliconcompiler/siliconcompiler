@@ -1876,8 +1876,8 @@ class Chip:
                             "-cluster local -remote_addr ''"
                 run_cmd += '"'
 
-                # Run the 'srun' command.
-                subprocess.run(run_cmd, shell = True)
+            # Run the 'srun' command.
+            subprocess.run(run_cmd, shell = True)
 
             # Clear active/error bits and return after the 'srun' command.
             error[step + str(index)] = 0
