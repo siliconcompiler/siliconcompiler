@@ -15,6 +15,41 @@ from libc.stdio cimport fopen, fclose
 
 cimport _leflib
 
+import cython
+
+# Fused types that let us use helper functions to simplify layer geometry
+# extraction. All of these types grouped together have some common interface,
+# and using the fused types lets us make a single function that can deal with
+# all of them (similar to Python's duck-typing, but implemented using C++
+# templates under the hood).
+RectGeometry = cython.fused_type(
+    # common members: xl, yl, xh, yl
+    cython.pointer(lefiGeomRect),
+    cython.pointer(lefiGeomRectIter)
+)
+
+PointListGeometry = cython.fused_type(
+    # common members: x, y, numPoints, colorMask
+    cython.pointer(lefiGeomPath),
+    cython.pointer(lefiGeomPathIter),
+    cython.pointer(lefiGeomPolygon),
+    cython.pointer(lefiGeomPolygonIter)
+)
+
+ViaGeometry = cython.fused_type(
+    # common members: name, x, y, topMaskNum, cutMaskNum, bottomMaskNum
+    cython.pointer(lefiGeomVia),
+    cython.pointer(lefiGeomViaIter)
+)
+
+IterableGeometry = cython.fused_type(
+    # common members: xStart, yStart, xStep, yStep
+    cython.pointer(lefiGeomRectIter),
+    cython.pointer(lefiGeomPathIter),
+    cython.pointer(lefiGeomPolygonIter),
+    cython.pointer(lefiGeomViaIter)
+)
+
 class ParserState:
     def __init__(self):
         self.clear()
@@ -125,6 +160,35 @@ cdef int pin_cb(lefrCallbackType_e cb_type, lefiPin* pin, lefiUserData data):
 
     return 0
 
+cdef extract_points(PointListGeometry geo):
+    points = []
+    for i in range(geo.numPoints):
+        pt = (geo.x[i], geo.y[i])
+        points.append(pt)
+    return points
+
+cdef extract_rect(RectGeometry rect):
+    return (rect.xl, rect.yl, rect.xh, rect.yh)
+
+cdef extract_via(ViaGeometry via):
+    top = hex(via.topMaskNum)[2:]
+    cut = hex(via.cutMaskNum)[2:]
+    bot = hex(via.bottomMaskNum)[2:]
+
+    return {
+        'pt': (via.x, via.y),
+        'name': via.name.decode('ascii'),
+        'mask': top+cut+bot
+    }
+
+cdef extract_iterate(IterableGeometry iterable):
+    return {
+        'num_x': iterable.xStart,
+        'num_y': iterable.yStart,
+        'step_x': iterable.xStep,
+        'step_y': iterable.yStep
+    }
+
 cdef extract_layer_geometries(lefiGeometries* geos):
     geometries = []
     cur_geometry = {}
@@ -152,108 +216,50 @@ cdef extract_layer_geometries(lefiGeometries* geos):
             cur_geometry['width'] = geos.getWidth(i)
         elif geo_type == lefiGeomPathE:
             path = geos.getPath(i)
-
-            points = []
-            for j in range(path.numPoints):
-                points.append((path.x[i], path.y[i]))
-
             cur_geometry['shapes'].append({
-                'path': points,
+                'path': extract_points(path),
                 'mask': path.colorMask,
             })
         elif geo_type == lefiGeomPathIterE:
-            pathitr = geos.getPathIter(i)
-
-            points = []
-            for j in range(pathitr.numPoints):
-                points.append((pathitr.x[i], pathitr.y[i]))
-
+            pathiter = geos.getPathIter(i)
             cur_geometry['shapes'].append({
-                'path': points,
-                'mask': pathitr.colorMask,
-                'iterate': {
-                    'num_x': pathitr.xStart,
-                    'num_y': pathitr.yStart,
-                    'step_x': pathitr.xStep,
-                    'step_y': pathitr.yStep
-                }
+                'path': extract_points(pathiter),
+                'mask': pathiter.colorMask,
+                'iterate': extract_iterate(pathiter)
             })
         elif geo_type == lefiGeomRectE:
             rect = geos.getRect(i)
             cur_geometry['shapes'].append({
-                'rect': (rect.xl, rect.yl, rect.xh, rect.yh),
+                'rect': extract_rect(rect),
                 'mask':  rect.colorMask,
             })
         elif geo_type == lefiGeomRectIterE:
-            rectitr = geos.getRectIter(i)
+            rectiter = geos.getRectIter(i)
             cur_geometry['shapes'].append({
-                'rect': (rectitr.xl, rectitr.yl, rectitr.xh, rectitr.yh),
-                'mask': rectitr.colorMask,
-                'iterate': {
-                    'num_x': rectitr.xStart,
-                    'num_y': rectitr.yStart,
-                    'step_x': rectitr.xStep,
-                    'step_y': rectitr.yStep
-                }
+                'rect': extract_rect(rectiter),
+                'mask': rectiter.colorMask,
+                'iterate': extract_iterate(rectiter)
             })
         elif geo_type == lefiGeomPolygonE:
             poly = geos.getPolygon(i)
-
-            points = []
-            for j in range(poly.numPoints):
-                points.append((poly.x[i], poly.y[i]))
-
             cur_geometry['shapes'].append({
-                'polygon': points,
-                'mask': poly.colorMask,
+                'polygon': extract_points(poly),
+                'mask': poly.colorMask
             })
         elif geo_type == lefiGeomPolygonIterE:
-            polyitr = geos.getPolygonIter(i)
-
-            points = []
-            for j in range(polyitr.numPoints):
-                points.append((polyitr.x[i], polyitr.y[i]))
-
+            polyiter = geos.getPolygonIter(i)
             cur_geometry['shapes'].append({
-                'polygon': points,
-                'mask': polyitr.colorMask,
-                'iterate': {
-                    'num_x': polyitr.xStart,
-                    'num_y': polyitr.yStart,
-                    'step_x': polyitr.xStep,
-                    'step_y': polyitr.yStep
-                }
+                'polygon': extract_points(polyiter),
+                'mask': polyiter.colorMask,
+                'iterate': extract_iterate(polyiter)
             })
         elif geo_type == lefiGeomViaE:
             via = geos.getVia(i)
-
-            top = hex(via.topMaskNum).lstrip('0x')
-            cut = hex(via.cutMaskNum).lstrip('0x')
-            bot = hex(via.bottomMaskNum).lstrip('0x')
-
-            cur_geometry['via'] = {
-                'pt': (via.x, via.y),
-                'name': via.name.decode('ascii'),
-                'mask': top+cut+bot
-            }
+            cur_geometry['via'] = extract_via(via)
         elif geo_type == lefiGeomViaIterE:
-            viaitr = geos.getViaIter(i)
-
-            top = hex(viaitr.topMaskNum).lstrip('0x')
-            cut = hex(viaitr.cutMaskNum).lstrip('0x')
-            bot = hex(viaitr.bottomMaskNum).lstrip('0x')
-
-            cur_geometry['via'] = {
-                'pt': (viaitr.x, viaitr.y),
-                'name': viaitr.name.decode('ascii'),
-                'mask': top+cut+bot,
-                 'iterate': {
-                     'num_x': viaitr.xStart,
-                     'num_y': viaitr.yStart,
-                     'step_x': viaitr.xStep,
-                     'step_y': viaitr.yStep
-                }
-           }
+            viaiter = geos.getViaIter(i)
+            cur_geometry['via'] = extract_via(viaiter)
+            cur_geometry['via']['iterate'] = extract_iterate(viaiter)
 
     if cur_geometry != {}:
         geometries.append(cur_geometry)
@@ -271,6 +277,9 @@ cdef int macro_cb(lefrCallbackType_e cb_type, lefiMacro* macro, void* data):
 
 # The single wrapper function we expose
 def parse(path):
+    ''' See leflib/__init__.py for full docstring. We put it there to ensure
+    it's picked up by Sphinx.'''
+
     _state.clear()
 
     if lefrInit() != 0:
