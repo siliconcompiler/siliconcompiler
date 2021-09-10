@@ -2222,11 +2222,13 @@ class Chip:
             if self.get('remote', 'key'):
                 client_encrypt(self)
 
-        # Merge cfg back from last executed runstep
-        laststep = steplist[-1]
-        lastdir = self._getworkdir(laststep, '0')
-        self.cfg = self.readcfg(f"{lastdir}/outputs/{self.get('design')}.pkg.json")
-        self.set('flowstatus',laststep,'0', 'select', '0')
+        # Merge cfg back from last executed runstep.
+        # (Unless working with encrypted data)
+        if not 'decrypt_key' in self.status:
+            laststep = steplist[-1]
+            lastdir = self._getworkdir(laststep, '0')
+            self.cfg = self.readcfg(f"{lastdir}/outputs/{self.get('design')}.pkg.json")
+            self.set('flowstatus',laststep,'0', 'select', '0')
 
     ###########################################################################
     def show(self, filename):
