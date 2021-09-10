@@ -2,8 +2,11 @@
 import sys
 import siliconcompiler
 
-def main():
-    chip = siliconcompiler.Chip(loglevel="INFO")
+if __name__ != "__main__":
+    from tests.fixtures import test_wrapper
+
+def test_typecheck():
+    chip = siliconcompiler.Chip()
 
     error = 0
 
@@ -47,11 +50,8 @@ def main():
     else:
         chip.error = 0
 
-    if error:
-        print("FAIL")
-        sys.exit(1)
+    assert (error == 0)
 
 #########################
 if __name__ == "__main__":
-    sys.exit(main())
-    print("errorcode=",error)
+    test_typecheck()
