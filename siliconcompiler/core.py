@@ -449,20 +449,49 @@ class Chip:
                 self.logger.critical("EDA flow %s not found.", edaflow)
                 sys.exit(1)
 
+
     ###########################################################################
-    def fork(self, step, n, index='0'):
+    def getsinks(self, step, index, cfg=None):
+        '''
+        Finds the destinations of the current step/index.
+        Returns a dictionary of step/index.
+        '''
+        if cfg is None:
+            cfg = self.cfg
+
+        sinks ={}
+        for a in self.getkeys('flowgraph', cfg=cfg):
+            for b in self.getkeys('flowgraph', a, cfg=cfg):
+                if self.getkeys('flowgraph', a, b, 'input'):
+                    for c in self.getkeys('flowgraph', a, b, 'input'):                    
+                        for d in self.get('flowgraph', a, b, 'input', c):
+                            if (step==c) & (index==d):
+                                sinks[a] = b
+
+        return sinks
+
+    ###########################################################################
+    def fork(self, step, index, n):
         '''
         Clones a flowgraph step to n way. Settings from step/index are copied
         n-way.
         '''
 
-        print(self.cfg['flowgraph'][step][index])
+        #clone step/index n ways
         cfglocal = copy.deepcopy(self.cfg['flowgraph'][step][index])
-
         for i in range(n):
             newindex = str(int(index)+i+1)
             self.cfg['flowgraph'][step][newindex] = copy.deepcopy(cfglocal)
 
+        #finding all steps that depend on this one
+        sinks = self.getsinks(step,index)
+
+        #updating the input indexes of those steps
+        for k, v in sinks.items():
+            for i in range(n):
+                print(step, index, k,v,i)
+                self.add('flowgraph', str(k), str(v), 'input', step, str(i+1)) 
+            
     ###########################################################################
     def help(self, *args):
         """
@@ -1476,7 +1505,7 @@ class Chip:
         return n
 
     ###########################################################################
-    def summary(self, filename=None):
+    def summary(self):
         '''
         Creates a summary of the run metrics generated from the 'start' step
         to the 'stop' step.
@@ -1489,7 +1518,7 @@ class Chip:
             >>> summary()
             Prints out a summary of the run to stdout.
         '''
-
+        
         if self.get('steplist'):
             steplist = self.get('steplist')
         else:
@@ -1528,14 +1557,28 @@ class Chip:
 
         #Creating table of real values
         metrics = []
+
+        #Creating index selecto
+        metrics.append(" input")
+        row = []
+        for step in steplist:
+            if not self.getkeys('flowgraph', step, '0','input'):
+                sel_in = ""
+            elif self.get('flowstatus', step, '0', 'select'):
+                sel_in = self.get('flowstatus', step, '0', 'select')[0]
+                if len(self.get('flowstatus', step, '0', 'select'))>1:
+                    sel_in.replace(r"\d+$", "**")
+            else:
+                stepsel= self.getkeys('flowgraph', step, '0', 'input')[0]
+                isel = self.get('flowgraph', step, '0', 'input', stepsel)[0]
+                sel_in = stepsel + isel
+            row.append(" " + sel_in.center(colwidth))
+        data.append(row)
+        
         for metric in self.getkeys('metric', 'default', 'default'):
             metrics.append(" " + metric)
             row = []
             for step in steplist:
-                #TODO: fix for parallel processing properly!
-                #need to allow for facts that minimum works on next step
-                #so it needs to be recorded at step
-                index = self.get('flowstatus', step, '0', 'select')
                 value = str(self.get('metric', step, '0', metric, 'real'))
                 row.append(" " + value.center(colwidth))
             data.append(row)
@@ -1544,9 +1587,8 @@ class Chip:
         pandas.set_option('display.max_columns', 500)
         pandas.set_option('display.width', 100)
         df = pandas.DataFrame(data, metrics, steps)
-        if filename is None:
-            print(df.to_string())
-            print("-"*135)
+        print(df.to_string())
+        print("-"*135)
 
     ###########################################################################
     def getsteps(self, cfg=None):
@@ -2295,6 +2337,7 @@ class Chip:
 
 
         return (ok, errormsg)
+    
     #######################################
     def _makecmd(self, tool, step, index):
         '''
