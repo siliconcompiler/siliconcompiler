@@ -26,7 +26,18 @@ def test_tool_option():
 
     # No need to run beyond place, we just want to check that setting place_density
     # doesn't break anything.
-    chip.set('steplist', ['import', 'syn', 'floorplan', 'physyn', 'place'])
+    steplist = [
+        'import', 
+        'syn', 
+        'synmin', 
+        'floorplan',
+        'floorplanmin',
+        'physyn',
+        'physynmin',
+        'place',
+        'placemin'
+    ]
+    chip.set('steplist', steplist)
 
     # Run the chip's build process synchronously.
     chip.run()
