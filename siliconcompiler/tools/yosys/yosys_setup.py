@@ -74,6 +74,23 @@ def pre_process(chip, step, index):
         with open('fpga_lutsize.tcl', 'w') as f:
             f.write('set lutsize ' + str(lut_size))
 
+
+################################
+# Version Check
+################################
+
+def check_version(chip, step, index, version):
+    ''' Tool specific version checking
+    '''
+    required = chip.get('eda', 'yosys', step, index, 'version')
+    #insert code for parsing the funtion based on some tool specific
+    #semantics.
+    #syntax for version is string, >=string
+    
+    return 0
+
+
+            
 ################################
 # Post_process (post executable)
 ################################

@@ -136,6 +136,20 @@ def setup_tool(chip, step, index, mode='batch'):
     # Set the 'lock' bit for this tool.
     chip.set('eda', tool, step, index, 'exe', 'true', field='lock')
 
+################################
+# Version Check
+################################
+
+def check_version(chip, step, index, version):
+    ''' Tool specific version checking
+    '''
+    required = chip.get('eda', 'openroad', step, index, 'version')
+    #insert code for parsing the funtion based on some tool specific
+    #semantics.
+    #syntax for version is string, >=string
+    
+    return 0
+
 
 ################################
 # Post_process (post executable)
