@@ -77,10 +77,10 @@ ctypedef int (*lefrPinCbkFnType) (lefrCallbackType_e,
                                  lefiPin* l,
                                  lefiUserData);
 
-# # A declaration of the signature of all callbacks that return a lefiObstruction.
-# ctypedef int (*lefrObstructionCbkFnType) (lefrCallbackType_e,
-                                         # lefiObstruction* l,
-                                         # lefiUserData);
+# A declaration of the signature of all callbacks that return a lefiObstruction.
+ctypedef int (*lefrObstructionCbkFnType) (lefrCallbackType_e,
+                                         lefiObstruction* l,
+                                         lefiUserData);
 
 # # A declaration of the signature of all callbacks that return a lefiArray.
 # ctypedef int (*lefrArrayCbkFnType) (lefrCallbackType_e,
@@ -169,7 +169,7 @@ cdef extern from "lefrReader.hpp":
     # void lefrSetSiteCbk(lefrSiteCbkFnType)
     void lefrSetMacroBeginCbk(lefrStringCbkFnType)
     void lefrSetPinCbk(lefrPinCbkFnType)
-    # void lefrSetObstructionCbk(lefrObstructionCbkFnType)
+    void lefrSetObstructionCbk(lefrObstructionCbkFnType)
     # void lefrSetArrayCbk(lefrArrayCbkFnType)
     void lefrSetMacroCbk(lefrMacroCbkFnType)
     # void lefrSetLibraryEndCbk(lefrVoidCbkFnType)
@@ -428,6 +428,9 @@ cdef extern from "lefrReader.hpp":
         const char* name()
         double sizeX()
         double sizeY()
+
+    cdef cppclass lefiObstruction:
+        lefiGeometries* geometries()
 
     cdef cppclass lefiDensity:
         int numLayer()

@@ -160,6 +160,18 @@ cdef int pin_cb(lefrCallbackType_e cb_type, lefiPin* pin, lefiUserData data):
 
     return 0
 
+cdef int obs_cb(lefrCallbackType_e cb_type, lefiObstruction* obs, lefiUserData data):
+    if 'obs' not in _state.data['macros'][_state.cur_macro]:
+        _state.data['macros'][_state.cur_macro]['obs'] = []
+
+    geometries = extract_layer_geometries(obs.geometries())
+
+    # Append geometries even if empty so that the dictionary reflects how many
+    # OBS appear in the LEF (even if they're empty).
+    _state.data['macros'][_state.cur_macro]['obs'].append(geometries)
+
+    return 0
+
 cdef extract_points(PointListGeometry geo):
     points = []
     for i in range(geo.numPoints):
@@ -291,6 +303,7 @@ def parse(path):
     lefrSetMacroBeginCbk(macro_begin_cb)
     lefrSetMacroCbk(macro_cb)
     lefrSetPinCbk(pin_cb)
+    lefrSetObstructionCbk(obs_cb)
     lefrSetManufacturingCbk(double_cb)
 
     # Use this to pass path to C++ functions
