@@ -1,25 +1,17 @@
+'''
+Cython pitfalls to be aware of:
+- No need to deref() pointers we receive in C-style callbacks -- we can just
+  call methods on these directly using standard `.` notation (it's equivalent to
+  -> in C/C++). deref()ing and then assigning can result in memory errors due to
+  the destructor of the resulting object being called when the function goes out
+  of scope.
+- Control structures like if/else don't create their own scope in Python! They
+  do in C/C++, but remember that this code is all semantically equivalent to
+  Python.
+'''
+
 # These imports let us use libc file I/O to communicate with C++ lef library
 from libc.stdio cimport fopen, fclose
-
-# All of the callback functions that do not receive primitive types instead
-# receive a pointer to an object defined by the C++ LEF parser. In order to access
-# members of this object, we must dereference these pointers using Cython's
-# `deref` operator.
-#
-# IMPORTANT NOTE: For memory safety purposes, we MUST NOT use a deref'd pointer
-# as the right-hand side of an assignment.
-#
-# Although we can get away with it in some cases, this is super dangerous and to
-# be extra careful we should never do it. Even though the assignment performs
-# a copy-by-value, the problem is some of the LEF parser objects have members
-# that are pointers to other objects, and they free these pointers when their
-# destructor is called. Therefore, these internal objects will be double
-# free()'d when the function returns and the destructor of the original object
-# is called internally.
-#
-# Therefore, the correct way to call a method `func` of a C++ object pointer `o`
-# is `deref(o).func()`.
-from cython.operator import dereference as deref
 
 cimport _leflib
 
@@ -43,52 +35,52 @@ cdef int double_cb(lefrCallbackType_e cb_type, double value, lefiUserData data):
     elif cb_type == lefrVersionCbkType:
         _state.data['version'] = value
 
-cdef int units_cb(lefrCallbackType_e t, lefiUnits* u, lefiUserData data):
+cdef int units_cb(lefrCallbackType_e t, lefiUnits* units, lefiUserData data):
     if 'units' not in _state.data:
         _state.data['units'] = {}
 
-    if deref(u).hasDatabase():
-        _state.data['units']['database'] = deref(u).databaseNumber()
-    if deref(u).hasCapacitance():
-        _state.data['units']['capacitance'] = deref(u).capacitance()
-    if deref(u).hasResistance():
-        _state.data['units']['resistance'] = deref(u).resistance()
-    if deref(u).hasTime():
-        _state.data['units']['time'] = deref(u).time()
-    if deref(u).hasPower():
-        _state.data['units']['power'] = deref(u).power()
-    if deref(u).hasCurrent():
-        _state.data['units']['current'] = deref(u).current()
-    if deref(u).hasVoltage():
-        _state.data['units']['voltage'] = deref(u).voltage()
-    if deref(u).hasFrequency():
-        _state.data['units']['frequency'] = deref(u).frequency()
+    if units.hasDatabase():
+        _state.data['units']['database'] = units.databaseNumber()
+    if units.hasCapacitance():
+        _state.data['units']['capacitance'] = units.capacitance()
+    if units.hasResistance():
+        _state.data['units']['resistance'] = units.resistance()
+    if units.hasTime():
+        _state.data['units']['time'] = units.time()
+    if units.hasPower():
+        _state.data['units']['power'] = units.power()
+    if units.hasCurrent():
+        _state.data['units']['current'] = units.current()
+    if units.hasVoltage():
+        _state.data['units']['voltage'] = units.voltage()
+    if units.hasFrequency():
+        _state.data['units']['frequency'] = units.frequency()
 
     return 0
 
-cdef int layer_cb(lefrCallbackType_e cb_type, lefiLayer* l, void* data):
+cdef int layer_cb(lefrCallbackType_e cb_type, lefiLayer* layer, void* data):
     if 'layers' not in _state.data:
         _state.data['layers'] = {}
 
-    name = deref(l).name().decode('ascii')
+    name = layer.name().decode('ascii')
     _state.data['layers'][name] = {}
 
-    if deref(l).hasType():
-        _state.data['layers'][name]['type'] = deref(l).type().decode('ascii')
-    if deref(l).hasPitch():
-        _state.data['layers'][name]['pitch'] = deref(l).pitch()
-    if deref(l).hasXYPitch():
-        _state.data['layers'][name]['pitch'] = (deref(l).pitchX(), deref(l).pitchY())
-    if deref(l).hasOffset():
-        _state.data['layers'][name]['offset'] = deref(l).offset()
-    if deref(l).hasXYOffset():
-        _state.data['layers'][name]['offset'] = (deref(l).offsetX(), deref(l).offsetY())
-    if deref(l).hasWidth():
-        _state.data['layers'][name]['width'] = deref(l).width()
-    if deref(l).hasArea():
-        _state.data['layers'][name]['area'] = deref(l).area()
-    if deref(l).hasDirection():
-        _state.data['layers'][name]['direction'] = deref(l).direction().decode()
+    if layer.hasType():
+        _state.data['layers'][name]['type'] = layer.type().decode('ascii')
+    if layer.hasPitch():
+        _state.data['layers'][name]['pitch'] = layer.pitch()
+    if layer.hasXYPitch():
+        _state.data['layers'][name]['pitch'] = (layer.pitchX(), layer.pitchY())
+    if layer.hasOffset():
+        _state.data['layers'][name]['offset'] = layer.offset()
+    if layer.hasXYOffset():
+        _state.data['layers'][name]['offset'] = (layer.offsetX(), layer.offsetY())
+    if layer.hasWidth():
+        _state.data['layers'][name]['width'] = layer.width()
+    if layer.hasArea():
+        _state.data['layers'][name]['area'] = layer.area()
+    if layer.hasDirection():
+        _state.data['layers'][name]['direction'] = layer.direction().decode()
 
     return 0
 
@@ -101,45 +93,44 @@ cdef int macro_begin_cb(lefrCallbackType_e cb_type, const char* name, lefiUserDa
 
     return 0
 
-cdef int pin_cb(lefrCallbackType_e cb_type, lefiPin* p, lefiUserData data):
+cdef int pin_cb(lefrCallbackType_e cb_type, lefiPin* pin, lefiUserData data):
     if 'pins' not in _state.data['macros'][_state.cur_macro]:
         _state.data['macros'][_state.cur_macro]['pins'] = {}
 
-
-    name = deref(p).name().decode('ascii')
+    name = pin.name().decode('ascii')
     _state.data['macros'][_state.cur_macro]['pins'][name] = {}
 
     ports = []
-    for i in range(deref(p).numPorts()):
-        portptr = deref(p).port(i)
-        port = {}
+    for i in range(pin.numPorts()):
+        port = pin.port(i)
+        port_data = {}
 
         # The CLASS of a port is stored in its list of items, so search for that
         # here.
-        for j in range(deref(portptr).numItems()):
-            if deref(portptr).itemType(j) == lefiGeomClassE:
-                port['class'] = deref(portptr).getClass(j).decode('ascii')
+        for j in range(port.numItems()):
+            if port.itemType(j) == lefiGeomClassE:
+                port_data['class'] = port.getClass(j).decode('ascii')
 
         # Otherwise, the other port "items" all refer to layerGeometries, which
         # are shared by several other types of things, so we extract them using
         # a separate helper function.
-        geometries = extract_layer_geometries(portptr)
+        geometries = extract_layer_geometries(port)
         if len(geometries) > 0:
-            port['layer_geometries'] = geometries
+            port_data['layer_geometries'] = geometries
 
-        ports.append(port)
+        ports.append(port_data)
 
     if len(ports) > 0:
         _state.data['macros'][_state.cur_macro]['pins'][name]['ports'] = ports
 
     return 0
 
-cdef extract_layer_geometries(lefiGeometries* g):
+cdef extract_layer_geometries(lefiGeometries* geos):
     geometries = []
     cur_geometry = {}
 
-    for i in range(deref(g).numItems()):
-        geo_type = deref(g).itemType(i)
+    for i in range(geos.numItems()):
+        geo_type = geos.itemType(i)
 
         if geo_type == lefiGeomLayerE:
             # Geometries start with LAYER statements. If we already have a
@@ -149,132 +140,131 @@ cdef extract_layer_geometries(lefiGeometries* g):
                 geometries.append(cur_geometry)
                 cur_geometry = {}
 
-            cur_geometry['layer'] = deref(g).getLayer(i).decode('ascii')
+            cur_geometry['layer'] = geos.getLayer(i).decode('ascii')
             cur_geometry['shapes'] = []
         elif geo_type == lefiGeomLayerExceptPgNetE:
             cur_geometry['exceptpgnet'] = True
         elif geo_type == lefiGeomLayerMinSpacingE:
-            cur_geometry['spacing'] = deref(g).getLayerMinSpacing(i)
+            cur_geometry['spacing'] = geos.getLayerMinSpacing(i)
         elif geo_type == lefiGeomLayerRuleWidthE:
-            cur_geometry['designrulewidth'] = deref(g).getLayerRuleWidth(i)
+            cur_geometry['designrulewidth'] = geos.getLayerRuleWidth(i)
         elif geo_type == lefiGeomWidthE:
-            cur_geometry['width'] = deref(g).getWidth(i)
+            cur_geometry['width'] = geos.getWidth(i)
         elif geo_type == lefiGeomPathE:
-            pathptr = deref(g).getPath(i)
+            path = geos.getPath(i)
 
             points = []
-            for j in range(deref(pathptr).numPoints):
-                points.append((deref(pathptr).x[i], deref(pathptr).y[i]))
+            for j in range(path.numPoints):
+                points.append((path.x[i], path.y[i]))
 
             cur_geometry['shapes'].append({
                 'path': points,
-                'mask': deref(pathptr).colorMask,
+                'mask': path.colorMask,
             })
         elif geo_type == lefiGeomPathIterE:
-            pathitrptr = deref(g).getPathIter(i)
+            pathitr = geos.getPathIter(i)
 
             points = []
-            for j in range(deref(pathitrptr).numPoints):
-                points.append((deref(pathitrptr).x[i], deref(pathitrptr).y[i]))
+            for j in range(pathitr.numPoints):
+                points.append((pathitr.x[i], pathitr.y[i]))
 
             cur_geometry['shapes'].append({
                 'path': points,
-                'mask': deref(pathitrptr).colorMask,
+                'mask': pathitr.colorMask,
                 'iterate': {
-                    'num_x': deref(pathitrptr).xStart,
-                    'num_y': deref(pathitrptr).yStart,
-                    'step_x': deref(pathitrptr).xStep,
-                    'step_y': deref(pathitrptr).yStep
+                    'num_x': pathitr.xStart,
+                    'num_y': pathitr.yStart,
+                    'step_x': pathitr.xStep,
+                    'step_y': pathitr.yStep
                 }
             })
         elif geo_type == lefiGeomRectE:
-            rectptr = deref(g).getRect(i)
+            rect = geos.getRect(i)
             cur_geometry['shapes'].append({
-                'rect': (deref(rectptr).xl, deref(rectptr).yl, deref(rectptr).xh, deref(rectptr).yh),
-                'mask':  deref(rectptr).colorMask,
+                'rect': (rect.xl, rect.yl, rect.xh, rect.yh),
+                'mask':  rect.colorMask,
             })
         elif geo_type == lefiGeomRectIterE:
-            rectitrptr = deref(g).getRectIter(i)
+            rectitr = geos.getRectIter(i)
             cur_geometry['shapes'].append({
-                'rect': (deref(rectitrptr).xl, deref(rectitrptr).yl, deref(rectitrptr).xh, deref(rectitrptr).yh),
-                'mask': deref(rectitrptr).colorMask,
+                'rect': (rectitr.xl, rectitr.yl, rectitr.xh, rectitr.yh),
+                'mask': rectitr.colorMask,
                 'iterate': {
-                    'num_x': deref(rectitrptr).xStart,
-                    'num_y': deref(rectitrptr).yStart,
-                    'step_x': deref(rectitrptr).xStep,
-                    'step_y': deref(rectitrptr).yStep
+                    'num_x': rectitr.xStart,
+                    'num_y': rectitr.yStart,
+                    'step_x': rectitr.xStep,
+                    'step_y': rectitr.yStep
                 }
             })
         elif geo_type == lefiGeomPolygonE:
-            polyptr = deref(g).getPolygon(i)
+            poly = geos.getPolygon(i)
 
             points = []
-            for j in range(deref(polyptr).numPoints):
-                points.append((deref(polyptr).x[i], deref(polyptr).y[i]))
+            for j in range(poly.numPoints):
+                points.append((poly.x[i], poly.y[i]))
 
             cur_geometry['shapes'].append({
                 'polygon': points,
-                'mask': deref(polyptr).colorMask,
+                'mask': poly.colorMask,
             })
         elif geo_type == lefiGeomPolygonIterE:
-            polyitrptr = deref(g).getPolygonIter(i)
+            polyitr = geos.getPolygonIter(i)
 
             points = []
-            for j in range(deref(polyitrptr).numPoints):
-                points.append((deref(polyitrptr).x[i], deref(polyitrptr).y[i]))
+            for j in range(polyitr.numPoints):
+                points.append((polyitr.x[i], polyitr.y[i]))
 
             cur_geometry['shapes'].append({
                 'polygon': points,
-                'mask': deref(polyitrptr).colorMask,
+                'mask': polyitr.colorMask,
                 'iterate': {
-                    'num_x': deref(polyitrptr).xStart,
-                    'num_y': deref(polyitrptr).yStart,
-                    'step_x': deref(polyitrptr).xStep,
-                    'step_y': deref(polyitrptr).yStep
+                    'num_x': polyitr.xStart,
+                    'num_y': polyitr.yStart,
+                    'step_x': polyitr.xStep,
+                    'step_y': polyitr.yStep
                 }
             })
         elif geo_type == lefiGeomViaE:
-            viaptr = deref(g).getVia(i)
+            via = geos.getVia(i)
 
-            top = hex(deref(viaptr).topMaskNum).lstrip('0x')
-            cut = hex(deref(viaptr).cutMaskNum).lstrip('0x')
-            bot = hex(deref(viaptr).bottomMaskNum).lstrip('0x')
+            top = hex(via.topMaskNum).lstrip('0x')
+            cut = hex(via.cutMaskNum).lstrip('0x')
+            bot = hex(via.bottomMaskNum).lstrip('0x')
 
             cur_geometry['via'] = {
-                'pt': (deref(viaptr).x, deref(viaptr).y),
-                'name': deref(viaptr).name.decode('ascii'),
+                'pt': (via.x, via.y),
+                'name': via.name.decode('ascii'),
                 'mask': top+cut+bot
             }
         elif geo_type == lefiGeomViaIterE:
-            viaitrptr = deref(g).getViaIter(i)
+            viaitr = geos.getViaIter(i)
 
-            print('via iter')
-            top = hex(deref(viaitrptr).topMaskNum).lstrip('0x')
-            cut = hex(deref(viaitrptr).cutMaskNum).lstrip('0x')
-            bot = hex(deref(viaitrptr).bottomMaskNum).lstrip('0x')
+            top = hex(viaitr.topMaskNum).lstrip('0x')
+            cut = hex(viaitr.cutMaskNum).lstrip('0x')
+            bot = hex(viaitr.bottomMaskNum).lstrip('0x')
 
             cur_geometry['via'] = {
-                'pt': (deref(viaitrptr).x, deref(viaitrptr).y),
-                'name': deref(viaitrptr).name.decode('ascii'),
+                'pt': (viaitr.x, viaitr.y),
+                'name': viaitr.name.decode('ascii'),
                 'mask': top+cut+bot,
                  'iterate': {
-                     'num_x': deref(viaitrptr).xStart,
-                     'num_y': deref(viaitrptr).yStart,
-                     'step_x': deref(viaitrptr).xStep,
-                     'step_y': deref(viaitrptr).yStep
+                     'num_x': viaitr.xStart,
+                     'num_y': viaitr.yStart,
+                     'step_x': viaitr.xStep,
+                     'step_y': viaitr.yStep
                 }
-            }
+           }
 
     if cur_geometry != {}:
         geometries.append(cur_geometry)
 
     return geometries
 
-cdef int macro_cb(lefrCallbackType_e cb_type, lefiMacro* m, void* data):
-    if deref(m).hasSize():
+cdef int macro_cb(lefrCallbackType_e cb_type, lefiMacro* macro, void* data):
+    if macro.hasSize():
         _state.data['macros'][_state.cur_macro]['size'] = {
-            'width': deref(m).sizeX(),
-            'height': deref(m).sizeY()
+            'width': macro.sizeX(),
+            'height': macro.sizeY()
         }
 
     return 0
