@@ -14,8 +14,15 @@ def setup_tool(chip, step, index):
     ''' Tool specific function to run before step execution
     '''
 
+    # If the 'lock' bit is set, don't reconfigure.
     tool = 'yosys'
     refdir = 'siliconcompiler/tools/yosys'
+    configured = chip.get('eda', tool, step, index, 'exe', field='lock')
+    if configured and (configured != 'false'):
+        chip.logger.warning('Tool already configured: ' + tool)
+        return
+
+    # Standard Setup
     chip.set('eda', tool, step, index, 'copy', 'true', clobber=False)
     chip.set('eda', tool, step, index, 'vendor', 'yosys', clobber=False)
     chip.set('eda', tool, step, index, 'exe', 'yosys', clobber=False)
@@ -32,9 +39,9 @@ def setup_tool(chip, step, index):
     #Schema requirements
     if chip.get('mode') == 'asic':
         chip.add('eda', tool, step, index, 'req', ",".join(['pdk', 'process']))
+        chip.add('eda', tool, step, index, 'req', ",".join(['design']))
         chip.add('eda', tool, step, index, 'req', ",".join(['asic', 'targetlib']))
     else:
-        chip.add('eda', tool, step, index, 'req', 'constraint')
         chip.add('eda', tool, step, index, 'req', ",".join(['fpga','partname']))
 
 def pre_process(chip, step, index):

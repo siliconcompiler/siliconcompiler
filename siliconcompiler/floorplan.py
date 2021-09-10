@@ -5,7 +5,7 @@ import math
 import jinja2
 from collections import namedtuple
 
-from siliconcompiler.leflib import Lef
+from siliconcompiler.leflib_old import Lef
 from siliconcompiler.schema_utils import schema_path
 
 # Set up Jinja

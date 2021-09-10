@@ -15,7 +15,22 @@ def schema_cfg():
 
     cfg = {}
 
-    # Software Version
+      # Print Software Version
+    cfg['scversion'] = {
+        'switch': "-scversion <str>",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': 'all',
+        'defvalue': None,
+        'short_help': 'The SC version number',
+        'example': ["cli: -scversion",
+                    "api: chip.get('scversion')"],
+        'help': """
+        Holds the SC software version number.
+        """
+    }
+
+    # Print SC Version
     cfg['version'] = {
         'switch': "-version <bool>",
         'type': 'bool',
@@ -67,6 +82,9 @@ def schema_cfg():
 
     # Designer runtime options
     cfg = schema_options(cfg)
+
+    # Data showtool options
+    cfg = schema_showtool(cfg)
 
     # Remote options
     cfg = schema_remote(cfg)
@@ -1414,68 +1432,34 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
 # Flow Configuration
 ###############################################################################
 
-def schema_flowgraph(cfg, step='default'):
+def schema_flowgraph(cfg, step='default', index='default'):
 
     cfg['flowgraph'] = {}
     cfg['flowgraph'][step] =  {}
+    cfg['flowgraph'][step][index] =  {}
 
-    # Flow step parallelism
-    cfg['flowgraph'][step]['nproc'] = {
-        'switch': "-flowgraph_nproc 'step <int>'",
-        'type': 'int',
-        'lock': 'false',
-        'requirement': 'all',
-        'defvalue': None,
-        'short_help': 'Flowgraph step parallelism',
-        'example': [
-            "cli: -flowgraph_nproc 'cts 10'",
-            "api:  chip.set('flowgraph','cts','nproc,'10')"],
-        'help': """
-        Integer specifying how many parallel processes to launch for step
-        the step specified Each forked process operates on the same input
-        data but on slightly different setup parameters as configured on
-        a per fork basis.
-        """
-    }
-
-    # Flow input dependancy
-    cfg['flowgraph'][step]['input'] = {
-        'switch': "-flowgraph_input 'step <str>'",
+    # Execution flowgraph
+    stepin = 'default'
+    cfg['flowgraph'][step][index]['input'] = {}
+    cfg['flowgraph'][step][index]['input'][stepin] = {
+        'switch': "-flowgraph_input 'step index stepin <str>'",
         'type': '[str]',
-        'lock': 'false',
-        'requirement': 'all',
-        'defvalue': [],
-        'short_help': 'Flowgraph Step Input',
-        'example': [
-            "cli: -flowgraph_input 'cts place'",
-            "api:  chip.set('flowgraph','cts','input,'place')"],
-        'help': """
-        List of input step dependancies for the current step. A step
-        with no dependancies (like 'import') should set the value to
-        'source'.
-        """
-    }
-
-    # Flow input merging
-    cfg['flowgraph'][step]['mergeop'] = {
-        'switch': "-flowgraph_mergeop 'step <str>'",
-        'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': [],
-        'short_help': 'Flowgraph Merge Operation',
+        'short_help': 'Flowgraph step input',
         'example': [
-            "cli: -flowgraph_mergeop 'cts min'",
-            "api:  chip.set('flowgraph','cts','mergeop','min')"],
+            "cli: -flowgraph_input 'cts 0 place 0'",
+            "api:  chip.set('flowgraph','cts','0','input,'place',0)"],
         'help': """
-        Function to use when merging data from multiple inputs. Valid
-        options are 'or' and 'min'.
+        List of inputs for the current step and index, listed as a
+        set of indices on a per step basis.
         """
     }
 
     # Flow graph score weights
-    cfg['flowgraph'][step]['weight'] = {}
-    cfg['flowgraph'][step]['weight']['default'] = {
+    cfg['flowgraph'][step][index]['weight'] = {}
+    cfg['flowgraph'][step][index]['weight']['default'] = {
         'switch': "-flowgraph_weight 'step metric <float>'",
         'type': 'float',
         'lock': 'false',
@@ -1493,7 +1477,7 @@ def schema_flowgraph(cfg, step='default'):
     }
 
     # Step tool
-    cfg['flowgraph'][step]['tool'] = {
+    cfg['flowgraph'][step][index]['tool'] = {
         'switch': "-flowgraph_tool 'step <str>'",
         'type': 'str',
         'lock': 'false',
@@ -1504,23 +1488,59 @@ def schema_flowgraph(cfg, step='default'):
                     "api: chip.set('flowgraph','place','tool','openroad')"],
         'help': """
         Name of the EDA tool to use for a specific step in the exeecution flow
-        graph.
+        graph. The name 'builtin' is reserved for built-in SC operations.
         """
     }
 
-    # Step showtool
-    cfg['flowgraph'][step]['showtool'] = {
-        'switch': "-flowgraph_showtool 'step <str>'",
+    # Function to execute within tool module
+    cfg['flowgraph'][step][index]['function'] = {
+        'switch': "-flowgraph_function 'step index <str>'",
         'type': 'str',
         'lock': 'false',
-        'requirement': 'all',
-        'defvalue': None,
-        'short_help': 'Flowgraph Show Tool Selection',
-        'example': ["cli: -flowgraph_showtool 'place openroad'",
-                    "api: chip.set('flowgraph','place','showtool','openroad')"],
+        'requirement': None,
+        'defvalue': [],
+        'short_help': 'Flowgraph function selection',
+        'example': [
+            "cli: -flowgraph_function 'cts 0 min'",
+            "api:  chip.set('flowgraph','cts','function','0', 'min')"],
         'help': """
-        Name of the tool to use for showing the output file for a specific step in
-        the exeecution flowgraph.
+        Function to use during runstep. The function is used in place
+        of the 'exe' parameter within the 'eda' schema. If the tool
+        is 'builtin', then the core API operations min, max, assert,
+        join can be accessed.
+        """
+    }
+
+    # Arguments passed by user to function
+    cfg['flowgraph'][step][index]['args'] = {
+        'switch': "-flowgraph_args 'step 0 <str>'",
+        'type': '[str]',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': [],
+        'short_help': 'Flowgraph function selection',
+        'example': [
+            "cli: -flowgraph_args 'cts 0 0'",
+            "api:  chip.add('flowgraph','cts',','0','args', '0')"],
+        'help': """
+        Arguments to pass to tool step.
+        """
+    }
+
+    # Valid bits set by user
+    cfg['flowgraph'][step][index]['valid'] = {
+        'switch': "-flowgraph_valid 'step 0 <str>'",
+        'type': 'bool',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': [],
+        'short_help': 'Flowgraph step/index valid bit',
+        'example': [
+            "cli: -flowgraph_valid 'cts 0 true'",
+            "api:  chip.add('flowgraph','cts',','0','valid', True)"],
+        'help': """
+        Defines the step/index as a valid/invalid runstep. The parameter
+        is used to control flow execution.
         """
     }
 
@@ -1534,25 +1554,9 @@ def schema_flowstatus(cfg, step='default', index='default'):
 
     cfg['flowstatus'] = {}
     cfg['flowstatus'][step] =  {}
-
-    # Flow step parallelism
-    cfg['flowstatus'][step]['select'] = {
-        'switch': "-flowstatus_select 'step <int>'",
-        'type': 'int',
-        'lock': 'false',
-        'requirement': None,
-        'defvalue': None,
-        'short_help': 'Flowgraph index select status',
-        'example': [
-            "cli: -flowstatus_select 'cts 10'",
-            "api:  chip.set('flowstatus','select','cts,'10')"],
-        'help': """
-        Status parameter that records the index selected as input by
-        the next step in the flowgraph.
-        """
-    }
-
     cfg['flowstatus'][step][index] = {}
+
+    # Flow error indicator
     cfg['flowstatus'][step][index]['error'] = {
         'switch': "-flowstatus_error 'step index <int>'",
         'type': 'int',
@@ -1565,6 +1569,57 @@ def schema_flowstatus(cfg, step='default', index='default'):
             "api:  chip.set('flowstatus','error','cts,'10')"],
         'help': """
         Status parameter that tracks runsteps that errored out.
+        """
+    }
+
+    # Flow input selector
+    cfg['flowstatus'][step][index]['select'] = {
+        'switch': "-flowstatus_select 'step index <str>'",
+        'type': '[str]',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': [],
+        'short_help': 'Flowgraph select record',
+        'example': [
+            "cli: -flowstatus_select 'cts 0 place42'",
+            "api:  chip.set('flowstatus', 'cts, '0', 'select', 'place42')"],
+        'help': """
+        Status parameter that records the list of 'step+index' strings to
+        indicate the input selected/copied into the current step.
+        """
+    }
+
+    # Flow step max
+    cfg['flowstatus'][step][index]['max'] = {
+        'switch': "-flowstatus_max 'step index <int>'",
+        'type': 'float',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'Flowgraph max record',
+        'example': [
+            "cli: -flowstatus_max 'cts 0 99.99'",
+            "api:  chip.set('flowstatus', 'cts, '0', 'max', '99.99')"],
+        'help': """
+        Status parameter of maximum value recorded from a
+        max() calculation.
+        """
+    }
+
+    # Flow step min
+    cfg['flowstatus'][step][index]['min'] = {
+        'switch': "-flowstatus_min 'step index <int>'",
+        'type': 'float',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'Flowgraph max record',
+        'example': [
+            "cli: -flowstatus_min 'cts 0 0.0'",
+            "api:  chip.set('flowstatus', 'cts, '0', 'max', '0.0')"],
+        'help': """
+        Status parameter of minimum value recorded from a
+        min() calculation.
         """
     }
 
@@ -1634,7 +1689,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'switch': "-eda_exe 'tool step index <str>'",
         'type': 'str',
         'lock': 'false',
-        'requirement': 'all',
+        'requirement': None,
         'defvalue': None,
         'short_help': 'Executable Name',
         'example': [
@@ -1687,7 +1742,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'switch': "-eda_version 'tool step index <str>'",
         'type': 'str',
         'lock': 'false',
-        'requirement': 'all',
+        'requirement': None,
         'defvalue': None,
         'short_help': 'Executable Version',
         'example': [
@@ -2390,11 +2445,11 @@ def schema_record(cfg, step='default', index='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': 'Step Inputs',
+        'short_help': 'Record of source files accessed',
         'example': ["cli: -record_input 'import 0 gcd.v'",
                     "api: chip.set('record','import','0','input','gcd.v')"],
         'help': """
-        Metric tracking all input files on a per step basis. This list
+        Record tracking all input files on a per step basis. This list
         include files entered by the user and files automatically found
         by the flow like in the case of the "-y" auto-discovery path.
         """
@@ -2406,11 +2461,11 @@ def schema_record(cfg, step='default', index='default'):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'short_help': 'Step Author',
+        'short_help': 'Record of run author',
         'example': ["cli: -record_author 'dfm 0 coyote'",
-                    "api: chip.set('record','dfm','0','author','wcoyote')"],
+                    "api: chip.set('record','dfm','0','author','coyote')"],
         'help': """
-        Metric tracking the author on a per step basis.
+        Record tracking the author on a per step basis.
         """
     }
 
@@ -2420,25 +2475,42 @@ def schema_record(cfg, step='default', index='default'):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'short_help': 'Step User ID',
+        'short_help': 'Record of run user ID',
         'example': ["cli: -record_userid 'dfm 0 0982acea'",
                     "api: chip.set('record','dfm','0','userid','0982acea')"],
         'help': """
-        Metric tracking the run userid on a per step basis.
+        Record tracking the run userid on a per step and index basis.
         """
     }
 
-    cfg['record'][step][index]['signature'] = {
-        'switch': "-record_signature 'step index <str>'",
+    cfg['record'][step][index]['publickey'] = {
+        'switch': "-record_publickey 'step index <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'short_help': 'Step Signature',
-        'example': ["cli: -record_signature 'dfm 0 473c04b'",
-                    "api: chip.set('record','dfm','0','signature','473c04b')"],
+        'short_help': 'Record of public key of run user',
+        'example': [
+            "cli: -record_publickey 'dfm 0 6EB695706EB69570'",
+            "api: chip.set('record','dfm','0','publickey','6EB695706EB69570')"],
         'help': """
-        Metric tracking the execution signature/hashid on a per step basis.
+        Record tracking the run public key on a per step and index basis.
+        """
+    }
+
+    cfg['record'][step][index]['hash'] = {
+        'switch': "-record_hash 'step index <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'Record of output files hash values',
+        'example': ["cli: -record_hash 'dfm 0 473c04b'",
+                    "api: chip.set('record','dfm','0','hash','473c04b')"],
+        'help': """
+        Record with list of computed hash values for each output file produced.
+        The ordered list of step otputs is taken from the eda 'output'
+        'parameter'.
         """
     }
 
@@ -2448,11 +2520,11 @@ def schema_record(cfg, step='default', index='default'):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'short_help': 'Step Organization',
+        'short_help': 'Record of run organzation',
         'example': ["cli: -record_org 'dfm 0 earth'",
                     "api: chip.set('record','dfm','0','org','earth')"],
         'help': """
-        Metric tracking the user's organization on a per step basis.
+        Record tracking the user's organization on a per step basis.
         """
     }
 
@@ -2462,41 +2534,41 @@ def schema_record(cfg, step='default', index='default'):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'short_help': 'Step Location',
+        'short_help': 'Record of run location',
         'example': ["cli: -record_location 'dfm 0 Boston'",
                     "api: chip.set('record','dfm','0','location,'Boston')"],
         'help': """
-        Metric tracking the user's location/site on a per step basis.
+        Record tracking the user's location/site on a per step basis.
         """
     }
 
-    cfg['record'][step][index]['date'] = {
-        'switch': "-record_date 'step index <str>'",
+    cfg['record'][step][index]['starttime'] = {
+        'switch': "-record_starttime 'step index <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'short_help': 'Step Date Stamp',
-        'example': ["cli: -record_date 'dfm 2021-05-01'",
-                    "api: chip.set('record','dfm','0','date','2021-05-01')"],
+        'short_help': 'Record of run start time',
+        'example': ["cli: -record_starttime 'dfm 2021-09-06 12:20:20'",
+                    "api: chip.set('record','dfm','0','starttime','2021-09-06 12:20:20')"],
         'help': """
-        Metric tracking the run date stamp on a per step basis.
-        The date format is the ISO 8601 format YYYY-MM-DD.
+        Record tracking the start time stamp on a per step and index basis.
+        The date format is the ISO 8601 format YYYY-MM-DD HR:MIN:SEC.
         """
     }
 
-    cfg['record'][step][index]['time'] = {
-        'switch': "-record_time 'step index <str>'",
+    cfg['record'][step][index]['endtime'] = {
+        'switch': "-record_endtime 'step index <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'short_help': 'Step Time Stamp',
-        'example': ["cli: -record_time 'dfm 0 11:35:40'",
-                    "api: chip.set('record','dfm','0','time','11:35:40')"],
+        'short_help': 'Record of run end time',
+        'example': ["cli: -record_endtime 'dfm 0 2021-09-06 12:20:20'",
+                    "api: chip.set('record','dfm','0','endtime','2021-09-06 12:20:20')"],
         'help': """
-        Metric tracking the local run start time on a per step basis.
-        The time format is specified in 24h-hr format hr:min:sec
+        Record tracking the end time stamp on a per step and index basis.
+        The date format is the ISO 8601 format YYYY-MM-DD HR:MIN:SEC.
         """
     }
 
@@ -2509,6 +2581,21 @@ def schema_record(cfg, step='default', index='default'):
 def schema_options(cfg):
     ''' Run-time options
     '''
+
+    # Print Software Version
+    cfg['version'] = {
+        'switch': "-version <bool>",
+        'type': 'bool',
+        'lock': 'false',
+        'requirement': 'all',
+        'defvalue': 'false',
+        'short_help': 'Prints version number',
+        'example': ["cli: -version",
+                    "api: chip.get('version')"],
+        'help': """
+        Prints out the SC software version number.
+        """
+    }
 
     cfg['mode'] = {
         'switch': "-mode <str>",
@@ -2834,6 +2921,31 @@ def schema_options(cfg):
         Specifies that all used files should be copied into the jobdir,
         overriding the per schema entry copy settings. The default
         is false.
+        """
+    }
+
+    return cfg
+
+############################################
+# Show tool configuration
+#############################################
+def schema_showtool(cfg, filetype='default'):
+
+    cfg['showtool'] = {}
+
+    # Remote IP address/host name running sc-server app
+    cfg['showtool'][filetype] = {
+        'switch': "-showtool 'filetype <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'Selects tool for file display',
+        'example': ["cli: -showtool 'gds klayout'",
+                    "api: chip.set('showtool', 'gds', 'klayout')"],
+        'help': """
+        Selects the tool to use by the show function for displaying the
+        specified filetype.
         """
     }
 
@@ -3167,17 +3279,73 @@ def schema_design(cfg):
         """
     }
 
-    cfg['origin'] = {
-        'switch': "-origin <str>",
+    cfg['location'] = {
+        'switch': "-location <str>",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'short_help': 'Design Origin',
-        'example': ["cli: -origin mars",
-                    "api: chip.set('origin', 'mars')"],
+        'short_help': 'Design Location',
+        'example': ["cli: -location mars",
+                    "api: chip.set('location', 'mars')"],
         'help': """
-        Record of design country of origin.
+        Optional location of origin for design.
+        """
+    }
+
+    cfg['org'] = {
+        'switch': "-org <str>",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'Design Organization',
+        'example': ["cli: -org humanity",
+                    "api: chip.set('org', 'humanity')"],
+        'help': """
+        Optional design organization
+        """
+    }
+
+    cfg['author'] = {
+        'switch': "-author <str>",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'User ID',
+        'example': ["cli: -author wiley",
+                    "api: chip.set('author', 'wiley')"],
+        'help': """
+        Optional author name.
+        """
+    }
+
+    cfg['userid'] = {
+        'switch': "-userid <str>",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'User ID',
+        'example': ["cli: -userid 0123",
+                    "api: chip.set('userid', '0123')"],
+        'help': """
+        Optional userid.
+        """
+    }
+
+    cfg['publickey'] = {
+        'switch': "-publickey <str>",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'User public key',
+        'example': ["cli: -publickey 6EB695706EB69570",
+                    "api: chip.set('signature', '6EB695706EB69570')"],
+        'help': """
+        Optional user public key.
         """
     }
 
