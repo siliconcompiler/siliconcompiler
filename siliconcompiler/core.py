@@ -1846,7 +1846,7 @@ class Chip:
                 run_cmd += f"cp {self.get('dir')}/import.bin "\
                                f"{tmp_job_dir}/import.bin ; "
                 run_cmd += f"touch {keypath} ; chmod 600 {keypath} ; "
-                run_cmd += f"echo -ne \"{keystr}\" > {keypath} ; "
+                run_cmd += f"echo -ne '{keystr}' > {keypath} ; "
                 run_cmd += f"chmod 400 {keypath} ; "
                 run_cmd += f"sc-crypt -mode decrypt -job_dir {tmp_build_dir} "\
                                f"-key_file {keypath} ; "
