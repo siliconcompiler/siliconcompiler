@@ -20,6 +20,12 @@ target_link_libraries(_leflib lef)
 target_link_libraries(_leflib ${PYTHON_LIBRARIES})
 target_include_directories(_leflib PRIVATE ${PYTHON_INCLUDE_DIRS})
 
+# We want to be extra strict about error checking -- enable all warnings and
+# treat them as errors. We only apply this to the _leflib target since the LEF
+# parser library has warnings under -Wall -pedantic, but there's not much we can
+# do about those.
+target_compile_options(_leflib PRIVATE -Wall -pedantic -Werror)
+
 # ** Stuff to include Si2 LEF library **
 set(LEF_DIR ${CMAKE_CURRENT_LIST_DIR}/third_party/tools/openroad/tools/OpenROAD/src/OpenDB/src/lef)
 
