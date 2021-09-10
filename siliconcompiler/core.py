@@ -1835,6 +1835,7 @@ class Chip:
                 # * copy updated encrypted data back into shared storage.
                 # * delete all unencrypted data.
                 run_cmd = 'srun bash -c "'
+                run_cmd += f"mkdir -p {tmp_job_dir} ; "
                 run_cmd += f"cp {self.get('dir')}/{job_nameid}.crypt "\
                                f"{tmp_job_dir}/{job_nameid}.crypt ; "
                 run_cmd += f"cp {self.get('dir')}/{job_nameid}.iv "\
