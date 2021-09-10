@@ -1845,13 +1845,13 @@ class Chip:
                 run_cmd += f"touch {keypath} ; chmod 600 {keypath} ; "
                 run_cmd += f"echo \"{self.status['decrypt_key']}\" > {keypath} ; "
                 run_cmd += f"chmod 400 {keypath} ; "
-                run_cmd += f"sc-crypto -mode decrypt -job_dir {tmp_job_dir} "\
+                run_cmd += f"sc-crypt -mode decrypt -job_dir {tmp_job_dir} "\
                                f"-key_file {keypath}"
                 run_cmd += f"sc -cfg {in_cfg} "\
                                f"-arg_step {step} -arg_index {index} "\
                                f"-dir {tmp_job_dir} "\
                                f"-cluster local -remote_addr '' ; "
-                run_cmd += f"sc-crypto -mode encrypt -job_dir {tmp_job_dir} "\
+                run_cmd += f"sc-crypt -mode encrypt -job_dir {tmp_job_dir} "\
                                f"-key_file {keypath}"
                 run_cmd += f"cp {tmp_job_dir}/{job_nameid}.crypt "\
                                f"{self.get('dir')}/{job_nameid}.crypt ; "
