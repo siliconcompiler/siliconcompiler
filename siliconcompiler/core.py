@@ -1668,22 +1668,22 @@ class Chip:
         steplist = list(args)
 
         # Keeping track of the steps/indexes that have goals met
-        index_failed = {}
+        failed = {}
         goals_met = False
         for step in steplist:
-            index_failed[step] = {}
+            failed[step] = {}
             for index in self.getkeys('flowgraph', step):
                 if self.get('flowstatus', step, index, 'error'):
-                    index_failed[step][index] = True
+                    failed[step][index] = True
                 else:
-                    index_failed[step][index] = False
+                    failed[step][index] = False
                     for metric in self.getkeys('metric', step, index):
                         if 'goal' in self.getkeys('metric', step, index, metric):
                             goal = self.get('metric', step, index, metric, 'goal')
                             real = self.get('metric', step, index, metric, 'real')
                             if bool(real > goal):
-                                index_failed[step][index] = True
-                if not index_failed[step][index]:
+                                failed[step][index] = True
+                if not failed[step][index]:
                     goals_met = True
 
         # Calculate max/min values for each metric
@@ -1717,15 +1717,14 @@ class Chip:
                         else:
                             scaled = max_val[step][metric]
                         score = score + scaled
-                    if (score < min_score) & (not(index_failed[step][index] & goals_met)):
+                    if (score < min_score) & (not (failed[step][index] & goals_met)):
                         min_score = score
-                        step_winner = step
-                        index_winner = index
+                        winner = step+index
 
         if (step is not None) & (index is not None):
-            self.set('flowstatus', step, index, 'select', sel_inputs)
+            self.set('flowstatus', step, index, 'select', winner)
 
-        return (score, step_winner, index_winner)
+        return (score, winner)
 
     ###########################################################################
     def verify(self, *steps, args=None, step=None, index=None):
