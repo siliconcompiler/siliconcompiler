@@ -1852,7 +1852,7 @@ class Chip:
                                f"-key_file {keypath} ; "
                 run_cmd += f"sc -cfg {in_cfg} "\
                                f"-arg_step {step} -arg_index {index} "\
-                               f"-dir {tmp_job_dir} -cluster local"\
+                               f"-dir {tmp_job_dir} -cluster local "\
                                f"-remote_addr '' -remote_key '' ; "
                 run_cmd += f"sc-crypt -mode encrypt -job_dir {tmp_build_dir} "\
                                f"-key_file {keypath} ; "
