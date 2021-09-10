@@ -1842,7 +1842,7 @@ class Chip:
                 run_cmd += f"cp {self.get('dir')}/import.bin "\
                                f"{tmp_job_dir}/import.bin ; "
                 run_cmd += f"touch {keypath} ; chmod 400 {keypath} ; "
-                run_cmd += f"echo \"{self.status('decrypt_key')}\" > {keypath} ; "
+                run_cmd += f"echo \"{self.status['decrypt_key']}\" > {keypath} ; "
                 run_cmd += f"sc -cfg {in_cfg} "\
                                f"-arg_step {step} -arg_index {index} "\
                                f"-remote_key {keypath} -dir {tmp_job_dir} "\
@@ -1871,7 +1871,7 @@ class Chip:
 
                 # Create an 'srun' command.
                 run_cmd = 'srun bash -c "'
-                run_cmd += f"sc -cfg {in_cfg} "\
+                run_cmd += f"sc -cfg {in_cfg} -dir {self.get('dir')} "\
                            f"-arg_step {step} -arg_index {index} "\
                             "-cluster local -remote_addr ''"
                 run_cmd += '"'
