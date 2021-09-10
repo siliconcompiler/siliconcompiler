@@ -1813,7 +1813,7 @@ class Chip:
                 # compute node's local storage.
                 tmp_job_dir = f"/tmp/{self.get('remote', 'jobhash')}"
                 keypath = f"{tmp_job_dir}/dk"
-                job_nameid = f"{chip.get('jobname')}{chip.get('jobid')}"
+                job_nameid = f"{self.get('jobname')}{self.get('jobid')}"
                 in_cfg = None
                 for input_step in self.getkeys('flowgraph', step, index, 'input'):
                     for input_index in self.get('flowgraph', step, index, 'input', input_step):
