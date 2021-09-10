@@ -6,7 +6,7 @@ import datetime
 import multiprocessing
 import traceback
 import asyncio
-import subprocess
+from subprocess import run, PIPE
 import os
 import sys
 import gzip
@@ -1956,12 +1956,13 @@ class Chip:
         veropt = self.get('eda', tool, step, index, 'vswitch')
         exe = self.get('eda', tool, step, index, 'exe')
         if veropt != None:
-            cmdstr = f'{exe} {veropt} > {exe}.log'
+            cmdlist = [exe, veropt] 
             self.logger.debug("Checking version of '%s' tool in step '%s'.", tool, step)
-            exepath = subprocess.run(cmdstr, shell=True)
-            if exepath.returncode > 0:
-                self.logger.error('Version check failed for %s.', cmdstr)
-                self._haltstep(step, index, error, active)
+            version = subprocess.run(cmdlist, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+            check_version = getattr(module, "check_version")
+            if check_version(self, step, index, version.stdout):
+                self.logger.error(f"Version check failed for {tool}. Check installation]")
+                self._haltstep(step, index, error, active) 
         else:
             self.logger.info("Skipping version checking of '%s' tool in step '%s'.", tool, step)
 

@@ -52,6 +52,21 @@ def pre_process(chip, step, index):
         f.write(f'set PDKPATH {pdk_path(chip)}')
 
 ################################
+# Version Check
+################################
+
+def check_version(chip, step, index, version):
+    ''' Tool specific version checking
+    '''
+    required = chip.get('eda', 'magic', step, index, 'version')
+    #insert code for parsing the funtion based on some tool specific
+    #semantics.
+    #syntax for version is string, >=string
+    
+    return 0
+
+        
+################################
 # Post_process (post executable)
 ################################
 
