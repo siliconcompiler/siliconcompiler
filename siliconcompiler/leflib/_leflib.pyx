@@ -93,6 +93,12 @@ cdef int units_cb(lefrCallbackType_e t, lefiUnits* units, lefiUserData data):
 
     return 0
 
+cdef int divider_chars_cb(lefrCallbackType_e cb_type, const char* val, lefiUserData data):
+    _state.data['dividerchars'] = val.decode('ascii')
+
+cdef int busbit_chars_cb(lefrCallbackType_e cb_type, const char* val, lefiUserData data):
+    _state.data['busbitchars'] = val.decode('ascii')
+
 cdef int layer_cb(lefrCallbackType_e cb_type, lefiLayer* layer, void* data):
     if 'layers' not in _state.data:
         _state.data['layers'] = {}
@@ -169,6 +175,66 @@ cdef int obs_cb(lefrCallbackType_e cb_type, lefiObstruction* obs, lefiUserData d
     # Append geometries even if empty so that the dictionary reflects how many
     # OBS appear in the LEF (even if they're empty).
     _state.data['macros'][_state.cur_macro]['obs'].append(geometries)
+
+    return 0
+
+cdef int clearance_measure_cb(lefrCallbackType_e cb_type, const char* val, lefiUserData data):
+    _state.data['clearancemeasure'] = val.decode('ascii')
+    return 0
+
+cdef int fixed_mask_cb(lefrCallbackType_e cb_type, int val, lefiUserData data):
+    # TODO: can val be 0?
+    _state.data['fixedmask'] = True
+    return 0
+
+cdef int max_via_stack_cb(lefrCallbackType_e cb_type, lefiMaxStackVia* maxstackvia, lefiUserData data):
+    _state.data['maxviastack'] = {
+        'value': maxstackvia.maxStackVia(),
+    }
+
+    if maxstackvia.hasMaxStackViaRange():
+        _state.data['maxviastack']['range'] = {
+            'bottom': maxstackvia.maxStackViaBottomLayer().decode('ascii'),
+            'top': maxstackvia.maxStackViaTopLayer().decode('ascii')
+        }
+
+    return 0
+
+cdef int site_cb(lefrCallbackType_e cb_type, lefiSite* site, lefiUserData data):
+    if 'sites' not in _state.data:
+        _state.data['sites'] = {}
+
+    site_data = {}
+    if site.hasClass():
+        site_data['class'] = site.siteClass().decode('ascii')
+
+    symmetries = []
+    if site.hasXSymmetry():
+        symmetries.append('X')
+    if site.hasYSymmetry():
+        symmetries.append('Y')
+    if site.has90Symmetry():
+        symmetries.append('R90')
+    if len(symmetries) > 0:
+        site_data['symmetry'] = symmetries
+
+    rowpattern = []
+    for i in range(site.numSites()):
+        rowpattern.append({
+            'name': site.siteName(i).decode('ascii'),
+            'orient': site.siteOrientStr(i).decode('ascii')
+        })
+    if len(rowpattern) > 0:
+        site_data['rowpattern'] = rowpattern
+
+    if site.hasSize():
+        site_data['size'] = {
+            'width': site.sizeX(),
+            'height': site.sizeY()
+        }
+
+    name = site.name().decode('ascii')
+    _state.data['sites'][name] = site_data
 
     return 0
 
@@ -343,6 +409,21 @@ cdef int viarule_cb(lefrCallbackType_e cb_type, lefiViaRule* viarule, void* data
 
     return 0
 
+cdef int use_min_spacing_cb(lefrCallbackType_e cb_type, lefiUseMinSpacing* minspacing, lefiUserData data):
+    if 'useminspacing' not in _state.data:
+        _state.data['useminspacing'] = {}
+
+    # I think this should always be 'OBS', but read from the object just to be flexible. 
+    name = minspacing.name().decode('ascii')
+    if minspacing.value() == 1:
+        val = 'ON'
+    else:
+        val = 'OFF'
+
+    _state.data['useminspacing'][name] = val
+
+    return 0
+
 # The single wrapper function we expose
 def parse(path):
     ''' See leflib/__init__.py for full docstring. We put it there to ensure
@@ -355,13 +436,20 @@ def parse(path):
 
     lefrSetUnitsCbk(units_cb)
     lefrSetVersionCbk(double_cb)
+    lefrSetDividerCharCbk(divider_chars_cb)
+    lefrSetBusBitCharsCbk(busbit_chars_cb)
     lefrSetLayerCbk(layer_cb)
+    lefrSetSiteCbk(site_cb)
     lefrSetMacroBeginCbk(macro_begin_cb)
     lefrSetMacroCbk(macro_cb)
     lefrSetPinCbk(pin_cb)
     lefrSetObstructionCbk(obs_cb)
+    lefrSetClearanceMeasureCbk(clearance_measure_cb)
     lefrSetManufacturingCbk(double_cb)
     lefrSetViaRuleCbk(viarule_cb)
+    lefrSetMaxStackViaCbk(max_via_stack_cb)
+    lefrSetFixedMaskCbk(fixed_mask_cb)
+    lefrSetUseMinSpacingCbk(use_min_spacing_cb)
 
     # Use this to pass path to C++ functions
     path_bytes = path.encode('ascii')

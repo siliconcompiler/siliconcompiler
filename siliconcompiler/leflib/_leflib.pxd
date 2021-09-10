@@ -62,10 +62,10 @@ ctypedef int (*lefrViaRuleCbkFnType) (lefrCallbackType_e,
                                         # lefiNonDefault* l,
                                         # lefiUserData);
 
-# # A declaration of the signature of all callbacks that return a lefiSite.
-# ctypedef int (*lefrSiteCbkFnType) (lefrCallbackType_e,
-                                  # lefiSite* l,
-                                  # lefiUserData);
+# A declaration of the signature of all callbacks that return a lefiSite.
+ctypedef int (*lefrSiteCbkFnType) (lefrCallbackType_e,
+                                  lefiSite* l,
+                                  lefiUserData);
 
 # A declaration of the signature of all callbacks that return a lefiMacro.
 ctypedef int (*lefrMacroCbkFnType) (lefrCallbackType_e,
@@ -113,17 +113,17 @@ ctypedef int (*lefrObstructionCbkFnType) (lefrCallbackType_e,
                                     # lefiUserData);
 
 # # A declaration of the signature of all callbacks that return a lefiUseMinSpacing.
-# ctypedef int (*lefrUseMinSpacingCbkFnType) (lefrCallbackType_e,
-                                           # lefiUseMinSpacing* l,
-                                           # lefiUserData);
+ctypedef int (*lefrUseMinSpacingCbkFnType) (lefrCallbackType_e,
+                                           lefiUseMinSpacing* l,
+                                           lefiUserData);
 
   # # NEW CALLBACK - If your callback returns a pointer to a new class then
   # # you must add a type function here.
 
 # # A declaration of the signature of all callbacks that return a lefiMaxStackVia.
-# ctypedef int (*lefrMaxStackViaCbkFnType) (lefrCallbackType_e,
-                                         # lefiMaxStackVia* l,
-                                         # lefiUserData);
+ctypedef int (*lefrMaxStackViaCbkFnType) (lefrCallbackType_e,
+                                         lefiMaxStackVia* l,
+                                         lefiUserData);
 
 # ctypedef int (*lefrMacroNumCbkFnType) (lefrCallbackType_e,
                                       # lefiNum l,
@@ -150,9 +150,9 @@ cdef extern from "lefrReader.hpp":
     # Callback setters
     void lefrSetUnitsCbk(lefrUnitsCbkFnType)
     void lefrSetVersionCbk(lefrDoubleCbkFnType)
-    # void lefrSetVersionStrCbk(lefrStringCbkFnType)
-    # void lefrSetDividerCharCbk(lefrStringCbkFnType)
-    # void lefrSetBusBitCharsCbk(lefrStringCbkFnType)
+    # void lefrSetVersionStrCbk(lefrStringCbkFnType) [WONT USE - redundant]
+    void lefrSetDividerCharCbk(lefrStringCbkFnType)
+    void lefrSetBusBitCharsCbk(lefrStringCbkFnType)
     # void lefrSetNoWireExtensionCbk(lefrStringCbkFnType)
     # void lefrSetCaseSensitiveCbk(lefrIntegerCbkFnType)
     # void lefrSetPropBeginCbk(lefrVoidCbkFnType)
@@ -166,7 +166,7 @@ cdef extern from "lefrReader.hpp":
     # void lefrSetDielectricCbk(lefrDoubleCbkFnType)
     # void lefrSetMinFeatureCbk(lefrMinFeatureCbkFnType)
     # void lefrSetNonDefaultCbk(lefrNonDefaultCbkFnType)
-    # void lefrSetSiteCbk(lefrSiteCbkFnType)
+    void lefrSetSiteCbk(lefrSiteCbkFnType)
     void lefrSetMacroBeginCbk(lefrStringCbkFnType)
     void lefrSetPinCbk(lefrPinCbkFnType)
     void lefrSetObstructionCbk(lefrObstructionCbkFnType)
@@ -193,9 +193,9 @@ cdef extern from "lefrReader.hpp":
     # void lefrSetAntennaInputCbk(lefrDoubleCbkFnType)
     # void lefrSetAntennaInoutCbk(lefrDoubleCbkFnType)
     # void lefrSetAntennaOutputCbk(lefrDoubleCbkFnType)
-    # void lefrSetClearanceMeasureCbk(lefrStringCbkFnType)
+    void lefrSetClearanceMeasureCbk(lefrStringCbkFnType)
     void lefrSetManufacturingCbk(lefrDoubleCbkFnType)
-    # void lefrSetUseMinSpacingCbk(lefrUseMinSpacingCbkFnType)
+    void lefrSetUseMinSpacingCbk(lefrUseMinSpacingCbkFnType)
     # void lefrSetMacroClassTypeCbk(lefrStringCbkFnType)
     # void lefrSetMacroOriginCbk(lefrMacroNumCbkFnType)
     # void lefrSetMacroSiteCbk(lefrMacroSiteCbkFnType)
@@ -203,10 +203,10 @@ cdef extern from "lefrReader.hpp":
     # void lefrSetMacroSizeCbk(lefrMacroNumCbkFnType)
     # void lefrSetMacroFixedMaskCbk(lefrIntegerCbkFnType)
     # void lefrSetMacroEndCbk(lefrStringCbkFnType)
-    # void lefrSetMaxStackViaCbk(lefrMaxStackViaCbkFnType)
+    void lefrSetMaxStackViaCbk(lefrMaxStackViaCbkFnType)
     # void lefrSetExtensionCbk(lefrStringCbkFnType)
     # void lefrSetDensityCbk(lefrDensityCbkFnType)
-    # void lefrSetFixedMaskCbk(lefrIntegerCbkFnType)
+    void lefrSetFixedMaskCbk(lefrIntegerCbkFnType)
 
     ctypedef enum lefrCallbackType_e:
        lefrUnspecifiedCbkType,
@@ -477,6 +477,32 @@ cdef extern from "lefrReader.hpp":
         char   propType(int index)
         int    propIsNumber(int index)
         int    propIsString(int index)
+
+    cdef cppclass lefiMaxStackVia:
+        int maxStackVia()
+        int hasMaxStackViaRange()
+        const char* maxStackViaBottomLayer()
+        const char* maxStackViaTopLayer()
+
+    cdef cppclass lefiSite:
+        const char* name()
+        int hasClass()
+        const char* siteClass()
+        double sizeX()
+        double sizeY()
+        int hasSize()
+        int hasXSymmetry()
+        int hasYSymmetry()
+        int has90Symmetry()
+        int hasRowPattern()
+        int numSites()
+        char* siteName(int index)
+        int   siteOrient(int index)
+        char* siteOrientStr(int index)
+
+    cdef cppclass lefiUseMinSpacing:
+        const char* name()
+        int value()
 
     cdef cppclass lefiDensity:
         int numLayer()
