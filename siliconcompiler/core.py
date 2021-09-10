@@ -1600,41 +1600,44 @@ class Chip:
         return list(allpaths)
 
 
-    ###########################################################################
-    def min(self, *args):
-        '''
-        Calculates the min value for all indexes of all steps provided.
-
-        Sequence of operation:
-
-        1. Check all steps/indexes to see if all metrics meets goals
-        2. Check all steps/indees to find global min/max for each metric
-        3. Select MIN value if all metrics are met.
-        4. Normalize the max value as sel = (val - MIN) / (MAX - MIN)
-        5. Return normalized value and index
-
-        Meeting metric goals takes precedence over compute metric scores.
-        Only goals with values set and metrics with weights set are considered
-        in the calulation.
-
-        Args:
-            args (string): A variable length list of steps
-
-        Returns:
-            tuple containing
-
-            - score (float): Minumum score
-            - step (str): Winning step
-            - index (str): Winning index
-
-        '''
-
-        (score, step, index) = _minmax(*args, op="min")
-
-        return (score, step, index)
 
     ###########################################################################
-    def max(self, *args):
+    def join(self, *steps, step=None, index=None):
+        '''
+        Joins all inputs from all indexes of all steps in args as a list.
+        The function sets the flowstatus select parameter in the schema
+        '''
+
+        steplist = list(args)
+        sel_inputs = []
+
+        for a in steplist:
+            for b in self.getkeys('flowgraph', a):
+                sel_inputs.append(a+b)
+
+        if (step is not None) & (index is not None):
+            self.set('flowstatus', step, index, 'select', sel_inputs)
+
+        return sel_inputs
+
+    ###########################################################################
+    def minimum(self, *steps, step=None, index=None):
+        '''
+        Wrapper function for minmax, with op = 'minimum'.
+        See minmax() function for full help.
+        '''
+        return _minmax(*steps, step=step, index=index, op="minimum")
+
+    ###########################################################################
+    def maximum(self, *steps, step=None, index=None):
+        '''
+        Wrapper function for minmax, with op = 'minimum'
+        See minmax() function for full help.
+        '''
+        return _minmax(*steps, step=step, index=index, op="maximim")
+
+    ###########################################################################
+    def minmax(self, *args, step=None, index=None, op="minimum"):
         '''
         Calculates the max value for all indexes of all steps provided.
 
@@ -1661,19 +1664,6 @@ class Chip:
             - index (str): Winning index
 
         '''
-
-        (score, step, index) = _minmax(*args, op="max")
-
-        return (score, step, index)
-
-    ###########################################################################
-    def _minmax(self, *args, op="min"):
-        '''
-        Returns the step and index with the 'min/max' score.
-
-        '''
-
-        self.logger.debug(f"Finding optimal index for steps '{steplist}'")
 
         steplist = list(args)
 
@@ -1713,9 +1703,10 @@ class Chip:
 
         # Select the minimum index
         min_score = {}
+        step_winner = ""
         for step in steplist:
             min_score = float("inf")
-            winner = 0
+            step_winner = 0
             for index in self.getkeys('flowgraph', step):
                 if not self.get('flowstatus', step, index, 'error'):
                     score = 0.0
@@ -1728,11 +1719,24 @@ class Chip:
                         score = score + scaled
                     if (score < min_score) & (not(index_failed[step][index] & goals_met)):
                         min_score = score
-                        winner = index
+                        step_winner = step
+                        index_winner = index
 
-        return (min_score, winner)
+        if (step is not None) & (index is not None):
+            self.set('flowstatus', step, index, 'select', sel_inputs)
 
+        return (score, step_winner, index_winner)
 
+    ###########################################################################
+    def verify(self, *steps, args=None, step=None, index=None):
+        pass
+
+    ###########################################################################
+    def mux(self, *steps, args=None, step=None, index=None):
+        '''
+        Mux that selects a single input from the index based on the args.
+        '''
+        pass
 
 
     ###########################################################################
@@ -1789,7 +1793,7 @@ class Chip:
 
         workdir = self._getworkdir(step,index)
         cwd = os.getcwd()
-        if os.path.isdir(workdir) and (not self.get('remote', 'addr')):
+        if os.path.isdir(workdir):
             shutil.rmtree(workdir)
         os.makedirs(workdir, exist_ok=True)
         os.chdir(workdir)
@@ -1826,15 +1830,40 @@ class Chip:
         start = time.time()
 
         ##################
-        # 5. Setting up runstep
+        # 5. Runnning builtin functions
 
         if self.get('flowgraph', step, index, 'function'):
             tool = 'builtin'
-            exe = self.get('flowgraph', step, index, 'function')
+            func = self.get('flowgraph', step, index, 'function')
+            args = self.get('flowgraph', step, index, 'args')
+            inputs = chip.getkeys('flowgraph', step, index, 'input')
+            # Figure out which inputs to select
+            if func == 'minimum':
+                chip.minimum(*inputs, step=step, index=index)
+            elif func == "maximum":
+                chip.maximum(*inputs, step=step, index=index)
+            elif func == "join":
+                chip.join(*inputs, step=step, index=index)
+            elif func == "mux":
+                chip.mux(*inputs, args=args, step=step, index=index)
+            elif func == "verify":
+                chip.verify(*inputs, args=args, step=step, index=index)
         else:
             tool = self.get('flowgraph', step, index, 'tool')
-            exe = self.get('eda', tool, step, index, 'exe')
 
+        ##################
+        # 5.5 Copy outputs from input steps
+        if not self.getkeys('flowgraph', step, index,'input'):
+            all_inputs = []
+        elif not self.get('flowstatus', step, index, 'select'):
+            all_inputs = [self.getkeys('flowgraph', step, index,'input')[0]+'0']
+        else:
+            all_inputs = self.getkeys('flowstatus', step, index, 'select')
+        for input_step in all_inputs:
+            shutil.copytree(f"../{input_step}/outputs", 'inputs/')
+
+        ##################
+        # 6.Run pre_process function if defined
         try:
             searchdir = "siliconcompiler.tools." + tool
             modulename = '.'+tool+'_setup'
@@ -1846,17 +1875,6 @@ class Chip:
             traceback.print_exc()
             self.logger.error(f"Pre-processing failed for '{tool}' in step '{step}'")
             self._haltstep(step, index, error, active)
-
-        ##################
-        # 6. Default linear pipe settings to simplify user setup
-        if not self.getkeys('flowgraph', step, index,'input'):
-            all_inputs = []
-        elif not self.get('flowstatus', step, index, 'select'):
-            all_inputs = [self.getkeys('flowgraph', step, index,'input')[0]+'0']
-        else:
-            all_inputs = self.getkeys('flowstatus', step, index, 'select')
-        for input_step in all_inputs:
-            shutil.copytree(f"../{input_step}/outputs", 'inputs/')
 
         ##################
         # 7. Copy Reference Scripts
@@ -1887,6 +1905,7 @@ class Chip:
         ##################
         # 11. Check exe version
         veropt = self.get('eda', tool, step, index, 'vswitch')
+        exe = self.get('eda', tool, step, index, 'exe')
         if veropt != None:
             cmdstr = f'{exe} {veropt} > {exe}.log'
             self.logger.debug("Checking version of '%s' tool in step '%s'.", tool, step)
@@ -2033,40 +2052,21 @@ class Chip:
                     else:
                         indexlist = self.getkeys('flowgraph', step)
                     if (step in steplist) & (index in indexlist):
-
-                        #setting step to active
                         active[stepstr] = 1
                         error[stepstr] = 1
-                        # Load module (could fail)
-                        try:
-                            tool = self.get('flowgraph', step, index, 'tool')
-                            searchdir = "siliconcompiler.tools." + tool
-                            modulename = '.'+tool+'_setup'
-                            self.logger.info(f"Setting up tool '{tool}' in step '{step}'")
-                            module = importlib.import_module(modulename, package=searchdir)
-                            setup_tool = getattr(module, "setup_tool")
-                            setup_tool(self, step, index)
-                        except:
-                            traceback.print_exc()
-                            self.logger.error(f"Setup failed for '{tool}' in step '{step}'")
-                            self.error = 1
-                        #run check for step, index
+                        self._setuptool(step, index)
                         self.check(step, index, mode='static')
-
                     else:
                         active[stepstr] = 0
                         error[stepstr] = 0
 
             # Implement auto-update of jobincrement
-            dirname = self.get('dir')
-            design = self.get('design')
-            jobname = self.get('jobname')
             try:
-                alljobs = os.listdir(dirname + "/" + design)
+                alljobs = os.listdir(self.get('dir') + "/" + self.get('design'))
                 if self.get('jobincr'):
                     jobid = 0
                     for item in alljobs:
-                        m = re.match(jobname+r'(\d+)', item)
+                        m = re.match(self.get('jobname')+r'(\d+)', item)
                         if m:
                             jobid = max(jobid, int(m.group(1)))
                     self.set('jobid', jobid + 1)
@@ -2351,6 +2351,21 @@ class Chip:
                                          self.get('design'),
                                          self.get('jobname') + str(self.get('jobid')),
                                          step + index]))
+
+    #######################################
+    def _setuptool(self, step, index):
+         try:
+             tool = self.get('flowgraph', step, index, 'tool')
+             searchdir = "siliconcompiler.tools." + tool
+             modulename = '.'+tool+'_setup'
+             self.logger.info(f"Setting up tool '{tool}' in step '{step}'")
+             module = importlib.import_module(modulename, package=searchdir)
+             setup_tool = getattr(module, "setup_tool")
+             setup_tool(self, step, index)
+         except:
+             traceback.print_exc()
+             self.logger.error(f"Setup failed for '{tool}' in step '{step}'")
+             self.error = 1
 
 ################################################################################
 # Annoying helper classes
