@@ -6,7 +6,7 @@ if __name__ != "__main__":
     from tests.fixtures import test_wrapper
 
 ##################################
-def test_api_show():
+def test_show():
     '''API test for show method
     '''
 
@@ -20,4 +20,4 @@ def test_api_show():
 
 #########################
 if __name__ == "__main__":
-    test_api_show()
+    test_show()

@@ -1,22 +1,21 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import sys
 import siliconcompiler
-from siliconcompiler.schema import schema_cfg
-from siliconcompiler.schema import schema_flowgraph
+import copy
+import re
+import os
 
 if __name__ != "__main__":
     from tests.fixtures import test_wrapper
 
-def test_asicflow():
+def test_fork():
 
-    chip = siliconcompiler.Chip(loglevel="DEBUG")
+    chip = siliconcompiler.Chip(loglevel="INFO")
     chip.target("freepdk45_asicflow")
-    chip.hash('import')
-
-    a = True
-
-    assert a
+    chip.writecfg("prefork.json")
+    chip.fork("syn", 3)
+    chip.writecfg("postfork.json")
 
 #########################
 if __name__ == "__main__":
-    sys.exit(main())
+    test_fork()

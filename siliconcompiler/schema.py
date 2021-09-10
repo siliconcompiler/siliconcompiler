@@ -1442,7 +1442,7 @@ def schema_flowgraph(cfg, step='default', index='default'):
     stepin = 'default'
     cfg['flowgraph'][step][index]['input'] = {}
     cfg['flowgraph'][step][index]['input'][stepin] = {
-        'switch': "-flowgraph_input 'step index stepin <int>'",
+        'switch': "-flowgraph_input 'step index stepin <str>'",
         'type': '[str]',
         'lock': 'false',
         'requirement': None,
@@ -1554,25 +1554,9 @@ def schema_flowstatus(cfg, step='default', index='default'):
 
     cfg['flowstatus'] = {}
     cfg['flowstatus'][step] =  {}
-
-    # Flow step parallelism
-    cfg['flowstatus'][step]['select'] = {
-        'switch': "-flowstatus_select 'step <int>'",
-        'type': 'int',
-        'lock': 'false',
-        'requirement': None,
-        'defvalue': None,
-        'short_help': 'Flowgraph index select status',
-        'example': [
-            "cli: -flowstatus_select 'cts 10'",
-            "api:  chip.set('flowstatus','select','cts,'10')"],
-        'help': """
-        Status parameter that records the index selected as input by
-        the next step in the flowgraph.
-        """
-    }
-
     cfg['flowstatus'][step][index] = {}
+
+    # Flow error indicator
     cfg['flowstatus'][step][index]['error'] = {
         'switch': "-flowstatus_error 'step index <int>'",
         'type': 'int',
@@ -1585,6 +1569,57 @@ def schema_flowstatus(cfg, step='default', index='default'):
             "api:  chip.set('flowstatus','error','cts,'10')"],
         'help': """
         Status parameter that tracks runsteps that errored out.
+        """
+    }
+
+    # Flow input selector
+    cfg['flowstatus'][step][index]['select'] = {
+        'switch': "-flowstatus_select 'step index <str>'",
+        'type': '[str]',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': [],
+        'short_help': 'Flowgraph select record',
+        'example': [
+            "cli: -flowstatus_select 'cts 0 place42'",
+            "api:  chip.set('flowstatus', 'cts, '0', 'select', 'place42')"],
+        'help': """
+        Status parameter that records the list of 'step+index' strings to
+        indicate the input selected/copied into the current step.
+        """
+    }
+
+    # Flow step max
+    cfg['flowstatus'][step][index]['max'] = {
+        'switch': "-flowstatus_max 'step index <int>'",
+        'type': 'float',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'Flowgraph max record',
+        'example': [
+            "cli: -flowstatus_max 'cts 0 99.99'",
+            "api:  chip.set('flowstatus', 'cts, '0', 'max', '99.99')"],
+        'help': """
+        Status parameter of maximum value recorded from a
+        max() calculation.
+        """
+    }
+
+    # Flow step min
+    cfg['flowstatus'][step][index]['min'] = {
+        'switch': "-flowstatus_min 'step index <int>'",
+        'type': 'float',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'Flowgraph max record',
+        'example': [
+            "cli: -flowstatus_min 'cts 0 0.0'",
+            "api:  chip.set('flowstatus', 'cts, '0', 'max', '0.0')"],
+        'help': """
+        Status parameter of minimum value recorded from a
+        min() calculation.
         """
     }
 
