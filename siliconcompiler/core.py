@@ -1812,14 +1812,13 @@ class Chip:
             if 'decrypt_key' in self.status:
                 # Job data is encrypted, and it should only be decrypted in the
                 # compute node's local storage.
+                job_nameid = f"{self.get('jobname')}{self.get('jobid')}"
                 tmp_job_dir = f"/tmp/{self.get('remote', 'jobhash')}"
+                tmp_build_dir = "/".join([tmp_job_dir,
+                                          self.get('design'),
+                                          job_nameid])
                 keystr = base64.urlsafe_b64decode(self.status['decrypt_key']).decode()
                 keypath = f"{tmp_job_dir}/dk"
-                key_cmd = "printf '%s\n' "
-                for line in keystr.split('\n'):
-                    key_cmd += f"'{line}' "
-                key_cmd += '> {keypath}'
-                job_nameid = f"{self.get('jobname')}{self.get('jobid')}"
                 in_cfg = None
                 for input_step in self.getkeys('flowgraph', step, index, 'input'):
                     for input_index in self.get('flowgraph', step, index, 'input', input_step):
@@ -1827,9 +1826,7 @@ class Chip:
                         # exist, because the data is encrypted. But if they don't
                         # exist, the step will quickly error out and the metrics
                         # should reflect that.
-                        in_cfg = "/".join([tmp_job_dir,
-                                           self.get('design'),
-                                           job_nameid,
+                        in_cfg = "/".join([tmp_build_dir,
                                            f'{input_step}{input_index}',
                                            'outputs',
                                            f'{self.get("design")}.pkg.json',
@@ -1841,7 +1838,7 @@ class Chip:
                 # * copy updated encrypted data back into shared storage.
                 # * delete all unencrypted data.
                 run_cmd = 'srun bash -c "'
-                run_cmd += f"mkdir -p {tmp_job_dir} ; "
+                run_cmd += f"mkdir -p {tmp_build_dir} ; "
                 run_cmd += f"cp {self.get('dir')}/{job_nameid}.crypt "\
                                f"{tmp_job_dir}/{job_nameid}.crypt ; "
                 run_cmd += f"cp {self.get('dir')}/{job_nameid}.iv "\
@@ -1849,15 +1846,15 @@ class Chip:
                 run_cmd += f"cp {self.get('dir')}/import.bin "\
                                f"{tmp_job_dir}/import.bin ; "
                 run_cmd += f"touch {keypath} ; chmod 600 {keypath} ; "
-                run_cmd += f"{key_cmd} ; "
+                run_cmd += f"echo -ne \"{keystr}\" > {keypath} ; "
                 run_cmd += f"chmod 400 {keypath} ; "
-                run_cmd += f"sc-crypt -mode decrypt -job_dir {tmp_job_dir} "\
+                run_cmd += f"sc-crypt -mode decrypt -job_dir {tmp_build_dir} "\
                                f"-key_file {keypath} ; "
                 run_cmd += f"sc -cfg {in_cfg} "\
                                f"-arg_step {step} -arg_index {index} "\
-                               f"-dir {tmp_job_dir} "\
-                               f"-cluster local -remote_addr '' ; "
-                run_cmd += f"sc-crypt -mode encrypt -job_dir {tmp_job_dir} "\
+                               f"-dir {tmp_job_dir} -cluster local"\
+                               f"-remote_addr '' -remote_key '' ; "
+                run_cmd += f"sc-crypt -mode encrypt -job_dir {tmp_build_dir} "\
                                f"-key_file {keypath} ; "
                 run_cmd += f"cp {tmp_job_dir}/{job_nameid}.crypt "\
                                f"{self.get('dir')}/{job_nameid}.crypt ; "
