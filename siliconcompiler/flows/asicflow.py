@@ -54,8 +54,8 @@ def setup_flow(chip, process, signoff=True):
                 'export']
 
     if process == 'skywater130':
-        flopipe.append('drc')
-        flopipe.append('lvs')
+        flowpipe.append('drc')
+        flowpipe.append('lvs')
         
     tools = {
         'import' : 'verilator',
