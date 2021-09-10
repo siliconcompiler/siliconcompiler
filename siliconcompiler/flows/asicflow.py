@@ -35,7 +35,29 @@ def setup_flow(chip, process, signoff=True):
     '''
 
     # A simple linear flow (relying on Python orderered local dict)
-    flow = {
+
+    flowpipe = ['import',
+                'syn',
+                'synmin',
+                'floorplan',
+                'floorplanmin',
+                'physyn',
+                'physynmin',
+                'place',
+                'placemin',
+                'cts',
+                'ctsmin',
+                'route',
+                'routemin',
+                'dfm',
+                'dfmmin',
+                'export']
+
+    if process == 'skywater130':
+        flopipe.append('drc')
+        flopipe.append('lvs')
+        
+    tools = {
         'import' : 'verilator',
         'syn' : 'yosys',
         'synmin' : 'minimum',
@@ -51,16 +73,13 @@ def setup_flow(chip, process, signoff=True):
         'routemin' : 'minimum',
         'dfm' : 'openroad',
         'dfmmin' : 'minimum',
-        'export' : 'klayout'
+        'export' : 'klayout',
+        'drc' : 'magic',
+        'lvs' : 'magic'
     }
-
-    if process == 'skywater130':
-        flow['drc'] = 'magic'
-        flow['lvs'] = 'magic'
-        
+         
     # Set the steplist which can run remotely (if required)
-    steplist =list(flow.keys())
-    chip.set('remote', 'steplist', steplist[1:])
+    chip.set('remote', 'steplist', flowpipe[1:])
 
     # Showtool definitions
     chip.set('showtool', 'def', 'openroad')
@@ -68,12 +87,12 @@ def setup_flow(chip, process, signoff=True):
 
     # Implementation flow graph
     index = '0'
-    for step in flow:
+    for step in flowpipe:
         # tool vs function
-        if re.match(r'join|maximum|minimum|verify', flow[step]):
-            chip.set('flowgraph', step, index, 'function', flow[step])
+        if re.match(r'join|maximum|minimum|verify', tools[step]):
+            chip.set('flowgraph', step, index, 'function', tools[step])
         else:
-            chip.set('flowgraph', step, index, 'tool', flow[step])
+            chip.set('flowgraph', step, index, 'tool', tools[step])
         # order
         if step == 'import':
             pass
