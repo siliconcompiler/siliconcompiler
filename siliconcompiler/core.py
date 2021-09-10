@@ -1,6 +1,7 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
 import argparse
+import base64
 import time
 import datetime
 import multiprocessing
@@ -1812,6 +1813,7 @@ class Chip:
                 # Job data is encrypted, and it should only be decrypted in the
                 # compute node's local storage.
                 tmp_job_dir = f"/tmp/{self.get('remote', 'jobhash')}"
+                keystr = base64.urlsafe_b64decode(self.status['decrypt_key']).decode()
                 keypath = f"{tmp_job_dir}/dk"
                 job_nameid = f"{self.get('jobname')}{self.get('jobid')}"
                 in_cfg = None
@@ -1843,7 +1845,7 @@ class Chip:
                 run_cmd += f"cp {self.get('dir')}/import.bin "\
                                f"{tmp_job_dir}/import.bin ; "
                 run_cmd += f"touch {keypath} ; chmod 600 {keypath} ; "
-                run_cmd += f"echo \"{self.status['decrypt_key']}\" > {keypath} ; "
+                run_cmd += f"echo \"{keystr}\" > {keypath} ; "
                 run_cmd += f"chmod 400 {keypath} ; "
                 run_cmd += f"sc-crypt -mode decrypt -job_dir {tmp_job_dir} "\
                                f"-key_file {keypath} ; "
