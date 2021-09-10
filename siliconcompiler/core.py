@@ -1815,6 +1815,10 @@ class Chip:
                 tmp_job_dir = f"/tmp/{self.get('remote', 'jobhash')}"
                 keystr = base64.urlsafe_b64decode(self.status['decrypt_key']).decode()
                 keypath = f"{tmp_job_dir}/dk"
+                key_cmd = "printf '%s\n' "
+                for line in keystr.split('\n'):
+                    key_cmd += f"'{line}' "
+                key_cmd += '> {keypath}'
                 job_nameid = f"{self.get('jobname')}{self.get('jobid')}"
                 in_cfg = None
                 for input_step in self.getkeys('flowgraph', step, index, 'input'):
@@ -1845,7 +1849,7 @@ class Chip:
                 run_cmd += f"cp {self.get('dir')}/import.bin "\
                                f"{tmp_job_dir}/import.bin ; "
                 run_cmd += f"touch {keypath} ; chmod 600 {keypath} ; "
-                run_cmd += f"echo \"{keystr}\" > {keypath} ; "
+                run_cmd += f"{key_cmd} ; "
                 run_cmd += f"chmod 400 {keypath} ; "
                 run_cmd += f"sc-crypt -mode decrypt -job_dir {tmp_job_dir} "\
                                f"-key_file {keypath} ; "
