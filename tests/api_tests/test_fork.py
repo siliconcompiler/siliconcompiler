@@ -13,8 +13,9 @@ def test_fork():
     chip = siliconcompiler.Chip(loglevel="INFO")
     chip.target("freepdk45_asicflow")
     chip.writecfg("prefork.json")
-    chip.fork("syn", 3)
+    chip.fork("place", "0", 9)
     chip.writecfg("postfork.json")
+    chip.writegraph("fork.png")
 
 #########################
 if __name__ == "__main__":

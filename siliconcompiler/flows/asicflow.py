@@ -54,22 +54,10 @@ def setup_flow(chip, process, signoff=True):
         'export' : 'klayout'
     }
 
-    # Conditional signoff flow
-    signoff = {
-        'sta' : 'openroad'
-    }
-
-    if process == 'skywater':
-        signoff['drc'] = 'magic'
-        signfoff['lvs'] = 'magic',
+    if process == 'skywater130':
+        flow['drc'] = 'magic'
+        flow['lvs'] = 'magic'
         
-    signoff = {
-        'collectall' : 'join',
-        'signoff' : 'verify'
-        }
-
-
-    
     # Set the steplist which can run remotely (if required)
     steplist =list(flow.keys())
     chip.set('remote', 'steplist', steplist[1:])
@@ -78,7 +66,7 @@ def setup_flow(chip, process, signoff=True):
     chip.set('showtool', 'def', 'openroad')
     chip.set('showtool', 'gds', 'klayout')
 
-    # Definining the exeuction graph
+    # Implementation flow graph
     index = '0'
     for step in flow:
         # tool vs function
