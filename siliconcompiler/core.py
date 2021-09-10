@@ -450,6 +450,20 @@ class Chip:
                 sys.exit(1)
 
     ###########################################################################
+    def fork(self, step, n, index='0'):
+        '''
+        Clones a flowgraph step to n way. Settings from step/index are copied
+        n-way.
+        '''
+
+        print(self.cfg['flowgraph'][step][index])
+        cfglocal = copy.deepcopy(self.cfg['flowgraph'][step][index])
+
+        for i in range(n):
+            newindex = str(int(index)+i+1)
+            self.cfg['flowgraph'][step][newindex] = copy.deepcopy(cfglocal)
+
+    ###########################################################################
     def help(self, *args):
         """
         Returns a formatted help string based on the keypath provided.
