@@ -449,20 +449,49 @@ class Chip:
                 self.logger.critical("EDA flow %s not found.", edaflow)
                 sys.exit(1)
 
+
     ###########################################################################
-    def fork(self, step, n, index='0'):
+    def getsinks(self, step, index, cfg=None):
+        '''
+        Finds the destinations of the current step/index.
+        Returns a dictionary of step/index.
+        '''
+        if cfg is None:
+            cfg = self.cfg
+
+        sinks ={}
+        for a in self.getkeys('flowgraph', cfg=cfg):
+            for b in self.getkeys('flowgraph', a, cfg=cfg):
+                if self.getkeys('flowgraph', a, b, 'input'):
+                    for c in self.getkeys('flowgraph', a, b, 'input'):                    
+                        for d in self.get('flowgraph', a, b, 'input', c):
+                            if (step==c) & (index==d):
+                                sinks[a] = b
+
+        return sinks
+
+    ###########################################################################
+    def fork(self, step, index, n):
         '''
         Clones a flowgraph step to n way. Settings from step/index are copied
         n-way.
         '''
 
-        print(self.cfg['flowgraph'][step][index])
+        #clone step/index n ways
         cfglocal = copy.deepcopy(self.cfg['flowgraph'][step][index])
-
         for i in range(n):
             newindex = str(int(index)+i+1)
             self.cfg['flowgraph'][step][newindex] = copy.deepcopy(cfglocal)
 
+        #finding all steps that depend on this one
+        sinks = self.getsinks(step,index)
+
+        #updating the input indexes of those steps
+        for k, v in sinks.items():
+            for i in range(n):
+                print(step, index, k,v,i)
+                self.add('flowgraph', str(k), str(v), 'input', step, str(i+1)) 
+            
     ###########################################################################
     def help(self, *args):
         """
@@ -1138,6 +1167,7 @@ class Chip:
                     if not input in legal_steps:
                         self.error = 1
                         self.logger.error(f"Input '{a}' is not a legal step.")
+                        
         #2. Check requirements list
         allkeys = self.getkeys()
         for key in allkeys:
@@ -1151,33 +1181,25 @@ class Chip:
                 elif key_empty and (str(requirement) == self.get('mode')):
                     self.error = 1
                     self.logger.error(f"Mode requirement missing for [{keypath}].")
-        #3. Check per tool parameter requirements
-        tool = self.get('flowgraph', step, index, 'tool')
-        if 'req' in  self.getkeys('eda', tool, step, index):
-            all_required = self.get('eda', tool, step, index, 'req')
-            for item in all_required:
-                keypath = item.split(',')
-                if self._keypath_empty(keypath, cfg):
-                    self.error = 1
-                    self.logger.error(f"Value empty for [{keypath}].")
 
-        if self._keypath_empty(['eda', tool, step, index, 'exe'], cfg):
-            self.error = 1
-            self.logger.error(f'Executable not specified for tool {tool} used in flowgraph step {step}')
+        #3. Check per tool parameter requirements (when tool exists)
+        if self.get('flowgraph', step, index, 'tool'):
+            tool = self.get('flowgraph', step, index, 'tool')
+            if 'req' in  self.getkeys('eda', tool, step, index):
+                all_required = self.get('eda', tool, step, index, 'req')
+                for item in all_required:
+                    keypath = item.split(',')
+                    if self._keypath_empty(keypath, cfg):
+                        self.error = 1
+                        self.logger.error(f"Value empty for [{keypath}].")
 
-        if self._keypath_empty(['eda', tool, step, index, 'version'], cfg):
-            self.error = 1
-            self.logger.error(f'Version not specified for tool {tool} used in flowgraph step {step}')
+            if self._keypath_empty(['eda', tool, step, index, 'exe'], cfg):
+                self.error = 1
+                self.logger.error(f'Executable not specified for tool {tool} used in flowgraph step {step}')
 
-        #4. Check that input files exist
-        if mode=='dynamic':
-            #2. Check per step input requirements
-            all_inputs = self.get('eda', tool, step, index, 'input')
-            for item in all_inputs:
-                infile = f"inputs/{item}"
-                if not os.path.isfile(infile):
-                    self.error = 1
-                    self.logger.error(f"Required input '{infile}' is missing.")
+            if self._keypath_empty(['eda', tool, step, index, 'version'], cfg):
+                self.error = 1
+                self.logger.error(f'Version not specified for tool {tool} used in flowgraph step {step}')
 
         return self.error
 
@@ -1483,7 +1505,7 @@ class Chip:
         return n
 
     ###########################################################################
-    def summary(self, filename=None):
+    def summary(self):
         '''
         Creates a summary of the run metrics generated from the 'start' step
         to the 'stop' step.
@@ -1496,7 +1518,7 @@ class Chip:
             >>> summary()
             Prints out a summary of the run to stdout.
         '''
-
+        
         if self.get('steplist'):
             steplist = self.get('steplist')
         else:
@@ -1535,14 +1557,28 @@ class Chip:
 
         #Creating table of real values
         metrics = []
+
+        #Creating index selecto
+        metrics.append(" input")
+        row = []
+        for step in steplist:
+            if not self.getkeys('flowgraph', step, '0','input'):
+                sel_in = ""
+            elif self.get('flowstatus', step, '0', 'select'):
+                sel_in = self.get('flowstatus', step, '0', 'select')[0]
+                if len(self.get('flowstatus', step, '0', 'select'))>1:
+                    sel_in.replace(r"\d+$", "**")
+            else:
+                stepsel= self.getkeys('flowgraph', step, '0', 'input')[0]
+                isel = self.get('flowgraph', step, '0', 'input', stepsel)[0]
+                sel_in = stepsel + isel
+            row.append(" " + sel_in.center(colwidth))
+        data.append(row)
+        
         for metric in self.getkeys('metric', 'default', 'default'):
             metrics.append(" " + metric)
             row = []
             for step in steplist:
-                #TODO: fix for parallel processing properly!
-                #need to allow for facts that minimum works on next step
-                #so it needs to be recorded at step
-                index = self.get('flowstatus', step, '0', 'select')
                 value = str(self.get('metric', step, '0', metric, 'real'))
                 row.append(" " + value.center(colwidth))
             data.append(row)
@@ -1551,9 +1587,8 @@ class Chip:
         pandas.set_option('display.max_columns', 500)
         pandas.set_option('display.width', 100)
         df = pandas.DataFrame(data, metrics, steps)
-        if filename is None:
-            print(df.to_string())
-            print("-"*135)
+        print(df.to_string())
+        print("-"*135)
 
     ###########################################################################
     def getsteps(self, cfg=None):
@@ -1619,7 +1654,7 @@ class Chip:
 
 
     ###########################################################################
-    def join(self, *steps, step=None, index=None):
+    def join(self, *steps):
         '''
         Joins all inputs from all indexes of all steps in args as a list.
         The function sets the flowstatus select parameter in the schema
@@ -1632,18 +1667,15 @@ class Chip:
             for b in self.getkeys('flowgraph', a):
                 sel_inputs.append(a+b)
 
-        if (step is not None) & (index is not None):
-            self.set('flowstatus', step, index, 'select', sel_inputs)
-
         return sel_inputs
 
     ###########################################################################
-    def minimum(self, *steps, step=None, index=None):
+    def minimum(self, *steps):
         '''
         Wrapper function for minmax, with op = 'minimum'.
         See minmax() function for full help.
         '''
-        return _minmax(*steps, step=step, index=index, op="minimum")
+        return self.minmax(*steps, op="minimum")
 
     ###########################################################################
     def maximum(self, *steps, step=None, index=None):
@@ -1651,10 +1683,10 @@ class Chip:
         Wrapper function for minmax, with op = 'minimum'
         See minmax() function for full help.
         '''
-        return _minmax(*steps, step=step, index=index, op="maximim")
+        return self.minmax(*steps, op="maximim")
 
     ###########################################################################
-    def minmax(self, *args, step=None, index=None, op="minimum"):
+    def minmax(self, *args, op="minimum"):
         '''
         Calculates the max value for all indexes of all steps provided.
 
@@ -1738,17 +1770,14 @@ class Chip:
                         min_score = score
                         winner = step+index
 
-        if (step is not None) & (index is not None):
-            self.set('flowstatus', step, index, 'select', winner)
-
         return (score, winner)
 
     ###########################################################################
-    def verify(self, *steps, args=None, step=None, index=None):
+    def verify(self, *steps, args=None):
         pass
 
     ###########################################################################
-    def mux(self, *steps, args=None, step=None, index=None):
+    def mux(self, *steps, args=None):
         '''
         Mux that selects a single input from the index based on the args.
         '''
@@ -1846,57 +1875,61 @@ class Chip:
         start = time.time()
 
         ##################
-        # 5. Runnning builtin functions
-
+        # 5. Run builtin or pre-process tool
         if self.get('flowgraph', step, index, 'function'):
             tool = 'builtin'
             func = self.get('flowgraph', step, index, 'function')
             args = self.get('flowgraph', step, index, 'args')
-            inputs = chip.getkeys('flowgraph', step, index, 'input')
+            inputs = self.getkeys('flowgraph', step, index, 'input')
             # Figure out which inputs to select
             if func == 'minimum':
-                chip.minimum(*inputs, step=step, index=index)
+                (score, sel_inputs) = self.minimum(*inputs)
             elif func == "maximum":
-                chip.maximum(*inputs, step=step, index=index)
+                (score, sel_inputs) = self.maximum(*inputs)
             elif func == "join":
-                chip.join(*inputs, step=step, index=index)
+                (score, sel_inputs) = self.join(*inputs)
             elif func == "mux":
-                chip.mux(*inputs, args=args, step=step, index=index)
+                (score, sel_inputs) = self.mux(*inputs, args=args)
             elif func == "verify":
-                chip.verify(*inputs, args=args, step=step, index=index)
+                (error, sel_inputs) = self.verify(*inputs, args=args)
+                if error:
+                    self._haltstep(step, index, error, active)
+            self.set('flowstatus', step, index, 'select', sel_inputs)
         else:
             tool = self.get('flowgraph', step, index, 'tool')
 
         ##################
-        # 5.5 Copy outputs from input steps
+        # 6 Copy outputs from input steps
         if not self.getkeys('flowgraph', step, index,'input'):
             all_inputs = []
         elif not self.get('flowstatus', step, index, 'select'):
             all_inputs = [self.getkeys('flowgraph', step, index,'input')[0]+'0']
         else:
-            all_inputs = self.getkeys('flowstatus', step, index, 'select')
+            all_inputs = self.get('flowstatus', step, index, 'select')
         for input_step in all_inputs:
             shutil.copytree(f"../{input_step}/outputs", 'inputs/')
 
         ##################
-        # 6.Run pre_process function if defined
-        try:
-            searchdir = "siliconcompiler.tools." + tool
-            modulename = '.'+tool+'_setup'
-            module = importlib.import_module(modulename, package=searchdir)
-            if hasattr(module, "pre_process"):
-                pre_process = getattr(module, "pre_process")
-                pre_process(self, step, index)
-        except:
-            traceback.print_exc()
-            self.logger.error(f"Pre-processing failed for '{tool}' in step '{step}'")
-            self._haltstep(step, index, error, active)
-
+        # 7. Run preprocess step for tools (could run on inputs, so copy first)
+        if tool != 'builtin':
+            try:
+                searchdir = "siliconcompiler.tools." + tool
+                modulename = '.'+tool+'_setup'
+                module = importlib.import_module(modulename, package=searchdir)
+                if hasattr(module, "pre_process"):
+                    pre_process = getattr(module, "pre_process")
+                    pre_process(self, step, index)
+            except:
+                traceback.print_exc()
+                self.logger.error(f"Pre-processing failed for '{tool}' in step '{step}'")
+                self._haltstep(step, index, error, active) 
+        
         ##################
         # 7. Copy Reference Scripts
-        if self.get('eda', tool, step, index, 'copy'):
-            refdir = schema_path(self.get('eda', tool, step, index, 'refdir'))
-            shutil.copytree(refdir, ".", dirs_exist_ok=True)
+        if tool != 'builtin':
+            if self.get('eda', tool, step, index, 'copy'):
+                refdir = schema_path(self.get('eda', tool, step, index, 'refdir'))
+                shutil.copytree(refdir, ".", dirs_exist_ok=True)
 
         ##################
         # 8. Save config files required by EDA tools
@@ -1934,39 +1967,39 @@ class Chip:
 
         ##################
         # 12. Run executable
-        cmd_error = 0
-        if self.get('eda', tool, step, index, 'exe'):
+        if tool != 'builtin':
             cmdlist = self._makecmd(tool, step, index)
             cmdstr = ' '.join(cmdlist)
             self.logger.info("Running %s in %s", step, workdir)
             self.logger.info('%s', cmdstr)
             cmd_error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
-        if cmd_error.returncode != 0:
-            self.logger.warning('Command failed. See log file %s', os.path.abspath(cmdlist[-1]))
-            self._haltstep(step, index, error, active)
-            # Override exit code if set
-            if not self.get('eda', tool, step, index, 'continue'):
-                self._haltstep(step, index, error, active)
+            if cmd_error.returncode != 0:
+                self.logger.warning('Command failed. See log file %s', os.path.abspath(cmdlist[-1]))
+                if not self.get('eda', tool, step, index, 'continue'):
+                    self._haltstep(step, index, error, active)
+        else:
+            #for builtins, copy selected inputs to outputs
+            shutil.copytree(f"inputs", 'outputs', dirs_exist_ok=True)  
 
         ##################
         # 13. Post process (could fail)
         post_error = 0
-        try:
-            tool = self.get('flowgraph', step, index, 'tool')
-            searchdir = "siliconcompiler.tools." + tool
-            modulename = '.'+tool+'_setup'
-            module = importlib.import_module(modulename, package=searchdir)
-            if hasattr(module, "post_process"):
-                post_process = getattr(module, "post_process")
-                post_error = post_process(self, step, index)
-        except:
-            traceback.print_exc()
-            self.logger.error(f"Post-processing failed for '{tool}' in step '{step}'")
-            self._haltstep(step, index, error, active)
+        if tool != 'builtin':
+            try:
+                searchdir = "siliconcompiler.tools." + tool
+                modulename = '.'+tool+'_setup'
+                module = importlib.import_module(modulename, package=searchdir)
+                if hasattr(module, "post_process"):
+                    post_process = getattr(module, "post_process")
+                    post_error = post_process(self, step, index)
+            except:
+                traceback.print_exc()
+                self.logger.error(f"Post-processing failed for '{tool}' in step '{step}'")
+                self._haltstep(step, index, error, active)
 
-        if post_error:
-            self.logger.error('Post-processing check failed for step %s', step)
-            self._haltstep(step, index, error, active)
+            if post_error:
+                self.logger.error('Post-processing check failed for step %s', step)
+                self._haltstep(step, index, error, active)
 
         ##################
         # 14. Record successful exit
@@ -2070,7 +2103,8 @@ class Chip:
                     if (step in steplist) & (index in indexlist):
                         active[stepstr] = 1
                         error[stepstr] = 1
-                        self._setuptool(step, index)
+                        if self.get('flowgraph', step, index, 'tool'):
+                            self._setuptool(step, index)
                         self.check(step, index, mode='static')
                     else:
                         active[stepstr] = 0
@@ -2303,6 +2337,7 @@ class Chip:
 
 
         return (ok, errormsg)
+    
     #######################################
     def _makecmd(self, tool, step, index):
         '''

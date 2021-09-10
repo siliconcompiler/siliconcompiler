@@ -10,7 +10,7 @@ def test_gcd_checks():
     '''
 
     # Create instance of Chip class
-    chip = siliconcompiler.Chip(loglevel='NOTSET')
+    chip = siliconcompiler.Chip()
 
     gcd_ex_dir = os.path.abspath(__file__)
     gcd_ex_dir = gcd_ex_dir[:gcd_ex_dir.rfind('/tests/quick_tests/asic')] + '/examples/gcd/'

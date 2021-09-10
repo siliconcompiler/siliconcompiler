@@ -1481,7 +1481,7 @@ def schema_flowgraph(cfg, step='default', index='default'):
         'switch': "-flowgraph_tool 'step <str>'",
         'type': 'str',
         'lock': 'false',
-        'requirement': 'all',
+        'requirement': None,
         'defvalue': None,
         'short_help': 'Flowgraph Tool Selection',
         'example': ["cli: -flowgraph_tool 'place openroad'",
