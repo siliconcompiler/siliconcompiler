@@ -37,10 +37,10 @@ ctypedef int (*lefrLayerCbkFnType) (lefrCallbackType_e,
                                  # lefiVia* l,
                                  # lefiUserData);
 
-# # A declaration of the signature of all callbacks that return a lefiViaRule.
-# ctypedef int (*lefrViaRuleCbkFnType) (lefrCallbackType_e,
-                                     # lefiViaRule* l,
-                                     # lefiUserData);
+# A declaration of the signature of all callbacks that return a lefiViaRule.
+ctypedef int (*lefrViaRuleCbkFnType) (lefrCallbackType_e,
+                                     lefiViaRule* l,
+                                     lefiUserData);
 
 # # A declaration of the signature of all callbacks that return a lefiSpacing.
 # ctypedef int (*lefrSpacingCbkFnType) (lefrCallbackType_e,
@@ -160,7 +160,7 @@ cdef extern from "lefrReader.hpp":
     # void lefrSetPropEndCbk(lefrVoidCbkFnType)
     void lefrSetLayerCbk(lefrLayerCbkFnType)
     # void lefrSetViaCbk(lefrViaCbkFnType)
-    # void lefrSetViaRuleCbk(lefrViaRuleCbkFnType)
+    void lefrSetViaRuleCbk(lefrViaRuleCbkFnType)
     # void lefrSetSpacingCbk(lefrSpacingCbkFnType)
     # void lefrSetIRDropCbk(lefrIRDropCbkFnType)
     # void lefrSetDielectricCbk(lefrDoubleCbkFnType)
@@ -431,6 +431,52 @@ cdef extern from "lefrReader.hpp":
 
     cdef cppclass lefiObstruction:
         lefiGeometries* geometries()
+
+    cdef cppclass lefiViaRuleLayer:
+        int hasDirection()
+        int hasEnclosure()
+        int hasWidth()
+        int hasResistance()
+        int hasOverhang()
+        int hasMetalOverhang()
+        int hasSpacing()
+        int hasRect()
+
+        char* name()
+        int isHorizontal()
+        int isVertical()
+        double enclosureOverhang1()
+        double enclosureOverhang2()
+        double widthMin()
+        double widthMax()
+        double overhang()
+        double metalOverhang()
+        double resistance()
+        double spacingStepX()
+        double spacingStepY()
+        double xl()
+        double yl()
+        double xh()
+        double yh()
+
+    cdef cppclass lefiViaRule:
+        int hasGenerate()
+        int hasDefault()
+        char* name()
+
+        int numLayers()
+        lefiViaRuleLayer* layer(int index)
+
+        int numVias()
+        char* viaName(int index)
+
+        int numProps()
+        const char*  propName(int index)
+        const char*  propValue(int index)
+        double propNumber(int index)
+        char   propType(int index)
+        int    propIsNumber(int index)
+        int    propIsString(int index)
 
     cdef cppclass lefiDensity:
         int numLayer()

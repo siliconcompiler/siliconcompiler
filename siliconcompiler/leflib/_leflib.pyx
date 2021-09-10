@@ -287,6 +287,62 @@ cdef int macro_cb(lefrCallbackType_e cb_type, lefiMacro* macro, void* data):
 
     return 0
 
+cdef int viarule_cb(lefrCallbackType_e cb_type, lefiViaRule* viarule, void* data):
+    if 'viarules' not in _state.data:
+        _state.data['viarules'] = {}
+
+    viarule_data = {}
+    if viarule.hasDefault():
+        viarule_data['default'] = True
+    if viarule.hasGenerate():
+        viarule_data['generate'] = True
+
+    layers = []
+    for i in range(viarule.numLayers()):
+        layer = viarule.layer(i)
+        layer_data = {'name': layer.name().decode('ascii')}
+        # nongenerate only
+        if layer.hasDirection():
+            layer_data['direction'] = 'HORZIONTAL' if layer.isHorizontal() else 'VERTICAL'
+        # generate only
+        if layer.hasEnclosure():
+            layer_data['enclosure'] = {
+                'overhang1': layer.enclosureOverhang1(),
+                'overhang2': layer.enclosureOverhang2()
+            }
+        if layer.hasRect():
+            layer_data['rect'] = (layer.xl(), layer.yl(), layer.xl(), layer.xh())
+        if layer.hasSpacing():
+            layer_data['spacing'] = {
+                'x': layer.spacingStepX(),
+                'y': layer.spacingStepY()
+            }
+        if layer.hasResistance():
+            layer_data['resistance'] = layer.resistance()
+
+        # nongenerate and generate
+        if layer.hasWidth():
+            layer_data['width'] = {
+                'min': layer.widthMin(),
+                'max': layer.widthMax()
+            }
+
+        layers.append(layer_data)
+
+    vias = []
+    for i in range(viarule.numVias()):
+        vias.append(viarule.viaName(i).decode('ascii'))
+
+    if len(layers) > 0:
+        viarule_data['layers'] = layers
+    if len(vias) > 0:
+        viarule_data['vias'] = vias
+
+    name = viarule.name().decode('ascii')
+    _state.data['viarules'][name] = viarule_data
+
+    return 0
+
 # The single wrapper function we expose
 def parse(path):
     ''' See leflib/__init__.py for full docstring. We put it there to ensure
@@ -305,6 +361,7 @@ def parse(path):
     lefrSetPinCbk(pin_cb)
     lefrSetObstructionCbk(obs_cb)
     lefrSetManufacturingCbk(double_cb)
+    lefrSetViaRuleCbk(viarule_cb)
 
     # Use this to pass path to C++ functions
     path_bytes = path.encode('ascii')
