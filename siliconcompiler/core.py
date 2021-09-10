@@ -1842,12 +1842,17 @@ class Chip:
                                f"{tmp_job_dir}/{job_nameid}.iv ; "
                 run_cmd += f"cp {self.get('dir')}/import.bin "\
                                f"{tmp_job_dir}/import.bin ; "
-                run_cmd += f"touch {keypath} ; chmod 400 {keypath} ; "
+                run_cmd += f"touch {keypath} ; chmod 600 {keypath} ; "
                 run_cmd += f"echo \"{self.status['decrypt_key']}\" > {keypath} ; "
+                run_cmd += f"chmod 400 {keypath} ; "
+                run_cmd += f"sc-crypto -mode decrypt -job_dir {tmp_job_dir} "\
+                               f"-key_file {keypath}"
                 run_cmd += f"sc -cfg {in_cfg} "\
                                f"-arg_step {step} -arg_index {index} "\
-                               f"-remote_key {keypath} -dir {tmp_job_dir} "\
+                               f"-dir {tmp_job_dir} "\
                                f"-cluster local -remote_addr '' ; "
+                run_cmd += f"sc-crypto -mode encrypt -job_dir {tmp_job_dir} "\
+                               f"-key_file {keypath}"
                 run_cmd += f"cp {tmp_job_dir}/{job_nameid}.crypt "\
                                f"{self.get('dir')}/{job_nameid}.crypt ; "
                 run_cmd += f"cp {tmp_job_dir}/{job_nameid}.iv "\
