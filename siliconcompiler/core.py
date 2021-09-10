@@ -470,12 +470,15 @@ class Chip:
         self.logger.debug('Fetching help for %s', args)
 
         #Fetch Values
+
         description = self.get(*args, field='short_help')
-        typestr = str(self.get(*args, field='type'))
+        typestr = self.get(*args, field='type')
+        switchstr = str(self.get(*args, field='switch'))
         defstr = str(self.get(*args, field='defvalue'))
-        requirement = self.get(*args, field='requirement')
+        requirement = str(self.get(*args, field='requirement'))
         helpstr = self.get(*args, field='help')
         example = self.get(*args, field='example')
+
 
         #Removing multiple spaces and newlines
         helpstr = helpstr.rstrip()
@@ -492,14 +495,14 @@ class Chip:
 
         #Full Doc String
         fullstr = ("-"*80 +
-                   "\nDescription: " + description.lstrip() +
-                   "\nOrder:       " + param.lstrip() +
-                   "\nType:        " + typestr.lstrip()  +
-                   "\nRequirement: " + requirement.lstrip()   +
-                   "\nDefault:     " + defstr.lstrip()   +
-                   "\nExamples:    " + example[0].lstrip() +
-                   "\n             " + example[1].lstrip() +
-                   "\nHelp:        " + para_list[0].lstrip() + "\n")
+                   "\nDescription: " + description +
+                   "\nSwitch:      " + switchstr +
+                   "\nType:        " + typestr  +
+                   "\nRequirement: " + requirement   +
+                   "\nDefault:     " + defstr   +
+                   "\nExamples:    " + example[0] +
+                   "\n             " + example[1] +
+                   "\nHelp:        " + para_list[0] + "\n")
         for line in para_list[1:]:
             fullstr = (fullstr +
                        " "*13 + line.lstrip() + "\n")
