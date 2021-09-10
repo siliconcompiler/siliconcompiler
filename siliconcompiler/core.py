@@ -1715,7 +1715,7 @@ class Chip:
         # (Run the initial 'import' stages without srun)
         if (self.get('cluster') == 'slurm') and \
            (self.getkeys('flowgraph', step, index, 'input')):
-            if self.status['decrypt_key']:
+            if 'decrypt_key' in self.status:
                 # Job data is encrypted, and it should only be decrypted in the
                 # compute node's local storage.
                 tmp_job_dir = f"/tmp/{self.get('remote', 'jobhash')}"
