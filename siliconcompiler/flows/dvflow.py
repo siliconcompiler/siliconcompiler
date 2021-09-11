@@ -1,5 +1,5 @@
-import importlib
 import os
+import re
 import siliconcompiler
 
 ####################################################
@@ -10,19 +10,11 @@ def setup_flow(chip, process):
     Basic parallel testing flow.
 
     * **import**: Sources are collected and packaged for compilation
-
     * **compile**: Design compilation
-
     * **testgen**: Test generator
-
     * **refsim**: Reference simulation
-
     * **sim**: Design simulation
-
     * **compare**: Compare results
-
-    * **validate**: Compare results (built-in)
-
     * **signoff**: Merge results (built-in)
 
     '''
@@ -34,56 +26,32 @@ def setup_flow(chip, process):
                 'refsim',
                 'sim',
                 'compare',
-                'validate',
-                'signoff',
-
-
-    ]
+                'signoff']
 
     tools = {
         'import': 'verilator',
         'compile': 'verilator',
-        'testgen': 'fuzzer',
-        'refsim': 'risc-v-sim',
-        'sim': './a.out',
-        'compare': 'diff',
-        'validate': 'builtin',
-        'signoff': 'builtin',
+        'testgen': 'verilator',
+        'refsim': 'verilator',
+        'sim': 'verilator',
+        'compare': 'verilator',
+        'signoff': 'verify'
     }
 
     # Flow setup
-    N = 1
     index = '0'
-
-    for i in range(len(flowpipe)):
-        step = flowpipe[i]
+    for step in flowpipe:
+        if re.match(r'join|maximum|minimum|verify', tools[step]):
+            chip.set('flowgraph', step, index, 'function', tools[step])
+        else:
+            chip.set('flowgraph', step, index, 'tool', tools[step])
+        # order
         if step == 'import':
-        # Tool
-        chip.set('flowgraph', step, index, 'tool', tools[step])
+            pass
+        else:
+            chip.add('flowgraph', step, index, 'input', prevstep, "0")
 
-        # Flow
-        if step != 'import':
-            chip.add('flowgraph', step, index, 'input', flowpipe[i-1], "0")
-
-        # Metrics
-        chip.set('flowgraph', step, index, 'weight',  'cellarea', 1.0)
-        chip.set('flowgraph', step, index, 'weight',  'peakpower', 1.0)
-        chip.set('flowgraph', step, index, 'weight',  'standbypower', 1.0)
-
-        # Goals
-        chip.set('metric', step, index, 'drv', 'goal', 0.0)
-        chip.set('metric', step, index, 'holdwns', 'goal', 0.0)
-        chip.set('metric', step, index, 'holdtns', 'goal', 0.0)
-        chip.set('metric', step, index, 'setupwns', 'goal', 0.0)
-        chip.set('metric', step, index, 'setuptns', 'goal', 0.0)
-
-
-    # Set the steplist which can run remotely (if required)
-    chip.set('remote', 'steplist', flowpipe[1:])
-
-    # Showtool definitions
-    chip.set('showtool', 'def', 'openroad')
-    chip.set('showtool', 'gds', 'klayout')
+        prevstep = step
 
 
 ##################################################
