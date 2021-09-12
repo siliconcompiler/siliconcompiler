@@ -337,7 +337,7 @@ class Chip:
                             self.set(*args, clobber=True)
 
     ###########################################################################
-    def target(self, arg=None, libs=True, methodology=True):
+    def target(self, arg=None):
         """
         Loads a technology target and EDA flow based on a named target string.
 
@@ -361,7 +361,7 @@ class Chip:
 
         **TECHNOLOGY:**
 
-        **setup_platform (chip):** Configures basic PDK information,
+        **setup_pdk (chip):** Configures basic PDK information,
         including setting up wire tracks and setting filesystem pointers to
         things like spice models, runsets, design rules manual. The function
         takes the a Chip object as an input argument and uses the Chip's
@@ -370,29 +370,16 @@ class Chip:
         PDK information and does not include settings for IPs such as
         libraries or design methodology settings.
 
-        **setup_libs (chip, vendor=None):** Configures the core digital
-        library IP for a process. The vendor argument is used to select
-        the vendor for foundry nodes that support multiple IP vendors.
-        The function works as an abstraction layer for the designer by
-        encapsulating all the low level details of the libraries such as
-        filename, directory structures, and cell naming methodologies.
-
         **EDAFLOW:**
 
-        **setup_flow (platform):** Configures the edaflow by setting
+        **setup_flow (chip):** Configures the edaflow by setting
         up the steps of the execution flow (eg. 'flowgraph') and
         binding each step to an EDA tool. The tools are dynamically
         loaded in the 'runstep' method based on the step tool selected.
-        The platform argument can be used setup_flow function to
-        make selections based on specific platforms.
 
         Args:
             arg (string): Name of target to load. If None, the target is
                 read from the SC schema.
-            libs (bool): If True, the setup_libs function is executed
-                from the technology target module.
-            methodology (bool): If True, the setup_methodology is executd
-                from the technology target module.
 
         Examples:
             >>> chip.target("freepdk45_asicflow")
@@ -415,25 +402,19 @@ class Chip:
             sys.exit(1)
 
         # Technology platform
-        platform = self.get('target').split('_')[0]
+        technology = self.get('target').split('_')[0]
         if self.get('mode') == 'asic':
             try:
                 searchdir = 'siliconcompiler.foundries'
-                module = importlib.import_module('.'+platform, package=searchdir)
-                setup_platform = getattr(module, "setup_platform")
-                setup_platform(self)
-                if libs:
-                    setup_libs = getattr(module, "setup_libs")
-                    setup_libs(self)
-                if methodology:
-                    setup_methodology = getattr(module, "setup_methodology")
-                    setup_methodology(self)
-                self.logger.info("Loaded platform '%s'", platform)
+                module = importlib.import_module('.'+technology, package=searchdir)
+                setup_pdk = getattr(module, "setup_pdk")
+                setup_pdk(self)
+                self.logger.info("Loaded technology files '%s'", technology)
             except ModuleNotFoundError:
-                self.logger.critical("Platform %s not found.", platform)
+                self.logger.critical("Technology module %s not found.", technology)
                 sys.exit(1)
         else:
-            self.set('fpga', 'partname', platform)
+            self.set('fpga', 'partname', technology)
 
 
         # EDA flow
@@ -443,10 +424,10 @@ class Chip:
                 searchdir = 'siliconcompiler.flows'
                 module = importlib.import_module('.'+edaflow, package=searchdir)
                 setup_flow = getattr(module, "setup_flow")
-                setup_flow(self, platform)
-                self.logger.info("Loaded edaflow '%s'", edaflow)
+                setup_flow(self)
+                self.logger.info("Loaded flow '%s'", edaflow)
             except ModuleNotFoundError:
-                self.logger.critical("EDA flow %s not found.", edaflow)
+                self.logger.critical("Flow module %s not found.", edaflow)
                 sys.exit(1)
 
 
@@ -463,7 +444,7 @@ class Chip:
         for a in self.getkeys('flowgraph', cfg=cfg):
             for b in self.getkeys('flowgraph', a, cfg=cfg):
                 if self.getkeys('flowgraph', a, b, 'input'):
-                    for c in self.getkeys('flowgraph', a, b, 'input'):                    
+                    for c in self.getkeys('flowgraph', a, b, 'input'):
                         for d in self.get('flowgraph', a, b, 'input', c):
                             if (step==c) & (index==d):
                                 sinks[a] = b
@@ -490,8 +471,8 @@ class Chip:
         for k, v in sinks.items():
             for i in range(n):
                 print(step, index, k,v,i)
-                self.add('flowgraph', str(k), str(v), 'input', step, str(i+1)) 
-            
+                self.add('flowgraph', str(k), str(v), 'input', step, str(i+1))
+
     ###########################################################################
     def help(self, *args):
         """
@@ -1167,7 +1148,7 @@ class Chip:
                     if not input in legal_steps:
                         self.error = 1
                         self.logger.error(f"Input '{a}' is not a legal step.")
-                        
+
         #2. Check requirements list
         allkeys = self.getkeys()
         for key in allkeys:
@@ -1518,7 +1499,7 @@ class Chip:
             >>> summary()
             Prints out a summary of the run to stdout.
         '''
-        
+
         if self.get('steplist'):
             steplist = self.get('steplist')
         else:
@@ -1574,7 +1555,7 @@ class Chip:
                 sel_in = stepsel + isel
             row.append(" " + sel_in.center(colwidth))
         data.append(row)
-        
+
         for metric in self.getkeys('metric', 'default', 'default'):
             metrics.append(" " + metric)
             row = []
@@ -1922,8 +1903,8 @@ class Chip:
             except:
                 traceback.print_exc()
                 self.logger.error(f"Pre-processing failed for '{tool}' in step '{step}'")
-                self._haltstep(step, index, error, active) 
-        
+                self._haltstep(step, index, error, active)
+
         ##################
         # 7. Copy Reference Scripts
         if tool != 'builtin':
@@ -1956,13 +1937,13 @@ class Chip:
         veropt = self.get('eda', tool, step, index, 'vswitch')
         exe = self.get('eda', tool, step, index, 'exe')
         if veropt != None:
-            cmdlist = [exe, veropt] 
+            cmdlist = [exe, veropt]
             self.logger.debug("Checking version of '%s' tool in step '%s'.", tool, step)
             version = subprocess.run(cmdlist, stdout=PIPE, stderr=PIPE, universal_newlines=True)
             check_version = getattr(module, "check_version")
             if check_version(self, step, index, version.stdout):
                 self.logger.error(f"Version check failed for {tool}. Check installation]")
-                self._haltstep(step, index, error, active) 
+                self._haltstep(step, index, error, active)
         else:
             self.logger.info("Skipping version checking of '%s' tool in step '%s'.", tool, step)
 
@@ -1980,7 +1961,7 @@ class Chip:
                     self._haltstep(step, index, error, active)
         else:
             #for builtins, copy selected inputs to outputs
-            shutil.copytree(f"inputs", 'outputs', dirs_exist_ok=True)  
+            shutil.copytree(f"inputs", 'outputs', dirs_exist_ok=True)
 
         ##################
         # 13. Post process (could fail)
@@ -2104,6 +2085,7 @@ class Chip:
                     if (step in steplist) & (index in indexlist):
                         active[stepstr] = 1
                         error[stepstr] = 1
+                        # Setting up tool is optional
                         if self.get('flowgraph', step, index, 'tool'):
                             self._setuptool(step, index)
                         self.check(step, index, mode='static')
@@ -2338,7 +2320,7 @@ class Chip:
 
 
         return (ok, errormsg)
-    
+
     #######################################
     def _makecmd(self, tool, step, index):
         '''

@@ -6,7 +6,7 @@ import re
 ####################################################
 # Flowgraph Setup
 ####################################################
-def setup_flow(chip, partname, N=1):
+def setup_flow(chip):
     '''
     This is a standard open source FPGA flow based on high quality tools.
     The flow supports SystemVerilog, VHDL, and mixed SystemVerilog/VHDL
@@ -31,6 +31,10 @@ def setup_flow(chip, partname, N=1):
             program steps to produce correct results.
 
     '''
+
+
+
+    partname = chip.set('fpga', 'partname')
 
     # Inferring vendor name based on part number
     if re.match('ice', partname):
