@@ -46,6 +46,10 @@ Community:     https://www.siliconcompiler.com/community
 ------------------------------------------------------------
 """)
 
+    # Record execution graph
+    filename = chip.getworkdir() + "/"+ chip.get('design') + ".png"
+    chip.writegraph(filename)
+
     # Run flow
     chip.run()
 

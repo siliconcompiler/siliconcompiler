@@ -277,6 +277,15 @@ class Chip:
         if 'mode' in cmdargs.keys():
             self.set('mode', cmdargs['mode'], clobber=True)
 
+        # set target arguments if set
+        if 'techarg' in cmdargs.keys():
+            print("NOT IMPLEMENTED")
+            sys.exit()
+
+        if 'flowarg' in cmdargs.keys():
+            print("NOT IMPLEMENTED")
+            sys.exit()
+
         # read in target if set
         if 'target' in cmdargs.keys():
             self.target(cmdargs['target'])
@@ -1817,7 +1826,7 @@ class Chip:
         ##################
         # 2. Directory setup
 
-        workdir = self._getworkdir(step,index)
+        workdir = self.getworkdir(step=step,index=index)
         cwd = os.getcwd()
         if os.path.isdir(workdir):
             shutil.rmtree(workdir)
@@ -2159,7 +2168,7 @@ class Chip:
 
         # Merge cfg back from last executed runstep
         laststep = steplist[-1]
-        lastdir = self._getworkdir(laststep, '0')
+        lastdir = self.getworkdir(step=laststep, index='0')
         self.cfg = self.readcfg(f"{lastdir}/outputs/{self.get('design')}.pkg.json")
         self.set('flowstatus',laststep,'0', 'select', '0')
 
@@ -2377,14 +2386,18 @@ class Chip:
 
 
     #######################################
-    def _getworkdir(self, step, index):
+    def getworkdir(self, step=None, index=None):
         '''Create a step directory with absolute path
         '''
 
-        return os.path.abspath("/".join([self.get('dir'),
-                                         self.get('design'),
-                                         self.get('jobname') + str(self.get('jobid')),
-                                         step + index]))
+        dirlist =[self.get('dir'),
+                  self.get('design'),
+                  self.get('jobname') + str(self.get('jobid'))]
+
+        if step is not None:
+            dirlist.append(step + index)
+
+        return os.path.abspath("/".join(dirlist))
 
     #######################################
     def _setuptool(self, step, index):
