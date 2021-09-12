@@ -38,18 +38,36 @@ def setup_flow(chip):
         'signoff': 'verify'
     }
 
+
+    # Parallelism
+    if 'np' in chip.getkeys('flowarg'):
+        np = int(chip.get('flowarg', 'np'))
+    else:
+        np = 1
+
     # Flow setup
-    index = '0'
     for step in flowpipe:
-        if re.match(r'join|maximum|minimum|verify', tools[step]):
-            chip.set('flowgraph', step, index, 'function', tools[step])
-        else:
-            chip.set('flowgraph', step, index, 'tool', tools[step])
-        # order
+        #start
         if step == 'import':
-            pass
+            chip.set('flowgraph', step, '0', 'tool', tools[step])
+        #serial
+        elif step == 'compile':
+            chip.set('flowgraph', step, '0', 'tool', tools[step])
+            chip.set('flowgraph', step, '0', 'input','import','0')
+        #fork
+        elif step == 'testgen':
+            for index in range(np):
+                chip.set('flowgraph', step, str(index), 'tool', tools[step])
+                chip.set('flowgraph', step, str(index), 'input','compile','0')
+        #join
+        elif step == 'signoff':
+            chip.set('flowgraph', step, '0', 'function', tools[step])
+            for index in range(np):
+                chip.add('flowgraph', step, '0', 'input', prevstep, str(index))
         else:
-            chip.add('flowgraph', step, index, 'input', prevstep, "0")
+            for index in range(np):
+                chip.set('flowgraph', step, str(index), 'tool', tools[step])
+                chip.set('flowgraph', step, str(index), 'input',prevstep,str(index))
 
         prevstep = step
 
@@ -57,14 +75,8 @@ def setup_flow(chip):
 ##################################################
 if __name__ == "__main__":
 
-    # File being executed
     prefix = os.path.splitext(os.path.basename(__file__))[0]
-    output = prefix + '.json'
-
-    # create a chip instance
     chip = siliconcompiler.Chip()
-    # load configuration
     setup_flow(chip)
-    # write out results
-    chip.writecfg(output)
+    chip.writecfg(prefix + '.json')
     chip.writegraph(prefix + ".png")

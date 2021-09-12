@@ -11,7 +11,11 @@ def setup_flow(chip):
     This is a standard open source ASIC flow. The asic flow is a liner
     pipeline that includes the stages below. The steps syn, floorplan,
     physyn, place, cts, route, and dfm have minimizataion associated
-    with them. To view the graph, see the .png file.
+    with them. To view the flowgraph, see the .png file.
+
+    The syn, physyn, place, cts, route steps supports per process
+    options that can be set up by settingg the 'techarg','<step>_np'
+    arg to a value > 1.
 
     * **import**: Sources are collected and packaged for compilation
     * **syn**: Translates RTL to netlist using Yosys
@@ -25,12 +29,9 @@ def setup_flow(chip):
     * **sta**: Static timing analysis (signoff)
     * **lvs**: Layout versus schematic check (signoff)
     * **drc**: Design rule check (signoff)
-    * **package**: Package design for reuse
-    * **archive**: Archive design
 
     Args:
-        process (string): Specifies the process of the compilation.
-            Used in complex flows and reserved for future use.
+        chip (object): Reference to chip object.
 
     '''
 
@@ -87,35 +88,38 @@ def setup_flow(chip):
     chip.set('showtool', 'gds', 'klayout')
 
     # Implementation flow graph
-    index = '0'
     for step in flowpipe:
-        # tool vs function
-        if re.match(r'join|maximum|minimum|verify', tools[step]):
-            chip.set('flowgraph', step, index, 'function', tools[step])
-        else:
-            chip.set('flowgraph', step, index, 'tool', tools[step])
-        # order
-        if step == 'import':
-            pass
-        else:
-            chip.add('flowgraph', step, index, 'input', prevstep, "0")
-
-        # Metrics
-        chip.set('flowgraph', step, index, 'weight',  'cellarea', 1.0)
-        chip.set('flowgraph', step, index, 'weight',  'peakpower', 1.0)
-        chip.set('flowgraph', step, index, 'weight',  'standbypower', 1.0)
-
-        # Goals
-        chip.set('metric', step, index, 'drv', 'errors', 0)
-        #chip.set('metric', step, index, 'drv', 'warnings', 0)
-        chip.set('metric', step, index, 'drv', 'goal', 0.0)
-        chip.set('metric', step, index, 'holdwns', 'goal', 0.0)
-        chip.set('metric', step, index, 'holdtns', 'goal', 0.0)
-        chip.set('metric', step, index, 'setupwns', 'goal', 0.0)
-        chip.set('metric', step, index, 'setuptns', 'goal', 0.0)
-
+        param = step + "_np"
+        fanout = 1
+        if param in chip.getkeys('flowarg'):
+            fanout = int(chip.get('flowarg', param))
+        for index in range(fanout):
+            # Metrics
+            chip.set('flowgraph', step, str(index), 'weight',  'cellarea', 1.0)
+            chip.set('flowgraph', step, str(index), 'weight',  'peakpower', 1.0)
+            chip.set('flowgraph', step, str(index), 'weight',  'standbypower', 1.0)
+            # Goals
+            chip.set('metric', step, str(index), 'drv', 'errors', 0)
+            chip.set('metric', step, str(index), 'drv', 'goal', 0.0)
+            chip.set('metric', step, str(index), 'holdwns', 'goal', 0.0)
+            chip.set('metric', step, str(index), 'holdtns', 'goal', 0.0)
+            chip.set('metric', step, str(index), 'setupwns', 'goal', 0.0)
+            chip.set('metric', step, str(index), 'setuptns', 'goal', 0.0)
+            #graph
+            if step == 'import':
+                chip.set('flowgraph', step, str(index), 'tool', tools[step])
+            elif re.match(r'join|maximum|minimum|verify', tools[step]):
+                chip.set('flowgraph', step, '0', 'function', tools[step])
+                prevparam = prevstep + "_np"
+                fanin = 1
+                if prevparam in chip.getkeys('flowarg'):
+                    fanin  = int(chip.get('flowarg', prevparam))
+                for i in range(fanin):
+                    chip.add('flowgraph', step, str(index), 'input', prevstep, str(i))
+            else:
+                chip.set('flowgraph', step, str(index), 'tool', tools[step])
+                chip.add('flowgraph', step, str(index), 'input', prevstep, '0')
         prevstep = step
-
 
 ##################################################
 if __name__ == "__main__":
