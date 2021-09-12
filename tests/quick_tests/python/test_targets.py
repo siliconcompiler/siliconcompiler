@@ -5,18 +5,12 @@ from siliconcompiler.core import Chip
 
 def test_asap7():
     c = Chip()
-    asap7.setup_platform(c)
-    asap7.setup_libs(c)
-    asap7.setup_methodology(c)
+    asap7.setup_pdk(c)
 
 def test_freepdk45():
     c = Chip()
-    freepdk45.setup_platform(c)
-    freepdk45.setup_libs(c)
-    freepdk45.setup_methodology(c)
+    freepdk45.setup_pdk(c)
 
 def test_skywater130():
     c = Chip()
-    skywater130.setup_platform(c)
-    skywater130.setup_libs(c)
-    skywater130.setup_methodology(c)
+    skywater130.setup_pdk(c)
