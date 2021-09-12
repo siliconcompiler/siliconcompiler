@@ -5,7 +5,7 @@ import siliconcompiler
 ####################################################
 # Flowgraph Setup
 ####################################################
-def setup_flow(chip, process):
+def setup_flow(chip):
     '''
     Basic parallel testing flow.
 
@@ -64,7 +64,7 @@ if __name__ == "__main__":
     # create a chip instance
     chip = siliconcompiler.Chip()
     # load configuration
-    setup_flow(chip, "freepdk45")
+    setup_flow(chip)
     # write out results
     chip.writecfg(output)
     chip.writegraph(prefix + ".png")

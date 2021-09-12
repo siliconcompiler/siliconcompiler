@@ -6,7 +6,7 @@ import re
 ####################################################
 # Flowgraph Setup
 ####################################################
-def setup_flow(chip, partname, N=1):
+def setup_flow(chip):
     '''
     This is a standard open source FPGA flow based on high quality tools.
     The flow supports SystemVerilog, VHDL, and mixed SystemVerilog/VHDL
@@ -31,6 +31,10 @@ def setup_flow(chip, partname, N=1):
             program steps to produce correct results.
 
     '''
+
+
+
+    partname = chip.get('fpga', 'partname')
 
     # Inferring vendor name based on part number
     if re.match('ice', partname):
@@ -104,7 +108,7 @@ if __name__ == "__main__":
     # create a chip instance
     chip = siliconcompiler.Chip(defaults=False)
     # load configuration
-    setup_flow(chip, "partname")
+    setup_flow(chip)
     # write out results
     chip.writecfg(output)
     chip.writegraph(prefix + ".png")

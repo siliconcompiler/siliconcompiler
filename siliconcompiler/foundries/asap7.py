@@ -7,7 +7,14 @@ import siliconcompiler
 # PDK Setup
 ####################################################
 
-def setup_platform(chip):
+def setup_pdk(chip):
+    '''
+    TODO: Add process information
+    '''
+
+    ###############################################
+    # Process
+    ###############################################
 
     foundry = 'virtual'
     process = 'asap7'
@@ -100,13 +107,10 @@ def setup_platform(chip):
         chip.set('pdk','grid', stackup, sc_name, 'ypitch',  0.08)
         chip.set('pdk','grid', stackup, sc_name, 'adj',     0.4)
 
-####################################################
-# Library Setup
-####################################################
-def setup_libs(chip, vendor=None):
+    ###############################################
+    # Libraries
+    ###############################################
 
-    foundry = 'virtual'
-    process = 'asap7'
     libname = 'asap7sc7p5t_rvt'
     libtype = '7p5t'
     libwidth = 0.054
@@ -173,9 +177,9 @@ def setup_libs(chip, vendor=None):
     # Endcap
     chip.add('library',libname,'cells','endcap', "DECAPx1_ASAP7_75t_R")
 
-
-#########################
-def setup_methodology(chip):
+    ###############################################
+    # Methodology
+    ###############################################
 
     chip.set('asic', 'stackup', chip.get('pdk', 'stackup')[0])
     chip.add('asic', 'targetlib', chip.getkeys('library'))
@@ -192,8 +196,8 @@ def setup_methodology(chip):
     chip.set('asic', 'density', 1.0)
     chip.set('asic', 'aspectratio', 1.0)
 
-    corner = 'typical'
     # hard coded mcmm settings (only one corner!)
+    corner = 'typical'
     chip.set('mcmm','worst','libcorner', corner)
     chip.set('mcmm','worst','pexcorner', corner)
     chip.set('mcmm','worst','mode', 'func')
@@ -202,14 +206,7 @@ def setup_methodology(chip):
 #########################
 if __name__ == "__main__":
 
-    # File being executed
     prefix = os.path.splitext(os.path.basename(__file__))[0]
-    output = prefix + '.json'
-
-    # create a chip instance
     chip = siliconcompiler.Chip()
-    # load configuration
-    setup_platform(chip)
-    setup_libs(chip)
-    # write out result
-    chip.writecfg(output)
+    setup_pdk(chip)
+    chip.writecfg(prefix + '.json')

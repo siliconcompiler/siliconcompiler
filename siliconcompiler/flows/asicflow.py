@@ -6,7 +6,7 @@ import re
 ####################################################
 # Flowgraph Setup
 ####################################################
-def setup_flow(chip, process, signoff=True):
+def setup_flow(chip):
     '''
     This is a standard open source ASIC flow. The asic flow is a liner
     pipeline that includes the stages below. The steps syn, floorplan,
@@ -53,10 +53,11 @@ def setup_flow(chip, process, signoff=True):
                 'dfmmin',
                 'export']
 
-    if process == 'skywater130':
+
+    if chip.get('pdk', 'process') == 'skywater130':
         flowpipe.append('lvs')
         flowpipe.append('drc')
-        
+
     tools = {
         'import' : 'verilator',
         'syn' : 'yosys',
@@ -77,7 +78,7 @@ def setup_flow(chip, process, signoff=True):
         'drc' : 'magic',
         'lvs' : 'magic'
     }
-         
+
     # Set the steplist which can run remotely (if required)
     chip.set('remote', 'steplist', flowpipe[1:])
 
@@ -112,7 +113,7 @@ def setup_flow(chip, process, signoff=True):
         chip.set('metric', step, index, 'holdtns', 'goal', 0.0)
         chip.set('metric', step, index, 'setupwns', 'goal', 0.0)
         chip.set('metric', step, index, 'setuptns', 'goal', 0.0)
-        
+
         prevstep = step
 
 
@@ -122,6 +123,6 @@ if __name__ == "__main__":
     prefix = os.path.splitext(os.path.basename(__file__))[0]
     for target in ('freepdk45', 'skywater130'):
         chip = siliconcompiler.Chip()
-        setup_flow(chip, target)
+        setup_flow(chip)
         chip.writecfg(f'{prefix}_{target}.json')
         chip.writegraph(f'{prefix}_{target}.png')
