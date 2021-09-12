@@ -34,7 +34,7 @@ def setup_flow(chip):
 
 
 
-    partname = chip.set('fpga', 'partname')
+    partname = chip.get('fpga', 'partname')
 
     # Inferring vendor name based on part number
     if re.match('ice', partname):
@@ -108,7 +108,7 @@ if __name__ == "__main__":
     # create a chip instance
     chip = siliconcompiler.Chip(defaults=False)
     # load configuration
-    setup_flow(chip, "partname")
+    setup_flow(chip)
     # write out results
     chip.writecfg(output)
     chip.writegraph(prefix + ".png")
