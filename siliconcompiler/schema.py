@@ -2628,6 +2628,40 @@ def schema_options(cfg):
         """
     }
 
+    cfg['techarg'] = {}
+    cfg['techarg']['default'] = {
+        'switch': "-techarg 'arg <str>",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'Target technology setup parameter',
+        'example': ["cli: -techarg 'mimcap true",
+                    "api: chip.set('techarg','mimcap', 'true')"],
+        'help': """
+        Parameter passed in as key/value pair to the technology target
+        referenced in the target() API call. See the target technolgy
+        for specific guidelines regarding configuration parameters.
+        """
+    }
+
+    cfg['flowarg'] = {}
+    cfg['flowarg']['default'] = {
+        'switch': "-flowarg 'arg <str>",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'Target flow setup parameter',
+        'example': ["cli: -flowarg 'n 100",
+                    "api: chip.set('flowarg','n', '100')"],
+        'help': """
+        Parameter passed in as key/value pair to the technology target
+        referenced in the target() API call. See the target flow
+        for specific guidelines regarding configuration parameters.
+        """
+    }
+
     cfg['cfg'] = {
         'switch': "-cfg <file>",
         'type': '[file]',
