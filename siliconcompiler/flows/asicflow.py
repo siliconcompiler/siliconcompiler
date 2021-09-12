@@ -119,6 +119,7 @@ def setup_flow(chip):
             else:
                 chip.set('flowgraph', step, str(index), 'tool', tools[step])
                 chip.add('flowgraph', step, str(index), 'input', prevstep, '0')
+
         prevstep = step
 
 ##################################################
