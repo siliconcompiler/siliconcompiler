@@ -44,6 +44,20 @@ def setup_tool(chip, step, index):
     chip.add('eda', tool, step, index, 'option', 'cmdline', options)
 
 ################################
+# Version Check
+################################
+
+def check_version(chip, step, index, version):
+    ''' Tool specific version checking
+    '''
+    required = chip.get('eda', 'nextpnr', step, index, 'version')
+    #insert code for parsing the funtion based on some tool specific
+    #semantics.
+    #syntax for version is string, >=string
+    
+    return 0
+
+################################
 # Setup Tool (pre executable)
 ################################
 
