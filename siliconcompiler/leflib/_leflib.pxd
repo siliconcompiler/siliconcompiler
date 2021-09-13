@@ -1,213 +1,88 @@
+'''
+This file contains declarations of all C/C++ types and functions defined in the
+LEF parser that we need to interface with from Cython.
+
+We need to declare all these things here since Cython is unable to parse the
+header files directly. However, note that we don't need to redeclare everything,
+or each member of an object we want to use. Instead, we just need to declare
+everything we actually use by name in Cython.
+
+In general, the contents of this file have been copy-pasted directly from the
+LEF parser library (and cleaned up as needed).
+'''
+
 from libc.stdio cimport FILE
 
+# lefiUserData used in each callback is just defined by the LEF parser as a
+# `#define` macro for void*.
 ctypedef void* lefiUserData
 
-# A declaration of the signature of all callbacks that return nothing.
+# These typedefs define the function signatures of each LEF parser callback.
+# (Order same as in lefrReader.hpp)
 ctypedef int (*lefrVoidCbkFnType) (lefrCallbackType_e,
                                   void* num,
                                   lefiUserData);
-
-# A declaration of the signature of all callbacks that return a string.
 ctypedef int (*lefrStringCbkFnType) (lefrCallbackType_e,
                                     const char *string,
                                     lefiUserData);
-
-# A declaration of the signature of all callbacks that return a integer.
 ctypedef int (*lefrIntegerCbkFnType) (lefrCallbackType_e,
                                      int number,
                                      lefiUserData);
-
-# A declaration of the signature of all callbacks that return a double.
 ctypedef int (*lefrDoubleCbkFnType) (lefrCallbackType_e,
                                     double number,
                                     lefiUserData);
-
-# A declaration of the signature of all callbacks that return a lefiUnits.
 ctypedef int (*lefrUnitsCbkFnType) (lefrCallbackType_e,
                                    lefiUnits* units,
                                    lefiUserData);
-
-# A declaration of the signature of all callbacks that return a lefiLayer.
 ctypedef int (*lefrLayerCbkFnType) (lefrCallbackType_e,
                                    lefiLayer* l,
                                    lefiUserData);
-
-# # A declaration of the signature of all callbacks that return a lefiVia.
-# ctypedef int (*lefrViaCbkFnType) (lefrCallbackType_e,
-                                 # lefiVia* l,
-                                 # lefiUserData);
-
-# A declaration of the signature of all callbacks that return a lefiViaRule.
 ctypedef int (*lefrViaRuleCbkFnType) (lefrCallbackType_e,
                                      lefiViaRule* l,
                                      lefiUserData);
-
-# # A declaration of the signature of all callbacks that return a lefiSpacing.
-# ctypedef int (*lefrSpacingCbkFnType) (lefrCallbackType_e,
-                                     # lefiSpacing* l,
-                                     # lefiUserData);
-
-# # A declaration of the signature of all callbacks that return a lefiIRDrop.
-# ctypedef int (*lefrIRDropCbkFnType) (lefrCallbackType_e,
-                                    # lefiIRDrop* l,
-                                    # lefiUserData);
-
-# # A declaration of the signature of all callbacks that return a lefiMinFeature.
-# ctypedef int (*lefrMinFeatureCbkFnType) (lefrCallbackType_e,
-                                        # lefiMinFeature* l,
-                                        # lefiUserData);
-
-# # A declaration of the signature of all callbacks that return a lefiNonDefault.
-# ctypedef int (*lefrNonDefaultCbkFnType) (lefrCallbackType_e,
-                                        # lefiNonDefault* l,
-                                        # lefiUserData);
-
-# A declaration of the signature of all callbacks that return a lefiSite.
 ctypedef int (*lefrSiteCbkFnType) (lefrCallbackType_e,
                                   lefiSite* l,
                                   lefiUserData);
-
-# A declaration of the signature of all callbacks that return a lefiMacro.
 ctypedef int (*lefrMacroCbkFnType) (lefrCallbackType_e,
                                    lefiMacro* l,
                                    lefiUserData);
-
-# A declaration of the signature of all callbacks that return a lefiPin.
 ctypedef int (*lefrPinCbkFnType) (lefrCallbackType_e,
                                  lefiPin* l,
                                  lefiUserData);
-
-# A declaration of the signature of all callbacks that return a lefiObstruction.
 ctypedef int (*lefrObstructionCbkFnType) (lefrCallbackType_e,
                                          lefiObstruction* l,
                                          lefiUserData);
-
-# # A declaration of the signature of all callbacks that return a lefiArray.
-# ctypedef int (*lefrArrayCbkFnType) (lefrCallbackType_e,
-                                   # lefiArray* l,
-                                   # lefiUserData);
-
-# # A declaration of the signature of all callbacks that return a lefiProp.
-# ctypedef int (*lefrPropCbkFnType) (lefrCallbackType_e,
-                                  # lefiProp* p,
-                                  # lefiUserData);
-
-# # A declaration of the signature of all callbacks that return a lefiNoiseMargin.
-# ctypedef int (*lefrNoiseMarginCbkFnType) (lefrCallbackType_e,
-                                         # struct lefiNoiseMargin* p,
-                                         # lefiUserData);
-
-# # A declaration of the signature of all callbacks that return a lefiNoiseTable.
-# ctypedef int (*lefrNoiseTableCbkFnType) (lefrCallbackType_e,
-                                        # lefiNoiseTable* p,
-                                        # lefiUserData);
-
-# # A declaration of the signature of all callbacks that return a lefiCorrectionTable.
-# ctypedef int (*lefrCorrectionTableCbkFnType) (lefrCallbackType_e,
-                                             # lefiCorrectionTable* p,
-                                             # lefiUserData);
-
-# # A declaration of the signature of all callbacks that return a lefiTiming.
-# ctypedef int (*lefrTimingCbkFnType) (lefrCallbackType_e,
-                                    # lefiTiming* p,
-                                    # lefiUserData);
-
-# # A declaration of the signature of all callbacks that return a lefiUseMinSpacing.
 ctypedef int (*lefrUseMinSpacingCbkFnType) (lefrCallbackType_e,
                                            lefiUseMinSpacing* l,
                                            lefiUserData);
-
-  # # NEW CALLBACK - If your callback returns a pointer to a new class then
-  # # you must add a type function here.
-
-# # A declaration of the signature of all callbacks that return a lefiMaxStackVia.
 ctypedef int (*lefrMaxStackViaCbkFnType) (lefrCallbackType_e,
                                          lefiMaxStackVia* l,
                                          lefiUserData);
 
-# ctypedef int (*lefrMacroNumCbkFnType) (lefrCallbackType_e,
-                                      # lefiNum l,
-                                      # lefiUserData);
-
-# ctypedef int (*lefrMacroSiteCbkFnType) (lefrCallbackType_e,
-                                      # const lefiMacroSite *site,
-                                      # lefiUserData);
-
-# ctypedef int (*lefrMacroForeignCbkFnType) (lefrCallbackType_e,
-                                          # const lefiMacroForeign *foreign,
-                                          # lefiUserData);
-
-# # 5.6
-# # A declaration of the signature of all callbacks that return a lefiDensity.
-# ctypedef int (*lefrDensityCbkFnType) (lefrCallbackType_e,
-                                     # lefiDensity* l,
-                                     # lefiUserData);
-# # Must "forward declare" everything we reference from lefrReader.hpp here
+# Must declare everything we reference from lefrReader.hpp here
 cdef extern from "lefrReader.hpp":
     int lefrInit()
     int lefrRead (FILE *file, const char *fileName, void* userData)
 
     # Callback setters
-    void lefrSetUnitsCbk(lefrUnitsCbkFnType)
     void lefrSetVersionCbk(lefrDoubleCbkFnType)
-    # void lefrSetVersionStrCbk(lefrStringCbkFnType) [WONT USE - redundant]
-    void lefrSetDividerCharCbk(lefrStringCbkFnType)
     void lefrSetBusBitCharsCbk(lefrStringCbkFnType)
-    # void lefrSetNoWireExtensionCbk(lefrStringCbkFnType)
-    # void lefrSetCaseSensitiveCbk(lefrIntegerCbkFnType)
-    # void lefrSetPropBeginCbk(lefrVoidCbkFnType)
-    # void lefrSetPropCbk(lefrPropCbkFnType)
-    # void lefrSetPropEndCbk(lefrVoidCbkFnType)
+    void lefrSetDividerCharCbk(lefrStringCbkFnType)
+    void lefrSetUnitsCbk(lefrUnitsCbkFnType)
+    void lefrSetManufacturingCbk(lefrDoubleCbkFnType)
+    void lefrSetUseMinSpacingCbk(lefrUseMinSpacingCbkFnType)
+    void lefrSetClearanceMeasureCbk(lefrStringCbkFnType)
+    void lefrSetFixedMaskCbk(lefrIntegerCbkFnType)
     void lefrSetLayerCbk(lefrLayerCbkFnType)
-    # void lefrSetViaCbk(lefrViaCbkFnType)
+    void lefrSetMaxStackViaCbk(lefrMaxStackViaCbkFnType)
     void lefrSetViaRuleCbk(lefrViaRuleCbkFnType)
-    # void lefrSetSpacingCbk(lefrSpacingCbkFnType)
-    # void lefrSetIRDropCbk(lefrIRDropCbkFnType)
-    # void lefrSetDielectricCbk(lefrDoubleCbkFnType)
-    # void lefrSetMinFeatureCbk(lefrMinFeatureCbkFnType)
-    # void lefrSetNonDefaultCbk(lefrNonDefaultCbkFnType)
     void lefrSetSiteCbk(lefrSiteCbkFnType)
     void lefrSetMacroBeginCbk(lefrStringCbkFnType)
     void lefrSetPinCbk(lefrPinCbkFnType)
     void lefrSetObstructionCbk(lefrObstructionCbkFnType)
-    # void lefrSetArrayCbk(lefrArrayCbkFnType)
     void lefrSetMacroCbk(lefrMacroCbkFnType)
-    # void lefrSetLibraryEndCbk(lefrVoidCbkFnType)
 
-    # void lefrSetTimingCbk(lefrTimingCbkFnType)
-    # void lefrSetSpacingBeginCbk(lefrVoidCbkFnType)
-    # void lefrSetSpacingEndCbk(lefrVoidCbkFnType)
-    # void lefrSetArrayBeginCbk(lefrStringCbkFnType)
-    # void lefrSetArrayEndCbk(lefrStringCbkFnType)
-    # void lefrSetIRDropBeginCbk(lefrVoidCbkFnType)
-    # void lefrSetIRDropEndCbk(lefrVoidCbkFnType)
-    # void lefrSetNoiseMarginCbk(lefrNoiseMarginCbkFnType)
-    # void lefrSetEdgeRateThreshold1Cbk(lefrDoubleCbkFnType)
-    # void lefrSetEdgeRateThreshold2Cbk(lefrDoubleCbkFnType)
-    # void lefrSetEdgeRateScaleFactorCbk(lefrDoubleCbkFnType)
-    # void lefrSetNoiseTableCbk(lefrNoiseTableCbkFnType)
-    # void lefrSetCorrectionTableCbk(lefrCorrectionTableCbkFnType)
-    # void lefrSetInputAntennaCbk(lefrDoubleCbkFnType)
-    # void lefrSetOutputAntennaCbk(lefrDoubleCbkFnType)
-    # void lefrSetInoutAntennaCbk(lefrDoubleCbkFnType)
-    # void lefrSetAntennaInputCbk(lefrDoubleCbkFnType)
-    # void lefrSetAntennaInoutCbk(lefrDoubleCbkFnType)
-    # void lefrSetAntennaOutputCbk(lefrDoubleCbkFnType)
-    void lefrSetClearanceMeasureCbk(lefrStringCbkFnType)
-    void lefrSetManufacturingCbk(lefrDoubleCbkFnType)
-    void lefrSetUseMinSpacingCbk(lefrUseMinSpacingCbkFnType)
-    # void lefrSetMacroClassTypeCbk(lefrStringCbkFnType)
-    # void lefrSetMacroOriginCbk(lefrMacroNumCbkFnType)
-    # void lefrSetMacroSiteCbk(lefrMacroSiteCbkFnType)
-    # void lefrSetMacroForeignCbk(lefrMacroForeignCbkFnType)
-    # void lefrSetMacroSizeCbk(lefrMacroNumCbkFnType)
-    # void lefrSetMacroFixedMaskCbk(lefrIntegerCbkFnType)
-    # void lefrSetMacroEndCbk(lefrStringCbkFnType)
-    void lefrSetMaxStackViaCbk(lefrMaxStackViaCbkFnType)
-    # void lefrSetExtensionCbk(lefrStringCbkFnType)
-    # void lefrSetDensityCbk(lefrDensityCbkFnType)
-    void lefrSetFixedMaskCbk(lefrIntegerCbkFnType)
-
+    # Some enums we need to reference
     ctypedef enum lefrCallbackType_e:
        lefrUnspecifiedCbkType,
        lefrVersionCbkType,
@@ -287,6 +162,7 @@ cdef extern from "lefrReader.hpp":
         lefiGeomClassE,
         lefiGeomEnd
 
+    # Objects passed into callbacks
     cdef cppclass lefiUnits:
         int hasDatabase()
         int hasCapacitance()
@@ -305,10 +181,116 @@ cdef extern from "lefrReader.hpp":
         double voltage()
         double frequency()
 
+    cdef cppclass lefiUseMinSpacing:
+        const char* name()
+        int value()
+
+    cdef cppclass lefiLayer:
+        int hasType()
+        int hasMask()
+        int hasPitch()
+        int hasXYPitch()
+        int hasOffset()
+        int hasXYOffset()
+        int hasWidth()
+        int hasArea()
+        int hasDirection()
+
+        char* name()
+        const char* type()
+        double pitch()
+        int    mask()
+        double pitchX()
+        double pitchY()
+        double offset()
+        double offsetX()
+        double offsetY()
+        double width()
+        double area()
+        const char* direction()
+
+    cdef cppclass lefiMaxStackVia:
+        int maxStackVia()
+        int hasMaxStackViaRange()
+        const char* maxStackViaBottomLayer()
+        const char* maxStackViaTopLayer()
+
+    cdef cppclass lefiViaRule:
+        int hasGenerate()
+        int hasDefault()
+        char* name()
+
+        int numLayers()
+        lefiViaRuleLayer* layer(int index)
+
+        int numVias()
+        char* viaName(int index)
+
+        int numProps()
+        const char*  propName(int index)
+        const char*  propValue(int index)
+        double propNumber(int index)
+        char   propType(int index)
+        int    propIsNumber(int index)
+        int    propIsString(int index)
+
+    cdef cppclass lefiViaRuleLayer:
+        int hasDirection()
+        int hasEnclosure()
+        int hasWidth()
+        int hasResistance()
+        int hasOverhang()
+        int hasMetalOverhang()
+        int hasSpacing()
+        int hasRect()
+
+        char* name()
+        int isHorizontal()
+        int isVertical()
+        double enclosureOverhang1()
+        double enclosureOverhang2()
+        double widthMin()
+        double widthMax()
+        double overhang()
+        double metalOverhang()
+        double resistance()
+        double spacingStepX()
+        double spacingStepY()
+        double xl()
+        double yl()
+        double xh()
+        double yh()
+
+    cdef cppclass lefiSite:
+        const char* name()
+        int hasClass()
+        const char* siteClass()
+        double sizeX()
+        double sizeY()
+        int hasSize()
+        int hasXSymmetry()
+        int hasYSymmetry()
+        int has90Symmetry()
+        int hasRowPattern()
+        int numSites()
+        char* siteName(int index)
+        int   siteOrient(int index)
+        char* siteOrientStr(int index)
+
+    cdef cppclass lefiMacro:
+        int hasSize()
+
+        const char* name()
+        double sizeX()
+        double sizeY()
+
     cdef cppclass lefiPin:
         const char* name()
         int numPorts()
         lefiGeometries* port(int index)
+
+    cdef cppclass lefiObstruction:
+        lefiGeometries* geometries()
 
     cdef cppclass lefiGeometries:
         int numItems()
@@ -328,6 +310,7 @@ cdef extern from "lefrReader.hpp":
 
         const char* getClass(int index)
 
+    # Structs defining generic geometries
     cdef struct lefiGeomRect:
         double xl
         double yl
@@ -397,114 +380,3 @@ cdef extern from "lefrReader.hpp":
         int topMaskNum
         int cutMaskNum
         int bottomMaskNum
-
-    cdef cppclass lefiLayer:
-        int hasType()
-        int hasMask()
-        int hasPitch()
-        int hasXYPitch()
-        int hasOffset()
-        int hasXYOffset()
-        int hasWidth()
-        int hasArea()
-        int hasDirection()
-
-        char* name()
-        const char* type()
-        double pitch()
-        int    mask()
-        double pitchX()
-        double pitchY()
-        double offset()
-        double offsetX()
-        double offsetY()
-        double width()
-        double area()
-        const char* direction()
-
-    cdef cppclass lefiMacro:
-        int hasSize()
-
-        const char* name()
-        double sizeX()
-        double sizeY()
-
-    cdef cppclass lefiObstruction:
-        lefiGeometries* geometries()
-
-    cdef cppclass lefiViaRuleLayer:
-        int hasDirection()
-        int hasEnclosure()
-        int hasWidth()
-        int hasResistance()
-        int hasOverhang()
-        int hasMetalOverhang()
-        int hasSpacing()
-        int hasRect()
-
-        char* name()
-        int isHorizontal()
-        int isVertical()
-        double enclosureOverhang1()
-        double enclosureOverhang2()
-        double widthMin()
-        double widthMax()
-        double overhang()
-        double metalOverhang()
-        double resistance()
-        double spacingStepX()
-        double spacingStepY()
-        double xl()
-        double yl()
-        double xh()
-        double yh()
-
-    cdef cppclass lefiViaRule:
-        int hasGenerate()
-        int hasDefault()
-        char* name()
-
-        int numLayers()
-        lefiViaRuleLayer* layer(int index)
-
-        int numVias()
-        char* viaName(int index)
-
-        int numProps()
-        const char*  propName(int index)
-        const char*  propValue(int index)
-        double propNumber(int index)
-        char   propType(int index)
-        int    propIsNumber(int index)
-        int    propIsString(int index)
-
-    cdef cppclass lefiMaxStackVia:
-        int maxStackVia()
-        int hasMaxStackViaRange()
-        const char* maxStackViaBottomLayer()
-        const char* maxStackViaTopLayer()
-
-    cdef cppclass lefiSite:
-        const char* name()
-        int hasClass()
-        const char* siteClass()
-        double sizeX()
-        double sizeY()
-        int hasSize()
-        int hasXSymmetry()
-        int hasYSymmetry()
-        int has90Symmetry()
-        int hasRowPattern()
-        int numSites()
-        char* siteName(int index)
-        int   siteOrient(int index)
-        char* siteOrientStr(int index)
-
-    cdef cppclass lefiUseMinSpacing:
-        const char* name()
-        int value()
-
-    cdef cppclass lefiDensity:
-        int numLayer()
-        char* layerName(int index)
-        double densityValue(int index, int rectIndex)
