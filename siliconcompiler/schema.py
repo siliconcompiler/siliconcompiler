@@ -152,6 +152,35 @@ def schema_fpga(cfg):
         """
     }
 
+    cfg['fpga']['board'] = {
+        'switch': "-fpga_board <str>",
+        'requirement': None,
+        'type': 'str',
+        'lock': 'false',
+        'defvalue': None,
+        'short_help': 'FPGA board name',
+        'example': ["cli: -fpga_board parallella",
+                    "api:  chip.set('fpga', 'board', 'parallella')"],
+        'help': """
+        FPGA board name to target for bitstream generation and loading.
+        """
+    }
+
+    cfg['fpga']['flash'] = {
+        'switch': "-fpga_flash <bool>",
+        'requirement': 'fpga',
+        'type': 'bool',
+        'lock': 'false',
+        'defvalue': False,
+        'short_help': 'FPGA flash progrmming',
+        'example': ["cli: -fpga_flash",
+                    "api:  chip.set('fpga', 'flash', True)"],
+        'help': """
+        Specifies that the bitstream should be flashed in the board/device.
+        The default is to load the bitstream into volatile memory (SRAM).
+        """
+    }
+
     return cfg
 
 ###############################################################################
