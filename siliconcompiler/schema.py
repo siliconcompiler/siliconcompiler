@@ -2687,15 +2687,15 @@ def schema_options(cfg):
         """
         }
 
-    cfg['cluster'] = {
-        'switch': "-cluster <str>",
+    cfg['jobscheduler'] = {
+        'switch': "-jobscheduler <str>",
         'type': 'str',
         'lock': 'false',
         'requirement': 'all',
         'defvalue': 'local',
-        'short_help': 'Cluster Type',
-        'example': ["cli: -cluster slurm",
-                    "api: chip.set('cluster','slurm')"],
+        'short_help': 'HPC Job Scheduler Type',
+        'example': ["cli: -jobscheduler slurm",
+                    "api: chip.set('jobscheduler','slurm')"],
         'help': """
         Sets the type of HPC cluster which should be used to run the individual
         flowgraph steps. The default value is 'local', which will use the local

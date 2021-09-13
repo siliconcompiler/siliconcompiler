@@ -1872,7 +1872,7 @@ class Chip:
                                f"-key_file {keypath} ; "
                 run_cmd += f"sc -cfg {in_cfg} "\
                                f"-arg_step {step} -arg_index {index} "\
-                               f"-dir {tmp_job_dir} -cluster local "\
+                               f"-dir {tmp_job_dir} -jobscheduler local "\
                                f"-remote_addr '' -remote_key '' ; "
                 run_cmd += f"sc-crypt -mode encrypt -job_dir {tmp_build_dir} "\
                                f"-key_file {keypath} ; "
@@ -1902,7 +1902,7 @@ class Chip:
                 run_cmd = 'srun bash -c "'
                 run_cmd += f"sc -cfg {in_cfg} -dir {self.get('dir')} "\
                            f"-arg_step {step} -arg_index {index} "\
-                            "-cluster local -remote_addr ''"
+                            "-jobscheduler local -remote_addr ''"
                 run_cmd += '"'
 
             # Run the 'srun' command.
