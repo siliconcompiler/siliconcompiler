@@ -11,13 +11,13 @@ def parse(path):
     LEF. The subset of information returned includes:
 
     * LEF version
-    * Manufacturing grid
+    * Bus bit characters
+    * Divider characters
     * Units
-    * Macro information
-
-        * Size
-        * Pins
-        * Obstructions
+    * Manufacturing grid
+    * Use min spacing
+    * Clearance measure
+    * Fixed mask
     * Layer information
 
         * Type
@@ -25,7 +25,15 @@ def parse(path):
         * Direction
         * Offset
         * Pitch
+
+    * Max stack via
     * Viarules
+    * Sites
+    * Macro information
+
+        * Size
+        * Pins
+        * Obstructions
 
     The dictionary returned by this function is designed to mimic the structure
     of the LEF file as closely as possible, and this function does minimal
@@ -35,7 +43,8 @@ def parse(path):
 
             {
                 'version': 5.8,
-                'manufacturinggrid': 0.05,
+                'busbitchars': '<>',
+                'dividerchars': ':',
                 'units': {
                     'capacitance': 10.0,
                     'current': 10000.0,
@@ -46,69 +55,102 @@ def parse(path):
                     'time': 100.0,
                     'voltage': 1000.0
                 },
+                'manufacturinggrid': 0.05,
+                'useminspacing': {'OBS': 'OFF'},
+                'clearancemeasure': 'MAXXY',
+                'fixedmask': True,
                 'layers': {
-                    'm1': {
+                    'M1': {
                         'type': 'ROUTING',
                         'direction': 'HORIZONTAL',
+                        'offset': (0.1, 0.2),
                         'pitch': 1.8,
                         'width': 1.0
                     },
-                    'v1': {
+                    'V1': {
                         'type': 'CUT',
                     },
                     ...
                 },
+                'maxviastack': {'range': {'bottom': 'm1', 'top': 'm7'}, 'value': 4},
+                'viarules': {
+                    '<name>': {
+                        'generate': True,
+                        'layers': [
+                            {'enclosure': {'overhang1': 1.4,
+                                           'overhang2': 1.5},
+                             'name': 'M1',
+                             'width': {'max': 19.0, 'min': 0.1}},
+                            {'enclosure': {'overhang1': 1.4,
+                                           'overhang2': 1.5},
+                             'name': 'M2',
+                             'width': {'max': 1.9, 'min': 0.2}},
+                            {'name': 'M3',
+                             'rect': (-0.3, -0.3, -0.3, 0.3),
+                             'resistance': 0.5,
+                             'spacing': {'x': 5.6, 'y': 7.0}}
+                        ]
+                    },
+                    '<name>': {
+                        {'layers': [
+                            {'direction': 'VERTICAL',
+                             'name': 'M1',
+                             'width': {'max': 9.6, 'min': 9.0}},
+                             {'direction': 'HORZIONTAL',
+                             'name': 'M1',
+                             'width': {'max': 3.0, 'min': 3.0}}
+                        ]}
+                    },
+                    ...
+                }
                 'macros': {
                     '<name>': {
-                        'pins': {
-                            '<name>': {
-                                'direction': 'input' | 'output' | 'output tristate' | 'inout' | 'feedthru',
-                                'ports': [{
-                                    'class': 'none' | 'core' | 'bump',
-                                    'layer_geometries': [{
-                                        'layer': 'm1',
-                                        'exceptpgnet': True,
-                                        'spacing': ...,
-                                        'designrulewidth': ...,
-                                        'width': width,
-                                        'shapes': [
-                                            {
-                                                'rect': (0, 0, 5, 5),
-                                                'mask': maskNum,
-                                                'iterate': {
-                                                    'num_x': numX,
-                                                    'num_y': numY',
-                                                    'space_x': spaceX,
-                                                    'space_y': spaceY
-                                                }
-                                            },
-                                            {
-                                                'path': [pt, pt, ...],
-                                                'mask': maskNum,
-                                                'iterate': step_pattern
-                                            },
-                                            {
-                                                'polygon': [pt, pt, ...],
-                                                'mask': maskNum,
-                                                'iterate': step_pattern
-                                            }
-                                        ],
-                                        'via': {
-                                            'pt': pt,
-                                            'name': viaName,
-                                            'iterate': step_pattern
-                                        }
-                                    }]
-                                }]
-                            }
-                        }
                         'size': {
                             'width': 5,
                             'height': 8
+                        },
+                        'pins': {
+                            '<name>': {
+                                'direction': 'INPUT',
+                                'ports': [{
+                                    'class': 'CORE',
+                                    'layer_geometries': [{
+                                        'layer': 'M1',
+                                        'exceptpgnet': True,
+                                        'spacing': 0.01, 
+                                        'designrulewidth': 0.05, 
+                                        'width': 1.5,
+                                        'shapes': [
+                                            {
+                                                'rect': (0, 0, 5, 5),
+                                                'mask': 1,
+                                                'iterate': {
+                                                    'num_x': 2,
+                                                    'num_y': 3,
+                                                    'space_x': 1,
+                                                    'space_y': 4
+                                                }
+                                            },
+                                            {
+                                                'path': [(0, 0), (5, 0), (0, 5)],
+                                                'iterate': ...
+                                            },
+                                            {
+                                                'polygon': [(0, 0), (5, 0), (0, 5)],
+                                                'iterate': ...
+                                            }
+                                        ],
+                                        'via': {
+                                            'pt': (2, 3),
+                                            'name': 'via1',
+                                            'iterate': ...
+                                        }
+                                    }]
+                                }]
+                            },
+                            ...
                         }
-                    }
-                }
-                'viarules': {
+                    },
                     ...
                 }
             }
