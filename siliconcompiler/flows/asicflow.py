@@ -92,7 +92,7 @@ def setup_flow(chip):
         param = step + "_np"
         fanout = 1
         if param in chip.getkeys('flowarg'):
-            fanout = int(chip.get('flowarg', param))
+            fanout = int(chip.get('flowarg', param)[0])
         for index in range(fanout):
             # Metrics
             chip.set('flowgraph', step, str(index), 'weight',  'cellarea', 1.0)
@@ -113,7 +113,7 @@ def setup_flow(chip):
                 prevparam = prevstep + "_np"
                 fanin = 1
                 if prevparam in chip.getkeys('flowarg'):
-                    fanin  = int(chip.get('flowarg', prevparam))
+                    fanin  = int(chip.get('flowarg', prevparam)[0])
                 for i in range(fanin):
                     chip.add('flowgraph', step, str(index), 'input', prevstep, str(i))
             else:
