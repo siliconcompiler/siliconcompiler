@@ -111,7 +111,6 @@ def parse(path):
                         },
                         'pins': {
                             '<name>': {
-                                'direction': 'INPUT',
                                 'ports': [{
                                     'class': 'CORE',
                                     'layer_geometries': [{
