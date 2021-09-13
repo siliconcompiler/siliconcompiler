@@ -562,6 +562,7 @@ class Chip:
             fieldstr = "Field = " + field
         else:
             fieldstr = ""
+
         self.logger.debug(f"Reading from [{keypath}]. Field = '{field}'")
         return self._search(cfg, keypath, *args, field=field, mode='get')
 

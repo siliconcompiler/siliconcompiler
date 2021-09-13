@@ -305,9 +305,9 @@ def upload_import_dir(chip):
         num_temp_hosts = int(chip.get('remote', 'hosts'))
         if num_temp_hosts > 0:
             post_params['new_hosts'] = num_temp_hosts
-            if len(chip.get('remote', 'ram')) > 0:
+            if chip.get('remote', 'ram'):
                 post_params['new_host_ram'] = int(chip.get('remote', 'ram'))
-            if len(chip.get('remote', 'threads')) > 0:
+            if chip.get('remote', 'threads'):
                 post_params['new_host_threads'] = int(chip.get('remote', 'threads'))
 
         # Upload the encrypted file.
