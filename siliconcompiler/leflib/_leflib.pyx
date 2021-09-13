@@ -145,7 +145,7 @@ cdef int busbit_chars_cb(lefrCallbackType_e cb_type, const char* val, lefiUserDa
 
 cdef int divider_chars_cb(lefrCallbackType_e cb_type, const char* val, lefiUserData data):
     try:
-        _state.data['dividerchars'] = val.decode('ascii')
+        _state.data['dividerchar'] = val.decode('ascii')
     except Exception:
         traceback.print_exc()
         return 1

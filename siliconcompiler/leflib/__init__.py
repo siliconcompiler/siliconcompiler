@@ -44,7 +44,7 @@ def parse(path):
             {
                 'version': 5.8,
                 'busbitchars': '<>',
-                'dividerchars': ':',
+                'dividerchar': ':',
                 'units': {
                     'capacitance': 10.0,
                     'current': 10000.0,
