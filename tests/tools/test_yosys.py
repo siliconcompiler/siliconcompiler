@@ -19,10 +19,11 @@ def test_yosys():
     # run setup
     setup_tool(chip, step='syn', index='0')
     # write out dictionary
-    localcfg = chip.copy('eda','yosys')
+    localcfg = chip.getcfg('eda','yosys')
     chip.writecfg('yosys_setup.json', cfg=localcfg)
     # check that file was written
     assert os.path.isfile('yosys_setup.json')
+    # make test a reusable function
     return localcfg
 
 #########################
