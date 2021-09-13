@@ -1,6 +1,7 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
 import argparse
+import base64
 import time
 import datetime
 import multiprocessing
@@ -1775,6 +1776,99 @@ class Chip:
 
 
     ###########################################################################
+    def _slurmstep(self, step, index, active, error):
+        '''
+        Helper method to run an individual step on a slurm cluster.
+        If a base64-encoded 'decrypt_key' is set in the Chip's status
+        dictionary, the job's data is assumed to be encrypted,
+        and a more complex command is assembled to ensure that the data
+        is only decrypted temporarily in the compute node's local storage.
+        '''
+
+        if 'decrypt_key' in self.status:
+            # Job data is encrypted, and it should only be decrypted in the
+            # compute node's local storage.
+            job_nameid = f"{self.get('jobname')}{self.get('jobid')}"
+            tmp_job_dir = f"/tmp/{self.get('remote', 'jobhash')}"
+            tmp_build_dir = "/".join([tmp_job_dir,
+                                      self.get('design'),
+                                      job_nameid])
+            keystr = base64.urlsafe_b64decode(self.status['decrypt_key']).decode()
+            keypath = f"{tmp_job_dir}/dk"
+            in_cfg = None
+            for input_step in self.getkeys('flowgraph', step, index, 'input'):
+                for input_index in self.get('flowgraph', step, index, 'input', input_step):
+                    # We have no way of checking whether these input files
+                    # exist, because the data is encrypted. But if they don't
+                    # exist, the step will quickly error out and the metrics
+                    # should reflect that.
+                    in_cfg = "/".join([tmp_build_dir,
+                                       f'{input_step}{input_index}',
+                                       'outputs',
+                                       f'{self.get("design")}.pkg.json',
+                                      ])
+            # The 'srun' command needs to:
+            # * copy encrypted data/key and unencrypted IV into local storage.
+            # * store the provided key in local storage.
+            # * call 'sc' with the provided key, wait for the job to finish.
+            # * copy updated encrypted data back into shared storage.
+            # * delete all unencrypted data.
+            run_cmd = 'srun bash -c "'
+            run_cmd += f"mkdir -p {tmp_build_dir} ; "
+            run_cmd += f"cp {self.get('dir')}/{job_nameid}.crypt "\
+                           f"{tmp_job_dir}/{job_nameid}.crypt ; "
+            run_cmd += f"cp {self.get('dir')}/{job_nameid}.iv "\
+                           f"{tmp_job_dir}/{job_nameid}.iv ; "
+            run_cmd += f"cp {self.get('dir')}/import.bin "\
+                           f"{tmp_job_dir}/import.bin ; "
+            run_cmd += f"touch {keypath} ; chmod 600 {keypath} ; "
+            run_cmd += f"echo -ne '{keystr}' > {keypath} ; "
+            run_cmd += f"chmod 400 {keypath} ; "
+            run_cmd += f"sc-crypt -mode decrypt -job_dir {tmp_build_dir} "\
+                           f"-key_file {keypath} ; "
+            run_cmd += f"sc -cfg {in_cfg} "\
+                           f"-arg_step {step} -arg_index {index} "\
+                           f"-dir {tmp_job_dir} -jobscheduler local "\
+                           f"-remote_addr '' -remote_key '' ; "
+            run_cmd += f"sc-crypt -mode encrypt -job_dir {tmp_build_dir} "\
+                           f"-key_file {keypath} ; "
+            run_cmd += f"cp {tmp_job_dir}/{job_nameid}.crypt "\
+                           f"{self.get('dir')}/{job_nameid}.crypt ; "
+            run_cmd += f"cp {tmp_job_dir}/{job_nameid}.iv "\
+                           f"{self.get('dir')}/{job_nameid}.iv ; "
+            run_cmd += f"rm -rf {tmp_job_dir}"
+            run_cmd += '"'
+        else:
+            # Job data is not encrypted, so it can be run in shared storage.
+            # Get the prior step to use as an input.
+            job_dir = "/".join([self.get('dir'),
+                                self.get('design'),
+                                self.get('jobname') + str(self.get('jobid'))])
+            in_cfg = None
+            for input_step in self.getkeys('flowgraph', step, index, 'input'):
+                for input_index in self.get('flowgraph', step, index, 'input', input_step):
+                    cfgfile = '/'.join([job_dir,
+                                        f'{input_step}{input_index}',
+                                        'outputs',
+                                        f'{self.get("design")}.pkg.json'])
+                    if os.path.isfile(cfgfile):
+                        in_cfg = cfgfile
+
+            # Create an 'srun' command.
+            run_cmd = 'srun bash -c "'
+            run_cmd += f"sc -cfg {in_cfg} -dir {self.get('dir')} "\
+                       f"-arg_step {step} -arg_index {index} "\
+                        "-jobscheduler local -remote_addr ''"
+            run_cmd += '"'
+
+        # Run the 'srun' command.
+        subprocess.run(run_cmd, shell = True)
+
+        # Clear active/error bits and return after the 'srun' command.
+        error[step + str(index)] = 0
+        active[step + str(index)] = 0
+
+    ###########################################################################
     def _runstep(self, step, index, active, error):
         '''
         Private per step run method called by run().
@@ -1823,6 +1917,15 @@ class Chip:
             # Short sleep
             time.sleep(0.1)
 
+        # If the job is configured to run on a cluster, collect the schema
+        # and send it to a compute node in a munge-encrypted 'srun' command.
+        # (Run the initial 'import' stage[s] locally)
+        if (self.get('jobscheduler') == 'slurm') and \
+           (self.getkeys('flowgraph', step, index, 'input')):
+            self._slurmstep(step, index, active, error)
+            return
+
+        # If the job is configured to run on the local machine, run it.
         ##################
         # 2. Directory setup
 
@@ -2166,11 +2269,13 @@ class Chip:
             if self.get('remote', 'key'):
                 client_encrypt(self)
 
-        # Merge cfg back from last executed runstep
-        laststep = steplist[-1]
-        lastdir = self.getworkdir(step=laststep, index='0')
-        self.cfg = self.readcfg(f"{lastdir}/outputs/{self.get('design')}.pkg.json")
-        self.set('flowstatus',laststep,'0', 'select', '0')
+        # Merge cfg back from last executed runstep.
+        # (Unless working with encrypted data)
+        if not 'decrypt_key' in self.status:
+            laststep = steplist[-1]
+            lastdir = self.getworkdir(step=laststep, index='0')
+            self.cfg = self.readcfg(f"{lastdir}/outputs/{self.get('design')}.pkg.json")
+            self.set('flowstatus',laststep,'0', 'select', '0')
 
     ###########################################################################
     def show(self, filename):

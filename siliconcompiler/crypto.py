@@ -134,7 +134,7 @@ def decrypt_job(job_dir, pk_file):
 # This is mostly intended to make it easier to run individual job steps in an
 # HPC cluster when the data needs to be encrypted 'at rest'. It should not be
 # necessary to run these steps manually in a normal workflow.
-if __name__ == "__main__":
+def main():
     #Argument Parser
     parser = argparse.ArgumentParser(prog='sc-crypt',
                                      formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=50),
@@ -161,3 +161,6 @@ if __name__ == "__main__":
         encrypt_job(cmdargs['job_dir'], cmdargs['key_file'])
     elif cmdargs['mode'] == 'decrypt':
         decrypt_job(cmdargs['job_dir'], cmdargs['key_file'])
+
+if __name__ == "__main__":
+    main()
