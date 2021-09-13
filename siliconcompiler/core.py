@@ -1827,7 +1827,7 @@ class Chip:
         # If the job is configured to run on a cluster, collect the schema
         # and send it to a compute node in a munge-encrypted 'srun' command.
         # (Run the initial 'import' stages without srun)
-        if (self.get('cluster') == 'slurm') and \
+        if (self.get('jobscheduler') == 'slurm') and \
            (self.getkeys('flowgraph', step, index, 'input')):
             if 'decrypt_key' in self.status:
                 # Job data is encrypted, and it should only be decrypted in the
