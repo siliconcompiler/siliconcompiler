@@ -17,6 +17,8 @@ cimport _leflib
 
 import cython
 
+import traceback
+
 # Fused types that let us use helper functions to simplify layer geometry
 # extraction. All of these types grouped together have some common interface,
 # and using the fused types lets us make a single function that can deal with
@@ -65,177 +67,220 @@ class ParserState:
 _state = ParserState()
 
 cdef int double_cb(lefrCallbackType_e cb_type, double value, lefiUserData data):
-    if cb_type == lefrManufacturingCbkType:
-        _state.data['manufacturinggrid'] = value
-    elif cb_type == lefrVersionCbkType:
-        _state.data['version'] = value
+    try:
+        if cb_type == lefrManufacturingCbkType:
+            _state.data['manufacturinggrid'] = value
+        elif cb_type == lefrVersionCbkType:
+            _state.data['version'] = value
+    except Exception:
+        traceback.print_exc()
+        return 1
+    return 0
 
 cdef int units_cb(lefrCallbackType_e t, lefiUnits* units, lefiUserData data):
-    if 'units' not in _state.data:
-        _state.data['units'] = {}
+    try:
+        if 'units' not in _state.data:
+            _state.data['units'] = {}
 
-    if units.hasDatabase():
-        _state.data['units']['database'] = units.databaseNumber()
-    if units.hasCapacitance():
-        _state.data['units']['capacitance'] = units.capacitance()
-    if units.hasResistance():
-        _state.data['units']['resistance'] = units.resistance()
-    if units.hasTime():
-        _state.data['units']['time'] = units.time()
-    if units.hasPower():
-        _state.data['units']['power'] = units.power()
-    if units.hasCurrent():
-        _state.data['units']['current'] = units.current()
-    if units.hasVoltage():
-        _state.data['units']['voltage'] = units.voltage()
-    if units.hasFrequency():
-        _state.data['units']['frequency'] = units.frequency()
-
+        if units.hasDatabase():
+            _state.data['units']['database'] = units.databaseNumber()
+        if units.hasCapacitance():
+            _state.data['units']['capacitance'] = units.capacitance()
+        if units.hasResistance():
+            _state.data['units']['resistance'] = units.resistance()
+        if units.hasTime():
+            _state.data['units']['time'] = units.time()
+        if units.hasPower():
+            _state.data['units']['power'] = units.power()
+        if units.hasCurrent():
+            _state.data['units']['current'] = units.current()
+        if units.hasVoltage():
+            _state.data['units']['voltage'] = units.voltage()
+        if units.hasFrequency():
+            _state.data['units']['frequency'] = units.frequency()
+    except Exception:
+        traceback.print_exc()
+        return 1
     return 0
 
 cdef int divider_chars_cb(lefrCallbackType_e cb_type, const char* val, lefiUserData data):
-    _state.data['dividerchars'] = val.decode('ascii')
+    try:
+        _state.data['dividerchars'] = val.decode('ascii')
+    except Exception:
+        traceback.print_exc()
+        return 1
+    return 0
 
 cdef int busbit_chars_cb(lefrCallbackType_e cb_type, const char* val, lefiUserData data):
-    _state.data['busbitchars'] = val.decode('ascii')
+    try:
+        _state.data['busbitchars'] = val.decode('ascii')
+    except Exception:
+        traceback.print_exc()
+        return 1
+    return 0
 
 cdef int layer_cb(lefrCallbackType_e cb_type, lefiLayer* layer, void* data):
-    if 'layers' not in _state.data:
-        _state.data['layers'] = {}
+    try:
+        if 'layers' not in _state.data:
+            _state.data['layers'] = {}
 
-    name = layer.name().decode('ascii')
-    _state.data['layers'][name] = {}
+        name = layer.name().decode('ascii')
+        _state.data['layers'][name] = {}
 
-    if layer.hasType():
-        _state.data['layers'][name]['type'] = layer.type().decode('ascii')
-    if layer.hasPitch():
-        _state.data['layers'][name]['pitch'] = layer.pitch()
-    if layer.hasXYPitch():
-        _state.data['layers'][name]['pitch'] = (layer.pitchX(), layer.pitchY())
-    if layer.hasOffset():
-        _state.data['layers'][name]['offset'] = layer.offset()
-    if layer.hasXYOffset():
-        _state.data['layers'][name]['offset'] = (layer.offsetX(), layer.offsetY())
-    if layer.hasWidth():
-        _state.data['layers'][name]['width'] = layer.width()
-    if layer.hasArea():
-        _state.data['layers'][name]['area'] = layer.area()
-    if layer.hasDirection():
-        _state.data['layers'][name]['direction'] = layer.direction().decode()
-
+        if layer.hasType():
+            _state.data['layers'][name]['type'] = layer.type().decode('ascii')
+        if layer.hasPitch():
+            _state.data['layers'][name]['pitch'] = layer.pitch()
+        if layer.hasXYPitch():
+            _state.data['layers'][name]['pitch'] = (layer.pitchX(), layer.pitchY())
+        if layer.hasOffset():
+            _state.data['layers'][name]['offset'] = layer.offset()
+        if layer.hasXYOffset():
+            _state.data['layers'][name]['offset'] = (layer.offsetX(), layer.offsetY())
+        if layer.hasWidth():
+            _state.data['layers'][name]['width'] = layer.width()
+        if layer.hasArea():
+            _state.data['layers'][name]['area'] = layer.area()
+        if layer.hasDirection():
+            _state.data['layers'][name]['direction'] = layer.direction().decode()
+    except Exception:
+        traceback.print_exc()
+        return 1
     return 0
 
 cdef int macro_begin_cb(lefrCallbackType_e cb_type, const char* name, lefiUserData data):
-    if 'macros' not in _state.data:
-        _state.data['macros'] = {}
+    try:
+        if 'macros' not in _state.data:
+            _state.data['macros'] = {}
 
-    _state.cur_macro = name.decode('ascii')
-    _state.data['macros'][_state.cur_macro] = {}
-
+        _state.cur_macro = name.decode('ascii')
+        _state.data['macros'][_state.cur_macro] = {}
+    except Exception:
+        traceback.print_exc()
+        return 1
     return 0
 
 cdef int pin_cb(lefrCallbackType_e cb_type, lefiPin* pin, lefiUserData data):
-    if 'pins' not in _state.data['macros'][_state.cur_macro]:
-        _state.data['macros'][_state.cur_macro]['pins'] = {}
+    try:
+        if 'pins' not in _state.data['macros'][_state.cur_macro]:
+            _state.data['macros'][_state.cur_macro]['pins'] = {}
 
-    name = pin.name().decode('ascii')
-    _state.data['macros'][_state.cur_macro]['pins'][name] = {}
+        name = pin.name().decode('ascii')
+        _state.data['macros'][_state.cur_macro]['pins'][name] = {}
 
-    ports = []
-    for i in range(pin.numPorts()):
-        port = pin.port(i)
-        port_data = {}
+        ports = []
+        for i in range(pin.numPorts()):
+            port = pin.port(i)
+            port_data = {}
 
-        # The CLASS of a port is stored in its list of items, so search for that
-        # here.
-        for j in range(port.numItems()):
-            if port.itemType(j) == lefiGeomClassE:
-                port_data['class'] = port.getClass(j).decode('ascii')
+            # The CLASS of a port is stored in its list of items, so search for that
+            # here.
+            for j in range(port.numItems()):
+                if port.itemType(j) == lefiGeomClassE:
+                    port_data['class'] = port.getClass(j).decode('ascii')
 
-        # Otherwise, the other port "items" all refer to layerGeometries, which
-        # are shared by several other types of things, so we extract them using
-        # a separate helper function.
-        geometries = extract_layer_geometries(port)
-        if len(geometries) > 0:
-            port_data['layer_geometries'] = geometries
+            # Otherwise, the other port "items" all refer to layerGeometries, which
+            # are shared by several other types of things, so we extract them using
+            # a separate helper function.
+            geometries = extract_layer_geometries(port)
+            if len(geometries) > 0:
+                port_data['layer_geometries'] = geometries
 
-        ports.append(port_data)
+            ports.append(port_data)
 
-    if len(ports) > 0:
-        _state.data['macros'][_state.cur_macro]['pins'][name]['ports'] = ports
-
+        if len(ports) > 0:
+            _state.data['macros'][_state.cur_macro]['pins'][name]['ports'] = ports
+    except Exception:
+        traceback.print_exc()
+        return 1
     return 0
 
 cdef int obs_cb(lefrCallbackType_e cb_type, lefiObstruction* obs, lefiUserData data):
-    if 'obs' not in _state.data['macros'][_state.cur_macro]:
-        _state.data['macros'][_state.cur_macro]['obs'] = []
+    try:
+        if 'obs' not in _state.data['macros'][_state.cur_macro]:
+            _state.data['macros'][_state.cur_macro]['obs'] = []
 
-    geometries = extract_layer_geometries(obs.geometries())
+        geometries = extract_layer_geometries(obs.geometries())
 
-    # Append geometries even if empty so that the dictionary reflects how many
-    # OBS appear in the LEF (even if they're empty).
-    _state.data['macros'][_state.cur_macro]['obs'].append(geometries)
-
+        # Append geometries even if empty so that the dictionary reflects how many
+        # OBS appear in the LEF (even if they're empty).
+        _state.data['macros'][_state.cur_macro]['obs'].append(geometries)
+    except Exception:
+        traceback.print_exc()
+        return 1
     return 0
 
 cdef int clearance_measure_cb(lefrCallbackType_e cb_type, const char* val, lefiUserData data):
-    _state.data['clearancemeasure'] = val.decode('ascii')
+    try:
+        _state.data['clearancemeasure'] = val.decode('ascii')
+    except Exception:
+        traceback.print_exc()
+        return 1
     return 0
 
 cdef int fixed_mask_cb(lefrCallbackType_e cb_type, int val, lefiUserData data):
-    # TODO: can val be 0?
-    _state.data['fixedmask'] = True
+    try:
+        _state.data['fixedmask'] = True if val == 1 else False
+    except Exception:
+        traceback.print_exc()
+        return 1
     return 0
 
 cdef int max_via_stack_cb(lefrCallbackType_e cb_type, lefiMaxStackVia* maxstackvia, lefiUserData data):
-    _state.data['maxviastack'] = {
-        'value': maxstackvia.maxStackVia(),
-    }
-
-    if maxstackvia.hasMaxStackViaRange():
-        _state.data['maxviastack']['range'] = {
-            'bottom': maxstackvia.maxStackViaBottomLayer().decode('ascii'),
-            'top': maxstackvia.maxStackViaTopLayer().decode('ascii')
+    try:
+        _state.data['maxviastack'] = {
+            'value': maxstackvia.maxStackVia(),
         }
 
+        if maxstackvia.hasMaxStackViaRange():
+            _state.data['maxviastack']['range'] = {
+                'bottom': maxstackvia.maxStackViaBottomLayer().decode('ascii'),
+                'top': maxstackvia.maxStackViaTopLayer().decode('ascii')
+            }
+    except Exception:
+        traceback.print_exc()
+        return 1
     return 0
 
 cdef int site_cb(lefrCallbackType_e cb_type, lefiSite* site, lefiUserData data):
-    if 'sites' not in _state.data:
-        _state.data['sites'] = {}
+    try:
+        if 'sites' not in _state.data:
+            _state.data['sites'] = {}
 
-    site_data = {}
-    if site.hasClass():
-        site_data['class'] = site.siteClass().decode('ascii')
+        site_data = {}
+        if site.hasClass():
+            site_data['class'] = site.siteClass().decode('ascii')
 
-    symmetries = []
-    if site.hasXSymmetry():
-        symmetries.append('X')
-    if site.hasYSymmetry():
-        symmetries.append('Y')
-    if site.has90Symmetry():
-        symmetries.append('R90')
-    if len(symmetries) > 0:
-        site_data['symmetry'] = symmetries
+        symmetries = []
+        if site.hasXSymmetry():
+            symmetries.append('X')
+        if site.hasYSymmetry():
+            symmetries.append('Y')
+        if site.has90Symmetry():
+            symmetries.append('R90')
+        if len(symmetries) > 0:
+            site_data['symmetry'] = symmetries
 
-    rowpattern = []
-    for i in range(site.numSites()):
-        rowpattern.append({
-            'name': site.siteName(i).decode('ascii'),
-            'orient': site.siteOrientStr(i).decode('ascii')
-        })
-    if len(rowpattern) > 0:
-        site_data['rowpattern'] = rowpattern
+        rowpattern = []
+        for i in range(site.numSites()):
+            rowpattern.append({
+                'name': site.siteName(i).decode('ascii'),
+                'orient': site.siteOrientStr(i).decode('ascii')
+            })
+        if len(rowpattern) > 0:
+            site_data['rowpattern'] = rowpattern
 
-    if site.hasSize():
-        site_data['size'] = {
-            'width': site.sizeX(),
-            'height': site.sizeY()
-        }
+        if site.hasSize():
+            site_data['size'] = {
+                'width': site.sizeX(),
+                'height': site.sizeY()
+            }
 
-    name = site.name().decode('ascii')
-    _state.data['sites'][name] = site_data
-
+        name = site.name().decode('ascii')
+        _state.data['sites'][name] = site_data
+    except Exception:
+        traceback.print_exc()
+        return 1
     return 0
 
 cdef extract_points(PointListGeometry geo):
@@ -345,83 +390,92 @@ cdef extract_layer_geometries(lefiGeometries* geos):
     return geometries
 
 cdef int macro_cb(lefrCallbackType_e cb_type, lefiMacro* macro, void* data):
-    if macro.hasSize():
-        _state.data['macros'][_state.cur_macro]['size'] = {
-            'width': macro.sizeX(),
-            'height': macro.sizeY()
-        }
-
+    try:
+        if macro.hasSize():
+            _state.data['macros'][_state.cur_macro]['size'] = {
+                'width': macro.sizeX(),
+                'height': macro.sizeY()
+            }
+    except Exception:
+        traceback.print_exc()
+        return 1
     return 0
 
 cdef int viarule_cb(lefrCallbackType_e cb_type, lefiViaRule* viarule, void* data):
-    if 'viarules' not in _state.data:
-        _state.data['viarules'] = {}
+    try:
+        if 'viarules' not in _state.data:
+            _state.data['viarules'] = {}
 
-    viarule_data = {}
-    if viarule.hasDefault():
-        viarule_data['default'] = True
-    if viarule.hasGenerate():
-        viarule_data['generate'] = True
+        viarule_data = {}
+        if viarule.hasDefault():
+            viarule_data['default'] = True
+        if viarule.hasGenerate():
+            viarule_data['generate'] = True
 
-    layers = []
-    for i in range(viarule.numLayers()):
-        layer = viarule.layer(i)
-        layer_data = {'name': layer.name().decode('ascii')}
-        # nongenerate only
-        if layer.hasDirection():
-            layer_data['direction'] = 'HORZIONTAL' if layer.isHorizontal() else 'VERTICAL'
-        # generate only
-        if layer.hasEnclosure():
-            layer_data['enclosure'] = {
-                'overhang1': layer.enclosureOverhang1(),
-                'overhang2': layer.enclosureOverhang2()
-            }
-        if layer.hasRect():
-            layer_data['rect'] = (layer.xl(), layer.yl(), layer.xl(), layer.xh())
-        if layer.hasSpacing():
-            layer_data['spacing'] = {
-                'x': layer.spacingStepX(),
-                'y': layer.spacingStepY()
-            }
-        if layer.hasResistance():
-            layer_data['resistance'] = layer.resistance()
+        layers = []
+        for i in range(viarule.numLayers()):
+            layer = viarule.layer(i)
+            layer_data = {'name': layer.name().decode('ascii')}
+            # nongenerate only
+            if layer.hasDirection():
+                layer_data['direction'] = 'HORZIONTAL' if layer.isHorizontal() else 'VERTICAL'
+            # generate only
+            if layer.hasEnclosure():
+                layer_data['enclosure'] = {
+                    'overhang1': layer.enclosureOverhang1(),
+                    'overhang2': layer.enclosureOverhang2()
+                }
+            if layer.hasRect():
+                layer_data['rect'] = (layer.xl(), layer.yl(), layer.xl(), layer.xh())
+            if layer.hasSpacing():
+                layer_data['spacing'] = {
+                    'x': layer.spacingStepX(),
+                    'y': layer.spacingStepY()
+                }
+            if layer.hasResistance():
+                layer_data['resistance'] = layer.resistance()
 
-        # nongenerate and generate
-        if layer.hasWidth():
-            layer_data['width'] = {
-                'min': layer.widthMin(),
-                'max': layer.widthMax()
-            }
+            # nongenerate and generate
+            if layer.hasWidth():
+                layer_data['width'] = {
+                    'min': layer.widthMin(),
+                    'max': layer.widthMax()
+                }
 
-        layers.append(layer_data)
+            layers.append(layer_data)
 
-    vias = []
-    for i in range(viarule.numVias()):
-        vias.append(viarule.viaName(i).decode('ascii'))
+        vias = []
+        for i in range(viarule.numVias()):
+            vias.append(viarule.viaName(i).decode('ascii'))
 
-    if len(layers) > 0:
-        viarule_data['layers'] = layers
-    if len(vias) > 0:
-        viarule_data['vias'] = vias
+        if len(layers) > 0:
+            viarule_data['layers'] = layers
+        if len(vias) > 0:
+            viarule_data['vias'] = vias
 
-    name = viarule.name().decode('ascii')
-    _state.data['viarules'][name] = viarule_data
-
+        name = viarule.name().decode('ascii')
+        _state.data['viarules'][name] = viarule_data
+    except Exception:
+        traceback.print_exc()
+        return 1
     return 0
 
 cdef int use_min_spacing_cb(lefrCallbackType_e cb_type, lefiUseMinSpacing* minspacing, lefiUserData data):
-    if 'useminspacing' not in _state.data:
-        _state.data['useminspacing'] = {}
+    try:
+        if 'useminspacing' not in _state.data:
+            _state.data['useminspacing'] = {}
 
-    # I think this should always be 'OBS', but read from the object just to be flexible. 
-    name = minspacing.name().decode('ascii')
-    if minspacing.value() == 1:
-        val = 'ON'
-    else:
-        val = 'OFF'
+        # I think this should always be 'OBS', but read from the object just to be flexible. 
+        name = minspacing.name().decode('ascii')
+        if minspacing.value() == 1:
+            val = 'ON'
+        else:
+            val = 'OFF'
 
-    _state.data['useminspacing'][name] = val
-
+        _state.data['useminspacing'][name] = val
+    except Exception:
+        traceback.print_exc()
+        return 1
     return 0
 
 # The single wrapper function we expose
@@ -462,5 +516,9 @@ def parse(path):
     r = lefrRead(f_ptr, path_bytes, NULL)
 
     fclose(f_ptr)
+
+    if r != 0:
+        print("Error parsing LEF!")
+        return None
 
     return _state.data
