@@ -55,6 +55,15 @@ $ pip install -r requirements.txt
 $ python -m pip install -e .
 ```
 
+Note that this installation process will build a C++ LEF parser from source,
+using code contained in one of SC's submodules. In order to build this parser,
+you must install bison:
+```sh
+$ sudo apt-get install bison
+```
+
+All other build prerequisites should be installed transparently by Pip.
+
 ## Pre-requisites
 
 To compile designs using the included open source target flow, you will need to install the follwoing external packages:
