@@ -5,7 +5,7 @@ import math
 import jinja2
 from collections import namedtuple
 
-from siliconcompiler.leflib_old import Lef
+from siliconcompiler import leflib
 from siliconcompiler.schema_utils import schema_path
 
 # Set up Jinja
@@ -116,7 +116,6 @@ class Floorplan:
         self.std_cell_height = self.chip.get('library', self.libname, 'height')
 
         # Extract data from LEFs
-        lef_parser = Lef()
         stackup = chip.get('asic', 'stackup')
         libtype = chip.get('library', self.libname, 'arch')
 
@@ -125,16 +124,25 @@ class Floorplan:
 
         for macrolib in self.chip.get('asic', 'macrolib'):
             lef_path = schema_path(self.chip.get('library', macrolib, 'lef')[0])
-            with open(lef_path, 'r') as f:
-                lef_data = lef_parser.lib_parse(f.read())
+            lef_data = leflib.parse(lef_path)
 
-            for name in lef_data['macros']:
-                width, height = lef_data['macros'][name]['size']
-                self.available_cells[name] = _MacroInfo(width, height)
+            if 'macros' not in lef_data:
+                logging.warn(f'LEF {lef_path} added to library {macrolib} '
+                    'contains no macros. Are you sure this is the correct file?')
+                continue
+
+            for name in lef_data['macros'].keys():
+                if 'size' in lef_data['macros'][name]:
+                    size = lef_data['macros'][name]['size']
+                    width = size['width']
+                    height = size['height']
+                    self.available_cells[name] = _MacroInfo(width, height)
+                else:
+                    logging.warn(f'Macro {name} missing size in LEF, not adding '
+                        'to available cells.')
 
         tech_lef = schema_path(chip.get('pdk', 'aprtech', stackup, libtype, 'lef')[0])
-        with open(tech_lef, 'r') as f:
-            tech_lef_data = lef_parser.parse(f.read())
+        tech_lef_data = leflib.parse(tech_lef)
 
         # extract layers based on stackup
         stackup = self.chip.get('asic', 'stackup')
@@ -145,8 +153,17 @@ class Floorplan:
             ypitch = self.chip.get('pdk', 'grid', stackup, name, 'ypitch')
             xoffset = self.chip.get('pdk', 'grid', stackup, name, 'xoffset')
             yoffset = self.chip.get('pdk', 'grid', stackup, name, 'yoffset')
-            width = float(tech_lef_data['LAYER'][pdk_name]['WIDTH'][-1])
-            direction = tech_lef_data['LAYER'][pdk_name]['DIRECTION'][-1]
+
+            if ('layers' not in tech_lef_data) or (pdk_name not in tech_lef_data['layers']):
+                raise ValueError(f'No layer named {pdk_name} in tech LEF!')
+            layer = tech_lef_data['layers'][pdk_name]
+
+            if 'width' not in layer:
+                raise ValueError(f'No width for layer {pdk_name} in tech LEF!')
+            if 'direction' not in layer:
+                raise ValueError(f'No direction for layer {pdk_name} in tech LEF!')
+            width = layer['width']
+            direction = layer['direction']
 
             self.layers[name] = {
                 'name': pdk_name,
