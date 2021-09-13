@@ -1,0 +1,4 @@
+Server API
+-------------------
+
+.. clientservergen::

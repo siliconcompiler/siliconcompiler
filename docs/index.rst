@@ -23,7 +23,9 @@ Welcome to SiliconCompiler's documentation!
    :numbered:
 
    tutorials/asicflow
+   tutorials/flowsetup
    tutorials/toolsetup
+   tutorials/foundrysetup
    tutorials/zerosoc
 
 .. toctree::
@@ -31,12 +33,15 @@ Welcome to SiliconCompiler's documentation!
    :caption: Reference Manual
    :numbered:
 
+   reference_manual/environment
    reference_manual/schema
-   reference_manual/api
-   reference_manual/commandline
-   reference_manual/server_interface
-   reference_manual/targets/index
-   reference_manual/tools/index
+   reference_manual/core_api
+   reference_manual/server_api
+   reference_manual/floorplan_api
+   reference_manual/executable
+   reference_manual/flows
+   reference_manual/tools
+   reference_manual/foundries
 
 .. toctree::
    :maxdepth: 3

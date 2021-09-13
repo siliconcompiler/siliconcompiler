@@ -1,5 +1,4 @@
-=========================
-Client / Server Interface
+Client/server interface
 =========================
 
 The SiliconCompiler project is capable of deferring jobs to a remote server using the same general syntax as its local build system. The project ships with a minimal open-source development server, but the client / server API is designed to be simple and robust enough to support other server implementations, including proprietary ones such as the `server.siliconcompiler.com` backend.
@@ -165,8 +164,3 @@ If you followed the server examples to set up a test user account for authentica
 The key will be transmitted over the wire, so it is very important to use port 443 to enable TLS encryption when communicating with a server which is not on a local network. However, configuring a valid HTTPS certificate for a host is beyond the scope of these tutorials. Once again, this example development server is not intended for production use, and we cannot recommend using it to protect confidential designs or IP.
 
 Production implementations of the server API, such as server.siliconcompiler.com, must be careful to avoid logging the private key or otherwise storing it on disk. They must also support HTTPS connections to ensure that the key can be encrypted in transit.
-
-API Reference
--------------
-
-.. clientservergen::

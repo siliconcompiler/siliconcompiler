@@ -3,7 +3,7 @@ Introduction
 
 SiliconCompiler (SC") is an end-to-end Python based open source platform for
 hardware compilation. It supports a comprehensive, flexible ecosystem of
-tools, hardware targets, and community resources that lowers the barrier to physical ASIC prototyping and high accuracy HW/SW codesign. 
+tools, hardware targets, and community resources that lowers the barrier to physical ASIC prototyping and high accuracy HW/SW codesign.
 
 Highlights
 ----------------
@@ -13,12 +13,12 @@ Highlights
 * Plain text single file JSON compilation record
 * Zero-install client/server execution model
 * Simple name based target technology mapping
-* Python based technology agnostic ASIC floor-planning API  
+* Python based technology agnostic ASIC floor-planning API
 
 .. list-table::
    :widths: 20 15 15 20
    :header-rows: 1
-		 
+
    * - Feature
      - SiliconCompiler
      - Previous
@@ -31,7 +31,7 @@ Highlights
      - Yes
      - No
      - Workforce development
-   * - PDK agnostic APR setup 
+   * - PDK agnostic APR setup
      - Yes
      - No
      - Porting costs
@@ -71,8 +71,8 @@ Highlights
      - Automated
      - Manual
      - Security, quality
- 
-       
+
+
 History
 ----------------
 
@@ -82,7 +82,7 @@ and automatically translates it into a complete layout of an integrated circuit
 the 1st VLSI revolution led by Carver Mead and Lynn Conway. Mead and Conway
 created abstractions and design methodologies that enabled a community of
 engineers without a background in solid state device physics to design
-circuits. 
+circuits.
 
 
 The initial idea behind the early “silicon compilers” was one where chips
@@ -221,3 +221,5 @@ The SiliconCompiler project is based on a number of key design decisions:
   scale gracefully from a single command line argument all the way up to the
   most complicated SoCs within a single platform without burdening the novice
   with steep ramp up costs or restricting advanced developers.
+
+image:: _images/sc_stack.svg

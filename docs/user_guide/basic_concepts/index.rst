@@ -5,6 +5,7 @@ Basic Concepts
    :maxdepth: 3
    :caption: Basic Concepts
 
+   architecture
    data_model
    execution_model
    design import

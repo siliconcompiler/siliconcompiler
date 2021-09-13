@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="210mm"
+   height="297mm"
+   viewBox="0 0 210 297"
+   version="1.1"
+   id="svg8"
+   inkscape:version="0.92.5 (2060ec1f9f, 2020-04-08)"
+   sodipodi:docname="sc_stack.svg">
+  <defs
+     id="defs2" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.98994949"
+     inkscape:cx="342.49907"
+     inkscape:cy="666.42215"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1920"
+     inkscape:window-height="1043"
+     inkscape:window-x="1920"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.58333302px;line-height:1.25;font-family:'STIX Math';-inkscape-font-specification:'STIX Math';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       x="58.900879"
+       y="121.59411"
+       id="text4751-7"><tspan
+         sodipodi:role="line"
+         id="tspan4749-5"
+         x="58.900879"
+         y="130.85452"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Roboto;-inkscape-font-specification:Roboto;stroke-width:0.26458332" /></text>
+    <g
+       id="g5284">
+      <path
+         inkscape:connector-curvature="0"
+         id="rect4747-2-6-5-1-8"
+         transform="scale(0.26458333)"
+         d="m 120.50195,212.66406 v 86.16602 h 453.5586 V 441.26172 H 688.20898 V 298.83008 212.66406 H 574.06055 Z"
+         style="opacity:1;fill:#398df8;fill-opacity:0.3121019;fill-rule:nonzero;stroke:#000000;stroke-width:3.77952743;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <rect
+         y="141.07996"
+         x="31.883003"
+         height="18.521982"
+         width="150.17252"
+         id="rect4747"
+         style="opacity:1;fill:#4e2913;fill-opacity:0.66242041;fill-rule:nonzero;stroke:#000000;stroke-width:1;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <text
+         id="text4751"
+         y="154.103"
+         x="70.622643"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.58333302px;line-height:1.25;font-family:'STIX Math';-inkscape-font-specification:'STIX Math';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+         xml:space="preserve"><tspan
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Roboto;-inkscape-font-specification:Roboto;stroke-width:0.26458332"
+           y="154.103"
+           x="70.622643"
+           id="tspan4749"
+           sodipodi:role="line">JSON SCHEMA</tspan></text>
+      <text
+         inkscape:transform-center-y="-16.036172"
+         inkscape:transform-center-x="10.690781"
+         id="text4751-7-5-0"
+         y="132.63185"
+         x="76.549927"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.58333302px;line-height:1.25;font-family:'STIX Math';-inkscape-font-specification:'STIX Math';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+         xml:space="preserve"><tspan
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Roboto;-inkscape-font-specification:Roboto;stroke-width:0.26458332"
+           y="132.63185"
+           x="76.549927"
+           id="tspan4749-5-6-0"
+           sodipodi:role="line">PYTHON API</tspan></text>
+      <text
+         inkscape:transform-center-y="-16.036172"
+         inkscape:transform-center-x="10.690781"
+         id="text4751-7-5-0-2"
+         y="72.192886"
+         x="93.829659"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.58333302px;line-height:1.25;font-family:'STIX Math';-inkscape-font-specification:'STIX Math';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+         xml:space="preserve"><tspan
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Roboto;-inkscape-font-specification:Roboto;stroke-width:0.26458332"
+           y="72.192886"
+           x="93.829659"
+           id="tspan4749-5-6-0-31"
+           sodipodi:role="line">USER</tspan></text>
+      <rect
+         y="119.60881"
+         x="31.883003"
+         height="18.521982"
+         width="150.17252"
+         id="rect4747-2"
+         style="opacity:1;fill:#52f34d;fill-opacity:0.36305733;fill-rule:nonzero;stroke:#000000;stroke-width:1;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <text
+         inkscape:transform-center-y="-16.036172"
+         inkscape:transform-center-x="10.690781"
+         id="text4751-7-5-0-5"
+         y="103.40988"
+         x="119.73483"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.58333302px;line-height:1.25;font-family:'STIX Math';-inkscape-font-specification:'STIX Math';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+         xml:space="preserve"><tspan
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Roboto;-inkscape-font-specification:Roboto;stroke-width:0.26458332"
+           y="103.40988"
+           x="119.73483"
+           id="tspan4749-5-6-0-3"
+           sodipodi:role="line">TOOL</tspan></text>
+      <rect
+         y="82.636032"
+         x="116.64504"
+         height="34.023617"
+         width="32.606899"
+         id="rect4747-2-6-5-1"
+         style="opacity:1;fill:#c736cd;fill-opacity:0.3121019;fill-rule:nonzero;stroke:#000000;stroke-width:0.99999994;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <text
+         inkscape:transform-center-y="-16.036172"
+         inkscape:transform-center-x="10.690781"
+         id="text4751-7-5-0-5-6-2"
+         y="109.43956"
+         x="42.728481"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.58333302px;line-height:1.25;font-family:'STIX Math';-inkscape-font-specification:'STIX Math';letter-spacing:0px;word-spacing:0px;fill:#00e34e;fill-opacity:0.61464963;stroke:none;stroke-width:0.26458332"
+         xml:space="preserve"><tspan
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Roboto;-inkscape-font-specification:Roboto;fill:#000002;fill-opacity:1;stroke-width:0.26458332"
+           y="109.43956"
+           x="42.728481"
+           id="tspan4749-5-6-0-3-8-0"
+           sodipodi:role="line">TECH</tspan></text>
+      <rect
+         y="100.16904"
+         x="40.426861"
+         height="11.840244"
+         width="31.003281"
+         id="rect4747-2-6"
+         style="opacity:1;fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:0.49999997;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:0.5, 0.5;stroke-dashoffset:0;stroke-opacity:1" />
+      <text
+         inkscape:transform-center-y="-16.036172"
+         inkscape:transform-center-x="10.690781"
+         id="text4751-7-5-0-5-6-2-4"
+         y="109.43956"
+         x="77.75"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.58333302px;line-height:1.25;font-family:'STIX Math';-inkscape-font-specification:'STIX Math';letter-spacing:0px;word-spacing:0px;fill:#00e34e;fill-opacity:0.61464963;stroke:none;stroke-width:0.26458332"
+         xml:space="preserve"><tspan
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Roboto;-inkscape-font-specification:Roboto;fill:#000001;fill-opacity:0.99681528;stroke-width:0.26458332"
+           y="109.43956"
+           x="77.75"
+           id="tspan4749-5-6-0-3-8-0-8"
+           sodipodi:role="line">FLOW</tspan></text>
+      <rect
+         y="100.16904"
+         x="76.246368"
+         height="11.840244"
+         width="31.537819"
+         id="rect4747-2-6-5"
+         style="opacity:1;fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:0.5;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:0.5, 0.5;stroke-dashoffset:0;stroke-opacity:1" />
+      <text
+         inkscape:transform-center-y="-16.036172"
+         inkscape:transform-center-x="10.690781"
+         id="text4751-7-5-0-5-6-2-4-9"
+         y="94.814751"
+         x="54.690262"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.58333302px;line-height:1.25;font-family:'STIX Math';-inkscape-font-specification:'STIX Math';letter-spacing:0px;word-spacing:0px;fill:#000003;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+         xml:space="preserve"><tspan
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Roboto;-inkscape-font-specification:Roboto;fill:#000003;fill-opacity:1;stroke-width:0.26458332"
+           y="94.814751"
+           x="54.690262"
+           id="tspan4749-5-6-0-3-8-0-8-7"
+           sodipodi:role="line">TARGET</tspan></text>
+      <rect
+         y="82.769669"
+         x="31.883003"
+         height="33.756344"
+         width="81.784485"
+         id="rect4747-2-6-5-3"
+         style="opacity:1;fill:#4441e2;fill-opacity:0.36305733;fill-rule:nonzero;stroke:#000000;stroke-width:1;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+    </g>
+  </g>
+</svg>
