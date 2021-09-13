@@ -76,14 +76,14 @@ class TargetGen(SphinxDirective):
         packdir = f'siliconcompiler.foundries'
         modulename = f'.{target}'
         module = importlib.import_module(modulename, package=packdir)
-        setup_platform = getattr(module, 'setup_platform')
+        setup_pdk = getattr(module, 'setup_pdk')
 
         chip = siliconcompiler.Chip()
         # TODO: get "default" step
-        setup_platform(chip)
+        setup_pdk(chip)
 
         s = build_section(target, target)
-        docstr = setup_platform.__doc__
+        docstr = setup_pdk.__doc__
         if docstr:
             self.parse_rst(docstr, s)
 

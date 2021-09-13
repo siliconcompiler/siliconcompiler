@@ -32,9 +32,10 @@ def setup_flow(chip):
 
     '''
 
-
-
-    partname = chip.get('fpga', 'partname')
+    if chip.get('fpga', 'partname'):
+        partname = chip.get('fpga', 'partname')
+    else:
+        partname = "UNDEFINED"
 
     # Inferring vendor name based on part number
     if re.match('ice', partname):
@@ -103,12 +104,7 @@ if __name__ == "__main__":
 
     # File being executed
     prefix = os.path.splitext(os.path.basename(__file__))[0]
-    output = prefix + '.json'
-
-    # create a chip instance
     chip = siliconcompiler.Chip(defaults=False)
-    # load configuration
     setup_flow(chip)
-    # write out results
-    chip.writecfg(output)
+    chip.writecfg(prefix + ".json")
     chip.writegraph(prefix + ".png")
