@@ -12,6 +12,9 @@ from siliconcompiler.schema_utils import schema_path
 
 def setup_tool(chip, step, index):
     ''' Tool specific function to run before step execution
+
+    Tool-specific options:
+    - techmap: list of Verilog files used for mapping generic Yosys cells.
     '''
 
     # If the 'lock' bit is set, don't reconfigure.
@@ -43,6 +46,31 @@ def setup_tool(chip, step, index):
         chip.add('eda', tool, step, index, 'req', ",".join(['asic', 'targetlib']))
     else:
         chip.add('eda', tool, step, index, 'req', ",".join(['fpga','partname']))
+
+    # Since tool options are of type str (not file), we manually resolve any
+    # paths the user added using schema_path and stuff them back into the
+    # options entry.
+    techmap_paths = []
+    if 'techmap' in chip.getkeys('eda', tool, step, index, 'option'):
+        for mapfile in chip.get('eda', tool, step, index, 'option', 'techmap'):
+            abspath = schema_path(mapfile)
+            # TODO: should we check here that file exists? warning or error if not?
+            techmap_paths.append(abspath)
+
+    # Next, we add the default techmap files bundled into SC.
+    # These don't need absolute paths since the files live in the tool
+    # directory, and copy=True (so they'll be accessible as a relative path
+    # from TCL).
+    if chip.get('pdk','process'):
+        process = chip.get('pdk','process')
+        if process == 'freepdk45':
+            techmap_paths.append('cells_latch_freepdk45.v')
+        elif process == 'skywater130':
+            # TODO: might want to eventually switch on libname rather than
+            # process so we can support other sky130 variations besides HD.
+            techmap_paths.append('cells_latch_sky130hd.v')
+
+    chip.set('eda', tool, step, index, 'option', 'techmap', techmap_paths)
 
 def pre_process(chip, step, index):
     #TODO: remove special treatment for fpga??
