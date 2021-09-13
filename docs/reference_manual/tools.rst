@@ -1,4 +1,4 @@
-Tool Configuration
+Tools directory
 ===================
 
 .. toolgen::

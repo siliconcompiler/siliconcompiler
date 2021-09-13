@@ -1,9 +1,3 @@
-Core API
-----------
-
-.. automodule:: siliconcompiler.core
-    :members:
-
 Floorplan API
 --------------
 

@@ -1,4 +1,4 @@
-Command Line Interface
+Executable
 ========================
 
 The SiliconCompiler project ships with an easy to use command line application
