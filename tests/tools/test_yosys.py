@@ -3,7 +3,7 @@ import sys
 import pytest
 import os
 import siliconcompiler
-from siliconcompiler.tools.yosys.yosys_setup import setup_tool
+import importlib
 
 if __name__ != "__main__":
     from tests.fixtures import test_wrapper
@@ -15,16 +15,22 @@ def test_yosys():
     chip = siliconcompiler.Chip()
 
     # set variables
+    tool = 'yosys'
+    step = 'syn'
     chip.set('design', 'mytopmodule')
-    # run setup
-    setup_tool(chip, step='syn', index='0')
-    # write out dictionary
-    localcfg = chip.getcfg('eda','yosys')
-    chip.writecfg('yosys_setup.json', cfg=localcfg)
-    # check that file was written
-    assert os.path.isfile('yosys_setup.json')
-    # make test a reusable function
-    return localcfg
+
+    # template / boiler plate code
+    searchdir = "siliconcompiler.tools." + tool
+    modulename = '.'+tool+'_setup'
+    module = importlib.import_module(modulename, package=searchdir)
+    setup_tool = getattr(module, "setup_tool")
+    setup_tool(chip, step, '0')
+
+    # test results
+    localcfg = chip.getcfg('eda',tool)
+    chip.writecfg(tool + '_setup.json', cfg=localcfg)
+    assert os.path.isfile(tool+'_setup.json')
+
 
 #########################
 if __name__ == "__main__":
