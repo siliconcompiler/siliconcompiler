@@ -8,7 +8,7 @@ from siliconcompiler.deflib import *
 
 # TODO: test that parsing results are correct
 
-class TestLefDef(unittest.TestCase):
+class TestDef(unittest.TestCase):
 
     def test_def(self):
         mydir = os.path.dirname(os.path.abspath(__file__))
