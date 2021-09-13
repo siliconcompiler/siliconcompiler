@@ -1021,6 +1021,33 @@ class Chip:
         return localcfg
 
     ###########################################################################
+    def find(self, filename):
+        """
+        Returns an absolute path for the provided filename provided.
+
+        The method searches for a match for filename using the SCPATH
+        environment variable. Legal shell variables consisting of '$' followed
+        by numbers, underscores, and digits are replaced with the variable
+        value.
+        """
+
+        # Replacing environment variables
+        vars = re.findall(r'\$(\w+)', filename)
+        for item in vars:
+            varpath = os.getenv(item)
+            filename = filename.replace("$"+item, varpath)
+
+        # Resolving absolute paths
+        scpaths = str(os.environ['SCPATH']).split(':')
+        for searchdir in scpaths:
+            abspath = searchdir + "/" + filename
+            if os.path.exists(abspath):
+                filename = abspath
+                break
+
+        return filename
+
+    ###########################################################################
     def _abspath(self, cfg):
         '''Recursive function that goes through Chip dictionary and
         resolves all relative paths where required.
