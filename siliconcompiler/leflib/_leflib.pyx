@@ -558,6 +558,10 @@ cdef extract_layer_geometries(lefiGeometries* geos):
 
     return geometries
 
+# Additional callback for logging warnings/errors.
+cdef void log(const char* msg):
+    print(msg.decode('ascii'))
+
 # This is the module's main entry point and the single Python function exposed
 # by this module.
 def parse(path):
@@ -585,6 +589,9 @@ def parse(path):
     lefrSetPinCbk(pin_cb)
     lefrSetObstructionCbk(obs_cb)
     lefrSetMacroCbk(macro_cb)
+
+    lefrSetLogFunction(log)
+    lefrSetWarningLogFunction(log)
 
     # Use this to pass path to C++ functions
     path_bytes = path.encode('ascii')

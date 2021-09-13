@@ -59,6 +59,9 @@ ctypedef int (*lefrMaxStackViaCbkFnType) (lefrCallbackType_e,
                                          lefiMaxStackVia* l,
                                          lefiUserData);
 
+ctypedef void (*LEFI_LOG_FUNCTION) (const char*);
+ctypedef void (*LEFI_WARNING_LOG_FUNCTION) (const char*);
+
 # Must declare everything we reference from lefrReader.hpp here
 cdef extern from "lefrReader.hpp":
     int lefrInit()
@@ -81,6 +84,10 @@ cdef extern from "lefrReader.hpp":
     void lefrSetPinCbk(lefrPinCbkFnType)
     void lefrSetObstructionCbk(lefrObstructionCbkFnType)
     void lefrSetMacroCbk(lefrMacroCbkFnType)
+
+    # Additional callbacks
+    void lefrSetLogFunction(LEFI_LOG_FUNCTION)
+    void lefrSetWarningLogFunction(LEFI_WARNING_LOG_FUNCTION)
 
     # Some enums we need to reference
     ctypedef enum lefrCallbackType_e:
