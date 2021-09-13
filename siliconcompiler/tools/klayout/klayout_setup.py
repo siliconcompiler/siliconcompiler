@@ -90,6 +90,24 @@ def setup_tool(chip, step, index, mode="batch"):
         #add all options to dictionary
         chip.add('eda', tool, step, index, 'option', 'cmdline', options)
 
+################################
+# Version Check
+################################
+
+def check_version(chip, step, index, version):
+    ''' Tool specific version checking
+    '''
+    required = chip.get('eda', 'klayout', step, index, 'version')
+    #insert code for parsing the funtion based on some tool specific
+    #semantics.
+    #syntax for version is string, >=string
+    
+    return 0
+
+################################
+# Post_process (post executable)
+################################
+        
 def post_process(chip, step, index):
     ''' Tool specific function to run after step execution
     '''

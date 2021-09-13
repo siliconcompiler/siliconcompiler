@@ -8,19 +8,23 @@ import siliconcompiler
 # PDK Setup
 ####################################################
 
-def setup_platform(chip):
+def setup_pdk(chip):
+    '''
+    TODO: Add links to more documentation
+    '''
+
+    ###############################################
+    # Process
+    ###############################################
 
     foundry = 'skywater'
     process = 'skywater130'
-
     rev = 'v0_0_2'
-
     stackup = '5M1LI'
+
     # TODO: eventualy support hs libtype as well
     libtype = 'hd'
-
     node = 130
-
     # TODO: dummy numbers, only matter for cost estimation
     wafersize = 300
     hscribe = 0.1
@@ -32,7 +36,6 @@ def setup_platform(chip):
                        process,
                        'pdk',
                        rev])
-
 
     #if you are calling this file, you are in asic mode
     chip.set('mode','asic')
@@ -102,14 +105,10 @@ def setup_platform(chip):
     chip.set('pdk','grid', stackup, 'm5', 'ypitch',  3.4)
     chip.set('pdk','grid', stackup, 'm5', 'adj', 0.5)
 
+    ###############################################
+    # Libraries
+    ###############################################
 
-####################################################
-# Library Setup
-####################################################
-def setup_libs(chip, vendor=None):
-
-    foundry = 'skywater'
-    process = 'skywater130'
     rev = 'v0_0_2'
     libname = 'sky130hd' # not sure if this should be something else
     libtype = 'hd' # TODO: update this
@@ -220,8 +219,9 @@ def setup_libs(chip, vendor=None):
     chip.add('library', libname, 'cells', 'tie', ['sky130_fd_sc_hd__conb_1/HI',
                                                   'sky130_fd_sc_hd__conb_1/LO'])
 
-#########################
-def setup_methodology(chip):
+    ###############################################
+    # Methodology
+    ###############################################
 
     chip.add('asic', 'targetlib', chip.getkeys('library'))
     chip.set('asic', 'stackup', chip.get('pdk', 'stackup')[0])
@@ -251,12 +251,6 @@ if __name__ == "__main__":
 
     # File being executed
     prefix = os.path.splitext(os.path.basename(__file__))[0]
-    output = prefix + '.json'
-
-    # create a chip instance
     chip = siliconcompiler.Chip()
-    # load configuration
-    setup_platform(chip)
-    setup_libs(chip)
-    # write out result
-    chip.writecfg(output)
+    setup_pdk(chip)
+    chip.writecfg(prefix + '.json')

@@ -1481,7 +1481,7 @@ def schema_flowgraph(cfg, step='default', index='default'):
         'switch': "-flowgraph_tool 'step <str>'",
         'type': 'str',
         'lock': 'false',
-        'requirement': 'all',
+        'requirement': None,
         'defvalue': None,
         'short_help': 'Flowgraph Tool Selection',
         'example': ["cli: -flowgraph_tool 'place openroad'",
@@ -2625,6 +2625,40 @@ def schema_options(cfg):
         specified as "<process>_<edaflow>" for ASIC compilation and
         "<partname>_<edaflow>" for FPGA compilation. The process, edaflow,
         partname fields must be alphanumeric and cannot contain underscores.
+        """
+    }
+
+    cfg['techarg'] = {}
+    cfg['techarg']['default'] = {
+        'switch': "-techarg 'arg <str>",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'Target technology setup parameter',
+        'example': ["cli: -techarg 'mimcap true",
+                    "api: chip.set('techarg','mimcap', 'true')"],
+        'help': """
+        Parameter passed in as key/value pair to the technology target
+        referenced in the target() API call. See the target technolgy
+        for specific guidelines regarding configuration parameters.
+        """
+    }
+
+    cfg['flowarg'] = {}
+    cfg['flowarg']['default'] = {
+        'switch': "-flowarg 'arg <str>",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'Target flow setup parameter',
+        'example': ["cli: -flowarg 'n 100",
+                    "api: chip.set('flowarg','n', '100')"],
+        'help': """
+        Parameter passed in as key/value pair to the technology target
+        referenced in the target() API call. See the target flow
+        for specific guidelines regarding configuration parameters.
         """
     }
 

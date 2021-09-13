@@ -8,7 +8,7 @@ import siliconcompiler
 # PDK Setup
 ####################################################
 
-def setup_platform(chip):
+def setup_pdk(chip):
     '''
     A setup package for the open source freepdk45 virtual PDK that
     includes the technology files and standard cell libraries
@@ -17,6 +17,10 @@ def setup_platform(chip):
     Documentation:
 
     '''
+
+    ###############################################
+    # Process
+    ###############################################
 
     foundry = 'virtual'
     process = 'freepdk45'
@@ -104,13 +108,10 @@ def setup_platform(chip):
         chip.set('pdk','grid', stackup, sc_name, 'ypitch',  1.6)
         chip.set('pdk','grid', stackup, sc_name, 'adj',     0.4)
 
-####################################################
-# Library Setup
-####################################################
-def setup_libs(chip, vendor=None):
+    ###############################################
+    # Libraries
+    ###############################################
 
-    foundry = 'virtual'
-    process = 'freepdk45'
     libname = 'NangateOpenCellLibrary'
     libtype = '10t'
     libwidth = 0.19
@@ -118,6 +119,7 @@ def setup_libs(chip, vendor=None):
     rev = 'r1p0'
     corner = 'typical'
     objectives = ['setup']
+
     libdir = '/'.join(["third_party/foundry",
                        foundry,
                        process,
@@ -183,8 +185,9 @@ def setup_libs(chip, vendor=None):
     # Endcap
     chip.add('library',libname,'cells','endcap', "FILLCELL_X1")
 
-#########################
-def setup_methodology(chip):
+    ###############################################
+    # Methodology
+    ###############################################
 
     chip.set('asic', 'stackup', chip.get('pdk', 'stackup')[0])
     chip.add('asic', 'targetlib', chip.getkeys('library'))
@@ -211,14 +214,7 @@ def setup_methodology(chip):
 #########################
 if __name__ == "__main__":
 
-    # File being executed
     prefix = os.path.splitext(os.path.basename(__file__))[0]
-    output = prefix + '.json'
-
-    # create a chip instance
     chip = siliconcompiler.Chip()
-    # load configuration
-    setup_platform(chip)
-    setup_libs(chip)
-    # write out result
-    chip.writecfg(output)
+    setup_pdk(chip)
+    chip.writecfg(prefix + '.json')
