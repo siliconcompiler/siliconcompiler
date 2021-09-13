@@ -2631,10 +2631,10 @@ def schema_options(cfg):
     cfg['techarg'] = {}
     cfg['techarg']['default'] = {
         'switch': "-techarg 'arg <str>",
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'requirement': None,
-        'defvalue': None,
+        'defvalue': [],
         'short_help': 'Target technology setup parameter',
         'example': ["cli: -techarg 'mimcap true",
                     "api: chip.set('techarg','mimcap', 'true')"],
@@ -2648,10 +2648,10 @@ def schema_options(cfg):
     cfg['flowarg'] = {}
     cfg['flowarg']['default'] = {
         'switch': "-flowarg 'arg <str>",
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'requirement': None,
-        'defvalue': None,
+        'defvalue': [],
         'short_help': 'Target flow setup parameter',
         'example': ["cli: -flowarg 'n 100",
                     "api: chip.set('flowarg','n', '100')"],
