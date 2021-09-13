@@ -42,9 +42,6 @@ def setup_tool(chip, step, index):
         chip.logger.error('Step %s not supported for verilator', step)
         sys.exit()
 
-    #Include cwd in search path (verilator default)
-    chip.add('eda', tool, step, index, 'option', 'cmdline', '-I../../../')
-
     #Source Level Controls
     for value in chip.get('ydir'):
         chip.add('eda', tool, step, index, 'option', 'cmdline', '-y ' + schema_path(value))
@@ -79,7 +76,7 @@ def check_version(chip, step, index, version):
     #insert code for parsing the funtion based on some tool specific
     #semantics.
     #syntax for version is string, >=string
-    
+
     return 0
 
 

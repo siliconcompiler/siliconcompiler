@@ -8,16 +8,22 @@ import importlib
 if __name__ != "__main__":
     from tests.fixtures import test_wrapper
 
-def test_yosys():
-    '''Yosys setup unit test
+def test_verilator():
+    '''Verilator setup unit test
     '''
 
     chip = siliconcompiler.Chip()
 
-    # set variables
-    tool = 'yosys'
-    step = 'syn'
+    # per tool variables
+    tool = 'verilator'
+    step = 'import'
     chip.set('design', 'mytopmodule')
+    chip.set('ydir', '$WORKDIR')
+    chip.set('idir', '$WORKDIR')
+    chip.set('vlib', '$WORKDIR/mylib.v')
+    chip.set('define', 'MYPARAM=1')
+    chip.set('cmdfile', '$WORKDIR/myfiles.f')
+    chip.set('source', 'mytopmodule.v')
 
     # template / boiler plate code
     searchdir = "siliconcompiler.tools." + tool
@@ -31,7 +37,8 @@ def test_yosys():
     chip.writecfg(tool + '_setup.json', cfg=localcfg)
     assert os.path.isfile(tool+'_setup.json')
 
+    return localcfg
 
 #########################
 if __name__ == "__main__":
-    test_yosys()
+    test_verilator()

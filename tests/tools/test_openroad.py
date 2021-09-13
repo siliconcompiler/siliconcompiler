@@ -8,15 +8,16 @@ import importlib
 if __name__ != "__main__":
     from tests.fixtures import test_wrapper
 
-def test_yosys():
+def test_openroad():
     '''Yosys setup unit test
     '''
 
     chip = siliconcompiler.Chip()
+    chip.target("freepdk45")
 
     # set variables
-    tool = 'yosys'
-    step = 'syn'
+    tool = 'openroad'
+    step = 'route'
     chip.set('design', 'mytopmodule')
 
     # template / boiler plate code
@@ -34,4 +35,4 @@ def test_yosys():
 
 #########################
 if __name__ == "__main__":
-    test_yosys()
+    test_openroad()
