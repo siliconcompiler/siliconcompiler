@@ -14,6 +14,7 @@ def setup_tool(chip, step, index):
     ''' Tool specific function to run before step execution
 
     Tool-specific options:
+
     - techmap: list of Verilog files used for mapping generic Yosys cells.
     '''
 

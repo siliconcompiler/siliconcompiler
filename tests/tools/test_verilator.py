@@ -18,11 +18,11 @@ def test_verilator():
     tool = 'verilator'
     step = 'import'
     chip.set('design', 'mytopmodule')
-    chip.set('ydir', '$WORKDIR')
-    chip.set('idir', '$WORKDIR')
-    chip.set('vlib', '$WORKDIR/mylib.v')
+    chip.set('ydir', '<WORKDIR>')
+    chip.set('idir', '<WORKDIR>')
+    chip.set('vlib', '<WORKDIR>/mylib.v')
     chip.set('define', 'MYPARAM=1')
-    chip.set('cmdfile', '$WORKDIR/myfiles.f')
+    chip.set('cmdfile', '<WORKDIR>/myfiles.f')
     chip.set('source', 'mytopmodule.v')
 
     # template / boiler plate code
