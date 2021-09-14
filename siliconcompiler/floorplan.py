@@ -23,12 +23,12 @@ _MacroInfo = namedtuple("_MacroInfo", "width height")
 # TODO: make sure all required schema entries are checked (and document!)
 
 def _layer_i(layer):
-    ''' Helper function to go from SC layer name to layer position in stackup.'''
+    '''Helper function to go from SC layer name to layer position in stackup.'''
     return int(layer.lstrip('m'))
 
 # Line intersection helper functions for via insertion routine
 def _lines_intersect(p1, p2, q1, q2):
-    ''' Determine if line segment between p1 and p2 intersects with line segment
+    '''Determine if line segment between p1 and p2 intersects with line segment
     between q1 and q2.
 
     Algorithm based on
@@ -60,7 +60,7 @@ def _lines_intersect(p1, p2, q1, q2):
     return False
 
 def _orientation(p1, p2, p3):
-    ''' Returns the orientation of ordered triplet p1, p2, p3. Can be clockwise
+    '''Returns the orientation of ordered triplet p1, p2, p3. Can be clockwise
     (1), counter-clockwise (-1) or colinear (0).
 
     https://www.geeksforgeeks.org/orientation-3-ordered-points/
@@ -76,14 +76,14 @@ def _orientation(p1, p2, p3):
         return 0
 
 def _on_segment(p1, p2, q):
-    ''' Return if point q on line segment (p1, p2). Points p1, p2, and q must be
+    '''Return if point q on line segment (p1, p2). Points p1, p2, and q must be
     colinear.
     '''
     return (((p1[0] <= q[0] and q[0] <= p2[0]) or (p2[0] <= q[0] and q[0] <= p1[0])) and
             ((p1[1] <= q[1] and q[1] <= p2[1]) or (p2[1] <= q[1] and q[1] <= p1[1])))
 
 def _get_intersection(p1, p2, q1, q2):
-    ''' Get the intersection point of two intersecting lines (p1, p2) and (q1, q2)
+    '''Get the intersection point of two intersecting lines (p1, p2) and (q1, q2)
 
     This algorithm is taken from MIT 6.172's project 2 code distribution
     (https://ocw.mit.edu/courses/electrical-engineering-and-computer-science/6-172-performance-engineering-of-software-systems-fall-2018/projects).
@@ -958,9 +958,16 @@ class Floorplan:
             }
 
     def place_ring(self):
+        # TODO: implement
         pass
 
     def _determine_num_via_cols(self, viarule, width, height, lower_dir, upper_dir, stack_bottom, stack_top):
+        '''Determine number of via columns we can insert in a given intersection.
+
+        Based on OpenROAD TCL logic:
+        https://github.com/The-OpenROAD-Project/OpenROAD/blob/master/src/pdn/src/PdnGen.tcl#L2147
+        '''
+
         lower_enclosure = viarule['bottom']['enclosure']
         upper_enclosure = viarule['top']['enclosure']
         cut_w, cut_h = viarule['cut']['size']
@@ -985,11 +992,15 @@ class Floorplan:
 
         cols = max(1, i-1)
 
-        # TODO: check constraints (how are these set?)
-
         return cols
 
     def _determine_num_via_rows(self, viarule, width, height, lower_dir, upper_dir, stack_bottom, stack_top):
+        '''Determine number of via rows we can insert in a given intersection.
+
+        Based on OpenROAD TCL logic:
+        https://github.com/The-OpenROAD-Project/OpenROAD/blob/master/src/pdn/src/PdnGen.tcl#L2228
+        '''
+
         lower_enclosure = viarule['bottom']['enclosure']
         upper_enclosure = viarule['top']['enclosure']
         cut_w, cut_h = viarule['cut']['size']
@@ -1014,11 +1025,13 @@ class Floorplan:
 
         rows = max(1, i-1)
 
-        # TODO: check constraints (how are these set?)
-
         return rows
 
     def _generate_via(self, viarule, width, height, lower_dir, upper_dir, stack_bottom, stack_top):
+        '''Given a viarule and an intersection of metal layers, generate a via
+        array that can connect the intersection.
+        '''
+
         lower_enclosure = viarule['bottom']['enclosure']
         upper_enclosure = viarule['top']['enclosure']
         cut_w, cut_h = viarule['cut']['size']
@@ -1069,6 +1082,8 @@ class Floorplan:
         return score, via
 
     def _insert_via(self, net, pos, bottom_layer, top_layer, bottom_dir, top_dir, width, height):
+        '''Insert vias between two given intersecting metal layers.'''
+
         x, y = pos
         stack_key = (bottom_layer, bottom_dir, top_layer, top_dir, width, height)
 
@@ -1108,6 +1123,13 @@ class Floorplan:
             self.place_vias([net], x, y, 0, 0, layer, vianame)
 
     def insert_vias(self):
+        '''Automatically insert vias.
+
+        Automatically inserts vias between common specialnets that intersect on
+        different metal layers. Via geometries are generated based on VIARULE
+        GENERATE statements found in the tech LEF.
+        '''
+
         for net in self.nets:
             # TODO: is this valid? trying to sort from bottom to top
             wires = sorted(self.nets[net]['wires'], key=lambda w: w['sclayer'] )
