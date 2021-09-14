@@ -50,7 +50,7 @@ To install from the active developer repository.
 ```sh
 $ git clone https://github.com/siliconcompiler/siliconcompiler
 $ cd siliconcompiler
-$ git submodule update --init --recursive
+$ git submodule update --init --recursive third_party/tools/openroad
 $ pip install -r requirements.txt
 $ python -m pip install -e .
 ```
