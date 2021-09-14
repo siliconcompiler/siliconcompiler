@@ -1,0 +1,23 @@
+on: [workflow_dispatch, push]
+
+name: 'Documentation'
+
+jobs:
+  docs_test_job:
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    name: 'Test documentation build'
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Dependencies
+        run: | 
+          sudo apt-get update
+          sudo apt-get install graphviz
+      - run: |
+          python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
+          source $GITHUB_WORKSPACE/clean_env/bin/activate
+          echo $VIRTUAL_ENV
+          git submodule update --init --recursive third_party/tools/openroad
+          pip3 install -r $GITHUB_WORKSPACE/requirements.txt -e $GITHUB_WORKSPACE/.
+          cd docs
+          make html
