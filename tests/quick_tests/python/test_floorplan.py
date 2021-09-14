@@ -163,9 +163,30 @@ def test_padring():
 
     fp.write_def('padring.def')
 
+def test_vias_at_intersection():
+    c = Chip(loglevel='INFO')
+    c.set('design', 'test')
+    c.target('skywater130')
+
+    fp = Floorplan(c)
+    fp.create_die_area([(0, 0), (100, 100)])
+
+    fp.configure_net('vdd', [], 'power')
+    fp.configure_net('vss', [], 'ground')
+    # fp.add_viarule('via4_1600x1600', 'M4M5_PR', (0.8, 0.8), ('m4', 'via4', 'm5'), (.8, .8), (.04,  .04, .04, .04))
+
+    fp.place_wires(['vdd'] * 2, 0, 0, 10, 0, 1.6, 100, 'm5', 'stripe')
+    fp.place_wires(['vdd'] * 2, 0, 0, 0, 10, 100, 1.6, 'm2', 'stripe')
+
+    fp.insert_vias()
+
+    fp.write_def('test.def')
+
 if __name__ == "__main__":
     import py
 
     #test_floorplan_def(make_fp(), py.path.local('.'))
     #test_floorplan_lef(make_fp(), py.path.local('.'))
-    test_padring()
+    #test_padring()
+
+    test_vias_at_intersection()

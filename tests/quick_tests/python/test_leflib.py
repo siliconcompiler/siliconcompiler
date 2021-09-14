@@ -64,33 +64,34 @@ def test_leflib_complete():
 
     vialist12 = data['viarules']['VIALIST12']
     assert len(vialist12['layers']) == 2
-    vialist12['layers'][0] == {
+    assert vialist12['layers'][0] == {
         'name': 'M1',
         'direction': 'VERTICAL',
         'width': {'min': 9.0, 'max': 9.6}
     }
-    vialist12['layers'][1] == {
+    assert vialist12['layers'][1] == {
         'name': 'M2',
         'direction': 'HORIZONTAL',
         'width': {'min': 3.0, 'max': 3.0}
     }
+    assert vialist12['vias'] == ['VIACENTER12']
 
     via12 = data['viarules']['via12']
-    via12['generate'] = True
-    via12['default'] = True
+    assert via12['generate'] == True
+    assert via12['default'] == True
 
     assert len(via12['layers']) == 3
-    via12['layers'][0] = {
+    assert via12['layers'][0] == {
         'name': 'm1',
         'enclosure': {'overhang1': 0.03, 'overhang2': 0.01}
     }
-    via12['layers'][1] = {
+    assert via12['layers'][1] == {
         'name': 'm2',
         'enclosure': {'overhang1': 0.05, 'overhang2': 0.01}
     }
-    via12['layers'][2] = {
+    assert via12['layers'][2] == {
         'name': 'cut12',
-        'spacing': {'spacing_x': 0.4, 'spacing_y': 0.4},
+        'spacing': {'x': 0.4, 'y': 0.4},
         'rect': (-0.1, -0.1, 0.1, 0.1),
         'resistance': 20
     }

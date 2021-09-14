@@ -283,7 +283,7 @@ cdef int viarule_cb(lefrCallbackType_e cb_type, lefiViaRule* viarule, void* data
             layer_data = {'name': layer.name().decode('ascii')}
             # nongenerate only
             if layer.hasDirection():
-                layer_data['direction'] = 'HORZIONTAL' if layer.isHorizontal() else 'VERTICAL'
+                layer_data['direction'] = 'HORIZONTAL' if layer.isHorizontal() else 'VERTICAL'
             # generate only
             if layer.hasEnclosure():
                 layer_data['enclosure'] = {
@@ -291,7 +291,7 @@ cdef int viarule_cb(lefrCallbackType_e cb_type, lefiViaRule* viarule, void* data
                     'overhang2': layer.enclosureOverhang2()
                 }
             if layer.hasRect():
-                layer_data['rect'] = (layer.xl(), layer.yl(), layer.xl(), layer.xh())
+                layer_data['rect'] = (layer.xl(), layer.yl(), layer.xh(), layer.xh())
             if layer.hasSpacing():
                 layer_data['spacing'] = {
                     'x': layer.spacingStepX(),
