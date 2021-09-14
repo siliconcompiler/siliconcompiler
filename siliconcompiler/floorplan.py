@@ -316,7 +316,7 @@ class Floorplan:
             if l1_name is None:
                 raise ValueError(f'No routing layer named {l1_name}')
             l1 = _layer_i(l1_name)
-            if _layer_i(l0_name) < _layer_i(l1_name):
+            if l0 < l1:
                 bottom = routing_layers[0]
                 bottom_i = l0
                 top = routing_layers[1]
