@@ -168,64 +168,7 @@ def test_vias_at_intersection():
     c.set('design', 'test')
     c.target('skywater130')
 
-    viarules = {
-        (4, 5): [
-            {
-                'name': 'M4M5_PR',
-                'bottom': {
-                    'layer': 'm4',
-                    'enclosure': (0.19, 0.19)
-                },
-                'cut': {
-                    'layer': 'via4',
-                    'size': (0.8, 0.8),
-                    'spacing': (0.8, 0.8)
-                },
-                'top': {
-                    'layer': 'm5',
-                    'enclosure': (0.31, 0.31)
-                }
-            }
-        ],
-        (3, 4): [
-            {
-                'name': 'M3M4_PR',
-                'bottom': {
-                    'layer': 'm3',
-                    'enclosure': (0.09, 0.06)
-                },
-                'cut': {
-                    'layer': 'via3',
-                    'size': (0.2, 0.2),
-                    'spacing': (0.2, 0.2)
-                },
-                'top': {
-                    'layer': 'm4',
-                    'enclosure': (0.065, 0.065)
-                }
-            }
-        ],
-        (2, 3): [
-            {
-                'name': 'M2M3_PR',
-                'bottom': {
-                    'layer': 'm2',
-                    'enclosure': (0.04, 0.085)
-                },
-                'cut': {
-                    'layer': 'via2',
-                    'size': (0.2, 0.2),
-                    'spacing': (0.2, 0.2)
-                },
-                'top': {
-                    'layer': 'm3',
-                    'enclosure': (0.065, 0.065)
-                }
-            }
-        ]
-    }
-
-    fp = Floorplan(c, db_units=1000, viarules=viarules)
+    fp = Floorplan(c)
     fp.create_die_area([(0, 0), (100, 100)])
 
     fp.configure_net('vdd', [], 'power')
