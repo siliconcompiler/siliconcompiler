@@ -31,6 +31,8 @@ def test_yosys():
     chip.writecfg(tool + '_setup.json', cfg=localcfg)
     assert os.path.isfile(tool+'_setup.json')
 
+    return localcfg
+
 
 #########################
 if __name__ == "__main__":
