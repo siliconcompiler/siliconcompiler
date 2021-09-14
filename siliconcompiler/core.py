@@ -1795,18 +1795,25 @@ class Chip:
                                       job_nameid])
             keystr = base64.urlsafe_b64decode(self.status['decrypt_key']).decode()
             keypath = f"{tmp_job_dir}/dk"
-            in_cfg = None
+            in_cfgs = []
             for input_step in self.getkeys('flowgraph', step, index, 'input'):
                 for input_index in self.get('flowgraph', step, index, 'input', input_step):
                     # We have no way of checking whether these input files
                     # exist, because the data is encrypted. But if they don't
                     # exist, the step will quickly error out and the metrics
                     # should reflect that.
-                    in_cfg = "/".join([tmp_build_dir,
-                                       f'{input_step}{input_index}',
-                                       'outputs',
-                                       f'{self.get("design")}.pkg.json',
-                                      ])
+                    in_cfgs.append("/".join([
+                        tmp_build_dir,
+                        f'{input_step}{input_index}',
+                        'outputs',
+                        f'{self.get("design")}.pkg.json',
+                    ]))
+
+            # Assemble the command-line flags to read in dependent configs.
+            cfg_str = ''
+            for in_cfg in in_cfgs:
+                cfg_str += f'-cfg {in_cfg} '
+
             # The 'srun' command needs to:
             # * copy encrypted data/key and unencrypted IV into local storage.
             # * store the provided key in local storage.
@@ -1826,7 +1833,7 @@ class Chip:
             run_cmd += f"chmod 400 {keypath} ; "
             run_cmd += f"sc-crypt -mode decrypt -job_dir {tmp_build_dir} "\
                            f"-key_file {keypath} ; "
-            run_cmd += f"sc -cfg {in_cfg} "\
+            run_cmd += f"sc {cfg_str} "\
                            f"-arg_step {step} -arg_index {index} "\
                            f"-dir {tmp_job_dir} -jobscheduler local "\
                            f"-remote_addr '' -remote_key '' ; "
@@ -1844,7 +1851,7 @@ class Chip:
             job_dir = "/".join([self.get('dir'),
                                 self.get('design'),
                                 self.get('jobname') + str(self.get('jobid'))])
-            in_cfg = None
+            in_cfgs = []
             for input_step in self.getkeys('flowgraph', step, index, 'input'):
                 for input_index in self.get('flowgraph', step, index, 'input', input_step):
                     cfgfile = '/'.join([job_dir,
@@ -1852,11 +1859,16 @@ class Chip:
                                         'outputs',
                                         f'{self.get("design")}.pkg.json'])
                     if os.path.isfile(cfgfile):
-                        in_cfg = cfgfile
+                        in_cfgs.append(cfgfile)
+
+            # Assemble the command-line flags to read in dependent configs.
+            cfg_str = ''
+            for in_cfg in in_cfgs:
+                cfg_str += f'-cfg {in_cfg} '
 
             # Create an 'srun' command.
             run_cmd = 'srun bash -c "'
-            run_cmd += f"sc -cfg {in_cfg} -dir {self.get('dir')} "\
+            run_cmd += f"sc {cfg_str} -dir {self.get('dir')} "\
                        f"-arg_step {step} -arg_index {index} "\
                         "-jobscheduler local -remote_addr ''"
             run_cmd += '"'
