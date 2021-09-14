@@ -49,9 +49,6 @@
 [submodule "third_party/designs/ravenoc"]
 	path = third_party/designs/ravenoc
 	url = https://github.com/aignacio/ravenoc
-[submodule "third_party/designs/sofa"]
-	path = third_party/designs/sofa
-	url = https://github.com/lnis-uofu/SOFA
 [submodule "third_party/designs/fpu"]
 	path = third_party/designs/fpu
 	url = https://github.com/dawsonjon/fpu
