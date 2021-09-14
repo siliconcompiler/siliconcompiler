@@ -95,7 +95,7 @@ class ToolGen(SphinxDirective):
         chip = siliconcompiler.Chip()
         flat_cfg = flatten(chip.prune(cfg))
 
-        table = [[strong('Option'), strong('Value')]]
+        table = [[strong('Keypath'), strong('Value')]]
         for keys, val in flat_cfg.items():
             keypath = f'eda, {toolname}, ' + ', '.join(keys)
             if 'value' in val:
