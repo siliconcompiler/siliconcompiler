@@ -9,7 +9,7 @@ uses. For reference on concepts repeated across the API, see :ref:`glossary`.
 Listed in rough order of importance
 
 .. list-table::
-   :widths: 25 25 25
+   :widths: 25 40
    :header-rows: 1
 
    * - Method
@@ -17,6 +17,8 @@ Listed in rough order of importance
 
    * - add(*args, cfg=None)
      - Appends an item to the parameter value specified by args keypath.
+
+
 
 .. automodule:: siliconcompiler.core
     :members:

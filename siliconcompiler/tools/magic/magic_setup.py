@@ -1,12 +1,8 @@
 import os
 import re
 import shutil
-
-from siliconcompiler.tools.magic import count_lvs
-
 import siliconcompiler
-from siliconcompiler.floorplan import *
-from siliconcompiler.schema_utils import schema_path
+from siliconcompiler.tools.magic import count_lvs
 
 ################################
 # Setup Tool (pre executable)
@@ -62,10 +58,10 @@ def check_version(chip, step, index, version):
     #insert code for parsing the funtion based on some tool specific
     #semantics.
     #syntax for version is string, >=string
-    
+
     return 0
 
-        
+
 ################################
 # Post_process (post executable)
 ################################

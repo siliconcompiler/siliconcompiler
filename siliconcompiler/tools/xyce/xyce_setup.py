@@ -1,7 +1,5 @@
 import os
-
 import siliconcompiler
-from siliconcompiler.floorplan import *
 
 ################################
 # Setup Tool (pre executable)
