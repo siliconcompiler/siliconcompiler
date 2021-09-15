@@ -18,11 +18,13 @@ def setup_tool(chip, step, index):
 
     # Standard Setup
     tool = 'ghdl'
-    chip.set('eda', tool, step, index, 'threads', '4')
-    chip.set('eda', tool, step, index, 'copy', 'false')
-    chip.set('eda', tool, step, index, 'exe', 'yosys')
-    chip.set('eda', tool, step, index, 'version', '0.0')
-    chip.set('eda', tool, step, index, 'vendor', 'ghdl')
+    clobber = False
+
+    chip.set('eda', tool, step, index, 'threads', '4', clobber=clobber)
+    chip.set('eda', tool, step, index, 'copy', 'false', clobber=clobber)
+    chip.set('eda', tool, step, index, 'exe', 'yosys', clobber=clobber)
+    chip.set('eda', tool, step, index, 'version', '0.0', clobber=clobber)
+    chip.set('eda', tool, step, index, 'vendor', 'ghdl', clobber=clobber)
 
 
     # ghdl is invoked via Yosys by running a command with the format:
@@ -34,11 +36,11 @@ def setup_tool(chip, step, index):
     chip.add('eda', tool, step, index, 'option', 'cmdline', '--no-formal')
 
     # parameter overrides
-    for value in chip.cfg['define']['value']:
+    for value in chip.get('define'):
         chip.add('eda', tool, step, index, 'option', 'cmdline', '-g' + schema_path(value))
 
     # only use VHDL source files (*.vhd and *.vhdl)
-    for value in chip.cfg['source']['value']:
+    for value in  chip.get('source'):
         if value.endswith('.vhd') or value.endswith('.vhdl'):
             chip.add('eda', tool, step, index, 'option', 'cmdline', schema_path(value))
 
