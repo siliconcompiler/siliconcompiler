@@ -2716,6 +2716,26 @@ def schema_options(cfg):
         """
         }
 
+    cfg['jobscheduler'] = {
+        'switch': "-jobscheduler <str>",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'HPC Job Scheduler Type',
+        'example': ["cli: -jobscheduler slurm",
+                    "api: chip.set('jobscheduler','slurm')"],
+        'help': """
+        Sets the type of HPC cluster which should be used to run the individual
+        flowgraph steps. The default value is 'local', which will use the local
+        machine to perform computations. Currently, only 'local' and 'slurm'
+        are supported. If 'slurm' is used, the host running the 'sc' command
+        must be running a 'slurmctld' daemon managing a Slurm cluster.
+        Additionally, the build directory ('-dir') must be located in shared
+        storage which can be accessed by all hosts in the cluster.
+        """
+    }
+
     cfg['env'] = {}
     cfg['env']['default'] = {
         'switch': "-env 'var <str>'",
