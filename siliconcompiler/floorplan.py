@@ -957,9 +957,29 @@ class Floorplan:
                 'vias': []
             }
 
-    def place_ring(self):
-        # TODO: implement
-        pass
+    def place_ring(self, net, x, y, width, height, hwidth, vwidth, hlayer, vlayer):
+        '''Place wire ring.
+
+        Args:
+            net (str): Name of net.
+            x (float): x-coordinate of bottom left corner of ring.
+            y (float): y-coordinate of bottom left corner of ring.
+            width (float): Width of ring from edge-to-edge.
+            height (float): Height of ring from edge-to-edge.
+            hwidth (float): Width of horizontal wires used in ring.
+            vwidth (float): Width of vertical wires used in ring.
+            hlayer (str): Metal layer to place horizontal wires on.
+            vlayer (str): Metal layer to place vertical wires on.
+        '''
+
+        # bottom
+        self.place_wires([net], x, y, 0, 0, width, hwidth, hlayer, 'stripe')
+        # top
+        self.place_wires([net], x, y + height - hwidth, 0, 0, width, hwidth, hlayer, 'stripe')
+        # left
+        self.place_wires([net], x, y, 0, 0, vwidth, height, vlayer, 'stripe')
+        # right
+        self.place_wires([net], x + width - vwidth, y, 0, 0, vwidth, height, vlayer, 'stripe')
 
     def _determine_num_via_cols(self, viarule, width, height, lower_dir, upper_dir, stack_bottom, stack_top):
         '''Determine number of via columns we can insert in a given intersection.
