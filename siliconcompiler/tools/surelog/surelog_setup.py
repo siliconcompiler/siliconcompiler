@@ -14,11 +14,14 @@ def setup_tool(chip, step, index):
     ''' Sets up default settings on a per step basis
     '''
 
+    tool = 'surelog'
+
     # Standard Setup
-    chip.set('eda', tool, step, index, 'exe', 'surelog')
-    chip.set('eda', tool, step, index, 'vendor', 'sureolog')
-    chip.set('eda', tool, step, index, 'version', '0.0')
-    chip.set('eda', tool, step, index, 'threads', '4')
+    chip.set('eda', tool, step, index, 'exe', tool, clobber=False)
+    chip.set('eda', tool, step, index, 'vswitch', '--version', clobber=False)
+    chip.set('eda', tool, step, index, 'version', '0.0', clobber=False)
+    chip.set('eda', tool, step, index, 'vendor', tool, clobber=False)
+    chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=False)
 
     # -parse is slow but ensures the SV code is valid
     # we might want an option to control when to enable this
@@ -29,22 +32,22 @@ def setup_tool(chip, step, index):
 
     #Source Level Controls
 
-    for value in chip.cfg['ydir']['value']:
+    for value in chip.get('ydir'):
         options.append('-y ' + schema_path(value))
 
-    for value in chip.cfg['vlib']['value']:
+    for value in chip.get('vlib'):
         options.append('-v ' + schema_path(value))
 
-    for value in chip.cfg['idir']['value']:
+    for value in chip.get('idir'):
         options.append('-I' + schema_path(value))
 
-    for value in chip.cfg['define']['value']:
+    for value in chip.get('define'):
         options.append('+define+' + schema_path(value))
 
-    for value in chip.cfg['cmdfile']['value']:
+    for value in chip.get('cmdfile'):
         options.append('-f ' + schema_path(value))
 
-    for value in chip.cfg['source']['value']:
+    for value in chip.get('source'):
         options.append(schema_path(value))
 
     # Wite back options tp cfg
