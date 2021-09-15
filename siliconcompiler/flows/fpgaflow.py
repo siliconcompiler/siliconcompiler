@@ -43,10 +43,10 @@ def setup_flow(chip):
 
     #Setting up pipeline
     #TODO: Going forward we want to standardize steps
-    if flow in ('yosys-nextpnr', 'openfpga'):
-        flowpipe = ['import', 'syn', 'apr', 'bitstream']
-    elif flow in ('vivado', 'quartus'):
+    if  flow in ('vivado', 'quartus'):
         flowpipe = ['import', 'compile']
+    else:
+        flowpipe = ['import', 'syn', 'apr', 'bitstream']
 
     # Set the steplist which can run remotely (if required)
     chip.set('remote', 'steplist', flowpipe[1:])
@@ -144,8 +144,8 @@ def flow_lookup(partname):
         vendor = 'openfpga'
         flow = 'openfpga'
     else:
-        vendor = 'UNSUPPORTED'
-        flow = 'UNSUPPORTED'
+        vendor = 'openfpga'
+        flow = 'openfpga'
 
     return (vendor, flow)
 
