@@ -71,7 +71,6 @@ def remote_preprocess(chip):
             remote_steplist.append(step)
     chip.set('steplist', remote_steplist, clobber=True)
 
-    # Upload the results of the local import stage.
     # Zip the 'import' directory.
     local_build_dir = stepdir = '/'.join([chip.get('dir'),
                                           chip.get('design'),
@@ -81,9 +80,6 @@ def remote_preprocess(chip):
                     'import.zip',
                     '.'],
                    cwd=local_build_dir)
-
-    # Upload the archive to the 'import/' server endpoint.
-    upload_import_dir(chip)
 
 ###################################
 def client_decrypt(chip):
@@ -149,36 +145,87 @@ def request_remote_run(chip):
     remote_run_url = get_base_url(chip) + '/remote_run/'
 
     # Use authentication if necessary.
-    post_params = {'chip_cfg': chip.cfg}
+    post_params = {
+        'chip_cfg': chip.cfg,
+        'params': {
+            'job_hash': chip.get('remote', 'jobhash'),
+            'job_name': chip.get('jobname'),
+        }
+    }
     if (('user' in chip.getkeys('remote') and chip.get('remote', 'user')) and \
         ('key' in chip.getkeys('remote') and chip.get('remote', 'key'))):
         # Read the key and encode it in base64 format.
-        with open(os.path.abspath(chip.get('remote', 'key')), 'rb') as f:
+        pkpath = chip.get('remote', 'key')
+        with open(os.path.abspath(pkpath), 'rb') as f:
             key = f.read()
         b64_key = base64.urlsafe_b64encode(key).decode()
-        post_params['params'] = {
-            'username': chip.get('remote', 'user'),
-            'key': b64_key,
-            'job_hash': chip.get('remote', 'jobhash'),
-        }
-    else:
-        post_params['params'] = {
-            'job_hash': chip.get('remote', 'jobhash'),
-        }
 
-    # Make the actual request.
+        # Encrypt the .zip archive with the user's public key.
+        # Asymmetric key cryptography is good at signing values, but bad at
+        # encrypting bulk data. One common approach is to generate a random
+        # symmetric encryption key, which can be encrypted using the asymmetric
+        # keys. Then the data itself can be encrypted with the symmetric cipher.
+        # We'll use AES-256-CTR, because the Python 'cryptography' module's
+        # recommended 'Fernet' algorithm only works on files that fit in memory.
+        job_nameid = f"{chip.get('jobname')}{chip.get('jobid')}"
+        job_path = f"{chip.get('dir')}/{chip.get('design')}/{job_nameid}"
+
+        # AES-encrypt the job data prior to uploading.
+        # TODO: This assumes a common OpenSSL convention of using similar file
+        # paths for private and public keys: /path/to/key and /path/to/key.pub
+        # If the user has the account's private key, it is assumed that they
+        # will also have the matching public key in the same locale.
+        gen_cipher_key(chip.get('dir'), f"{os.path.abspath(pkpath)}.pub")
+        encrypt_job(job_path, pkpath)
+
+        # Set up encryption and authentication parameters in the request body.
+        with open(f"{chip.get('dir')}/import.bin", 'rb') as f:
+            aes_key_enc = f.read()
+        with open(f"{chip.get('dir')}/{job_nameid}.iv", 'rb') as f:
+            aes_iv = f.read()
+        post_params['params']['aes_key'] = base64.urlsafe_b64encode(aes_key_enc).decode()
+        post_params['params']['aes_iv'] = base64.urlsafe_b64encode(aes_iv).decode()
+        post_params['params']['username'] = chip.get('remote', 'user')
+        post_params['params']['key'] = b64_key
+
+        # Set up 'temporary cloud host' parameters.
+        num_temp_hosts = int(chip.get('remote', 'hosts'))
+        if num_temp_hosts > 0:
+            post_params['new_hosts'] = num_temp_hosts
+            if chip.get('remote', 'ram'):
+                post_params['new_host_ram'] = int(chip.get('remote', 'ram'))
+            if chip.get('remote', 'threads'):
+                post_params['new_host_threads'] = int(chip.get('remote', 'threads'))
+
+        # Upload the encrypted file.
+        upload_file = os.path.abspath(f"{chip.get('dir')}/{job_nameid}.crypt")
+    else:
+        # No authorizaion configured; upload the unencrypted archive.
+        import_loc = '/'.join([chip.get('dir'),
+                               chip.get('design'),
+                               f"{chip.get('jobname')}0",
+                               'import.zip'])
+        upload_file = os.path.abspath(import_loc)
+
+    # Make the actual request, streaming the bulk data as a multipart file.
     # Redirected POST requests are translated to GETs. This is actually
     # part of the HTTP spec, so we need to manually follow the trail.
     redirect_url = remote_run_url
     while redirect_url:
-        resp = requests.post(redirect_url,
-                             data=json.dumps(post_params),
-                             allow_redirects=False)
-        if resp.status_code == 302:
-            redirect_url = resp.headers['Location']
-        else:
-            chip.logger.info(resp.text)
-            return
+        with open(upload_file, 'rb') as f:
+            resp = requests.post(redirect_url,
+                                 files={'import': f,
+                                        'params': json.dumps(post_params)},
+                                 allow_redirects=False)
+            if resp.status_code == 302:
+                redirect_url = resp.headers['Location']
+            elif resp.status_code >= 400:
+                chip.logger.info(resp.text)
+                chip.logger.error('Error starting remote job run; quitting.')
+                sys.exit(1)
+            else:
+                chip.logger.info(resp.text)
+                return
 
 ###################################
 def is_job_busy(chip):
@@ -249,96 +296,6 @@ def delete_job(chip):
         else:
             response = resp.text
             return response
-
-###################################
-def upload_import_dir(chip):
-    '''Helper method to make an async request uploading the post-import
-    files to the remote compute cluster.
-    '''
-
-    # Set the request URL.
-    remote_run_url = get_base_url(chip) + '/import/'
-
-    # Set common parameters.
-    post_params = {
-        'job_hash': chip.get('remote', 'jobhash'),
-        'job_name': chip.get('jobname'),
-    }
-
-    # Set authentication parameters and encrypt data if necessary.
-    # TODO-review: Should an error be thrown if only 'user' or 'key' is present?
-    if (('user' in chip.getkeys('remote') and chip.get('remote', 'user')) and \
-        ('key' in chip.getkeys('remote') and chip.get('remote', 'key'))):
-        # Encrypt the .zip archive with the user's public key.
-        # Asymmetric key cryptography is good at signing values, but bad at
-        # encrypting bulk data. One common approach is to generate a random
-        # symmetric encryption key, which can be encrypted using the asymmetric
-        # keys. Then the data itself can be encrypted with the symmetric cipher.
-        # We'll use AES-256-CTR, because the Python 'cryptography' module's
-        # recommended 'Fernet' algorithm only works on files that fit in memory.
-        pkpath = chip.get('remote', 'key')
-        job_nameid = f"{chip.get('jobname')}{chip.get('jobid')}"
-        job_path = f"{chip.get('dir')}/{chip.get('design')}/{job_nameid}"
-
-        # AES-encrypt the job data prior to uploading.
-        # TODO: This assumes a common OpenSSL convention of using similar file
-        # paths for private and public keys: /path/to/key and /path/to/key.pub
-        # If the user has the account's private key, it is assumed that they
-        # will also have the matching public key in the same locale.
-        gen_cipher_key(chip.get('dir'), f"{os.path.abspath(pkpath)}.pub")
-        encrypt_job(job_path, pkpath)
-
-        # Set up encryption and authentication parameters in the request body.
-        with open(f"{chip.get('dir')}/import.bin", 'rb') as f:
-            aes_key_enc = f.read()
-        with open(f"{chip.get('dir')}/{job_nameid}.iv", 'rb') as f:
-            aes_iv = f.read()
-        with open(os.path.abspath(chip.get('remote', 'key')), 'rb') as f:
-            key = f.read()
-        b64_key = base64.urlsafe_b64encode(key).decode()
-        post_params['username'] = chip.get('remote', 'user')
-        post_params['key'] = b64_key
-        post_params['aes_key'] = base64.urlsafe_b64encode(aes_key_enc).decode()
-        post_params['aes_iv'] = base64.urlsafe_b64encode(aes_iv).decode()
-
-        # Set up 'temporary cloud host' parameters.
-        num_temp_hosts = int(chip.get('remote', 'hosts'))
-        if num_temp_hosts > 0:
-            post_params['new_hosts'] = num_temp_hosts
-            if chip.get('remote', 'ram'):
-                post_params['new_host_ram'] = int(chip.get('remote', 'ram'))
-            if chip.get('remote', 'threads'):
-                post_params['new_host_threads'] = int(chip.get('remote', 'threads'))
-
-        # Upload the encrypted file.
-        upload_file = os.path.abspath(f"{chip.get('dir')}/{job_nameid}.crypt")
-
-    # (If '-remote_user' and '-remote_key' are not both specified:)
-    else:
-        # No authorizaion configured; upload the unencrypted archive.
-        import_loc = '/'.join([chip.get('dir'),
-                               chip.get('design'),
-                               f"{chip.get('jobname')}0",
-                               'import.zip'])
-        upload_file = os.path.abspath(import_loc)
-
-    # Make the 'import' API call and print the response.
-    redirect_url = remote_run_url
-    while redirect_url:
-        with open(upload_file, 'rb') as f:
-            resp = requests.post(redirect_url,
-                                 files={'import': f,
-                                        'params': json.dumps(post_params)},
-                                 allow_redirects=False)
-            if resp.status_code == 302:
-                redirect_url = resp.headers['Location']
-            elif resp.status_code >= 400:
-                chip.logger.info(resp.text)
-                chip.logger.error('Error importing project data; quitting.')
-                sys.exit(1)
-            else:
-                chip.logger.info(resp.text)
-                return
 
 ###################################
 def fetch_results_request(chip):
