@@ -7,6 +7,7 @@ set sc_process     [dict get $sc_cfg pdk process]
 set sc_mainlib     [lindex [dict get $sc_cfg asic targetlib] 0]
 set sc_targetlibs  [dict get $sc_cfg asic targetlib]
 set sc_tie         [dict get $sc_cfg library $sc_mainlib cells tie]
+set sc_buf         [dict get $sc_cfg library $sc_mainlib cells buf]
 
 #TODO: fix to handle multiple libraries
 # (note that ABC and dfflibmap can only accept one library from Yosys, so
@@ -71,6 +72,11 @@ if {[llength $sc_tie] == 2} {
     set sc_tielo [split [lindex $sc_tie 1] /]
 
     yosys hilomap -hicell {*}$sc_tiehi -locell {*}$sc_tielo
+}
+
+if {[llength $sc_buf] == 1} {
+    set sc_buf_split [split $sc_buf /]
+    yosys insbuf -buf {*}$sc_buf_split
 }
 
 yosys splitnets

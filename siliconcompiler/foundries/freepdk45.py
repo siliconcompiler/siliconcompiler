@@ -163,6 +163,8 @@ def setup_pdk(chip):
     chip.add('library',libname,'cells','tie', ["LOGIC1_X1/Z",
                                                "LOGIC0_X1/Z"])
 
+    # buffer cell
+    chip.add('library', libname, 'cells', 'buf', ['BUF_X1/A/Z'])
 
     # hold cells
     chip.add('library',libname,'cells','hold', "BUF_X1")
