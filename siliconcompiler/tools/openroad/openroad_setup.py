@@ -121,6 +121,14 @@ def setup_tool(chip, step, index, mode='batch'):
         else:
             chip.error = 1
             chip.logger.error(f'Process {process} not supported with OpenROAD.')
+    else:
+        default_options = {
+            'place_density': ['1'],
+            'pad_global_place': ['<space>'],
+            'pad_detail_place': ['<space>'],
+            'macro_place_halo': ['<xspace>', '<yspace>'],
+            'macro_place_channel': ['<xspace>', '<yspace>']
+        }
 
     for option in default_options:
         if option in chip.getkeys('eda', tool, step, index, 'option'):
@@ -226,18 +234,20 @@ def post_process(chip, step, index):
      #Return 0 if successful
      return 0
 
+
+################################
+# Make Docs
+################################
+
+def make_docs():
+    ''' Generate openroad docs
+    '''
+    chip = siliconcompiler.Chip()
+    chip.loadtool('openroad','<step>','<index>')
+
+    return chip
+
 ##################################################
 if __name__ == "__main__":
 
-    # File being executed
-    prefix = os.path.splitext(os.path.basename(__file__))[0]
-    output = prefix + '.json'
-
-    # create a chip instance
-    chip = siliconcompiler.Chip(loglevel='INFO')
-    chip.set('pdk','process','freepdk45')
-    chip.writecfg('tmp.json', prune=False)
-    # load configuration
-    setup_tool(chip, step='syn', index='0')
-    # write out results
-    chip.writecfg(output)
+    make_docs()

@@ -346,6 +346,53 @@ class Chip:
                         else:
                             self.set(*args, clobber=True)
 
+    #########################################################################
+    def loadtool(self, tool, step, index):
+        '''
+        Dynamic load of tool module based on search path.
+        '''
+        try:
+            searchdir = "siliconcompiler.tools." + tool
+            modulename = '.'+tool+'_setup'
+            self.logger.info(f"Setting up tool '{tool}' for step '{step}' and index {index}")
+            module = importlib.import_module(modulename, package=searchdir)
+            setup_tool = getattr(module, "setup_tool")
+            setup_tool(self, step, index)
+        except:
+            traceback.print_exc()
+            self.logger.error(f"Setup failed for '{tool}' in step '{step} and index {index}'")
+            self.error = 1
+
+    ###########################################################################
+    def loadpdk(self, process):
+        '''
+        Dynamic load of PDK module for a process based on search path.
+        '''
+        try:
+            searchdir = 'siliconcompiler.foundries'
+            module = importlib.import_module('.'+process, package=searchdir)
+            setup_pdk = getattr(module, "setup_pdk")
+            setup_pdk(self)
+            self.logger.info("Loaded technology files '%s'", process)
+        except ModuleNotFoundError:
+            self.logger.error("Technology module %s not found.", process)
+            self.error = 1
+
+    ###########################################################################
+    def loadflow(self, flow):
+        '''
+        Dynamic load of flow module based on search path.
+        '''
+        try:
+            searchdir = 'siliconcompiler.flows'
+            module = importlib.import_module('.'+flow, package=searchdir)
+            setup_flow = getattr(module, "setup_flow")
+            setup_flow(self)
+            self.logger.info("Loaded flow '%s'", flow)
+        except ModuleNotFoundError:
+            self.logger.error("Flow module %s not found.", flow)
+            self.error = 1
+
     ###########################################################################
     def target(self, arg=None):
         """
@@ -414,32 +461,14 @@ class Chip:
         # Technology platform
         technology = self.get('target').split('_')[0]
         if self.get('mode') == 'asic':
-            try:
-                searchdir = 'siliconcompiler.foundries'
-                module = importlib.import_module('.'+technology, package=searchdir)
-                setup_pdk = getattr(module, "setup_pdk")
-                setup_pdk(self)
-                self.logger.info("Loaded technology files '%s'", technology)
-            except ModuleNotFoundError:
-                self.logger.critical("Technology module %s not found.", technology)
-                sys.exit(1)
+            self.loadpdk(technology)
         else:
             self.set('fpga', 'partname', technology)
-
 
         # EDA flow
         if len(self.get('target').split('_')) == 2:
             edaflow = self.get('target').split('_')[1]
-            try:
-                searchdir = 'siliconcompiler.flows'
-                module = importlib.import_module('.'+edaflow, package=searchdir)
-                setup_flow = getattr(module, "setup_flow")
-                setup_flow(self)
-                self.logger.info("Loaded flow '%s'", edaflow)
-            except ModuleNotFoundError:
-                self.logger.critical("Flow module %s not found.", edaflow)
-                sys.exit(1)
-
+            self.loadflow(edaflow)
 
     ###########################################################################
     def getsinks(self, step, index, cfg=None):
@@ -2260,8 +2289,9 @@ class Chip:
                         active[stepstr] = 1
                         error[stepstr] = 1
                         # Setting up tool is optional
-                        if self.get('flowgraph', step, index, 'tool'):
-                            self._setuptool(step, index)
+                        tool = self.get('flowgraph', step, index, 'tool')
+                        if tool:
+                            self.loadtool(tool, step, index)
                         self.check(step, index, mode='static')
                     else:
                         active[stepstr] = 0
@@ -2566,20 +2596,6 @@ class Chip:
 
         return os.path.abspath("/".join(dirlist))
 
-    #######################################
-    def _setuptool(self, step, index):
-         try:
-             tool = self.get('flowgraph', step, index, 'tool')
-             searchdir = "siliconcompiler.tools." + tool
-             modulename = '.'+tool+'_setup'
-             self.logger.info(f"Setting up tool '{tool}' in step '{step}'")
-             module = importlib.import_module(modulename, package=searchdir)
-             setup_tool = getattr(module, "setup_tool")
-             setup_tool(self, step, index)
-         except:
-             traceback.print_exc()
-             self.logger.error(f"Setup failed for '{tool}' in step '{step}'")
-             self.error = 1
 
 ################################################################################
 # Annoying helper classes
