@@ -5,106 +5,107 @@ import siliconcompiler
 import importlib
 
 if __name__ != "__main__":
-    from tests.fixtures import test_wrapper
+    # have to import with different name so we don't detect it as a tool during
+    # docs autogen.
+    from tests.fixtures import test_wrapper as wrapper
 
 def test_verilator():
     '''Verilator tool test
     '''
     # setup tool
     chip = siliconcompiler.Chip()
-    setup_tool(chip, 'verilator','import')
+    return setup_tool(chip, 'verilator','import')
 
 def test_openroad():
     '''Openroad tool test
     '''
     # setup tool
     chip = siliconcompiler.Chip()
-    setup_tool(chip, 'openroad','route')
+    return setup_tool(chip, 'openroad','route')
 
 def test_yosys():
     '''Yosys tool test
     '''
     # setup tool
     chip = siliconcompiler.Chip()
-    setup_tool(chip, 'yosys','syn')
+    return setup_tool(chip, 'yosys','syn')
 
 def test_klayout():
     '''Klayout tool test
     '''
     # setup tool
     chip = siliconcompiler.Chip()
-    setup_tool(chip, 'klayout','export')
+    return setup_tool(chip, 'klayout','export')
 
 def test_ghdl():
     '''GHDL tool test
     '''
     # setup tool
     chip = siliconcompiler.Chip()
-    setup_tool(chip, 'ghdl','import')
+    return setup_tool(chip, 'ghdl','import')
 
 def test_morty():
     '''Morty tool test
     '''
     # setup tool
     chip = siliconcompiler.Chip()
-    setup_tool(chip, 'morty','import')
+    return setup_tool(chip, 'morty','import')
 
 def test_surelog():
     '''Surelog tool test
     '''
     # setup tool
     chip = siliconcompiler.Chip()
-    setup_tool(chip, 'surelog','import')
+    return setup_tool(chip, 'surelog','import')
 
 def test_openfpga():
     '''Openfpga tool test
     '''
     # setup tool
     chip = siliconcompiler.Chip()
-    setup_tool(chip, 'openfpga','apr')
+    return setup_tool(chip, 'openfpga','apr')
 
 def test_xyce():
     '''Xyce tool test
     '''
     # setup tool
     chip = siliconcompiler.Chip()
-    setup_tool(chip, 'xyce','spice')
+    return setup_tool(chip, 'xyce','spice')
 
 def test_icepack():
     '''Icepack tool test
     '''
     # setup tool
     chip = siliconcompiler.Chip()
-    setup_tool(chip, 'icepack','bitstream')
+    return setup_tool(chip, 'icepack','bitstream')
 
 def test_vpr():
     '''VPR tool test
     '''
     # setup tool
     chip = siliconcompiler.Chip()
-    setup_tool(chip, 'vpr','apr')
+    return setup_tool(chip, 'vpr','apr')
 
 def test_vivado():
     '''Vivado tool test
     '''
     # setup tool
     chip = siliconcompiler.Chip()
-    setup_tool(chip, 'vivado','compile')
+    return setup_tool(chip, 'vivado','compile')
 
 def test_nextpnr():
     '''Vivado tool test
     '''
     # setup tool
     chip = siliconcompiler.Chip()
-    setup_tool(chip, 'nextpnr','apr')
+    return setup_tool(chip, 'nextpnr','apr')
 
 def test_sv2v():
     '''SV2V tool test
     '''
     # setup tool
     chip = siliconcompiler.Chip()
-    setup_tool(chip, 'sv2v','import')
-
+    return setup_tool(chip, 'sv2v','import')
 
 def setup_tool(chip,tool,step):
 
@@ -122,3 +123,5 @@ def setup_tool(chip,tool,step):
     localcfg = chip.getcfg('eda',tool)
     chip.writecfg(tool + '_setup.json', cfg=localcfg)
     assert os.path.isfile(tool+'_setup.json')
+
+    return localcfg

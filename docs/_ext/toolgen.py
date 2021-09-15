@@ -72,21 +72,17 @@ def flatten(cfg, prefix=()):
 # Main Sphinx plugin
 class ToolGen(SphinxDirective):
 
-    def process_tool(self, tool):
-        packdir = f'tests.tools'
-        modulename = f'.{tool}'
-        module = importlib.import_module(modulename, package=packdir)
-        test_tool = getattr(module, tool)
+    def process_tool(self, toolname, module):
+        test_tool = getattr(module, f'test_{toolname}')
 
         cfg = test_tool()
 
-        toolname = tool[len('test_'):]
         s = build_section(toolname, toolname)
 
         packdir = f'siliconcompiler.tools.{toolname}'
         modulename = f'.{toolname}_setup'
-        module = importlib.import_module(modulename, package=packdir)
-        setup_tool = getattr(module, 'setup_tool')
+        toolmodule = importlib.import_module(modulename, package=packdir)
+        setup_tool = getattr(toolmodule, 'setup_tool')
 
         docstr = setup_tool.__doc__
         if docstr:
@@ -112,10 +108,17 @@ class ToolGen(SphinxDirective):
         sections = []
 
         sc_root = os.path.abspath(f'{__file__}/../../../')
-        tools_dir = f'{sc_root}/tests/tools'
-        for _, tool, _ in pkgutil.iter_modules([tools_dir]):
-            self.env.note_dependency(f'{tools_dir}/{tool}/{tool}_setup.py')
-            sections.append(self.process_tool(tool))
+        tools_dir = f'{sc_root}/siliconcompiler/tools'
+        self.env.note_dependency(f'{sc_root}/tests/tools/test_setup.py')
+
+        packdir = f'tests.tools'
+        modulename = f'.test_setup'
+        module = importlib.import_module(modulename, package=packdir)
+        for attr in dir(module):
+            if attr.startswith('test_'):
+                toolname = attr[len('test_'):]
+                self.env.note_dependency(f'{tools_dir}/{toolname}/{toolname}_setup.py')
+                sections.append(self.process_tool(toolname, module))
 
         return sections
 
