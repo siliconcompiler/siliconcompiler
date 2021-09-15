@@ -215,6 +215,9 @@ def setup_pdk(chip):
     #driver
     chip.add('library', libname, 'driver', '')
 
+    # buffer cell
+    chip.add('library', libname, 'cells', 'buf', ['sky130_fd_sc_hd__buf_4/A/X'])
+
     # tie cells
     chip.add('library', libname, 'cells', 'tie', ['sky130_fd_sc_hd__conb_1/HI',
                                                   'sky130_fd_sc_hd__conb_1/LO'])
