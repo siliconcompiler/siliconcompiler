@@ -351,6 +351,12 @@ class Chip:
         '''
         Dynamic load of tool module based on search path.
         '''
+
+        # Only load tool if not already loaded
+        if self.get('eda', tool, step, index, 'exe', field='lock'):
+            self.logger.warning('Tool already configured: ' + tool)
+            return
+
         try:
             searchdir = "siliconcompiler.tools." + tool
             modulename = '.'+tool+'_setup'
@@ -362,6 +368,9 @@ class Chip:
             traceback.print_exc()
             self.logger.error(f"Setup failed for '{tool}' in step '{step} and index {index}'")
             self.error = 1
+
+        # Locking the tool after loading
+        self.set('eda', tool, step, index, 'exe', 'true', field='lock')
 
     ###########################################################################
     def loadpdk(self, process):
@@ -927,7 +936,12 @@ class Chip:
                         return scalar
                 #all non-value fields are strings
                 else:
-                    return cfg[param][field]
+                    if cfg[param][field] == 'true':
+                        return True
+                    elif cfg[param][field] == 'false':
+                        return False
+                    else:
+                        return cfg[param][field]
         #if not leaf cell descend tree
         else:
             ##copying in default tree for dynamic trees
