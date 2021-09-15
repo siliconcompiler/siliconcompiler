@@ -26,78 +26,52 @@ def _layer_i(layer):
     '''Helper function to go from SC layer name to layer position in stackup.'''
     return int(layer.lstrip('m'))
 
-# Line intersection helper functions for via insertion routine
-def _lines_intersect(p1, p2, q1, q2):
-    '''Determine if line segment between p1 and p2 intersects with line segment
-    between q1 and q2.
+def _get_rect_intersection(r1, r2):
+    '''Get intersection of two rectangles r1 and r2.
 
-    Algorithm based on
-    https://www.geeksforgeeks.org/check-if-two-given-line-segments-intersect/.
+    Rectangles are specified as tuples of 4 values: (xl, yl, xh, yh). If there's
+    an intersection, the intersecting area is returned as a rectangle in the
+    same form. If there is no intersection, the function returns None.
 
-    TODO: distinguish between intersecting and coincident lines
+    r1 and r2 must be aligned to the x/y axes.
+
+    Algorithm inspiration: https://stackoverflow.com/a/4549594.
     '''
+    left1, bottom1, right1, top1 = r1
+    left2, bottom2, right2, top2 = r2
 
-    o1 = _orientation(q1, q2, p1)
-    o2 = _orientation(q1, q2, p2)
-    o3 = _orientation(p1, p2, q1)
-    o4 = _orientation(p1, p2, q2)
+    # get dimensions of possible intersection
+    left = max(left1, left2)
+    bottom = max(bottom1, bottom2)
+    right = min(right1, right2)
+    top = min(top1, top2)
 
-    # if first pair and second pair of orientations different, then we have intersection
-    if o1 != o2 and o3 != o4:
-        return True
+    # ensure intersection is a valid rectangle
+    if left < right and bottom < top:
+        return (left, bottom, right, top)
 
-    # Alternatively, if we have colinearity and the relevant point is on the
-    # line segment, we have an intersection.
-    if o1 == 0 and _on_segment(q1, q2, p1):
-        return True
-    if o2 == 0 and _on_segment(q1, q2, p2):
-        return True
-    if o3 == 0 and _on_segment(p1, p2, q1):
-        return True
-    if o4 == 0 and _on_segment(p1, p2, q2):
-        return True
+    # if no intersection, we return None
+    return None
 
-    return False
+def _wire_to_rect(wire):
+    start = wire['start']
+    end = wire['end']
+    layer = wire['sclayer']
+    direction = wire['direction']
+    width = wire['width']
 
-def _orientation(p1, p2, p3):
-    '''Returns the orientation of ordered triplet p1, p2, p3. Can be clockwise
-    (1), counter-clockwise (-1) or colinear (0).
-
-    https://www.geeksforgeeks.org/orientation-3-ordered-points/
-    '''
-    o  = ((p3[0] - p2[0]) * (p2[1] - p1[1]) -
-          (p3[1] - p2[1]) * (p2[0] - p1[0]))
-
-    if o > 0:
-        return 1
-    elif o < 0:
-        return -1
+    if direction == 'h':
+        left = start[0]
+        right = end[0]
+        bottom = start[1] - width / 2
+        top = bottom + width
     else:
-        return 0
+        bottom = start[1]
+        top = end[1]
+        left = start[0] - width / 2
+        right = left + width
 
-def _on_segment(p1, p2, q):
-    '''Return if point q on line segment (p1, p2). Points p1, p2, and q must be
-    colinear.
-    '''
-    return (((p1[0] <= q[0] and q[0] <= p2[0]) or (p2[0] <= q[0] and q[0] <= p1[0])) and
-            ((p1[1] <= q[1] and q[1] <= p2[1]) or (p2[1] <= q[1] and q[1] <= p1[1])))
-
-def _get_intersection(p1, p2, q1, q2):
-    '''Get the intersection point of two intersecting lines (p1, p2) and (q1, q2)
-
-    This algorithm is taken from MIT 6.172's project 2 code distribution
-    (https://ocw.mit.edu/courses/electrical-engineering-and-computer-science/6-172-performance-engineering-of-software-systems-fall-2018/projects).
-
-    Explanation of similar algorithm here: https://stackoverflow.com/a/565282.
-    '''
-
-    # u is a value 0.0 - 1.0 representing how far along (p1, p2) the lines
-    # intersect.
-    u = (((q2[0] - q1[0]) * (p1[1] - q1[1]) - (q2[1] - q1[1]) * (p1[0] - q1[0])) /
-         ((q2[1] - q1[1]) * (p2[0] - p1[0]) - (q2[0] - q1[0]) * (p2[1] - p1[1])))
-
-    return (p1[0] + u * (p2[0] - p1[0]),
-            p1[1] + u * (p2[1] - p1[1]))
+    return (left, bottom, right, top)
 
 class Floorplan:
     '''Floorplan layout class.
@@ -1155,31 +1129,26 @@ class Floorplan:
             wires = sorted(self.nets[net]['wires'], key=lambda w: w['sclayer'] )
             for i, wire_bottom in enumerate(wires):
                 for wire_top in wires[i:]:
-                    bottom_start = wire_bottom['start']
-                    bottom_end = wire_bottom['end']
                     bottom_layer = wire_bottom['sclayer']
-                    bottom_dir = wire_bottom['direction']
-                    bottom_width = wire_bottom['width']
-                    top_start = wire_top['start']
-                    top_end = wire_top['end']
                     top_layer = wire_top['sclayer']
-                    top_dir = wire_top['direction']
-                    top_width = wire_top['width']
 
                     if bottom_layer == top_layer:
                         continue
 
-                    do_lines_intersect = _lines_intersect(bottom_start, bottom_end, top_start, top_end)
+                    bottom_rect = _wire_to_rect(wire_bottom)
+                    top_rect = _wire_to_rect(wire_top)
 
-                    # TODO: detect colinear (how does OR handle this?)
-                    if bottom_dir == top_dir:
-                        raise ValueError("cannot insert vias between wires in same direction")
+                    intersection = _get_rect_intersection(bottom_rect, top_rect)
 
-                    if do_lines_intersect:
-                        x, y = _get_intersection(bottom_start, bottom_end, top_start, top_end)
+                    if intersection is not None:
+                        left, bottom, right, top = intersection
+                        x = (left + right) / 2
+                        y = (bottom + top) / 2
+                        width = right - left
+                        height = top - bottom
+                        bottom_dir = self.layers[bottom_layer]['direction']
+                        top_dir = self.layers[top_layer]['direction']
 
-                        width = bottom_width if bottom_dir == 'v' else top_width
-                        height = bottom_width if bottom_dir == 'h' else top_width
                         self._insert_via(net, (x, y), bottom_layer, top_layer, bottom_dir, top_dir, width, height)
 
     def snap(self, val, grid):
