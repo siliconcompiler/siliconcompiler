@@ -3,6 +3,50 @@ import sys
 import re
 import siliconcompiler
 
+############################################################################
+# DOCS
+############################################################################
+
+def make_docs():
+    '''
+    The asap7 PDK was developed at ASU in collaboration with ARM Research.
+    With funding from the DARPA IDEA program, the PDK was released
+    a permissive open source PDK in 2021. The PDK contains SPICE-compatible
+    FinFET device models (BSIM-CMG), Technology files for Cadence Virtuoso,
+    Design Rule Checker (DRC), Layout vs Schematic Checker (LVS) and
+    Extraction Deck for the 7nm technology node. For more details regarding
+    the technical specifications of the PDK, please refer the PDK
+    documentation and associated publication. Please note that this process
+    design kit is provided as an academic and research aid only and the
+    resulting designs are not manufacturable.
+
+    PDK content:
+    * open source DRM
+    * device primitive library (virtuoso)
+    * spice (hspice)
+    * extraction runsets (calibre)
+    * drc runsets (calibre)
+    * APR technology files
+    * 7.5 track multi-vt standard cell libraries
+
+    More information:
+    * http://asap.asu.edu/asap
+    * L.T. Clark, V. Vashishtha, L. Shifren, A. Gujja, S. Sinha, B. Cline,
+    C. Ramamurthya, and G. Yeric, “ASAP7: A 7-nm FinFET Predictive Process
+    Design Kit,” Microelectronics Journal, vol. 53, pp. 105-115, July 2016.
+
+
+    Sources:
+    * https://github.com/The-OpenROAD-Project/asap
+
+    '''
+
+    chip = siliconcompiler.Chip()
+    setup_pdk(chip)
+
+    return chip
+
+
 ####################################################
 # PDK Setup
 ####################################################
@@ -203,10 +247,9 @@ def setup_pdk(chip):
     chip.set('mcmm','worst','mode', 'func')
     chip.add('mcmm','worst','check', ['setup','hold'])
 
+
 #########################
 if __name__ == "__main__":
 
-    prefix = os.path.splitext(os.path.basename(__file__))[0]
-    chip = siliconcompiler.Chip()
-    setup_pdk(chip)
-    chip.writecfg(prefix + '.json')
+    chip = make_docs()
+    chip.writecfg('asap7.json')
