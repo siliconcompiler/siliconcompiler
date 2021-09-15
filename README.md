@@ -2,6 +2,7 @@
 
 [![Quick CI Tests](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/on_push_tests.yml/badge.svg)](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/on_push_tests.yml)
 [![Daily CI Tests](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/daily_tests.yml/badge.svg)](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/daily_tests.yml)
+[![Documentation](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/docs_test.yml/badge.svg)](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/docs_test.yml)
 
 SiliconCompiler is an end-to-end Python based open source platform for hardware compilation. It supports a comprehensive, flexible ecosystem of [tools](https://www.siliconcompiler.org/tools), [hardware targets](https://www.siliconcompiler.org/targets), and [community](https://www.siliconcompiler.org/community) resources that lowers the barrier to physical ASIC prototyping and high accuracy HW/SW codesign.
 
@@ -50,10 +51,19 @@ To install from the active developer repository.
 ```sh
 $ git clone https://github.com/siliconcompiler/siliconcompiler
 $ cd siliconcompiler
-$ git submodule update --init --recursive
+$ git submodule update --init --recursive third_party/tools/openroad
 $ pip install -r requirements.txt
 $ python -m pip install -e .
 ```
+
+Note that this installation process will build a C++ LEF parser from source,
+using code contained in one of SC's submodules. In order to build this parser,
+you must install bison:
+```sh
+$ sudo apt-get install bison
+```
+
+All other build prerequisites should be installed transparently by Pip.
 
 ## Pre-requisites
 

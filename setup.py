@@ -1,9 +1,26 @@
 #!/usr/bin/env python3
 
-from skbuild import setup
+import os
+import sys
+
+try:
+    from skbuild import setup
+except ImportError:
+    print(
+        "Error finding build dependencies!\n"
+        "If you're installing this project using pip, make sure you're using pip version 10 or greater.\n"
+        "If you're installing this project by running setup.py, manually install all dependencies listed in requirements.txt.",
+        file=sys.stderr,
+    )
+    raise
 
 with open("README.md", "r", encoding="utf-8") as readme:
   long_desc = readme.read()
+
+if not os.path.isdir('third_party/tools/openroad/tools/OpenROAD/src/OpenDB/src/lef'):
+    print('Source for LEF parser library not found! Install OpenROAD submodule before continuing with install:\n'
+          'git submodule update --init --recursive third_party/tools/openroad')
+    sys.exit(1)
 
 setup(
     name="siliconcompiler",

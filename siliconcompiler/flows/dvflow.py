@@ -41,7 +41,7 @@ def setup_flow(chip):
 
     # Parallelism
     if 'np' in chip.getkeys('flowarg'):
-        np = int(chip.get('flowarg', 'np'))
+        np = int(chip.get('flowarg', 'np')[0])
     else:
         np = 1
 

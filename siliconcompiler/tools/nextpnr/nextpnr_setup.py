@@ -11,10 +11,11 @@ def setup_tool(chip, step, index):
     '''
 
     tool = 'nextpnr'
-    chip.set('eda', tool, step, index, 'vendor', 'nextpnr')
-    chip.set('eda', tool, step, index, 'exe', 'nextpnr-ice40')
-    chip.set('eda', tool, step, index, 'vswitch', '--version')
-    chip.set('eda', tool, step, index, 'version', 'c73d4cf6')
+    clobber = False
+    chip.set('eda', tool, step, index, 'vendor', tool, clobber=clobber)
+    chip.set('eda', tool, step, index, 'exe', 'nextpnr-ice40', clobber=clobber)
+    chip.set('eda', tool, step, index, 'vswitch', '--version', clobber=clobber)
+    chip.set('eda', tool, step, index, 'version', 'c73d4cf6', clobber=clobber)
 
     # Check FPGA schema to determine which device to target
     partname = chip.get('fpga', 'partname')
@@ -22,23 +23,14 @@ def setup_tool(chip, step, index):
     options = []
     if partname == 'ice40up5k-sg48':
         options.append('--up5k --package sg48')
-    else:
-        chip.logger.error(f"Unsupported vendor option '{vendor}' and device option "
-            f"'{device}'. NextPNR flow currently only supports vendor 'lattice' and device "
-            f"'ice40up5k-sg48'.")
-        os.sys.exit()
 
     topmodule = chip.get('design')
     pcf_file = None
     for constraint_file in chip.get('constraint'):
         if os.path.splitext(constraint_file)[-1] == '.pcf':
             pcf_file = schema_path(constraint_file)
+            options.append('--pcf ' + pcf_file)
 
-    if pcf_file == None:
-        chip.logger.error('FPGA pin constraint file missing')
-        os.sys.exit()
-
-    options.append('--pcf ' + pcf_file)
     options.append('--json inputs/' + topmodule + '_netlist.json')
     options.append('--asc outputs/' + topmodule + '.asc')
     chip.add('eda', tool, step, index, 'option', 'cmdline', options)
@@ -54,7 +46,7 @@ def check_version(chip, step, index, version):
     #insert code for parsing the funtion based on some tool specific
     #semantics.
     #syntax for version is string, >=string
-    
+
     return 0
 
 ################################

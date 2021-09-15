@@ -628,6 +628,22 @@ class Chip:
         return keys
 
     ###########################################################################
+    def getcfg(self, *args, cfg=None):
+        """
+        Returns sub-dictionary from SC schema based on key-sequence provided.
+        """
+
+        if cfg is None:
+            cfg = self.cfg
+
+        if len(list(args)) > 0:
+            keypath = ','.join(args[:-1])
+            self.logger.debug('Getting cfg for: %s', args)
+            localcfg = self._search(cfg, keypath, *args, mode='getcfg')
+
+        return copy.deepcopy(localcfg)
+
+    ###########################################################################
     def set(self, *args, cfg=None, clobber=True, field='value'):
         '''
         Sets a Chip dictionary value based on key-sequence and data provided.
@@ -715,6 +731,8 @@ class Chip:
 
         self.logger.debug(f'Appending value {args[-1]} to [{keypath}]')
         return self._search(cfg, keypath, *all_args, field='value', mode='add')
+
+
 
     ###########################################################################
     def _allkeys(self, cfg, keys=None, keylist=None):
@@ -829,6 +847,8 @@ class Chip:
             if not param in cfg:
                 self.error = 1
                 self.logger.error(f"Get keypath [{keypath}] does not exist.")
+            elif mode == 'getcfg':
+                return cfg[param]
             elif mode == 'getkeys':
                 return cfg[param].keys()
             else:
@@ -1002,6 +1022,33 @@ class Chip:
         return localcfg
 
     ###########################################################################
+    def find(self, filename):
+        """
+        Returns an absolute path for the provided filename provided.
+
+        The method searches for a match for filename using the SCPATH
+        environment variable. Legal shell variables consisting of '$' followed
+        by numbers, underscores, and digits are replaced with the variable
+        value.
+        """
+
+        # Replacing environment variables
+        vars = re.findall(r'\$(\w+)', filename)
+        for item in vars:
+            varpath = os.getenv(item)
+            filename = filename.replace("$"+item, varpath)
+
+        # Resolving absolute paths
+        scpaths = str(os.environ['SCPATH']).split(':')
+        for searchdir in scpaths:
+            abspath = searchdir + "/" + filename
+            if os.path.exists(abspath):
+                filename = abspath
+                break
+
+        return filename
+
+    ###########################################################################
     def _abspath(self, cfg):
         '''Recursive function that goes through Chip dictionary and
         resolves all relative paths where required.
@@ -1079,7 +1126,7 @@ class Chip:
                                prefix=prefix)
 
     ###########################################################################
-    def merge(self, cfg1, cfg2, append=False, path=None):
+    def merge(self, cfg1, cfg2, append=False):
         """
         Merges the SC configuration dict cfg2 into cfg1.
 
@@ -1095,8 +1142,6 @@ class Chip:
                 and only d2 with identical keylists are merged.
             append (bool): If True, for list variables,the new config valuse
                 are appended to the old values.
-            path (sring): Temporary variable tracking key path
-
         """
 
         #creating local copy of original dict to be overwritten
@@ -1119,6 +1164,8 @@ class Chip:
 
         #returning dict
         return localcfg
+
+
 
     ###########################################################################
     def _keypath_empty(self, key, cfg):

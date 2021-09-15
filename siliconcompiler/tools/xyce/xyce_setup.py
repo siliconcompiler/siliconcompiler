@@ -1,18 +1,21 @@
 import os
-
 import siliconcompiler
-from siliconcompiler.floorplan import *
 
 ################################
 # Setup Tool (pre executable)
 ################################
 def setup_tool(chip, step, index):
 
-     chip.set('eda', tool, step, index, 'threads', '4')
-     chip.set('eda', tool, step, index, 'copy', 'false')
-     chip.set('eda', tool, step, index, 'vendor', 'xyce')
-     chip.set('eda', tool, step, index, 'exe', 'xyce')
-     chip.set('eda', tool, step, index, 'version', '0.0')
+
+     tool = 'xyce'
+     refdir = 'siliconcompiler/tools' + tool
+     clobber = False
+
+     chip.set('eda', tool, step, index, 'exe', tool, clobber=clobber)
+     chip.set('eda', tool, step, index, 'copy', 'false', clobber=clobber)
+     chip.set('eda', tool, step, index, 'vendor', tool, clobber=clobber)
+     chip.set('eda', tool, step, index, 'version', '0.0', clobber=clobber)
+     chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=clobber)
 
 ################################
 # Post_process (post executable)

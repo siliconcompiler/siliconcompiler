@@ -87,7 +87,7 @@ class FlowGen(SphinxDirective):
 
         chip = siliconcompiler.Chip()
         # TODO: how to choose "default" process
-        setup(chip, 'freepdk45')
+        setup(chip)
         flow_path = f'_images/gen/{target}.svg'
         chip.writegraph(flow_path)
 

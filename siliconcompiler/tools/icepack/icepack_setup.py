@@ -3,8 +3,6 @@ import importlib
 import re
 import sys
 import siliconcompiler
-from siliconcompiler.floorplan import *
-from siliconcompiler.schema_utils import schema_path
 
 ################################
 # Setup Tool (pre executable)

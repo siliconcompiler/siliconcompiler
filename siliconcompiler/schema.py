@@ -152,6 +152,35 @@ def schema_fpga(cfg):
         """
     }
 
+    cfg['fpga']['board'] = {
+        'switch': "-fpga_board <str>",
+        'requirement': None,
+        'type': 'str',
+        'lock': 'false',
+        'defvalue': None,
+        'short_help': 'FPGA board name',
+        'example': ["cli: -fpga_board parallella",
+                    "api:  chip.set('fpga', 'board', 'parallella')"],
+        'help': """
+        FPGA board name to target for bitstream generation and loading.
+        """
+    }
+
+    cfg['fpga']['flash'] = {
+        'switch': "-fpga_flash <bool>",
+        'requirement': 'fpga',
+        'type': 'bool',
+        'lock': 'false',
+        'defvalue': False,
+        'short_help': 'FPGA flash progrmming',
+        'example': ["cli: -fpga_flash",
+                    "api:  chip.set('fpga', 'flash', True)"],
+        'help': """
+        Specifies that the bitstream should be flashed in the board/device.
+        The default is to load the bitstream into volatile memory (SRAM).
+        """
+    }
+
     return cfg
 
 ###############################################################################
@@ -2631,10 +2660,10 @@ def schema_options(cfg):
     cfg['techarg'] = {}
     cfg['techarg']['default'] = {
         'switch': "-techarg 'arg <str>",
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'requirement': None,
-        'defvalue': None,
+        'defvalue': [],
         'short_help': 'Target technology setup parameter',
         'example': ["cli: -techarg 'mimcap true",
                     "api: chip.set('techarg','mimcap', 'true')"],
@@ -2648,10 +2677,10 @@ def schema_options(cfg):
     cfg['flowarg'] = {}
     cfg['flowarg']['default'] = {
         'switch': "-flowarg 'arg <str>",
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'requirement': None,
-        'defvalue': None,
+        'defvalue': [],
         'short_help': 'Target flow setup parameter',
         'example': ["cli: -flowarg 'n 100",
                     "api: chip.set('flowarg','n', '100')"],

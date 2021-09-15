@@ -17,3 +17,8 @@ Sphinx >= 3.5.4
 cryptography >= 3.4.7
 sphinx-rtd-theme >= 0.5.2
 graphviz >=0.17
+
+# Build dependencies
+scikit-build >= 0.12
+cython
+cmake

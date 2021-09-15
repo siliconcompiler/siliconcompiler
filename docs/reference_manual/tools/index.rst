@@ -1,4 +1,0 @@
-Tool Configuration
-===================
-
-.. toolgen::
