@@ -171,7 +171,7 @@ def schema_fpga(cfg):
         'requirement': 'fpga',
         'type': 'bool',
         'lock': 'false',
-        'defvalue': False,
+        'defvalue': 'false',
         'short_help': 'FPGA flash progrmming',
         'example': ["cli: -fpga_flash",
                     "api:  chip.set('fpga', 'flash', True)"],
