@@ -71,7 +71,6 @@ class Server:
         self.app = web.Application()
         self.app.add_routes([
             web.post('/remote_run/', self.handle_remote_run),
-            web.post('/import/', self.handle_import),
             web.post('/check_progress/', self.handle_check_progress),
             web.post('/delete_job/', self.handle_delete_job),
             web.post('/get_results/{job_hash}.zip', self.handle_get_results),
@@ -92,21 +91,48 @@ class Server:
         a 'Chip.run(...)' method to a compute node using slurm.
         '''
 
-        # Retrieve JSON config from the request body.
-        cfg = await request.json()
-        params = cfg['params']
-        cfg = cfg['chip_cfg']
-        if not 'job_hash' in params:
-            return web.Response(text="Error: no job hash provided.")
-        job_hash = params['job_hash']
+        # Temporary file path to store streamed data.
+        tmp_file = self.cfg['nfsmount']['value'][-1] + '/' + uuid.uuid4().hex
 
-        # Retrieve authentication parameters if enabled.
+        # Set up a multipart reader to read in the large file, and param data.
+        reader = await request.multipart()
+        while True:
+            # Get the next part; if it doesn't exist, we're done.
+            part = await reader.next()
+            if part is None:
+                break
+
+            # If the data is encrypted, it is sent in a '.crypt' file. If not,
+            # it is sent in a zip archive. Either way, stream the file to disk.
+            if part.name == 'import':
+                # job hash may not be available yet; it's also sent in the body.
+                with open(tmp_file, 'wb') as f:
+                    while True:
+                        chunk = await part.read_chunk()
+                        if not chunk:
+                            break
+                        f.write(chunk)
+
+            # Retrieve JSON request parameters.
+            elif part.name == 'params':
+                # Get the job parameters.
+                params = await part.json()
+                job_params = params['params']
+                cfg = params['chip_cfg']
+
+        # Get the job hash value, and verify it is a 32-char hex string.
+        if not 'job_hash' in job_params:
+            return web.Response(text="Error: no job hash provided.")
+        job_hash = job_params['job_hash']
+        if not re.match("^[0-9A-Za-z]{32}$", job_hash):
+            return web.Response(text="Error: invalid job hash.")
+        # Check for authentication parameters.
         use_auth = False
-        if ('username' in params) or ('key' in params):
+        if ('username' in job_params) or ('key' in job_params):
             if self.cfg['auth']['value'][-1]:
-                if ('username' in params) and ('key' in params):
-                    username = params['username']
-                    key = params['key']
+                if ('username' in job_params) and ('key' in job_params):
+                    username = job_params['username']
+                    key = job_params['key']
                     if not username in self.user_keys.keys():
                         return web.Response(text="Error: invalid username provided.")
                     # Authenticate the user.
@@ -122,6 +148,26 @@ class Server:
         # Create a dummy Chip object to make schema traversal easier.
         chip = Chip()
         chip.cfg = cfg
+
+        # Fetch some common values.
+        design = chip.get('design')
+        job_name = chip.get('jobname')
+        job_id = chip.get('jobid')
+        job_nameid = f'{job_name}{job_id}'
+
+        # Ensure that the job's root directory exists.
+        job_root = f"{self.cfg['nfsmount']['value'][-1]}/{job_hash}"
+        job_dir  = f"{job_root}/{design}/{job_nameid}"
+        subprocess.run(['mkdir', '-p', job_dir])
+        # Move the uploaded archive and un-zip it.
+        # (Contents will be encrypted for authenticated jobs)
+        os.replace(tmp_file, '%s/import.zip'%job_root)
+        subprocess.run(['unzip', '-o', '%s/import.zip'%(job_root)],
+                       cwd=job_dir)
+
+        # Delete the temporary file if it still exists.
+        if os.path.exists(tmp_file):
+            os.remove(tmp_file)
 
         # Reset 'build' directory in NFS storage.
         build_dir = '%s/%s'%(self.cfg['nfsmount']['value'][-1], job_hash)
@@ -157,90 +203,6 @@ class Server:
         # Return a response to the client.
         response_text = f"Starting job: {job_hash}"
         return web.Response(text=response_text)
-
-    ####################
-    async def handle_import(self, request):
-        '''
-        API handler for 'import' requests. Accepts a file archive upload,
-        which the server extracts into shared compute cluster storage in
-        preparation for running a remote job stage.
-
-        TODO: Infer file type from file extension. Currently only supports .zip
-        '''
-
-        # Receive and parse the POST request body.
-        use_auth = False
-        tmp_file = self.cfg['nfsmount']['value'][-1] + '/' + uuid.uuid4().hex
-        reader = await request.multipart()
-        while True:
-            part = await reader.next()
-            if part is None:
-                break
-            # If the data is encrypted, it is sent in a '.crypt' file. If not,
-            # it is sent in a '.zip' archive. Either way, stream the file to disk.
-            if part.name == 'import':
-                # job hash may not be available yet; it's also sent in the body.
-                with open(tmp_file, 'wb') as f:
-                    while True:
-                        chunk = await part.read_chunk()
-                        if not chunk:
-                            break
-                        f.write(chunk)
-            elif part.name == 'params':
-                # Get the job parameters.
-                job_params = await part.json()
-                # Get the job hash value, and verify it is a 32-char hex string.
-                if not 'job_hash' in job_params:
-                    return web.Response(text="Error: no job hash provided.")
-                job_hash = job_params['job_hash']
-                if not re.match("^[0-9A-Za-z]{32}$", job_hash):
-                    return web.Response(text="Error: invalid job hash.")
-                # Get the job's name and ID.
-                if not 'job_name' in job_params:
-                    return web.Response(text="Error: no job name provided.")
-                job_name = job_params['job_name']
-                if not 'job_id' in job_params:
-                    return web.Response(text="Error: no job ID provided.")
-                job_id = job_params['job_id']
-                job_nameid = f"{job_name}{job_id}"
-                # Get the name of the job's top-level Verilog module.
-                if not 'design' in job_params:
-                    return web.Response(text="Error: no top-level design name provided.")
-                design = job_params['design']
-                # Check for authentication parameters.
-                if ('username' in job_params) or ('key' in job_params):
-                    if self.cfg['auth']['value'][-1]:
-                        if ('username' in job_params) and ('key' in job_params):
-                            username = job_params['username']
-                            key = job_params['key']
-                            if not username in self.user_keys.keys():
-                                return web.Response(text="Error: invalid username provided.")
-                            # Authenticate the user.
-                            if self.auth_userkey(username, key):
-                                use_auth = True
-                            else:
-                                return web.Response(text="Authentication error.")
-                        else:
-                            return web.Response(text="Error: some authentication parameters are missing.")
-                    else:
-                        return web.Response(text="Error: authentication parameters were passed in, but this server does not support that feature.")
-
-                # Ensure that the job's root directory exists.
-                job_root = f"{self.cfg['nfsmount']['value'][-1]}/{job_hash}"
-                job_dir  = f"{job_root}/{design}/{job_nameid}"
-                subprocess.run(['mkdir', '-p', job_dir])
-                # Move the uploaded archive and un-zip it.
-                # (Contents will be encrypted for authenticated jobs)
-                os.replace(tmp_file, '%s/import.zip'%job_root)
-                subprocess.run(['unzip', '-o', '%s/import.zip'%(job_root)],
-                               cwd=job_dir)
-
-        # Delete the temporary file if it still exists.
-        if os.path.exists(tmp_file):
-            os.remove(tmp_file)
-
-        # Done.
-        return web.Response(text="Successfully imported project %s."%job_hash)
 
     ####################
     async def handle_get_results(self, request):
