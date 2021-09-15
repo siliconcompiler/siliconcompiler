@@ -1776,7 +1776,7 @@ class Chip:
 
 
     ###########################################################################
-    def _slurmstep(self, step, index, active, error):
+    def _deferstep(self, step, index, active, error):
         '''
         Helper method to run an individual step on a slurm cluster.
         If a base64-encoded 'decrypt_key' is set in the Chip's status
@@ -1784,6 +1784,14 @@ class Chip:
         and a more complex command is assembled to ensure that the data
         is only decrypted temporarily in the compute node's local storage.
         '''
+
+        # Determine which HPC job scheduler being used.
+        scheduler_type = self.get('jobscheduler')
+        if scheduler_type == 'slurm':
+            schedule_cmd = 'srun'
+        elif scheduler_type == 'lsf':
+            # TODO: LSF support is untested and currently unsupported.
+            schedule_cmd = 'lsrun'
 
         if 'decrypt_key' in self.status:
             # Job data is encrypted, and it should only be decrypted in the
@@ -1814,20 +1822,15 @@ class Chip:
             for in_cfg in in_cfgs:
                 cfg_str += f'-cfg {in_cfg} '
 
-            # The 'srun' command needs to:
+            # The deferred execution command needs to:
             # * copy encrypted data/key and unencrypted IV into local storage.
             # * store the provided key in local storage.
             # * call 'sc' with the provided key, wait for the job to finish.
             # * copy updated encrypted data back into shared storage.
             # * delete all unencrypted data.
-            run_cmd = 'srun bash -c "'
+            run_cmd  = f'{schedule_cmd} bash -c "'
             run_cmd += f"mkdir -p {tmp_build_dir} ; "
-            run_cmd += f"cp {self.get('dir')}/{job_nameid}.crypt "\
-                           f"{tmp_job_dir}/{job_nameid}.crypt ; "
-            run_cmd += f"cp {self.get('dir')}/{job_nameid}.iv "\
-                           f"{tmp_job_dir}/{job_nameid}.iv ; "
-            run_cmd += f"cp {self.get('dir')}/import.bin "\
-                           f"{tmp_job_dir}/import.bin ; "
+            run_cmd += f"cp -R {self.get('dir')}/* {tmp_job_dir}/ ; "
             run_cmd += f"touch {keypath} ; chmod 600 {keypath} ; "
             run_cmd += f"echo -ne '{keystr}' > {keypath} ; "
             run_cmd += f"chmod 400 {keypath} ; "
@@ -1835,14 +1838,12 @@ class Chip:
                            f"-key_file {keypath} ; "
             run_cmd += f"sc {cfg_str} "\
                            f"-arg_step {step} -arg_index {index} "\
-                           f"-dir {tmp_job_dir} -jobscheduler local "\
+                           f"-dir {tmp_job_dir} -jobscheduler '' "\
                            f"-remote_addr '' -remote_key '' ; "
             run_cmd += f"sc-crypt -mode encrypt -job_dir {tmp_build_dir} "\
                            f"-key_file {keypath} ; "
-            run_cmd += f"cp {tmp_job_dir}/{job_nameid}.crypt "\
-                           f"{self.get('dir')}/{job_nameid}.crypt ; "
-            run_cmd += f"cp {tmp_job_dir}/{job_nameid}.iv "\
-                           f"{self.get('dir')}/{job_nameid}.iv ; "
+            run_cmd += f"cp -R {tmp_job_dir}/{self.get('design')}/* "\
+                           f"{self.get('dir')}/{self.get('design')}/ ; "
             run_cmd += f"rm -rf {tmp_job_dir}"
             run_cmd += '"'
         else:
@@ -1866,11 +1867,11 @@ class Chip:
             for in_cfg in in_cfgs:
                 cfg_str += f'-cfg {in_cfg} '
 
-            # Create an 'srun' command.
-            run_cmd = 'srun bash -c "'
+            # Create a command to defer execution to a compute node.
+            run_cmd  = f'{schedule_cmd} bash -c "'
             run_cmd += f"sc {cfg_str} -dir {self.get('dir')} "\
                        f"-arg_step {step} -arg_index {index} "\
-                        "-jobscheduler local -remote_addr ''"
+                        "-jobscheduler '' -remote_addr ''"
             run_cmd += '"'
 
         # Run the 'srun' command.
@@ -1930,11 +1931,13 @@ class Chip:
             time.sleep(0.1)
 
         # If the job is configured to run on a cluster, collect the schema
-        # and send it to a compute node in a munge-encrypted 'srun' command.
+        # and send it to a compute node for deferred execution.
         # (Run the initial 'import' stage[s] locally)
-        if (self.get('jobscheduler') == 'slurm') and \
-           (self.getkeys('flowgraph', step, index, 'input')):
-            self._slurmstep(step, index, active, error)
+        if self.get('jobscheduler') and \
+           self.getkeys('flowgraph', step, index, 'input'):
+            # Note: The _deferstep method blocks until the compute node
+            # finishes processing this step, and it sets the active/error bits.
+            self._deferstep(step, index, active, error)
             return
 
         # If the job is configured to run on the local machine, run it.

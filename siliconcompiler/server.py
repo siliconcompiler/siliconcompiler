@@ -134,7 +134,7 @@ class Server:
         chip.set('dir', build_dir, clobber=True)
         # Link to the 'import' directory if necessary.
         subprocess.run(['mkdir', '-p', '%s/%s'%(jobs_dir, job_nameid)])
-        subprocess.run(['ln', '-s', '%s/import0'%build_dir, '%s/%s/import0'%(jobs_dir, job_nameid)])
+        #subprocess.run(['ln', '-s', '%s/import0'%build_dir, '%s/%s/import0'%(jobs_dir, job_nameid)])
 
         # Remove 'remote' JSON config value to run locally on compute node.
         chip.set('remote', 'addr', '', clobber=True)
@@ -195,18 +195,24 @@ class Server:
                 job_hash = job_params['job_hash']
                 if not re.match("^[0-9A-Za-z]{32}$", job_hash):
                     return web.Response(text="Error: invalid job hash.")
-                # Get the job's name.
+                # Get the job's name and ID.
                 if not 'job_name' in job_params:
                     return web.Response(text="Error: no job name provided.")
                 job_name = job_params['job_name']
+                if not 'job_id' in job_params:
+                    return web.Response(text="Error: no job ID provided.")
+                job_id = job_params['job_id']
+                job_nameid = f"{job_name}{job_id}"
+                # Get the name of the job's top-level Verilog module.
+                if not 'design' in job_params:
+                    return web.Response(text="Error: no top-level design name provided.")
+                design = job_params['design']
                 # Check for authentication parameters.
-                if ('username' in job_params) or ('key' in job_params) or ('aes_key' in job_params) or ('aes_iv' in job_params):
+                if ('username' in job_params) or ('key' in job_params):
                     if self.cfg['auth']['value'][-1]:
-                        if ('username' in job_params) and ('key' in job_params) and ('aes_key' in job_params) and ('aes_iv' in job_params):
+                        if ('username' in job_params) and ('key' in job_params):
                             username = job_params['username']
                             key = job_params['key']
-                            aes_key = job_params['aes_key']
-                            aes_iv = job_params['aes_iv']
                             if not username in self.user_keys.keys():
                                 return web.Response(text="Error: invalid username provided.")
                             # Authenticate the user.
@@ -220,22 +226,14 @@ class Server:
                         return web.Response(text="Error: authentication parameters were passed in, but this server does not support that feature.")
 
                 # Ensure that the job's root directory exists.
-                job_root = '%s/%s'%(self.cfg['nfsmount']['value'][-1], job_hash)
-                subprocess.run(['mkdir', '-p', job_root])
-
-                if use_auth:
-                    # Move the encrypted archive, and save the AES cipher info.
-                    os.replace(tmp_file, '%s/import.crypt'%job_root)
-                    with open('%s/import.bin'%job_root, 'wb+') as encrypted_key:
-                        encrypted_key.write(base64.urlsafe_b64decode(aes_key))
-                    with open('%s/import.iv'%job_root, 'wb+') as encrypted_key:
-                        encrypted_key.write(base64.urlsafe_b64decode(aes_iv))
-                else:
-                    # Ensure that the required directories exists.
-                    subprocess.run(['mkdir', '-p', '%s/import0'%job_root])
-                    # Move the uploaded archive and un-zip it.
-                    os.replace(tmp_file, '%s/import.zip'%job_root)
-                    subprocess.run(['unzip', '-o', '%s/import.zip'%(job_root)], cwd=job_root)
+                job_root = f"{self.cfg['nfsmount']['value'][-1]}/{job_hash}"
+                job_dir  = f"{job_root}/{design}/{job_nameid}"
+                subprocess.run(['mkdir', '-p', job_dir])
+                # Move the uploaded archive and un-zip it.
+                # (Contents will be encrypted for authenticated jobs)
+                os.replace(tmp_file, '%s/import.zip'%job_root)
+                subprocess.run(['unzip', '-o', '%s/import.zip'%(job_root)],
+                               cwd=job_dir)
 
         # Delete the temporary file if it still exists.
         if os.path.exists(tmp_file):
@@ -333,6 +331,7 @@ class Server:
         job_hash = chip.get('remote', 'jobhash')
         top_module = chip.get('design')
         job_nameid = f"{chip.get('jobname')}{chip.get('jobid')}"
+        nfs_mount = self.cfg['nfsmount']['value'][-1]
 
         # Mark the job run as busy.
         self.sc_jobs["%s%s_0"%(username, job_hash)] = 'busy'
@@ -342,16 +341,6 @@ class Server:
         jobs_dir = '%s/%s'%(build_dir, top_module)
         os.mkdir(build_dir)
         chip.set('dir', build_dir, clobber=True)
-
-        # Copy the 'import' directory for a new run if necessary.
-        nfs_mount = self.cfg['nfsmount']['value'][-1]
-        if not os.path.isfile('%s/%s/%s.crypt'%(nfs_mount, job_hash, job_nameid)):
-            shutil.copy('%s/%s/import.crypt'%(nfs_mount, job_hash),
-                        '%s/%s/%s.crypt'%(nfs_mount, job_hash, job_nameid))
-            # Also copy the iv nonce for decryption.
-            # New initialization vectors are generated before each *encrypt* step.
-            shutil.copy('%s/%s/import.iv'%(nfs_mount, job_hash),
-                        '%s/%s/%s.iv'%(nfs_mount, job_hash, job_nameid))
 
         # Rename source files in the config dict; the 'import' step already
         # ran and collected the sources into a single Verilog file.
@@ -379,20 +368,10 @@ class Server:
             chip.set('remote', 'key', keypath, clobber=True)
             chip.writecfg(f"{build_dir}/configs/chip0.json")
             # Create the command to run.
-            run_cmd  = '''cp %s/%s.crypt %s/%s.crypt ;
-                          cp %s/%s.iv %s/%s.iv ;
-                          cp %s/import.bin %s/import.bin ;
-                          sc -cfg %s/configs/chip0.json ;
-                          cp %s/%s.crypt %s/%s.crypt ;
-                          cp %s/%s.iv %s/%s.iv ;
-                          rm -rf %s
-                       '''%(from_dir, job_nameid, to_dir, job_nameid,
-                            from_dir, job_nameid, to_dir, job_nameid,
-                            from_dir, to_dir,
-                            build_dir,
-                            to_dir, job_nameid, from_dir, job_nameid,
-                            to_dir, job_nameid, from_dir, job_nameid,
-                            to_dir)
+            run_cmd  = f"cp -R {from_dir}/* {to_dir}/ ; "
+            run_cmd += f"sc -cfg {build_dir}/configs/chip0.json -dir {to_dir} -remote_key {keypath} -remote_addr '' ; "
+            run_cmd += f"cp -R {to_dir}/{top_module}/* {from_dir}/{top_module}/ ; "
+            run_cmd += f"rm -rf {to_dir}"
 
             # Run the generated command.
             proc = await asyncio.create_subprocess_shell(run_cmd)

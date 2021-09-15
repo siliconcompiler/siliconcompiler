@@ -19,13 +19,12 @@ def test_crypto():
     os.mkdir('build/test')
     os.mkdir('build/test/job0')
     os.mkdir('build/test/job0/import0')
-    os.mkdir('build/test/job0/syn0')
     test_msg = 'This file will be encrypted.'
     with open('build/test/job0/import0/test_file', 'w') as f:
         f.write(test_msg)
 
     # Create an encrypted block cipher key for the job to use.
-    gen_cipher_key('build/', f'{crypto_key}.pub')
+    gen_cipher_key('build/test/job0', f'{crypto_key}.pub')
 
     # Encrypt the example data, and ensure that it is no longer on disk.
     encrypt_job('build/test/job0', crypto_key)
