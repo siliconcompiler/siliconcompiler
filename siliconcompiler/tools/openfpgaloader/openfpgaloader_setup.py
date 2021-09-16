@@ -5,6 +5,33 @@ import sys
 import shutil
 import siliconcompiler
 
+####################################################################
+# Make Docs
+####################################################################
+
+def make_docs():
+    '''OpenFPGALoader is a utility for FPGA device programming.
+
+    The OpenFPGALoader is a universal utility for programming
+    FPGAs. Compatible with many boards, cables and FPGA from
+    major manufacturers (Xilinx, Altera/Intel, Lattice, Gowin,
+    Efinix, Anlogic). openFPGALoader works on Linux, Windows and
+    macOS.
+
+    Documentation:
+    * https://github.com/trabucayre/openFPGALoader
+
+    Installation instructions:
+
+    Source Code:
+    * https://github.com/trabucayre/openFPGALoader
+
+    '''
+
+    chip = siliconcompiler.Chip()
+    setup_tool(chip,'program','<index>')
+    return chip
+
 ################################
 # Setup Tool (pre executable)
 ################################

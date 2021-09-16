@@ -4,12 +4,39 @@ import shutil
 import siliconcompiler
 from siliconcompiler.tools.magic import count_lvs
 
+####################################################################
+# Make Docs
+####################################################################
+def make_docs():
+    '''Magic is a chip layout viewer, editor, and circuit verifier.
+
+    Features:
+    * DRC capability
+    * LVS capability
+
+    Documentation:
+    * http://opencircuitdesign.com/magic/userguide.html
+
+    Installation instructions:
+
+    Source Code:
+    * https://github.com/RTimothyEdwards/magic
+
+
+    '''
+
+    chip = siliconcompiler.Chip()
+    setup_tool(chip,'drc','<index>')
+    setup_tool(chip,'lvs','<index>')
+    return chip
+
+
 ################################
 # Setup Tool (pre executable)
 ################################
 
 def setup_tool(chip, step, index):
-    ''' Tool specific function to run before step execution
+    ''' Setup function for 'magic' tool
     '''
 
     tool = 'magic'

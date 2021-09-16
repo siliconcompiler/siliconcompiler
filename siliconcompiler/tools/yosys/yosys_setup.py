@@ -6,6 +6,44 @@ import defusedxml.ElementTree as ET
 import siliconcompiler
 from siliconcompiler.schema_utils import schema_path
 
+######################################################################
+# Make Docs
+######################################################################
+
+def make_docs():
+    '''Yosys is a framework for RTL synthesis.
+
+    Features:
+
+    * Process almost any synthesizable Verilog-2005 design
+    * Converting Verilog to BLIF / EDIF/ BTOR / SMT-LIB / Verilog / etc.
+    * Built-in formal methods for checking properties and equivalence
+    * Mapping to ASIC standard cell libraries
+    * Mapping to FPGAs.
+    * Foundation and/or front-end for custom flows
+
+    The interface from SC to yosys is done through 'sc_manifest.tcl'.
+    The entry point for all yosys based steps is the 'sc_syn.tcl' script.
+    The script handles general input/output function and is the main
+    interface to SC.
+
+    Installation Instructions:
+
+    SC TCL scripts:
+
+    Source code:
+    * https://github.com/YosysHQ/yosys
+
+    Documentation:
+    * http://www.clifford.at/yosys/documentation.html
+
+    '''
+
+    chip = siliconcompiler.Chip()
+    setup_tool(chip,'syn','<index>')
+    return chip
+
+
 ################################
 # Setup Tool (pre executable)
 ################################
@@ -147,13 +185,5 @@ def post_process(chip, step, index):
 ##################################################
 if __name__ == "__main__":
 
-    # File being executed
-    prefix = os.path.splitext(os.path.basename(__file__))[0]
-    output = prefix + '.json'
-
-    # create a chip instance
-    chip = siliconcompiler.Chip()
-    # load configuration
-    setup_tool(chip, step='syn', index='0')
-    # write out results
-    chip.writecfg(output)
+    chip = make_docs()
+    chip.writecfg("yosys.json")

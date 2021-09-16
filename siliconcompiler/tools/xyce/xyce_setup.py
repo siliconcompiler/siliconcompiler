@@ -1,6 +1,35 @@
 import os
 import siliconcompiler
 
+
+#####################################################################
+# Make Docs
+#####################################################################
+
+def make_docs():
+    '''Xyce is a high performance SPICE-compatible circuit simulator.
+
+    Xyce (zīs, rhymes with “spice”) is an open source,
+    SPICE-compatible high-performance analog circuit simulator,
+    capable of solving extremely large circuit problems by
+    supporting large-scale parallel computing platforms. It also
+    supports serial execution on all common desktop platforms,
+    and small-scale parallel runs on Unix-like systems.
+
+    Installation Instructions:
+
+    Source code:
+    * https://github.com/Xyce/Xyce
+
+    Documentation:
+    * https://xyce.sandia.gov
+
+    '''
+
+    chip = siliconcompiler.Chip()
+    setup_tool(chip,'spice','<index>')
+    return chip
+
 ################################
 # Setup Tool (pre executable)
 ################################
@@ -30,13 +59,5 @@ def post_process(chip, step):
 ##################################################
 if __name__ == "__main__":
 
-    # File being executed
-    prefix = os.path.splitext(os.path.basename(__file__))[0]
-    output = prefix + '.json'
-
-    # create a chip instance
-    chip = siliconcompiler.Chip()
-    # load configuration
-    setup_tool(chip, step='spice', index='0')
-    # write out results
-    chip.writecfg(output)
+    chip = make_docs()
+    chip.writecfg("xyce.json")

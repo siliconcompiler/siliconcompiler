@@ -5,6 +5,24 @@ import shutil
 import sys
 import siliconcompiler
 
+
+####################################################################
+# Make Docs
+####################################################################
+
+def make_docs():
+    '''Vivado is an FPGA toolsuite for Xilinx devices.
+
+    Documentation:
+    * https://www.xilinx.com/products/design-tools/vivado.html
+
+    '''
+
+    chip = siliconcompiler.Chip()
+    setup_tool(chip,'compiler','<index>')
+    return chip
+
+
 ################################
 # Setup Tool (pre executable)
 ################################

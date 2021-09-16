@@ -5,6 +5,54 @@ import shutil
 import sys
 import siliconcompiler
 
+####################################################################
+# Make Docs
+####################################################################
+
+def make_docs():
+    '''OpenROAD is an integrated chip physical design tool
+
+    Implementation steps done by OpenROAD include:
+
+    * Physical database management
+    * DEF/LEF/Liberty/Verilog/SDC file interfaces
+    * Static timing analysis
+    * Floorplan initialize
+    * Pin placement
+    * Tap cell insertion
+    * Power grid inesertion
+    * Macro Placement
+    * Global placement of standard cells
+    * Electrical design rule repair
+    * Clock tree synthesis
+    * Timing driven optimization
+    * Filler insertion
+    * Global routing (route guides for detailed routing)
+    * Detailed routing
+
+    The interface from SC to openroad is done through 'sc_manifest.tcl'.
+    The entry point for all openroad based steps is the 'sc_apr.tcl' script.
+    The script handles general input/output function and is the main
+    interface to SC. Execution then branches off to
+    separate files based on the step being executed (place, route, etc).
+
+    Documentation:
+    * https://github.com/The-OpenROAD-Project/OpenROAD
+
+    Installation Instructions:
+
+    TCL script:
+
+    Source code:
+    * https://github.com/The-OpenROAD-Project/OpenROAD
+    * https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts
+
+    '''
+
+    chip = siliconcompiler.Chip()
+    setup_tool(chip,'<step>','<index>')
+    return chip
+
 ################################
 # Setup Tool (pre executable)
 ################################
@@ -196,55 +244,9 @@ def post_process(chip, step, index):
      return 0
 
 
-################################
-# Make Docs
-################################
-
-def make_docs():
-    '''OpenROAD is an integrated chip physical design tool
-
-    Implementation steps done by OpenROAD include:
-
-    * Physical database management
-    * DEF/LEF/Liberty/Verilog/SDC file interfaces
-    * Static timing analysis
-    * Floorplan initialize
-    * Pin placement
-    * Tap cell insertion
-    * Power grid inesertion
-    * Macro Placement
-    * Global placement of standard cells
-    * Electrical design rule repair
-    * Clock tree synthesis
-    * Timing driven optimization
-    * Filler insertion
-    * Global routing (route guides for detailed routing)
-    * Detailed routing
-
-    The interface from SC to openroad is done through 'sc_manifest.tcl'.
-    The entry point for all openroad based steps is the 'sc_apr.tcl' script.
-    The script handles general input/output function and is the main
-    interface to SC. Execution then branches off to
-    separate files based on the step being executed (place, route, etc).
-
-    Installation Instructions:
-
-    OpenROAD SC scripts:
-
-    OpenROAD source code:
-    * https://github.com/The-OpenROAD-Project/OpenROAD
-    * https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts
-
-    Documentation:
-    * https://github.com/The-OpenROAD-Project/OpenROAD
-
-    '''
-    chip = siliconcompiler.Chip()
-    setup_tool(chip,'<step>','<index>')
-    return chip
 
 ##################################################
 if __name__ == "__main__":
 
     chip = make_docs()
-    chip.writecfg("tmp.tcl")
+    chip.writecfg("openroad.json")

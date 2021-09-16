@@ -4,6 +4,34 @@ import re
 import sys
 import siliconcompiler
 
+#####################################################################
+# Make Docs
+#####################################################################
+
+def make_docs():
+    '''Icepack converts an ASCII file to an ICE40 .bin file
+
+    Documentation:
+    * http://www.clifford.at/icestorm
+
+    Source code:
+
+    * https://github.com/YosysHQ/icestorm
+
+    Build instructions:
+
+    git clone https://github.com/YosysHQ/icestorm.git icestorm
+    cd icestorm
+    make -j$(nproc)
+    sudo make install
+
+    '''
+
+    chip = siliconcompiler.Chip()
+    setup_tool(chip,'bitstream','<index>')
+    return chip
+
+
 ################################
 # Setup Tool (pre executable)
 ################################

@@ -6,6 +6,37 @@ import siliconcompiler
 
 from siliconcompiler.schema_utils import schema_path
 
+####################################################################
+# Make Docs
+####################################################################
+
+def make_docs():
+    '''Morty reads and pickles SystemVerilog files.
+
+    Morty reads SystemVerilog files and pickles them into a
+    single file for easier handling. Optionally it allows to
+    re-name modules with a common prefix or suffix. This allows for
+    easier management of larger projects (they just become a
+    single file). By making them unique they can also depend on
+    different versions of the same dependency without namespace
+    clashes.
+
+    Installation instructions:
+
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+    cargo install --git https://github.com/zarubaf/morty.git
+
+    Source Code:
+    * https://github.com/zarubaf/morty
+
+    '''
+
+    chip = siliconcompiler.Chip()
+    setup_tool(chip,'drc','<index>')
+    setup_tool(chip,'lvs','<index>')
+    return chip
+
+
 ################################
 # Setup Tool (pre executable)
 ################################

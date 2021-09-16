@@ -4,6 +4,41 @@ import shutil
 import siliconcompiler
 from siliconcompiler.schema_utils import schema_path
 
+####################################################################
+# Make Docs
+####################################################################
+def make_docs():
+    '''Klayout is a viewer and editor of GDSII and Oasis data
+
+    Features:
+    * Support of GDS and OASIS file formats
+    * Editing and viewing support
+    * Automatic uncompression of zlib compatible formats
+    * Parametrizable cells (PCells)
+    * XOR tool, a layout diff tool, a fill tool ...
+    * DRC feature with a basic set of verification functions
+    * LVS feature with a basic set of verification functions
+    * Ruby-based scripting environment called "RBA"
+
+    Documentation:
+    * https://www.klayout.de
+
+    Installation instructions:
+
+    Source Code:
+    * https://github.com/KLayout/klayout
+
+
+    '''
+
+    chip = siliconcompiler.Chip()
+    setup_tool(chip,'export','<index>')
+    return chip
+
+
+
+
+
 def setup_tool(chip, step, index, mode="batch"):
     '''
     Setup function for Klayout
@@ -101,13 +136,13 @@ def check_version(chip, step, index, version):
     #insert code for parsing the funtion based on some tool specific
     #semantics.
     #syntax for version is string, >=string
-    
+
     return 0
 
 ################################
 # Post_process (post executable)
 ################################
-        
+
 def post_process(chip, step, index):
     ''' Tool specific function to run after step execution
     '''
