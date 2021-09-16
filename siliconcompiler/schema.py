@@ -15,7 +15,7 @@ def schema_cfg():
 
     cfg = {}
 
-      # Print Software Version
+    # Actual SC version number
     cfg['scversion'] = {
         'switch': "-scversion <str>",
         'type': 'str',
@@ -30,7 +30,7 @@ def schema_cfg():
         """
     }
 
-    # Print SC Version
+    # Command line version switch
     cfg['version'] = {
         'switch': "-version <bool>",
         'type': 'bool',
@@ -163,6 +163,21 @@ def schema_fpga(cfg):
                     "api:  chip.set('fpga', 'board', 'parallella')"],
         'help': """
         FPGA board name to target for bitstream generation and loading.
+        """
+    }
+
+    cfg['fpga']['program'] = {
+        'switch': "-fpga_program <bool>",
+        'requirement': 'fpga',
+        'type': 'bool',
+        'lock': 'false',
+        'defvalue': 'false',
+        'short_help': 'FPGA programming enable',
+        'example': ["cli: -fpga_program",
+                    "api:  chip.set('fpga', 'program', True)"],
+        'help': """
+        Specifies that the bitstream should be flashed in the board/device.
+        The default is to load the bitstream into volatile memory (SRAM).
         """
     }
 
@@ -2128,9 +2143,28 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
+    cfg['metric'][step][index]['luts'] = {}
+    cfg['metric'][step][index]['luts'][group] = {
+        'switch': '-metric_luts step index group <float>',
+        'type': 'float',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'short_help': 'LUT metric',
+        'example': [
+            "cli: -metric_luts 'place 0 goal 100.00'",
+            "api: chip.set('metric','place','0','luts','real','100.00')"],
+        'help': """
+        Metric tracking the total FPGA LUTs used by the design as reported
+        by the implementation tool. There is no standard LUT definition,
+        so metric comparisons can generally only be done between runs on
+        identical tools and device families.
+        """
+    }
+
     cfg['metric'][step][index]['cellarea'] = {}
     cfg['metric'][step][index]['cellarea'][group] = {
-        'switch': '-metric_area_cells step index group <float>',
+        'switch': '-metric_cellarea step index group <float>',
         'type': 'float',
         'lock': 'false',
         'requirement': None,
