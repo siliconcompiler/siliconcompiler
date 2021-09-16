@@ -8,26 +8,22 @@ set sc_libtype [dict get $sc_cfg library $sc_mainlib arch]
 set sc_techlef [dict get $sc_cfg pdk aprtech $sc_stackup $sc_libtype lef]
 set sc_liblef  [dict get $sc_cfg library $sc_mainlib lef]
 set sc_macrolibs [dict get $sc_cfg asic macrolib]
+set sc_exclude [dict get $sc_cfg exclude]
 
 lef read $sc_techlef
 lef read $sc_liblef
 
-# Macrolibs
+# Ignore specific libraries by reading their LEFs (causes magic to abstract them)
 foreach lib $sc_macrolibs {
-    lef read [dict get $sc_cfg library $lib lef]
+    puts $lib
+    if {[lsearch -exact $sc_exclude $lib] >= 0} {
+        lef read [dict get $sc_cfg library $lib lef]
+    }
 }
 
-# Read DEF and load design
-def read "inputs/${sc_design}.def"
-
-load $sc_design -dereference;
-select top cell;
-
-# Abstract every cell under top level
-foreach cell [cellname list children] {
-    load $cell -dereference;
-    property LEFview TRUE;
-};
+cif istyle sky130(vendor)
+gds noduplicates true
+gds read inputs/$sc_design.gds
 
 # Extract layout to Spice netlist
 load $sc_design -dereference
