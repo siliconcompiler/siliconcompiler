@@ -646,58 +646,79 @@ def schema_pdk(cfg, stackup='default'):
     cfg['pdk']['grid'][stackup] = {}
     cfg['pdk']['grid'][stackup][layer] = {}
 
-    #Name Map
+    # Name map
     cfg['pdk']['grid'][stackup][layer]['name'] = {
         'switch': "-pdk_grid_name 'stackup layer <str>'",
         'requirement': None,
         'type': 'str',
         'lock': 'false',
         'defvalue': None,
-        'short_help': 'Grid Layer Name Map',
+        'short_help': 'Metal layer name mape',
         'example': [
             "cli: -pdk_grid_name 'M10 m1 metal1'""",
             "api: chip.set('pdk','grid','M10','m1','name','metal1')"],
         'help': """
-        Map betwen the custom PDK metal names found in the tech,lef and the
-        SC standardized metal naming schem that starts with m1 (lowest
-        routing layer) and ends with mN (highest routing layer). The map is
+        Maps PDK metal names found in the tech to the SC standardized
+        metal naming scheme that starts with m1 (lowest routing layer)
+        and ends with m<n>(highest routing layer). The map is
         specified on a per metal stack basis.
         """
     }
 
-    # Vertical Wires
+    # Preferred routing direction
+    cfg['pdk']['grid'][stackup][layer]['dir'] = {
+        'switch': "-pdk_grid_dir 'stackup layer <str>'",
+        'requirement': None,
+        'type': 'str',
+        'lock': 'false',
+        'defvalue': None,
+        'short_help': 'Preferred metal routing direction',
+        'example': [
+            "cli: -pdk_grid_dir 'M10 m1 x'""",
+            "api: chip.set('pdk','grid','M10','m1','dir','x')"],
+        'help': """
+        Prefered routing direction specified on a per stackup
+        and per SC metal basis.  Valid directions are x for horizontal
+        and y for vertical wires. If not defined, the value is taken
+        from the PDK tech.lef.
+        """
+    }
+
+    # Vertical wires
     cfg['pdk']['grid'][stackup][layer]['xpitch'] = {
         'switch': "-pdk_grid_xpitch 'stackup layer <float>'",
         'requirement': None,
         'type': 'float',
         'lock': 'false',
         'defvalue': None,
-        'short_help': 'Grid layer Horizontal Grid',
+        'short_help': 'Routing grid vertical wire pitch',
         'example': [
             "cli: -pdk_grid_xpitch 'M10 m1 0.5'",
             "api: chip.set('pdk','grid','M10','m1','xpitch','0.5')"],
         'help': """
         Defines the routing pitch for vertical wires on a per stackup and
-        per metal basis. Values are specified in um. Metal layers are ordered
-        from m1 to mn, where m1 is the lowest routing layer in the tech.lef.
+        per metal basis, specified in um. Metal layers are ordered
+        from m1 to m<n>, where m1 is the lowest routing layer in the tech.lef.
+        If not defined, the value is taken from the PDK tech.lef.
         """
     }
 
-    # Horizontal Wires
+    # Horizontal wires
     cfg['pdk']['grid'][stackup][layer]['ypitch'] = {
         'switch': "-pdk_grid_ypitch 'stackup layer <float>'",
         'requirement': None,
         'type': 'float',
         'lock': 'false',
         'defvalue': None,
-        'short_help': 'Grid Layer Vertical Grid',
+        'short_help': 'Routing grid horizontal wire pitch',
         'example': [
             "cli: -pdk_grid_ypitch 'M10 m2 0.5'",
             "api: chip.set('pdk','grid','M10','m2','ypitch','0.5')"],
         'help': """
         Defines the routing pitch for horizontal wires on a per stackup and
-        per metal basis. Values are specified in um. Metal layers are ordered
+        per metal basis, specified in um. Metal layers are ordered
         from m1 to mn, where m1 is the lowest routing layer in the tech.lef.
+        If not defined, the value is taken from the PDK tech.lef.
         """
     }
 
@@ -708,13 +729,14 @@ def schema_pdk(cfg, stackup='default'):
         'type': 'float',
         'lock': 'false',
         'defvalue': None,
-        'short_help': 'Grid Layer Preferred Direction',
+        'short_help': 'Routing grid vertical wire offset',
         'example': [
             "cli: -pdk_grid_xoffset 'M10 m2 0.5'",
             "api: chip.set('pdk','grid','M10','m2','xoffset','0.5')"],
         'help': """
         Defines the grid offset of a vertical metal layer specified on a per
-        stackup and per metal basis. Values are specified in um.
+        stackup and per metal basis, specified in um.
+        If not defined, the value is taken from the PDK tech.lef.
         """
     }
 
@@ -725,13 +747,14 @@ def schema_pdk(cfg, stackup='default'):
         'type': 'float',
         'lock': 'false',
         'defvalue': None,
-        'short_help': 'Grid Layer Preferred Direction',
+        'short_help': 'Routing grid horizontal wire offset',
         'example': [
             "cli: -pdk_grid_yoffset 'M10 m2 0.5'",
             "api: chip.set('pdk','grid','M10','m2','yoffset','0.5')"],
         'help': """
         Defines the grid offset of a horizontal metal layer specified on a per
-        stackup and per metal basis. Values are specified in um.
+        stackup and per metal basis, specified in um.
+        If not defined, the value is taken from the PDK tech.lef.
         """
     }
 
@@ -742,14 +765,15 @@ def schema_pdk(cfg, stackup='default'):
         'type': 'float',
         'lock': 'false',
         'defvalue': None,
-        'short_help': 'Grid Layer Routing Adjustment',
+        'short_help': 'Routing grid resource adjustment',
         'example': [
             "cli: -pdk_grid_adj 'M10 m2 0.5'",
             "api: chip.set('pdk','grid','M10','m2','adj','0.5')"],
         'help': """
         Defines the routing resources adjustments for the design on a per layer
         basis. The value is expressed as a fraction from 0 to 1. A value of
-        0.5 reduces the routing resources by 50%.
+        0.5 reduces the routing resources by 50%. If not defined, 100%
+        routing resource utilization is permitted.
         """
     }
 
@@ -760,7 +784,7 @@ def schema_pdk(cfg, stackup='default'):
         'type': 'float',
         'lock': 'false',
         'defvalue': None,
-        'short_help': 'Grid Layer Routing Layer Capacitance',
+        'short_help': 'Routing layer unit capacitance',
         'example': [
             "cli: -pdk_grid_cap 'M10 m2 0.2'",
             "api: chip.set('pdk','grid','M10','m2','cap','0.2')"],
@@ -780,7 +804,7 @@ def schema_pdk(cfg, stackup='default'):
         'type': 'float',
         'lock': 'false',
         'defvalue': None,
-        'short_help': 'Grid Layer Routing Layer Resistance',
+        'short_help': 'Routing layer unit resistance',
         'example': [
             "cli: -pdk_grid_res 'M10 m2 0.2'",
             "api: chip.set('pdk','grid','M10','m2','res','0.2')"],
@@ -799,7 +823,7 @@ def schema_pdk(cfg, stackup='default'):
         'type': 'float',
         'lock': 'false',
         'defvalue': None,
-        'short_help': 'Grid Layer Temperature Coefficent',
+        'short_help': 'Routing layer temperature coefficent',
         'example': [
             "cli: -pdk_grid_tcr 'M10 m2 0.1'",
             "api: chip.set('pdk','grid','M10','m2','tcr','0.1')"],
@@ -817,12 +841,13 @@ def schema_pdk(cfg, stackup='default'):
         'type': 'float',
         'lock': 'false',
         'defvalue': None,
-        'short_help': 'Tap Cell Max Distance Rule',
-        'example': ["""cli: -pdk_tapmax 100""",
-                    """api: chip.set('pdk', 'tapmax','100')"""],
+        'short_help': 'Tap cell max distance rule',
+        'example': [
+            "cli: -pdk_tapmax 100",
+            "api: chip.set('pdk', 'tapmax','100')"],
         'help': """
-        Maximum distance allowed between tap cells in the PDK. The value is
-        required for automated place and route and is entered in micrometers.
+        Maximum distance allowed between tap cells in the PDK specified in
+        um. The value is required for APR.
         """
     }
 
@@ -832,14 +857,13 @@ def schema_pdk(cfg, stackup='default'):
         'type': 'float',
         'lock': 'false',
         'defvalue': None,
-        'short_help': 'Tap Cell Offset Rule',
+        'short_help': 'Tap cell offset rule',
         'example': [
             "cli: -pdk_tapoffset 100",
             "api: chip.set('pdk, 'tapoffset','100')"],
         'help': """
-        Offset from the edge of the block to the tap cell grid.
-        The value is required for automated place and route and is entered in
-        micrometers.
+        Offset from the edge of the block to the tap cell grid specified
+        in um. The value is required for APR.
         """
     }
 
