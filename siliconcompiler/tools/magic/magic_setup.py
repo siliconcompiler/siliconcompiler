@@ -26,6 +26,7 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
+    chip.target('skywater130')
     setup_tool(chip,'drc','<index>')
     setup_tool(chip,'lvs','<index>')
     return chip

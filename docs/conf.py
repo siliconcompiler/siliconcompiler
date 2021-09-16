@@ -34,9 +34,7 @@ extensions = [
     'sphinx.ext.imgconverter',
     'schemagen',
     'clientservergen',
-    'toolgen',
-    'targetgen',
-    'flowgen'
+    'dynamicgen'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
