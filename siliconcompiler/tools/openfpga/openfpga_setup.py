@@ -4,6 +4,35 @@ import defusedxml.ElementTree as ET
 import siliconcompiler
 from siliconcompiler.schema_utils import schema_path
 
+
+####################################################################
+# Make Docs
+####################################################################
+
+def make_docs():
+    '''OpenFPGA is an FPGA design generator.
+
+    OpenFPGA is an open-source framework that enables
+    rapid prototyping of customizable FPGA architectures.
+    The framework takes in an XML architecture description file
+    and generation configuration parameters and automatically
+    generates a layout ready FPGA netlist and bitstream generator
+    to be combined with tools like VPR.
+
+    Documentation:
+    https://openfpga.readthedocs.io/en/master/
+
+    Installation instructions:
+
+    Source Code:
+    * https://github.com/lnis-uofu/OpenFPGA
+
+    '''
+
+    chip = siliconcompiler.Chip()
+    setup_tool(chip,'fpgagen','<index>')
+    return chip
+
 ################################
 # Setup OpenFPGA
 ################################

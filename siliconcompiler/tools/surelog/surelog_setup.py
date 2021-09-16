@@ -6,6 +6,30 @@ import sys
 import siliconcompiler
 from siliconcompiler.schema_utils import schema_path
 
+####################################################################
+# Make Docs
+####################################################################
+def make_docs():
+    '''Surelog is a SystemVerilog pre-processor, parser, elaborator.
+
+    Surelog is a SystemVerilog 2017 Pre-processor, Parser,
+    Elaborator, UHDM Compiler. Provides IEEE Design/TB C/C++
+    VPI and Python AST API.
+
+    Documentation:
+    * https://github.com/chipsalliance/Surelog
+
+    Installation instructions:
+
+    Source Code:
+    * https://github.com/chipsalliance/Surelog
+
+    '''
+
+    chip = siliconcompiler.Chip()
+    setup_tool(chip,'<step>','<index>')
+    return chip
+
 ################################
 # Setup Tool (pre executable)
 ################################

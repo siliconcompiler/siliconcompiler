@@ -2,10 +2,37 @@ import os
 import subprocess
 import re
 import sys
-
-
 import siliconcompiler
 from siliconcompiler.schema_utils import schema_path
+
+####################################################################
+# Make Docs
+####################################################################
+def make_docs():
+    '''sv2v converts SystemVerilog to Verilog (IEEE 1364-2005)
+
+    sv2v converts SystemVerilog (IEEE 1800-2017) to Verilog
+    (IEEE 1364-2005), with an emphasis on supporting synthesizable
+    language constructs. The primary goal of this project is to
+    create a completely free and open-source tool for converting
+    SystemVerilog to Verilog. While methods for performing this
+    conversion already exist, they generally either rely on
+    commercial tools, or are limited in scope.
+
+    Documentation:
+    * https://github.com/zachjs/sv2v
+
+    Installation instructions:
+
+    Source Code:
+    * https://github.com/zachjs/sv2v
+
+    '''
+
+    chip = siliconcompiler.Chip()
+    setup_tool(chip,'<step>','<index>')
+    return chip
+
 
 ################################
 # Setup Tool (pre executable)

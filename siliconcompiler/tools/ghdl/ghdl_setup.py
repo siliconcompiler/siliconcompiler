@@ -7,6 +7,39 @@ import siliconcompiler
 
 from siliconcompiler.schema_utils import schema_path
 
+#####################################################################
+# Make Docs
+#####################################################################
+
+def make_docs():
+    '''GHDL is a VHDL analyzer, compiler, and simulator
+
+    GHDL, the open-source analyzer, compiler, simulator and
+    (experimental) synthesizer for VHDL. GHDL is not an interpreter:
+    it allows you to analyse and elaborate sources for generating
+    machine code from your design. Native program execution is the
+    only way for high speed simulation.
+
+    Documentation:
+    * http://www.clifford.at/icestorm
+
+    Source code:
+
+    * https://github.com/YosysHQ/icestorm
+
+    Build instructions:
+
+    git clone https://github.com/YosysHQ/icestorm.git icestorm
+    cd icestorm
+    make -j$(nproc)
+    sudo make install
+
+    '''
+
+    chip = siliconcompiler.Chip()
+    setup_tool(chip,'spice','<index>')
+    return chip
+
 ################################
 # Setup Tool (pre executable)
 ################################

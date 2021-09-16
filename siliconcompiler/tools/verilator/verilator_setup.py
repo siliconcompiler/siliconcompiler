@@ -7,6 +7,43 @@ import shutil
 
 from siliconcompiler.schema_utils import schema_path
 
+
+####################################################################
+# Make Docs
+####################################################################
+
+def make_docs():
+    '''Verilator converts Verilog to a cycle accurate simulator model.
+
+    Verilator is a free and open-source software tool which converts
+    Verilog (a hardware description language) to a cycle-accurate
+    behavioral model in C++ or SystemC. It is restricted to modeling
+    the synthesizable subset of Verilog and the generated models
+    are cycle-accurate, 2-state, with synthesis (zero delay) semantics.
+    As a consequence, the models typically offer higher performance
+    than the more widely used event-driven simulators, which can
+    process the entire Verilog language and model behavior within
+    the clock cycle. Verilator is now used within academic research,
+    open source projects and for commercial semiconductor
+    development. It is part of the growing body of free EDA software.
+
+    Documentation:
+    * https://github.com/chipsalliance/Surelog
+
+    Installation instructions:
+    * https://verilator.org/guide/latest/install.html
+
+    Source Code:
+    * https://verilator.org/guide/latest
+
+    '''
+
+    chip = siliconcompiler.Chip()
+    setup_tool(chip,'lint','0')
+    setup_tool(chip,'verilate','0')
+    setup_tool(chip,'import','0')
+    return chip
+
 ################################
 # Setup Tool (pre executable)
 ################################
