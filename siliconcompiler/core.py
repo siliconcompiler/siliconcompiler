@@ -1875,10 +1875,21 @@ class Chip:
         is only decrypted temporarily in the compute node's local storage.
         '''
 
+        # Ensure that error bits are up-to-date in this schema.
+        for input_step in self.getkeys('flowgraph', step, index, 'input'):
+            for input_index in self.get('flowgraph', step, index, 'input', input_step):
+                self.set('flowstatus', input_step, str(input_index), 'error', error[f'{input_step}{input_index}'])
+
         # Determine which HPC job scheduler being used.
         scheduler_type = self.get('jobscheduler')
         if scheduler_type == 'slurm':
-            schedule_cmd = 'srun'
+            # The script defining this Chip object may specify feature(s) to
+            # ensure that the job runs on a specific subset of available nodes.
+            if 'slurm_constraint' in self.status:
+                slurm_constraint = self.status['slurm_constraint']
+            else:
+                slurm_constraint = 'SHARED'
+            schedule_cmd = f'srun --constraint {slurm_constraint}'
         elif scheduler_type == 'lsf':
             # TODO: LSF support is untested and currently unsupported.
             schedule_cmd = 'lsrun'
@@ -1887,36 +1898,23 @@ class Chip:
             # Job data is encrypted, and it should only be decrypted in the
             # compute node's local storage.
             job_nameid = f"{self.get('jobname')}{self.get('jobid')}"
+            cur_build_dir = f"{self.get('dir')}/{self.get('design')}/{job_nameid}"
             tmp_job_dir = f"/tmp/{self.get('remote', 'jobhash')}"
             tmp_build_dir = "/".join([tmp_job_dir,
                                       self.get('design'),
                                       job_nameid])
-            keystr = base64.urlsafe_b64decode(self.status['decrypt_key']).decode()
+            key_bytes = base64.urlsafe_b64decode(self.status['decrypt_key'])
+            keystr = key_bytes.decode()
             keypath = f"{tmp_job_dir}/dk"
-            in_cfgs = []
-            for input_step in self.getkeys('flowgraph', step, index, 'input'):
-                for input_index in self.get('flowgraph', step, index, 'input', input_step):
-                    # We have no way of checking whether these input files
-                    # exist, because the data is encrypted. But if they don't
-                    # exist, the step will quickly error out and the metrics
-                    # should reflect that.
-                    in_cfgs.append("/".join([
-                        tmp_build_dir,
-                        f'{input_step}{input_index}',
-                        'outputs',
-                        f'{self.get("design")}.pkg.json',
-                    ]))
 
-            # Assemble the command-line flags to read in dependent configs.
-            cfg_str = ''
-            for in_cfg in in_cfgs:
-                cfg_str += f'-cfg {in_cfg} '
+            # Write the current schema out to an encrypted file in shared storage.
+            write_encrypted_cfgfile(self.prune(self.cfg), cur_build_dir, key_bytes, f'{step}{index}')
 
             # The deferred execution command needs to:
             # * copy encrypted data/key and unencrypted IV into local storage.
             # * store the provided key in local storage.
             # * call 'sc' with the provided key, wait for the job to finish.
-            # * copy updated encrypted data back into shared storage.
+            # * copy encrypted data for the completed step into shared storage.
             # * delete all unencrypted data.
             run_cmd  = f'{schedule_cmd} bash -c "'
             run_cmd += f"mkdir -p {tmp_build_dir} ; "
@@ -1924,51 +1922,47 @@ class Chip:
             run_cmd += f"touch {keypath} ; chmod 600 {keypath} ; "
             run_cmd += f"echo -ne '{keystr}' > {keypath} ; "
             run_cmd += f"chmod 400 {keypath} ; "
-            run_cmd += f"sc-crypt -mode decrypt -job_dir {tmp_build_dir} "\
+            run_cmd += f"sc-crypt -mode decrypt_config "\
+                           f"-target {tmp_build_dir}/configs/{step}{index}.crypt "\
                            f"-key_file {keypath} ; "
-            run_cmd += f"sc {cfg_str} "\
+            run_cmd += f"sc-crypt -mode decrypt -target {tmp_build_dir} "\
+                           f"-key_file {keypath} ; "
+            run_cmd += f"sc -cfg {tmp_build_dir}/configs/{step}{index}.json "\
                            f"-arg_step {step} -arg_index {index} "\
                            f"-dir {tmp_job_dir} -jobscheduler '' "\
                            f"-remote_addr '' -remote_key '' ; "
-            run_cmd += f"sc-crypt -mode encrypt -job_dir {tmp_build_dir} "\
+            run_cmd += f"retcode=\$? ; "
+            run_cmd += f"sc-crypt -mode encrypt -target {tmp_build_dir} "\
                            f"-key_file {keypath} ; "
-            run_cmd += f"cp -R {tmp_job_dir}/{self.get('design')}/* "\
-                           f"{self.get('dir')}/{self.get('design')}/ ; "
-            run_cmd += f"rm -rf {tmp_job_dir}"
+            run_cmd += f"cp -R {tmp_build_dir}/{step}{index}* "\
+                           f"{cur_build_dir}/ ; "
+            run_cmd += f"rm -rf {tmp_job_dir} ; "
+            run_cmd += f"exit \$retcode"
             run_cmd += '"'
         else:
             # Job data is not encrypted, so it can be run in shared storage.
-            # Get the prior step to use as an input.
+            # Write out the current schema for the compute node to pick up.
             job_dir = "/".join([self.get('dir'),
                                 self.get('design'),
                                 self.get('jobname') + str(self.get('jobid'))])
-            in_cfgs = []
-            for input_step in self.getkeys('flowgraph', step, index, 'input'):
-                for input_index in self.get('flowgraph', step, index, 'input', input_step):
-                    cfgfile = '/'.join([job_dir,
-                                        f'{input_step}{input_index}',
-                                        'outputs',
-                                        f'{self.get("design")}.pkg.json'])
-                    if os.path.isfile(cfgfile):
-                        in_cfgs.append(cfgfile)
-
-            # Assemble the command-line flags to read in dependent configs.
-            cfg_str = ''
-            for in_cfg in in_cfgs:
-                cfg_str += f'-cfg {in_cfg} '
+            cfg_dir = f'{job_dir}/configs'
+            cfg_file = f'{cfg_dir}/{step}{index}.json'
+            if not os.path.isdir(cfg_dir):
+                os.mkdir(cfg_dir)
+            self.writecfg(cfg_file)
 
             # Create a command to defer execution to a compute node.
             run_cmd  = f'{schedule_cmd} bash -c "'
-            run_cmd += f"sc {cfg_str} -dir {self.get('dir')} "\
+            run_cmd += f"sc -cfg {cfg_file} -dir {self.get('dir')} "\
                        f"-arg_step {step} -arg_index {index} "\
                         "-jobscheduler '' -remote_addr ''"
             run_cmd += '"'
 
         # Run the 'srun' command.
-        subprocess.run(run_cmd, shell = True)
+        step_result = subprocess.run(run_cmd, shell = True)
 
-        # Clear active/error bits and return after the 'srun' command.
-        error[step + str(index)] = 0
+        # Clear active bit after the 'srun' command, and set 'error' accordingly.
+        error[step + str(index)] = step_result.returncode
         active[step + str(index)] = 0
 
     ###########################################################################
@@ -2293,23 +2287,24 @@ class Chip:
             # Set up tools and processes
             for step in self.getkeys('flowgraph'):
                 for index in self.getkeys('flowgraph', step):
-                    self.set('flowstatus', step, str(index), 'error', 1)
                     stepstr = step + index
                     if self.get('arg', 'index'):
                         indexlist = [self.get('arg', 'index')]
                     else:
                         indexlist = self.getkeys('flowgraph', step)
                     if (step in steplist) & (index in indexlist):
+                        self.set('flowstatus', step, str(index), 'error', 1, clobber=False)
+                        error[stepstr] = self.get('flowstatus', step, str(index), 'error')
                         active[stepstr] = 1
-                        error[stepstr] = 1
                         # Setting up tool is optional
                         tool = self.get('flowgraph', step, index, 'tool')
                         if tool:
                             self.loadtool(tool, step, index)
                         self.check(step, index, mode='static')
                     else:
+                        self.set('flowstatus', step, str(index), 'error', 0, clobber=False)
+                        error[stepstr] = self.get('flowstatus', step, str(index), 'error')
                         active[stepstr] = 0
-                        error[stepstr] = 0
 
             # Implement auto-update of jobincrement
             try:
@@ -2376,11 +2371,12 @@ class Chip:
                 client_encrypt(self)
 
         # Merge cfg back from last executed runstep.
-        # (Unless working with encrypted data)
-        if not 'decrypt_key' in self.status:
-            laststep = steplist[-1]
-            lastdir = self.getworkdir(step=laststep, index='0')
-            self.cfg = self.readcfg(f"{lastdir}/outputs/{self.get('design')}.pkg.json")
+        # (Only if the index-0 run's results exist.)
+        laststep = steplist[-1]
+        lastdir = self.getworkdir(step=laststep, index='0')
+        lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
+        if os.path.isfile(lastcfg):
+            self.cfg = self.readcfg(lastcfg)
             self.set('flowstatus',laststep,'0', 'select', '0')
 
     ###########################################################################
