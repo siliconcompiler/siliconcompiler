@@ -32,6 +32,7 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
+    chip.target('freepdk45')
     setup_tool(chip,'export','<index>')
     return chip
 

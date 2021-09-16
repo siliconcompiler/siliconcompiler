@@ -30,6 +30,10 @@ def make_docs():
 
     '''
 
+    chip = siliconcompiler.Chip()
+    setup_tool(chip, '<step>', '<index>')
+    return chip
+
 ################################
 # Setup NextPNR
 ################################

@@ -5,7 +5,6 @@ from sphinx.util.docutils import SphinxDirective
 import docutils
 
 import importlib
-import pkgutil
 import os
 import sys
 
@@ -73,31 +72,23 @@ def flatten(cfg, prefix=()):
 class ToolGen(SphinxDirective):
 
     def process_tool(self, tool):
-        packdir = f'tests.tools'
-        modulename = f'.{tool}'
+        s = build_section(tool, tool)
+
+        packdir = f'siliconcompiler.tools.{tool}'
+        modulename = f'.{tool}_setup'
         module = importlib.import_module(modulename, package=packdir)
-        test_tool = getattr(module, tool)
+        make_docs = getattr(module, 'make_docs')
 
-        cfg = test_tool()
-
-        toolname = tool[len('test_'):]
-        s = build_section(toolname, toolname)
-
-        packdir = f'siliconcompiler.tools.{toolname}'
-        modulename = f'.{toolname}_setup'
-        module = importlib.import_module(modulename, package=packdir)
-        setup_tool = getattr(module, 'setup_tool')
-
-        docstr = setup_tool.__doc__
+        docstr = make_docs.__doc__
         if docstr:
             self.parse_rst(docstr, s)
 
-        chip = siliconcompiler.Chip()
-        flat_cfg = flatten(chip.prune(cfg))
+        chip = make_docs()
+        flat_cfg = flatten(chip.prune(chip.getcfg('eda', tool)))
 
         table = [[strong('Keypath'), strong('Value')]]
         for keys, val in flat_cfg.items():
-            keypath = f'eda, {toolname}, ' + ', '.join(keys)
+            keypath = f'eda, {tool}, ' + ', '.join(keys)
             if 'value' in val:
                 table.append([code(keypath), code(val['value'])])
             else:
@@ -112,8 +103,10 @@ class ToolGen(SphinxDirective):
         sections = []
 
         sc_root = os.path.abspath(f'{__file__}/../../../')
-        tools_dir = f'{sc_root}/tests/tools'
-        for _, tool, _ in pkgutil.iter_modules([tools_dir]):
+        tools_dir = f'{sc_root}/siliconcompiler/tools'
+        for tool in os.listdir(tools_dir):
+            if not os.path.isdir(tools_dir):
+                continue
             self.env.note_dependency(f'{tools_dir}/{tool}/{tool}_setup.py')
             sections.append(self.process_tool(tool))
 
