@@ -4,9 +4,9 @@ import re
 import os
 import sys
 
-###############################################################################
+#############################################################################
 # CHIP CONFIGURATION
-###############################################################################
+#############################################################################
 
 def schema_cfg():
     '''Method for defining Chip configuration schema
@@ -15,49 +15,19 @@ def schema_cfg():
 
     cfg = {}
 
-    # Actual SC version number
-    cfg['scversion'] = {
-        'switch': "-scversion <str>",
-        'type': 'str',
-        'lock': 'false',
-        'requirement': 'all',
-        'defvalue': None,
-        'short_help': 'The SC version number',
-        'example': ["cli: -scversion",
-                    "api: chip.get('scversion')"],
-        'help': """
-        Holds the SC software version number.
-        """
-    }
-
-    # Command line version switch
-    cfg['version'] = {
-        'switch': "-version <bool>",
-        'type': 'bool',
-        'lock': 'false',
-        'requirement': 'all',
-        'defvalue': 'false',
-        'short_help': 'Prints version number',
-        'example': ["cli: -version",
-                    "api: chip.get('version')"],
-        'help': """
-        Prints out the SC software version number.
-        """
-    }
-
     # Flow graph Setup
     cfg = schema_flowgraph(cfg)
 
     # Keeping track of flow execution
     cfg = schema_flowstatus(cfg)
 
-    # Design Hiearchy
+    # Design Hierarchy
     cfg = schema_hier(cfg)
 
     # EDA setup
     cfg = schema_eda(cfg)
 
-    # Dyanamic Tool Arguments
+    # Dynamic Tool Arguments
     cfg = schema_arg(cfg)
 
     # Metric tracking
@@ -96,7 +66,7 @@ def schema_cfg():
 ###############################################################################
 
 def schema_fpga(cfg):
-    ''' FPGA Setup
+    ''' FPGA configuration
     '''
     cfg['fpga'] = {}
 
@@ -111,14 +81,16 @@ def schema_fpga(cfg):
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': 'FPGA Architecture File',
+        'short_help': 'FPGA architecture file',
         'example': ["cli: -fpga_arch myfpga.xml",
-                    "api:  chip.set('fpga', 'arch', ['myfpga.xml'])"],
+                    "api:  chip.set('fpga', 'arch', 'myfpga.xml')"],
         'help': """
-        Architecture definition file for the FPGA place and route tool. In the
-        Verilog To Routing case, tjhe file is an XML based description,
-        allowing targeting a large number of virtual and commercial
-        architectures. `More information... <https://verilogtorouting.org>`_
+        Architecture definition file for FPGA place and route tool. For the
+        VPR tool, the file is a required XML based description, allowing
+        targeting a large number of virtual and commercial architectures.
+        For most commercial tools, the fpga part name provides enough
+        information to enable compilation and the 'arch' parameter is
+        optional.
         """
     }
 
@@ -128,12 +100,13 @@ def schema_fpga(cfg):
         'type': 'str',
         'lock': 'false',
         'defvalue': None,
-        'short_help': 'FPGA Vendor Name',
+        'short_help': 'FPGA vendor name',
         'example': ["cli: -fpga_vendor acme",
                     "api:  chip.set('fpga', 'vendor', 'acme')"],
         'help': """
-        Name of the FPGA vendor. Use to check part name and to select
-        the eda tool flow in case 'edaflow' is unspecified.
+        Name of the FPGA vendor. The parameter is used to check part
+        name and to select the eda tool flow in case 'edaflow' is
+        unspecified.
         """
     }
 
@@ -143,12 +116,13 @@ def schema_fpga(cfg):
         'type': 'str',
         'lock': 'false',
         'defvalue': None,
-        'short_help': 'FPGA Part Name',
+        'short_help': 'FPGA part name',
         'example': ["cli: -fpga_partname fpga64k",
                     "api:  chip.set('fpga', 'partname', 'fpga64k')"],
         'help': """
-        FPGA part name to target for bit stream generation. The string
-        must match the value recognized by the edaflow tools.
+        Complete part name used as a device target by the FPGA compilation
+        tool. The part name must be an exact string match to the partname
+        hard coded within the FPGA eda tool.
         """
     }
 
@@ -162,7 +136,10 @@ def schema_fpga(cfg):
         'example': ["cli: -fpga_board parallella",
                     "api:  chip.set('fpga', 'board', 'parallella')"],
         'help': """
-        FPGA board name to target for bitstream generation and loading.
+        Complete board name used as a device target by the FPGA compilation
+        tool. The board name must be an exact string match to the partname
+        hard coded within the FPGA eda tool. The parameter is optional and can
+        be used in place of a partname and pin constraints for some tools.
         """
     }
 
@@ -172,11 +149,11 @@ def schema_fpga(cfg):
         'type': 'bool',
         'lock': 'false',
         'defvalue': 'false',
-        'short_help': 'FPGA programming enable',
+        'short_help': 'FPGA program enable',
         'example': ["cli: -fpga_program",
                     "api:  chip.set('fpga', 'program', True)"],
         'help': """
-        Specifies that the bitstream should be flashed in the board/device.
+        Specifies that the bitstream should be loaded into an FPGA.
         The default is to load the bitstream into volatile memory (SRAM).
         """
     }
@@ -187,7 +164,7 @@ def schema_fpga(cfg):
         'type': 'bool',
         'lock': 'false',
         'defvalue': 'false',
-        'short_help': 'FPGA flash progrmming',
+        'short_help': 'FPGA flash enable',
         'example': ["cli: -fpga_flash",
                     "api:  chip.set('fpga', 'flash', True)"],
         'help': """
@@ -203,7 +180,7 @@ def schema_fpga(cfg):
 ###############################################################################
 
 def schema_pdk(cfg, stackup='default'):
-    ''' Process Design Kit Setup
+    ''' Process design kit configuration
     '''
     cfg['pdk'] = {}
     cfg['pdk']['foundry'] = {
@@ -212,13 +189,13 @@ def schema_pdk(cfg, stackup='default'):
         'type': 'str',
         'lock': 'false',
         'defvalue': None,
-        'short_help': 'Foundry Name',
+        'short_help': 'Foundry name',
         'example': ["cli: -pdk_foundry virtual",
                     "api:  chip.set('pdk', 'foundry', 'virtual')"],
         'help': """
-        The official foundry company name. For example: intel, gf, tsmc,
+        Official foundry company name. Examples include intel, gf, tsmc,
         samsung, skywater, virtual. The \'virtual\' keyword is reserved for
-        simulated non-manufacturable processes such as freepdk45 and asap7.
+        simulated non-manufacturable processes.
         """
     }
 
@@ -228,14 +205,13 @@ def schema_pdk(cfg, stackup='default'):
         'type': 'str',
         'lock': 'false',
         'defvalue': None,
-        'short_help': 'Process Name',
+        'short_help': 'Process name',
         'example': ["cli: -pdk_process asap7",
                     "api:  chip.set('pdk', 'process', 'asap7')"],
         'help': """
-        The official public name of the foundry process. The name is case
-        insensitive, but should otherwise match the complete public process
-        name from the foundry. Example process names include 22ffl from Intel,
-        12lpplus from Globalfoundries, and 16ffc from TSMC.
+        Official public name of the foundry process. The string is case
+        insensitive and must match the public process name exactly. Examples
+        of virtual processes include freepdk45 and asap7.
         """
     }
 
@@ -245,15 +221,15 @@ def schema_pdk(cfg, stackup='default'):
         'type': 'float',
         'lock': 'false',
         'defvalue': None,
-        'short_help': 'Process Node',
+        'short_help': 'Process node',
         'example': ["cli: -pdk_node 130",
                     "api:  chip.set('pdk', 'node', 130)"],
         'help': """
-        Approximate relative minimum dimension of the process target. A
-        required parameter in some reference flows that leverage the value to
-        drive technology dependent synthesis and APR optimization. Node
-        examples include 180nm, 130nm, 90nm, 65nm, 45nm, 32nm, 22nm, 14nm,
-        10nm, 7nm, 5nm, 3nm. The value entered implies nanometers.
+        Approximate relative minimum dimension of the process target specified
+        in nanometers. The parameter is required for flows and tools that
+        leverage the value to drive technology dependent synthesis and APR
+        optimization. Node examples include 180, 130, 90, 65, 45, 32, 22 14,
+        10, 7, 5, 3.
         """
     }
 
@@ -263,15 +239,15 @@ def schema_pdk(cfg, stackup='default'):
         'type': 'float',
         'lock': 'false',
         'defvalue': None,
-        'short_help': 'Process Wafer Size',
+        'short_help': 'Wafer size',
         'example': ["cli: -pdk_wafersize 300",
                     "api:  chip.set('pdk', 'wafersize', 300)"],
         'help': """
-        Wafer diameter used in manufacturing specified in mm. The standard
-        diameter for leading edge manufacturing is generally 300mm. For older
+        Wafer diameter used in manufacturing process specified in mm. The
+        standard diameter for leading edge manufacturing is 300mm. For older
         process technologies and speciality fabs, smaller diameters such as
-        200, 100, 125, 100 are more common. The value is used to calculate
-        dies per wafer and full factory chip costs.
+        200, 100, 125, 100 are common. The value is used to calculate dies per
+        wafer and full factory chip costs.
         """
     }
 
@@ -281,7 +257,7 @@ def schema_pdk(cfg, stackup='default'):
         'type': 'float',
         'lock': 'false',
         'defvalue': None,
-        'short_help': 'Process Wafer Cost',
+        'short_help': 'Wafer cost',
         'example': ["cli: -pdk_wafercost 10000",
                     "api:  chip.set('pdk', 'wafercost', 10000)"],
         'help': """
@@ -296,11 +272,11 @@ def schema_pdk(cfg, stackup='default'):
         'type': 'float',
         'lock': 'false',
         'defvalue': None,
-        'short_help': 'Process Defect Density',
+        'short_help': 'Process defect density',
         'example': ["cli: -pdk_d0 0.1",
                     "api:  chip.set('pdk', 'd0', 0.1)"],
         'help': """
-        Process defect density (D0) expressed as random defects per cm^2. The
+        Process defect density (d0) expressed as random defects per cm^2. The
         value is used to calcuate yield losses as a function of area, which in
         turn affects the chip full factory costs. Two yield models are
         supported: poisson (default), and murphy. The poisson based yield is
@@ -315,12 +291,12 @@ def schema_pdk(cfg, stackup='default'):
         'type': 'float',
         'lock': 'false',
         'defvalue': None,
-        'short_help': 'Process Horizontal Scribeline',
+        'short_help': 'Horizontal scribeline width',
         'example': ["cli: -pdk_hscribe 0.1",
                     "api:  chip.set('pdk', 'hscribe', 0.1)"],
         'help': """
         Width of the horizonotal scribe line (in mm) used during die separation.
-        The process is generally complted using a mecanical saw, but can be
+        The process is generally completed using a mecanical saw, but can be
         done through combinations of mechanical saws, lasers, wafer thinning,
         and chemical etching in more advanced technolgoies. The value is used
         to calculate effective dies per wafer and full factory cost.
@@ -333,12 +309,12 @@ def schema_pdk(cfg, stackup='default'):
         'type': 'float',
         'lock': 'false',
         'defvalue': None,
-        'short_help': 'Process Horizontal Scribeline',
+        'short_help': 'Vertical scribeline width',
         'example': ["cli: -pdk_vscribe 0.1",
                     "api:  chip.set('pdk', 'vscribe', 0.1)"],
         'help': """
         Width of the vertical scribe line (in mm) used during die separation.
-        The process is generally complted using a mecanical saw, but can be
+        The process is generally completed using a mecanical saw, but can be
         done through combinations of mechanical saws, lasers, wafer thinning,
         and chemical etching in more advanced technolgoies. The value is used
         to calculate effective dies per wafer and full factory cost.
@@ -351,13 +327,14 @@ def schema_pdk(cfg, stackup='default'):
         'type': 'float',
         'lock': 'false',
         'defvalue': None,
-        'short_help': 'Process Wafer Edge Margin',
+        'short_help': 'Wafer edge keepout margin',
         'example': ["cli: -pdk_edgemargin 1",
                     "api:  chip.set('pdk', 'edgemargin', 1)"],
         'help': """
-        Keepout distance/margin (in mm) from the wafer edge prone to chipping
-        and poor yield. The value is used to calculate effective dies per
-        wafer and full factory cost.
+        Keepout distance/margin from the wafer edge inwards specified in mm.
+        The wafer edge is prone to chipping and need special treatment that
+        preclude placement of designs in this area. The edgevalue is used to
+        calculate effective dies per wafer and full factory cost.
         """
     }
 
@@ -367,19 +344,20 @@ def schema_pdk(cfg, stackup='default'):
         'type': 'float',
         'lock': 'false',
         'defvalue': None,
-        'short_help': 'Process Transistor Density',
+        'short_help': 'Transistor Density',
         'example': ["cli: -pdk_density 100e6",
                     "api:  chip.set('pdk', 'density', 10e6)"],
         'help': """
-        An approximate logic density expressed as # transistors / mm^2
+        Approximate logic density expressed as # transistors / mm^2
         calculated as:
         0.6 * (Nand2 Transistor Count) / (Nand2 Cell Area) +
         0.4 * (Register Transistor Count) / (Register Cell Area)
-        The value is specified for a fixed standard cell library
-        within a node and will differ depending on the library vendor,
-        library track height and library type. The value is used to
-        normalize the effective density reported for the design and to
-        enable technology portable floor-plans.
+        The value is specified for a fixed standard cell library within a node
+        and will differ depending on the library vendor, library track height
+        and library type. The value can be used to to normalize the effective
+        density reported for the design across different process nodes. The
+        value can be derived from a variety of sources, incuding the PDK DRM,
+        library LEFs, conference presentations, and public analysis.
         """
     }
 
@@ -389,13 +367,15 @@ def schema_pdk(cfg, stackup='default'):
         'type': 'float',
         'lock': 'false',
         'defvalue': None,
-        'short_help': 'Process SRAM Bitcell Size',
+        'short_help': 'SRAM bitcell size',
         'example': ["cli: -pdk_sramsize 0.032",
                     "api:  chip.set('pdk', 'sramsize', '0.026')"],
         'help': """
-        Area of an SRAM bitcell expressed in um^2. The value can be found
-        in the PDK and  is used to normalize the effective density reported
-        enable technology portable floor-plans.
+        Area of an SRAM bitcell expressed in um^2. The value can be derived
+        from a variety of sources, incuding the PDK DRM, library LEFs,
+        conference presentations, and public analysis. The number is a good
+        first order indicator of SRAM density for large memory arrays where
+        the bitcell dominates the array I/O logic.
         """
     }
 
@@ -405,14 +385,14 @@ def schema_pdk(cfg, stackup='default'):
         'type': 'str',
         'lock': 'false',
         'defvalue': None,
-        'short_help': 'Process Version',
+        'short_help': 'Version number',
         'example': ["cli: -pdk_version 1.0",
                     "api:  chip.set('pdk', 'version', '1.0')"],
         'help': """
-        Alphanumeric string specifying the version of the current PDK.
-        Verification of correct PDK and IP versionss is an ASIC
-        tapeout requirement in all commercial foundries. The value is used
-        to for design manifest tracking and tapeout checklists.
+        Alphanumeric string specifying the version of the PDK. Verification of
+        correct PDK and IP versions is a hard ASIC tapeout requirement in all
+        commercial foundries. The version number can be used for design manifest
+        tracking and tapeout checklists.
         """
     }
 
@@ -427,15 +407,14 @@ def schema_pdk(cfg, stackup='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': 'PDK Design Rule Manual',
+        'short_help': 'Design rule manuals',
         'example': ["cli: -pdk_drm asap7_drm.pdf",
                     "api:  chip.set('pdk', 'drm', 'asap7_drm.pdf')"],
         'help': """
-        PDK document that includes complete information about physical and
+        Document that includes complete information about physical and
         electrical design rules to comply with in the design and layout of the
         chip. In advanced technologies, design rules may be split across
-        multiple documents, in which case all files should be listed within
-        the drm parameter.
+        multiple documents, in which case all files should be listed.
         """
     }
 
@@ -450,14 +429,13 @@ def schema_pdk(cfg, stackup='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': 'PDK Documents',
+        'short_help': 'PDK documents',
         'example': ["cli: -pdk_doc asap7_userguide.pdf",
                     "api: chip.set('pdk', 'doc', 'asap7_userguide.pdf')"],
         'help': """
-        A list of critical PDK designer documents provided by the foundry
-        entered in order of priority. The first item in the list should be the
-        primary PDK user guide. The purpose of the list is to serve as a
-        central record for all must-read PDK documents.
+        List of all critical PDK design documents (non-drm) provided by the
+        foundry entered in order of priority to document design methodologies
+        and best practices.
         """
     }
 
@@ -467,27 +445,29 @@ def schema_pdk(cfg, stackup='default'):
         'type': '[str]',
         'lock': 'false',
         'defvalue': [],
-        'short_help': 'Process Metal Stackups',
+        'short_help': 'Metal stackups',
         'example': ["cli: -pdk_stackup 2MA4MB2MC",
-                    "api: chip.set('pdk', 'stackup', '2MA4MB2MC')"],
+                    "api: chip.add('pdk', 'stackup', '2MA4MB2MC')"],
         'help': """
-        A list of all metal stackups offered in the process node. Older process
+        List of all metal stackups offered in the process node. Older process
         nodes may only offer a single metal stackup, while advanced nodes
         offer a large but finite list of metal stacks with varying combinations
         of metal line pitches and thicknesses. Stackup naming is unqiue to a
         foundry, but is generally a long string or code. For example, a 10
-        metal stackup two 1x wide, four 2x wide, and 4x wide metals, might be
-        identified as 2MA4MB2MC. Each stackup will come with its own set of
-        routing technology files and parasitic models specified in the
-        pdk_pexmodel and pdk_aprtech parameters.
+        metal stackup with two 1x wide, four 2x wide, and 4x wide metals,
+        might be identified as 2MA4MB2MC, where MA, MB, and MC denote wiring
+        layers with different properties (thickness, width, space). Each
+        stackup will come with its own set of routing technology files and
+        parasitic models specified in the pdk_pexmodel and pdk_aprtech
+        parameters.
         """
     }
 
-    cfg['pdk']['devicemodel'] = {}
-    cfg['pdk']['devicemodel'][stackup] = {}
-    cfg['pdk']['devicemodel'][stackup]['default'] = {}
-    cfg['pdk']['devicemodel'][stackup]['default']['default'] = {
-        'switch': "-pdk_devicemodel 'stackup simtype tool <file>'",
+    cfg['pdk']['devmodel'] = {}
+    cfg['pdk']['devmodel'][stackup] = {}
+    cfg['pdk']['devmodel'][stackup]['default'] = {}
+    cfg['pdk']['devmodel'][stackup]['default']['default'] = {
+        'switch': "-pdk_devmodel 'stackup simtype tool <file>'",
         'requirement': None,
         'type': '[file]',
         'lock': 'false',
@@ -497,16 +477,18 @@ def schema_pdk(cfg, stackup='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': 'Device Models',
+        'short_help': 'Device models',
         'example': [
-            "cli: -pdk_devicemodel 'M10 spice xyce asap7.sp'",
-            "api: chip.set('pdk','devicemodel','M10','spice','xyce','asap7.sp')"],
+            "cli: -pdk_devmodel 'M10 spice xyce asap7.sp'",
+            "api: chip.set('pdk','devmodel','M10','spice','xyce','asap7.sp')"],
         'help': """
-        Filepaths to PDK device models. The structure serves as a central
-        access registry for models for different purpose and tools. Examples of
-        device model types include spice, aging, electromigration, radiation.
-        An example of a spice tool is xyce. Device models should be specified
-        per metal stack basis. Device types and tools are dynamic entries
+        List of filepaths to PDK device models for different simulation
+        purposes and for different tools. Examples of device model types
+        include spice, aging, electromigration, radiation. An example of a
+        'spice' tool is xyce. Device models are specified on a per metal stack
+        basis. Process nodes with a single device model across all stacks will
+        have a unique parameter record per metal stack pointing to the same
+        device model file.  Device types and tools are dynamic entries
         that depend on the tool setup and device technology. Pseud-standardized
         device types include spice, em (electromigration), and aging.
         """
@@ -526,17 +508,18 @@ def schema_pdk(cfg, stackup='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': 'Parasitic TCAD Models',
+        'short_help': 'Parasitic TCAD models',
         'example': [
             "cli: -pdk_pexmodel 'M10 max fastcap wire.mod'",
             "api: chip.set('pdk','pexmodel','M10','max','fastcap','wire.mod')"],
         'help': """
-        Filepaths to PDK wire TCAD models. The structure serves as a
-        central access registry for models for different purpose and tools.
-        Pexmodels are specified on a per metal stack basis. Corner values
-        depend on the process being used, but typically include nomeclature
-        such as min, max, nominal. For exact names, refer to the DRM. Pexmodels
-        are generally not standardized and specified on a per tool basis.
+        List of filepaths to PDK wire TCAD models used during automated
+        synthesis, APR, and signoff verification. Pexmodels are specified on
+        a per metal stack basis. Corner values depend on the process being
+        used, but typically include nomeclature such as min, max, nominal.
+        For exact names, refer to the DRM. Pexmodels are generally not
+        standardized and specified on a per tool basis. An example of pexmodel
+        tuype is 'fastcap'.
         """
     }
 
@@ -554,7 +537,7 @@ def schema_pdk(cfg, stackup='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': 'Mask Layer Maps',
+        'short_help': 'Layout data mapping file',
         'example': [
             "cli: -pdk_layermap 'M10 klayout gds asap7.map'",
             "api: chip.set('pdk','layermap','M10','klayout','gds','asap7.map')"],
@@ -566,15 +549,16 @@ def schema_pdk(cfg, stackup='default'):
         layer definition format that can be read and written by all EDA tools.
         To ensure mask layer matching, key/value type mapping files are needed
         to convert EDA databases to/from GDS and to convert between different
-        types of EDA databases.
+        types of EDA databases. Layer maps are specified on a per metal
+        stackup basis. The 'src' and 'dst' can be names of SC supported tools
+        or file formats (like 'gds').
         """
     }
 
     cfg['pdk']['display'] = {}
     cfg['pdk']['display'][stackup] = {}
-    cfg['pdk']['display'][stackup]['default'] = {}
-    cfg['pdk']['display'][stackup]['default']['default'] = {
-        'switch': "-pdk_display 'stackup tool format <file>'",
+    cfg['pdk']['display'][stackup]['default'] = {
+        'switch': "-pdk_display 'stackup tool <file>'",
         'requirement': None,
         'type': '[file]',
         'lock': 'false',
@@ -584,22 +568,21 @@ def schema_pdk(cfg, stackup='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': 'Display Configurations',
+        'short_help': 'Display configuration file',
         'example': [
-            "cli: -pdk_display 'M10 klayout python display.lyt'",
-            "api: chip.set('pdk','display','M10','klayout','python','display.cfg')"],
+            "cli: -pdk_display 'M10 klayout display.lyt'",
+            "api: chip.set('pdk','display','M10','klayout','display.cfg')"],
         'help': """
         Display configuration files describing colors and pattern schemes for
         all layers in the PDK. The display configuration file is entered on a
-        stackup, tool, and format basis.
+        stackup and tool basis.
         """
     }
 
     cfg['pdk']['plib'] = {}
     cfg['pdk']['plib'][stackup] = {}
-    cfg['pdk']['plib'][stackup]['default'] = {}
-    cfg['pdk']['plib'][stackup]['default']['default'] = {
-        'switch': "-pdk_plib 'stackup tool format <file>'",
+    cfg['pdk']['plib'][stackup]['default'] = {
+        'switch': "-pdk_plib 'stackup tool <file>'",
         'requirement': None,
         'type': '[file]',
         'lock': 'false',
@@ -609,16 +592,17 @@ def schema_pdk(cfg, stackup='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': 'Primitive Libraries',
+        'short_help': 'Process primitive cell libraries',
         'example': [
-            "cli: -pdk_plib 'M10 klayout oa ~/devlib'",
-            "api: chip.set('pdk','plib','M10','klayout','oa','~/devlib')"],
+            "cli: -pdk_plib 'M10 klayout ~/devlib'",
+            "api: chip.set('pdk','plib','M10','klayout','~/devlib')"],
         'help': """
-        Filepaths to all primitive cell libraries supported by the PDK. The
-        filepaths are entered on a per stackup, tool,  and format basis.
-        The plib cells is the first layer of abstraction encountered above
-        the basic device models, and genearally include parametrized
-        transistors, resistors, capacitors, inductors, etc.
+        Filepaths to primitive cell libraries supported by the PDK specified
+        on a per stackup and per tool basis. The plib cells is the first layer
+        of design abstraction encountered above the basic device models, and
+        genearally include parametrized transistors, resistors, capacitors,
+        inductors, etc, enabling ground up custom design. All modern PDKs
+        ship with parametrized plib cells.
         """
     }
 
@@ -636,19 +620,20 @@ def schema_pdk(cfg, stackup='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': 'APR Technology File',
+        'short_help': 'APR technology file',
         'example': [
             "cli: -pdk_aprtech 'M10 12t lef tech.lef'",
             "api: chip.set('pdk','aprtech','M10','12t','lef','tech.lef')"],
         'help': """
         Technology file containing the design rule and setup information needed
-        to enable DRC clean automated placement a routing. The file is
-        specified on a per stackup, libtype, and format basis, where libtype
-        generates the library architecture (e.g. library height). For example a
-        PDK with support for 9 and 12 track libraries might have libtypes
-        called 9t and 12t. The standardized method of specifying place and
-        route design rules for a process node is through a LEF format
-        technology file.
+        to enable DRC clean APR for the specified stackup, libarch, and format.
+        The 'libarch' re libtype generates the library architecture (e.g.
+        library height). For example a PDK with support for 9 and 12 track
+        libraries might have 'libarchs' called 9t and 12t. During APR there
+        can only be on technology file, so all libraries used for synthesis
+        and APR must point to the same libarch technology file. The standard
+        filetype for specifying place and route design rules for a process node
+        is through a 'lef' format technology file.
         """
     }
 
@@ -687,7 +672,7 @@ def schema_pdk(cfg, stackup='default'):
         'type': 'float',
         'lock': 'false',
         'defvalue': None,
-        'short_help': 'Grid Layer Horizontal Grid',
+        'short_help': 'Grid layer Horizontal Grid',
         'example': [
             "cli: -pdk_grid_xpitch 'M10 m1 0.5'",
             "api: chip.set('pdk','grid','M10','m1','xpitch','0.5')"],
@@ -2645,7 +2630,22 @@ def schema_options(cfg):
     ''' Run-time options
     '''
 
-    # Print Software Version
+    # SC version number
+    cfg['scversion'] = {
+        'switch': "-scversion <str>",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': 'all',
+        'defvalue': None,
+        'short_help': 'SC version number',
+        'example': ["cli: -scversion",
+                    "api: chip.get('scversion')"],
+        'help': """
+        SC version number.
+        """
+    }
+
+    # Print SC version number
     cfg['version'] = {
         'switch': "-version <bool>",
         'type': 'bool',
@@ -2656,7 +2656,7 @@ def schema_options(cfg):
         'example': ["cli: -version",
                     "api: chip.get('version')"],
         'help': """
-        Prints out the SC software version number.
+        Command line switch to print SC version number.
         """
     }
 
@@ -4143,12 +4143,12 @@ def schema_asic(cfg):
         'date': [],
         'author': [],
         'signature': [],
-        'short_help': 'Harc coded DEF floorplan',
+        'short_help': 'Floorplan',
         'example': ["cli: -asic_def 'hello.def'",
                     "api: chip.set('asic', 'def', 'hello.def')"],
         'help': """
-        Provides a hard coded DEF floorplan to be used during the floorplan step
-        and/or initial placement step.
+        Provides a hard coded DEF floorplan to be used during the floorplan
+        step and initial placement step.
         """
     }
 

@@ -1505,11 +1505,26 @@ class Chip:
 
     ###########################################################################
     def calcyield(self, model='poisson'):
-        '''Calculates the die yield
+        '''Calculates raw die yield
+
+        Calcualtes the raw yield of the design as a function of design area
+        and d0 defect density. Calculation can be done based ont he poisson
+        model (default) or the murphy model. The die area and the d0
+        parameters are taken from the chip dictionary.
+
+        * Poisson model: dy = exp(-area * d0/100).
+        * Murphy model: dy = ((1-exp(-area * d0/100))/(area * d0/100))^2.
+
+        Args:
+            model (string): Model to use for calculation (poission or murphy)
+
+        Returns:
+            Design yield percentage (float).
+
         '''
 
         d0 = self.get('pdk', 'd0')
-        diesize = self.get('asic', 'diesize').split()
+        diesize = self.get('asic', 'diearea').split()
         diewidth = (diesize[2] - diesize[0])/1000
         dieheight = (diesize[3] - diesize[1])/1000
         diearea = diewidth * dieheight
@@ -1524,10 +1539,15 @@ class Chip:
     ###########################################################################
 
     def dpw(self):
-        '''Calculates dies per wafer, taking into account scribe lines
-        and wafer edge margin. The algorithms starts with a center aligned
-        wafer and rasters dies uot from the center until a die edge extends
-        beyoond the legal value.
+        '''Calculates dies per wafer
+
+        Calcualtes the gross dies per wafer based on the design area, wafersize,
+        wafer edge margin, and scribe lines. The calculation is done by starting
+        at the center of the wafer and placing as many complete design
+        footprints as possible within a legal placement area.
+
+        Returns:
+            The number of gross dies per wafer (int).
 
         '''
 
