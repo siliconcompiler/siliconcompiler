@@ -7,80 +7,75 @@ source ./sc_manifest.tcl
 
 ##############################
 # Schema Adapter
-###############################
+##############################
 
 set sc_design     [dict get $sc_cfg design]
 set sc_constraint [dict get $sc_cfg constraint]
 set sc_partname   [dict get $sc_cfg fpga partname]
-
-set input_verilog "inputs/$sc_design.v"
-
-###############################
-# Create project
-###############################
-
-create_project $sc_design -force
-set_property part $sc_partname [current_project]
-
-set_property target_language Verilog [current_project]
-
-set reports_dir reports
-set results_dir results
-if ![file exists $reports_dir]  {file mkdir $reports_dir}
-if ![file exists $results_dir] {file mkdir $results_dir}
+set sc_step       [dict get $sc_cfg arg step]
+set sc_index      [dict get $sc_cfg arg index]
 
 ##############################
-# Add files
+# Flow control
 ##############################
 
-if {[string equal [get_filesets -quiet sources_1] ""]} {
+if {$sc_step == "syn"} {
+
+    # set up project
+    create_project $sc_design -force
+    set_property part $sc_partname [current_project]
+    set_property target_language Verilog [current_project]
+
+    # add imported files
+    if {[string equal [get_filesets -quiet sources_1] ""]} {
     create_fileset -srcset sources_1
+    }
+    add_files -norecurse -fileset [get_filesets sources_1] "inputs/$sc_design.v"
+    set_property top $sc_design [current_fileset]
+
+    # add constraints
+    if {[string equal [get_filesets -quiet constrs_1] ""]} {
+	create_fileset -constrset constrs_1
+    }
+    foreach item $sc_constraint {
+	add_files -norecurse -fileset [current_fileset] $item
+    }
+
+    # run synthesis
+    synth_design -top $sc_design
+    opt_design
+
+} else {
+
+    # open checkpoint from previous step
+    open_checkpoint "inputs/${sc_design}_checkpoint.dcp"
+
+    if {$sc_step == "place"} {
+	place_design
+    } elseif {$sc_step == "route"} {
+	phys_opt_design
+	power_opt_design
+	route_design
+    } elseif {$sc_step == "bitstream"} {
+	write_bitstream -force -file "outputs/${sc_design}.bit"
+    } else {
+	puts "ERROR: step not supported"
+    }
 }
 
-add_files -norecurse -fileset [get_filesets sources_1] $input_verilog
+##############################
+# Checkpoint
+##############################
 
-set_property top $sc_design [current_fileset]
+write_checkpoint -force "outputs/${sc_design}_checkpoint"
 
-set_property source_mgmt_mode "None" [current_project]
+##############################
+# Reports / Metrics
+##############################
 
-if {[string equal [get_filesets -quiet constrs_1] ""]} {
-  create_fileset -constrset constrs_1
-}
-foreach sdc $sc_constraint {
-    add_files -norecurse -fileset [get_filesets constrs_1] $sdc
-}
-
-############################
-# Synthesis
-############################
-
-launch_runs synth_1
-wait_on_run synth_1
-open_run synth_1
-report_timing_summary -file "reports/syn_timing.rpt"
-
-###########################
-# APR
-###########################
-
-set_property STEPS.PHYS_OPT_DESIGN.IS_ENABLED true [get_runs impl_1]
-set_property STEPS.PHYS_OPT_DESIGN.ARGS.DIRECTIVE Explore [get_runs impl_1]
-set_property STRATEGY "Performance_Explore" [get_runs impl_1]
-launch_runs impl_1
-wait_on_run impl_1
-open_run impl_1
-report_timing_summary -file "reports/apr_timing.rpt"
-
-###########################
-# Bitstream generation
-###########################
-
-set_property STEPS.WRITE_BITSTREAM.ARGS.BIN_FILE true [get_runs impl_1]
-launch_runs impl_1 -to_step write_bitstream
-wait_on_run impl_1
-
-###########################
-# Write bitstream
-###########################
-
-write_bitstream -force -bin_file -file "outputs/${sc_design}.bit"
+report_timing_summary -file "reports/timing_summary.rpt"
+report_timing -sort_by group -max_paths 100 -path_type summary -file "reports/timing.rpt"
+report_utilization -file "reports/total_utilization.rpt"
+report_clock_utilization -file "reports/clock_utilization.rpt"
+report_drc -file "reports/drc.rpt"
+report_cdc -details -file "reports/cdc.rpt"
