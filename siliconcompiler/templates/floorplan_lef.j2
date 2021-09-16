@@ -14,7 +14,7 @@ MACRO {{ fp.design }}
   SYMMETRY X Y R90 ;
   {% endif %}
 
-  SIZE {{ fp.die_area[1][0] }} BY {{ fp.die_area[1][1] }} ;
+  SIZE {{ fp.diearea[1][0] }} BY {{ fp.diearea[1][1] }} ;
   CLASS BLOCK ;
   {% for pin in fp.pins %}
   PIN {{ pin.name }}

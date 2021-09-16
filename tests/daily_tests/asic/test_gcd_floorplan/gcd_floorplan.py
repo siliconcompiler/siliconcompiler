@@ -1,7 +1,7 @@
 def setup_floorplan(fp):
-    cell_h = fp.std_cell_height
-    fp.create_die_area([(0, 0), (72 * cell_h, 72 * cell_h)], core_area=[(8 * cell_h, 8 * cell_h), (64 * cell_h, 64 * cell_h)])
-    die_w, die_h = fp.die_area[1]
+    cell_h = fp.stdcell_height
+    fp.create_diearea([(0, 0), (72 * cell_h, 72 * cell_h)], corearea=[(8 * cell_h, 8 * cell_h), (64 * cell_h, 64 * cell_h)])
+    die_w, die_h = fp.diearea[1]
 
     in_pins = ['clk']
     in_pins += [f'req_msg[{i}]' for i in range(32)]
