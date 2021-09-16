@@ -81,6 +81,9 @@ class Chip:
         #Getting environment path (highest priority)
         scpaths = str(os.environ['SCPATH']).split(':')
 
+        #Add the root Path
+        scpaths.append(rootdir)
+
         # Add the path where the builtin tools, foundries, and flows live.
         # By adding this path directly to sys.path, we can search both builtin
         # and user provided modules more easily, since we don't have to prefix
