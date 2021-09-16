@@ -1,4 +1,4 @@
 PDK directory
 ==================
 
-.. targetgen::
+.. foundrygen::

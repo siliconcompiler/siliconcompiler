@@ -40,7 +40,7 @@ def make_docs():
 
     chip = siliconcompiler.Chip()
     setup_tool(chip,'lint','0')
-    setup_tool(chip,'verilate','0')
+    # setup_tool(chip,'verilate','0')
     setup_tool(chip,'import','0')
     return chip
 
