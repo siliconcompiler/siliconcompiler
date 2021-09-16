@@ -155,18 +155,17 @@ class DynamicGen(SphinxDirective):
         '''
         sc_root = os.path.abspath(f'{__file__}/../../../')
         builtins_dir = f'{sc_root}/siliconcompiler/{self.PATH}'
-        builtins = self.get_modules_in_dir(builtins_dir)
+        modules = self.get_modules_in_dir(builtins_dir)
 
         if 'SCPATH' in os.environ:
             scpaths = os.environ['SCPATH'].split(':')
-            user = []
             for scpath in scpaths:
                 user_dir = f'{scpath}/{self.PATH}'
                 if not os.path.isdir(user_dir) or builtins_dir == user_dir:
                     continue
-                user += self.get_modules_in_dir(user_dir)
+                modules.extend(self.get_modules_in_dir(user_dir))
 
-        return builtins + user
+        return modules
 
     def get_modules_in_dir(self, module_dir):
         '''Routine for getting modules and their names from a certain
