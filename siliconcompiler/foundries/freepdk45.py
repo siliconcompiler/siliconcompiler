@@ -4,18 +4,44 @@ import sys
 import re
 import siliconcompiler
 
+
+############################################################################
+# DOCS
+############################################################################
+
+def make_docs():
+    '''
+    The freepdk45 PDK is a virtual PDK derived from the work done at
+    NCSU (NCSU_TechLib_FreePDK45.)  It supplies techfiles, display
+    resources, design rules and scripts to permit layout design and rule
+    checking for a generic 45 nanometer process.  The technology information
+    contained in this kit has been compiled from published papers,
+    predictive technology models and rule scaling.  This information may be
+    freely used, modified, and distributed under the open-source Apache
+    License (see the file APACHE-LICENSE-2.0.txt in the root install
+    directory for the complete text). This technology is intended to work
+    with the 45nm BSIM4 Predictive Technology Model from Arizona State
+    University (http://www.eas.asu.edu/~ptm).  See the HSPICE Models
+    section of this file for details about these models.
+
+    More information:
+    * https://www.eda.ncsu.edu/wiki/FreePDK45:Manual
+
+    '''
+
+    chip = siliconcompiler.Chip()
+    setup_pdk(chip)
+
+    return chip
+
+
 ####################################################
 # PDK Setup
 ####################################################
 
 def setup_pdk(chip):
     '''
-    A setup package for the open source freepdk45 virtual PDK that
-    includes the technology files and standard cell libraries
-    needed for basic RTL to GDSII compilation.
-
-    Documentation:
-
+    Setup function for the freepdk45 PDK.
     '''
 
     ###############################################
@@ -213,10 +239,9 @@ def setup_pdk(chip):
     chip.set('mcmm','worst','mode', 'func')
     chip.set('mcmm','worst','check', ['setup','hold'])
 
+
 #########################
 if __name__ == "__main__":
 
-    prefix = os.path.splitext(os.path.basename(__file__))[0]
-    chip = siliconcompiler.Chip()
-    setup_pdk(chip)
-    chip.writecfg(prefix + '.json')
+    chip = make_docs()
+    chip.writecfg('freepdk45.json')

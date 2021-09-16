@@ -10,42 +10,6 @@ import siliconcompiler
 ################################
 
 def setup_tool(chip, step, index, mode='batch'):
-    ''' OpenROAD is an integrated chip physical design tool that takes a design
-    from synthesized netlist to routed layout.
-
-    Implementation steps done by OpenROAD include:
-
-    * Physical database management
-    * DEF/LEF/Liberty/Verilog/SDC file interfaces
-    * Static timing analysis
-    * Floorplan initialize
-    * Pin placement
-    * Tap cell insertion
-    * Power grid inesertion
-    * Macro Placement
-    * Global placement of standard cells
-    * Electrical design rule repair
-    * Clock tree synthesis
-    * Timing driven optimization
-    * Filler insertion
-    * Global routing (route guides for detailed routing)
-    * Detailed routing
-
-    SC Configuration:
-    All communiucation from siliconcompiler to openroad is done through
-    the file 'sc_manifest.tcl'. The entry point for all openroad based steps
-    is the 'sc_apr.tcl' script. The script handles general input/output
-    function and is the main interface to SC. Execution then branches off to
-    separate files based on the step being executed (place, route, etc).
-
-    Documentation:
-    https://github.com/The-OpenROAD-Project/OpenROAD
-
-    Source code:
-    https://github.com/The-OpenROAD-Project/OpenROAD
-    https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts
-
-    '''
 
     # default tool settings, note, not additive!
     tool = 'openroad'
@@ -121,6 +85,14 @@ def setup_tool(chip, step, index, mode='batch'):
         else:
             chip.error = 1
             chip.logger.error(f'Process {process} not supported with OpenROAD.')
+    else:
+        default_options = {
+            'place_density': ['1'],
+            'pad_global_place': ['<space>'],
+            'pad_detail_place': ['<space>'],
+            'macro_place_halo': ['<xspace>', '<yspace>'],
+            'macro_place_channel': ['<xspace>', '<yspace>']
+        }
 
     for option in default_options:
         if option in chip.getkeys('eda', tool, step, index, 'option'):
@@ -130,9 +102,6 @@ def setup_tool(chip, step, index, mode='batch'):
             chip.logger.error('Missing option %s for OpenROAD.', option)
         else:
             chip.set('eda', tool, step, index, 'option', option, default_options[option], clobber=clobber)
-
-    # Set the 'lock' bit for this tool.
-    chip.set('eda', tool, step, index, 'exe', 'true', field='lock')
 
 ################################
 # Version Check
@@ -226,18 +195,56 @@ def post_process(chip, step, index):
      #Return 0 if successful
      return 0
 
+
+################################
+# Make Docs
+################################
+
+def make_docs():
+    '''OpenROAD is an integrated chip physical design tool
+
+    Implementation steps done by OpenROAD include:
+
+    * Physical database management
+    * DEF/LEF/Liberty/Verilog/SDC file interfaces
+    * Static timing analysis
+    * Floorplan initialize
+    * Pin placement
+    * Tap cell insertion
+    * Power grid inesertion
+    * Macro Placement
+    * Global placement of standard cells
+    * Electrical design rule repair
+    * Clock tree synthesis
+    * Timing driven optimization
+    * Filler insertion
+    * Global routing (route guides for detailed routing)
+    * Detailed routing
+
+    The interface from SC to openroad is done through 'sc_manifest.tcl'.
+    The entry point for all openroad based steps is the 'sc_apr.tcl' script.
+    The script handles general input/output function and is the main
+    interface to SC. Execution then branches off to
+    separate files based on the step being executed (place, route, etc).
+
+    Installation Instructions:
+
+    OpenROAD SC scripts:
+
+    OpenROAD source code:
+    * https://github.com/The-OpenROAD-Project/OpenROAD
+    * https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts
+
+    Documentation:
+    * https://github.com/The-OpenROAD-Project/OpenROAD
+
+    '''
+    chip = siliconcompiler.Chip()
+    setup_tool(chip,'<step>','<index>')
+    return chip
+
 ##################################################
 if __name__ == "__main__":
 
-    # File being executed
-    prefix = os.path.splitext(os.path.basename(__file__))[0]
-    output = prefix + '.json'
-
-    # create a chip instance
-    chip = siliconcompiler.Chip(loglevel='INFO')
-    chip.set('pdk','process','freepdk45')
-    chip.writecfg('tmp.json', prune=False)
-    # load configuration
-    setup_tool(chip, step='syn', index='0')
-    # write out results
-    chip.writecfg(output)
+    chip = make_docs()
+    chip.writecfg("tmp.tcl")
