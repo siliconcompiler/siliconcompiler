@@ -3,32 +3,55 @@ import os
 import siliconcompiler
 import re
 
-####################################################
+############################################################################
+# DOCS
+############################################################################
+
+def make_docs():
+    '''
+    A configurable FPGA compilation flow.
+.
+    The 'fpgaflow' module is a configurable FPGA flow with support for
+    open source and commercial tool flows. The fpgaflow relies on the
+    FPGA partname to determine which design tools to use for RTL to
+    bitstream generation. All flows go through a common design import
+    step that collects all source files from disk before proceeding.
+    The implementation pipeline and tools used depend on the FPGA
+    device being targeted. The following step convention is recommended
+    for tools.
+
+    * **import**: Sources are collected and packaged for compilation
+    * **syn**: Synthesize RTL into an device specific netlist
+    * **apr**: FPGA specific placement and routing step
+    * **bitstream**: Bitstream generation
+    * **program**: Program the device
+
+    Some FPGA target flows have a single 'compile' step that combines the
+    syn, apr, and bitstream steps.
+
+    The fpgaflow can be configured througthe following schema parameters
+
+    Schema keypaths:
+
+    * ['fpga', 'partname']: Used to select partname to vendor and tool flow
+    * ['fpga', 'program']: Used to turn on/off HW programming step
+
+    '''
+
+    chip = siliconcompiler.Chip()
+    setup_flow(chip)
+
+    return chip
+
+############################################################################
 # Flowgraph Setup
-####################################################
+############################################################################
 def setup_flow(chip):
     '''
-    This is a standard open source FPGA flow based on high quality tools.
-    The flow supports SystemVerilog, VHDL, and mixed SystemVerilog/VHDL
-    flows. The asic flow is a linera pipeline that includes the
-    stages below. To skip the last three verification steps, you can
-    specify "-stop export" at the command line.
-
-    import: Sources are collected and packaged for compilation.
-            A design manifest is created to simplify design sharing.
-
-    syn: Translates RTL to netlist using Yosys
-
-    apr: Automated place and route
-
-    bitstream: Bistream generation
-
-    program: Download bitstream to hardware (requires physical connection).
+    Setup function for 'fpgaflow'
 
     Args:
-        partname (string): Mandatory argument specifying the compiler target
-            partname. The partname is needed in syn, apr, bitstream, and
-            program steps to produce correct results.
+        chip (object): SC Chip object
 
     '''
 
@@ -191,10 +214,5 @@ def tool_lookup(flow, step):
 
 ##################################################
 if __name__ == "__main__":
-
-    # File being executed
-    prefix = os.path.splitext(os.path.basename(__file__))[0]
-    chip = siliconcompiler.Chip(defaults=False)
-    setup_flow(chip)
-    chip.writecfg(prefix + ".json")
-    chip.writegraph(prefix + ".png")
+    chip = make_docs()
+    chip.writecfg("fpgaflow.json")

@@ -2,21 +2,41 @@ import os
 import re
 import siliconcompiler
 
-####################################################
-# Flowgraph Setup
-####################################################
-def setup_flow(chip):
+############################################################################
+# DOCS
+############################################################################
+
+def make_docs():
     '''
-    Basic parallel testing flow.
+    A configurable constrained random stimulus DV flow.
+
+    The verification pipeline includes the followins teps:
 
     * **import**: Sources are collected and packaged for compilation
-    * **compile**: Design compilation
-    * **testgen**: Test generator
-    * **refsim**: Reference simulation
-    * **sim**: Design simulation
-    * **compare**: Compare results
-    * **signoff**: Merge results (built-in)
+    * **compile**: RTL sources are compiled into object form (once)
+    * **testgen**: A random seed is used to generate a unique test
+    * **refsim**: A golden trace of test is generated using a reference sim.
+    * **sim**: Compiled RTL is exercised using generated test
+    * **compare**: The outputs of the sim and refsim are compared
+    * **signoff**: Parallel verification pipelines are merged and checked
 
+    The dvflow can be parametrized using a single 'np' flowarg parameter.
+    Setting 'np' > 1 results in multiple independent verificaiton
+    pipelines to be launched.
+
+    '''
+
+    chip = siliconcompiler.Chip()
+    setup_flow(chip)
+
+    return chip
+
+#############################################################################
+# Flowgraph Setup
+#############################################################################
+def setup_flow(chip):
+    '''
+    Setup function for 'dvflow'
     '''
 
     # A simple linear flow
@@ -71,12 +91,7 @@ def setup_flow(chip):
 
         prevstep = step
 
-
 ##################################################
 if __name__ == "__main__":
-
-    prefix = os.path.splitext(os.path.basename(__file__))[0]
-    chip = siliconcompiler.Chip()
-    setup_flow(chip)
-    chip.writecfg(prefix + '.json')
-    chip.writegraph(prefix + ".png")
+    chip = make_docs()
+    chip.writecfg("dvflow.json")
