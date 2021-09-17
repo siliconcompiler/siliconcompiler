@@ -67,7 +67,7 @@ def setup_flow(chip):
     #Setting up pipeline
     #TODO: Going forward we want to standardize steps
     if  flow in ('vivado', 'quartus'):
-        flowpipe = ['import', 'compile']
+        flowpipe = ['import', 'syn', 'place', 'route', 'bitstream']
     else:
         flowpipe = ['import', 'syn', 'apr', 'bitstream']
 

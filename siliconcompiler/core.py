@@ -156,7 +156,7 @@ class Chip:
         # Iterate over all keys to add parser argument
         for key in allkeys:
             #Fetch fields from leaf cell
-            helpstr = self.get(*key, field='short_help')
+            helpstr = self.get(*key, field='shorthelp')
             typestr = self.get(*key, field='type')
             #Switch field fully describes switch format
             switch = self.get(*key, field='switch')
@@ -241,7 +241,7 @@ class Chip:
             (not '-cfg' in scargs)) | ('source' in switchlist) :
             parser.add_argument('source',
                                 nargs='+',
-                                help=self.get('source', field='short_help'))
+                                help=self.get('source', field='shorthelp'))
 
         #Grab argument from pre-process sysargs
         #print(scargs)
@@ -543,7 +543,7 @@ class Chip:
 
         #Fetch Values
 
-        description = self.get(*args, field='short_help')
+        description = self.get(*args, field='shorthelp')
         typestr = self.get(*args, field='type')
         switchstr = str(self.get(*args, field='switch'))
         defstr = str(self.get(*args, field='defvalue'))
@@ -959,10 +959,10 @@ class Chip:
         Reads in an SC compatible dictionary from a JSON file and copies
         all entries to the dictionary specified by the 'chip' and
         'cfg' arguments. All dictionary entries must include fields for: type,
-        defvalue, switch, requirment, type, lock, param_help, short_help,
-        example, and help. In addition, extensions for file/dir types must
-        include fields for lock, copy, filehash, data, and signature. For
-        complete information about these fields, refer to the schema.py
+        defvalue, switch, requirment, type, lock, shorthelp, example, and help.
+        In addition, extensions for file/dir types must include fields for
+        lock, copy, filehash, data, and signature. For complete information
+        about these fields, refer to the schema.py
 
         Args:
             filename (string): A path to the file containing the json
@@ -1505,11 +1505,26 @@ class Chip:
 
     ###########################################################################
     def calcyield(self, model='poisson'):
-        '''Calculates the die yield
+        '''Calculates raw die yield
+
+        Calcualtes the raw yield of the design as a function of design area
+        and d0 defect density. Calculation can be done based ont he poisson
+        model (default) or the murphy model. The die area and the d0
+        parameters are taken from the chip dictionary.
+
+        * Poisson model: dy = exp(-area * d0/100).
+        * Murphy model: dy = ((1-exp(-area * d0/100))/(area * d0/100))^2.
+
+        Args:
+            model (string): Model to use for calculation (poission or murphy)
+
+        Returns:
+            Design yield percentage (float).
+
         '''
 
         d0 = self.get('pdk', 'd0')
-        diesize = self.get('asic', 'diesize').split()
+        diesize = self.get('asic', 'diearea').split()
         diewidth = (diesize[2] - diesize[0])/1000
         dieheight = (diesize[3] - diesize[1])/1000
         diearea = diewidth * dieheight
@@ -1524,10 +1539,15 @@ class Chip:
     ###########################################################################
 
     def dpw(self):
-        '''Calculates dies per wafer, taking into account scribe lines
-        and wafer edge margin. The algorithms starts with a center aligned
-        wafer and rasters dies uot from the center until a die edge extends
-        beyoond the legal value.
+        '''Calculates dies per wafer
+
+        Calcualtes the gross dies per wafer based on the design area, wafersize,
+        wafer edge margin, and scribe lines. The calculation is done by starting
+        at the center of the wafer and placing as many complete design
+        footprints as possible within a legal placement area.
+
+        Returns:
+            The number of gross dies per wafer (int).
 
         '''
 
