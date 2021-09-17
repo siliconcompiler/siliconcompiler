@@ -156,7 +156,7 @@ class Chip:
         # Iterate over all keys to add parser argument
         for key in allkeys:
             #Fetch fields from leaf cell
-            helpstr = self.get(*key, field='short_help')
+            helpstr = self.get(*key, field='shorthelp')
             typestr = self.get(*key, field='type')
             #Switch field fully describes switch format
             switch = self.get(*key, field='switch')
@@ -241,7 +241,7 @@ class Chip:
             (not '-cfg' in scargs)) | ('source' in switchlist) :
             parser.add_argument('source',
                                 nargs='+',
-                                help=self.get('source', field='short_help'))
+                                help=self.get('source', field='shorthelp'))
 
         #Grab argument from pre-process sysargs
         #print(scargs)
@@ -543,7 +543,7 @@ class Chip:
 
         #Fetch Values
 
-        description = self.get(*args, field='short_help')
+        description = self.get(*args, field='shorthelp')
         typestr = self.get(*args, field='type')
         switchstr = str(self.get(*args, field='switch'))
         defstr = str(self.get(*args, field='defvalue'))
@@ -959,10 +959,10 @@ class Chip:
         Reads in an SC compatible dictionary from a JSON file and copies
         all entries to the dictionary specified by the 'chip' and
         'cfg' arguments. All dictionary entries must include fields for: type,
-        defvalue, switch, requirment, type, lock, param_help, short_help,
-        example, and help. In addition, extensions for file/dir types must
-        include fields for lock, copy, filehash, data, and signature. For
-        complete information about these fields, refer to the schema.py
+        defvalue, switch, requirment, type, lock, shorthelp, example, and help.
+        In addition, extensions for file/dir types must include fields for
+        lock, copy, filehash, data, and signature. For complete information
+        about these fields, refer to the schema.py
 
         Args:
             filename (string): A path to the file containing the json
