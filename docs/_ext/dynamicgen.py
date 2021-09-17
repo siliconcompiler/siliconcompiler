@@ -154,9 +154,14 @@ class DynamicGen(SphinxDirective):
             self.env.note_dependency(path)
             docs = self.document_module(module, modname, path)
             if docs is not None:
-                sections.append(docs)
+                sections.append((docs, modname))
 
-        return sections
+        # Sort sections by module name
+        sections = sorted(sections, key=lambda t: t[1])
+        # Strip off modname so we just return list of docutils sections
+        sections, _ = zip(*sections)
+
+        return list(sections)
 
     def get_modules(self):
         '''Gets dynamic modules under `self.PATH`.
