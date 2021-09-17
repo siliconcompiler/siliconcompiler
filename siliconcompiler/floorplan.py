@@ -163,7 +163,7 @@ class Floorplan:
 
         # extract std cell info based on libname
         self.libname = self.chip.get('asic', 'targetlib')[0]
-        self.std_cell_name = self.chip.get('library', self.libname, 'site')
+        self.std_cell_name = self.chip.get('library', self.libname, 'site')[0]
         self.std_cell_width = self.chip.get('library', self.libname, 'width')
         self.std_cell_height = self.chip.get('library', self.libname, 'height')
 
