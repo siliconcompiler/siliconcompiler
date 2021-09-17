@@ -84,6 +84,12 @@ class Chip:
         #Add the root Path
         scpaths.append(rootdir)
 
+        # Add the path where the builtin tools, foundries, and flows live.
+        # By adding this path directly to sys.path, we can search both builtin
+        # and user provided modules more easily, since we don't have to prefix
+        # the dynamic import path with 'siliconcompiler.' for builtins.
+        scpaths.append(rootdir + '/siliconcompiler')
+
         # Adding current working directory if not
         # working out of rootdir
         if not re.match(str(os.getcwd()), rootdir):
@@ -358,7 +364,7 @@ class Chip:
             return
 
         try:
-            searchdir = "siliconcompiler.tools." + tool
+            searchdir = "tools." + tool
             modulename = '.'+tool+'_setup'
             self.logger.info(f"Setting up tool '{tool}' for step '{step}' and index {index}")
             module = importlib.import_module(modulename, package=searchdir)
@@ -378,7 +384,7 @@ class Chip:
         Dynamic load of PDK module for a process based on search path.
         '''
         try:
-            searchdir = 'siliconcompiler.foundries'
+            searchdir = 'foundries'
             module = importlib.import_module('.'+process, package=searchdir)
             setup_pdk = getattr(module, "setup_pdk")
             setup_pdk(self)
@@ -393,7 +399,7 @@ class Chip:
         Dynamic load of flow module based on search path.
         '''
         try:
-            searchdir = 'siliconcompiler.flows'
+            searchdir = 'flows'
             module = importlib.import_module('.'+flow, package=searchdir)
             setup_flow = getattr(module, "setup_flow")
             setup_flow(self)
