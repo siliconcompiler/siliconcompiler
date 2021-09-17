@@ -11,8 +11,7 @@ from siliconcompiler.schema_utils import schema_path
 ####################################################################
 
 def make_docs():
-    '''Morty reads and pickles SystemVerilog files.
-
+    '''
     Morty reads SystemVerilog files and pickles them into a
     single file for easier handling. Optionally it allows to
     re-name modules with a common prefix or suffix. This allows for
@@ -21,13 +20,11 @@ def make_docs():
     different versions of the same dependency without namespace
     clashes.
 
-    Installation instructions:
+    Documentation: https://github.com/zarubaf/morty
 
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-    cargo install --git https://github.com/zarubaf/morty.git
+    Sources: https://github.com/zarubaf/morty
 
-    Source Code:
-    * https://github.com/zarubaf/morty
+    Installation: https://github.com/zarubaf/morty
 
     '''
 

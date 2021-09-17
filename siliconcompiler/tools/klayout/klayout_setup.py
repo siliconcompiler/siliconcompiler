@@ -7,27 +7,17 @@ from siliconcompiler.schema_utils import schema_path
 ####################################################################
 # Make Docs
 ####################################################################
+
 def make_docs():
-    '''Klayout is a viewer and editor of GDSII and Oasis data
+    '''
+    Klayout is a production grade viewer and editor of GDSII and 
+    Oasis data with customizable Python and Ruby interfaces.
 
-    Features:
-    * Support of GDS and OASIS file formats
-    * Editing and viewing support
-    * Automatic uncompression of zlib compatible formats
-    * Parametrizable cells (PCells)
-    * XOR tool, a layout diff tool, a fill tool ...
-    * DRC feature with a basic set of verification functions
-    * LVS feature with a basic set of verification functions
-    * Ruby-based scripting environment called "RBA"
+    Documentation: https://www.klayout.de
 
-    Documentation:
-    * https://www.klayout.de
+    Sources: https://github.com/KLayout/klayout
 
-    Installation instructions:
-
-    Source Code:
-    * https://github.com/KLayout/klayout
-
+    Installation: https://github.com/KLayout/klayout
 
     '''
 

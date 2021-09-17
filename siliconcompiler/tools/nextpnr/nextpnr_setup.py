@@ -8,25 +8,15 @@ from siliconcompiler.schema_utils import schema_path
 #####################################################################
 
 def make_docs():
-    '''nextpnr is a vendor neutral FPGA place and route tool
+    '''
+    nextpnr is a vendor neutral FPGA place and route tool with
+    support for the ICE40, ECP5, and Nexus devices from Lattice.
 
-    Currently nextpnr supports:
+    Documentation: https://github.com/YosysHQ/nextpnr
 
-    * Lattice ICE40 devices supported by Project IceStorm
-    * Lattice ECP5 devices supported by Project Trellis
-    * Lattice Nexus devices supported by Project Oxide
-    * Gowin LittleBee devices supported by Project Apicula
+    Sources: https://github.com/YosysHQ/nextpnr
 
-    Documentation:
-    * https://github.com/YosysHQ/nextpnr
-
-    Build instructions:
-
-    git clone https://github.com/YosysHQ/nextpnr nextpnr
-    cd nextpnr
-    cmake -DARCH=ice40 -DCMAKE_INSTALL_PREFIX=/usr/local .
-    make -j$(nproc)
-    sudo make install
+    Installation: https://github.com/YosysHQ/nextpnr
 
     '''
 

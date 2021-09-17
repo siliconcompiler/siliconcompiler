@@ -9,8 +9,7 @@ from siliconcompiler.schema_utils import schema_path
 # Make Docs
 ####################################################################
 def make_docs():
-    '''sv2v converts SystemVerilog to Verilog (IEEE 1364-2005)
-
+    '''
     sv2v converts SystemVerilog (IEEE 1800-2017) to Verilog
     (IEEE 1364-2005), with an emphasis on supporting synthesizable
     language constructs. The primary goal of this project is to
@@ -19,13 +18,11 @@ def make_docs():
     conversion already exist, they generally either rely on
     commercial tools, or are limited in scope.
 
-    Documentation:
-    * https://github.com/zachjs/sv2v
+    Documentation: https://github.com/zachjs/sv2v
 
-    Installation instructions:
+    Sources: https://github.com/zachjs/sv2v
 
-    Source Code:
-    * https://github.com/zachjs/sv2v
+    Installation: https://github.com/zachjs/sv2v
 
     '''
 

@@ -6,28 +6,22 @@ import siliconcompiler
 ######################################################################
 
 def make_docs():
-    '''VPR is a universal FPGA place and route tool.
-
+    '''
     VPR (Versatile Place and Route) is an open source CAD
     tool designed for the exploration of new FPGA architectures and
     CAD algorithms, at the packing, placement and routing phases of
-    the CAD flow. Since its public introduction, VPR has been
-    used extensively in many academic projects partly because it
-    is robust, well documented, easy-to-use, and can flexibly
-    target a range of architectures.
+    the CAD flow. VPR takes, as input, a description of an FPGA 
+    architecture along with a technology-mapped user circuit. It 
+    then performs packing, placement, and routing to map the 
+    circuit onto the FPGA. The output of VPR includes the FPGA 
+    configuration needed to implement the circuit and statistics about 
+    the final mapped design (eg. critical path delay, area, etc).
 
-    VPR takes, as input, a description of an FPGA architecture along
-    with a technology-mapped user circuit. It then performs packing,
-    placement, and routing to map the circuit onto the FPGA. The output
-    of VPR includes the FPGA configuration needed to implement the circuit
-    and statistics about the final mapped design (eg. critical path delay,
-    area, etc).
+    Documentation: https://docs.verilogtorouting.org/en/latest
 
-    Source code:
-    * https://github.com/verilog-to-routing/vtr-verilog-to-routing
+    Sources: https://github.com/verilog-to-routing/vtr-verilog-to-routing
 
-    Documentation:
-    * https://docs.verilogtorouting.org/en/latest
+    Installation: https://github.com/verilog-to-routing/vtr-verilog-to-routing
 
     '''
 
