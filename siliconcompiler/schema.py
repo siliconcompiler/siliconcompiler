@@ -1067,7 +1067,7 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'type': 'float',
         'lock': 'false',
         'defvalue': None,
-        'shorthelp': 'Library Height',
+        'shorthelp': 'Library height',
         'example': [
             "cli: -library_height 'mylib 1.0'",
             "api: chip.set('library','mylib','height', '1.0')"],
@@ -1090,13 +1090,13 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'type': 'str',
         'lock': 'false',
         'defvalue': None,
-        'shorthelp': 'Library Operating Condition',
+        'shorthelp': 'Library operating condition',
         'example': [
             "cli: -library_opcond 'lib ss_1.0v_125c WORST'",
             "api: chip.set('library','lib','opcond','ss_1.0v_125c','WORST')"],
         'help': """
-        The default operating condition to use for mcmm optimization and
-        signoff on a per corner basis.
+        Default operating condition to use for mcmm optimization and
+        signoff specified on a per corner basis.
         """
     }
 
@@ -1108,18 +1108,16 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'type': '[str]',
         'lock': 'false',
         'defvalue': [],
-        'shorthelp': 'Library Corner Checks',
+        'shorthelp': 'Library corner checks',
         'example': [
             "cli: -library_check 'lib ss_1.0v_125c setup'",
             "api: chip.set('library','lib','check','ss_1.0v_125c','setup')"],
         'help': """
-        Per corner checks to perform during optimization and STA signoff.
+        Corner checks to perform during optimization and STA signoff.
         Names used in the 'mcmm' scenarios must align with the 'check' names
-        used in this dictionary. The purpose of the dictionary is to serve as
-        a serve as a central record for the PDK/Library recommended corner
-        methodology and all PVT timing corners supported. Standard 'check'
-        values include setup, hold, power, noise, reliability but can be
-        extended based on eda support and methodology.
+        used in this dictionary. Standard 'check' values include setup,
+        hold, power, noise, reliability but can be extended based on eda
+        support and methodology.
         """
     }
 
@@ -1138,15 +1136,15 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'shorthelp': 'Library NLDM Timing Model',
+        'shorthelp': 'Library NLDM timing model',
         'example': [
-            "cli: -library_nldm 'lib ss gz ss.lib.gz'",
-            "api: chip.set('library','lib','nldm','ss','gz','ss.lib.gz')"],
+            "cli: -library_nldm 'lib ss lib ss.lib.gz'",
+            "api: chip.set('library','lib','nldm','ss','lib','ss.lib.gz')"],
         'help': """
         Filepaths to NLDM models. Timing files are specified on a per lib,
-        per corner, and per format basis. The format is driven by EDA tool
-        requirements. Examples of legal formats includ: lib, gz, bz2,
-        and ldb.
+        per corner, and per format basis. Legal file formats are lib (ascii)
+        and ldb (binary). File decompression is handled automatically for
+        gz, zip, and bz2 compression formats.
         """
     }
 
@@ -1165,15 +1163,15 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'shorthelp': 'Library CCS Timing Model',
+        'shorthelp': 'Library CCS timing model',
         'example': [
-            "cli: -library_ccs 'lib ss lib.gz ss.lib.gz'",
-            "api: chip.set('library','lib','ccs','ss','gz','ss.lib.gz')"],
+            "cli: -library_ccs 'lib ss lib ss.lib.gz'",
+            "api: chip.set('library','lib','ccs','ss','lib','ss.lib.gz')"],
         'help': """
         Filepaths to CCS models. Timing files are specified on a per lib,
-        per corner, and per format basis. The format is driven by EDA tool
-        requirements. Examples of legal formats includ: lib, gz, bz2,
-        and ldb.
+        per corner, and per format basis. Legal file formats are lib (ascii)
+        and ldb (binary). File decompression is handled automatically for
+        gz, zip, and bz2 compression formats.
         """
     }
 
@@ -1192,15 +1190,15 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'shorthelp': 'Library SCM Timing Model',
+        'shorthelp': 'Library SCM timing model',
         'example': [
-            "cli: -library_scm 'lib ss lib.gz ss.lib.gz'",
-            "api: chip.set('library','lib','scm,'ss','gz','ss.lib.gz')"],
+            "cli: -library_scm 'lib ss lib ss.lib.gz'",
+            "api: chip.set('library','lib','scm,'ss','lib','ss.lib.gz')"],
         'help': """
         Filepaths to SCM models. Timing files are specified on a per lib,
-        per corner, and per format basis. The format is driven by EDA tool
-        requirements. Examples of legal formats includ: lib, gz, bz2,
-        and ldb.
+        per corner, and per format basis. Legal file formats are lib (ascii)
+        and ldb (binary). File decompression is handled automatically for
+        gz, zip, and bz2 compression formats.
         """
     }
 
@@ -1218,38 +1216,14 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'shorthelp': 'Library AOCV Timing Model',
+        'shorthelp': 'Library AOCV timing model',
         'example': [
             "cli: -library_aocv 'lib ss lib.aocv'",
             "api: chip.set('library','lib','aocv','ss','lib_ss.aocv')"],
         'help': """
         Filepaths to AOCV models. Timing files are specified on a per lib,
-        per corner basis.
-        """
-    }
-
-    #APL
-    cfg['library'][lib]['apl'] = {}
-    cfg['library'][lib]['apl'][corner] = {}
-    cfg['library'][lib]['apl'][corner]['default'] = {
-        'switch': "-library_apl 'lib corner format <file>'",
-        'requirement': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Library APL Power Model',
-        'example': [
-            "cli: -library_apl 'lib ss cdev lib_tt.cdev'",
-            "api: chip.set('library','lib','apl,'ss','cdev','lib_tt.cdev')"],
-        'help': """
-        Filepaths to APL power models. Power files are specified on a per
-        lib, per corner, and per format basis.
+        per corner basis. File decompression is handled automatically for
+        gz, zip, and bz2 compression formats.
         """
     }
 
@@ -1266,11 +1240,11 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'shorthelp': 'Library LEF',
+        'shorthelp': 'Library LEF files',
         'example': ["cli: -library_lef 'mylib mylib.lef'",
                     "api: chip.set('library','mylib','lef,'mylib.lef')"],
         'help': """
-        An abstracted view of library cells that gives a complete description
+        Abstracted view of library cells that gives a complete description
         of the cell's place and route boundary, pin positions, pin metals, and
         metal routing blockages.
         """
@@ -1289,15 +1263,11 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'shorthelp': 'Library GDS',
+        'shorthelp': 'Library GDS files',
         'example': ["cli: -library_gds 'mylib mylib.gds'",
                     "api: chip.set('library','mylib','gds','mylib.gds')"],
         'help': """
-        The complete mask layout of the library cells ready to be merged with
-        the rest of the design for tapeout. In some cases, the GDS merge
-        happens at the foundry, so inclusion of CDL files is optional. In all
-        cases, where the CDL are available they should specified here to
-        enable LVS checks pre tapout
+        Complete mask layout of the library cells.
         """
     }
     cfg['library'][lib]['netlist'] = {}
@@ -1313,7 +1283,7 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'shorthelp': 'Library Netlist',
+        'shorthelp': 'Library LVS netlists',
         'example': ["cli: -library_netlist 'mylib cdl mylib.cdl'",
                     "api: chip.set('library','mylib','netlist','cdl','mylib.cdl')"],
         'help': """
@@ -1337,13 +1307,13 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'shorthelp': 'Library Spice Netlist',
+        'shorthelp': 'Library spice netlists',
         'example': [
             "cli: -library_spice 'mylib pspice mylib.sp'",
             "api: chip.set('library','mylib','spice','pspice','mylib.sp')"],
         'help': """
-        Files containing library spice netlists used for circuit
-        simulation, specified on a per format basis.
+        List of files containing library spice netlists used for circuit
+        simulation specified on a per format basis.
         """
     }
 
@@ -1360,14 +1330,13 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'shorthelp': 'Library HDL Model',
+        'shorthelp': 'Library HDL models',
         'example': [
             "cli: -library_hdl 'mylib verilog mylib.v'",
             "api: chip.set('library','mylib','hdl','verilog','mylib.v')"],
         'help': """
         Library HDL models, specifed on a per format basis. Examples
         of legal formats include verilog, vhdl, systemc, c++, python.
-        All formats should be specified in lower case.
         """
     }
 
@@ -1383,7 +1352,7 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'shorthelp': 'Library ATPG Model',
+        'shorthelp': 'Library ATPG models',
         'example': ["cli: -library_atpg 'mylib mylib.atpg'",
                     "api: chip.set('library','mylib','atpg','mylib.atpg')"],
         'help': """
@@ -1398,13 +1367,12 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'type': 'str',
         'lock': 'false',
         'defvalue': None,
-        'shorthelp': 'Library Power/Ground Layer',
+        'shorthelp': 'Library power/ground layer',
         'example': ["cli: -library_pgmetal 'mylib m1'",
                     "api: chip.set('library','mylib','pgmetal','m1')"],
         'help': """
-        Specifies the top metal layer used for power and ground routing within
-        the library. The parameter can be used to guide cell power grid hookup
-        by APR tools.
+        Top metal layer used for power and ground routing within the library.
+        The parameter can be used to guide cell power grid hookup by APR tools.
         """
     }
 
@@ -1415,7 +1383,7 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'type': '[str]',
         'lock': 'false',
         'defvalue': [],
-        'shorthelp': 'Library Identifier Tags',
+        'shorthelp': 'Library tags',
         'example': ["cli: -library_tag 'mylib virtual'",
                     "api: chip.set('library','mylib','tag','virtual')"],
         'help': """
@@ -1434,11 +1402,11 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'type': '[str]',
         'lock': 'false',
         'defvalue': [],
-        'shorthelp': 'Library Default Driver Cell',
+        'shorthelp': 'Library default driver cell',
         'example': ["cli: -library_driver 'mylib BUFX1/Z'",
                     "api: chip.set('library','mylib','driver','BUFX1/Z')"],
         'help': """
-        The name of a library cell to be used as the default driver for
+        Name of a library cell to be used as the default driver for
         block timing constraints. The cell should be strong enough to drive
         a block input from another block including wire capacitance.
         In cases where the actual driver is known, the actual driver cell
@@ -1450,14 +1418,14 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
     cfg['library'][lib]['site'] = {
         'switch': "-library_site 'lib <str>'",
         'requirement': None,
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'defvalue': None,
-        'shorthelp': 'Library Site/Tile Name',
+        'shorthelp': 'Library site name',
         'example': ["cli: -library_site 'mylib core'",
                     "api: chip.set('library','mylib','site','core')"],
         'help': """
-        Provides the primary site name to use for placement.
+        List of sites to use for APR. The first
         """
     }
 
@@ -1468,12 +1436,12 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'type': '[str]',
         'lock': 'false',
         'defvalue': [],
-        'shorthelp': 'Library Cell Lists',
+        'shorthelp': 'Library cell lists',
         'example': [
             "cli: -library_cells 'mylib dontuse *eco*'",
             "api: chip.set('library','mylib','cells','dontuse','*eco*')"],
         'help': """
-        A named list of cells grouped by a property that can be accessed
+        List of cells grouped by a property that can be accessed
         directly by the designer and EDA tools. The example below shows how
         all cells containing the string 'eco' could be marked as dont use
         for the tool.
@@ -1493,7 +1461,7 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'shorthelp': 'Library Layout Database',
+        'shorthelp': 'Library layout database',
         'example': [
             "cli: -library_layoutdb 'lib M10 oa ~/libdb'",
             "api: chip.set('library','lib','layoutdb','M10','oa','~/libdb')"],
@@ -1582,9 +1550,8 @@ def schema_flowgraph(cfg, step='default', index='default'):
             "api:  chip.set('flowgraph','cts','function','0', 'min')"],
         'help': """
         Function to use during runstep. The function is used in place
-        of the 'exe' parameter within the 'eda' schema. If the tool
-        is 'builtin', then the core API operations min, max, assert,
-        join can be accessed.
+        of the 'exe' parameter within the 'eda' schema. The function
+        parameter is mutually exclusive with the tool parameter.
         """
     }
 
@@ -1600,7 +1567,8 @@ def schema_flowgraph(cfg, step='default', index='default'):
             "cli: -flowgraph_args 'cts 0 0'",
             "api:  chip.add('flowgraph','cts',','0','args', '0')"],
         'help': """
-        Arguments to pass to tool step.
+        User specified flowgraph string arguments specified on a
+        per step and per index basis.
         """
     }
 
@@ -1616,8 +1584,10 @@ def schema_flowgraph(cfg, step='default', index='default'):
             "cli: -flowgraph_valid 'cts 0 true'",
             "api:  chip.add('flowgraph','cts',','0','valid', True)"],
         'help': """
-        Defines the step/index as a valid/invalid runstep. The parameter
-        is used to control flow execution.
+        Flowgraph valid bit specified on a per step and per index basis.
+        The parameter can be used to control flow execution. If the bit
+        is cleared (0), then the step/index combination is invalid and
+        should not be run.
         """
     }
 
@@ -1642,10 +1612,10 @@ def schema_flowstatus(cfg, step='default', index='default'):
         'defvalue': None,
         'shorthelp': 'Flowgraph index error status',
         'example': [
-            "cli: -flowstatus_error 'cts 10'",
-            "api:  chip.set('flowstatus','error','cts,'10')"],
+            "cli: -flowstatus_error 'cts 10 1'",
+            "api:  chip.set('flowstatus','error','cts, '10', 1)"],
         'help': """
-        Status parameter that tracks runsteps that errored out.
+        Status parameter that tracks runstep errors.
         """
     }
 
@@ -1661,8 +1631,8 @@ def schema_flowstatus(cfg, step='default', index='default'):
             "cli: -flowstatus_select 'cts 0 place42'",
             "api:  chip.set('flowstatus', 'cts, '0', 'select', 'place42')"],
         'help': """
-        Status parameter that records the list of 'step+index' strings to
-        indicate the input selected/copied into the current step.
+        Status parameter that records the list of 'step+index' combinations
+        that weere selected/copied into the current step.
         """
     }
 
@@ -1673,13 +1643,13 @@ def schema_flowstatus(cfg, step='default', index='default'):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Flowgraph max record',
+        'shorthelp': 'Flowgraph max value',
         'example': [
             "cli: -flowstatus_max 'cts 0 99.99'",
             "api:  chip.set('flowstatus', 'cts, '0', 'max', '99.99')"],
         'help': """
-        Status parameter of maximum value recorded from a
-        max() calculation.
+        Status parameter of selected value recorded from the maximum()
+        function.
         """
     }
 
@@ -1690,13 +1660,13 @@ def schema_flowstatus(cfg, step='default', index='default'):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Flowgraph max record',
+        'shorthelp': 'Flowgraph max value',
         'example': [
             "cli: -flowstatus_min 'cts 0 0.0'",
             "api:  chip.set('flowstatus', 'cts, '0', 'max', '0.0')"],
         'help': """
-        Status parameter of minimum value recorded from a
-        min() calculation.
+        Status parameter of selected value recorded from the minumum()
+        calculation.
         """
     }
 
