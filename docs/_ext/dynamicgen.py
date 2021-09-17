@@ -136,9 +136,10 @@ class DynamicGen(SphinxDirective):
             for keys, val in flat_cfg.items():
                 keypath = ', '.join(prefix) + ', ' + ', '.join(keys)
                 if 'value' in val:
+                    # Don't display false booleans
+                    if val['type'] == 'bool' and val['value'] == 'false':
+                        continue
                     table.append([code(keypath), code(val['value'])])
-                else:
-                    table.append([code(keypath), code(val['defvalue'])])
 
         s += build_table(table)
 
