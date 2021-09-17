@@ -66,7 +66,6 @@ def setup_tool(chip, step, index):
 
     # Standard Setup
     chip.set('eda', tool, step, index, 'copy', 'true', clobber=False)
-    chip.set('eda', tool, step, index, 'vendor', 'yosys', clobber=False)
     chip.set('eda', tool, step, index, 'exe', 'yosys', clobber=False)
     chip.set('eda', tool, step, index, 'vswitch', '--version', clobber=False)
     chip.set('eda', tool, step, index, 'version', '0.9+3672', clobber=False)

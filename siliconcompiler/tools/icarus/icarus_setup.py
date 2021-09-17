@@ -55,7 +55,6 @@ def setup_tool(chip, step, index):
     chip.set('eda', tool, step, index, 'exe', 'iverilog', clobber=False)
     chip.set('eda', tool, step, index, 'vswitch', '-V', clobber=False)
     chip.set('eda', tool, step, index, 'version', '10.3', clobber=False)
-    chip.set('eda', tool, step, index, 'vendor', 'icarus', clobber=False)
     chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=False)
 
     #Source Level Controls

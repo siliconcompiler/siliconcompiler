@@ -40,7 +40,6 @@ def setup_tool(chip, step, index):
     ''' Sets up default settings on a per step basis
     '''
     tool = 'icepack'
-    chip.set('eda', tool, step, index, 'vendor', tool)
     chip.set('eda', tool, step, index, 'exe', tool)
     chip.set('eda', tool, step, index, 'version', '0')
 

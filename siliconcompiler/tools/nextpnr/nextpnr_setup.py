@@ -44,7 +44,6 @@ def setup_tool(chip, step, index):
 
     tool = 'nextpnr'
     clobber = False
-    chip.set('eda', tool, step, index, 'vendor', tool, clobber=clobber)
     chip.set('eda', tool, step, index, 'exe', 'nextpnr-ice40', clobber=clobber)
     chip.set('eda', tool, step, index, 'vswitch', '--version', clobber=clobber)
     chip.set('eda', tool, step, index, 'version', 'c73d4cf6', clobber=clobber)

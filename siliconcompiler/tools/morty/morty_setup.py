@@ -49,9 +49,8 @@ def setup_tool(chip, step, index):
     # Standard Setup
     tool = 'morty'
     chip.set('eda', tool, step, index, 'threads', 4)
-    chip.set('eda', tool, step, index, 'exe', 'morty')
+    chip.set('eda', tool, step, index, 'exe', tool)
     chip.set('eda', tool, step, index, 'version', '0.0')
-    chip.set('eda', tool, step, index, 'vendor', 'morty')
 
     # output single file to `morty.v`
     chip.add('eda', tool, step, index, 'option', 'cmdline', '-o morty.v')

@@ -64,7 +64,6 @@ def setup_tool(chip, step, index):
     chip.set('eda', tool, step, index, 'exe', 'verilator', clobber=False)
     chip.set('eda', tool, step, index, 'vswitch', '--version', clobber=False)
     chip.set('eda', tool, step, index, 'version', '4.211', clobber=False)
-    chip.set('eda', tool, step, index, 'vendor', 'verilator', clobber=False)
     chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=False)
 
     # Options driven on a per step basis (use 'set' on first call!)
@@ -79,7 +78,7 @@ def setup_tool(chip, step, index):
         chip.logger.error('Step %s not supported for verilator', step)
         sys.exit()
 
-    #Source Level Controls
+    # Source Level Controls
     for value in chip.get('ydir'):
         chip.add('eda', tool, step, index, 'option', 'cmdline', '-y ' + schema_path(value))
     for value in chip.get('vlib'):

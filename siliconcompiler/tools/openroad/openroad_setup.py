@@ -78,7 +78,6 @@ def setup_tool(chip, step, index, mode='batch'):
         script = '/sc_apr.tcl'
         option = "-no_init"
 
-    chip.set('eda', tool, step, index, 'vendor', tool, clobber=clobber)
     chip.set('eda', tool, step, index, 'exe', tool, clobber=clobber)
     chip.set('eda', tool, step, index, 'vswitch', '-version', clobber=clobber)
     chip.set('eda', tool, step, index, 'version', '0', clobber=clobber)

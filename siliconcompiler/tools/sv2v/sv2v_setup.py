@@ -45,11 +45,9 @@ def setup_tool(chip, step, index):
 
     chip.logger.debug("Setting up sv2v")
 
-
     tool = 'sv2v'
     chip.set('eda', tool, step, index, 'threads', 4)
     chip.set('eda', tool, step, index, 'exe', 'sv2v')
-    chip.set('eda', tool, step, index, 'vendor', 'sv2v')
     chip.set('eda', tool, step, index, 'version', '0.0')
 
     # Since we run sv2v after the import/preprocess step, there should be no

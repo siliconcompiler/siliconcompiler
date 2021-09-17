@@ -1298,6 +1298,9 @@ class Chip:
             Loads the file mychip.json into the current Chip dictionary.
         """
 
+        #TODO: add ability to read in all files set in 'cfg' if no file
+        #name is specified
+        
         if cfg is None:
             cfg = self.cfg
 

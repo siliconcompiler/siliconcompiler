@@ -36,10 +36,9 @@ def make_docs():
     setup_tool(chip,'export','<index>')
     return chip
 
-
-
-
-
+####################################################################
+# Setup tool
+####################################################################
 def setup_tool(chip, step, index, mode="batch"):
     '''
     Setup function for Klayout
@@ -57,7 +56,6 @@ def setup_tool(chip, step, index, mode="batch"):
         option = '-zz'
 
     chip.set('eda', tool, step, index, 'exe', 'klayout', clobber=clobber)
-    chip.set('eda', tool, step, index, 'vendor', 'klayout', clobber=clobber)
     chip.set('eda', tool, step, index, 'copy', 'true', clobber=clobber)
     chip.set('eda', tool, step, index, 'refdir', refdir, clobber=clobber)
     chip.set('eda', tool, step, index, 'script', refdir + script, clobber=clobber)

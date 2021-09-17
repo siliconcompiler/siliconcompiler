@@ -54,7 +54,6 @@ def setup_tool(chip, step, index):
     elif step == 'lvs':
         script = 'lvs.tcl'
 
-    chip.set('eda', tool, step, index, 'vendor', tool)
     chip.set('eda', tool, step, index, 'exe', tool)
     chip.set('eda', tool, step, index, 'version', '0.0')
     chip.set('eda', tool, step, index, 'threads', 4)
