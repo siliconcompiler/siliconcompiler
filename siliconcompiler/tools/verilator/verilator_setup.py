@@ -13,8 +13,7 @@ from siliconcompiler.schema_utils import schema_path
 ####################################################################
 
 def make_docs():
-    '''Verilator converts Verilog to a cycle accurate simulator model.
-
+    '''
     Verilator is a free and open-source software tool which converts
     Verilog (a hardware description language) to a cycle-accurate
     behavioral model in C++ or SystemC. It is restricted to modeling
@@ -27,14 +26,11 @@ def make_docs():
     open source projects and for commercial semiconductor
     development. It is part of the growing body of free EDA software.
 
-    Documentation:
-    * https://github.com/chipsalliance/Surelog
+    Documentation: https://verilator.org/guide/latest
 
-    Installation instructions:
-    * https://verilator.org/guide/latest/install.html
+    Sources: https://github.com/verilator/verilator
 
-    Source Code:
-    * https://verilator.org/guide/latest
+    Installation: https://verilator.org/guide/latest/install.html
 
     '''
 
@@ -64,7 +60,6 @@ def setup_tool(chip, step, index):
     chip.set('eda', tool, step, index, 'exe', 'verilator', clobber=False)
     chip.set('eda', tool, step, index, 'vswitch', '--version', clobber=False)
     chip.set('eda', tool, step, index, 'version', '4.211', clobber=False)
-    chip.set('eda', tool, step, index, 'vendor', 'verilator', clobber=False)
     chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=False)
 
     # Options driven on a per step basis (use 'set' on first call!)
@@ -79,7 +74,7 @@ def setup_tool(chip, step, index):
         chip.logger.error('Step %s not supported for verilator', step)
         sys.exit()
 
-    #Source Level Controls
+    # Source Level Controls
     for value in chip.get('ydir'):
         chip.add('eda', tool, step, index, 'option', 'cmdline', '-y ' + schema_path(value))
     for value in chip.get('vlib'):

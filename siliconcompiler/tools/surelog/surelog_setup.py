@@ -10,19 +10,16 @@ from siliconcompiler.schema_utils import schema_path
 # Make Docs
 ####################################################################
 def make_docs():
-    '''Surelog is a SystemVerilog pre-processor, parser, elaborator.
+    '''
+    Surelog is a SystemVerilog pre-processor, parser, elaborator,
+    and UHDM compiler that provdes IEEE design and testbench
+    C/C++ VPI and a Python AST API.
 
-    Surelog is a SystemVerilog 2017 Pre-processor, Parser,
-    Elaborator, UHDM Compiler. Provides IEEE Design/TB C/C++
-    VPI and Python AST API.
+    Documentation: https://github.com/chipsalliance/Surelog
 
-    Documentation:
-    * https://github.com/chipsalliance/Surelog
+    Sources: https://github.com/chipsalliance/Surelog
 
-    Installation instructions:
-
-    Source Code:
-    * https://github.com/chipsalliance/Surelog
+    Installation: https://github.com/chipsalliance/Surelog
 
     '''
 
@@ -44,7 +41,6 @@ def setup_tool(chip, step, index):
     chip.set('eda', tool, step, index, 'exe', tool, clobber=False)
     chip.set('eda', tool, step, index, 'vswitch', '--version', clobber=False)
     chip.set('eda', tool, step, index, 'version', '0.0', clobber=False)
-    chip.set('eda', tool, step, index, 'vendor', tool, clobber=False)
     chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=False)
 
     # -parse is slow but ensures the SV code is valid

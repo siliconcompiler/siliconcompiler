@@ -7,22 +7,18 @@ import siliconcompiler
 #####################################################################
 
 def make_docs():
-    '''Xyce is a high performance SPICE-compatible circuit simulator.
-
-    Xyce (zīs, rhymes with “spice”) is an open source,
-    SPICE-compatible high-performance analog circuit simulator,
-    capable of solving extremely large circuit problems by
+    '''
+    Xyce is a high performance SPICE-compatible circuit simulator
+    capable capable of solving extremely large circuit problems by
     supporting large-scale parallel computing platforms. It also
     supports serial execution on all common desktop platforms,
     and small-scale parallel runs on Unix-like systems.
 
-    Installation Instructions:
+    Documentation: https://xyce.sandia.gov/documentation
 
-    Source code:
-    * https://github.com/Xyce/Xyce
+    Sources: https://github.com/Xyce/Xyce
 
-    Documentation:
-    * https://xyce.sandia.gov
+    Installation: https://xyce.sandia.gov/documentation/BuildingGuide.html
 
     '''
 
@@ -42,7 +38,6 @@ def setup_tool(chip, step, index):
 
      chip.set('eda', tool, step, index, 'exe', tool, clobber=clobber)
      chip.set('eda', tool, step, index, 'copy', 'false', clobber=clobber)
-     chip.set('eda', tool, step, index, 'vendor', tool, clobber=clobber)
      chip.set('eda', tool, step, index, 'version', '0.0', clobber=clobber)
      chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=clobber)
 

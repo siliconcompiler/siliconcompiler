@@ -8,20 +8,15 @@ from siliconcompiler.tools.magic import count_lvs
 # Make Docs
 ####################################################################
 def make_docs():
-    '''Magic is a chip layout viewer, editor, and circuit verifier.
+    '''
+    Magic is a chip layout viewer, editor, and circuit verifier with
+    built in DRC and LVS engines.
 
-    Features:
-    * DRC capability
-    * LVS capability
+    Documentation: http://opencircuitdesign.com/magic/userguide.html
 
-    Documentation:
-    * http://opencircuitdesign.com/magic/userguide.html
+    Installation: https://github.com/RTimothyEdwards/magic
 
-    Installation instructions:
-
-    Source Code:
-    * https://github.com/RTimothyEdwards/magic
-
+    Sources: https://github.com/RTimothyEdwards/magic
 
     '''
 
@@ -30,7 +25,6 @@ def make_docs():
     setup_tool(chip,'drc','<index>')
     setup_tool(chip,'lvs','<index>')
     return chip
-
 
 ################################
 # Setup Tool (pre executable)
@@ -54,7 +48,6 @@ def setup_tool(chip, step, index):
     elif step == 'lvs':
         script = 'lvs.tcl'
 
-    chip.set('eda', tool, step, index, 'vendor', tool)
     chip.set('eda', tool, step, index, 'exe', tool)
     chip.set('eda', tool, step, index, 'version', '0.0')
     chip.set('eda', tool, step, index, 'threads', 4)

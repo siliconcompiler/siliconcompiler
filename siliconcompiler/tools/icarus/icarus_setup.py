@@ -13,21 +13,16 @@ from siliconcompiler.schema_utils import schema_path
 ####################################################################
 
 def make_docs():
-    '''Icarus Verilog simulation and synthesis tool.
-
-    It operates as a compiler, compiling source code written in
-    Verilog (IEEE-1364) into some target format ready to be
-    simulated. Icarus can simulate synthesizable as well as
+    '''
+    Icarus is a verilog simulator with full support for Verilog
+    IEEE-1364. Icarus can simulate synthesizable as well as
     behavioral Verilog.
 
-    Documentation:
-    * http://iverilog.icarus.com
+    Documentation: http://iverilog.icarus.com
 
-    Installation instructions:
-    * https://verilator.org/guide/latest/install.html
+    Sources: https://github.com/steveicarus/iverilog.git
 
-    Source Code:
-    * git clone git://github.com/steveicarus/iverilog.git
+    Installation: https://github.com/steveicarus/iverilog.git
 
     '''
 
@@ -55,7 +50,6 @@ def setup_tool(chip, step, index):
     chip.set('eda', tool, step, index, 'exe', 'iverilog', clobber=False)
     chip.set('eda', tool, step, index, 'vswitch', '-V', clobber=False)
     chip.set('eda', tool, step, index, 'version', '10.3', clobber=False)
-    chip.set('eda', tool, step, index, 'vendor', 'icarus', clobber=False)
     chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=False)
 
     #Source Level Controls

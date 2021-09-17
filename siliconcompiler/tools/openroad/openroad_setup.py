@@ -10,42 +10,17 @@ import siliconcompiler
 ####################################################################
 
 def make_docs():
-    '''OpenROAD is an integrated chip physical design tool
+    '''
+    OpenROAD is an automated physical design platform for 
+    integreated circuit design with a complete set of features
+    needed to translate a synthesized netlist to a tapeout ready
+    GDSII.
 
-    Implementation steps done by OpenROAD include:
+    Documentation:https://github.com/The-OpenROAD-Project/OpenROAD
 
-    * Physical database management
-    * DEF/LEF/Liberty/Verilog/SDC file interfaces
-    * Static timing analysis
-    * Floorplan initialize
-    * Pin placement
-    * Tap cell insertion
-    * Power grid inesertion
-    * Macro Placement
-    * Global placement of standard cells
-    * Electrical design rule repair
-    * Clock tree synthesis
-    * Timing driven optimization
-    * Filler insertion
-    * Global routing (route guides for detailed routing)
-    * Detailed routing
+    Sources: https://github.com/The-OpenROAD-Project/OpenROAD
 
-    The interface from SC to openroad is done through 'sc_manifest.tcl'.
-    The entry point for all openroad based steps is the 'sc_apr.tcl' script.
-    The script handles general input/output function and is the main
-    interface to SC. Execution then branches off to
-    separate files based on the step being executed (place, route, etc).
-
-    Documentation:
-    * https://github.com/The-OpenROAD-Project/OpenROAD
-
-    Installation Instructions:
-
-    TCL script:
-
-    Source code:
-    * https://github.com/The-OpenROAD-Project/OpenROAD
-    * https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts
+    Installation: https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts
 
     '''
 
@@ -78,7 +53,6 @@ def setup_tool(chip, step, index, mode='batch'):
         script = '/sc_apr.tcl'
         option = "-no_init"
 
-    chip.set('eda', tool, step, index, 'vendor', tool, clobber=clobber)
     chip.set('eda', tool, step, index, 'exe', tool, clobber=clobber)
     chip.set('eda', tool, step, index, 'vswitch', '-version', clobber=clobber)
     chip.set('eda', tool, step, index, 'version', '0', clobber=clobber)

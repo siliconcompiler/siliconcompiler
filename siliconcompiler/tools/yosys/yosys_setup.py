@@ -11,38 +11,25 @@ from siliconcompiler.schema_utils import schema_path
 ######################################################################
 
 def make_docs():
-    '''Yosys is a framework for RTL synthesis.
+    '''
+    Yosys is a framework for RTL synthesis that takes synthesizable
+    Verilog-2005 design and converts it to BLIF, EDIF, BTOR, SMT, 
+    Verilog netlist etc. The tool supports logical synthesis and 
+    tech mapping to ASIC standard cell libraries, FPGA architectures. 
+    In addition it has built in formal methods for property and 
+    equivalence checking.
 
-    Features:
+    Documentation: http://www.clifford.at/yosys/documentation.html
 
-    * Process almost any synthesizable Verilog-2005 design
-    * Converting Verilog to BLIF / EDIF/ BTOR / SMT-LIB / Verilog / etc.
-    * Built-in formal methods for checking properties and equivalence
-    * Mapping to ASIC standard cell libraries
-    * Mapping to FPGAs.
-    * Foundation and/or front-end for custom flows
+    Sources: https://github.com/YosysHQ/yosys
 
-    The interface from SC to yosys is done through 'sc_manifest.tcl'.
-    The entry point for all yosys based steps is the 'sc_syn.tcl' script.
-    The script handles general input/output function and is the main
-    interface to SC.
-
-    Installation Instructions:
-
-    SC TCL scripts:
-
-    Source code:
-    * https://github.com/YosysHQ/yosys
-
-    Documentation:
-    * http://www.clifford.at/yosys/documentation.html
+    Installation: https://github.com/YosysHQ/yosys
 
     '''
 
     chip = siliconcompiler.Chip()
     setup_tool(chip,'syn','<index>')
     return chip
-
 
 ################################
 # Setup Tool (pre executable)
@@ -66,7 +53,6 @@ def setup_tool(chip, step, index):
 
     # Standard Setup
     chip.set('eda', tool, step, index, 'copy', 'true', clobber=False)
-    chip.set('eda', tool, step, index, 'vendor', 'yosys', clobber=False)
     chip.set('eda', tool, step, index, 'exe', 'yosys', clobber=False)
     chip.set('eda', tool, step, index, 'vswitch', '--version', clobber=False)
     chip.set('eda', tool, step, index, 'version', '0.9+3672', clobber=False)

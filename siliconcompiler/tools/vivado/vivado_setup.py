@@ -11,10 +11,11 @@ import siliconcompiler
 ####################################################################
 
 def make_docs():
-    '''Vivado is an FPGA toolsuite for Xilinx devices.
+    '''
+    Vivado is an FPGA programming tool suite from Xilinx used to
+    program Xilinx devices.
 
-    Documentation:
-    * https://www.xilinx.com/products/design-tools/vivado.html
+    Documentation: https://www.xilinx.com/products/design-tools/vivado.html
 
     '''
 

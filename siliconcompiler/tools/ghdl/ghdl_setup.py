@@ -12,27 +12,17 @@ from siliconcompiler.schema_utils import schema_path
 #####################################################################
 
 def make_docs():
-    '''GHDL is a VHDL analyzer, compiler, and simulator
-
+    '''
     GHDL, the open-source analyzer, compiler, simulator and
-    (experimental) synthesizer for VHDL. GHDL is not an interpreter:
-    it allows you to analyse and elaborate sources for generating
-    machine code from your design. Native program execution is the
-    only way for high speed simulation.
+    (experimental) synthesizer for VHDL. It allows you to analyse 
+    and elaborate sources for generating machine code from your design. 
+    Native program execution is the only way for high speed simulation.
 
-    Documentation:
-    * http://www.clifford.at/icestorm
+    Documentation: https://ghdl.readthedocs.io/en/latest
 
-    Source code:
+    Sources: https://github.com/ghdl/ghdl 
 
-    * https://github.com/YosysHQ/icestorm
-
-    Build instructions:
-
-    git clone https://github.com/YosysHQ/icestorm.git icestorm
-    cd icestorm
-    make -j$(nproc)
-    sudo make install
+    Installation: https://github.com/ghdl/ghdl
 
     '''
 
@@ -57,8 +47,6 @@ def setup_tool(chip, step, index):
     chip.set('eda', tool, step, index, 'copy', 'false', clobber=clobber)
     chip.set('eda', tool, step, index, 'exe', 'yosys', clobber=clobber)
     chip.set('eda', tool, step, index, 'version', '0.0', clobber=clobber)
-    chip.set('eda', tool, step, index, 'vendor', 'ghdl', clobber=clobber)
-
 
     # ghdl is invoked via Yosys by running a command with the format:
     #   yosys -m ghdl -p 'ghdl --std=08 --no-formal sources...; write_ilang ghdl.ilang'

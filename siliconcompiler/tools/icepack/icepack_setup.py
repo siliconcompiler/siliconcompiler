@@ -9,21 +9,15 @@ import siliconcompiler
 #####################################################################
 
 def make_docs():
-    '''Icepack converts an ASCII file to an ICE40 .bin file
+    '''
+    Icepack converts an ASCII bitstream file to a .bin file for the
+    ICE40 FPGA.
 
-    Documentation:
-    * http://www.clifford.at/icestorm
+    Documentation: http://www.clifford.at/icestorm
 
-    Source code:
+    Sources: https://github.com/YosysHQ/icestorm
 
-    * https://github.com/YosysHQ/icestorm
-
-    Build instructions:
-
-    git clone https://github.com/YosysHQ/icestorm.git icestorm
-    cd icestorm
-    make -j$(nproc)
-    sudo make install
+    Installation: https://github.com/YosysHQ/icestorm
 
     '''
 
@@ -40,7 +34,6 @@ def setup_tool(chip, step, index):
     ''' Sets up default settings on a per step basis
     '''
     tool = 'icepack'
-    chip.set('eda', tool, step, index, 'vendor', tool)
     chip.set('eda', tool, step, index, 'exe', tool)
     chip.set('eda', tool, step, index, 'version', '0')
 

@@ -10,8 +10,7 @@ from siliconcompiler.schema_utils import schema_path
 ####################################################################
 
 def make_docs():
-    '''OpenFPGA is an FPGA design generator.
-
+    '''
     OpenFPGA is an open-source framework that enables
     rapid prototyping of customizable FPGA architectures.
     The framework takes in an XML architecture description file
@@ -19,13 +18,11 @@ def make_docs():
     generates a layout ready FPGA netlist and bitstream generator
     to be combined with tools like VPR.
 
-    Documentation:
-    https://openfpga.readthedocs.io/en/master/
+    Documentation: https://openfpga.readthedocs.io/en/master/
 
-    Installation instructions:
+    Sources: https://github.com/lnis-uofu/OpenFPGA
 
-    Source Code:
-    * https://github.com/lnis-uofu/OpenFPGA
+    Installation: https://github.com/lnis-uofu/OpenFPGA
 
     '''
 
@@ -47,7 +44,6 @@ def setup_tool(chip, step, index):
     refdir = 'siliconcompiler/tools/openfpga'
 
     chip.set('eda', tool, step, index, 'version', '0.0')
-    chip.set('eda', tool, step, index, 'vendor', 'openfpga')
     chip.set('eda', tool, step, index, 'copy', 'true')
     chip.set('eda', tool, step, index, 'refdir', refdir)
 
