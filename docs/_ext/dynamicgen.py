@@ -63,6 +63,11 @@ def image(src, center=False):
         i['align'] = 'center'
     return i
 
+def link(url, text=None):
+    if text is None:
+        text = url
+    return nodes.reference(internal=False, refuri=url, text=text)
+
 # SC schema helpers
 def is_leaf(schema):
     if 'defvalue' in schema:
@@ -83,6 +88,9 @@ def flatten(cfg, prefix=()):
 
     return flat_cfg
 
+# We need this in a few places, so just make it global
+SC_ROOT = os.path.abspath(f'{__file__}/../../../')
+
 class DynamicGen(SphinxDirective):
     '''Base class for all three directives provided by this extension.
 
@@ -90,7 +98,7 @@ class DynamicGen(SphinxDirective):
     and setting a PATH member variable.
     '''
 
-    def document_module(self, module, modname):
+    def document_module(self, module, modname, path):
         '''Build section documenting given module and name.'''
         s = build_section(modname, modname)
 
@@ -101,6 +109,17 @@ class DynamicGen(SphinxDirective):
         docstr = make_docs.__doc__
         if docstr:
             self.parse_rst(docstr, s)
+
+        builtin = os.path.abspath(path).startswith(SC_ROOT)
+
+        if builtin:
+            relpath = path[len(SC_ROOT)+1:]
+            gh_root = 'https://github.com/siliconcompiler/siliconcompiler/blob/main'
+            gh_link = f'{gh_root}/{relpath}'
+            filename = os.path.basename(relpath)
+            p = para('Setup file: ')
+            p += link(gh_link, text=filename)
+            s += p
 
         chip = make_docs()
 
@@ -130,8 +149,9 @@ class DynamicGen(SphinxDirective):
         sections = []
 
         for module, modname in self.get_modules():
-            self.env.note_dependency(module.__file__)
-            docs = self.document_module(module, modname)
+            path = module.__file__
+            self.env.note_dependency(path)
+            docs = self.document_module(module, modname, path)
             if docs is not None:
                 sections.append(docs)
 
@@ -153,8 +173,7 @@ class DynamicGen(SphinxDirective):
         TODO: we want better duplicate resolution (in case the user explicitly
         declares a duplicate tool), where SCPATH takes priority.
         '''
-        sc_root = os.path.abspath(f'{__file__}/../../../')
-        builtins_dir = f'{sc_root}/siliconcompiler/{self.PATH}'
+        builtins_dir = f'{SC_ROOT}/siliconcompiler/{self.PATH}'
         modules = self.get_modules_in_dir(builtins_dir)
 
         if 'SCPATH' in os.environ:
