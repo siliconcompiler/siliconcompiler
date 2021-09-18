@@ -186,7 +186,7 @@ class Server:
         chip.set('remote', 'addr', '', clobber=True)
         # Rename source files in the config dict; the 'import' step already
         # ran and collected the sources into a single Verilog file.
-        chip.set('source', '%s/import0/outputs/%s.v'%(build_dir, chip.get('design')), clobber=True)
+        chip.set('source', '%s/import%d/outputs/%s.v'%(build_dir, cur_id, chip.get('design')), clobber=True)
 
         # Write JSON config to shared compute storage.
         subprocess.run(['mkdir', '-p', '%s/configs'%build_dir])
@@ -292,11 +292,12 @@ class Server:
         # Assemble core job parameters.
         job_hash = chip.get('remote', 'jobhash')
         top_module = chip.get('design')
-        job_nameid = f"{chip.get('jobname')}{chip.get('jobid')}"
+        cur_id = chip.get('jobid')
+        job_nameid = f"{chip.get('jobname')}{cur_id}"
         nfs_mount = self.cfg['nfsmount']['value'][-1]
 
         # Mark the job run as busy.
-        self.sc_jobs["%s%s_0"%(username, job_hash)] = 'busy'
+        self.sc_jobs["%s%s_%d"%(username, job_hash, cur_id)] = 'busy'
 
         # Reset 'build' directory in NFS storage.
         build_dir = '/tmp/%s_%s'%(job_hash, job_nameid)
@@ -306,12 +307,14 @@ class Server:
 
         # Rename source files in the config dict; the 'import' step already
         # ran and collected the sources into a single Verilog file.
-        chip.set('source', f"{build_dir}/{top_module}/{job_nameid}/import0/outputs/{top_module}.v", clobber=True)
+        chip.set('source', f"{build_dir}/{top_module}/{job_nameid}/import{cur_id}/outputs/{top_module}.v", clobber=True)
 
         run_cmd = ''
         if self.cfg['cluster']['value'][-1] == 'slurm':
-            # TODO: support encrypted jobs on a slurm cluster.
-            pass
+            # Run the job with slurm clustering.
+            chip.set('jobscheduler', 'slurm')
+            chip.status['decrypt_key'] = pk
+            chip.run()
         else:
             # Run the build command locally.
             from_dir = '%s/%s'%(nfs_mount, job_hash)
@@ -328,10 +331,10 @@ class Server:
             with open(os.open(keypath, os.O_CREAT | os.O_WRONLY, 0o400), 'w+') as keyfile:
                 keyfile.write(base64.urlsafe_b64decode(pk).decode())
             chip.set('remote', 'key', keypath, clobber=True)
-            chip.writecfg(f"{build_dir}/configs/chip0.json")
+            chip.writecfg(f"{build_dir}/configs/chip{chip.get('jobid')}.json")
             # Create the command to run.
             run_cmd  = f"cp -R {from_dir}/* {to_dir}/ ; "
-            run_cmd += f"sc -cfg {build_dir}/configs/chip0.json -dir {to_dir} -remote_key {keypath} -remote_addr '' ; "
+            run_cmd += f"sc -cfg {build_dir}/configs/chip{chip.get('jobid')}.json -dir {to_dir} -remote_key {keypath} -remote_addr '' ; "
             run_cmd += f"cp -R {to_dir}/{top_module}/* {from_dir}/{top_module}/ ; "
             run_cmd += f"rm -rf {to_dir}"
 
@@ -355,7 +358,7 @@ class Server:
         # (Email notifications can be sent here using your preferred API)
 
         # Mark the job hash as being done.
-        self.sc_jobs.pop("%s%s_0"%(username, job_hash))
+        self.sc_jobs.pop("%s%s_%d"%(username, job_hash, chip.get('jobid')))
 
     ####################
     async def remote_sc(self, chip):
@@ -378,14 +381,18 @@ class Server:
         if self.cfg['cluster']['value'][-1] == 'slurm':
             # Assemble the 'sc' command. The host must be running slurmctld.
             # TODO: Avoid using a hardcoded $PATH variable for the compute node.
-            export_path  = '--export=PATH=/home/ubuntu/OpenROAD-flow-scripts/tools/build/OpenROAD/src'
-            export_path += ':/home/ubuntu/OpenROAD-flow-scripts/tools/build/TritonRoute'
-            export_path += ':/home/ubuntu/OpenROAD-flow-scripts/tools/build/yosys/bin'
-            export_path += ':/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin'
+            #export_path  = '--export=PATH=/home/ubuntu/OpenROAD-flow-scripts/tools/build/OpenROAD/src'
+            #export_path += ':/home/ubuntu/OpenROAD-flow-scripts/tools/build/TritonRoute'
+            #export_path += ':/home/ubuntu/OpenROAD-flow-scripts/tools/build/yosys/bin'
+            #export_path += ':/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin'
             # Send JSON config instead of using subset of flags.
             # TODO: Use slurmpy SDK?
-            run_cmd  = 'srun %s sc '%(export_path)
-            run_cmd += '-cfg %s/configs/chip%s.json '%(build_dir, jobid)
+            #run_cmd  = 'srun %s sc '%(export_path)
+            #run_cmd += '-cfg %s/configs/chip%s.json '%(build_dir, jobid)
+            # Run the job with slurm clustering.
+            chip.set('jobscheduler', 'slurm')
+            chip.status['decrypt_key'] = pk
+            chip.run()
         else:
             # Unrecognized or unset clusering option; run locally on the
             # server itself. (Note: local runs are mostly synchronous, so
@@ -393,9 +400,9 @@ class Server:
             # calls. It should only be used for testing and development.)
             run_cmd = 'sc -cfg %s/configs/chip%s.json'%(build_dir, jobid)
 
-        # Create async subprocess shell, and block this thread until it finishes.
-        proc = await asyncio.create_subprocess_shell(run_cmd)
-        await proc.wait()
+            # Create async subprocess shell, and block this thread until it finishes.
+            proc = await asyncio.create_subprocess_shell(run_cmd)
+            await proc.wait()
 
         # (Email notifications can be sent here using SES)
 
