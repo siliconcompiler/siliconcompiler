@@ -3,7 +3,7 @@ DIVIDERCHAR "/" ;
 BUSBITCHARS "[]" ;
 DESIGN {{ fp.design }} ;
 UNITS DISTANCE MICRONS {{ fp.db_units }} ;
-DIEAREA {{ fp.die_area | map('scale') | map('render_tuple') | join(' ') }} ;
+DIEAREA {{ fp.diearea | map('scale') | map('render_tuple') | join(' ') }} ;
 
 {% for row in fp.rows %}
 ROW {{ row.name }} {{ row.site }} {{ row.x | scale }} {{ row.y | scale }} {{ row.orientation }}
@@ -71,7 +71,7 @@ SPECIALNETS {{ fp.nets | length }} ;
         {% else %}
         NEW
         {% endif %}
-        {{ wire.layer }} {{ wire.width | scale }} + SHAPE {{ wire.shape | upper }} {{ wire.start | scale | render_tuple }} {{ wire.end | scale | render_tuple }}
+        {{ wire.layer }} {{ wire.width | scale }} {% if wire.shape %} + SHAPE {{ wire.shape | upper }} {% endif %} {{ wire.start | scale | render_tuple }} {{ wire.end | scale | render_tuple }}
     {% endfor %}
     {% for via in net.vias %}
         {% if loop.first and net.wires | length == 0 %}

@@ -16,9 +16,9 @@ def make_fp():
     c.add('library', lib, 'lef', test_dir + '/test_floorplan/ram.lef')
 
     fp = Floorplan(c)
-    cell_w = fp.std_cell_width
-    cell_h = fp.std_cell_height
-    fp.create_die_area([(0, 0), (72 * cell_h, 72 * cell_h)], core_area=[(8 * cell_h, 8 * cell_h), (64 * cell_h, 64 * cell_h)])
+    cell_w = fp.stdcell_width
+    cell_h = fp.stdcell_height
+    fp.create_diearea([(0, 0), (72 * cell_h, 72 * cell_h)], corearea=[(8 * cell_h, 8 * cell_h), (64 * cell_h, 64 * cell_h)])
 
     n = 4 # pins per side
 
@@ -31,7 +31,7 @@ def make_fp():
 
     fp.place_macros([('myram', 'RAM')], 25 * cell_w, 25 * cell_h, 0, 0, 'N')
 
-    die_w, die_h = fp.die_area[1]
+    die_w, die_h = fp.diearea[1]
 
     spacing_x = die_w / (n + 1)
     spacing_y = die_h / (n + 1)
@@ -100,7 +100,7 @@ def test_padring():
     die_w = 1200
     die_h = 1200
 
-    fp.create_die_area([(0, 0), (die_w, die_h)])
+    fp.create_diearea([(0, 0), (die_w, die_h)])
 
     io_h = fp.available_cells['CORNER'].height
 
@@ -152,8 +152,8 @@ def test_padring():
     fp.fill_io_region([(die_w - io_h, 0), (die_w, die_h)], io_fill_cells, 'E', 'v')
     fp.fill_io_region([(0, die_h - io_h), (die_w, die_h)], io_fill_cells, 'S', 'h')
 
-    fp.configure_net('VDD', 'VDD', 'POWER')
-    fp.configure_net('VSS', 'VSS', 'GROUND')
+    fp.add_net('VDD', 'VDD', 'POWER')
+    fp.add_net('VSS', 'VSS', 'GROUND')
 
     hlayer = chip.get('asic', 'hpinlayer')
     vlayer = chip.get('asic', 'vpinlayer')
@@ -169,10 +169,10 @@ def test_vias_at_intersection():
     c.target('skywater130')
 
     fp = Floorplan(c)
-    fp.create_die_area([(0, 0), (100, 100)])
+    fp.create_diearea([(0, 0), (100, 100)])
 
-    fp.configure_net('vdd', [], 'power')
-    fp.configure_net('vss', [], 'ground')
+    fp.add_net('vdd', [], 'power')
+    fp.add_net('vss', [], 'ground')
     # fp.add_viarule('via4_1600x1600', 'M4M5_PR', (0.8, 0.8), ('m4', 'via4', 'm5'), (.8, .8), (.04,  .04, .04, .04))
 
     fp.place_wires(['vdd'] * 2, 0, 0, 10, 0, 1.6, 100, 'm5', 'stripe')
