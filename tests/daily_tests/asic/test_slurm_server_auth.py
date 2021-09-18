@@ -15,7 +15,7 @@ def test_gcd_server_slurm_authenticated():
 
     # Collect relevant file paths.
     root_dir = os.path.abspath(__file__)
-    root_dir = root_dir[:root_dir.rfind('/tests/quick_tests/asic')]
+    root_dir = root_dir[:root_dir.rfind('/tests/daily_tests/asic')]
     gcd_ex_dir = root_dir + '/examples/gcd/'
 
     # Create a JSON file with a test user / key.
@@ -67,7 +67,7 @@ def test_gcd_server_slurm_not_authenticated():
 
     # Collect relevant file paths.
     root_dir = os.path.abspath(__file__)
-    root_dir = root_dir[:root_dir.rfind('/tests/quick_tests/asic')]
+    root_dir = root_dir[:root_dir.rfind('/tests/daily_tests/asic')]
     gcd_ex_dir = root_dir + '/examples/gcd/'
 
     # Create a JSON file with a test user / key.

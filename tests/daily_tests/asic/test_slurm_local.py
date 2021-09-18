@@ -13,7 +13,7 @@ def test_slurm_local_py():
     chip = siliconcompiler.Chip()
 
     gcd_ex_dir = os.path.abspath(__file__)
-    gcd_ex_dir = gcd_ex_dir[:gcd_ex_dir.rfind('/tests/quick_tests/asic')] + '/examples/gcd/'
+    gcd_ex_dir = gcd_ex_dir[:gcd_ex_dir.rfind('/tests/daily_tests/asic')] + '/examples/gcd/'
 
     # Inserting value into configuration
     chip.set('design', 'gcd', clobber=True)
