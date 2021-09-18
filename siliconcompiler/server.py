@@ -190,7 +190,6 @@ class Server:
 
         # Write JSON config to shared compute storage.
         subprocess.run(['mkdir', '-p', '%s/configs'%build_dir])
-        chip.writecfg('%s/configs/chip%s.json'%(build_dir, cur_id))
 
         # Run the job with the configured clustering option. (Non-blocking)
         if use_auth:
@@ -311,7 +310,7 @@ class Server:
         run_cmd = ''
         if self.cfg['cluster']['value'][-1] == 'slurm':
             # Run the job with slurm clustering.
-            chip.set('dir', jobs_dir, clobber=True)
+            chip.set('dir', f'{nfs_mount}/{job_hash}', clobber=True)
             chip.set('jobscheduler', 'slurm')
             chip.set('remote', 'addr', None)
             chip.set('remote', 'key', None)
@@ -400,7 +399,9 @@ class Server:
             # server itself. (Note: local runs are mostly synchronous, so
             # this will probably block the server from responding to other
             # calls. It should only be used for testing and development.)
-            run_cmd = 'sc -cfg %s/configs/chip%s.json'%(build_dir, jobid)
+            cfg_out = f"{build_dir}/configs/chip{jobid}.json"
+            chip.writecfg(cfg_out)
+            run_cmd = f'sc -cfg {cfg_out}'
 
             # Create async subprocess shell, and block this thread until it finishes.
             proc = await asyncio.create_subprocess_shell(run_cmd)
