@@ -303,7 +303,6 @@ class Server:
         build_dir = '/tmp/%s_%s'%(job_hash, job_nameid)
         jobs_dir = '%s/%s'%(build_dir, top_module)
         os.mkdir(build_dir)
-        chip.set('dir', build_dir, clobber=True)
 
         # Rename source files in the config dict; the 'import' step already
         # ran and collected the sources into a single Verilog file.
@@ -312,10 +311,14 @@ class Server:
         run_cmd = ''
         if self.cfg['cluster']['value'][-1] == 'slurm':
             # Run the job with slurm clustering.
+            chip.set('dir', jobs_dir, clobber=True)
             chip.set('jobscheduler', 'slurm')
+            chip.set('remote', 'addr', None)
+            chip.set('remote', 'key', None)
             chip.status['decrypt_key'] = pk
             chip.run()
         else:
+            chip.set('dir', build_dir, clobber=True)
             # Run the build command locally.
             from_dir = '%s/%s'%(nfs_mount, job_hash)
             to_dir   = '/tmp/%s_%s'%(job_hash, job_nameid)
