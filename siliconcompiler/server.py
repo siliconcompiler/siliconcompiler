@@ -391,7 +391,6 @@ class Server:
             #run_cmd += '-cfg %s/configs/chip%s.json '%(build_dir, jobid)
             # Run the job with slurm clustering.
             chip.set('jobscheduler', 'slurm')
-            chip.status['decrypt_key'] = pk
             chip.run()
         else:
             # Unrecognized or unset clusering option; run locally on the
