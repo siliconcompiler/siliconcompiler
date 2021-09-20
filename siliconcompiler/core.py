@@ -68,40 +68,9 @@ class Chip:
         self.logger.addHandler(self.handler)
         self.logger.setLevel(str(loglevel))
 
-        # Set Environment Variable if not already set
-        # TODO: Better solution??
-        scriptdir = os.path.dirname(os.path.abspath(__file__))
-        rootdir = re.sub('siliconcompiler/siliconcompiler',
-                         'siliconcompiler',
-                         scriptdir)
-
-        if 'SCPATH' in os.environ:
-            #Getting environment path (highest priority)
-            scpaths = str(os.environ['SCPATH']).split(':')
-        else:
-            scpaths = []
-
-        #Add the root Path
-        scpaths.append(rootdir)
-
-        # Add the path where the builtin tools, foundries, and flows live.
-        # By adding this path directly to sys.path, we can search both builtin
-        # and user provided modules more easily, since we don't have to prefix
-        # the dynamic import path with 'siliconcompiler.' for builtins.
-        scpaths.append(rootdir + '/siliconcompiler')
-
-        # Adding current working directory if not
-        # working out of rootdir
-        if not re.match(str(os.getcwd()), rootdir):
-            scpaths.append(os.getcwd())
-
-        # Writing back global SCPATH
-        os.environ['SCPATH'] = ':'.join(scpaths)
-
-        #Adding scpath to python search path
-        sys.path.extend(scpaths)
-        self.logger.debug("SC search path %s", os.environ['SCPATH'])
-        self.logger.debug("Python search path %s", sys.path)
+        # Add sc root directory to module search path for target()
+        # takes precedence over
+        self.scroot = os.path.dirname(os.path.abspath(__file__))
 
     ###########################################################################
     def cmdline(self, progname, description=None, switchlist=[]):
@@ -353,59 +322,39 @@ class Chip:
                             self.set(*args, clobber=True)
 
     #########################################################################
-    def loadtool(self, tool, step, index):
+    def loadmodule(self, modname, modtype):
         '''
-        Dynamic load of tool module based on search path.
+        Dynamic load of module based on scpath search parameter.
         '''
 
-        # Only load tool if not already loaded
-        if self.get('eda', tool, step, index, 'exe', field='lock'):
-            self.logger.warning('Tool already configured: ' + tool)
+        # module search path depends on modtype
+        if modtype == 'tool':
+            fullpath = self.find(f"tools/{modname}/{modname}.py")
+        elif modtype == 'flow':
+            fullpath = self.find(f"flows/{modname}.py")
+        elif modtype == 'pdk':
+            fullpath = self.find(f"foundries/{modname}.py")
+        else:
+            self.logger.error(f"Illegal module type '{modtype}'.")
+            self.error = 1
             return
 
+        # error if module not found
+        if not fullpath:
+            self.logger.error(f"Module '{modname}' not found in scpath.")
+            self.error = 1
+            return
+
+        # try loading module
         try:
-            searchdir = "tools." + tool
-            modulename = '.'+tool+'_setup'
-            self.logger.info(f"Setting up tool '{tool}' for step '{step}' and index {index}")
-            module = importlib.import_module(modulename, package=searchdir)
-            setup_tool = getattr(module, "setup_tool")
-            setup_tool(self, step, index)
+            sys.path.append(os.path.dirname(fullpath))
+            imported = importlib.import_module(modname)
+            module_func = getattr(imported, "setup_"+modtype)
+            module_func(self)
+            sys.path.pop()
         except:
             traceback.print_exc()
-            self.logger.error(f"Setup failed for '{tool}' in step '{step} and index {index}'")
-            self.error = 1
-
-        # Locking the tool after loading
-        self.set('eda', tool, step, index, 'exe', 'true', field='lock')
-
-    ###########################################################################
-    def loadpdk(self, process):
-        '''
-        Dynamic load of PDK module for a process based on search path.
-        '''
-        try:
-            searchdir = 'foundries'
-            module = importlib.import_module('.'+process, package=searchdir)
-            setup_pdk = getattr(module, "setup_pdk")
-            setup_pdk(self)
-            self.logger.info("Loaded technology files '%s'", process)
-        except ModuleNotFoundError:
-            self.logger.error("Technology module %s not found.", process)
-            self.error = 1
-
-    ###########################################################################
-    def loadflow(self, flow):
-        '''
-        Dynamic load of flow module based on search path.
-        '''
-        try:
-            searchdir = 'flows'
-            module = importlib.import_module('.'+flow, package=searchdir)
-            setup_flow = getattr(module, "setup_flow")
-            setup_flow(self)
-            self.logger.info("Loaded flow '%s'", flow)
-        except ModuleNotFoundError:
-            self.logger.error("Flow module %s not found.", flow)
+            self.logger.error(f"Module setup failed for '{modname}'")
             self.error = 1
 
     ###########################################################################
@@ -777,7 +726,6 @@ class Chip:
         return self._search(cfg, keypath, *all_args, field='value', mode='add')
 
 
-
     ###########################################################################
     def _allkeys(self, cfg, keys=None, keylist=None):
         '''
@@ -1073,9 +1021,11 @@ class Chip:
     ###########################################################################
     def find(self, filename):
         """
-        Returns an absolute path for the provided filename provided.
+        Returns an absolute e path for the provided filename provided.
 
-        The method searches for a match for filename using the SCPATH
+        The method searches for a match for the relative filename using
+        the scpath
+
         environment variable. Legal shell variables consisting of '$' followed
         by numbers, underscores, and digits are replaced with the variable
         value.
@@ -1087,15 +1037,26 @@ class Chip:
             varpath = os.getenv(item)
             filename = filename.replace("$"+item, varpath)
 
-        # Resolving absolute paths
-        scpaths = str(os.environ['SCPATH']).split(':')
-        for searchdir in scpaths:
-            abspath = searchdir + "/" + filename
-            if os.path.exists(abspath):
+        # Handling relative path and abspath matches
+        if os.path.exists(os.path.abspath(filename)):
+            filename = os.path.abspath(filename)
+        # Matching paths relative to scpaths
+        else:
+            scpaths = [self.scroot]
+            scpaths.extend(self.get('scpath'))
+            found = False
+            for searchdir in scpaths:
+                abspath = os.path.abspath(searchdir + "/" + filename)
+                if os.path.exists(abspath):
+                    found = True
+                    break
+            if found:
                 filename = abspath
-                break
+            else:
+                filename = None
 
         return filename
+
 
     ###########################################################################
     def _abspath(self, cfg):
@@ -1306,7 +1267,7 @@ class Chip:
 
         #TODO: add ability to read in all files set in 'cfg' if no file
         #name is specified
-        
+
         if cfg is None:
             cfg = self.cfg
 
