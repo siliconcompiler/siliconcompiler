@@ -2,8 +2,6 @@ import os
 from string import Template
 import defusedxml.ElementTree as ET
 import siliconcompiler
-from siliconcompiler.schema_utils import schema_path
-
 
 ####################################################################
 # Make Docs
@@ -27,7 +25,9 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
-    setup_tool(chip,'fpgagen','<index>')
+    chip.set('arg','step','fpgagen')
+    chip.set('arg','index','<index>')
+    setup_tool(chip)
     return chip
 
 ################################
@@ -36,12 +36,15 @@ def make_docs():
 
 OPENFPGA_SCRIPT = 'openfpga_script.openfpga'
 
-def setup_tool(chip, step, index):
+def setup_tool(chip):
     ''' Sets up default settings on a per step basis
     '''
 
     tool = 'openfpga'
-    refdir = 'siliconcompiler/tools/openfpga'
+    refdir = 'tools/'+tool
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+
 
     chip.set('eda', tool, step, index, 'version', '0.0')
     chip.set('eda', tool, step, index, 'copy', 'true')
@@ -57,7 +60,7 @@ def setup_tool(chip, step, index):
         chip.add('eda', tool, step, index, 'option', 'cmdline', ' -r inputs/ outputs/')
 
 
-def pre_process(chip, step, index):
+def pre_process(chip):
     topmodule = chip.get('design')
 
     input_blif = 'inputs/' + topmodule + '.blif'
@@ -69,7 +72,7 @@ def pre_process(chip, step, index):
     openfpga_sim_file = None
 
     for arch_file in chip.get('fpga', 'arch'):
-        path = schema_path(arch_file)
+        path = chip.find(arch_file)
         root_tag = ET.parse(path).getroot().tag
         if root_tag == 'architecture':
             vpr_arch_file = path
@@ -107,7 +110,7 @@ def pre_process(chip, step, index):
 # Post Run Command
 ################################
 
-def post_process(chip, step, index):
+def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
 
