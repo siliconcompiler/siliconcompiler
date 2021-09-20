@@ -39,30 +39,27 @@ def remote_preprocess(chip):
         job_hash = uuid.uuid4().hex
         chip.set('remote', 'jobhash', job_hash)
 
+    manager = multiprocessing.Manager()
+    error = manager.dict()
+    active = manager.dict()
+
     # Run any local steps if necessary.
     local_steps = []
     for step in chip.getkeys('flowgraph'):
         if not step in chip.get('remote', 'steplist'):
             local_steps.append(step)
 
+    # Setup up tools for all local functions
     for step in local_steps:
-        #setting step to active
-        index = "0"
-        tool = chip.get('flowgraph', step, index, 'tool')
-        searchdir = "siliconcompiler.tools." + tool
-        modulename = '.'+tool+'_setup'
-        chip.logger.info(f"Setting up tool '{tool}' for remote '{step}' step")
-
-        #Loading all tool modules and checking for errors
-        module = importlib.import_module(modulename, package=searchdir)
-        setup_tool = getattr(module, "setup_tool")
-        setup_tool(chip, step, str(0))
-
-        # Run the actual import step locally.
-        manager = multiprocessing.Manager()
-        error = manager.dict()
-        active = manager.dict()
-        chip._runstep(step, str(0), active, error)
+        indexlist = chip.getkeys('flowgraph', step)
+        for index in indexlist:
+            chip.set('arg','step', step)
+            chip.set('arg','index', index)
+            tool = chip.get('flowgraph', step, index, 'tool')
+            func = chip.loadfunction(tool, 'tool', 'setup_tool')
+            func(chip)
+            # Run the actual import step locally.
+            chip._runstep(step, index, active, error)
 
     # Set 'steplist' to only the remote steps, for the future server-side run.
     remote_steplist = []
