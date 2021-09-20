@@ -1,3 +1,4 @@
+import os
 import siliconcompiler
 
 if __name__ != "__main__":
@@ -9,7 +10,8 @@ def test_tool_option():
     early.'''
     chip = siliconcompiler.Chip()
 
-    gcd_ex_dir = 'examples/gcd/'
+    gcd_ex_dir = os.path.abspath(__file__)
+    gcd_ex_dir = gcd_ex_dir[:gcd_ex_dir.rfind('/tests/quick_tests/asic')] + '/examples/gcd/'
 
     # Inserting value into configuration
     chip.set('design', 'gcd', clobber=True)
@@ -27,9 +29,9 @@ def test_tool_option():
     # No need to run beyond place, we just want to check that setting place_density
     # doesn't break anything.
     steplist = [
-        'import', 
-        'syn', 
-        'synmin', 
+        'import',
+        'syn',
+        'synmin',
         'floorplan',
         'floorplanmin',
         'physyn',
@@ -41,3 +43,6 @@ def test_tool_option():
 
     # Run the chip's build process synchronously.
     chip.run()
+
+if __name__ == "__main__":
+    test_tool_option()
