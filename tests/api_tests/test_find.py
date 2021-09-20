@@ -9,12 +9,14 @@ if __name__ != "__main__":
 def test_find():
 
     chip = siliconcompiler.Chip()
-    os.environ['SCDIR'] = 'siliconcompiler'
-    os.environ['TOOLDIR'] = 'verilator'
-    filepath = chip.find("$SUBDIR/tools/$LEAF/")
+    chip.set('scpath', 'examples/sclib')
+    error = 0
+    if not chip.find("flows/asicflow.py"):
+        error = 1
+    if not chip.find("foundries/freepdk45.py"):
+        error = 1
 
-    assert (os.path.isdir(filepath))
-
+    assert not error
 
 #########################
 if __name__ == "__main__":
