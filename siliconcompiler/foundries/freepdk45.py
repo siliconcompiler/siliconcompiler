@@ -82,8 +82,10 @@ def setup_pdk(chip):
     chip.set('pdk','tapoffset', 0)
 
     # APR tech file
-    chip.set('pdk','aprtech',stackup, libtype, 'lef',
-             pdkdir+'/apr/freepdk45.tech.lef')
+    chip.set('pdk','aprtech',stackup, libtype, 'lef',pdkdir+'/apr/freepdk45.tech.lef')
+
+    # Klayout setup file
+    chip.set('pdk','layermap',stackup, 'def', 'gds', pdkdir+'/setup/klayout/freepdk45.lyt')
 
     # Routing Grid Definitions
     for sc_name, pdk_name in [('m1', 'metal1')]:
