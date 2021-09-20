@@ -2539,7 +2539,10 @@ class Chip:
         '''
 
         exe = self.get('eda', tool, step, index, 'exe')
-        options = self.get('eda', tool, step, index, 'option', 'cmdline')
+        if self.get('eda', tool, step, index, 'option', 'cmdline'):
+            options = self.get('eda', tool, step, index, 'option', 'cmdline')
+        else:
+            options = []
         scripts = []
         # Add scripts files
         for value in self.get('eda', tool, step, index, 'script'):
