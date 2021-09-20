@@ -71,27 +71,23 @@ def runtime_options(chip):
 
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-
-    cmdlist = []
-
-    scriptdir = os.path.dirname(os.path.abspath(__file__))
-    sc_root =  re.sub('siliconcompiler/siliconcompiler/tools/klayout',
-                      'siliconcompiler',
-                      scriptdir)
-    sc_path = sc_root + '/third_party/foundry'
-
-    # TODO: should support multiple target libs?
     libname = chip.get('asic', 'targetlib')[0]
     pdk_rev = chip.get('pdk', 'version')
     lib_rev = chip.get('library', libname, 'version')
+    stackup = chip.get('pdk','stackup')[0]
+    libtype = chip.get('library', libname, 'arch')
     targetlist = chip.get('target').split('_')
-    platform =  targetlist[0]
+    techfile = chip.find(chip.get('pdk','layermap', stackup, 'def', 'gds')[0])
+    techlef = chip.find(chip.get('pdk','aprtech', stackup, libtype, 'lef')[0])
+    #TODO: fix this!, is foundry_lefs they only way??
+    #needed?
+    liblef = chip.find(chip.get('library',libname,'lef')[0])
+    lefpath = os.path.dirname(liblef)
+    #TODO: fix to add fill
+    config_file = ""
 
-    #TODO: pass in SC cfg file klayout python script?
-    foundry_path = f'%s/%s/%s/pdk/{pdk_rev}'%(sc_path, chip.get('pdk','foundry'), platform)
-    lefs_path = f'%s/%s/%s/libs/{libname}/{lib_rev}/lef'%(sc_path,chip.get('pdk','foundry'),platform)
-    tech_file = '%s/setup/klayout/%s.lyt'%(foundry_path,platform)
-    config_file = '%s/setup/klayout/fill.json'%(foundry_path)
+    #TODO: Fix fill file (once this is a python)
+    #config_file = '%s/setup/klayout/fill.json'%(foundry_path)
 
     #TODO: Fix, currenly only accepts one GDS file, need to loop
     if step == 'export':
@@ -99,36 +95,40 @@ def runtime_options(chip):
         options.append('-rd')
         options.append('design_name=%s'%(chip.get('design')))
         options.append('-rd')
-        options.append(f'in_def=inputs/%s.def'%(chip.get('design')))
+        options.append('in_def=inputs/%s.def'%(chip.get('design')))
         options.append('-rd')
         options.append('seal_file=""')
         options.append('-rd')
-        stdcell_gds = chip.get('library', libname, 'gds')[0]
-        gds_files = [f'{sc_root}/{stdcell_gds}']
-        for macrolib in chip.get('asic', 'macrolib'):
-            for gds in chip.get('library', macrolib, 'gds'):
-                gds_files.append(schema_path(gds))
+        gds_files = []
+        for lib in chip.get('asic', 'targetlib'):
+            for gds in chip.get('library', lib, 'gds'):
+                gds_files.append(chip.find(gds))
+        for lib in chip.get('asic', 'macrolib'):
+            for gds in chip.get('library', lib, 'gds'):
+                gds_files.append(chip.find(gds))
         gds_list = ' '.join(gds_files)
         options.append(f'in_files="{gds_list}"')
         options.append('-rd')
         options.append('out_file=outputs/%s.gds'%(chip.get('design')))
         options.append('-rd')
-        options.append('tech_file=%s'%tech_file)
+        options.append('tech_file=%s'%techfile)
+        options.append('-rd')
+        options.append('foundry_lefs=%s'%lefpath)
+        lef_files = []
+        #for lib in chip.get('asic', 'targetlib'):
+        #    for lef in chip.get('library', lib, 'lef'):
+        #        lef_files.append(chip.find(lef))
+        for lib in chip.get('asic', 'macrolib'):
+            for lef in chip.get('library', lib, 'lef'):
+                lef_files.append(chip.find(lef))
+        lef_list = ' '.join(lef_files)
+        options.append('-rd')
+        options.append(f'macro_lefs="{lef_list}"')
         options.append('-rd')
         if os.path.isfile(config_file):
             options.append('config_file=%s'%config_file)
         else:
             options.append('config_file=""')
-        options.append('-rd')
-        options.append('foundry_lefs=%s'%lefs_path)
-
-        options.append('-rd')
-        lef_files = []
-        for macrolib in chip.get('asic', 'macrolib'):
-            for lef in chip.get('library', macrolib, 'lef'):
-                lef_files.append(schema_path(lef))
-        lef_list = ' '.join(lef_files)
-        options.append(f'macro_lefs="{lef_list}"')
         options.append('-r')
         options.append('klayout_export.py')
 
