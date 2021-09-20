@@ -49,7 +49,6 @@ def setup_tool(chip):
     step = chip.get('arg','step')
     index = chip.get('arg','index')
 
-
     # Standard Setup
     chip.set('eda', tool, step, index, 'copy', 'true', clobber=False)
     chip.set('eda', tool, step, index, 'exe', 'yosys', clobber=False)
@@ -96,7 +95,15 @@ def setup_tool(chip):
 
     chip.set('eda', tool, step, index, 'option', 'techmap', techmap_paths)
 
-def pre_process(chip, step, index):
+#############################################
+# Runtime pre processing
+#############################################
+
+def pre_process(chip):
+
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+
     #TODO: remove special treatment for fpga??
     if chip.get('target') is None:
         return
@@ -131,9 +138,12 @@ def pre_process(chip, step, index):
 # Version Check
 ################################
 
-def check_version(chip, step, index, version):
+def check_version(chip, version):
     ''' Tool specific version checking
     '''
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+
     required = chip.get('eda', 'yosys', step, index, 'version')
     #insert code for parsing the funtion based on some tool specific
     #semantics.
@@ -141,16 +151,18 @@ def check_version(chip, step, index, version):
 
     return 0
 
-
-
 ################################
 # Post_process (post executable)
 ################################
-def post_process(chip, step, index):
+def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
+
     tool = 'yosys'
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
     exe = chip.get('eda', tool, step, index, 'exe')
+
     with open(exe + ".log") as f:
         for line in f:
             area = re.search(r'Chip area for module.*\:\s+(.*)', line)
