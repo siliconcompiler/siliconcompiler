@@ -228,7 +228,7 @@ class Chip:
 
         # Print out SC project authors
         authors = []
-        authorfile = self.find("AUTHORS")
+        authorfile = self.find("../AUTHORS")
         f = open(authorfile, "r")
         for line in f:
             name = re.match(r'^(\w+\s+\w+)', line)
@@ -1431,7 +1431,7 @@ class Chip:
                         value = [value]
                     for item in value:
                         if item:
-                            filepath = schema_path(item)
+                            filepath = self.find(item)
                             shutil.copy(filepath, outdir)
 
     ###########################################################################
