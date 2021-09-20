@@ -60,7 +60,7 @@ def setup_pdk(chip):
     edgemargin = 2
     d0 = 1.25
 
-    pdkdir = '/'.join(["third_party/foundry",
+    pdkdir = '/'.join(["../third_party/foundry",
                        foundry,
                        process,
                        'pdk',
@@ -146,7 +146,7 @@ def setup_pdk(chip):
     corner = 'typical'
     objectives = ['setup']
 
-    libdir = '/'.join(["third_party/foundry",
+    libdir = '/'.join(["../third_party/foundry",
                        foundry,
                        process,
                        'libs',
