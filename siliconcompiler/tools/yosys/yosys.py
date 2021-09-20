@@ -4,7 +4,6 @@ import sys
 import defusedxml.ElementTree as ET
 
 import siliconcompiler
-from siliconcompiler.schema_utils import schema_path
 
 ######################################################################
 # Make Docs
@@ -76,7 +75,7 @@ def setup_tool(chip):
     techmap_paths = []
     if 'techmap' in chip.getkeys('eda', tool, step, index, 'option'):
         for mapfile in chip.get('eda', tool, step, index, 'option', 'techmap'):
-            abspath = schema_path(mapfile)
+            abspath = chip.find(mapfile)
             # TODO: should we check here that file exists? warning or error if not?
             techmap_paths.append(abspath)
 
@@ -118,7 +117,7 @@ def pre_process(chip):
 
         lut_size = None
         for arch_file in chip.get('fpga', 'arch'):
-            tree = ET.parse(schema_path(arch_file))
+            tree = ET.parse(chip.find(arch_file))
             root = tree.getroot()
             if root.tag == 'architecture':
                 lut_size = max([int(pb_type.find("input").get("num_pins"))
