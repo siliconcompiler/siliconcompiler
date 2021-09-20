@@ -35,26 +35,24 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
-    setup_tool(chip,'lint','0')
-    # setup_tool(chip,'verilate','0')
-    setup_tool(chip,'import','0')
+    chip.set('arg','step','import')
+    chip.set('arg','index','0')
+    setup_tool(chip)
     return chip
 
 ################################
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip, step, index):
+def setup_tool(chip):
     ''' Per tool function that returns a dynamic options string based on
     the dictionary settings.
     '''
 
     # If the 'lock' bit is set, don't reconfigure.
     tool = 'verilator'
-    configured = chip.get('eda', tool, step, index, 'exe', field='lock')
-    if configured and (configured != 'false'):
-        chip.logger.warning('Tool already configured: ' + tool)
-        return
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
 
     # Standard Setup
     chip.set('eda', tool, step, index, 'exe', 'verilator', clobber=False)

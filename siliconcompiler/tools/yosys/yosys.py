@@ -13,10 +13,10 @@ from siliconcompiler.schema_utils import schema_path
 def make_docs():
     '''
     Yosys is a framework for RTL synthesis that takes synthesizable
-    Verilog-2005 design and converts it to BLIF, EDIF, BTOR, SMT, 
-    Verilog netlist etc. The tool supports logical synthesis and 
-    tech mapping to ASIC standard cell libraries, FPGA architectures. 
-    In addition it has built in formal methods for property and 
+    Verilog-2005 design and converts it to BLIF, EDIF, BTOR, SMT,
+    Verilog netlist etc. The tool supports logical synthesis and
+    tech mapping to ASIC standard cell libraries, FPGA architectures.
+    In addition it has built in formal methods for property and
     equivalence checking.
 
     Documentation: http://www.clifford.at/yosys/documentation.html
@@ -35,7 +35,7 @@ def make_docs():
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip, step, index):
+def setup_tool(chip):
     ''' Tool specific function to run before step execution
 
     Tool-specific options:
@@ -45,11 +45,10 @@ def setup_tool(chip, step, index):
 
     # If the 'lock' bit is set, don't reconfigure.
     tool = 'yosys'
-    refdir = 'siliconcompiler/tools/yosys'
-    configured = chip.get('eda', tool, step, index, 'exe', field='lock')
-    if configured and (configured != 'false'):
-        chip.logger.warning('Tool already configured: ' + tool)
-        return
+    refdir = 'tools/'+tool
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+
 
     # Standard Setup
     chip.set('eda', tool, step, index, 'copy', 'true', clobber=False)

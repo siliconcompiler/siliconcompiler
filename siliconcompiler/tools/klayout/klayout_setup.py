@@ -10,7 +10,7 @@ from siliconcompiler.schema_utils import schema_path
 
 def make_docs():
     '''
-    Klayout is a production grade viewer and editor of GDSII and 
+    Klayout is a production grade viewer and editor of GDSII and
     Oasis data with customizable Python and Ruby interfaces.
 
     Documentation: https://www.klayout.de
@@ -23,19 +23,26 @@ def make_docs():
 
     chip = siliconcompiler.Chip()
     chip.target('freepdk45')
-    setup_tool(chip,'export','<index>')
+    chip.set('arg','step','export')
+    chip.set('arg','index','<index>')
+    setup_tool(chip)
+
     return chip
 
 ####################################################################
 # Setup tool
 ####################################################################
-def setup_tool(chip, step, index, mode="batch"):
+
+def setup_tool(chip, mode="batch"):
     '''
     Setup function for Klayout
     '''
 
     tool = 'klayout'
-    refdir = 'siliconcompiler/tools/klayout'
+    refdir = 'tools/'+tool
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+
     if mode == 'show':
         clobber = True
         script = '/klayout_show.py'
