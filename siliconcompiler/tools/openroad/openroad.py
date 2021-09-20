@@ -129,9 +129,11 @@ def setup_tool(chip, mode='batch'):
 # Version Check
 ################################
 
-def check_version(chip, step, index, version):
+def check_version(chip, version):
     ''' Tool specific version checking
     '''
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
     required = chip.get('eda', 'openroad', step, index, 'version')
     #insert code for parsing the funtion based on some tool specific
     #semantics.
@@ -144,17 +146,21 @@ def check_version(chip, step, index, version):
 # Post_process (post executable)
 ################################
 
-def post_process(chip, step, index):
+def post_process(chip):
      ''' Tool specific function to run after step execution
      '''
 
      #Check log file for errors and statistics
      tool = 'openroad'
+     step = chip.get('arg','step')
+     index = chip.get('arg','index')
+     design = chip.get('design')
+     exe = chip.get('eda', tool, step, index, 'exe')
+
      errors = 0
      warnings = 0
      metric = None
-     exe = chip.get('eda', tool, step, index, 'exe')
-     design = chip.get('design')
+
      with open(exe + ".log") as f:
           for line in f:
                metricmatch = re.search(r'^SC_METRIC:\s+(\w+)', line)
