@@ -13,12 +13,12 @@ When you install the siliconcompiler Python package, the `sc-server` command is 
 The `sc-server` script is only intended for testing and development purposes. We do not recommend using it in situations where data privacy is critical, and we recommend against exposing it to the wider internet. If you do choose to use this server for non-trivial applications, we recommend only exposing the port that it runs on to a small private network.
 
 SYNOPSIS
-========
+********
 
 `sc-server [-nfs_mount [/path/to/working/dir]] [-cluster [slurm|local]] [-port [number]] [-auth]`
 
 OPTIONS
-=======
+*******
 
 -nfs_mount
 ++++++++++
@@ -63,7 +63,7 @@ Typically, the public key string will be the contents of your `[key_name].pub` f
 Please remember that this minimal test server is only intended to demonstrate how the core cryptographic scheme works. We do not recommend exposing it to the wider internet or using it to handle sensitive data.
 
 EXAMPLES
-========
+********
 
 Quickstart: start a server on its default port with no authentication support::
 
@@ -84,12 +84,12 @@ Basic Usage: Client
 The remote client built into the `sc` app has two modes of operation: one which transmits data as plaintext, and one which encrypts data on the client-side using a pre-determined key pair. In both cases, the remote workflow can be run by adding a few `-remote_*` configuration flags to an ordinary `sc` command.
 
 SYNOPSIS
-========
+********
 
 `sc <source_files> [...design-specific configs...] [-remote_addr [hostname]] [-remote_port [number]] [-remote_user [username]] [-remote_key [/path/to/private/key]]`
 
 OPTIONS
-=======
+*******
 
 -remote_addr
 ++++++++++++
@@ -118,7 +118,7 @@ The `-remote_key` option specifies a file path pointing to an SSH-encoded RSA pr
 When a user needs to authenticate a request, they provide the username and the private half of the key pair. This both confirms their identity, and provides the server with the necessary information to decrypt the user's data for processing. In a production setting, the server must be trusted not to store or log that key, and client/server communications must be encrypted on the wire.
 
 EXAMPLES
-========
+********
 
 The following command can be used to build the trivial `gcd` example locally using the FreePDK45 PDK with a die size inferred from post-synthesis estimates::
 
