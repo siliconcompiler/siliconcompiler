@@ -108,11 +108,13 @@ def check_version(chip, version):
 # Post_process (post executable)
 ################################
 
-def post_process(chip, step, index):
+def post_process(chip):
     ''' Tool specific function to run after step execution
 
     Reads error count from output and fills in appropriate entry in metrics
     '''
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     design = chip.get('design')
 
     if step == 'drc':

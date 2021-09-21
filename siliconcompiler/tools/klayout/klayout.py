@@ -150,6 +150,23 @@ def check_version(chip, version):
 
     return 0
 
+################################
+# Post_process (post executable)
+################################
+
+def post_process(chip):
+    ''' Tool specific function to run after step execution
+    '''
+    # Pass along files needed for future verification steps
+    design = chip.get('design')
+
+    #TODO: Fix fur multi (this will be moved to run step)
+    shutil.copy(f'inputs/{design}.def', f'outputs/{design}.def')
+    shutil.copy(f'inputs/{design}.sdc', f'outputs/{design}.sdc')
+    shutil.copy(f'inputs/{design}.v', f'outputs/{design}.v')
+
+    return 0
+
 ##################################################
 if __name__ == "__main__":
     # File being executed

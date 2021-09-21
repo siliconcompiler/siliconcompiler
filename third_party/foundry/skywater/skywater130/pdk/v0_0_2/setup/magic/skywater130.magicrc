@@ -16,7 +16,7 @@ drc euclidean on
 catch {random seed}
 
 # loading technology
-tech load $PDKPATH/magic/sky130A.tech
+tech load $PDKPATH/sky130A.tech
 
 # set units to lambda grid
 snap lambda
