@@ -1962,6 +1962,21 @@ class Chip:
         active[step + str(index)] = 0
 
     ###########################################################################
+    def _runstep_safe(self, step, index, active, error):
+        try:
+            self._runstep(step, index, active, error)
+        except SystemExit:
+            # calling sys.exit() in _haltstep triggers a "SystemExit"
+            # exception, but we can ignore these -- if we call sys.exit(), we've
+            # already handled the error.
+            pass
+        except:
+            traceback.print_exc()
+            self.logger.error(f"Uncaught exception while running step {step}.")
+            self.error = 1
+            self._haltstep(step, index, error, active)
+
+    ###########################################################################
     def _runstep(self, step, index, active, error):
         '''
         Private per step run method called by run().
@@ -2335,7 +2350,7 @@ class Chip:
                 else:
                     indexlist = self.getkeys('flowgraph', step)
                 for index in indexlist:
-                    processes.append(multiprocessing.Process(target=self._runstep,
+                    processes.append(multiprocessing.Process(target=self._runstep_safe,
                                                              args=(step, index, active, error,)))
             # Start all processes
             for p in processes:
