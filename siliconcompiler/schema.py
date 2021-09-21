@@ -672,7 +672,7 @@ def schema_pdk(cfg, stackup='default'):
         """
     }
 
-    # DRC runsets
+    # DRC settings
     cfg['pdk']['drc'] = {}
     cfg['pdk']['drc'][tool] = {}
     cfg['pdk']['drc'][tool][stackup] = {}
@@ -697,9 +697,6 @@ def schema_pdk(cfg, stackup='default'):
         """
     }
 
-    cfg['pdk']['drc'] = {}
-    cfg['pdk']['drc'][tool] = {}
-    cfg['pdk']['drc'][tool][stackup] = {}
     cfg['pdk']['drc'][tool][stackup]['waiver'] = {
         'switch': "-pdk_drc_waiver 'stackup tool <file>'",
         'requirement': None,
