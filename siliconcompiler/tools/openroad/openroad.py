@@ -11,7 +11,7 @@ import siliconcompiler
 
 def make_docs():
     '''
-    OpenROAD is an automated physical design platform for 
+    OpenROAD is an automated physical design platform for
     integreated circuit design with a complete set of features
     needed to translate a synthesized netlist to a tapeout ready
     GDSII.
@@ -25,24 +25,24 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
-    setup_tool(chip,'<step>','<index>')
+    chip.set('arg','step','<step>')
+    chip.set('arg','index','<index>')
+    setup_tool(chip)
+
     return chip
 
 ################################
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip, step, index, mode='batch'):
+def setup_tool(chip, mode='batch'):
 
     # default tool settings, note, not additive!
-    tool = 'openroad'
-    refdir = 'siliconcompiler/tools/openroad'
 
-    # If the 'lock' bit is set, don't reconfigure.
-    configured = chip.get('eda', tool, step, index, 'exe', field='lock')
-    if configured and (configured != 'false'):
-        chip.logger.warning('Tool already configured: ' + tool)
-        return
+    tool = 'openroad'
+    refdir = 'tools/'+tool
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
 
     if mode == 'show':
         clobber = True
@@ -56,9 +56,9 @@ def setup_tool(chip, step, index, mode='batch'):
     chip.set('eda', tool, step, index, 'exe', tool, clobber=clobber)
     chip.set('eda', tool, step, index, 'vswitch', '-version', clobber=clobber)
     chip.set('eda', tool, step, index, 'version', '0', clobber=clobber)
-    chip.set('eda', tool, step, index, 'refdir', refdir, clobber=clobber)
     chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=clobber)
     chip.set('eda', tool, step, index, 'option', 'cmdline', option, clobber=clobber)
+    chip.set('eda', tool, step, index, 'refdir', refdir, clobber=clobber)
     chip.set('eda', tool, step, index, 'script', refdir + script, clobber=clobber)
 
     # exit automatically in batch mode and not bkpt
@@ -129,9 +129,11 @@ def setup_tool(chip, step, index, mode='batch'):
 # Version Check
 ################################
 
-def check_version(chip, step, index, version):
+def check_version(chip, version):
     ''' Tool specific version checking
     '''
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
     required = chip.get('eda', 'openroad', step, index, 'version')
     #insert code for parsing the funtion based on some tool specific
     #semantics.
@@ -144,17 +146,21 @@ def check_version(chip, step, index, version):
 # Post_process (post executable)
 ################################
 
-def post_process(chip, step, index):
+def post_process(chip):
      ''' Tool specific function to run after step execution
      '''
 
      #Check log file for errors and statistics
      tool = 'openroad'
+     step = chip.get('arg','step')
+     index = chip.get('arg','index')
+     design = chip.get('design')
+     exe = chip.get('eda', tool, step, index, 'exe')
+
      errors = 0
      warnings = 0
      metric = None
-     exe = chip.get('eda', tool, step, index, 'exe')
-     design = chip.get('design')
+
      with open(exe + ".log") as f:
           for line in f:
                metricmatch = re.search(r'^SC_METRIC:\s+(\w+)', line)

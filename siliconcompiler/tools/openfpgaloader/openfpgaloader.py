@@ -26,26 +26,26 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
-    setup_tool(chip,'program','<index>')
+    chip.set('arg','step','program')
+    chip.set('arg','index','0')
+    setup_tool(chip)
     return chip
 
 ################################
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip, step, index):
+def setup_tool(chip):
     ''' openFPGALoader setup function
     '''
 
     # If the 'lock' bit is set, don't reconfigure.
     tool = 'openfpgaloader'
-    configured = chip.get('eda', tool, step, index, 'exe', field='lock')
-    if configured and (configured != 'false'):
-        chip.logger.warning('Tool already configured: ' + tool)
-        return
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
 
     # tool setup
-    chip.set('eda', tool, step, index, 'exe', 'openFPGALoader', clobber=False)
+    chip.set('eda', tool, step, index, 'exe', tool, clobber=False)
     chip.set('eda', tool, step, index, 'vswitch', '--Version', clobber=False)
     chip.set('eda', tool, step, index, 'version', 'v0.5.0', clobber=False)
 

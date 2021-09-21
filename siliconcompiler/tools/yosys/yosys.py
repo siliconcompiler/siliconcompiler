@@ -4,7 +4,6 @@ import sys
 import defusedxml.ElementTree as ET
 
 import siliconcompiler
-from siliconcompiler.schema_utils import schema_path
 
 ######################################################################
 # Make Docs
@@ -13,10 +12,10 @@ from siliconcompiler.schema_utils import schema_path
 def make_docs():
     '''
     Yosys is a framework for RTL synthesis that takes synthesizable
-    Verilog-2005 design and converts it to BLIF, EDIF, BTOR, SMT, 
-    Verilog netlist etc. The tool supports logical synthesis and 
-    tech mapping to ASIC standard cell libraries, FPGA architectures. 
-    In addition it has built in formal methods for property and 
+    Verilog-2005 design and converts it to BLIF, EDIF, BTOR, SMT,
+    Verilog netlist etc. The tool supports logical synthesis and
+    tech mapping to ASIC standard cell libraries, FPGA architectures.
+    In addition it has built in formal methods for property and
     equivalence checking.
 
     Documentation: http://www.clifford.at/yosys/documentation.html
@@ -28,14 +27,16 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
-    setup_tool(chip,'syn','<index>')
+    chip.set('arg','step', 'syn')
+    chip.set('arg','index', '<index>')
+    setup_tool(chip)
     return chip
 
 ################################
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip, step, index):
+def setup_tool(chip):
     ''' Tool specific function to run before step execution
 
     Tool-specific options:
@@ -45,11 +46,9 @@ def setup_tool(chip, step, index):
 
     # If the 'lock' bit is set, don't reconfigure.
     tool = 'yosys'
-    refdir = 'siliconcompiler/tools/yosys'
-    configured = chip.get('eda', tool, step, index, 'exe', field='lock')
-    if configured and (configured != 'false'):
-        chip.logger.warning('Tool already configured: ' + tool)
-        return
+    refdir = 'tools/'+tool
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
 
     # Standard Setup
     chip.set('eda', tool, step, index, 'copy', 'true', clobber=False)
@@ -78,7 +77,7 @@ def setup_tool(chip, step, index):
     techmap_paths = []
     if 'techmap' in chip.getkeys('eda', tool, step, index, 'option'):
         for mapfile in chip.get('eda', tool, step, index, 'option', 'techmap'):
-            abspath = schema_path(mapfile)
+            abspath = chip.find(mapfile)
             # TODO: should we check here that file exists? warning or error if not?
             techmap_paths.append(abspath)
 
@@ -97,7 +96,15 @@ def setup_tool(chip, step, index):
 
     chip.set('eda', tool, step, index, 'option', 'techmap', techmap_paths)
 
-def pre_process(chip, step, index):
+#############################################
+# Runtime pre processing
+#############################################
+
+def pre_process(chip):
+
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+
     #TODO: remove special treatment for fpga??
     if chip.get('target') is None:
         return
@@ -112,7 +119,7 @@ def pre_process(chip, step, index):
 
         lut_size = None
         for arch_file in chip.get('fpga', 'arch'):
-            tree = ET.parse(schema_path(arch_file))
+            tree = ET.parse(chip.find(arch_file))
             root = tree.getroot()
             if root.tag == 'architecture':
                 lut_size = max([int(pb_type.find("input").get("num_pins"))
@@ -132,9 +139,12 @@ def pre_process(chip, step, index):
 # Version Check
 ################################
 
-def check_version(chip, step, index, version):
+def check_version(chip, version):
     ''' Tool specific version checking
     '''
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+
     required = chip.get('eda', 'yosys', step, index, 'version')
     #insert code for parsing the funtion based on some tool specific
     #semantics.
@@ -142,16 +152,18 @@ def check_version(chip, step, index, version):
 
     return 0
 
-
-
 ################################
 # Post_process (post executable)
 ################################
-def post_process(chip, step, index):
+def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
+
     tool = 'yosys'
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
     exe = chip.get('eda', tool, step, index, 'exe')
+
     with open(exe + ".log") as f:
         for line in f:
             area = re.search(r'Chip area for module.*\:\s+(.*)', line)

@@ -67,7 +67,7 @@ def setup_pdk(chip):
     vscribe = 0.1
     edgemargin = 2
 
-    pdkdir = '/'.join(['third_party/foundry',
+    pdkdir = '/'.join(['../third_party/foundry',
                        foundry,
                        process,
                        'pdk',
@@ -93,8 +93,13 @@ def setup_pdk(chip):
     chip.set('pdk','tapoffset', 2)
 
     # APR tech file
-    chip.set('pdk','aprtech',stackup, libtype, 'lef',
-             pdkdir+'/apr/sky130_fd_sc_hd.tlef')
+    chip.set('pdk','aprtech',stackup, libtype, 'lef', pdkdir+'/apr/sky130_fd_sc_hd.tlef')
+
+    # DRC Runsets
+    chip.set('pdk','drc','magic', stackup, 'runset', pdkdir+'/setup/magic/skywater130.magicrc')
+
+    # Layer map
+    chip.set('pdk','layermap',stackup, 'def', 'gds', pdkdir+'/setup/klayout/skywater130.lyt')
 
     # Routing Grid Definitions
 
@@ -155,7 +160,7 @@ def setup_pdk(chip):
     # TODO: should I be using a different name for the corner
     corner = 'typical'
 
-    libdir = '/'.join(['third_party/foundry',
+    libdir = '/'.join(['../third_party/foundry',
                        foundry,
                        process,
                        'libs',

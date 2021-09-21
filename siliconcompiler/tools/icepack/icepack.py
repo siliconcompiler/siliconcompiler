@@ -22,7 +22,9 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
-    setup_tool(chip,'bitstream','<index>')
+    chip.set('arg','step','bitstream')
+    chip.set('arg','index','<index>')
+    setup_tool(chip)
     return chip
 
 
@@ -30,25 +32,39 @@ def make_docs():
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip, step, index):
+def setup_tool(chip):
     ''' Sets up default settings on a per step basis
     '''
     tool = 'icepack'
-    chip.set('eda', tool, step, index, 'exe', tool)
-    chip.set('eda', tool, step, index, 'version', '0')
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+    clobber = False
+    chip.set('eda', tool, step, index, 'exe', tool, clobber=clobber)
+    chip.set('eda', tool, step, index, 'version', '0', clobber=clobber)
+    chip.set('eda', tool, step, index, 'option', 'cmdline', "", clobber=clobber)
 
-    #Get default opptions from setup
+################################
+#  Custom runtime options
+################################
+
+def runtime_options(chip):
+    ''' Custom runtime options, returnst list of command line options.
+    '''
+
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
     topmodule = chip.get('design')
 
-    options = []
-    options.append("inputs/" + topmodule + ".asc")
-    options.append("outputs/" + topmodule + ".bit")
-    chip.add('eda', tool, step, index, 'option', 'cmdline', options)
+    cmdlist = []
+    cmdlist.append("inputs/" + topmodule + ".asc")
+    cmdlist.append("outputs/" + topmodule + ".bit")
+
+    return cmdlist
 
 ################################
 # Post_process (post executable)
 ################################
-def post_process(chip, step, index):
+def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
     return 0

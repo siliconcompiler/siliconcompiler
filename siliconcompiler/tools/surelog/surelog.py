@@ -24,18 +24,22 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
-    setup_tool(chip,'<step>','<index>')
+    chip.set('arg','step','import')
+    chip.set('arg','index','0')
+    setup_tool(chip)
     return chip
 
 ################################
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip, step, index):
+def setup_tool(chip):
     ''' Sets up default settings on a per step basis
     '''
 
     tool = 'surelog'
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
 
     # Standard Setup
     chip.set('eda', tool, step, index, 'exe', tool, clobber=False)
@@ -48,30 +52,39 @@ def setup_tool(chip, step, index):
     # or replace surelog with a SV linter for the validate step
     options = []
     options.append('-parse')
-    options.append('-I' + "../../../")
-
-    #Source Level Controls
-
-    for value in chip.get('ydir'):
-        options.append('-y ' + schema_path(value))
-
-    for value in chip.get('vlib'):
-        options.append('-v ' + schema_path(value))
-
-    for value in chip.get('idir'):
-        options.append('-I' + schema_path(value))
-
-    for value in chip.get('define'):
-        options.append('+define+' + schema_path(value))
-
-    for value in chip.get('cmdfile'):
-        options.append('-f ' + schema_path(value))
-
-    for value in chip.get('source'):
-        options.append(schema_path(value))
 
     # Wite back options tp cfg
     chip.add('eda', tool, step, index, 'option', 'cmdline', options)
+
+################################
+#  Custom runtime options
+################################
+
+def runtime_options(chip):
+
+    ''' Custom runtime options, returnst list of command line options.
+    '''
+
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+
+    cmdlist = []
+
+    # source files
+    for value in chip.get('ydir'):
+        cmdlist.append('-y ' + chip.find(value))
+    for value in chip.get('vlib'):
+        cmdlist.append('-v ' + chip.find(value))
+    for value in chip.get('idir'):
+        cmdlist.append('-I' + chip.find(value))
+    for value in chip.get('define'):
+        cmdlist.append('-D' + chip.find(value))
+    for value in chip.get('cmdfile'):
+        cmdlist.append('-f ' + chip.find(value))
+    for value in chip.get('source'):
+        cmdlist.append(chip.find(value))
+
+    return cmdlist
 
 ################################
 # Post_process (post executable)

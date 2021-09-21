@@ -20,7 +20,9 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
-    setup_tool(chip,'compiler','<index>')
+    chip.set('arg','step', 'compile')
+    chip.set('arg','index', '<index>')
+    setup_tool(chip)
     return chip
 
 
@@ -28,22 +30,19 @@ def make_docs():
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip, step, index, mode='batch'):
+def setup_tool(chip, mode='batch'):
     '''
     '''
 
     # default tool settings, note, not additive!
     tool = 'vivado'
     vendor = 'xilinx'
-    refdir = 'siliconcompiler/tools/' + tool
+    refdir = 'tools/'+tool
     script = 'compile.tcl'
-    clobber = True
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
 
-    # If the 'lock' bit is set, don't reconfigure.
-    configured = chip.get('eda', tool, step, index, 'exe', field='lock')
-    if configured and (configured != 'false'):
-        chip.logger.warning('Tool already configured: ' + tool)
-        return
+    clobber = True
 
     if mode == 'batch':
         clobber = True
@@ -51,8 +50,8 @@ def setup_tool(chip, step, index, mode='batch'):
         option = "-mode batch -source"
 
     # General settings
-    chip.set('eda', tool, step, index, 'vendor', vendor, clobber=clobber)
     chip.set('eda', tool, step, index, 'exe', tool, clobber=clobber)
+    chip.set('eda', tool, step, index, 'vendor', vendor, clobber=clobber)
     chip.set('eda', tool, step, index, 'refdir', refdir, clobber=clobber)
     chip.set('eda', tool, step, index, 'script', refdir + script, clobber=clobber)
     chip.set('eda', tool, step, index, 'vswitch', '-version', clobber=clobber)
@@ -60,16 +59,15 @@ def setup_tool(chip, step, index, mode='batch'):
     chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=clobber)
     chip.set('eda', tool, step, index, 'option', 'cmdline', option, clobber=clobber)
 
-    # Set the 'lock' bit for this tool.
-    chip.set('eda', tool, step, index, 'exe', 'true', field='lock')
-
 ################################
 # Version Check
 ################################
 
-def check_version(chip, step, index, version):
+def check_version(chip, version):
     ''' Tool specific version checking
     '''
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
     required = chip.get('eda', 'vivado', step, index, 'version')
     #insert code for parsing the funtion based on some tool specific
     #semantics.

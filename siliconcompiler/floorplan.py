@@ -6,7 +6,6 @@ import jinja2
 from collections import namedtuple
 
 from siliconcompiler import leflib
-from siliconcompiler.schema_utils import schema_path
 
 # Set up Jinja
 env = jinja2.Environment(loader=jinja2.PackageLoader('siliconcompiler'),
@@ -175,7 +174,7 @@ class Floorplan:
         self.available_cells = {}
 
         for macrolib in self.chip.get('asic', 'macrolib'):
-            lef_path = schema_path(self.chip.get('library', macrolib, 'lef')[0])
+            lef_path = chip.find(self.chip.get('library', macrolib, 'lef')[0])
             lef_data = leflib.parse(lef_path)
 
             if 'macros' not in lef_data:
@@ -193,7 +192,7 @@ class Floorplan:
                     logging.warn(f'Macro {name} missing size in LEF, not adding '
                         'to available cells.')
 
-        tech_lef = schema_path(chip.get('pdk', 'aprtech', stackup, libtype, 'lef')[0])
+        tech_lef = chip.find(chip.get('pdk', 'aprtech', stackup, libtype, 'lef')[0])
         tech_lef_data = leflib.parse(tech_lef)
 
         if 'units' in tech_lef_data and 'database' in tech_lef_data['units']:

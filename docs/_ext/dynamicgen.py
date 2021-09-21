@@ -1,6 +1,6 @@
 '''Sphinx extension that provides directives for automatically generating
 documentation for the three types of dynamically loaded modules used by SC:
-flows, foundries, and tools. 
+flows, foundries, and tools.
 '''
 
 from docutils import nodes
@@ -197,7 +197,7 @@ class DynamicGen(SphinxDirective):
         directory.'''
         modules = []
         for importer, modname, _ in pkgutil.iter_modules([module_dir]):
-            module = importer.find_module(modname).load_module(modname) 
+            module = importer.find_module(modname).load_module(modname)
             modules.append((module, modname))
 
         return modules
@@ -215,7 +215,7 @@ class DynamicGen(SphinxDirective):
 
     def extra_content(self, chip, modname):
         '''Adds extra content to documentation.
-        
+
         May return a list of docutils nodes that will be added to the
         documentation in between a module's docstring and configuration table.
         Otherwise, if return value is None, don't add anything.
@@ -238,7 +238,7 @@ class FoundryGen(DynamicGen):
 
     def keypaths(self, modname):
         return [('pdk',), ('asic',), ('library',)]
-    
+
 class ToolGen(DynamicGen):
     PATH = 'tools'
 
@@ -252,8 +252,8 @@ class ToolGen(DynamicGen):
         '''
         modules = []
         for toolname in os.listdir(module_dir):
-            spec = importlib.util.spec_from_file_location(f'{toolname}_setup', 
-                f'{module_dir}/{toolname}/{toolname}_setup.py')
+            spec = importlib.util.spec_from_file_location(f'{toolname}',
+                f'{module_dir}/{toolname}/{toolname}.py')
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
 

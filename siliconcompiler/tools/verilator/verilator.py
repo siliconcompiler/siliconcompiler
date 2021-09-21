@@ -5,9 +5,6 @@ import sys
 import siliconcompiler
 import shutil
 
-from siliconcompiler.schema_utils import schema_path
-
-
 ####################################################################
 # Make Docs
 ####################################################################
@@ -35,26 +32,24 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
-    setup_tool(chip,'lint','0')
-    # setup_tool(chip,'verilate','0')
-    setup_tool(chip,'import','0')
+    chip.set('arg','step','import')
+    chip.set('arg','index','<index>')
+    setup_tool(chip)
     return chip
 
 ################################
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip, step, index):
+def setup_tool(chip):
     ''' Per tool function that returns a dynamic options string based on
-    the dictionary settings.
+    the dictionary settings. Static setings only.
     '''
 
     # If the 'lock' bit is set, don't reconfigure.
     tool = 'verilator'
-    configured = chip.get('eda', tool, step, index, 'exe', field='lock')
-    if configured and (configured != 'false'):
-        chip.logger.warning('Tool already configured: ' + tool)
-        return
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
 
     # Standard Setup
     chip.set('eda', tool, step, index, 'exe', 'verilator', clobber=False)
@@ -67,38 +62,57 @@ def setup_tool(chip, step, index):
 
     # Differentiate between import step and compilation
     if step in ['import', 'lint']:
-        chip.add('eda', tool, step, index, 'option', 'cmdline', '--lint-only --debug')
+        chip.add('eda', tool, step, index, 'option', 'cmdline', ['--lint-only','--debug'])
     elif (step == 'sim'):
         chip.add('eda', tool, step, index, 'option', 'cmdline', '--cc')
     else:
         chip.logger.error('Step %s not supported for verilator', step)
         sys.exit()
 
-    # Source Level Controls
-    for value in chip.get('ydir'):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', '-y ' + schema_path(value))
-    for value in chip.get('vlib'):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', '-v ' + schema_path(value))
-    for value in chip.get('idir'):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', '-I' + schema_path(value))
-    for value in chip.get('define'):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', '-D' + schema_path(value))
-    for value in chip.get('cmdfile'):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', '-f ' + schema_path(value))
-    for value in chip.get('source'):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', schema_path(value))
+################################
+#  Custom runtime options
+################################
 
-    #Make warnings non-fatal in relaxed mode
+def runtime_options(chip):
+
+    ''' Custom runtime options, returnst list of command line options.
+    '''
+
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+
+    cmdlist = []
+
+    # source files
+    for value in chip.get('ydir'):
+        cmdlist.append('-y ' + chip.find(value))
+    for value in chip.get('vlib'):
+        cmdlist.append('-v ' + chip.find(value))
+    for value in chip.get('idir'):
+        cmdlist.append('-I' + chip.find(value))
+    for value in chip.get('define'):
+        cmdlist.append('-D' + chip.find(value))
+    for value in chip.get('cmdfile'):
+        cmdlist.append('-f ' + chip.find(value))
+    for value in chip.get('source'):
+        cmdlist.append(chip.find(value))
+
+    #  make warnings non-fatal in relaxed mode
     if chip.get('relax'):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', '-Wno-fatal')
+        cmdlist.append('-Wno-fatal')
+
+    return cmdlist
 
 ################################
 # Version Check
 ################################
 
-def check_version(chip, step, index, version):
+def check_version(chip, version):
     ''' Tool specific version checking
     '''
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+
     required = chip.get('eda', 'verilator', step, index, 'version')
     #insert code for parsing the funtion based on some tool specific
     #semantics.
@@ -106,14 +120,16 @@ def check_version(chip, step, index, version):
 
     return 0
 
-
 ################################
 # Post_process (post executable)
 ################################
 
-def post_process(chip, step, index):
+def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
+
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
 
     # Creating single file "pickle' synthesis handoff
     subprocess.run('egrep -h -v "\\`begin_keywords" obj_dir/*.vpp > verilator.v',
@@ -161,6 +177,6 @@ if __name__ == "__main__":
     # create a chip instance
     chip = siliconcompiler.Chip()
     # load configuration
-    setup_tool(chip, step='import', index='0')
+    setup_tool(chip)
     # write out results
     chip.writecfg(output)
