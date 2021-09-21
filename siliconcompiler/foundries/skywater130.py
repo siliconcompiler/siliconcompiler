@@ -93,8 +93,13 @@ def setup_pdk(chip):
     chip.set('pdk','tapoffset', 2)
 
     # APR tech file
-    chip.set('pdk','aprtech',stackup, libtype, 'lef',
-             pdkdir+'/apr/sky130_fd_sc_hd.tlef')
+    chip.set('pdk','aprtech',stackup, libtype, 'lef', pdkdir+'/apr/sky130_fd_sc_hd.tlef')
+
+    # DRC Runsets
+    chip.set('pdk','drc','magic', stackup, 'runset', pdkdir+'/setup/magic/skywater130.magicrc')
+
+    # Layer map
+    chip.set('pdk','layermap',stackup, 'def', 'gds', pdkdir+'/setup/klayout/skywater130.lyt')
 
     # Routing Grid Definitions
 
