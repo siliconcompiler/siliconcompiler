@@ -23,9 +23,11 @@ Welcome to SiliconCompiler's documentation!
    :numbered:
 
    tutorials/asicflow
+   tutorials/remoteflow
    tutorials/flowsetup
    tutorials/toolsetup
    tutorials/foundrysetup
+   tutorials/slurmsetup
    tutorials/zerosoc
 
 .. toctree::
