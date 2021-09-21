@@ -67,7 +67,7 @@ def setup_pdk(chip):
     vscribe = 0.1
     edgemargin = 2
 
-    pdkdir = '/'.join(['third_party/foundry',
+    pdkdir = '/'.join(['../third_party/foundry',
                        foundry,
                        process,
                        'pdk',
@@ -160,7 +160,7 @@ def setup_pdk(chip):
     # TODO: should I be using a different name for the corner
     corner = 'typical'
 
-    libdir = '/'.join(['third_party/foundry',
+    libdir = '/'.join(['../third_party/foundry',
                        foundry,
                        process,
                        'libs',
