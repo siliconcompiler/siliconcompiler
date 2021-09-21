@@ -1,5 +1,4 @@
 source ./sc_manifest.tcl
-source ./pdkpath.tcl
 
 set sc_design  [dict get $sc_cfg design]
 set sc_mainlib [dict get $sc_cfg asic targetlib]
@@ -21,23 +20,18 @@ foreach lib $sc_macrolibs {
     }
 }
 
-cif istyle sky130(vendor)
 gds noduplicates true
 gds read inputs/$sc_design.gds
 
 # Extract layout to Spice netlist
 load $sc_design -dereference
-select top cell;
-extract no all;
-extract do local;
-extract unique;
-extract;
-ext2spice lvs;
-ext2spice ${sc_design}.ext;
-feedback save extract_${sc_design}.log;
-
-# Run Netgen
-set setup_file ${PDKPATH}/../netgen/lvs_setup.tcl
-::netgen -batch lvs "${sc_design}.spice ${sc_design}" "inputs/${sc_design}.v ${sc_design}" $setup_file outputs/${sc_design}.lvs.out -json
+select top cell
+extract no all
+extract do local
+extract unique
+extract
+ext2spice lvs
+ext2spice ${sc_design}.ext -o outputs/$sc_design.spice
+feedback save extract_${sc_design}.log
 
 exit

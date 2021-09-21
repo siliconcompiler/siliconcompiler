@@ -96,7 +96,10 @@ def setup_pdk(chip):
     chip.set('pdk','aprtech',stackup, libtype, 'lef', pdkdir+'/apr/sky130_fd_sc_hd.tlef')
 
     # DRC Runsets
-    chip.set('pdk','drc','magic', stackup, 'runset', pdkdir+'/setup/magic/skywater130.magicrc')
+    chip.set('pdk','drc','magic', stackup, 'runset', pdkdir+'/setup/magic/sky130A.tech')
+
+    # LVS Runsets
+    chip.set('pdk','lvs','netgen', stackup, 'runset', pdkdir+'/setup/netgen/lvs_setup.tcl')
 
     # Layer map
     chip.set('pdk','layermap',stackup, 'def', 'gds', pdkdir+'/setup/klayout/skywater130.lyt')

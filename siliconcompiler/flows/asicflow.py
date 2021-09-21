@@ -80,6 +80,7 @@ def setup_flow(chip):
 
 
     if chip.get('pdk', 'process') == 'skywater130':
+        flowpipe.append('extspice')
         flowpipe.append('lvs')
         flowpipe.append('drc')
 
@@ -101,7 +102,8 @@ def setup_flow(chip):
         'dfmmin' : 'minimum',
         'export' : 'klayout',
         'drc' : 'magic',
-        'lvs' : 'magic'
+        'extspice': 'magic',
+        'lvs' : 'netgen'
     }
 
     # Set the steplist which can run remotely (if required)

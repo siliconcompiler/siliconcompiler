@@ -1,0 +1,37 @@
+puts stdout "Sourcing .magicrc for Silicon Compiler..."
+
+source ./sc_manifest.tcl
+
+set sc_stackup [dict get $sc_cfg asic stackup]
+set sc_runset [dict get $sc_cfg pdk drc magic $sc_stackup runset]
+set sc_process [dict get $sc_cfg pdk process]
+
+# Put grid on 0.005 pitch.  This is important, as some commands don't
+# rescale the grid automatically (such as lef read?).
+
+set scalefac [tech lambda]
+if {[lindex $scalefac 1] < 2} {
+    scalegrid 1 2
+}
+
+drc euclidean on
+# Change this to a fixed number for repeatable behavior with GDS writes
+# e.g., "random seed 12345"
+catch {random seed}
+
+# loading technology
+tech load $sc_runset
+
+# set units to lambda grid
+snap lambda
+
+if {$sc_process == "skywater130"} {
+    # set sky130 standard power, ground, and substrate names
+    set VDD VPWR
+    set GND VGND
+    set SUB VSUBS
+
+    # switch GDS input style to vendor variant, which ensures pins will be read
+    # correctly
+    cif istyle sky130(vendor)
+}
