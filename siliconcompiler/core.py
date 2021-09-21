@@ -1896,6 +1896,8 @@ class Chip:
             job_nameid = f"{self.get('jobname')}{self.get('jobid')}"
             cur_build_dir = f"{self.get('dir')}/{self.get('design')}/{job_nameid}"
             tmp_job_dir = f"/tmp/{self.get('remote', 'jobhash')}"
+            ctrl_node_dir = self.get('dir')
+            self.set('dir', tmp_job_dir, clobber=True)
             tmp_build_dir = "/".join([tmp_job_dir,
                                       self.get('design'),
                                       job_nameid])
@@ -1914,7 +1916,7 @@ class Chip:
             # * delete all unencrypted data.
             run_cmd  = f'{schedule_cmd} bash -c "'
             run_cmd += f"mkdir -p {tmp_build_dir} ; "
-            run_cmd += f"cp -R {self.get('dir')}/* {tmp_job_dir}/ ; "
+            run_cmd += f"cp -R {ctrl_node_dir}/* {tmp_job_dir}/ ; "
             run_cmd += f"touch {keypath} ; chmod 600 {keypath} ; "
             run_cmd += f"echo -ne '{keystr}' > {keypath} ; "
             run_cmd += f"chmod 400 {keypath} ; "
