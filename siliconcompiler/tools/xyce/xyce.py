@@ -23,17 +23,21 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
-    setup_tool(chip,'spice','<index>')
+    chip.set('arg','step', 'spice')
+    chip.set('arg','index', '<index>')
+    setup_tool(chip)
     return chip
 
 ################################
 # Setup Tool (pre executable)
 ################################
-def setup_tool(chip, step, index):
+def setup_tool(chip):
 
 
      tool = 'xyce'
-     refdir = 'siliconcompiler/tools' + tool
+     refdir = 'tools/'+tool
+     step = chip.get('arg','step')
+     index = chip.get('arg','index')
      clobber = False
 
      chip.set('eda', tool, step, index, 'exe', tool, clobber=clobber)
@@ -44,7 +48,7 @@ def setup_tool(chip, step, index):
 ################################
 # Post_process (post executable)
 ################################
-def post_process(chip, step):
+def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
 

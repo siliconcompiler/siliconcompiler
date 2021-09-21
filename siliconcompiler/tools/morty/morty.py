@@ -29,8 +29,9 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
-    setup_tool(chip,'drc','<index>')
-    setup_tool(chip,'lvs','<index>')
+    chip.set('arg','step','import')
+    chip.set('arg','index','<index>')
+    setup_tool(chip)
     return chip
 
 
@@ -38,23 +39,24 @@ def make_docs():
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip, step, index):
+def setup_tool(chip):
     ''' Per tool function that returns a dynamic options string based on
     the dictionary settings.
     '''
 
     # Standard Setup
     tool = 'morty'
-    chip.set('eda', tool, step, index, 'threads', 4)
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+
     chip.set('eda', tool, step, index, 'exe', tool)
+    chip.set('eda', tool, step, index, 'threads', 4)
     chip.set('eda', tool, step, index, 'version', '0.0')
 
     # output single file to `morty.v`
     chip.add('eda', tool, step, index, 'option', 'cmdline', '-o morty.v')
     # write additional information to `manifest.json`
     chip.add('eda', tool, step, index, 'option', 'cmdline', '--manifest manifest.json')
-
-    chip.add('eda', tool, step, index, 'option', 'cmdline', '-I ../../../')
 
     for value in chip.get('ydir'):
         chip.add('eda', tool, step, index, 'option', 'cmdline', '--library-dir ' + schema_path(value))
@@ -69,6 +71,39 @@ def setup_tool(chip, step, index):
         if value.endswith('.v') or value.endswith('.vh') or \
                 value.endswith('.sv') or value.endswith('.svh'):
             chip.add('eda', tool, step, index, 'option', 'cmdline', schema_path(value))
+
+
+
+
+################################
+#  Custom runtime options
+################################
+
+def runtime_options(chip):
+
+    ''' Custom runtime options, returnst list of command line options.
+    '''
+
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+
+    cmdlist = []
+
+    # source files
+    for value in chip.get('ydir'):
+        cmdlist.append('--library-dir ' + chip.find(value))
+    for value in chip.get('vlib'):
+        cmdlist.append('--library-file ' + chip.find(value))
+    for value in chip.get('idir'):
+        cmdlist.append('-I' + chip.find(value))
+    for value in chip.get('define'):
+        cmdlist.append('-D' + chip.find(value))
+    for value in chip.get('source'):
+        if value.endswith('.v') or value.endswith('.vh') or \
+           value.endswith('.sv') or value.endswith('.svh'):
+            cmdlist.append(chip.find(value))
+
+    return cmdlist
 
 ################################
 # Post_process (post executable)

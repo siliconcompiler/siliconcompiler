@@ -29,7 +29,7 @@ def make_docs():
     setup_tool(chip)
 
     # check lvs
-    chip.set('arg','lvs')
+    chip.set('arg','step', 'lvs')
     setup_tool(chip)
 
     return chip

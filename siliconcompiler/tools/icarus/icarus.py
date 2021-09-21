@@ -27,24 +27,24 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
-    setup_tool(chip,'<step>','0')
+    chip.set('arg','step', 'sim')
+    chip.set('arg','index', '<index>')
+    setup_tool(chip)
     return chip
 
 ################################
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip, step, index):
+def setup_tool(chip):
     ''' Per tool function that returns a dynamic options string based on
     the dictionary settings.
     '''
 
     # If the 'lock' bit is set, don't reconfigure.
     tool = 'icarus'
-
-    if chip.get('eda', tool, step, index, 'exe', field='lock'):
-        chip.logger.warning('Tool already configured: ' + tool)
-        return
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
 
     # Standard Setup
     chip.set('eda', tool, step, index, 'exe', 'iverilog', clobber=False)
@@ -52,28 +52,53 @@ def setup_tool(chip, step, index):
     chip.set('eda', tool, step, index, 'version', '10.3', clobber=False)
     chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=False)
 
-    #Source Level Controls
+
+################################
+#  Custom runtime options
+################################
+
+def runtime_options(chip):
+
+    ''' Custom runtime options, returnst list of command line options.
+    '''
+
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+
+    cmdlist = []
+
+    # source files
     for value in chip.get('ydir'):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', '-y ' + schema_path(value))
+        cmdlist.append('-y ' + chip.find(value))
     for value in chip.get('vlib'):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', '-v ' + schema_path(value))
+        cmdlist.append('-v ' + chip.find(value))
     for value in chip.get('idir'):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', '-I ' + schema_path(value))
+        cmdlist.append('-I' + chip.find(value))
     for value in chip.get('define'):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', '-D ' + schema_path(value))
+        cmdlist.append('-D' + chip.find(value))
     for value in chip.get('cmdfile'):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', '-f ' + schema_path(value))
+        cmdlist.append('-f ' + chip.find(value))
     for value in chip.get('source'):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', schema_path(value))
+        cmdlist.append(chip.find(value))
+
+    return cmdlist
+
 
 
 ################################
 # Version Check
 ################################
 
-def check_version(chip, step, index, version):
+
+
+
+def check_version(chip, version):
     ''' Tool specific version checking
     '''
+
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+
     required = chip.get('eda', 'icarus', step, index, 'version')
     #insert code for parsing the funtion based on some tool specific
     #semantics.
@@ -85,7 +110,7 @@ def check_version(chip, step, index, version):
 # Post_process (post executable)
 ################################
 
-def post_process(chip, step, index):
+def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
 

@@ -27,7 +27,9 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
-    setup_tool(chip,'syn','<index>')
+    chip.set('arg','step', 'syn')
+    chip.set('arg','index', '<index>')
+    setup_tool(chip)
     return chip
 
 ################################

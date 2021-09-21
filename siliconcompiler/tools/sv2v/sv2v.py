@@ -27,7 +27,9 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
-    setup_tool(chip,'<step>','<index>')
+    chip.set('arg','step', '<step>')
+    chip.set('arg','index', '<index>')
+    setup_tool(chip)
     return chip
 
 
@@ -35,7 +37,7 @@ def make_docs():
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip, step, index):
+def setup_tool(chip):
     ''' Per tool function that returns a dynamic options string based on
     the dictionary settings.
     '''
@@ -43,9 +45,12 @@ def setup_tool(chip, step, index):
     chip.logger.debug("Setting up sv2v")
 
     tool = 'sv2v'
-    chip.set('eda', tool, step, index, 'threads', 4)
-    chip.set('eda', tool, step, index, 'exe', 'sv2v')
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+
+    chip.set('eda', tool, step, index, 'exe', tool)
     chip.set('eda', tool, step, index, 'version', '0.0')
+    chip.set('eda', tool, step, index, 'threads', 4)
 
     # Since we run sv2v after the import/preprocess step, there should be no
     # need for specifying include dirs/defines. However we don't want to pass
@@ -64,7 +69,7 @@ def setup_tool(chip, step, index):
 # Post_process (post executable)
 ################################
 
-def post_process(chip, step, index):
+def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
     return 0
@@ -79,6 +84,6 @@ if __name__ == "__main__":
     # create a chip instance
     chip = siliconcompiler.Chip()
     # load configuration
-    setup_tool(chip, step='transalate', index='0')
+    setup_tool(chip)
     # write out results
     chip.writecfg(output)
