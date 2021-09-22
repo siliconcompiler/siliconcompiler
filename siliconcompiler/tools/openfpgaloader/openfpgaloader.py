@@ -23,6 +23,8 @@ def make_docs():
 
     Installation: https://github.com/trabucayre/openFPGALoader
 
+    Status: SC integration WIP
+
     '''
 
     chip = siliconcompiler.Chip()

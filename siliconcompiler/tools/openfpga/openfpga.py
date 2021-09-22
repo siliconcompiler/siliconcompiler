@@ -22,6 +22,8 @@ def make_docs():
 
     Installation: https://github.com/lnis-uofu/OpenFPGA
 
+    Status: SC integration WIP
+
     '''
 
     chip = siliconcompiler.Chip()

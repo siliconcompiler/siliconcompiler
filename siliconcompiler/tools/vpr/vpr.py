@@ -23,6 +23,8 @@ def make_docs():
 
     Installation: https://github.com/verilog-to-routing/vtr-verilog-to-routing
 
+    Status: SC integration WIP
+
     '''
 
     chip = siliconcompiler.Chip()
