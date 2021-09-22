@@ -29,7 +29,6 @@ import time
 from timeit import default_timer as timer
 from siliconcompiler.client import *
 from siliconcompiler.schema import *
-from siliconcompiler.schema_utils import *
 
 class Chip:
     """Object for configuring and executing hardware design flows.
@@ -1462,7 +1461,7 @@ class Chip:
                 self.set([keylist,[]], cfg=cfg, clobber=True)
                 hashlist = []
                 for item in filelist:
-                    filename = schema_path(item)
+                    filename = self.find(item)
                     self.logger.debug('Computing hash value for %s', filename)
                     if os.path.isfile(filename):
                         sha256_hash = hashlib.sha256()
@@ -2164,16 +2163,14 @@ class Chip:
 
         veropt = self.get('eda', tool, step, index, 'vswitch')
         exe = self.get('eda', tool, step, index, 'exe')
-        if veropt != None:
+        if (veropt != None) & (exe !=None):
             cmdlist = [exe, veropt]
-            self.logger.debug("Checking version of '%s' tool in step '%s'.", tool, step)
+            self.logger.info("Checking version of '%s' tool in step '%s'.", tool, step)
             version = subprocess.run(cmdlist, stdout=PIPE, stderr=PIPE, universal_newlines=True)
             check_version = self.loadfunction(tool, 'tool', 'check_version')
             if check_version(self, version.stdout):
                 self.logger.error(f"Version check failed for {tool}. Check installation]")
                 self._haltstep(step, index, error, active)
-        else:
-            self.logger.info("Skipping version checking of '%s' tool in step '%s'.", tool, step)
 
         ##################
         # 12. Run executable

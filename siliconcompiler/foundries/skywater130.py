@@ -157,9 +157,6 @@ def setup_pdk(chip):
     libname = 'sky130hd' # not sure if this should be something else
     libtype = 'hd' # TODO: update this
 
-    libwidth = 0.46
-    libheight = 2.72
-
     # TODO: should I be using a different name for the corner
     corner = 'typical'
 
@@ -191,10 +188,6 @@ def setup_pdk(chip):
 
     # lib arch
     chip.set('library', libname, 'arch', libtype)
-
-    # lib site/tile/size
-    chip.set('library', libname, 'width', libwidth)
-    chip.set('library', libname, 'height', libheight)
 
     # clock buffers
     chip.add('library', libname, 'cells', 'clkbuf', 'sky130_fd_sc_hd__clkbuf_1')

@@ -20,6 +20,8 @@ def make_docs():
 
     Installation: https://xyce.sandia.gov/documentation/BuildingGuide.html
 
+    Status: SC integration WIP
+
     '''
 
     chip = siliconcompiler.Chip()

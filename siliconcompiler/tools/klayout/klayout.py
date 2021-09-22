@@ -2,7 +2,6 @@ import os
 import re
 import shutil
 import siliconcompiler
-from siliconcompiler.schema_utils import schema_path
 
 ####################################################################
 # Make Docs

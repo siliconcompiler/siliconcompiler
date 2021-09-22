@@ -3,7 +3,6 @@ import subprocess
 import re
 import sys
 import siliconcompiler
-from siliconcompiler.schema_utils import schema_path
 
 ####################################################################
 # Make Docs

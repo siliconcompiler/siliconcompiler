@@ -21,6 +21,7 @@ def make_docs():
     resulting designs are not manufacturable.
 
     PDK content:
+
     * open source DRM
     * device primitive library (virtuoso)
     * spice (hspice)
@@ -30,14 +31,16 @@ def make_docs():
     * 7.5 track multi-vt standard cell libraries
 
     More information:
+
     * http://asap.asu.edu/asap
     * L.T. Clark, V. Vashishtha, L. Shifren, A. Gujja, S. Sinha, B. Cline,
     C. Ramamurthya, and G. Yeric, “ASAP7: A 7-nm FinFET Predictive Process
     Design Kit,” Microelectronics Journal, vol. 53, pp. 105-115, July 2016.
 
 
-    Sources:
-    * https://github.com/The-OpenROAD-Project/asap
+    Sources: https://github.com/The-OpenROAD-Project/asap
+
+    Status: Work in progress (not ready for use)
 
     '''
 

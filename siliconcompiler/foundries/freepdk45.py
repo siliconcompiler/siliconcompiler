@@ -142,8 +142,6 @@ def setup_pdk(chip):
 
     libname = 'NangateOpenCellLibrary'
     libtype = '10t'
-    libwidth = 0.19
-    libheight = 1.4
     rev = 'r1p0'
     corner = 'typical'
     objectives = ['setup']
@@ -176,10 +174,6 @@ def setup_pdk(chip):
 
     # lib arch
     chip.set('library',libname,'arch',libtype)
-
-    # lib site/tile/size
-    chip.set('library',libname,'width', libwidth)
-    chip.set('library',libname,'height', libheight)
 
     #driver
     chip.add('library',libname,'driver', "BUF_X4")

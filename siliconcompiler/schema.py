@@ -1140,41 +1140,6 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         """
     }
 
-    cfg['library'][lib]['width'] = {
-        'switch': "-library_width 'lib <float>'",
-        'requirement': None,
-        'type': 'float',
-        'lock': 'false',
-        'defvalue': None,
-        'shorthelp': 'Library width',
-        'example': ["cli: -library_width 'mylib 0.1'",
-                    "api: chip.set('library','mylib','width','0.1')"],
-
-        'help': """
-        Width of a unit cell in the library. The value can usually be
-        extracted automatically from the layout library but is included in the
-        schema to simplify the process of creating parameterized floorplans. The
-        parameter is optional for 'component' libtypes.
-        """
-    }
-
-    cfg['library'][lib]['height'] = {
-        'switch': "-library_height 'lib <float>'",
-        'requirement': None,
-        'type': 'float',
-        'lock': 'false',
-        'defvalue': None,
-        'shorthelp': 'Library height',
-        'example': [
-            "cli: -library_height 'mylib 1.0'",
-            "api: chip.set('library','mylib','height', '1.0')"],
-        'help': """
-        Specifies the height of a unit cell. The value can usually be
-        extracted automatically from the layout library but is included in the
-        schema to simplify the process of creating parameterized floorplans.
-        """
-    }
-
     ###############################
     #Models (Timing, Power, Noise)
     ###############################
