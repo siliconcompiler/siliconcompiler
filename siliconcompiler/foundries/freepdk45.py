@@ -220,7 +220,7 @@ def setup_pdk(chip):
     ###############################################
 
     chip.set('asic', 'stackup', chip.get('pdk', 'stackup')[0])
-    chip.add('asic', 'targetlib', chip.getkeys('library'))
+    chip.add('asic', 'targetlib', libname)
     chip.set('asic', 'minlayer', "m1")
     chip.set('asic', 'maxlayer', "m10")
     chip.set('asic', 'maxfanout', 64)
