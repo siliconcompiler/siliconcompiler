@@ -28,7 +28,7 @@ def make_docs():
     setup_tool(chip)
 
     # check lvs
-    chip.set('arg','step', 'lvs')
+    chip.set('arg','step', 'extspice')
     setup_tool(chip)
 
     return chip
@@ -51,6 +51,8 @@ def setup_tool(chip):
         script = 'sc_drc.tcl'
     elif step == 'extspice':
         script = 'sc_extspice.tcl'
+    else:
+        raise ValueError(f"Magic tool doesn't support step {step}.")
 
     chip.set('eda', tool, step, index, 'exe', tool)
     chip.set('eda', tool, step, index, 'version', '0.0')
