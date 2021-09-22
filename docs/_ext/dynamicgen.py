@@ -42,6 +42,37 @@ def build_schema_value_table(schema, keypath_prefix=[]):
     else:
         return None
 
+def trim(docstring):
+    '''Helper function for cleaning up indentation of docstring.
+    
+    This is important for properly parsing complex RST in our docs.
+
+    Source:
+    https://www.python.org/dev/peps/pep-0257/#handling-docstring-indentation'''
+    if not docstring:
+        return ''
+    # Convert tabs to spaces (following the normal Python rules)
+    # and split into a list of lines:
+    lines = docstring.expandtabs().splitlines()
+    # Determine minimum indentation (first line doesn't count):
+    indent = sys.maxsize
+    for line in lines[1:]:
+        stripped = line.lstrip()
+        if stripped:
+            indent = min(indent, len(line) - len(stripped))
+    # Remove indentation (first line is special):
+    trimmed = [lines[0].strip()]
+    if indent < sys.maxsize:
+        for line in lines[1:]:
+            trimmed.append(line[indent:].rstrip())
+    # Strip off trailing and leading blank lines:
+    while trimmed and not trimmed[-1]:
+        trimmed.pop()
+    while trimmed and not trimmed[0]:
+        trimmed.pop(0)
+    # Return a single string:
+    return '\n'.join(trimmed)
+
 class DynamicGen(SphinxDirective):
     '''Base class for all three directives provided by this extension.
 
@@ -57,7 +88,12 @@ class DynamicGen(SphinxDirective):
             return None
 
         make_docs = getattr(module, 'make_docs')
-        docstr = make_docs.__doc__
+
+        # raw docstrings have funky indentation (basically, each line is already
+        # indented as much as the function), so we call trim() helper function
+        # to clean it up
+        docstr = trim(make_docs.__doc__)
+
         if docstr:
             self.parse_rst(docstr, s)
 
@@ -145,9 +181,7 @@ class DynamicGen(SphinxDirective):
         rst = ViewList()
         # use fake filename 'inline' for error # reporting
         for i, line in enumerate(content.split('\n')):
-            # lstrip() necessary to prevent weird indentation (since this is
-            # parsing docstrings which are intendented)
-            rst.append(line.lstrip(), 'inline', i)
+            rst.append(line, 'inline', i)
         nested_parse_with_titles(self.state, rst, s)
 
     def extra_content(self, chip, modname):
