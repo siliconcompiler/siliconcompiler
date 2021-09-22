@@ -2,20 +2,22 @@ import os
 import re
 import shutil
 import siliconcompiler
+from siliconcompiler.tools.netgen import count_lvs
 
 ####################################################################
 # Make Docs
 ####################################################################
 def make_docs():
     '''
-    Magic is a chip layout viewer, editor, and circuit verifier with
-    built in DRC and LVS engines.
+    Netgen is a tool for comparing netlists. By comparing a Verilog netlist with
+    one extracted from a circuit layout, it can be used to perform LVS
+    verification.
 
-    Documentation: http://opencircuitdesign.com/magic/userguide.html
+    Documentation: http://www.opencircuitdesign.com/netgen/
 
-    Installation: https://github.com/RTimothyEdwards/magic
+    Installation: https://github.com/RTimothyEdwards/netgen
 
-    Sources: https://github.com/RTimothyEdwards/magic
+    Sources: https://github.com/RTimothyEdwards/netgen
 
     '''
 
@@ -23,12 +25,8 @@ def make_docs():
     chip.target('skywater130')
     chip.set('arg','index','<index>')
 
-    # check drc
-    chip.set('arg','step','drc')
-    setup_tool(chip)
-
     # check lvs
-    chip.set('arg','step', 'extspice')
+    chip.set('arg','step', 'lvs')
     setup_tool(chip)
 
     return chip
@@ -41,18 +39,13 @@ def setup_tool(chip):
     ''' Setup function for 'magic' tool
     '''
 
-    tool = 'magic'
+    tool = 'netgen'
     refdir = 'tools/'+tool
     step = chip.get('arg','step')
     index = chip.get('arg','index')
 
     # magic used for drc and lvs
-    if step == 'drc':
-        script = 'sc_drc.tcl'
-    elif step == 'extspice':
-        script = 'sc_extspice.tcl'
-    else:
-        raise ValueError(f"Magic tool doesn't support step {step}.")
+    script = 'sc_lvs.tcl'
 
     chip.set('eda', tool, step, index, 'exe', tool)
     chip.set('eda', tool, step, index, 'version', '0.0')
@@ -60,15 +53,10 @@ def setup_tool(chip):
     chip.set('eda', tool, step, index, 'refdir', refdir)
     chip.set('eda', tool, step, index, 'script', refdir + '/' + script)
 
-    # copy in .magicrc file
-    chip.set('eda', tool, step, index, 'copy', 'true')
-
     # set options
     options = []
-    options.append('-noc')
-    options.append('-dnull')
-    options.append('-rcfile')
-    options.append('sc.magicrc')
+    options.append('-batch')
+    options.append('source')
     chip.add('eda', tool, step, index, 'option', 'cmdline', options)
 
 ################################
@@ -78,7 +66,7 @@ def setup_tool(chip):
 def check_version(chip, version):
     ''' Tool specific version checking
     '''
-    required = chip.get('eda', 'magic', step, index, 'version')
+    required = chip.get('eda', 'netgen', step, index, 'version')
     #insert code for parsing the funtion based on some tool specific
     #semantics.
     #syntax for version is string, >=string
@@ -98,18 +86,13 @@ def post_process(chip):
     index = chip.get('arg', 'index')
     design = chip.get('design')
 
-    if step == 'drc':
-        with open(f'outputs/{design}.drc', 'r') as f:
-            for line in f:
-                errors = re.search(r'^\[INFO\]: COUNT: (\d+)', line)
+    if step == 'lvs':
+        # Export metrics
+        lvs_failures = count_lvs.count_LVS_failures(f'outputs/{design}.lvs.json')
+        chip.set('metric', step, index, 'errors', 'real', lvs_failures[0])
 
-                if errors:
-                    chip.set('metric', step, index, 'errors', 'real', errors.group(1))
-
-    # Pass along files to future verification stages
+    # Need to pass along DEF and GDS to future verification stages
     shutil.copy(f'inputs/{design}.gds', f'outputs/{design}.gds')
-    if step == 'extspice':
-        shutil.copy(f'inputs/{design}.v', f'outputs/{design}.v')
 
     #TODO: return error code
     return 0
@@ -126,7 +109,7 @@ if __name__ == "__main__":
     # load configuration
     chip.target('skywater130_asicflow')
     chip.set('arg','index','0')
-    chip.set('arg','step','drc')
+    chip.set('arg','step','lvs')
     setup_tool(chip)
     # write out results
     chip.writecfg(output)
