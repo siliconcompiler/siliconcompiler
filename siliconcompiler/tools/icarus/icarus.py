@@ -5,9 +5,6 @@ import sys
 import siliconcompiler
 import shutil
 
-from siliconcompiler.schema_utils import schema_path
-
-
 ####################################################################
 # Make Docs
 ####################################################################
