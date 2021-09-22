@@ -1462,7 +1462,7 @@ class Chip:
                 self.set([keylist,[]], cfg=cfg, clobber=True)
                 hashlist = []
                 for item in filelist:
-                    filename = schema_path(item)
+                    filename = self.find(item)
                     self.logger.debug('Computing hash value for %s', filename)
                     if os.path.isfile(filename):
                         sha256_hash = hashlib.sha256()
