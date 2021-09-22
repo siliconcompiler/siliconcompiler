@@ -22,11 +22,31 @@ import siliconcompiler
 # We need this in a few places, so just make it global
 SC_ROOT = os.path.abspath(f'{__file__}/../../../')
 
+def build_schema_value_table(schema, keypath_prefix=[]):
+    '''Helper function for displaying values set in schema as a docutils table.'''
+    table = [[strong('Keypath'), strong('Value')]]
+    flat_cfg = flatten(schema)
+    for keys, val in flat_cfg.items():
+        if len(keypath_prefix) > 0:
+            keypath = ', '.join(keypath_prefix) + ', ' + ', '.join(keys)
+        else:
+            keypath = ', '.join(keys)
+        if 'value' in val:
+            # Don't display false booleans
+            if val['type'] == 'bool' and val['value'] == 'false':
+                continue
+            table.append([code(keypath), code(val['value'])])
+
+    if len(table) > 1:
+        return build_table(table)
+    else:
+        return None
+
 class DynamicGen(SphinxDirective):
     '''Base class for all three directives provided by this extension.
 
-    Each child class implements a directive by overriding the keypaths() method
-    and setting a PATH member variable.
+    Each child class implements a directive by overriding the display_config()
+    method and setting a PATH member variable.
     '''
 
     def document_module(self, module, modname, path):
@@ -58,21 +78,7 @@ class DynamicGen(SphinxDirective):
         if extra_content is not None:
             s += extra_content
 
-        table = [[strong('Keypath'), strong('Value')]]
-        keypath_prefixes = self.keypaths(modname)
-        for prefix in keypath_prefixes:
-            cfg = chip.getcfg(*prefix)
-            pruned = chip.prune(cfg)
-            flat_cfg = flatten(pruned)
-            for keys, val in flat_cfg.items():
-                keypath = ', '.join(prefix) + ', ' + ', '.join(keys)
-                if 'value' in val:
-                    # Don't display false booleans
-                    if val['type'] == 'bool' and val['value'] == 'false':
-                        continue
-                    table.append([code(keypath), code(val['value'])])
-
-        s += build_table(table)
+        s += self.display_config(chip, modname)
 
         return s
 
@@ -156,25 +162,113 @@ class DynamicGen(SphinxDirective):
 class FlowGen(DynamicGen):
     PATH = 'flows'
 
-    def keypaths(self, modname):
-        return [('flowgraph',), ('metric',), ('showtool',)]
-
     def extra_content(self, chip, modname):
         flow_path = f'_images/gen/{modname}.svg'
         chip.writegraph(flow_path)
         return [image(flow_path, center=True)]
 
+    def display_config(self, chip, modname):
+        '''Display parameters under `flowgraph, <step>`, `metric, <step>` and
+        `showtool`. Parameters are grouped into sections by step, with an
+        additional table for non-step items.
+        '''
+        section_key = '-'.join(['flows', modname, 'configuration'])
+        settings = build_section('Configuration', section_key)
+
+        steps = chip.getkeys('flowgraph')
+        # TODO: should try to order?
+
+        # Build section + table for each step (combining entires under flowgraph
+        # and metric)
+        for step in steps:
+            section_key = '-'.join(['flows', modname, step])
+            section = build_section(step, section_key)
+            step_cfg = {}
+            for prefix in ['flowgraph', 'metric']:
+                cfg = chip.getcfg(prefix, step)
+                if cfg is None:
+                    continue
+                pruned = chip.prune(cfg)
+                if prefix not in step_cfg:
+                    step_cfg[prefix] = {}
+                step_cfg[prefix][step] = pruned
+
+            section += build_schema_value_table(step_cfg)
+            settings += section
+
+        # Build table for non-step items (just showtool for now)
+        section_key = '-'.join(['flows', modname, 'showtool'])
+        section = build_section('showtool', section_key)
+        cfg = chip.getcfg('showtool')
+        pruned = chip.prune(cfg)
+        table = build_schema_value_table(pruned)
+        if table is not None:
+            section += table
+            settings += section
+
+        return settings
+
 class FoundryGen(DynamicGen):
     PATH = 'foundries'
 
-    def keypaths(self, modname):
-        return [('pdk',), ('asic',), ('library',)]
+    def display_config(self, chip, modname):
+        '''Display parameters under `pdk`, `asic`, and `library` in nested form.'''
+
+        section_key = '-'.join(['foundries', modname, 'configuration'])
+        settings = build_section('Configuration', section_key)
+
+        for prefix in [('pdk',), ('asic',), ('library',)]:
+            cfg = chip.getcfg(*prefix)
+            pruned = chip.prune(cfg)
+            settings += self.build_config_recursive(cfg, keypath_prefix=list(prefix), sec_key_prefix=['foundries', modname])
+
+        return settings
+
+    def build_config_recursive(self, schema, keypath_prefix=[], sec_key_prefix=[]):
+        '''Iterate through all items at this level of schema.
+
+        For each item:
+        - If it's a leaf, collect it into a table we will display at this
+          level
+        - Otherwise, recurse and collect sections of lower levels
+        '''
+        leaves = {}
+        child_sections = []
+        for key, val in schema.items():
+            if key == 'default': continue
+            if 'help' in val:
+                leaves.update({key: val})
+            else:
+                children = self.build_config_recursive(val, keypath_prefix=keypath_prefix+[key], sec_key_prefix=sec_key_prefix)
+                child_sections.extend(children)
+
+        # If we've found leaves, create a new section where we'll display a
+        # table plus all child sections.
+        if len(leaves) > 0:
+            keypath = ', '.join(keypath_prefix)
+            section_key = '-'.join(sec_key_prefix + keypath_prefix)
+            top = build_section(keypath, section_key)
+            top += build_schema_value_table(leaves, keypath_prefix=keypath_prefix)
+            top += child_sections
+            return [top]
+        else:
+            # Otherwise, just pass on the child sections -- we don't want to
+            # create an extra level of section hierarchy for levels of the
+            # schema without leaves.
+            return child_sections
 
 class ToolGen(DynamicGen):
     PATH = 'tools'
 
-    def keypaths(self, modname):
-        return [('eda', modname)]
+    def display_config(self, chip, modname):
+        '''Display config under `eda, <modname>` in a single table.'''
+        cfg = chip.getcfg('eda', modname)
+        pruned = chip.prune(cfg)
+        table = build_schema_value_table(pruned, keypath_prefix=['eda', modname])
+        if table is not None:
+            return table
+        else:
+            return []
 
     def get_modules_in_dir(self, module_dir):
         '''Custom implementation for ToolGen since the tool setup modules are
