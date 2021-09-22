@@ -189,10 +189,6 @@ def setup_pdk(chip):
     # lib arch
     chip.set('library', libname, 'arch', libtype)
 
-    # lib site/tile/size
-    chip.set('library', libname, 'width', libwidth)
-    chip.set('library', libname, 'height', libheight)
-
     # clock buffers
     chip.add('library', libname, 'cells', 'clkbuf', 'sky130_fd_sc_hd__clkbuf_1')
 

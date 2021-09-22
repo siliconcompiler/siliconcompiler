@@ -14,7 +14,6 @@ from multiprocessing import Process
 
 #Shorten siliconcompiler as sc
 import siliconcompiler
-import siliconcompiler.schema_utils
 import siliconcompiler.client
 
 ###########################
