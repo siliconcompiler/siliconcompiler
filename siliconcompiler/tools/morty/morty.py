@@ -58,23 +58,6 @@ def setup_tool(chip):
     # write additional information to `manifest.json`
     chip.add('eda', tool, step, index, 'option', 'cmdline', '--manifest manifest.json')
 
-    for value in chip.get('ydir'):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', '--library-dir ' + schema_path(value))
-    for value in chip.get('vlib'):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', '--library-file ' + schema_path(value))
-    for value in chip.get('idir'):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', '-I ' + schema_path(value))
-    for value in chip.get('define'):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', '-D ' + schema_path(value))
-    for value in chip.get('source'):
-        # only pickle Verilog or SystemVerilog files
-        if value.endswith('.v') or value.endswith('.vh') or \
-                value.endswith('.sv') or value.endswith('.svh'):
-            chip.add('eda', tool, step, index, 'option', 'cmdline', schema_path(value))
-
-
-
-
 ################################
 #  Custom runtime options
 ################################
@@ -97,7 +80,7 @@ def runtime_options(chip):
     for value in chip.get('idir'):
         cmdlist.append('-I' + chip.find(value))
     for value in chip.get('define'):
-        cmdlist.append('-D' + chip.find(value))
+        cmdlist.append('-D' + value)
     for value in chip.get('source'):
         if value.endswith('.v') or value.endswith('.vh') or \
            value.endswith('.sv') or value.endswith('.svh'):
@@ -109,7 +92,7 @@ def runtime_options(chip):
 # Post_process (post executable)
 ################################
 
-def post_process(chip, step, index):
+def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
 

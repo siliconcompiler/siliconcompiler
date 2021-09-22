@@ -91,7 +91,7 @@ def runtime_options(chip):
     for value in chip.get('idir'):
         cmdlist.append('-I' + chip.find(value))
     for value in chip.get('define'):
-        cmdlist.append('-D' + chip.find(value))
+        cmdlist.append('-D' + value)
     for value in chip.get('cmdfile'):
         cmdlist.append('-f ' + chip.find(value))
     for value in chip.get('source'):
