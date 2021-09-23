@@ -242,6 +242,10 @@ class Chip:
         if 'design' in cmdargs.keys():
             self.name = cmdargs['design']
 
+        # read in sources (override default)
+        if 'source' in cmdargs.keys():
+            self.name = cmdargs['design']
+
         # set loglevel if set at command line
         if 'loglevel' in cmdargs.keys():
             self.logger.setLevel(cmdargs['loglevel'])
@@ -423,20 +427,32 @@ class Chip:
         elif len(self.get('target').split('_')) > 2:
             self.logger.error('Target should have zero or one underscore.')
             sys.exit(1)
+        else:
+            target = self.get('target')
+            self.logger.info(f'Loading target {target}.')
 
-        # Technology platform
-        technology = self.get('target').split('_')[0]
-        if self.get('mode') == 'asic':
-            func = self.loadfunction(technology, 'pdk', 'setup_pdk')
+        # First argument can be technology or flow
+        firstarg = target.split('_')[0]
+        if self.loadfunction(firstarg, 'pdk', 'setup_pdk'):
+            func = self.loadfunction(firstarg, 'pdk', 'setup_pdk')
+            func(self)
+        elif self.loadfunction(firstarg, 'flow', 'setup_flow'):
+            func = self.loadfunction(firstarg, 'flow', 'setup_flow')
             func(self)
         else:
-            self.set('fpga', 'partname', technology)
+            self.logger.error(f'Target {firstarg} not found.')
+            sys.exit(1)
 
-        # EDA flow
-        if len(self.get('target').split('_')) == 2:
-            flow = self.get('target').split('_')[1]
-            func = self.loadfunction(flow, 'flow', 'setup_flow')
-            func(self)
+        # Second argument (always flow argument)
+        if len(target.split('_')) == 2:
+            secondarg = target.split('_')[1]
+            # for no arg fpga flow, the first arg is the partname
+            if self.get('mode') == 'fpga':
+                self.set('fpga', 'partname', firstarg)
+            # second arg is always flow
+            if self.loadfunction(secondarg, 'flow', 'setup_flow'):
+                func = self.loadfunction(secondarg, 'flow', 'setup_flow')
+                func(self)
 
     ###########################################################################
     def getsinks(self, step, index, cfg=None):
