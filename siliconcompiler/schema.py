@@ -2251,7 +2251,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
 
     cfg['metric'][step][index]['peakpower'] = {}
     cfg['metric'][step][index]['peakpower'][group] = {
-        'switch': '-metric_power_total step index group <float>',
+        'switch': '-metric_peakpower step index group <float>',
         'type': 'float',
         'lock': 'false',
         'requirement': None,
