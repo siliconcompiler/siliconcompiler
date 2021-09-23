@@ -89,9 +89,12 @@ def runtime_options(chip):
 # Post_process (post executable)
 ################################
 
-def post_process(chip, step, index):
+def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+
     # setting top module of design
     if step in 'import':
         modules = 0

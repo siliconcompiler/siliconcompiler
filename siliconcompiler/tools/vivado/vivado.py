@@ -69,6 +69,7 @@ def check_version(chip, version):
     step = chip.get('arg','step')
     index = chip.get('arg','index')
     required = chip.get('eda', 'vivado', step, index, 'version')
+
     #insert code for parsing the funtion based on some tool specific
     #semantics.
     #syntax for version is string, >=string
@@ -79,9 +80,11 @@ def check_version(chip, version):
 # Post_process (post executable)
 ################################
 
-def post_process(chip, step, index):
+def post_process(chip):
      ''' Tool specific function to run after step execution
      '''
+     step = chip.get('arg','step')
+     index = chip.get('arg','index')
 
      #Return 0 if successful
      return 0
