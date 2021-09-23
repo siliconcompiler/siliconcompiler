@@ -34,13 +34,14 @@ def make_docs():
 
     * http://asap.asu.edu/asap
     * L.T. Clark, V. Vashishtha, L. Shifren, A. Gujja, S. Sinha, B. Cline,
-    C. Ramamurthya, and G. Yeric, “ASAP7: A 7-nm FinFET Predictive Process
-    Design Kit,” Microelectronics Journal, vol. 53, pp. 105-115, July 2016.
+      C. Ramamurthya, and G. Yeric, “ASAP7: A 7-nm FinFET Predictive Process
+      Design Kit,” Microelectronics Journal, vol. 53, pp. 105-115, July 2016.
 
 
     Sources: https://github.com/The-OpenROAD-Project/asap
 
-    Status: Work in progress (not ready for use)
+    .. warning::
+       Work in progress (not ready for use)
 
     '''
 
