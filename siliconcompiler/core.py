@@ -238,36 +238,30 @@ class Chip:
 
         os.environ["COLUMNS"] = '80'
 
-        # set design name (override default)
+        # 1. set design name (override default)
         if 'design' in cmdargs.keys():
             self.name = cmdargs['design']
 
-        # read in sources (override default)
-        if 'source' in cmdargs.keys():
-            self.name = cmdargs['design']
-
-        # set loglevel if set at command line
+        # 2. set loglevel if set at command line
         if 'loglevel' in cmdargs.keys():
             self.logger.setLevel(cmdargs['loglevel'])
 
-        # set mode (needed for target)
-        if 'mode' in cmdargs.keys():
-            self.set('mode', cmdargs['mode'], clobber=True)
-
-        # set target arguments if set
-        if 'techarg' in cmdargs.keys():
-            print("NOT IMPLEMENTED")
-            sys.exit()
-
-        if 'flowarg' in cmdargs.keys():
-            print("NOT IMPLEMENTED")
-            sys.exit()
-
-        # read in target if set
+        # 3. read in target if set
         if 'target' in cmdargs.keys():
+            if 'mode' in cmdargs.keys():
+                self.set('mode', cmdargs['mode'], clobber=True)
+            if 'techarg' in cmdargs.keys():
+                print("NOT IMPLEMENTED")
+                sys.exit()
+            if 'flowarg' in cmdargs.keys():
+                print("NOT IMPLEMENTED")
+                sys.exit()
+            if 'arg_step' in cmdargs.keys():
+                self.set('arg', 'step', cmdargs['arg_step'], clobber=True)
+            # running target command
             self.target(cmdargs['target'])
 
-        # read in all cfg files
+        # 4. read in all cfg files
         if 'cfg' in cmdargs.keys():
             for item in cmdargs['cfg']:
                 self.cfg = self.readcfg(item)
@@ -342,26 +336,21 @@ class Chip:
             self.error = 1
             return
 
-        # error if module not found
-        if not fullpath:
-            self.logger.error(f"Module '{modname}' not found in scpath.")
-            self.error = 1
-            return
-
-        # try loading module/function
-        try:
-            sys.path.append(os.path.dirname(fullpath))
-            imported = importlib.import_module(modname)
-            if hasattr(imported, funcname):
-                function = getattr(imported, funcname)
-            else:
-                function = None
-            sys.path.pop()
-            return function
-        except:
-            traceback.print_exc()
-            self.logger.error(f"Module setup failed for '{modname}'")
-            self.error = 1
+        # try loading module if found
+        if fullpath:
+            try:
+                sys.path.append(os.path.dirname(fullpath))
+                imported = importlib.import_module(modname)
+                if hasattr(imported, funcname):
+                    function = getattr(imported, funcname)
+                else:
+                    function = None
+                sys.path.pop()
+                return function
+            except:
+                traceback.print_exc()
+                self.logger.error(f"Module setup failed for '{modname}'")
+                self.error = 1
 
     ###########################################################################
     def target(self, arg=None):
@@ -431,28 +420,30 @@ class Chip:
             target = self.get('target')
             self.logger.info(f'Loading target {target}.')
 
-        # First argument can be technology or flow
-        firstarg = target.split('_')[0]
-        if self.loadfunction(firstarg, 'pdk', 'setup_pdk'):
-            func = self.loadfunction(firstarg, 'pdk', 'setup_pdk')
-            func(self)
-        elif self.loadfunction(firstarg, 'flow', 'setup_flow'):
-            func = self.loadfunction(firstarg, 'flow', 'setup_flow')
-            func(self)
-        else:
-            self.logger.error(f'Target {firstarg} not found.')
-            sys.exit(1)
-
-        # Second argument (always flow argument)
-        if len(target.split('_')) == 2:
-            secondarg = target.split('_')[1]
-            # for no arg fpga flow, the first arg is the partname
-            if self.get('mode') == 'fpga':
-                self.set('fpga', 'partname', firstarg)
-            # second arg is always flow
-            if self.loadfunction(secondarg, 'flow', 'setup_flow'):
-                func = self.loadfunction(secondarg, 'flow', 'setup_flow')
+        # search for module matches
+        targetlist = target.split('_')
+        for item in targetlist:
+            # try all possibilities (assumes no overlap!)
+            if self.loadfunction(item, 'pdk', 'setup_pdk'):
+                func = self.loadfunction(item, 'pdk', 'setup_pdk')
                 func(self)
+            elif self.loadfunction(item, 'flow', 'setup_flow'):
+                func = self.loadfunction(item, 'flow', 'setup_flow')
+                func(self)
+            elif self.loadfunction(item, 'tool', 'setup_tool'):
+                if self.get('arg','step'):
+                    step =  self.get('arg','step')
+                else:
+                    step = toolname
+                self.set('flowgraph', step, '0', 'tool', item)
+            else:
+                self.logger.error(f'Target {item} not found.')
+                sys.exit(1)
+
+        # fpga partname must always be first arg
+        if self.get('mode') == 'fpga':
+            self.set('fpga', 'partname', targetlist[0])
+
 
     ###########################################################################
     def getsinks(self, step, index, cfg=None):
