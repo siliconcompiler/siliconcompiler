@@ -2658,7 +2658,8 @@ def schema_record(cfg, step='default', index='default'):
         'example': ["cli: -record_org 'dfm 0 earth'",
                     "api: chip.set('record','dfm','0','org','earth')"],
         'help': """
-        Record tracking the user's organization on a per step basis.
+        Record tracking the user's organization on a per step and per index
+        basis.
         """
     }
 
@@ -2672,7 +2673,23 @@ def schema_record(cfg, step='default', index='default'):
         'example': ["cli: -record_location 'dfm 0 Boston'",
                     "api: chip.set('record','dfm','0','location,'Boston')"],
         'help': """
-        Record tracking the user's location/site on a per step basis.
+        Record tracking the user's location/site on a per step and per index
+        basis.
+        """
+    }
+
+    cfg['record'][step][index]['version'] = {
+        'switch': "-record_version 'step index <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Record of executable version',
+        'example': ["cli: -record_version 'dfm 0 1.0'",
+                    "api: chip.set('record','dfm','0','version', '1.0')"],
+        'help': """
+        Record tracking the version number of the executable, specified
+        on per step and per index basis.
         """
     }
 

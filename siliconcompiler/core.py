@@ -2154,7 +2154,6 @@ class Chip:
 
         ##################
         # 10. Resetting metrics (so tool doesn't have to worry about defaults)
-
         for metric in self.getkeys('metric', 'default', 'default'):
             self.set('metric', step, index, metric, 'real', 0)
 
@@ -2171,6 +2170,7 @@ class Chip:
             if check_version(self, version.stdout):
                 self.logger.error(f"Version check failed for {tool}. Check installation]")
                 self._haltstep(step, index, error, active)
+
 
         ##################
         # 12. Run executable
@@ -2209,11 +2209,11 @@ class Chip:
         start_date = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
         end_date = datetime.datetime.fromtimestamp(end).strftime('%Y-%m-%d %H:%M:%S')
         self._makerecord(step, index, start_date, end_date)
-
         ##################
         # 15. save a successful manifest (minus scratch args)
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
+
         self.writecfg("outputs/" + self.get('design') +'.pkg.json')
 
         ##################
@@ -2600,6 +2600,9 @@ class Chip:
                 #TODO
                 pass
             elif key == 'hash':
+                #TODO
+                pass
+            elif key == 'version':
                 #TODO
                 pass
             elif self.get(key):
