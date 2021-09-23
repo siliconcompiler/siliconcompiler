@@ -160,8 +160,6 @@ def setup_pdk(chip):
 
     libname = 'asap7sc7p5t_rvt'
     libtype = '7p5t'
-    libwidth = 0.054
-    libheight = 0.27
     rev = 'r1p7'
     corner = 'typical'
     objectives = ['setup']
@@ -190,10 +188,6 @@ def setup_pdk(chip):
 
     # lib arch
     chip.set('library',libname,'arch',libtype)
-
-    # lib site/tile/size
-    chip.set('library',libname,'width', libwidth)
-    chip.set('library',libname,'height', libheight)
 
     #driver
     chip.add('library',libname,'driver', "BUFx2_ASAP7_75t_R")

@@ -4,51 +4,7 @@ from docutils.statemachine import ViewList
 from sphinx.util.docutils import SphinxDirective
 from siliconcompiler.schema import schema_cfg
 
-# docutils helpers
-def build_table(items):
-    table = nodes.table()
-
-    group = nodes.tgroup(cols=len(items[0]))
-    table += group
-    # not sure how colwidth affects things - columns seem to adjust to contents
-    group += nodes.colspec(colwidth=50)
-    group += nodes.colspec(colwidth=100)
-
-    body = nodes.tbody()
-    group += body
-
-    for row in items:
-        row_node = nodes.row()
-        body += row_node
-        for col in row:
-            entry = nodes.entry()
-            row_node += entry
-            entry += col
-
-    return table
-
-def build_section(text, key):
-    sec = nodes.section(ids=[nodes.make_id(key)])
-    sec += nodes.title(text=text)
-    return sec
-
-def para(text):
-    return nodes.paragraph(text=text)
-
-def code(text):
-    return nodes.literal(text=text)
-
-def strong(text):
-    p = nodes.paragraph()
-    p += nodes.strong(text=text)
-    return p
-
-def is_leaf(schema):
-    if 'defvalue' in schema:
-        return True
-    elif len(schema.keys()) == 1 and 'default' in schema:
-        return is_leaf(schema['default'])
-    return False
+from common import *
 
 # Main Sphinx plugin
 class SchemaGen(SphinxDirective):
