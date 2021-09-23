@@ -80,7 +80,6 @@ set sc_tapoffset   [lindex [dict get $sc_cfg pdk tapoffset] end]
 set sc_minmetal    [dict get $sc_cfg pdk grid $sc_stackup $sc_minlayer name]
 set sc_maxmetal    [dict get $sc_cfg pdk grid $sc_stackup $sc_maxlayer name]
 
-
 # Layer Definitions
 set sc_layers ""
 dict for {key value} [dict get $sc_cfg pdk grid $sc_stackup] {
@@ -97,7 +96,10 @@ set sc_threads [dict get $sc_cfg eda $sc_tool $sc_step $sc_index threads]
 set sc_macrolibs [dict get $sc_cfg asic macrolib]
 
 # CONSTRAINTS
-set sc_constraint [dict get $sc_cfg constraint]
+set sc_constraints [dict get $sc_cfg constraint]
+
+# NETLISTS
+set sc_netlists [dict get $sc_cfg netlist]
 
 # DEF
 set sc_def [dict get $sc_cfg asic def]
@@ -125,14 +127,35 @@ foreach lib $sc_macrolibs {
 
 # Floorplan reads synthesis verilog, others read def
 if {$sc_step == "floorplan"} {
-    read_verilog "inputs/$sc_design.v"
+    # read synthesized verilog if it exists
+    if {[file exists "inputs/$sc_design.v"]} {
+	read_verilog "inputs/$sc_design.v"
+    }
+    # read netlists if they exist
+    foreach netlist [dict get $sc_cfg netlist] {
+	read_verilog $netlist
+    }
+    #link design
     link_design $sc_design
-    foreach sdc $sc_constraint {
+    #read all constarints
+    foreach sdc $sc_constraints {
 	read_sdc $sdc
     }
 } else {
-    read_def "inputs/$sc_design.def"
-    read_sdc "inputs/$sc_design.sdc"
+    # read from previous step if exists
+    # else read directly from input
+    if {[file exists "inputs/$sc_design.def"]} {
+	read_def "inputs/$sc_design.def"
+    } else {
+	read_def $sc_def
+    }
+    if {[file exists "inputs/$sc_design.sdc"]} {
+	read_sdc "inputs/$sc_design.sdc"
+    } else {
+	foreach sdc $sc_constraints {
+	    read_sdc $sdc
+	}
+    }
 }
 
 ###############################
