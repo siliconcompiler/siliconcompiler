@@ -3404,6 +3404,29 @@ def schema_design(cfg):
         """
     }
 
+    cfg['netlist'] = {
+        'switch': '-netlist <file>',
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'true',
+        'requirement': None,
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Technology mapped verilog netlist',
+        'example': ["cli: netlist.v",
+                    "api: chip.add('netlist', 'netlist.v')"],
+        'help': """
+        List of technology mapped Verilog modules for post-synthesis
+        implementation steps. The actual entry point of the netlist
+        depends on the flow used. In the standard 'asicflow', the
+        netlist is read in as part of the floorplan step.
+        """
+    }
+
     cfg['testbench'] = {
         'switch': '-testbench <file>',
         'type': '[file]',
