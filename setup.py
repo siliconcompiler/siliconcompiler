@@ -2,6 +2,7 @@
 
 import os
 import sys
+from setuptools import find_packages
 
 try:
     from skbuild import setup
@@ -10,7 +11,7 @@ except ImportError:
         "Error finding build dependencies!\n"
         "If you're installing this project using pip, make sure you're using pip version 10 or greater.\n"
         "If you're installing this project by running setup.py, manually install all dependencies listed in requirements.txt.",
-        file=sys.stderr,
+        file=sys.stderr
     )
     raise
 
@@ -29,10 +30,40 @@ setup(
     long_description=long_desc,
     long_description_content_type="text/markdown",
     author="Andreas Olofsson",
-    url="https://github.com/aolofsson/siliconcompiler",
+    url="https://github.com/siliconcompiler/siliconcompiler",
     version="0.0.0",
-    packages=["siliconcompiler"],
+    packages=find_packages(where='.', exclude=['tests*']),
+
+    # TODO: hack to work around weird scikit-build behavior:
+    # https://github.com/scikit-build/scikit-build/issues/590
+    # Once this issue is resolved, we should switch to setting
+    # include_package_data to True instead of manually specifying package_data.
+
+    #include_package_data=True,
+    package_data={
+        'siliconcompiler': ['AUTHORS', 'templates/*.j2'],
+        'siliconcompiler.tools': ['**/*.tcl', '**/*.py', '**/*.xml', '**/*.magicrc', '**/*.openfpga']
+    },
+
     python_requires=">=3.6",
+    install_requires=[
+        "matplotlib >= 3.3",
+        "numpy >= 1.19",
+        "ply >= 3.11",
+        "aiohttp >= 3.7.4.post0",
+        "requests >= 2.22.0",
+        "pyfiglet >= 0.8",
+        "PyYAML >= 5.4.1",
+        "pytest >= 6.2.4",
+        "pytest-xdist >= 2.3.0",
+        "defusedxml >= 0.7.1",
+        "pandas >= 1.2.3",
+        "Jinja2 >= 2.11.3",
+        "Sphinx >= 3.5.4",
+        "cryptography >= 3.4.7",
+        "sphinx-rtd-theme >= 0.5.2",
+        "graphviz >=0.17"
+    ],
     entry_points={"console_scripts": ["sc=siliconcompiler.__main__:main", "sc-server=siliconcompiler.server:main", "sc-crypt=siliconcompiler.crypto:main"]},
     cmake_install_dir="siliconcompiler/leflib"
     

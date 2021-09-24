@@ -230,7 +230,7 @@ class Chip:
 
         # Print out SC project authors
         authors = []
-        authorfile = self.find("../AUTHORS")
+        authorfile = self.find("AUTHORS")
         f = open(authorfile, "r")
         for line in f:
             name = re.match(r'^(\w+\s+\w+)', line)
