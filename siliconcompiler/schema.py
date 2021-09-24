@@ -2824,8 +2824,8 @@ def schema_options(cfg):
         'requirement': None,
         'defvalue': None,
         'shorthelp': 'Compilation target',
-        'example': ["cli: -target 'freepdk45_asicflow'",
-                    "api: chip.set('target','freepdk45_asicflow')"],
+        'example': ["cli: -target 'asicflow_freepdk45'",
+                    "api: chip.set('target','asicflow_freepdk45')"],
         'help': """
         Compilation target double string separated by a single underscore,
         specified as "<process>_<edaflow>" for ASIC compilation and

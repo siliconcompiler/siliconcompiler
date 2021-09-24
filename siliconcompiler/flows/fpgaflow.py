@@ -57,13 +57,12 @@ def setup_flow(chip):
     '''
 
     # Set partname if not set
+    partname = "UNDEFINED"
     if chip.get('fpga', 'partname'):
         partname = chip.get('fpga', 'partname')
-    elif len(chip.get('target').split('_')) == 2:
-        partname = chip.get('target').split('_')[1]
-    else:
-        partname = "UNDEFINED"
-
+    elif chip.get('target'):
+        if len(chip.get('target').split('_')) == 2:
+            partname = chip.get('target').split('_')[1]
     chip.set('fpga', 'partname', partname)
 
     # Set FPGA mode if not set

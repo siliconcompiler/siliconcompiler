@@ -124,7 +124,7 @@ if __name__ == "__main__":
     # create a chip instance
     chip = siliconcompiler.Chip(loglevel="INFO")
     # load configuration
-    chip.target('skywater130_asicflow')
+    chip.target('asicflow_skywater130')
     chip.set('arg','index','0')
     chip.set('arg','step','drc')
     setup_tool(chip)
