@@ -120,17 +120,16 @@ def setup_flow(chip):
         if param in chip.getkeys('flowarg'):
             fanout = int(chip.get('flowarg', param)[0])
         for index in range(fanout):
-            # Metrics
-            chip.set('flowgraph', step, str(index), 'weight',  'cellarea', 1.0)
-            chip.set('flowgraph', step, str(index), 'weight',  'peakpower', 1.0)
-            chip.set('flowgraph', step, str(index), 'weight',  'standbypower', 1.0)
-            # Goals
-            chip.set('metric', step, str(index), 'drv', 'errors', 0)
-            chip.set('metric', step, str(index), 'drv', 'goal', 0.0)
-            chip.set('metric', step, str(index), 'holdwns', 'goal', 0.0)
-            chip.set('metric', step, str(index), 'holdtns', 'goal', 0.0)
-            chip.set('metric', step, str(index), 'setupwns', 'goal', 0.0)
-            chip.set('metric', step, str(index), 'setuptns', 'goal', 0.0)
+            for metric in chip.getkeys('metric', 'default', 'default'):
+                if metric in ('errors','warnings','drvs','holdwns','setupwns','holdtns','setuptns'):
+                    chip.set('flowgraph', step, str(index), 'weight', metric, 1.0)
+                    chip.set('metric', step, str(index), metric, 'goal', 0)
+                elif metric in ('cellarea', 'peakpower', 'standbypower'):
+                    chip.set('flowgraph', step, str(index), 'weight', metric, 1.0)
+                elif metric in ('dsps', 'brams', 'luts'):
+                    chip.set('flowgraph', step, str(index), 'weight', metric, 0.0)
+                else:
+                    chip.set('flowgraph', step, str(index), 'weight', metric, 0.001)
             #graph
             if step == 'import':
                 chip.set('flowgraph', step, str(index), 'tool', tools[step])
