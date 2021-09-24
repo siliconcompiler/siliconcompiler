@@ -61,7 +61,7 @@ def setup_tool(chip):
 
     #Input/output requirements
     chip.add('eda', tool, step, index, 'input', chip.get('design') + '.v')
-    chip.add('eda', tool, step, index, 'output', chip.get('design') + '.v')
+    chip.add('eda', tool, step, index, 'output', chip.get('design') + '.vg')
 
     #Schema requirements
     if chip.get('mode') == 'asic':

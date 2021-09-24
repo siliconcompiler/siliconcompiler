@@ -161,7 +161,7 @@ def post_process(chip):
     #TODO: Fix fur multi (this will be moved to run step)
     shutil.copy(f'inputs/{design}.def', f'outputs/{design}.def')
     shutil.copy(f'inputs/{design}.sdc', f'outputs/{design}.sdc')
-    shutil.copy(f'inputs/{design}.v', f'outputs/{design}.v')
+    shutil.copy(f'inputs/{design}.vg', f'outputs/{design}.vg')
 
     return 0
 
