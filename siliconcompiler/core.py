@@ -422,7 +422,7 @@ class Chip:
 
         # search for module matches
         targetlist = target.split('_')
-        for item in targetlist:
+        for i, item in enumerate(targetlist):
             # try all possibilities (assumes no overlap!)
             if self.loadfunction(item, 'pdk', 'setup_pdk'):
                 func = self.loadfunction(item, 'pdk', 'setup_pdk')
@@ -434,15 +434,13 @@ class Chip:
                 if self.get('arg','step'):
                     step =  self.get('arg','step')
                 else:
-                    step = toolname
+                    step = item
                 self.set('flowgraph', step, '0', 'tool', item)
+            elif (i == 0) & (self.get('mode') == 'fpga'):
+                self.set('fpga', 'partname', item)
             else:
                 self.logger.error(f'Target {item} not found.')
                 sys.exit(1)
-
-        # fpga partname must always be first arg
-        if self.get('mode') == 'fpga':
-            self.set('fpga', 'partname', targetlist[0])
 
 
     ###########################################################################
@@ -1622,6 +1620,7 @@ class Chip:
             # TODO: pull in relevant summary items for FPGA?
             info = '\n'.join(["SUMMARY:\n",
                               "design = "+self.get('design'),
+                              "partname = "+self.get('fpga','partname'),
                               "jobdir = "+ jobdir])
         print("-"*135)
         print(info, "\n")
@@ -1658,7 +1657,14 @@ class Chip:
             row.append(" " + sel_in.center(colwidth))
         data.append(row)
 
-        for metric in self.getkeys('metric', 'default', 'default'):
+        # only report metrics with weights
+        metric_list = []
+        for step in steplist:
+            for metric in self.getkeys('flowgraph', step, '0', 'weight'):
+                if self.get('flowgraph', step, '0', 'weight', metric):
+                    if metric not in metric_list:
+                        metric_list.append(metric)
+        for metric in metric_list:
             metrics.append(" " + metric)
             row = []
             for step in steplist:
@@ -2560,7 +2566,7 @@ class Chip:
         '''
 
         exe = self.get('eda', tool, step, index, 'exe')
-        if self.get('eda', tool, step, index, 'option', 'cmdline'):
+        if 'cmdline' in self.getkeys('eda', tool, step, index, 'option'):
             options = self.get('eda', tool, step, index, 'option', 'cmdline')
         else:
             options = []
