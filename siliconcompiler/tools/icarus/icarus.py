@@ -44,9 +44,6 @@ def setup_tool(chip):
     index = chip.get('arg','index')
     design = chip.get('design')
 
-    # Icarus only used for simulation (overrides asic default)
-    chip.set('mode', 'sim')
-
     # Standard Setup
     chip.set('eda', tool, step, index, 'exe', 'iverilog', clobber=False)
     chip.set('eda', tool, step, index, 'vswitch', '-V', clobber=False)
