@@ -431,9 +431,9 @@ class Chip:
             elif (i == 0) & bool(self.loadfunction(item, 'tool', 'setup_tool')):
                 if len(targetlist) > 1 :
                     step = targetlist[1]
-                    self.get('arg','step', step)
+                    self.set('arg','step', step)
                 elif self.get('arg','step'):
-                    step =  self.set('arg','step')
+                    step =  self.get('arg','step')
                 else:
                     self.logger.info(f"Step not defined for tool target {item}")
                 self.set('flowgraph', step, '0', 'tool', item)
