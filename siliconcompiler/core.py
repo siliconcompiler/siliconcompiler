@@ -423,8 +423,9 @@ class Chip:
         # search for module matches
         targetlist = target.split('_')
         for i, item in enumerate(targetlist):
-            # try all possibilities (assumes no overlap!)
-            if self.loadfunction(item, 'pdk', 'setup_pdk'):
+            if (i == 0) & (self.get('mode') == 'fpga'):
+                self.set('fpga', 'partname', item)
+            elif self.loadfunction(item, 'pdk', 'setup_pdk'):
                 func = self.loadfunction(item, 'pdk', 'setup_pdk')
                 func(self)
             elif self.loadfunction(item, 'flow', 'setup_flow'):
@@ -436,8 +437,6 @@ class Chip:
                 else:
                     step = item
                 self.set('flowgraph', step, '0', 'tool', item)
-            elif (i == 0) & (self.get('mode') == 'fpga'):
-                self.set('fpga', 'partname', item)
             else:
                 self.logger.error(f'Target {item} not found.')
                 sys.exit(1)
