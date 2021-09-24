@@ -2140,7 +2140,7 @@ def schema_arg(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': None,
-        'defvalue': None,
+        'defvalue': '0',
         'shorthelp': 'Current step Index',
         'example': ["cli: -arg_index 0",
                     "api: chip.set('arg','index','0')"],
@@ -2196,8 +2196,8 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
-    cfg['metric'][step][index]['drv'] = {}
-    cfg['metric'][step][index]['drv'][group] = {
+    cfg['metric'][step][index]['drvs'] = {}
+    cfg['metric'][step][index]['drvs'][group] = {
         'switch': "-metric_drv 'step index group <int>'",
         'type': 'int',
         'lock': 'false',
@@ -2220,7 +2220,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'LUT metric',
+        'shorthelp': 'FPGA LUT metric',
         'example': [
             "cli: -metric_luts 'place 0 goal 100.00'",
             "api: chip.set('metric','place','0','luts','real','100.00')"],
@@ -2231,6 +2231,46 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         identical tools and device families.
         """
     }
+
+    cfg['metric'][step][index]['dsps'] = {}
+    cfg['metric'][step][index]['dsps'][group] = {
+        'switch': '-metric_dsps step index group <float>',
+        'type': 'float',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'FPGA DSP metric',
+        'example': [
+            "cli: -metric_dsps 'place 0 goal 100.00'",
+            "api: chip.set('metric','place','0','dsps','real','100.00')"],
+        'help': """
+        Metric tracking the total FPGA DSP slices used by the design as reported
+        by the implementation tool. There is no standard DSP definition,
+        so metric comparisons can generally only be done between runs on
+        identical tools and device families.
+        """
+    }
+
+    cfg['metric'][step][index]['brams'] = {}
+    cfg['metric'][step][index]['brams'][group] = {
+        'switch': '-metric_brams step index group <float>',
+        'type': 'float',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'FPGA BRAM metric',
+        'example': [
+            "cli: -metric_bram 'place 0 goal 100'",
+            "api: chip.set('metric','place','0','brams','real','100')"],
+        'help': """
+        Metric tracking the total FPGA BRAM tiles used by the design as reported
+        by the implementation tool. There is no standard DSP definition,
+        so metric comparisons can generally only be done between runs on
+        identical tools and device families.
+        """
+    }
+
+
 
     cfg['metric'][step][index]['cellarea'] = {}
     cfg['metric'][step][index]['cellarea'][group] = {
