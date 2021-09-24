@@ -42,6 +42,7 @@ def setup_tool(chip):
     tool = 'icarus'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    design = chip.get('design')
 
     # Standard Setup
     chip.set('eda', tool, step, index, 'exe', 'iverilog', clobber=False)
@@ -49,6 +50,12 @@ def setup_tool(chip):
     chip.set('eda', tool, step, index, 'version', '10.3', clobber=False)
     chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=False)
 
+    if step == 'compile':
+        chip.set('eda', tool, step, index,'option','cmdline','-o outputs/'+design+'.vvp')
+    elif step == 'run':
+        chip.set('eda', tool, step, index,'option','cmdline','')
+    else:
+        chip.logger.error(f"Step '{step}' not supported in Icarus tool")
 
 ################################
 #  Custom runtime options
@@ -80,14 +87,9 @@ def runtime_options(chip):
 
     return cmdlist
 
-
-
 ################################
 # Version Check
 ################################
-
-
-
 
 def check_version(chip, version):
     ''' Tool specific version checking

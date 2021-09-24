@@ -2140,7 +2140,7 @@ def schema_arg(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': None,
-        'defvalue': None,
+        'defvalue': '0',
         'shorthelp': 'Current step Index',
         'example': ["cli: -arg_index 0",
                     "api: chip.set('arg','index','0')"],
@@ -2196,8 +2196,8 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
-    cfg['metric'][step][index]['drv'] = {}
-    cfg['metric'][step][index]['drv'][group] = {
+    cfg['metric'][step][index]['drvs'] = {}
+    cfg['metric'][step][index]['drvs'][group] = {
         'switch': "-metric_drv 'step index group <int>'",
         'type': 'int',
         'lock': 'false',
@@ -2220,7 +2220,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'LUT metric',
+        'shorthelp': 'FPGA LUT metric',
         'example': [
             "cli: -metric_luts 'place 0 goal 100.00'",
             "api: chip.set('metric','place','0','luts','real','100.00')"],
@@ -2231,6 +2231,46 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         identical tools and device families.
         """
     }
+
+    cfg['metric'][step][index]['dsps'] = {}
+    cfg['metric'][step][index]['dsps'][group] = {
+        'switch': '-metric_dsps step index group <float>',
+        'type': 'float',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'FPGA DSP metric',
+        'example': [
+            "cli: -metric_dsps 'place 0 goal 100.00'",
+            "api: chip.set('metric','place','0','dsps','real','100.00')"],
+        'help': """
+        Metric tracking the total FPGA DSP slices used by the design as reported
+        by the implementation tool. There is no standard DSP definition,
+        so metric comparisons can generally only be done between runs on
+        identical tools and device families.
+        """
+    }
+
+    cfg['metric'][step][index]['brams'] = {}
+    cfg['metric'][step][index]['brams'][group] = {
+        'switch': '-metric_brams step index group <float>',
+        'type': 'float',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'FPGA BRAM metric',
+        'example': [
+            "cli: -metric_bram 'place 0 goal 100'",
+            "api: chip.set('metric','place','0','brams','real','100')"],
+        'help': """
+        Metric tracking the total FPGA BRAM tiles used by the design as reported
+        by the implementation tool. There is no standard DSP definition,
+        so metric comparisons can generally only be done between runs on
+        identical tools and device families.
+        """
+    }
+
+
 
     cfg['metric'][step][index]['cellarea'] = {}
     cfg['metric'][step][index]['cellarea'][group] = {
@@ -2251,7 +2291,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
 
     cfg['metric'][step][index]['peakpower'] = {}
     cfg['metric'][step][index]['peakpower'][group] = {
-        'switch': '-metric_power_total step index group <float>',
+        'switch': '-metric_peakpower step index group <float>',
         'type': 'float',
         'lock': 'false',
         'requirement': None,
@@ -2658,7 +2698,8 @@ def schema_record(cfg, step='default', index='default'):
         'example': ["cli: -record_org 'dfm 0 earth'",
                     "api: chip.set('record','dfm','0','org','earth')"],
         'help': """
-        Record tracking the user's organization on a per step basis.
+        Record tracking the user's organization on a per step and per index
+        basis.
         """
     }
 
@@ -2672,7 +2713,23 @@ def schema_record(cfg, step='default', index='default'):
         'example': ["cli: -record_location 'dfm 0 Boston'",
                     "api: chip.set('record','dfm','0','location,'Boston')"],
         'help': """
-        Record tracking the user's location/site on a per step basis.
+        Record tracking the user's location/site on a per step and per index
+        basis.
+        """
+    }
+
+    cfg['record'][step][index]['version'] = {
+        'switch': "-record_version 'step index <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Record of executable version',
+        'example': ["cli: -record_version 'dfm 0 1.0'",
+                    "api: chip.set('record','dfm','0','version', '1.0')"],
+        'help': """
+        Record tracking the version number of the executable, specified
+        on per step and per index basis.
         """
     }
 
@@ -3384,6 +3441,29 @@ def schema_design(cfg):
         (\\*.c)        = C
         (\\*.cpp, .cc) = C++
         (\\*.py)       = Python
+        """
+    }
+
+    cfg['netlist'] = {
+        'switch': '-netlist <file>',
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'true',
+        'requirement': None,
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Technology mapped verilog netlist',
+        'example': ["cli: netlist.v",
+                    "api: chip.add('netlist', 'netlist.v')"],
+        'help': """
+        List of technology mapped Verilog modules for post-synthesis
+        implementation steps. The actual entry point of the netlist
+        depends on the flow used. In the standard 'asicflow', the
+        netlist is read in as part of the floorplan step.
         """
     }
 
