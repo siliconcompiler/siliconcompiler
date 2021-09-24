@@ -433,7 +433,7 @@ class Chip:
                     step = targetlist[1]
                     self.get('arg','step', step)
                 elif self.get('arg','step'):
-                    step =  self.get('arg','step')
+                    step =  self.set('arg','step')
                 else:
                     self.logger.info(f"Step not defined for tool target {item}")
                 self.set('flowgraph', step, '0', 'tool', item)
@@ -441,6 +441,7 @@ class Chip:
             elif bool(self.loadfunction(item, 'pdk', 'setup_pdk')):
                 func = self.loadfunction(item, 'pdk', 'setup_pdk')
                 func(self)
+            # fpga partnames can be anything so we ignore the 2nd field
             elif self.get('mode') != 'fpga':
                 self.logger.error(f'Target {item} not found')
                 sys.exit(1)
