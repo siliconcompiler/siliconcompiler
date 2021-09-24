@@ -15,7 +15,7 @@ def test_tool_option():
 
     # Inserting value into configuration
     chip.set('design', 'gcd', clobber=True)
-    chip.target("freepdk45_asicflow")
+    chip.target("asicflow_freepdk45")
     chip.add('source', gcd_ex_dir + 'gcd.v')
     chip.set('clock', 'clock_name', 'pin', 'clk')
     chip.add('constraint', gcd_ex_dir + 'gcd.sdc')

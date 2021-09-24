@@ -75,7 +75,6 @@ def runtime_options(chip):
     lib_rev = chip.get('library', libname, 'version')
     stackup = chip.get('pdk','stackup')[0]
     libtype = chip.get('library', libname, 'arch')
-    targetlist = chip.get('target').split('_')
     techfile = chip.find(chip.get('pdk','layermap', stackup, 'def', 'gds')[0])
     techlef = chip.find(chip.get('pdk','aprtech', stackup, libtype, 'lef')[0])
     #TODO: fix this!, is foundry_lefs they only way??
