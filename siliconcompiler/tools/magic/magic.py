@@ -109,7 +109,7 @@ def post_process(chip):
     # Pass along files to future verification stages
     shutil.copy(f'inputs/{design}.gds', f'outputs/{design}.gds')
     if step == 'extspice':
-        shutil.copy(f'inputs/{design}.v', f'outputs/{design}.v')
+        shutil.copy(f'inputs/{design}.vg', f'outputs/{design}.vg')
 
     #TODO: return error code
     return 0

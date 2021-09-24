@@ -7,7 +7,7 @@ set sc_stackup [dict get $sc_cfg asic stackup]
 set sc_runset [dict get $sc_cfg pdk lvs netgen $sc_stackup runset]
 
 set layout_file "inputs/$sc_design.spice"
-set schematic_file "inputs/$sc_design.v"
+set schematic_file "inputs/$sc_design.vg"
 
 # readnet returns a number that can be used to associate additional files with
 # each netlist read in here

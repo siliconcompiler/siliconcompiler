@@ -79,7 +79,9 @@ def setup_flow(chip):
                 'export']
 
 
-    if chip.get('pdk', 'process') == 'skywater130':
+    if ('verify' in chip.getkeys('flowarg') and
+        len(chip.get('flowarg', 'verify')) > 0 and
+        chip.get('flowarg', 'verify')[0] == 'true'):
         flowpipe.append('extspice')
         flowpipe.append('lvs')
         flowpipe.append('drc')
