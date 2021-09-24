@@ -77,20 +77,13 @@ def setup_flow(chip):
     # Minimal setup
     index = '0'
     for i, step in enumerate(flowpipe):
-
+        # Hard goals
+        for metric in ('errors','warnings','drvs','holdwns','setupwns','holdtns','setuptns'):
+            chip.set('flowgraph', step, str(index), 'weight', metric, 1.0)
+            chip.set('metric', step, str(index), metric, 'goal', 0)
         # Metrics
-        chip.set('flowgraph', step, index, 'weight',  'cellarea', 1.0)
-        chip.set('flowgraph', step, index, 'weight',  'peakpower', 1.0)
-        chip.set('flowgraph', step, index, 'weight',  'standbypower', 1.0)
-
-        # Goals
-        chip.set('metric', step, index, 'drv', 'errors', 0)
-        chip.set('metric', step, index, 'drv', 'goal', 0.0)
-        chip.set('metric', step, index, 'holdwns', 'goal', 0.0)
-        chip.set('metric', step, index, 'holdtns', 'goal', 0.0)
-        chip.set('metric', step, index, 'setupwns', 'goal', 0.0)
-        chip.set('metric', step, index, 'setuptns', 'goal', 0.0)
-
+        for metric in ('luts','dsps','brams','registers','pins','peakpower','standbypower'):
+            chip.set('flowgraph', step, str(index), 'weight', metric, 1.0)
         # Inputs
         if i > 0:
             chip.add('flowgraph', flowpipe[i], index, 'input', flowpipe[i-1], "0")
