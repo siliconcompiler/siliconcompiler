@@ -128,8 +128,8 @@ foreach lib $sc_macrolibs {
 # Floorplan reads synthesis verilog, others read def
 if {$sc_step == "floorplan"} {
     # read synthesized verilog if it exists
-    if {[file exists "inputs/$sc_design.v"]} {
-	read_verilog "inputs/$sc_design.v"
+    if {[file exists "inputs/$sc_design.vg"]} {
+	read_verilog "inputs/$sc_design.vg"
     }
     # read netlists if they exist
     foreach netlist [dict get $sc_cfg netlist] {

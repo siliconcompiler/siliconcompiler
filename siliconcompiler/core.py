@@ -414,33 +414,39 @@ class Chip:
             self.logger.error('Target not defined.')
             sys.exit(1)
         elif len(self.get('target').split('_')) > 2:
-            self.logger.error('Target should have zero or one underscore.')
+            self.logger.error('Target should have zero or one underscore')
             sys.exit(1)
         else:
+
             target = self.get('target')
             self.logger.info(f'Loading target {target}.')
 
         # search for module matches
         targetlist = target.split('_')
+
         for i, item in enumerate(targetlist):
-            if (i == 0) & (self.get('mode') == 'fpga'):
-                self.set('fpga', 'partname', item)
-            elif self.loadfunction(item, 'pdk', 'setup_pdk'):
-                func = self.loadfunction(item, 'pdk', 'setup_pdk')
-                func(self)
-            elif self.loadfunction(item, 'flow', 'setup_flow'):
+            if (i == 0) & bool(self.loadfunction(item, 'flow', 'setup_flow')):
                 func = self.loadfunction(item, 'flow', 'setup_flow')
                 func(self)
-            elif self.loadfunction(item, 'tool', 'setup_tool'):
-                if self.get('arg','step'):
+            elif (i == 0) & bool(self.loadfunction(item, 'tool', 'setup_tool')):
+                if len(targetlist) > 1 :
+                    step = targetlist[1]
+                    self.set('arg','step', step)
+                elif self.get('arg','step'):
                     step =  self.get('arg','step')
                 else:
-                    step = item
+                    self.logger.info(f"Step not defined for tool target {item}")
                 self.set('flowgraph', step, '0', 'tool', item)
-            else:
-                self.logger.error(f'Target {item} not found.')
+                break
+            elif bool(self.loadfunction(item, 'pdk', 'setup_pdk')):
+                func = self.loadfunction(item, 'pdk', 'setup_pdk')
+                func(self)
+            # fpga partnames can be anything so we ignore the 2nd field
+            elif self.get('mode') != 'fpga':
+                self.logger.error(f'Target {item} not found')
                 sys.exit(1)
 
+        self.logger.info(f"Operating in '{self.get('mode')}' mode")
 
     ###########################################################################
     def getsinks(self, step, index, cfg=None):

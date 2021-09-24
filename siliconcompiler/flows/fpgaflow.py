@@ -2,6 +2,7 @@ import importlib
 import os
 import siliconcompiler
 import re
+import sys
 
 ############################################################################
 # DOCS
@@ -55,10 +56,17 @@ def setup_flow(chip):
 
     '''
 
+    # Set partname if not set
+    partname = "UNDEFINED"
     if chip.get('fpga', 'partname'):
         partname = chip.get('fpga', 'partname')
-    else:
-        partname = "UNDEFINED"
+    elif chip.get('target'):
+        if len(chip.get('target').split('_')) == 2:
+            partname = chip.get('target').split('_')[1]
+    chip.set('fpga', 'partname', partname)
+
+    # Set FPGA mode if not set
+    chip.set('mode', 'fpga', clobber=True)
 
     # Partname lookup
     (vendor, flow) = flow_lookup(partname)

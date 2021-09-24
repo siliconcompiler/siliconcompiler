@@ -61,7 +61,7 @@ def setup_tool(chip):
 
     #Input/output requirements
     chip.add('eda', tool, step, index, 'input', chip.get('design') + '.v')
-    chip.add('eda', tool, step, index, 'output', chip.get('design') + '.v')
+    chip.add('eda', tool, step, index, 'output', chip.get('design') + '.vg')
 
     #Schema requirements
     if chip.get('mode') == 'asic':
@@ -110,7 +110,7 @@ def pre_process(chip):
         return
     targetlist = chip.get('target').split('_')
 
-    if targetlist[0] == 'openfpga':
+    if targetlist[1] == 'openfpga':
         # Synthesis for OpenFPGA/VPR needs to know the size of the LUTs in the
         # FPGA architecture. We infer this from the VPR architecture file, then
         # dump it to a TCL file imported by the synthesis script.
