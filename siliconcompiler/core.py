@@ -138,7 +138,10 @@ class Chip:
                 plusmatch = re.match(r'(\+[\w_\+]+)(.*)', switch)
                 if switchmatch:
                     switchstr = switchmatch.group(1)
-                    dest = re.sub('-','',switchstr)
+                    if re.search('_', switchstr):
+                        dest = re.sub('-','',switchstr)
+                    else:
+                        dest = key[0]
                 elif gccmatch:
                     switchstr = gccmatch.group(1)
                     dest = key[0]
@@ -274,8 +277,8 @@ class Chip:
 
             # Unifying around no underscores for now
             keylist = key.split('_')
-            orderhash = {}
 
+            orderhash = {}
             # Find keypath with matching keys
             for keypath in allkeys:
                 match = True
