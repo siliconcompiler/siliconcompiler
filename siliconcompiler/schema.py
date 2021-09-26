@@ -2808,7 +2808,7 @@ def schema_options(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'all',
-        'defvalue': 'asic',
+        'defvalue': None,
         'shorthelp': 'Compilation mode',
         'example': ["cli: -mode fpga",
                     "api: chip.set('mode','fpga')"],
@@ -3136,6 +3136,24 @@ def schema_options(cfg):
         Specifies that tools should be lenient and suppress some warnings that
         may or may not indicate design issues. The default is to enforce strict
         checks for all steps.
+        """
+    }
+
+    cfg['trace'] = {
+        'switch': "-trace <bool>",
+        'type': 'bool',
+        'lock': 'false',
+        'requirement': 'all',
+        'defvalue': 'false',
+        'shorthelp': 'Output simulation trace',
+        'example': ["cli: -trace",
+                    "api: chip.set('trace', True)"],
+        'help': """
+        Specifies that tools should dump simulation traces when the parameter
+        is set to "true". For Verilog and VHDL simulation this switch
+        should be used to control dumping of waverforms (VCD or other
+        format). The switch is global and should control all simulation
+        steps of an execution flow.
         """
     }
 
@@ -4373,7 +4391,7 @@ def schema_mcmm(cfg, scenario='default'):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'MCMM voltage',
+        'shorthelp': 'Scenario voltage level',
         'example': ["cli: -mcmm_voltage 'worst 0.9'",
                     "api: chip.set('mcmm', 'worst','voltage', '0.9')"],
         'help': """
@@ -4382,12 +4400,12 @@ def schema_mcmm(cfg, scenario='default'):
     }
 
     cfg['mcmm'][scenario]['temperature'] = {
-        'switch': "-mcmm_temp 'scenario <float>'",
+        'switch': "-mcmm_temperature 'scenario <float>'",
         'type': 'float',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'MCMM temperature',
+        'shorthelp': 'Scenario temperature',
         'example': ["cli: -mcmm_temperature 'worst 125'",
                     "api: chip.set('mcmm', 'worst', 'temperature','125')"],
         'help': """
@@ -4400,7 +4418,7 @@ def schema_mcmm(cfg, scenario='default'):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'MCMM library corner name',
+        'shorthelp': 'Scenario library corner',
         'example': ["cli: -mcmm_libcorner 'worst ttt'",
                     "api: chip.set('mcmm', 'libcorner', 'worst', 'ttt')"],
         'help': """
@@ -4410,6 +4428,22 @@ def schema_mcmm(cfg, scenario='default'):
         model per libcorner.
         """
     }
+
+    cfg['mcmm'][scenario]['pexcorner'] = {
+        'switch': "-mcmm_pexcorner 'scenario <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Scenario PEX corner',
+        'example': ["cli: -mcmm_pexcorner 'worst max'",
+                    "api: chip.set('mcmm','worst','pexcorner','max')"],
+        'help': """
+        Parasitic corner applied to the scenario. The 'pexcorner' string
+        must match a corner found in the pdk pexmodel setup parameter.
+        """
+    }
+
 
     cfg['mcmm'][scenario]['opcond'] = {
         'switch': "-mcmm_opcond 'scenario <str>'",
@@ -4427,27 +4461,13 @@ def schema_mcmm(cfg, scenario='default'):
         """
     }
 
-    cfg['mcmm'][scenario]['pexcorner'] = {
-        'switch': "-mcmm_pexcorner 'scenario <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'requirement': None,
-        'defvalue': None,
-        'shorthelp': 'MCMM scenario PEX corner name',
-        'example': ["cli: -mcmm_pexcorner 'worst max'",
-                    "api: chip.set('mcmm','worst','pexcorner','max')"],
-        'help': """
-        Parasitic corner applied to the scenario. The 'pexcorner' string
-        must match a corner found in the pdk pexmodel setup parameter.
-        """
-    }
     cfg['mcmm'][scenario]['mode'] = {
         'switch': "-mcmm_mode 'scenario <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'MCMM scenario operating mode name',
+        'shorthelp': 'Scenario operating mode',
         'example': ["cli: -mcmm_mode 'worst test'",
                     "api: chip.set('mcmm',  'worst','mode', 'test')"],
         'help': """
@@ -4467,7 +4487,7 @@ def schema_mcmm(cfg, scenario='default'):
         'author': [],
         'signature': [],
         'defvalue': [],
-        'shorthelp': 'MCMM scenario constraints files',
+        'shorthelp': 'Scenario constraints files',
         'example': ["cli: -mcmm_constraint 'worst hello.sdc'",
                     "api: chip.set('mcmm','worst','constraint',  'hello.sdc')"],
         'help': """
@@ -4483,7 +4503,7 @@ def schema_mcmm(cfg, scenario='default'):
         'lock': 'false',
         'requirement': None,
         'defvalue': [],
-        'shorthelp': 'MCMM scenario checks',
+        'shorthelp': 'Scenario checks',
         'example': ["cli: -mcmm_check 'worst check setup'",
                     "api: chip.add('mcmm','worst','check','setup')"],
         'help': """
