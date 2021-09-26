@@ -22,7 +22,6 @@ def test_openfpga():
                     '-fpga_arch', openfpga_ex_dir + '/k6_frac_N10_40nm_openfpga.xml',
                     '-fpga_arch', openfpga_ex_dir + '/k6_frac_N10_40nm_vpr.xml',
                     '-fpga_arch', openfpga_ex_dir + '/sim_settings.xml',
-                    '-mode', 'fpga',
                     '-target', 'fpgaflow_openfpga'])
 
     # Verify that a bitstream was generated

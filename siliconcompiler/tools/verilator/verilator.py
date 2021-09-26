@@ -63,7 +63,7 @@ def setup_tool(chip):
     # Differentiate between import step and compilation
     if step in ['import', 'lint']:
         chip.add('eda', tool, step, index, 'option', 'cmdline', ['--lint-only','--debug'])
-    elif (step == 'sim'):
+    elif (step == 'compile'):
         chip.add('eda', tool, step, index, 'option', 'cmdline', '--cc')
     else:
         chip.logger.error('Step %s not supported for verilator', step)
@@ -130,6 +130,10 @@ def post_process(chip):
 
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+
+    # post-process hack only needed for import step
+    if step != 'import':
+        return 0
 
     # Creating single file "pickle' synthesis handoff
     subprocess.run('egrep -h -v "\\`begin_keywords" obj_dir/*.vpp > verilator.v',

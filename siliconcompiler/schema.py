@@ -3439,7 +3439,7 @@ def schema_design(cfg):
         'type': '[file]',
         'lock': 'false',
         'copy': 'true',
-        'requirement': 'all',
+        'requirement': None,
         'defvalue': [],
         'filehash': [],
         'hashalgo': 'sha256',
