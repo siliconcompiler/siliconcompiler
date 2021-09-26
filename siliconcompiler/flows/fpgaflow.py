@@ -66,7 +66,7 @@ def setup_flow(chip):
     chip.set('fpga', 'partname', partname)
 
     # Set FPGA mode if not set
-    chip.set('mode', 'fpga', clobber=True)
+    chip.set('mode', 'fpga')
 
     # Partname lookup
     (vendor, flow) = flow_lookup(partname)

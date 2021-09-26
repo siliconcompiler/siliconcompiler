@@ -108,12 +108,18 @@ def setup_flow(chip):
         'lvs' : 'netgen'
     }
 
+
+    # Set mandatory mode
+    chip.set('mode', 'asic')
+
     # Set the steplist which can run remotely (if required)
     chip.set('remote', 'steplist', flowpipe[1:])
 
     # Showtool definitions
     chip.set('showtool', 'def', 'openroad')
     chip.set('showtool', 'gds', 'klayout')
+
+
 
     # Implementation flow graph
     for step in flowpipe:

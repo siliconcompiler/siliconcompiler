@@ -325,8 +325,6 @@ class Chip:
         Dynamic load of module based on scpath search parameter.
         '''
 
-        self.logger.debug(f"Loading {funcname} from module '{modname}'.")
-
         # module search path depends on modtype
         if modtype == 'tool':
             fullpath = self.find(f"tools/{modname}/{modname}.py")
@@ -341,6 +339,10 @@ class Chip:
 
         # try loading module if found
         if fullpath:
+            if modtype == 'tool':
+                self.logger.debug(f"Loading function '{funcname}' from module '{modname}'")
+            else:
+                self.logger.info(f"Loading function '{funcname}' from module '{modname}'")
             try:
                 sys.path.append(os.path.dirname(fullpath))
                 imported = importlib.import_module(modname)
@@ -422,16 +424,18 @@ class Chip:
         else:
 
             target = self.get('target')
-            self.logger.info(f'Loading target {target}.')
+            self.logger.info(f"Loading target '{target}'")
 
         # search for module matches
         targetlist = target.split('_')
 
         for i, item in enumerate(targetlist):
-            if (i == 0) & bool(self.loadfunction(item, 'flow', 'setup_flow')):
-                func = self.loadfunction(item, 'flow', 'setup_flow')
-                func(self)
-            elif (i == 0) & bool(self.loadfunction(item, 'tool', 'setup_tool')):
+            func_flow = self.loadfunction(item, 'flow', 'setup_flow')
+            func_pdk = self.loadfunction(item, 'pdk', 'setup_pdk')
+            func_tool = self.loadfunction(item, 'tool', 'setup_tool')
+            if (i == 0) & bool(func_flow):
+                func_flow(self)
+            elif (i == 0) & bool(func_tool):
                 if len(targetlist) > 1 :
                     step = targetlist[1]
                     self.set('arg','step', step)
@@ -441,11 +445,9 @@ class Chip:
                     self.logger.info(f"Step not defined for tool target {item}")
                 self.set('flowgraph', step, '0', 'tool', item)
                 break
-            elif bool(self.loadfunction(item, 'pdk', 'setup_pdk')):
-                func = self.loadfunction(item, 'pdk', 'setup_pdk')
-                func(self)
-            # fpga partnames can be anything so we ignore the 2nd field
-            elif self.get('mode') != 'fpga':
+            elif bool(func_pdk):
+                func_pdk(self)
+            elif self.get('mode') == 'asic':
                 self.logger.error(f'Target {item} not found')
                 sys.exit(1)
 
