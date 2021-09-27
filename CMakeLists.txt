@@ -1,29 +1,28 @@
 cmake_minimum_required(VERSION 3.15...3.19)
 
-project(siliconcompiler VERSION "0.0.1")
+project(siliconcompiler VERSION "0.0.0")
 
-if(APPLE)
-    # Seems to be required for MacOS build to work, but may break Windows build...
-    set (CMAKE_CXX_STANDARD 11)
-endif()
+# Need C++11 support
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-find_package(PythonLibs REQUIRED)
-find_package(PythonInterp REQUIRED)
+# Packages we rely on
 find_package(PythonExtensions REQUIRED)
-find_package(Cython)
+find_package(Cython REQUIRED)
 
 # Needed to find *.pxd file
 include_directories(${CMAKE_CURRENT_LIST_DIR}/siliconcompiler/leflib)
 
+# Build Cython module
+# source: https://github.com/scikit-build/scikit-build-sample-projects/blob/master/projects/hello-cython/hello/CMakeLists.txt
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/siliconcompiler/leflib)
 add_cython_target(_leflib ${CMAKE_CURRENT_LIST_DIR}/siliconcompiler/leflib/_leflib.pyx CXX)
-
 add_library(_leflib MODULE ${_leflib})
 python_extension_module(_leflib)
 
+# Link in lef library
 target_link_libraries(_leflib lef)
-target_link_libraries(_leflib ${PYTHON_LIBRARIES})
-target_include_directories(_leflib PRIVATE ${PYTHON_INCLUDE_DIRS})
 
 # We want to be extra strict about error checking -- enable all warnings and
 # treat them as errors. We only apply this to the _leflib target since the LEF
@@ -40,11 +39,11 @@ if(NOT WIN32)
     target_compile_options(_leflib PRIVATE -Wall -pedantic -Werror -Wno-error=deprecated-declarations)
 endif()
 
-# ** Stuff to include Si2 LEF library **
+# Stuff to include Si2 LEF library
 set(LEF_DIR ${CMAKE_CURRENT_LIST_DIR}/third_party/tools/openroad/tools/OpenROAD/src/OpenDB/src/lef)
 
 # this lets us include lef headers
-INCLUDE_DIRECTORIES(${LEF_DIR}/lef)
+include_directories(${LEF_DIR}/lef)
 # this causes cmake to build lef/
 add_subdirectory(${LEF_DIR})
 
