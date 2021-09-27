@@ -1622,12 +1622,17 @@ class Chip:
                               "process = " + self.get('pdk', 'process'),
                               "targetlibs = "+" ".join(self.get('asic', 'targetlib')),
                               "jobdir = "+ jobdir])
-        else:
+        elif self.get('mode') == 'fpga':
             # TODO: pull in relevant summary items for FPGA?
             info = '\n'.join(["SUMMARY:\n",
                               "design = "+self.get('design'),
                               "partname = "+self.get('fpga','partname'),
                               "jobdir = "+ jobdir])
+        else:
+            info = '\n'.join(["SUMMARY:\n",
+                              "design = "+self.get('design'),
+                              "jobdir = "+ jobdir])
+
         print("-"*135)
         print(info, "\n")
 
