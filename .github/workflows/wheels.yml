@@ -26,7 +26,7 @@ jobs:
         CIBW_BEFORE_BUILD_LINUX: yum install -y zlib-devel
         CIBW_BEFORE_BUILD_WINDOWS: choco install winflexbison3 && vcpkg install zlib zlib:x64-windows
         CIBW_ENVIRONMENT_WINDOWS: SC_CMAKEARGS="-DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake."
-        CIBW_SKIP: pp*
+        CIBW_SKIP: pp*, *win32, *i686
 
     - name: Verify clean directory
       run: git diff --exit-code
