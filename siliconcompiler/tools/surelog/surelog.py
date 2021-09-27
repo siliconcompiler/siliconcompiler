@@ -95,34 +95,21 @@ def runtime_options(chip):
 def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    # Look in slpp_all/file_elab.lst for list of Verilog files included in
+    # design, read these and concatenate them into one pickled output file.
+    design = chip.get('design')
+    step = chip.get('arg', 'step')
 
-    # setting top module of design
     if step in 'import':
-        modules = 0
-        if len(chip.cfg['design']['value']) < 1:
-            with open("slpp_all/surelog.log", "r") as open_file:
-                for line in open_file:
-                    modmatch = re.match(r'Top level module "\w+@(\w+)"', line)
-                    if modmatch:
-                        modules = modules + 1
-                        topmodule = modmatch.group(1)
-            # Only setting design when possible
-            if (modules > 1) & (chip.cfg['design']['value'] == ""):
-                chip.logger.error('Multiple modules found during import, \
-                but sc_design was not set')
-                sys.exit()
-            else:
-                chip.logger.info('Setting design (topmodule) to %s', topmodule)
-                chip.cfg['design']['value'].append(topmodule)
-        else:
-            topmodule = chip.cfg['design']['value'][-1]
+        with open('slpp_all/file_elab.lst', 'r') as filelist, \
+             open(f'outputs/{design}.v', 'w') as outfile:
+            for path in filelist.read().split('\n'):
+                if not path:
+                    # skip empty lines
+                    continue
+                with open(path, 'r') as infile:
+                    outfile.write(infile.read())
 
-        subprocess.run("cp slpp_all/surelog.uhdm " + "outputs/" + topmodule + ".uhdm",
-                       shell=True)
-
-    #TODO: return error code
     return 0
 
 ##################################################
