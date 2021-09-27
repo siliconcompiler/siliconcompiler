@@ -18,8 +18,14 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Clone OpenROAD submodule
-      run: git submodule update --init --recursive third_party/tools/openroad
+    - name: Clone tool submodules
+      run: git submodule update --init --recursive third_party/tools
+
+    - name: Build and install Surelog
+      run: |
+        cd third_party/tools/surelog
+        make
+        make install PREFIX=$GITHUB_WORKSPACE/siliconcompiler/tools/surelog
 
     - uses: pypa/cibuildwheel@v2.1.1
       env:

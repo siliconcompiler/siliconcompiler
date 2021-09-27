@@ -56,7 +56,7 @@ setup(
     #include_package_data=True,
     package_data={
         'siliconcompiler': ['templates/*.j2'],
-        'siliconcompiler.tools': ['**/*.tcl', '**/*.py', '**/*.xml', '**/*.magicrc', '**/*.openfpga']
+        'siliconcompiler.tools': ['**/*.tcl', '**/*.py', '**/*.xml', '**/*.magicrc', '**/*.openfpga', 'surelog/bin/surelog']
     },
 
     python_requires=">=3.6",

@@ -55,6 +55,9 @@ def setup_tool(chip):
     # Wite back options tp cfg
     chip.add('eda', tool, step, index, 'option', 'cmdline', options)
 
+def check_version(chip, version):
+    pass
+
 ################################
 #  Custom runtime options
 ################################
