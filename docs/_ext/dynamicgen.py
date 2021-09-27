@@ -311,8 +311,16 @@ class ToolGen(DynamicGen):
         '''
         modules = []
         for toolname in os.listdir(module_dir):
-            spec = importlib.util.spec_from_file_location(f'{toolname}',
-                f'{module_dir}/{toolname}/{toolname}.py')
+            # skip over directories/files that don't match the structure of tool
+            # directories (otherwise we'll get confused by Python metadata like
+            # __init__.py or __pycache__/)
+            if not os.path.isdir(f'{module_dir}/{toolname}'):
+                continue
+            path = f'{module_dir}/{toolname}/{toolname}.py'
+            if not os.path.exists(path):
+                continue
+
+            spec = importlib.util.spec_from_file_location(toolname, path)
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
 
