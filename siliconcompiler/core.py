@@ -1349,21 +1349,23 @@ class Chip:
             self._abspath(cfgcopy)
 
         # Write out configuration based on file type
-        if filepath.endswith('.json'):
-            with open(filepath, 'w') as f:
+        with open(filepath, 'w') as f:
+            if filepath.endswith('.json'):
                 print(json.dumps(cfgcopy, indent=4, sort_keys=True), file=f)
-        elif filepath.endswith('.yaml'):
-            with open(filepath, 'w') as f:
+            elif filepath.endswith('.yaml'):
                 print(yaml.dump(cfgcopy, Dumper=YamlIndentDumper, default_flow_style=False), file=f)
-        elif filepath.endswith('.tcl'):
-            with open(filepath, 'w') as f:
+            elif filepath.endswith('.core'):
+                self._write_fusesoc(cfgcopy, file=f)
+            elif filepath.endswith('.bender.yml'):
+                self._write_bender(cfgcopy, file=f)
+            elif filepath.endswith('.tcl'):
                 print("#############################################", file=f)
                 print("#!!!! AUTO-GENERATED FILE. DO NOT EDIT!!!!!!", file=f)
                 print("#############################################", file=f)
                 self._printcfg(cfgcopy, mode="tcl", prefix="dict set sc_cfg", file=f)
-        else:
-            self.logger.error('File format not recognized %s', filepath)
-            self.error = 1
+            else:
+                self.logger.error('File format not recognized %s', filepath)
+                self.error = 1
 
     ###########################################################################
     def writegraph(self, filename, graphtype='flowgraph'):
