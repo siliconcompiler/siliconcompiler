@@ -23,6 +23,13 @@ if not os.path.isdir('third_party/tools/openroad/tools/OpenROAD/src/OpenDB/src/l
           'git submodule update --init --recursive third_party/tools/openroad')
     sys.exit(1)
 
+# Let us pass in generic arguments to CMake via an environment variable, since
+# our automated build servers need to pass in a certain argument when building
+# wheels on Windows.
+cmake_args = []
+if 'SC_CMAKEARGS' in os.environ:
+    cmake_args.append(os.environ['SC_CMAKEARGS'])
+
 setup(
     name="siliconcompiler",
     description="Silicon Compiler Collection (SCC)",
@@ -65,6 +72,6 @@ setup(
         "graphviz >=0.17"
     ],
     entry_points={"console_scripts": ["sc=siliconcompiler.__main__:main", "sc-server=siliconcompiler.server:main", "sc-crypt=siliconcompiler.crypto:main"]},
-    cmake_install_dir="siliconcompiler/leflib"
-    
+    cmake_install_dir="siliconcompiler/leflib",
+    cmake_args=cmake_args
 )
