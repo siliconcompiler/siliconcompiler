@@ -30,6 +30,11 @@ from timeit import default_timer as timer
 from siliconcompiler.client import *
 from siliconcompiler.schema import *
 
+# Fix for multprocessing bug on MacOS
+# Source: https://github.com/Koed00/django-q/issues/389#issuecomment-699481976
+from multiprocessing import set_start_method
+set_start_method("fork")
+
 class Chip:
     """Object for configuring and executing hardware design flows.
 
@@ -1624,12 +1629,17 @@ class Chip:
                               "process = " + self.get('pdk', 'process'),
                               "targetlibs = "+" ".join(self.get('asic', 'targetlib')),
                               "jobdir = "+ jobdir])
-        else:
+        elif self.get('mode') == 'fpga':
             # TODO: pull in relevant summary items for FPGA?
             info = '\n'.join(["SUMMARY:\n",
                               "design = "+self.get('design'),
                               "partname = "+self.get('fpga','partname'),
                               "jobdir = "+ jobdir])
+        else:
+            info = '\n'.join(["SUMMARY:\n",
+                              "design = "+self.get('design'),
+                              "jobdir = "+ jobdir])
+
         print("-"*135)
         print(info, "\n")
 
