@@ -1570,7 +1570,7 @@ def schema_flowgraph(cfg, step='default', index='default'):
         'switch': "-flowgraph_weight 'step metric <float>'",
         'type': 'float',
         'lock': 'false',
-        'requirement': 'all,',
+        'requirement': None,
         'defvalue': [],
         'shorthelp': 'Flowgraph metric weights',
         'example': [
