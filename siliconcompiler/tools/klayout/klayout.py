@@ -147,17 +147,6 @@ def check_version(chip, version):
 
     return 0
 
-def pre_process(chip):
-    # If we're not provided an input DEF from the flow, then check if there's a
-    # DEF specified in `asic, def` we can pull in.
-    in_def = 'inputs/' + chip.get('design') + '.def'
-    if not os.path.isfile(in_def):
-        if chip.get('asic', 'def'):
-            shutil.copy(chip.find(chip.get('asic', 'def')[0]), in_def)
-        else:
-            chip.logger.error('export: no DEF found!')
-            os.sys.exit(1)
-
 ##################################################
 if __name__ == "__main__":
     # File being executed
