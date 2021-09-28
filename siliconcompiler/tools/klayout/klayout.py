@@ -87,7 +87,6 @@ def runtime_options(chip):
     #TODO: Fix fill file (once this is a python)
     #config_file = '%s/setup/klayout/fill.json'%(foundry_path)
 
-    #TODO: Fix, currenly only accepts one GDS file, need to loop
     if step == 'export':
         options = []
         options.append('-rd')
@@ -148,22 +147,16 @@ def check_version(chip, version):
 
     return 0
 
-################################
-# Post_process (post executable)
-################################
-
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
-    # Pass along files needed for future verification steps
-    design = chip.get('design')
-
-    #TODO: Fix fur multi (this will be moved to run step)
-    shutil.copy(f'inputs/{design}.def', f'outputs/{design}.def')
-    shutil.copy(f'inputs/{design}.sdc', f'outputs/{design}.sdc')
-    shutil.copy(f'inputs/{design}.vg', f'outputs/{design}.vg')
-
-    return 0
+def pre_process(chip):
+    # If we're not provided an input DEF from the flow, then check if there's a
+    # DEF specified in `asic, def` we can pull in.
+    in_def = 'inputs/' + chip.get('design') + '.def'
+    if not os.path.isfile(in_def):
+        if chip.get('asic', 'def'):
+            shutil.copy(chip.find(chip.get('asic', 'def')[0]), in_def)
+        else:
+            chip.logger.error('export: no DEF found!')
+            os.sys.exit(1)
 
 ##################################################
 if __name__ == "__main__":
