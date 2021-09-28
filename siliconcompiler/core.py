@@ -2092,6 +2092,12 @@ class Chip:
                 self.logger.error('Halting step %s due to previous errors', step)
                 self._haltstep(step, index, error, active)
 
+        # Write configuration prior to step running into inputs/
+        self.set('arg', 'step', None, clobber=True)
+        self.set('arg', 'index', None, clobber=True)
+        os.makedirs('inputs', exist_ok=True)
+        self.writecfg(f'inputs/{design}.pkg.json')
+
         ##################
         # 4. Starting job
 
@@ -2136,6 +2142,8 @@ class Chip:
         else:
             all_inputs = self.get('flowstatus', step, index, 'select')
         for input_step in all_inputs:
+            # Skip copying pkg.json files here, since we write the current chip
+            # configuration into inputs/{design}.pkg.json earlier in _runstep.
             shutil.copytree(f"../{input_step}/outputs", 'inputs/', dirs_exist_ok=True,
                 ignore=lambda dir, contents: [f'{design}.pkg.json'])
 
