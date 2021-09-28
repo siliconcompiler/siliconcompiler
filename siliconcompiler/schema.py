@@ -3419,6 +3419,21 @@ def schema_design(cfg):
         """
     }
 
+    cfg['description'] = {
+        'switch': "-description <str>",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Short design description',
+        'example': ["cli: -description 'Yet another RISC-V core'",
+                    "api: chip.set('description', 'Yet another RISC-V core')"],
+        'help': """
+        Short one line description of the design purpose intended for package
+        managers and design summary reports.
+        """
+    }
+
     cfg['projversion'] = {
         'switch': "-projversion <str>",
         'type': 'str',
