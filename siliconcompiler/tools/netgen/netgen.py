@@ -91,9 +91,6 @@ def post_process(chip):
         lvs_failures = count_lvs.count_LVS_failures(f'outputs/{design}.lvs.json')
         chip.set('metric', step, index, 'errors', 'real', lvs_failures[0])
 
-    # Need to pass along DEF and GDS to future verification stages
-    shutil.copy(f'inputs/{design}.gds', f'outputs/{design}.gds')
-
     #TODO: return error code
     return 0
 
