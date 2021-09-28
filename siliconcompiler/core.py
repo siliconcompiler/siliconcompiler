@@ -443,6 +443,9 @@ class Chip:
             elif (i == 0) & bool(func_tool):
                 step = self.get('arg','step')
                 self.set('flowgraph', step, '0', 'tool', item)
+                self.set('flowgraph', step, '0', 'weight', 'errors', 1.0)
+                self.set('flowgraph', step, '0', 'weight', 'warnings', 1.0)
+                self.set('flowgraph', step, '0', 'weight', 'runtime', 1.0)
             elif bool(func_pdk):
                 func_pdk(self)
             elif self.get('mode') == 'asic':
@@ -1630,7 +1633,6 @@ class Chip:
                               "targetlibs = "+" ".join(self.get('asic', 'targetlib')),
                               "jobdir = "+ jobdir])
         elif self.get('mode') == 'fpga':
-            # TODO: pull in relevant summary items for FPGA?
             info = '\n'.join(["SUMMARY:\n",
                               "design = "+self.get('design'),
                               "partname = "+self.get('fpga','partname'),
