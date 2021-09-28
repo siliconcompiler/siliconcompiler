@@ -1755,14 +1755,15 @@ class Chip:
         The function sets the flowstatus select parameter in the schema
         '''
 
-        steplist = list(args)
+        steplist = list(steps)
         sel_inputs = []
 
         for a in steplist:
             for b in self.getkeys('flowgraph', a):
                 sel_inputs.append(a+b)
 
-        return sel_inputs
+        # no score for join, so just return 0
+        return 0, sel_inputs
 
     ###########################################################################
     def minimum(self, *steps):
@@ -2135,7 +2136,8 @@ class Chip:
         else:
             all_inputs = self.get('flowstatus', step, index, 'select')
         for input_step in all_inputs:
-            shutil.copytree(f"../{input_step}/outputs", 'inputs/')
+            shutil.copytree(f"../{input_step}/outputs", 'inputs/', dirs_exist_ok=True,
+                ignore=lambda dir, contents: [f'{design}.pkg.json'])
 
         ##################
         # 7. Run preprocess step for tool
