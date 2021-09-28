@@ -436,15 +436,8 @@ class Chip:
             if (i == 0) & bool(func_flow):
                 func_flow(self)
             elif (i == 0) & bool(func_tool):
-                if len(targetlist) > 1 :
-                    step = targetlist[1]
-                    self.set('arg','step', step)
-                elif self.get('arg','step'):
-                    step =  self.get('arg','step')
-                else:
-                    self.logger.info(f"Step not defined for tool target {item}")
+                step = self.get('arg','step')
                 self.set('flowgraph', step, '0', 'tool', item)
-                break
             elif bool(func_pdk):
                 func_pdk(self)
             elif self.get('mode') == 'asic':
@@ -1409,7 +1402,7 @@ class Chip:
         dot.render(filename=fileroot, cleanup=True)
 
     ########################################################################
-    def collect(self, cfg=None, outdir='output'):
+    def collect(self, cfg=None):
         '''
         Collects files found in the configuration dictionary and places
         them in 'dir'. The function only copies in files that have the 'copy'
@@ -1429,24 +1422,27 @@ class Chip:
         if cfg is None:
             cfg = self.cfg
 
-        if not os.path.exists(outdir):
-            os.makedirs(outdir)
+        indir = 'inputs'
+        step = self.get('arg','step', cfg=cfg)
+
+        if not os.path.exists(indir):
+            os.makedirs(indir)
+
+        self.logger.info('Collecting input sources')
 
         #copy all parameter take from self dictionary
         copyall = self.get('copyall')
         allkeys = self.getkeys(cfg=cfg)
         for key in allkeys:
             leaftype = self.get(*key, cfg=cfg, field='type')
-            if leaftype == 'file':
+            if re.search('file', leaftype):
                 copy = self.get(*key, cfg=cfg, field='copy')
-                value = self.get(*key, cfg=cfg, field='value')
-                if copyall | (copy == 'true'):
-                    if not isinstance(value, list):
-                        value = [value]
+                value = self.get(*key, cfg=cfg)
+                if copyall | (copy):
                     for item in value:
-                        if item:
-                            filepath = self.find(item)
-                            shutil.copy(filepath, outdir)
+                        filepath = self.find(item)
+                        self.logger.info(f"Copying {filepath} to '{step}0/inputs' directory")
+                        shutil.copy(filepath, indir)
 
     ###########################################################################
     def hash(self, cfg=None):
@@ -2078,7 +2074,7 @@ class Chip:
         design = self.get('design')
         all_inputs = []
         if not self.getkeys('flowgraph', step, index, 'input'):
-            self.collect(outdir='inputs')
+            self.collect()
         elif not self.get('remote', 'addr'):
             halt = 0
             for input_step in self.getkeys('flowgraph', step, index, 'input'):

@@ -22,7 +22,8 @@ def test_icarus():
     chip.set('design', design)
     chip.set('source', topfile)
     chip.set('mode', 'sim')
-    chip.target("icarus_compile")
+    chip.set('arg','step','compile')
+    chip.target("icarus")
     chip.run()
 
     # check that compilation succeeded
