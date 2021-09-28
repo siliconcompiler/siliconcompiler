@@ -110,7 +110,7 @@ def pre_process(chip):
         return
     targetlist = chip.get('target').split('_')
 
-    if targetlist[1] == 'openfpga':
+    if len(targetlist) == 2 and targetlist[1] == 'openfpga':
         # Synthesis for OpenFPGA/VPR needs to know the size of the LUTs in the
         # FPGA architecture. We infer this from the VPR architecture file, then
         # dump it to a TCL file imported by the synthesis script.
