@@ -87,7 +87,6 @@ def runtime_options(chip):
     #TODO: Fix fill file (once this is a python)
     #config_file = '%s/setup/klayout/fill.json'%(foundry_path)
 
-    #TODO: Fix, currenly only accepts one GDS file, need to loop
     if step == 'export':
         options = []
         options.append('-rd')
@@ -145,23 +144,6 @@ def check_version(chip, version):
     #insert code for parsing the funtion based on some tool specific
     #semantics.
     #syntax for version is string, >=string
-
-    return 0
-
-################################
-# Post_process (post executable)
-################################
-
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
-    # Pass along files needed for future verification steps
-    design = chip.get('design')
-
-    #TODO: Fix fur multi (this will be moved to run step)
-    shutil.copy(f'inputs/{design}.def', f'outputs/{design}.def')
-    shutil.copy(f'inputs/{design}.sdc', f'outputs/{design}.sdc')
-    shutil.copy(f'inputs/{design}.vg', f'outputs/{design}.vg')
 
     return 0
 
