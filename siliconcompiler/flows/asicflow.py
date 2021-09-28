@@ -109,7 +109,7 @@ def setup_flow(chip):
     chip.set('mode', 'asic')
 
     # Set the steplist which can run remotely (if required)
-    chip.set('remote', 'steplist', flowpipe[1:] + ['extspice', 'lvs', 'drc', 'signoff'] if verify else [])
+    chip.set('remote', 'steplist', flowpipe[1:] + ['extspice', 'lvsjoin', 'lvs', 'drc', 'signoff'] if verify else [])
 
     # Showtool definitions
     chip.set('showtool', 'def', 'openroad')

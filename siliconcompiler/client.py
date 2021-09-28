@@ -53,11 +53,13 @@ def remote_preprocess(chip):
     for step in local_steps:
         indexlist = chip.getkeys('flowgraph', step)
         for index in indexlist:
-            chip.set('arg','step', step)
-            chip.set('arg','index', index)
             tool = chip.get('flowgraph', step, index, 'tool')
-            func = chip.loadfunction(tool, 'tool', 'setup_tool')
-            func(chip)
+            # Setting up tool is optional (step may be a builtin function)
+            if tool:
+                chip.set('arg','step', step)
+                chip.set('arg','index', index)
+                func = chip.loadfunction(tool, 'tool', 'setup_tool')
+                func(chip)
             # Run the actual import step locally.
             chip._runstep(step, index, active, error)
 
