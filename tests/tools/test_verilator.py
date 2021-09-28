@@ -23,7 +23,8 @@ def test_verilator():
     chip.set('source', topfile)
     chip.set('relax', True)
     chip.set('mode', 'sim')
-    chip.target("verilator_"+step)
+    chip.set('arg','step',step)
+    chip.target("verilator")
     chip.run()
 
     # check that compilation succeeded

@@ -19,11 +19,11 @@ def test_openroad():
     chip.set('design', design)
     chip.set('netlist', netlist)
     chip.set('mode', 'asic')
+    chip.set('quiet', True)
     chip.set('asic', 'diearea', [(0,0), (100.13,100.8)])
     chip.set('asic', 'corearea', [(10.07,11.2), (90.25,91)])
-    chip.target("openroad_floorplan")
-    func = chip.loadfunction('freepdk45', 'pdk', 'setup_pdk')
-    func(chip)
+    chip.set('arg','step', 'floorplan')
+    chip.target("openroad_freepdk45")
     chip.run()
 
     # check that compilation succeeded
