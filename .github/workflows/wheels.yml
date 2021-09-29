@@ -21,49 +21,24 @@ jobs:
     - name: Clone tool submodules
       run: git submodule update --init --recursive third_party/tools
 
-    - name: Install Core Dependencies
-      if: matrix.os == 'windows-latest'
-      run: |
-        choco install -y make
-        choco install -y swig --side-by-side --version=3.0.12
-        vcpkg install zlib zlib:x64-windows
-
-    - name: Setup Python
-      uses: actions/setup-python@v2
-      if: matrix.os == 'windows-latest'
-      with:
-        python-version: 3.8
-        architecture: x64
-
-    - name: Setup Java
-      uses: actions/setup-java@v1
-      if: matrix.os == 'windows-latest'
-      with:
-        java-version: 1.8
-        java-package: jre
-        architecture: x64
-
     - uses: pypa/cibuildwheel@v2.1.1
       env:
         CIBW_BEFORE_ALL_LINUX: >
           export PREFIX={package}/siliconcompiler/tools/siliconcompiler &&
-          {package}/.github/workflows/bin/build_surelog.sh
-        CIBW_BEFORE_ALL_MACOS: >
-          cd third_party/tools/surelog &&
-          make &&
-          make install PREFIX=$GITHUB_WORKSPACE/siliconcompiler/tools/surelog
-        CIBW_BEFORE_ALL_WINDOWS: call .github/workflows/bin/build_surelog.bat
+          {package}/.github/workflows/bin/setup_wheel_env_linux.sh
+        CIBW_BEFORE_ALL_MACOS: .github/workflows/bin/setup_wheel_env_macos.sh
+        CIBW_BEFORE_ALL_WINDOWS: call .github/workflows/bin/setup_wheel_env_win.bat
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
-        CIBW_BEFORE_BUILD_LINUX: yum install -y zlib-devel
-        CIBW_BEFORE_BUILD_WINDOWS: choco install winflexbison3 && vcpkg install zlib zlib:x64-windows
-        CIBW_ENVIRONMENT_WINDOWS: SC_CMAKEARGS="-DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake."
         CIBW_SKIP: "pp* *win32 *i686"
+        MACOSX_DEPLOYMENT_TARGET: "10.15"
         CIBW_TEST_REQUIRES: pytest
         CIBW_TEST_COMMAND: >
           pytest --import-mode=append
           {package}/tests/quick_tests/python/test_leflib.py
           {package}/tests/tools/test_surelog.py
-        CIBW_TEST_SKIP: "*win*"
+        # TODO: test on every platform once we have Windows and other Python
+        # versions working.
+        CIBW_TEST_SKIP: "*win* cp36* cp37* cp310*"
     - name: Verify clean directory
       run: git diff --exit-code
       shell: bash
