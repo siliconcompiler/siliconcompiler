@@ -19,7 +19,6 @@ import shutil
 import copy
 import importlib
 import textwrap
-import uuid
 import math
 import pandas
 import yaml
@@ -29,11 +28,6 @@ import time
 from timeit import default_timer as timer
 from siliconcompiler.client import *
 from siliconcompiler.schema import *
-
-# Fix for multprocessing bug on MacOS
-# Source: https://github.com/Koed00/django-q/issues/389#issuecomment-699481976
-from multiprocessing import set_start_method
-set_start_method("fork")
 
 class Chip:
     """Object for configuring and executing hardware design flows.
@@ -50,24 +44,25 @@ class Chip:
     """
 
     ###########################################################################
-    def __init__(self, design="root", loglevel="INFO", splash=True):
+    def __init__(self, design=None, loglevel="INFO", splash=True):
 
         # Local variables
         self.scroot = os.path.dirname(os.path.abspath(__file__))
         self.cwd = os.getcwd()
         self.version = "0.0.1"
-        self.design = design
+        self.loglevel = loglevel
         self.status = {}
         self.error = 0
         self.cfg = schema_cfg()
 
-        # Setting design variable
-        self.cfg['design']['value'] = self.design
+        # We set 'design' directly in the config dictionary because of a
+        # chicken-and-egg problem: self.set() relies on the logger, but the
+        # logger relies on the design value.
+        self.cfg['design']['value'] = design
+        # We set scversion directly because it has its 'lock' flag set by default.
         self.cfg['scversion']['value'] = self.version
-        logname = self.design.center(12)
-        step = ' setup |  0  '
 
-        # Initialize logger
+        # Print splash
         if splash:
             ascii_banner = pyfiglet.figlet_format("Silicon Compiler")
             print(ascii_banner)
@@ -79,22 +74,45 @@ class Chip:
                 if name:
                     authors.append(name.group(1))
             print("Authors:", ", ".join(authors), "\n")
-            print("-"*80)
+            print("-"*82)
 
-        # logger
+        # Print log header
         if loglevel=='DEBUG':
-            FORMAT = '| %(levelname)-7s | %(funcName)-10s | %(lineno)-4s | %(message)s'
+            print("| LEVEL   | FUNCTION   |LINENO| STEP         |INDEX| MESSAGE")
+            print("|---------|------------|------|--------------|-----|"+'-'*60)
         else:
-            FORMAT = '| %(levelname)-7s | %(message)s'
+            print("| LEVEL   | STEP         |INDEX| MESSAGE")
+            print("|---------|--------------|-----|"+'-'*50)
+
+        self._init_logger()
+
+    ###########################################################################
+    def _init_logger(self, step=None, index=None):
+        if step == None:
+            step = '---'
+        if index == None:
+            index = '-'
+
+        step_index = '%-12s | %-3s' % (step, index)
+
+        if self.loglevel=='DEBUG':
+            logformat = '| %(levelname)-7s | %(funcName)-10s | %(lineno)-4s | ' + step_index + ' | %(message)s'
+        else:
+            logformat = '| %(levelname)-7s | ' + step_index + ' | %(message)s'
 
         self.logger = logging.getLogger()
         self.handler = logging.StreamHandler()
-        self.formatter = logging.Formatter(FORMAT)
+        self.formatter = logging.Formatter(logformat)
 
         self.handler.setFormatter(self.formatter)
         self.logger.addHandler(self.handler)
-        self.logger = CustomAdapter(self.logger, {'step': '--','index':'0'})
-        self.logger.setLevel(str(loglevel))
+        self.logger.setLevel(self.loglevel)
+
+    ###########################################################################
+    def _deinit_logger(self):
+        self.logger = None
+        self.handler = None
+        self.formatter = None
 
     ###########################################################################
     def cmdline(self, progname, description=None, switchlist=[]):
@@ -1471,7 +1489,7 @@ class Chip:
         dot.render(filename=fileroot, cleanup=True)
 
     ########################################################################
-    def collect(self, step, index, cfg=None):
+    def collect(self, cfg=None):
         '''
         Collects files found in the configuration dictionary and places
         them in 'dir'. The function only copies in files that have the 'copy'
@@ -1496,7 +1514,7 @@ class Chip:
         if not os.path.exists(indir):
             os.makedirs(indir)
 
-        self.logger.info('Collecting input sources', step=step, index=index)
+        self.logger.info('Collecting input sources')
 
         #copy all parameter take from self dictionary
         copyall = self.get('copyall')
@@ -1509,7 +1527,7 @@ class Chip:
                 if copyall | (copy):
                     for item in value:
                         filepath = self.find(item)
-                        self.logger.info(f"Copying {filepath} to '{step}0/inputs' directory", step=step, index=index)
+                        self.logger.info(f"Copying {filepath} to step inputs/ directory")
                         shutil.copy(filepath, indir)
 
     ###########################################################################
@@ -2097,6 +2115,14 @@ class Chip:
     ###########################################################################
     def _runstep_safe(self, step, index, active, error):
         try:
+            self._init_logger(step, index)
+        except:
+            traceback.print_exc()
+            print(f"Uncaught exception while initializing logger for step {step}")
+            self.error = 1
+            self._haltstep(step, index, error, active, log=False)
+
+        try:
             self._runstep(step, index, active, error)
         except SystemExit:
             # calling sys.exit() in _haltstep triggers a "SystemExit"
@@ -2137,11 +2163,16 @@ class Chip:
         16. Change back to original dir
         17. Lower active bit
 
+        Note that since each _runstep call occurs in its own process with a
+        separate address space, any changes made to the `self` object will not
+        be reflected in the parent. We rely on reading/writing the chip config
+        to the filesystem to communicate updates to the schema (primarily just
+        metrics).
         '''
 
         ##################
         # 1. Wait loop
-        self.logger.info('Waiting for inputs...', step=step, index=index)
+        self.logger.info('Waiting for inputs...')
         while True:
             # Checking that there are no pending jobs
             pending = 0
@@ -2185,7 +2216,7 @@ class Chip:
         design = self.get('design')
         all_inputs = []
         if not self.getkeys('flowgraph', step, index, 'input'):
-            self.collect(step, index)
+            self.collect()
         elif not self.get('remote', 'addr'):
             halt = 0
             for input_step in self.getkeys('flowgraph', step, index, 'input'):
@@ -2199,7 +2230,7 @@ class Chip:
                         self.cfg = self.readcfg(cfgfile)
                 halt = halt + step_error
             if halt:
-                self.logger.error('Halting step due to previous errors', step=step, index=index)
+                self.logger.error('Halting step due to previous errors')
                 self._haltstep(step, index, error, active)
 
         # Write configuration prior to step running into inputs/
@@ -2211,7 +2242,7 @@ class Chip:
         ##################
         # 4. Starting job
 
-        self.logger.debug(f"Starting process", step=step, index=index)
+        self.logger.debug(f"Starting process")
         start = time.time()
 
         self.set('arg', 'step', step, clobber=True)
@@ -2265,7 +2296,7 @@ class Chip:
             if func:
                 func(self)
                 if self.error:
-                    self.logger.error(f"Pre-processing failed for '{tool}'", step=step, index=index)
+                    self.logger.error(f"Pre-processing failed for '{tool}'")
                     self._haltstep(step, index, error, active)
 
         ##################
@@ -2288,7 +2319,7 @@ class Chip:
         # 9. Final check() before run
 
         if self.check(step,index, mode='dynamic'):
-            self.logger.error(f"Fatal error in check()! See previous errors.", step=step, index=index)
+            self.logger.error(f"Fatal error in check()! See previous errors.")
             self._haltstep(step, index, error, active)
 
         ##################
@@ -2303,11 +2334,11 @@ class Chip:
         exe = self.get('eda', tool, step, index, 'exe')
         if (veropt != None) & (exe !=None):
             cmdlist = [exe, veropt]
-            self.logger.info("Checking version of tool '%s'", tool, step=step, index=index)
+            self.logger.info("Checking version of tool '%s'", tool)
             version = subprocess.run(cmdlist, stdout=PIPE, stderr=PIPE, universal_newlines=True)
             check_version = self.loadfunction(tool, 'tool', 'check_version')
             if check_version(self, version.stdout):
-                self.logger.error(f"Version check failed for {tool}. Check installation.", step=step, index=index)
+                self.logger.error(f"Version check failed for {tool}. Check installation.")
                 self._haltstep(step, index, error, active)
 
 
@@ -2316,11 +2347,11 @@ class Chip:
         if tool != 'builtin':
             cmdlist = self._makecmd(tool, step, index)
             cmdstr = ' '.join(cmdlist)
-            self.logger.info("Running in %s", workdir, step=step, index=index)
-            self.logger.info('%s', cmdstr, step=step, index=index)
+            self.logger.info("Running in %s", workdir)
+            self.logger.info('%s', cmdstr)
             cmd_error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
             if cmd_error.returncode != 0:
-                self.logger.warning('Command failed. See log file %s', os.path.abspath(cmdlist[-1]), step=step, index=index)
+                self.logger.warning('Command failed. See log file %s', os.path.abspath(cmdlist[-1]))
                 if not self.get('eda', tool, step, index, 'continue'):
                     self._haltstep(step, index, error, active)
         else:
@@ -2335,7 +2366,7 @@ class Chip:
             if func:
                 post_error = func(self)
                 if post_error:
-                    self.logger.error('Post-processing check failed', step=step, index=index)
+                    self.logger.error('Post-processing check failed')
                     self._haltstep(step, index, error, active)
 
         ##################
@@ -2366,8 +2397,9 @@ class Chip:
         active[step + str(index)] = 0
 
     ###########################################################################
-    def _haltstep(self, step, index, error, active):
-        self.logger.error(f"Halting step due to errors.", step=step, index=index)
+    def _haltstep(self, step, index, error, active, log=True):
+        if log:
+            self.logger.error(f"Halting step '{step}' index '{index}' due to errors.")
         active[step + str(index)] = 0
         sys.exit(1)
 
@@ -2490,12 +2522,22 @@ class Chip:
                 for index in indexlist:
                     processes.append(multiprocessing.Process(target=self._runstep_safe,
                                                              args=(step, index, active, error,)))
+
+
+            # We have to deinit the chip's logger before spawning the processes
+            # since the logger object is not serializable. _runstep_safe will
+            # reinitialize the logger in each new process, and we reinitialize
+            # the primary chip's logger after the processes complete.
+            self._deinit_logger()
+
             # Start all processes
             for p in processes:
                 p.start()
             # Mandatory process cleanup
             for p in processes:
                 p.join()
+
+            self._init_logger()
 
             # Make a clean exit if one of the steps failed
             halt = 0
@@ -2772,14 +2814,3 @@ class Chip:
 class YamlIndentDumper(yaml.Dumper):
     def increase_indent(self, flow=False, indentless=False):
         return super(YamlIndentDumper, self).increase_indent(flow, False)
-
-#class CustomFormatter(argparse.HelpFormatter(max_help_position=27),
-#                      argparse.RawDescriptionHelpFormatter):
-#    pass
-
-class CustomAdapter(logging.LoggerAdapter):
-    def process(self, msg, kwargs):
-        step = kwargs.pop('step', self.extra['step'])
-        index = kwargs.pop('index', self.extra['index'])
-        output = '%-12s | %-3s | %s' % (step, index, msg)
-        return output, kwargs
