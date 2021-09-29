@@ -29,7 +29,11 @@ import time
 from timeit import default_timer as timer
 from siliconcompiler.client import *
 from siliconcompiler.schema import *
-from siliconcompiler.schema_utils import *
+
+# Fix for multprocessing bug on MacOS
+# Source: https://github.com/Koed00/django-q/issues/389#issuecomment-699481976
+from multiprocessing import set_start_method
+set_start_method("fork")
 
 class Chip:
     """Object for configuring and executing hardware design flows.
@@ -49,6 +53,8 @@ class Chip:
     def __init__(self, design="root", loglevel="INFO"):
 
         # Local variables
+        self.scroot = os.path.dirname(os.path.abspath(__file__))
+        self.cwd = os.getcwd()
         self.version = "0.0.1"
         self.design = design
         self.status = {}
@@ -67,41 +73,6 @@ class Chip:
         self.handler.setFormatter(self.formatter)
         self.logger.addHandler(self.handler)
         self.logger.setLevel(str(loglevel))
-
-        # Set Environment Variable if not already set
-        # TODO: Better solution??
-        scriptdir = os.path.dirname(os.path.abspath(__file__))
-        rootdir = re.sub('siliconcompiler/siliconcompiler',
-                         'siliconcompiler',
-                         scriptdir)
-
-        if 'SCPATH' in os.environ:
-            #Getting environment path (highest priority)
-            scpaths = str(os.environ['SCPATH']).split(':')
-        else:
-            scpaths = []
-
-        #Add the root Path
-        scpaths.append(rootdir)
-
-        # Add the path where the builtin tools, foundries, and flows live.
-        # By adding this path directly to sys.path, we can search both builtin
-        # and user provided modules more easily, since we don't have to prefix
-        # the dynamic import path with 'siliconcompiler.' for builtins.
-        scpaths.append(rootdir + '/siliconcompiler')
-
-        # Adding current working directory if not
-        # working out of rootdir
-        if not re.match(str(os.getcwd()), rootdir):
-            scpaths.append(os.getcwd())
-
-        # Writing back global SCPATH
-        os.environ['SCPATH'] = ':'.join(scpaths)
-
-        #Adding scpath to python search path
-        sys.path.extend(scpaths)
-        self.logger.debug("SC search path %s", os.environ['SCPATH'])
-        self.logger.debug("Python search path %s", sys.path)
 
     ###########################################################################
     def cmdline(self, progname, description=None, switchlist=[]):
@@ -172,7 +143,10 @@ class Chip:
                 plusmatch = re.match(r'(\+[\w_\+]+)(.*)', switch)
                 if switchmatch:
                     switchstr = switchmatch.group(1)
-                    dest = re.sub('-','',switchstr)
+                    if re.search('_', switchstr):
+                        dest = re.sub('-','',switchstr)
+                    else:
+                        dest = key[0]
                 elif gccmatch:
                     switchstr = gccmatch.group(1)
                     dest = key[0]
@@ -261,7 +235,7 @@ class Chip:
 
         # Print out SC project authors
         authors = []
-        authorfile = schema_path("AUTHORS")
+        authorfile = self.find("AUTHORS")
         f = open(authorfile, "r")
         for line in f:
             name = re.match(r'^(\w+\s+\w+)', line)
@@ -272,32 +246,30 @@ class Chip:
 
         os.environ["COLUMNS"] = '80'
 
-        # set design name (override default)
+        # 1. set design name (override default)
         if 'design' in cmdargs.keys():
             self.name = cmdargs['design']
 
-        # set loglevel if set at command line
+        # 2. set loglevel if set at command line
         if 'loglevel' in cmdargs.keys():
             self.logger.setLevel(cmdargs['loglevel'])
 
-        # set mode (needed for target)
-        if 'mode' in cmdargs.keys():
-            self.set('mode', cmdargs['mode'], clobber=True)
-
-        # set target arguments if set
-        if 'techarg' in cmdargs.keys():
-            print("NOT IMPLEMENTED")
-            sys.exit()
-
-        if 'flowarg' in cmdargs.keys():
-            print("NOT IMPLEMENTED")
-            sys.exit()
-
-        # read in target if set
+        # 3. read in target if set
         if 'target' in cmdargs.keys():
+            if 'mode' in cmdargs.keys():
+                self.set('mode', cmdargs['mode'], clobber=True)
+            if 'techarg' in cmdargs.keys():
+                print("NOT IMPLEMENTED")
+                sys.exit()
+            if 'flowarg' in cmdargs.keys():
+                print("NOT IMPLEMENTED")
+                sys.exit()
+            if 'arg_step' in cmdargs.keys():
+                self.set('arg', 'step', cmdargs['arg_step'], clobber=True)
+            # running target command
             self.target(cmdargs['target'])
 
-        # read in all cfg files
+        # 4. read in all cfg files
         if 'cfg' in cmdargs.keys():
             for item in cmdargs['cfg']:
                 self.cfg = self.readcfg(item)
@@ -310,8 +282,8 @@ class Chip:
 
             # Unifying around no underscores for now
             keylist = key.split('_')
-            orderhash = {}
 
+            orderhash = {}
             # Find keypath with matching keys
             for keypath in allkeys:
                 match = True
@@ -353,60 +325,42 @@ class Chip:
                             self.set(*args, clobber=True)
 
     #########################################################################
-    def loadtool(self, tool, step, index):
+    def loadfunction(self, modname, modtype, funcname):
         '''
-        Dynamic load of tool module based on search path.
+        Dynamic load of module based on scpath search parameter.
         '''
 
-        # Only load tool if not already loaded
-        if self.get('eda', tool, step, index, 'exe', field='lock'):
-            self.logger.warning('Tool already configured: ' + tool)
+        # module search path depends on modtype
+        if modtype == 'tool':
+            fullpath = self.find(f"tools/{modname}/{modname}.py")
+        elif modtype == 'flow':
+            fullpath = self.find(f"flows/{modname}.py")
+        elif modtype == 'pdk':
+            fullpath = self.find(f"foundries/{modname}.py")
+        else:
+            self.logger.error(f"Illegal module type '{modtype}'.")
+            self.error = 1
             return
 
-        try:
-            searchdir = "tools." + tool
-            modulename = '.'+tool+'_setup'
-            self.logger.info(f"Setting up tool '{tool}' for step '{step}' and index {index}")
-            module = importlib.import_module(modulename, package=searchdir)
-            setup_tool = getattr(module, "setup_tool")
-            setup_tool(self, step, index)
-        except:
-            traceback.print_exc()
-            self.logger.error(f"Setup failed for '{tool}' in step '{step} and index {index}'")
-            self.error = 1
-
-        # Locking the tool after loading
-        self.set('eda', tool, step, index, 'exe', 'true', field='lock')
-
-    ###########################################################################
-    def loadpdk(self, process):
-        '''
-        Dynamic load of PDK module for a process based on search path.
-        '''
-        try:
-            searchdir = 'foundries'
-            module = importlib.import_module('.'+process, package=searchdir)
-            setup_pdk = getattr(module, "setup_pdk")
-            setup_pdk(self)
-            self.logger.info("Loaded technology files '%s'", process)
-        except ModuleNotFoundError:
-            self.logger.error("Technology module %s not found.", process)
-            self.error = 1
-
-    ###########################################################################
-    def loadflow(self, flow):
-        '''
-        Dynamic load of flow module based on search path.
-        '''
-        try:
-            searchdir = 'flows'
-            module = importlib.import_module('.'+flow, package=searchdir)
-            setup_flow = getattr(module, "setup_flow")
-            setup_flow(self)
-            self.logger.info("Loaded flow '%s'", flow)
-        except ModuleNotFoundError:
-            self.logger.error("Flow module %s not found.", flow)
-            self.error = 1
+        # try loading module if found
+        if fullpath:
+            if modtype == 'tool':
+                self.logger.debug(f"Loading function '{funcname}' from module '{modname}'")
+            else:
+                self.logger.info(f"Loading function '{funcname}' from module '{modname}'")
+            try:
+                sys.path.append(os.path.dirname(fullpath))
+                imported = importlib.import_module(modname)
+                if hasattr(imported, funcname):
+                    function = getattr(imported, funcname)
+                else:
+                    function = None
+                sys.path.pop()
+                return function
+            except:
+                traceback.print_exc()
+                self.logger.error(f"Module setup failed for '{modname}'")
+                self.error = 1
 
     ###########################################################################
     def target(self, arg=None):
@@ -470,20 +424,35 @@ class Chip:
             self.logger.error('Target not defined.')
             sys.exit(1)
         elif len(self.get('target').split('_')) > 2:
-            self.logger.error('Target should have zero or one underscore.')
+            self.logger.error('Target should have zero or one underscore')
             sys.exit(1)
-
-        # Technology platform
-        technology = self.get('target').split('_')[0]
-        if self.get('mode') == 'asic':
-            self.loadpdk(technology)
         else:
-            self.set('fpga', 'partname', technology)
 
-        # EDA flow
-        if len(self.get('target').split('_')) == 2:
-            edaflow = self.get('target').split('_')[1]
-            self.loadflow(edaflow)
+            target = self.get('target')
+            self.logger.info(f"Loading target '{target}'")
+
+        # search for module matches
+        targetlist = target.split('_')
+
+        for i, item in enumerate(targetlist):
+            func_flow = self.loadfunction(item, 'flow', 'setup_flow')
+            func_pdk = self.loadfunction(item, 'pdk', 'setup_pdk')
+            func_tool = self.loadfunction(item, 'tool', 'setup_tool')
+            if (i == 0) & bool(func_flow):
+                func_flow(self)
+            elif (i == 0) & bool(func_tool):
+                step = self.get('arg','step')
+                self.set('flowgraph', step, '0', 'tool', item)
+                self.set('flowgraph', step, '0', 'weight', 'errors', 1.0)
+                self.set('flowgraph', step, '0', 'weight', 'warnings', 1.0)
+                self.set('flowgraph', step, '0', 'weight', 'runtime', 1.0)
+            elif bool(func_pdk):
+                func_pdk(self)
+            elif self.get('mode') == 'asic':
+                self.logger.error(f'Target {item} not found')
+                sys.exit(1)
+
+        self.logger.info(f"Operating in '{self.get('mode')}' mode")
 
     ###########################################################################
     def getsinks(self, step, index, cfg=None):
@@ -775,7 +744,6 @@ class Chip:
 
         self.logger.debug(f'Appending value {args[-1]} to [{keypath}]')
         return self._search(cfg, keypath, *all_args, field='value', mode='add')
-
 
 
     ###########################################################################
@@ -1073,9 +1041,11 @@ class Chip:
     ###########################################################################
     def find(self, filename):
         """
-        Returns an absolute path for the provided filename provided.
+        Returns an absolute e path for the provided filename provided.
 
-        The method searches for a match for filename using the SCPATH
+        The method searches for a match for the relative filename using
+        the scpath
+
         environment variable. Legal shell variables consisting of '$' followed
         by numbers, underscores, and digits are replaced with the variable
         value.
@@ -1087,15 +1057,27 @@ class Chip:
             varpath = os.getenv(item)
             filename = filename.replace("$"+item, varpath)
 
-        # Resolving absolute paths
-        scpaths = str(os.environ['SCPATH']).split(':')
-        for searchdir in scpaths:
-            abspath = searchdir + "/" + filename
-            if os.path.exists(abspath):
+        # Handling relative path and abspath matches
+        if os.path.exists(os.path.abspath(filename)):
+            filename = os.path.abspath(filename)
+        # Matching paths relative to scpaths
+        else:
+            scpaths = [self.cwd]
+            scpaths.append(self.scroot)
+            scpaths.extend(self.get('scpath'))
+            found = False
+            for searchdir in scpaths:
+                abspath = os.path.abspath(searchdir + "/" + filename)
+                if os.path.exists(abspath):
+                    found = True
+                    break
+            if found:
                 filename = abspath
-                break
+            else:
+                filename = None
 
         return filename
+
 
     ###########################################################################
     def _abspath(self, cfg):
@@ -1114,9 +1096,9 @@ class Chip:
                         if re.match(r'\[', cfg[k]['type']):
                             for i, val in enumerate(list(cfg[k]['value'])):
                                 #Look for relative paths in search path
-                                cfg[k]['value'][i] = schema_path(val)
+                                cfg[k]['value'][i] =self.find(val)
                         else:
-                            cfg[k]['value'] = schema_path(cfg[k]['value'])
+                            cfg[k]['value'] = self.find(cfg[k]['value'])
                 else:
                     self._abspath(cfg[k])
 
@@ -1306,7 +1288,7 @@ class Chip:
 
         #TODO: add ability to read in all files set in 'cfg' if no file
         #name is specified
-        
+
         if cfg is None:
             cfg = self.cfg
 
@@ -1370,26 +1352,80 @@ class Chip:
         else:
             cfgcopy = copy.deepcopy(cfg)
 
-        #resolve absolute paths
+        # resolve absolute paths
         if abspath:
             self._abspath(cfgcopy)
 
-        # Write out configuration based on file type
-        if filepath.endswith('.json'):
-            with open(filepath, 'w') as f:
+        # convert to fusesoc
+        cfgfuse = self._dump_fusesoc(cfg)
+
+
+        with open(filepath, 'w') as f:
+            if filepath.endswith('.json'):
                 print(json.dumps(cfgcopy, indent=4, sort_keys=True), file=f)
-        elif filepath.endswith('.yaml'):
-            with open(filepath, 'w') as f:
+            elif filepath.endswith('.yaml'):
                 print(yaml.dump(cfgcopy, Dumper=YamlIndentDumper, default_flow_style=False), file=f)
-        elif filepath.endswith('.tcl'):
-            with open(filepath, 'w') as f:
+            elif filepath.endswith('.core'):
+                print("CAPI=2:", file=f)
+                print(yaml.dump(cfgfuse, Dumper=YamlIndentDumper, default_flow_style=False), file=f)
+            elif filepath.endswith('.bender.yml'):
+                self._write_bender(cfgcopy, file=f)
+            elif filepath.endswith('.tcl'):
                 print("#############################################", file=f)
                 print("#!!!! AUTO-GENERATED FILE. DO NOT EDIT!!!!!!", file=f)
                 print("#############################################", file=f)
                 self._printcfg(cfgcopy, mode="tcl", prefix="dict set sc_cfg", file=f)
+            else:
+                self.logger.error('File format not recognized %s', filepath)
+                self.error = 1
+
+    ###########################################################################
+
+    def _dump_fusesoc(self, cfg):
+
+        fusesoc = {}
+
+        toplevel = self.get('design', cfg=cfg)
+
+        if self.get('name'):
+            name = self.get('name', cfg=cfg)
         else:
-            self.logger.error('File format not recognized %s', filepath)
-            self.error = 1
+            name = toplevel
+
+        version = self.get('projversion', cfg=cfg)
+
+        # Basic information
+        fusesoc['name'] = f"{name}:{version}"
+        fusesoc['description'] = self.get('description', cfg=cfg)
+        fusesoc['filesets'] = {}
+
+        # RTL
+        #TODO: place holder fix with pre-processor list
+        files = []
+        for item in self.get('source', cfg=cfg):
+            files.append(item)
+
+        fusesoc['filesets']['rtl'] = {}
+        fusesoc['filesets']['rtl']['files'] = files
+        fusesoc['filesets']['rtl']['depend'] = {}
+        fusesoc['filesets']['rtl']['file_type'] = {}
+
+        # Constraints
+        files = []
+        for item in self.get('constraint', cfg=cfg):
+            files.append(item)
+
+        fusesoc['filesets']['constraints'] = {}
+        fusesoc['filesets']['constraints']['files'] = files
+
+        # Default Target
+        fusesoc['targets'] = {}
+        fusesoc['targets']['default'] = {
+            'filesets' : ['rtl', 'constraints', 'tb'],
+            'toplevel' : toplevel
+        }
+
+        return fusesoc
 
     ###########################################################################
     def writegraph(self, filename, graphtype='flowgraph'):
@@ -1428,7 +1464,7 @@ class Chip:
         dot.render(filename=fileroot, cleanup=True)
 
     ########################################################################
-    def collect(self, cfg=None, outdir='output'):
+    def collect(self, cfg=None):
         '''
         Collects files found in the configuration dictionary and places
         them in 'dir'. The function only copies in files that have the 'copy'
@@ -1448,24 +1484,27 @@ class Chip:
         if cfg is None:
             cfg = self.cfg
 
-        if not os.path.exists(outdir):
-            os.makedirs(outdir)
+        indir = 'inputs'
+        step = self.get('arg','step', cfg=cfg)
+
+        if not os.path.exists(indir):
+            os.makedirs(indir)
+
+        self.logger.info('Collecting input sources')
 
         #copy all parameter take from self dictionary
         copyall = self.get('copyall')
         allkeys = self.getkeys(cfg=cfg)
         for key in allkeys:
             leaftype = self.get(*key, cfg=cfg, field='type')
-            if leaftype == 'file':
+            if re.search('file', leaftype):
                 copy = self.get(*key, cfg=cfg, field='copy')
-                value = self.get(*key, cfg=cfg, field='value')
-                if copyall | (copy == 'true'):
-                    if not isinstance(value, list):
-                        value = [value]
+                value = self.get(*key, cfg=cfg)
+                if copyall | (copy):
                     for item in value:
-                        if item:
-                            filepath = schema_path(item)
-                            shutil.copy(filepath, outdir)
+                        filepath = self.find(item)
+                        self.logger.info(f"Copying {filepath} to '{step}0/inputs' directory")
+                        shutil.copy(filepath, indir)
 
     ###########################################################################
     def hash(self, cfg=None):
@@ -1495,7 +1534,7 @@ class Chip:
                 self.set([keylist,[]], cfg=cfg, clobber=True)
                 hashlist = []
                 for item in filelist:
-                    filename = schema_path(item)
+                    filename = self.find(item)
                     self.logger.debug('Computing hash value for %s', filename)
                     if os.path.isfile(filename):
                         sha256_hash = hashlib.sha256()
@@ -1645,11 +1684,16 @@ class Chip:
                               "process = " + self.get('pdk', 'process'),
                               "targetlibs = "+" ".join(self.get('asic', 'targetlib')),
                               "jobdir = "+ jobdir])
+        elif self.get('mode') == 'fpga':
+            info = '\n'.join(["SUMMARY:\n",
+                              "design = "+self.get('design'),
+                              "partname = "+self.get('fpga','partname'),
+                              "jobdir = "+ jobdir])
         else:
-            # TODO: pull in relevant summary items for FPGA?
             info = '\n'.join(["SUMMARY:\n",
                               "design = "+self.get('design'),
                               "jobdir = "+ jobdir])
+
         print("-"*135)
         print(info, "\n")
 
@@ -1685,7 +1729,14 @@ class Chip:
             row.append(" " + sel_in.center(colwidth))
         data.append(row)
 
-        for metric in self.getkeys('metric', 'default', 'default'):
+        # only report metrics with weights
+        metric_list = []
+        for step in steplist:
+            for metric in self.getkeys('flowgraph', step, '0', 'weight'):
+                if self.get('flowgraph', step, '0', 'weight', metric):
+                    if metric not in metric_list:
+                        metric_list.append(metric)
+        for metric in metric_list:
             metrics.append(" " + metric)
             row = []
             for step in steplist:
@@ -1770,14 +1821,15 @@ class Chip:
         The function sets the flowstatus select parameter in the schema
         '''
 
-        steplist = list(args)
+        steplist = list(steps)
         sel_inputs = []
 
         for a in steplist:
             for b in self.getkeys('flowgraph', a):
                 sel_inputs.append(a+b)
 
-        return sel_inputs
+        # no score for join, so just return 0
+        return 0, sel_inputs
 
     ###########################################################################
     def minimum(self, *steps):
@@ -1929,6 +1981,8 @@ class Chip:
             job_nameid = f"{self.get('jobname')}{self.get('jobid')}"
             cur_build_dir = f"{self.get('dir')}/{self.get('design')}/{job_nameid}"
             tmp_job_dir = f"/tmp/{self.get('remote', 'jobhash')}"
+            ctrl_node_dir = self.get('dir')
+            self.set('dir', tmp_job_dir, clobber=True)
             tmp_build_dir = "/".join([tmp_job_dir,
                                       self.get('design'),
                                       job_nameid])
@@ -1963,7 +2017,7 @@ class Chip:
             run_cmd  = f'{schedule_cmd} bash -c "'
             run_cmd += f"mkdir -p {tmp_build_dir} ; "
             run_cmd += f"{remount_script} ; "
-            run_cmd += f"rsync -a {self.get('dir')}/* {tmp_job_dir}/ ; "
+            run_cmd += f"rsync -a {ctrl_node_dir}/* {tmp_job_dir}/ ; "
             run_cmd += f"touch {keypath} ; chmod 600 {keypath} ; "
             run_cmd += f"echo -ne '{keystr}' > {keypath} ; "
             run_cmd += f"chmod 400 {keypath} ; "
@@ -2023,6 +2077,21 @@ class Chip:
         # Clear active bit after the 'srun' command, and set 'error' accordingly.
         error[step + str(index)] = step_result.returncode
         active[step + str(index)] = 0
+
+    ###########################################################################
+    def _runstep_safe(self, step, index, active, error):
+        try:
+            self._runstep(step, index, active, error)
+        except SystemExit:
+            # calling sys.exit() in _haltstep triggers a "SystemExit"
+            # exception, but we can ignore these -- if we call sys.exit(), we've
+            # already handled the error.
+            pass
+        except:
+            traceback.print_exc()
+            self.logger.error(f"Uncaught exception while running step {step}.")
+            self.error = 1
+            self._haltstep(step, index, error, active)
 
     ###########################################################################
     def _runstep(self, step, index, active, error):
@@ -2102,7 +2171,7 @@ class Chip:
         design = self.get('design')
         all_inputs = []
         if not self.getkeys('flowgraph', step, index, 'input'):
-            self.collect(outdir='inputs')
+            self.collect()
         elif not self.get('remote', 'addr'):
             halt = 0
             for input_step in self.getkeys('flowgraph', step, index, 'input'):
@@ -2119,14 +2188,24 @@ class Chip:
                 self.logger.error('Halting step %s due to previous errors', step)
                 self._haltstep(step, index, error, active)
 
+        # Write configuration prior to step running into inputs/
+        self.set('arg', 'step', None, clobber=True)
+        self.set('arg', 'index', None, clobber=True)
+        os.makedirs('inputs', exist_ok=True)
+        self.writecfg(f'inputs/{design}.pkg.json')
+
         ##################
         # 4. Starting job
 
         self.logger.debug(f"Starting step '{step}' index '{index}'")
         start = time.time()
 
+        self.set('arg', 'step', step, clobber=True)
+        self.set('arg', 'index', index, clobber=True)
+
         ##################
-        # 5. Run builtin or pre-process tool
+        # 5. Run builtin function
+
         if self.get('flowgraph', step, index, 'function'):
             tool = 'builtin'
             func = self.get('flowgraph', step, index, 'function')
@@ -2151,6 +2230,7 @@ class Chip:
 
         ##################
         # 6 Copy outputs from input steps
+
         if not self.getkeys('flowgraph', step, index,'input'):
             all_inputs = []
         elif not self.get('flowstatus', step, index, 'select'):
@@ -2158,41 +2238,41 @@ class Chip:
         else:
             all_inputs = self.get('flowstatus', step, index, 'select')
         for input_step in all_inputs:
-            shutil.copytree(f"../{input_step}/outputs", 'inputs/')
+            # Skip copying pkg.json files here, since we write the current chip
+            # configuration into inputs/{design}.pkg.json earlier in _runstep.
+            shutil.copytree(f"../{input_step}/outputs", 'inputs/', dirs_exist_ok=True,
+                ignore=lambda dir, contents: [f'{design}.pkg.json'])
 
         ##################
-        # 7. Run preprocess step for tools (could run on inputs, so copy first)
+        # 7. Run preprocess step for tool
+
         if tool != 'builtin':
-            try:
-                searchdir = "siliconcompiler.tools." + tool
-                modulename = '.'+tool+'_setup'
-                module = importlib.import_module(modulename, package=searchdir)
-                if hasattr(module, "pre_process"):
-                    pre_process = getattr(module, "pre_process")
-                    pre_process(self, step, index)
-            except:
-                traceback.print_exc()
-                self.logger.error(f"Pre-processing failed for '{tool}' in step '{step}'")
-                self._haltstep(step, index, error, active)
+            func = self.loadfunction(tool, "tool", "pre_process")
+            if func:
+                func(self)
+                if self.error:
+                    self.logger.error(f"Pre-processing failed for '{tool}' in step '{step}'")
+                    self._haltstep(step, index, error, active)
 
         ##################
         # 7. Copy Reference Scripts
+
         if tool != 'builtin':
             if self.get('eda', tool, step, index, 'copy'):
-                refdir = schema_path(self.get('eda', tool, step, index, 'refdir'))
+                refdir = self.find(self.get('eda', tool, step, index, 'refdir'))
                 shutil.copytree(refdir, ".", dirs_exist_ok=True)
 
         ##################
         # 8. Save config files required by EDA tools
         # (for tools and slurm)
-        self.set('arg', 'step', step, clobber=True)
-        self.set('arg', 'index', index, clobber=True)
+
         self.writecfg("sc_manifest.json")
         self.writecfg("sc_manifest.yaml")
         self.writecfg("sc_manifest.tcl", abspath=True, keeplists=True)
 
         ##################
         # 9. Final check() before run
+
         if self.check(step,index, mode='dynamic'):
             self.logger.error(f"Fatal error in check() of '{step}'! See previous errors.")
             self._haltstep(step, index, error, active)
@@ -2204,18 +2284,18 @@ class Chip:
 
         ##################
         # 11. Check exe version
+
         veropt = self.get('eda', tool, step, index, 'vswitch')
         exe = self.get('eda', tool, step, index, 'exe')
-        if veropt != None:
+        if (veropt != None) & (exe !=None):
             cmdlist = [exe, veropt]
-            self.logger.debug("Checking version of '%s' tool in step '%s'.", tool, step)
+            self.logger.info("Checking version of '%s' tool in step '%s'.", tool, step)
             version = subprocess.run(cmdlist, stdout=PIPE, stderr=PIPE, universal_newlines=True)
-            check_version = getattr(module, "check_version")
-            if check_version(self, step, index, version.stdout):
+            check_version = self.loadfunction(tool, 'tool', 'check_version')
+            if check_version(self, version.stdout):
                 self.logger.error(f"Version check failed for {tool}. Check installation]")
                 self._haltstep(step, index, error, active)
-        else:
-            self.logger.info("Skipping version checking of '%s' tool in step '%s'.", tool, step)
+
 
         ##################
         # 12. Run executable
@@ -2237,21 +2317,12 @@ class Chip:
         # 13. Post process (could fail)
         post_error = 0
         if tool != 'builtin':
-            try:
-                searchdir = "siliconcompiler.tools." + tool
-                modulename = '.'+tool+'_setup'
-                module = importlib.import_module(modulename, package=searchdir)
-                if hasattr(module, "post_process"):
-                    post_process = getattr(module, "post_process")
-                    post_error = post_process(self, step, index)
-            except:
-                traceback.print_exc()
-                self.logger.error(f"Post-processing failed for '{tool}' in step '{step}'")
-                self._haltstep(step, index, error, active)
-
-            if post_error:
-                self.logger.error('Post-processing check failed for step %s', step)
-                self._haltstep(step, index, error, active)
+            func = self.loadfunction(tool, "tool", "post_process")
+            if func:
+                post_error = func(self)
+                if post_error:
+                    self.logger.error('Post-processing check failed for step %s', step)
+                    self._haltstep(step, index, error, active)
 
         ##################
         # 14. Record successful exit
@@ -2263,11 +2334,11 @@ class Chip:
         start_date = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
         end_date = datetime.datetime.fromtimestamp(end).strftime('%Y-%m-%d %H:%M:%S')
         self._makerecord(step, index, start_date, end_date)
-
         ##################
         # 15. save a successful manifest (minus scratch args)
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
+
         self.writecfg("outputs/" + self.get('design') +'.pkg.json')
 
         ##################
@@ -2358,7 +2429,10 @@ class Chip:
                         # Setting up tool is optional
                         tool = self.get('flowgraph', step, index, 'tool')
                         if tool:
-                            self.loadtool(tool, step, index)
+                            self.set('arg','step', step)
+                            self.set('arg','index', index)
+                            func = self.loadfunction(tool, 'tool', 'setup_tool')
+                            func(self)
                         self.check(step, index, mode='static')
                     else:
                         self.set('flowstatus', step, str(index), 'error', 0, clobber=False)
@@ -2400,7 +2474,7 @@ class Chip:
                 else:
                     indexlist = self.getkeys('flowgraph', step)
                 for index in indexlist:
-                    processes.append(multiprocessing.Process(target=self._runstep,
+                    processes.append(multiprocessing.Process(target=self._runstep_safe,
                                                              args=(step, index, active, error,)))
             # Start all processes
             for p in processes:
@@ -2604,16 +2678,24 @@ class Chip:
         '''
 
         exe = self.get('eda', tool, step, index, 'exe')
-        options = self.get('eda', tool, step, index, 'option', 'cmdline')
+        if 'cmdline' in self.getkeys('eda', tool, step, index, 'option'):
+            options = self.get('eda', tool, step, index, 'option', 'cmdline')
+        else:
+            options = []
         scripts = []
+        # Add scripts files
         for value in self.get('eda', tool, step, index, 'script'):
-            abspath = schema_path(value)
+            abspath = self.find(value)
             scripts.append(abspath)
 
         cmdlist = [exe]
         logfile = exe + ".log"
         cmdlist.extend(options)
         cmdlist.extend(scripts)
+        runtime_options = self.loadfunction(tool, 'tool', 'runtime_options')
+        if runtime_options:
+            #print(runtime_options(self))
+            cmdlist.extend(runtime_options(self))
         if self.get('quiet') & (step not in self.get('bkpt')):
             cmdlist.extend([" &> ",logfile])
         else:
@@ -2643,6 +2725,9 @@ class Chip:
                 #TODO
                 pass
             elif key == 'hash':
+                #TODO
+                pass
+            elif key == 'version':
                 #TODO
                 pass
             elif self.get(key):

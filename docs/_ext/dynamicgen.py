@@ -1,6 +1,6 @@
 '''Sphinx extension that provides directives for automatically generating
 documentation for the three types of dynamically loaded modules used by SC:
-flows, foundries, and tools. 
+flows, foundries, and tools.
 '''
 
 from docutils import nodes
@@ -15,87 +15,69 @@ import pkgutil
 import os
 import sys
 
+from common import *
+
 import siliconcompiler
-
-# Docutils helpers
-def build_table(items):
-    table = nodes.table()
-
-    group = nodes.tgroup(cols=len(items[0]))
-    table += group
-    # not sure how colwidth affects things - columns seem to adjust to contents
-    group += nodes.colspec(colwidth=50)
-    group += nodes.colspec(colwidth=100)
-
-    body = nodes.tbody()
-    group += body
-
-    for row in items:
-        row_node = nodes.row()
-        body += row_node
-        for col in row:
-            entry = nodes.entry()
-            row_node += entry
-            entry += col
-
-    return table
-
-def build_section(text, key):
-    sec = nodes.section(ids=[nodes.make_id(key)])
-    sec += nodes.title(text=text)
-    return sec
-
-def para(text):
-    return nodes.paragraph(text=text)
-
-def code(text):
-    return nodes.literal(text=text)
-
-def strong(text):
-    p = nodes.paragraph()
-    p += nodes.strong(text=text)
-    return p
-
-def image(src, center=False):
-    i = nodes.image()
-    i['uri'] = '/' + src
-    if center:
-        i['align'] = 'center'
-    return i
-
-def link(url, text=None):
-    if text is None:
-        text = url
-    return nodes.reference(internal=False, refuri=url, text=text)
-
-# SC schema helpers
-def is_leaf(schema):
-    if 'defvalue' in schema:
-        return True
-    elif len(schema.keys()) == 1 and 'default' in schema:
-        return is_leaf(schema['default'])
-    return False
-
-def flatten(cfg, prefix=()):
-    flat_cfg = {}
-
-    for key, val in cfg.items():
-        if key == 'default': continue
-        if 'defvalue' in val:
-            flat_cfg[prefix + (key,)] = val
-        else:
-            flat_cfg.update(flatten(val, prefix + (key,)))
-
-    return flat_cfg
 
 # We need this in a few places, so just make it global
 SC_ROOT = os.path.abspath(f'{__file__}/../../../')
 
+def build_schema_value_table(schema, keypath_prefix=[]):
+    '''Helper function for displaying values set in schema as a docutils table.'''
+    table = [[strong('Keypath'), strong('Value')]]
+    flat_cfg = flatten(schema)
+    for keys, val in flat_cfg.items():
+        if len(keypath_prefix) > 0:
+            keypath = ', '.join(keypath_prefix) + ', ' + ', '.join(keys)
+        else:
+            keypath = ', '.join(keys)
+        if 'value' in val:
+            # Don't display false booleans
+            if val['type'] == 'bool' and val['value'] == 'false':
+                continue
+            table.append([code(keypath), code(val['value'])])
+
+    if len(table) > 1:
+        return build_table(table)
+    else:
+        return None
+
+def trim(docstring):
+    '''Helper function for cleaning up indentation of docstring.
+    
+    This is important for properly parsing complex RST in our docs.
+
+    Source:
+    https://www.python.org/dev/peps/pep-0257/#handling-docstring-indentation'''
+    if not docstring:
+        return ''
+    # Convert tabs to spaces (following the normal Python rules)
+    # and split into a list of lines:
+    lines = docstring.expandtabs().splitlines()
+    # Determine minimum indentation (first line doesn't count):
+    indent = sys.maxsize
+    for line in lines[1:]:
+        stripped = line.lstrip()
+        if stripped:
+            indent = min(indent, len(line) - len(stripped))
+    # Remove indentation (first line is special):
+    trimmed = [lines[0].strip()]
+    if indent < sys.maxsize:
+        for line in lines[1:]:
+            trimmed.append(line[indent:].rstrip())
+    # Strip off trailing and leading blank lines:
+    while trimmed and not trimmed[-1]:
+        trimmed.pop()
+    while trimmed and not trimmed[0]:
+        trimmed.pop(0)
+    # Return a single string:
+    return '\n'.join(trimmed)
+
 class DynamicGen(SphinxDirective):
     '''Base class for all three directives provided by this extension.
 
-    Each child class implements a directive by overriding the keypaths() method
-    and setting a PATH member variable.
+    Each child class implements a directive by overriding the display_config()
+    method and setting a PATH member variable.
     '''
 
     def document_module(self, module, modname, path):
@@ -106,7 +88,12 @@ class DynamicGen(SphinxDirective):
             return None
 
         make_docs = getattr(module, 'make_docs')
-        docstr = make_docs.__doc__
+
+        # raw docstrings have funky indentation (basically, each line is already
+        # indented as much as the function), so we call trim() helper function
+        # to clean it up
+        docstr = trim(make_docs.__doc__)
+
         if docstr:
             self.parse_rst(docstr, s)
 
@@ -127,21 +114,7 @@ class DynamicGen(SphinxDirective):
         if extra_content is not None:
             s += extra_content
 
-        table = [[strong('Keypath'), strong('Value')]]
-        keypath_prefixes = self.keypaths(modname)
-        for prefix in keypath_prefixes:
-            cfg = chip.getcfg(*prefix)
-            pruned = chip.prune(cfg)
-            flat_cfg = flatten(pruned)
-            for keys, val in flat_cfg.items():
-                keypath = ', '.join(prefix) + ', ' + ', '.join(keys)
-                if 'value' in val:
-                    # Don't display false booleans
-                    if val['type'] == 'bool' and val['value'] == 'false':
-                        continue
-                    table.append([code(keypath), code(val['value'])])
-
-        s += build_table(table)
+        s += self.display_config(chip, modname)
 
         return s
 
@@ -197,7 +170,7 @@ class DynamicGen(SphinxDirective):
         directory.'''
         modules = []
         for importer, modname, _ in pkgutil.iter_modules([module_dir]):
-            module = importer.find_module(modname).load_module(modname) 
+            module = importer.find_module(modname).load_module(modname)
             modules.append((module, modname))
 
         return modules
@@ -208,14 +181,12 @@ class DynamicGen(SphinxDirective):
         rst = ViewList()
         # use fake filename 'inline' for error # reporting
         for i, line in enumerate(content.split('\n')):
-            # lstrip() necessary to prevent weird indentation (since this is
-            # parsing docstrings which are intendented)
-            rst.append(line.lstrip(), 'inline', i)
+            rst.append(line, 'inline', i)
         nested_parse_with_titles(self.state, rst, s)
 
     def extra_content(self, chip, modname):
         '''Adds extra content to documentation.
-        
+
         May return a list of docutils nodes that will be added to the
         documentation in between a module's docstring and configuration table.
         Otherwise, if return value is None, don't add anything.
@@ -225,25 +196,113 @@ class DynamicGen(SphinxDirective):
 class FlowGen(DynamicGen):
     PATH = 'flows'
 
-    def keypaths(self, modname):
-        return [('flowgraph',), ('metric',), ('showtool',)]
-
     def extra_content(self, chip, modname):
         flow_path = f'_images/gen/{modname}.svg'
         chip.writegraph(flow_path)
         return [image(flow_path, center=True)]
 
+    def display_config(self, chip, modname):
+        '''Display parameters under `flowgraph, <step>`, `metric, <step>` and
+        `showtool`. Parameters are grouped into sections by step, with an
+        additional table for non-step items.
+        '''
+        section_key = '-'.join(['flows', modname, 'configuration'])
+        settings = build_section('Configuration', section_key)
+
+        steps = chip.getkeys('flowgraph')
+        # TODO: should try to order?
+
+        # Build section + table for each step (combining entires under flowgraph
+        # and metric)
+        for step in steps:
+            section_key = '-'.join(['flows', modname, step])
+            section = build_section(step, section_key)
+            step_cfg = {}
+            for prefix in ['flowgraph', 'metric']:
+                cfg = chip.getcfg(prefix, step)
+                if cfg is None:
+                    continue
+                pruned = chip.prune(cfg)
+                if prefix not in step_cfg:
+                    step_cfg[prefix] = {}
+                step_cfg[prefix][step] = pruned
+
+            section += build_schema_value_table(step_cfg)
+            settings += section
+
+        # Build table for non-step items (just showtool for now)
+        section_key = '-'.join(['flows', modname, 'showtool'])
+        section = build_section('showtool', section_key)
+        cfg = chip.getcfg('showtool')
+        pruned = chip.prune(cfg)
+        table = build_schema_value_table(pruned)
+        if table is not None:
+            section += table
+            settings += section
+
+        return settings
+
 class FoundryGen(DynamicGen):
     PATH = 'foundries'
 
-    def keypaths(self, modname):
-        return [('pdk',), ('asic',), ('library',)]
-    
+    def display_config(self, chip, modname):
+        '''Display parameters under `pdk`, `asic`, and `library` in nested form.'''
+
+        section_key = '-'.join(['foundries', modname, 'configuration'])
+        settings = build_section('Configuration', section_key)
+
+        for prefix in [('pdk',), ('asic',), ('library',)]:
+            cfg = chip.getcfg(*prefix)
+            pruned = chip.prune(cfg)
+            settings += self.build_config_recursive(cfg, keypath_prefix=list(prefix), sec_key_prefix=['foundries', modname])
+
+        return settings
+
+    def build_config_recursive(self, schema, keypath_prefix=[], sec_key_prefix=[]):
+        '''Iterate through all items at this level of schema.
+
+        For each item:
+        - If it's a leaf, collect it into a table we will display at this
+          level
+        - Otherwise, recurse and collect sections of lower levels
+        '''
+        leaves = {}
+        child_sections = []
+        for key, val in schema.items():
+            if key == 'default': continue
+            if 'help' in val:
+                leaves.update({key: val})
+            else:
+                children = self.build_config_recursive(val, keypath_prefix=keypath_prefix+[key], sec_key_prefix=sec_key_prefix)
+                child_sections.extend(children)
+
+        # If we've found leaves, create a new section where we'll display a
+        # table plus all child sections.
+        if len(leaves) > 0:
+            keypath = ', '.join(keypath_prefix)
+            section_key = '-'.join(sec_key_prefix + keypath_prefix)
+            top = build_section(keypath, section_key)
+            top += build_schema_value_table(leaves, keypath_prefix=keypath_prefix)
+            top += child_sections
+            return [top]
+        else:
+            # Otherwise, just pass on the child sections -- we don't want to
+            # create an extra level of section hierarchy for levels of the
+            # schema without leaves.
+            return child_sections
+
 class ToolGen(DynamicGen):
     PATH = 'tools'
 
-    def keypaths(self, modname):
-        return [('eda', modname)]
+    def display_config(self, chip, modname):
+        '''Display config under `eda, <modname>` in a single table.'''
+        cfg = chip.getcfg('eda', modname)
+        pruned = chip.prune(cfg)
+        table = build_schema_value_table(pruned, keypath_prefix=['eda', modname])
+        if table is not None:
+            return table
+        else:
+            return []
 
     def get_modules_in_dir(self, module_dir):
         '''Custom implementation for ToolGen since the tool setup modules are
@@ -252,8 +311,16 @@ class ToolGen(DynamicGen):
         '''
         modules = []
         for toolname in os.listdir(module_dir):
-            spec = importlib.util.spec_from_file_location(f'{toolname}_setup', 
-                f'{module_dir}/{toolname}/{toolname}_setup.py')
+            # skip over directories/files that don't match the structure of tool
+            # directories (otherwise we'll get confused by Python metadata like
+            # __init__.py or __pycache__/)
+            if not os.path.isdir(f'{module_dir}/{toolname}'):
+                continue
+            path = f'{module_dir}/{toolname}/{toolname}.py'
+            if not os.path.exists(path):
+                continue
+
+            spec = importlib.util.spec_from_file_location(toolname, path)
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
 

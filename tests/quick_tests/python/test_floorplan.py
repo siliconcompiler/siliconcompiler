@@ -9,7 +9,7 @@ def make_fp():
 
     c = Chip(loglevel='INFO')
     c.set('design', 'test', clobber=True)
-    c.target('freepdk45_asicflow')
+    c.target('asicflow_freepdk45')
     lib = 'ram'
     c.add('asic', 'macrolib', lib)
     c.set('library', lib, 'type', 'component')
@@ -83,7 +83,7 @@ def test_padring():
 
     chip = Chip(loglevel='INFO')
     chip.set('design', 'mypadring', clobber=True)
-    chip.target('freepdk45_asicflow')
+    chip.target('asicflow_freepdk45')
 
     macro = 'io'
     chip.add('asic', 'macrolib', macro)

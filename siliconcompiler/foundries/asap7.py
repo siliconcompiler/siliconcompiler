@@ -21,6 +21,7 @@ def make_docs():
     resulting designs are not manufacturable.
 
     PDK content:
+
     * open source DRM
     * device primitive library (virtuoso)
     * spice (hspice)
@@ -30,14 +31,17 @@ def make_docs():
     * 7.5 track multi-vt standard cell libraries
 
     More information:
+
     * http://asap.asu.edu/asap
     * L.T. Clark, V. Vashishtha, L. Shifren, A. Gujja, S. Sinha, B. Cline,
-    C. Ramamurthya, and G. Yeric, “ASAP7: A 7-nm FinFET Predictive Process
-    Design Kit,” Microelectronics Journal, vol. 53, pp. 105-115, July 2016.
+      C. Ramamurthya, and G. Yeric, “ASAP7: A 7-nm FinFET Predictive Process
+      Design Kit,” Microelectronics Journal, vol. 53, pp. 105-115, July 2016.
 
 
-    Sources:
-    * https://github.com/The-OpenROAD-Project/asap
+    Sources: https://github.com/The-OpenROAD-Project/asap
+
+    .. warning::
+       Work in progress (not ready for use)
 
     '''
 
@@ -157,8 +161,6 @@ def setup_pdk(chip):
 
     libname = 'asap7sc7p5t_rvt'
     libtype = '7p5t'
-    libwidth = 0.054
-    libheight = 0.27
     rev = 'r1p7'
     corner = 'typical'
     objectives = ['setup']
@@ -187,10 +189,6 @@ def setup_pdk(chip):
 
     # lib arch
     chip.set('library',libname,'arch',libtype)
-
-    # lib site/tile/size
-    chip.set('library',libname,'width', libwidth)
-    chip.set('library',libname,'height', libheight)
 
     #driver
     chip.add('library',libname,'driver', "BUFx2_ASAP7_75t_R")
@@ -226,7 +224,7 @@ def setup_pdk(chip):
     ###############################################
 
     chip.set('asic', 'stackup', chip.get('pdk', 'stackup')[0])
-    chip.add('asic', 'targetlib', chip.getkeys('library'))
+    chip.add('asic', 'targetlib', libname)
     chip.set('asic', 'minlayer', "m2")
     chip.set('asic', 'maxlayer', "m7")
     chip.set('asic', 'maxfanout', 64)

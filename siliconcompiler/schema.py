@@ -636,13 +636,110 @@ def schema_pdk(cfg, stackup='default'):
         'help': """
         Technology file containing the design rule and setup information needed
         to enable DRC clean APR for the specified stackup, libarch, and format.
-        The 'libarch' specifies the library architecture (e.g. library height). 
-        For example a PDK with support for 9 and 12 track libraries might have 
+        The 'libarch' specifies the library architecture (e.g. library height).
+        For example a PDK with support for 9 and 12 track libraries might have
         'libarchs' called 9t and 12t. During APR there
         can only be on technology file, so all libraries used for synthesis
         and APR must point to the same libarch technology file. The standard
         filetype for specifying place and route design rules for a process node
         is through a 'lef' format technology file.
+        """
+    }
+
+    # LVS runsets
+    tool = 'default'
+    cfg['pdk']['lvs'] = {}
+    cfg['pdk']['lvs'][tool] = {}
+    cfg['pdk']['lvs'][tool][stackup] = {}
+    cfg['pdk']['lvs'][tool][stackup]['runset'] = {
+        'switch': "-pdk_lvs_runset 'stackup tool <file>'",
+        'requirement': None,
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'LVS runset files',
+        'example': [
+            "cli: -pdk_lvs_runset 'magic M10 $PDK/lvs.magicrc'",
+            "api: chip.set('pdk','lvs','magic', 'M10', 'runset', '$PDK/lvs.magicrc')"],
+        'help': """
+        Runset files for runset LVS verification
+        """
+    }
+
+    # DRC settings
+    cfg['pdk']['drc'] = {}
+    cfg['pdk']['drc'][tool] = {}
+    cfg['pdk']['drc'][tool][stackup] = {}
+    cfg['pdk']['drc'][tool][stackup]['runset'] = {
+        'switch': "-pdk_drc_runset 'stackup tool <file>'",
+        'requirement': None,
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'DRC runset files',
+        'example': [
+            "cli: -pdk_drc_runset 'magic M10 $PDK/drc.magicrc'",
+            "api: chip.set('pdk','drc','magic', 'M10', 'runset', '$PDK/drc.magicrc')"],
+        'help': """
+        Runset files for runset DRC verification
+        """
+    }
+
+    cfg['pdk']['drc'][tool][stackup]['waiver'] = {
+        'switch': "-pdk_drc_waiver 'stackup tool <file>'",
+        'requirement': None,
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'DRC runset files',
+        'example': [
+            "cli: -pdk_drc_waiver 'magic M10 waiver $PDK/waiver.txt'",
+            "api: chip.set('pdk','drc','magic', 'M10', 'waiver', '$PDK/waiver.txt')"],
+        'help': """
+        Design rule waiver file for DRC verification
+        """
+    }
+
+    # ERC runsets
+    cfg['pdk']['erc'] = {}
+    cfg['pdk']['erc'][tool] = {}
+    cfg['pdk']['erc'][tool][stackup] = {}
+    cfg['pdk']['erc'][tool][stackup]['runset'] = {
+        'switch': "-pdk_erc_runset 'stackup tool <file>'",
+        'requirement': None,
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'ERC runset files',
+        'example': [
+            "cli: -pdk_erc_runset 'magic M10 $PDK/erc.magicrc'",
+            "api: chip.set('pdk','erc','magic', 'M10', 'runset', '$PDK/erc.magicrc')"],
+        'help': """
+        Runset files for runset ERC verification
         """
     }
 
@@ -1040,41 +1137,6 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         in a flat place and route block is not allowed. Examples of library
         archs include 6 track libraries, 9 track libraries, 10 track
         libraries, etc. The parameter is optional for 'component' libtypes.
-        """
-    }
-
-    cfg['library'][lib]['width'] = {
-        'switch': "-library_width 'lib <float>'",
-        'requirement': None,
-        'type': 'float',
-        'lock': 'false',
-        'defvalue': None,
-        'shorthelp': 'Library width',
-        'example': ["cli: -library_width 'mylib 0.1'",
-                    "api: chip.set('library','mylib','width','0.1')"],
-
-        'help': """
-        Width of a unit cell in the library. The value can usually be
-        extracted automatically from the layout library but is included in the
-        schema to simplify the process of creating parameterized floorplans. The
-        parameter is optional for 'component' libtypes.
-        """
-    }
-
-    cfg['library'][lib]['height'] = {
-        'switch': "-library_height 'lib <float>'",
-        'requirement': None,
-        'type': 'float',
-        'lock': 'false',
-        'defvalue': None,
-        'shorthelp': 'Library height',
-        'example': [
-            "cli: -library_height 'mylib 1.0'",
-            "api: chip.set('library','mylib','height', '1.0')"],
-        'help': """
-        Specifies the height of a unit cell. The value can usually be
-        extracted automatically from the layout library but is included in the
-        schema to simplify the process of creating parameterized floorplans.
         """
     }
 
@@ -1508,7 +1570,7 @@ def schema_flowgraph(cfg, step='default', index='default'):
         'switch': "-flowgraph_weight 'step metric <float>'",
         'type': 'float',
         'lock': 'false',
-        'requirement': 'all,',
+        'requirement': None,
         'defvalue': [],
         'shorthelp': 'Flowgraph metric weights',
         'example': [
@@ -2078,7 +2140,7 @@ def schema_arg(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': None,
-        'defvalue': None,
+        'defvalue': '0',
         'shorthelp': 'Current step Index',
         'example': ["cli: -arg_index 0",
                     "api: chip.set('arg','index','0')"],
@@ -2134,8 +2196,8 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
-    cfg['metric'][step][index]['drv'] = {}
-    cfg['metric'][step][index]['drv'][group] = {
+    cfg['metric'][step][index]['drvs'] = {}
+    cfg['metric'][step][index]['drvs'][group] = {
         'switch': "-metric_drv 'step index group <int>'",
         'type': 'int',
         'lock': 'false',
@@ -2158,7 +2220,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'LUT metric',
+        'shorthelp': 'FPGA LUT metric',
         'example': [
             "cli: -metric_luts 'place 0 goal 100.00'",
             "api: chip.set('metric','place','0','luts','real','100.00')"],
@@ -2169,6 +2231,46 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         identical tools and device families.
         """
     }
+
+    cfg['metric'][step][index]['dsps'] = {}
+    cfg['metric'][step][index]['dsps'][group] = {
+        'switch': '-metric_dsps step index group <float>',
+        'type': 'float',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'FPGA DSP metric',
+        'example': [
+            "cli: -metric_dsps 'place 0 goal 100.00'",
+            "api: chip.set('metric','place','0','dsps','real','100.00')"],
+        'help': """
+        Metric tracking the total FPGA DSP slices used by the design as reported
+        by the implementation tool. There is no standard DSP definition,
+        so metric comparisons can generally only be done between runs on
+        identical tools and device families.
+        """
+    }
+
+    cfg['metric'][step][index]['brams'] = {}
+    cfg['metric'][step][index]['brams'][group] = {
+        'switch': '-metric_brams step index group <float>',
+        'type': 'float',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'FPGA BRAM metric',
+        'example': [
+            "cli: -metric_bram 'place 0 goal 100'",
+            "api: chip.set('metric','place','0','brams','real','100')"],
+        'help': """
+        Metric tracking the total FPGA BRAM tiles used by the design as reported
+        by the implementation tool. There is no standard DSP definition,
+        so metric comparisons can generally only be done between runs on
+        identical tools and device families.
+        """
+    }
+
+
 
     cfg['metric'][step][index]['cellarea'] = {}
     cfg['metric'][step][index]['cellarea'][group] = {
@@ -2189,7 +2291,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
 
     cfg['metric'][step][index]['peakpower'] = {}
     cfg['metric'][step][index]['peakpower'][group] = {
-        'switch': '-metric_power_total step index group <float>',
+        'switch': '-metric_peakpower step index group <float>',
         'type': 'float',
         'lock': 'false',
         'requirement': None,
@@ -2596,7 +2698,8 @@ def schema_record(cfg, step='default', index='default'):
         'example': ["cli: -record_org 'dfm 0 earth'",
                     "api: chip.set('record','dfm','0','org','earth')"],
         'help': """
-        Record tracking the user's organization on a per step basis.
+        Record tracking the user's organization on a per step and per index
+        basis.
         """
     }
 
@@ -2610,7 +2713,23 @@ def schema_record(cfg, step='default', index='default'):
         'example': ["cli: -record_location 'dfm 0 Boston'",
                     "api: chip.set('record','dfm','0','location,'Boston')"],
         'help': """
-        Record tracking the user's location/site on a per step basis.
+        Record tracking the user's location/site on a per step and per index
+        basis.
+        """
+    }
+
+    cfg['record'][step][index]['version'] = {
+        'switch': "-record_version 'step index <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Record of executable version',
+        'example': ["cli: -record_version 'dfm 0 1.0'",
+                    "api: chip.set('record','dfm','0','version', '1.0')"],
+        'help': """
+        Record tracking the version number of the executable, specified
+        on per step and per index basis.
         """
     }
 
@@ -2689,7 +2808,7 @@ def schema_options(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'all',
-        'defvalue': 'asic',
+        'defvalue': None,
         'shorthelp': 'Compilation mode',
         'example': ["cli: -mode fpga",
                     "api: chip.set('mode','fpga')"],
@@ -2705,8 +2824,8 @@ def schema_options(cfg):
         'requirement': None,
         'defvalue': None,
         'shorthelp': 'Compilation target',
-        'example': ["cli: -target 'freepdk45_asicflow'",
-                    "api: chip.set('target','freepdk45_asicflow')"],
+        'example': ["cli: -target 'asicflow_freepdk45'",
+                    "api: chip.set('target','asicflow_freepdk45')"],
         'help': """
         Compilation target double string separated by a single underscore,
         specified as "<process>_<edaflow>" for ASIC compilation and
@@ -2743,8 +2862,8 @@ def schema_options(cfg):
         'example': ["cli: -flowarg 'n 100",
                     "api: chip.set('flowarg','n', '100')"],
         'help': """
-        Parameter passed in as key/value pair to the technology target 
-        referenced in the target() API call. See the target flow for 
+        Parameter passed in as key/value pair to the technology target
+        referenced in the target() API call. See the target flow for
         specific guidelines regarding configuration parameters.
         """
     }
@@ -2765,7 +2884,7 @@ def schema_options(cfg):
         'example': ["cli: -cfg mypdk.json",
                     "api: chip.set('cfg','mypdk.json')"],
         'help': """
-        List of filepaths to legal SC schema configuration dictionaries 
+        List of filepaths to legal SC schema configuration dictionaries
         saved as a JSON files using the writecfg() method. The files are
         read in automatically when using the 'sc' command line application.
         In Python programs, the cfg parameter is accessed by the readcfg()
@@ -2773,7 +2892,7 @@ def schema_options(cfg):
         project configuration schema.
         """
         }
-    
+
     cfg['jobscheduler'] = {
         'switch': "-jobscheduler <str>",
         'type': 'str',
@@ -2786,10 +2905,10 @@ def schema_options(cfg):
         'help': """
         Sets the type of job scheduler to be used for each individual
         flowgraph steps. If the parameter is undefined, the steps are executed
-        on the same machine that the SC was launched on. If 'slurm' is used, 
-        the host running the 'sc' command must be running a 'slurmctld' daemon 
-        managing a Slurm cluster. Additionally, the build directory ('-dir') 
-        must be located in shared storage which can be accessed by all hosts 
+        on the same machine that the SC was launched on. If 'slurm' is used,
+        the host running the 'sc' command must be running a 'slurmctld' daemon
+        managing a Slurm cluster. Additionally, the build directory ('-dir')
+        must be located in shared storage which can be accessed by all hosts
         in the cluster.
         """
     }
@@ -2884,7 +3003,7 @@ def schema_options(cfg):
                     "api: chip.set('dir','./build_the_future')"],
         'help': """
         The default build directory is in the local './build' where SC was
-        executed. The 'dir' parameters can be used to set an alternate 
+        executed. The 'dir' parameters can be used to set an alternate
         compilation directory path.
         """
     }
@@ -2899,11 +3018,11 @@ def schema_options(cfg):
         'example': ["cli: -jobname may1",
                     "api: chip.set('jobname','may1')"],
         'help': """
-        The name of the job for a specific design. The full directory 
+        The name of the job for a specific design. The full directory
         structure is: <dir>/<design>/<jobname><jobid>/<step><index>
         The parameter can be used to tag and archive runs, for example
-        by naming a job "final", "trial", "tapeout", "golden", 
-        "riskyrun", etc.        
+        by naming a job "final", "trial", "tapeout", "golden",
+        "riskyrun", etc.
         """
     }
 
@@ -2917,8 +3036,8 @@ def schema_options(cfg):
         'example': ["cli: -jobid 0",
                     "api: chip.set('jobid',0)"],
         'help': """
-        The id of the specific job to be executed. The full directory 
-        structure is: <dir>/<design>/<jobname><jobid>/<step><index>.        
+        The id of the specific job to be executed. The full directory
+        structure is: <dir>/<design>/<jobname><jobid>/<step><index>.
         """
     }
 
@@ -2932,8 +3051,8 @@ def schema_options(cfg):
         'example': ["cli: -jobincr",
                     "api: chip.set('jobincr', true)"],
         'help': """
-        Auto increments the jobid value based on the latest executed job 
-        in the design build directory. If no jobs are found, the value 
+        Auto increments the jobid value based on the latest executed job
+        in the design build directory. If no jobs are found, the value
         in the 'jobid' parameter is used.
         """
     }
@@ -3017,6 +3136,24 @@ def schema_options(cfg):
         Specifies that tools should be lenient and suppress some warnings that
         may or may not indicate design issues. The default is to enforce strict
         checks for all steps.
+        """
+    }
+
+    cfg['trace'] = {
+        'switch': "-trace <bool>",
+        'type': 'bool',
+        'lock': 'false',
+        'requirement': 'all',
+        'defvalue': 'false',
+        'shorthelp': 'Output simulation trace',
+        'example': ["cli: -trace",
+                    "api: chip.set('trace', True)"],
+        'help': """
+        Specifies that tools should dump simulation traces when the parameter
+        is set to "true". For Verilog and VHDL simulation this switch
+        should be used to control dumping of waverforms (VCD or other
+        format). The switch is global and should control all simulation
+        steps of an execution flow.
         """
     }
 
@@ -3282,6 +3419,21 @@ def schema_design(cfg):
         """
     }
 
+    cfg['description'] = {
+        'switch': "-description <str>",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Short design description',
+        'example': ["cli: -description 'Yet another RISC-V core'",
+                    "api: chip.set('description', 'Yet another RISC-V core')"],
+        'help': """
+        Short one line description of the design purpose intended for package
+        managers and design summary reports.
+        """
+    }
+
     cfg['projversion'] = {
         'switch': "-projversion <str>",
         'type': 'str',
@@ -3302,7 +3454,7 @@ def schema_design(cfg):
         'type': '[file]',
         'lock': 'false',
         'copy': 'true',
-        'requirement': 'all',
+        'requirement': None,
         'defvalue': [],
         'filehash': [],
         'hashalgo': 'sha256',
@@ -3322,6 +3474,29 @@ def schema_design(cfg):
         (\\*.c)        = C
         (\\*.cpp, .cc) = C++
         (\\*.py)       = Python
+        """
+    }
+
+    cfg['netlist'] = {
+        'switch': '-netlist <file>',
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'true',
+        'requirement': None,
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Technology mapped verilog netlist',
+        'example': ["cli: netlist.v",
+                    "api: chip.add('netlist', 'netlist.v')"],
+        'help': """
+        List of technology mapped Verilog modules for post-synthesis
+        implementation steps. The actual entry point of the netlist
+        depends on the flow used. In the standard 'asicflow', the
+        netlist is read in as part of the floorplan step.
         """
     }
 
@@ -3637,7 +3812,7 @@ def schema_design(cfg):
         'example': ["cli: -y './mylib'",
                     "api: chip.set('ydir','./mylib')"],
         'help': """
-        Search paths to look for modules found in the the source list. 
+        Search paths to look for modules found in the the source list.
         The import engine will look for modules inside files with the
         specified +libext+ param suffix
         """
@@ -3958,10 +4133,10 @@ def schema_asic(cfg):
         'example': ["cli: -asic_minlayer m2",
                     "api: chip.set('asic', 'minlayer', 'm2')"],
         'help': """
-        Minimum SC metal layer name to be used for automated place and route . 
-        Alternatively the layer can be a string that matches a layer hard coded 
+        Minimum SC metal layer name to be used for automated place and route .
+        Alternatively the layer can be a string that matches a layer hard coded
         in the pdk_aprtech file. Designers wishing to use the same setup across
-        multiple process nodes should use the integer approach. For processes 
+        multiple process nodes should use the integer approach. For processes
         with ambiguous starting routing layers, exact strings should be used.
         """
     }
@@ -3976,10 +4151,10 @@ def schema_asic(cfg):
         'example': ["cli: -asic_maxlayer m6",
                     "api: chip.set('asic', 'maxlayer', 'm6')"],
         'help': """
-        Maximum SC metal layer name to be used for automated place and route . 
-        Alternatively the layer can be a string that matches a layer hard coded 
+        Maximum SC metal layer name to be used for automated place and route .
+        Alternatively the layer can be a string that matches a layer hard coded
         in the pdk_aprtech file. Designers wishing to use the same setup across
-        multiple process nodes should use the integer approach. For processes 
+        multiple process nodes should use the integer approach. For processes
         with ambiguous starting routing layers, exact strings should be used.
         """
     }
@@ -4129,8 +4304,8 @@ def schema_asic(cfg):
         'example': ["cli: -asic_coremargin 1",
                     "api: chip.set('asic', 'coremargin', '1')"],
         'help': """
-        Halo/margin between the core area to use for automated floorplanning 
-        and the outer core boundary specified in microns.  The value is used 
+        Halo/margin between the core area to use for automated floorplanning
+        and the outer core boundary specified in microns.  The value is used
         when no diearea or floorplan is supplied.
         """
     }
@@ -4145,10 +4320,10 @@ def schema_asic(cfg):
         'example': ["cli: -asic_aspectratio 2.0",
                     "api: chip.set('asic', 'aspectratio', '2.0')"],
         'help': """
-        Height to width ratio of the block for automated floor-planning. 
-        Values below 0.1 and above 10 should be avoided as they will likely fail 
-        to converge during placement and routing. The ideal aspect ratio for 
-        most designs is 1. This value is only used when no diearea or floorplan 
+        Height to width ratio of the block for automated floor-planning.
+        Values below 0.1 and above 10 should be avoided as they will likely fail
+        to converge during placement and routing. The ideal aspect ratio for
+        most designs is 1. This value is only used when no diearea or floorplan
         is supplied.
         """
         }
@@ -4166,7 +4341,7 @@ def schema_asic(cfg):
         'help': """
         List of (x,y) points that define the outline of the die area for the
         physical design. Simple rectangle areas can be defined with two points,
-        one for the lower left corner and one for the upper right corner. All 
+        one for the lower left corner and one for the upper right corner. All
         values are specified in microns.
         """
     }
@@ -4183,7 +4358,7 @@ def schema_asic(cfg):
         'help': """
         List of (x,y) points that define the outline of the core area for the
         physical design. Simple rectangle areas can be defined with two points,
-        one for the lower left corner and one for the upper right corner. All 
+        one for the lower left corner and one for the upper right corner. All
         values are specified in microns.
         """
     }
@@ -4206,7 +4381,7 @@ def schema_asic(cfg):
                     "api: chip.set('asic', 'def', 'hello.def')"],
         'help': """
         Design Exchange Format (DEF) file read in during the floorplanning step.
-        The file is a standardized ASIC text representation of the physical 
+        The file is a standardized ASIC text representation of the physical
         layout of an integrated circuit in an ASCII format. Any references
         within the DEF to pins, nets, and components must match the verilog
         netlist read in during the floorplan step.
@@ -4231,7 +4406,7 @@ def schema_mcmm(cfg, scenario='default'):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'MCMM voltage',
+        'shorthelp': 'Scenario voltage level',
         'example': ["cli: -mcmm_voltage 'worst 0.9'",
                     "api: chip.set('mcmm', 'worst','voltage', '0.9')"],
         'help': """
@@ -4240,12 +4415,12 @@ def schema_mcmm(cfg, scenario='default'):
     }
 
     cfg['mcmm'][scenario]['temperature'] = {
-        'switch': "-mcmm_temp 'scenario <float>'",
+        'switch': "-mcmm_temperature 'scenario <float>'",
         'type': 'float',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'MCMM temperature',
+        'shorthelp': 'Scenario temperature',
         'example': ["cli: -mcmm_temperature 'worst 125'",
                     "api: chip.set('mcmm', 'worst', 'temperature','125')"],
         'help': """
@@ -4258,7 +4433,7 @@ def schema_mcmm(cfg, scenario='default'):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'MCMM library corner name',
+        'shorthelp': 'Scenario library corner',
         'example': ["cli: -mcmm_libcorner 'worst ttt'",
                     "api: chip.set('mcmm', 'libcorner', 'worst', 'ttt')"],
         'help': """
@@ -4268,6 +4443,22 @@ def schema_mcmm(cfg, scenario='default'):
         model per libcorner.
         """
     }
+
+    cfg['mcmm'][scenario]['pexcorner'] = {
+        'switch': "-mcmm_pexcorner 'scenario <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Scenario PEX corner',
+        'example': ["cli: -mcmm_pexcorner 'worst max'",
+                    "api: chip.set('mcmm','worst','pexcorner','max')"],
+        'help': """
+        Parasitic corner applied to the scenario. The 'pexcorner' string
+        must match a corner found in the pdk pexmodel setup parameter.
+        """
+    }
+
 
     cfg['mcmm'][scenario]['opcond'] = {
         'switch': "-mcmm_opcond 'scenario <str>'",
@@ -4285,31 +4476,17 @@ def schema_mcmm(cfg, scenario='default'):
         """
     }
 
-    cfg['mcmm'][scenario]['pexcorner'] = {
-        'switch': "-mcmm_pexcorner 'scenario <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'requirement': None,
-        'defvalue': None,
-        'shorthelp': 'MCMM scenario PEX corner name',
-        'example': ["cli: -mcmm_pexcorner 'worst max'",
-                    "api: chip.set('mcmm','worst','pexcorner','max')"],
-        'help': """
-        Parasitic corner applied to the scenario. The 'pexcorner' string 
-        must match a corner found in the pdk pexmodel setup parameter.
-        """
-    }
     cfg['mcmm'][scenario]['mode'] = {
         'switch': "-mcmm_mode 'scenario <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'MCMM scenario operating mode name',
+        'shorthelp': 'Scenario operating mode',
         'example': ["cli: -mcmm_mode 'worst test'",
                     "api: chip.set('mcmm',  'worst','mode', 'test')"],
         'help': """
-        Operating mode for the scenario. Operating mode strings 
+        Operating mode for the scenario. Operating mode strings
         can be values such as test, functional, standby.
         """
     }
@@ -4325,13 +4502,13 @@ def schema_mcmm(cfg, scenario='default'):
         'author': [],
         'signature': [],
         'defvalue': [],
-        'shorthelp': 'MCMM scenario constraints files',
+        'shorthelp': 'Scenario constraints files',
         'example': ["cli: -mcmm_constraint 'worst hello.sdc'",
                     "api: chip.set('mcmm','worst','constraint',  'hello.sdc')"],
         'help': """
         List of timing constraint files to use for the scenario. The values
         are combined with any constraints specified by the design
-        'constraint' parameter. If no constraints are found, a default 
+        'constraint' parameter. If no constraints are found, a default
         constraint file is used based on the clock definitions.
         """
     }
@@ -4341,14 +4518,14 @@ def schema_mcmm(cfg, scenario='default'):
         'lock': 'false',
         'requirement': None,
         'defvalue': [],
-        'shorthelp': 'MCMM scenario checks',
+        'shorthelp': 'Scenario checks',
         'example': ["cli: -mcmm_check 'worst check setup'",
                     "api: chip.add('mcmm','worst','check','setup')"],
         'help': """
         List of checks for to perform for the scenario. The checks must
-        align with the capabilities of the EDA tools and flow being used. 
-        Checks generally include objectives like meeting setup and hold goals 
-        and minimize power. Standard check names include setup, hold, power, 
+        align with the capabilities of the EDA tools and flow being used.
+        Checks generally include objectives like meeting setup and hold goals
+        and minimize power. Standard check names include setup, hold, power,
         noise, reliability.
         """
     }

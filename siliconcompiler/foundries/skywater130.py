@@ -67,7 +67,7 @@ def setup_pdk(chip):
     vscribe = 0.1
     edgemargin = 2
 
-    pdkdir = '/'.join(['third_party/foundry',
+    pdkdir = '/'.join(['../third_party/foundry',
                        foundry,
                        process,
                        'pdk',
@@ -93,8 +93,16 @@ def setup_pdk(chip):
     chip.set('pdk','tapoffset', 2)
 
     # APR tech file
-    chip.set('pdk','aprtech',stackup, libtype, 'lef',
-             pdkdir+'/apr/sky130_fd_sc_hd.tlef')
+    chip.set('pdk','aprtech',stackup, libtype, 'lef', pdkdir+'/apr/sky130_fd_sc_hd.tlef')
+
+    # DRC Runsets
+    chip.set('pdk','drc','magic', stackup, 'runset', pdkdir+'/setup/magic/sky130A.tech')
+
+    # LVS Runsets
+    chip.set('pdk','lvs','netgen', stackup, 'runset', pdkdir+'/setup/netgen/lvs_setup.tcl')
+
+    # Layer map
+    chip.set('pdk','layermap',stackup, 'def', 'gds', pdkdir+'/setup/klayout/skywater130.lyt')
 
     # Routing Grid Definitions
 
@@ -149,13 +157,10 @@ def setup_pdk(chip):
     libname = 'sky130hd' # not sure if this should be something else
     libtype = 'hd' # TODO: update this
 
-    libwidth = 0.46
-    libheight = 2.72
-
     # TODO: should I be using a different name for the corner
     corner = 'typical'
 
-    libdir = '/'.join(['third_party/foundry',
+    libdir = '/'.join(['../third_party/foundry',
                        foundry,
                        process,
                        'libs',
@@ -183,10 +188,6 @@ def setup_pdk(chip):
 
     # lib arch
     chip.set('library', libname, 'arch', libtype)
-
-    # lib site/tile/size
-    chip.set('library', libname, 'width', libwidth)
-    chip.set('library', libname, 'height', libheight)
 
     # clock buffers
     chip.add('library', libname, 'cells', 'clkbuf', 'sky130_fd_sc_hd__clkbuf_1')
@@ -262,7 +263,7 @@ def setup_pdk(chip):
     # Methodology
     ###############################################
 
-    chip.add('asic', 'targetlib', chip.getkeys('library'))
+    chip.add('asic', 'targetlib', libname)
     chip.set('asic', 'stackup', chip.get('pdk', 'stackup')[0])
     # TODO: how does LI get taken into account?
     chip.set('asic', 'minlayer', "m1")

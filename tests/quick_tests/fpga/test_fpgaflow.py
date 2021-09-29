@@ -18,10 +18,9 @@ def test_icebreaker():
     # Run the build command for an iCE40 board.
     subprocess.run(['sc',
                     blinky_ex_dir + '/blinky.v',
-                    '-mode', 'fpga',
                     '-constraint', blinky_ex_dir + '/icebreaker.pcf',
                     '-design', 'blinky',
-                    '-target', 'ice40up5k-sg48_fpgaflow'])
+                    '-target', 'fpgaflow_ice40up5k-sg48'])
 
     # Verify that a bitstream was generated
     assert os.path.isfile('build/blinky/job0/bitstream0/outputs/blinky.bit')

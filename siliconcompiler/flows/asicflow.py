@@ -40,6 +40,8 @@ def make_docs():
     * route_np : Number of parallel routing jobs to launch
     * dfm_np : Number of parallel dfm jobs to launch
 
+    In order to enable running DRC and LVS verification, set the 'flowarg',
+    'verify' arg to "true" (currently supported for Skywater130 only).
     '''
 
     chip = siliconcompiler.Chip()
@@ -59,7 +61,7 @@ def setup_flow(chip):
 
     '''
 
-    # A simple linear flow (relying on Python orderered local dict)
+    # Linear flow, up until branch to run parallel verification steps.
 
     flowpipe = ['import',
                 'syn',
@@ -79,10 +81,6 @@ def setup_flow(chip):
                 'export']
 
 
-    if chip.get('pdk', 'process') == 'skywater130':
-        flowpipe.append('lvs')
-        flowpipe.append('drc')
-
     tools = {
         'import' : 'verilator',
         'syn' : 'yosys',
@@ -100,35 +98,40 @@ def setup_flow(chip):
         'dfm' : 'openroad',
         'dfmmin' : 'minimum',
         'export' : 'klayout',
-        'drc' : 'magic',
-        'lvs' : 'magic'
     }
 
+    # Run verification steps only if `flowarg, verify` is True
+    verify = ('verify' in chip.getkeys('flowarg') and
+              len(chip.get('flowarg', 'verify')) > 0 and
+              chip.get('flowarg', 'verify')[0] == 'true')
+
+    # Set mandatory mode
+    chip.set('mode', 'asic')
+
     # Set the steplist which can run remotely (if required)
-    chip.set('remote', 'steplist', flowpipe[1:])
+    chip.set('remote', 'steplist', flowpipe[1:] + ['extspice', 'lvsjoin', 'lvs', 'drc', 'signoff'] if verify else [])
 
     # Showtool definitions
     chip.set('showtool', 'def', 'openroad')
     chip.set('showtool', 'gds', 'klayout')
 
-    # Implementation flow graph
+    # Programatically build linear portion of flowgraph and fanin/fanout args
     for step in flowpipe:
         param = step + "_np"
         fanout = 1
         if param in chip.getkeys('flowarg'):
             fanout = int(chip.get('flowarg', param)[0])
         for index in range(fanout):
-            # Metrics
-            chip.set('flowgraph', step, str(index), 'weight',  'cellarea', 1.0)
-            chip.set('flowgraph', step, str(index), 'weight',  'peakpower', 1.0)
-            chip.set('flowgraph', step, str(index), 'weight',  'standbypower', 1.0)
-            # Goals
-            chip.set('metric', step, str(index), 'drv', 'errors', 0)
-            chip.set('metric', step, str(index), 'drv', 'goal', 0.0)
-            chip.set('metric', step, str(index), 'holdwns', 'goal', 0.0)
-            chip.set('metric', step, str(index), 'holdtns', 'goal', 0.0)
-            chip.set('metric', step, str(index), 'setupwns', 'goal', 0.0)
-            chip.set('metric', step, str(index), 'setuptns', 'goal', 0.0)
+            for metric in chip.getkeys('metric', 'default', 'default'):
+                if metric in ('errors','warnings','drvs','holdwns','setupwns','holdtns','setuptns'):
+                    chip.set('flowgraph', step, str(index), 'weight', metric, 1.0)
+                    chip.set('metric', step, str(index), metric, 'goal', 0)
+                elif metric in ('cellarea', 'peakpower', 'standbypower'):
+                    chip.set('flowgraph', step, str(index), 'weight', metric, 1.0)
+                elif metric in ('dsps', 'brams', 'luts'):
+                    chip.set('flowgraph', step, str(index), 'weight', metric, 0.0)
+                else:
+                    chip.set('flowgraph', step, str(index), 'weight', metric, 0.001)
             #graph
             if step == 'import':
                 chip.set('flowgraph', step, str(index), 'tool', tools[step])
@@ -145,6 +148,26 @@ def setup_flow(chip):
                 chip.add('flowgraph', step, str(index), 'input', prevstep, '0')
 
         prevstep = step
+
+    # If running verify steps, manually set up parallel LVS/DRC
+    if verify:
+        chip.set('flowgraph', 'extspice', '0', 'tool', 'magic')
+        chip.add('flowgraph', 'extspice', '0', 'input', 'export', '0')
+
+        chip.set('flowgraph', 'lvsjoin', '0', 'function', 'join')
+        chip.add('flowgraph', 'lvsjoin', '0', 'input', 'dfmmin', '0')
+        chip.add('flowgraph', 'lvsjoin', '0', 'input', 'extspice', '0')
+
+        chip.set('flowgraph', 'lvs', '0', 'tool', 'netgen')
+        chip.add('flowgraph', 'lvs', '0', 'input', 'lvsjoin', '0')
+
+        chip.set('flowgraph', 'drc', '0', 'tool', 'magic')
+        chip.add('flowgraph', 'drc', '0', 'input', 'export', '0')
+
+        chip.set('flowgraph', 'signoff', '0', 'function', 'join')
+        chip.add('flowgraph', 'signoff', '0', 'input', 'lvs', '0')
+        chip.add('flowgraph', 'signoff', '0', 'input', 'drc', '0')
+
 
 ##################################################
 if __name__ == "__main__":

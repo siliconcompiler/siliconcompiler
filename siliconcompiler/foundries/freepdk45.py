@@ -60,7 +60,7 @@ def setup_pdk(chip):
     edgemargin = 2
     d0 = 1.25
 
-    pdkdir = '/'.join(["third_party/foundry",
+    pdkdir = '/'.join(["../third_party/foundry",
                        foundry,
                        process,
                        'pdk',
@@ -82,8 +82,10 @@ def setup_pdk(chip):
     chip.set('pdk','tapoffset', 0)
 
     # APR tech file
-    chip.set('pdk','aprtech',stackup, libtype, 'lef',
-             pdkdir+'/apr/freepdk45.tech.lef')
+    chip.set('pdk','aprtech',stackup, libtype, 'lef',pdkdir+'/apr/freepdk45.tech.lef')
+
+    # Klayout setup file
+    chip.set('pdk','layermap',stackup, 'def', 'gds', pdkdir+'/setup/klayout/freepdk45.lyt')
 
     # Routing Grid Definitions
     for sc_name, pdk_name in [('m1', 'metal1')]:
@@ -140,13 +142,11 @@ def setup_pdk(chip):
 
     libname = 'NangateOpenCellLibrary'
     libtype = '10t'
-    libwidth = 0.19
-    libheight = 1.4
     rev = 'r1p0'
     corner = 'typical'
     objectives = ['setup']
 
-    libdir = '/'.join(["third_party/foundry",
+    libdir = '/'.join(["../third_party/foundry",
                        foundry,
                        process,
                        'libs',
@@ -174,10 +174,6 @@ def setup_pdk(chip):
 
     # lib arch
     chip.set('library',libname,'arch',libtype)
-
-    # lib site/tile/size
-    chip.set('library',libname,'width', libwidth)
-    chip.set('library',libname,'height', libheight)
 
     #driver
     chip.add('library',libname,'driver', "BUF_X4")
@@ -218,7 +214,7 @@ def setup_pdk(chip):
     ###############################################
 
     chip.set('asic', 'stackup', chip.get('pdk', 'stackup')[0])
-    chip.add('asic', 'targetlib', chip.getkeys('library'))
+    chip.add('asic', 'targetlib', libname)
     chip.set('asic', 'minlayer', "m1")
     chip.set('asic', 'maxlayer', "m10")
     chip.set('asic', 'maxfanout', 64)

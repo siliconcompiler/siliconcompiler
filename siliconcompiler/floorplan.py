@@ -6,7 +6,6 @@ import jinja2
 from collections import namedtuple
 
 from siliconcompiler import leflib
-from siliconcompiler.schema_utils import schema_path
 
 # Set up Jinja
 env = jinja2.Environment(loader=jinja2.PackageLoader('siliconcompiler'),
@@ -164,8 +163,6 @@ class Floorplan:
         # extract std cell info based on libname
         self.libname = self.chip.get('asic', 'targetlib')[0]
         self.stdcell_name = self.chip.get('library', self.libname, 'site')[0]
-        self.stdcell_width = self.chip.get('library', self.libname, 'width')
-        self.stdcell_height = self.chip.get('library', self.libname, 'height')
 
         # Extract data from LEFs
         stackup = chip.get('asic', 'stackup')
@@ -175,7 +172,7 @@ class Floorplan:
         self.available_cells = {}
 
         for macrolib in self.chip.get('asic', 'macrolib'):
-            lef_path = schema_path(self.chip.get('library', macrolib, 'lef')[0])
+            lef_path = chip.find(self.chip.get('library', macrolib, 'lef')[0])
             lef_data = leflib.parse(lef_path)
 
             if 'macros' not in lef_data:
@@ -193,9 +190,19 @@ class Floorplan:
                     logging.warn(f'Macro {name} missing size in LEF, not adding '
                         'to available cells.')
 
-        tech_lef = schema_path(chip.get('pdk', 'aprtech', stackup, libtype, 'lef')[0])
+        tech_lef = chip.find(chip.get('pdk', 'aprtech', stackup, libtype, 'lef')[0])
         tech_lef_data = leflib.parse(tech_lef)
 
+        if 'sites' not in tech_lef_data or self.stdcell_name not in tech_lef_data['sites']:
+            raise ValueError('Site {self.stdcell_name} not found in tech LEF.')
+
+        site = tech_lef_data['sites'][self.stdcell_name]
+        if 'size' not in site:
+            raise ValueError('Tech LEF does not specify size for site {self.stdcell_name}.')
+
+        self.stdcell_width = site['size']['width']
+        self.stdcell_height = site['size']['height']
+            
         if 'units' in tech_lef_data and 'database' in tech_lef_data['units']:
             self.db_units = int(tech_lef_data['units']['database'])
         else:

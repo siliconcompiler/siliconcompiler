@@ -65,6 +65,9 @@ def setup_flow(chip):
     else:
         np = 1
 
+    # Setting mode as 'sim'
+    chip.set('mode', 'sim')
+
     # Flow setup
     for step in flowpipe:
         #start
