@@ -22,6 +22,7 @@ def test_verilator():
     chip.set('design', design)
     chip.set('source', topfile)
     chip.set('relax', True)
+    chip.set('quiet', True)
     chip.set('mode', 'sim')
     chip.set('arg','step',step)
     chip.target("verilator")
