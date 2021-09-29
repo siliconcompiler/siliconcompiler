@@ -1993,6 +1993,21 @@ class Chip:
             # Write the current schema out to an encrypted file in shared storage.
             write_encrypted_cfgfile(self.prune(self.cfg), cur_build_dir, key_bytes, f'{step}{index}')
 
+            # Assemble a command to re-mount shared storage if necessary.
+            # If the cluster uses NFS, rapid client connect/disconnects
+            # and long-running processes can cause stale file handles,
+            # resulting in 'file not found' errors on files that do exist.
+            # Re-mounting the network drive is the only remediation
+            # which I've been able to find that works, but the particular
+            # mount options can vary wildly. So, it seems best that clusters
+            # should use pre-configured scripts to refresh networked storage.
+            remount_script = ''
+            if 'remount_script' in self.status:
+                # Note: 'sc' is not typically run as root, so hosts in the
+                # slurm cluster will need permission to run this command.
+                # The 'visudo' command can be used to set such permissions.
+                remount_script = f"sudo {self.status['remount_script']}"
+
             # The deferred execution command needs to:
             # * copy encrypted data/key and unencrypted IV into local storage.
             # * store the provided key in local storage.
@@ -2001,7 +2016,8 @@ class Chip:
             # * delete all unencrypted data.
             run_cmd  = f'{schedule_cmd} bash -c "'
             run_cmd += f"mkdir -p {tmp_build_dir} ; "
-            run_cmd += f"cp -R {ctrl_node_dir}/* {tmp_job_dir}/ ; "
+            run_cmd += f"{remount_script} ; "
+            run_cmd += f"rsync -a {ctrl_node_dir}/* {tmp_job_dir}/ ; "
             run_cmd += f"touch {keypath} ; chmod 600 {keypath} ; "
             run_cmd += f"echo -ne '{keystr}' > {keypath} ; "
             run_cmd += f"chmod 400 {keypath} ; "
@@ -2017,7 +2033,8 @@ class Chip:
             run_cmd += f"retcode=\$? ; "
             run_cmd += f"sc-crypt -mode encrypt -target {tmp_build_dir} "\
                            f"-key_file {keypath} ; "
-            run_cmd += f"cp -R {tmp_build_dir}/{step}{index}* "\
+            run_cmd += f"{remount_script} ; "
+            run_cmd += f"rsync -a {tmp_build_dir}/{step}{index}* "\
                            f"{cur_build_dir}/ ; "
             run_cmd += f"rm -rf {tmp_job_dir} ; "
             run_cmd += f"exit \$retcode"
@@ -2041,8 +2058,21 @@ class Chip:
                         "-jobscheduler '' -remote_addr ''"
             run_cmd += '"'
 
-        # Run the 'srun' command.
-        step_result = subprocess.run(run_cmd, shell = True)
+        # Run the 'srun' command, and track its output.
+        step_result = subprocess.Popen(run_cmd,
+                                       shell=True,
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.STDOUT)
+
+        # If a watchdog was configured, feed it whenever new output is printed.
+        for line in step_result.stdout:
+            if 'watchdog' in self.status:
+                self.status['watchdog'].set()
+
+        # Wait for the subprocess call to complete. It should already be done,
+        # as it has closed its output stream. But if we don't call '.wait()',
+        # the '.returncode' value will not be set correctly.
+        step_result.wait()
 
         # Clear active bit after the 'srun' command, and set 'error' accordingly.
         error[step + str(index)] = step_result.returncode

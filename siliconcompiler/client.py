@@ -114,7 +114,7 @@ def remote_run(chip):
     while is_busy:
       chip.logger.info("Job is still running. (%d seconds)"%(
                        int(time.monotonic() - step_start)))
-      time.sleep(3)
+      time.sleep(10)
       try:
           is_busy = is_job_busy(chip)
       except:
