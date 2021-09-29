@@ -1352,18 +1352,22 @@ class Chip:
         else:
             cfgcopy = copy.deepcopy(cfg)
 
-        #resolve absolute paths
+        # resolve absolute paths
         if abspath:
             self._abspath(cfgcopy)
 
-        # Write out configuration based on file type
+        # convert to fusesoc
+        cfgfuse = self._dump_fusesoc(cfg)
+
+
         with open(filepath, 'w') as f:
             if filepath.endswith('.json'):
                 print(json.dumps(cfgcopy, indent=4, sort_keys=True), file=f)
             elif filepath.endswith('.yaml'):
                 print(yaml.dump(cfgcopy, Dumper=YamlIndentDumper, default_flow_style=False), file=f)
             elif filepath.endswith('.core'):
-                self._write_fusesoc(cfgcopy, file=f)
+                print("CAPI=2:", file=f)
+                print(yaml.dump(cfgfuse, Dumper=YamlIndentDumper, default_flow_style=False), file=f)
             elif filepath.endswith('.bender.yml'):
                 self._write_bender(cfgcopy, file=f)
             elif filepath.endswith('.tcl'):
@@ -1374,6 +1378,54 @@ class Chip:
             else:
                 self.logger.error('File format not recognized %s', filepath)
                 self.error = 1
+
+    ###########################################################################
+
+    def _dump_fusesoc(self, cfg):
+
+        fusesoc = {}
+
+        toplevel = self.get('design', cfg=cfg)
+
+        if self.get('name'):
+            name = self.get('name', cfg=cfg)
+        else:
+            name = toplevel
+
+        version = self.get('projversion', cfg=cfg)
+
+        # Basic information
+        fusesoc['name'] = f"{name}:{version}"
+        fusesoc['description'] = self.get('description', cfg=cfg)
+        fusesoc['filesets'] = {}
+
+        # RTL
+        #TODO: place holder fix with pre-processor list
+        files = []
+        for item in self.get('source', cfg=cfg):
+            files.append(item)
+
+        fusesoc['filesets']['rtl'] = {}
+        fusesoc['filesets']['rtl']['files'] = files
+        fusesoc['filesets']['rtl']['depend'] = {}
+        fusesoc['filesets']['rtl']['file_type'] = {}
+
+        # Constraints
+        files = []
+        for item in self.get('constraint', cfg=cfg):
+            files.append(item)
+
+        fusesoc['filesets']['constraints'] = {}
+        fusesoc['filesets']['constraints']['files'] = files
+
+        # Default Target
+        fusesoc['targets'] = {}
+        fusesoc['targets']['default'] = {
+            'filesets' : ['rtl', 'constraints', 'tb'],
+            'toplevel' : toplevel
+        }
+
+        return fusesoc
 
     ###########################################################################
     def writegraph(self, filename, graphtype='flowgraph'):
