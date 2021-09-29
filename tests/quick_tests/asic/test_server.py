@@ -1,6 +1,10 @@
 import os
 import re
+import siliconcompiler
 import subprocess
+import traceback
+
+from unittest.mock import Mock
 
 if __name__ != "__main__":
     from tests.fixtures import test_wrapper
@@ -17,24 +21,44 @@ def test_gcd_server():
                                  '-nfs_mount', './local_server_work',
                                  '-cluster', 'local'])
 
-    # Use subprocess to test running the `sc` scripts as a command-line program.
-    # Pipe stdout to /dev/null to avoid printing to the terminal.
     gcd_ex_dir = os.path.abspath(__file__)
     gcd_ex_dir = gcd_ex_dir[:gcd_ex_dir.rfind('/tests/quick_tests/asic')] + '/examples/gcd/'
+
+    # Create instance of Chip class
+    chip = siliconcompiler.Chip()
+
+    # Mock the _runstep method.
+    old__runstep = chip._runstep
+    def mocked_runstep(*args, **kwargs):
+        if args[0] == 'import':
+            old__runstep(*args)
+        else:
+            chip.logger.error('Non-import step run locally in remote job!')
+    chip._runstep = Mock()
+    chip._runstep.side_effect = mocked_runstep
+
     # Ensure that klayout doesn't open its GUI after results are retrieved.
     os.environ['DISPLAY'] = ''
-    subprocess.run(['sc',
-                    gcd_ex_dir + '/gcd.v',
-                    '-design', 'gcd',
-                    '-target', 'asicflow_freepdk45',
-                    '-asic_diearea', "(0,0)",
-                    '-asic_diearea', "(100.13,100.8)",
-                    '-asic_corearea', "(10.07,11.2)",
-                    '-asic_corearea', "(90.25,91)",
-                    '-constraint', gcd_ex_dir + '/gcd.sdc',
-                    '-remote_addr', 'localhost',
-                    '-remote_port', '8080',
-                    '-relax'])
+
+    # Inserting value into configuration
+    chip.set('design', 'gcd', clobber=True)
+    chip.target("asicflow_freepdk45")
+    chip.add('source', gcd_ex_dir + 'gcd.v')
+    chip.set('clock', 'clock_name', 'pin', 'clk')
+    chip.add('constraint', gcd_ex_dir + 'gcd.sdc')
+    chip.set('asic', 'diearea', [(0,0), (100.13,100.8)])
+    chip.set('asic', 'corearea', [(10.07,11.2), (90.25,91)])
+    chip.set('remote', 'addr', 'localhost')
+    chip.set('remote', 'port', '8080')
+    chip.set('quiet', 'true', clobber=True)
+    chip.set('relax', 'true', clobber=True)
+
+    # Run the remote job.
+    try:
+        chip.run()
+    except:
+        # Failures will be printed, and noted in the following assert.
+        traceback.print_exc()
 
     # Kill the server process.
     srv_proc.kill()
