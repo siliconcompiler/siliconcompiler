@@ -58,7 +58,12 @@ jobs:
         CIBW_BEFORE_BUILD_WINDOWS: choco install winflexbison3 && vcpkg install zlib zlib:x64-windows
         CIBW_ENVIRONMENT_WINDOWS: SC_CMAKEARGS="-DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake."
         CIBW_SKIP: "pp* *win32 *i686"
-
+        CIBW_TEST_REQUIRES: pytest
+        CIBW_TEST_COMMAND: >
+          pytest --import-mode=append
+          {package}/tests/quick_tests/python/test_leflib.py
+          {package}/tests/tools/test_surelog.py
+        CIBW_TEST_SKIP: "*win*"
     - name: Verify clean directory
       run: git diff --exit-code
       shell: bash
