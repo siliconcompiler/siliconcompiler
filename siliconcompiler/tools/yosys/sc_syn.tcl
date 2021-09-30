@@ -84,4 +84,8 @@ yosys write_json "outputs/${sc_design}_netlist.json"
 # Copy constraints files from inputs/ to outputs/
 ########################################################
 set sc_constraints [dict get $sc_cfg constraint]
-file copy $sc_constraints "outputs/"
+foreach constraint $sc_constraints {
+    if { [file exists $constraint] == 1 } {
+        file copy $constraint "outputs/"
+    }
+}
