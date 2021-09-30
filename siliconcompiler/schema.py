@@ -2213,6 +2213,22 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
+    cfg['metric'][step][index]['unconstrained'] = {}
+    cfg['metric'][step][index]['unconstrained'][group] = {
+        'switch': "-metric_unconstrained 'step index group <int>'",
+        'type': 'int',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Number of unconstrained paths',
+        'example': [
+            "cli: -metric_unconstrained 'place 0 goal 0'",
+            "api: chip.set('metric','place','0','unconstrained','goal','0')"],
+        'help': """
+        Metric tracking the total number of unconstrained timing paths.
+        """
+    }
+
     cfg['metric'][step][index]['luts'] = {}
     cfg['metric'][step][index]['luts'][group] = {
         'switch': '-metric_luts step index group <float>',
@@ -2425,22 +2441,6 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'help': """
         Metric tracking the total number of timing paths violating setup
         constraints.
-        """
-    }
-
-    cfg['metric'][step][index]['unconstrained'] = {}
-    cfg['metric'][step][index]['unconstrained'][group] = {
-        'switch': "-metric_unconstrained 'step index group <int>'",
-        'type': 'int',
-        'lock': 'false',
-        'requirement': None,
-        'defvalue': None,
-        'shorthelp': 'Number of unconstrained paths',
-        'example': [
-            "cli: -metric_unconstrained 'place 0 goal 0'",
-            "api: chip.set('metric','place','0','unconstrained','goal','0')"],
-        'help': """
-        Metric tracking the total number of unconstrained timing paths.
         """
     }
 
