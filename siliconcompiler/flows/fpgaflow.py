@@ -86,11 +86,14 @@ def setup_flow(chip):
     index = '0'
     for i, step in enumerate(flowpipe):
         # Hard goals
-        for metric in ('errors','warnings','drvs','holdwns','setupwns','holdtns','setuptns'):
+        for metric in ('errors','warnings','drvs','unconstrained',
+                       'holdwns','holdtns', 'holdpaths',
+                       'setupwns', 'setuptns', 'setuppaths'):
             chip.set('flowgraph', step, str(index), 'weight', metric, 1.0)
             chip.set('metric', step, str(index), metric, 'goal', 0)
         # Metrics
-        for metric in ('luts','dsps','brams','registers','pins','peakpower','standbypower'):
+        for metric in ('luts','dsps','brams','registers',
+                       'pins','peakpower','standbypower'):
             chip.set('flowgraph', step, str(index), 'weight', metric, 1.0)
         # Inputs
         if i > 0:
