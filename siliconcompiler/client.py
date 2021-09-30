@@ -63,6 +63,14 @@ def remote_preprocess(chip):
             # Run the actual import step locally.
             chip._runstep(step, index, active, error)
 
+            # Update constraints with local relative paths, and re-write config files.
+            new_constraints = []
+            for c in chip.get('constraint'):
+                new_constraints.append(f"inputs/{c[(c.rfind('/')+1):]}")
+            chip.set('constraint', new_constraints)
+            stepindex_workdir = chip.getworkdir(step=step, index=index)
+            chip.writecfg(f'{stepindex_workdir}/outputs/{chip.get("design")}.pkg.json')
+
     # Set 'steplist' to only the remote steps, for the future server-side run.
     remote_steplist = []
     for step in chip.getkeys('flowgraph'):

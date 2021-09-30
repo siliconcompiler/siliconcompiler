@@ -71,6 +71,16 @@ def setup_tool(chip):
     else:
         chip.add('eda', tool, step, index, 'req', ",".join(['fpga','partname']))
 
+#############################################
+# Runtime pre processing
+#############################################
+
+def pre_process(chip):
+
+    tool = 'yosys'
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+
     # Since tool options are of type str (not file), we manually resolve any
     # paths the user added using schema_path and stuff them back into the
     # options entry.
@@ -78,8 +88,9 @@ def setup_tool(chip):
     if 'techmap' in chip.getkeys('eda', tool, step, index, 'option'):
         for mapfile in chip.get('eda', tool, step, index, 'option', 'techmap'):
             abspath = chip.find(mapfile)
-            # TODO: should we check here that file exists? warning or error if not?
-            techmap_paths.append(abspath)
+            # TODO: Warning or error if a file can't be found?
+            if abspath:
+                techmap_paths.append(abspath)
 
     # Next, we add the default techmap files bundled into SC.
     # These don't need absolute paths since the files live in the tool
@@ -88,22 +99,17 @@ def setup_tool(chip):
     if chip.get('pdk','process'):
         process = chip.get('pdk','process')
         if process == 'freepdk45':
-            techmap_paths.append('cells_latch_freepdk45.v')
+            abspath = chip.find('tools/yosys/cells_latch_freepdk45.v')
+            if abspath:
+                techmap_paths.append(abspath)
         elif process == 'skywater130':
             # TODO: might want to eventually switch on libname rather than
             # process so we can support other sky130 variations besides HD.
-            techmap_paths.append('cells_latch_sky130hd.v')
+            abspath = chip.find('tools/yosys/cells_latch_sky130hd.v')
+            if abspath:
+                techmap_paths.append(abspath)
 
     chip.set('eda', tool, step, index, 'option', 'techmap', techmap_paths)
-
-#############################################
-# Runtime pre processing
-#############################################
-
-def pre_process(chip):
-
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
 
     #TODO: remove special treatment for fpga??
     if chip.get('target') is None:

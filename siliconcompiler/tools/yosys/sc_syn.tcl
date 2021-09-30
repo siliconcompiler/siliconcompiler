@@ -79,3 +79,8 @@ if {$sc_mode eq "fpga"} {
 yosys write_verilog -noattr -noexpr -nohex -nodec "outputs/$sc_design.vg"
 yosys write_blif "outputs/$sc_design.blif"
 yosys write_json "outputs/${sc_design}_netlist.json"
+
+########################################################
+# Copy constraints files from inputs/ to outputs/
+########################################################
+file copy [glob "inputs/*.sdc"] "outputs/"
