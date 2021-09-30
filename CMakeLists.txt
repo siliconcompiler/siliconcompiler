@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15...3.19)
 
-project(siliconcompiler VERSION "0.0.0")
+project(siliconcompiler)
 
 # Need C++11 support
 set(CMAKE_CXX_STANDARD 11)
@@ -28,7 +28,7 @@ target_link_libraries(_leflib lef)
 # treat them as errors. We only apply this to the _leflib target since the LEF
 # parser library has warnings under -Wall -pedantic, but there's not much we can
 # do about those.
-# 
+#
 # We exempt deprecated-declarations since Cython uses something deprecated in at
 # least one of the Python versions we support, and there's not much we can do
 # about that either.
