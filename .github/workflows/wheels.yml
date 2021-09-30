@@ -24,10 +24,11 @@ jobs:
     - uses: pypa/cibuildwheel@v2.1.1
       env:
         CIBW_BEFORE_ALL_LINUX: >
-          export PREFIX={package}/siliconcompiler/tools/siliconcompiler &&
+          export PREFIX={package}/siliconcompiler/tools/surelog &&
           {package}/.github/workflows/bin/setup_wheel_env_linux.sh
         CIBW_BEFORE_ALL_MACOS: .github/workflows/bin/setup_wheel_env_macos.sh
         CIBW_BEFORE_ALL_WINDOWS: call .github/workflows/bin/setup_wheel_env_win.bat
+        CIBW_ENVIRONMENT_WINDOWS: SC_CMAKEARGS="-DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake."
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
         CIBW_SKIP: "pp* *win32 *i686"
         MACOSX_DEPLOYMENT_TARGET: "10.15"
