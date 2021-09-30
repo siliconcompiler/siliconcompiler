@@ -2359,6 +2359,23 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
+    cfg['metric'][step][index]['holdpaths'] = {}
+    cfg['metric'][step][index]['holdpaths'][group] = {
+        'switch': "-metric_holdpaths 'step index group <int>'",
+        'type': 'int',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Total number of hold path violations',
+        'example': [
+            "cli: -metric_holdpaths 'place 0 real 0'",
+            "api: chip.set('metric','place','0','holdpaths','real','0')"],
+        'help': """
+        Metric tracking the total number of timing paths violating hold
+        constraints.
+        """
+    }
+
     cfg['metric'][step][index]['setupwns'] = {}
     cfg['metric'][step][index]['setupwns'][group] = {
         'switch': "-metric_setupwns 'step index group <float>'",
@@ -2391,6 +2408,23 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'help': """
         Metric tracking of total negative setup slack (TNS) on a per step basis.
         Metric unit is nanoseconds.
+        """
+    }
+
+    cfg['metric'][step][index]['setuppaths'] = {}
+    cfg['metric'][step][index]['setuppaths'][group] = {
+        'switch': "-metric_setuppaths 'step index group <int>'",
+        'type': 'int',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Total number of setup path violations',
+        'example': [
+            "cli: -metric_setuppaths 'place 0 real 0'",
+            "api: chip.set('metric','place','0','setuppaths','real','0')"],
+        'help': """
+        Metric tracking the total number of timing paths violating setup
+        constraints.
         """
     }
 
