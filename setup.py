@@ -64,7 +64,7 @@ setup(
             '**/*.openfpga',
             'surelog/bin/surelog*',
             # extra file surelog needs at runtime
-            'surelog/lib/surelog/sv/builtin.sv']
+            'surelog/lib*/surelog/sv/builtin.sv']
     },
 
     python_requires=">=3.6",
