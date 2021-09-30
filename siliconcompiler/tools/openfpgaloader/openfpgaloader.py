@@ -30,6 +30,7 @@ def make_docs():
     chip = siliconcompiler.Chip()
     chip.set('arg','step','program')
     chip.set('arg','index','0')
+    chip.set('design', '<design>')
     setup_tool(chip)
     return chip
 
