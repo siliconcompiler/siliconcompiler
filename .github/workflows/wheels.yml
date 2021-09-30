@@ -39,7 +39,7 @@ jobs:
           {package}/tests/tools/test_surelog.py
         # TODO: test on every platform once we have Windows and other Python
         # versions working.
-        CIBW_TEST_SKIP: "cp36* cp37* cp310*"
+        CIBW_TEST_SKIP: "*win* cp36* cp37* cp310*"
     - name: Verify clean directory
       run: git diff --exit-code
       shell: bash

@@ -2421,7 +2421,7 @@ class Chip:
         # execute Surelog so the system checks here.
         surelog_path = f'{os.path.dirname(__file__)}/tools/surelog/bin'
         try:
-            ospath = os.environ['PATH'] + ':'
+            ospath = os.environ['PATH'] + os.pathsep
         except KeyError:
             ospath = ''
         ospath += f'{surelog_path}'
