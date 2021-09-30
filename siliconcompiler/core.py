@@ -23,11 +23,12 @@ import math
 import pandas
 import yaml
 import graphviz
-import pyfiglet
 import time
 from timeit import default_timer as timer
 from siliconcompiler.client import *
 from siliconcompiler.schema import *
+
+from siliconcompiler import _metadata
 
 class Chip:
     """Object for configuring and executing hardware design flows.
@@ -49,7 +50,6 @@ class Chip:
         # Local variables
         self.scroot = os.path.dirname(os.path.abspath(__file__))
         self.cwd = os.getcwd()
-        self.version = "0.0.1"
         self.loglevel = loglevel
         self.status = {}
         self.error = 0
@@ -60,21 +60,7 @@ class Chip:
         # logger relies on the design value.
         self.cfg['design']['value'] = design
         # We set scversion directly because it has its 'lock' flag set by default.
-        self.cfg['scversion']['value'] = self.version
-
-        # Print splash
-        if splash:
-            ascii_banner = pyfiglet.figlet_format("Silicon Compiler")
-            print(ascii_banner)
-            authors = []
-            authorfile = self.scroot + "/AUTHORS"
-            f = open(authorfile, "r")
-            for line in f:
-                name = re.match(r'^(\w+\s+\w+)', line)
-                if name:
-                    authors.append(name.group(1))
-            print("Authors:", ", ".join(authors), "\n")
-            print("-"*82)
+        self.cfg['scversion']['value'] = _metadata.version
 
         # Print log header
         if loglevel=='DEBUG':
@@ -253,7 +239,7 @@ class Chip:
 
         # exit on version check
         if '-version' in scargs:
-            print(self.version)
+            print(_metadata.version)
             sys.exit(0)
 
         # Required positional source file argument
@@ -268,6 +254,12 @@ class Chip:
         cmdargs = vars(parser.parse_args(scargs))
         #print(cmdargs)
         #sys.exit()
+
+        # Print banner
+        print(_metadata.banner)
+        print("Authors:", ", ".join(_metadata.authors))
+        print("Version:", _metadata.version, "\n")
+        print("-"*80)
 
         os.environ["COLUMNS"] = '80'
 

@@ -4,6 +4,13 @@ import os
 import sys
 from setuptools import find_packages
 
+# Hack to get version number since it's considered bad practice to import your
+# own package in setup.py. This call defines keys 'version', 'authors', and
+# 'banner' in the `metadata` dict.
+metadata = {}
+with open('siliconcompiler/_metadata.py') as f:
+    exec(f.read(), metadata)
+
 try:
     from skbuild import setup
 except ImportError:
@@ -38,7 +45,7 @@ setup(
     long_description_content_type="text/markdown",
     author="Andreas Olofsson",
     url="https://github.com/siliconcompiler/siliconcompiler",
-    version="0.0.0",
+    version=metadata['version'],
     packages=find_packages(where='.', exclude=['tests*']),
 
     # TODO: hack to work around weird scikit-build behavior:
@@ -48,7 +55,7 @@ setup(
 
     #include_package_data=True,
     package_data={
-        'siliconcompiler': ['AUTHORS', 'templates/*.j2'],
+        'siliconcompiler': ['templates/*.j2'],
         'siliconcompiler.tools': ['**/*.tcl', '**/*.py', '**/*.xml', '**/*.magicrc', '**/*.openfpga']
     },
 
@@ -56,10 +63,8 @@ setup(
     install_requires=[
         "matplotlib >= 3.3",
         "numpy >= 1.19",
-        "ply >= 3.11",
         "aiohttp >= 3.7.4.post0",
         "requests >= 2.22.0",
-        "pyfiglet >= 0.8",
         "PyYAML >= 5.4.1",
         "pytest >= 6.2.4",
         "pytest-xdist >= 2.3.0",
