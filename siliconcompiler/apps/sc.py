@@ -8,7 +8,6 @@ import re
 import json
 import sys
 import uuid
-import pyfiglet
 import importlib.resources
 from multiprocessing import Process
 
