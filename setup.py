@@ -62,6 +62,7 @@ setup(
             '**/*.xml',
             '**/*.magicrc',
             '**/*.openfpga',
+            '**/*.v',
             'surelog/bin/surelog*',
             # extra file surelog needs at runtime
             'surelog/lib/surelog/sv/builtin.sv']
