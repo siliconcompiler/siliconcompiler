@@ -83,23 +83,19 @@ class Chip:
 
         # logger
         if loglevel=='DEBUG':
-            print("| LEVEL   | FUNCTION   |LINENO| STEP         |INDEX| MESSAGE")
-            print("|---------|------------|------|--------------|-----|"+'-'*60)
             FORMAT = '| %(levelname)-7s | %(funcName)-10s | %(lineno)-4s | %(message)s'
         else:
-            print("| LEVEL   | STEP         |INDEX| MESSAGE")
-            print("|---------|--------------|-----|"+'-'*50)
             FORMAT = '| %(levelname)-7s | %(message)s'
 
         self.logger = logging.getLogger()
         self.handler = logging.StreamHandler()
         self.formatter = logging.Formatter(FORMAT)
-        
+
         self.handler.setFormatter(self.formatter)
         self.logger.addHandler(self.handler)
         self.logger = CustomAdapter(self.logger, {'step': '--','index':'0'})
         self.logger.setLevel(str(loglevel))
-        
+
     ###########################################################################
     def cmdline(self, progname, description=None, switchlist=[]):
         """Creates an SC command line interface.
@@ -441,7 +437,7 @@ class Chip:
             target = self.get('target')
             #self.log('INFO', f"Loading target {target}")
             self.logger.info(f"Loading target '{target}'")
-            
+
         # search for module matches
         targetlist = target.split('_')
 
@@ -1496,7 +1492,7 @@ class Chip:
             cfg = self.cfg
 
         indir = 'inputs'
-        
+
         if not os.path.exists(indir):
             os.makedirs(indir)
 
@@ -1664,7 +1660,7 @@ class Chip:
         return n
 
     ###########################################################################
-    def summary(self):
+    def summary(self, steps=None, filename=None):
         '''
         Creates a summary of the run metrics generated from the 'start' step
         to the 'stop' step.
@@ -1678,15 +1674,30 @@ class Chip:
             Prints out a summary of the run to stdout.
         '''
 
-        if self.get('steplist'):
+
+        # Read results from file
+        if filename:
+            self.cfg=self.readcfg(filename)
+
+        # Only report selected steps
+        if steps:
+            steplist = steps
+        elif self.get('steplist'):
             steplist = self.get('steplist')
         else:
             steplist = self.getsteps()
+            for step in steplist:
+                #only report tool based steps functions
+                if not self.get('flowgraph',step,'0','tool'):
+                    index = steplist.index(step)
+                    del steplist[index]
 
+        # job directory
         jobdir = "/".join([self.get('dir'),
                            self.get('design'),
                            self.get('jobname') + str(self.get('jobid'))])
 
+        # Custom reporting modes
         if self.get('mode') == 'asic':
             info = '\n'.join(["SUMMARY:\n",
                               "design = " + self.get('design'),
@@ -1709,55 +1720,50 @@ class Chip:
 
         # Stepping through all steps/indices and printing out metrics
         data = []
-        steps = []
         colwidth = 8
 
         #Creating Header
-        steps = []
+        header = []
+        winner = {}
         colwidth = 8
         for step in steplist:
-            #TODO, fix for parallel, follow selection
-            steps.append(step.center(colwidth))
+            # default for last step in list (could be tool or function)
+            index = '0'
+            winner[step] = index
+            stepindex =  step + index
+            #Find winning index
+            for index in self.getkeys('flowgraph', step):
+                stepindex = step + index
+                for i in  self.getkeys('flowstatus'):
+                    for j in  self.getkeys('flowstatus',i):
+                        if stepindex in self.get('flowstatus',i,j,'select'):
+                            winner[step] = index
+            # header for data frame
+            header.append(stepindex.center(colwidth))
 
-        #Creating table of real values
-        metrics = []
-
-        #Creating index selecto
-        metrics.append(" input")
-        row = []
-        for step in steplist:
-            if not self.getkeys('flowgraph', step, '0','input'):
-                sel_in = ""
-            elif self.get('flowstatus', step, '0', 'select'):
-                sel_in = self.get('flowstatus', step, '0', 'select')[0]
-                if len(self.get('flowstatus', step, '0', 'select'))>1:
-                    sel_in.replace(r"\d+$", "**")
-            else:
-                stepsel= self.getkeys('flowgraph', step, '0', 'input')[0]
-                isel = self.get('flowgraph', step, '0', 'input', stepsel)[0]
-                sel_in = stepsel + isel
-            row.append(" " + sel_in.center(colwidth))
-        data.append(row)
-
-        # only report metrics with weights
+        # figure out which metrics have non-zero weights
         metric_list = []
         for step in steplist:
-            for metric in self.getkeys('flowgraph', step, '0', 'weight'):
+            for metric in self.getkeys('metric','default','default'):
                 if self.get('flowgraph', step, '0', 'weight', metric):
                     if metric not in metric_list:
                         metric_list.append(metric)
+
+        # print out all metrics
+        metrics = []
         for metric in metric_list:
             metrics.append(" " + metric)
             row = []
             for step in steplist:
-                value = str(self.get('metric', step, '0', metric, 'real'))
+                index = winner[step]
+                value = str(self.get('metric', step, index, metric, 'real'))
                 row.append(" " + value.center(colwidth))
             data.append(row)
 
         pandas.set_option('display.max_rows', 500)
         pandas.set_option('display.max_columns', 500)
         pandas.set_option('display.width', 100)
-        df = pandas.DataFrame(data, metrics, steps)
+        df = pandas.DataFrame(data, metrics, header)
         print(df.to_string())
         print("-"*135)
 
@@ -2135,7 +2141,7 @@ class Chip:
 
         ##################
         # 1. Wait loop
-        self.logger.info('Waiting for inputs...', step=step, index=index)        
+        self.logger.info('Waiting for inputs...', step=step, index=index)
         while True:
             # Checking that there are no pending jobs
             pending = 0
@@ -2175,7 +2181,7 @@ class Chip:
 
         ##################
         # 3. Collect run cfg history and check for errors
-       
+
         design = self.get('design')
         all_inputs = []
         if not self.getkeys('flowgraph', step, index, 'input'):
@@ -2777,4 +2783,3 @@ class CustomAdapter(logging.LoggerAdapter):
         index = kwargs.pop('index', self.extra['index'])
         output = '%-12s | %-3s | %s' % (step, index, msg)
         return output, kwargs
-
