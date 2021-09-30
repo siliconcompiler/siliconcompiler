@@ -2418,13 +2418,47 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Total number of setup path violations',
+        'shorthelp': 'Number of setup path violations',
         'example': [
             "cli: -metric_setuppaths 'place 0 real 0'",
             "api: chip.set('metric','place','0','setuppaths','real','0')"],
         'help': """
         Metric tracking the total number of timing paths violating setup
         constraints.
+        """
+    }
+
+    cfg['metric'][step][index]['unconstrained'] = {}
+    cfg['metric'][step][index]['unconstrained'][group] = {
+        'switch': "-metric_unconstrained 'step index group <int>'",
+        'type': 'int',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Number of unconstrained paths',
+        'example': [
+            "cli: -metric_unconstrained 'place 0 goal 0'",
+            "api: chip.set('metric','place','0','unconstrained','goal','0')"],
+        'help': """
+        Metric tracking the total number of unconstrained timing paths.
+        """
+    }
+
+    cfg['metric'][step][index]['cells'] = {}
+    cfg['metric'][step][index]['cells'][group] = {
+        'switch': '-metric_cells step index group <int>',
+        'type': 'int',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Number of cells in the design',
+        'example': [
+            "cli: -metric_cells 'place 0 goal 100'",
+            "api: chip.set('metric','place','0','cells','goal,'100')"],
+        'help': """
+        Metric tracking the total number of instances on a per step basis.
+        Total cells includes registers. In the case of FPGAs, the it
+        represents the number of LUTs.
         """
     }
 
@@ -2435,31 +2469,33 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Total registers metric',
+        'shorthelp': 'Number of registers in the design',
         'example': [
             "cli: -metric_registers 'place 0 real 100'",
             "api: chip.set('metric','place','0','registers','real','100')"],
         'help': """
-        Metric tracking the total number of register cells on a per step basis.
+        Metric tracking the total number of register cells.
         """
     }
-    cfg['metric'][step][index]['cells'] = {}
-    cfg['metric'][step][index]['cells'][group] = {
-        'switch': '-metric_cells step index group <int>',
+
+    cfg['metric'][step][index]['bufinv'] = {}
+    cfg['metric'][step][index]['bufinv'][group] = {
+        'switch': "-metric_bufinv 'step index group <int>'",
         'type': 'int',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Total cell instances metric',
+        'shorthelp': 'Mumber of buffers and inverters in design',
         'example': [
-            "cli: -metric_cells 'place 0 goal 100'",
-            "api: chip.set('metric','place','0','cells','goal,'100')"],
+            "cli: -metric_bufinv 'place 0 real 100'",
+            "api: chip.set('metric','place','0','bufinv','real','100')"],
         'help': """
-        Metric tracking the total number of instances on a per step basis.
-        Total cells includes registers. In the case of FPGAs, the it
-        represents the number of LUTs.
+        Metric tracking the total number of buffers and inverters in
+        the design. An excessive count usually indicates a flow, design,
+        or constaints problem.
         """
     }
+
     cfg['metric'][step][index]['rambits'] = {}
     cfg['metric'][step][index]['rambits'][group] = {
         'switch': '-metric_rambits step index group <int>',
@@ -2467,7 +2503,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Total RAM bits metric',
+        'shorthelp': 'Total RAM bits in the design',
         'example': [
             "cli: -metric_rambits 'place 0 goal 100'",
             "api: chip.set('metric','place','0','rambits','goal','100')"],
@@ -2484,7 +2520,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Total transistors metric',
+        'shorthelp': 'Number of transistors in the design',
         'example': [
             "cli: -metric_xtors 'place 0 goal 100'",
             "api: chip.set('metric','place','0','xtors','real','100')"],
@@ -2500,7 +2536,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Total nets metric',
+        'shorthelp': 'Number of nets in the design',
         'example': [
             "cli: -metric_nets 'place 0 real 100'",
             "api: chip.set('metric','place','0','nets','real','100')"],
@@ -2516,7 +2552,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Total pins metric',
+        'shorthelp': 'Number of pins in the design',
         'example': [
             "cli: -metric_pins 'place 0 real 100'",
             "api: chip.set('metric','place','0','pins','real','100')"],
@@ -2532,7 +2568,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Total vias metric',
+        'shorthelp': 'Number of vias in the design',
         'example': [
             "cli: -metric_vias 'route 0 real 100'",
             "api: chip.set('metric','place','0','vias','real','100')"],
@@ -2547,7 +2583,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Total wirelength metric',
+        'shorthelp': 'Total lenght of all wires in the design',
         'example': [
             "cli: -metric_wirelength 'route 0 real 100.00'",
             "api: chip.set('metric','place','0','wirelength','real','100.42')"],
@@ -2583,7 +2619,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Area density metric',
+        'shorthelp': 'Effective area utilization of the design',
         'example': [
             "cli: -metric_area_density 'place 0 goal 99.9'",
             "api: chip.set('metric','place','0','area_density','real','99.9')"],
