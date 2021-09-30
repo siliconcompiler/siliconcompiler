@@ -83,4 +83,5 @@ yosys write_json "outputs/${sc_design}_netlist.json"
 ########################################################
 # Copy constraints files from inputs/ to outputs/
 ########################################################
-file copy [glob "inputs/*.sdc"] "outputs/"
+set sc_constraints [dict get $sc_cfg constraint]
+file copy $sc_constraints "outputs/"
