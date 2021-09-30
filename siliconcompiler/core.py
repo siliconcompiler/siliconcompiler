@@ -74,6 +74,16 @@ class Chip:
 
     ###########################################################################
     def _init_logger(self, step=None, index=None):
+        # Give each step, index pair its own unique logger
+        logger = None
+        if step is not None and index is not None:
+            logger = f'{step}.{index}'
+        self.logger = logging.getLogger(logger)
+
+        # Don't propagate log messages to "root" handler (we get duplicate
+        # messages without this)
+        self.logger.propagate = False
+
         if step == None:
             step = '---'
         if index == None:
@@ -86,19 +96,22 @@ class Chip:
         else:
             logformat = '| %(levelname)-7s | ' + step_index + ' | %(message)s'
 
-        self.logger = logging.getLogger()
-        self.handler = logging.StreamHandler()
-        self.formatter = logging.Formatter(logformat)
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter(logformat)
 
-        self.handler.setFormatter(self.formatter)
-        self.logger.addHandler(self.handler)
+        handler.setFormatter(formatter)
+
+        # Clear any existing handlers so we don't end up with duplicate messages
+        # if repeat calls to _init_logger are made
+        if len(self.logger.handlers) > 0:
+            self.logger.handlers.clear()
+
+        self.logger.addHandler(handler)
         self.logger.setLevel(self.loglevel)
 
     ###########################################################################
     def _deinit_logger(self):
         self.logger = None
-        self.handler = None
-        self.formatter = None
 
     ###########################################################################
     def cmdline(self, progname, description=None, switchlist=[]):
