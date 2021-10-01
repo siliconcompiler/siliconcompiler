@@ -58,7 +58,7 @@ def remote_preprocess(chip):
             if tool:
                 chip.set('arg','step', step)
                 chip.set('arg','index', index)
-                func = chip.loadfunction(tool, 'tool', 'setup_tool')
+                func = chip.find_function(tool, 'tool', 'setup_tool')
                 func(chip)
             # Run the actual import step locally.
             chip._runstep(step, index, active, error)
@@ -68,8 +68,8 @@ def remote_preprocess(chip):
             for c in chip.get('constraint'):
                 new_constraints.append(f"inputs/{c[(c.rfind('/')+1):]}")
             chip.set('constraint', new_constraints)
-            stepindex_workdir = chip.getworkdir(step=step, index=index)
-            chip.writecfg(f'{stepindex_workdir}/outputs/{chip.get("design")}.pkg.json')
+            stepindex_workdir = chip._getworkdir(step=step, index=index)
+            chip.write_manifest(f'{stepindex_workdir}/outputs/{chip.get("design")}.pkg.json')
 
     # Set 'steplist' to only the remote steps, for the future server-side run.
     remote_steplist = []
