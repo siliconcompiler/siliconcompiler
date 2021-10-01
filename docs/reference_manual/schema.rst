@@ -7,25 +7,28 @@ General Terms
 .. glossary::
 
     default
-       A reserved SC schema key that can be replaced by any legal key value.
+       Reserved SC schema key that can be replaced by any legal string.
 
     dictionary
-       An associative array, ie. a ollection of key-value pairs.
+       Associative array, ie. a collection of key-value pairs.
 
     keypath
-        An ordered list of keys used to access a schema parameter.
+       Ordered list of keys used to access a schema parameter.
 
     keywords
-        Reserved strings that cannot be used as key names.
+       Reserved strings that cannot be used as key names.
 
     list
-       A data structure that is a mutable ordered sequence of elements.
+       Data structure that is a mutable ordered sequence of elements.
+
+    manifest
+       JSON file representation of SC schema.
 
     parameter
-        A leaf cell schema dictionary with a defined set of key/value pairs.
+       Schema dictionary leaf-cell with a set of pre-defined key/value pairs.
 
     schema
-        A nested dictionary of SC configuration parameters.
+       Nested dictionary of SC configuration parameters.
 
 Parameter Keys
 -----------------
