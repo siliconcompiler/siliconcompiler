@@ -44,7 +44,7 @@ def build_schema_value_table(schema, keypath_prefix=[]):
 
 def trim(docstring):
     '''Helper function for cleaning up indentation of docstring.
-    
+
     This is important for properly parsing complex RST in our docs.
 
     Source:
@@ -198,7 +198,7 @@ class FlowGen(DynamicGen):
 
     def extra_content(self, chip, modname):
         flow_path = f'_images/gen/{modname}.svg'
-        chip.writegraph(flow_path)
+        chip.write_flowgraph(flow_path)
         return [image(flow_path, center=True)]
 
     def display_config(self, chip, modname):
@@ -219,10 +219,10 @@ class FlowGen(DynamicGen):
             section = build_section(step, section_key)
             step_cfg = {}
             for prefix in ['flowgraph', 'metric']:
-                cfg = chip.getcfg(prefix, step)
+                cfg = chip.getdict(prefix, step)
                 if cfg is None:
                     continue
-                pruned = chip.prune(cfg)
+                pruned = chip._prune(cfg)
                 if prefix not in step_cfg:
                     step_cfg[prefix] = {}
                 step_cfg[prefix][step] = pruned
@@ -233,8 +233,8 @@ class FlowGen(DynamicGen):
         # Build table for non-step items (just showtool for now)
         section_key = '-'.join(['flows', modname, 'showtool'])
         section = build_section('showtool', section_key)
-        cfg = chip.getcfg('showtool')
-        pruned = chip.prune(cfg)
+        cfg = chip.getdict('showtool')
+        pruned = chip._prune(cfg)
         table = build_schema_value_table(pruned)
         if table is not None:
             section += table
@@ -252,8 +252,8 @@ class FoundryGen(DynamicGen):
         settings = build_section('Configuration', section_key)
 
         for prefix in [('pdk',), ('asic',), ('library',)]:
-            cfg = chip.getcfg(*prefix)
-            pruned = chip.prune(cfg)
+            cfg = chip.getdict(*prefix)
+            pruned = chip._prune(cfg)
             settings += self.build_config_recursive(cfg, keypath_prefix=list(prefix), sec_key_prefix=['foundries', modname])
 
         return settings
@@ -296,8 +296,8 @@ class ToolGen(DynamicGen):
 
     def display_config(self, chip, modname):
         '''Display config under `eda, <modname>` in a single table.'''
-        cfg = chip.getcfg('eda', modname)
-        pruned = chip.prune(cfg)
+        cfg = chip.getdict('eda', modname)
+        pruned = chip._prune(cfg)
         table = build_schema_value_table(pruned, keypath_prefix=['eda', modname])
         if table is not None:
             return table
