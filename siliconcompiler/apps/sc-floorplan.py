@@ -9,14 +9,17 @@ from siliconcompiler.floorplan import Floorplan
 
 def main():
     progname = "sc-floorplan"
+    description = """
+    --------------------------------------------------------------
+    Restricted SC app that accepts one ore more json based cfg
+    files and the path to an SC floorplan via the source argument.
+    """
+
     chip = siliconcompiler.Chip()
+
     chip.cmdline(progname,
                  switchlist=['source', 'cfg', 'loglevel', 'design', 'target'],
-                 description="""
-                 --------------------------------------------------------------
-                 Restricted SC app that accepts one ore more json based cfg
-                 files and the path to an SC floorplan via the source argument.
-                 """)
+                 description=description)
 
     #Error checking
     if not chip.get('source') or not chip.get('design'):

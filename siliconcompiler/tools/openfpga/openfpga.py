@@ -74,7 +74,7 @@ def pre_process(chip):
     openfpga_sim_file = None
 
     for arch_file in chip.get('fpga', 'arch'):
-        path = chip.find(arch_file)
+        path = chip.find_file(arch_file)
         root_tag = ET.parse(path).getroot().tag
         if root_tag == 'architecture':
             vpr_arch_file = path

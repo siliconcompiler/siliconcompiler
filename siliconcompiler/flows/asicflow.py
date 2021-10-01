@@ -84,19 +84,19 @@ def setup_flow(chip):
     tools = {
         'import' : 'verilator',
         'syn' : 'yosys',
-        'synmin' : 'minimum',
+        'synmin' : 'step_minimum',
         'floorplan' : 'openroad',
-        'floorplanmin' : 'minimum',
+        'floorplanmin' : 'step_minimum',
         'physyn' : 'openroad',
-        'physynmin' : 'minimum',
+        'physynmin' : 'step_minimum',
         'place' : 'openroad',
-        'placemin' : 'minimum',
+        'placemin' : 'step_minimum',
         'cts' : 'openroad',
-        'ctsmin' : 'minimum',
+        'ctsmin' : 'step_minimum',
         'route' : 'openroad',
-        'routemin' : 'minimum',
+        'routemin' : 'step_minimum',
         'dfm' : 'openroad',
-        'dfmmin' : 'minimum',
+        'dfmmin' : 'step_minimum',
         'export' : 'klayout',
     }
 
@@ -135,7 +135,7 @@ def setup_flow(chip):
             #graph
             if step == 'import':
                 chip.set('flowgraph', step, str(index), 'tool', tools[step])
-            elif re.match(r'join|maximum|minimum|verify', tools[step]):
+            elif re.search(r'join|maximum|minimum|verify', tools[step]):
                 chip.set('flowgraph', step, '0', 'function', tools[step])
                 prevparam = prevstep + "_np"
                 fanin = 1
@@ -154,7 +154,7 @@ def setup_flow(chip):
         chip.set('flowgraph', 'extspice', '0', 'tool', 'magic')
         chip.add('flowgraph', 'extspice', '0', 'input', 'export', '0')
 
-        chip.set('flowgraph', 'lvsjoin', '0', 'function', 'join')
+        chip.set('flowgraph', 'lvsjoin', '0', 'function', 'step_join')
         chip.add('flowgraph', 'lvsjoin', '0', 'input', 'dfmmin', '0')
         chip.add('flowgraph', 'lvsjoin', '0', 'input', 'extspice', '0')
 
@@ -164,7 +164,7 @@ def setup_flow(chip):
         chip.set('flowgraph', 'drc', '0', 'tool', 'magic')
         chip.add('flowgraph', 'drc', '0', 'input', 'export', '0')
 
-        chip.set('flowgraph', 'signoff', '0', 'function', 'join')
+        chip.set('flowgraph', 'signoff', '0', 'function', 'step_join')
         chip.add('flowgraph', 'signoff', '0', 'input', 'lvs', '0')
         chip.add('flowgraph', 'signoff', '0', 'input', 'drc', '0')
 

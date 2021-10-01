@@ -333,7 +333,7 @@ class Server:
             with open(os.open(keypath, os.O_CREAT | os.O_WRONLY, 0o400), 'w+') as keyfile:
                 keyfile.write(base64.urlsafe_b64decode(pk).decode())
             chip.set('remote', 'key', keypath, clobber=True)
-            chip.writecfg(f"{build_dir}/configs/chip{chip.get('jobid')}.json")
+            chip.write_manifest(f"{build_dir}/configs/chip{chip.get('jobid')}.json")
             # Create the command to run.
             run_cmd  = f"cp -R {from_dir}/* {to_dir}/ ; "
             run_cmd += f"sc -cfg {build_dir}/configs/chip{chip.get('jobid')}.json -dir {to_dir} -remote_key {keypath} -remote_addr '' ; "
@@ -400,7 +400,7 @@ class Server:
             # this will probably block the server from responding to other
             # calls. It should only be used for testing and development.)
             cfg_out = f"{build_dir}/configs/chip{jobid}.json"
-            chip.writecfg(cfg_out)
+            chip.write_manifest(cfg_out)
             run_cmd = f'sc -cfg {cfg_out}'
 
             # Create async subprocess shell, and block this thread until it finishes.

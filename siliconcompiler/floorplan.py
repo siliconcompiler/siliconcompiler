@@ -172,7 +172,7 @@ class Floorplan:
         self.available_cells = {}
 
         for macrolib in self.chip.get('asic', 'macrolib'):
-            lef_path = chip.find(self.chip.get('library', macrolib, 'lef')[0])
+            lef_path = chip.find_file(self.chip.get('library', macrolib, 'lef')[0])
             lef_data = leflib.parse(lef_path)
 
             if 'macros' not in lef_data:
@@ -190,7 +190,7 @@ class Floorplan:
                     logging.warn(f'Macro {name} missing size in LEF, not adding '
                         'to available cells.')
 
-        tech_lef = chip.find(chip.get('pdk', 'aprtech', stackup, libtype, 'lef')[0])
+        tech_lef = chip.find_file(chip.get('pdk', 'aprtech', stackup, libtype, 'lef')[0])
         tech_lef_data = leflib.parse(tech_lef)
 
         if 'sites' not in tech_lef_data or self.stdcell_name not in tech_lef_data['sites']:
@@ -202,7 +202,7 @@ class Floorplan:
 
         self.stdcell_width = site['size']['width']
         self.stdcell_height = site['size']['height']
-            
+
         if 'units' in tech_lef_data and 'database' in tech_lef_data['units']:
             self.db_units = int(tech_lef_data['units']['database'])
         else:

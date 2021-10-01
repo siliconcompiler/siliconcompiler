@@ -72,17 +72,17 @@ def runtime_options(chip):
 
     # source files
     for value in chip.get('ydir'):
-        cmdlist.append('--library-dir ' + chip.find(value))
+        cmdlist.append('--library-dir ' + chip.find_file(value))
     for value in chip.get('vlib'):
-        cmdlist.append('--library-file ' + chip.find(value))
+        cmdlist.append('--library-file ' + chip.find_file(value))
     for value in chip.get('idir'):
-        cmdlist.append('-I' + chip.find(value))
+        cmdlist.append('-I' + chip.find_file(value))
     for value in chip.get('define'):
         cmdlist.append('-D' + value)
     for value in chip.get('source'):
         if value.endswith('.v') or value.endswith('.vh') or \
            value.endswith('.sv') or value.endswith('.svh'):
-            cmdlist.append(chip.find(value))
+            cmdlist.append(chip.find_file(value))
 
     return cmdlist
 
