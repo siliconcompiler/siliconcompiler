@@ -1349,23 +1349,22 @@ class Chip:
         fileformat = ext.replace(".", "")
         dot = graphviz.Digraph(format=fileformat)
         dot.attr(bgcolor='transparent')
-        if graphtype == 'flowgraph':
-            for step in self.getkeys('flowgraph'):
-                for index in self.getkeys('flowgraph', step):
-                    node = step+index
-                    # create step node
-                    if self.get('flowgraph', step, index, 'tool'):
-                        labelname = step+index+'\\n('+self.get('flowgraph', step, index, 'tool')+")"
-                    else:
-                        labelname = step
-                    dot.node(node, label=labelname)
-                    # get inputs
-                    all_inputs = []
-                    for i in self.getkeys('flowgraph', step, index, 'input'):
-                        for j in self.get('flowgraph', step, index, 'input', i):
-                            all_inputs.append(i+j)
-                    for item in all_inputs:
-                        dot.edge(item, node)
+        for step in self.getkeys('flowgraph'):
+            for index in self.getkeys('flowgraph', step):
+                node = step+index
+                # create step node
+                if self.get('flowgraph', step, index, 'tool'):
+                    labelname = step+index+'\\n('+self.get('flowgraph', step, index, 'tool')+")"
+                else:
+                    labelname = step
+                dot.node(node, label=labelname)
+                # get inputs
+                all_inputs = []
+                for i in self.getkeys('flowgraph', step, index, 'input'):
+                    for j in self.get('flowgraph', step, index, 'input', i):
+                        all_inputs.append(i+j)
+                for item in all_inputs:
+                    dot.edge(item, node)
         dot.render(filename=fileroot, cleanup=True)
 
     ########################################################################
