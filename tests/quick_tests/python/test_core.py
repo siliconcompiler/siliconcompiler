@@ -18,7 +18,7 @@ class TestCore(unittest.TestCase):
         args = ['sc', 'examples/ibex/ibex_alu.v', 'examples/ibex/ibex_branch_predict.v',
                 '-target', 'asicflow_freepdk45']
         with unittest.mock.patch('sys.argv', args):
-            chip.cmdline('sc')
+            chip.create_cmdline('sc')
 
         assert chip.get('source') == ['examples/ibex/ibex_alu.v',
                                       'examples/ibex/ibex_branch_predict.v']

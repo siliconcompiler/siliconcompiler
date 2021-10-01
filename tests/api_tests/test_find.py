@@ -11,9 +11,9 @@ def test_find():
     chip = siliconcompiler.Chip()
     chip.set('scpath', 'examples/sclib')
     error = 0
-    if not chip.find("flows/asicflow.py"):
+    if not chip.find_file("flows/asicflow.py"):
         error = 1
-    if not chip.find("foundries/freepdk45.py"):
+    if not chip.find_file("foundries/freepdk45.py"):
         error = 1
 
     assert not error
