@@ -88,7 +88,7 @@ def pre_process(chip):
     techmap_paths = []
     if 'techmap' in chip.getkeys('eda', tool, step, index, 'option'):
         for mapfile in chip.get('eda', tool, step, index, 'option', 'techmap'):
-            abspath = chip.find(mapfile)
+            abspath = chip.find_file(mapfile)
             # TODO: Warning or error if a file can't be found?
             if abspath:
                 techmap_paths.append(abspath)
@@ -100,13 +100,13 @@ def pre_process(chip):
     if chip.get('pdk','process'):
         process = chip.get('pdk','process')
         if process == 'freepdk45':
-            abspath = chip.find('tools/yosys/cells_latch_freepdk45.v')
+            abspath = chip.find_file('tools/yosys/cells_latch_freepdk45.v')
             if abspath:
                 techmap_paths.append(abspath)
         elif process == 'skywater130':
             # TODO: might want to eventually switch on libname rather than
             # process so we can support other sky130 variations besides HD.
-            abspath = chip.find('tools/yosys/cells_latch_sky130hd.v')
+            abspath = chip.find_file('tools/yosys/cells_latch_sky130hd.v')
             if abspath:
                 techmap_paths.append(abspath)
 
@@ -126,7 +126,7 @@ def pre_process(chip):
 
         lut_size = None
         for arch_file in chip.get('fpga', 'arch'):
-            tree = ET.parse(chip.find(arch_file))
+            tree = ET.parse(chip.find_file(arch_file))
             root = tree.getroot()
             if root.tag == 'architecture':
                 lut_size = max([int(pb_type.find("input").get("num_pins"))

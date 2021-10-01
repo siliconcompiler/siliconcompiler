@@ -75,11 +75,11 @@ def runtime_options(chip):
     lib_rev = chip.get('library', libname, 'version')
     stackup = chip.get('pdk','stackup')[0]
     libtype = chip.get('library', libname, 'arch')
-    techfile = chip.find(chip.get('pdk','layermap', stackup, 'def', 'gds')[0])
-    techlef = chip.find(chip.get('pdk','aprtech', stackup, libtype, 'lef')[0])
+    techfile = chip.find_file(chip.get('pdk','layermap', stackup, 'def', 'gds')[0])
+    techlef = chip.find_file(chip.get('pdk','aprtech', stackup, libtype, 'lef')[0])
     #TODO: fix this!, is foundry_lefs they only way??
     #needed?
-    liblef = chip.find(chip.get('library',libname,'lef')[0])
+    liblef = chip.find_file(chip.get('library',libname,'lef')[0])
     lefpath = os.path.dirname(liblef)
     #TODO: fix to add fill
     config_file = ""
@@ -99,10 +99,10 @@ def runtime_options(chip):
         gds_files = []
         for lib in chip.get('asic', 'targetlib'):
             for gds in chip.get('library', lib, 'gds'):
-                gds_files.append(chip.find(gds))
+                gds_files.append(chip.find_file(gds))
         for lib in chip.get('asic', 'macrolib'):
             for gds in chip.get('library', lib, 'gds'):
-                gds_files.append(chip.find(gds))
+                gds_files.append(chip.find_file(gds))
         gds_list = ' '.join(gds_files)
         options.append(f'in_files="{gds_list}"')
         options.append('-rd')
@@ -117,7 +117,7 @@ def runtime_options(chip):
         #        lef_files.append(chip.find(lef))
         for lib in chip.get('asic', 'macrolib'):
             for lef in chip.get('library', lib, 'lef'):
-                lef_files.append(chip.find(lef))
+                lef_files.append(chip.find_file(lef))
         lef_list = ' '.join(lef_files)
         options.append('-rd')
         options.append(f'macro_lefs="{lef_list}"')

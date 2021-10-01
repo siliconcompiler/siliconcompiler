@@ -71,7 +71,7 @@ def runtime_options(chip):
 
     # Add sources
     for value in chip.get('source'):
-        options.append(chip.find(value))
+        options.append(chip.find_file(value))
 
     # Set top module
     design = chip.get('design')

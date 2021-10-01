@@ -85,17 +85,17 @@ def runtime_options(chip):
 
     # source files
     for value in chip.get('ydir'):
-        cmdlist.append('-y ' + chip.find(value))
+        cmdlist.append('-y ' + chip.find_file(value))
     for value in chip.get('vlib'):
-        cmdlist.append('-v ' + chip.find(value))
+        cmdlist.append('-v ' + chip.find_file(value))
     for value in chip.get('idir'):
-        cmdlist.append('-I' + chip.find(value))
+        cmdlist.append('-I' + chip.find_file(value))
     for value in chip.get('define'):
         cmdlist.append('-D' + value)
     for value in chip.get('cmdfile'):
-        cmdlist.append('-f ' + chip.find(value))
+        cmdlist.append('-f ' + chip.find_file(value))
     for value in chip.get('source'):
-        cmdlist.append(chip.find(value))
+        cmdlist.append(chip.find_file(value))
 
     #  make warnings non-fatal in relaxed mode
     if chip.get('relax'):
