@@ -4,14 +4,16 @@ import siliconcompiler
 
 def main():
     progname = "sc-show"
+    description = """
+    --------------------------------------------------------------
+    Restricted SC app that accepts one ore more json based cfg
+    files and a source file to show using the SC show() method.
+    """
+
     chip = siliconcompiler.Chip()
-    chip.cmdline(progname,
-                 switchlist=['source', 'cfg', 'loglevel'],
-                 description="""
-                 --------------------------------------------------------------
-                 Restricted SC app that accepts one ore more json based cfg
-                 files and a source file to show using the SC show() method.
-                 """)
+    chip.create_cmdline(progname,
+                        switchlist=['source', 'cfg', 'loglevel'],
+                        description=description)
 
     #Error checking
     if (not chip.get('source')) | (not chip.get('cfg')) :
