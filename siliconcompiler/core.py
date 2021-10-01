@@ -1631,9 +1631,10 @@ class Chip:
         metric_list = []
         for step in steplist:
             for metric in self.getkeys('metric','default','default'):
-                if self.get('flowgraph', step, '0', 'weight', metric):
-                    if metric not in metric_list:
-                        metric_list.append(metric)
+                if metric in self.getkeys('flowgraph', step, '0', 'weight'):
+                    if self.get('flowgraph', step, '0', 'weight', metric):
+                        if metric not in metric_list :
+                            metric_list.append(metric)
 
         # print out all metrics
         metrics = []
