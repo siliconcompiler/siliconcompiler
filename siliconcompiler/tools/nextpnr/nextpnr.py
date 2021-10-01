@@ -68,7 +68,7 @@ def runtime_options(chip):
     pcf_file = None
     for constraint_file in chip.get('constraint'):
         if os.path.splitext(constraint_file)[-1] == '.pcf':
-            pcf_file = chip.find(constraint_file)
+            pcf_file = chip.find_file(constraint_file)
             options.append('--pcf ' + pcf_file)
 
     return options
