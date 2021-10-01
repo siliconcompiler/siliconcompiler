@@ -20,7 +20,9 @@ def main():
         print(progname+": error: the following arguments are required: source,cfg")
         sys.exit()
     #Running show()
-    chip.show(chip.get('source')[0])
+    # sources specified in the -cfg file go first in the list, so we display the
+    # last source file in the list
+    chip.show(chip.get('source')[-1])
 
 #########################
 if __name__ == "__main__":
