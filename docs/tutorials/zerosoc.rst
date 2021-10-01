@@ -142,9 +142,9 @@ The following lines show how the ZeroSoC configuration points to its RAM macro
 library::
 
   libname = 'ram'
-  chip.add('library', libname, 'model', 'typical', 'nldm', 'lib', 'asic/sky130/sky130_sram_2kbyte_1rw1r_32x512_8_TT_1p8V_25C.lib')
-  chip.add('library', libname, 'lef', 'asic/sky130/sky130_sram_2kbyte_1rw1r_32x512_8.lef')
-  chip.add('library', libname, 'gds', 'asic/sky130/sky130_sram_2kbyte_1rw1r_32x512_8.gds')
+  chip.add('library', libname, 'nldm', 'typical', 'lib', 'asic/sky130/ram/sky130_sram_2kbyte_1rw1r_32x512_8_TT_1p8V_25C.lib')
+  chip.add('library', libname, 'lef', 'asic/sky130/ram/sky130_sram_2kbyte_1rw1r_32x512_8.lef')
+  chip.add('library', libname, 'gds', 'asic/sky130/ram/sky130_sram_2kbyte_1rw1r_32x512_8.gds')
 
 In addition, the name of the macro library must be added to the ``'asic', 'macrolib'``
 parameter::
@@ -326,12 +326,12 @@ work, go ahead and run ``floorplan.py``. This should produce some log output, as
 well as 2 files: ``asic_core.def``, and ``sc_manifest.json``. The ``.def`` file
 contains our floorplan in DEF format, while ``sc_manifest.json`` contains our
 chip configuration in SiliconCompiler’s JSON manifest format. We can display
-this DEF file in KLayout by running the following command::
+this DEF file in KLayout by running the following command:
 
 .. code-block:: bash
 
   $ sc-show asic_core.def -cfg sc_manifest.json
-  
+
 We point ``sc-show`` at ``sc_manifest.json`` since ``sc-show`` will use it to
 configure KLayout according to our technology and macro library specifications
 to give you a proper view of your DEF file.
@@ -485,7 +485,7 @@ constants that are the same for every pin we place. Add the following below the
         ('tech_cfg', 14, 16, 56.685), # dm[1]
         ('tech_cfg', 15, 16, 25.865), # dm[2]
     ]
- 
+
 Now, we can write two nested for-loops for each side, the first over the list of
 pad positions, and the second over the pin offsets, to calculate the position of
 and place each I/O pin::
@@ -612,7 +612,7 @@ then use the convenient ``place_ring`` helper function to create them::
   fp.place_ring('_vdd', vdd_ring_left_x, vdd_ring_bottom_y, vdd_ring_width, vdd_ring_height, hwidth, vwidth, hlayer, vlayer)
   fp.place_ring('_vss', vss_ring_left_x, vss_ring_bottom_y, vss_ring_width,
   vss_ring_height, hwidth, vwidth, hlayer, vlayer)
-  
+
 If you regenerate the DEF file, you can now see two rings of wires circling the
 ZeroSoC core.
 
@@ -826,3 +826,4 @@ FPGA
 ----
 TODO: do we want to include instructions for FPGA simulation here, or just focus
 on ASIC/floorplanning stuff?
+
