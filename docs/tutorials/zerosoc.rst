@@ -640,6 +640,114 @@ Rebuild the floorplan and you should see a result like this:
 
 .. image:: _images/power_straps.png
 
+Now, we need a way to connect from the padring to the power rings. To do, we'll
+add a few pieces of metal that will abut the correct ports on the power pads,
+and overlap the corresponding wires in the ring. We do this with a few for loops
+over the pads::
+
+  gpio_h = fp.available_cells[GPIO].height
+  pow_h = fp.available_cells[VDD].height
+  pow_gap = gpio_h - pow_h
+  # Place wires connecting power pads to the power ring
+  for pad_type, y in we_pads:
+      y -= gpio_h
+      if pad_type == VDD:
+          # fp.place_wires(['_vdd'], -pow_gap, y + 0.495, 0, 0, vdd_ring_left_x + vwidth + pow_gap, 23.9, 'm3', 'followpin')
+          # fp.place_wires(['_vdd'], -pow_gap, y + 50.39, 0, 0, vdd_ring_left_x + vwidth + pow_gap, 23.9, 'm3', 'followpin')
+          fp.place_wires(['_vdd'], 0, y + 0.495, 0, 0, vdd_ring_left_x + vwidth, 23.9, 'm3', 'followpin')
+          fp.place_pins (['_vdd'], 0, y + 0.495, 0, 0, vdd_ring_left_x + vwidth, 23.9, 'm3')
+      elif pad_type == VSS:
+          # fp.place_wires(['_vss'], -pow_gap, y + 0.495, 0, 0, vss_ring_left_x + vwidth + pow_gap, 23.9, 'm3', 'followpin')
+          # fp.place_wires(['_vss'], -pow_gap, y + 50.39, 0, 0, vss_ring_left_x + vwidth + pow_gap, 23.9, 'm3', 'followpin')
+          fp.place_wires(['_vss'], 0, y + 0.495, 0, 0, vss_ring_left_x + vwidth, 23.9, 'm3', 'followpin')
+          fp.place_pins( ['_vss'], 0, y + 0.495, 0, 0, vss_ring_left_x + vwidth, 23.9, 'm3')
+      else:
+          continue
+
+  # for pad_type, x in no_pads:
+  #     x -= gpio_h
+  #     if pad_type == VDD:
+  #         fp.place_wires(['_vdd'], x + 0.495, vdd_ring_top_y - hwidth, 0, 0, 23.9, core_h - vdd_ring_top_y + hwidth + pow_gap, 'm3', 'followpin')
+  #         fp.place_wires(['_vdd'], x + 0.495, vdd_ring_top_y - hwidth, 0, 0, 23.9, core_h - vdd_ring_top_y + hwidth + pow_gap, 'm3', 'followpin')
+  #     elif pad_type == VSS:
+  #         fp.place_wires(['_vss'], x + 0.495, vss_ring_top_y - hwidth, 0, 0, 23.9, core_h - vss_ring_top_y + hwidth + pow_gap, 'm3', 'followpin')
+  #         fp.place_wires(['_vss'], x + 0.495, vss_ring_top_y - hwidth, 0, 0, 23.9, core_h - vss_ring_top_y + hwidth + pow_gap, 'm3', 'followpin')
+  #     else:
+  #         continue
+
+  # for pad_type, y in ea_pads:
+  #     y -= gpio_h
+  #     pad_w = fp.available_cells[pad_type].width
+  #     if pad_type == VDD:
+  #         fp.place_wires(['_vdd'], vdd_ring_right_x - vwidth, y + pad_w - 0.495 - 23.9, 0, 0, core_w - vdd_ring_right_x + vwidth + pow_gap, 23.9, 'm3', 'followpin')
+  #         fp.place_wires(['_vdd'], vdd_ring_right_x - vwidth, y + pad_w - 50.39 - 23.9, 0, 0, core_w - vdd_ring_right_x + vwidth + pow_gap, 23.9, 'm3', 'followpin')
+  #     elif pad_type == VSS:
+  #         fp.place_wires(['_vss'], vss_ring_right_x - vwidth, y + pad_w - 0.495 - 23.9, 0, 0, core_w - vss_ring_right_x + vwidth + pow_gap, 23.9, 'm3', 'followpin')
+  #         fp.place_wires(['_vss'], vss_ring_right_x - vwidth, y + pad_w - 50.39 - 23.9, 0, 0, core_w - vss_ring_right_x + vwidth + pow_gap, 23.9, 'm3', 'followpin')
+  #     else:
+  #         continue
+
+  # for pad_type, x in so_pads:
+  #     x -= gpio_h
+  #     pad_w = fp.available_cells[pad_type].width
+  #     if pad_type == VDD:
+  #         fp.place_wires(['_vdd'], x + pad_w - 0.495 - 23.9, -pow_gap, 0, 0, 23.9, vdd_ring_bottom_y + hwidth + pow_gap, 'm3', 'followpin')
+  #         fp.place_wires(['_vdd'], x + pad_w - 50.39 - 23.9, -pow_gap, 0, 0, 23.9, vdd_ring_bottom_y + hwidth + pow_gap, 'm3', 'followpin')
+  #     elif pad_type == VSS:
+  #         fp.place_wires(['_vss'], x + pad_w - 0.495 - 23.9, -pow_gap, 0, 0, 23.9, vss_ring_bottom_y + hwidth + pow_gap, 'm3', 'followpin')
+  #         fp.place_wires(['_vss'], x + pad_w - 50.39 - 23.9, -pow_gap, 0, 0, #     23.9, vss_ring_bottom_y + hwidth + pow_gap, 'm3', 'followpin')
+
+[TODO: insert zoomed image]
+
+There are now two steps left to finishing up the PDN. First, we need to connect
+together all overlapping wires that are part of the same net. Next, we need to
+connect these wires to the metal wires that will supply power to the standard
+cells, as well as the pins that will supply power to the macros.
+
+In order to accomplish both these tasks, we'll need to insert vias in the
+design. The floorplan API has a useful helper function that will insert vias
+between all common nets on specified layers. However, before we call this
+function, we're going to add a few more special nets that will enable us to set
+up connections to the standard cells as well as the RAM macro.
+
+First, for the standard cells::
+
+  rows_below_ram = (ram_y - margin_bottom) // fp.stdcell_height
+  rows_above_ram = len(fp.rows) - rows_below_ram
+
+  npwr_below = 1 + math.floor(rows_below_ram / 2)
+  ngnd_below = math.ceil(rows_below_ram / 2)
+
+  npwr_above = 1 + math.floor(rows_above_ram / 2)
+  ngnd_above = math.ceil(rows_above_ram / 2)
+
+  stripe_w = 0.48
+
+  fp.place_wires(['_vdd'] * npwr_below, margin_left, margin_bottom - stripe_w/2, 0, 2 * fp.stdcell_height, place_w, stripe_w, 'm1', 'followpin')
+  fp.place_wires(['_vss'] * ngnd_below, margin_left, margin_bottom - stripe_w/2 + fp.stdcell_height, 0, 2 * fp.stdcell_height, place_w, stripe_w, 'm1', 'followpin')
+  fp.place_wires(['_vdd'] * npwr_above, margin_left, margin_bottom - stripe_w/2 + npwr_below * 2 * fp.stdcell_height, 0, 2 * fp.stdcell_height, ram_x - 2 * margin_left, stripe_w, 'm1', 'followpin')
+  fp.place_wires(['_vss'] * ngnd_above, margin_left, margin_bottom - stripe_w/2 + fp.stdcell_height + ngnd_below * 2 * fp.stdcell_height, 0, 2 * fp.stdcell_height, ram_x - 2 * margin_left, stripe_w, 'm1', 'followpin')
+
+We calculate these based on a bit of math, using the number of placement rows in
+our floorplan. We set the "followpin" attribute on these wires, which indicates
+to our design tool that they are overlapping the pins of cells in the design.
+
+Next, we do the same for the power pins along the RAM macro::
+
+  ram_x = fp.snap(ram_x, fp.stdcell_width)
+  ram_y = fp.snap(ram_y, fp.stdcell_height)
+  fp.place_wires(['_vdd'], ram_x + 4.76, ram_y + 4.76, 0, 0, 6.5 - 4.76, 411.78 - 4.76, 'm4', 'followpin')
+  fp.place_wires(['_vdd'], ram_x + 676.6, ram_y + 4.76, 0, 0, 678.34 - 676.6, 411.78 - 4.76, 'm4', 'followpin')
+  fp.place_wires(['_vss'], ram_x + 1.36, ram_y + 1.36, 0, 0, 3.1 - 1.36, 415.18 - 1.36, 'm4', 'followpin')
+  fp.place_wires(['_vss'], ram_x + 680, ram_y + 1.36, 0, 0, 681.74 - 680, 415.18 - 1.36, 'm4', 'followpin')
+
+Once these are all set up, we're now ready to insert vias with a single easy
+call::
+
+  fp.insert_vias(layers=[('m1', 'm4'), ('m3', 'm4'), ('m3', 'm5'), ('m4', 'm5')])
+
+.. image:: _images/complete_pdn.png
+
 Top-level padring
 ++++++++++++++++++
 Now that we've completed floorplanning the core, it's time to put together the
