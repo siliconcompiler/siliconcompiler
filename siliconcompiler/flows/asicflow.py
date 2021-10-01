@@ -154,7 +154,7 @@ def setup_flow(chip):
         chip.set('flowgraph', 'extspice', '0', 'tool', 'magic')
         chip.add('flowgraph', 'extspice', '0', 'input', 'export', '0')
 
-        chip.set('flowgraph', 'lvsjoin', '0', 'function', 'join')
+        chip.set('flowgraph', 'lvsjoin', '0', 'function', 'step_join')
         chip.add('flowgraph', 'lvsjoin', '0', 'input', 'dfmmin', '0')
         chip.add('flowgraph', 'lvsjoin', '0', 'input', 'extspice', '0')
 
@@ -164,7 +164,7 @@ def setup_flow(chip):
         chip.set('flowgraph', 'drc', '0', 'tool', 'magic')
         chip.add('flowgraph', 'drc', '0', 'input', 'export', '0')
 
-        chip.set('flowgraph', 'signoff', '0', 'function', 'join')
+        chip.set('flowgraph', 'signoff', '0', 'function', 'step_join')
         chip.add('flowgraph', 'signoff', '0', 'input', 'lvs', '0')
         chip.add('flowgraph', 'signoff', '0', 'input', 'drc', '0')
 
