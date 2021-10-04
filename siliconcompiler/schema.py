@@ -997,8 +997,38 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
                     "api: chip.set('library','mylib','type','stdcell')"],
         'help': """
         Type of the library being configured. A 'stdcell' type is reserved
-        for fixed height standard cell libraries. A 'component' type is
-        used for everything else.
+        for fixed height standard cell libraries. A 'soft' type indicates
+        a library that is provided as technology agnostic source code, and
+        a 'hard' type indicates a technology specific non stdcell library.
+        """
+    }
+
+    cfg['library'][lib]['source'] = {
+        'switch': "-library_source '<file>'",
+        'requirement': None,
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Library source files',
+        'example': [
+            "cli: -library_source 'mylib hello.v'",
+            "api: chip.set('library','mylib','source','hello.v')"],
+        'help': """
+        List of library source files. File type is inferred from the
+        file suffix. The parameter is required or 'soft' library types and
+        optional for 'hard' and 'stdcell' library types.
+        (\\*.v, \\*.vh) = Verilog
+        (\\*.vhd)      = VHDL
+        (\\*.sv)       = SystemVerilog
+        (\\*.c)        = C
+        (\\*.cpp, .cc) = C++
+        (\\*.py)       = Python
         """
     }
 
@@ -1346,14 +1376,15 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'author': [],
         'signature': [],
         'shorthelp': 'Library LVS netlists',
-        'example': ["cli: -library_netlist 'mylib cdl mylib.cdl'",
-                    "api: chip.set('library','mylib','netlist','cdl','mylib.cdl')"],
+        'example': [
+            "cli: -library_netlist 'mylib cdl mylib.cdl'",
+            "api: chip.set('library','mylib','netlist','cdl','mylib.cdl')"],
         'help': """
-        Files containing the netlist used for layout versus schematic (LVS)
-        checks. For transistor level libraries such as standard cell libraries
-        and SRAM macros, this should be a CDL type netlist. For higher level
-        modules like place and route blocks, it should be a verilog gate
-        level netlist.
+        List of files containing the golden netlist used for layout versus 
+        schematic (LVS) checks. For transistor level libraries such as 
+        standard cell libraries and SRAM macros, this should be a CDL type 
+        netlist. For higher level modules like place and route blocks, it 
+        should be a verilog gate level netlist.
         """
     }
     cfg['library'][lib]['spice'] = {}
@@ -3537,7 +3568,7 @@ def schema_design(cfg):
         'help': """
         A list of source files to read in for elaboration. The files are read
         in order from first to last entered. File type is inferred from the
-        file suffix:
+        file suffix.
         (\\*.v, \\*.vh) = Verilog
         (\\*.vhd)      = VHDL
         (\\*.sv)       = SystemVerilog
