@@ -194,7 +194,7 @@ def schema_pdk(cfg, stackup='default'):
         'example': ["cli: -pdk_foundry virtual",
                     "api:  chip.set('pdk', 'foundry', 'virtual')"],
         'help': """
-        Official foundry company name. Examples include intel, gf, tsmc,
+        Name of foundry corporation. Examples include intel, gf, tsmc,
         samsung, skywater, virtual. The \'virtual\' keyword is reserved for
         simulated non-manufacturable processes.
         """
@@ -210,9 +210,9 @@ def schema_pdk(cfg, stackup='default'):
         'example': ["cli: -pdk_process asap7",
                     "api:  chip.set('pdk', 'process', 'asap7')"],
         'help': """
-        Official public name of the foundry process. The string is case
-        insensitive and must match the public process name exactly. Examples
-        of virtual processes include freepdk45 and asap7.
+        Public name of the foundry process. The string is case insensitive and 
+        must match the public process name exactly. Examples of virtual 
+        processes include freepdk45 and asap7.
         """
     }
 
@@ -1052,6 +1052,37 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'help': """
         Filepaths to testbench specified on a per library and per simtype basis.
         Typical simulation types include rtl, spice.
+        """
+    }
+
+    cfg['library'][lib]['pdk'] = {
+        'switch': "-library_pdk 'lib <str>'",
+        'requirement': None,
+        'type': 'str',
+        'lock': 'false',
+        'defvalue': None,
+        'shorthelp': 'Library PDK',
+        'example': ["cli: -library_pdk 'mylib freepdk45",
+                    "api:  chip.set('library', 'pdk', 'mylib', 'freepdk45')"],
+        'help': """
+        Name of the PDK module used to create the library package. The module
+        is checked and loaded based on the 'scpath' schema parameter. The 
+        parameter is required for hardened technology specific library types.
+        """
+    }
+
+    cfg['library'][lib]['stackup'] = {
+        'switch': "-library_stackup 'lib <str>'",
+        'requirement': None,
+        'type': 'str',
+        'lock': 'false',
+        'defvalue': None,
+        'shorthelp': 'Library stackup',
+        'example': ["cli: -library_stackup 'mylib M10",
+                    "api:  chip.set('library', 'stackup', 'mylib', '10')"],
+        'help': """
+        Name of the PDK metal stackup used by the library. The parameter is 
+        required for hardened technology specific library types.
         """
     }
 
@@ -3661,8 +3692,6 @@ def schema_design(cfg):
         A list of design documents. Files are read in order from first to last.
         """
     }
-
-
 
     cfg['license'] = {
         'switch': "-license <file>",
