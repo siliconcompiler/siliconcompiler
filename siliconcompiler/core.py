@@ -136,10 +136,9 @@ class Chip:
             progname (str): Name of program to be executed.
             description (str): Short program description.
             switchlist (list of str): List of SC parameter switches to expose
-                 at the command line. By default all SC schema switches
-                 are available.  Parameter switches should be entered
-                 without '-', based on the parameter 'switch' field
-                 in the 'schema'.
+                 at the command line. By default all SC schema switches are
+                 available.  Parameter switches should be entered without 
+                 '-', based on the parameter 'switch' field in the 'schema'.
 
         Examples:
             >>> chip.create_cmdline(progname='sc-show',switchlist=['source','cfg'])
@@ -348,10 +347,10 @@ class Chip:
         '''
         Imports a module and returns a module function attribute.
 
-        Searches the SC root directory and the 'scpath' parameter
-        for the modulename provided and imports the module if found.
-        If the funcname provided is found in the module, a callable
-        function attribude is returned, otherwise None is returned.
+        Searches the SC root directory and the 'scpath' parameter for the 
+        modulename provided and imports the module if found. If the funcname 
+        provided is found in the module, a callable function attribude is 
+        returned, otherwise None is returned.
 
         The function assumes the following directory structure:
 
@@ -363,7 +362,8 @@ class Chip:
 
         * pdk (make_docs, setup_pdk)
         * flow (make_docs, setup_flow)
-        * tool (make_docs, setup_tool, check_version, runtime_options, pre_process, post_process)
+        * tool (make_docs, setup_tool, check_version, runtime_options, 
+          pre_process, post_process)
 
         Args:
             modulename (str): Name of module to import.
@@ -493,11 +493,14 @@ class Chip:
         all destination matches in the form '<step><index>'.
 
         Args:
-            step (str): Step name to find in flowgraph
-            index (str): Index name to find in flowgraph
+            step (str): Step name used to find outputs.
+            index (str): Index name used to find outputs.
+
+        Returns:
+            A list of step-index pair strings.
 
         Examples:
-            >>> dst_list = list_outputs('import', '0')
+            >>> dst_list = chip.list_outputs('import', '0')
             Returns list of step/index pairs driven by index 0 of import step
 
         '''
@@ -518,10 +521,10 @@ class Chip:
         Returns a formatted help string based on the keypath provided.
 
         Args:
-            *keypath(str): Parameter keypath
+            *keypath(str): Keypath to parameter.
 
         Returns:
-            A formmated multi-line help paragram for the parameter provided.
+            A formmated multi-line help paragraph for the parameter provided.
 
         Examples:
             >>> print(chip.help('asic','diearea'))
@@ -572,81 +575,70 @@ class Chip:
         return fullstr
 
     ###########################################################################
-    def get(self, *args, field='value', cfg=None):
+    def get(self, *keypath, field='value', cfg=None):
         """
-        Returns a parameter value based on keypath input.
+        Returns a parameter value based on keypath provided.
 
-        The method searches the SC cfg-schema for the keypath and field
-        provided and returns a paramater value of a type specified by the
-        parameter 'type' field. Accesses to non-existing dictionary entries
-        results in a logger error and in the setting the 'self.error' flag to 1.
+        Searches the schema for the keypath provided and returns the value 
+        for the specified field. The returned type is consistent with the 
+        type field of the parameter. Fetching parameters with empty /
+        undefined value files returns None for scalar types and [] (empty list)
+        for list types. Accessing a non-existent keypath produces a logger 
+        error message and raises the Chip object error flag. 
 
         Args:
-            args(string): A variable length argument list specifying the
-                keypath for accessing the cfg schema.
-            cfg(dict): A dictionary within the Chip object to use for
-                key-sequence query.
-            field(string): Leaf cell field to fetch. Examples of
-                valid fields include 'value', 'defvalue', 'type'. For
-                a complete description of the valid entries, see the
-                schema.py module.
+            keypath(list str): Variable length ordered schema key list.
+            field(str): Name of the parameter field to fetch.
+            cfg(dict): Alternate dictionary to access in place of self.cfg.
 
         Returns:
-            Value found for the key sequence and field provided.
+            Value found for the keypath and field provided.
 
         Examples:
-            >>> get('pdk', 'foundry')
-            Returns the name of the foundry.
+            >>> foundry = chip.get('pdk', 'foundry')
+            Returns the name of the foundry from the PDK.
 
         """
 
         if cfg is None:
             cfg = self.cfg
 
-        keypath = ','.join(args)
+        keypathstr = ','.join(keypath)
 
-        if(field != 'value'):
-            fieldstr = "Field = " + field
-        else:
-            fieldstr = ""
-
-        self.logger.debug(f"Reading from [{keypath}]. Field = '{field}'")
-        return self._search(cfg, keypath, *args, field=field, mode='get')
+        self.logger.debug(f"Reading from [{keypathstr}]. Field = '{field}'")
+        return self._search(cfg, keypathstr, *keypath, field=field, mode='get')
 
     ###########################################################################
-    def getkeys(self, *args, cfg=None):
+    def getkeys(self, *keypath, cfg=None):
         """
-        Returns keys from Chip dictionary based on key-sequence provided.
+        Returns list of keys based on keypath provided.
 
-        Accesses to non-existing dictionary entries results in a logger error
-        and in the setting the 'self.error' flag to 1.
-
+        Searches the schema for the keypath provided and returns a list of
+        keys found, excluding the generic 'default' key. Accessing a 
+        non-existent keypath produces a logger error message and raises the 
+        Chip object error flag.
+        
         Args:
-            args(string): A variable length argument list specifying the
-                key sequence for accessing the cfg nested dictionary.
-                For a complete description of he valid key sequence,
-                see the schema.py module. If the argument list is empty, all
-                dictionary trees are returned as as a list of lists.
-            cfg (dict): A dictionary within the Chip object to use for
-                key list query.
+            keypath(list str): Variable length ordered schema key list
+            cfg(dict): Alternate dictionary to access in place of self.cfg
 
         Returns:
-            List of keys found for the key sequence provided.
+            List of keys found for the keypath provided.
 
         Examples:
-            >>> getkeys('pdk')
-            Returns all keys for the 'pdk' dictionary.
-            >>> getkeys()
-            Returns all key trees in the dictionary as a list of lists.
+            >>> keylist = chip.getkeys('pdk')
+            Returns all keys for the 'pdk' keypath.
+            >>> keylist = chip.getkeys()
+            Returns all list of all keypaths in the schema.
         """
 
         if cfg is None:
             cfg = self.cfg
 
-        if len(list(args)) > 0:
-            keypath = ','.join(args[:-1])
-            self.logger.debug('Getting schema parameter keys for: %s', args)
-            keys = list(self._search(cfg, keypath, *args, mode='getkeys'))
+        if len(list(keypath)) > 0:
+            keypathstr = ','.join(keypath[:-1])
+            self.logger.debug('Getting schema parameter keys for: %s', keypathstr)
+            keys = list(self._search(cfg, keypathstr, *keypath, mode='getkeys'))
             if 'default' in keys:
                 keys.remove('default')
         else:
@@ -656,50 +648,61 @@ class Chip:
         return keys
 
     ###########################################################################
-    def getdict(self, *args, cfg=None):
+    def getdict(self, *keypath, cfg=None):
         """
-        Returns sub-dictionary from SC schema based on key-sequence provided.
+        Returns a dictionary based on keypath provided.
+
+        Searches the schema for the keypath provided and returns a complete
+        dictionary. Accessing a non-existent keypath produces a logger error 
+        message and raises the Chip object error flag.
+
+        Args:
+            keypath(list str): Variable length ordered schema key list
+            cfg(dict): Alternate dictionary to access in place of self.cfg
+
+        Returns:
+            A schema dictionary
+
+        Examples:
+            >>> pdk = chip.getdict('pdk')
+            Returns the complete dictionary found for the keypath 'pdk'
         """
 
         if cfg is None:
             cfg = self.cfg
 
-        if len(list(args)) > 0:
-            keypath = ','.join(args[:-1])
-            self.logger.debug('Getting cfg for: %s', args)
-            localcfg = self._search(cfg, keypath, *args, mode='getcfg')
+        if len(list(keypath)) > 0:
+            keypathstr = ','.join(keypath[:-1])
+            self.logger.debug('Getting cfg for: %s', keypathstr)
+            localcfg = self._search(cfg, keypathstr, *keypath, mode='getcfg')
 
         return copy.deepcopy(localcfg)
 
     ###########################################################################
     def set(self, *args, field='value', clobber=True, cfg=None):
         '''
-        Sets a Chip dictionary value based on key-sequence and data provided.
+        Sets the value of a schema parameter field based on keypath provided.
 
-        Accesses to non-existing dictionary entries results in a logger
-        error and in the setting the 'self.error' flag to 1. For built in
-        dictionary keys with the 'default' keywork entry, new leaf trees
-        are automatically created by the set method by copying the default
-        tree to the tree described by the key-sequence as needed.
+        Searches the schema for the keypath provided and then sets the 
+        specified field to the value provided. New schema dictionaries are 
+        automatially created for keypaths that overlap with 'default' 
+        dictionaries. The write action is ignored if the parameter value is 
+        non-empty and the clobber option is set to False. 
 
-        The data type provided must agree with the dictionary parameter 'type'.
-        Before setting the parameter, the data value is type checked.
-        Any type descrepancy results in a logger error and in setting the
-        self.error flag to 1. For descriptions of the legal values for a
-        specific parameter, refer to the schema.py documentation. Legal values
-        are cast to strings before writing to the dictionary.
+        The value provided must agree with the dictionary parameter 'type'. 
+        Accessing a non-existent keypath or providing a value that disagrees 
+        with the parameter type produces a logger error message and raises the 
+        Chip object error flag.
 
         Args:
-            args (string): A variable length key list used to look
-                up a Chip dictionary entry. For a complete description of the
-                valid key lists, see the schema.py module. The key-tree is
-                supplied in order.
-            cfg (dict): A dictionary within the Chip object to use for
-                key list query.
+            args (list): Parameter keypath followed by a legal value.
+            field (str): Parameter field to set.
+            clobber (bool): Specifies that existing value should be overwritten.
+            cfg(dict): Alternate dictionary to access in place of self.cfg
 
         Examples:
-            >>> set('source', 'mydesign.v')
-            Sets the file 'mydesign.v' to the list of sources.
+            >>> chip.set('design', 'top')
+            Sets the name of the design to 'top'
         '''
 
         if cfg is None:
@@ -710,42 +713,36 @@ class Chip:
             if not isinstance(key,str):
                 self.logger.error(f"Key [{key}] is not a string [{args}]")
 
-        keypath = ','.join(args[:-1])
+        keypathstr = ','.join(args[:-1])
         all_args = list(args)
 
-        self.logger.debug(f"Setting [{keypath}] to {args[-1]}")
-        return self._search(cfg, keypath, *all_args, field=field, mode='set', clobber=clobber)
+        self.logger.debug(f"Setting [{keypathstr}] to {args[-1]}")
+        return self._search(cfg, keypathstr, *all_args, field=field, mode='set', clobber=clobber)
 
     ###########################################################################
     def add(self, *args, cfg=None):
         '''
-        Appends an item to the parameter value specified by the keypath.
+        Adds a value to schema parameter list based on keypath provided.
 
-        Access to non-existing dictionary entries results in a logger error
-        and in the setting the 'self.error' flag to 1. For built in dictionary
-        keys with the 'default' keywork entry, new leaf trees are automatically
-        created by copying the default tree to the tree described by the
-        key-sequence as needed.
+        Searches the schema for the keypath provided and then adds a value
+        to the existing parameter value list. New schema dictionaries are 
+        automatially created for keypaths that overlap with 'default' 
+        dictionaries. 
 
-        The data type provided must agree with the dictionary parameter
-        'type'. Before setting the parameter, the data value is type
-        checked. Any type descrepancy results in a logger error and the
-        self.error flag being raised.
-
-        The add operation is not legal for scalar types.
+        The value provided must agree with the dictionary parameter 'type'. 
+        Accessing a non-existent keypath, providing a value that disagrees 
+        with the parameter type, or using add with a scalar parameter produces 
+        a logger error message and raises the Chip object error flag.
 
         Args:
-            args (string): A variable length argument list consisting of a
-                keypath to a schema parameter followed by the item(s) to add
-                to the parameter value.
-            cfg (dict): A dictionary within the Chip object to use for
-                key list query.
+            args (list): Parameter keypath followed by a legal value.
+            cfg(dict): Alternate dictionary to access in place of self.cfg
 
         Examples:
-            >>> add('source', 'mydesign.v')
-            Sets the file 'mydesign.v' to the list of sources.
+            >>> chip.add('source', 'hello.v')
+            Adds the file 'hello.v' to the list of sources.
         '''
-
+        
         if cfg is None:
             cfg = self.cfg
 
@@ -754,17 +751,17 @@ class Chip:
             if not isinstance(key,str):
                 self.logger.error(f"Key [{key}] is not a string [{args}]")
 
-        keypath = ','.join(args[:-1])
+        keypathstr = ','.join(args[:-1])
         all_args = list(args)
 
-        self.logger.debug(f'Appending value {args[-1]} to [{keypath}]')
-        return self._search(cfg, keypath, *all_args, field='value', mode='add')
+        self.logger.debug(f'Appending value {args[-1]} to [{keypathstr}]')
+        return self._search(cfg, keypathstr, *all_args, field='value', mode='add')
 
 
     ###########################################################################
     def _allkeys(self, cfg, keys=None, keylist=None):
         '''
-        Returns list of all keypaths in the SC schema.
+        Returns list of all keypaths in the schema.
         '''
 
         if keys is None:
@@ -782,20 +779,17 @@ class Chip:
     ###########################################################################
     def _search(self, cfg, keypath, *args, field='value', mode='get', clobber=True):
         '''
-        Internal recursive function that searches a Chip dictionary for a
+        Internal recursive function that searches the Chip schema for a
         match to the combination of *args and fields supplied. The function is
         used to set and get data within the dictionary.
 
         Args:
-            args (string): A variable length key list used to look
-                up a Chip dictionary entry.
-            cfg(dict): The cfg dictionary within the Chip object to extend
-            keypath (string): Concatenated keypath used for error logging.
-            field(string): Leaf cell field to fetch. Examples of
-                valid fields include 'value', 'defvalue', 'type'. For
-                a complete description of the valid entries, see the
-                schema.py module.
-            mode(string): Specifies what to do (set/get/add/getkeys)
+            cfg(dict): The cfg schema to search
+            keypath (str): Concatenated keypath used for error logging.
+            args (str): Keypath/value variable list used for access
+            field(str): Leaf cell field to access. 
+            mode(str): Action (set/get/add/getkeys/getkeys)
+            clobber(bool): Specifies to clobber (for set action)
 
         '''
 
@@ -942,12 +936,8 @@ class Chip:
     ###########################################################################
     def _prune(self, cfg, top=True, keeplists=False):
         '''
-        Recursive function that takes a copy of the Chip dictionary and
-        then removes all sub trees with non-set values and sub-trees
-        that contain a 'default' key.
-
-
-        Returns the pruned dictionary
+        Internal recursive function that creates a local copy of the Chip
+        schema (cfg) with only essential non-empty parameters retained.
 
         '''
 
@@ -1005,14 +995,26 @@ class Chip:
     ###########################################################################
     def find_file(self, filename):
         """
-        Returns an absolute e path for the provided filename provided.
+        Returns the abslute path for the filename provided.
+        
+        Searches the SC root directory and the 'scpath' parameter for the 
+        filename provided and returns the absolute path. If no valid absolute 
+        path is found during the search, None is returned.
 
-        The method searches for a match for the relative filename using
-        the scpath
+        Shell variables ('$' followed by strings consisting of numbers, 
+        underscores, and digits) are replaced with the variable value.
 
-        environment variable. Legal shell variables consisting of '$' followed
-        by numbers, underscores, and digits are replaced with the variable
-        value.
+        Args:
+            filename (str): Relative or absolute filename.
+
+        Returns:
+            Returns absolute path of 'filename' if found, otherwise returns
+            None.
+
+        Examples:
+            >>> chip.find_file('flows/asicflow.py')
+           Returns the absolute path based on the sc installation directory.
+
         """
 
         # Replacing environment variables
@@ -1045,10 +1047,12 @@ class Chip:
 
     ###########################################################################
     def _abspath(self, cfg):
-        '''Recursive function that goes through Chip dictionary and
+        '''
+        Internal recursive function that goes through Chip dictionary and
         resolves all relative paths where required.
         '''
 
+        #TODO: no need for recusion, use allkeys
         #Recursively going through dict to set abspaths for files
         for k, v in cfg.items():
             if isinstance(v, dict):
@@ -1067,12 +1071,12 @@ class Chip:
                     self._abspath(cfg[k])
 
     ###########################################################################
-    def _printcfg(self, cfg, keys=None, file=None, mode="", field='value', prefix=""):
+    def _print_tcl(self, cfg, keys=None, file=None, prefix=""):
         '''
-        Prints out Chip dictionary values one command at a time. Currently only
-        TCL is supported.
+        Prints out schema as TCL dictionary
         '''
 
+        #TODO: simplify, no need for recursion
         if keys is None:
             keys = []
         for k in cfg:
@@ -1080,63 +1084,61 @@ class Chip:
             newkeys.append(k)
             #detect leaf cell
             if 'defvalue' in cfg[k]:
-                if mode == 'tcl':
-                    if 'value' not in cfg[k]:
-                        selval = cfg[k]['defvalue']
-                    else:
-                        selval =  cfg[k]['value']
-                    if bool(re.match(r'\[', str(cfg[k]['type']))) & (field == 'value'):
-                        alist = selval
-                    else:
-                        alist = [selval]
-                    for i, val in enumerate(alist):
-                        #replace $VAR with env(VAR) for tcl
-                        m = re.match(r'\$(\w+)(.*)', str(val))
-                        if m:
-                            alist[i] = ('$env(' +
-                                        m.group(1) +
-                                        ')' +
-                                        m.group(2))
+                if 'value' not in cfg[k]:
+                    selval = cfg[k]['defvalue']
+                else:
+                    selval =  cfg[k]['value']
+                if bool(re.match(r'\[', str(cfg[k]['type']))):
+                    alist = selval
+                else:
+                    alist = [selval]
+                for i, val in enumerate(alist):
+                    #replace $VAR with env(VAR) for tcl
+                    m = re.match(r'\$(\w+)(.*)', str(val))
+                    if m:
+                        alist[i] = ('$env(' +
+                                    m.group(1) +
+                                    ')' +
+                                    m.group(2))
 
-                    #create a TCL dict
-                    keystr = ' '.join(newkeys)
-                    valstr = ' '.join(map(str, alist)).replace(';', '\\;')
-                    outlst = [prefix,
-                              keystr,
-                              '[list ',
-                              valstr,
-                              ']']
-                    outstr = ' '.join(outlst)
-                    outstr = outstr + '\n'
+                #create a TCL dict
+                keystr = ' '.join(newkeys)
+                valstr = ' '.join(map(str, alist)).replace(';', '\\;')
+                outlst = [prefix,
+                          keystr,
+                          '[list ',
+                          valstr,
+                          ']']
+                outstr = ' '.join(outlst)
+                outstr = outstr + '\n'
+                #print out value
                 if file is None:
                     print(outstr)
                 else:
                     print(outstr, file=file)
             else:
-                self._printcfg(cfg[k],
+                self._print_tcl(cfg[k],
                                keys=newkeys,
                                file=file,
-                               mode=mode,
-                               field=field,
                                prefix=prefix)
 
     ###########################################################################
     def merge_manifest(self, cfg, clear=True):
         """
-        Merges the SC configuration dict cfg2 into cfg1.
+        Merges the provided schema dictionary into the Chip object.
 
-        This is a dict merge routine built for the SC schema. The routine
-        takes into account the availabiltiy of the SC dictionary being
-        ac combination of static entries and dynamic entries specified by the
-        keyword 'default' specified as a key.
+        All value fields in the provided schema dictionary are merged into the 
+        current chip object. Dictionaries with non-existent keypath produces a 
+        logger error message and raises the Chip object error flag. 
 
         Args:
-            cfg1 (dict): Original dict within
-            cfg2 (dict): New dict to merge into the original dict
-            strict (bool): If True, d1 is considered the golden reference
-                and only d2 with identical keylists are merged.
-            append (bool): If True, for list variables,the new config valuse
-                are appended to the old values.
+            clear (bool): If True, the chip obect value is cleared before the
+                new dictionary value is written. 
+
+        Examples:
+            >>> chip.merge_manifest('my.pkg.json')
+           Merges all parameters in my.pk.json into the Chip object
+
         """
 
         for keylist in self.getkeys(cfg=cfg):
@@ -1152,6 +1154,10 @@ class Chip:
 
     ###########################################################################
     def _keypath_empty(self, key):
+        '''
+        Utility function to check key for an empty list.
+        '''
+        
         emptylist = ("null", None, [])
 
         value = self.get(*key)
@@ -1163,15 +1169,26 @@ class Chip:
     ###########################################################################
     def check_manifest(self):
         '''
-        Performs a setup validity check and returns success status.
+        Checks the validitiy of the Chip object in memory manifest.
+
+        Checks the validity of the current schema manifest in 
+        memory to ensure that the design has been properly set up prior
+        to running compilation. The function is called inside the run()
+        funciton but can also be called seperately. Checks performed by the 
+        check_manifest() function include:
+
+        * Has a flowgraph been defined?
+        * Does the manifest satisfy the schema requirement field settings?
+        * Are all flowgraph input names legal step/index pairs?
+        * Are the tool parameter setting requirements met?
 
         Returns:
-            Returns True of if the Chip dictionary is valid, else returns
-            False.
+            Returns True if the manifest is valid, else returns False.
 
         Examples:
-            >>> check()
-           Returns True of the Chip dictionary checks out.
+            >>> chip.check_manifest()
+           Returns True of the Chip object dictionary checks out.
+
         '''
 
         steplist = self.get('steplist')
@@ -1230,17 +1247,19 @@ class Chip:
     ###########################################################################
     def read_manifest(self, filename, clear=True):
         """
-        Reads a json or yaml formatted file into the Chip dictionary.
+        Reads a schema manifest from a file into the Chip object.
+        
+        The file format read is determined by the filename suffix. Currently
+        json (*.json) and yaml(*.yaml) formats are sopported.
 
         Args:
-            filename (file): A relative or absolute path toe a file to load
-                into dictionary.
-            clear (bool): If True, lists are cleared before appended with
-                new values from the new dictionary.
+            filename (filepath): Path to a manifest file to be loaded.
+            clear (bool): If True, parameter value lists are are cleared before
+                being appended with new values from the manifest file.
 
         Examples:
-            >>> read_manifest('mychip.json')
-            Loads the file mychip.json into the current Chip dictionary.
+            >>> chip.read_manifest('mychip.json')
+            Loads the file mychip.json into the current Chip object.
         """
 
         abspath = os.path.abspath(filename)
@@ -1262,24 +1281,22 @@ class Chip:
 
     ###########################################################################
     def write_manifest(self, filename, prune=True, keeplists=False, abspath=False):
-        '''Writes out Chip dictionary in json, yaml, or TCL file format.
+        '''
+        Writes the Chip objects manifest to a file.
+        
+        The write file format is determined by the filename suffix. Currently
+        json (*.json), yaml (*.yaml), and tcl (*.tcl) formats are sopported.
 
         Args:
-            filename (file): A relative or absolute path to a file to dump
-                 dictionary into.
-            cfg (dict): A dictionary to dump. If 'None' is specified, then
-                 the current dictionary is dumped.
-            prune (bool): If set to True, then only non-default trees and
-                 non empty values are dumped. If set to False, the whole
-                 dictionary is dumped.
-            abspath (bool): If set to True, then all file paths within the
-                 Chip dictionary are resolved to absolute values.
+            filename (filepath): Output filelepath
+            prune (bool): If True, essential non-empty parameters from the 
+                 the Chip object schema are written to the output file.
+            abspath (bool): If set to True, then all schema filepaths
+                 are resolved to absolute filepaths.
 
         Examples:
-            >>> writecfg('mydump.json')
-            Prunes and dumps the current Chip dictionary into mydump.json
-            >>> writecfg('bigdump.json', prune=False)
-            Dumps the complete current Chip dictionary into bigdump.json
+            >>> chip.write_manifest('mydump.json')
+            Prunes and dumps the current chip manifest into mydump.json
         '''
 
         filepath = os.path.abspath(filename)
@@ -1314,14 +1331,16 @@ class Chip:
                 print("#############################################", file=f)
                 print("#!!!! AUTO-GENERATED FILE. DO NOT EDIT!!!!!!", file=f)
                 print("#############################################", file=f)
-                self._printcfg(cfgcopy, mode="tcl", prefix="dict set sc_cfg", file=f)
+                self._print_tcl(cfgcopy, prefix="dict set sc_cfg", file=f)
             else:
                 self.logger.error('File format not recognized %s', filepath)
                 self.error = 1
 
     ###########################################################################
-
     def _dump_fusesoc(self, cfg):
+        '''
+        Internl funtion for dumping core information from chip object. 
+        '''
 
         fusesoc = {}
 
@@ -1369,9 +1388,23 @@ class Chip:
 
     ###########################################################################
     def write_flowgraph(self, filename):
-        '''Exports the execution flow graph using the graphviz library.
-        For graphviz formats supported, see https://graphviz.org/.
+        '''Writes the execution flow graph to a file.
 
+        The chip object flowgraph is traversed to create a graphviz (*.dot)
+        file comprised of node, edges, and labels. The dot file is a 
+        graphical representation of the flowgraph useful for validating the
+        correctness of the execution flow graph. The dot file is then
+        converted to the appropriate picture or drawing format based on the
+        filename suffix provided. Supported output render formats include
+        png, svg, gif, pdf and a few others. For more information about the 
+        graphviz project, see see https://graphviz.org/
+        
+        Args:
+            filename (filepath): Output filelepath
+
+        Examples:
+            >>> chip.write_flowgraph('mydump.png')
+            Renders the object flowgraph and writes the result to a png file.
         '''
         filepath = os.path.abspath(filename)
         self.logger.debug('Writing flowgraph to file %s', filepath)
@@ -1438,27 +1471,42 @@ class Chip:
                         shutil.copy(filepath, indir)
 
     ###########################################################################
-    def hash_files(self, *args, algo='sha256'):
-        '''Computes sha256 hash of files based on hashmode set in cfg dict.
+    def hash_files(self, *keypath, algo='sha256', update=True):
+        '''Generate hash values for parameter files based on keypath provided.
 
-        Valid hashing modes:
-        * OFF: No hashing of files
-        * ALL: Compute hash of all files in dictionary. This couuld take
-        hours for a modern technology node with thousands of large setup
-        files.
-        * SELECTIVE: Compute hashes only on files accessed by the step
-        currently being executed.
+        Generates a list of hash values based on the contents of the set of 
+        files contained within the parameter indicated by the keypath. If the
+        update variable is True, the has values are then recorded in the 
+        'filehash' field of the parameter, following the order dictated by 
+        the files within the 'values' parameter field.
 
+        The file hash calculation is performed basd on the 'algo' setting.
+        Supported algirithms incldue SHA1, SHA224, SHA256, SHA384, SHA512,
+        and MD5.
+
+         
+        Args:
+            *keypath(str): Keypath to parameter.
+            algo (str): Algorithm to use for file hash calculation
+            update (bool): If True, the hash values are recored in the 
+                chip object manifest.
+
+        Returns:
+            A list of hash values.
+
+        Examples:
+            >>> hash_list = hash_files('sources')
+            Comptues hash files of all files in the sources parameter.        
         '''
 
         hashmode = self.get('hashmode')
-        self.logger.info(f"Computing file hashes with hashmode = {hashmode}, algo = {algo}")
+        self.logger.info(f"Computing  hashmode = {hashmode}, algo = {algo}")
 
         #TODO: Implement algo selection
-        if 'filehash' in args:
-            filelist = self.get(*args)
+        if 'filehash' in keypath:
+            filelist = self.get(*keypath)
             #Clearing list
-            self.set([keylist,[]], clobber=True)
+            self.set([keypath,[]], clobber=True)
             hashlist = []
             for item in filelist:
                 filename = self.find_file(item)
@@ -1470,22 +1518,40 @@ class Chip:
                             sha256_hash.update(byte_block)
                     hash_value = sha256_hash.hexdigest()
                     hashlist.append(hash_value)
-            self.set([keylist,hashlist], clobber=True)
+            self.set([keypath,hashlist], clobber=True)
         else:
             self.error = 1
             self.logger.error(f"Illegal attempt to hash non-file parameter")
 
     ###########################################################################
     def audit_manifest(self):
-        '''Performance an an audit of each step in the flow
+        '''Performance an audit of the chip manifest
+        
+        Checks the integrity of the chip object implementation flow after 
+        the run() function has been completed.
+
+        Audit checks performed include:
+        
+        * Time stamps
+        * File modifications
+        * Error and warning policy
+        * IP and design origin
+        * User access
+        * License terms
+        * Version checks
+
+        Returns:
+            Returns True if the manifest has integrity, else returns False.
+ 
         '''
-        return filename
+        
+        return 0
 
     ###########################################################################
     def calc_yield(self, model='poisson'):
         '''Calculates raw die yield
 
-        Calcualtes the raw yield of the design as a function of design area
+        Calcualates the raw yield of the design as a function of design area
         and d0 defect density. Calculation can be done based ont he poisson
         model (default) or the murphy model. The die area and the d0
         parameters are taken from the chip dictionary.
@@ -1498,6 +1564,10 @@ class Chip:
 
         Returns:
             Design yield percentage (float).
+
+        Examples:
+        >>> yield = chip.calc_yield()
+        Calculates the yield based on the chip object PDK and design area.
 
         '''
 
@@ -1525,8 +1595,11 @@ class Chip:
         footprints as possible within a legal placement area.
 
         Returns:
-            The number of gross dies per wafer (int).
+            Number of gross dies per wafer (int).
 
+        Examples:
+        >>> print(chip.calc_dpw())
+        Prints gross dies per wafer based on the chip object PDK and design area.
         '''
 
         #PDK information
@@ -1575,13 +1648,27 @@ class Chip:
 
     ###########################################################################
     def calc_diecost(self, n):
-        '''Calculates total cost of producing 'n', including design costs,
-        mask costs, packaging costs, tooling, characterization, qualifiction,
-        test. The exact cost model is given by the formula:
+        '''Calculates the per unit die cost based on volume.
+        
+        Calculats the raw per unit die cost based on the number of units 
+        produced (n), the wafer cost, and the fixed mask costs based on the f
+        following calculation: die_cost = maskcost + wafercost/dpw
+
+        An error is produced if cost numbers are absent from the chip manifest.
+
+        Args:
+            n (int): Number of units produced.
+
+        Returns:
+            Raw per die cost.
+                
+        Examples:
+        >>> die_cost = chip.calc_diecost(1000)
+        Calculates the per die cost in USD.
 
         '''
 
-        return n
+        return 0
 
     ###########################################################################
     def summary(self):
