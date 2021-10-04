@@ -17,7 +17,7 @@ TRACKS {{ track.direction | upper }} {{ track.start | scale }} DO {{ track.total
 
 VIAS {{ fp.vias | length }} ;
     {% for via in fp.vias %}
-    - {{ via.name }} 
+    - {{ via.name }}
         {% if via.rule %}
         + VIARULE {{ via.rule }}
         {% endif %}
@@ -44,12 +44,15 @@ COMPONENTS {{ fp.macros | length }} ;
 END COMPONENTS
 
 PINS {{ fp.pins | length }} ;
-{% for pin in fp.pins %}
-    - {{ pin.name }} + NET {{ pin.net }} + DIRECTION {{ pin.direction|upper }} + USE {{ pin.use|upper }}
+{% for name, pin in fp.pins.items() %}
+    - {{ name }} + NET {{ pin.net }} + DIRECTION {{ pin.direction|upper }} + USE {{ pin.use|upper }}
        + PORT
-         + LAYER {{ pin.port.layer }} {{ pin.port.box | map('scale') | map('render_tuple') | join(' ') }}
-         {% if pin.port.status %}
-         + {{ pin.port.status|upper }} {{ pin.port.point | map('scale') | render_tuple }} {{ pin.port.orientation }} ;
+       {% for port in pin.ports %}
+         + LAYER {{ port.layer }} {{ port.box | map('scale') | map('render_tuple') | join(' ') }}
+       {% endfor %}
+        {% set port = pin.ports[0] %}
+         {% if port.status %}
+         + {{ port.status|upper }} {{ port.point | map('scale') | render_tuple }} {{ port.orientation }} ;
          {% endif %}
 {% endfor %}
 END PINS

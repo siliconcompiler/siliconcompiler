@@ -148,7 +148,7 @@ class Floorplan:
         self.design = chip.get('design')
         self.diearea = None
         self.corearea = None
-        self.pins = []
+        self.pins = {}
         self.macros = []
         self.rows = []
         self.tracks = []
@@ -423,6 +423,11 @@ class Floorplan:
                    snap=False):
         '''Places pins along edge of floorplan.
 
+        If a pin with a given name has already been placed on the floorplan,
+        subsequent calls placing that pin will add a new port to the pin
+        definition. These calls will disregard the netname, direction, and use
+        arguments.
+
         Args:
             pins (list of str): List of pin names to place.
             x (float): x-coordinate of first instance in microns.
@@ -469,19 +474,22 @@ class Floorplan:
 
             port = {
                 'layer': self.layers[layer]['name'],
-                'box': [(-width/2, -height/2), (width/2, height/2)],
+                'box': [(-width/2 + pos[0], -height/2 + pos[1]), (width/2 + pos[0], height/2 + pos[1])],
                 'status': 'fixed' if fixed else 'placed',
-                'point': pos,
+                'point': (0, 0),
                 'orientation': 'N'
             }
-            pin = {
-                'name': pin_name,
-                'net': netname if netname else pin_name,
-                'direction': direction,
-                'use': use,
-                'port': port
-            }
-            self.pins.append(pin)
+
+            if pin_name in self.pins:
+                self.pins[pin_name]['ports'].append(port)
+            else:
+                pin = {
+                    'net': netname if netname else pin_name,
+                    'direction': direction,
+                    'use': use,
+                    'ports': [port]
+                }
+                self.pins[pin_name] = pin
 
             x += xpitch
             y += ypitch
@@ -546,9 +554,12 @@ class Floorplan:
                 preferred routing direction as specified in the tech LEF.
         '''
 
-        if shape.lower() not in ('ring', 'padring', 'blockring', 'stripe',
-            'followpin', 'iowire', 'corewire', 'blockwire', 'blockagewire',
-            'fillwire', 'fillwireopc', 'drcfill'):
+        legal_shapes = (
+            'ring', 'padring', 'blockring', 'stripe', 'followpin', 'iowire',
+            'corewire', 'blockwire', 'blockagewire', 'fillwire', 'fillwireopc',
+            'drcfill'
+        )
+        if shape is not None and shape.lower() not in legal_shapes:
             raise ValueError('Invalid shape')
 
         for netname in nets:

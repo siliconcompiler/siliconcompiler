@@ -16,19 +16,21 @@ MACRO {{ fp.design }}
 
   SIZE {{ fp.diearea[1][0] }} BY {{ fp.diearea[1][1] }} ;
   CLASS BLOCK ;
-  {% for pin in fp.pins %}
-  PIN {{ pin.name }}
+  {% for name, pin in fp.pins.items() %}
+  PIN {{ name }}
     DIRECTION {{ pin.direction }} ;
     USE {{ pin.use }} ;
     SHAPE ABUTMENT ;
+    {% for port in pin.ports %}
     PORT
-      LAYER {{ pin.port.layer }} ;
-      RECT {{ pin.port.point[0] + pin.port.box[0][0] }}
-           {{ pin.port.point[1] + pin.port.box[0][1] }}
-           {{ pin.port.point[0] + pin.port.box[1][0] }}
-           {{ pin.port.point[1] + pin.port.box[1][1] }} ;
+      LAYER {{ port.layer }} ;
+      RECT {{ port.point[0] + port.box[0][0] }}
+           {{ port.point[1] + port.box[0][1] }}
+           {{ port.point[0] + port.box[1][0] }}
+           {{ port.point[1] + port.box[1][1] }} ;
     END
-  END {{ pin.name }}
+    {% endfor %}
+  END {{ name }}
   {% endfor %}
 
   {% for obs in fp.obstructions %}
