@@ -109,44 +109,41 @@ class Chip:
     def create_cmdline(self, progname, description=None, switchlist=[]):
         """Creates an SC command line interface.
 
-        The method exposes parameters in the SC schema as command line
-        switches. Custom command line apps can be created by restricting
-        the schema parameters exposed at the command line. The priority of
-        command line switch settings is as follows:
+        Exposes parameters in the SC schema as command line switches,
+        simplifying creation of SC apps with a restricted set of schema
+        parameters exposed at the command line. The order of command
+        line switch settings parsed from the command line is as follows:
 
          1. design
          2. loglevel
-         3. mode (asic/fpga)
-         4. target
-         5. cfg
+         3. mode
+         4. target('target')
+         5. read_manifest([cfg])
          6. all other switches
 
-        The cmdline interface is implemented using the Python
-        argparse package and the following use restrictions apply.
+        The cmdline interface is implemented using the Python argparse package
+        and the following use restrictions apply.
 
-        * Help is accessed with the '-h' switch
+        * Help is accessed with the '-h' switch.
         * Arguments that include spaces must be enclosed with double quotes.
-        * List parameters are entered indidually (ie. -y libdir1 -y libdir2)
+        * List parameters are entered indidually. (ie. -y libdir1 -y libdir2)
         * For parameters with boolean types, the switch implies "true".
         * Special characters (such as '-') must be enclosed in double quotes.
         * Compiler comptaible switces include: -D, -I, -O{0,1,2,3}
-        * Some Verilog legacy switches are supported: +libext+, +incdir+
+        * Verilog legacy switch formats are supported: +libext+, +incdir+
 
         Args:
-            progname (string): Name of program to be exeucted at the command
-                 line.
-            description (string): Header help function to be displayed
-                 by the command line program.
-            switchlist (list): List of SC parameter switches to expose
-                 at the command line. By default all SC scema switches
-                 are available. The switchlist entries should ommit
-                 the '-'. To include a non-switch source file,
-                 use 'source' as the switch.
+            progname (str): Name of program to be executed.
+            description (str): Short program description.
+            switchlist (list of str): List of SC parameter switches to expose
+                 at the command line. By default all SC schema switches
+                 are available.  Parameter switches should be entered
+                 without '-', based on the parameter 'switch' field
+                 in the 'schema'.
 
         Examples:
-            >>> chip.cmdline(prog='sc-show', paramlist=['source', 'cfg'])
-            Creates a command line interface called sc-show that takes
-            in a source file to display based on the cfg file provided.
+            >>> chip.create_cmdline(progname='sc-show',switchlist=['source','cfg'])
+            Creates a command line interface for 'sc-show' app.
 
         """
 
@@ -347,32 +344,60 @@ class Chip:
                             self.set(*args, clobber=True)
 
     #########################################################################
-    def find_function(self, modname, modtype, funcname):
+    def find_function(self, modulename, functype, funcname):
         '''
-        Dynamic load of module based on scpath search parameter.
+        Imports a module and returns a module function attribute.
+
+        Searches the SC root directory and the 'scpath' parameter
+        for the modulename provided and imports the module if found.
+        If the funcname provided is found in the module, a callable
+        function attribude is returned, otherwise None is returned.
+
+        The function assumes the following directory structure:
+
+        * tools/modulename/modulename.py
+        * flows/modulename.py
+        * pdks/modulname.py
+
+        Supported functions include:
+
+        * pdk (make_docs, setup_pdk)
+        * flow (make_docs, setup_flow)
+        * tool (make_docs, setup_tool, check_version, runtime_options, pre_process, post_process)
+
+        Args:
+            modulename (str): Name of module to import.
+            functype (str): Type of function to import (tool,flow, pdk).
+            funcname (str): Name of the function to find within the module.
+
+        Examples:
+            >>> setup_pdk = chip.find_function('freepdk45','pdk','setup_pdk')
+            >>> setup_pdk()
+            Imports the freepdk45 module and runs the setup_pdk function
+
         '''
 
-        # module search path depends on modtype
-        if modtype == 'tool':
-            fullpath = self.find_file(f"tools/{modname}/{modname}.py")
-        elif modtype == 'flow':
-            fullpath = self.find_file(f"flows/{modname}.py")
-        elif modtype == 'pdk':
-            fullpath = self.find_file(f"foundries/{modname}.py")
+        # module search path depends on functype
+        if functype == 'tool':
+            fullpath = self.find_file(f"tools/{modulename}/{modulename}.py")
+        elif functype == 'flow':
+            fullpath = self.find_file(f"flows/{modulename}.py")
+        elif functype == 'pdk':
+            fullpath = self.find_file(f"foundries/{modulename}.py")
         else:
-            self.logger.error(f"Illegal module type '{modtype}'.")
+            self.logger.error(f"Illegal module type '{functype}'.")
             self.error = 1
             return
 
         # try loading module if found
         if fullpath:
-            if modtype == 'tool':
-                self.logger.debug(f"Loading function '{funcname}' from module '{modname}'")
+            if functype == 'tool':
+                self.logger.debug(f"Loading function '{funcname}' from module '{modulename}'")
             else:
-                self.logger.info(f"Loading function '{funcname}' from module '{modname}'")
+                self.logger.info(f"Loading function '{funcname}' from module '{modulename}'")
             try:
                 sys.path.append(os.path.dirname(fullpath))
-                imported = importlib.import_module(modname)
+                imported = importlib.import_module(modulename)
                 if hasattr(imported, funcname):
                     function = getattr(imported, funcname)
                 else:
@@ -381,65 +406,47 @@ class Chip:
                 return function
             except:
                 traceback.print_exc()
-                self.logger.error(f"Module setup failed for '{modname}'")
+                self.logger.error(f"Module setup failed for '{modulename}'")
                 self.error = 1
 
     ###########################################################################
-    def target(self, arg=None):
+    def target(self, name=None):
         """
-        Loads a technology target and EDA flow based on a named target string.
+        Imports modules and runs setup functions based on a named target.
 
-        The eda flow and technology targets are dynamically loaded at runtime
-        based on 'target' string specifed as <technology>_<edaflow>.
-        The edaflow part of the string is optional. The 'technology' and
-        'edaflow' are used to search and dynamically import modules based on
-        the PYTHON environment variable.
+        The target function imports and executes a set of setup functions based
+        on a '_' separated string. The following target string combinations are
+        permitted:
 
-        The target function supports ASIC as well as FPGA design flows. For
-        FPGA flows, the function simply sets the partname to the technology
-        field of the target string. For ASIC flows, the target is used to
-        bundle and simplify the setup of SC schema parameters en masse. Modern
-        silicon process PDKs can contain hundreds of files and setup variables.
-        Doing this setup once and creating a named target significantly
-        improves the ramp-up time for new users and reduces the chance of
-        costly setup errors.
+        * <flowname>
+        * <flowname>_<pdkname>
+        * <flowname>_<partname> (for fpga flows)
+        * <pdk>
+        * <tool>
+        * <tool>_<pdkname>
 
-        Imported modules implement a set of functions with standardized
-        function names and interfaces as described below.
+        If no target name is provided, the target will be read from the
+        'target' schema parameter. Calling target() with no target name provided
+        and an undefined 'target' parameter results in an error.
 
-        **TECHNOLOGY:**
+        The target function useds the find_function() method to import and
+        execute setup functions based on the 'scpath' search parameter.
 
-        **setup_pdk (chip):** Configures basic PDK information,
-        including setting up wire tracks and setting filesystem pointers to
-        things like spice models, runsets, design rules manual. The function
-        takes the a Chip object as an input argument and uses the Chip's
-        schema acess methods to set/get parameters. To maximize reuse it
-        is recommended that the setup_platform function includes only core
-        PDK information and does not include settings for IPs such as
-        libraries or design methodology settings.
-
-        **EDAFLOW:**
-
-        **setup_flow (chip):** Configures the edaflow by setting
-        up the steps of the execution flow (eg. 'flowgraph') and
-        binding each step to an EDA tool. The tools are dynamically
-        loaded in the 'runstep' method based on the step tool selected.
 
         Args:
-            arg (string): Name of target to load. If None, the target is
-                read from the SC schema.
+            name (str): Name of target combination to load.
 
         Examples:
-            >>> chip.target("freepdk45_asicflow")
-            Loads the 'freepdk45' and 'asicflow' settings.
+            >>> chip.target("asicflow_freepdk45")
+            Loads the 'freepdk45' and 'asicflow' setup functions.
             >>> chip.target()
-            Loads target settings from chip.get('target')
+            Loads target based on result from chip.get('target')
 
         """
 
         #Sets target in dictionary if string is passed in
-        if arg is not None:
-            self.set('target', arg)
+        if name is not None:
+            self.set('target', name)
 
         # Error checking
         if not self.get('target'):
@@ -479,50 +486,60 @@ class Chip:
     ###########################################################################
     def list_outputs(self, step, index):
         '''
-        Finds the destinations of the current step/index.
-        Returns a dictionary of step/index.
+        Returns the outputs (destinations) of a step/index pair.
+
+        Searches the 'flowgraph' schema dictionary for inputs that match
+        the string combination '<step><index>' and returns a list of
+        all destination matches in the form '<step><index>'.
+
+        Args:
+            step (str): Step name to find in flowgraph
+            index (str): Index name to find in flowgraph
+
+        Examples:
+            >>> dst_list = list_outputs('import', '0')
+            Returns list of step/index pairs driven by index 0 of import step
+
         '''
 
-        sinks ={}
+        outputs = []
         for a in self.getkeys('flowgraph'):
             for b in self.getkeys('flowgraph', a):
                 if self.getkeys('flowgraph', a, b, 'input'):
                     for c in self.getkeys('flowgraph', a, b, 'input'):
                         for d in self.get('flowgraph', a, b, 'input', c):
                             if (step==c) & (index==d):
-                                sinks[a] = b
-
-        return sinks
+                                outputs.append(a+b)
+        return outputs
 
     ###########################################################################
-    def help(self, *args):
+    def help(self, *keypath):
         """
         Returns a formatted help string based on the keypath provided.
 
         Args:
-            *args(string): A variable length argument list specifying the
-                keypath for accessing the SC parameter schema.
+            *keypath(str): Parameter keypath
 
         Returns:
-            A formatted multi-line help string.
+            A formmated multi-line help paragram for the parameter provided.
 
         Examples:
-            >>> chip.help('asic','diesize')
-            Displays help information about the 'asic, diesize' parameter
+            >>> print(chip.help('asic','diearea'))
+            Displays help information about the 'asic, diearea' parameter
 
         """
 
-        self.logger.debug('Fetching help for %s', args)
+        self.logger.debug('Fetching help for %s', keypath)
 
         #Fetch Values
 
-        description = self.get(*args, field='shorthelp')
-        typestr = self.get(*args, field='type')
-        switchstr = str(self.get(*args, field='switch'))
-        defstr = str(self.get(*args, field='defvalue'))
-        requirement = str(self.get(*args, field='requirement'))
-        helpstr = self.get(*args, field='help')
-        example = self.get(*args, field='example')
+        description = self.get(*keypath, field='shorthelp')
+        typestr = self.get(*keypath, field='type')
+        switchstr = str(self.get(*keypath, field='switch'))
+        defstr = str(self.get(*keypath, field='defvalue'))
+        requirement = str(self.get(*keypath, field='requirement'))
+        helpstr = self.get(*keypath, field='help')
+        example = self.get(*keypath, field='example')
 
 
         #Removing multiple spaces and newlines
