@@ -13,7 +13,7 @@ def test_summary():
     datadir = os.path.dirname(os.path.abspath(__file__)) + "/../data/"
     manifest = datadir + "gcd.pkg.json"
 
-    chip.cfg = chip.readcfg(manifest)
+    chip.read_manifest(manifest)
 
     chip.summary()
 
