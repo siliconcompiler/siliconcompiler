@@ -1055,6 +1055,24 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         """
     }
 
+    cfg['library'][lib]['dependency'] = {}
+    cfg['library'][lib]['dependency']['default'] = {}
+    cfg['library'][lib]['dependency']['default']['version'] = {
+        'switch': "-library_dependency 'lib package version <str>'",
+        'requirement': None,
+        'type': 'str',
+        'lock': 'false',
+        'defvalue': None,
+        'shorthelp': 'Library dependencies',
+        'example': [
+            "cli: -library_dependency 'mylib myip version 1.0.0'",
+            "api: chip.set('library','mylib','dependency','myip','version','1.0.0')"],
+        'help': """
+        Version of a named dependency for the library.
+        """
+    }
+
+
     cfg['library'][lib]['pdk'] = {
         'switch': "-library_pdk 'lib <str>'",
         'requirement': None,
@@ -3052,7 +3070,7 @@ def schema_options(cfg):
         'lock': 'false',
         'requirement': None,
         'defvalue': [],
-        'shorthelp': 'Environment Variables',
+        'shorthelp': 'Environment variables',
         'example': ["cli: -env 'PDK_HOME /disk/mypdk'",
                     "api: chip.set('env', 'PDK_HOME', '/disk/mypdk')"],
         'help': """
@@ -3082,7 +3100,7 @@ def schema_options(cfg):
         'lock': 'false',
         'requirement': 'all',
         'defvalue': 'OFF',
-        'shorthelp': 'File Hash Mode',
+        'shorthelp': 'File hash mode',
         'example': ["cli: -hashmode 'ALL'",
                     "api: chip.set('hashmode', 'ALL')"],
         'help': """
@@ -3241,7 +3259,7 @@ def schema_options(cfg):
         'lock': 'false',
         'requirement': 'all',
         'defvalue': 'O0',
-        'shorthelp': 'Optimization Mode',
+        'shorthelp': 'Optimization mode',
         'example': ["cli: -O3",
                     "api: chip.set('optmode','3')"],
         'help': """
@@ -3277,7 +3295,7 @@ def schema_options(cfg):
         'lock': 'false',
         'requirement': 'all',
         'defvalue': 'false',
-        'shorthelp': 'Output simulation trace',
+        'shorthelp': 'Enables simulation trace output',
         'example': ["cli: -trace",
                     "api: chip.set('trace', True)"],
         'help': """
@@ -3609,6 +3627,8 @@ def schema_design(cfg):
         """
     }
 
+    
+
     cfg['netlist'] = {
         'switch': '-netlist <file>',
         'type': '[file]',
@@ -3673,6 +3693,23 @@ def schema_design(cfg):
         """
     }
 
+    package = 'default'
+    cfg['dependency'] = {}
+    cfg['dependency'][package] = {}
+    cfg['dependency'][package]['version'] = {
+        'switch': "-dependency 'package version <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Project dependancies',
+        'example': ["cli: -dependency 'hello version 1.0.0",
+                    "api: chip.set('dependency', 'hello', 'version', '1.0.0')"],
+        'help': """
+        Version of a named package dependency needeed for the project.
+        """
+    }
+
     cfg['doc'] = {
         'switch': "-doc <file>",
         'type': '[file]',
@@ -3689,7 +3726,7 @@ def schema_design(cfg):
         'example': ["cli: -doc spec.pdf",
                     "api: chip.set('doc', 'spec.pdf')"],
         'help': """
-        A list of design documents. Files are read in order from first to last.
+        List of design documents. Files are read in order from first to last.
         """
     }
 
@@ -4596,7 +4633,7 @@ def schema_mcmm(cfg, scenario='default'):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'MCMM scenario operating condition',
+        'shorthelp': 'Scenario operating condition',
         'example': ["cli: -mcmm_opcond 'worst typical_1.0'",
                     "api: chip.set('mcmm', 'worst', 'opcond',  'typical_1.0')"],
         'help': """
