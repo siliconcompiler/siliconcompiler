@@ -1597,22 +1597,30 @@ class Chip:
                            self.get('jobname') + str(self.get('jobid'))])
 
         # Custom reporting modes
-        if self.get('mode') == 'asic':
-            info = '\n'.join(["SUMMARY:\n",
-                              "design = " + self.get('design'),
-                              "foundry = " + self.get('pdk', 'foundry'),
-                              "process = " + self.get('pdk', 'process'),
-                              "targetlibs = "+" ".join(self.get('asic', 'targetlib')),
-                              "jobdir = "+ jobdir])
-        elif self.get('mode') == 'fpga':
-            info = '\n'.join(["SUMMARY:\n",
-                              "design = "+self.get('design'),
-                              "partname = "+self.get('fpga','partname'),
-                              "jobdir = "+ jobdir])
+        paramlist = []
+        for item in self.getkeys('param'):
+            paramlist.append(item+"="+self.get('param',item))
+
+        if paramlist:
+            paramstr = ', '.join(paramlist)
         else:
-            info = '\n'.join(["SUMMARY:\n",
-                              "design = "+self.get('design'),
-                              "jobdir = "+ jobdir])
+            paramstr = "None"
+
+        info_list = ["SUMMARY:\n",
+                     "design : " + self.get('design'),
+                     "params : " + paramstr,
+                     "jobdir : "+ jobdir,
+                     ]
+
+        if self.get('mode') == 'asic':
+            info_list.extend(["foundry : " + self.get('pdk', 'foundry'),
+                              "process : " + self.get('pdk', 'process'),
+                              "targetlibs : "+" ".join(self.get('asic', 'targetlib'))])
+        elif self.get('mode') == 'fpga':
+            info_list.extend(["partname : "+self.get('fpga','partname')])
+
+        info = '\n'.join(info_list)
+
 
         print("-"*135)
         print(info, "\n")
