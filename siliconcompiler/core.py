@@ -126,10 +126,10 @@ class Chip:
 
         * Help is accessed with the '-h' switch.
         * Arguments that include spaces must be enclosed with double quotes.
-        * List parameters are entered indidually. (ie. -y libdir1 -y libdir2)
-        * For parameters with boolean types, the switch implies "true".
+        * List parameters are entered individually. (ie. -y libdir1 -y libdir2)
+        * For parameters with Boolean types, the switch implies "true".
         * Special characters (such as '-') must be enclosed in double quotes.
-        * Compiler comptaible switces include: -D, -I, -O{0,1,2,3}
+        * Compiler compatible switches include: -D, -I, -O{0,1,2,3}
         * Verilog legacy switch formats are supported: +libext+, +incdir+
 
         Args:
@@ -349,7 +349,7 @@ class Chip:
 
         Searches the SC root directory and the 'scpath' parameter for the
         modulename provided and imports the module if found. If the funcname
-        provided is found in the module, a callable function attribude is
+        provided is found in the module, a callable function attribute is
         returned, otherwise None is returned.
 
         The function assumes the following directory structure:
@@ -429,7 +429,7 @@ class Chip:
         'target' schema parameter. Calling target() with no target name provided
         and an undefined 'target' parameter results in an error.
 
-        The target function useds the find_function() method to import and
+        The target function uses the find_function() method to import and
         execute setup functions based on the 'scpath' search parameter.
 
 
@@ -524,7 +524,7 @@ class Chip:
             *keypath(str): Keypath to parameter.
 
         Returns:
-            A formmated multi-line help paragraph for the parameter provided.
+            A formatted multi-line help paragraph for the parameter provided.
 
         Examples:
             >>> print(chip.help('asic','diearea'))
@@ -685,7 +685,7 @@ class Chip:
 
         Searches the schema for the keypath provided and then sets the
         specified field to the value provided. New schema dictionaries are
-        automatially created for keypaths that overlap with 'default'
+        automatically created for keypaths that overlap with 'default'
         dictionaries. The write action is ignored if the parameter value is
         non-empty and the clobber option is set to False.
 
@@ -726,7 +726,7 @@ class Chip:
 
         Searches the schema for the keypath provided and then adds a value
         to the existing parameter value list. New schema dictionaries are
-        automatially created for keypaths that overlap with 'default'
+        automatically created for keypaths that overlap with 'default'
         dictionaries.
 
         The value provided must agree with the dictionary parameter 'type'.
@@ -995,7 +995,7 @@ class Chip:
     ###########################################################################
     def find_file(self, filename):
         """
-        Returns the abslute path for the filename provided.
+        Returns the absolute path for the filename provided.
 
         Searches the SC root directory and the 'scpath' parameter for the
         filename provided and returns the absolute path. If no valid absolute
@@ -1132,7 +1132,7 @@ class Chip:
         logger error message and raises the Chip object error flag.
 
         Args:
-            clear (bool): If True, the chip obect value is cleared before the
+            clear (bool): If True, the chip object value is cleared before the
                 new dictionary value is written.
 
         Examples:
@@ -1169,12 +1169,12 @@ class Chip:
     ###########################################################################
     def check_manifest(self):
         '''
-        Checks the validitiy of the Chip object in memory manifest.
+        Checks the validity of the Chip object in memory manifest.
 
         Checks the validity of the current schema manifest in
         memory to ensure that the design has been properly set up prior
         to running compilation. The function is called inside the run()
-        funciton but can also be called seperately. Checks performed by the
+        function but can also be called separately. Checks performed by the
         check_manifest() function include:
 
         * Has a flowgraph been defined?
@@ -1285,10 +1285,10 @@ class Chip:
         Writes the Chip objects manifest to a file.
 
         The write file format is determined by the filename suffix. Currently
-        json (*.json), yaml (*.yaml), and tcl (*.tcl) formats are sopported.
+        json (*.json), yaml (*.yaml), and tcl (*.tcl) formats are supported.
 
         Args:
-            filename (filepath): Output filelepath
+            filename (filepath): Output filepath
             prune (bool): If True, essential non-empty parameters from the
                  the Chip object schema are written to the output file.
             abspath (bool): If set to True, then all schema filepaths
@@ -1344,7 +1344,7 @@ class Chip:
     ###########################################################################
     def _dump_fusesoc(self, cfg):
         '''
-        Internl funtion for dumping core information from chip object.
+        Internal function for dumping core information from chip object.
         '''
 
         fusesoc = {}
@@ -1405,7 +1405,7 @@ class Chip:
         graphviz project, see see https://graphviz.org/
 
         Args:
-            filename (filepath): Output filelepath
+            filename (filepath): Output filepath
 
         Examples:
             >>> chip.write_flowgraph('mydump.png')
@@ -1486,14 +1486,14 @@ class Chip:
         the files within the 'values' parameter field.
 
         The file hash calculation is performed basd on the 'algo' setting.
-        Supported algirithms incldue SHA1, SHA224, SHA256, SHA384, SHA512,
+        Supported algorithms include SHA1, SHA224, SHA256, SHA384, SHA512,
         and MD5.
 
 
         Args:
             *keypath(str): Keypath to parameter.
             algo (str): Algorithm to use for file hash calculation
-            update (bool): If True, the hash values are recored in the
+            update (bool): If True, the hash values are recorded in the
                 chip object manifest.
 
         Returns:
@@ -1561,8 +1561,8 @@ class Chip:
     def calc_yield(self, model='poisson'):
         '''Calculates raw die yield
 
-        Calcualates the raw yield of the design as a function of design area
-        and d0 defect density. Calculation can be done based ont he poisson
+        Calculates the raw yield of the design as a function of design area
+        and d0 defect density. Calculation can be done based on the poisson
         model (default) or the murphy model. The die area and the d0
         parameters are taken from the chip dictionary.
 
@@ -1570,7 +1570,7 @@ class Chip:
         * Murphy model: dy = ((1-exp(-area * d0/100))/(area * d0/100))^2.
 
         Args:
-            model (string): Model to use for calculation (poission or murphy)
+            model (string): Model to use for calculation (poisson or murphy)
 
         Returns:
             Design yield percentage (float).
@@ -1597,7 +1597,7 @@ class Chip:
     def calc_dpw(self):
         '''Calculates dies per wafer
 
-        Calcualtes the gross dies per wafer based on the design area, wafersize,
+        Calculates the gross dies per wafer based on the design area, wafersize,
         wafer edge margin, and scribe lines. The calculation is done by starting
         at the center of the wafer and placing as many complete design
         footprints as possible within a legal placement area.
@@ -1768,7 +1768,7 @@ class Chip:
         '''
         Returns an ordered list of steps from flowgraph dictionary.
 
-        All step keys from the flowgraph dicionary are collected and the
+        All step keys from the flowgraph dictionary are collected and the
         distance from the root node (ie. without any inputs defined) is
         measured for each step. The step list is then sorted based on
         the distance from root and returned.
@@ -1861,14 +1861,14 @@ class Chip:
         Sequence of operation:
 
         1. Check all steps/indexes to see if all metrics meets goals
-        2. Check all steps/indees to find global min/max for each metric
+        2. Check all steps/indexes to find global min/max for each metric
         3. Select MIN value if all metrics are met.
         4. Normalize the min value as sel = (val - MIN) / (MAX - MIN)
         5. Return normalized value and index
 
         Meeting metric goals takes precedence over compute metric scores.
         Only goals with values set and metrics with weights set are considered
-        in the calulation.
+        in the calculation.
 
         Args:
             steps(list str): A variable length list of steps
@@ -1882,7 +1882,7 @@ class Chip:
         Examples:
             >>> (score, minindex) = chip.step_minimum(['place'])
             The variable minstep gets the minimum index for 'place' step.
-            The variable 'score' gets the minimu value computed.
+            The variable 'score' gets the minimum value computed.
 
         '''
         return self._minmax(*steps, op="minimum")
@@ -1896,14 +1896,14 @@ class Chip:
         Sequence of operation:
 
         1. Check all steps/indexes to see if all metrics meets goals
-        2. Check all steps/indees to find global min/max for each metric
+        2. Check all steps/indexes to find global min/max for each metric
         3. Select MAX value if all metrics are met.
         4. Normalize the max value as sel = (val - MIN) / (MAX - MIN)
         5. Return normalized value and index
 
         Meeting metric goals takes precedence over compute metric scores.
         Only goals with values set and metrics with weights set are considered
-        in the calulation.
+        in the calculation.
 
         Args:
             steps(list str): A variable length list of steps.
@@ -1995,17 +1995,17 @@ class Chip:
         are True. If any of the assertions fail, False is returned.
         Assertions are passed in as kwargs, with the key being a metric
         and the value being a number and an optional conditional operator.
-        The allowed condiational operators are: >, <, >=, <=
+        The allowed conditional operators are: >, <, >=, <=
 
         Args:
             *steps (str): List of steps to verify
-            **asertion (str='str'): Assertion to check on metric
+            **assertion (str='str'): Assertion to check on metric
 
         Returns:
             True if all assertions hold True for all steps.
 
         Example:
-            >>> pass = chip.step_assrt(['drc','lvs'], errors=0)
+            >>> pass = chip.step_assert(['drc','lvs'], errors=0)
             Pass is True if the error metrics in the drc, lvs steps is 0.
         '''
         #TODO: implement
@@ -2022,7 +2022,7 @@ class Chip:
         the minimum or maximum score depending on the 'op' argument.
 
         The function can be used to bypass the flows weight functions for
-        the purpose of conditionale flow exeuction and verification.
+        the purpose of conditional flow execution and verification.
 
         Args:
             *steps (str): List of steps to verify
@@ -2473,20 +2473,20 @@ class Chip:
         The run function sets up tools and launches runs for every index
         in a step defined by a steplist. The steplist is taken from the schema
         steplist parameter if defined, otherwise the steplist is defined
-        as the list of steps within the schema flowgrap dictionary. Before
+        as the list of steps within the schema flowgraph dictionary. Before
         starting  the process, tool modules are loaded and setup up for each
         step and index based on on the schema eda dictionary settings.
         Once the tools have been set up, the manifest is checked using the
         check_manifest() function and files in the manifest are hashed based
         on the 'hashmode' schema setting.
 
-        Once launched, each process waits for preceeding steps to complete,
-        as defined by the flowgrap 'inputs' parameter. Once a all inputs
+        Once launched, each process waits for preceding steps to complete,
+        as defined by the flowgraph 'inputs' parameter. Once a all inputs
         are ready, previous steps are checked for errors before the
-        process enteres a local working directory and starts to run
+        process entered a local working directory and starts to run
         a tool or to execute a built in Chip function.
 
-        Fatal errrors within a step/index process cause all subsequent
+        Fatal errors within a step/index process cause all subsequent
         processes to exit before start, returning control to the the main
         program which can then exit.
 
