@@ -2340,6 +2340,26 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
+    cfg['metric'][step][index]['irdrop'] = {}
+    cfg['metric'][step][index]['irdrop'][group] = {
+        'switch': "-metric_irdrop 'step index group <int>'",
+        'type': 'float',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Peak IR drop',
+        'example': [
+            "cli: -metric_irdrop 'place 0 real 0.05'",
+            "api: chip.set('metric','place','0','irdrop','real','0.05')"],
+        'help': """
+        Metric tracking the peak IR drop in the design based on extracted
+        power and ground rail parasitics, library power models, and
+        switching activity. The switching activity calculated on a per
+        node basis is taken from one of three possible sources, in order
+        of priority: VCD file, SAIF file, 'activityfactor' parameter.
+        """
+    }
+
     cfg['metric'][step][index]['holdwns'] = {}
     cfg['metric'][step][index]['holdwns'][group] = {
         'switch': "-metric_holdwns 'step index group <float>'",
@@ -4033,6 +4053,24 @@ def schema_design(cfg):
         Simulation trace with static probability and toggle rates for nets
         in the design. The file can be used for coarse power modeling during
         compilation.
+        """
+    }
+
+    cfg['activityfactor'] = {
+        'switch': "-activityfactor <float>",
+        'type': 'float',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Global toggle activity factor',
+        'example': ["cli: -activityfactor 0.1",
+                    "api: chip.set('activityfactor,'0.1')"],
+        'help': """
+        Sets a global activity factor for all nodes in the design. Note
+        accurate, but better than nothing. The 'activityfactor' parameter can
+        be used in cases when a VCD file or SAIF file is unavailable. Typical
+        activity factors: clock(1), max_data(0.5), random_data(0.25),
+        typical_rate(0.1).
         """
     }
 
