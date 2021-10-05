@@ -1946,6 +1946,26 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         """
     }
 
+    # licensefile
+    cfg['eda'][tool][step][index]['license'] = {}
+    cfg['eda'][tool][step][index]['license']['default'] = {
+        'switch': "-eda_licensefile 'tool step index name <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Executable license server',
+        'example': [
+            "cli: -eda_license 'atool place 0 ACME_LICENSE_FILE 1700@server'",
+            "api:  chip.set('eda','atool','place','0','license', 'ACME_LICENSE_FILE', '1700@server')"],
+        'help': """
+        Defines a set of tool specific environment variables used by the executables
+        that depend on license key servers to control access. For multiple servers,
+        separate each server by a 'colon'. The named license variable are read at
+        runtime (run()) and the environment variablse are set.
+        """
+    }
+
     # options
     cfg['eda'][tool][step][index]['option'] = {}
     cfg['eda'][tool][step][index]['option']['default'] = {

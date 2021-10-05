@@ -2388,7 +2388,12 @@ class Chip:
             self.set('metric', step, index, metric, 'real', 0)
 
         ##################
-        # 11. Check exe version
+        # 11. Set license variable and check exe version
+
+        for item in self.getkeys('eda', tool, step, index, 'license'):
+            license_file = self.get('eda', tool, step, index, 'license', item)
+            if license_file:
+                os.environ[item] = license_file
 
         veropt = self.get('eda', tool, step, index, 'vswitch')
         exe = self.get('eda', tool, step, index, 'exe')
