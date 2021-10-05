@@ -193,6 +193,7 @@ def request_remote_run(chip):
                                           job_nameid])
     subprocess.run(['zip',
                     '-r',
+                    '-q',
                     'import.zip',
                     '.'],
                    cwd=local_build_dir)
@@ -340,9 +341,9 @@ def fetch_results(chip):
     top_design = chip.get('design')
     job_hash = chip.get('remote', 'jobhash')
     job_nameid = f"{chip.get('jobname')}{chip.get('jobid')}"
-    subprocess.run(['unzip', '%s.zip'%job_hash])
+    subprocess.run(['unzip', '-q', f'{job_hash}.zip'])
     # Remove the results archive after it is extracted.
-    os.remove('%s.zip'%job_hash)
+    os.remove(f'{job_hash}.zip')
 
     # Call 'delete_job' to remove the run from the server.
     delete_job(chip)
