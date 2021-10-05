@@ -210,8 +210,8 @@ def schema_pdk(cfg, stackup='default'):
         'example': ["cli: -pdk_process asap7",
                     "api:  chip.set('pdk', 'process', 'asap7')"],
         'help': """
-        Public name of the foundry process. The string is case insensitive and 
-        must match the public process name exactly. Examples of virtual 
+        Public name of the foundry process. The string is case insensitive and
+        must match the public process name exactly. Examples of virtual
         processes include freepdk45 and asap7.
         """
     }
@@ -1084,7 +1084,7 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
                     "api:  chip.set('library', 'pdk', 'mylib', 'freepdk45')"],
         'help': """
         Name of the PDK module used to create the library package. The module
-        is checked and loaded based on the 'scpath' schema parameter. The 
+        is checked and loaded based on the 'scpath' schema parameter. The
         parameter is required for hardened technology specific library types.
         """
     }
@@ -1099,7 +1099,7 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'example': ["cli: -library_stackup 'mylib M10",
                     "api:  chip.set('library', 'stackup', 'mylib', '10')"],
         'help': """
-        Name of the PDK metal stackup used by the library. The parameter is 
+        Name of the PDK metal stackup used by the library. The parameter is
         required for hardened technology specific library types.
         """
     }
@@ -1429,10 +1429,10 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
             "cli: -library_netlist 'mylib cdl mylib.cdl'",
             "api: chip.set('library','mylib','netlist','cdl','mylib.cdl')"],
         'help': """
-        List of files containing the golden netlist used for layout versus 
-        schematic (LVS) checks. For transistor level libraries such as 
-        standard cell libraries and SRAM macros, this should be a CDL type 
-        netlist. For higher level modules like place and route blocks, it 
+        List of files containing the golden netlist used for layout versus
+        schematic (LVS) checks. For transistor level libraries such as
+        standard cell libraries and SRAM macros, this should be a CDL type
+        netlist. For higher level modules like place and route blocks, it
         should be a verilog gate level netlist.
         """
     }
@@ -3198,16 +3198,17 @@ def schema_options(cfg):
 
     cfg['jobid'] = {
         'switch': "-jobid <int>",
-        'type': 'int',
+        'type': '[int]',
         'lock': 'false',
         'requirement': 'all',
-        'defvalue': '0',
+        'defvalue': ['0'],
         'shorthelp': 'Job ID',
         'example': ["cli: -jobid 0",
                     "api: chip.set('jobid',0)"],
         'help': """
-        The id of the specific job to be executed. The full directory
-        structure is: <dir>/<design>/<jobname><jobid>/<step><index>.
+        List of jobids keeping track of different compilations for the same
+        design. The structure is: <dir>/<design>/<jobname><jobid>/<step><index>.
+        The last jobid entry in the list is used for current execution.
         """
     }
 
@@ -3222,8 +3223,8 @@ def schema_options(cfg):
                     "api: chip.set('jobincr', true)"],
         'help': """
         Auto increments the jobid value based on the latest executed job
-        in the design build directory. If no jobs are found, the value
-        in the 'jobid' parameter is used.
+        found in the design build directory. If no jobs are found, the
+        value in the 'jobid' parameter is used.
         """
     }
 
@@ -3647,7 +3648,7 @@ def schema_design(cfg):
         """
     }
 
-    
+
 
     cfg['netlist'] = {
         'switch': '-netlist <file>',

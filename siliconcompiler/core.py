@@ -1680,9 +1680,7 @@ class Chip:
                 del steplist[index]
 
         # job directory
-        jobdir = "/".join([self.get('dir'),
-                           self.get('design'),
-                           self.get('jobname') + str(self.get('jobid'))])
+        jobdir = self._getworkdir()
 
         # Custom reporting modes
         paramlist = []
@@ -2878,7 +2876,7 @@ class Chip:
 
         dirlist =[self.get('dir'),
                   self.get('design'),
-                  self.get('jobname') + str(self.get('jobid'))]
+                  self.get('jobname') + str(self.get('jobid')[-1])]
 
         if step is not None:
             dirlist.append(step + index)
