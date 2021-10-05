@@ -2398,7 +2398,8 @@ class Chip:
         veropt = self.get('eda', tool, step, index, 'vswitch')
         exe = self.get('eda', tool, step, index, 'exe')
         if (veropt != None) & (exe !=None):
-            cmdlist = [exe, veropt]
+            fullexe = self._resolve_env_vars(exe)
+            cmdlist = [fullexe, veropt]
             self.logger.info("Checking version of tool '%s'", tool)
             version = subprocess.run(cmdlist, stdout=PIPE, stderr=PIPE, universal_newlines=True)
             check_version = self.find_function(tool, 'tool', 'check_version')
@@ -2816,6 +2817,8 @@ class Chip:
         '''
 
         exe = self.get('eda', tool, step, index, 'exe')
+        fullexe = self._resolve_env_vars(exe)
+
         if 'cmdline' in self.getkeys('eda', tool, step, index, 'option'):
             options = self.get('eda', tool, step, index, 'option', 'cmdline')
         else:
@@ -2826,8 +2829,8 @@ class Chip:
             abspath = self.find_file(value)
             scripts.append(abspath)
 
-        cmdlist = [exe]
-        logfile = exe + ".log"
+        cmdlist = [fullexe]
+        logfile = step + ".log"
         cmdlist.extend(options)
         cmdlist.extend(scripts)
         runtime_options = self.find_function(tool, 'tool', 'runtime_options')
@@ -2892,6 +2895,14 @@ class Chip:
 
         return os.path.abspath("/".join(dirlist))
 
+    #######################################
+    def _resolve_env_vars(self, filepath):
+        vars = re.findall(r'\$(\w+)', filepath)
+        for item in vars:
+            varpath = os.getenv(item)
+            filepath = filepath.replace("$"+item, varpath)
+
+        return filepath
 
 ###############################################################################
 # Package Customization classes
