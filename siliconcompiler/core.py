@@ -500,8 +500,8 @@ class Chip:
             A list of step-index pair strings.
 
         Examples:
-            >>> dst_list = chip.list_outputs('import', '0')
-            Returns list of step/index pairs driven by index 0 of import step
+            >>> dstlist = chip.list_outputs('import', '0')
+            Variable dstlist gets list of step/index pairs driven by index 0 of import step.
 
         '''
 
@@ -1250,7 +1250,7 @@ class Chip:
         Reads a schema manifest from a file into the Chip object.
 
         The file format read is determined by the filename suffix. Currently
-        json (*.json) and yaml(*.yaml) formats are sopported.
+        json (*.json) and yaml(*.yaml) formats are supported.
 
         Args:
             filename (filepath): Path to a manifest file to be loaded.
@@ -1500,8 +1500,8 @@ class Chip:
             A list of hash values.
 
         Examples:
-            >>> hash_list = hash_files('sources')
-            Comptues hash files of all files in the sources parameter.
+            >>> hashlist = hash_files('sources')
+             Hashlist gets list of hash values computed from 'sources' files.
         '''
 
         hashmode = self.get('hashmode')
@@ -1533,7 +1533,8 @@ class Chip:
         '''Performance an audit of the chip manifest
 
         Checks the integrity of the chip object implementation flow after
-        the run() function has been completed.
+        the run() function has been completed. Errors, warnings, and debug
+        messages are reported through the logger object.
 
         Audit checks performed include:
 
@@ -1547,6 +1548,10 @@ class Chip:
 
         Returns:
             Returns True if the manifest has integrity, else returns False.
+
+        Example:
+            >>> chip.audit_manifest()
+            Audits the Chip object manifest and returns 0 if successful.
 
         '''
 
@@ -1572,8 +1577,7 @@ class Chip:
 
         Examples:
         >>> yield = chip.calc_yield()
-        Calculates the yield based on the chip object PDK and design area.
-
+        Yield variable gets yield value based on the chip manifest.
         '''
 
         d0 = self.get('pdk', 'd0')
@@ -1602,8 +1606,8 @@ class Chip:
             Number of gross dies per wafer (int).
 
         Examples:
-        >>> print(chip.calc_dpw())
-        Prints gross dies per wafer based on the chip object PDK and design area.
+        >>> dpw = chip.calc_dpw()
+        Variable dpw gets gross dies per wafer value based on the chip manifest.
         '''
 
         #PDK information
@@ -1653,15 +1657,15 @@ class Chip:
     ###########################################################################
     def summary(self):
         '''
-        Creates a summary of the run metrics generated from the 'start' step
-        to the 'stop' step.
+        Prints a summary of the chip object metrics.
 
-        Args:
-            filename (filename): A file to write the summary report to. If
-                the value is 'None', the summary is printed to stdout.
+        Metrics from the flowgraph steps, or steplist parameter if
+        defined, are printed out on a per step basis. All metrics from the
+        metric dictionary with non-zero weights set in the flowgraph
+        dictionary are printed out.
 
         Examples:
-            >>> summary()
+            >>> chip.summary()
             Prints out a summary of the run to stdout.
         '''
 
@@ -1762,7 +1766,19 @@ class Chip:
     ###########################################################################
     def list_steps(self):
         '''
-        Returns an ordered list based on the flowgraph
+        Returns an ordered list of steps from flowgraph dictionary.
+
+        All step keys from the flowgraph dicionary are collected and the
+        distance from the root node (ie. without any inputs defined) is
+        measured for each step. The step list is then sorted based on
+        the distance from root and returned.
+
+        Returns:
+            A list of steps sorted by distance from the root node.
+
+        Example:
+            >>> steplist = chip.list_steps()
+            Variable steplist gets list of steps sorted by distance from root.
         '''
 
         cfg = self.cfg
@@ -1805,8 +1821,26 @@ class Chip:
     ###########################################################################
     def step_join(self, *steps):
         '''
-        Joins all inputs from all indexes of all steps in args as a list.
-        The function sets the flowstatus select parameter in the schema
+        Returns a list of step/index strings based on list of steps provided.
+
+        All steps in the provided steplist are concatenated with each index
+        for that step to produce a complete list of step-index strings. The
+        function is used within a process of run() function to enable
+        generalized execution models.
+
+        Args:
+            steps(list str): A variable length list of steps
+
+        Returns:
+           tuple containing
+            - 0 (float):
+            - stepindex (str): Minimum stepindex pair
+
+        Examples:
+            >>> (score,inputlst) = chip.step_join(['lvs', 'drc'])
+            The variable inputlst gets a list of all step-index pairs for the
+            lvs and drc steps.
+
         '''
 
         steplist = list(steps)
@@ -1822,7 +1856,42 @@ class Chip:
     ###########################################################################
     def step_minimum(self, *steps):
         '''
-        Calculates the minmum value for all indexes of all steps provided.
+        Calculates the minimum value for all indexes of all steps provided.
+
+        Sequence of operation:
+
+        1. Check all steps/indexes to see if all metrics meets goals
+        2. Check all steps/indees to find global min/max for each metric
+        3. Select MIN value if all metrics are met.
+        4. Normalize the min value as sel = (val - MIN) / (MAX - MIN)
+        5. Return normalized value and index
+
+        Meeting metric goals takes precedence over compute metric scores.
+        Only goals with values set and metrics with weights set are considered
+        in the calulation.
+
+        Args:
+            steps(list str): A variable length list of steps
+
+        Returns:
+            tuple containing
+
+            - score (float): Maximum score
+            - stepindex (str): Minimum stepindex pair
+
+        Examples:
+            >>> (score, minindex) = chip.step_minimum(['place'])
+            The variable minstep gets the minimum index for 'place' step.
+            The variable 'score' gets the minimu value computed.
+
+        '''
+        return self._minmax(*steps, op="minimum")
+
+    ###########################################################################
+    def step_maximum(self, *steps):
+        '''
+
+        Calculates the maximum value for all indexes of all steps provided.
 
         Sequence of operation:
 
@@ -1837,35 +1906,29 @@ class Chip:
         in the calulation.
 
         Args:
-            args (string): A variable length list of steps
+            steps(list str): A variable length list of steps.
 
         Returns:
             tuple containing
 
-            - score (float): Maximum score
-            - step (str): Winning step
-            - index (str): Winning index
+            - score (float): Maximum score.
+            - stepindex (str): Maximum stepindex pair.
 
-        '''
-        return self._minmax(*steps, op="minimum")
-
-    ###########################################################################
-    def step_maximum(self, *steps):
-        '''
-        Calculates the maximum value for all indexes of all steps provided.
-
-        (otherwise the same as step_minimum())
+        Examples:
+            >>> (score, maxindex) = chip.step_minimum(['place'])
+            The variable maxstep gets the maximum index for 'place' step.
+            The variable 'score' gets the maximum value computed.
 
         '''
         return self._minmax(*steps, op="maximum")
 
     ###########################################################################
-    def _minmax(self, *args, op="minimum"):
+    def _minmax(self, *steps, op="minimum", **selector):
         '''
         Shared function used for min and max calculation.
         '''
 
-        steplist = list(args)
+        steplist = list(steps)
 
         # Keeping track of the steps/indexes that have goals met
         failed = {}
@@ -1924,16 +1987,57 @@ class Chip:
         return (score, winner)
 
     ###########################################################################
-    def step_verify(self, *steps, args=None):
-        pass
+    def step_assert(self, *steps, **assertion):
+        '''
+        Checks that all metrics assertion holds true for steplist provided.
+
+        The provided steplist is verified to ensure that all assertions
+        are True. If any of the assertions fail, False is returned.
+        Assertions are passed in as kwargs, with the key being a metric
+        and the value being a number and an optional conditional operator.
+        The allowed condiational operators are: >, <, >=, <=
+
+        Args:
+            *steps (str): List of steps to verify
+            **asertion (str='str'): Assertion to check on metric
+
+        Returns:
+            True if all assertions hold True for all steps.
+
+        Example:
+            >>> pass = chip.step_assrt(['drc','lvs'], errors=0)
+            Pass is True if the error metrics in the drc, lvs steps is 0.
+        '''
+        #TODO: implement
+        return True
 
     ###########################################################################
-    def step_mux(self, *steps, args=None):
+    def step_mux(self, *steps, op='minimum', **selector):
         '''
-        Mux that selects a single input from the index based on the args.
-        '''
-        pass
+        Selects a step/index input based on the provided selector criteria.
 
+        The selector criteria provided is used to create a custom function
+        for selecting the best step/index pair from the inputs. Metrics and
+        weights are passed in and used to select the step/index based on
+        the minimum or maximum score depending on the 'op' argument.
+
+        The function can be used to bypass the flows weight functions for
+        the purpose of conditionale flow exeuction and verification.
+
+        Args:
+            *steps (str): List of steps to verify
+            **selector: Key value selection criteria.
+
+        Returns:
+            True if all assertions hold True for all steps.
+
+        Example:
+            >>> sel_stepindex = chip.step_mux(['route'], wirelength=0)
+            Selects the routing stepindex with the shortest wirelength.
+        '''
+
+        #TODO: modify the _minmax function to feed in alternate weight path
+        return None
 
     ###########################################################################
     def _deferstep(self, step, index, active, error):
@@ -2075,7 +2179,7 @@ class Chip:
             traceback.print_exc()
             print(f"Uncaught exception while initializing logger for step {step}")
             self.error = 1
-            self._haltstep(step, index, error, active, log=False)
+            self._haltstep(step, index, active, log=False)
 
         try:
             self._runstep(step, index, active, error)
@@ -2088,7 +2192,7 @@ class Chip:
             traceback.print_exc()
             self.logger.error(f"Uncaught exception while running step {step}.")
             self.error = 1
-            self._haltstep(step, index, error, active)
+            self._haltstep(step, index, active)
 
     ###########################################################################
     def _runstep(self, step, index, active, error):
@@ -2186,7 +2290,7 @@ class Chip:
                 halt = halt + step_error
             if halt:
                 self.logger.error('Halting step due to previous errors')
-                self._haltstep(step, index, error, active)
+                self._haltstep(step, index, active)
 
         # Write configuration prior to step running into inputs/
         self.set('arg', 'step', None, clobber=True)
@@ -2218,17 +2322,16 @@ class Chip:
                 (score, sel_inputs) = self.step_minimum(*inputs)
             elif func == "step_maximum":
                 (score, sel_inputs) = self.step_maximum(*inputs)
-            elif func == "step_join":
-                (score, sel_inputs) = self.step_join(*inputs)
             elif func == "step_mux":
-                (score, sel_inputs) = self.step_mux(*inputs, args=args)
+                (score, sel_inputs) = self.step_mux(*inputs, selector=args)
+            elif func == "step_join":
+                sel_inputs = self.step_join(*inputs)
             elif func == "step_verify":
-                (error, sel_inputs) = self.step_verify(*inputs, args=args)
-                if error:
-                    self._haltstep(step, index, error, active)
+                if not self.step_assert(*inputs, assertion=args):
+                    self._haltstep(step, index, active)
             else:
                 self.logger.error(f"Illegal function name {func}")
-                self._haltstep(step, index, error, active)
+                self._haltstep(step, index, active)
             self.set('flowstatus', step, index, 'select', sel_inputs)
         else:
             tool = self.get('flowgraph', step, index, 'tool')
@@ -2257,7 +2360,7 @@ class Chip:
                 func(self)
                 if self.error:
                     self.logger.error(f"Pre-processing failed for '{tool}'")
-                    self._haltstep(step, index, error, active)
+                    self._haltstep(step, index, active)
 
         ##################
         # 7. Copy Reference Scripts
@@ -2279,7 +2382,7 @@ class Chip:
         # 9. Final check() before run
         if self.check_manifest():
             self.logger.error(f"Fatal error in check()! See previous errors.")
-            self._haltstep(step, index, error, active)
+            self._haltstep(step, index, active)
 
         ##################
         # 10. Resetting metrics (so tool doesn't have to worry about defaults)
@@ -2299,7 +2402,7 @@ class Chip:
             #print(json.dumps(self.cfg, indent=4, sort_keys=True))
             if check_version(self, version.stdout):
                 self.logger.error(f"Version check failed for {tool}. Check installation.")
-                self._haltstep(step, index, error, active)
+                self._haltstep(step, index, active)
 
         ##################
         # 12. Run executable
@@ -2312,7 +2415,7 @@ class Chip:
             if cmd_error.returncode != 0:
                 self.logger.warning('Command failed. See log file %s', os.path.abspath(cmdlist[-1]))
                 if not self.get('eda', tool, step, index, 'continue'):
-                    self._haltstep(step, index, error, active)
+                    self._haltstep(step, index, active)
         else:
             #for builtins, copy selected inputs to outputs
             shutil.copytree(f"inputs", 'outputs', dirs_exist_ok=True)
@@ -2326,7 +2429,7 @@ class Chip:
                 post_error = func(self)
                 if post_error:
                     self.logger.error('Post-processing check failed')
-                    self._haltstep(step, index, error, active)
+                    self._haltstep(step, index, active)
 
         ##################
         # 14. Record successful exit
@@ -2356,7 +2459,7 @@ class Chip:
         active[step + str(index)] = 0
 
     ###########################################################################
-    def _haltstep(self, step, index, error, active, log=True):
+    def _haltstep(self, step, index, active, log=True):
         if log:
             self.logger.error(f"Halting step '{step}' index '{index}' due to errors.")
         active[step + str(index)] = 0
@@ -2365,22 +2468,31 @@ class Chip:
     ###########################################################################
     def run(self):
         '''
-        A unified thread safe per step execution method for the Chip.
-        The options and modes of the run is setup up through the Chip
-        dictionary. The run executes on the local machine by default, but can
-        be execute remotely if a server is set up and the remote mode is set
-        in the Chip dictionary. The run metho executes a pipeline of steps
-        from 'start' to 'stop' (inclusive).
+        Runs the execution flow set up by the manifest flowgraph dictionary.
 
-        Args:
-            steplist: The list of steps to launch. If no list is specified
-            all steps int he flowgraph are executed.
+        The run function sets up tools and launches runs for every index
+        in a step defined by a steplist. The steplist is taken from the schema
+        steplist parameter if defined, otherwise the steplist is defined
+        as the list of steps within the schema flowgrap dictionary. Before
+        starting  the process, tool modules are loaded and setup up for each
+        step and index based on on the schema eda dictionary settings.
+        Once the tools have been set up, the manifest is checked using the
+        check_manifest() function and files in the manifest are hashed based
+        on the 'hashmode' schema setting.
+
+        Once launched, each process waits for preceeding steps to complete,
+        as defined by the flowgrap 'inputs' parameter. Once a all inputs
+        are ready, previous steps are checked for errors before the
+        process enteres a local working directory and starts to run
+        a tool or to execute a built in Chip function.
+
+        Fatal errrors within a step/index process cause all subsequent
+        processes to exit before start, returning control to the the main
+        program which can then exit.
 
         Examples:
             >>> run()
-            Runs the pipeline defined by 'steplist'
-            >>> run(steplist=['route', 'dfm'])
-            Runs the route and dfm steps.
+            Runs the execution flow defined by the flowgraph dictionary.
         '''
 
         # We package SC wheels with a precompiled copy of Surelog installed to
@@ -2544,7 +2656,7 @@ class Chip:
             self.set('flowstatus',laststep,'0', 'select', '0')
 
     ###########################################################################
-    def show(self, filename):
+    def show_file(self, filename):
         '''
         Opens a graphical viewer for the filename provided.
 
@@ -2561,17 +2673,17 @@ class Chip:
         schema .json filename provided. In this case, the SC schema is
         converted to html and displayed as a 'dashboard' in the browser.
 
-        Filenames with .gz and .zip extensions are automatically expanded
+        Filenames with .gz and .zip extensions are automatically unpacked
         before being displayed.
 
         Args:
             filename: Name of file to display
 
         Examples:
-            >>> show('myfile.def')
-            Opens up the def file with a viewer assigneed by 'showtool'
-            >>> show('myrun.json')
-            Displays SC schema in browser
+            >>> show_file('build/oh_add/job0/export0/outputs/oh_add.gds')
+            Displays def file with a viewer assigned by 'showtool'
+            >>> show_file('build/oh_add/job0/export0/outputs/oh_add.pkg.json')
+            Displays manifest in the browser
         '''
 
         self.logger.info("Showing file %s", filename)
