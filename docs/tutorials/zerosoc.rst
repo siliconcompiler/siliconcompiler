@@ -1,19 +1,14 @@
-End-to-end design flow with ZeroSoC
-===================================
+Python-based floorplanning
+==========================
 
-[TODO - title: focus on physical design?]
-
-ZeroSoC is a simple system-on-chip designed to demonstrate SiliconCompiler’s
-capabilities for driving an end-to-end design flow, including FPGA testing and
-full RTL-to-GDS compilation based on a custom floorplan and padring.
+This tutorial walks you through using SC's Python-based floorplanning API to
+create a full floorplan for the ZeroSoC. ZeroSoC is a simple system-on-chip
+designed to demonstrate SiliconCompiler’s capabilities for driving an end-to-end
+design flow.
 
 .. image:: _images/zerosoc.png
 
 [TODO: regenerate image with up-to-date ZeroSoC]
-
-This tutorial walks you through using SC to drive an ASIC compilation flow
-for this design, with particular focus on how to use SC’s tech-agnostic
-floorplanning API to develop a full-chip floorplan, including padring.
 
 ZeroSoC is based on a subset of the IP used in the open-source `OpenTitan SoC
 <https://github.com/lowrisc/opentitan>`_. It includes:
@@ -28,9 +23,8 @@ https://github.com/siliconcompiler/zerosoc.
 
 [TODO: add statement about assumed knowledge/other sections that should be read first?]
 
-
-ZeroSoC Floorplan
-------------------
+Floorplanning methodology
+-------------------------
 SC includes a library for designing chip floorplans using Python, providing a
 high degree of flexibility and easy automation of floorplan design
 (:ref:`API Reference<Floorplan API>`). In this part of the tutorial, we describe how
@@ -39,14 +33,8 @@ We encourage you to check your progress using the layout visualizer `KLayout
 <https://www.klayout.de/>`_ on each step, an approach that mirrors how you would
 develop your own floorplan using this API.
 
-Note that for this tutorial we chose to target the open-source Skywater130 PDK
-to maximize accessibility, but we aimed to make the configuration as
-technology-agnostic as possible. Throughout the tutorial, we highlight aspects
-of SC's design that allows you to abstract away technology-specific details and
-enable easy porting between technology nodes.
-
 Getting Started
-+++++++++++++++
+---------------
 Before we begin, the first thing to know is that the ZeroSoC ASIC is built in
 two different parts:
 
@@ -112,7 +100,7 @@ an output DEF file that we can either preview in KLayout or pass into an SC
 compilaton flow.
 
 Minimal chip configuration
-++++++++++++++++++++++++++++++
+------------------------------
 The first thing we need to do to is fill out our ``configure_chip()`` function
 with a minimal configuration. Floorplanning relies on the following items being
 configured in the provided chip object:
@@ -122,7 +110,8 @@ configured in the provided chip object:
 3) Macro libraries, in order to perform macro placement.
 
 Let's fill out ``configure_chip()`` to accomplish these tasks one-by-one. First,
-we instantiate a new chip and set its target to Skywater 130::
+we instantiate a new chip and set its target to Skywater 130, an open-source PDK
+that has its configuration bundled with SC::
 
   chip = Chip()
   chip.target('skywater130')
@@ -212,7 +201,7 @@ order to concisely reference the names of each macro we plan to use::
 
 
 Chip dimensions
-++++++++++++++++
+----------------
 The first step to floorplanning a chip is to define the actual size and
 placement area of the chip itself. Since ZeroSoC is implemented as a multi-step
 build, we'll define these dimensions in a new function that can be reused by
@@ -311,7 +300,7 @@ important dimensions from this function to the caller, we get::
       return (top_w, top_h), (core_w, core_h), (place_w, place_h), (margin_left, margin_bottom)
 
 Specifying die area
-+++++++++++++++++++
+-------------------
 Now that we have the basic size of our chip defined, we can begin to define
 ZeroSoC's core floorplan. To initialize a floorplan, we first need to call
 :meth:`~siliconcompiler.floorplan.Floorplan.create_diearea()` on our floorplan
@@ -350,7 +339,7 @@ the core, like in the following image.
 .. image:: _images/die_area.png
 
 Placing RAM
-+++++++++++
+-----------
 An orange rectangle isn't very exciting, so let's spruce things up by placing
 the RAM macro. We'll do this using the floorplan API's
 :meth:`~siliconcompiler.floorplan.Floorplan.place_macros` function, which allows
@@ -378,14 +367,23 @@ macro is specified as a tuple of two strings: the first is the particular
 instance name in the design, and the second is the name of the macro itself.
 Getting this instance name correct (accounting for the flattened hierarchy,
 indexing into generate blocks, etc.) can be tricky, and it’s important to get it
-right for the macro placement to be honored by design tools. To make this
-easier, when using Yosys for synthesis SC will automatically generate a report
-listing the names of all instances of your macros. The report can be found in
-``<job_dir>/syn0/reports/instances.out``. For example, the file looks like the
-following for the ZeroSoC core::
+right for the macro placement to be honored by design tools. The following
+naming rules apply for the Yosys synthesis tool in particular:
 
-  Instances of sky130_sram_2kbyte_1rw1r_32x512_8:
-    soc.ram.u_mem.gen_sky130.u_impl_sky130.genblk1.mem
+* When the hierarchy is flattened, instance names consist of the instance names
+  of all parent modules separated by a `.`.
+* Generate blocks are included in this hierarchy. We recommend naming all
+  generate blocks, since they'll otherwise be assigned a name generated by
+  Yosys.
+* When a generate for loop is used, an index is placed after the name of the
+  generate block, in between square brackets. The square brackets must be
+  escaped with ``\\`` in Python code, in order to escape it with a single ``\``
+  in the DEF file.
+
+Examples:
+
+* ``soc.ram.u_mem.gen_sky130.u_impl_sky130.genblk1.mem``
+* ``padring.we_pads\\[0\\].i0.padio\\[{i}\\].i0.gpio``
 
 Along with the macro placement itself, we use
 :meth:`~siliconcompiler.floorplan.Floorplan.place_blockage` to define a
@@ -407,7 +405,7 @@ and below it highlighted.
 .. image:: _images/ram.png
 
 Placing Pins
-++++++++++++
+------------
 To complete the core, we need to place pins around the edges of the block in the
 right places to ensure these pins abut the I/O pad control signals. Just like
 with the chip dimensions, we need to share data between both levels of the
@@ -567,7 +565,7 @@ should see the same clustered pattern of pins spaced out along it.
 .. image:: _images/pins.png
 
 PDN
-+++
+---
 The last important aspect of the core floorplan is the PDN, or power delivery
 network.  Since this piece is relatively complicated, we'll create a new
 function, ``place_pdn``, that encapsulates all the PDN generation logic::
@@ -830,7 +828,7 @@ places:
 .. image:: _images/vias.png
 
 Top-level padring
-++++++++++++++++++
+------------------
 Now that we've completed floorplanning the core, it's time to put together the
 padring and complete the picture! Since we've laid a lot of the groundwork
 already via our common functions, this shouldn't take quite as much code.
@@ -1094,79 +1092,6 @@ Here's the completed function for building the ZeroSoC top-level::
       ## Place core ##
       fp.place_macros([('core', 'asic_core')], gpio_h, gpio_h, 0, 0, 'N')
 
-Congratulations! You've successfully floorplanned an entire SoC using the power
-of Python and SiliconCompiler.
-
-Verification
-------------
-* DRC
-
-  * Overriding broken macros with LEFs (could also put this up in tool options
-    section?)
-
-* LVS
-
-  * Setting up top-level Verilog to integrate everything?/more on Verilog -
-    floorplan correspondence
-
-Build Configuration
--------------------
-The build script that coordinates building ZeroSOC is implemented in a
-file called `build.py
-<https://github.com/siliconcompiler/zerosoc/blob/main/build.py>`_. This file
-provides a variety of options for driving the build that aid debugging. Although
-SC can be driven through its own command-line interface for simple use cases,
-ZeroSoC is sufficiently complex that using the Python API is preferred.
-
-[TODO: figure out if we can leverage SC cmdline()]]
-
-Flow setup
-++++++++++
-* SC allows us to define custom flows, stitching together tools based on
-  configurations it provides
-* SV flow for building core -- similar to default asicflow, but needs to be
-  expanded for handling SV conversion
-* Phys flow that skips automated PNR
-* Point out that verification can run in parallel!
-
-Tool options
-+++++++++++++
-* OpenROAD routing density?
-* Magic override stuff?
-
-RTL
----
-We use the OH library's padring module for describing the ZeroSoC padring in
-Verilog. This module is a parameterized generator for building a generic
-padring. In order for your netlist to describe the padring implementation for a
-specific technology, you need to fill in several shim modules that wrap
-the declarations of technology-specific I/O macros. In particular, you must
-define the following modules:
-
-* ``asic_iobuf.v``
-* ``asic_iovdd.v``
-* ``asic_iovss.v``
-* ``asic_iovddio.v``
-* ``asic_iovssio.v``
-* ``asic_iocut.v``
-* ``asic_iopoc.v``
-
-Each of these modules exposes some generic ports that are common to all I/O
-libraries, as well as configurable-width passthrough vectors for
-technology-specific signals that aren't captured by the generic ports.
-
-It's important to note that since we implement the ZeroSoC padring without
-automatic place-and-route, and simply route it to the core via abutment, *there
-can't be any logic in these modules*. They may only instantiate the appropriate
-technology-specific macro, and wire its ports to the ports of the wrapper.
-
-The ZeroSoC implementation of these padring wrappers can be found under
-``asic/sky130/io``. The padring itself is instantiated in ``hw/asic_top.v``.
-
-[TODO: probably want to go into more detail in this section]
-
-FPGA
-----
-TODO: do we want to include instructions for FPGA simulation here, or just focus
-on ASIC/floorplanning stuff?
+Congratulations! You've successfully floorplanned an entire SoC using Python and
+SiliconCompiler.
 
