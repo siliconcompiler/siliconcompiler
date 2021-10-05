@@ -2069,7 +2069,7 @@ class Chip:
         if 'decrypt_key' in self.status:
             # Job data is encrypted, and it should only be decrypted in the
             # compute node's local storage.
-            job_nameid = f"{self.get('jobname')}{self.get('jobid')}"
+            job_nameid = f"{self.get('jobname')}{self.get('jobid')[-1]}"
             cur_build_dir = f"{self.get('dir')}/{self.get('design')}/{job_nameid}"
             tmp_job_dir = f"/tmp/{self.get('remote', 'jobhash')}"
             ctrl_node_dir = self.get('dir')
@@ -2135,7 +2135,7 @@ class Chip:
             # Write out the current schema for the compute node to pick up.
             job_dir = "/".join([self.get('dir'),
                                 self.get('design'),
-                                self.get('jobname') + str(self.get('jobid'))])
+                                self.get('jobname') + self.get('jobid')[-1]])
             cfg_dir = f'{job_dir}/configs'
             cfg_file = f'{cfg_dir}/{step}{index}.json'
             if not os.path.isdir(cfg_dir):
@@ -2576,7 +2576,7 @@ class Chip:
                         m = re.match(self.get('jobname')+r'(\d+)', item)
                         if m:
                             jobid = max(jobid, int(m.group(1)))
-                    self.set('jobid', jobid + 1)
+                    self.set('jobid', str(jobid + 1))
             except:
                 pass
 
@@ -2870,13 +2870,17 @@ class Chip:
 
 
     #######################################
-    def _getworkdir(self, step=None, index=None):
+    def _getworkdir(self, jobid=None, step=None, index=None):
         '''Create a step directory with absolute path
         '''
 
+        # the last jobid is used if None is provided
+        if jobid is None:
+            jobid = self.get('jobid')[-1]
+
         dirlist =[self.get('dir'),
                   self.get('design'),
-                  self.get('jobname') + str(self.get('jobid')[-1])]
+                  self.get('jobname') + jobid]
 
         if step is not None:
             dirlist.append(step + index)

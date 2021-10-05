@@ -2197,6 +2197,22 @@ def schema_arg(cfg):
 
     cfg['arg'] = {}
 
+    cfg['arg']['jobid'] = {
+        'switch': "-arg_jobid <str>",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Current execution step',
+        'example': ["cli: -arg_jobid '0'",
+                    "api: chip.set('arg', 'jobid', '44')"],
+        'help': """
+        Dynamic variable passed in by the sc runtime as an argument to
+        durning the run() execution. The affects the current run directory.
+        """
+    }
+
+
     cfg['arg']['step'] = {
         'switch': "-arg_step <str>",
         'type': 'str',
@@ -3197,18 +3213,20 @@ def schema_options(cfg):
     }
 
     cfg['jobid'] = {
-        'switch': "-jobid <int>",
-        'type': '[int]',
+        'switch': "-jobid <str>",
+        'type': '[str]',
         'lock': 'false',
         'requirement': 'all',
         'defvalue': ['0'],
         'shorthelp': 'Job ID',
         'example': ["cli: -jobid 0",
-                    "api: chip.set('jobid',0)"],
+                    "api: chip.set('jobid','0')"],
         'help': """
-        List of jobids keeping track of different compilations for the same
-        design. The structure is: <dir>/<design>/<jobname><jobid>/<step><index>.
-        The last jobid entry in the list is used for current execution.
+        List of jobids of different compilations for the same
+        design. The jobid list can be set up statically or updated dynamically
+        during run time. The jobid combined with a known director structure
+        (<dir>/<design>/<jobname><jobid>/<step><index>) enables multiple
+        levels of transparent job, step, and index introspecetion.
         """
     }
 
