@@ -137,7 +137,7 @@ class Chip:
             description (str): Short program description.
             switchlist (list of str): List of SC parameter switches to expose
                  at the command line. By default all SC schema switches are
-                 available.  Parameter switches should be entered without 
+                 available.  Parameter switches should be entered without
                  '-', based on the parameter 'switch' field in the 'schema'.
 
         Examples:
@@ -347,9 +347,9 @@ class Chip:
         '''
         Imports a module and returns a module function attribute.
 
-        Searches the SC root directory and the 'scpath' parameter for the 
-        modulename provided and imports the module if found. If the funcname 
-        provided is found in the module, a callable function attribude is 
+        Searches the SC root directory and the 'scpath' parameter for the
+        modulename provided and imports the module if found. If the funcname
+        provided is found in the module, a callable function attribude is
         returned, otherwise None is returned.
 
         The function assumes the following directory structure:
@@ -362,7 +362,7 @@ class Chip:
 
         * pdk (make_docs, setup_pdk)
         * flow (make_docs, setup_flow)
-        * tool (make_docs, setup_tool, check_version, runtime_options, 
+        * tool (make_docs, setup_tool, check_version, runtime_options,
           pre_process, post_process)
 
         Args:
@@ -579,12 +579,12 @@ class Chip:
         """
         Returns a parameter value based on keypath provided.
 
-        Searches the schema for the keypath provided and returns the value 
-        for the specified field. The returned type is consistent with the 
+        Searches the schema for the keypath provided and returns the value
+        for the specified field. The returned type is consistent with the
         type field of the parameter. Fetching parameters with empty /
         undefined value files returns None for scalar types and [] (empty list)
-        for list types. Accessing a non-existent keypath produces a logger 
-        error message and raises the Chip object error flag. 
+        for list types. Accessing a non-existent keypath produces a logger
+        error message and raises the Chip object error flag.
 
         Args:
             keypath(list str): Variable length ordered schema key list.
@@ -614,10 +614,10 @@ class Chip:
         Returns list of keys based on keypath provided.
 
         Searches the schema for the keypath provided and returns a list of
-        keys found, excluding the generic 'default' key. Accessing a 
-        non-existent keypath produces a logger error message and raises the 
+        keys found, excluding the generic 'default' key. Accessing a
+        non-existent keypath produces a logger error message and raises the
         Chip object error flag.
-        
+
         Args:
             keypath(list str): Variable length ordered schema key list
             cfg(dict): Alternate dictionary to access in place of self.cfg
@@ -653,7 +653,7 @@ class Chip:
         Returns a dictionary based on keypath provided.
 
         Searches the schema for the keypath provided and returns a complete
-        dictionary. Accessing a non-existent keypath produces a logger error 
+        dictionary. Accessing a non-existent keypath produces a logger error
         message and raises the Chip object error flag.
 
         Args:
@@ -683,15 +683,15 @@ class Chip:
         '''
         Sets the value of a schema parameter field based on keypath provided.
 
-        Searches the schema for the keypath provided and then sets the 
-        specified field to the value provided. New schema dictionaries are 
-        automatially created for keypaths that overlap with 'default' 
-        dictionaries. The write action is ignored if the parameter value is 
-        non-empty and the clobber option is set to False. 
+        Searches the schema for the keypath provided and then sets the
+        specified field to the value provided. New schema dictionaries are
+        automatially created for keypaths that overlap with 'default'
+        dictionaries. The write action is ignored if the parameter value is
+        non-empty and the clobber option is set to False.
 
-        The value provided must agree with the dictionary parameter 'type'. 
-        Accessing a non-existent keypath or providing a value that disagrees 
-        with the parameter type produces a logger error message and raises the 
+        The value provided must agree with the dictionary parameter 'type'.
+        Accessing a non-existent keypath or providing a value that disagrees
+        with the parameter type produces a logger error message and raises the
         Chip object error flag.
 
         Args:
@@ -725,13 +725,13 @@ class Chip:
         Adds a value to schema parameter list based on keypath provided.
 
         Searches the schema for the keypath provided and then adds a value
-        to the existing parameter value list. New schema dictionaries are 
-        automatially created for keypaths that overlap with 'default' 
-        dictionaries. 
+        to the existing parameter value list. New schema dictionaries are
+        automatially created for keypaths that overlap with 'default'
+        dictionaries.
 
-        The value provided must agree with the dictionary parameter 'type'. 
-        Accessing a non-existent keypath, providing a value that disagrees 
-        with the parameter type, or using add with a scalar parameter produces 
+        The value provided must agree with the dictionary parameter 'type'.
+        Accessing a non-existent keypath, providing a value that disagrees
+        with the parameter type, or using add with a scalar parameter produces
         a logger error message and raises the Chip object error flag.
 
         Args:
@@ -742,7 +742,7 @@ class Chip:
             >>> chip.add('source', 'hello.v')
             Adds the file 'hello.v' to the list of sources.
         '''
-        
+
         if cfg is None:
             cfg = self.cfg
 
@@ -787,7 +787,7 @@ class Chip:
             cfg(dict): The cfg schema to search
             keypath (str): Concatenated keypath used for error logging.
             args (str): Keypath/value variable list used for access
-            field(str): Leaf cell field to access. 
+            field(str): Leaf cell field to access.
             mode(str): Action (set/get/add/getkeys/getkeys)
             clobber(bool): Specifies to clobber (for set action)
 
@@ -996,12 +996,12 @@ class Chip:
     def find_file(self, filename):
         """
         Returns the abslute path for the filename provided.
-        
-        Searches the SC root directory and the 'scpath' parameter for the 
-        filename provided and returns the absolute path. If no valid absolute 
+
+        Searches the SC root directory and the 'scpath' parameter for the
+        filename provided and returns the absolute path. If no valid absolute
         path is found during the search, None is returned.
 
-        Shell variables ('$' followed by strings consisting of numbers, 
+        Shell variables ('$' followed by strings consisting of numbers,
         underscores, and digits) are replaced with the variable value.
 
         Args:
@@ -1127,13 +1127,13 @@ class Chip:
         """
         Merges the provided schema dictionary into the Chip object.
 
-        All value fields in the provided schema dictionary are merged into the 
-        current chip object. Dictionaries with non-existent keypath produces a 
-        logger error message and raises the Chip object error flag. 
+        All value fields in the provided schema dictionary are merged into the
+        current chip object. Dictionaries with non-existent keypath produces a
+        logger error message and raises the Chip object error flag.
 
         Args:
             clear (bool): If True, the chip obect value is cleared before the
-                new dictionary value is written. 
+                new dictionary value is written.
 
         Examples:
             >>> chip.merge_manifest('my.pkg.json')
@@ -1157,7 +1157,7 @@ class Chip:
         '''
         Utility function to check key for an empty list.
         '''
-        
+
         emptylist = ("null", None, [])
 
         value = self.get(*key)
@@ -1171,10 +1171,10 @@ class Chip:
         '''
         Checks the validitiy of the Chip object in memory manifest.
 
-        Checks the validity of the current schema manifest in 
+        Checks the validity of the current schema manifest in
         memory to ensure that the design has been properly set up prior
         to running compilation. The function is called inside the run()
-        funciton but can also be called seperately. Checks performed by the 
+        funciton but can also be called seperately. Checks performed by the
         check_manifest() function include:
 
         * Has a flowgraph been defined?
@@ -1248,7 +1248,7 @@ class Chip:
     def read_manifest(self, filename, clear=True):
         """
         Reads a schema manifest from a file into the Chip object.
-        
+
         The file format read is determined by the filename suffix. Currently
         json (*.json) and yaml(*.yaml) formats are sopported.
 
@@ -1280,16 +1280,16 @@ class Chip:
         self.merge_manifest(localcfg, clear=clear)
 
     ###########################################################################
-    def write_manifest(self, filename, prune=True, keeplists=False, abspath=False):
+    def write_manifest(self, filename, prune=True, abspath=False):
         '''
         Writes the Chip objects manifest to a file.
-        
+
         The write file format is determined by the filename suffix. Currently
         json (*.json), yaml (*.yaml), and tcl (*.tcl) formats are sopported.
 
         Args:
             filename (filepath): Output filelepath
-            prune (bool): If True, essential non-empty parameters from the 
+            prune (bool): If True, essential non-empty parameters from the
                  the Chip object schema are written to the output file.
             abspath (bool): If set to True, then all schema filepaths
                  are resolved to absolute filepaths.
@@ -1307,6 +1307,11 @@ class Chip:
 
         if prune:
             self.logger.debug('Pruning dictionary before writing file %s', filepath)
+            # Keep empty lists to simplify TCL coding
+            if filepath.endswith('.tcl'):
+                keeplists = True
+            else:
+                keeplists = False
             cfgcopy = self._prune(self.cfg, keeplists=keeplists)
         else:
             cfgcopy = copy.deepcopy(self.cfg)
@@ -1339,7 +1344,7 @@ class Chip:
     ###########################################################################
     def _dump_fusesoc(self, cfg):
         '''
-        Internl funtion for dumping core information from chip object. 
+        Internl funtion for dumping core information from chip object.
         '''
 
         fusesoc = {}
@@ -1391,14 +1396,14 @@ class Chip:
         '''Writes the execution flow graph to a file.
 
         The chip object flowgraph is traversed to create a graphviz (*.dot)
-        file comprised of node, edges, and labels. The dot file is a 
+        file comprised of node, edges, and labels. The dot file is a
         graphical representation of the flowgraph useful for validating the
         correctness of the execution flow graph. The dot file is then
         converted to the appropriate picture or drawing format based on the
         filename suffix provided. Supported output render formats include
-        png, svg, gif, pdf and a few others. For more information about the 
+        png, svg, gif, pdf and a few others. For more information about the
         graphviz project, see see https://graphviz.org/
-        
+
         Args:
             filename (filepath): Output filelepath
 
@@ -1474,21 +1479,21 @@ class Chip:
     def hash_files(self, *keypath, algo='sha256', update=True):
         '''Generate hash values for parameter files based on keypath provided.
 
-        Generates a list of hash values based on the contents of the set of 
+        Generates a list of hash values based on the contents of the set of
         files contained within the parameter indicated by the keypath. If the
-        update variable is True, the has values are then recorded in the 
-        'filehash' field of the parameter, following the order dictated by 
+        update variable is True, the has values are then recorded in the
+        'filehash' field of the parameter, following the order dictated by
         the files within the 'values' parameter field.
 
         The file hash calculation is performed basd on the 'algo' setting.
         Supported algirithms incldue SHA1, SHA224, SHA256, SHA384, SHA512,
         and MD5.
 
-         
+
         Args:
             *keypath(str): Keypath to parameter.
             algo (str): Algorithm to use for file hash calculation
-            update (bool): If True, the hash values are recored in the 
+            update (bool): If True, the hash values are recored in the
                 chip object manifest.
 
         Returns:
@@ -1496,7 +1501,7 @@ class Chip:
 
         Examples:
             >>> hash_list = hash_files('sources')
-            Comptues hash files of all files in the sources parameter.        
+            Comptues hash files of all files in the sources parameter.
         '''
 
         hashmode = self.get('hashmode')
@@ -1526,12 +1531,12 @@ class Chip:
     ###########################################################################
     def audit_manifest(self):
         '''Performance an audit of the chip manifest
-        
-        Checks the integrity of the chip object implementation flow after 
+
+        Checks the integrity of the chip object implementation flow after
         the run() function has been completed.
 
         Audit checks performed include:
-        
+
         * Time stamps
         * File modifications
         * Error and warning policy
@@ -1542,9 +1547,9 @@ class Chip:
 
         Returns:
             Returns True if the manifest has integrity, else returns False.
- 
+
         '''
-        
+
         return 0
 
     ###########################################################################
@@ -1584,8 +1589,7 @@ class Chip:
 
         return dy
 
-    ###########################################################################
-
+    ##########################################################################
     def calc_dpw(self):
         '''Calculates dies per wafer
 
@@ -1645,30 +1649,6 @@ class Chip:
                 x = 0
 
         return int(dies)
-
-    ###########################################################################
-    def calc_diecost(self, n):
-        '''Calculates the per unit die cost based on volume.
-        
-        Calculats the raw per unit die cost based on the number of units 
-        produced (n), the wafer cost, and the fixed mask costs based on the f
-        following calculation: die_cost = maskcost + wafercost/dpw
-
-        An error is produced if cost numbers are absent from the chip manifest.
-
-        Args:
-            n (int): Number of units produced.
-
-        Returns:
-            Raw per die cost.
-                
-        Examples:
-        >>> die_cost = chip.calc_diecost(1000)
-        Calculates the per die cost in USD.
-
-        '''
-
-        return 0
 
     ###########################################################################
     def summary(self):
@@ -2293,7 +2273,7 @@ class Chip:
 
         self.write_manifest("sc_manifest.json")
         self.write_manifest("sc_manifest.yaml")
-        self.write_manifest("sc_manifest.tcl", abspath=True, keeplists=True)
+        self.write_manifest("sc_manifest.tcl", abspath=True)
 
         ##################
         # 9. Final check() before run
