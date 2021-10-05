@@ -194,7 +194,7 @@ def schema_pdk(cfg, stackup='default'):
         'example': ["cli: -pdk_foundry virtual",
                     "api:  chip.set('pdk', 'foundry', 'virtual')"],
         'help': """
-        Official foundry company name. Examples include intel, gf, tsmc,
+        Name of foundry corporation. Examples include intel, gf, tsmc,
         samsung, skywater, virtual. The \'virtual\' keyword is reserved for
         simulated non-manufacturable processes.
         """
@@ -210,9 +210,9 @@ def schema_pdk(cfg, stackup='default'):
         'example': ["cli: -pdk_process asap7",
                     "api:  chip.set('pdk', 'process', 'asap7')"],
         'help': """
-        Official public name of the foundry process. The string is case
-        insensitive and must match the public process name exactly. Examples
-        of virtual processes include freepdk45 and asap7.
+        Public name of the foundry process. The string is case insensitive and 
+        must match the public process name exactly. Examples of virtual 
+        processes include freepdk45 and asap7.
         """
     }
 
@@ -997,8 +997,38 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
                     "api: chip.set('library','mylib','type','stdcell')"],
         'help': """
         Type of the library being configured. A 'stdcell' type is reserved
-        for fixed height standard cell libraries. A 'component' type is
-        used for everything else.
+        for fixed height standard cell libraries. A 'soft' type indicates
+        a library that is provided as technology agnostic source code, and
+        a 'hard' type indicates a technology specific non stdcell library.
+        """
+    }
+
+    cfg['library'][lib]['source'] = {
+        'switch': "-library_source '<file>'",
+        'requirement': None,
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Library source files',
+        'example': [
+            "cli: -library_source 'mylib hello.v'",
+            "api: chip.set('library','mylib','source','hello.v')"],
+        'help': """
+        List of library source files. File type is inferred from the
+        file suffix. The parameter is required or 'soft' library types and
+        optional for 'hard' and 'stdcell' library types.
+        (\\*.v, \\*.vh) = Verilog
+        (\\*.vhd)      = VHDL
+        (\\*.sv)       = SystemVerilog
+        (\\*.c)        = C
+        (\\*.cpp, .cc) = C++
+        (\\*.py)       = Python
         """
     }
 
@@ -1022,6 +1052,55 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'help': """
         Filepaths to testbench specified on a per library and per simtype basis.
         Typical simulation types include rtl, spice.
+        """
+    }
+
+    cfg['library'][lib]['dependency'] = {}
+    cfg['library'][lib]['dependency']['default'] = {}
+    cfg['library'][lib]['dependency']['default']['version'] = {
+        'switch': "-library_dependency 'lib package version <str>'",
+        'requirement': None,
+        'type': 'str',
+        'lock': 'false',
+        'defvalue': None,
+        'shorthelp': 'Library dependencies',
+        'example': [
+            "cli: -library_dependency 'mylib myip version 1.0.0'",
+            "api: chip.set('library','mylib','dependency','myip','version','1.0.0')"],
+        'help': """
+        Version of a named dependency for the library.
+        """
+    }
+
+
+    cfg['library'][lib]['pdk'] = {
+        'switch': "-library_pdk 'lib <str>'",
+        'requirement': None,
+        'type': 'str',
+        'lock': 'false',
+        'defvalue': None,
+        'shorthelp': 'Library PDK',
+        'example': ["cli: -library_pdk 'mylib freepdk45",
+                    "api:  chip.set('library', 'pdk', 'mylib', 'freepdk45')"],
+        'help': """
+        Name of the PDK module used to create the library package. The module
+        is checked and loaded based on the 'scpath' schema parameter. The 
+        parameter is required for hardened technology specific library types.
+        """
+    }
+
+    cfg['library'][lib]['stackup'] = {
+        'switch': "-library_stackup 'lib <str>'",
+        'requirement': None,
+        'type': 'str',
+        'lock': 'false',
+        'defvalue': None,
+        'shorthelp': 'Library stackup',
+        'example': ["cli: -library_stackup 'mylib M10",
+                    "api:  chip.set('library', 'stackup', 'mylib', '10')"],
+        'help': """
+        Name of the PDK metal stackup used by the library. The parameter is 
+        required for hardened technology specific library types.
         """
     }
 
@@ -1346,14 +1425,15 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'author': [],
         'signature': [],
         'shorthelp': 'Library LVS netlists',
-        'example': ["cli: -library_netlist 'mylib cdl mylib.cdl'",
-                    "api: chip.set('library','mylib','netlist','cdl','mylib.cdl')"],
+        'example': [
+            "cli: -library_netlist 'mylib cdl mylib.cdl'",
+            "api: chip.set('library','mylib','netlist','cdl','mylib.cdl')"],
         'help': """
-        Files containing the netlist used for layout versus schematic (LVS)
-        checks. For transistor level libraries such as standard cell libraries
-        and SRAM macros, this should be a CDL type netlist. For higher level
-        modules like place and route blocks, it should be a verilog gate
-        level netlist.
+        List of files containing the golden netlist used for layout versus 
+        schematic (LVS) checks. For transistor level libraries such as 
+        standard cell libraries and SRAM macros, this should be a CDL type 
+        netlist. For higher level modules like place and route blocks, it 
+        should be a verilog gate level netlist.
         """
     }
     cfg['library'][lib]['spice'] = {}
@@ -2990,7 +3070,7 @@ def schema_options(cfg):
         'lock': 'false',
         'requirement': None,
         'defvalue': [],
-        'shorthelp': 'Environment Variables',
+        'shorthelp': 'Environment variables',
         'example': ["cli: -env 'PDK_HOME /disk/mypdk'",
                     "api: chip.set('env', 'PDK_HOME', '/disk/mypdk')"],
         'help': """
@@ -3020,7 +3100,7 @@ def schema_options(cfg):
         'lock': 'false',
         'requirement': 'all',
         'defvalue': 'OFF',
-        'shorthelp': 'File Hash Mode',
+        'shorthelp': 'File hash mode',
         'example': ["cli: -hashmode 'ALL'",
                     "api: chip.set('hashmode', 'ALL')"],
         'help': """
@@ -3179,7 +3259,7 @@ def schema_options(cfg):
         'lock': 'false',
         'requirement': 'all',
         'defvalue': 'O0',
-        'shorthelp': 'Optimization Mode',
+        'shorthelp': 'Optimization mode',
         'example': ["cli: -O3",
                     "api: chip.set('optmode','3')"],
         'help': """
@@ -3215,7 +3295,7 @@ def schema_options(cfg):
         'lock': 'false',
         'requirement': 'all',
         'defvalue': 'false',
-        'shorthelp': 'Output simulation trace',
+        'shorthelp': 'Enables simulation trace output',
         'example': ["cli: -trace",
                     "api: chip.set('trace', True)"],
         'help': """
@@ -3537,7 +3617,7 @@ def schema_design(cfg):
         'help': """
         A list of source files to read in for elaboration. The files are read
         in order from first to last entered. File type is inferred from the
-        file suffix:
+        file suffix.
         (\\*.v, \\*.vh) = Verilog
         (\\*.vhd)      = VHDL
         (\\*.sv)       = SystemVerilog
@@ -3546,6 +3626,8 @@ def schema_design(cfg):
         (\\*.py)       = Python
         """
     }
+
+    
 
     cfg['netlist'] = {
         'switch': '-netlist <file>',
@@ -3611,6 +3693,23 @@ def schema_design(cfg):
         """
     }
 
+    package = 'default'
+    cfg['dependency'] = {}
+    cfg['dependency'][package] = {}
+    cfg['dependency'][package]['version'] = {
+        'switch': "-dependency 'package version <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Project dependancies',
+        'example': ["cli: -dependency 'hello version 1.0.0",
+                    "api: chip.set('dependency', 'hello', 'version', '1.0.0')"],
+        'help': """
+        Version of a named package dependency needeed for the project.
+        """
+    }
+
     cfg['doc'] = {
         'switch': "-doc <file>",
         'type': '[file]',
@@ -3627,11 +3726,9 @@ def schema_design(cfg):
         'example': ["cli: -doc spec.pdf",
                     "api: chip.set('doc', 'spec.pdf')"],
         'help': """
-        A list of design documents. Files are read in order from first to last.
+        List of design documents. Files are read in order from first to last.
         """
     }
-
-
 
     cfg['license'] = {
         'switch': "-license <file>",
@@ -4536,7 +4633,7 @@ def schema_mcmm(cfg, scenario='default'):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'MCMM scenario operating condition',
+        'shorthelp': 'Scenario operating condition',
         'example': ["cli: -mcmm_opcond 'worst typical_1.0'",
                     "api: chip.set('mcmm', 'worst', 'opcond',  'typical_1.0')"],
         'help': """
