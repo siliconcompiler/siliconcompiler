@@ -1186,8 +1186,8 @@ class Chip:
             Returns True if the manifest is valid, else returns False.
 
         Examples:
-            >>> chip.check_manifest()
-           Returns True of the Chip object dictionary checks out.
+            >>> manifest_ok = chip.check_manifest()
+            Returns True of the Chip object dictionary checks out.
 
         '''
 
@@ -1576,8 +1576,8 @@ class Chip:
             Design yield percentage (float).
 
         Examples:
-        >>> yield = chip.calc_yield()
-        Yield variable gets yield value based on the chip manifest.
+            >>> yield = chip.calc_yield()
+            Yield variable gets yield value based on the chip manifest.
         '''
 
         d0 = self.get('pdk', 'd0')
@@ -1606,8 +1606,8 @@ class Chip:
             Number of gross dies per wafer (int).
 
         Examples:
-        >>> dpw = chip.calc_dpw()
-        Variable dpw gets gross dies per wafer value based on the chip manifest.
+            >>> dpw = chip.calc_dpw()
+            Variable dpw gets gross dies per wafer value based on the chip manifest.
         '''
 
         #PDK information
@@ -1851,7 +1851,7 @@ class Chip:
                 sel_inputs.append(a+b)
 
         # no score for join, so just return 0
-        return 0, sel_inputs
+        return sel_inputs
 
     ###########################################################################
     def step_minimum(self, *steps):
@@ -2326,7 +2326,7 @@ class Chip:
                 (score, sel_inputs) = self.step_mux(*inputs, selector=args)
             elif func == "step_join":
                 sel_inputs = self.step_join(*inputs)
-            elif func == "step_verify":
+            elif func == "step_assert":
                 if not self.step_assert(*inputs, assertion=args):
                     self._haltstep(step, index, active)
             else:
