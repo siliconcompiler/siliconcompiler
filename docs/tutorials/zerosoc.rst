@@ -2,13 +2,10 @@ Python-based floorplanning
 ==========================
 
 This tutorial walks you through using SC's Python-based floorplanning API to
-create a full floorplan for the ZeroSoC. ZeroSoC is a simple system-on-chip
-designed to demonstrate SiliconCompiler’s capabilities for driving an end-to-end
-design flow.
+create a full floorplan for the ZeroSoC, a simple system-on-chip meant to
+demonstrate SiliconCompiler’s end-to-end design capabilities.
 
 .. image:: _images/zerosoc.png
-
-[TODO: regenerate image with up-to-date ZeroSoC]
 
 ZeroSoC is based on a subset of the IP used in the open-source `OpenTitan SoC
 <https://github.com/lowrisc/opentitan>`_. It includes:
@@ -21,15 +18,13 @@ ZeroSoC is based on a subset of the IP used in the open-source `OpenTitan SoC
 ZeroSoC’s design and supporting files can be found at
 https://github.com/siliconcompiler/zerosoc.
 
-[TODO: add statement about assumed knowledge/other sections that should be read first?]
-
 Floorplanning methodology
 -------------------------
 SC includes a library for designing chip floorplans using Python, providing a
-high degree of flexibility and easy automation of floorplan design
-(:ref:`API Reference<Floorplan API>`). In this part of the tutorial, we describe how
-to use this API to iteratively build up a floorplan for ZeroSoC from scratch.
-We encourage you to check your progress using the layout visualizer `KLayout
+high degree of flexibility and easy automation of floorplan design (:ref:`API
+Reference<Floorplan API>`). In this tutorial, we describe how to use this API to
+iteratively build up a floorplan for ZeroSoC from scratch.  We encourage you to
+check your progress using the layout visualizer `KLayout
 <https://www.klayout.de/>`_ on each step, an approach that mirrors how you would
 develop your own floorplan using this API.
 
@@ -43,16 +38,16 @@ two different parts:
 * Second, the *top-level*, which wraps the core and places the ZeroSoC's padring
   (the portion that implements I/O) around it.
 
-The ZeroSoC core is built using SC's standard OpenROAD-based flow, including
-automatic place-and-route, and it has metal pins around the core's boundary for
-input and output. The core and padring are designed such that these pins route to
-the inner pins of the I/O pads by abutment. Therefore, the top-level does not require
-automatic place-and-route -- it is defined entirely by the top-level floorplan
-file. This manual placement is verified through DRC and LVS, comparing the
-design to a netlist. This two-part build is important to understand since we
-will specify the floorplans of each component separately.
+The ZeroSoC core is built using SC's included OpenROAD-based flow, and it has
+metal pins along its sides for input and output. The core and padring are
+designed such that these pins route to the inner pins of the I/O pads by
+abutment. Therefore, the top-level does not require automated place and route --
+it is defined entirely by the top-level floorplan file. This manual placement is
+verified through DRC and LVS, ensuring that it satisfies foundry design rules
+and that it matches the Verilog netlist. This two-part build is important to
+understand since we will specify the floorplans of each component separately.
 
-[TODO: show KLayout screenshot zoomed in to routing via abutment]
+.. image:: _images/abutment.png
 
 Let's begin by cloning the ZeroSoC Github repository. Be sure to initialize the
 submodules to pull down the required third-party design files:
@@ -62,8 +57,10 @@ submodules to pull down the required third-party design files:
   git clone https://github.com/siliconcompiler/zerosoc.git
   git submodule update --init --recursive
 
-Now, create a new Python file in the ZeroSoC directory called ``floorplan.py``,
-and copy in the following boilerplate::
+The ZeroSoC repo already includes a completed floorplan, ``floorplan.py``. If
+you want to follow along with each step of this tutorial, go ahead and delete or
+rename that file and create a blank ``floorplan.py`` in its place. Then, copy in
+the following boilerplate::
 
   from siliconcompiler.core import Chip
   from siliconcompiler.floorplan import Floorplan
@@ -89,15 +86,16 @@ and copy in the following boilerplate::
 This file gives us a framework to start designing ZeroSoC's core floorplan. The
 ``main()`` routine first calls a function ``configure_chip()``, which returns an
 SC :class:`~siliconcompiler.core.Chip` object, and uses that to instantiate a
-:class:`~siliconcompiler.floorplan.Floorplan` object. We need to provide this
-Chip object since aspects of the floorplan will be defined based on the chip
-configuration. We'll point out examples of this throughout the tutorial.
+:class:`~siliconcompiler.floorplan.Floorplan` object. The ``Floorplan``
+constructor requires a ``Chip`` object since aspects of the floorplan are
+defined based on the chip configuration.  We'll point out examples of this
+throughout the tutorial.
 
 Next, ``main()`` calls ``core_floorplan()``, which will ultimately use the
-functions defined by the fLoorplan API to define the floorplan itself. Finally,
-``main()`` calls a method of the floorplan object, ``write_def()``, to generate
-an output DEF file that we can either preview in KLayout or pass into an SC
-compilaton flow.
+functions provided by the floorplan API to generate the floorplan itself.
+Finally, ``main()`` calls a method of the floorplan object, ``write_def()``, to
+generate an output DEF file that we can either preview in KLayout or pass into
+an SC compilaton flow.
 
 Minimal chip configuration
 ------------------------------
@@ -142,7 +140,7 @@ parameter::
 
 Finally, it's a good idea to specify the "type" of a macro libray in order to
 distinguish it from the technology target-defined standard cell library used for
-automatic place and route. The standard type for a macro library is
+automated place and route. The standard type for a macro library is
 "component"::
 
   chip.set('library', libname, 'type', 'component')
@@ -175,7 +173,7 @@ library, your definition of ``configure_chip()`` should look like this::
       libname = 'io'
       chip.add('library', libname, 'nldm', 'typical', 'lib', 'asic/sky130/io/sky130_dummy_io.lib')
       chip.set('library', libname, 'lef', 'asic/sky130/io/sky130_ef_io.lef')
-      # Need both GDS files: ef relies on fd one
+      # Need both GDS files: "ef" relies on "fd"
       chip.add('library', libname, 'gds', 'asic/sky130/io/sky130_ef_io.gds')
       chip.add('library', libname, 'gds', 'asic/sky130/io/sky130_fd_io.gds')
       chip.add('asic', 'macrolib', libname)
@@ -207,41 +205,28 @@ placement area of the chip itself. Since ZeroSoC is implemented as a multi-step
 build, we'll define these dimensions in a new function that can be reused by
 both the core and top-level floorplan, so that we don't have any integration
 bugs due to dimension mismatch. Let's call this function
-``define_dimensions()``, and have it take in a floorplan object called ``fp``
-(you can place this function right after ``configure_chip()``)::
+``define_dimensions()``, and have it take in a floorplan object called ``fp``.
+You can place this function right after ``configure_chip()``::
 
   def define_dimensions(fp):
 
 First, let's define two variables that specify the size of the area in the
-middle of the chip where automated place-and-route can put standard cells::
+middle of the chip where automated place and route can put standard cells, as
+well as a variables each for the size of the bottom and left margins around the
+area, where the power delivery rings will go::
 
   place_w = 4860 * fp.stdcell_width
   place_h = 648 * fp.stdcell_height
-
-Note that these dimensions are calculated based on two values extracted from the
-``fp`` object: the standard cell width and standard cell height.  This detail is
-important, and we encourage this technique as best practice. By scaling the die
-size based on these values, the floorplan becomes technology-agnostic [TODO: can
-I make this claim? the floorplan itself isn't totally technology-agnostic, so
-I'm not sure how best to express this idea] -- if we
-wanted to change the underlying technology to a PDK with larger or smaller
-standard cell placement sites, the die would be scaled automatically to
-accommodate. This is also why we need to provide a configured chip object to
-instantiate our Floorplan object -- that's how it extracts this information.
-
-Next, we'll define a variable each for the size of the bottom and left margins
-around the placement area::
-
   margin_left = 60 * fp.stdcell_width
   margin_bottom = 10 * fp.stdcell_height
 
-We specify these margins to be large enough to allow us to route a ring for
-power delivery around the standard cells (we'll describe how power delivery is
-performed in more depth later on). We also once again use standard cell
-dimensions to specify the size here, but for another reason besides scaling.
-Making sure these margins are multiples of the standard cell size ensures that
-routing tracks and standard cell placement are aligned properly for the
-automated place-and-route tool to easily route to each cell.
+Note that these dimensions are calculated based on two values extracted from the
+``fp`` object: the standard cell width and standard cell height. Making sure the
+margins are multiples of the standard cell size ensures that routing tracks and
+standard cell placement are aligned properly for the automated place and route
+tool to easily route to each cell. This is an example of why we need to provide
+a configured chip object to instantiate our Floorplan object -- that's how it
+extracts this information.
 
 Based on these margins and placement area, we can compute the size of the core
 itself::
@@ -261,7 +246,7 @@ Our padring height is going to be equal to the height of our I/O library's GPIO
 cell. The floorplan API provides us with the ability to look up the dimensions
 of macros through its ``available_cells`` dictionary.
 
-We also wrap this calculatinon in ``math.ceil`` to round these dimensions up to
+We also wrap this calculation in ``math.ceil`` to round these dimensions up to
 a whole number of microns. Having these dimensions be whole numbers is necessary
 for us to construct the padring, which we'll discuss later on in the tutorial.
 
@@ -284,12 +269,9 @@ important dimensions from this function to the caller, we get::
       core_w = place_w + 2 * margin_left
       core_h = place_h + 2 * margin_bottom
 
-      # GPIO is largest I/O cell, so its height is the height of each side of the
-      # padring.
-      # Use math.ceil to ensure that chip's dimensions are whole microns, so we can
-      # fill with I/O fill cells (this implicitly stretches our top/right margins a
-      # bit to make this work out -- i.e. the place area is not entirely centered
-      # within the core, but you can't tell)
+      # Use math.ceil to ensure that top-level's dimensions are a whole number of
+      # microns. This implicitly stretches out the top/right margins around the
+      # placement area a bit.
       gpio_h = fp.available_cells[GPIO].height
       top_w = math.ceil(core_w + 2 * gpio_h)
       top_h = math.ceil(core_h + 2 * gpio_h)
@@ -307,8 +289,8 @@ ZeroSoC's core floorplan. To initialize a floorplan, we first need to call
 object, passing in the relevant dimensions. Put the following code in
 ``core_floorplan()``::
 
-  _, (core_w, core_h), (place_w, place_h), (margin_left, margin_bottom) = define_dimensions(fp)
-
+  dims = define_dimensions(fp)
+  _, (core_w, core_h), (place_w, place_h), (margin_left, margin_bottom) = dims
   diearea = [(0, 0), (core_w, core_h)]
   corearea = [(margin_left, margin_bottom), (place_w + margin_left, place_h + margin_bottom)]
   fp.create_diearea(diearea, corearea=corearea)
@@ -316,9 +298,9 @@ object, passing in the relevant dimensions. Put the following code in
 The first argument to ``create_diearea`` specifies the overall size of the chip,
 provided as a list containing the coordinates of the bottom-left and top-right
 corners, respectively (the bottom-left is generally ``(0, 0)``).  The
-``corearea`` keyword argument specifies the legal area for placing standard
-cells in the same form (note that the term "core" in ``corearea`` refers to
-something other than the ZeroSoC "core").
+``corearea`` keyword argument takes input in the same form and specifies the
+legal area for placing standard cells (note that the term "core" in ``corearea``
+refers to something other than the ZeroSoC "core").
 
 With this call, we now have a minimal SC floorplan! To preview your work, go
 ahead and run ``floorplan.py``. This should produce some log output, as well as
@@ -354,7 +336,7 @@ call to ``create_diearea()``::
   ram_h = fp.available_cells[RAM].height
   ram_x = place_w + margin_left - ram_w
   ram_y = place_h + margin_bottom - ram_h
-  instance_name = 'soc.ram.u_mem.gen_sky130.u_impl_sky130.genblk1.mem'
+  instance_name = 'soc.ram.u_mem.gen_sky130.u_impl_sky130.gen32x512.mem'
   fp.place_macros([(instance_name, RAM)], ram_x, ram_y, 0, 0, 'N', snap=True)
 
 We use our predefined dimensions as well as the RAM size information stored in
@@ -370,20 +352,20 @@ indexing into generate blocks, etc.) can be tricky, and it’s important to get 
 right for the macro placement to be honored by design tools. The following
 naming rules apply for the Yosys synthesis tool in particular:
 
-* When the hierarchy is flattened, instance names consist of the instance names
-  of all parent modules separated by a `.`.
+* When the hierarchy is flattened, instance names include the instance names
+  of all parent modules separated by a ``.``.
 * Generate blocks are included in this hierarchy. We recommend naming all
   generate blocks, since they'll otherwise be assigned a name generated by
   Yosys.
-* When a generate for loop is used, an index is placed after the name of the
-  generate block, in between square brackets. The square brackets must be
-  escaped with ``\\`` in Python code, in order to escape it with a single ``\``
-  in the DEF file.
+* When a generate for-loop is used, an index is placed after the name of the
+  block, in between square brackets. The square brackets must be escaped with
+  ``\\`` in Python code, in order to escape it with a single ``\`` in the DEF
+  file.
 
 Examples:
 
-* ``soc.ram.u_mem.gen_sky130.u_impl_sky130.genblk1.mem``
-* ``padring.we_pads\\[0\\].i0.padio\\[{i}\\].i0.gpio``
+* ``soc.ram.u_mem.gen_sky130.u_impl_sky130.gen32x512.mem``
+* ``padring.we_pads\\[0\\].i0.padio\\[5\\].i0.gpio``
 
 Along with the macro placement itself, we use
 :meth:`~siliconcompiler.floorplan.Floorplan.place_blockage` to define a
@@ -407,7 +389,7 @@ and below it highlighted.
 Placing Pins
 ------------
 To complete the core, we need to place pins around the edges of the block in the
-right places to ensure these pins abut the I/O pad control signals. Just like
+right places to ensure these pins contact the I/O pad control signals. Just like
 with the chip dimensions, we need to share data between both levels of the
 ZeroSoC hierarchy here, so we'll specify these dimensions in a new common Python
 function. We'll call this function ``define_io_placement()``, and start off by
@@ -419,10 +401,10 @@ defining four lists with the order of the I/O pad types on each side::
       ea_io = [GPIO] * 9 + [VDD, VSS, VDDIO, VSSIO]
       so_io = [GPIO] * 5 + [VDD, VSS, VDDIO, VSSIO] + [GPIO] * 4
 
-We want to design the floorplan so that the padcells are evenly spaced along the
+We want to design the floorplan so that the pad cells are evenly spaced along the
 west and south sides of the chip, and evenly spaced in two groups on the north
 and east sides. Although we could calculate out the positions by hand, since
-we're using Python, we can just calculate this programatically instead!
+we're using Python, we can do it programatically instead!
 
 First, we'll define a helper function called ``calculate_even_spacing()``::
 
@@ -568,20 +550,21 @@ PDN
 ---
 The last important aspect of the core floorplan is the PDN, or power delivery
 network.  Since this piece is relatively complicated, we'll create a new
-function, ``place_pdn``, that encapsulates all the PDN generation logic::
+function, ``place_pdn()``, that encapsulates all the PDN generation logic::
 
   def place_pdn(fp, ram_x, ram_y, ram_margin):
-      _, (core_w, core_h), (place_w, place_h), (margin_left, margin_bottom) = define_dimensions(fp)
+      dims = define_dimensions(fp)
+      _, (core_w, core_h), (place_w, place_h), (margin_left, margin_bottom) = dims
       we_pads, no_pads, ea_pads, so_pads = define_io_placement(fp)
 
-We'll also add a call to this function at the bottom of ``core_floorplan``::
+We'll also add a call to this function at the bottom of ``core_floorplan()``::
 
   place_pdn(fp, ram_x, ram_y, ram_margin_x)
 
-``place_pdn`` takes in the floorplan to modify, as well as the RAM macro's
-position and margin. These extra values are important to ensure we can properly
-distribute power to the RAM macro itself. We also calls our helper functions to
-get the other relevant dimensions of our design.
+``place_pdn()`` takes in the floorplan to modify, as well as the RAM macro's
+position and margin. These additional values are important to ensure the PDN
+doesn't accidentally short anything in the RAM macro. We also call our helper
+functions to get the other relevant dimensions of our design.
 
 The goal of the power delivery network is to create a grid over our entire
 design that connects VDD and GND from our I/O pads to each standard cell, as
@@ -590,7 +573,6 @@ we'll add some variables to our function to parameterize how these straps are
 created. Then, we'll use these parameters to calculate an even pitch for the
 grid in both directions::
 
-  ## Power grid configuration ##
   n_vert = 8 # how many vertical straps to place
   vwidth = 5 # width of vertical straps in microns
   n_hori = 10 # how many horizontal straps to place
@@ -598,7 +580,7 @@ grid in both directions::
   vlayer = 'm4' # metal layer for vertical straps
   hlayer = 'm5' # metal layer for horizontal straps
 
-  ## Calculate even spacing for straps ##
+  # Calculate even spacing for straps
   vpitch = ((ram_x - ram_margin - margin_left) - n_vert * vwidth) / (n_vert + 1)
   hpitch = (core_h - n_hori * hwidth) / (n_hori + 1)
 
@@ -611,7 +593,6 @@ our PDN is to add the definitions of the two "special nets" that are associated
 with our power signals.  We do this with
 :meth:`~siliconcompiler.floorplan.Floorplan.add_net`::
 
-  ## Set up special nets ##
   fp.add_net('_vdd', ['VPWR', 'vccd1'], 'power')
   fp.add_net('_vss', ['VGND', 'vssd1'], 'ground')
 
@@ -647,8 +628,10 @@ them::
   vdd_ring_right = vdd_ring_left + vdd_ring_width
   vdd_ring_top = vdd_ring_bottom + vdd_ring_height
 
-  fp.place_ring('_vdd', vdd_ring_left, vdd_ring_bottom, vdd_ring_width, vdd_ring_height, hwidth, vwidth, hlayer, vlayer)
-  fp.place_ring('_vss', vss_ring_left, vss_ring_bottom, vss_ring_width, vss_ring_height, hwidth, vwidth, hlayer, vlayer)
+  fp.place_ring('_vdd', vdd_ring_left, vdd_ring_bottom, vdd_ring_width,
+                vdd_ring_height, hwidth, vwidth, hlayer, vlayer)
+  fp.place_ring('_vss', vss_ring_left, vss_ring_bottom, vss_ring_width,
+                vss_ring_height, hwidth, vwidth, hlayer, vlayer)
 
 If you regenerate the DEF file, you can now see two rings of wires circling the
 ZeroSoC core.
@@ -661,15 +644,27 @@ by calling :meth:`~siliconcompiler.floorplan.Floorplan.place_wires`, and we'll
 duplicate the net name in the first argument and use the pitch parameter to
 place multiple straps with each call::
 
-  # Place horizontal power straps
+  # Horizontal stripes
   spacing = 2 * (hpitch + hwidth)
-  fp.place_wires(['_vdd'] * (n_hori // 2), vdd_ring_left, margin_bottom + hpitch, 0, spacing, vdd_ring_width, hwidth, hlayer)
-  fp.place_wires(['_vss'] * (n_hori // 2), vss_ring_left, margin_bottom + hpitch + (hpitch + hwidth), 0, spacing, vss_ring_width, hwidth, hlayer)
 
-  # Place vertical power straps
+  bottom = margin_bottom + hpitch
+  fp.place_wires(['_vdd'] * (n_hori // 2), vdd_ring_left, bottom, 0, spacing,
+                 vdd_ring_width, hwidth, hlayer, shape='stripe')
+
+  bottom = margin_bottom + hpitch + (hpitch + hwidth)
+  fp.place_wires(['_vss'] * (n_hori // 2), vss_ring_left, bottom, 0, spacing,
+                 vss_ring_width, hwidth, hlayer, shape='stripe')
+
+  # Vertical stripes
   spacing = 2 * (vpitch + vwidth)
-  fp.place_wires(['_vdd'] * (n_vert // 2), margin_left + vpitch, vdd_ring_bottom, spacing, 0, vwidth, vdd_ring_height, vlayer)
-  fp.place_wires(['_vss'] * (n_vert // 2), margin_left + vpitch + (vpitch + vwidth), vss_ring_bottom, spacing, 0, vwidth, vss_ring_height, vlayer)
+
+  left = margin_left + vpitch
+  fp.place_wires(['_vdd'] * (n_vert // 2), left, vdd_ring_bottom, spacing, 0,
+                 vwidth, vdd_ring_height, vlayer, shape='stripe')
+
+  left = margin_left + vpitch + (vpitch + vwidth)
+  fp.place_wires(['_vss'] * (n_vert // 2), left, vss_ring_bottom, spacing, 0,
+                 vwidth, vss_ring_height, vlayer, shape='stripe')
 
 Rebuild the floorplan and you should see a result like this:
 
@@ -678,7 +673,7 @@ Rebuild the floorplan and you should see a result like this:
 Now, we need a way to deliver power from the padring to the power rings. To do
 so, we'll add a few pieces of metal that will abut the correct ports on the
 power padcells, and overlap the corresponding wires in the ring. We do this with
-a few for loops over the pads::
+a few for-loops over the pads::
 
   gpio_h = fp.available_cells[GPIO].height
   pow_h = fp.available_cells[VDD].height
@@ -693,47 +688,63 @@ a few for loops over the pads::
       y -= gpio_h
       for offset in pin_offsets:
           if pad_type == VDD:
-              fp.place_wires(['_vdd'], -pow_gap, y + offset, 0, 0, vdd_ring_left + vwidth + pow_gap, pin_width, 'm3')
-              fp.place_pins (['_vdd'], 0, y + offset, 0, 0, vdd_ring_left + vwidth, pin_width, 'm3')
+              fp.place_wires(['_vdd'], -pow_gap, y + offset, 0, 0,
+                             vdd_ring_left + vwidth + pow_gap, pin_width, 'm3')
+              fp.place_pins (['_vdd'], 0, y + offset, 0, 0,
+                             vdd_ring_left + vwidth, pin_width, 'm3', use='power')
           elif pad_type == VSS:
-              fp.place_wires(['_vss'], -pow_gap, y + offset, 0, 0, vss_ring_left + vwidth + pow_gap, pin_width, 'm3')
-              fp.place_pins( ['_vss'], 0, y + offset, 0, 0, vss_ring_left + vwidth, pin_width, 'm3')
+              fp.place_wires(['_vss'], -pow_gap, y + offset, 0, 0,
+                             vss_ring_left + vwidth + pow_gap, pin_width, 'm3')
+              fp.place_pins(['_vss'], 0, y + offset, 0, 0,
+                            vss_ring_left + vwidth, pin_width, 'm3', use='power')
 
   for pad_type, x in no_pads:
       x -= gpio_h
       for offset in pin_offsets:
           if pad_type == VDD:
-              fp.place_wires(['_vdd'], x + offset, vdd_ring_top - hwidth, 0, 0, pin_width, core_h - vdd_ring_top + hwidth + pow_gap, 'm3')
-              fp.place_pins(['_vdd'], x + offset, vdd_ring_top - hwidth, 0, 0, pin_width, core_h - vdd_ring_top + hwidth, 'm3')
+              fp.place_wires(['_vdd'], x + offset, vdd_ring_top - hwidth, 0, 0,
+                             pin_width, core_h - vdd_ring_top + hwidth + pow_gap, 'm3')
+              fp.place_pins(['_vdd'], x + offset, vdd_ring_top - hwidth, 0, 0,
+                            pin_width, core_h - vdd_ring_top + hwidth, 'm3', use='power')
           elif pad_type == VSS:
-              fp.place_wires(['_vss'], x + offset, vss_ring_top - hwidth, 0, 0, pin_width, core_h - vss_ring_top + hwidth + pow_gap, 'm3')
-              fp.place_pins(['_vss'], x + offset, vss_ring_top - hwidth, 0, 0, pin_width, core_h - vss_ring_top + hwidth, 'm3')
+              fp.place_wires(['_vss'], x + offset, vss_ring_top - hwidth, 0, 0,
+                             pin_width, core_h - vss_ring_top + hwidth + pow_gap, 'm3')
+              fp.place_pins(['_vss'], x + offset, vss_ring_top - hwidth, 0, 0,
+                            pin_width, core_h - vss_ring_top + hwidth, 'm3', use='power')
 
   for pad_type, y in ea_pads:
       y -= gpio_h
       pad_w = fp.available_cells[pad_type].width
       for offset in pin_offsets:
           if pad_type == VDD:
-              fp.place_wires(['_vdd'], vdd_ring_right - vwidth, y + pad_w - offset - pin_width, 0, 0, core_w - vdd_ring_right + vwidth + pow_gap, pin_width, 'm3')
-              fp.place_pins(['_vdd'], vdd_ring_right - vwidth, y + pad_w - offset - pin_width, 0, 0, core_w - vdd_ring_right + vwidth, pin_width, 'm3')
+              fp.place_wires(['_vdd'], vdd_ring_right - vwidth, y + pad_w - offset - pin_width, 0, 0,
+                             core_w - vdd_ring_right + vwidth + pow_gap, pin_width, 'm3')
+              fp.place_pins(['_vdd'], vdd_ring_right - vwidth, y + pad_w - offset - pin_width, 0, 0,
+                            core_w - vdd_ring_right + vwidth, pin_width, 'm3', use='power')
           elif pad_type == VSS:
-              fp.place_wires(['_vss'], vss_ring_right - vwidth, y + pad_w - offset - pin_width, 0, 0, core_w - vss_ring_right + vwidth + pow_gap, pin_width, 'm3')
-              fp.place_pins(['_vss'], vss_ring_right - vwidth, y + pad_w - offset - pin_width, 0, 0, core_w - vss_ring_right + vwidth, pin_width, 'm3')
+              fp.place_wires(['_vss'], vss_ring_right - vwidth, y + pad_w - offset - pin_width, 0, 0,
+                             core_w - vss_ring_right + vwidth + pow_gap, pin_width, 'm3')
+              fp.place_pins(['_vss'], vss_ring_right - vwidth, y + pad_w - offset - pin_width, 0, 0,
+                            core_w - vss_ring_right + vwidth, pin_width, 'm3', use='power')
 
   for pad_type, x in so_pads:
       x -= gpio_h
       pad_w = fp.available_cells[pad_type].width
       for offset in pin_offsets:
           if pad_type == VDD:
-              fp.place_wires(['_vdd'], x + pad_w - offset - pin_width, -pow_gap, 0, 0, pin_width, vdd_ring_bottom + hwidth + pow_gap, 'm3')
-              fp.place_pins(['_vdd'], x + pad_w - offset - pin_width, 0, 0, 0, pin_width, vdd_ring_bottom + hwidth, 'm3')
+              fp.place_wires(['_vdd'], x + pad_w - offset - pin_width, -pow_gap, 0, 0,
+                             pin_width, vdd_ring_bottom + hwidth + pow_gap, 'm3')
+              fp.place_pins(['_vdd'], x + pad_w - offset - pin_width, 0, 0, 0,
+                            pin_width, vdd_ring_bottom + hwidth, 'm3', use='power')
           elif pad_type == VSS:
-              fp.place_wires(['_vss'], x + pad_w - offset - pin_width, -pow_gap, 0, 0, pin_width, vss_ring_bottom + hwidth + pow_gap, 'm3')
-              fp.place_pins(['_vss'], x + pad_w - offset - pin_width, 0, 0, 0, pin_width, vss_ring_bottom + hwidth, 'm3')
+              fp.place_wires(['_vss'], x + pad_w - offset - pin_width, -pow_gap, 0, 0,
+                             pin_width, vss_ring_bottom + hwidth + pow_gap, 'm3')
+              fp.place_pins(['_vss'], x + pad_w - offset - pin_width, 0, 0, 0,
+                            pin_width, vss_ring_bottom + hwidth, 'm3', use='power')
 
-We use ``place_pins`` here since these wires all associated with the top-level
-power pins of the core. However, we also have to make a call to ``place_wires``
-overlapping these pins for two reasons:
+We use ``place_pins()`` here since these wires are all associated with the
+top-level power pins of the core. However, we also have to make a call to
+``place_wires()`` overlapping these pins for two reasons:
 
 1. Via generation (covered later) only looks at special nets, and we need to
    ensure that there are vias inserted between these pins and the power ring
@@ -757,14 +768,14 @@ well as the pins that supply power to the RAM macro.
 In order to accomplish both these tasks, we'll need to insert vias in the
 design. The floorplan API has a useful helper function that will insert vias
 between all common nets on specified layers. However, before we call this
-function, we're going to add a few more special nets that will enable us to set
-up all the power connections to the design itself.
+function, we're going to add a few more wires that will enable us to set up all
+the power connections to the design itself.
 
 The standard cells are automatically placed in rows with alternating power and
-ground stripes on metal layer 1 above and below each one. We can power them by
-placing wires over these stripes, and connecting vias to these wires. We perform
-some calculations based on the standard cell info in the floorplan object in
-order to determine the positions of these stripes::
+ground stripes on metal layer 1. We can power them by placing wires over these
+stripes, and connecting vias to these wires. We perform some calculations based
+on the standard cell info in the floorplan object in order to determine the
+positions of these stripes, and then place them::
 
   rows_below_ram = (ram_y - margin_bottom) // fp.stdcell_height
   rows_above_ram = len(fp.rows) - rows_below_ram
@@ -776,14 +787,28 @@ order to determine the positions of these stripes::
   ngnd_above = math.ceil(rows_above_ram / 2)
 
   stripe_w = 0.48
+  spacing = 2 * fp.stdcell_height
 
-  fp.place_wires(['_vdd'] * npwr_below, margin_left, margin_bottom - stripe_w/2, 0, 2 * fp.stdcell_height, place_w, stripe_w, 'm1', 'followpin')
-  fp.place_wires(['_vss'] * ngnd_below, margin_left, margin_bottom - stripe_w/2 + fp.stdcell_height, 0, 2 * fp.stdcell_height, place_w, stripe_w, 'm1', 'followpin')
-  fp.place_wires(['_vdd'] * npwr_above, margin_left, margin_bottom - stripe_w/2 + npwr_below * 2 * fp.stdcell_height, 0, 2 * fp.stdcell_height, ram_x - 2 * margin_left, stripe_w, 'm1', 'followpin')
-  fp.place_wires(['_vss'] * ngnd_above, margin_left, margin_bottom - stripe_w/2 + fp.stdcell_height + ngnd_below * 2 * fp.stdcell_height, 0, 2 * fp.stdcell_height, ram_x - 2 * margin_left, stripe_w, 'm1', 'followpin')
+  bottom = margin_bottom - stripe_w/2
+  fp.place_wires(['_vdd'] * npwr_below, margin_left, bottom, 0, spacing,
+                 place_w, stripe_w, 'm1', 'followpin')
 
-Note that we have to be careful here not to draw these over the RAM macro, which
-interrupts the standard cell placement in the top-right corner. We also set the
+  bottom = margin_bottom - stripe_w/2 + fp.stdcell_height
+  fp.place_wires(['_vss'] * ngnd_below, margin_left, bottom, 0, spacing,
+                 place_w, stripe_w, 'm1', 'followpin')
+
+  bottom = margin_bottom - stripe_w/2 + npwr_below * 2 * fp.stdcell_height
+  fp.place_wires(['_vdd'] * npwr_above, margin_left, bottom, 0, spacing,
+                 ram_x - 2 * margin_left, stripe_w, 'm1', 'followpin')
+
+  bottom = margin_bottom - stripe_w/2 + fp.stdcell_height + ngnd_below * 2 * fp.stdcell_height
+  fp.place_wires(['_vss'] * ngnd_above, margin_left, bottom, 0, spacing,
+                 ram_x - 2 * margin_left, stripe_w, 'm1', 'followpin')
+
+Note that we have to be careful not to place these over the RAM macro, which
+interrupts the standard cell placement in the top-right corner. We handle this
+by placing the stripes in two groups, the bottom ones taking up the full width
+of the core and the top ones only going until the RAM macro. We also set the
 "followpin" attribute on these wires, which indicates to our design tool that
 they are overlapping the power pins of cells in the design.
 
@@ -797,14 +822,16 @@ Next, we place some wires over the RAM macro's power pins::
   ram_vdd_pins_width = 6.5 - 4.76
   ram_vdd_pins_height = 411.78 - 4.76
   for x_offset in ram_vdd_pins_left:
-      fp.place_wires(['_vdd'], ram_x + x_offset, ram_y + ram_vdd_pin_bottom, 0, 0, ram_vdd_pins_width, ram_vdd_pins_height, 'm4')
+      fp.place_wires(['_vdd'], ram_x + x_offset, ram_y + ram_vdd_pin_bottom,
+                     0, 0, ram_vdd_pins_width, ram_vdd_pins_height, 'm4')
 
   ram_vss_pin_bottom = 1.36
   ram_vss_pins_left = (1.36, 680)
   ram_vss_pins_width = 3.1 - 1.36
   ram_vss_pins_height = 415.18 - 1.36
   for x_offset in ram_vss_pins_left:
-      fp.place_wires(['_vss'], ram_x + x_offset, ram_y + ram_vss_pin_bottom, 0, 0, ram_vss_pins_width, ram_vss_pins_height, 'm4')
+      fp.place_wires(['_vss'], ram_x + x_offset, ram_y + ram_vss_pin_bottom,
+                     0, 0, ram_vss_pins_width, ram_vss_pins_height, 'm4')
 
 Once these are all set up, we can now insert vias between wires by calling
 :meth:`~siliconcompiler.floorplan.Floorplan.insert_vias`::
@@ -896,7 +923,8 @@ offsets)::
           pad_name = f'{pin_name}{i}'
 
       fp.place_macros([(pad_name, pad_type)], 0, y, 0, 0, 'W')
-      fp.place_pins([pin_name], pin_offset_depth, y + pin_offset_width, 0, 0, pin_dim, pin_dim, 'm5')
+      fp.place_pins([pin_name], pin_offset_depth, y + pin_offset_width,
+                    0, 0, pin_dim, pin_dim, 'm5')
 
 Note that for layout-versus-schematic verification, our top-level floorplan
 needs to have pins defined that correspond to the top-level I/O of the Verilog
@@ -919,17 +947,17 @@ using another set of ``place_macros()`` calls::
   fp.place_macros([('corner_se', CORNER)], top_w - corner_h, 0, 0, 0, 'E')
   fp.place_macros([('corner_ne', CORNER)], top_w - corner_w, top_h - corner_h, 0, 0, 'N')
 
-Note that since the corner cells aren't represented in our Verilog netlist
-(since they are just dummy metal cells that don't implement any logic), we don't
-have to worry about the instance names here.
+Note that the corner cells aren't represented in our Verilog netlist (since they
+are just dummy metal cells that don't implement any logic), so we don't have to
+worry about the instance names here.
 
-Since our pads are spaced out, we also need to insert I/O filler cells to
-complete the padring. In order to save you the effort of manually specifying the
-location of these cells, the floorplan API provides a function
-:meth:`~siliconcompiler.floorplan.Floorplan.fill_io_region` that takes in a
-region and a list of I/O fill cells, and automatically places fill cells inside
-the empty space in the region. To complete the ring, we call this function four
-times, once for each of the four sides::
+Since our pads have gaps between them, we also need to insert I/O filler cells
+to complete the padring. In order to save you the effort of manually specifying
+the location of these cells, the floorplan API provides a function
+:meth:`~siliconcompiler.floorplan.Floorplan.fill_io_region` to do this
+automatically. This function takes in a region and a list of I/O fill cells, and
+places fill cells inside the empty space in the region. To complete the ring, we
+call this function four times, once for each of the four sides::
 
   fp.fill_io_region([(0, 0), (fill_cell_h, top_h)], FILL_CELLS, 'W', 'v')
   fp.fill_io_region([(0, top_h - fill_cell_h), (top_w, top_h)], FILL_CELLS, 'N', 'h')
@@ -987,8 +1015,6 @@ Here's the completed function for building the ZeroSoC top-level::
       pin_offset_width = (11.2 + 73.8) / 2 - pin_dim / 2
       pin_offset_depth = gpio_h - ((102.525 + 184.975) / 2 - pin_dim / 2)
 
-      # TODO: do we need fancy GPIO name
-
       for pad_type, y in we_pads:
           i = indices[pad_type]
           indices[pad_type] += 1
@@ -1007,7 +1033,8 @@ Here's the completed function for building the ZeroSoC top-level::
               pad_name = f'{pin_name}{i}'
 
           fp.place_macros([(pad_name, pad_type)], 0, y, 0, 0, 'W')
-          fp.place_pins([pin_name], pin_offset_depth, y + pin_offset_width, 0, 0, pin_dim, pin_dim, 'm5')
+          fp.place_pins([pin_name], pin_offset_depth, y + pin_offset_width,
+                        0, 0, pin_dim, pin_dim, 'm5')
 
       indices[GPIO] = 0
       for pad_type, x in no_pads:
@@ -1029,7 +1056,8 @@ Here's the completed function for building the ZeroSoC top-level::
 
           pad_h = fp.available_cells[pad_type].height
           fp.place_macros([(pad_name, pad_type)], x, top_h - pad_h, 0, 0, 'N')
-          fp.place_pins([pin_name], x + pin_offset_width, top_h - pin_offset_depth, 0, 0, pin_dim, pin_dim, 'm5')
+          fp.place_pins([pin_name], x + pin_offset_width, top_h - pin_offset_depth,
+                        0, 0, pin_dim, pin_dim, 'm5')
 
       indices[GPIO] = 0
       for pad_type, y in ea_pads:
@@ -1051,7 +1079,8 @@ Here's the completed function for building the ZeroSoC top-level::
 
           pad_h = fp.available_cells[pad_type].height
           fp.place_macros([(pad_name, pad_type)], top_w - pad_h, y, 0, 0, 'E')
-          fp.place_pins([pin_name], top_w - pin_offset_depth, y + pin_offset_width, 0, 0, pin_dim, pin_dim, 'm5')
+          fp.place_pins([pin_name], top_w - pin_offset_depth, y + pin_offset_width,
+                        0, 0, pin_dim, pin_dim, 'm5')
 
 
       indices[GPIO] = 0
@@ -1073,7 +1102,8 @@ Here's the completed function for building the ZeroSoC top-level::
               pad_name = f'{pin_name}{i}'
 
           fp.place_macros([(pad_name, pad_type)], x, 0, 0, 0, 'S')
-          fp.place_pins([pin_name], x + pin_offset_width, pin_offset_depth, 0, 0, pin_dim, pin_dim, 'm5')
+          fp.place_pins([pin_name], x + pin_offset_width, pin_offset_depth,
+                         0, 0, pin_dim, pin_dim, 'm5')
 
 
       ## Place corner cells ##
@@ -1094,4 +1124,21 @@ Here's the completed function for building the ZeroSoC top-level::
 
 Congratulations! You've successfully floorplanned an entire SoC using Python and
 SiliconCompiler.
+
+Building ZeroSoC
+--------------------
+
+To see your floorplan in action, you can go ahead and build ZeroSoC with the
+following command:
+
+.. code-block:: bash
+
+  $ python build.py
+
+Note that this requires installing all the EDA tools used by SC's SystemVerilog
+ASIC flow.
+
+This will put together the entire ZeroSoC hierarchy and run DRC/LVS
+verification. The final result will be found in
+``<build_dir>/asic_top/job0/export0/outputs/asic_top.gds``.
 
