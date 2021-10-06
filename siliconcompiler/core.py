@@ -1044,6 +1044,33 @@ class Chip:
 
         return filename
 
+    ###########################################################################
+    def find_outfile(self, jobid, step, index, filext):
+        """
+        Returns the absolute path to an output file baesdon  arguments provided.
+
+        Args:
+            jobid (str): Jobid
+            step (str): Step name
+            index (str): Schema index
+            filetype (str): File extension of file to find
+
+        Returns:
+            Returns absolute path to file.
+
+        Examples:
+            >>> manifest_filepath = chip.find_manifest('0', 'syn', '0')
+           Returns the absolute path to the manifest.
+        """
+
+        workdir = self. _getworkdir(self, jobid, step, index):
+        design = self.get('design')
+        filename = f"{workdir}/outputs/{design}.{filext}"
+
+        if os.path.isfile(filename):
+            return filename
+        else:
+            return None
 
     ###########################################################################
     def _abspath(self, cfg):
@@ -1245,7 +1272,7 @@ class Chip:
         return self.error
 
     ###########################################################################
-    def read_manifest(self, filename, clear=True):
+    def read_manifest(self, filename, update=True, clear=True):
         """
         Reads a schema manifest from a file into the Chip object.
 
@@ -1254,8 +1281,12 @@ class Chip:
 
         Args:
             filename (filepath): Path to a manifest file to be loaded.
+            update (bool): If True, manifest is merged into chip object.
             clear (bool): If True, parameter value lists are are cleared before
                 being appended with new values from the manifest file.
+
+        Returns:
+            A manifest dictionary.
 
         Examples:
             >>> chip.read_manifest('mychip.json')
@@ -1277,7 +1308,10 @@ class Chip:
         f.close()
 
         #Merging arguments with the Chip configuration
-        self.merge_manifest(localcfg, clear=clear)
+        if update:
+            self.merge_manifest(localcfg, clear=clear)
+
+        return localcfg
 
     ###########################################################################
     def write_manifest(self, filename, prune=True, abspath=False):
