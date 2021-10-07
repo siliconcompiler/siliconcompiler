@@ -2789,14 +2789,15 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
 # Design Tracking
 ###########################################################################
 
-def schema_record(cfg, step='default', index='default'):
+def schema_record(cfg, job='default', step='default', index='default'):
 
     cfg['record'] = {}
-    cfg['record'][step] = {}
-    cfg['record'][step][index] = {}
+    cfg['record'][job] = {}
+    cfg['record'][job][step] = {}
+    cfg['record'][job][step][index] = {}
 
-    cfg['record'][step][index]['input'] = {
-        'switch': "-record_input 'step index <file>'",
+    cfg['record'][job][step][index]['file'] = {
+        'switch': "-record_file 'job step index <file>'",
         'requirement': None,
         'type': '[file]',
         'copy': 'false',
@@ -2807,9 +2808,9 @@ def schema_record(cfg, step='default', index='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'shorthelp': 'Record of source files accessed',
-        'example': ["cli: -record_input 'import 0 gcd.v'",
-                    "api: chip.set('record','import','0','input','gcd.v')"],
+        'shorthelp': 'Record of all files accessed',
+        'example': ["cli: -record_file 'job0 import 0 gcd.v'",
+                    "api: chip.set('record','job0 import','0','file','gcd.v')"],
         'help': """
         Record tracking all input files on a per step basis. This list
         include files entered by the user and files automatically found
@@ -2817,58 +2818,79 @@ def schema_record(cfg, step='default', index='default'):
         """
     }
 
-    cfg['record'][step][index]['author'] = {
-        'switch': "-record_author 'step index <str>'",
+    cfg['record'][job][step][index]['jobinput'] = {
+        'switch': "-record_jobinput 'job step index <str>'",
+        'requirement': None,
+        'type': 'str',
+        'defvalue': None,
+        'shorthelp': 'Record of jobname used for input files',
+        'example': [
+            "cli: -record_jobinput 'job1 syn 0 job0'",
+            "api: chip.set('record','job1','syn','0','jobinput','job0)"],
+        'help': """
+        Record tracking the jobname used for copying input files to the
+        current execution step/index. For standard flows the jobinput is
+        equal to the current jobname. For more complex flows, this
+        parameter enables tracking data that flows across different
+        jobs.
+        """
+    }
+
+    cfg['record'][job][step][index]['author'] = {
+        'switch': "-record_author 'job step index <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Record of run author',
-        'example': ["cli: -record_author 'dfm 0 coyote'",
-                    "api: chip.set('record','dfm','0','author','coyote')"],
+        'shorthelp': 'Record of author',
+        'example': [
+            "cli: -record_author 'job0 dfm 0 coyote'",
+            "api: chip.set('record', 'job0','dfm','0','author','coyote')"],
         'help': """
-        Record tracking the author on a per step basis.
+        Record tracking the author name.
         """
     }
 
-    cfg['record'][step][index]['userid'] = {
-        'switch': "-record_userid 'step index <str>'",
+    cfg['record'][job][step][index]['userid'] = {
+        'switch': "-record_userid 'job step index <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Record of run user ID',
-        'example': ["cli: -record_userid 'dfm 0 0982acea'",
-                    "api: chip.set('record','dfm','0','userid','0982acea')"],
+        'shorthelp': 'Record of user ID',
+        'example': [
+            "cli: -record_userid 'job0 dfm 0 0982acea'",
+            "api: chip.set('record','dfm','job0','0','userid','0982acea')"],
         'help': """
-        Record tracking the run userid on a per step and index basis.
+        Record tracking the run userid.
         """
     }
 
-    cfg['record'][step][index]['publickey'] = {
-        'switch': "-record_publickey 'step index <str>'",
+    cfg['record'][job][step][index]['publickey'] = {
+        'switch': "-record_publickey 'job step index <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
         'shorthelp': 'Record of public key of run user',
         'example': [
-            "cli: -record_publickey 'dfm 0 6EB695706EB69570'",
-            "api: chip.set('record','dfm','0','publickey','6EB695706EB69570')"],
+            "cli: -record_publickey 'job0 dfm 0 6EB695706EB69570'",
+            "api: chip.set('record','job0','dfm','0','publickey','6EB695706EB69570')"],
         'help': """
-        Record tracking the run public key on a per step and index basis.
+        Record tracking the run public key.
         """
     }
 
-    cfg['record'][step][index]['hash'] = {
-        'switch': "-record_hash 'step index <str>'",
+    cfg['record'][job][step][index]['hash'] = {
+        'switch': "-record_hash 'job step index <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
         'shorthelp': 'Record of output files hash values',
-        'example': ["cli: -record_hash 'dfm 0 473c04b'",
-                    "api: chip.set('record','dfm','0','hash','473c04b')"],
+        'example': [
+            "cli: -record_hash 'job0 dfm 0 473c04b'",
+            "api: chip.set('record', 'job0', 'dfm','0','hash','473c04b')"],
         'help': """
         Record with list of computed hash values for each output file produced.
         The ordered list of step outputs is taken from the eda 'output'
@@ -2876,75 +2898,76 @@ def schema_record(cfg, step='default', index='default'):
         """
     }
 
-    cfg['record'][step][index]['org'] = {
-        'switch': "-record_org 'step index <str>'",
+    cfg['record'][job][step][index]['org'] = {
+        'switch': "-record_org 'job step index <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
         'shorthelp': 'Record of run organization',
-        'example': ["cli: -record_org 'dfm 0 earth'",
-                    "api: chip.set('record','dfm','0','org','earth')"],
+        'example': ["cli: -record_org 'job0 dfm 0 earth'",
+                    "api: chip.set('record','job0','dfm','0','org','earth')"],
         'help': """
-        Record tracking the user's organization on a per step and per index
-        basis.
+        Record tracking the user's organization.
         """
     }
 
-    cfg['record'][step][index]['location'] = {
+    cfg['record'][job][step][index]['location'] = {
         'switch': "-record_location 'step index <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
         'shorthelp': 'Record of run location',
-        'example': ["cli: -record_location 'dfm 0 Boston'",
-                    "api: chip.set('record','dfm','0','location,'Boston')"],
+        'example': [
+            "cli: -record_location 'job0 dfm 0 Boston'",
+            "api: chip.set('record','job0,'dfm','0','location,'Boston')"],
         'help': """
-        Record tracking the user's location/site on a per step and per index
-        basis.
+        Record tracking the user's location/site.
         """
     }
 
-    cfg['record'][step][index]['version'] = {
-        'switch': "-record_version 'step index <str>'",
+    cfg['record'][job][step][index]['version'] = {
+        'switch': "-record_version 'job step index <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
         'shorthelp': 'Record of executable version',
-        'example': ["cli: -record_version 'dfm 0 1.0'",
-                    "api: chip.set('record','dfm','0','version', '1.0')"],
+        'example': [
+            "cli: -record_version 'job0 dfm 0 1.0'",
+            "api: chip.set('record','job0', 'dfm','0','version', '1.0')"],
         'help': """
         Record tracking the version number of the executable, specified
         on per step and per index basis.
         """
     }
 
-    cfg['record'][step][index]['starttime'] = {
-        'switch': "-record_starttime 'step index <str>'",
+    cfg['record'][job][step][index]['starttime'] = {
+        'switch': "-record_starttime 'job step index <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
         'shorthelp': 'Record of run start time',
-        'example': ["cli: -record_starttime 'dfm 2021-09-06 12:20:20'",
-                    "api: chip.set('record','dfm','0','starttime','2021-09-06 12:20:20')"],
+        'example': [
+            "cli: -record_starttime 'job0 dfm 2021-09-06 12:20:20'",
+            "api: chip.set('record','job0', 'dfm','0','starttime','2021-09-06 12:20:20')"],
         'help': """
         Record tracking the start time stamp on a per step and index basis.
         The date format is the ISO 8601 format YYYY-MM-DD HR:MIN:SEC.
         """
     }
 
-    cfg['record'][step][index]['endtime'] = {
-        'switch': "-record_endtime 'step index <str>'",
+    cfg['record'][job][step][index]['endtime'] = {
+        'switch': "-record_endtime 'job step index <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
         'shorthelp': 'Record of run end time',
-        'example': ["cli: -record_endtime 'dfm 0 2021-09-06 12:20:20'",
-                    "api: chip.set('record','dfm','0','endtime','2021-09-06 12:20:20')"],
+        'example': ["cli: -record_endtime 'job0 dfm 0 2021-09-06 12:20:20'",
+                    "api: chip.set('record','job0', 'dfm','0','endtime','2021-09-06 12:20:20')"],
         'help': """
         Record tracking the end time stamp on a per step and index basis.
         The date format is the ISO 8601 format YYYY-MM-DD HR:MIN:SEC.
@@ -3001,7 +3024,7 @@ def schema_options(cfg):
         'example': ["cli: -mode fpga",
                     "api: chip.set('mode','fpga')"],
         'help': """
-        Sets the compilation flow to 'fpga' or 'asic. The default is 'asic'
+        Sets the compilation flow.
         """
     }
 
