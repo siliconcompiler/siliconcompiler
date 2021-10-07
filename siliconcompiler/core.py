@@ -508,11 +508,9 @@ class Chip:
         outputs = []
         for a in self.getkeys('flowgraph'):
             for b in self.getkeys('flowgraph', a):
-                if self.getkeys('flowgraph', a, b, 'input'):
-                    for c in self.getkeys('flowgraph', a, b, 'input'):
-                        for d in self.get('flowgraph', a, b, 'input', c):
-                            if (step==c) & (index==d):
-                                outputs.append(a+b)
+                for stepindex in self.get('flowgraph', a, b, 'input'):
+                    if stepindex == (step + index):
+                        outputs.append(a+b)
         return outputs
 
     ###########################################################################
@@ -1045,15 +1043,17 @@ class Chip:
         return filename
 
     ###########################################################################
-    def find_outfile(self, jobid, step, index, filext):
+    def find_result(self, filetype, step, jobname='job0', index='0'):
         """
-        Returns the absolute path to an output file baesdon  arguments provided.
+        Returns the absolute path to an output file based arguments.
 
         Args:
-            jobid (str): Jobid
-            step (str): Step name
+            filetype (str): File extension (.v, .def, etc) 
+            step (str): Step name ('syn', 'place', etc)
+            jobid (str): Jobid (''
+
             index (str): Schema index
-            filetype (str): File extension of file to find
+
 
         Returns:
             Returns absolute path to file.
@@ -1062,15 +1062,42 @@ class Chip:
             >>> manifest_filepath = chip.find_manifest('0', 'syn', '0')
            Returns the absolute path to the manifest.
         """
-
-        workdir = self. _getworkdir(self, jobid, step, index):
+        
+        workdir = self._getworkdir(jobname, step, index)
         design = self.get('design')
-        filename = f"{workdir}/outputs/{design}.{filext}"
+        filename = f"{workdir}/outputs/{design}{filetype}"
 
+        self.logger.debug("Finding result %s", filename)
+            
         if os.path.isfile(filename):
             return filename
         else:
+            self.error = 1
             return None
+
+    ###########################################################################
+    def copy_step(self, src, dst, step):
+        """
+        Copies the a step directory from a src to dst.
+
+        The 
+
+         Args:
+            src_jobid (str): Jobid to copy from
+            dst_jobid (str): Jobid to copy tp
+            step (str): Step name to copy
+
+        Examples:
+            >>> chip.copy_step(oldjob, newjob, 'import')
+           Copies the 'import' step from the oldjob  to the newjob.
+        """
+        srcdir = self._getworkdir(jobname=src, step=step)
+        dstdir = self._getworkdir(jobname=dst, step=step)
+        print("COOOOO", srcdir, dstdir)
+        if not os.path.exists(dstdir):
+            os.makedirs(dstdir)
+        shutil.copytree(srcdir, dstdir, dirs_exist_ok=True)
+        
 
     ###########################################################################
     def _abspath(self, cfg):
@@ -1227,12 +1254,14 @@ class Chip:
             self.error = 1
             self.logger.error(f"No flowgraph defined.")
         legal_steps = self.getkeys('flowgraph')
-        for a in self.getkeys('flowgraph'):
-            for b in self.getkeys('flowgraph', a):
-                for input in self.getkeys('flowgraph', a, b, 'input'):
-                    if not input in legal_steps:
-                        self.error = 1
-                        self.logger.error(f"Input '{a}' is not a legal step.")
+        #TODO FIX!
+        # for a in self.getkeys('flowgraph'):
+        #     for b in self.getkeys('flowgraph', a):
+        #         for stepindex in self.getkeys('flowgraph', a, b, 'input'):
+        #             pass
+                    #if not input in legal_steps:
+                    #    self.error = 1
+                    #    self.logger.error(f"Input '{a}' is not a legal step.")
 
         #2. Check requirements list
         allkeys = self.getkeys()
@@ -1462,9 +1491,8 @@ class Chip:
                 dot.node(node, label=labelname)
                 # get inputs
                 all_inputs = []
-                for i in self.getkeys('flowgraph', step, index, 'input'):
-                    for j in self.get('flowgraph', step, index, 'input', i):
-                        all_inputs.append(i+j)
+                for stepindex in self.get('flowgraph', step, index, 'input'):
+                    all_inputs.append(stepindex)
                 for item in all_inputs:
                     dot.edge(item, node)
         dot.render(filename=fileroot, cleanup=True)
@@ -1831,56 +1859,42 @@ class Chip:
     def _allpaths(self, cfg, step, index, path=None, allpaths=None):
 
         if path is None:
-            allpaths = []
             path = []
-        all_inputs = []
+            allpaths = []
+            
+        inputs = self.get('flowgraph', step, index, 'input', cfg=cfg)
 
-        for a in self.getkeys('flowgraph', step, index, 'input', cfg=cfg):
-            for b in self.get('flowgraph', step, index, 'input', a, cfg=cfg):
-                all_inputs.append(a + b)
-
-        if not all_inputs:
+        if not inputs:
             allpaths.append(path)
         else:
-            for a in self.getkeys('flowgraph', step, index, 'input', cfg=cfg):
-                for b in self.get('flowgraph', step, index, 'input', a, cfg=cfg):
-                    newpath = path.copy()
-                    newpath.append(a+b)
-                    return self._allpaths(cfg, a, b, path=newpath, allpaths=allpaths)
+            for stepindex in inputs:
+                newpath = path.copy()
+                newpath.append(stepindex)
+                match = re.match(r'(\w+)(\d+)$', stepindex)
+                in_step = match.group(1)
+                in_index = match.group(2)
+                return self._allpaths(cfg, in_step, in_index, path=newpath, allpaths=allpaths)
 
         return list(allpaths)
 
     ###########################################################################
     def step_join(self, *steps):
         '''
-        Returns a list of step/index strings based on list of steps provided.
-
-        All steps in the provided steplist are concatenated with each index
-        for that step to produce a complete list of step-index strings. The
-        function is used within a process of run() function to enable
-        generalized execution models.
+        Pass through function for joining multiple inputs in one step
 
         Args:
-            steps(list str): A variable length list of steps
+            steps(list str): List of inputs
 
         Returns:
-           tuple containing
-            - 0 (float):
-            - stepindex (str): Minimum stepindex pair
+            Input list
 
         Examples:
-            >>> (score,inputlst) = chip.step_join(['lvs', 'drc'])
-            The variable inputlst gets a list of all step-index pairs for the
-            lvs and drc steps.
-
+            >>> select = chip.step_join(['lvs0', 'drc0'])
+           Selct gets the input list ['lvs0', 'drc0']
         '''
 
         steplist = list(steps)
-        sel_inputs = []
-
-        for a in steplist:
-            for b in self.getkeys('flowgraph', a):
-                sel_inputs.append(a+b)
+        sel_inputs = steplist
 
         # no score for join, so just return 0
         return sel_inputs
@@ -1903,7 +1917,7 @@ class Chip:
         in the calculation.
 
         Args:
-            steps(list str): A variable length list of steps
+            steps(list str): List of stepindex pair inputs to select from
 
         Returns:
             tuple containing
@@ -1965,7 +1979,9 @@ class Chip:
         # Keeping track of the steps/indexes that have goals met
         failed = {}
         goals_met = False
-        for step in steplist:
+        for stepindex in steplist:
+            match = re.match(r'(\w+)(\d+)$', stepindex)
+            step = match.group(1)
             failed[step] = {}
             for index in self.getkeys('flowgraph', step):
                 if self.get('flowstatus', step, index, 'error'):
@@ -1984,7 +2000,9 @@ class Chip:
         # Calculate max/min values for each metric
         max_val = {}
         min_val = {}
-        for step in steplist:
+        for stepindex in steplist:
+            match = re.match(r'(\w+)(\d+)$', stepindex)
+            step = match.group(1)
             max_val[step] = {}
             min_val[step] = {}
             for metric in self.getkeys('flowgraph', step, '0', 'weight'):
@@ -1999,9 +2017,12 @@ class Chip:
         # Select the minimum index
         min_score = {}
         step_winner = ""
-        for step in steplist:
+        for stepindex in steplist:
             min_score = float("inf")
             step_winner = 0
+            match = re.match(r'(\w+)(\d+)$', stepindex)
+            step = match.group(1)
+            #TODO: why not run for all stepindex inputs?
             for index in self.getkeys('flowgraph', step):
                 if not self.get('flowstatus', step, index, 'error'):
                     score = 0.0
@@ -2082,9 +2103,12 @@ class Chip:
         '''
 
         # Ensure that error bits are up-to-date in this schema.
-        for input_step in self.getkeys('flowgraph', step, index, 'input'):
-            for input_index in self.get('flowgraph', step, index, 'input', input_step):
-                self.set('flowstatus', input_step, str(input_index), 'error', error[f'{input_step}{input_index}'])
+        for stepindex in self.get('flowgraph', step, index, 'input'):
+            match = re.match(r'(\w+)(\d+)$', stepindex)
+            input_step = match.group(1)
+            input_index = match.group(2)
+            #TODO: Why is this needed?
+            self.set('flowstatus', input_step, input_index, 'error', error[f'{input_step}{input_index}'])
 
         # Determine which HPC job scheduler being used.
         scheduler_type = self.get('jobscheduler')
@@ -2103,7 +2127,7 @@ class Chip:
         if 'decrypt_key' in self.status:
             # Job data is encrypted, and it should only be decrypted in the
             # compute node's local storage.
-            job_nameid = f"{self.get('jobname')}{self.get('jobid')[-1]}"
+            job_nameid = f"{self.get('jobname')[-1]}"
             cur_build_dir = f"{self.get('dir')}/{self.get('design')}/{job_nameid}"
             tmp_job_dir = f"/tmp/{self.get('remote', 'jobhash')}"
             ctrl_node_dir = self.get('dir')
@@ -2169,7 +2193,7 @@ class Chip:
             # Write out the current schema for the compute node to pick up.
             job_dir = "/".join([self.get('dir'),
                                 self.get('design'),
-                                self.get('jobname') + self.get('jobid')[-1]])
+                                self.get('jobname')[-1]])
             cfg_dir = f'{job_dir}/configs'
             cfg_file = f'{cfg_dir}/{step}{index}.json'
             if not os.path.isdir(cfg_dir):
@@ -2267,10 +2291,8 @@ class Chip:
         while True:
             # Checking that there are no pending jobs
             pending = 0
-            for input_step in self.getkeys('flowgraph', step, index, 'input'):
-                for input_index in self.get('flowgraph', step, index, 'input', input_step):
-                    input_str = input_step + input_index
-                    pending = pending + active[input_str]
+            for stepindex in self.get('flowgraph', step, index, 'input'):
+                pending = pending + active[stepindex]
 
             # beak out of loop when no all inputs are done
             if not pending:
@@ -2282,7 +2304,7 @@ class Chip:
         # and send it to a compute node for deferred execution.
         # (Run the initial 'import' stage[s] locally)
         if self.get('jobscheduler') and \
-           self.getkeys('flowgraph', step, index, 'input'):
+           self.get('flowgraph', step, index, 'input'):
             # Note: The _deferstep method blocks until the compute node
             # finishes processing this step, and it sets the active/error bits.
             self._deferstep(step, index, active, error)
@@ -2306,19 +2328,21 @@ class Chip:
 
         design = self.get('design')
         all_inputs = []
-        if not self.getkeys('flowgraph', step, index, 'input'):
+        if not self.get('flowgraph', step, index, 'input'):
             self._collect()
         elif not self.get('remote', 'addr'):
             halt = 0
-            for input_step in self.getkeys('flowgraph', step, index, 'input'):
+            for stepindex in self.get('flowgraph', step, index, 'input'):
                 step_error = 1
-                for i in self.get('flowgraph', step, index, 'input', input_step):
-                    index_error = error[input_step + i]
-                    step_error = step_error & index_error
-                    self.set('flowstatus', input_step, i, 'error', index_error)
-                    if not index_error:
-                        cfgfile = f"../{input_step+i}/outputs/{design}.pkg.json"
-                        self.read_manifest(cfgfile)
+                index_error = error[stepindex]
+                step_error = step_error & index_error
+                match = re.match(r'(\w+)(\d+)$', stepindex)
+                input_step = match.group(1)
+                input_index = match.group(2)                
+                self.set('flowstatus', input_step, input_index, 'error', index_error)
+                if not index_error:
+                    cfgfile = f"../../{input_step}/{input_index}/outputs/{design}.pkg.json"
+                    self.read_manifest(cfgfile)
                 halt = halt + step_error
             if halt:
                 self.logger.error('Halting step due to previous errors')
@@ -2346,7 +2370,7 @@ class Chip:
             tool = 'builtin'
             func = self.get('flowgraph', step, index, 'function')
             args = self.get('flowgraph', step, index, 'args')
-            inputs = self.getkeys('flowgraph', step, index, 'input')
+            inputs = self.get('flowgraph', step, index, 'input')
             sel_inputs = []
             score = 0
             # Figure out which inputs to select
@@ -2366,21 +2390,27 @@ class Chip:
                 self._haltstep(step, index, active)
             self.set('flowstatus', step, index, 'select', sel_inputs)
         else:
+            
+            sel_inputs = self.get('flowgraph', step, index, 'input')
+            self.set('flowstatus', step, index, 'select', sel_inputs)
             tool = self.get('flowgraph', step, index, 'tool')
 
         ##################
         # 6 Copy outputs from input steps
 
-        if not self.getkeys('flowgraph', step, index,'input'):
+        if not self.get('flowgraph', step, index,'input'):
             all_inputs = []
         elif not self.get('flowstatus', step, index, 'select'):
-            all_inputs = [self.getkeys('flowgraph', step, index,'input')[0]+'0']
+            all_inputs = self.get('flowgraph', step, index,'input')
         else:
             all_inputs = self.get('flowstatus', step, index, 'select')
-        for input_step in all_inputs:
+        for stepindex in all_inputs:
             # Skip copying pkg.json files here, since we write the current chip
             # configuration into inputs/{design}.pkg.json earlier in _runstep.
-            shutil.copytree(f"../{input_step}/outputs", 'inputs/', dirs_exist_ok=True,
+            match = re.match(r'(\w+)(\d+)$', stepindex)
+            in_step = match.group(1)
+            in_index = match.group(2)
+            shutil.copytree(f"../../{in_step}/{in_index}/outputs", 'inputs/', dirs_exist_ok=True,
                 ignore=lambda dir, contents: [f'{design}.pkg.json'])
 
         ##################
@@ -2592,7 +2622,7 @@ class Chip:
                     else:
                         indexlist = self.getkeys('flowgraph', step)
                     if (step in steplist) & (index in indexlist):
-                        self.set('flowstatus', step, str(index), 'error', 1, clobber=False)
+                        self.set('flowstatus', step, str(index), 'error', 1)
                         error[stepstr] = self.get('flowstatus', step, str(index), 'error')
                         active[stepstr] = 1
                         # Setting up tool is optional
@@ -2603,7 +2633,7 @@ class Chip:
                             func = self.find_function(tool, 'tool', 'setup_tool')
                             func(self)
                     else:
-                        self.set('flowstatus', step, str(index), 'error', 0, clobber=False)
+                        self.set('flowstatus', step, str(index), 'error', 0)
                         error[stepstr] = self.get('flowstatus', step, str(index), 'error')
                         active[stepstr] = 0
 
@@ -2687,11 +2717,12 @@ class Chip:
         # Merge cfg back from last executed runstep.
         # (Only if the index-0 run's results exist.)
         laststep = steplist[-1]
-        lastdir = self._getworkdir(step=laststep, index='0')
+        lastindex = '0'
+        lastdir = self._getworkdir(step=laststep, index=lastindex)
         lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
         if os.path.isfile(lastcfg):
             self.read_manifest(lastcfg)
-            self.set('flowstatus',laststep,'0', 'select', '0')
+            self.set('flowstatus',laststep,lastindex, 'select', '0')
 
     ###########################################################################
     def show_file(self, filename):
@@ -2718,9 +2749,9 @@ class Chip:
             filename: Name of file to display
 
         Examples:
-            >>> show_file('build/oh_add/job0/export0/outputs/oh_add.gds')
+            >>> show_file('build/oh_add/job0/export/0/outputs/oh_add.gds')
             Displays def file with a viewer assigned by 'showtool'
-            >>> show_file('build/oh_add/job0/export0/outputs/oh_add.pkg.json')
+            >>> show_file('build/oh_add/job0/export/0/outputs/oh_add.pkg.json')
             Displays manifest in the browser
         '''
 
@@ -2912,20 +2943,22 @@ class Chip:
 
 
     #######################################
-    def _getworkdir(self, jobid=None, step=None, index=None):
+    def _getworkdir(self, jobname=None, step=None, index='0'):
         '''Create a step directory with absolute path
         '''
-
-        # the last jobid is used if None is provided
-        if jobid is None:
-            jobid = self.get('jobid')[-1]
+                               
+        if jobname is None:
+            jobname = self.get('jobname')[-1]
 
         dirlist =[self.get('dir'),
                   self.get('design'),
-                  self.get('jobname') + jobid]
+                  jobname]
 
+        # Return jobdirectory if no step defined
+        # Return index 0 by default
         if step is not None:
-            dirlist.append(step + index)
+            dirlist.append(step)
+            dirlist.append(index)
 
         return os.path.abspath("/".join(dirlist))
 
