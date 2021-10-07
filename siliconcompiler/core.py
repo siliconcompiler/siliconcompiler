@@ -1076,29 +1076,6 @@ class Chip:
             return None
 
     ###########################################################################
-    def copy_step(self, src, dst, step):
-        """
-        Copies the a step directory from a src to dst.
-
-        The 
-
-         Args:
-            src_jobid (str): Jobid to copy from
-            dst_jobid (str): Jobid to copy tp
-            step (str): Step name to copy
-
-        Examples:
-            >>> chip.copy_step(oldjob, newjob, 'import')
-           Copies the 'import' step from the oldjob  to the newjob.
-        """
-        srcdir = self._getworkdir(jobname=src, step=step)
-        dstdir = self._getworkdir(jobname=dst, step=step)
-        if not os.path.exists(dstdir):
-            os.makedirs(dstdir)
-        shutil.copytree(srcdir, dstdir, dirs_exist_ok=True)
-        
-
-    ###########################################################################
     def _abspath(self, cfg):
         '''
         Internal recursive function that goes through Chip dictionary and
