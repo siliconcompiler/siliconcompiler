@@ -1733,7 +1733,6 @@ def schema_flowgraph(cfg, step='default', index='default'):
 
     return cfg
 
-
 ###########################################################################
 # Flow Status
 ###########################################################################
@@ -1807,6 +1806,36 @@ def schema_flowstatus(cfg, step='default', index='default'):
         'help': """
         Status parameter of selected value recorded from the minimum()
         calculation.
+        """
+    }
+
+    return cfg
+
+
+###########################################################################
+# Job flow
+###########################################################################
+
+def schema_jobs (cfg, job='defaut', step='default', index='default'):
+
+    # Flow step min
+    cfg['jobinput'] = {}
+    cfg['jobinput'][job] = {}
+    cfg['jobinput'][job][step] = {}
+    cfg['jobinput'][job][step][index] = {
+        'switch': "-jobinput 'job step index <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Jobname of inputs to current run',
+        'example': [
+            "cli: -jobinput 'job1 cts 0 job0'",
+            "api:  chip.set('jobinput', 'job1', 'cts, '0', 'job0')"],
+        'help': """
+        Specifies the jobname to copy the inputs from for the current
+        run on a per step and per index basis. During execution, 
+        the defaule behavior is to copy inputs from the current job.
         """
     }
 
@@ -2815,24 +2844,6 @@ def schema_record(cfg, job='default', step='default', index='default'):
         Record tracking all input files on a per step basis. This list
         include files entered by the user and files automatically found
         by the flow like in the case of the "-y" auto-discovery path.
-        """
-    }
-
-    cfg['record'][job][step][index]['jobinput'] = {
-        'switch': "-record_jobinput 'job step index <str>'",
-        'requirement': None,
-        'type': 'str',
-        'defvalue': None,
-        'shorthelp': 'Record of jobname used for input files',
-        'example': [
-            "cli: -record_jobinput 'job1 syn 0 job0'",
-            "api: chip.set('record','job1','syn','0','jobinput','job0)"],
-        'help': """
-        Record tracking the jobname used for copying input files to the
-        current execution step/index. For standard flows the jobinput is
-        equal to the current jobname. For more complex flows, this
-        parameter enables tracking data that flows across different
-        jobs.
         """
     }
 
