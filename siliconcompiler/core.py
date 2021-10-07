@@ -1093,7 +1093,6 @@ class Chip:
         """
         srcdir = self._getworkdir(jobname=src, step=step)
         dstdir = self._getworkdir(jobname=dst, step=step)
-        print("COOOOO", srcdir, dstdir)
         if not os.path.exists(dstdir):
             os.makedirs(dstdir)
         shutil.copytree(srcdir, dstdir, dirs_exist_ok=True)
@@ -2714,6 +2713,10 @@ class Chip:
             if self.get('remote', 'key'):
                 client_encrypt(self)
 
+        # Clear scratchpad args since these are checked on run() entry
+        self.set('arg', 'step', None, clobber=True)
+        self.set('arg', 'index', None, clobber=True)
+                        
         # Merge cfg back from last executed runstep.
         # (Only if the index-0 run's results exist.)
         laststep = steplist[-1]
