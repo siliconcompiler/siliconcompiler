@@ -43,14 +43,13 @@ yosys opt -purge
 # Technology Mapping
 ########################################################
 
-if {[dict exists $sc_cfg eda yosys $sc_step $sc_index option techmap]} {
-    set sc_techmap [dict get $sc_cfg eda yosys $sc_step $sc_index option techmap]
-} else {
-    set sc_techmap ""
-}
-
-foreach mapfile $sc_techmap {
-    yosys techmap -map $mapfile
+# Techmap latches for supported open PDKs
+if {$sc_process == "freepdk45"} {
+    yosys techmap -map "cells_latch_freepdk45.v"
+} elseif {$sc_process == "skywater130"} {
+    yosys techmap -map "cells_latch_sky130hd.v"
+} elseif {$sc_process == "asap7"} {
+    yosys techmap -map "cells_latch_asap7.v"
 }
 
 yosys dfflibmap -liberty $library_file
