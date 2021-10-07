@@ -37,6 +37,16 @@ cmake_args = []
 if 'SC_CMAKEARGS' in os.environ:
     cmake_args.append(os.environ['SC_CMAKEARGS'])
 
+# Autogenerate list of entry points based on each file in apps/
+entry_points_apps = []
+for app in os.listdir('siliconcompiler/apps'):
+    name, ext = os.path.splitext(app)
+    if name.startswith('sc') and ext == '.py':
+        cli_name = name.replace('_', '-')
+        entry = f'{cli_name}=siliconcompiler.apps.{name}:main'
+        entry_points_apps.append(entry)
+entry_points = entry_points_apps + ["sc-server=siliconcompiler.server:main", "sc-crypt=siliconcompiler.crypto:main"]
+
 setup(
     name="siliconcompiler",
     description="Silicon Compiler Collection (SCC)",
@@ -85,7 +95,7 @@ setup(
         "sphinx-rtd-theme >= 0.5.2",
         "graphviz >=0.17"
     ],
-    entry_points={"console_scripts": ["sc=siliconcompiler.__main__:main", "sc-server=siliconcompiler.server:main", "sc-crypt=siliconcompiler.crypto:main"]},
+    entry_points={"console_scripts": entry_points},
     cmake_install_dir="siliconcompiler/leflib",
     cmake_args=cmake_args
 )

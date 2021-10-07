@@ -45,7 +45,7 @@ def setup_tool(chip, mode="batch"):
     if mode == 'show':
         clobber = True
         script = '/klayout_show.py'
-        option = '-nn'
+        option = ['-rm']
     else:
         clobber = False
         script = '/klayout_export.py'
@@ -65,7 +65,7 @@ def setup_tool(chip, mode="batch"):
 
 def runtime_options(chip):
 
-    ''' Custom runtime options, returnst list of command line options.
+    ''' Custom runtime options, returns list of command line options.
     '''
 
     step = chip.get('arg','step')
@@ -130,6 +130,10 @@ def runtime_options(chip):
         options.append('klayout_export.py')
 
         return options
+    elif step.startswith('show'):
+        return []
+
+    return []
 
 ################################
 # Version Check
