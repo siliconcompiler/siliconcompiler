@@ -84,7 +84,7 @@ def client_decrypt(chip):
     '''
 
     job_path = f"{chip.get('dir')}/{chip.get('design')}/" \
-               f"{chip.get('jobname')}{chip.get('jobid')[-1]}"
+               f"{chip.get('jobname')[-1]}"
     decrypt_job(job_path,
                 chip.get('remote', 'key'))
 
@@ -94,7 +94,7 @@ def client_encrypt(chip):
     '''
 
     job_path = f"{chip.get('dir')}/{chip.get('design')}/" \
-               f"{chip.get('jobname')}{chip.get('jobid')[-1]}"
+               f"{chip.get('jobname')[-1]}"
     encrypt_job(job_path,
                 chip.get('remote', 'key'))
 
@@ -142,7 +142,7 @@ def request_remote_run(chip):
     remote_run_url = get_base_url(chip) + '/remote_run/'
 
     # Use authentication if necessary.
-    job_nameid = f"{chip.get('jobname')}{chip.get('jobid')[-1]}"
+    job_nameid = f"{chip.get('jobname')[-1]}"
     post_params = {
         'chip_cfg': chip.cfg,
         'params': {
@@ -232,7 +232,7 @@ def is_job_busy(chip):
     # Set common parameters.
     post_params = {
         'job_hash': chip.get('remote', 'jobhash'),
-        'job_id': chip.get('jobid')[-1],
+        'job_id': chip.get('jobname')[-1],
     }
 
     # Set authentication parameters if necessary.
@@ -340,7 +340,7 @@ def fetch_results(chip):
     # Unzip the results.
     top_design = chip.get('design')
     job_hash = chip.get('remote', 'jobhash')
-    job_nameid = f"{chip.get('jobname')}{chip.get('jobid')[-1]}"
+    job_nameid = f"{chip.get('jobname')[-1]}"
     subprocess.run(['unzip', '-q', f'{job_hash}.zip'])
     # Remove the results archive after it is extracted.
     os.remove(f'{job_hash}.zip')
