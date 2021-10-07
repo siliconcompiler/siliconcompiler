@@ -21,6 +21,9 @@ def schema_cfg():
     # Keeping track of flow execution
     cfg = schema_flowstatus(cfg)
 
+    # Job dependencies
+    cfg = schema_jobs(cfg)
+    
     # Design Hierarchy
     cfg = schema_hier(cfg)
 
@@ -2924,7 +2927,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
     }
 
     cfg['record'][job][step][index]['location'] = {
-        'switch': "-record_location 'step index <str>'",
+        'switch': "-record_location 'job step index <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
