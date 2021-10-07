@@ -23,7 +23,7 @@ def test_icebreaker():
                     '-target', 'fpgaflow_ice40up5k-sg48'])
 
     # Verify that a bitstream was generated
-    assert os.path.isfile('build/blinky/job0/bitstream0/outputs/blinky.bit')
+    assert os.path.isfile('build/blinky/job0/bitstream/0/outputs/blinky.bit')
 
 if __name__ == "__main__":
     test_icebreaker()
