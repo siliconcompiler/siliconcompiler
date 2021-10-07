@@ -1626,21 +1626,19 @@ def schema_flowgraph(cfg, step='default', index='default'):
     cfg['flowgraph'][step][index] =  {}
 
     # Execution flowgraph
-    stepin = 'default'
-    cfg['flowgraph'][step][index]['input'] = {}
-    cfg['flowgraph'][step][index]['input'][stepin] = {
-        'switch': "-flowgraph_input 'step index stepin <str>'",
+    cfg['flowgraph'][step][index]['input'] = {
+        'switch': "-flowgraph_input 'step index <str>'",
         'type': '[str]',
         'lock': 'false',
         'requirement': None,
         'defvalue': [],
         'shorthelp': 'Flowgraph step input',
         'example': [
-            "cli: -flowgraph_input 'cts 0 place 0'",
-            "api:  chip.set('flowgraph','cts','0','input,'place',0)"],
+            "cli: -flowgraph_input 'cts 0 place0'",
+            "api:  chip.set('flowgraph','cts','0','input,'place0'"],
         'help': """
-        List of inputs for the current step and index, listed as a
-        set of indices on a per step basis.
+        The step and index fo for the current step and index, listed as a
+        set of 'step+index' combinations on a per step and per index basis.
         """
     }
 
@@ -2216,22 +2214,6 @@ def schema_arg(cfg):
 
 
     cfg['arg'] = {}
-
-    cfg['arg']['jobid'] = {
-        'switch': "-arg_jobid <str>",
-        'type': 'str',
-        'lock': 'false',
-        'requirement': None,
-        'defvalue': None,
-        'shorthelp': 'Current execution step',
-        'example': ["cli: -arg_jobid '0'",
-                    "api: chip.set('arg', 'jobid', '44')"],
-        'help': """
-        Dynamic variable passed in by the sc runtime as an argument to
-        durning the run() execution. The affects the current run directory.
-        """
-    }
-
 
     cfg['arg']['step'] = {
         'switch': "-arg_step <str>",
@@ -3216,37 +3198,20 @@ def schema_options(cfg):
 
     cfg['jobname'] = {
         'switch': "-jobname <str>",
-        'type': 'str',
-        'lock': 'false',
-        'requirement': 'all',
-        'defvalue': 'job',
-        'shorthelp': 'Job name prefix',
-        'example': ["cli: -jobname may1",
-                    "api: chip.set('jobname','may1')"],
-        'help': """
-        The name of the job for a specific design. The full directory
-        structure is: <dir>/<design>/<jobname><jobid>/<step><index>
-        The parameter can be used to tag and archive runs, for example
-        by naming a job "final", "trial", "tapeout", "golden",
-        "riskyrun", etc.
-        """
-    }
-
-    cfg['jobid'] = {
-        'switch': "-jobid <str>",
         'type': '[str]',
         'lock': 'false',
         'requirement': 'all',
-        'defvalue': ['0'],
-        'shorthelp': 'Job ID',
-        'example': ["cli: -jobid 0",
-                    "api: chip.set('jobid','0')"],
+        'defvalue': ['job0'],
+        'shorthelp': 'Job name',
+        'example': ["cli: -jobname may1",
+                    "api: chip.set('jobname','may1')"],
         'help': """
-        List of jobids of different compilations for the same
-        design. The jobid list can be set up statically or updated dynamically
-        during run time. The jobid combined with a known director structure
-        (<dir>/<design>/<jobname><jobid>/<step><index>) enables multiple
-        levels of transparent job, step, and index introspecetion.
+        List of jobnames of different runs for the same chip object.
+        The jobname list can be set up statically or updated dynamically
+        during run time. The jobname combined with a known director structure
+        (<dir>/<design>/<jobname>/<step>/<index>) enables multiple
+        levels of transparent job, step, and index introspecetion. The last
+        entry of the jobname list is the current/active job being processed.
         """
     }
 
@@ -3256,13 +3221,17 @@ def schema_options(cfg):
         'lock': 'false',
         'requirement': 'all',
         'defvalue': 'false',
-        'shorthelp': 'Job ID auto increment mode ',
+        'shorthelp': 'Enables jobname auto-increment mode',
         'example': ["cli: -jobincr",
-                    "api: chip.set('jobincr', true)"],
+                    "api: chip.set('jobincr', True)"],
         'help': """
-        Auto increments the jobid value based on the latest executed job
-        found in the design build directory. If no jobs are found, the
-        value in the 'jobid' parameter is used.
+        Forces an auuto-update of the jobname parameter if a directory
+        mathcing the jobname is found in the build directory. If the
+        jobname does not include a trailing digit, then a the number
+        '1' is added to the jobname before updating the jobname
+        parameter.  The option can be useful for automatically keeping
+        all jobs ever run in a directory for tracking and debugging
+        purposes.
         """
     }
 
