@@ -12,8 +12,6 @@ rootdir = (os.path.dirname(os.path.abspath(__file__)) +
 
 design = 'oh_add'
 library = 'mathlib'
-width = 100
-height = 100
 N = 8
 
 # Pluggin design into SC
@@ -29,27 +27,22 @@ chip.target("asicflow_freepdk45")
 steplist = ['import', 'syn']
 chip.set('steplist', steplist)
 chip.run()
+#run has hidden copy of cfg --> dict
 
 while True:
     N = N * 2
-    # Read in last run
-    oldid = chip.get('jobname')[-1]
-    old_manifest = chip.find_result('.pkg.json', 'syn', jobname=oldid)
-    old_cfg = chip.read_manifest(old_manifest)    
 
-    #Update ID
+    oldid = chip.get('jobname')
     match = re.match(r'(.*)(\d+)$', oldid)
     newid = match.group(1) + str(int(match.group(2))+1)
     
     # Running syn only
-    chip.add('jobname', newid)
+    chip.set('jobname', newid)
     chip.set('param', 'N', str(N), clobber=True)
-    print(chip.get('param', 'N'))
-    chip.write_manifest("tmp.json")
     chip.run()
 
     new_area = chip.get('metric','syn','0','cellarea','real')
-    old_area = chip.get('metric','syn','0','cellarea','real', cfg=old_cfg)
+    old_area = chip.get('metric','syn','0','cellarea','real', cfg=chip.cfghistory[oldid])
 
     factor = new_area/old_area
 
