@@ -3235,20 +3235,18 @@ def schema_options(cfg):
 
     cfg['jobname'] = {
         'switch': "-jobname <str>",
-        'type': '[str]',
+        'type': 'str',
         'lock': 'false',
         'requirement': 'all',
-        'defvalue': ['job0'],
+        'defvalue': 'job0',
         'shorthelp': 'Job name',
         'example': ["cli: -jobname may1",
                     "api: chip.set('jobname','may1')"],
         'help': """
-        List of jobnames of different runs for the same chip object.
-        The jobname list can be set up statically or updated dynamically
-        during run time. The jobname combined with a known director structure
-        (<dir>/<design>/<jobname>/<step>/<index>) enables multiple
-        levels of transparent job, step, and index introspecetion. The last
-        entry of the jobname list is the current/active job being processed.
+        Jobname during invocation of run(). The jobname combined with a 
+        defined director structure (<dir>/<design>/<jobname>/<step>/<index>) 
+        enables multiple levels of transparent job, step, and index 
+        introspecetion.
         """
     }
 
