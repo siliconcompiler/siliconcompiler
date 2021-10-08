@@ -54,6 +54,7 @@ class Chip:
         self.status = {}
         self.error = 0
         self.cfg = schema_cfg()
+        self.cfghistory = {}
 
         # We set 'design' directly in the config dictionary because of a
         # chicken-and-egg problem: self.set() relies on the logger, but the
@@ -2103,7 +2104,7 @@ class Chip:
         if 'decrypt_key' in self.status:
             # Job data is encrypted, and it should only be decrypted in the
             # compute node's local storage.
-            job_nameid = f"{self.get('jobname')[-1]}"
+            job_nameid = f"{self.get('jobname')}"
             cur_build_dir = f"{self.get('dir')}/{self.get('design')}/{job_nameid}"
             tmp_job_dir = f"/tmp/{self.get('remote', 'jobhash')}"
             ctrl_node_dir = self.get('dir')
@@ -2169,7 +2170,7 @@ class Chip:
             # Write out the current schema for the compute node to pick up.
             job_dir = "/".join([self.get('dir'),
                                 self.get('design'),
-                                self.get('jobname')[-1]])
+                                self.get('jobname')])
             cfg_dir = f'{job_dir}/configs'
             cfg_file = f'{cfg_dir}/{step}{index}.json'
             if not os.path.isdir(cfg_dir):
@@ -2704,6 +2705,9 @@ class Chip:
             self.read_manifest(lastcfg)
             self.set('flowstatus',laststep,lastindex, 'select', '0')
 
+        # Store run in history
+        self.cfghistory[self.get('jobname')] = copy.deepcopy(self.cfg)
+            
     ###########################################################################
     def show_file(self, filename):
         '''
@@ -2928,7 +2932,7 @@ class Chip:
         '''
                                
         if jobname is None:
-            jobname = self.get('jobname')[-1]
+            jobname = self.get('jobname')
 
         dirlist =[self.get('dir'),
                   self.get('design'),
