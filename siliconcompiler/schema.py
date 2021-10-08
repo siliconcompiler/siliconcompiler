@@ -1819,7 +1819,7 @@ def schema_flowstatus(cfg, step='default', index='default'):
 # Job flow
 ###########################################################################
 
-def schema_jobs (cfg, job='defaut', step='default', index='default'):
+def schema_jobs (cfg, job='default', step='default', index='default'):
 
     # Flow step min
     cfg['jobinput'] = {}
@@ -1831,14 +1831,14 @@ def schema_jobs (cfg, job='defaut', step='default', index='default'):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Jobname of inputs to current run',
+        'shorthelp': 'Jobname inputs to current run',
         'example': [
             "cli: -jobinput 'job1 cts 0 job0'",
             "api:  chip.set('jobinput', 'job1', 'cts, '0', 'job0')"],
         'help': """
-        Specifies the jobname to copy the inputs from for the current
-        run on a per step and per index basis. During execution, 
-        the defaule behavior is to copy inputs from the current job.
+        Specifies jobname inputs for the current run() on a per step 
+        and per index basis. During execution, the default behavior is to 
+        copy inputs from the current job.
         """
     }
 
