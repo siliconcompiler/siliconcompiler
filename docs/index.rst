@@ -42,6 +42,7 @@ Welcome to SiliconCompiler's documentation!
    reference_manual/floorplan_api
    reference_manual/executable
    reference_manual/apps
+   reference_manual/examples
    reference_manual/flows
    reference_manual/tools
    reference_manual/foundries

@@ -130,10 +130,11 @@ class DynamicGen(SphinxDirective):
             if docs is not None:
                 sections.append((docs, modname))
 
-        # Sort sections by module name
-        sections = sorted(sections, key=lambda t: t[1])
-        # Strip off modname so we just return list of docutils sections
-        sections, _ = zip(*sections)
+        if len(sections) > 0:
+            # Sort sections by module name
+            sections = sorted(sections, key=lambda t: t[1])
+            # Strip off modname so we just return list of docutils sections
+            sections, _ = zip(*sections)
 
         return list(sections)
 
@@ -343,11 +344,51 @@ class AppGen(DynamicGen):
 
         return section
 
+class ExampleGen(DynamicGen):
+
+    def get_modules(self):
+        examples_dir = f'{SC_ROOT}/examples'
+
+        modules = []
+        for example in os.listdir(examples_dir):
+            if not os.path.isdir(f'{examples_dir}/{example}'):
+                continue
+            path = f'{examples_dir}/{example}/{example}.py'
+            if not os.path.exists(path):
+                continue
+
+            spec = importlib.util.spec_from_file_location(example, path)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+
+            modules.append((module, example))
+
+        return modules
+
+    def document_module(self, module, modname, path):
+        section = build_section(modname, modname)
+
+        if not hasattr(module, 'main'):
+            return None
+
+        main = getattr(module, 'main')
+
+        # raw docstrings have funky indentation (basically, each line is already
+        # indented as much as the function), so we call trim() helper function
+        # to clean it up
+        docstr = trim(main.__doc__)
+
+        if docstr:
+            self.parse_rst(docstr, section)
+
+        return section
+
 def setup(app):
     app.add_directive('flowgen', FlowGen)
     app.add_directive('foundrygen', FoundryGen)
     app.add_directive('toolgen', ToolGen)
     app.add_directive('appgen', AppGen)
+    app.add_directive('examplegen', ExampleGen)
 
     return {
         'version': '0.1',
