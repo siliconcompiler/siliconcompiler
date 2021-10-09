@@ -112,7 +112,7 @@ def setup_flow(chip):
     chip.set('remote', 'steplist', flowpipe[1:] + (['extspice', 'lvsjoin', 'lvs', 'drc', 'signoff'] if verify else []))
 
     # Showtool definitions
-    chip.set('showtool', 'def', 'openroad')
+    chip.set('showtool', 'def', 'klayout')
     chip.set('showtool', 'gds', 'klayout')
 
     # Programatically build linear portion of flowgraph and fanin/fanout args

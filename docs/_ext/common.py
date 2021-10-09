@@ -36,6 +36,11 @@ def para(text):
 def code(text):
     return nodes.literal(text=text)
 
+def literalblock(text):
+    block = nodes.literal_block(text=text)
+    block['language'] = 'none'
+    return block
+
 def strong(text):
     p = nodes.paragraph()
     p += nodes.strong(text=text)

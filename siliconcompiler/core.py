@@ -2740,8 +2740,8 @@ class Chip:
         selected based on the file suffix and the 'showtool' schema setup.
         The 'showtool' parameter binds tools with file suffixes, enabling the
         automated dynamic loading of tool setup functions from
-        siliconcompiler.tools.<tool>/tool_setup.py. Display settings and
-        technology settings for viewing the file are read read from the
+        siliconcompiler.tools.<tool>/<tool>.py. Display settings and
+        technology settings for viewing the file are read from the
         in-memory chip object schema settings. All temporary render and
         display files are saved in the <build_dir>/_show directory.
 
@@ -2799,17 +2799,16 @@ class Chip:
             tool = self.get('showtool', filetype)
             step = 'show'+filetype
             index = "0"
-            searchdir = "siliconcompiler.tools." + tool
-            modulename = '.'+tool+'_setup'
-            module = importlib.import_module(modulename, package=searchdir)
-            setup_tool = getattr(module, "setup_tool")
-            setup_tool(self, step, index, mode='show')
+            self.set('arg', 'step', step)
+            self.set('arg', 'index', index)
+            setup_tool = self.find_function(tool, 'tool', 'setup_tool')
+            setup_tool(self, mode='show')
             # Running command
             cmdlist = self._makecmd(tool, step, index)
             cmdstr = ' '.join(cmdlist)
             cmd_error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
         else:
-            self.logger.error("Filetype '{filetype}' not set up in 'showtool' parameter.")
+            self.logger.error(f"Filetype '{filetype}' not set up in 'showtool' parameter.")
 
         # Returning to original directory
         os.chdir(cwd)

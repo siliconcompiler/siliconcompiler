@@ -179,7 +179,16 @@ library, your definition of ``configure_chip()`` should look like this::
       chip.add('asic', 'macrolib', libname)
       chip.set('library', libname, 'type', 'component')
 
+      chip.set('showtool', 'def', 'klayout')
+
       return chip
+
+Note we've also added a line to set up the chip's ``showtool`` parameter.  While
+this isn't part of the minimal configuration required for using the floorplan
+API, it is required to use ``sc-show``, a tool we'll use to preview your
+floorplan later on in the tutorial. This configuration is normally handled by
+the flow, but we need to do it ourselves since we don't have a flow target for
+this minimal config.
 
 Before moving on, we'll also define some constants above ``configure_chip()`` in
 order to concisely reference the names of each macro we plan to use::

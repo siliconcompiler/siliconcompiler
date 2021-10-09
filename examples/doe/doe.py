@@ -29,26 +29,30 @@ def run_design(rootdir, design, N, i):
     chip.run()
     #chip.summary()
 
-# Define parallel processingg
-processes = []
-for i in range(len(N)):
-    processes.append(multiprocessing.Process(target=run_design,
-                                             args=(rootdir,
-                                                   design,
-                                                   str(N[i]),
-                                                   i
-                                             )))
+def main():
+    # Define parallel processingg
+    processes = []
+    for i in range(len(N)):
+        processes.append(multiprocessing.Process(target=run_design,
+                                                args=(rootdir,
+                                                    design,
+                                                    str(N[i]),
+                                                    i
+                                                )))
 
 
-# Boiler plate start and join
-for p in processes:
-    p.start()
-for p in processes:
-    p.join()
+    # Boiler plate start and join
+    for p in processes:
+        p.start()
+    for p in processes:
+        p.join()
 
-# Post-processing data
-print("-"*80)
-for i in range(len(N)):
-    chip = siliconcompiler.Chip()
-    chip.read_manifest(f"build/{design}/job{str(i)}/syn0/outputs/{design}.pkg.json")
-    print(design, ", N =", N[i], ", cellarea =", chip.get('metric','syn','0','cellarea','real'))
+    # Post-processing data
+    print("-"*80)
+    for i in range(len(N)):
+        chip = siliconcompiler.Chip()
+        chip.read_manifest(f"build/{design}/job{str(i)}/syn0/outputs/{design}.pkg.json")
+        print(design, ", N =", N[i], ", cellarea =", chip.get('metric','syn','0','cellarea','real'))
+
+if __name__ == '__main__':
+    main()
