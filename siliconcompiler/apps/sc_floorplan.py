@@ -17,9 +17,9 @@ def main():
 
     chip = siliconcompiler.Chip()
 
-    chip.cmdline(progname,
-                 switchlist=['source', 'cfg', 'loglevel', 'design', 'target'],
-                 description=description)
+    chip.create_cmdline(progname,
+                        switchlist=['source', 'cfg', 'loglevel', 'design', 'target'],
+                        description=description)
 
     #Error checking
     if not chip.get('source') or not chip.get('design'):
