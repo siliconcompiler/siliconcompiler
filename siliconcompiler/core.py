@@ -1101,6 +1101,21 @@ class Chip:
                 else:
                     self._abspath(cfg[k])
 
+
+    ###########################################################################
+    def _print_csv(self, cfg, file=None):
+        allkeys = self.getkeys(cfg=cfg)
+        for key in allkeys:
+            print(key)
+            print(json.dumps(cfg, indent=4, sort_keys=True))
+            keypath = ",".join(key)
+            value = self.get(*key, cfg=cfg)
+            if isinstance(value,list):
+                for item in value:
+                    print(f"{keypath},{item}", file=file)
+            else:
+                print(f"{keypath},{value}", file=file)
+
     ###########################################################################
     def _print_tcl(self, cfg, keys=None, file=None, prefix=""):
         '''
@@ -1306,7 +1321,7 @@ class Chip:
         with open(abspath, 'r') as f:
             if abspath.endswith('.json'):
                 localcfg = json.load(f)
-            elif abspath.endswith('.yaml'):
+            elif abspath.endswith('.yaml') | abspath.endswith('.yml'):
                 localcfg = yaml.load(f, Loader=yaml.SafeLoader)
             else:
                 self.error = 1
@@ -1325,7 +1340,8 @@ class Chip:
         Writes the Chip objects manifest to a file.
 
         The write file format is determined by the filename suffix. Currently
-        json (*.json), yaml (*.yaml), and tcl (*.tcl) formats are supported.
+        json (*.json), yaml (*.yaml), tcl (*.tcl), and (*.csv) formats are 
+        supported.
 
         Args:
             filename (filepath): Output filepath
@@ -1364,19 +1380,19 @@ class Chip:
         with open(filepath, 'w') as f:
             if filepath.endswith('.json'):
                 print(json.dumps(cfgcopy, indent=4, sort_keys=True), file=f)
-            elif filepath.endswith('.yaml'):
+            elif filepath.endswith('.yaml') | filepath.endswith('yml'):
                 print(yaml.dump(cfgcopy, Dumper=YamlIndentDumper, default_flow_style=False), file=f)
             elif filepath.endswith('.core'):
                 cfgfuse = self._dump_fusesoc(cfgcopy)
                 print("CAPI=2:", file=f)
                 print(yaml.dump(cfgfuse, Dumper=YamlIndentDumper, default_flow_style=False), file=f)
-            elif filepath.endswith('.bender.yml'):
-                self._write_bender(cfgcopy, file=f)
             elif filepath.endswith('.tcl'):
                 print("#############################################", file=f)
                 print("#!!!! AUTO-GENERATED FILE. DO NOT EDIT!!!!!!", file=f)
                 print("#############################################", file=f)
                 self._print_tcl(cfgcopy, prefix="dict set sc_cfg", file=f)
+            elif filepath.endswith('.csv'):
+                self._print_csv(cfgcopy, file=f)
             else:
                 self.logger.error('File format not recognized %s', filepath)
                 self.error = 1
@@ -2291,6 +2307,13 @@ class Chip:
         ##################
         # 2. Directory setup
 
+        # Handling cross job references
+        job = self.get('jobname')
+        if job in self.getkeys('jobinput'):
+            if step in self.getkeys('jobinput',job):
+                if index in self.getkeys('jobinput',job,step):
+                    job = self.get('jobinput', job, step, index)
+
         workdir = self._getworkdir(step=step,index=index)
         cwd = os.getcwd()
         if os.path.isdir(workdir):
@@ -2318,7 +2341,7 @@ class Chip:
                 input_index = match.group(2)                
                 self.set('flowstatus', input_step, input_index, 'error', index_error)
                 if not index_error:
-                    cfgfile = f"../../{input_step}/{input_index}/outputs/{design}.pkg.json"
+                    cfgfile = f"../../../{job}/{input_step}/{input_index}/outputs/{design}.pkg.json"
                     self.read_manifest(cfgfile)
                 halt = halt + step_error
             if halt:
@@ -2374,7 +2397,7 @@ class Chip:
 
         ##################
         # 6 Copy outputs from input steps
-
+        
         if not self.get('flowgraph', step, index,'input'):
             all_inputs = []
         elif not self.get('flowstatus', step, index, 'select'):
@@ -2387,7 +2410,7 @@ class Chip:
             match = re.match(r'(\w+)(\d+)$', stepindex)
             in_step = match.group(1)
             in_index = match.group(2)
-            shutil.copytree(f"../../{in_step}/{in_index}/outputs", 'inputs/', dirs_exist_ok=True,
+            shutil.copytree(f"../../../{job}/{in_step}/{in_index}/outputs", 'inputs/', dirs_exist_ok=True,
                 ignore=lambda dir, contents: [f'{design}.pkg.json'])
 
         ##################
