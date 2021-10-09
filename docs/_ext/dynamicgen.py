@@ -14,6 +14,7 @@ import importlib
 import pkgutil
 import os
 import sys
+import subprocess
 
 from common import *
 
@@ -328,10 +329,25 @@ class ToolGen(DynamicGen):
 
         return modules
 
+class AppGen(DynamicGen):
+    PATH = 'apps'
+
+    def document_module(self, module, modname, path):
+        cmd_name = modname.replace('_', '-')
+        cmd = [cmd_name, '--help']
+
+        output = subprocess.check_output(cmd).decode('ascii')
+
+        section = build_section(cmd_name, cmd_name)
+        section += literalblock(output)
+
+        return section
+
 def setup(app):
     app.add_directive('flowgen', FlowGen)
     app.add_directive('foundrygen', FoundryGen)
     app.add_directive('toolgen', ToolGen)
+    app.add_directive('appgen', AppGen)
 
     return {
         'version': '0.1',

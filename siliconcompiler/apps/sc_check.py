@@ -5,12 +5,12 @@ import siliconcompiler
 def main():
     progname = "sc-check"
     chip = siliconcompiler.Chip()
-    chip.cmdline(progname,
-                 description="""
-                 --------------------------------------------------------------
-                 Restricted SC app that checks the setup without running accepts one or more json based cfg files
-                 as inputs and executes the SC check() method.
-                 """)
+    chip.create_cmdline(progname,
+                        description="""
+                        --------------------------------------------------------------
+                        Restricted SC app that checks the setup without running accepts one or more json based cfg files
+                        as inputs and executes the SC check() method.
+                        """)
 
     #Error checking
     if not chip.get('cfg'):
