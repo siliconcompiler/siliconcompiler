@@ -2,6 +2,7 @@ import os
 import subprocess
 import re
 import sys
+import shutil
 
 import siliconcompiler
 
@@ -80,11 +81,20 @@ def runtime_options(chip):
     for value in chip.get('idir'):
         cmdlist.append('-I' + chip.find_file(value))
     for value in chip.get('define'):
-        cmdlist.append('-D' + chip.find_file(value))
+        cmdlist.append('-D' + value)
     for value in chip.get('cmdfile'):
         cmdlist.append('-f ' + chip.find_file(value))
     for value in chip.get('source'):
         cmdlist.append(chip.find_file(value))
+
+    cmdlist.append('-top ' + chip.get('design'))
+    # make sure we can find .sv files in ydirs
+    cmdlist.append('+libext+.sv')
+
+    # Set up user-provided parameters to ensure we elaborate the correct modules
+    for param in chip.getkeys('param'):
+        value = chip.get('param', param)
+        cmdlist.append(f'-P{param}={value}')
 
     return cmdlist
 
@@ -95,20 +105,32 @@ def runtime_options(chip):
 def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
-    # Look in slpp_all/file_elab.lst for list of Verilog files included in
-    # design, read these and concatenate them into one pickled output file.
     design = chip.get('design')
     step = chip.get('arg', 'step')
 
-    if step in 'import':
-        with open('slpp_all/file_elab.lst', 'r') as filelist, \
-             open(f'outputs/{design}.v', 'w') as outfile:
-            for path in filelist.read().split('\n'):
-                if not path:
-                    # skip empty lines
-                    continue
-                with open(path, 'r') as infile:
-                    outfile.write(infile.read())
+    if step != 'import':
+        return 0
+
+    # Copy files from inputs to outputs. Need to do this before pickling since
+    # we may otherwise overwrite the pickled file with one of the Verilog
+    # sources.
+    shutil.copytree("inputs", "outputs", dirs_exist_ok=True)
+
+    # Look in slpp_all/file_elab.lst for list of Verilog files included in
+    # design, read these and concatenate them into one pickled output file.
+    with open('slpp_all/file_elab.lst', 'r') as filelist, \
+            open(f'outputs/{design}.v', 'w') as outfile:
+        for path in filelist.read().split('\n'):
+            if not path:
+                # skip empty lines
+                continue
+            with open(path, 'r') as infile:
+                outfile.write(infile.read())
+            # in case end of file is missing a newline
+            outfile.write('\n')
+
+    # Clean up
+    shutil.rmtree('slpp_all')
 
     return 0
 
