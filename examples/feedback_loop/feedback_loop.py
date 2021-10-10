@@ -23,32 +23,46 @@ chip.set('relax', True)
 chip.set('quiet', True)
 chip.target("asicflow_freepdk45")
 
-# First run
+# First run (import + run)
 steplist = ['import', 'syn']
 chip.set('steplist', steplist)
 chip.run()
-#run has hidden copy of cfg --> dict
+
+
+# Setting up the rest of the runs
+
 
 while True:
-    N = N * 2
 
+    # design experiment, width of adder
+    N = N * 2
+    chip.set('param', 'N', str(N), clobber=True)
+    
+    # Running syn only
+    index = '0'    
+    step = 'syn'    
+    chip.set('steplist', ['syn'])
+    
+    # Setting a unique jobid
     oldid = chip.get('jobname')
     match = re.match(r'(.*)(\d+)$', oldid)
     newid = match.group(1) + str(int(match.group(2))+1)
-    
-    # Running syn only
     chip.set('jobname', newid)
-    chip.set('param', 'N', str(N), clobber=True)
+
+    # Specifying that imports are copied from job0 
+    chip.set('jobinput', newid, step, index, 'job0')
+
+    # Make a run
     chip.run()
 
-    new_area = chip.get('metric','syn','0','cellarea','real')
-    old_area = chip.get('metric','syn','0','cellarea','real', cfg=chip.cfghistory[oldid])
+    # Query current run and last run
+    new_area = chip.get('metric',step, index, 'cellarea','real')
+    old_area = chip.get('metric',step, index, 'cellarea','real', job=oldid)
 
     factor = new_area/old_area
 
-    print(N, new_area, old_area, newid, chip.get('jobname'))
-    
     # compare result
+    print(N, new_area, old_area, newid, chip.get('jobname'))
     if (new_area/old_area) > 2.1:
         print("Stopping, area is exploding")
         break
