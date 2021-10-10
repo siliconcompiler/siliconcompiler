@@ -291,7 +291,7 @@ class Chip:
         # 4. read in all cfg files
         if 'cfg' in cmdargs.keys():
             for item in cmdargs['cfg']:
-                self.read_manifest(item)
+                self.read_manifest(item, update=True, clobber=True, clear=True)
 
         # insert all parameters in dictionary
         self.logger.info('Setting commandline arguments')
@@ -852,7 +852,7 @@ class Chip:
                             self.logger.error(f"Assigning list to scalar for [{keypath}]")
                             self.error = 1
                     else:
-                        self.logger.info(f"Ignoring set() to [{keypath}], value already set. Use clobber=true to override.")
+                        self.logger.debug(f"Ignoring set() to [{keypath}], value already set. Use clobber=true to override.")
                 elif (mode == 'add'):
                     if list_type & (not isinstance(val, list)):
                         cfg[param][field].append(str(val))
@@ -1169,7 +1169,7 @@ class Chip:
                                prefix=prefix)
 
     ###########################################################################
-    def merge_manifest(self, cfg, clear=True):
+    def merge_manifest(self, cfg, clobber=True, clear=True):
         """
         Merges the provided schema dictionary into the Chip object.
 
@@ -1178,8 +1178,8 @@ class Chip:
         logger error message and raises the Chip object error flag.
 
         Args:
-            clear (bool): If True, the chip object value is cleared before the
-                new dictionary value is written.
+            clear (bool): If True, disables append operations for list type
+            clobber (bool): If True, overwrites existing parameter value
 
         Examples:
             >>> chip.merge_manifest('my.pkg.json')
@@ -1196,7 +1196,7 @@ class Chip:
                 if bool(re.match(r'\[', typestr)) & bool(not clear):
                     self.add(*arg)
                 else:
-                    self.set(*arg, clobber=True)
+                    self.set(*arg, clobber=clobber)
 
     ###########################################################################
     def _keypath_empty(self, key):
@@ -1293,7 +1293,7 @@ class Chip:
         return self.error
 
     ###########################################################################
-    def read_manifest(self, filename, update=True, clear=True):
+    def read_manifest(self, filename, update=True, clear=True, clobber=True):
         """
         Reads a schema manifest from a file into the Chip object.
 
@@ -1303,8 +1303,8 @@ class Chip:
         Args:
             filename (filepath): Path to a manifest file to be loaded.
             update (bool): If True, manifest is merged into chip object.
-            clear (bool): If True, parameter value lists are are cleared before
-                being appended with new values from the manifest file.
+            clear (bool): If True, disables append operations for list type.
+            clobber (bool): If True, overwrites existing parameter value.
 
         Returns:
             A manifest dictionary.
@@ -1330,7 +1330,7 @@ class Chip:
 
         #Merging arguments with the Chip configuration
         if update:
-            self.merge_manifest(localcfg, clear=clear)
+            self.merge_manifest(localcfg, clear=clear, clobber=clobber)
 
         return localcfg
 
@@ -2342,7 +2342,7 @@ class Chip:
                 self.set('flowstatus', input_step, input_index, 'error', index_error)
                 if not index_error:
                     cfgfile = f"../../../{job}/{input_step}/{input_index}/outputs/{design}.pkg.json"
-                    self.read_manifest(cfgfile)
+                    self.read_manifest(cfgfile, clobber=False)
                 halt = halt + step_error
             if halt:
                 self.logger.error('Halting step due to previous errors')
@@ -2725,7 +2725,7 @@ class Chip:
         lastdir = self._getworkdir(step=laststep, index=lastindex)
         lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
         if os.path.isfile(lastcfg):
-            self.read_manifest(lastcfg)
+            self.read_manifest(lastcfg, clobber=True, clear=True)
             self.set('flowstatus',laststep,lastindex, 'select', '0')
 
         # Store run in history
