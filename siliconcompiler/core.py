@@ -574,7 +574,7 @@ class Chip:
         return fullstr
 
     ###########################################################################
-    def get(self, *keypath, field='value', cfg=None):
+    def get(self, *keypath, field='value', job=None, cfg=None):
         """
         Returns a parameter value based on keypath provided.
 
@@ -600,7 +600,10 @@ class Chip:
         """
 
         if cfg is None:
-            cfg = self.cfg
+            if job is not None:                
+                cfg = self.cfghistory[job]
+            else:
+                cfg = self.cfg
 
         keypathstr = ','.join(keypath)
 
