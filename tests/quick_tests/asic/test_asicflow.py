@@ -33,7 +33,7 @@ def test_gcd_local_py():
     #chip.summary()
 
     # Verify that GDS and SVG files were generated.
-    assert os.path.isfile('build/gcd/job0/export0/outputs/gcd.gds')
+    assert os.path.isfile('build/gcd/job0/export/0/outputs/gcd.gds')
 
 if __name__ == "__main__":
     test_gcd_local_py()

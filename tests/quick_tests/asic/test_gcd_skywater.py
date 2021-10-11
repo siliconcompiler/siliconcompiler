@@ -33,7 +33,7 @@ def test_gcd_checks():
     chip.run()
 
     # Verify that GDS and SVG files were generated.
-    assert os.path.isfile('build/gcd/job0/export0/outputs/gcd.gds')
+    assert os.path.isfile('build/gcd/job0/export/0/outputs/gcd.gds')
 
     # Verify that the build was LVS and DRC clean.
     assert chip.get('metric', 'lvs', '0', 'errors', 'real') == 0

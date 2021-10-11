@@ -142,31 +142,31 @@ def setup_flow(chip):
                 if prevparam in chip.getkeys('flowarg'):
                     fanin  = int(chip.get('flowarg', prevparam)[0])
                 for i in range(fanin):
-                    chip.add('flowgraph', step, str(index), 'input', prevstep, str(i))
+                    chip.add('flowgraph', step, str(index), 'input', prevstep+str(i))
             else:
                 chip.set('flowgraph', step, str(index), 'tool', tools[step])
-                chip.add('flowgraph', step, str(index), 'input', prevstep, '0')
+                chip.add('flowgraph', step, str(index), 'input', prevstep+'0')
 
         prevstep = step
 
     # If running verify steps, manually set up parallel LVS/DRC
     if verify:
         chip.set('flowgraph', 'extspice', '0', 'tool', 'magic')
-        chip.add('flowgraph', 'extspice', '0', 'input', 'export', '0')
+        chip.add('flowgraph', 'extspice', '0', 'input', 'export0')
 
         chip.set('flowgraph', 'lvsjoin', '0', 'function', 'step_join')
-        chip.add('flowgraph', 'lvsjoin', '0', 'input', 'dfmmin', '0')
-        chip.add('flowgraph', 'lvsjoin', '0', 'input', 'extspice', '0')
+        chip.add('flowgraph', 'lvsjoin', '0', 'input', 'dfmmin0')
+        chip.add('flowgraph', 'lvsjoin', '0', 'input', 'extspice0')
 
         chip.set('flowgraph', 'lvs', '0', 'tool', 'netgen')
-        chip.add('flowgraph', 'lvs', '0', 'input', 'lvsjoin', '0')
+        chip.add('flowgraph', 'lvs', '0', 'input', 'lvsjoin0')
 
         chip.set('flowgraph', 'drc', '0', 'tool', 'magic')
-        chip.add('flowgraph', 'drc', '0', 'input', 'export', '0')
+        chip.add('flowgraph', 'drc', '0', 'input', 'export0')
 
         chip.set('flowgraph', 'signoff', '0', 'function', 'step_join')
-        chip.add('flowgraph', 'signoff', '0', 'input', 'lvs', '0')
-        chip.add('flowgraph', 'signoff', '0', 'input', 'drc', '0')
+        chip.add('flowgraph', 'signoff', '0', 'input', 'lvs0')
+        chip.add('flowgraph', 'signoff', '0', 'input', 'drc0')
 
 
 ##################################################

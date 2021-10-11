@@ -12,6 +12,15 @@ General Terms
     dictionary
        Associative array, ie. a collection of key-value pairs.
 
+    flowgraph
+       Defined input/output execution graph
+           
+    index
+       Step execution with unqiue options on identical input data.  
+
+    job
+       Execution of complete or partial flowgraph
+       
     keypath
        Ordered list of keys used to access a schema parameter.
 
@@ -29,6 +38,9 @@ General Terms
 
     schema
        Nested dictionary of SC configuration parameters.
+
+    step
+       Atomic execution step within a flowgraph
 
 Parameter Keys
 -----------------

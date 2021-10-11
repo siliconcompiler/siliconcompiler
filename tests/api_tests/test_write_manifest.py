@@ -18,9 +18,11 @@ def test_write_manifest():
     chip.add('source', 'c.v')
     chip.set('design', 'top')
 
-    chip.writecfg('top.core')
-    chip.writecfg('top.pkg.json')
-
+    chip.write_manifest('top.core')
+    chip.write_manifest('top.pkg.json')
+    chip.write_manifest('top.csv')
+    chip.write_manifest('top.tcl')
+    chip.write_manifest('top.yaml')
 
 #########################
 if __name__ == "__main__":

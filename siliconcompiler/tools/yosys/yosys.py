@@ -135,9 +135,8 @@ def post_process(chip):
     tool = 'yosys'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    exe = chip.get('eda', tool, step, index, 'exe')
 
-    with open(exe + ".log") as f:
+    with open(step + ".log") as f:
         for line in f:
             area = re.search(r'Chip area for module.*\:\s+(.*)', line)
             cells = re.search(r'Number of cells\:\s+(.*)', line)

@@ -97,7 +97,7 @@ def setup_flow(chip):
             chip.set('flowgraph', step, index, 'weight', metric, 1.0)
         # Inputs
         if i > 0:
-            chip.add('flowgraph', flowpipe[i], index, 'input', flowpipe[i-1], "0")
+            chip.add('flowgraph', flowpipe[i], index, 'input', flowpipe[i-1]+"0")
 
         # Tools
         tool = tool_lookup(flow, step)

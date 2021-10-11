@@ -54,6 +54,7 @@ class Chip:
         self.status = {}
         self.error = 0
         self.cfg = schema_cfg()
+        self.cfghistory = {}
 
         # We set 'design' directly in the config dictionary because of a
         # chicken-and-egg problem: self.set() relies on the logger, but the
@@ -290,7 +291,7 @@ class Chip:
         # 4. read in all cfg files
         if 'cfg' in cmdargs.keys():
             for item in cmdargs['cfg']:
-                self.read_manifest(item)
+                self.read_manifest(item, update=True, clobber=True, clear=True)
 
         # insert all parameters in dictionary
         self.logger.info('Setting commandline arguments')
@@ -379,11 +380,11 @@ class Chip:
 
         # module search path depends on functype
         if functype == 'tool':
-            fullpath = self.find_file(f"tools/{modulename}/{modulename}.py")
+            fullpath = self.find_file(f"tools/{modulename}/{modulename}.py", missing_ok=True)
         elif functype == 'flow':
-            fullpath = self.find_file(f"flows/{modulename}.py")
+            fullpath = self.find_file(f"flows/{modulename}.py", missing_ok=True)
         elif functype == 'pdk':
-            fullpath = self.find_file(f"foundries/{modulename}.py")
+            fullpath = self.find_file(f"foundries/{modulename}.py", missing_ok=True)
         else:
             self.logger.error(f"Illegal module type '{functype}'.")
             self.error = 1
@@ -508,11 +509,9 @@ class Chip:
         outputs = []
         for a in self.getkeys('flowgraph'):
             for b in self.getkeys('flowgraph', a):
-                if self.getkeys('flowgraph', a, b, 'input'):
-                    for c in self.getkeys('flowgraph', a, b, 'input'):
-                        for d in self.get('flowgraph', a, b, 'input', c):
-                            if (step==c) & (index==d):
-                                outputs.append(a+b)
+                for stepindex in self.get('flowgraph', a, b, 'input'):
+                    if stepindex == (step + index):
+                        outputs.append(a+b)
         return outputs
 
     ###########################################################################
@@ -575,7 +574,7 @@ class Chip:
         return fullstr
 
     ###########################################################################
-    def get(self, *keypath, field='value', cfg=None):
+    def get(self, *keypath, field='value', job=None, cfg=None):
         """
         Returns a parameter value based on keypath provided.
 
@@ -601,7 +600,10 @@ class Chip:
         """
 
         if cfg is None:
-            cfg = self.cfg
+            if job is not None:
+                cfg = self.cfghistory[job]
+            else:
+                cfg = self.cfg
 
         keypathstr = ','.join(keypath)
 
@@ -853,7 +855,7 @@ class Chip:
                             self.logger.error(f"Assigning list to scalar for [{keypath}]")
                             self.error = 1
                     else:
-                        self.logger.info(f"Ignoring set() to [{keypath}], value already set. Use clobber=true to override.")
+                        self.logger.debug(f"Ignoring set() to [{keypath}], value already set. Use clobber=true to override.")
                 elif (mode == 'add'):
                     if list_type & (not isinstance(val, list)):
                         cfg[param][field].append(str(val))
@@ -993,7 +995,7 @@ class Chip:
         return localcfg
 
     ###########################################################################
-    def find_file(self, filename):
+    def find_file(self, filename, missing_ok=False):
         """
         Returns the absolute path for the filename provided.
 
@@ -1041,9 +1043,43 @@ class Chip:
                 filename = abspath
             else:
                 filename = None
-
+                if not missing_ok:
+                    self.error = 1
+                    self.logger.error(f"File {abspath} was not found")
         return filename
 
+    ###########################################################################
+    def find_result(self, filetype, step, jobname='job0', index='0'):
+        """
+        Returns the absolute path to an output file based arguments.
+
+        Args:
+            filetype (str): File extension (.v, .def, etc)
+            step (str): Step name ('syn', 'place', etc)
+            jobid (str): Jobid (''
+
+            index (str): Schema index
+
+
+        Returns:
+            Returns absolute path to file.
+
+        Examples:
+            >>> manifest_filepath = chip.find_manifest('0', 'syn', '0')
+           Returns the absolute path to the manifest.
+        """
+
+        workdir = self._getworkdir(jobname, step, index)
+        design = self.get('design')
+        filename = f"{workdir}/outputs/{design}{filetype}"
+
+        self.logger.debug("Finding result %s", filename)
+
+        if os.path.isfile(filename):
+            return filename
+        else:
+            self.error = 1
+            return None
 
     ###########################################################################
     def _abspath(self, cfg):
@@ -1064,11 +1100,25 @@ class Chip:
                         if re.match(r'\[', cfg[k]['type']):
                             for i, val in enumerate(list(cfg[k]['value'])):
                                 #Look for relative paths in search path
-                                cfg[k]['value'][i] =self.find_file(val)
+                                cfg[k]['value'][i] =self.find_file(val, missing_ok=True)
                         else:
-                            cfg[k]['value'] = self.find_file(cfg[k]['value'])
+                            cfg[k]['value'] = self.find_file(cfg[k]['value'], missing_ok=True)
                 else:
                     self._abspath(cfg[k])
+
+    ###########################################################################
+    def _print_csv(self, cfg, file=None):
+        allkeys = self.getkeys(cfg=cfg)
+        for key in allkeys:
+            print(key)
+            print(json.dumps(cfg, indent=4, sort_keys=True))
+            keypath = ",".join(key)
+            value = self.get(*key, cfg=cfg)
+            if isinstance(value,list):
+                for item in value:
+                    print(f"{keypath},{item}", file=file)
+            else:
+                print(f"{keypath},{value}", file=file)
 
     ###########################################################################
     def _print_tcl(self, cfg, keys=None, file=None, prefix=""):
@@ -1123,7 +1173,7 @@ class Chip:
                                prefix=prefix)
 
     ###########################################################################
-    def merge_manifest(self, cfg, clear=True):
+    def merge_manifest(self, cfg, job=None, clobber=True, clear=True):
         """
         Merges the provided schema dictionary into the Chip object.
 
@@ -1132,14 +1182,21 @@ class Chip:
         logger error message and raises the Chip object error flag.
 
         Args:
-            clear (bool): If True, the chip object value is cleared before the
-                new dictionary value is written.
+            clear (bool): If True, disables append operations for list type
+            clobber (bool): If True, overwrites existing parameter value
 
         Examples:
             >>> chip.merge_manifest('my.pkg.json')
            Merges all parameters in my.pk.json into the Chip object
 
         """
+
+        if job is not None:
+            # fill ith default schema before populating
+            self.cfghistory[job] = schema_cfg()
+            dst = self.cfghistory[job]
+        else:
+            dst = self.cfg
 
         for keylist in self.getkeys(cfg=cfg):
             if 'default' not in keylist:
@@ -1148,9 +1205,9 @@ class Chip:
                 arg = keylist.copy()
                 arg.append(val)
                 if bool(re.match(r'\[', typestr)) & bool(not clear):
-                    self.add(*arg)
+                    self.add(*arg, cfg=dst)
                 else:
-                    self.set(*arg, clobber=True)
+                    self.set(*arg, cfg=dst, clobber=clobber)
 
     ###########################################################################
     def _keypath_empty(self, key):
@@ -1200,12 +1257,14 @@ class Chip:
             self.error = 1
             self.logger.error(f"No flowgraph defined.")
         legal_steps = self.getkeys('flowgraph')
-        for a in self.getkeys('flowgraph'):
-            for b in self.getkeys('flowgraph', a):
-                for input in self.getkeys('flowgraph', a, b, 'input'):
-                    if not input in legal_steps:
-                        self.error = 1
-                        self.logger.error(f"Input '{a}' is not a legal step.")
+        #TODO FIX!
+        # for a in self.getkeys('flowgraph'):
+        #     for b in self.getkeys('flowgraph', a):
+        #         for stepindex in self.getkeys('flowgraph', a, b, 'input'):
+        #             pass
+                    #if not input in legal_steps:
+                    #    self.error = 1
+                    #    self.logger.error(f"Input '{a}' is not a legal step.")
 
         #2. Check requirements list
         allkeys = self.getkeys()
@@ -1245,7 +1304,7 @@ class Chip:
         return self.error
 
     ###########################################################################
-    def read_manifest(self, filename, clear=True):
+    def read_manifest(self, filename, job=None, update=True, clear=True, clobber=True):
         """
         Reads a schema manifest from a file into the Chip object.
 
@@ -1254,8 +1313,12 @@ class Chip:
 
         Args:
             filename (filepath): Path to a manifest file to be loaded.
-            clear (bool): If True, parameter value lists are are cleared before
-                being appended with new values from the manifest file.
+            update (bool): If True, manifest is merged into chip object.
+            clear (bool): If True, disables append operations for list type.
+            clobber (bool): If True, overwrites existing parameter value.
+
+        Returns:
+            A manifest dictionary.
 
         Examples:
             >>> chip.read_manifest('mychip.json')
@@ -1269,7 +1332,7 @@ class Chip:
         with open(abspath, 'r') as f:
             if abspath.endswith('.json'):
                 localcfg = json.load(f)
-            elif abspath.endswith('.yaml'):
+            elif abspath.endswith('.yaml') | abspath.endswith('.yml'):
                 localcfg = yaml.load(f, Loader=yaml.SafeLoader)
             else:
                 self.error = 1
@@ -1277,15 +1340,19 @@ class Chip:
         f.close()
 
         #Merging arguments with the Chip configuration
-        self.merge_manifest(localcfg, clear=clear)
+        if update:
+            self.merge_manifest(localcfg, job=job, clear=clear, clobber=clobber)
+
+        return localcfg
 
     ###########################################################################
-    def write_manifest(self, filename, prune=True, abspath=False):
+    def write_manifest(self, filename, prune=True, abspath=False, job=None):
         '''
         Writes the Chip objects manifest to a file.
 
         The write file format is determined by the filename suffix. Currently
-        json (*.json), yaml (*.yaml), and tcl (*.tcl) formats are supported.
+        json (*.json), yaml (*.yaml), tcl (*.tcl), and (*.csv) formats are
+        supported.
 
         Args:
             filename (filepath): Output filepath
@@ -1324,19 +1391,19 @@ class Chip:
         with open(filepath, 'w') as f:
             if filepath.endswith('.json'):
                 print(json.dumps(cfgcopy, indent=4, sort_keys=True), file=f)
-            elif filepath.endswith('.yaml'):
+            elif filepath.endswith('.yaml') | filepath.endswith('yml'):
                 print(yaml.dump(cfgcopy, Dumper=YamlIndentDumper, default_flow_style=False), file=f)
             elif filepath.endswith('.core'):
                 cfgfuse = self._dump_fusesoc(cfgcopy)
                 print("CAPI=2:", file=f)
                 print(yaml.dump(cfgfuse, Dumper=YamlIndentDumper, default_flow_style=False), file=f)
-            elif filepath.endswith('.bender.yml'):
-                self._write_bender(cfgcopy, file=f)
             elif filepath.endswith('.tcl'):
                 print("#############################################", file=f)
                 print("#!!!! AUTO-GENERATED FILE. DO NOT EDIT!!!!!!", file=f)
                 print("#############################################", file=f)
                 self._print_tcl(cfgcopy, prefix="dict set sc_cfg", file=f)
+            elif filepath.endswith('.csv'):
+                self._print_csv(cfgcopy, file=f)
             else:
                 self.logger.error('File format not recognized %s', filepath)
                 self.error = 1
@@ -1428,15 +1495,14 @@ class Chip:
                 dot.node(node, label=labelname)
                 # get inputs
                 all_inputs = []
-                for i in self.getkeys('flowgraph', step, index, 'input'):
-                    for j in self.get('flowgraph', step, index, 'input', i):
-                        all_inputs.append(i+j)
+                for stepindex in self.get('flowgraph', step, index, 'input'):
+                    all_inputs.append(stepindex)
                 for item in all_inputs:
                     dot.edge(item, node)
         dot.render(filename=fileroot, cleanup=True)
 
     ########################################################################
-    def _collect(self):
+    def _collect(self, step, index, active):
         '''
         Collects files found in the configuration dictionary and places
         them in 'dir'. The function only copies in files that have the 'copy'
@@ -1472,8 +1538,11 @@ class Chip:
                 if copyall | (copy):
                     for item in value:
                         filepath = self.find_file(item)
-                        self.logger.info(f"Copying {filepath} to step inputs/ directory")
-                        shutil.copy(filepath, indir)
+                        if filepath:
+                            self.logger.info(f"Copying {filepath} to step inputs/ directory")
+                            shutil.copy(filepath, indir)
+                        else:
+                            self._haltstep(step,index,active)
 
     ###########################################################################
     def hash_files(self, *keypath, algo='sha256', update=True):
@@ -1680,9 +1749,7 @@ class Chip:
                 del steplist[index]
 
         # job directory
-        jobdir = "/".join([self.get('dir'),
-                           self.get('design'),
-                           self.get('jobname') + str(self.get('jobid'))])
+        jobdir = self._getworkdir()
 
         # Custom reporting modes
         paramlist = []
@@ -1799,56 +1866,42 @@ class Chip:
     def _allpaths(self, cfg, step, index, path=None, allpaths=None):
 
         if path is None:
-            allpaths = []
             path = []
-        all_inputs = []
+            allpaths = []
 
-        for a in self.getkeys('flowgraph', step, index, 'input', cfg=cfg):
-            for b in self.get('flowgraph', step, index, 'input', a, cfg=cfg):
-                all_inputs.append(a + b)
+        inputs = self.get('flowgraph', step, index, 'input', cfg=cfg)
 
-        if not all_inputs:
+        if not inputs:
             allpaths.append(path)
         else:
-            for a in self.getkeys('flowgraph', step, index, 'input', cfg=cfg):
-                for b in self.get('flowgraph', step, index, 'input', a, cfg=cfg):
-                    newpath = path.copy()
-                    newpath.append(a+b)
-                    return self._allpaths(cfg, a, b, path=newpath, allpaths=allpaths)
+            for stepindex in inputs:
+                newpath = path.copy()
+                newpath.append(stepindex)
+                match = re.match(r'(\w+)(\d+)$', stepindex)
+                in_step = match.group(1)
+                in_index = match.group(2)
+                return self._allpaths(cfg, in_step, in_index, path=newpath, allpaths=allpaths)
 
         return list(allpaths)
 
     ###########################################################################
     def step_join(self, *steps):
         '''
-        Returns a list of step/index strings based on list of steps provided.
-
-        All steps in the provided steplist are concatenated with each index
-        for that step to produce a complete list of step-index strings. The
-        function is used within a process of run() function to enable
-        generalized execution models.
+        Pass through function for joining multiple inputs in one step
 
         Args:
-            steps(list str): A variable length list of steps
+            steps(list str): List of inputs
 
         Returns:
-           tuple containing
-            - 0 (float):
-            - stepindex (str): Minimum stepindex pair
+            Input list
 
         Examples:
-            >>> (score,inputlst) = chip.step_join(['lvs', 'drc'])
-            The variable inputlst gets a list of all step-index pairs for the
-            lvs and drc steps.
-
+            >>> select = chip.step_join(['lvs0', 'drc0'])
+           Selct gets the input list ['lvs0', 'drc0']
         '''
 
         steplist = list(steps)
-        sel_inputs = []
-
-        for a in steplist:
-            for b in self.getkeys('flowgraph', a):
-                sel_inputs.append(a+b)
+        sel_inputs = steplist
 
         # no score for join, so just return 0
         return sel_inputs
@@ -1871,7 +1924,7 @@ class Chip:
         in the calculation.
 
         Args:
-            steps(list str): A variable length list of steps
+            steps(list str): List of stepindex pair inputs to select from
 
         Returns:
             tuple containing
@@ -1933,7 +1986,9 @@ class Chip:
         # Keeping track of the steps/indexes that have goals met
         failed = {}
         goals_met = False
-        for step in steplist:
+        for stepindex in steplist:
+            match = re.match(r'(\w+)(\d+)$', stepindex)
+            step = match.group(1)
             failed[step] = {}
             for index in self.getkeys('flowgraph', step):
                 if self.get('flowstatus', step, index, 'error'):
@@ -1952,7 +2007,9 @@ class Chip:
         # Calculate max/min values for each metric
         max_val = {}
         min_val = {}
-        for step in steplist:
+        for stepindex in steplist:
+            match = re.match(r'(\w+)(\d+)$', stepindex)
+            step = match.group(1)
             max_val[step] = {}
             min_val[step] = {}
             for metric in self.getkeys('flowgraph', step, '0', 'weight'):
@@ -1967,9 +2024,12 @@ class Chip:
         # Select the minimum index
         min_score = {}
         step_winner = ""
-        for step in steplist:
+        for stepindex in steplist:
             min_score = float("inf")
             step_winner = 0
+            match = re.match(r'(\w+)(\d+)$', stepindex)
+            step = match.group(1)
+            #TODO: why not run for all stepindex inputs?
             for index in self.getkeys('flowgraph', step):
                 if not self.get('flowstatus', step, index, 'error'):
                     score = 0.0
@@ -2050,9 +2110,12 @@ class Chip:
         '''
 
         # Ensure that error bits are up-to-date in this schema.
-        for input_step in self.getkeys('flowgraph', step, index, 'input'):
-            for input_index in self.get('flowgraph', step, index, 'input', input_step):
-                self.set('flowstatus', input_step, str(input_index), 'error', error[f'{input_step}{input_index}'])
+        for stepindex in self.get('flowgraph', step, index, 'input'):
+            match = re.match(r'(\w+)(\d+)$', stepindex)
+            input_step = match.group(1)
+            input_index = match.group(2)
+            #TODO: Why is this needed?
+            self.set('flowstatus', input_step, input_index, 'error', error[f'{input_step}{input_index}'])
 
         # Determine which HPC job scheduler being used.
         scheduler_type = self.get('jobscheduler')
@@ -2071,7 +2134,7 @@ class Chip:
         if 'decrypt_key' in self.status:
             # Job data is encrypted, and it should only be decrypted in the
             # compute node's local storage.
-            job_nameid = f"{self.get('jobname')}{self.get('jobid')}"
+            job_nameid = f"{self.get('jobname')}"
             cur_build_dir = f"{self.get('dir')}/{self.get('design')}/{job_nameid}"
             tmp_job_dir = f"/tmp/{self.get('remote', 'jobhash')}"
             ctrl_node_dir = self.get('dir')
@@ -2137,7 +2200,7 @@ class Chip:
             # Write out the current schema for the compute node to pick up.
             job_dir = "/".join([self.get('dir'),
                                 self.get('design'),
-                                self.get('jobname') + str(self.get('jobid'))])
+                                self.get('jobname')])
             cfg_dir = f'{job_dir}/configs'
             cfg_file = f'{cfg_dir}/{step}{index}.json'
             if not os.path.isdir(cfg_dir):
@@ -2235,10 +2298,8 @@ class Chip:
         while True:
             # Checking that there are no pending jobs
             pending = 0
-            for input_step in self.getkeys('flowgraph', step, index, 'input'):
-                for input_index in self.get('flowgraph', step, index, 'input', input_step):
-                    input_str = input_step + input_index
-                    pending = pending + active[input_str]
+            for stepindex in self.get('flowgraph', step, index, 'input'):
+                pending = pending + active[stepindex]
 
             # beak out of loop when no all inputs are done
             if not pending:
@@ -2250,7 +2311,7 @@ class Chip:
         # and send it to a compute node for deferred execution.
         # (Run the initial 'import' stage[s] locally)
         if self.get('jobscheduler') and \
-           self.getkeys('flowgraph', step, index, 'input'):
+           self.get('flowgraph', step, index, 'input'):
             # Note: The _deferstep method blocks until the compute node
             # finishes processing this step, and it sets the active/error bits.
             self._deferstep(step, index, active, error)
@@ -2259,6 +2320,13 @@ class Chip:
         # If the job is configured to run on the local machine, run it.
         ##################
         # 2. Directory setup
+
+        # Handling cross job references
+        job = self.get('jobname')
+        if job in self.getkeys('jobinput'):
+            if step in self.getkeys('jobinput',job):
+                if index in self.getkeys('jobinput',job,step):
+                    job = self.get('jobinput', job, step, index)
 
         workdir = self._getworkdir(step=step,index=index)
         cwd = os.getcwd()
@@ -2274,19 +2342,21 @@ class Chip:
 
         design = self.get('design')
         all_inputs = []
-        if not self.getkeys('flowgraph', step, index, 'input'):
-            self._collect()
+        if not self.get('flowgraph', step, index, 'input'):
+            self._collect(step, index, active)
         elif not self.get('remote', 'addr'):
             halt = 0
-            for input_step in self.getkeys('flowgraph', step, index, 'input'):
+            for stepindex in self.get('flowgraph', step, index, 'input'):
                 step_error = 1
-                for i in self.get('flowgraph', step, index, 'input', input_step):
-                    index_error = error[input_step + i]
-                    step_error = step_error & index_error
-                    self.set('flowstatus', input_step, i, 'error', index_error)
-                    if not index_error:
-                        cfgfile = f"../{input_step+i}/outputs/{design}.pkg.json"
-                        self.read_manifest(cfgfile)
+                index_error = error[stepindex]
+                step_error = step_error & index_error
+                match = re.match(r'(\w+)(\d+)$', stepindex)
+                input_step = match.group(1)
+                input_index = match.group(2)
+                self.set('flowstatus', input_step, input_index, 'error', index_error)
+                if not index_error:
+                    cfgfile = f"../../../{job}/{input_step}/{input_index}/outputs/{design}.pkg.json"
+                    self.read_manifest(cfgfile, clobber=False)
                 halt = halt + step_error
             if halt:
                 self.logger.error('Halting step due to previous errors')
@@ -2314,7 +2384,7 @@ class Chip:
             tool = 'builtin'
             func = self.get('flowgraph', step, index, 'function')
             args = self.get('flowgraph', step, index, 'args')
-            inputs = self.getkeys('flowgraph', step, index, 'input')
+            inputs = self.get('flowgraph', step, index, 'input')
             sel_inputs = []
             score = 0
             # Figure out which inputs to select
@@ -2334,21 +2404,27 @@ class Chip:
                 self._haltstep(step, index, active)
             self.set('flowstatus', step, index, 'select', sel_inputs)
         else:
+
+            sel_inputs = self.get('flowgraph', step, index, 'input')
+            self.set('flowstatus', step, index, 'select', sel_inputs)
             tool = self.get('flowgraph', step, index, 'tool')
 
         ##################
         # 6 Copy outputs from input steps
 
-        if not self.getkeys('flowgraph', step, index,'input'):
+        if not self.get('flowgraph', step, index,'input'):
             all_inputs = []
         elif not self.get('flowstatus', step, index, 'select'):
-            all_inputs = [self.getkeys('flowgraph', step, index,'input')[0]+'0']
+            all_inputs = self.get('flowgraph', step, index,'input')
         else:
             all_inputs = self.get('flowstatus', step, index, 'select')
-        for input_step in all_inputs:
+        for stepindex in all_inputs:
             # Skip copying pkg.json files here, since we write the current chip
             # configuration into inputs/{design}.pkg.json earlier in _runstep.
-            shutil.copytree(f"../{input_step}/outputs", 'inputs/', dirs_exist_ok=True,
+            match = re.match(r'(\w+)(\d+)$', stepindex)
+            in_step = match.group(1)
+            in_index = match.group(2)
+            shutil.copytree(f"../../../{job}/{in_step}/{in_index}/outputs", 'inputs/', dirs_exist_ok=True,
                 ignore=lambda dir, contents: [f'{design}.pkg.json'])
 
         ##################
@@ -2390,12 +2466,18 @@ class Chip:
             self.set('metric', step, index, metric, 'real', 0)
 
         ##################
-        # 11. Check exe version
+        # 11. Set license variable and check exe version
+
+        for item in self.getkeys('eda', tool, step, index, 'license'):
+            license_file = self.get('eda', tool, step, index, 'license', item)
+            if license_file:
+                os.environ[item] = license_file
 
         veropt = self.get('eda', tool, step, index, 'vswitch')
         exe = self.get('eda', tool, step, index, 'exe')
         if (veropt != None) & (exe !=None):
-            cmdlist = [exe, veropt]
+            fullexe = self._resolve_env_vars(exe)
+            cmdlist = [fullexe, veropt]
             self.logger.info("Checking version of tool '%s'", tool)
             version = subprocess.run(cmdlist, stdout=PIPE, stderr=PIPE, universal_newlines=True)
             check_version = self.find_function(tool, 'tool', 'check_version')
@@ -2554,7 +2636,7 @@ class Chip:
                     else:
                         indexlist = self.getkeys('flowgraph', step)
                     if (step in steplist) & (index in indexlist):
-                        self.set('flowstatus', step, str(index), 'error', 1, clobber=False)
+                        self.set('flowstatus', step, str(index), 'error', 1)
                         error[stepstr] = self.get('flowstatus', step, str(index), 'error')
                         active[stepstr] = 1
                         # Setting up tool is optional
@@ -2565,7 +2647,7 @@ class Chip:
                             func = self.find_function(tool, 'tool', 'setup_tool')
                             func(self)
                     else:
-                        self.set('flowstatus', step, str(index), 'error', 0, clobber=False)
+                        self.set('flowstatus', step, str(index), 'error', 0)
                         error[stepstr] = self.get('flowstatus', step, str(index), 'error')
                         active[stepstr] = 0
 
@@ -2578,7 +2660,7 @@ class Chip:
                         m = re.match(self.get('jobname')+r'(\d+)', item)
                         if m:
                             jobid = max(jobid, int(m.group(1)))
-                    self.set('jobid', jobid + 1)
+                    self.set('jobid', str(jobid + 1))
             except:
                 pass
 
@@ -2646,14 +2728,22 @@ class Chip:
             if self.get('remote', 'key'):
                 client_encrypt(self)
 
+        # Clear scratchpad args since these are checked on run() entry
+        self.set('arg', 'step', None, clobber=True)
+        self.set('arg', 'index', None, clobber=True)
+
         # Merge cfg back from last executed runstep.
         # (Only if the index-0 run's results exist.)
         laststep = steplist[-1]
-        lastdir = self._getworkdir(step=laststep, index='0')
+        lastindex = '0'
+        lastdir = self._getworkdir(step=laststep, index=lastindex)
         lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
         if os.path.isfile(lastcfg):
-            self.read_manifest(lastcfg)
-            self.set('flowstatus',laststep,'0', 'select', '0')
+            self.read_manifest(lastcfg, clobber=True, clear=True)
+            self.set('flowstatus',laststep,lastindex, 'select', '0')
+
+        # Store run in history
+        self.cfghistory[self.get('jobname')] = copy.deepcopy(self.cfg)
 
     ###########################################################################
     def show_file(self, filename):
@@ -2680,9 +2770,9 @@ class Chip:
             filename: Name of file to display
 
         Examples:
-            >>> show_file('build/oh_add/job0/export0/outputs/oh_add.gds')
+            >>> show_file('build/oh_add/job0/export/0/outputs/oh_add.gds')
             Displays def file with a viewer assigned by 'showtool'
-            >>> show_file('build/oh_add/job0/export0/outputs/oh_add.pkg.json')
+            >>> show_file('build/oh_add/job0/export/0/outputs/oh_add.pkg.json')
             Displays manifest in the browser
         '''
 
@@ -2812,6 +2902,8 @@ class Chip:
         '''
 
         exe = self.get('eda', tool, step, index, 'exe')
+        fullexe = self._resolve_env_vars(exe)
+
         if 'cmdline' in self.getkeys('eda', tool, step, index, 'option'):
             options = self.get('eda', tool, step, index, 'option', 'cmdline')
         else:
@@ -2822,8 +2914,8 @@ class Chip:
             abspath = self.find_file(value)
             scripts.append(abspath)
 
-        cmdlist = [exe]
-        logfile = exe + ".log"
+        cmdlist = [fullexe]
+        logfile = step + ".log"
         cmdlist.extend(options)
         cmdlist.extend(scripts)
         runtime_options = self.find_function(tool, 'tool', 'runtime_options')
@@ -2871,19 +2963,33 @@ class Chip:
 
 
     #######################################
-    def _getworkdir(self, step=None, index=None):
+    def _getworkdir(self, jobname=None, step=None, index='0'):
         '''Create a step directory with absolute path
         '''
 
+        if jobname is None:
+            jobname = self.get('jobname')
+
         dirlist =[self.get('dir'),
                   self.get('design'),
-                  self.get('jobname') + str(self.get('jobid'))]
+                  jobname]
 
+        # Return jobdirectory if no step defined
+        # Return index 0 by default
         if step is not None:
-            dirlist.append(step + index)
+            dirlist.append(step)
+            dirlist.append(index)
 
         return os.path.abspath("/".join(dirlist))
 
+    #######################################
+    def _resolve_env_vars(self, filepath):
+        vars = re.findall(r'\$(\w+)', filepath)
+        for item in vars:
+            varpath = os.getenv(item)
+            filepath = filepath.replace("$"+item, varpath)
+
+        return filepath
 
 ###############################################################################
 # Package Customization classes
