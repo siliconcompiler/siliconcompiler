@@ -185,7 +185,7 @@ class Server:
         chip.set('remote', 'addr', '', clobber=True)
         # Rename source files in the config dict; the 'import' step already
         # ran and collected the sources into a single Verilog file.
-        chip.set('source', '%s/import%s/outputs/%s.v'%(build_dir, '0', chip.get('design')), clobber=True)
+        chip.set('source', '%s/import/%s/outputs/%s.v'%(build_dir, '0', chip.get('design')), clobber=True)
 
         # Write JSON config to shared compute storage.
         subprocess.run(['mkdir', '-p', '%s/configs'%build_dir])
@@ -304,7 +304,7 @@ class Server:
         # Rename source files in the config dict; the 'import' step already
         # ran and collected the sources into a single Verilog file.
         #TODO: This only works for import? (was current id)        
-        chip.set('source', f"{build_dir}/{top_module}/{job_nameid}/import0/outputs/{top_module}.v", clobber=True)
+        chip.set('source', f"{build_dir}/{top_module}/{job_nameid}/import/0/outputs/{top_module}.v", clobber=True)
 
         run_cmd = ''
         if self.cfg['cluster']['value'][-1] == 'slurm':
