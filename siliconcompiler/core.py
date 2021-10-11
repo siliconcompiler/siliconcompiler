@@ -380,11 +380,11 @@ class Chip:
 
         # module search path depends on functype
         if functype == 'tool':
-            fullpath = self.find_file(f"tools/{modulename}/{modulename}.py")
+            fullpath = self.find_file(f"tools/{modulename}/{modulename}.py", missing_ok=True)
         elif functype == 'flow':
-            fullpath = self.find_file(f"flows/{modulename}.py")
+            fullpath = self.find_file(f"flows/{modulename}.py", missing_ok=True)
         elif functype == 'pdk':
-            fullpath = self.find_file(f"foundries/{modulename}.py")
+            fullpath = self.find_file(f"foundries/{modulename}.py", missing_ok=True)
         else:
             self.logger.error(f"Illegal module type '{functype}'.")
             self.error = 1
@@ -995,7 +995,7 @@ class Chip:
         return localcfg
 
     ###########################################################################
-    def find_file(self, filename):
+    def find_file(self, filename, missing_ok=False):
         """
         Returns the absolute path for the filename provided.
 
@@ -1018,7 +1018,7 @@ class Chip:
            Returns the absolute path based on the sc installation directory.
 
         """
-
+                
         # Replacing environment variables
         vars = re.findall(r'\$(\w+)', filename)
         for item in vars:
@@ -1043,7 +1043,9 @@ class Chip:
                 filename = abspath
             else:
                 filename = None
-
+                if not missing_ok:
+                    self.error = 1
+                    self.logger.error(f"File {abspath} was not found")
         return filename
 
     ###########################################################################
@@ -1103,7 +1105,6 @@ class Chip:
                             cfg[k]['value'] = self.find_file(cfg[k]['value'])
                 else:
                     self._abspath(cfg[k])
-
 
     ###########################################################################
     def _print_csv(self, cfg, file=None):
@@ -1172,7 +1173,7 @@ class Chip:
                                prefix=prefix)
 
     ###########################################################################
-    def merge_manifest(self, cfg, clobber=True, clear=True):
+    def merge_manifest(self, cfg, job=None, clobber=True, clear=True):
         """
         Merges the provided schema dictionary into the Chip object.
 
@@ -1190,6 +1191,13 @@ class Chip:
 
         """
 
+        if job is not None:
+            # fill ith default schema before populating
+            self.cfghistory[job] = schema_cfg()
+            dst = self.cfghistory[job]
+        else:
+            dst = self.cfg
+        
         for keylist in self.getkeys(cfg=cfg):
             if 'default' not in keylist:
                 typestr = self.get(*keylist, cfg=cfg, field='type')
@@ -1197,9 +1205,9 @@ class Chip:
                 arg = keylist.copy()
                 arg.append(val)
                 if bool(re.match(r'\[', typestr)) & bool(not clear):
-                    self.add(*arg)
+                    self.add(*arg, cfg=dst)
                 else:
-                    self.set(*arg, clobber=clobber)
+                    self.set(*arg, cfg=dst, clobber=clobber)
 
     ###########################################################################
     def _keypath_empty(self, key):
@@ -1296,7 +1304,7 @@ class Chip:
         return self.error
 
     ###########################################################################
-    def read_manifest(self, filename, update=True, clear=True, clobber=True):
+    def read_manifest(self, filename, job=None, update=True, clear=True, clobber=True):
         """
         Reads a schema manifest from a file into the Chip object.
 
@@ -1333,12 +1341,12 @@ class Chip:
 
         #Merging arguments with the Chip configuration
         if update:
-            self.merge_manifest(localcfg, clear=clear, clobber=clobber)
+            self.merge_manifest(localcfg, job=job, clear=clear, clobber=clobber)
 
         return localcfg
 
     ###########################################################################
-    def write_manifest(self, filename, prune=True, abspath=False):
+    def write_manifest(self, filename, prune=True, abspath=False, job=None):
         '''
         Writes the Chip objects manifest to a file.
 
@@ -1494,7 +1502,7 @@ class Chip:
         dot.render(filename=fileroot, cleanup=True)
 
     ########################################################################
-    def _collect(self):
+    def _collect(self, step, index, active):
         '''
         Collects files found in the configuration dictionary and places
         them in 'dir'. The function only copies in files that have the 'copy'
@@ -1530,8 +1538,11 @@ class Chip:
                 if copyall | (copy):
                     for item in value:
                         filepath = self.find_file(item)
-                        self.logger.info(f"Copying {filepath} to step inputs/ directory")
-                        shutil.copy(filepath, indir)
+                        if filepath:
+                            self.logger.info(f"Copying {filepath} to step inputs/ directory")
+                            shutil.copy(filepath, indir)
+                        else:
+                            self._haltstep(step,index,active)
 
     ###########################################################################
     def hash_files(self, *keypath, algo='sha256', update=True):
@@ -2332,7 +2343,7 @@ class Chip:
         design = self.get('design')
         all_inputs = []
         if not self.get('flowgraph', step, index, 'input'):
-            self._collect()
+            self._collect(step, index, active)
         elif not self.get('remote', 'addr'):
             halt = 0
             for stepindex in self.get('flowgraph', step, index, 'input'):
