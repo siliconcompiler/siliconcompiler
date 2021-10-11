@@ -600,7 +600,7 @@ class Chip:
         """
 
         if cfg is None:
-            if job is not None:                
+            if job is not None:
                 cfg = self.cfghistory[job]
             else:
                 cfg = self.cfg
@@ -1018,7 +1018,7 @@ class Chip:
            Returns the absolute path based on the sc installation directory.
 
         """
-                
+
         # Replacing environment variables
         vars = re.findall(r'\$(\w+)', filename)
         for item in vars:
@@ -1054,7 +1054,7 @@ class Chip:
         Returns the absolute path to an output file based arguments.
 
         Args:
-            filetype (str): File extension (.v, .def, etc) 
+            filetype (str): File extension (.v, .def, etc)
             step (str): Step name ('syn', 'place', etc)
             jobid (str): Jobid (''
 
@@ -1068,13 +1068,13 @@ class Chip:
             >>> manifest_filepath = chip.find_manifest('0', 'syn', '0')
            Returns the absolute path to the manifest.
         """
-        
+
         workdir = self._getworkdir(jobname, step, index)
         design = self.get('design')
         filename = f"{workdir}/outputs/{design}{filetype}"
 
         self.logger.debug("Finding result %s", filename)
-            
+
         if os.path.isfile(filename):
             return filename
         else:
@@ -1100,9 +1100,9 @@ class Chip:
                         if re.match(r'\[', cfg[k]['type']):
                             for i, val in enumerate(list(cfg[k]['value'])):
                                 #Look for relative paths in search path
-                                cfg[k]['value'][i] =self.find_file(val)
+                                cfg[k]['value'][i] =self.find_file(val, missing_ok=True)
                         else:
-                            cfg[k]['value'] = self.find_file(cfg[k]['value'])
+                            cfg[k]['value'] = self.find_file(cfg[k]['value'], missing_ok=True)
                 else:
                     self._abspath(cfg[k])
 
@@ -1197,7 +1197,7 @@ class Chip:
             dst = self.cfghistory[job]
         else:
             dst = self.cfg
-        
+
         for keylist in self.getkeys(cfg=cfg):
             if 'default' not in keylist:
                 typestr = self.get(*keylist, cfg=cfg, field='type')
@@ -1351,7 +1351,7 @@ class Chip:
         Writes the Chip objects manifest to a file.
 
         The write file format is determined by the filename suffix. Currently
-        json (*.json), yaml (*.yaml), tcl (*.tcl), and (*.csv) formats are 
+        json (*.json), yaml (*.yaml), tcl (*.tcl), and (*.csv) formats are
         supported.
 
         Args:
@@ -1868,7 +1868,7 @@ class Chip:
         if path is None:
             path = []
             allpaths = []
-            
+
         inputs = self.get('flowgraph', step, index, 'input', cfg=cfg)
 
         if not inputs:
@@ -2352,7 +2352,7 @@ class Chip:
                 step_error = step_error & index_error
                 match = re.match(r'(\w+)(\d+)$', stepindex)
                 input_step = match.group(1)
-                input_index = match.group(2)                
+                input_index = match.group(2)
                 self.set('flowstatus', input_step, input_index, 'error', index_error)
                 if not index_error:
                     cfgfile = f"../../../{job}/{input_step}/{input_index}/outputs/{design}.pkg.json"
@@ -2404,14 +2404,14 @@ class Chip:
                 self._haltstep(step, index, active)
             self.set('flowstatus', step, index, 'select', sel_inputs)
         else:
-            
+
             sel_inputs = self.get('flowgraph', step, index, 'input')
             self.set('flowstatus', step, index, 'select', sel_inputs)
             tool = self.get('flowgraph', step, index, 'tool')
 
         ##################
         # 6 Copy outputs from input steps
-        
+
         if not self.get('flowgraph', step, index,'input'):
             all_inputs = []
         elif not self.get('flowstatus', step, index, 'select'):
@@ -2731,7 +2731,7 @@ class Chip:
         # Clear scratchpad args since these are checked on run() entry
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
-                        
+
         # Merge cfg back from last executed runstep.
         # (Only if the index-0 run's results exist.)
         laststep = steplist[-1]
@@ -2744,7 +2744,7 @@ class Chip:
 
         # Store run in history
         self.cfghistory[self.get('jobname')] = copy.deepcopy(self.cfg)
-            
+
     ###########################################################################
     def show_file(self, filename):
         '''
@@ -2966,7 +2966,7 @@ class Chip:
     def _getworkdir(self, jobname=None, step=None, index='0'):
         '''Create a step directory with absolute path
         '''
-                               
+
         if jobname is None:
             jobname = self.get('jobname')
 
