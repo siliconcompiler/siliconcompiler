@@ -6,22 +6,15 @@ import multiprocessing
 import siliconcompiler
 
 # Setting up the experiment
-rootdir = (os.path.dirname(os.path.abspath(__file__)) +
-           "/../../third_party/designs/oh/")
-design = 'oh_add'
-library = 'mathlib'
-width = 100
-height = 100
-N = [4, 8, 16, 32, 64, 128]
 
 # unit routine
-def run_design(rootdir, design, N, i):
+def run_design(rootdir, design, N, job):
 
     chip = siliconcompiler.Chip(loglevel='INFO')
     chip.set('design', design)
-    chip.add('source', rootdir+'/mathlib/hdl/'+design+'.v')
+    chip.add('source', rootdir+'/stdlib/hdl/'+design+'.v')
     chip.set('param', 'N', str(N))
-    chip.set('jobid', i)
+    chip.set('jobname', job)
     chip.set('relax', True)
     chip.set('quiet', True)
     chip.set('steplist', ['import', 'syn'])
@@ -30,14 +23,21 @@ def run_design(rootdir, design, N, i):
     #chip.summary()
 
 def main():
+
+    rootdir = (os.path.dirname(os.path.abspath(__file__)) +
+           "/../../third_party/designs/oh/")
+    design = 'oh_add'
+    N = [4, 8, 16, 32, 64, 128]
+        
     # Define parallel processingg
     processes = []
     for i in range(len(N)):
+        job = 'job' + str(i)
         processes.append(multiprocessing.Process(target=run_design,
                                                 args=(rootdir,
-                                                    design,
-                                                    str(N[i]),
-                                                    i
+                                                      design,
+                                                      str(N[i]),
+                                                      job
                                                 )))
 
 
@@ -49,10 +49,12 @@ def main():
 
     # Post-processing data
     print("-"*80)
+    chip = siliconcompiler.Chip()
     for i in range(len(N)):
-        chip = siliconcompiler.Chip()
-        chip.read_manifest(f"build/{design}/job{str(i)}/syn0/outputs/{design}.pkg.json")
-        print(design, ", N =", N[i], ", cellarea =", chip.get('metric','syn','0','cellarea','real'))
+        jobname = 'job'+str(i)
+        chip.read_manifest(f"build/{design}/{jobname}/syn/0/outputs/{design}.pkg.json", job=jobname)
+        area = chip.get('metric','syn','0','cellarea','real', job=jobname)
+        print(design, ", N =", N[i], ", cellarea =",area) 
 
 if __name__ == '__main__':
     main()
