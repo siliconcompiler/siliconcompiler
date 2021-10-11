@@ -294,7 +294,7 @@ class Server:
         nfs_mount = self.cfg['nfsmount']['value'][-1]
 
         # Mark the job run as busy.
-        self.sc_jobs["%s%s_%d"%(username, job_hash, job_nameid)] = 'busy'
+        self.sc_jobs[f'{username}{job_hash}_{job_nameid}'] = 'busy'
 
         # Reset 'build' directory in NFS storage.
         build_dir = '/tmp/%s_%s'%(job_hash, job_nameid)
@@ -359,7 +359,7 @@ class Server:
         # (Email notifications can be sent here using your preferred API)
 
         # Mark the job hash as being done.
-        self.sc_jobs.pop("%s%s_%s"%(username, job_hash, chip.get('jobname')))
+        self.sc_jobs.pop(f'{username}{job_hash}_{chip.get("jobname")}')
 
     ####################
     async def remote_sc(self, chip):
