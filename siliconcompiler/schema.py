@@ -1927,7 +1927,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'type': '[dir]',
         'lock': 'false',
         'requirement': None,
-        'defvalue': None,
+        'defvalue': [],
         'shorthelp': 'Executable path',
         'example': [
             "cli: -eda_path 'openroad cts 0 /usr/local/bin'",
