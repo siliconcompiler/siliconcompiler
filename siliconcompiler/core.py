@@ -2596,6 +2596,13 @@ class Chip:
         else:
             steplist = self.list_steps()
 
+            # If no step(list) was specified, the whole flow is being run
+            # start-to-finish. Delete the build dir to clear stale results.
+            cur_job_dir = f'{self.get("dir")}/{self.get("design")}/'\
+                          f'{self.get("jobname")}'
+            if os.path.isdir(cur_job_dir):
+                shutil.rmtree(cur_job_dir)
+
         # Hash all files before run
         allkeys = self.getkeys()
         hashmode = self.get('hashmode')
