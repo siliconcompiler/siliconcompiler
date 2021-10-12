@@ -13,8 +13,15 @@ Welcome to SiliconCompiler's documentation!
 
    user_guide/introduction
    user_guide/installation
-   user_guide/quick_start
-   user_guide/basic_concepts/index
+   user_guide/execution_model
+   user_guide/data_model
+   user_guide/flow
+   user_guide/tool
+   user_guide/pdk
+   user_guide/library
+   user_guide/target
+   user_guide/metric
+   user_guide/remoteflow
    user_guide/faq
 
 .. toctree::
@@ -23,24 +30,21 @@ Welcome to SiliconCompiler's documentation!
    :numbered:
 
    tutorials/asicflow
-   tutorials/remoteflow
+   tutorials/zerosoc
    tutorials/flowsetup
    tutorials/toolsetup
    tutorials/foundrysetup
    tutorials/slurmsetup
-   tutorials/zerosoc
 
 .. toctree::
    :maxdepth: 3
    :caption: Reference Manual
    :numbered:
 
-   reference_manual/environment
    reference_manual/schema
    reference_manual/core_api
    reference_manual/server_api
    reference_manual/floorplan_api
-   reference_manual/executable
    reference_manual/apps
    reference_manual/examples
    reference_manual/flows

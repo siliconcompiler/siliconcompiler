@@ -1,4 +1,4 @@
-Tool Setup
+Tool parameters
 ===================================
 
 * Tools setup separately from steps

@@ -1,4 +1,4 @@
-Python-based floorplanning
+Floorplanning
 ==========================
 
 This tutorial walks you through using SC's Python-based floorplanning API to
@@ -1150,4 +1150,3 @@ ASIC flow.
 This will put together the entire ZeroSoC hierarchy and run DRC/LVS
 verification. The final result will be found in
 ``<build_dir>/asic_top/job0/export0/outputs/asic_top.gds``.
-

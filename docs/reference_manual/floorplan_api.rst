@@ -4,7 +4,7 @@ Floorplan API
 .. automodule:: siliconcompiler.floorplan
     :members:
 
-LefLib API
+Leflib API
 ------------
 
 .. automodule:: siliconcompiler.leflib
