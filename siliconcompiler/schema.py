@@ -23,7 +23,7 @@ def schema_cfg():
 
     # Job dependencies
     cfg = schema_jobs(cfg)
-    
+
     # Design Hierarchy
     cfg = schema_hier(cfg)
 
@@ -1836,8 +1836,8 @@ def schema_jobs (cfg, job='default', step='default', index='default'):
             "cli: -jobinput 'job1 cts 0 job0'",
             "api:  chip.set('jobinput', 'job1', 'cts, '0', 'job0')"],
         'help': """
-        Specifies jobname inputs for the current run() on a per step 
-        and per index basis. During execution, the default behavior is to 
+        Specifies jobname inputs for the current run() on a per step
+        and per index basis. During execution, the default behavior is to
         copy inputs from the current job.
         """
     }
@@ -1919,6 +1919,23 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'help': """
         Name of the executable or the full path to the executable
         specified on a per tool and step basis.
+        """
+    }
+
+    cfg['eda'][tool][step][index]['path'] = {
+        'switch': "-eda_path 'tool step index <str>'",
+        'type': '[dir]',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': [],
+        'shorthelp': 'Executable path',
+        'example': [
+            "cli: -eda_path 'openroad cts 0 /usr/local/bin'",
+            "api:  chip.set('eda','openroad','cts','0','path','/usr/local/bin')"],
+        'help': """
+        File system path to tool executable. The path is appended to the 'exe'
+        parameter for batch runs and output as an environment variable for
+        interactive setup.
         """
     }
 
@@ -3014,7 +3031,7 @@ def schema_options(cfg):
     }
 
     # Print SC version number
-    cfg['printversion'] = {
+    cfg['version'] = {
         'switch': "-version <bool>",
         'type': 'bool',
         'lock': 'false',
@@ -3022,7 +3039,7 @@ def schema_options(cfg):
         'defvalue': 'false',
         'shorthelp': 'Print version number',
         'example': ["cli: -version",
-                    "api: chip.get('printversion')"],
+                    "api: chip.get('version')"],
         'help': """
         Command line switch to print SC version number.
         """
@@ -3243,9 +3260,9 @@ def schema_options(cfg):
         'example': ["cli: -jobname may1",
                     "api: chip.set('jobname','may1')"],
         'help': """
-        Jobname during invocation of run(). The jobname combined with a 
-        defined director structure (<dir>/<design>/<jobname>/<step>/<index>) 
-        enables multiple levels of transparent job, step, and index 
+        Jobname during invocation of run(). The jobname combined with a
+        defined director structure (<dir>/<design>/<jobname>/<step>/<index>)
+        enables multiple levels of transparent job, step, and index
         introspecetion.
         """
     }
@@ -3632,6 +3649,20 @@ def schema_design(cfg):
         """
     }
 
+    cfg['project'] = {
+        'switch': "-project <str>",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Project name',
+        'example': ["cli: -project yac",
+                    "api: chip.set('project', 'yac')"],
+        'help': """
+        Project name associated with the design.
+        """
+    }
+
     cfg['description'] = {
         'switch': "-description <str>",
         'type': 'str',
@@ -3647,17 +3678,17 @@ def schema_design(cfg):
         """
     }
 
-    cfg['projversion'] = {
-        'switch': "-projversion <str>",
+    cfg['designversion'] = {
+        'switch': "-designversion <str>",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Project version number',
-        'example': ["cli: -projversion 1.0",
-                    "api: chip.set('projversion', '1.0')"],
+        'shorthelp': 'Design version number',
+        'example': ["cli: -designversion 1.0",
+                    "api: chip.set('designversion', '1.0')"],
         'help': """
-        Specifies the version of the current project. Can be a branch, tag,
+        Specifies the version of the current design. Can be a branch, tag,
         commit hash, or a major.minor type version string.
         """
     }
