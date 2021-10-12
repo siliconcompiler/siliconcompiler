@@ -1,4 +1,4 @@
-Setting Up a Minimal Local Slurm Cluster
+Slurm setup
 ========================================
 
 The SiliconCompiler project is capable of deferring individual job steps to hosts in a high-performance computing cluster. Currently, only the `Slurm job scheduler <https://slurm.schedmd.com/overview.html>`_ is supported.
@@ -130,7 +130,7 @@ For our minimal single-host test cluster, you can skip the "configurator" and us
     # Put this file on all nodes of your cluster.
     # See the slurm.conf man page for more information.
     SlurmctldHost=<your_hostname>
-    
+
     MpiDefault=none
     ProctrackType=proctrack/cgroup
     ReturnToService=1
@@ -142,19 +142,19 @@ For our minimal single-host test cluster, you can skip the "configurator" and us
     SwitchType=switch/none
     TaskPlugin=task/cgroup
     #SrunPortRange=<start_port>-<end_port>
-    
+
     # SCHEDULING
     SchedulerType=sched/backfill
     SelectType=select/linear
-    
+
     # LOGGING AND ACCOUNTING
     AccountingStorageType=accounting_storage/none
     ClusterName=<cluster_name>
-    
+
     JobAcctGatherType=jobacct_gather/none
     SlurmctldLogFile=/var/log/slurm-llnl/log.log
     SlurmdLogFile=/var/log/slurm-llnl/dlog.log
-    
+
     # COMPUTE NODES
     NodeName=<your_hostname> NodeAddr=<your_dns> Features=SHARED <host_info>
     PartitionName=debug Nodes=<your_hostname> Default=YES MaxTime=INFINITE State=U

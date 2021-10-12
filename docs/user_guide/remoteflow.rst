@@ -1,4 +1,4 @@
-Client/server interface
+Remote processing
 =========================
 
 The SiliconCompiler project is capable of deferring jobs to a remote server using the same general syntax as its local build system. The project ships with a minimal open-source development server, but the client / server API is designed to be simple and robust enough to support other server implementations, including proprietary ones such as the `server.siliconcompiler.com` backend.

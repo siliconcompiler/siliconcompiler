@@ -1,4 +1,4 @@
-Targets
+Compiler targets
 ===================================
 
 * called by target() function

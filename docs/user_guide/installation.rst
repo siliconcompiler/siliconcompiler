@@ -4,36 +4,49 @@ Installation
 To install the current release from PyPI.
 
 ::
-   
+
 $ pip install siliconcompiler
 
-To install from the active developer repository.
+
+To install from the latest SiliconCompiler developer repository.
 
 ::
-   
+
 $ git clone https://github.com/siliconcompiler/siliconcompiler
 $ cd siliconcompiler
 $ pip install -r requirements.txt
 $ python -m pip install -e .
 
+
+Verification
+---------------------
+
+To check the version of SC installed:
+
+.. code-block:: console
+
+  $ python -m pip show siliconcompiler
+
+To verify the operation of SC, run the following sample code::
+
+   import siliconcompiler
+   chip = siliconcompiler.Chip()
+   print(chip.get('scversion'))
+
+The output should be the version number you expect to see, similar to below:
+
+
+.. code-block:: console
+
+   0.1.0
+
+
 Pre-requisites
 ---------------
 
-To compile designs using the included open source target flow, you will need to install the follwoing external packages: 
+For remote processing, you are now ready to go! No installationn required as long as the
+tools are installed on the remote server.
 
-Ubuntu based install scripts can be found in the ./setup directory. These scripts will install dependencies into `siliconcompiler/deps`, and usually build them from source.
-
-- **OpenRoad**
-- **Yosys**
-- **Verilator**
-- **Klayout**
-
-SiliconCompiler have also been tested with commercial EDA tools and PDKs, but these configurations cannot be disclosed due to IP restrictions.
-
-Testing Installation
----------------------
-
-::
-   
-$ sc examples/gcd/gcd.v -design gcd -target freepdk45_asic -constraint examples/gcd/gcd.sdc
-$ sc build/gcd/job1/export/outputs/gcd.gds -display
+For local execution, you will also need to install all the necesary external tools based
+on the installation instructions referenced in the tools directory or the instructions provided by a
+commercial EDA vendor.
