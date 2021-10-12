@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import shutil
 import sys
 from setuptools import find_packages
 
@@ -46,6 +47,17 @@ for app in os.listdir('siliconcompiler/apps'):
         entry = f'{cli_name}=siliconcompiler.apps.{name}:main'
         entry_points_apps.append(entry)
 entry_points = entry_points_apps + ["sc-server=siliconcompiler.server:main", "sc-crypt=siliconcompiler.crypto:main"]
+
+# Remove the _skbuild/ directory before running install procedure. This helps
+# fix very opaque bugs we've run into where the install fails due to some bad
+# state being cached in this directory. This means we won't get caching of build
+# results, but since the leflib is small and compiles quickly, and a user likely
+# won't have to perform many installs anyways, this seems like a worthwhile
+# tradeoff.
+if 'develop' in sys.argv or 'install' in sys.argv:
+    if os.path.isdir('_skbuild'):
+        print("Note: removing existing _skbuild/ directory.")
+        shutil.rmtree('_skbuild')
 
 setup(
     name="siliconcompiler",
