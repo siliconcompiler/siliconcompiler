@@ -152,12 +152,12 @@ class Server:
         # Fetch some common values.
         design = chip.get('design')
         job_name = chip.get('jobname')
-        job_id = chip.get('jobid')
-        job_nameid = f'{job_name}{job_id}'
+        job_id = chip.get('jobname')
+        job_nameid = f'{job_name}'
 
         # Ensure that the job's root directory exists.
         job_root = f"{self.cfg['nfsmount']['value'][-1]}/{job_hash}"
-        job_dir  = f"{job_root}/{design}/{job_nameid}"
+        job_dir  = f"{job_root}/{design}/{job_name}"
         subprocess.run(['mkdir', '-p', job_dir])
         # Move the uploaded archive and un-zip it.
         # (Contents will be encrypted for authenticated jobs)
@@ -172,8 +172,7 @@ class Server:
         # Reset 'build' directory in NFS storage.
         build_dir = '%s/%s'%(self.cfg['nfsmount']['value'][-1], job_hash)
         jobs_dir = '%s/%s'%(build_dir, chip.get('design'))
-        cur_id = chip.get('jobid')
-        job_nameid = f"{chip.get('jobname')}{cur_id}"
+        job_nameid = f"{chip.get('jobname')}"
 
         # Create the working directory for the given 'job hash' if necessary.
         subprocess.run(['mkdir', '-p', jobs_dir])
@@ -186,7 +185,7 @@ class Server:
         chip.set('remote', 'addr', '', clobber=True)
         # Rename source files in the config dict; the 'import' step already
         # ran and collected the sources into a single Verilog file.
-        chip.set('source', '%s/import%d/outputs/%s.v'%(build_dir, cur_id, chip.get('design')), clobber=True)
+        chip.set('source', '%s/import/%s/outputs/%s.v'%(build_dir, '0', chip.get('design')), clobber=True)
 
         # Write JSON config to shared compute storage.
         subprocess.run(['mkdir', '-p', '%s/configs'%build_dir])
@@ -291,12 +290,11 @@ class Server:
         # Assemble core job parameters.
         job_hash = chip.get('remote', 'jobhash')
         top_module = chip.get('design')
-        cur_id = chip.get('jobid')
-        job_nameid = f"{chip.get('jobname')}{cur_id}"
+        job_nameid = f"{chip.get('jobname')}"
         nfs_mount = self.cfg['nfsmount']['value'][-1]
 
         # Mark the job run as busy.
-        self.sc_jobs["%s%s_%d"%(username, job_hash, cur_id)] = 'busy'
+        self.sc_jobs[f'{username}{job_hash}_{job_nameid}'] = 'busy'
 
         # Reset 'build' directory in NFS storage.
         build_dir = '/tmp/%s_%s'%(job_hash, job_nameid)
@@ -305,7 +303,8 @@ class Server:
 
         # Rename source files in the config dict; the 'import' step already
         # ran and collected the sources into a single Verilog file.
-        chip.set('source', f"{build_dir}/{top_module}/{job_nameid}/import{cur_id}/outputs/{top_module}.v", clobber=True)
+        #TODO: This only works for import? (was current id)        
+        chip.set('source', f"{build_dir}/{top_module}/{job_nameid}/import/0/outputs/{top_module}.v", clobber=True)
 
         run_cmd = ''
         if self.cfg['cluster']['value'][-1] == 'slurm':
@@ -333,10 +332,10 @@ class Server:
             with open(os.open(keypath, os.O_CREAT | os.O_WRONLY, 0o400), 'w+') as keyfile:
                 keyfile.write(base64.urlsafe_b64decode(pk).decode())
             chip.set('remote', 'key', keypath, clobber=True)
-            chip.write_manifest(f"{build_dir}/configs/chip{chip.get('jobid')}.json")
+            chip.write_manifest(f"{build_dir}/configs/chip{chip.get('jobname')}.json")
             # Create the command to run.
             run_cmd  = f"cp -R {from_dir}/* {to_dir}/ ; "
-            run_cmd += f"sc -cfg {build_dir}/configs/chip{chip.get('jobid')}.json -dir {to_dir} -remote_key {keypath} -remote_addr '' ; "
+            run_cmd += f"sc -cfg {build_dir}/configs/chip{chip.get('jobname')}.json -dir {to_dir} -remote_key {keypath} -remote_addr '' ; "
             run_cmd += f"cp -R {to_dir}/{top_module}/* {from_dir}/{top_module}/ ; "
             run_cmd += f"rm -rf {to_dir}"
 
@@ -360,7 +359,7 @@ class Server:
         # (Email notifications can be sent here using your preferred API)
 
         # Mark the job hash as being done.
-        self.sc_jobs.pop("%s%s_%d"%(username, job_hash, chip.get('jobid')))
+        self.sc_jobs.pop(f'{username}{job_hash}_{chip.get("jobname")}')
 
     ####################
     async def remote_sc(self, chip):
@@ -374,7 +373,7 @@ class Server:
         top_module = chip.get('design')
         sc_sources = chip.get('source')
         build_dir = chip.get('dir')
-        jobid = chip.get('jobid')
+        jobid = chip.get('jobname')
 
         # Mark the job hash as being busy.
         self.sc_jobs["%s_%s"%(job_hash, jobid)] = 'busy'

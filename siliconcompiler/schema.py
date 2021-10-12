@@ -21,6 +21,9 @@ def schema_cfg():
     # Keeping track of flow execution
     cfg = schema_flowstatus(cfg)
 
+    # Job dependencies
+    cfg = schema_jobs(cfg)
+    
     # Design Hierarchy
     cfg = schema_hier(cfg)
 
@@ -210,8 +213,8 @@ def schema_pdk(cfg, stackup='default'):
         'example': ["cli: -pdk_process asap7",
                     "api:  chip.set('pdk', 'process', 'asap7')"],
         'help': """
-        Public name of the foundry process. The string is case insensitive and 
-        must match the public process name exactly. Examples of virtual 
+        Public name of the foundry process. The string is case insensitive and
+        must match the public process name exactly. Examples of virtual
         processes include freepdk45 and asap7.
         """
     }
@@ -1084,7 +1087,7 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
                     "api:  chip.set('library', 'pdk', 'mylib', 'freepdk45')"],
         'help': """
         Name of the PDK module used to create the library package. The module
-        is checked and loaded based on the 'scpath' schema parameter. The 
+        is checked and loaded based on the 'scpath' schema parameter. The
         parameter is required for hardened technology specific library types.
         """
     }
@@ -1099,7 +1102,7 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'example': ["cli: -library_stackup 'mylib M10",
                     "api:  chip.set('library', 'stackup', 'mylib', '10')"],
         'help': """
-        Name of the PDK metal stackup used by the library. The parameter is 
+        Name of the PDK metal stackup used by the library. The parameter is
         required for hardened technology specific library types.
         """
     }
@@ -1429,10 +1432,10 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
             "cli: -library_netlist 'mylib cdl mylib.cdl'",
             "api: chip.set('library','mylib','netlist','cdl','mylib.cdl')"],
         'help': """
-        List of files containing the golden netlist used for layout versus 
-        schematic (LVS) checks. For transistor level libraries such as 
-        standard cell libraries and SRAM macros, this should be a CDL type 
-        netlist. For higher level modules like place and route blocks, it 
+        List of files containing the golden netlist used for layout versus
+        schematic (LVS) checks. For transistor level libraries such as
+        standard cell libraries and SRAM macros, this should be a CDL type
+        netlist. For higher level modules like place and route blocks, it
         should be a verilog gate level netlist.
         """
     }
@@ -1626,21 +1629,19 @@ def schema_flowgraph(cfg, step='default', index='default'):
     cfg['flowgraph'][step][index] =  {}
 
     # Execution flowgraph
-    stepin = 'default'
-    cfg['flowgraph'][step][index]['input'] = {}
-    cfg['flowgraph'][step][index]['input'][stepin] = {
-        'switch': "-flowgraph_input 'step index stepin <str>'",
+    cfg['flowgraph'][step][index]['input'] = {
+        'switch': "-flowgraph_input 'step index <str>'",
         'type': '[str]',
         'lock': 'false',
         'requirement': None,
         'defvalue': [],
         'shorthelp': 'Flowgraph step input',
         'example': [
-            "cli: -flowgraph_input 'cts 0 place 0'",
-            "api:  chip.set('flowgraph','cts','0','input,'place',0)"],
+            "cli: -flowgraph_input 'cts 0 place0'",
+            "api:  chip.set('flowgraph','cts','0','input,'place0'"],
         'help': """
-        List of inputs for the current step and index, listed as a
-        set of indices on a per step basis.
+        The step and index fo for the current step and index, listed as a
+        set of 'step+index' combinations on a per step and per index basis.
         """
     }
 
@@ -1735,7 +1736,6 @@ def schema_flowgraph(cfg, step='default', index='default'):
 
     return cfg
 
-
 ###########################################################################
 # Flow Status
 ###########################################################################
@@ -1809,6 +1809,36 @@ def schema_flowstatus(cfg, step='default', index='default'):
         'help': """
         Status parameter of selected value recorded from the minimum()
         calculation.
+        """
+    }
+
+    return cfg
+
+
+###########################################################################
+# Job flow
+###########################################################################
+
+def schema_jobs (cfg, job='default', step='default', index='default'):
+
+    # Flow step min
+    cfg['jobinput'] = {}
+    cfg['jobinput'][job] = {}
+    cfg['jobinput'][job][step] = {}
+    cfg['jobinput'][job][step][index] = {
+        'switch': "-jobinput 'job step index <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Jobname inputs to current run',
+        'example': [
+            "cli: -jobinput 'job1 cts 0 job0'",
+            "api:  chip.set('jobinput', 'job1', 'cts, '0', 'job0')"],
+        'help': """
+        Specifies jobname inputs for the current run() on a per step 
+        and per index basis. During execution, the default behavior is to 
+        copy inputs from the current job.
         """
     }
 
@@ -1943,6 +1973,26 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         Version of the tool executable specified on a per tool and per step
         basis. Mismatch between the step specified and the step available results
         in an error.
+        """
+    }
+
+    # licensefile
+    cfg['eda'][tool][step][index]['license'] = {}
+    cfg['eda'][tool][step][index]['license']['default'] = {
+        'switch': "-eda_licensefile 'tool step index name <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Executable license server',
+        'example': [
+            "cli: -eda_license 'atool place 0 ACME_LICENSE_FILE 1700@server'",
+            "api:  chip.set('eda','atool','place','0','license', 'ACME_LICENSE_FILE', '1700@server')"],
+        'help': """
+        Defines a set of tool specific environment variables used by the executables
+        that depend on license key servers to control access. For multiple servers,
+        separate each server by a 'colon'. The named license variable are read at
+        runtime (run()) and the environment variablse are set.
         """
     }
 
@@ -2771,14 +2821,15 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
 # Design Tracking
 ###########################################################################
 
-def schema_record(cfg, step='default', index='default'):
+def schema_record(cfg, job='default', step='default', index='default'):
 
     cfg['record'] = {}
-    cfg['record'][step] = {}
-    cfg['record'][step][index] = {}
+    cfg['record'][job] = {}
+    cfg['record'][job][step] = {}
+    cfg['record'][job][step][index] = {}
 
-    cfg['record'][step][index]['input'] = {
-        'switch': "-record_input 'step index <file>'",
+    cfg['record'][job][step][index]['file'] = {
+        'switch': "-record_file 'job step index <file>'",
         'requirement': None,
         'type': '[file]',
         'copy': 'false',
@@ -2789,9 +2840,9 @@ def schema_record(cfg, step='default', index='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'shorthelp': 'Record of source files accessed',
-        'example': ["cli: -record_input 'import 0 gcd.v'",
-                    "api: chip.set('record','import','0','input','gcd.v')"],
+        'shorthelp': 'Record of all files accessed',
+        'example': ["cli: -record_file 'job0 import 0 gcd.v'",
+                    "api: chip.set('record','job0 import','0','file','gcd.v')"],
         'help': """
         Record tracking all input files on a per step basis. This list
         include files entered by the user and files automatically found
@@ -2799,58 +2850,61 @@ def schema_record(cfg, step='default', index='default'):
         """
     }
 
-    cfg['record'][step][index]['author'] = {
-        'switch': "-record_author 'step index <str>'",
+    cfg['record'][job][step][index]['author'] = {
+        'switch': "-record_author 'job step index <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Record of run author',
-        'example': ["cli: -record_author 'dfm 0 coyote'",
-                    "api: chip.set('record','dfm','0','author','coyote')"],
+        'shorthelp': 'Record of author',
+        'example': [
+            "cli: -record_author 'job0 dfm 0 coyote'",
+            "api: chip.set('record', 'job0','dfm','0','author','coyote')"],
         'help': """
-        Record tracking the author on a per step basis.
+        Record tracking the author name.
         """
     }
 
-    cfg['record'][step][index]['userid'] = {
-        'switch': "-record_userid 'step index <str>'",
+    cfg['record'][job][step][index]['userid'] = {
+        'switch': "-record_userid 'job step index <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Record of run user ID',
-        'example': ["cli: -record_userid 'dfm 0 0982acea'",
-                    "api: chip.set('record','dfm','0','userid','0982acea')"],
+        'shorthelp': 'Record of user ID',
+        'example': [
+            "cli: -record_userid 'job0 dfm 0 0982acea'",
+            "api: chip.set('record','dfm','job0','0','userid','0982acea')"],
         'help': """
-        Record tracking the run userid on a per step and index basis.
+        Record tracking the run userid.
         """
     }
 
-    cfg['record'][step][index]['publickey'] = {
-        'switch': "-record_publickey 'step index <str>'",
+    cfg['record'][job][step][index]['publickey'] = {
+        'switch': "-record_publickey 'job step index <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
         'shorthelp': 'Record of public key of run user',
         'example': [
-            "cli: -record_publickey 'dfm 0 6EB695706EB69570'",
-            "api: chip.set('record','dfm','0','publickey','6EB695706EB69570')"],
+            "cli: -record_publickey 'job0 dfm 0 6EB695706EB69570'",
+            "api: chip.set('record','job0','dfm','0','publickey','6EB695706EB69570')"],
         'help': """
-        Record tracking the run public key on a per step and index basis.
+        Record tracking the run public key.
         """
     }
 
-    cfg['record'][step][index]['hash'] = {
-        'switch': "-record_hash 'step index <str>'",
+    cfg['record'][job][step][index]['hash'] = {
+        'switch': "-record_hash 'job step index <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
         'shorthelp': 'Record of output files hash values',
-        'example': ["cli: -record_hash 'dfm 0 473c04b'",
-                    "api: chip.set('record','dfm','0','hash','473c04b')"],
+        'example': [
+            "cli: -record_hash 'job0 dfm 0 473c04b'",
+            "api: chip.set('record', 'job0', 'dfm','0','hash','473c04b')"],
         'help': """
         Record with list of computed hash values for each output file produced.
         The ordered list of step outputs is taken from the eda 'output'
@@ -2858,75 +2912,76 @@ def schema_record(cfg, step='default', index='default'):
         """
     }
 
-    cfg['record'][step][index]['org'] = {
-        'switch': "-record_org 'step index <str>'",
+    cfg['record'][job][step][index]['org'] = {
+        'switch': "-record_org 'job step index <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
         'shorthelp': 'Record of run organization',
-        'example': ["cli: -record_org 'dfm 0 earth'",
-                    "api: chip.set('record','dfm','0','org','earth')"],
+        'example': ["cli: -record_org 'job0 dfm 0 earth'",
+                    "api: chip.set('record','job0','dfm','0','org','earth')"],
         'help': """
-        Record tracking the user's organization on a per step and per index
-        basis.
+        Record tracking the user's organization.
         """
     }
 
-    cfg['record'][step][index]['location'] = {
-        'switch': "-record_location 'step index <str>'",
+    cfg['record'][job][step][index]['location'] = {
+        'switch': "-record_location 'job step index <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
         'shorthelp': 'Record of run location',
-        'example': ["cli: -record_location 'dfm 0 Boston'",
-                    "api: chip.set('record','dfm','0','location,'Boston')"],
+        'example': [
+            "cli: -record_location 'job0 dfm 0 Boston'",
+            "api: chip.set('record','job0,'dfm','0','location,'Boston')"],
         'help': """
-        Record tracking the user's location/site on a per step and per index
-        basis.
+        Record tracking the user's location/site.
         """
     }
 
-    cfg['record'][step][index]['version'] = {
-        'switch': "-record_version 'step index <str>'",
+    cfg['record'][job][step][index]['version'] = {
+        'switch': "-record_version 'job step index <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
         'shorthelp': 'Record of executable version',
-        'example': ["cli: -record_version 'dfm 0 1.0'",
-                    "api: chip.set('record','dfm','0','version', '1.0')"],
+        'example': [
+            "cli: -record_version 'job0 dfm 0 1.0'",
+            "api: chip.set('record','job0', 'dfm','0','version', '1.0')"],
         'help': """
         Record tracking the version number of the executable, specified
         on per step and per index basis.
         """
     }
 
-    cfg['record'][step][index]['starttime'] = {
-        'switch': "-record_starttime 'step index <str>'",
+    cfg['record'][job][step][index]['starttime'] = {
+        'switch': "-record_starttime 'job step index <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
         'shorthelp': 'Record of run start time',
-        'example': ["cli: -record_starttime 'dfm 2021-09-06 12:20:20'",
-                    "api: chip.set('record','dfm','0','starttime','2021-09-06 12:20:20')"],
+        'example': [
+            "cli: -record_starttime 'job0 dfm 2021-09-06 12:20:20'",
+            "api: chip.set('record','job0', 'dfm','0','starttime','2021-09-06 12:20:20')"],
         'help': """
         Record tracking the start time stamp on a per step and index basis.
         The date format is the ISO 8601 format YYYY-MM-DD HR:MIN:SEC.
         """
     }
 
-    cfg['record'][step][index]['endtime'] = {
-        'switch': "-record_endtime 'step index <str>'",
+    cfg['record'][job][step][index]['endtime'] = {
+        'switch': "-record_endtime 'job step index <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
         'shorthelp': 'Record of run end time',
-        'example': ["cli: -record_endtime 'dfm 0 2021-09-06 12:20:20'",
-                    "api: chip.set('record','dfm','0','endtime','2021-09-06 12:20:20')"],
+        'example': ["cli: -record_endtime 'job0 dfm 0 2021-09-06 12:20:20'",
+                    "api: chip.set('record','job0', 'dfm','0','endtime','2021-09-06 12:20:20')"],
         'help': """
         Record tracking the end time stamp on a per step and index basis.
         The date format is the ISO 8601 format YYYY-MM-DD HR:MIN:SEC.
@@ -2983,7 +3038,7 @@ def schema_options(cfg):
         'example': ["cli: -mode fpga",
                     "api: chip.set('mode','fpga')"],
         'help': """
-        Sets the compilation flow to 'fpga' or 'asic. The default is 'asic'
+        Sets the compilation flow.
         """
     }
 
@@ -3183,31 +3238,15 @@ def schema_options(cfg):
         'type': 'str',
         'lock': 'false',
         'requirement': 'all',
-        'defvalue': 'job',
-        'shorthelp': 'Job name prefix',
+        'defvalue': 'job0',
+        'shorthelp': 'Job name',
         'example': ["cli: -jobname may1",
                     "api: chip.set('jobname','may1')"],
         'help': """
-        The name of the job for a specific design. The full directory
-        structure is: <dir>/<design>/<jobname><jobid>/<step><index>
-        The parameter can be used to tag and archive runs, for example
-        by naming a job "final", "trial", "tapeout", "golden",
-        "riskyrun", etc.
-        """
-    }
-
-    cfg['jobid'] = {
-        'switch': "-jobid <int>",
-        'type': 'int',
-        'lock': 'false',
-        'requirement': 'all',
-        'defvalue': '0',
-        'shorthelp': 'Job ID',
-        'example': ["cli: -jobid 0",
-                    "api: chip.set('jobid',0)"],
-        'help': """
-        The id of the specific job to be executed. The full directory
-        structure is: <dir>/<design>/<jobname><jobid>/<step><index>.
+        Jobname during invocation of run(). The jobname combined with a 
+        defined director structure (<dir>/<design>/<jobname>/<step>/<index>) 
+        enables multiple levels of transparent job, step, and index 
+        introspecetion.
         """
     }
 
@@ -3217,13 +3256,17 @@ def schema_options(cfg):
         'lock': 'false',
         'requirement': 'all',
         'defvalue': 'false',
-        'shorthelp': 'Job ID auto increment mode ',
+        'shorthelp': 'Enables jobname auto-increment mode',
         'example': ["cli: -jobincr",
-                    "api: chip.set('jobincr', true)"],
+                    "api: chip.set('jobincr', True)"],
         'help': """
-        Auto increments the jobid value based on the latest executed job
-        in the design build directory. If no jobs are found, the value
-        in the 'jobid' parameter is used.
+        Forces an auuto-update of the jobname parameter if a directory
+        mathcing the jobname is found in the build directory. If the
+        jobname does not include a trailing digit, then a the number
+        '1' is added to the jobname before updating the jobname
+        parameter.  The option can be useful for automatically keeping
+        all jobs ever run in a directory for tracking and debugging
+        purposes.
         """
     }
 
@@ -3647,7 +3690,7 @@ def schema_design(cfg):
         """
     }
 
-    
+
 
     cfg['netlist'] = {
         'switch': '-netlist <file>',

@@ -155,13 +155,12 @@ def post_process(chip):
      step = chip.get('arg','step')
      index = chip.get('arg','index')
      design = chip.get('design')
-     exe = chip.get('eda', tool, step, index, 'exe')
 
      errors = 0
      warnings = 0
      metric = None
 
-     with open(exe + ".log") as f:
+     with open(step + ".log") as f:
           for line in f:
                metricmatch = re.search(r'^SC_METRIC:\s+(\w+)', line)
                errmatch = re.match(r'^Error:', line)
