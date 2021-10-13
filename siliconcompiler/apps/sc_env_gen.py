@@ -3,7 +3,7 @@ import sys
 import siliconcompiler
 
 def main():
-    progname = "sc-env"
+    progname = "sc-env-gen"
     chip = siliconcompiler.Chip()
     switchlist = ['cfg',
                   'project',
@@ -21,8 +21,10 @@ def main():
 
     #Error checking
     if bool(not chip.get('cfg')) and bool(not chip.get('project')):
-        print(progname+": error: the following arguments are required: [-cfg | -project]")
-        sys.exit()
+        #print(progname+": error: the following arguments are required: [-cfg | -project]")
+        #sys.exit()
+        with open('test.sh', 'w') as test_env:
+            test_env.write('export SC_TEST_VAR="test_val2"')
     else:
         chip.create_env()
 

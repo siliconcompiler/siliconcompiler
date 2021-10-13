@@ -1,0 +1,3 @@
+#!/bin/bash
+sc-env-gen
+source test.sh

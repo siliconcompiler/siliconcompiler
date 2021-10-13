@@ -96,6 +96,20 @@ setup(
         "graphviz >=0.17"
     ],
     entry_points={"console_scripts": entry_points},
+    scripts=['siliconcompiler/apps/sc_env'],
     cmake_install_dir="siliconcompiler/leflib",
     cmake_args=cmake_args
 )
+
+# Attempt to set an alias for 'sc_env' on supported platforms.
+try:
+    with open('/etc/bash.bashrc', 'r') as f:
+        cur_bashrc = f.read()
+    if not 'alias sc_env=' in cur_bashrc:
+        cur_bashrc += '''
+alias sc_env=". sc_env"'''
+    with open('/etc/bash.bashrc', 'w') as f:
+        f.write(cur_bashrc)
+except:
+    # This alias is not required, but it is convenient for apps that depend on it.
+    pass
