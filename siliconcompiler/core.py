@@ -2229,7 +2229,7 @@ class Chip:
             run_cmd += f"sc-crypt -mode encrypt -target {tmp_build_dir} "\
                            f"-key_file {keypath} ; "
             run_cmd += f"{remount_script} ; "
-            run_cmd += f"rsync -a {tmp_build_dir}/{step}{index}* "\
+            run_cmd += f"rsync -a {tmp_build_dir}/{step}* "\
                            f"{cur_build_dir}/ ; "
             run_cmd += f"rm -rf {tmp_job_dir} ; "
             run_cmd += f"exit \$retcode"
