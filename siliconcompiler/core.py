@@ -625,9 +625,12 @@ class Chip:
         error message and raises the Chip object error flag.
 
         Args:
-            keypath(list str): Variable length ordered schema key list.
-            field(str): Name of the parameter field to fetch.
-            cfg(dict): Alternate dictionary to access in place of self.cfg.
+            keypath(list str): Variable length schema key list.
+            field(str): Parameter field to fetch.
+            job (str): Jobname to use for dictionary access in place of the
+                current active jobname.
+            cfg(dict): Alternate dictionary to access in place of the default
+                chip object schema dictionary.
 
         Returns:
             Value found for the keypath and field provided.

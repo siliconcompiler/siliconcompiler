@@ -13,8 +13,9 @@ Welcome to SiliconCompiler's documentation!
 
    user_guide/introduction
    user_guide/installation
-   user_guide/execution_model
+   user_guide/glossary
    user_guide/data_model
+   user_guide/execution_model
    user_guide/flow
    user_guide/tool
    user_guide/pdk
