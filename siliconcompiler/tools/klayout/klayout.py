@@ -57,15 +57,30 @@ def setup_tool(chip, mode="batch"):
     chip.set('eda', tool, step, index, 'script', refdir + script, clobber=clobber)
     chip.set('eda', tool, step, index, 'vswitch', '-zz -v', clobber=clobber)
     chip.set('eda', tool, step, index, 'version', '0.26.10', clobber=clobber)
+
     chip.set('eda', tool, step, index, 'option', 'cmdline', option, clobber=clobber)
+
+################################
+#  Environment setup
+################################
+
+def setup_env(chip):
+    '''
+    Creates environment setup files in the current directory.
+
+    Setup is based on the parameters passed in through the chip object.
+
+    '''
+
+    return 0
 
 ################################
 #  Custom runtime options
 ################################
 
 def runtime_options(chip):
-
-    ''' Custom runtime options, returns list of command line options.
+    '''
+    Custom runtime options, returns list of command line options.
     '''
 
     step = chip.get('arg','step')

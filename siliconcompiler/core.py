@@ -343,6 +343,39 @@ class Chip:
                         else:
                             self.set(*args, clobber=True)
 
+
+    #########################################################################
+    def create_env(self):
+        '''
+        Creates a working environment based for interactive design.
+
+        Sets environment variables and initializees tools specific
+        setup files based on paramater set loaded.
+
+        Actions taken:
+
+          * Append values found in eda 'path' parameter to current path
+          *
+
+        '''
+
+        # Add paths
+        env_path = os.environ['PATH']
+        for tools in self.getkeys('eda'):
+            for step in self.getkeys('eda', tool):
+                # Set up paths
+                for index in self.getkeys('eda', tool, step):
+                    for path in self.get('eda', tool, step, 'path'):
+                        env_path = env_path +  os.pathsep + path
+
+        # Call setup_env functions
+        for tools in self.getkeys('eda'):
+            for step in self.getkeys('eda', tool):
+                setup_env = self.find_function(tool, 'tool', 'setup_env')
+                if setup_env:
+                    setup_env(self)
+
+
     #########################################################################
     def find_function(self, modulename, functype, funcname):
         '''
@@ -385,6 +418,8 @@ class Chip:
             fullpath = self.find_file(f"flows/{modulename}.py", missing_ok=True)
         elif functype == 'pdk':
             fullpath = self.find_file(f"foundries/{modulename}.py", missing_ok=True)
+        elif functype == 'project':
+            fullpath = self.find_file(f"projects/{modulename}.py", missing_ok=True)
         else:
             self.logger.error(f"Illegal module type '{functype}'.")
             self.error = 1
@@ -419,6 +454,7 @@ class Chip:
         on a '_' separated string. The following target string combinations are
         permitted:
 
+        * <projname>
         * <flowname>
         * <flowname>_<pdkname>
         * <flowname>_<partname> (for fpga flows)
@@ -465,10 +501,13 @@ class Chip:
         targetlist = target.split('_')
 
         for i, item in enumerate(targetlist):
+            func_project = self.find_function(item, 'project', 'setup_project')
             func_flow = self.find_function(item, 'flow', 'setup_flow')
             func_pdk = self.find_function(item, 'pdk', 'setup_pdk')
             func_tool = self.find_function(item, 'tool', 'setup_tool')
-            if (i == 0) & bool(func_flow):
+            if (i == 0) & bool(func_project):
+                func_project(self)
+            elif (i == 0) & bool(func_flow):
                 func_flow(self)
             elif (i == 0) & bool(func_tool):
                 step = self.get('arg','step')
