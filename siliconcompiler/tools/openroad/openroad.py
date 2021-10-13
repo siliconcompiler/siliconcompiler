@@ -53,6 +53,10 @@ def setup_tool(chip, mode='batch'):
         script = '/sc_apr.tcl'
         option = "-no_init"
 
+    # exit automatically in batch mode and not bkpt
+    if (mode=='batch') & (step not in chip.get('bkpt')):
+        option += " -exit"
+
     chip.set('eda', tool, step, index, 'exe', tool, clobber=clobber)
     chip.set('eda', tool, step, index, 'vswitch', '-version', clobber=clobber)
     chip.set('eda', tool, step, index, 'version', '0', clobber=clobber)
@@ -60,10 +64,6 @@ def setup_tool(chip, mode='batch'):
     chip.set('eda', tool, step, index, 'option', 'cmdline', option, clobber=clobber)
     chip.set('eda', tool, step, index, 'refdir', refdir, clobber=clobber)
     chip.set('eda', tool, step, index, 'script', refdir + script, clobber=clobber)
-
-    # exit automatically in batch mode and not bkpt
-    if (mode=='batch') & (step not in chip.get('bkpt')):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', '-exit')
 
     # defining default dictionary
     default_options = {
