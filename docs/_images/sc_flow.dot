@@ -1,72 +1,77 @@
 digraph G {
 
+	node [style=filled,color=white];
+
 	subgraph cluster_0 {
 		style=filled;
 		color=lightgrey;
 		node [style=filled,color=white];
-		import -> syn -> apr -> export;
-		label = "job0";
+		import -> syn
+		label = "job_0";
 	}
 
 	subgraph cluster_1 {
+		node [label="floorplan"] floorplan1;
+		node [label="apr0"] apr_10;
+		node [label="apr1"] apr_11;
+		node [label="apr2"] apr_12;
+		node [label="apr3"] apr_13;
+		node [label="aprmin"] aprmin_1;
 		style=filled;
 		color=lightgrey;
-		node [style=filled,color=white];
-		gen1 -> syn10;
-		gen1 -> syn11;
-		gen1 -> syn12;
-		gen1 -> syn13;
-		syn10 -> synmin1;
-		syn11 -> synmin1;
-		syn12 -> synmin1;
-		syn13 -> synmin1;
-		label = "job1";
-	}
-	
-	subgraph cluster_2 {
-		style=filled;
-		color=lightgrey;
-		node [style=filled,color=white];
-		gen2 -> syn20;
-		gen2 -> syn21;
-		gen2 -> syn22;
-		gen2 -> syn23;
-		syn20 -> synmin2;
-		syn21 -> synmin2;
-		syn22 -> synmin2;
-		syn23 -> synmin2;
-		label = "job2";
+		floorplan1 -> apr_10;
+		floorplan1 -> apr_11;
+		floorplan1 -> apr_12;
+		floorplan1 -> apr_13;
+		apr_10 -> aprmin_1;
+		apr_11 -> aprmin_1;
+		apr_12 -> aprmin_1;
+		apr_13 -> aprmin_1;
+		label = "job_1";
 	}
 
-	subgraph cluster_3 {
+	subgraph cluster_2 {
+		node [label="floorplan"] floorplan_n;
+		node [label="apr0"] apr_n0;
+		node [label="apr1"] apr_n1;
+		node [label="apr2"] apr_n2;
+		node [label="apr3"] apr_n3;
+		node [label="aprmin"] aprmin_n;
 		style=filled;
 		color=lightgrey;
-		node [style=filled,color=white];
-		gen3 -> syn30;
-		gen3 -> syn31;
-		gen3 -> syn32;
-		gen3 -> syn33;
-		syn30 -> synmin3;
-		syn31 -> synmin3;
-		syn32 -> synmin3;
-		syn33 -> synmin3;
-		label = "job3";
+		floorplan_n -> apr_n0;
+		floorplan_n -> apr_n1;
+		floorplan_n -> apr_n2;
+		floorplan_n -> apr_n3;
+		apr_n0 -> aprmin_n;
+		apr_n1 -> aprmin_n;
+		apr_n2 -> aprmin_n;
+		apr_n3 -> aprmin_n;
+		label = "job_n";
+	}
+
+
+	subgraph cluster_3 {
+		{node [label="ppa(job_1,job_n) "] compare;}
+		style=filled;
+		color=darkgrey;
+		compare -> good_enough;
+		compare -> modify_floorplan;
+		label = "User Python code";
 	}
 
 	subgraph cluster_4 {
 		style=filled;
 		color=lightgrey;
-		node [style=filled,color=white];
-		min4 -> export4;
-		label = "job4";
+		dfm -> export;
+		export -> tapeout;
+		label = "job_n+1";
 	}
 
-	
-	import -> gen1;
-	import -> gen2;
-	import -> gen3;
-	synmin1 -> min4;
-	synmin2 -> min4;
-	synmin3 -> min4;
-
+	syn -> floorplan1;
+	syn -> floorplan_n;
+	aprmin_1 -> compare
+	aprmin_n -> compare
+	good_enough ->  dfm
+	modify_floorplan -> floorplan_n
 }
