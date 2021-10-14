@@ -1686,7 +1686,7 @@ def schema_flowgraph(cfg, step='default', index='default'):
         'type': 'str',
         'lock': 'false',
         'requirement': None,
-        'defvalue': [],
+        'defvalue': None,
         'shorthelp': 'Flowgraph function selection',
         'example': [
             "cli: -flowgraph_function 'cts 0 min'",
