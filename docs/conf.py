@@ -13,6 +13,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('../siliconcompiler'))
+import siliconcompiler
 sys.path.append(os.path.abspath('./_ext'))
 
 
@@ -22,6 +23,8 @@ project = 'SiliconCompiler'
 copyright = '2021, Zero ASIC Corporation'
 author = 'Zero ASIC Corporation'
 
+version = siliconcompiler.__version__
+release = version
 
 # -- General configuration ---------------------------------------------------
 

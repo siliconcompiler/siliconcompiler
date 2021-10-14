@@ -36,9 +36,9 @@ To verify the operation of SC, run the following sample code::
 The output should be the version number you expect to see, similar to below:
 
 
-.. code-block:: console
+.. parsed-literal::
 
-   0.1.0
+   \ |release|
 
 
 Pre-requisites
