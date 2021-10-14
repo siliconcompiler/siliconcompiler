@@ -45,7 +45,7 @@ class Chip:
     """
 
     ###########################################################################
-    def __init__(self, design=None, loglevel="INFO", splash=True):
+    def __init__(self, design=None, loglevel="INFO"):
 
         # Local variables
         self.scroot = os.path.dirname(os.path.abspath(__file__))
@@ -77,17 +77,21 @@ class Chip:
         # messages without this)
         self.logger.propagate = False
 
+        jobname = self.get('jobname')
+        if jobname == None:
+            jobname = '---'
+
         if step == None:
             step = '---'
         if index == None:
             index = '-'
 
-        step_index = '%-12s | %-3s' % (step, index)
+        run_info = '%-7s | %-12s | %-3s' % (jobname, step, index)
 
         if self.loglevel=='DEBUG':
-            logformat = '| %(levelname)-7s | %(funcName)-10s | %(lineno)-4s | ' + step_index + ' | %(message)s'
+            logformat = '| %(levelname)-7s | %(funcName)-10s | %(lineno)-4s | ' + run_info + ' | %(message)s'
         else:
-            logformat = '| %(levelname)-7s | ' + step_index + ' | %(message)s'
+            logformat = '| %(levelname)-7s | ' + run_info + ' | %(message)s'
 
         handler = logging.StreamHandler()
         formatter = logging.Formatter(logformat)
