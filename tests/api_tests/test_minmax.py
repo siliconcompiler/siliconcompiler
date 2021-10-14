@@ -38,14 +38,14 @@ def test_minmax():
     for i, step in enumerate(flowpipe):
         for index in range(threads[step]):
             if step == "synmin":
-                chip.set('flowgraph', step, str(index), 'function', "min")
+                chip.set('flowgraph', step, str(index), 'function', 'step_minimum')
                 for j in range(N):
-                    chip.add('flowgraph', step, '0', 'input', flowpipe[i-1], str(j))
+                    chip.add('flowgraph', step, '0', 'input', flowpipe[i-1] + str(j))
             elif step == 'import':
                 chip.set('flowgraph', step, str(index), 'tool', tools[step])
             else:
                 chip.set('flowgraph', step, str(index), 'tool', tools[step])
-                chip.set('flowgraph', step, str(index), 'input', flowpipe[i-1], "0")
+                chip.set('flowgraph', step, str(index), 'input', flowpipe[i-1] + '0')
             #weight
             chip.set('flowgraph', step, str(index), 'weight',  'cellarea', 1.0)
             #goal
@@ -57,13 +57,15 @@ def test_minmax():
         for metric in chip.getkeys('flowgraph', 'syn', str(index), 'weight'):
             chip.set('metric', 'syn',str(index), metric, 'real', 1000-index*1 + 42.0)
 
-    chip.writegraph("minmax.png")
-    chip.writecfg("minmax.json")
+    chip.write_flowgraph('minmax.png')
+    chip.write_manifest('minmax.json')
 
-    (score, winner) = chip.minmax("syn", op="minimum")
-    assert(winner=='syn9')
-    #(score, step, index) = chip._minmax("syn", op="max")
-    #assert(index==str(0))
+    (score, winner) = chip.step_minimum(*[f'syn{i}' for i in range(N)])
+    assert winner == 'syn9'
+
+    # TODO: fix step_maximum
+    # (score, winner) = chip.step_maximum(*[f'syn{i}' for i in range(N)])
+    # assert winner == 'syn0'
 
 #########################
 if __name__ == "__main__":
