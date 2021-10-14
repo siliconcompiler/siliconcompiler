@@ -24,6 +24,7 @@ import pandas
 import yaml
 import graphviz
 import time
+import uuid
 from timeit import default_timer as timer
 from siliconcompiler.client import *
 from siliconcompiler.schema import *
@@ -67,11 +68,7 @@ class Chip:
 
     ###########################################################################
     def _init_logger(self, step=None, index=None):
-        # Give each step, index pair its own unique logger
-        logger = None
-        if step is not None and index is not None:
-            logger = f'{step}.{index}'
-        self.logger = logging.getLogger(logger)
+        self.logger = logging.getLogger(uuid.uuid4().hex)
 
         # Don't propagate log messages to "root" handler (we get duplicate
         # messages without this)
