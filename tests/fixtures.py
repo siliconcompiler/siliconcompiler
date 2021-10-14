@@ -2,6 +2,8 @@ import os
 import pytest
 import shutil
 
+from . import utils
+
 # Setup / teardown.
 @pytest.fixture(autouse=True)
 def test_wrapper(request):
@@ -26,3 +28,7 @@ def test_wrapper(request):
 
     # Exit the per-function directory.
     os.chdir(topdir)
+
+@pytest.fixture
+def gcd_chip():
+    return utils.gcd_chip()
