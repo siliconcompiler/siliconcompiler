@@ -3302,6 +3302,21 @@ def schema_options(cfg):
         """
     }
 
+    cfg['indexlist'] = {
+        'switch': "-indexlist <str>",
+        'type': '[str]',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': [],
+        'shorthelp': 'Compilation index list',
+        'example': ["cli: -indexlist '0'",
+                    "api: chip.set('indexlist','0')"],
+        'help': """
+        List of indices to run. The default is to execute all indices for
+        each step to be run.
+        """
+    }
+
     cfg['msgevent'] = {
         'switch': "-msgevent <str>",
         'type': '[str]',

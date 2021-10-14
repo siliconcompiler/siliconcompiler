@@ -2683,6 +2683,8 @@ class Chip:
                     stepstr = step + index
                     if self.get('arg', 'index'):
                         indexlist = [self.get('arg', 'index')]
+                    elif self.get('indexlist'):
+                        indexlist = self.get('indexlist')
                     else:
                         indexlist = self.getkeys('flowgraph', step)
                     if (step in steplist) & (index in indexlist):
