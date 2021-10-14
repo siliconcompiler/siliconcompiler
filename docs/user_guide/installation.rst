@@ -3,19 +3,19 @@ Installation
 
 To install the current release from PyPI.
 
-::
+.. code-block:: console
 
-$ pip install siliconcompiler
+   $ pip install siliconcompiler
 
 
 To install from the latest SiliconCompiler developer repository.
 
-::
+.. code-block:: console
 
-$ git clone https://github.com/siliconcompiler/siliconcompiler
-$ cd siliconcompiler
-$ pip install -r requirements.txt
-$ python -m pip install -e .
+   $ git clone https://github.com/siliconcompiler/siliconcompiler
+   $ cd siliconcompiler
+   $ pip install -r requirements.txt
+   $ python -m pip install -e .
 
 Verification
 ---------------------
