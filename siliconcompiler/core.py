@@ -493,36 +493,66 @@ class Chip:
         elif len(self.get('target').split('_')) > 2:
             self.logger.error('Target should have zero or one underscore')
             sys.exit(1)
-        else:
-            target = self.get('target')
-            #self.log('INFO', f"Loading target {target}")
-            self.logger.info(f"Loading target '{target}'")
+
+        target = self.get('target')
+        self.logger.info(f"Loading target '{target}'")
 
         # search for module matches
         targetlist = target.split('_')
 
         for i, item in enumerate(targetlist):
-            func_project = self.find_function(item, 'project', 'setup_project')
-            func_flow = self.find_function(item, 'flow', 'setup_flow')
-            func_pdk = self.find_function(item, 'pdk', 'setup_pdk')
-            func_tool = self.find_function(item, 'tool', 'setup_tool')
-            if (i == 0) & bool(func_project):
-                func_project(self)
-            elif (i == 0) & bool(func_flow):
-                func_flow(self)
-            elif (i == 0) & bool(func_tool):
-                step = self.get('arg','step')
-                self.set('flowgraph', step, '0', 'tool', item)
-                self.set('flowgraph', step, '0', 'weight', 'errors', 1.0)
-                self.set('flowgraph', step, '0', 'weight', 'warnings', 1.0)
-                self.set('flowgraph', step, '0', 'weight', 'runtime', 1.0)
-            elif bool(func_pdk):
-                func_pdk(self)
-            elif self.get('mode') == 'asic':
+            if i == 0:
+                func_project = self.find_function(item, 'project', 'setup_project')
+                if func_project is not None:
+                    func_project(self)
+                    if len(targetlist) > 1:
+                        self.logger.error('Target string beginning with a project name ' 
+                                          'must only have one entry')
+                        sys.exit(1)
+                    break
+
+                func_flow = self.find_function(item, 'flow', 'setup_flow')
+                if func_flow is not None:
+                    func_flow(self)
+                    continue
+
+                func_pdk = self.find_function(item, 'pdk', 'setup_pdk')
+                if func_pdk is not None:
+                    func_pdk(self)
+                    if len(targetlist) > 1:
+                        self.logger.error('Target string beginning with a PDK name ' 
+                                          'must only have one entry')
+                        sys.exit(1)
+                    break
+
+                func_tool = self.find_function(item, 'tool', 'setup_tool')
+                if func_tool is not None:
+                    step = self.get('arg','step')
+                    self.set('flowgraph', step, '0', 'tool', item)
+                    self.set('flowgraph', step, '0', 'weight', 'errors', 1.0)
+                    self.set('flowgraph', step, '0', 'weight', 'warnings', 1.0)
+                    self.set('flowgraph', step, '0', 'weight', 'runtime', 1.0)
+                    continue
+
                 self.logger.error(f'Target {item} not found')
                 sys.exit(1)
+            else:
+                func_pdk = self.find_function(item, 'pdk', 'setup_pdk')
+                if func_pdk is not None:
+                    func_pdk(self)
+                    break
 
-        self.logger.info(f"Operating in '{self.get('mode')}' mode")
+                # Only an error if we're not in FPGA mode. Otherwise, we assume
+                # the second item is a partname, which will be read directly
+                # from the target by the FPGA flow logic.
+                if self.get('mode') != 'fpga':
+                    self.logger.error(f'PDK {item} not found')
+                    sys.exit(1)
+
+        if self.get('mode') is not None:
+            self.logger.info(f"Operating in '{self.get('mode')}' mode")
+        else:
+            self.logger.warning(f"No mode set")
 
     ###########################################################################
     def list_outputs(self, step, index):
