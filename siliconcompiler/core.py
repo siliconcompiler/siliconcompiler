@@ -1114,7 +1114,7 @@ class Chip:
 
         workdir = self._getworkdir(jobname, step, index)
         design = self.get('design')
-        filename = f"{workdir}/outputs/{design}{filetype}"
+        filename = f"{workdir}/outputs/{design}.{filetype}"
 
         self.logger.debug("Finding result %s", filename)
 
