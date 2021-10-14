@@ -3,20 +3,19 @@ Installation
 
 To install the current release from PyPI.
 
-::
+.. code-block:: console
 
-$ pip install siliconcompiler
+   $ pip install siliconcompiler
 
 
 To install from the latest SiliconCompiler developer repository.
 
-::
+.. code-block:: console
 
-$ git clone https://github.com/siliconcompiler/siliconcompiler
-$ cd siliconcompiler
-$ pip install -r requirements.txt
-$ python -m pip install -e .
-
+   $ git clone https://github.com/siliconcompiler/siliconcompiler
+   $ cd siliconcompiler
+   $ pip install -r requirements.txt
+   $ python -m pip install -e .
 
 Verification
 ---------------------
@@ -36,9 +35,9 @@ To verify the operation of SC, run the following sample code::
 The output should be the version number you expect to see, similar to below:
 
 
-.. code-block:: console
+.. parsed-literal::
 
-   0.1.0
+   \ |release|
 
 
 Pre-requisites
@@ -50,3 +49,12 @@ tools are installed on the remote server.
 For local execution, you will also need to install all the necesary external tools based
 on the installation instructions referenced in the tools directory or the instructions provided by a
 commercial EDA vendor.
+
+Python dependencies
+-------------------
+
+SiliconCompiler relies on the following Python packages. Note that these will be
+installed automatically when installing SC via pip, so there should be no need
+to install them manually.
+
+.. requirements::
