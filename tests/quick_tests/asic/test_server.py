@@ -67,4 +67,6 @@ def test_gcd_server():
     assert os.path.isfile('build/gcd/job0/export/0/outputs/gcd.gds')
 
 if __name__ == "__main__":
+    if os.path.isdir('local_server_work'):
+        os.rmdir('local_server_work')
     test_gcd_server()

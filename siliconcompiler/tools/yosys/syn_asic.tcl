@@ -35,6 +35,16 @@ foreach libname $sc_macrolibs {
 # Synthesis
 ########################################################
 
+# Although the `synth` command also runs `hierarchy`, we run it here without the
+# `-check` flag first in order to resolve parameters before looking for missing
+# modules. This works around the fact that Surelog doesn't pickle modules that
+# are instantiated inside generate blocks that will get eliminated. This seems
+# to give us the same behavior as passing the `-defer` flag to read_verilog, but
+# `-defer` gave us different post-synth results on one of our test cases (while
+# this appears to result in no differences). Note this must be called after the
+# read_liberty calls for it to not affect synthesis results.
+yosys hierarchy -top $sc_design
+
 yosys synth "-flatten" -top $sc_design
 
 yosys opt -purge

@@ -190,7 +190,7 @@ def tool_lookup(flow, step):
 
     # common first step
     if step == "import":
-        tool = 'verilator'
+        tool = 'surelog'
     # open source ice40 flow
     elif flow == "yosys-nextpnr":
         if step == "syn":
