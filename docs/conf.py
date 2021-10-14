@@ -39,7 +39,8 @@ extensions = [
     'schemagen',
     'clientservergen',
     'dynamicgen',
-    'sphinx.ext.autosummary'
+    'sphinx.ext.autosummary',
+    'requirements'
 ]
 
 # Add any paths that contain templates here, relative to this directory.

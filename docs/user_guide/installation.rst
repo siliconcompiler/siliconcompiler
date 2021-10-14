@@ -17,7 +17,6 @@ $ cd siliconcompiler
 $ pip install -r requirements.txt
 $ python -m pip install -e .
 
-
 Verification
 ---------------------
 
@@ -50,3 +49,12 @@ tools are installed on the remote server.
 For local execution, you will also need to install all the necesary external tools based
 on the installation instructions referenced in the tools directory or the instructions provided by a
 commercial EDA vendor.
+
+Python dependencies
+-------------------
+
+SiliconCompiler relies on the following Python packages. Note that these will be
+installed automatically when installing SC via pip, so there should be no need
+to install them manually.
+
+.. requirements::
