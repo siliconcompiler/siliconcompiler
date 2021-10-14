@@ -6,13 +6,19 @@ support for open source as well as commercial design tools. The goal of the
 SiliconCompiler project is to lower the barrier to ASIC design and integrated
 circuit education.
 
-Highlights
-----------------
+Architecture overview
+----------------------
+
+
 * Python based programming interface
 * Scalable flowgraph based execution model
 * Standardized plain text JSON configuration and provinence manifest
 * Built in support for remote processing
 * Python based ASIC floor-planning API
+
+
+.. image:: ../_images/sc_stack.svg
+  
 
 .. list-table::
    :widths: 20 15 15 20

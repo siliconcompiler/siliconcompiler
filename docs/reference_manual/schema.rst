@@ -1,46 +1,5 @@
-Configuration schema
+Schema
 =====================
-
-General Terms
---------------
-
-.. glossary::
-
-    default
-       Reserved SC schema key that can be replaced by any legal string.
-
-    dictionary
-       Associative array, ie. a collection of key-value pairs.
-
-    flowgraph
-       Defined input/output execution graph
-           
-    index
-       Step execution with unqiue options on identical input data.  
-
-    job
-       Execution of complete or partial flowgraph
-       
-    keypath
-       Ordered list of keys used to access a schema parameter.
-
-    keywords
-       Reserved strings that cannot be used as key names.
-
-    list
-       Data structure that is a mutable ordered sequence of elements.
-
-    manifest
-       JSON file representation of SC schema.
-
-    parameter
-       Schema dictionary leaf-cell with a set of pre-defined key/value pairs.
-
-    schema
-       Nested dictionary of SC configuration parameters.
-
-    step
-       Atomic execution step within a flowgraph
 
 Parameter Keys
 -----------------
