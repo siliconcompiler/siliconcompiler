@@ -1084,7 +1084,7 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'defvalue': None,
         'shorthelp': 'Library PDK',
         'example': ["cli: -library_pdk 'mylib freepdk45",
-                    "api:  chip.set('library', 'pdk', 'mylib', 'freepdk45')"],
+                    "api:  chip.set('library', 'mylib', 'pdk', 'freepdk45')"],
         'help': """
         Name of the PDK module used to create the library package. The module
         is checked and loaded based on the 'scpath' schema parameter. The
@@ -1100,7 +1100,7 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'defvalue': None,
         'shorthelp': 'Library stackup',
         'example': ["cli: -library_stackup 'mylib M10",
-                    "api:  chip.set('library', 'stackup', 'mylib', '10')"],
+                    "api:  chip.set('library', 'mylib', 'stackup', '10')"],
         'help': """
         Name of the PDK metal stackup used by the library. The parameter is
         required for hardened technology specific library types.
@@ -1638,7 +1638,7 @@ def schema_flowgraph(cfg, step='default', index='default'):
         'shorthelp': 'Flowgraph step input',
         'example': [
             "cli: -flowgraph_input 'cts 0 place0'",
-            "api:  chip.set('flowgraph','cts','0','input,'place0'"],
+            "api:  chip.set('flowgraph','cts','0','input,'place0')"],
         'help': """
         The step and index fo for the current step and index, listed as a
         set of 'step+index' combinations on a per step and per index basis.
@@ -1655,8 +1655,8 @@ def schema_flowgraph(cfg, step='default', index='default'):
         'defvalue': [],
         'shorthelp': 'Flowgraph metric weights',
         'example': [
-            "cli: -flowgraph_weight 'cts area_cells 1.0'",
-            "api:  chip.set('flowgraph','cts','weight','area_cells',1.0)"],
+            "cli: -flowgraph_weight 'cts 0 area_cells 1.0'",
+            "api:  chip.set('flowgraph','cts','0','weight','area_cells',1.0)"],
         'help': """
         Weights specified on a per step and per metric basis used to give
         effective "goodnes" score for a step by calculating the sum all step
@@ -1673,7 +1673,7 @@ def schema_flowgraph(cfg, step='default', index='default'):
         'defvalue': None,
         'shorthelp': 'Flowgraph tool selection',
         'example': ["cli: -flowgraph_tool 'place openroad'",
-                    "api: chip.set('flowgraph','place','tool','openroad')"],
+                    "api: chip.set('flowgraph','place','0','tool','openroad')"],
         'help': """
         Name of the EDA tool to use for a specific step in the execution flow
         graph. The name 'builtin' is reserved for built-in SC operations.
@@ -1690,7 +1690,7 @@ def schema_flowgraph(cfg, step='default', index='default'):
         'shorthelp': 'Flowgraph function selection',
         'example': [
             "cli: -flowgraph_function 'cts 0 min'",
-            "api:  chip.set('flowgraph','cts','function','0', 'min')"],
+            "api:  chip.set('flowgraph','cts','0','function','min')"],
         'help': """
         Function to use during runstep. The function is used in place
         of the 'exe' parameter within the 'eda' schema. The function
@@ -1700,7 +1700,7 @@ def schema_flowgraph(cfg, step='default', index='default'):
 
     # Arguments passed by user to function
     cfg['flowgraph'][step][index]['args'] = {
-        'switch': "-flowgraph_args 'step 0 <str>'",
+        'switch': "-flowgraph_args 'step index <str>'",
         'type': '[str]',
         'lock': 'false',
         'requirement': None,
@@ -1708,7 +1708,7 @@ def schema_flowgraph(cfg, step='default', index='default'):
         'shorthelp': 'Flowgraph function selection',
         'example': [
             "cli: -flowgraph_args 'cts 0 0'",
-            "api:  chip.add('flowgraph','cts',','0','args', '0')"],
+            "api:  chip.add('flowgraph','cts','0','args','0')"],
         'help': """
         User specified flowgraph string arguments specified on a
         per step and per index basis.
@@ -1725,7 +1725,7 @@ def schema_flowgraph(cfg, step='default', index='default'):
         'shorthelp': 'Flowgraph step/index valid bit',
         'example': [
             "cli: -flowgraph_valid 'cts 0 true'",
-            "api:  chip.add('flowgraph','cts',','0','valid', True)"],
+            "api:  chip.set('flowgraph','cts','0','valid',True)"],
         'help': """
         Flowgraph valid bit specified on a per step and per index basis.
         The parameter can be used to control flow execution. If the bit
@@ -1755,7 +1755,7 @@ def schema_flowstatus(cfg, step='default', index='default'):
         'shorthelp': 'Flowgraph index error status',
         'example': [
             "cli: -flowstatus_error 'cts 10 1'",
-            "api:  chip.set('flowstatus','error','cts, '10', 1)"],
+            "api:  chip.set('flowstatus','cts','10','error',1)"],
         'help': """
         Status parameter that tracks runstep errors.
         """
@@ -2352,8 +2352,8 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'defvalue': None,
         'shorthelp': 'Design rule violations metric',
         'example': [
-            "cli: -metric_drv 'dfm 0 goal 0'",
-            "api: chip.set('metric','dfm','0','drv','real','0')"],
+            "cli: -metric_drvs 'dfm 0 goal 0'",
+            "api: chip.set('metric','dfm','0','drvs','real','0')"],
         'help': """
         Metric tracking the total number of design rule violations on per step
         basis.
@@ -2769,7 +2769,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'shorthelp': 'Routing overflow metric',
         'example': [
             "cli: -metric_overflow 'route 0 real 0'",
-            "api: chip.set('metric','overflow','place','0','real','0')"],
+            "api: chip.set('metric','place','0','overflow','real','0')"],
         'help': """
         Metric tracking the total number of overflow tracks for the routing.
         Any non-zero number suggests an over congested design. To analyze
@@ -2788,8 +2788,8 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'defvalue': None,
         'shorthelp': 'Effective area utilization of the design',
         'example': [
-            "cli: -metric_area_density 'place 0 goal 99.9'",
-            "api: chip.set('metric','place','0','area_density','real','99.9')"],
+            "cli: -metric_density 'place 0 goal 99.9'",
+            "api: chip.set('metric','place','0','density','real','99.9')"],
         'help': """
         Metric tracking the effective area utilization/density calculated as the
         ratio of cell area divided by the total core area available for
@@ -2859,7 +2859,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
         'signature': [],
         'shorthelp': 'Record of all files accessed',
         'example': ["cli: -record_file 'job0 import 0 gcd.v'",
-                    "api: chip.set('record','job0 import','0','file','gcd.v')"],
+                    "api: chip.set('record','job0', 'import','0','file','gcd.v')"],
         'help': """
         Record tracking all input files on a per step basis. This list
         include files entered by the user and files automatically found
@@ -3926,7 +3926,7 @@ def schema_design(cfg):
         'defvalue': None,
         'shorthelp': 'User public key',
         'example': ["cli: -publickey 6EB695706EB69570",
-                    "api: chip.set('signature', '6EB695706EB69570')"],
+                    "api: chip.set('publickey', '6EB695706EB69570')"],
         'help': """
         User public key (optional)
         """
@@ -4714,7 +4714,7 @@ def schema_mcmm(cfg, scenario='default'):
         'defvalue': None,
         'shorthelp': 'Scenario library corner',
         'example': ["cli: -mcmm_libcorner 'worst ttt'",
-                    "api: chip.set('mcmm', 'libcorner', 'worst', 'ttt')"],
+                    "api: chip.set('mcmm', 'worst', 'libcorner', 'ttt')"],
         'help': """
         Library corner applied to the scenario to scale library timing
         models based on the libcorner value for models that support it.
