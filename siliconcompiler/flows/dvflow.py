@@ -76,21 +76,21 @@ def setup_flow(chip):
         #serial
         elif step == 'compile':
             chip.set('flowgraph', step, '0', 'tool', tools[step])
-            chip.set('flowgraph', step, '0', 'input','import','0')
+            chip.set('flowgraph', step, '0', 'input', 'import0')
         #fork
         elif step == 'testgen':
             for index in range(np):
                 chip.set('flowgraph', step, str(index), 'tool', tools[step])
-                chip.set('flowgraph', step, str(index), 'input','compile','0')
+                chip.set('flowgraph', step, str(index), 'input', 'compile0')
         #join
         elif step == 'signoff':
             chip.set('flowgraph', step, '0', 'function', tools[step])
             for index in range(np):
-                chip.add('flowgraph', step, '0', 'input', prevstep, str(index))
+                chip.add('flowgraph', step, '0', 'input', prevstep + str(index))
         else:
             for index in range(np):
                 chip.set('flowgraph', step, str(index), 'tool', tools[step])
-                chip.set('flowgraph', step, str(index), 'input',prevstep,str(index))
+                chip.set('flowgraph', step, str(index), 'input', prevstep + str(index))
 
         prevstep = step
 

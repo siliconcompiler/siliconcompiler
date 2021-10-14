@@ -7,15 +7,17 @@ import os
 if __name__ != "__main__":
     from tests.fixtures import test_wrapper
 
-def test_flowgraph():
+def test_write_flowgraph():
 
     ################################################
     # Serial
     ################################################
 
     chip = siliconcompiler.Chip(loglevel="INFO")
-    chip.target("freepdk45_asicflow")
-    chip.writegraph('serial.png')
+    chip.target('asicflow_freepdk45')
+    chip.write_flowgraph('serial.png')
+
+    assert os.path.isfile('serial.png')
 
     ################################################
     # Fork-Join
@@ -25,8 +27,10 @@ def test_flowgraph():
     chip.set('flowarg','syn_np', "4")
     chip.set('flowarg','place_np', "4")
     chip.set('flowarg','route_np', "4")
-    chip.target("freepdk45_asicflow")
-    chip.writegraph('forkjoin.png')
+    chip.target('asicflow_freepdk45')
+    chip.write_flowgraph('forkjoin.png')
+
+    assert os.path.isfile('forkjoin.png')
 
     ################################################
     # Pipes
@@ -34,14 +38,11 @@ def test_flowgraph():
 
     chip = siliconcompiler.Chip(loglevel="INFO")
     chip.set('flowarg','np', "10")
-    chip.target("freepdk45_dvflow")
-    chip.writegraph('pipes.png')
+    chip.target('dvflow_freepdk45')
+    chip.write_flowgraph('pipes.png')
 
-    # basic compile to end check
-    os.path.isfile('pipes.png')
-    os.path.isfile('forkjoin.png')
-    os.path.isfile('serial.png')
+    assert os.path.isfile('pipes.png')
 
 #########################
 if __name__ == "__main__":
-    test_flowgraph()
+    test_write_flowgraph()
