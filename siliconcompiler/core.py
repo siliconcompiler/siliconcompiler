@@ -24,6 +24,7 @@ import pandas
 import yaml
 import graphviz
 import time
+import uuid
 from timeit import default_timer as timer
 from siliconcompiler.client import *
 from siliconcompiler.schema import *
@@ -45,7 +46,7 @@ class Chip:
     """
 
     ###########################################################################
-    def __init__(self, design=None, loglevel="INFO", splash=True):
+    def __init__(self, design=None, loglevel="INFO"):
 
         # Local variables
         self.scroot = os.path.dirname(os.path.abspath(__file__))
@@ -67,27 +68,27 @@ class Chip:
 
     ###########################################################################
     def _init_logger(self, step=None, index=None):
-        # Give each step, index pair its own unique logger
-        logger = None
-        if step is not None and index is not None:
-            logger = f'{step}.{index}'
-        self.logger = logging.getLogger(logger)
+        self.logger = logging.getLogger(uuid.uuid4().hex)
 
         # Don't propagate log messages to "root" handler (we get duplicate
         # messages without this)
         self.logger.propagate = False
+
+        jobname = self.get('jobname')
+        if jobname == None:
+            jobname = '---'
 
         if step == None:
             step = '---'
         if index == None:
             index = '-'
 
-        step_index = '%-12s | %-3s' % (step, index)
+        run_info = '%-7s | %-12s | %-3s' % (jobname, step, index)
 
         if self.loglevel=='DEBUG':
-            logformat = '| %(levelname)-7s | %(funcName)-10s | %(lineno)-4s | ' + step_index + ' | %(message)s'
+            logformat = '| %(levelname)-7s | %(funcName)-10s | %(lineno)-4s | ' + run_info + ' | %(message)s'
         else:
-            logformat = '| %(levelname)-7s | ' + step_index + ' | %(message)s'
+            logformat = '| %(levelname)-7s | ' + run_info + ' | %(message)s'
 
         handler = logging.StreamHandler()
         formatter = logging.Formatter(logformat)
