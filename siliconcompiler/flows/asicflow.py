@@ -82,7 +82,7 @@ def setup_flow(chip):
 
 
     tools = {
-        'import' : 'verilator',
+        'import' : 'surelog',
         'syn' : 'yosys',
         'synmin' : 'step_minimum',
         'floorplan' : 'openroad',
