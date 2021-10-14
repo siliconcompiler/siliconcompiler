@@ -2259,14 +2259,14 @@ class Chip:
                            f"-arg_step {step} -arg_index {index} "\
                            f"-dir {tmp_job_dir} -jobscheduler '' "\
                            f"-remote_addr '' -remote_key '' ; "
-            run_cmd += f"retcode=\$? ; "
+            run_cmd += f"retcode=\\$? ; "
             run_cmd += f"sc-crypt -mode encrypt -target {tmp_build_dir} "\
                            f"-key_file {keypath} ; "
             run_cmd += f"{remount_script} ; "
             run_cmd += f"rsync -a {tmp_build_dir}/{step}* "\
                            f"{cur_build_dir}/ ; "
             run_cmd += f"rm -rf {tmp_job_dir} ; "
-            run_cmd += f"exit \$retcode"
+            run_cmd += f"exit \\$retcode"
             run_cmd += '"'
         else:
             # Job data is not encrypted, so it can be run in shared storage.
