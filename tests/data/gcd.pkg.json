@@ -31,8 +31,8 @@
             "switch": "-asic_corearea '<[(float,float)]'>",
             "type": "[(float,float)]",
             "value": [
-                "(10.07, 11.2)",
-                "(90.25, 91.0)"
+                "(10.07,11.2)",
+                "(90.25,91)"
             ]
         },
         "density": {
@@ -55,8 +55,8 @@
             "switch": "-asic_diearea '<[(float,float)]'>",
             "type": "[(float,float)]",
             "value": [
-                "(0.0, 0.0)",
-                "(100.13, 100.8)"
+                "(0,0)",
+                "(100.13,100.8)"
             ]
         },
         "hpinlayer": {
@@ -102,7 +102,7 @@
             "shorthelp": "Maximum wire length",
             "switch": "-asic_maxlength <float>",
             "type": "float",
-            "value": "1000.0"
+            "value": "1000"
         },
         "maxslew": {
             "defvalue": null,
@@ -515,8 +515,7 @@
                             "switch": "-eda_option 'tool step index name <str>'",
                             "type": "[str]",
                             "value": [
-                                "-no_init",
-                                "-exit"
+                                "-no_init -exit"
                             ]
                         },
                         "macro_place_channel": {
@@ -610,7 +609,7 @@
                         "shorthelp": "Job parallelism",
                         "switch": "-eda_threads 'tool step index <int>'",
                         "type": "int",
-                        "value": "20"
+                        "value": "2"
                     },
                     "version": {
                         "defvalue": null,
@@ -670,8 +669,7 @@
                             "switch": "-eda_option 'tool step index name <str>'",
                             "type": "[str]",
                             "value": [
-                                "-no_init",
-                                "-exit"
+                                "-no_init -exit"
                             ]
                         },
                         "macro_place_channel": {
@@ -765,7 +763,7 @@
                         "shorthelp": "Job parallelism",
                         "switch": "-eda_threads 'tool step index <int>'",
                         "type": "int",
-                        "value": "20"
+                        "value": "2"
                     },
                     "version": {
                         "defvalue": null,
@@ -825,8 +823,7 @@
                             "switch": "-eda_option 'tool step index name <str>'",
                             "type": "[str]",
                             "value": [
-                                "-no_init",
-                                "-exit"
+                                "-no_init -exit"
                             ]
                         },
                         "macro_place_channel": {
@@ -920,7 +917,7 @@
                         "shorthelp": "Job parallelism",
                         "switch": "-eda_threads 'tool step index <int>'",
                         "type": "int",
-                        "value": "20"
+                        "value": "2"
                     },
                     "version": {
                         "defvalue": null,
@@ -980,8 +977,7 @@
                             "switch": "-eda_option 'tool step index name <str>'",
                             "type": "[str]",
                             "value": [
-                                "-no_init",
-                                "-exit"
+                                "-no_init -exit"
                             ]
                         },
                         "macro_place_channel": {
@@ -1075,7 +1071,7 @@
                         "shorthelp": "Job parallelism",
                         "switch": "-eda_threads 'tool step index <int>'",
                         "type": "int",
-                        "value": "20"
+                        "value": "2"
                     },
                     "version": {
                         "defvalue": null,
@@ -1135,8 +1131,7 @@
                             "switch": "-eda_option 'tool step index name <str>'",
                             "type": "[str]",
                             "value": [
-                                "-no_init",
-                                "-exit"
+                                "-no_init -exit"
                             ]
                         },
                         "macro_place_channel": {
@@ -1230,7 +1225,7 @@
                         "shorthelp": "Job parallelism",
                         "switch": "-eda_threads 'tool step index <int>'",
                         "type": "int",
-                        "value": "20"
+                        "value": "2"
                     },
                     "version": {
                         "defvalue": null,
@@ -1290,8 +1285,7 @@
                             "switch": "-eda_option 'tool step index name <str>'",
                             "type": "[str]",
                             "value": [
-                                "-no_init",
-                                "-exit"
+                                "-no_init -exit"
                             ]
                         },
                         "macro_place_channel": {
@@ -1385,7 +1379,7 @@
                         "shorthelp": "Job parallelism",
                         "switch": "-eda_threads 'tool step index <int>'",
                         "type": "int",
-                        "value": "20"
+                        "value": "2"
                     },
                     "version": {
                         "defvalue": null,
@@ -1408,7 +1402,7 @@
                 }
             }
         },
-        "verilator": {
+        "surelog": {
             "import": {
                 "0": {
                     "continue": {
@@ -1436,20 +1430,20 @@
                         "shorthelp": "Executable name",
                         "switch": "-eda_exe 'tool step index <str>'",
                         "type": "str",
-                        "value": "verilator"
+                        "value": "surelog"
                     },
                     "option": {
                         "cmdline": {
-                            "defvalue": [],
+                            "defvalue": [
+                                "-parse"
+                            ],
                             "lock": "false",
                             "requirement": null,
                             "shorthelp": "Executable options",
                             "switch": "-eda_option 'tool step index name <str>'",
                             "type": "[str]",
                             "value": [
-                                "-sv",
-                                "--lint-only",
-                                "--debug"
+                                "-parse"
                             ]
                         }
                     },
@@ -1460,7 +1454,7 @@
                         "shorthelp": "Job parallelism",
                         "switch": "-eda_threads 'tool step index <int>'",
                         "type": "int",
-                        "value": "20"
+                        "value": "2"
                     },
                     "version": {
                         "defvalue": null,
@@ -1469,7 +1463,7 @@
                         "shorthelp": "Executable version number",
                         "switch": "-eda_version 'tool step index <str>'",
                         "type": "str",
-                        "value": "4.211"
+                        "value": "0.0"
                     },
                     "vswitch": {
                         "defvalue": null,
@@ -1536,17 +1530,6 @@
                             "type": "[str]",
                             "value": [
                                 "-c"
-                            ]
-                        },
-                        "techmap": {
-                            "defvalue": [],
-                            "lock": "false",
-                            "requirement": null,
-                            "shorthelp": "Executable options",
-                            "switch": "-eda_option 'tool step index name <str>'",
-                            "type": "[str]",
-                            "value": [
-                                "cells_latch_freepdk45.v"
                             ]
                         }
                     },
@@ -1632,19 +1615,17 @@
         "cts": {
             "0": {
                 "input": {
-                    "placemin": {
-                        "defvalue": [
-                            "0"
-                        ],
-                        "lock": "false",
-                        "requirement": null,
-                        "shorthelp": "Flowgraph step input",
-                        "switch": "-flowgraph_input 'step index stepin <str>'",
-                        "type": "[str]",
-                        "value": [
-                            "0"
-                        ]
-                    }
+                    "defvalue": [
+                        "placemin0"
+                    ],
+                    "lock": "false",
+                    "requirement": null,
+                    "shorthelp": "Flowgraph step input",
+                    "switch": "-flowgraph_input 'step index <str>'",
+                    "type": "[str]",
+                    "value": [
+                        "placemin0"
+                    ]
                 },
                 "tool": {
                     "defvalue": null,
@@ -1754,6 +1735,15 @@
                         "switch": "-flowgraph_weight 'step metric <float>'",
                         "type": "float",
                         "value": "1.0"
+                    },
+                    "irdrop": {
+                        "defvalue": [],
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Flowgraph metric weights",
+                        "switch": "-flowgraph_weight 'step metric <float>'",
+                        "type": "float",
+                        "value": "0.001"
                     },
                     "luts": {
                         "defvalue": [],
@@ -1923,28 +1913,26 @@
         "ctsmin": {
             "0": {
                 "function": {
-                    "defvalue": [],
+                    "defvalue": null,
                     "lock": "false",
                     "requirement": null,
                     "shorthelp": "Flowgraph function selection",
                     "switch": "-flowgraph_function 'step index <str>'",
                     "type": "str",
-                    "value": "minimum"
+                    "value": "step_minimum"
                 },
                 "input": {
-                    "cts": {
-                        "defvalue": [
-                            "0"
-                        ],
-                        "lock": "false",
-                        "requirement": null,
-                        "shorthelp": "Flowgraph step input",
-                        "switch": "-flowgraph_input 'step index stepin <str>'",
-                        "type": "[str]",
-                        "value": [
-                            "0"
-                        ]
-                    }
+                    "defvalue": [
+                        "cts0"
+                    ],
+                    "lock": "false",
+                    "requirement": null,
+                    "shorthelp": "Flowgraph step input",
+                    "switch": "-flowgraph_input 'step index <str>'",
+                    "type": "[str]",
+                    "value": [
+                        "cts0"
+                    ]
                 },
                 "weight": {
                     "brams": {
@@ -2045,6 +2033,15 @@
                         "switch": "-flowgraph_weight 'step metric <float>'",
                         "type": "float",
                         "value": "1.0"
+                    },
+                    "irdrop": {
+                        "defvalue": [],
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Flowgraph metric weights",
+                        "switch": "-flowgraph_weight 'step metric <float>'",
+                        "type": "float",
+                        "value": "0.001"
                     },
                     "luts": {
                         "defvalue": [],
@@ -2214,19 +2211,17 @@
         "dfm": {
             "0": {
                 "input": {
-                    "routemin": {
-                        "defvalue": [
-                            "0"
-                        ],
-                        "lock": "false",
-                        "requirement": null,
-                        "shorthelp": "Flowgraph step input",
-                        "switch": "-flowgraph_input 'step index stepin <str>'",
-                        "type": "[str]",
-                        "value": [
-                            "0"
-                        ]
-                    }
+                    "defvalue": [
+                        "routemin0"
+                    ],
+                    "lock": "false",
+                    "requirement": null,
+                    "shorthelp": "Flowgraph step input",
+                    "switch": "-flowgraph_input 'step index <str>'",
+                    "type": "[str]",
+                    "value": [
+                        "routemin0"
+                    ]
                 },
                 "tool": {
                     "defvalue": null,
@@ -2336,6 +2331,15 @@
                         "switch": "-flowgraph_weight 'step metric <float>'",
                         "type": "float",
                         "value": "1.0"
+                    },
+                    "irdrop": {
+                        "defvalue": [],
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Flowgraph metric weights",
+                        "switch": "-flowgraph_weight 'step metric <float>'",
+                        "type": "float",
+                        "value": "0.001"
                     },
                     "luts": {
                         "defvalue": [],
@@ -2505,28 +2509,26 @@
         "dfmmin": {
             "0": {
                 "function": {
-                    "defvalue": [],
+                    "defvalue": null,
                     "lock": "false",
                     "requirement": null,
                     "shorthelp": "Flowgraph function selection",
                     "switch": "-flowgraph_function 'step index <str>'",
                     "type": "str",
-                    "value": "minimum"
+                    "value": "step_minimum"
                 },
                 "input": {
-                    "dfm": {
-                        "defvalue": [
-                            "0"
-                        ],
-                        "lock": "false",
-                        "requirement": null,
-                        "shorthelp": "Flowgraph step input",
-                        "switch": "-flowgraph_input 'step index stepin <str>'",
-                        "type": "[str]",
-                        "value": [
-                            "0"
-                        ]
-                    }
+                    "defvalue": [
+                        "dfm0"
+                    ],
+                    "lock": "false",
+                    "requirement": null,
+                    "shorthelp": "Flowgraph step input",
+                    "switch": "-flowgraph_input 'step index <str>'",
+                    "type": "[str]",
+                    "value": [
+                        "dfm0"
+                    ]
                 },
                 "weight": {
                     "brams": {
@@ -2627,6 +2629,15 @@
                         "switch": "-flowgraph_weight 'step metric <float>'",
                         "type": "float",
                         "value": "1.0"
+                    },
+                    "irdrop": {
+                        "defvalue": [],
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Flowgraph metric weights",
+                        "switch": "-flowgraph_weight 'step metric <float>'",
+                        "type": "float",
+                        "value": "0.001"
                     },
                     "luts": {
                         "defvalue": [],
@@ -2796,19 +2807,17 @@
         "export": {
             "0": {
                 "input": {
-                    "dfmmin": {
-                        "defvalue": [
-                            "0"
-                        ],
-                        "lock": "false",
-                        "requirement": null,
-                        "shorthelp": "Flowgraph step input",
-                        "switch": "-flowgraph_input 'step index stepin <str>'",
-                        "type": "[str]",
-                        "value": [
-                            "0"
-                        ]
-                    }
+                    "defvalue": [
+                        "dfmmin0"
+                    ],
+                    "lock": "false",
+                    "requirement": null,
+                    "shorthelp": "Flowgraph step input",
+                    "switch": "-flowgraph_input 'step index <str>'",
+                    "type": "[str]",
+                    "value": [
+                        "dfmmin0"
+                    ]
                 },
                 "tool": {
                     "defvalue": null,
@@ -2918,6 +2927,15 @@
                         "switch": "-flowgraph_weight 'step metric <float>'",
                         "type": "float",
                         "value": "1.0"
+                    },
+                    "irdrop": {
+                        "defvalue": [],
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Flowgraph metric weights",
+                        "switch": "-flowgraph_weight 'step metric <float>'",
+                        "type": "float",
+                        "value": "0.001"
                     },
                     "luts": {
                         "defvalue": [],
@@ -3087,19 +3105,17 @@
         "floorplan": {
             "0": {
                 "input": {
-                    "synmin": {
-                        "defvalue": [
-                            "0"
-                        ],
-                        "lock": "false",
-                        "requirement": null,
-                        "shorthelp": "Flowgraph step input",
-                        "switch": "-flowgraph_input 'step index stepin <str>'",
-                        "type": "[str]",
-                        "value": [
-                            "0"
-                        ]
-                    }
+                    "defvalue": [
+                        "synmin0"
+                    ],
+                    "lock": "false",
+                    "requirement": null,
+                    "shorthelp": "Flowgraph step input",
+                    "switch": "-flowgraph_input 'step index <str>'",
+                    "type": "[str]",
+                    "value": [
+                        "synmin0"
+                    ]
                 },
                 "tool": {
                     "defvalue": null,
@@ -3209,6 +3225,15 @@
                         "switch": "-flowgraph_weight 'step metric <float>'",
                         "type": "float",
                         "value": "1.0"
+                    },
+                    "irdrop": {
+                        "defvalue": [],
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Flowgraph metric weights",
+                        "switch": "-flowgraph_weight 'step metric <float>'",
+                        "type": "float",
+                        "value": "0.001"
                     },
                     "luts": {
                         "defvalue": [],
@@ -3378,28 +3403,26 @@
         "floorplanmin": {
             "0": {
                 "function": {
-                    "defvalue": [],
+                    "defvalue": null,
                     "lock": "false",
                     "requirement": null,
                     "shorthelp": "Flowgraph function selection",
                     "switch": "-flowgraph_function 'step index <str>'",
                     "type": "str",
-                    "value": "minimum"
+                    "value": "step_minimum"
                 },
                 "input": {
-                    "floorplan": {
-                        "defvalue": [
-                            "0"
-                        ],
-                        "lock": "false",
-                        "requirement": null,
-                        "shorthelp": "Flowgraph step input",
-                        "switch": "-flowgraph_input 'step index stepin <str>'",
-                        "type": "[str]",
-                        "value": [
-                            "0"
-                        ]
-                    }
+                    "defvalue": [
+                        "floorplan0"
+                    ],
+                    "lock": "false",
+                    "requirement": null,
+                    "shorthelp": "Flowgraph step input",
+                    "switch": "-flowgraph_input 'step index <str>'",
+                    "type": "[str]",
+                    "value": [
+                        "floorplan0"
+                    ]
                 },
                 "weight": {
                     "brams": {
@@ -3500,6 +3523,15 @@
                         "switch": "-flowgraph_weight 'step metric <float>'",
                         "type": "float",
                         "value": "1.0"
+                    },
+                    "irdrop": {
+                        "defvalue": [],
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Flowgraph metric weights",
+                        "switch": "-flowgraph_weight 'step metric <float>'",
+                        "type": "float",
+                        "value": "0.001"
                     },
                     "luts": {
                         "defvalue": [],
@@ -3675,7 +3707,7 @@
                     "shorthelp": "Flowgraph tool selection",
                     "switch": "-flowgraph_tool 'step <str>'",
                     "type": "str",
-                    "value": "verilator"
+                    "value": "surelog"
                 },
                 "weight": {
                     "brams": {
@@ -3776,6 +3808,15 @@
                         "switch": "-flowgraph_weight 'step metric <float>'",
                         "type": "float",
                         "value": "1.0"
+                    },
+                    "irdrop": {
+                        "defvalue": [],
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Flowgraph metric weights",
+                        "switch": "-flowgraph_weight 'step metric <float>'",
+                        "type": "float",
+                        "value": "0.001"
                     },
                     "luts": {
                         "defvalue": [],
@@ -3945,19 +3986,17 @@
         "physyn": {
             "0": {
                 "input": {
-                    "floorplanmin": {
-                        "defvalue": [
-                            "0"
-                        ],
-                        "lock": "false",
-                        "requirement": null,
-                        "shorthelp": "Flowgraph step input",
-                        "switch": "-flowgraph_input 'step index stepin <str>'",
-                        "type": "[str]",
-                        "value": [
-                            "0"
-                        ]
-                    }
+                    "defvalue": [
+                        "floorplanmin0"
+                    ],
+                    "lock": "false",
+                    "requirement": null,
+                    "shorthelp": "Flowgraph step input",
+                    "switch": "-flowgraph_input 'step index <str>'",
+                    "type": "[str]",
+                    "value": [
+                        "floorplanmin0"
+                    ]
                 },
                 "tool": {
                     "defvalue": null,
@@ -4067,6 +4106,15 @@
                         "switch": "-flowgraph_weight 'step metric <float>'",
                         "type": "float",
                         "value": "1.0"
+                    },
+                    "irdrop": {
+                        "defvalue": [],
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Flowgraph metric weights",
+                        "switch": "-flowgraph_weight 'step metric <float>'",
+                        "type": "float",
+                        "value": "0.001"
                     },
                     "luts": {
                         "defvalue": [],
@@ -4236,28 +4284,26 @@
         "physynmin": {
             "0": {
                 "function": {
-                    "defvalue": [],
+                    "defvalue": null,
                     "lock": "false",
                     "requirement": null,
                     "shorthelp": "Flowgraph function selection",
                     "switch": "-flowgraph_function 'step index <str>'",
                     "type": "str",
-                    "value": "minimum"
+                    "value": "step_minimum"
                 },
                 "input": {
-                    "physyn": {
-                        "defvalue": [
-                            "0"
-                        ],
-                        "lock": "false",
-                        "requirement": null,
-                        "shorthelp": "Flowgraph step input",
-                        "switch": "-flowgraph_input 'step index stepin <str>'",
-                        "type": "[str]",
-                        "value": [
-                            "0"
-                        ]
-                    }
+                    "defvalue": [
+                        "physyn0"
+                    ],
+                    "lock": "false",
+                    "requirement": null,
+                    "shorthelp": "Flowgraph step input",
+                    "switch": "-flowgraph_input 'step index <str>'",
+                    "type": "[str]",
+                    "value": [
+                        "physyn0"
+                    ]
                 },
                 "weight": {
                     "brams": {
@@ -4358,6 +4404,15 @@
                         "switch": "-flowgraph_weight 'step metric <float>'",
                         "type": "float",
                         "value": "1.0"
+                    },
+                    "irdrop": {
+                        "defvalue": [],
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Flowgraph metric weights",
+                        "switch": "-flowgraph_weight 'step metric <float>'",
+                        "type": "float",
+                        "value": "0.001"
                     },
                     "luts": {
                         "defvalue": [],
@@ -4527,19 +4582,17 @@
         "place": {
             "0": {
                 "input": {
-                    "physynmin": {
-                        "defvalue": [
-                            "0"
-                        ],
-                        "lock": "false",
-                        "requirement": null,
-                        "shorthelp": "Flowgraph step input",
-                        "switch": "-flowgraph_input 'step index stepin <str>'",
-                        "type": "[str]",
-                        "value": [
-                            "0"
-                        ]
-                    }
+                    "defvalue": [
+                        "physynmin0"
+                    ],
+                    "lock": "false",
+                    "requirement": null,
+                    "shorthelp": "Flowgraph step input",
+                    "switch": "-flowgraph_input 'step index <str>'",
+                    "type": "[str]",
+                    "value": [
+                        "physynmin0"
+                    ]
                 },
                 "tool": {
                     "defvalue": null,
@@ -4649,6 +4702,15 @@
                         "switch": "-flowgraph_weight 'step metric <float>'",
                         "type": "float",
                         "value": "1.0"
+                    },
+                    "irdrop": {
+                        "defvalue": [],
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Flowgraph metric weights",
+                        "switch": "-flowgraph_weight 'step metric <float>'",
+                        "type": "float",
+                        "value": "0.001"
                     },
                     "luts": {
                         "defvalue": [],
@@ -4818,28 +4880,26 @@
         "placemin": {
             "0": {
                 "function": {
-                    "defvalue": [],
+                    "defvalue": null,
                     "lock": "false",
                     "requirement": null,
                     "shorthelp": "Flowgraph function selection",
                     "switch": "-flowgraph_function 'step index <str>'",
                     "type": "str",
-                    "value": "minimum"
+                    "value": "step_minimum"
                 },
                 "input": {
-                    "place": {
-                        "defvalue": [
-                            "0"
-                        ],
-                        "lock": "false",
-                        "requirement": null,
-                        "shorthelp": "Flowgraph step input",
-                        "switch": "-flowgraph_input 'step index stepin <str>'",
-                        "type": "[str]",
-                        "value": [
-                            "0"
-                        ]
-                    }
+                    "defvalue": [
+                        "place0"
+                    ],
+                    "lock": "false",
+                    "requirement": null,
+                    "shorthelp": "Flowgraph step input",
+                    "switch": "-flowgraph_input 'step index <str>'",
+                    "type": "[str]",
+                    "value": [
+                        "place0"
+                    ]
                 },
                 "weight": {
                     "brams": {
@@ -4940,6 +5000,15 @@
                         "switch": "-flowgraph_weight 'step metric <float>'",
                         "type": "float",
                         "value": "1.0"
+                    },
+                    "irdrop": {
+                        "defvalue": [],
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Flowgraph metric weights",
+                        "switch": "-flowgraph_weight 'step metric <float>'",
+                        "type": "float",
+                        "value": "0.001"
                     },
                     "luts": {
                         "defvalue": [],
@@ -5109,19 +5178,17 @@
         "route": {
             "0": {
                 "input": {
-                    "ctsmin": {
-                        "defvalue": [
-                            "0"
-                        ],
-                        "lock": "false",
-                        "requirement": null,
-                        "shorthelp": "Flowgraph step input",
-                        "switch": "-flowgraph_input 'step index stepin <str>'",
-                        "type": "[str]",
-                        "value": [
-                            "0"
-                        ]
-                    }
+                    "defvalue": [
+                        "ctsmin0"
+                    ],
+                    "lock": "false",
+                    "requirement": null,
+                    "shorthelp": "Flowgraph step input",
+                    "switch": "-flowgraph_input 'step index <str>'",
+                    "type": "[str]",
+                    "value": [
+                        "ctsmin0"
+                    ]
                 },
                 "tool": {
                     "defvalue": null,
@@ -5231,6 +5298,15 @@
                         "switch": "-flowgraph_weight 'step metric <float>'",
                         "type": "float",
                         "value": "1.0"
+                    },
+                    "irdrop": {
+                        "defvalue": [],
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Flowgraph metric weights",
+                        "switch": "-flowgraph_weight 'step metric <float>'",
+                        "type": "float",
+                        "value": "0.001"
                     },
                     "luts": {
                         "defvalue": [],
@@ -5400,28 +5476,26 @@
         "routemin": {
             "0": {
                 "function": {
-                    "defvalue": [],
+                    "defvalue": null,
                     "lock": "false",
                     "requirement": null,
                     "shorthelp": "Flowgraph function selection",
                     "switch": "-flowgraph_function 'step index <str>'",
                     "type": "str",
-                    "value": "minimum"
+                    "value": "step_minimum"
                 },
                 "input": {
-                    "route": {
-                        "defvalue": [
-                            "0"
-                        ],
-                        "lock": "false",
-                        "requirement": null,
-                        "shorthelp": "Flowgraph step input",
-                        "switch": "-flowgraph_input 'step index stepin <str>'",
-                        "type": "[str]",
-                        "value": [
-                            "0"
-                        ]
-                    }
+                    "defvalue": [
+                        "route0"
+                    ],
+                    "lock": "false",
+                    "requirement": null,
+                    "shorthelp": "Flowgraph step input",
+                    "switch": "-flowgraph_input 'step index <str>'",
+                    "type": "[str]",
+                    "value": [
+                        "route0"
+                    ]
                 },
                 "weight": {
                     "brams": {
@@ -5522,6 +5596,15 @@
                         "switch": "-flowgraph_weight 'step metric <float>'",
                         "type": "float",
                         "value": "1.0"
+                    },
+                    "irdrop": {
+                        "defvalue": [],
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Flowgraph metric weights",
+                        "switch": "-flowgraph_weight 'step metric <float>'",
+                        "type": "float",
+                        "value": "0.001"
                     },
                     "luts": {
                         "defvalue": [],
@@ -5691,19 +5774,17 @@
         "syn": {
             "0": {
                 "input": {
-                    "import": {
-                        "defvalue": [
-                            "0"
-                        ],
-                        "lock": "false",
-                        "requirement": null,
-                        "shorthelp": "Flowgraph step input",
-                        "switch": "-flowgraph_input 'step index stepin <str>'",
-                        "type": "[str]",
-                        "value": [
-                            "0"
-                        ]
-                    }
+                    "defvalue": [
+                        "import0"
+                    ],
+                    "lock": "false",
+                    "requirement": null,
+                    "shorthelp": "Flowgraph step input",
+                    "switch": "-flowgraph_input 'step index <str>'",
+                    "type": "[str]",
+                    "value": [
+                        "import0"
+                    ]
                 },
                 "tool": {
                     "defvalue": null,
@@ -5813,6 +5894,15 @@
                         "switch": "-flowgraph_weight 'step metric <float>'",
                         "type": "float",
                         "value": "1.0"
+                    },
+                    "irdrop": {
+                        "defvalue": [],
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Flowgraph metric weights",
+                        "switch": "-flowgraph_weight 'step metric <float>'",
+                        "type": "float",
+                        "value": "0.001"
                     },
                     "luts": {
                         "defvalue": [],
@@ -5982,28 +6072,26 @@
         "synmin": {
             "0": {
                 "function": {
-                    "defvalue": [],
+                    "defvalue": null,
                     "lock": "false",
                     "requirement": null,
                     "shorthelp": "Flowgraph function selection",
                     "switch": "-flowgraph_function 'step index <str>'",
                     "type": "str",
-                    "value": "minimum"
+                    "value": "step_minimum"
                 },
                 "input": {
-                    "syn": {
-                        "defvalue": [
-                            "0"
-                        ],
-                        "lock": "false",
-                        "requirement": null,
-                        "shorthelp": "Flowgraph step input",
-                        "switch": "-flowgraph_input 'step index stepin <str>'",
-                        "type": "[str]",
-                        "value": [
-                            "0"
-                        ]
-                    }
+                    "defvalue": [
+                        "syn0"
+                    ],
+                    "lock": "false",
+                    "requirement": null,
+                    "shorthelp": "Flowgraph step input",
+                    "switch": "-flowgraph_input 'step index <str>'",
+                    "type": "[str]",
+                    "value": [
+                        "syn0"
+                    ]
                 },
                 "weight": {
                     "brams": {
@@ -6104,6 +6192,15 @@
                         "switch": "-flowgraph_weight 'step metric <float>'",
                         "type": "float",
                         "value": "1.0"
+                    },
+                    "irdrop": {
+                        "defvalue": [],
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Flowgraph metric weights",
+                        "switch": "-flowgraph_weight 'step metric <float>'",
+                        "type": "float",
+                        "value": "0.001"
                     },
                     "luts": {
                         "defvalue": [],
@@ -6281,7 +6378,18 @@
                     "shorthelp": "Flowgraph index error status",
                     "switch": "-flowstatus_error 'step index <int>'",
                     "type": "int",
-                    "value": "0"
+                    "value": "1"
+                },
+                "select": {
+                    "defvalue": [],
+                    "lock": "false",
+                    "requirement": null,
+                    "shorthelp": "Flowgraph select record",
+                    "switch": "-flowstatus_select 'step index <str>'",
+                    "type": "[str]",
+                    "value": [
+                        "placemin0"
+                    ]
                 }
             }
         },
@@ -6294,7 +6402,7 @@
                     "shorthelp": "Flowgraph index error status",
                     "switch": "-flowstatus_error 'step index <int>'",
                     "type": "int",
-                    "value": "0"
+                    "value": "1"
                 },
                 "select": {
                     "defvalue": [],
@@ -6318,7 +6426,18 @@
                     "shorthelp": "Flowgraph index error status",
                     "switch": "-flowstatus_error 'step index <int>'",
                     "type": "int",
-                    "value": "0"
+                    "value": "1"
+                },
+                "select": {
+                    "defvalue": [],
+                    "lock": "false",
+                    "requirement": null,
+                    "shorthelp": "Flowgraph select record",
+                    "switch": "-flowstatus_select 'step index <str>'",
+                    "type": "[str]",
+                    "value": [
+                        "routemin0"
+                    ]
                 }
             }
         },
@@ -6356,6 +6475,17 @@
                     "switch": "-flowstatus_error 'step index <int>'",
                     "type": "int",
                     "value": "0"
+                },
+                "select": {
+                    "defvalue": [],
+                    "lock": "false",
+                    "requirement": null,
+                    "shorthelp": "Flowgraph select record",
+                    "switch": "-flowstatus_select 'step index <str>'",
+                    "type": "[str]",
+                    "value": [
+                        "dfmmin0"
+                    ]
                 }
             }
         },
@@ -6368,7 +6498,18 @@
                     "shorthelp": "Flowgraph index error status",
                     "switch": "-flowstatus_error 'step index <int>'",
                     "type": "int",
-                    "value": "0"
+                    "value": "1"
+                },
+                "select": {
+                    "defvalue": [],
+                    "lock": "false",
+                    "requirement": null,
+                    "shorthelp": "Flowgraph select record",
+                    "switch": "-flowstatus_select 'step index <str>'",
+                    "type": "[str]",
+                    "value": [
+                        "synmin0"
+                    ]
                 }
             }
         },
@@ -6381,7 +6522,7 @@
                     "shorthelp": "Flowgraph index error status",
                     "switch": "-flowstatus_error 'step index <int>'",
                     "type": "int",
-                    "value": "0"
+                    "value": "1"
                 },
                 "select": {
                     "defvalue": [],
@@ -6405,7 +6546,7 @@
                     "shorthelp": "Flowgraph index error status",
                     "switch": "-flowstatus_error 'step index <int>'",
                     "type": "int",
-                    "value": "0"
+                    "value": "1"
                 }
             }
         },
@@ -6418,7 +6559,18 @@
                     "shorthelp": "Flowgraph index error status",
                     "switch": "-flowstatus_error 'step index <int>'",
                     "type": "int",
-                    "value": "0"
+                    "value": "1"
+                },
+                "select": {
+                    "defvalue": [],
+                    "lock": "false",
+                    "requirement": null,
+                    "shorthelp": "Flowgraph select record",
+                    "switch": "-flowstatus_select 'step index <str>'",
+                    "type": "[str]",
+                    "value": [
+                        "floorplanmin0"
+                    ]
                 }
             }
         },
@@ -6431,7 +6583,7 @@
                     "shorthelp": "Flowgraph index error status",
                     "switch": "-flowstatus_error 'step index <int>'",
                     "type": "int",
-                    "value": "0"
+                    "value": "1"
                 },
                 "select": {
                     "defvalue": [],
@@ -6455,7 +6607,18 @@
                     "shorthelp": "Flowgraph index error status",
                     "switch": "-flowstatus_error 'step index <int>'",
                     "type": "int",
-                    "value": "0"
+                    "value": "1"
+                },
+                "select": {
+                    "defvalue": [],
+                    "lock": "false",
+                    "requirement": null,
+                    "shorthelp": "Flowgraph select record",
+                    "switch": "-flowstatus_select 'step index <str>'",
+                    "type": "[str]",
+                    "value": [
+                        "physynmin0"
+                    ]
                 }
             }
         },
@@ -6468,7 +6631,7 @@
                     "shorthelp": "Flowgraph index error status",
                     "switch": "-flowstatus_error 'step index <int>'",
                     "type": "int",
-                    "value": "0"
+                    "value": "1"
                 },
                 "select": {
                     "defvalue": [],
@@ -6492,7 +6655,18 @@
                     "shorthelp": "Flowgraph index error status",
                     "switch": "-flowstatus_error 'step index <int>'",
                     "type": "int",
-                    "value": "0"
+                    "value": "1"
+                },
+                "select": {
+                    "defvalue": [],
+                    "lock": "false",
+                    "requirement": null,
+                    "shorthelp": "Flowgraph select record",
+                    "switch": "-flowstatus_select 'step index <str>'",
+                    "type": "[str]",
+                    "value": [
+                        "ctsmin0"
+                    ]
                 }
             }
         },
@@ -6505,7 +6679,7 @@
                     "shorthelp": "Flowgraph index error status",
                     "switch": "-flowstatus_error 'step index <int>'",
                     "type": "int",
-                    "value": "0"
+                    "value": "1"
                 },
                 "select": {
                     "defvalue": [],
@@ -6529,7 +6703,18 @@
                     "shorthelp": "Flowgraph index error status",
                     "switch": "-flowstatus_error 'step index <int>'",
                     "type": "int",
-                    "value": "0"
+                    "value": "1"
+                },
+                "select": {
+                    "defvalue": [],
+                    "lock": "false",
+                    "requirement": null,
+                    "shorthelp": "Flowgraph select record",
+                    "switch": "-flowstatus_select 'step index <str>'",
+                    "type": "[str]",
+                    "value": [
+                        "import0"
+                    ]
                 }
             }
         },
@@ -6542,7 +6727,7 @@
                     "shorthelp": "Flowgraph index error status",
                     "switch": "-flowstatus_error 'step index <int>'",
                     "type": "int",
-                    "value": "0"
+                    "value": "1"
                 },
                 "select": {
                     "defvalue": [],
@@ -6582,37 +6767,28 @@
         "defvalue": "OFF",
         "lock": "false",
         "requirement": "all",
-        "shorthelp": "File Hash Mode",
+        "shorthelp": "File hash mode",
         "switch": "-hashmode <str>",
         "type": "str",
         "value": "OFF"
-    },
-    "jobid": {
-        "defvalue": "0",
-        "lock": "false",
-        "requirement": "all",
-        "shorthelp": "Job ID",
-        "switch": "-jobid <int>",
-        "type": "int",
-        "value": "0"
     },
     "jobincr": {
         "defvalue": "false",
         "lock": "false",
         "requirement": "all",
-        "shorthelp": "Job ID auto increment mode ",
+        "shorthelp": "Enables jobname auto-increment mode",
         "switch": "-jobincr <bool>",
         "type": "bool",
         "value": "false"
     },
     "jobname": {
-        "defvalue": "job",
+        "defvalue": "job0",
         "lock": "false",
         "requirement": "all",
-        "shorthelp": "Job name prefix",
+        "shorthelp": "Job name",
         "switch": "-jobname <str>",
         "type": "str",
-        "value": "job"
+        "value": "job0"
     },
     "library": {
         "NangateOpenCellLibrary": {
@@ -6935,7 +7111,7 @@
                         "shorthelp": "Cell area metric",
                         "switch": "-metric_cellarea step index group <float>",
                         "type": "float",
-                        "value": "499.0"
+                        "value": "498.0"
                     }
                 },
                 "cells": {
@@ -7030,7 +7206,7 @@
                         "shorthelp": "Hold TNS metric",
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -7050,7 +7226,7 @@
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -7058,6 +7234,17 @@
                         "requirement": null,
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
+                        "type": "float",
+                        "value": "0.0"
+                    }
+                },
+                "irdrop": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Peak IR drop",
+                        "switch": "-metric_irdrop 'step index group <int>'",
                         "type": "float",
                         "value": "0.0"
                     }
@@ -7114,7 +7301,7 @@
                         "shorthelp": "Total power metric",
                         "switch": "-metric_peakpower step index group <float>",
                         "type": "float",
-                        "value": "0.000279"
+                        "value": "0.000278"
                     }
                 },
                 "pins": {
@@ -7158,7 +7345,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "2.66"
+                        "value": "7.3"
                     }
                 },
                 "setuppaths": {
@@ -7180,7 +7367,7 @@
                         "shorthelp": "Setup TNS metric",
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -7200,7 +7387,7 @@
                         "shorthelp": "Setup slack metric",
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -7416,7 +7603,7 @@
                         "shorthelp": "Hold TNS metric",
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -7436,7 +7623,7 @@
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -7444,6 +7631,17 @@
                         "requirement": null,
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
+                        "type": "float",
+                        "value": "0.0"
+                    }
+                },
+                "irdrop": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Peak IR drop",
+                        "switch": "-metric_irdrop 'step index group <int>'",
                         "type": "float",
                         "value": "0.0"
                     }
@@ -7544,7 +7742,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.46"
+                        "value": "0.82"
                     }
                 },
                 "setuppaths": {
@@ -7566,7 +7764,7 @@
                         "shorthelp": "Setup TNS metric",
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -7586,7 +7784,7 @@
                         "shorthelp": "Setup slack metric",
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -7707,7 +7905,7 @@
                         "shorthelp": "Cell area metric",
                         "switch": "-metric_cellarea step index group <float>",
                         "type": "float",
-                        "value": "499.0"
+                        "value": "498.0"
                     }
                 },
                 "cells": {
@@ -7718,7 +7916,7 @@
                         "shorthelp": "Number of cells in the design",
                         "switch": "-metric_cells step index group <int>",
                         "type": "int",
-                        "value": "1869"
+                        "value": "1870"
                     }
                 },
                 "density": {
@@ -7802,7 +8000,7 @@
                         "shorthelp": "Hold TNS metric",
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -7822,7 +8020,7 @@
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -7830,6 +8028,17 @@
                         "requirement": null,
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
+                        "type": "float",
+                        "value": "0.0"
+                    }
+                },
+                "irdrop": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Peak IR drop",
+                        "switch": "-metric_irdrop 'step index group <int>'",
                         "type": "float",
                         "value": "0.0"
                     }
@@ -7886,7 +8095,7 @@
                         "shorthelp": "Total power metric",
                         "switch": "-metric_peakpower step index group <float>",
                         "type": "float",
-                        "value": "0.000292"
+                        "value": "0.000291"
                     }
                 },
                 "pins": {
@@ -7930,7 +8139,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "1.29"
+                        "value": "2.18"
                     }
                 },
                 "setuppaths": {
@@ -7952,7 +8161,7 @@
                         "shorthelp": "Setup TNS metric",
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -7972,7 +8181,7 @@
                         "shorthelp": "Setup slack metric",
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -8188,7 +8397,7 @@
                         "shorthelp": "Hold TNS metric",
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -8208,7 +8417,7 @@
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -8216,6 +8425,17 @@
                         "requirement": null,
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
+                        "type": "float",
+                        "value": "0.0"
+                    }
+                },
+                "irdrop": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Peak IR drop",
+                        "switch": "-metric_irdrop 'step index group <int>'",
                         "type": "float",
                         "value": "0.0"
                     }
@@ -8316,7 +8536,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.53"
+                        "value": "0.97"
                     }
                 },
                 "setuppaths": {
@@ -8338,7 +8558,7 @@
                         "shorthelp": "Setup TNS metric",
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -8358,7 +8578,7 @@
                         "shorthelp": "Setup slack metric",
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -8574,7 +8794,7 @@
                         "shorthelp": "Hold TNS metric",
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -8594,7 +8814,7 @@
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -8602,6 +8822,17 @@
                         "requirement": null,
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
+                        "type": "float",
+                        "value": "0"
+                    }
+                },
+                "irdrop": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Peak IR drop",
+                        "switch": "-metric_irdrop 'step index group <int>'",
                         "type": "float",
                         "value": "0"
                     }
@@ -8702,7 +8933,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "1.37"
+                        "value": "2.25"
                     }
                 },
                 "setuppaths": {
@@ -8724,7 +8955,7 @@
                         "shorthelp": "Setup TNS metric",
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -8744,7 +8975,7 @@
                         "shorthelp": "Setup slack metric",
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -8960,7 +9191,7 @@
                         "shorthelp": "Hold TNS metric",
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -8980,7 +9211,7 @@
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -8988,6 +9219,17 @@
                         "requirement": null,
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
+                        "type": "float",
+                        "value": "0.0"
+                    }
+                },
+                "irdrop": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Peak IR drop",
+                        "switch": "-metric_irdrop 'step index group <int>'",
                         "type": "float",
                         "value": "0.0"
                     }
@@ -9088,7 +9330,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "1.13"
+                        "value": "1.97"
                     }
                 },
                 "setuppaths": {
@@ -9110,7 +9352,7 @@
                         "shorthelp": "Setup TNS metric",
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -9130,7 +9372,7 @@
                         "shorthelp": "Setup slack metric",
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -9346,7 +9588,7 @@
                         "shorthelp": "Hold TNS metric",
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -9366,7 +9608,7 @@
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -9374,6 +9616,17 @@
                         "requirement": null,
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
+                        "type": "float",
+                        "value": "0.0"
+                    }
+                },
+                "irdrop": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Peak IR drop",
+                        "switch": "-metric_irdrop 'step index group <int>'",
                         "type": "float",
                         "value": "0.0"
                     }
@@ -9474,7 +9727,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.38"
+                        "value": "1.01"
                     }
                 },
                 "setuppaths": {
@@ -9496,7 +9749,7 @@
                         "shorthelp": "Setup TNS metric",
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -9516,7 +9769,7 @@
                         "shorthelp": "Setup slack metric",
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -9732,7 +9985,7 @@
                         "shorthelp": "Hold TNS metric",
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -9752,7 +10005,7 @@
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -9760,6 +10013,17 @@
                         "requirement": null,
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
+                        "type": "float",
+                        "value": "0.0"
+                    }
+                },
+                "irdrop": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Peak IR drop",
+                        "switch": "-metric_irdrop 'step index group <int>'",
                         "type": "float",
                         "value": "0.0"
                     }
@@ -9860,7 +10124,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.48"
+                        "value": "1.2"
                     }
                 },
                 "setuppaths": {
@@ -9882,7 +10146,7 @@
                         "shorthelp": "Setup TNS metric",
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -9902,7 +10166,7 @@
                         "shorthelp": "Setup slack metric",
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -10118,7 +10382,7 @@
                         "shorthelp": "Hold TNS metric",
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -10138,7 +10402,7 @@
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -10146,6 +10410,17 @@
                         "requirement": null,
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
+                        "type": "float",
+                        "value": "0.0"
+                    }
+                },
+                "irdrop": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Peak IR drop",
+                        "switch": "-metric_irdrop 'step index group <int>'",
                         "type": "float",
                         "value": "0.0"
                     }
@@ -10246,7 +10521,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "1.23"
+                        "value": "2.17"
                     }
                 },
                 "setuppaths": {
@@ -10268,7 +10543,7 @@
                         "shorthelp": "Setup TNS metric",
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -10288,7 +10563,7 @@
                         "shorthelp": "Setup slack metric",
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -10504,7 +10779,7 @@
                         "shorthelp": "Hold TNS metric",
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -10524,7 +10799,7 @@
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -10532,6 +10807,17 @@
                         "requirement": null,
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
+                        "type": "float",
+                        "value": "0.0"
+                    }
+                },
+                "irdrop": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Peak IR drop",
+                        "switch": "-metric_irdrop 'step index group <int>'",
                         "type": "float",
                         "value": "0.0"
                     }
@@ -10632,7 +10918,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.42"
+                        "value": "0.75"
                     }
                 },
                 "setuppaths": {
@@ -10654,7 +10940,7 @@
                         "shorthelp": "Setup TNS metric",
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -10674,7 +10960,7 @@
                         "shorthelp": "Setup slack metric",
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -10795,7 +11081,7 @@
                         "shorthelp": "Cell area metric",
                         "switch": "-metric_cellarea step index group <float>",
                         "type": "float",
-                        "value": "490.0"
+                        "value": "489.0"
                     }
                 },
                 "cells": {
@@ -10890,7 +11176,7 @@
                         "shorthelp": "Hold TNS metric",
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -10910,7 +11196,7 @@
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -10918,6 +11204,17 @@
                         "requirement": null,
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
+                        "type": "float",
+                        "value": "0.0"
+                    }
+                },
+                "irdrop": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Peak IR drop",
+                        "switch": "-metric_irdrop 'step index group <int>'",
                         "type": "float",
                         "value": "0.0"
                     }
@@ -10974,7 +11271,7 @@
                         "shorthelp": "Total power metric",
                         "switch": "-metric_peakpower step index group <float>",
                         "type": "float",
-                        "value": "0.000207"
+                        "value": "0.000206"
                     }
                 },
                 "pins": {
@@ -11018,7 +11315,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "1.38"
+                        "value": "5.9"
                     }
                 },
                 "setuppaths": {
@@ -11040,7 +11337,7 @@
                         "shorthelp": "Setup TNS metric",
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -11060,7 +11357,7 @@
                         "shorthelp": "Setup slack metric",
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -11276,7 +11573,7 @@
                         "shorthelp": "Hold TNS metric",
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -11296,7 +11593,7 @@
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -11304,6 +11601,17 @@
                         "requirement": null,
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
+                        "type": "float",
+                        "value": "0.0"
+                    }
+                },
+                "irdrop": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Peak IR drop",
+                        "switch": "-metric_irdrop 'step index group <int>'",
                         "type": "float",
                         "value": "0.0"
                     }
@@ -11404,7 +11712,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.44"
+                        "value": "0.86"
                     }
                 },
                 "setuppaths": {
@@ -11426,7 +11734,7 @@
                         "shorthelp": "Setup TNS metric",
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -11446,7 +11754,7 @@
                         "shorthelp": "Setup slack metric",
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -11567,7 +11875,7 @@
                         "shorthelp": "Cell area metric",
                         "switch": "-metric_cellarea step index group <float>",
                         "type": "float",
-                        "value": "499.0"
+                        "value": "498.0"
                     }
                 },
                 "cells": {
@@ -11578,7 +11886,7 @@
                         "shorthelp": "Number of cells in the design",
                         "switch": "-metric_cells step index group <int>",
                         "type": "int",
-                        "value": "1869"
+                        "value": "1870"
                     }
                 },
                 "density": {
@@ -11662,7 +11970,7 @@
                         "shorthelp": "Hold TNS metric",
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -11682,7 +11990,7 @@
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -11690,6 +11998,17 @@
                         "requirement": null,
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
+                        "type": "float",
+                        "value": "0.0"
+                    }
+                },
+                "irdrop": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Peak IR drop",
+                        "switch": "-metric_irdrop 'step index group <int>'",
                         "type": "float",
                         "value": "0.0"
                     }
@@ -11790,7 +12109,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "2.84"
+                        "value": "10.33"
                     }
                 },
                 "setuppaths": {
@@ -11812,7 +12131,7 @@
                         "shorthelp": "Setup TNS metric",
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -11832,7 +12151,7 @@
                         "shorthelp": "Setup slack metric",
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -11874,7 +12193,7 @@
                         "shorthelp": "Number of vias in the design",
                         "switch": "-metric_vias step index group <int>",
                         "type": "int",
-                        "value": "2194"
+                        "value": "2176"
                     }
                 },
                 "warnings": {
@@ -11905,7 +12224,7 @@
                         "shorthelp": "Total lenght of all wires in the design",
                         "switch": "-metric_wirelength step index group <float>",
                         "type": "float",
-                        "value": "6291.0"
+                        "value": "6267.0"
                     }
                 },
                 "xtors": {
@@ -12048,7 +12367,7 @@
                         "shorthelp": "Hold TNS metric",
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -12068,7 +12387,7 @@
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -12076,6 +12395,17 @@
                         "requirement": null,
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
+                        "type": "float",
+                        "value": "0.0"
+                    }
+                },
+                "irdrop": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Peak IR drop",
+                        "switch": "-metric_irdrop 'step index group <int>'",
                         "type": "float",
                         "value": "0.0"
                     }
@@ -12176,7 +12506,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.49"
+                        "value": "0.91"
                     }
                 },
                 "setuppaths": {
@@ -12198,7 +12528,7 @@
                         "shorthelp": "Setup TNS metric",
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -12218,7 +12548,7 @@
                         "shorthelp": "Setup slack metric",
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -12434,7 +12764,7 @@
                         "shorthelp": "Hold TNS metric",
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -12454,7 +12784,7 @@
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -12462,6 +12792,17 @@
                         "requirement": null,
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
+                        "type": "float",
+                        "value": "0.0"
+                    }
+                },
+                "irdrop": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Peak IR drop",
+                        "switch": "-metric_irdrop 'step index group <int>'",
                         "type": "float",
                         "value": "0.0"
                     }
@@ -12562,7 +12903,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.98"
+                        "value": "1.7"
                     }
                 },
                 "setuppaths": {
@@ -12584,7 +12925,7 @@
                         "shorthelp": "Setup TNS metric",
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -12604,7 +12945,7 @@
                         "shorthelp": "Setup slack metric",
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -12820,7 +13161,7 @@
                         "shorthelp": "Hold TNS metric",
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -12840,7 +13181,7 @@
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -12848,6 +13189,17 @@
                         "requirement": null,
                         "shorthelp": "Hold slack metric",
                         "switch": "-metric_holdwns 'step index group <float>'",
+                        "type": "float",
+                        "value": "0.0"
+                    }
+                },
+                "irdrop": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "requirement": null,
+                        "shorthelp": "Peak IR drop",
+                        "switch": "-metric_irdrop 'step index group <int>'",
                         "type": "float",
                         "value": "0.0"
                     }
@@ -12948,7 +13300,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.35"
+                        "value": "0.63"
                     }
                 },
                 "setuppaths": {
@@ -12970,7 +13322,7 @@
                         "shorthelp": "Setup TNS metric",
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -12990,7 +13342,7 @@
                         "shorthelp": "Setup slack metric",
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "value": "0"
                     },
                     "real": {
                         "defvalue": null,
@@ -13093,7 +13445,7 @@
         "defvalue": "O0",
         "lock": "false",
         "requirement": "all",
-        "shorthelp": "Optimization Mode",
+        "shorthelp": "Optimization mode",
         "switch": "-O<str>",
         "type": "str",
         "value": "O0"
@@ -13138,7 +13490,7 @@
             "shorthelp": "Wafer edge keepout margin",
             "switch": "-pdk_edgemargin <float>",
             "type": "float",
-            "value": "2.0"
+            "value": "2"
         },
         "foundry": {
             "defvalue": null,
@@ -13752,7 +14104,7 @@
             "shorthelp": "Process node",
             "switch": "-pdk_node <float>",
             "type": "float",
-            "value": "45.0"
+            "value": "45"
         },
         "process": {
             "defvalue": null,
@@ -13781,7 +14133,7 @@
             "shorthelp": "Tap cell max distance rule",
             "switch": "-pdk_tapmax <float>",
             "type": "float",
-            "value": "120.0"
+            "value": "120"
         },
         "tapoffset": {
             "defvalue": null,
@@ -13790,7 +14142,7 @@
             "shorthelp": "Tap cell offset rule",
             "switch": "-pdk_tapoffset <float>",
             "type": "float",
-            "value": "0.0"
+            "value": "0"
         },
         "version": {
             "defvalue": null,
@@ -13817,17 +14169,8 @@
             "shorthelp": "Wafer size",
             "switch": "-pdk_wafersize <float>",
             "type": "float",
-            "value": "300.0"
+            "value": "300"
         }
-    },
-    "printversion": {
-        "defvalue": "false",
-        "lock": "false",
-        "requirement": "all",
-        "shorthelp": "Print version number",
-        "switch": "-version <bool>",
-        "type": "bool",
-        "value": "false"
     },
     "quiet": {
         "defvalue": "false",
@@ -13837,360 +14180,6 @@
         "switch": "-quiet <bool>",
         "type": "bool",
         "value": "true"
-    },
-    "record": {
-        "cts": {
-            "0": {
-                "endtime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run end time",
-                    "switch": "-record_endtime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:15"
-                },
-                "starttime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run start time",
-                    "switch": "-record_starttime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:12"
-                }
-            }
-        },
-        "ctsmin": {
-            "0": {
-                "endtime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run end time",
-                    "switch": "-record_endtime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:16"
-                },
-                "starttime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run start time",
-                    "switch": "-record_starttime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:15"
-                }
-            }
-        },
-        "dfm": {
-            "0": {
-                "endtime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run end time",
-                    "switch": "-record_endtime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:21"
-                },
-                "starttime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run start time",
-                    "switch": "-record_starttime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:20"
-                }
-            }
-        },
-        "dfmmin": {
-            "0": {
-                "endtime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run end time",
-                    "switch": "-record_endtime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:22"
-                },
-                "starttime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run start time",
-                    "switch": "-record_starttime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:21"
-                }
-            }
-        },
-        "export": {
-            "0": {
-                "endtime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run end time",
-                    "switch": "-record_endtime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:23"
-                },
-                "starttime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run start time",
-                    "switch": "-record_starttime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:22"
-                }
-            }
-        },
-        "floorplan": {
-            "0": {
-                "endtime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run end time",
-                    "switch": "-record_endtime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:07"
-                },
-                "starttime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run start time",
-                    "switch": "-record_starttime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:06"
-                }
-            }
-        },
-        "floorplanmin": {
-            "0": {
-                "endtime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run end time",
-                    "switch": "-record_endtime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:08"
-                },
-                "starttime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run start time",
-                    "switch": "-record_starttime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:08"
-                }
-            }
-        },
-        "import": {
-            "0": {
-                "endtime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run end time",
-                    "switch": "-record_endtime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:04"
-                },
-                "starttime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run start time",
-                    "switch": "-record_starttime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:04"
-                }
-            }
-        },
-        "physyn": {
-            "0": {
-                "endtime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run end time",
-                    "switch": "-record_endtime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:09"
-                },
-                "starttime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run start time",
-                    "switch": "-record_starttime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:08"
-                }
-            }
-        },
-        "physynmin": {
-            "0": {
-                "endtime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run end time",
-                    "switch": "-record_endtime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:10"
-                },
-                "starttime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run start time",
-                    "switch": "-record_starttime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:10"
-                }
-            }
-        },
-        "place": {
-            "0": {
-                "endtime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run end time",
-                    "switch": "-record_endtime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:12"
-                },
-                "starttime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run start time",
-                    "switch": "-record_starttime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:10"
-                }
-            }
-        },
-        "placemin": {
-            "0": {
-                "endtime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run end time",
-                    "switch": "-record_endtime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:12"
-                },
-                "starttime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run start time",
-                    "switch": "-record_starttime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:12"
-                }
-            }
-        },
-        "route": {
-            "0": {
-                "endtime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run end time",
-                    "switch": "-record_endtime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:19"
-                },
-                "starttime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run start time",
-                    "switch": "-record_starttime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:16"
-                }
-            }
-        },
-        "routemin": {
-            "0": {
-                "endtime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run end time",
-                    "switch": "-record_endtime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:19"
-                },
-                "starttime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run start time",
-                    "switch": "-record_starttime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:19"
-                }
-            }
-        },
-        "syn": {
-            "0": {
-                "endtime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run end time",
-                    "switch": "-record_endtime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:06"
-                },
-                "starttime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run start time",
-                    "switch": "-record_starttime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:05"
-                }
-            }
-        },
-        "synmin": {
-            "0": {
-                "endtime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run end time",
-                    "switch": "-record_endtime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:06"
-                },
-                "starttime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "requirement": null,
-                    "shorthelp": "Record of run start time",
-                    "switch": "-record_starttime 'step index <str>'",
-                    "type": "str",
-                    "value": "2021-09-30 08:49:06"
-                }
-            }
-        }
     },
     "relax": {
         "defvalue": "false",
@@ -14253,7 +14242,7 @@
         "shorthelp": "SC version number",
         "switch": "-scversion <str>",
         "type": "str",
-        "value": "0.0.1"
+        "value": "0.1.0"
     },
     "showtool": {
         "def": {
@@ -14263,7 +14252,7 @@
             "shorthelp": "Selects tool for file display",
             "switch": "-showtool 'filetype <str>'",
             "type": "str",
-            "value": "openroad"
+            "value": "klayout"
         },
         "gds": {
             "defvalue": null,
@@ -14307,8 +14296,17 @@
         "defvalue": "false",
         "lock": "false",
         "requirement": "all",
-        "shorthelp": "Output simulation trace",
+        "shorthelp": "Enables simulation trace output",
         "switch": "-trace <bool>",
+        "type": "bool",
+        "value": "false"
+    },
+    "version": {
+        "defvalue": "false",
+        "lock": "false",
+        "requirement": "all",
+        "shorthelp": "Print version number",
+        "switch": "-version <bool>",
         "type": "bool",
         "value": "false"
     }
