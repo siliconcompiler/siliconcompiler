@@ -1098,28 +1098,30 @@ class Chip:
             varpath = os.getenv(item)
             filename = filename.replace("$"+item, varpath)
 
-        # Handling relative path and abspath matches
+        # If we have a path relative to our cwd or an abs path, pass-through here
         if os.path.exists(os.path.abspath(filename)):
-            filename = os.path.abspath(filename)
-        # Matching paths relative to scpaths
-        else:
-            scpaths = [self.cwd]
-            scpaths.append(self.scroot)
-            scpaths.extend(self.get('scpath'))
-            found = False
-            for searchdir in scpaths:
-                abspath = os.path.abspath(searchdir + "/" + filename)
-                if os.path.exists(abspath):
-                    found = True
-                    break
-            if found:
-                filename = abspath
-            else:
-                filename = None
-                if not missing_ok:
-                    self.error = 1
-                    self.logger.error(f"File {abspath} was not found")
-        return filename
+            return os.path.abspath(filename)
+
+        # Otherwise, search relative to scpaths
+        scpaths = [self.cwd]
+        scpaths.append(self.scroot)
+        scpaths.extend(self.get('scpath'))
+
+        searchdirs = ', '.join(scpaths)
+        self.logger.debug(f"Searching for file {filename} in {searchdirs}")
+
+        result = None
+        for searchdir in scpaths:
+            abspath = os.path.abspath(searchdir + "/" + filename)
+            if os.path.exists(abspath):
+                result = abspath
+                break
+
+        if result is None and not missing_ok:
+            self.error = 1
+            self.logger.error(f"File {filename} was not found")
+
+        return result
 
     ###########################################################################
     def find_result(self, filetype, step, jobname='job0', index='0'):
@@ -1144,7 +1146,7 @@ class Chip:
 
         workdir = self._getworkdir(jobname, step, index)
         design = self.get('design')
-        filename = f"{workdir}/outputs/{design}{filetype}"
+        filename = f"{workdir}/outputs/{design}.{filetype}"
 
         self.logger.debug("Finding result %s", filename)
 
