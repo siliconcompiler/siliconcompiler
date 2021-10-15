@@ -10,6 +10,9 @@ def test_failure_notquiet():
 
     This is a regression test for an issue where SC would only exit early on a
     command failure in cases where the -quiet switch was included.
+
+    TODO: these tests are somewhat bad because unrelated failures can cause
+    them to pass. Needs a more specific check.
     '''
 
     # Create instance of Chip class
@@ -24,14 +27,21 @@ def test_failure_notquiet():
 
     chip.target()
 
-    chip.set('stop', 'syn')
+    chip.add('steplist', 'import')
+    chip.add('steplist', 'syn')
 
     # Expect that command exits early
     with pytest.raises(SystemExit):
         chip.run()
 
-    # Expect that we didn't reach synthesis step
-    assert not os.path.isdir('build/bad/job1/syn')
+    # Check we made it past initial setup
+    assert os.path.isdir('build/bad/job0/import')
+    assert os.path.isdir('build/bad/job0/syn')
+
+    # Expect that there is no import output
+    assert chip.find_result('v', step='import') is None
+    # Expect that synthesis doesn't run
+    assert not os.path.isdir('build/bad/job0/syn/0/inputs')
 
 def test_failure_quiet():
     '''Test that SC exits early on errors with -quiet switch.
@@ -49,12 +59,20 @@ def test_failure_quiet():
 
     chip.target()
 
-    chip.set('stop', 'syn')
+    chip.add('steplist', 'import')
+    chip.add('steplist', 'syn')
+
     chip.set('quiet', 'true')
 
     # Expect that command exits early
     with pytest.raises(SystemExit):
         chip.run()
 
-    # Expect that we didn't reach synthesis step
-    assert not os.path.isdir('build/bad/job1/syn')
+    # Check we made it past initial setup
+    assert os.path.isdir('build/bad/job0/import')
+    assert os.path.isdir('build/bad/job0/syn')
+
+    # Expect that there is no import output
+    assert chip.find_result('v', step='import') is None
+    # Expect that synthesis doesn't run
+    assert not os.path.isdir('build/bad/job0/syn/0/inputs')
