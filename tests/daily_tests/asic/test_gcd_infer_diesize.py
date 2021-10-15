@@ -1,8 +1,13 @@
 import os
-import subprocess
-from tests.fixtures import test_wrapper
+import siliconcompiler
+
+import pytest
+
+if __name__ != '__main__':
+    from tests.fixtures import test_wrapper
 
 ##################################
+@pytest.mark.skip(reason="Issue #607")
 def test_gcd_infer_diesize():
     '''Test inferring diesize from density/aspectratio/margin arguments
 
@@ -10,22 +15,24 @@ def test_gcd_infer_diesize():
     good way to test that the actual final floorplan is correct?
     '''
 
-    # Use subprocess to test running the `sc` scripts as a command-line program.
-    # Pipe stdout to /dev/null to avoid printing to the terminal.
+    chip = siliconcompiler.Chip()
+
     gcd_ex_dir = os.path.abspath(__file__)
     gcd_ex_dir = gcd_ex_dir[:gcd_ex_dir.rfind('/tests/daily_tests/asic')] + '/examples/gcd/'
 
-    # Run the build command.
-    subprocess.run(['sc',
-                    gcd_ex_dir + '/gcd.v',
-                    '-design', 'gcd',
-                    '-target', 'freepdk45_asicflow',
-                    '-asic_density', '10',
-                    '-asic_aspectratio', '1',
-                    '-asic_coremargin', '26.6',
-                    '-constraint', gcd_ex_dir + '/gcd.sdc',
-                    '-loglevel', 'NOTSET'],
-                   stdout = subprocess.DEVNULL)
+    chip.set('design', 'gcd', clobber=True)
+    chip.target('asicflow_freepdk45')
+    chip.set('asic', 'density', 10)
+    chip.set('asic', 'aspectratio', 1)
+    chip.set('asic', 'coremargin', 26.6)
+    chip.add('source', gcd_ex_dir + 'gcd.v')
+    chip.add('constraint', gcd_ex_dir + 'gcd.sdc')
+    chip.set('quiet', 'true', clobber=True)
+    chip.set('relax', 'true', clobber=True)
 
-    # Verify that GDS and SVG files were generated.
-    assert os.path.isfile('build/gcd/job0/export0/outputs/gcd.gds')
+    chip.run()
+
+    assert chip.find_result('gds', step='export') is not None
+
+if __name__ == '__main__':
+    test_gcd_infer_diesize()
