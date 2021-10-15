@@ -54,7 +54,15 @@ def setup_tool(chip):
     chip.set('eda', tool, step, index, 'version', '0.9+3672', clobber=False)
     chip.set('eda', tool, step, index, 'option', 'cmdline', '-c', clobber=False)
     chip.set('eda', tool, step, index, 'refdir', refdir, clobber=False)
-    chip.set('eda', tool, step, index, 'script', refdir + '/sc_syn.tcl', clobber=False)
+
+    if step == 'syn':
+        script = 'sc_syn.tcl'
+    elif step == 'lec':
+        script = 'sc_lec.tcl'
+    else:
+        chip.logger.error(f'Yosys does not support step {step}.')
+
+    chip.set('eda', tool, step, index, 'script', refdir + '/' + script, clobber=False)
 
     #Input/output requirements
     chip.add('eda', tool, step, index, 'input', chip.get('design') + '.v')
@@ -136,18 +144,30 @@ def post_process(chip):
     step = chip.get('arg','step')
     index = chip.get('arg','index')
 
-    with open(step + ".log") as f:
-        for line in f:
-            area = re.search(r'Chip area for module.*\:\s+(.*)', line)
-            cells = re.search(r'Number of cells\:\s+(.*)', line)
-            warnings = re.search(r'Warnings.*\s(\d+)\s+total', line)
+    if step == 'syn':
+        with open(step + ".log") as f:
+            for line in f:
+                area = re.search(r'Chip area for module.*\:\s+(.*)', line)
+                cells = re.search(r'Number of cells\:\s+(.*)', line)
+                warnings = re.search(r'Warnings.*\s(\d+)\s+total', line)
 
-            if area:
-                chip.set('metric', step, index, 'cellarea', 'real', round(float(area.group(1)),2), clobber=True)
-            elif cells:
-                chip.set('metric', step, index, 'cells', 'real', int(cells.group(1)), clobber=True)
-            elif warnings:
-                chip.set('metric', step, index, 'warnings', 'real', int(warnings.group(1)), clobber=True)
+                if area:
+                    chip.set('metric', step, index, 'cellarea', 'real', round(float(area.group(1)),2), clobber=True)
+                elif cells:
+                    chip.set('metric', step, index, 'cells', 'real', int(cells.group(1)), clobber=True)
+                elif warnings:
+                    chip.set('metric', step, index, 'warnings', 'real', int(warnings.group(1)), clobber=True)
+    elif step == 'lec':
+        with open(step + ".log") as f:
+            for line in f:
+                if line.endswith('Equivalence successfully proven!'):
+                    chip.set('metric', step, index, 'errors', 'real', 0, clobber=True)
+                    continue
+
+                errors = re.search(r'Found a total of (\d+) unproven \$equiv cells.', line)
+                if errors is not None:
+                    num_errors = int(errors.group(1))
+                    chip.set('metric', step, index, 'errors', 'real', num_errors, clobber=True)
 
     #Return 0 if successful
     return 0
