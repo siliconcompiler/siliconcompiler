@@ -9,14 +9,19 @@ if __name__ != "__main__":
 def test_find():
 
     chip = siliconcompiler.Chip()
-    chip.set('scpath', 'examples/sclib')
-    error = 0
-    if not chip.find_file("flows/asicflow.py"):
-        error = 1
-    if not chip.find_file("foundries/freepdk45.py"):
-        error = 1
 
-    assert not error
+    assert chip.find_file("flows/asicflow.py") is not None
+    assert chip.find_file("foundries/freepdk45.py") is not None
+
+    datadir = os.path.dirname(os.path.abspath(__file__)) + "/../data/"
+    chip.set('scpath', f'{datadir}/sclib')
+    assert chip.find_file('test.txt') is not None
+
+    assert chip.find_file('my_file_that_doesnt_exist.blah', missing_ok=True) is None
+    assert chip.error == 0
+
+    assert chip.find_file('my_file_that_doesnt_exist.blah') is None
+    assert chip.error == 1
 
 #########################
 if __name__ == "__main__":
