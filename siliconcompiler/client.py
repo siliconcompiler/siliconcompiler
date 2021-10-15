@@ -15,6 +15,7 @@ import time
 import uuid
 
 from siliconcompiler.crypto import *
+from siliconcompiler import utils
 
 ###################################
 def get_base_url(chip):
@@ -363,7 +364,7 @@ def fetch_results(chip):
     # Copy the results into the local build directory, and remove the
     # unzipped directory (including encrypted archives).
     local_dir = chip.get('dir')
-    shutil.copytree(job_hash,
-                    local_dir,
-                    dirs_exist_ok = True)
+    utils.copytree(job_hash,
+                   local_dir,
+                   dirs_exist_ok = True)
     shutil.rmtree(job_hash)

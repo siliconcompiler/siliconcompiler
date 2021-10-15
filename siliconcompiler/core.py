@@ -28,6 +28,7 @@ import uuid
 from timeit import default_timer as timer
 from siliconcompiler.client import *
 from siliconcompiler.schema import *
+from siliconcompiler import utils
 
 from siliconcompiler import _metadata
 
@@ -2499,7 +2500,7 @@ class Chip:
             match = re.match(r'(\w+)(\d+)$', stepindex)
             in_step = match.group(1)
             in_index = match.group(2)
-            shutil.copytree(f"../../../{job}/{in_step}/{in_index}/outputs", 'inputs/', dirs_exist_ok=True,
+            utils.copytree(f"../../../{job}/{in_step}/{in_index}/outputs", 'inputs/', dirs_exist_ok=True,
                 ignore=lambda dir, contents: [f'{design}.pkg.json'])
 
         ##################
@@ -2519,7 +2520,7 @@ class Chip:
         if tool != 'builtin':
             if self.get('eda', tool, step, index, 'copy'):
                 refdir = self.find_file(self.get('eda', tool, step, index, 'refdir'))
-                shutil.copytree(refdir, ".", dirs_exist_ok=True)
+                utils.copytree(refdir, ".", dirs_exist_ok=True)
 
         ##################
         # 8. Save config files required by EDA tools
@@ -2575,7 +2576,7 @@ class Chip:
                     self._haltstep(step, index, active)
         else:
             #for builtins, copy selected inputs to outputs
-            shutil.copytree(f"inputs", 'outputs', dirs_exist_ok=True)
+            utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True)
 
         ##################
         # 13. Post process (could fail)
