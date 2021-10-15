@@ -46,3 +46,6 @@ The following set of terms represents fundamental SC definitions used throughout
 
     step
        Atomic SC compilation step within a flowgraph
+
+    tool
+       Executable associated with a step in the SC flowgraph

@@ -16,7 +16,6 @@ Welcome to SiliconCompiler's documentation!
    user_guide/glossary
    user_guide/data_model
    user_guide/execution_model
-   user_guide/flow
    user_guide/tool
    user_guide/pdk
    user_guide/library
@@ -33,8 +32,8 @@ Welcome to SiliconCompiler's documentation!
    tutorials/asicflow
    tutorials/zerosoc
    tutorials/flowsetup
-   tutorials/toolsetup
    tutorials/foundrysetup
+   tutorials/toolsetup
    tutorials/slurmsetup
 
 .. toctree::
