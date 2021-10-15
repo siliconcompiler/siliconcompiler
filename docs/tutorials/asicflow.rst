@@ -1,8 +1,6 @@
 ASIC compilation
 =======================
 
-.. image:: _images/asicflow.png
-
 This tutorial walks you through the basics of the SiliconCompiler ("SC")
 project to teach you how to:
 

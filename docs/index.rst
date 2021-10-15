@@ -31,9 +31,6 @@ Welcome to SiliconCompiler's documentation!
 
    tutorials/asicflow
    tutorials/zerosoc
-   tutorials/flowsetup
-   tutorials/foundrysetup
-   tutorials/toolsetup
    tutorials/slurmsetup
 
 .. toctree::
@@ -56,6 +53,7 @@ Welcome to SiliconCompiler's documentation!
    :caption: Resources
    :numbered:
 
+   resources/primer
    resources/glossary
 
 Indices and tables
