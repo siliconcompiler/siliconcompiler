@@ -6,7 +6,7 @@ import siliconcompiler
 if __name__ != "__main__":
     from tests.fixtures import test_wrapper
 
-def test_find():
+def test_find_file():
 
     chip = siliconcompiler.Chip()
 
@@ -25,4 +25,4 @@ def test_find():
 
 #########################
 if __name__ == "__main__":
-    test_find()
+    test_find_file()
