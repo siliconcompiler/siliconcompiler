@@ -192,11 +192,11 @@ class Server:
 
         # Run the job with the configured clustering option. (Non-blocking)
         if use_auth:
-            asyncio.create_task(self.remote_sc_auth(chip,
-                                                    username,
-                                                    key))
+            asyncio.ensure_future(self.remote_sc_auth(chip,
+                                                      username,
+                                                      key))
         else:
-            asyncio.create_task(self.remote_sc(chip))
+            asyncio.ensure_future(self.remote_sc(chip))
 
         # Return a response to the client.
         response_text = f"Starting job: {job_hash}"
