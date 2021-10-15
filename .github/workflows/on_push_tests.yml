@@ -38,6 +38,11 @@ jobs:
 
       - run: git submodule update --init --recursive third_party/tools/openroad
 
+      - name: Install Dependencies
+        run: | 
+          sudo apt-get update
+          sudo apt-get install graphviz
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
