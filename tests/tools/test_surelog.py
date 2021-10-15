@@ -12,7 +12,6 @@ def test_surelog():
 
     chip = siliconcompiler.Chip(loglevel="INFO")
 
-    print(gcd_src)
     chip.add('source', gcd_src)
     chip.set('design', design)
     chip.set('mode', 'sim')
@@ -21,7 +20,7 @@ def test_surelog():
 
     chip.run()
 
-    assert os.path.isfile(f"build/{design}/job0/{step}0/outputs/{design}.v")
+    assert chip.find_result('v', step=step) is not None
 
 if __name__ == "__main__":
     test_surelog()

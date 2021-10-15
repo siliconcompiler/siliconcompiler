@@ -14,6 +14,8 @@ def test_icarus():
     ydir = (os.path.dirname(os.path.abspath(__file__)) +
             "/../../third_party/designs/oh/stdlib/hdl")
 
+    assert os.path.isdir(ydir), 'third_party/designs/oh submodule not cloned!'
+
     design = "oh_fifo_sync"
     topfile = ydir + "/" + design + ".v"
 
@@ -27,7 +29,7 @@ def test_icarus():
     chip.run()
 
     # check that compilation succeeded
-    assert os.path.isfile(f"build/{design}/job0/compile0/outputs/{design}.vvp")
+    assert chip.find_result('vvp', step='compile') is not None
 
 #########################
 if __name__ == "__main__":
