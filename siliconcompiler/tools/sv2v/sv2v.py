@@ -54,9 +54,9 @@ def setup_tool(chip):
 
     # Since we run sv2v after the import/preprocess step, there should be no
     # need for specifying include dirs/defines. However we don't want to pass
-    # --skip-preprocessor because the morty there may still be unused
-    # preprocessor directives not removed by morty/the importer and passing the
-    # --skip-preprocessor flag would cause sv2v to error.
+    # --skip-preprocessor because there may still be unused preprocessor
+    # directives not removed by the importer and passing the --skip-preprocessor
+    # flag would cause sv2v to error.
 
     # since this step should run after import, the top design module should be
     # set and we can read the pickled Verilog without accessing the original
