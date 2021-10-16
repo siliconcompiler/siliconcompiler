@@ -2,30 +2,6 @@
 # FLOORPLANNING
 ########################################################
 
-proc calculate_core_size {density coremargin aspectratio syn_area lib_height} {
-
-    set target_area [expr {$syn_area * 100.0 / $density}]
-    set core_width [expr {sqrt($target_area / $aspectratio)}]
-
-    set core_width_rounded [expr {ceil($core_width / $lib_height) * $lib_height}]
-    set core_height [expr {$aspectratio * $core_width}]
-    set core_height_rounded [expr {ceil($core_height / $lib_height) * $lib_height}]
-
-    set core_max_x [expr {$core_width_rounded + $coremargin}]
-    set core_max_y [expr {$core_height_rounded + $coremargin}]
-
-    return "$coremargin $coremargin $core_max_x $core_max_y"
-}
-
-proc calculate_die_size {coresize coremargin} {
-    set core_max_x [lindex $coresize 2]
-    set core_max_y [lindex $coresize 3]
-    set die_max_x [expr {$core_max_x + $coremargin}]
-    set die_max_y [expr {$core_max_y + $coremargin}]
-
-    return "0 0 $die_max_x $die_max_y"
-}
-
 # Functon adapted from OpenROAD:
 # https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/blob/ca3004b85e0d4fbee3470115e63b83c498cfed85/flow/scripts/macro_place.tcl#L26
 proc design_has_macros {} {
@@ -50,29 +26,15 @@ if {[llength $sc_def] > 0} {
     #########################
     #Init Floorplan
     #########################
-    if {[llength [dict get $sc_cfg asic diearea]] > 0 &&
-        [llength [dict get $sc_cfg asic corearea]] > 0} {
 	#NOTE: assuming a two tuple value as lower left, upper right
-        set sc_diearea   [dict get $sc_cfg asic diearea]
-        set sc_corearea  [dict get $sc_cfg asic corearea]
-	set sc_diesize   [regsub -all {[\,\)\(]} $sc_diearea " "]
-	set sc_coresize  [regsub -all {[\,\)\(]} $sc_corearea " "]
-	puts $sc_diesize
-    } else {
-        set sc_density [dict get $sc_cfg asic density]
-        set sc_coremargin [dict get $sc_cfg asic coremargin]
-        if {$sc_density < 1 || $sc_density > 100} {
-            puts "Error: ASIC density must be between 1 and 100!"
-            exit 1
-        }
-
-        set syn_select [dict get $sc_cfg flowstatus syn select]
-        set syn_area [dict get $sc_cfg metric syn $syn_select cellarea real]
-        set lib_height [dict get $sc_cfg library $sc_mainlib height]
-        set sc_coresize [calculate_core_size $sc_density $sc_coremargin $sc_aspectratio $syn_area $lib_height]
-        set sc_diesize [calculate_die_size $sc_coresize $sc_coremargin]
-
-    }
+    set sc_diearea   [dict get $sc_cfg asic diearea]
+    set sc_corearea  [dict get $sc_cfg asic corearea]
+    set sc_diesize   [regsub -all {[\,\)\(]} $sc_diearea " "]
+    set sc_coresize  [regsub -all {[\,\)\(]} $sc_corearea " "]
+    puts $sc_diearea
+    puts $sc_corearea
+    puts $sc_diesize
+    puts $sc_coresize
 
     initialize_floorplan -die_area $sc_diesize \
 	-core_area $sc_coresize \

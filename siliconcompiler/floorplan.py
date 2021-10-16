@@ -3,6 +3,7 @@
 import logging
 import math
 import jinja2
+import re
 from collections import namedtuple
 
 from siliconcompiler import leflib
@@ -71,6 +72,29 @@ def _wire_to_rect(wire):
         right = left + width
 
     return (left, bottom, right, top)
+
+def _get_tech_lef_data(chip):
+    stackup = chip.get('asic', 'stackup')
+    libname = chip.get('asic', 'targetlib')[0]
+    libtype = chip.get('library', libname, 'arch')
+
+    tech_lef = chip.find_file(chip.get('pdk', 'aprtech', stackup, libtype, 'lef')[0])
+    return leflib.parse(tech_lef)
+
+def _get_stdcell_info(chip, tech_lef_data):
+    libname = chip.get('asic', 'targetlib')[0]
+    site_name = chip.get('library', libname, 'site')[0]
+    if 'sites' not in tech_lef_data or site_name not in tech_lef_data['sites']:
+        raise ValueError('Site {site_name} not found in tech LEF.')
+
+    site = tech_lef_data['sites'][site_name]
+    if 'size' not in site:
+        raise ValueError('Tech LEF does not specify size for site {site_name}.')
+
+    width = site['size']['width']
+    height = site['size']['height']
+
+    return site_name, width, height
 
 class Floorplan:
     '''Floorplan layout class.
@@ -161,13 +185,7 @@ class Floorplan:
         ## Extract technology-specific info ##
 
         # extract std cell info based on libname
-        self.libname = self.chip.get('asic', 'targetlib')[0]
-        self.stdcell_name = self.chip.get('library', self.libname, 'site')[0]
-
         # Extract data from LEFs
-        stackup = chip.get('asic', 'stackup')
-        libtype = chip.get('library', self.libname, 'arch')
-
         # List of cells the user is able to place
         self.available_cells = {}
 
@@ -190,18 +208,10 @@ class Floorplan:
                     logging.warn(f'Macro {name} missing size in LEF, not adding '
                         'to available cells.')
 
-        tech_lef = chip.find_file(chip.get('pdk', 'aprtech', stackup, libtype, 'lef')[0])
-        tech_lef_data = leflib.parse(tech_lef)
+        tech_lef_data = _get_tech_lef_data(chip)
 
-        if 'sites' not in tech_lef_data or self.stdcell_name not in tech_lef_data['sites']:
-            raise ValueError('Site {self.stdcell_name} not found in tech LEF.')
-
-        site = tech_lef_data['sites'][self.stdcell_name]
-        if 'size' not in site:
-            raise ValueError('Tech LEF does not specify size for site {self.stdcell_name}.')
-
-        self.stdcell_width = site['size']['width']
-        self.stdcell_height = site['size']['height']
+        stdcell_info = _get_stdcell_info(chip, tech_lef_data)
+        self.stdcell_name, self.stdcell_width, self.stdcell_height = stdcell_info
 
         if 'units' in tech_lef_data and 'database' in tech_lef_data['units']:
             self.db_units = int(tech_lef_data['units']['database'])
@@ -1206,3 +1216,68 @@ class Floorplan:
             if v['name'] == layer:
                 return k
         return None
+
+# Helper functions used for diearea inference. These are more-or-less
+# floorplanning related, so including them in this file.
+
+def _find_cell_area(chip, step, index):
+    '''Helper to work back through the preceeding flowgraph steps to find a step
+    that's set the cellarea.'''
+    select = chip.get('flowstatus', step, index, 'select')
+    for stepindex in select:
+        match = re.match(r'(\w+)(\d+)$', stepindex)
+        step, index = match.group(1, 2)
+
+        cell_area = chip.get('metric', step, index, 'cellarea', 'real')
+        if cell_area:
+            return cell_area
+
+        cell_area = _find_cell_area(chip, step, index)
+        if cell_area:
+            return cell_area
+
+    return None
+
+def _calculate_core_dimensions(density, coremargin, aspectratio, area, lib_height):
+    target_area = area * 100 / density
+    core_width = math.sqrt(target_area / aspectratio)
+    core_height = core_width * aspectratio
+
+    core_width = math.ceil(core_width / lib_height) * lib_height
+    core_height = math.ceil(core_height / lib_height) * lib_height
+
+    return core_width, core_height
+
+def _infer_diearea(chip):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+
+    density = chip.get('asic', 'density')
+    coremargin = chip.get('asic', 'coremargin')
+    aspectratio = chip.get('asic', 'aspectratio')
+    if density < 1 or density > 100:
+        chip.logger.error('ASIC density must be between 1 and 100')
+        chip.error = 1
+        return
+
+    cell_area = _find_cell_area(chip, step, index)
+    if not cell_area:
+        chip.logger.error('No cell area set in previous step')
+        chip.error = 1
+        return
+
+    lef_data = _get_tech_lef_data(chip)
+    _, _, lib_height = _get_stdcell_info(chip, lef_data)
+
+    core_width, core_height = _calculate_core_dimensions(density, 
+                                                         coremargin, 
+                                                         aspectratio, 
+                                                         cell_area, 
+                                                         lib_height)
+
+    diearea = [(0, 0),
+               (2 * coremargin + core_width, 2 * coremargin + core_height)]
+    corearea = [(coremargin, coremargin), 
+                (coremargin + core_width, coremargin + core_height)]
+    
+    return diearea, corearea
