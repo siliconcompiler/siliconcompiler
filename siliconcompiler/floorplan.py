@@ -1258,13 +1258,13 @@ def _infer_diearea(chip):
     if density < 1 or density > 100:
         chip.logger.error('ASIC density must be between 1 and 100')
         chip.error = 1
-        return
+        return None
 
     cell_area = _find_cell_area(chip, step, index)
     if not cell_area:
         chip.logger.error('No cell area set in previous step')
         chip.error = 1
-        return
+        return None
 
     lef_data = _get_tech_lef_data(chip)
     _, _, lib_height = _get_stdcell_info(chip, lef_data)
