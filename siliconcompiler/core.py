@@ -2280,7 +2280,7 @@ class Chip:
             cfg_file = f'{cfg_dir}/{step}{index}.json'
             if not os.path.isdir(cfg_dir):
                 os.mkdir(cfg_dir)
-            self.writecfg(cfg_file)
+            self.write_manifest(cfg_file)
 
             # Create a command to defer execution to a compute node.
             run_cmd  = f'{schedule_cmd} bash -c "'
