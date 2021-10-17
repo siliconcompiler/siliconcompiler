@@ -12,7 +12,10 @@ import shutil
 import subprocess
 import sys
 
-from siliconcompiler.core import SEP
+
+SEP = '/'
+if sys.platform.startswith('win32'):
+    SEP = '\\'
 
 def gen_cipher_key(gen_dir, pubk_file):
     # Create the key (32 random bytes = a 256-bit AES block cipher key)
@@ -88,7 +91,7 @@ def encrypt_dir(enc_dir, pk_file):
     # Collect some basic values.
     job_dir = os.path.abspath(f'{enc_dir}{SEP}..')
     top_dir = os.path.abspath(f'{job_dir}{SEP}..{SEP}..')
-    stepname = os.path.abspath(enc_dir).split('{SEP}')[-1]
+    stepname = os.path.abspath(enc_dir).split(SEP)[-1]
 
     # Create cipher for decryption.
     with open(pk_file, 'r') as keyin:
@@ -113,7 +116,7 @@ def encrypt_dir(enc_dir, pk_file):
     subprocess.run(['tar',
                     '-cf',
                     f'{stepname}.zip',
-                    '*'],
+                    '.'],
                    cwd=enc_dir)
 
     # Create a new initialization vector and write it to a file for future decryption.

@@ -14,8 +14,11 @@ import sys
 import time
 import uuid
 
-from siliconcompiler.core import SEP
 from siliconcompiler.crypto import *
+
+SEP = '/'
+if sys.platform.startswith('win32'):
+    SEP = '\\'
 
 ###################################
 def get_base_url(chip):
@@ -195,7 +198,7 @@ def request_remote_run(chip):
     subprocess.run(['tar',
                     '-cf',
                     'import.zip',
-                    '*'],
+                    '.'],
                    cwd=local_build_dir)
     upload_file = os.path.abspath(f'{local_build_dir}{SEP}import.zip')
 
