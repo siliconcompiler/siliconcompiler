@@ -3,42 +3,56 @@ on: [workflow_dispatch, push]
 name: 'Quick CI Tests'
 
 jobs:
-  gcd_test_job:
-    timeout-minutes: 10
+  self_hosted_tests:
+    timeout-minutes: 15
     runs-on: self-hosted
-    name: 'ASIC test builds'
+    name: 'Tool-based tests'
     steps:
       - uses: actions/checkout@v2
       - run: git submodule update --init --recursive third_party/tools/openroad
+      - run: git submodule update --init --recursive third_party/designs/oh
       - run: |
           python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
           source $GITHUB_WORKSPACE/clean_env/bin/activate
           echo $VIRTUAL_ENV
-          pip3 install -r $GITHUB_WORKSPACE/requirements.txt -e $GITHUB_WORKSPACE/.
-          pytest -n 4 $GITHUB_WORKSPACE/tests/quick_tests/asic/
-  fpga_test_job:
-    timeout-minutes: 10
-    runs-on: self-hosted
-    name: 'FPGA test builds'
-    steps:
-      - uses: actions/checkout@v2
-      - run: git submodule update --init --recursive third_party/tools/openroad
-      - run: |
-          python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
-          source $GITHUB_WORKSPACE/clean_env/bin/activate
-          echo $VIRTUAL_ENV
+          echo $TEST_PATHS
           pip3 install -r $GITHUB_WORKSPACE/requirements.txt -e $GITHUB_WORKSPACE/.
           PATH="$HOME/OpenFPGA/openfpga:$PATH"
-          pytest -n 4 $GITHUB_WORKSPACE/tests/quick_tests/fpga/
+          pytest -n 4 $TEST_PATHS
+        env:
+          TEST_PATHS: >
+            ${{ github.workspace }}/tests/quick_tests/asic
+            ${{ github.workspace }}/tests/quick_tests/fpga
+            ${{ github.workspace }}/tests/tools
+
   python_test_job:
-    timeout-minutes: 5
-    runs-on: self-hosted
-    name: 'Python unit tests'
+    timeout-minutes: 15
+    runs-on: ubuntu-latest 
+    name: 'Pure Python tests'
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.8", "3.9"]
     steps:
       - uses: actions/checkout@v2
+
       - run: git submodule update --init --recursive third_party/tools/openroad
+
+      - name: Install Dependencies
+        run: | 
+          sudo apt-get update
+          sudo apt-get install graphviz
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
       - run: |
-          python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
-          source $GITHUB_WORKSPACE/clean_env/bin/activate
-          pip3 install -r $GITHUB_WORKSPACE/requirements.txt -e $GITHUB_WORKSPACE/.
-          pytest $GITHUB_WORKSPACE/tests/quick_tests/python/ $GITHUB_WORKSPACE/tests/api_tests/
+          pip install $GITHUB_WORKSPACE/.
+          pip install pytest 
+          pytest --import-mode=append $TEST_PATHS
+        env: 
+          TEST_PATHS: > 
+            ${{ github.workspace }}/tests/quick_tests/python
+            ${{ github.workspace }}/tests/api_tests

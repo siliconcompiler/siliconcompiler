@@ -27,7 +27,7 @@ def test_openroad():
     chip.run()
 
     # check that compilation succeeded
-    assert os.path.isfile(f"build/{design}/job0/floorplan0/outputs/{design}.def")
+    assert chip.find_result('def', step='floorplan') is not None
 
 #########################
 if __name__ == "__main__":

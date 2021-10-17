@@ -22,7 +22,7 @@ def test_ghdl():
     chip.run()
 
     # check that compilation succeeded
-    assert os.path.isfile(f"build/{design}/job0/import0/outputs/{design}.v")
+    assert chip.find_result('v', step='import') is not None
 
 #########################
 if __name__ == "__main__":
