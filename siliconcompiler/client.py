@@ -14,6 +14,7 @@ import sys
 import time
 import uuid
 
+from siliconcompiler.core import SEP
 from siliconcompiler.crypto import *
 
 ###################################
@@ -83,7 +84,7 @@ def client_decrypt(chip):
     '''Helper method to decrypt project data before running a job on it.
     '''
 
-    job_path = f"{chip.get('dir')}/{chip.get('design')}/" \
+    job_path = f"{chip.get('dir')}{SEP}{chip.get('design')}{SEP}" \
                f"{chip.get('jobname')}"
     decrypt_job(job_path,
                 chip.get('remote', 'key'))
@@ -93,7 +94,7 @@ def client_encrypt(chip):
     '''Helper method to re-encrypt project data after processing.
     '''
 
-    job_path = f"{chip.get('dir')}/{chip.get('design')}/" \
+    job_path = f"{chip.get('dir')}{SEP}{chip.get('design')}{SEP}" \
                f"{chip.get('jobname')}"
     encrypt_job(job_path,
                 chip.get('remote', 'key'))
@@ -159,7 +160,7 @@ def request_remote_run(chip):
         # We'll use AES-256-CTR, because the Python 'cryptography' module's
         # recommended 'Fernet' algorithm only works on files that fit in memory.
         pkpath = chip.get('remote', 'key')
-        job_path = f"{chip.get('dir')}/{chip.get('design')}/{job_nameid}"
+        job_path = f"{chip.get('dir')}{SEP}{chip.get('design')}{SEP}{job_nameid}"
 
         # AES-encrypt the job data prior to uploading.
         # TODO: This assumes a common OpenSSL convention of using similar file
@@ -188,16 +189,15 @@ def request_remote_run(chip):
     # If '-remote_user' and '-remote_key' are not both specified,
     # no authorizaion is configured; proceed without crypto.
     # If they were specified, these files are now encrypted.
-    local_build_dir = stepdir = '/'.join([chip.get('dir'),
+    local_build_dir = stepdir = SEP.join([chip.get('dir'),
                                           chip.get('design'),
                                           job_nameid])
-    subprocess.run(['zip',
-                    '-r',
-                    '-q',
+    subprocess.run(['tar',
+                    '-cf',
                     'import.zip',
-                    '.'],
+                    '*'],
                    cwd=local_build_dir)
-    upload_file = os.path.abspath(f'{local_build_dir}/import.zip')
+    upload_file = os.path.abspath(f'{local_build_dir}{SEP}import.zip')
 
     # Make the actual request, streaming the bulk data as a multipart file.
     # Redirected POST requests are translated to GETs. This is actually
@@ -341,7 +341,7 @@ def fetch_results(chip):
     top_design = chip.get('design')
     job_hash = chip.get('remote', 'jobhash')
     job_nameid = f"{chip.get('jobname')}"
-    subprocess.run(['unzip', '-q', f'{job_hash}.zip'])
+    subprocess.run(['tar', '-xf', f'{job_hash}.zip'])
     # Remove the results archive after it is extracted.
     os.remove(f'{job_hash}.zip')
 
