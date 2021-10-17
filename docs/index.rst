@@ -13,10 +13,10 @@ Welcome to SiliconCompiler's documentation!
 
    user_guide/introduction
    user_guide/installation
+   user_guide/quickstart
    user_guide/glossary
    user_guide/data_model
    user_guide/execution_model
-   user_guide/flow
    user_guide/tool
    user_guide/pdk
    user_guide/library
@@ -32,9 +32,6 @@ Welcome to SiliconCompiler's documentation!
 
    tutorials/asicflow
    tutorials/zerosoc
-   tutorials/flowsetup
-   tutorials/toolsetup
-   tutorials/foundrysetup
    tutorials/slurmsetup
 
 .. toctree::
@@ -57,6 +54,7 @@ Welcome to SiliconCompiler's documentation!
    :caption: Resources
    :numbered:
 
+   resources/primer
    resources/glossary
 
 Indices and tables

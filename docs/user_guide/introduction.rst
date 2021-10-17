@@ -2,23 +2,62 @@ Introduction
 ===================================
 
 SiliconCompiler ("SC") is an open source hardware compilation framework with native
-support for open source as well as commercial design tools. The goal of the
-SiliconCompiler project is to lower the barrier to ASIC design and integrated
-circuit education.
+support for open source and commercial design tools. The goal of the
+SiliconCompiler project is to lower the barrier for custom hardware development.
 
-Architecture overview
+Architecture
 ----------------------
 
-
-* Python based programming interface
-* Scalable flowgraph based execution model
-* Standardized plain text JSON configuration and provinence manifest
-* Built in support for remote processing
-* Python based ASIC floor-planning API
-
+SiliconCompiler is built around a central dictionary "schema" that controls
+and tracks all actions taken during hardware compilation. Schema parameters are
+accessed at runtime to dynamically drive external tools (synthesis, place and route,
+etc) through a Python API.  Metrics are collected at each compilation step and
+stored in the in-memory SC dictionary controlled by the SC runtime program. At each
+step of the compilation, JSON "manifest" files are written to disk for verification
+and data exchange purposes. The final compilation manifest serves as a provinence and
+archive record of the data (ie. gds, bitstream, etc)) created during the compilation
+process.
 
 .. image:: ../_images/sc_stack.svg
-  
+
+**Design philosophy**:
+
+* Modern hardware design is a high performance computing (HPC) problem. Compilation
+  must make optimal use of the underlying computing platform whether we run on a
+  laptop, powerful, workstation, or in a warehouse scale data center.
+* Computing platform details should be abstracted from the designer/user.
+* Hardware compilation is too complex and non-deterministic to control with a
+  markup language like JSON/YAML. Compilation interfacing must be done through an
+  API in a fully featured language.
+* Given today's programming landscape, Python is the right language.
+* Cherish diversity. Convincing the whole word to use Python is futile. Legacy tools
+  with TCL interfaces will not (should not) be converted to Python. Instead,
+  focus energy on effective handoff points between Python and TCL based tools.
+* Don't try to change things you can't control (foundries, EDA companies, other FOSS
+  projects). Game theory of semiuconductor economics is complex, non-deterministic,
+  and not something that should be embedded in the architectre decisioin loop.
+* Accept the fact that proprietary information and NDAs will always be part of the
+  hardware industry. The architecture must handle this constraint effectively.
+* Use standard-ish file formats for data exchange. (JSON, YAML, DEF, Verilog).
+  Writing a new format is (almost) never the answer.
+* Create enough abstraction layers to serve the novice user and expert user
+  effectively. There are many examplse of framweorks that are either too naive
+  or too complex to only serve a small subset of the community.
+* Build generators, not instances. With a EE/Physics background it's easy to forget
+  programmability in sofware is essentially "free". The generator concept should be
+  leveraged across the whole platform (arch, config, docs, CLIs, help, testing).
+* Design for the lowest common denominator. Some brilliant designers are terrible
+  programmers. Don't build an architecture that require advanced programming
+  knowledge.
+
+
+**Features**:
+
+* Python based programming interface
+* Extensible dictionary based compilation schea
+* Scalable flowgraph based compilation
+* Built in support for remote processing
+* Standardized plain text JSON compilation manifests
 
 .. list-table::
    :widths: 20 15 15 20
@@ -109,130 +148,3 @@ $50-500M at advanced manufacturing nodes.
 Observing the positive impact that silicon has had on the world over the last 50
 years it is a social imperative that we extend the current exponential trend for
 as long possible. The time for a 2nd VLSI revolution has arrived...
-
-Challenges
-----------------
-
-The challenge of modern ASIC/SoC design stems from the inherent complexity of
-constructing a reliable machine consisting of billions of switches embedded within
-a single tiny device. In chip design, anything less than perfection operation is
-considered a failure. There is no recompile option.
-
-The complexity challenge of modern silicon machines is pervasive with significant
-effort going into system desigbn, applications, O/S, tools, drivers, architecture,
-design, design verification, physical design, testing, and productization.
-If we really want to make a difference and reduce the cost and time of chip design
-by orders of magnitude (100x), the industry will need to address all inefficiencies
-in the process not just the major ones. (see Amdahl's Law).
-
-The specific challenge area addressed by the SiliconCompiler project is automated
-hardware compilation (ie. the concept of taking a high level description and
-lowering it to some final low level form). In modern chip design, this is actually
-an incredibly complex endeavor due to the enormous search space associated with
-implementation commands and numerical parameters to specify to achieve correct and
-optimal implementation. Selection of each one of the parameters and recipes
-requires access to state of the art EDA tools and expert knowledge of tools, foundry
-PDKs and physical design methodologies. The number of physical design concerns has
-been steadily increasing with every CMOS process node advancement, starting at
-180nm. To qualify production level silicon solutions at 22nm and below requires
-sophisticated implementation and verification flows with expertise needed in:
-
-* static timing analysis
-* design for testability
-* RC delay effects
-* clock tree optimization
-* power integrity and power delivery
-* signal integrity
-* multi-threshold low power synthesis
-* power gating
-* multi-voltage domains
-* Advanced ESD and antenna design rules
-* congestion avoidance
-* self heating
-* on chip variability
-* statistical yield analysis
-* multic-corner multi-mode analysis
-* stress and proximity effects
-* complex patterning density rules
-* design for manufacturability
-* double and triple pattern lithography considerations
-* current density limitations
-* advanced packaging
-* reliability and device fatique
-
-To address the ever expanding set of physical design concerns, EDA companies
-are continuously adding new tool features and automation capabilities to
-commercial physical design tools. Despite these efforts, design
-automation progress has not kept pace with the exponential rate of Moore’s Law
-(2x more transistors per chip every 2 years), resulting in a productivity gap
-that has made physical design of complex SoCs in SOTA process nodes impractical
-for small design teams.
-
-Large semiconductor companies with many design groups and numerous products
-and prototypes in the pipeline minimize EDA, IP, and PDK project startup costs
-through establishment of internal CAD teams that provide infrastructure and
-enablement for all of the company’s product design teams. The key services
-provided by internal CAD teams generally include:
-
-* Setup and management of large on-premises and cloud based server farms
-* EDA and IP procurement for the company
-* EDA and IP license management for the company
-* Installation of EDA tools, foundry PDKs, and foundational physical IP
-* Version tracking and archiving of all versions of EDA, IP, PDKs
-* Design/tapeout archiving
-* Establishment of qualified reference physical design flows for the company
-* Direct interfacing with EDA, IP, and foundry suppliers
-* Reference flow support of internal design teams
-
-The SiliconCompuler project aims to provide state of the art CAD infrasatructure
-for folks who don't have accesss to large internal CAD teams.
-
-Our approach
--------------
-
-The SiliconCompiler is built around a central python configuration and tracking
-dictionary (“schema”) that tracks all files and accesses and actions taken from RTL
-to GDS. During design execution, the schema is dynamically accessed by translation
-scripts at runtime to generate configuration files for each EDA tool accessed.
-Metrics are collected at each design step and fed back into the centralized
-dictionary maintained by the Python management program. JSON files are written to
-disk after each step for verification purposes. Most importantly, a single
-automatically generated unified JSON manifest can be linked with a GDS sent
-to foundry to ensure provenance and traceability.
-
-The configuration schema is accessed through a Python API that enables a safe
-and secure interface to the configuration schema and manages the silicon
-compilation
-
-The SiliconCompiler project makes the following architecure decisions:
-
-* Modern chip design is a high performance computing (HPC) problem. Compilation
-  should make optimal use of the compouting platform whether we run on a laptop,
-  powerful, workstation, or in a warehouse scale data center. A much as possible,
-  the underlying computing platform should be abstracted away from the designer.
-* Leverage a vaste open source Python ecosystem to reduce development cost and risk.
-* Leverage the full power of the Python language to create data structures that
-  mimic the natural PDK and IP patterns for setup that enables independent setup on
-  a per IP and per process basis. Maximum efficiency is reached when each setup
-  owner can work independently and the designer can simply point to the resources
-  to be used (library, EDA tool, process).
-* Create a set of known good targets that hard code appropriate defaults for
-  all configuration parameters within the compiler for an easy out of the box
-  experience, with the ability to override each parameter dynamically at run
-  time.
-* Leverage the looping and control features of the Python language to enable
-  single file configuration (“manifest”) of a process node PDK and/or IP
-  library.
-* Use YAML/TCL/JSON configuration writers to interfaces with external tools.
-* A single golden trackable configuration manifest that keeps a complete record
-  and hashes of all files and tool versions and configurations used to produce
-  the GDSII.
-* Don’t fight the tools or the foundries. SC will conform to existing
-  interfaces provided if available (TCL/YAML). When non-existent, as in the
-  case of PDKs and IP libraries, SC native setup files will be created with
-  translators to EDA reference methodologies
-* Build generators not instances. The architecture schema is built to enable
-  auto-generation of command line options and API access, enabling SC to
-  scale gracefully from a single command line argument all the way up to the
-  most complicated SoCs within a single platform without burdening the novice
-  with steep ramp up costs or restricting advanced developers.
