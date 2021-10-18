@@ -40,16 +40,6 @@ The output should be the version number you expect to see, similar to below:
    \ |release|
 
 
-Pre-requisites
----------------
-
-For remote processing, you are now ready to go! No installationn required as long as the
-tools are installed on the remote server.
-
-For local execution, you will also need to install all the necesary external tools based
-on the installation instructions referenced in the tools directory or the instructions provided by a
-commercial EDA vendor.
-
 Python dependencies
 -------------------
 
@@ -58,3 +48,13 @@ installed automatically when installing SC via pip, so there should be no need
 to install them manually.
 
 .. requirements::
+
+Pre-requisites
+---------------
+
+SiliconCompiler relies on a number of external tools and projects. Supporting the multi-platform
+installation of those tools is beyond the scope of the project, but we have included easy access
+links to installation instructions in the reference manual :ref:`tools<Tools directory>` section.
+
+Note that you can bypass the installation process using the remote processing workflow if you have
+access to a server where the tools are pre-installed. See the :ref:`Quickstart guide<Quickstart guide>` for more details.
