@@ -7,7 +7,6 @@ else:
     from tests.utils import *
 
 ##################################
-@pytest.mark.skip(reason='_deferstep() needs to be updated for new API')
 def test_slurm_local_py(gcd_chip):
     '''Basic Python API test: build the GCD example using only Python code.
     '''

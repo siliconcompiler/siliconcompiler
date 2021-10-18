@@ -2280,7 +2280,7 @@ class Chip:
             cfg_file = f'{cfg_dir}/{step}{index}.json'
             if not os.path.isdir(cfg_dir):
                 os.mkdir(cfg_dir)
-            self.writecfg(cfg_file)
+            self.write_manifest(cfg_file)
 
             # Create a command to defer execution to a compute node.
             run_cmd  = f'{schedule_cmd} bash -c "'
@@ -2295,6 +2295,8 @@ class Chip:
                                        stdout=subprocess.PIPE,
                                        stderr=subprocess.STDOUT)
 
+        # TODO: output should be fed to log, and stdout if quiet = False
+
         # If a watchdog was configured, feed it whenever new output is printed.
         for line in step_result.stdout:
             if 'watchdog' in self.status:
@@ -2304,6 +2306,10 @@ class Chip:
         # as it has closed its output stream. But if we don't call '.wait()',
         # the '.returncode' value will not be set correctly.
         step_result.wait()
+
+        if step_result.returncode > 0:
+            self.logger.error(f'srun command for {step} failed with code '
+                              f'{step_result.returncode}')
 
         # Clear active bit after the 'srun' command, and set 'error' accordingly.
         error[step + str(index)] = step_result.returncode

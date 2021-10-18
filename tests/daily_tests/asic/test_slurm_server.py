@@ -8,7 +8,6 @@ else:
     from tests.utils import *
 
 ###########################
-@pytest.mark.skip(reason='_deferstep() needs to be updated for new API')
 def test_gcd_server_slurm(gcd_chip):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
        example using loopback network calls to that server.
