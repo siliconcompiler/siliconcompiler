@@ -418,7 +418,7 @@ class Chip:
         elif functype == 'flow':
             fullpath = self.find_file(f"flows/{modulename}.py", missing_ok=True)
         elif functype == 'pdk':
-            fullpath = self.find_file(f"foundries/{modulename}.py", missing_ok=True)
+            fullpath = self.find_file(f"pdks/{modulename}.py", missing_ok=True)
         elif functype == 'project':
             fullpath = self.find_file(f"projects/{modulename}.py", missing_ok=True)
         else:
@@ -506,7 +506,7 @@ class Chip:
                 if func_project is not None:
                     func_project(self)
                     if len(targetlist) > 1:
-                        self.logger.error('Target string beginning with a project name ' 
+                        self.logger.error('Target string beginning with a project name '
                                           'must only have one entry')
                         sys.exit(1)
                     break
@@ -520,7 +520,7 @@ class Chip:
                 if func_pdk is not None:
                     func_pdk(self)
                     if len(targetlist) > 1:
-                        self.logger.error('Target string beginning with a PDK name ' 
+                        self.logger.error('Target string beginning with a PDK name '
                                           'must only have one entry')
                         sys.exit(1)
                     break
