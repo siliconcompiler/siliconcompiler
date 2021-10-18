@@ -162,7 +162,7 @@ class Server:
         # Move the uploaded archive and un-zip it.
         # (Contents will be encrypted for authenticated jobs)
         os.replace(tmp_file, '%s/import.zip'%job_root)
-        subprocess.run(['unzip', '-o', '%s/import.zip'%(job_root)],
+        subprocess.run(['tar', '-xf', '%s/import.zip'%(job_root)],
                        cwd=job_dir)
 
         # Delete the temporary file if it still exists.
@@ -350,8 +350,8 @@ class Server:
                 os.remove(keypath)
 
         # Zip results after all job stages have finished.
-        subprocess.run(['zip',
-                        '-r',
+        subprocess.run(['tar',
+                        '-cf',
                         '%s.zip'%job_hash,
                         '%s'%job_hash],
                        cwd = nfs_mount)
@@ -409,8 +409,8 @@ class Server:
         # (Email notifications can be sent here using SES)
 
         # Create a single-file archive to return if results are requested.
-        subprocess.run(['zip',
-                        '-r',
+        subprocess.run(['tar',
+                        '-cf',
                         '%s.zip'%job_hash,
                         '%s'%job_hash],
                        cwd=self.cfg['nfsmount']['value'][-1])
