@@ -2501,7 +2501,7 @@ class Chip:
             in_step = match.group(1)
             in_index = match.group(2)
             utils.copytree(f"../../../{job}/{in_step}/{in_index}/outputs", 'inputs/', dirs_exist_ok=True,
-                ignore=lambda dir, contents: [f'{design}.pkg.json'])
+                ignore=[f'{design}.pkg.json'])
 
         ##################
         # 7. Run preprocess step for tool
