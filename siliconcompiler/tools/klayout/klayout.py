@@ -90,11 +90,11 @@ def runtime_options(chip):
     lib_rev = chip.get('library', libname, 'version')
     stackup = chip.get('pdk','stackup')[0]
     libtype = chip.get('library', libname, 'arch')
-    techfile = chip.find_file(chip.get('pdk','layermap', stackup, 'def', 'gds')[0])
-    techlef = chip.find_file(chip.get('pdk','aprtech', stackup, libtype, 'lef')[0])
+    techfile = chip.find_files('pdk','layermap', stackup, 'def', 'gds')[0]
+    techlef = chip.find_files('pdk','aprtech', stackup, libtype, 'lef')[0]
     #TODO: fix this!, is foundry_lefs they only way??
     #needed?
-    liblef = chip.find_file(chip.get('library',libname,'lef')[0])
+    liblef = chip.find_files('library',libname,'lef')[0]
     lefpath = os.path.dirname(liblef)
     #TODO: fix to add fill
     config_file = ""
@@ -113,11 +113,11 @@ def runtime_options(chip):
         options.append('-rd')
         gds_files = []
         for lib in chip.get('asic', 'targetlib'):
-            for gds in chip.get('library', lib, 'gds'):
-                gds_files.append(chip.find_file(gds))
+            for gds in chip.find_files('library', lib, 'gds'):
+                gds_files.append(gds)
         for lib in chip.get('asic', 'macrolib'):
-            for gds in chip.get('library', lib, 'gds'):
-                gds_files.append(chip.find_file(gds))
+            for gds in chip.find_files('library', lib, 'gds'):
+                gds_files.append(gds)
         gds_list = ' '.join(gds_files)
         options.append(f'in_files="{gds_list}"')
         options.append('-rd')
@@ -131,8 +131,8 @@ def runtime_options(chip):
         #    for lef in chip.get('library', lib, 'lef'):
         #        lef_files.append(chip.find(lef))
         for lib in chip.get('asic', 'macrolib'):
-            for lef in chip.get('library', lib, 'lef'):
-                lef_files.append(chip.find_file(lef))
+            for lef in chip.find_files('library', lib, 'lef'):
+                lef_files.append(lef)
         lef_list = ' '.join(lef_files)
         options.append('-rd')
         options.append(f'macro_lefs="{lef_list}"')
