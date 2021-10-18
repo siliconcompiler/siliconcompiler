@@ -20,10 +20,6 @@ def test_gcd_infer_diesize(gcd_chip):
     gcd_chip.set('asic', 'diearea', [])
     gcd_chip.set('asic', 'corearea', [])
 
-    gcd_chip.set('asic', 'density', 10)
-    gcd_chip.set('asic', 'aspectratio', 1)
-    gcd_chip.set('asic', 'coremargin', 26.6)
-
     gcd_chip.add('steplist', 'import')
     gcd_chip.add('steplist', 'syn')
     gcd_chip.add('steplist', 'synmin')
