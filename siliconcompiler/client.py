@@ -16,10 +16,6 @@ import uuid
 
 from siliconcompiler.crypto import *
 
-SEP = '/'
-if sys.platform.startswith('win32'):
-    SEP = '\\'
-
 ###################################
 def get_base_url(chip):
     '''Helper method to get the root URL for API calls, given a Chip object.
@@ -87,8 +83,9 @@ def client_decrypt(chip):
     '''Helper method to decrypt project data before running a job on it.
     '''
 
-    job_path = f"{chip.get('dir')}{SEP}{chip.get('design')}{SEP}" \
-               f"{chip.get('jobname')}"
+    job_path = os.path.join(chip.get('dir'),
+                            chip.get('design'),
+                            chip.get('jobname'))
     decrypt_job(job_path,
                 chip.get('remote', 'key'))
 
@@ -97,8 +94,9 @@ def client_encrypt(chip):
     '''Helper method to re-encrypt project data after processing.
     '''
 
-    job_path = f"{chip.get('dir')}{SEP}{chip.get('design')}{SEP}" \
-               f"{chip.get('jobname')}"
+    job_path = os.path.join(chip.get('dir'),
+                            chip.get('design'),
+                            chip.get('jobname'))
     encrypt_job(job_path,
                 chip.get('remote', 'key'))
 
@@ -163,7 +161,9 @@ def request_remote_run(chip):
         # We'll use AES-256-CTR, because the Python 'cryptography' module's
         # recommended 'Fernet' algorithm only works on files that fit in memory.
         pkpath = chip.get('remote', 'key')
-        job_path = f"{chip.get('dir')}{SEP}{chip.get('design')}{SEP}{job_nameid}"
+        job_path = os.path.join(chip.get('dir'),
+                                chip.get('design'),
+                                chip.get('job_nameid'))
 
         # AES-encrypt the job data prior to uploading.
         # TODO: This assumes a common OpenSSL convention of using similar file
@@ -192,15 +192,15 @@ def request_remote_run(chip):
     # If '-remote_user' and '-remote_key' are not both specified,
     # no authorizaion is configured; proceed without crypto.
     # If they were specified, these files are now encrypted.
-    local_build_dir = stepdir = SEP.join([chip.get('dir'),
-                                          chip.get('design'),
-                                          job_nameid])
+    local_build_dir = stepdir = os.path.join(chip.get('dir'),
+                                             chip.get('design'),
+                                             job_nameid)
     subprocess.run(['tar',
                     '-cf',
                     'import.zip',
                     '.'],
                    cwd=local_build_dir)
-    upload_file = os.path.abspath(f'{local_build_dir}{SEP}import.zip')
+    upload_file = os.path.abspath(os.path.join(local_build_dir, 'import.zip'))
 
     # Make the actual request, streaming the bulk data as a multipart file.
     # Redirected POST requests are translated to GETs. This is actually

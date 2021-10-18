@@ -31,10 +31,6 @@ from siliconcompiler.schema import *
 
 from siliconcompiler import _metadata
 
-SEP = '/'
-if sys.platform.startswith('win32'):
-    SEP = '\\'
-
 class Chip:
     """Object for configuring and executing hardware design flows.
 
