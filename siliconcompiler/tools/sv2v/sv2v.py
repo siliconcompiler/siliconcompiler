@@ -63,6 +63,7 @@ def setup_tool(chip):
     # set and we can read the pickled Verilog without accessing the original
     # sources
     topmodule = chip.get('design')
+    chip.set('eda', tool, step, index, 'option', 'cmdline', [])
     chip.add('eda', tool, step, index, 'option', 'cmdline', "inputs/" + topmodule + ".v")
     chip.add('eda', tool, step, index, 'option', 'cmdline', "--write=outputs/" + topmodule + ".v")
 
