@@ -11,7 +11,7 @@ def test_find_file():
     chip = siliconcompiler.Chip()
 
     assert chip.find_file("flows/asicflow.py") is not None
-    assert chip.find_file("foundries/freepdk45.py") is not None
+    assert chip.find_file("pdks/freepdk45.py") is not None
 
     datadir = os.path.dirname(os.path.abspath(__file__)) + "/../data/"
     chip.set('scpath', f'{datadir}/sclib')
