@@ -2574,7 +2574,21 @@ class Chip:
             cmdstr = ' '.join(cmdlist)
             self.logger.info("Running in %s", workdir)
             self.logger.info('%s', cmdstr)
-            cmd_error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
+            logfile = step + '.log'
+            with open(logfile, 'w') as log:
+                cmd_error = subprocess.Popen(cmdstr,
+                                             shell=True,
+                                             stdout=subprocess.PIPE,
+                                             stderr=subprocess.STDOUT)
+                for line_bytes in cmd_error.stdout:
+                    line = line_bytes.decode()
+                    if not (self.get('quiet') & (step not in self.get('bkpt'))):
+                        sys.stdout.write(line)
+                    log.write(line)
+                # The process is finished when the stdout/stderr stream closes,
+                # but we must call '.communicate()' to set '.returncode'.
+                cmd_error.communicate()
+
             if cmd_error.returncode != 0:
                 self.logger.warning('Command failed. See log file %s', os.path.abspath(cmdlist[-1]))
                 if not self.get('eda', tool, step, index, 'continue'):
@@ -3012,13 +3026,6 @@ class Chip:
         if runtime_options:
             #print(runtime_options(self))
             cmdlist.extend(runtime_options(self))
-        if self.get('quiet') & (step not in self.get('bkpt')):
-            cmdlist.extend([" &> ",logfile])
-        else:
-            # the weird construct at the end ensures that this invocation returns the
-            # exit code of the command itself, rather than tee
-            # (source: https://stackoverflow.com/a/18295541)
-            cmdlist.extend([" 2>&1 | tee ",logfile," ; (exit ${PIPESTATUS[0]} )"])
 
         #create replay file
         with open('replay.sh', 'w') as f:
