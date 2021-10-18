@@ -4,6 +4,7 @@ import re
 import shutil
 import sys
 import siliconcompiler
+from siliconcompiler.floorplan import _infer_diearea
 
 ####################################################################
 # Make Docs
@@ -141,6 +142,24 @@ def check_version(chip, version):
 
     return 0
 
+def pre_process(chip):
+    step = chip.get('arg', 'step')
+
+    # Only do diearea inference if we're on floorplanning step and these
+    # parameters are all unset.
+    if (step != 'floorplan' or
+        chip.get('asic', 'diearea') or
+        chip.get('asic', 'corearea') or
+        chip.get('asic', 'def')):
+        return
+
+    r = _infer_diearea(chip)
+    if r is None:
+        return
+    diearea, corearea = r
+
+    chip.set('asic', 'diearea', diearea)
+    chip.set('asic', 'corearea', corearea)
 
 ################################
 # Post_process (post executable)
