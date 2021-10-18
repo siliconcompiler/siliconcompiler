@@ -2,6 +2,7 @@ import os
 import subprocess
 import re
 import sys
+import shutil
 import siliconcompiler
 
 ####################################################################
@@ -72,6 +73,12 @@ def setup_tool(chip):
 def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
+    # Hack to make sure we propogate inputs gathered on import (necessary for
+    # server flow). Skip design.v since sv2v outputs a new version of this file.
+    design = chip.get('design')
+    shutil.copytree("inputs", "outputs", dirs_exist_ok=True,
+                    ignore=lambda dir, contents: [f'{design}.v'])
+
     return 0
 
 ##################################################
