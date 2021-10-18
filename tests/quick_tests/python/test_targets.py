@@ -1,4 +1,4 @@
-from siliconcompiler.foundries import asap7, freepdk45, skywater130
+from siliconcompiler.pdks import asap7, freepdk45, skywater130
 from siliconcompiler.core import Chip
 
 # Smoke test that we can initialize all libraries without errors

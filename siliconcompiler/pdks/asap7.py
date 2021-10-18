@@ -70,7 +70,7 @@ def setup_pdk(chip):
     rev = 'r1p7'
     stackup = '10M'
     libtype = '7p5t'
-    pdkdir = '/'.join(["third_party/foundry",
+    pdkdir = '/'.join(["third_party/pdks",
                        foundry,
                        process,
                        'pdk',
@@ -164,7 +164,7 @@ def setup_pdk(chip):
     rev = 'r1p7'
     corner = 'typical'
     objectives = ['setup']
-    libdir = '/'.join(["asic",
+    libdir = '/'.join(["../third_party/pdks",
                        foundry,
                        process,
                        'libs',

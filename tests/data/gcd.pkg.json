@@ -6939,7 +6939,7 @@
                 "copy": "false",
                 "date": [],
                 "defvalue": [
-                    "../third_party/foundry/virtual/freepdk45/libs/NangateOpenCellLibrary/r1p0/gds/NangateOpenCellLibrary.gds"
+                    "../third_party/pdks/virtual/freepdk45/libs/NangateOpenCellLibrary/r1p0/gds/NangateOpenCellLibrary.gds"
                 ],
                 "filehash": [],
                 "hashalgo": "sha256",
@@ -6950,7 +6950,7 @@
                 "switch": "-library_gds 'lib <file>'",
                 "type": "[file]",
                 "value": [
-                    "../third_party/foundry/virtual/freepdk45/libs/NangateOpenCellLibrary/r1p0/gds/NangateOpenCellLibrary.gds"
+                    "../third_party/pdks/virtual/freepdk45/libs/NangateOpenCellLibrary/r1p0/gds/NangateOpenCellLibrary.gds"
                 ]
             },
             "lef": {
@@ -6958,7 +6958,7 @@
                 "copy": "false",
                 "date": [],
                 "defvalue": [
-                    "../third_party/foundry/virtual/freepdk45/libs/NangateOpenCellLibrary/r1p0/lef/NangateOpenCellLibrary.macro.mod.lef"
+                    "../third_party/pdks/virtual/freepdk45/libs/NangateOpenCellLibrary/r1p0/lef/NangateOpenCellLibrary.macro.mod.lef"
                 ],
                 "filehash": [],
                 "hashalgo": "sha256",
@@ -6969,7 +6969,7 @@
                 "switch": "-library_lef 'lib <file>'",
                 "type": "[file]",
                 "value": [
-                    "../third_party/foundry/virtual/freepdk45/libs/NangateOpenCellLibrary/r1p0/lef/NangateOpenCellLibrary.macro.mod.lef"
+                    "../third_party/pdks/virtual/freepdk45/libs/NangateOpenCellLibrary/r1p0/lef/NangateOpenCellLibrary.macro.mod.lef"
                 ]
             },
             "nldm": {
@@ -6979,7 +6979,7 @@
                         "copy": "false",
                         "date": [],
                         "defvalue": [
-                            "../third_party/foundry/virtual/freepdk45/libs/NangateOpenCellLibrary/r1p0/lib/NangateOpenCellLibrary_typical.lib"
+                            "../third_party/pdks/virtual/freepdk45/libs/NangateOpenCellLibrary/r1p0/lib/NangateOpenCellLibrary_typical.lib"
                         ],
                         "filehash": [],
                         "hashalgo": "sha256",
@@ -6990,7 +6990,7 @@
                         "switch": "-library_nldm 'lib corner format <file>'",
                         "type": "[file]",
                         "value": [
-                            "../third_party/foundry/virtual/freepdk45/libs/NangateOpenCellLibrary/r1p0/lib/NangateOpenCellLibrary_typical.lib"
+                            "../third_party/pdks/virtual/freepdk45/libs/NangateOpenCellLibrary/r1p0/lib/NangateOpenCellLibrary_typical.lib"
                         ]
                     }
                 }
@@ -13468,7 +13468,7 @@
                         "switch": "-pdk_aprtech 'stackup libarch filetype <file>'",
                         "type": "[file]",
                         "value": [
-                            "../third_party/foundry/virtual/freepdk45/pdk/r1p0/apr/freepdk45.tech.lef"
+                            "../third_party/pdks/virtual/freepdk45/pdk/r1p0/apr/freepdk45.tech.lef"
                         ]
                     }
                 }
@@ -14091,7 +14091,7 @@
                         "switch": "-pdk_layermap 'stackup src dst <file>'",
                         "type": "[file]",
                         "value": [
-                            "../third_party/foundry/virtual/freepdk45/pdk/r1p0/setup/klayout/freepdk45.lyt"
+                            "../third_party/pdks/virtual/freepdk45/pdk/r1p0/setup/klayout/freepdk45.lyt"
                         ]
                     }
                 }
