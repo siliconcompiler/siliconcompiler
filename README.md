@@ -1,4 +1,5 @@
-# SiliconCompiler
+
+![alt text](docs/_images/sc_logo_with_text.png)
 
 [![Quick CI Tests](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/on_push_tests.yml/badge.svg)](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/on_push_tests.yml)
 [![Daily CI Tests](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/daily_tests.yml/badge.svg)](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/daily_tests.yml)
@@ -9,28 +10,27 @@ SiliconCompiler ("SC") is an open source hardware compilation framework with nat
 support for open source and commercial design tools. The goal of the SiliconCompiler
 project is to lower the barrier for custom hardware development.
 
-
-- **Website:** https://www.siliconcompiler.com/docs
+- **Website:** https://www.siliconcompiler.com
 - **Documentation:** https://www.siliconcompiler.com/docs
-- **Sources:** https://github.com/siliconcompiler/siliconcompiler
 - **Community:** https://siliconcompiler.com/community
+- **Sources:** https://github.com/siliconcompiler/siliconcompiler
+
 
 ## Features
 
+* Standardized compilation schema
 * Python based programming interface
-* Extensible dictionary based compilation schea
 * Scalable flowgraph based compilation
 * Built in support for remote processing
-* Standardized plain text JSON compilation manifests
+* Plain text JSON compilation records
 
 ## Installation
 
-SC requires Python 3.6-3.9
-
-To install the current release from PyPI:
+SiliconCompiler is availabe as wheel packages for macOS, Windows and Linux on PyPI.
+To install the current release:
 
 ```sh
-  pip install siliconcompiler
+  python -m pip install siliconcompiler
 ```
 
 To install from repository:
@@ -39,7 +39,7 @@ To install from repository:
  git clone https://github.com/siliconcompiler/siliconcompiler
  cd siliconcompiler
  pip install -r requirements.txt
- python -m pip install -e
+ python -m pip install -e .
 ```
 
 ## Quickstart guide
