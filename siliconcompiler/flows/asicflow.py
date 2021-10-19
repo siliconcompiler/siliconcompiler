@@ -64,6 +64,7 @@ def setup_flow(chip):
     # Linear flow, up until branch to run parallel verification steps.
 
     flowpipe = ['import',
+                'convert',
                 'syn',
                 'synmin',
                 'floorplan',
@@ -83,6 +84,7 @@ def setup_flow(chip):
 
     tools = {
         'import' : 'surelog',
+        'convert': 'sv2v',
         'syn' : 'yosys',
         'synmin' : 'step_minimum',
         'floorplan' : 'openroad',
