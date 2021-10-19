@@ -54,10 +54,9 @@ entry_points = entry_points_apps + ["sc-server=siliconcompiler.server:main", "sc
 # results, but since the leflib is small and compiles quickly, and a user likely
 # won't have to perform many installs anyways, this seems like a worthwhile
 # tradeoff.
-if 'develop' in sys.argv or 'install' in sys.argv:
-    if os.path.isdir('_skbuild'):
-        print("Note: removing existing _skbuild/ directory.")
-        shutil.rmtree('_skbuild')
+if os.path.isdir('_skbuild'):
+     print("Note: removing existing _skbuild/ directory.")
+     shutil.rmtree('_skbuild')
 
 setup(
     name="siliconcompiler",
@@ -98,7 +97,7 @@ setup(
         "requests >= 2.22.0",
         "PyYAML >= 5.4.1",
         "defusedxml >= 0.7.1",
-        "pandas >= 1.2.3",
+        "pandas >= 1.1.5",
         "Jinja2 >= 2.11.3",
         "cryptography >= 3.4.7",
         "graphviz >=0.17"

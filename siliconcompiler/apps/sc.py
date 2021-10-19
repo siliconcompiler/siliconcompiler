@@ -8,7 +8,6 @@ import re
 import json
 import sys
 import uuid
-import importlib.resources
 from multiprocessing import Process
 
 #Shorten siliconcompiler as sc

@@ -5,6 +5,7 @@ import sys
 import shutil
 
 import siliconcompiler
+from siliconcompiler import utils
 
 ####################################################################
 # Make Docs
@@ -114,7 +115,7 @@ def post_process(chip):
     # Copy files from inputs to outputs. Need to do this before pickling since
     # we may otherwise overwrite the pickled file with one of the Verilog
     # sources.
-    shutil.copytree("inputs", "outputs", dirs_exist_ok=True)
+    utils.copytree("inputs", "outputs", dirs_exist_ok=True)
 
     # Look in slpp_all/file_elab.lst for list of Verilog files included in
     # design, read these and concatenate them into one pickled output file.

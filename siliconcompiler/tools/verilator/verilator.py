@@ -4,6 +4,7 @@ import re
 import sys
 import siliconcompiler
 import shutil
+from siliconcompiler import utils
 
 ####################################################################
 # Make Docs
@@ -160,7 +161,7 @@ def post_process(chip):
         topmodule = chip.cfg['design']['value']
 
     # Copy files from inputs to outputs
-    shutil.copytree("inputs", "outputs", dirs_exist_ok=True)
+    utils.copytree("inputs", "outputs", dirs_exist_ok=True)
 
     # Moving pickled file to outputs
     os.rename("verilator.v", "outputs/" + topmodule + ".v")
