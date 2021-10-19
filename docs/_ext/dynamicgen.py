@@ -244,19 +244,19 @@ class FlowGen(DynamicGen):
 
         return settings
 
-class FoundryGen(DynamicGen):
-    PATH = 'foundries'
+class PDKGen(DynamicGen):
+    PATH = 'pdks'
 
     def display_config(self, chip, modname):
         '''Display parameters under `pdk`, `asic`, and `library` in nested form.'''
 
-        section_key = '-'.join(['foundries', modname, 'configuration'])
+        section_key = '-'.join(['pdks', modname, 'configuration'])
         settings = build_section('Configuration', section_key)
 
         for prefix in [('pdk',), ('asic',), ('library',)]:
             cfg = chip.getdict(*prefix)
             pruned = chip._prune(cfg)
-            settings += self.build_config_recursive(cfg, keypath_prefix=list(prefix), sec_key_prefix=['foundries', modname])
+            settings += self.build_config_recursive(cfg, keypath_prefix=list(prefix), sec_key_prefix=['pdks', modname])
 
         return settings
 
@@ -385,7 +385,7 @@ class ExampleGen(DynamicGen):
 
 def setup(app):
     app.add_directive('flowgen', FlowGen)
-    app.add_directive('foundrygen', FoundryGen)
+    app.add_directive('pdkgen', PDKGen)
     app.add_directive('toolgen', ToolGen)
     app.add_directive('appgen', AppGen)
     app.add_directive('examplegen', ExampleGen)
