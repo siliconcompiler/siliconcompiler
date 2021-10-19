@@ -45,7 +45,7 @@ Welcome to SiliconCompiler's documentation!
    reference_manual/examples
    reference_manual/flows
    reference_manual/tools
-   reference_manual/foundries
+   reference_manual/pdks
 
 .. toctree::
    :maxdepth: 3

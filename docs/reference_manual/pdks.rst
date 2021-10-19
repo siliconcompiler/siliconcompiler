@@ -1,4 +1,4 @@
 PDK directory
 ==================
 
-.. foundrygen::
+.. pdkgen::
