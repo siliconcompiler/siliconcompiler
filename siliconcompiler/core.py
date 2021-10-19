@@ -1113,8 +1113,7 @@ class Chip:
             return os.path.abspath(filename)
 
         # Otherwise, search relative to scpaths
-        scpaths = [self.cwd]
-        scpaths.append(self.scroot)
+        scpaths = [self.scroot, self.cwd]
         scpaths.extend(self.get('scpath'))
 
         searchdirs = ', '.join(scpaths)
