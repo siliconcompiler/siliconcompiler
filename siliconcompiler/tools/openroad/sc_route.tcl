@@ -24,9 +24,17 @@ set_routing_layers -signal $sc_minmetal-$sc_maxmetal
 
 set_macro_extension 2
 
+if {[dict exists $sc_cfg eda $sc_tool $sc_step $sc_index option grt_allow_congestion] &&
+    [dict get $sc_cfg eda $sc_tool $sc_step $sc_index option grt_allow_congestion] == "true"} {
+    set additional_grt_args "-allow_congestion"
+} else {
+    set additional_grt_args ""
+}
+
 global_route -guide_file "./route.guide" \
     -overflow_iterations $openroad_overflow_iter \
-    -verbose 2
+    -verbose 2 \
+    $additional_grt_args
 
 ######################
 # Report Antennas
