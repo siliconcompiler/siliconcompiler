@@ -126,14 +126,13 @@ def setup_flow(chip):
         for index in range(fanout):
             for metric in chip.getkeys('metric', 'default', 'default'):
                 if metric in ('errors','warnings','drvs','holdwns','setupwns','holdtns','setuptns'):
-                    chip.set('flowgraph', step, str(index), 'weight', metric, 1.0)
+                    chip.set('flowgraph', step, str(index), 'weight', metric, 0)
                     chip.set('metric', step, str(index), metric, 'goal', 0)
                 elif metric in ('cellarea', 'peakpower', 'standbypower'):
                     chip.set('flowgraph', step, str(index), 'weight', metric, 1.0)
-                elif metric in ('dsps', 'brams', 'luts'):
-                    chip.set('flowgraph', step, str(index), 'weight', metric, 0.0)
-                else:
-                    chip.set('flowgraph', step, str(index), 'weight', metric, 0.001)
+                elif metric not in ('dsps', 'brams', 'luts'):
+                    chip.set('flowgraph', step, str(index), 'weight', metric, 0)
+
             #graph
             if step == 'import':
                 chip.set('flowgraph', step, str(index), 'tool', tools[step])

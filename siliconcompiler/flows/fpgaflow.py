@@ -89,7 +89,7 @@ def setup_flow(chip):
         for metric in ('errors','warnings','drvs','unconstrained',
                        'holdwns','holdtns', 'holdpaths',
                        'setupwns', 'setuptns', 'setuppaths'):
-            chip.set('flowgraph', step, index, 'weight', metric, 1.0)
+            chip.set('flowgraph', step, index, 'weight', metric, 0)
             chip.set('metric', step, index, metric, 'goal', 0)
         # Metrics
         for metric in ('luts','dsps','brams','registers',
