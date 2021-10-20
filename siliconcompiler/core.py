@@ -2848,6 +2848,11 @@ class Chip:
                             self.set('arg','index', index)
                             func = self.find_function(tool, 'tool', 'setup_tool')
                             func(self)
+                            # Need to clear index, otherwise we will skip
+                            # setting up other indices. Clear step for good
+                            # measure.
+                            self.set('arg','step', None)
+                            self.set('arg','index', None)
                     else:
                         self.set('flowstatus', step, str(index), 'error', 0)
                         error[stepstr] = self.get('flowstatus', step, str(index), 'error')
@@ -2942,7 +2947,6 @@ class Chip:
         lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
         if os.path.isfile(lastcfg):
             self.read_manifest(lastcfg, clobber=True, clear=True)
-            self.set('flowstatus',laststep,lastindex, 'select', '0')
 
         # Store run in history
         self.cfghistory[self.get('jobname')] = copy.deepcopy(self.cfg)
