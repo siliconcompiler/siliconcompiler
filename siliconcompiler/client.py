@@ -164,7 +164,7 @@ def request_remote_run(chip):
         pkpath = chip.get('remote', 'key')
         job_path = os.path.join(chip.get('dir'),
                                 chip.get('design'),
-                                chip.get('job_nameid'))
+                                job_nameid)
 
         # AES-encrypt the job data prior to uploading.
         # TODO: This assumes a common OpenSSL convention of using similar file

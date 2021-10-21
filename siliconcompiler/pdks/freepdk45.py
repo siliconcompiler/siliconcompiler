@@ -225,8 +225,6 @@ def setup_pdk(chip):
     chip.set('asic', 'rclayer', 'data',"m3")
     chip.set('asic', 'hpinlayer', "m3")
     chip.set('asic', 'vpinlayer', "m2")
-    chip.set('asic', 'density', 1.0)
-    chip.set('asic', 'aspectratio', 1.0)
 
     corner = 'typical'
     # hard coded mcmm settings (only one corner!)
