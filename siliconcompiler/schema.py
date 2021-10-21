@@ -1698,7 +1698,7 @@ def schema_flowgraph(cfg, step='default', index='default'):
         """
     }
 
-    # Arguments passed by user to function
+    # Arguments passed by user to setup function
     cfg['flowgraph'][step][index]['args'] = {
         'switch': "-flowgraph_args 'step index <str>'",
         'type': '[str]',
@@ -1721,7 +1721,7 @@ def schema_flowgraph(cfg, step='default', index='default'):
         'type': 'bool',
         'lock': 'false',
         'requirement': None,
-        'defvalue': [],
+        'defvalue': 'false',
         'shorthelp': 'Flowgraph step/index valid bit',
         'example': [
             "cli: -flowgraph_valid 'cts 0 true'",
@@ -1731,6 +1731,28 @@ def schema_flowgraph(cfg, step='default', index='default'):
         The parameter can be used to control flow execution. If the bit
         is cleared (0), then the step/index combination is invalid and
         should not be run.
+        """
+    }
+
+    # Valid bits set by user
+    cfg['flowgraph'][step][index]['timeout'] = {
+        'switch': "-flowgraph_timeout 'step 0 <float>'",
+        'type': 'float',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Flowgraph step/index timeout value',
+        'example': [
+            "cli: -flowgraph_timeout 'cts 0 3600'",
+            "api:  chip.set('flowgraph','cts','0','timeout', 3600)"],
+        'help': """
+        Timeout value in seconds specified on a per step and per index
+        basis. The flowgraph timeout value is compared against the
+        wall time tracked by the SC runtime to determine if an
+        operation should continue. Timeout values help in situations
+        where 1.) an operation is stuck and may never finish. 2.) the
+        operation progress has saturated and continued execution has
+        a negative return on investment.
         """
     }
 
