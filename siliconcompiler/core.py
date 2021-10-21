@@ -1133,27 +1133,30 @@ class Chip:
         return result
 
     ###########################################################################
-    def find_files(self, *keys, missing_ok=True, cfg=None, no_import=False):
+    def find_files(self, *keypath, missing_ok=True, cfg=None, check_workdir=True):
         """
         Returns absolute paths to files or directories based on the keypath
         provided.
 
-        This function first checks if the keypath provided has its `copy`
-        parameter set to True. If so, it returns paths to the files in the build
-        directory. Otherwise, it resolves these files based on the current
-        working directory and SC path.
+        By default, this function first checks if the keypath provided has its
+        `copy` parameter set to True. If so, it returns paths to the files in
+        the build directory. Otherwise, it resolves these files based on the
+        current working directory and SC path.
 
         The keypath provided must point to a schema parameter of type file, dir,
         or lists of either. Otherwise, it will trigger an error.
 
         Args:
-            keys (list str): Variable length schema key list.
+            keypath (list str): Variable length schema key list.
             missing_ok (bool): Whether to trigger an error if a file cannot be
                 found.
             cfg (dict): Alternate dictionary to access in place of the default
                 chip object schema dictionary.
-            no_import (bool): Always try to resolve paths by looking at SC
-                paths, rather than checking import directory.
+            check_workdir (bool): If False, always try to resolve paths by
+                looking at relative files or SC paths, rather than checking the
+                import directory. This must be set to False when called before
+                the import step is run, and must be set to True for any calls
+                that might run remotely.
 
         Returns:
             If keys points to a scalar entry, returns an absolute path to that
@@ -1171,10 +1174,10 @@ class Chip:
             cfg = self.cfg
 
         copyall = self.get('copyall', cfg=cfg)
-        paramtype = self.get(*keys, field='type', cfg=cfg)
+        paramtype = self.get(*keypath, field='type', cfg=cfg)
 
         if 'file' in paramtype:
-            copy = self.get(*keys, field='copy', cfg=cfg)
+            copy = self.get(*keypath, field='copy', cfg=cfg)
         else:
             copy = False
 
@@ -1185,12 +1188,12 @@ class Chip:
 
         is_list = bool(re.match(r'\[', paramtype))
 
-        paths = self.get(*keys, cfg=cfg)
+        paths = self.get(*keypath, cfg=cfg)
         # Convert to list if we have scalar
         if not is_list:
             paths = [paths]
 
-        if (copyall or copy) and ('file' in paramtype) and (not no_import):
+        if (copyall or copy) and ('file' in paramtype) and (check_workdir):
             result = []
             for path in paths:
                 name = os.path.basename(path)
