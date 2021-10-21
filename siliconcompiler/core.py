@@ -415,13 +415,13 @@ class Chip:
 
         # module search path depends on functype
         if functype == 'tool':
-            fullpath = self.find_file(f"tools/{modulename}/{modulename}.py", missing_ok=True)
+            fullpath = self._find_sc_file(f"tools/{modulename}/{modulename}.py", missing_ok=True)
         elif functype == 'flow':
-            fullpath = self.find_file(f"flows/{modulename}.py", missing_ok=True)
+            fullpath = self._find_sc_file(f"flows/{modulename}.py", missing_ok=True)
         elif functype == 'pdk':
-            fullpath = self.find_file(f"pdks/{modulename}.py", missing_ok=True)
+            fullpath = self._find_sc_file(f"pdks/{modulename}.py", missing_ok=True)
         elif functype == 'project':
-            fullpath = self.find_file(f"projects/{modulename}.py", missing_ok=True)
+            fullpath = self._find_sc_file(f"projects/{modulename}.py", missing_ok=True)
         else:
             self.logger.error(f"Illegal module type '{functype}'.")
             self.error = 1
@@ -533,6 +533,15 @@ class Chip:
                     self.set('flowgraph', step, '0', 'weight', 'errors', 1.0)
                     self.set('flowgraph', step, '0', 'weight', 'warnings', 1.0)
                     self.set('flowgraph', step, '0', 'weight', 'runtime', 1.0)
+
+                    # We must always have an import step, so add a default no-op
+                    # if need be.
+                    if step != 'import':
+                        self.set('flowgraph', 'import', '0', 'function', 'step_join')
+                        self.set('flowgraph', step, '0', 'input', 'import0')
+
+                    self.set('arg', 'step', None)
+
                     continue
 
                 self.logger.error(f'Target {item} not found')
@@ -1069,7 +1078,7 @@ class Chip:
         return localcfg
 
     ###########################################################################
-    def find_file(self, filename, missing_ok=False):
+    def _find_sc_file(self, filename, missing_ok=False):
         """
         Returns the absolute path for the filename provided.
 
@@ -1088,7 +1097,7 @@ class Chip:
             None.
 
         Examples:
-            >>> chip.find_file('flows/asicflow.py')
+            >>> chip._find_sc_file('flows/asicflow.py')
            Returns the absolute path based on the sc installation directory.
 
         """
@@ -1104,8 +1113,7 @@ class Chip:
             return os.path.abspath(filename)
 
         # Otherwise, search relative to scpaths
-        scpaths = [self.cwd]
-        scpaths.append(self.scroot)
+        scpaths = [self.scroot, self.cwd]
         scpaths.extend(self.get('scpath'))
 
         searchdirs = ', '.join(scpaths)
@@ -1121,6 +1129,87 @@ class Chip:
         if result is None and not missing_ok:
             self.error = 1
             self.logger.error(f"File {filename} was not found")
+
+        return result
+
+    ###########################################################################
+    def find_files(self, *keypath, missing_ok=True, cfg=None, check_workdir=True):
+        """
+        Returns absolute paths to files or directories based on the keypath
+        provided.
+
+        By default, this function first checks if the keypath provided has its
+        `copy` parameter set to True. If so, it returns paths to the files in
+        the build directory. Otherwise, it resolves these files based on the
+        current working directory and SC path.
+
+        The keypath provided must point to a schema parameter of type file, dir,
+        or lists of either. Otherwise, it will trigger an error.
+
+        Args:
+            keypath (list str): Variable length schema key list.
+            missing_ok (bool): Whether to trigger an error if a file cannot be
+                found.
+            cfg (dict): Alternate dictionary to access in place of the default
+                chip object schema dictionary.
+            check_workdir (bool): If False, always try to resolve paths by
+                looking at relative files or SC paths, rather than checking the
+                import directory. This must be set to False when called before
+                the import step is run, and must be set to True for any calls
+                that might run remotely.
+
+        Returns:
+            If keys points to a scalar entry, returns an absolute path to that
+            file/directory, or None if not found. It keys points to a list
+            entry, returns a list of either the absolute paths or None for each
+            entry, depending on whether it is found.
+
+        Examples:
+            >>> chip.find_files('source')
+            Returns a list of absolute paths to source files, as specified in
+            the schema.
+
+        """
+        if cfg is None:
+            cfg = self.cfg
+
+        copyall = self.get('copyall', cfg=cfg)
+        paramtype = self.get(*keypath, field='type', cfg=cfg)
+
+        if 'file' in paramtype:
+            copy = self.get(*keypath, field='copy', cfg=cfg)
+        else:
+            copy = False
+
+        if 'file' not in paramtype and 'dir' not in paramtype:
+            self.chip.error('Can only call find_files on file or dir types')
+            self.chip.error = 1
+            return None
+
+        is_list = bool(re.match(r'\[', paramtype))
+
+        paths = self.get(*keypath, cfg=cfg)
+        # Convert to list if we have scalar
+        if not is_list:
+            paths = [paths]
+
+        if (copyall or copy) and ('file' in paramtype) and (check_workdir):
+            result = []
+            for path in paths:
+                name = os.path.basename(path)
+                abspath = os.path.join(self._getworkdir(step='import'), 'outputs', name)
+                if not os.path.isfile(abspath):
+                    if not missing_ok:
+                        self.error = 1
+                        self.logger.error(f'File {abspath} was not found')
+                    abspath = None
+                result.append(abspath)
+        else:
+            result = [self._find_sc_file(path, missing_ok=missing_ok) for path in paths]
+
+        # Convert back to scalar if that was original type
+        if not is_list:
+            return result[0]
 
         return result
 
@@ -1160,27 +1249,17 @@ class Chip:
     ###########################################################################
     def _abspath(self, cfg):
         '''
-        Internal recursive function that goes through Chip dictionary and
-        resolves all relative paths where required.
+        Internal function that goes through provided dictionary and resolves all
+        relative paths where required.
         '''
 
-        #TODO: no need for recusion, use allkeys
-        #Recursively going through dict to set abspaths for files
-        for k, v in cfg.items():
-            if isinstance(v, dict):
-                #indicates leaf cell
-                if 'value' in cfg[k].keys():
-                    #only do something if type is file
-                    if re.search('file|dir', cfg[k]['type']):
-                        #iterate if list
-                        if re.match(r'\[', cfg[k]['type']):
-                            for i, val in enumerate(list(cfg[k]['value'])):
-                                #Look for relative paths in search path
-                                cfg[k]['value'][i] =self.find_file(val, missing_ok=True)
-                        else:
-                            cfg[k]['value'] = self.find_file(cfg[k]['value'], missing_ok=True)
-                else:
-                    self._abspath(cfg[k])
+        for keypath in self.getkeys(cfg=cfg):
+            paramtype = self.get(*keypath, cfg=cfg, field='type')
+
+            #only do something if type is file or dir
+            if 'file' in paramtype or 'dir' in paramtype:
+                abspaths = self.find_files(*keypath, missing_ok=True, cfg=cfg)
+                self.set(*keypath, abspaths, cfg=cfg)
 
     ###########################################################################
     def _print_csv(self, cfg, file=None):
@@ -1333,6 +1412,11 @@ class Chip:
             self.error = 1
             self.logger.error(f"No flowgraph defined.")
         legal_steps = self.getkeys('flowgraph')
+
+        if 'import' not in legal_steps:
+            self.error = 1
+            self.logger.error("Flowgraph doesn't contain import step.")
+
         #TODO FIX!
         # for a in self.getkeys('flowgraph'):
         #     for b in self.getkeys('flowgraph', a):
@@ -1603,6 +1687,7 @@ class Chip:
 
         self.logger.info('Collecting input sources')
 
+        copied_filenames = set()
         #copy all parameter take from self dictionary
         copyall = self.get('copyall')
         allkeys = self.getkeys()
@@ -1611,9 +1696,15 @@ class Chip:
             if re.search('file', leaftype):
                 copy = self.get(*key, field='copy')
                 value = self.get(*key)
-                if copyall | (copy):
+                if copyall or copy:
                     for item in value:
-                        filepath = self.find_file(item)
+                        filename = os.path.basename(item)
+                        if filename in copied_filenames:
+                            self.logger.error(f'Filename {filename} already copied into inputs/ directory. Make sure all copied files have unique names')
+                            self._haltstep(step,index,active)
+                        copied_filenames.add(filename)
+
+                        filepath = self._find_sc_file(item)
                         if filepath:
                             self.logger.info(f"Copying {filepath} to step inputs/ directory")
                             shutil.copy(filepath, indir)
@@ -1654,12 +1745,11 @@ class Chip:
 
         #TODO: Implement algo selection
         if 'filehash' in keypath:
-            filelist = self.get(*keypath)
+            filelist = self.find_files(*keypath)
             #Clearing list
             self.set([keypath,[]], clobber=True)
             hashlist = []
-            for item in filelist:
-                filename = self.find_file(item)
+            for filename in filelist:
                 self.logger.debug('Computing hash value for %s', filename)
                 if os.path.isfile(filename):
                     sha256_hash = hashlib.sha256()
@@ -2424,9 +2514,7 @@ class Chip:
 
         design = self.get('design')
         all_inputs = []
-        if not self.get('flowgraph', step, index, 'input'):
-            self._collect(step, index, active)
-        elif not self.get('remote', 'addr'):
+        if not self.get('remote', 'addr'):
             halt = 0
             for stepindex in self.get('flowgraph', step, index, 'input'):
                 step_error = 1
@@ -2494,6 +2582,9 @@ class Chip:
         ##################
         # 6 Copy outputs from input steps
 
+        if step == 'import':
+            self._collect(step, index, active)
+
         if not self.get('flowgraph', step, index,'input'):
             all_inputs = []
         elif not self.get('flowstatus', step, index, 'select'):
@@ -2525,7 +2616,7 @@ class Chip:
 
         if tool != 'builtin':
             if self.get('eda', tool, step, index, 'copy'):
-                refdir = self.find_file(self.get('eda', tool, step, index, 'refdir'))
+                refdir = self.find_files('eda', tool, step, index, 'refdir')
                 utils.copytree(refdir, ".", dirs_exist_ok=True)
 
         ##################
@@ -3013,11 +3104,9 @@ class Chip:
             options = self.get('eda', tool, step, index, 'option', 'cmdline')
         else:
             options = []
-        scripts = []
+
         # Add scripts files
-        for value in self.get('eda', tool, step, index, 'script'):
-            abspath = self.find_file(value)
-            scripts.append(abspath)
+        scripts = self.find_files('eda', tool, step, index, 'script')
 
         cmdlist = [fullexe]
         logfile = step + ".log"
@@ -3068,7 +3157,8 @@ class Chip:
         if jobname is None:
             jobname = self.get('jobname')
 
-        dirlist =[self.get('dir'),
+        dirlist =[self.cwd,
+                  self.get('dir'),
                   self.get('design'),
                   jobname]
 
@@ -3078,7 +3168,7 @@ class Chip:
             dirlist.append(step)
             dirlist.append(index)
 
-        return os.path.abspath("/".join(dirlist))
+        return os.path.join(*dirlist)
 
     #######################################
     def _resolve_env_vars(self, filepath):

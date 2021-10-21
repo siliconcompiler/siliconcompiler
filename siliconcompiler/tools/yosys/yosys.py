@@ -99,8 +99,8 @@ def pre_process(chip):
         # https://github.com/lnis-uofu/OpenFPGA/blob/c393ee695975c98342b8708c5bee19b677f4a062/openfpga_flow/scripts/run_fpga_flow.py#L473
 
         lut_size = None
-        for arch_file in chip.get('fpga', 'arch'):
-            tree = ET.parse(chip.find_file(arch_file))
+        for arch_file in chip.find_files('fpga', 'arch'):
+            tree = ET.parse(arch_file)
             root = tree.getroot()
             if root.tag == 'architecture':
                 lut_size = max([int(pb_type.find("input").get("num_pins"))

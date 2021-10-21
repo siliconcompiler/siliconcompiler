@@ -81,22 +81,23 @@ def runtime_options(chip):
 
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    check_workdir = (step != 'import')
 
     cmdlist = []
 
     # source files
-    for value in chip.get('ydir'):
-        cmdlist.append('-y ' + chip.find_file(value))
-    for value in chip.get('vlib'):
-        cmdlist.append('-v ' + chip.find_file(value))
-    for value in chip.get('idir'):
-        cmdlist.append('-I' + chip.find_file(value))
+    for value in chip.find_files('ydir'):
+        cmdlist.append('-y ' + value)
+    for value in chip.find_files('vlib'):
+        cmdlist.append('-v ' + value)
+    for value in chip.find_files('idir'):
+        cmdlist.append('-I' + value)
     for value in chip.get('define'):
         cmdlist.append('-D' + value)
-    for value in chip.get('cmdfile'):
-        cmdlist.append('-f ' + chip.find_file(value))
-    for value in chip.get('source'):
-        cmdlist.append(chip.find_file(value))
+    for value in chip.find_files('cmdfile', check_workdir=check_workdir):
+        cmdlist.append('-f ' + value)
+    for value in chip.find_files('source', check_workdir=check_workdir):
+        cmdlist.append(value)
 
     #  make warnings non-fatal in relaxed mode
     if chip.get('relax'):
