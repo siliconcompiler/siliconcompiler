@@ -158,7 +158,7 @@ class Floorplan:
             # (<bottom>, <bottomdir>, <top>, <topdir>, <width>, <height>): [<vianame1>, <vianame2>, ... ],
         }
         # Stuff that gets placed into DEF
-        self.vias = []
+        self.vias = {}
 
         self.blockages = []
         self.obstructions = []
@@ -630,15 +630,52 @@ class Floorplan:
             x += xpitch
             y += ypitch
 
-    def place_vias(self, nets, x, y, xpitch, ypitch, layer, rule):
-        # TODO: document
-        # TODO: add snap arg?
+    def place_vias(self, nets, x, y, xpitch, ypitch, name, snap=False):
+        '''Place vias on floorplan.
+
+        Args:
+            nets (list of str): List of net names to associate with each via.
+                This function will place one via per entry in this list. To
+                place multiple vias associated with the same net, repeat that
+                name in the list.
+            x (float): x-coordinate of first instance in microns.
+            y (float): y-coordinate of first instance in microns.
+            xpitch (float): Increment along x-axis in microns.
+            ypitch (float): Increment along y-axis in microns.
+            name (str): Name of via definition to place.
+            snap (bool): Whether to snap via position to align it with
+                routing tracks. If the preferred routing direction of the bottom
+                layer is horizontal, the via's x position is snapped to the
+                nearest top layer x track and the y position is snapped to the
+                nearest bottom layer y track. If the preferred routing direction
+                of the bottom layer is vertical, the x position is snapped to
+                the nearest bottom layer x track, and the y position is snaped
+                to the nearest top layer y track.
+        '''
+
+        try:
+            via_def = self.vias[name]
+        except KeyError:
+            raise ValueError(f'No via definition called {name}')
+
+        bot_layer = via_def['layers'][0]
+        bot_layer_sc = self._pdk_to_sc_layer(bot_layer)
+        top_layer = via_def['layers'][2]
+        top_layer_sc = self._pdk_to_sc_layer(top_layer)
 
         for netname in nets:
+            if snap:
+                if self.layers[bot_layer_sc]['direction'] == 'horizontal':
+                    pos = self.snap_to_x_track(x, top_layer_sc), self.snap_to_y_track(y, bot_layer_sc)
+                else:
+                    pos = self.snap_to_x_track(x, bot_layer_sc), self.snap_to_y_track(y, top_layer_sc)
+            else:
+                pos = x, y
+
             via = {
-                'point': (x, y),
-                'layer': self.layers[layer]['name'],
-                'rule': rule
+                'point': pos,
+                'layer': bot_layer,
+                'name': name
             }
 
             if netname in self.nets:
@@ -650,29 +687,70 @@ class Floorplan:
             x += xpitch
             y += ypitch
 
-    def add_via(self, name, cutsize, layers, cutspacing, enclosure, rowcol=None, rule=None):
-        # TODO: document
-        # TODO: look at VIA docs in DEF to see if this makes sense/if I should
-        # add anything else
+    def add_via(self, name, bottom_layer, bottom_shapes, cut_layer, cut_shapes,
+                top_layer, top_shapes):
+        '''Adds a fixed via definition that can be placed using place_vias.
 
-        # TODO: do we want SC-agnostic via layer names? For now, just pass
-        # through non metal layers
-        tech_layers = []
-        for layer in layers:
-            if layer in self.layers:
-                tech_layers.append(self.layers[layer]['name'])
-            else:
-                tech_layers.append(layer)
+        Args:
+            name (str): Name of the via definition.
+            bottom_layer (str): Name of bottom routing layer.
+            bottom_shapes (list of tuple): Shapes to place on bottom layer.
+                Each item in the list is a rectangle specified as a tuple of
+                points representing the lower left and upper right corners of
+                the rectangle, relative to the center of the via.
+            cut_layer (str): Name of cut layer.
+            cut_shapes (list of tuple): Shapes to place on cut layer,
+                specified the same as bottom_shapes.
+            top_layer (str): Name of top routing layer.
+            top_shapes (list of tuple): Shapes to place on top layer,
+                specified the same as bottom_shapes.
 
-        self.viarules.append({
-            'name': name,
-            'rule': rule,
-            'cutsize': cutsize,
-            'layers': tech_layers,
-            'cutspacing': cutspacing,
-            'enclosure': enclosure,
-            'rowcol': rowcol
-        })
+        Examples:
+            >>> shapes = [
+                ((-10, -10), (-2.5, -2.5)),
+                ((2.5, -10), (10, -2.5)),
+                ((-10, 2.5), (-2.5, 10)),
+                ((2.5, 2.5), (10, 10))
+                ]
+            >>> fp.add_via('myvia', 'm1', shapes, 'via1', shapes, 'm2', shapes)
+            Defines via connecting layers 'm1' and 'm2' through 'via1', in the
+            form of a 2x2 array of squares.
+        '''
+
+        if name in self.vias:
+            raise ValueError(f'There is already a via definition called {name}')
+
+        if bottom_layer in self.layers:
+            bottom_layer_name = self.layers[bottom_layer]['name']
+        else:
+            raise ValueError(f'{bottom_layer} is not a valid layer')
+
+        if top_layer in self.layers:
+            top_layer_name = self.layers[top_layer]['name']
+        else:
+            raise ValueError(f'{top_layer} is not a valid layer')
+
+        layers = (bottom_layer_name, cut_layer, top_layer_name)
+        all_shapes = {
+            bottom_layer_name: bottom_shapes,
+            top_layer_name: top_shapes,
+            cut_layer: cut_shapes
+        }
+
+        rects = []
+        for layer_name in layers:
+            for ll, ur in all_shapes[layer_name]:
+                rects.append({
+                    'layer': layer_name,
+                    'll': ll,
+                    'ur': ur
+                })
+
+        self.vias[name] = {
+            'rects': rects,
+            'layers': layers,
+            'generated': False
+        }
 
     def generate_rows(self, site_name=None, flip_first_row=False, area=None):
         '''Auto-generates placement rows based on floorplan parameters and tech
@@ -1113,7 +1191,8 @@ class Floorplan:
             'cutsize': (cut_w, cut_h),
             'cutspacing': (spacing_x, spacing_y),
             'enclosure': (lower_enc_width, lower_enc_height, upper_enc_width, upper_enc_height),
-            'rowcol': (rows, cols)
+            'rowcol': (rows, cols),
+            'generated': True
         }
 
         return score, via
@@ -1145,19 +1224,16 @@ class Floorplan:
 
                 # Add generated as one of our vias and to our current stack
                 vianame = f'_via{self.via_i}'
-                best_via['name'] = vianame
                 self.via_i += 1
-                self.vias.append(best_via)
-                stack.append((vianame, f'm{i}'))
+                self.vias[vianame] = best_via
+                stack.append(vianame)
 
                 i += 1
 
             self.viastacks[stack_key] = stack
 
-        for vianame, layer in self.viastacks[stack_key]:
-            # TODO: bottom_layer is wrong thing here we need bottom laye rof
-            # this particular via
-            self.place_vias([net], x, y, 0, 0, layer, vianame)
+        for vianame in self.viastacks[stack_key]:
+            self.place_vias([net], x, y, 0, 0, vianame)
 
     def insert_vias(self, nets=[], layers=[]):
         '''Automatically insert vias.
