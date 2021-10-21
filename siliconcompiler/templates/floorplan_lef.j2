@@ -23,11 +23,13 @@ MACRO {{ fp.design }}
     SHAPE ABUTMENT ;
     {% for port in pin.ports %}
     PORT
-      LAYER {{ port.layer }} ;
-      RECT {{ port.point[0] + port.box[0][0] }}
-           {{ port.point[1] + port.box[0][1] }}
-           {{ port.point[0] + port.box[1][0] }}
-           {{ port.point[1] + port.box[1][1] }} ;
+      {% for shape in port.shapes %}
+      LAYER {{ shape.layer }} ;
+      RECT {{ port.point[0] + shape.box[0][0] }}
+           {{ port.point[1] + shape.box[0][1] }}
+           {{ port.point[0] + shape.box[1][0] }}
+           {{ port.point[1] + shape.box[1][1] }} ;
+      {% endfor %}
     END
     {% endfor %}
   END {{ name }}

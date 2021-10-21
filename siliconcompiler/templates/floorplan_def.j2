@@ -46,14 +46,15 @@ END COMPONENTS
 PINS {{ fp.pins | length }} ;
 {% for name, pin in fp.pins.items() %}
     - {{ name }} + NET {{ pin.net }} + DIRECTION {{ pin.direction|upper }} + USE {{ pin.use|upper }}
-       + PORT
        {% for port in pin.ports %}
-         + LAYER {{ port.layer }} {{ port.box | map('scale') | map('render_tuple') | join(' ') }}
+       + PORT
+       {% for shape in port.shapes %}
+         + LAYER {{ shape.layer }} {{ shape.box | map('scale') | map('render_tuple') | join(' ') }}
        {% endfor %}
-        {% set port = pin.ports[0] %}
          {% if port.status %}
          + {{ port.status|upper }} {{ port.point | map('scale') | render_tuple }} {{ port.orientation }} ;
          {% endif %}
+       {% endfor %}
 {% endfor %}
 END PINS
 

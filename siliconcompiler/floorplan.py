@@ -420,13 +420,8 @@ class Floorplan:
 
     def place_pins(self, pins, x, y, xpitch, ypitch, width, height, layer,
                    direction='inout', netname=None, use='signal', fixed=True,
-                   snap=False):
+                   snap=False, add_port=False):
         '''Places pins along edge of floorplan.
-
-        If a pin with a given name has already been placed on the floorplan,
-        subsequent calls placing that pin will add a new port to the pin
-        definition. These calls will disregard the netname, direction, and use
-        arguments.
 
         Args:
             pins (list of str): List of pin names to place.
@@ -447,6 +442,13 @@ class Floorplan:
             snap (bool): Whether to snap pin position to align it with the
                 nearest routing track. Track direction is determined by
                 preferred routing direction as specified in the tech LEF.
+            add_port (bool): If True, then calls specifying a pin name that
+                has already been placed on the floorplan will add a new port to
+                the pin definition. This will disregard the netname, direction,
+                and use arguments. If False, then calls specifying a pin name
+                that has already been placed will add a new geometry to the most
+                recently added port. This will disregard the netname, direction,
+                use, and fixed arguments.
         '''
         logging.debug('Placing pins: %s', ' '.join(pins))
 
@@ -472,23 +474,44 @@ class Floorplan:
                     logging.warning(f'Unable to snap pin on layer with '
                         f'preferred direction {layer_dir}')
 
-            port = {
-                'layer': self.layers[layer]['name'],
-                'box': [(-width/2 + pos[0], -height/2 + pos[1]), (width/2 + pos[0], height/2 + pos[1])],
-                'status': 'fixed' if fixed else 'placed',
-                'point': (0, 0),
-                'orientation': 'N'
-            }
-
             if pin_name in self.pins:
-                self.pins[pin_name]['ports'].append(port)
+                if not add_port:
+                    pos = self.pins[pin_name]['ports'][-1]['point']
+                    shape = {
+                        'box': [(-width/2 + (x - pos[0]), -height/2 + (y - pos[1])),
+                                (width/2 + (x - pos[0]), height/2 + (y - pos[1]))],
+                        'layer': self.layers[layer]['name']
+                    }
+                    self.pins[pin_name]['ports'][-1]['shapes'].append(shape)
+                else:
+                    port = {
+                        'shapes': [{
+                            'box': [(-width/2, -height/2), (width/2, height/2)],
+                            'layer': self.layers[layer]['name']
+                        }],
+                        'status': 'fixed' if fixed else 'placed',
+                        'point': pos,
+                        'orientation': 'N'
+                    }
+                    self.pins[pin_name]['ports'].append(port)
             else:
+                port = {
+                    'shapes': [{
+                        'box': [(-width/2, -height/2), (width/2, height/2)],
+                        'layer': self.layers[layer]['name']
+                    }],
+                    'status': 'fixed' if fixed else 'placed',
+                    'point': pos,
+                    'orientation': 'N'
+                }
+
                 pin = {
                     'net': netname if netname else pin_name,
                     'direction': direction,
                     'use': use,
                     'ports': [port]
                 }
+
                 self.pins[pin_name] = pin
 
             x += xpitch
