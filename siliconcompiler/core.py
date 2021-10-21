@@ -530,9 +530,9 @@ class Chip:
                 if func_tool is not None:
                     step = self.get('arg','step')
                     self.set('flowgraph', step, '0', 'tool', item)
-                    self.set('flowgraph', step, '0', 'weight', 'errors', 1.0)
-                    self.set('flowgraph', step, '0', 'weight', 'warnings', 1.0)
-                    self.set('flowgraph', step, '0', 'weight', 'runtime', 1.0)
+                    self.set('flowgraph', step, '0', 'weight', 'errors', 0)
+                    self.set('flowgraph', step, '0', 'weight', 'warnings', 0)
+                    self.set('flowgraph', step, '0', 'weight', 'runtime', 0)
 
                     # We must always have an import step, so add a default no-op
                     # if need be.
@@ -1896,8 +1896,8 @@ class Chip:
 
         Metrics from the flowgraph steps, or steplist parameter if
         defined, are printed out on a per step basis. All metrics from the
-        metric dictionary with non-zero weights set in the flowgraph
-        dictionary are printed out.
+        metric dictionary with weights set in the flowgraph dictionary are
+        printed out.
 
         Examples:
             >>> chip.summary()
@@ -1948,34 +1948,34 @@ class Chip:
 
         # Stepping through all steps/indices and printing out metrics
         data = []
-        colwidth = 8
 
         #Creating Header
         header = []
         winner = {}
         colwidth = 8
         for step in steplist:
-            # default for last step in list (could be tool or function)
-            index = '0'
-            winner[step] = index
-            stepindex =  step + index
-            #Find winning index
+            # Default for last step in list (could be tool or function)
+            winner[step] = '0'
+
+            # Find winning index
             for index in self.getkeys('flowgraph', step):
                 stepindex = step + index
                 for i in  self.getkeys('flowstatus'):
                     for j in  self.getkeys('flowstatus',i):
                         if stepindex in self.get('flowstatus',i,j,'select'):
                             winner[step] = index
-            # header for data frame
-            header.append(stepindex.center(colwidth))
+
+        # header for data frame
+        for step in steplist:
+            header.append(f'{step}{winner[step]}'.center(colwidth))
 
         # figure out which metrics have non-zero weights
         metric_list = []
         for step in steplist:
             for metric in self.getkeys('metric','default','default'):
                 if metric in self.getkeys('flowgraph', step, '0', 'weight'):
-                    if self.get('flowgraph', step, '0', 'weight', metric):
-                        if metric not in metric_list :
+                    if self.get('flowgraph', step, '0', 'weight', metric) is not None:
+                        if metric not in metric_list:
                             metric_list.append(metric)
 
         # print out all metrics
@@ -2200,12 +2200,18 @@ class Chip:
                 if not self.get('flowstatus', step, index, 'error'):
                     score = 0.0
                     for metric in self.getkeys('flowgraph', step, index, 'weight'):
+                        weight = self.get('flowgraph', step, index, 'weight', metric)
+                        if not weight:
+                            # skip if weight is 0 or None
+                            continue
+
                         real = self.get('metric', step, index, metric, 'real')
                         if not (max_val[step][metric] - min_val[step][metric]) == 0:
                             scaled = (real - min_val[step][metric]) / (max_val[step][metric] - min_val[step][metric])
                         else:
                             scaled = max_val[step][metric]
-                        score = score + scaled
+                        score = score + scaled * weight
+
                     if (score < min_score) & (not (failed[step][index] & goals_met)):
                         min_score = score
                         winner = step+index
@@ -2842,6 +2848,11 @@ class Chip:
                             self.set('arg','index', index)
                             func = self.find_function(tool, 'tool', 'setup_tool')
                             func(self)
+                            # Need to clear index, otherwise we will skip
+                            # setting up other indices. Clear step for good
+                            # measure.
+                            self.set('arg','step', None)
+                            self.set('arg','index', None)
                     else:
                         self.set('flowstatus', step, str(index), 'error', 0)
                         error[stepstr] = self.get('flowstatus', step, str(index), 'error')
@@ -2936,7 +2947,6 @@ class Chip:
         lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
         if os.path.isfile(lastcfg):
             self.read_manifest(lastcfg, clobber=True, clear=True)
-            self.set('flowstatus',laststep,lastindex, 'select', '0')
 
         # Store run in history
         self.cfghistory[self.get('jobname')] = copy.deepcopy(self.cfg)
