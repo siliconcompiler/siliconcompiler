@@ -530,9 +530,9 @@ class Chip:
                 if func_tool is not None:
                     step = self.get('arg','step')
                     self.set('flowgraph', step, '0', 'tool', item)
-                    self.set('flowgraph', step, '0', 'weight', 'errors', 1.0)
-                    self.set('flowgraph', step, '0', 'weight', 'warnings', 1.0)
-                    self.set('flowgraph', step, '0', 'weight', 'runtime', 1.0)
+                    self.set('flowgraph', step, '0', 'weight', 'errors', 0)
+                    self.set('flowgraph', step, '0', 'weight', 'warnings', 0)
+                    self.set('flowgraph', step, '0', 'weight', 'runtime', 0)
 
                     # We must always have an import step, so add a default no-op
                     # if need be.
