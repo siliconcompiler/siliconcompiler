@@ -21,7 +21,7 @@ class MetricGen(SphinxDirective):
 
         for metric in chip.getkeys('metric','default','default'):
             shorthelp = chip.get('metric','default','default',metric,'default', field='shorthelp')
-            table.append([code(metric),code(shorthelp)])
+            table.append([para(metric),para(shorthelp)])
 
         section += build_table(table)
         new_doc += section
