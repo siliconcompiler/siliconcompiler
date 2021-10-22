@@ -1,5 +1,6 @@
 import pytest
 import os
+import re
 
 from siliconcompiler.core import Chip
 from siliconcompiler.floorplan import Floorplan
@@ -182,11 +183,82 @@ def test_vias_at_intersection():
 
     fp.write_def('test.def')
 
+def test_place_vias(tmpdir):
+    test_dir = os.path.dirname(os.path.abspath(__file__))
+
+    c = Chip()
+    c.set('design', 'test', clobber=True)
+    c.target('asicflow_freepdk45')
+    lib = 'ram'
+    c.add('asic', 'macrolib', lib)
+    c.set('library', lib, 'type', 'component')
+    c.add('library', lib, 'lef', test_dir + '/test_floorplan/ram.lef')
+
+    fp = Floorplan(c)
+
+    fp.create_diearea([(0, 0), (1000, 1000)])
+
+    shapes = [
+        ((-10, -10), (-2.5, -2.5)),
+        ((2.5, -10), (10, -2.5)),
+        ((-10, 2.5), (-2.5, 10)),
+        ((2.5, 2.5), (10, 10))
+    ]
+    fp.add_via('myvia', 'm1', shapes, 'via1', shapes, 'm2', shapes)
+
+    fp.add_net('vdd', [], use='power')
+
+    fp.place_vias(['vdd'] * 5, 50, 50, 25, 0, 'myvia')
+
+    outfile = tmpdir.join('test_place_vias.def')
+    fp.write_def(outfile.strpath)
+
+    with open(outfile.strpath, 'r') as resultfile:
+        result = resultfile.read()
+        specnets = re.search(r'SPECIALNETS (\d+) ;\n(.*)END SPECIALNETS', result, re.MULTILINE|re.DOTALL)
+        vias = re.search(r'VIAS (\d+) ;\n(.*)END VIAS', result, re.MULTILINE|re.DOTALL)
+
+    expected_specnets = '''
+    - vdd  + USE power
+        + ROUTED
+        metal1 0 + SHAPE STRIPE ( 100000 100000 ) myvia
+        NEW
+        metal1 0 + SHAPE STRIPE ( 150000 100000 ) myvia
+        NEW
+        metal1 0 + SHAPE STRIPE ( 200000 100000 ) myvia
+        NEW
+        metal1 0 + SHAPE STRIPE ( 250000 100000 ) myvia
+        NEW
+        metal1 0 + SHAPE STRIPE ( 300000 100000 ) myvia ;
+    '''.split()
+
+    assert specnets.group(1) == '1'
+    assert specnets.group(2).split() == expected_specnets
+
+    expected_vias = '''
+        - myvia
+      + RECT metal1 ( -20000 -20000 ) ( -5000 -5000 )
+      + RECT metal1 ( 5000 -20000 ) ( 20000 -5000 )
+      + RECT metal1 ( -20000 5000 ) ( -5000 20000 )
+      + RECT metal1 ( 5000 5000 ) ( 20000 20000 )
+      + RECT via1 ( -20000 -20000 ) ( -5000 -5000 )
+      + RECT via1 ( 5000 -20000 ) ( 20000 -5000 )
+      + RECT via1 ( -20000 5000 ) ( -5000 20000 )
+      + RECT via1 ( 5000 5000 ) ( 20000 20000 )
+      + RECT metal2 ( -20000 -20000 ) ( -5000 -5000 )
+      + RECT metal2 ( 5000 -20000 ) ( 20000 -5000 )
+      + RECT metal2 ( -20000 5000 ) ( -5000 20000 )
+      + RECT metal2 ( 5000 5000 ) ( 20000 20000 ) ;
+    '''.split()
+
+    assert vias.group(1) == '1'
+    assert vias.group(2).split() == expected_vias
+
 if __name__ == "__main__":
     import py
 
     #test_floorplan_def(make_fp(), py.path.local('.'))
     #test_floorplan_lef(make_fp(), py.path.local('.'))
     #test_padring()
-
-    test_vias_at_intersection()
+    # test_vias_at_intersection()
+    test_place_vias(py.path.local('.'))
