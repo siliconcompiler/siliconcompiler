@@ -1890,7 +1890,7 @@ class Chip:
         return int(dies)
 
     ###########################################################################
-    def summary(self):
+    def summary(self, show_all_indices=False):
         '''
         Prints a summary of the chip object metrics.
 
@@ -1898,6 +1898,11 @@ class Chip:
         defined, are printed out on a per step basis. All metrics from the
         metric dictionary with weights set in the flowgraph dictionary are
         printed out.
+
+        Args:
+            show_all_indices (bool): If True, displays metrics for all indices
+                of each step. If False, displays metrics only for winning
+                indices.
 
         Examples:
             >>> chip.summary()
@@ -1951,23 +1956,27 @@ class Chip:
 
         #Creating Header
         header = []
-        winner = {}
+        indices_to_show = {}
         colwidth = 8
         for step in steplist:
-            # Default for last step in list (could be tool or function)
-            winner[step] = '0'
+            if show_all_indices:
+                indices_to_show[step] = self.getkeys('flowgraph', step)
+            else: 
+                # Default for last step in list (could be tool or function)
+                indices_to_show[step] = ['0']
 
-            # Find winning index
-            for index in self.getkeys('flowgraph', step):
-                stepindex = step + index
-                for i in  self.getkeys('flowstatus'):
-                    for j in  self.getkeys('flowstatus',i):
-                        if stepindex in self.get('flowstatus',i,j,'select'):
-                            winner[step] = index
+                # Find winning index
+                for index in self.getkeys('flowgraph', step):
+                    stepindex = step + index
+                    for i in  self.getkeys('flowstatus'):
+                        for j in  self.getkeys('flowstatus',i):
+                            if stepindex in self.get('flowstatus',i,j,'select'):
+                                indices_to_show[step] = index
 
         # header for data frame
         for step in steplist:
-            header.append(f'{step}{winner[step]}'.center(colwidth))
+            for index in indices_to_show[step]:
+                header.append(f'{step}{index}'.center(colwidth))
 
         # figure out which metrics have non-zero weights
         metric_list = []
@@ -1984,9 +1993,9 @@ class Chip:
             metrics.append(" " + metric)
             row = []
             for step in steplist:
-                index = winner[step]
-                value = str(self.get('metric', step, index, metric, 'real'))
-                row.append(" " + value.center(colwidth))
+                for index in indices_to_show[step]:
+                    value = str(self.get('metric', step, index, metric, 'real'))
+                    row.append(" " + value.center(colwidth))
             data.append(row)
 
         pandas.set_option('display.max_rows', 500)
