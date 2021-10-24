@@ -91,7 +91,6 @@ setup(
 
     python_requires=">=3.6",
     install_requires=[
-        "matplotlib >= 3.3",
         "numpy >= 1.19",
         "aiohttp >= 3.7.4.post0",
         "requests >= 2.22.0",
