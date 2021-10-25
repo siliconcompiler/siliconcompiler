@@ -2525,16 +2525,13 @@ class Chip:
         os.makedirs('reports', exist_ok=True)
 
         ##################
-        # 3. Collect run cfg and check for prev step errors
+        # 3. Collect run cfg and record prev step errors
 
         design = self.get('design')
         all_inputs = []
         if not self.get('remote', 'addr'):
-            halt = 0
             for stepindex in self.get('flowgraph', step, index, 'input'):
-                step_error = 1
                 index_error = error[stepindex]
-                step_error = step_error & index_error
                 match = re.match(r'(\w+)(\d+)$', stepindex)
                 input_step = match.group(1)
                 input_index = match.group(2)
@@ -2542,10 +2539,6 @@ class Chip:
                 if not index_error:
                     cfgfile = f"../../../{job}/{input_step}/{input_index}/outputs/{design}.pkg.json"
                     self.read_manifest(cfgfile, clobber=False)
-                halt = halt + step_error
-            if halt:
-                self.logger.error('Halting step due to previous errors')
-                self._haltstep(step, index, active)
 
         # Write configuration prior to step running into inputs/
         self.set('arg', 'step', None, clobber=True)
@@ -2607,11 +2600,15 @@ class Chip:
         else:
             all_inputs = self.get('flowstatus', step, index, 'select')
         for stepindex in all_inputs:
-            # Skip copying pkg.json files here, since we write the current chip
-            # configuration into inputs/{design}.pkg.json earlier in _runstep.
             match = re.match(r'(\w+)(\d+)$', stepindex)
             in_step = match.group(1)
             in_index = match.group(2)
+            if self.get('flowstatus', in_step, in_index, 'error') == 1:
+                self.logger.error('Halting step due to previous errors')
+                self._haltstep(step, index, active)
+
+            # Skip copying pkg.json files here, since we write the current chip
+            # configuration into inputs/{design}.pkg.json earlier in _runstep.
             utils.copytree(f"../../../{job}/{in_step}/{in_index}/outputs", 'inputs/', dirs_exist_ok=True,
                 ignore=[f'{design}.pkg.json'])
 
