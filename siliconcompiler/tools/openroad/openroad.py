@@ -126,6 +126,10 @@ def setup_tool(chip, mode='batch'):
         else:
             chip.set('eda', tool, step, index, 'option', option, default_options[option], clobber=clobber)
 
+    for clock in chip.getkeys('clock'):
+        chip.add('eda', tool, step, index, 'req', ','.join(['clock', clock, 'period']))
+        chip.add('eda', tool, step, index, 'req', ','.join(['clock', clock, 'pin']))
+
 ################################
 # Version Check
 ################################
