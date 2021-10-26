@@ -1961,7 +1961,7 @@ class Chip:
         for step in steplist:
             if show_all_indices:
                 indices_to_show[step] = self.getkeys('flowgraph', step)
-            else: 
+            else:
                 # Default for last step in list (could be tool or function)
                 indices_to_show[step] = ['0']
 
@@ -2197,11 +2197,10 @@ class Chip:
                         min_val[step][metric] = min(min_val[step][metric], real)
 
         # Select the minimum index
-        min_score = {}
-        step_winner = ""
+        min_score = None
+        winner = None
         for stepindex in steplist:
             min_score = float("inf")
-            step_winner = 0
             match = re.match(r'(\w+)(\d+)$', stepindex)
             step = match.group(1)
             #TODO: why not run for all stepindex inputs?
@@ -2223,9 +2222,9 @@ class Chip:
 
                     if (score < min_score) & (not (failed[step][index] & goals_met)):
                         min_score = score
-                        winner = step+index
+                        winner = [step+index]
 
-        return (score, winner)
+        return (min_score, winner)
 
     ###########################################################################
     def step_assert(self, *steps, **assertion):
@@ -2580,6 +2579,11 @@ class Chip:
             else:
                 self.logger.error(f"Illegal function name {func}")
                 self._haltstep(step, index, active)
+
+            if sel_inputs == None:
+                self.logger.error(f'No inputs selected')
+                self._haltstep(step, index, active)
+
             self.set('flowstatus', step, index, 'select', sel_inputs)
         else:
 
@@ -2604,7 +2608,7 @@ class Chip:
             in_step = match.group(1)
             in_index = match.group(2)
             if self.get('flowstatus', in_step, in_index, 'error') == 1:
-                self.logger.error('Halting step due to previous errors')
+                self.logger.error(f'Halting step due to previous error in {in_step}{in_index}')
                 self._haltstep(step, index, active)
 
             # Skip copying pkg.json files here, since we write the current chip
