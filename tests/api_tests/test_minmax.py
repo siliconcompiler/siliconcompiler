@@ -1,16 +1,12 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
-import sys
 import siliconcompiler
-import json
+import pytest
 
 if __name__ != "__main__":
     from tests.fixtures import test_wrapper
 
-##################################
-def test_minmax():
-    '''API test for min/max() methods
-    '''
-
+@pytest.fixture
+def chip():
     # Create instance of Chip class
     chip = siliconcompiler.Chip()
     chip.set("design", "oh_add")
@@ -34,7 +30,6 @@ def test_minmax():
     }
 
     # Parallel flow for syn
-    N = 10
     for i, step in enumerate(flowpipe):
         for index in range(threads[step]):
             if step == "synmin":
@@ -57,15 +52,44 @@ def test_minmax():
         for metric in chip.getkeys('flowgraph', 'syn', str(index), 'weight'):
             chip.set('metric', 'syn',str(index), metric, 'real', 1000-index*1 + 42.0)
 
+    return chip
+
+##################################
+def test_minmax(chip):
+    '''API test for min/max() methods
+    '''
+    N = len(chip.getkeys('flowgraph', 'syn'))
+
     chip.write_flowgraph('minmax.png')
     chip.write_manifest('minmax.json')
 
     (score, winner) = chip.step_minimum(*[f'syn{i}' for i in range(N)])
-    assert winner == 'syn9'
+    assert winner == ['syn9']
 
     # TODO: fix step_maximum
     # (score, winner) = chip.step_maximum(*[f'syn{i}' for i in range(N)])
     # assert winner == 'syn0'
+
+def test_all_failed(chip):
+    N = len(chip.getkeys('flowgraph', 'syn'))
+
+    for index in range(N):
+        chip.set('flowstatus', 'syn', str(index), 'error', 1)
+
+    (score, winner) = chip.step_minimum(*[f'syn{i}' for i in range(N)])
+
+    assert winner is None
+
+def test_winner_failed(chip):
+    N = len(chip.getkeys('flowgraph', 'syn'))
+
+    # set error bit on what would otherwise be winner
+    chip.set('flowstatus', 'syn', '9', 'error', 1)
+
+    (score, winner) = chip.step_minimum(*[f'syn{i}' for i in range(N)])
+
+    # winner should be second-best, not syn9
+    assert winner == ['syn8']
 
 #########################
 if __name__ == "__main__":
