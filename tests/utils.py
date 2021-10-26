@@ -1,4 +1,4 @@
-import siliconcompiler 
+import siliconcompiler
 import os
 
 def gcd_chip():
@@ -10,7 +10,8 @@ def gcd_chip():
     chip.set('design', 'gcd', clobber=True)
     chip.target('asicflow_freepdk45')
     chip.add('source', gcd_ex_dir + 'gcd.v')
-    chip.set('clock', 'clock_name', 'pin', 'clk')
+    chip.set('clock', 'core_clock', 'pin', 'clk')
+    chip.set('clock', 'core_clock', 'period', 2)
     chip.add('constraint', gcd_ex_dir + 'gcd.sdc')
     chip.set('asic', 'diearea', [(0,0), (100.13,100.8)])
     chip.set('asic', 'corearea', [(10.07,11.2), (90.25,91)])

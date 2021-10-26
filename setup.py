@@ -79,6 +79,7 @@ setup(
         'siliconcompiler': ['templates/*.j2'],
         'siliconcompiler.tools': [
             '**/*.tcl',
+            '**/*.sdc',
             '**/*.py',
             '**/*.xml',
             '**/*.magicrc',

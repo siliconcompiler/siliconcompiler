@@ -138,6 +138,7 @@ if {$sc_step == "floorplan"} {
     #link design
     link_design $sc_design
     #read all constarints
+    read_sdc "${sc_refdir}/sc_constraints.sdc"
     foreach sdc $sc_constraints {
 	read_sdc $sdc
     }
