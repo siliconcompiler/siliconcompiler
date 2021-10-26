@@ -186,7 +186,7 @@ def post_process(chip):
                warnmatch = re.match(r'^\[WARNING', line)
                area = re.search(r'^Design area (\d+)', line)
                tns = re.search(r'^tns (.*)',line)
-               wns = re.search(r'^tns (.*)',line)
+               wns = re.search(r'^wns (.*)',line)
                vias = re.search(r'^Total number of vias = (.*).',line)
                wirelength = re.search(r'^Total wire length = (.*) um',line)
                power = re.search(r'^Total(.*)',line)
