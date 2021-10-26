@@ -478,8 +478,8 @@ class Floorplan:
                 if not add_port:
                     pos = self.pins[pin_name]['ports'][-1]['point']
                     shape = {
-                        'box': [(-width/2 + (x - pos[0]), -height/2 + (y - pos[1])),
-                                (width/2 + (x - pos[0]), height/2 + (y - pos[1]))],
+                        'box': [(x - pos[0], y - pos[1]),
+                                ((x - pos[0]) + width, (y - pos[1]) + height)],
                         'layer': self.layers[layer]['name']
                     }
                     self.pins[pin_name]['ports'][-1]['shapes'].append(shape)
@@ -1379,15 +1379,15 @@ def _infer_diearea(chip):
     lef_data = _get_tech_lef_data(chip)
     _, _, lib_height = _get_stdcell_info(chip, lef_data)
 
-    core_width, core_height = _calculate_core_dimensions(density, 
-                                                         coremargin, 
-                                                         aspectratio, 
-                                                         cell_area, 
+    core_width, core_height = _calculate_core_dimensions(density,
+                                                         coremargin,
+                                                         aspectratio,
+                                                         cell_area,
                                                          lib_height)
 
     diearea = [(0, 0),
                (2 * coremargin + core_width, 2 * coremargin + core_height)]
-    corearea = [(coremargin, coremargin), 
+    corearea = [(coremargin, coremargin),
                 (coremargin + core_width, coremargin + core_height)]
-    
+
     return diearea, corearea
