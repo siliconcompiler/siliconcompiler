@@ -2,7 +2,11 @@
 
 source sc_manifest.tcl
 
-set sc_clocks [dict keys [dict get $sc_cfg clock]]
+if {[dict exists $sc_cfg clock]} {
+    set sc_clocks [dict keys [dict get $sc_cfg clock]]
+} else {
+    set sc_clocks ""
+}
 
 foreach clock $sc_clocks {
     set pin [dict get $sc_cfg clock $clock pin]
