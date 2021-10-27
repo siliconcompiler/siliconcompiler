@@ -144,16 +144,16 @@ class Server:
                     username = job_params['username']
                     key = job_params['key']
                     if not username in self.user_keys.keys():
-                        return web.Response(text="Error: invalid username provided.")
+                        return web.Response(text="Error: invalid username provided.", status=404)
                     # Authenticate the user.
                     if self.auth_password(username, key):
                         use_auth = True
                     else:
-                        return web.Response(text="Authentication error.")
+                        return web.Response(text="Authentication error.", status=403)
                 else:
-                    return web.Response(text="Error: some authentication parameters are missing.")
+                    return web.Response(text="Error: some authentication parameters are missing.", status=400)
             else:
-                return web.Response(text="Error: authentication parameters were passed in, but this server does not support that feature.")
+                return web.Response(text="Error: authentication parameters were passed in, but this server does not support that feature.", status=500)
 
         # Create a dummy Chip object to make schema traversal easier.
         chip = Chip()
@@ -261,16 +261,16 @@ class Server:
                     username = params['username']
                     key = params['key']
                     if not username in self.user_keys.keys():
-                        return web.Response(text="Error: invalid username provided.")
+                        return web.Response(text="Error: invalid username provided.", status=404)
                     # Authenticate the user.
                     if self.auth_password(username, key):
                         use_auth = True
                     else:
-                        return web.Response(text="Authentication error.")
+                        return web.Response(text="Authentication error.", status=403)
                 else:
-                    return web.Response(text="Error: some authentication parameters are missing.")
+                    return web.Response(text="Error: some authentication parameters are missing.", status=400)
             else:
-                return web.Response(text="Error: authentication parameters were passed in, but this server does not support that feature.")
+                return web.Response(text="Error: authentication parameters were passed in, but this server does not support that feature.", status=500)
 
         resp = web.StreamResponse(
             status = 200,
@@ -319,16 +319,16 @@ class Server:
                     username = params['username']
                     key = params['key']
                     if not username in self.user_keys.keys():
-                        return web.Response(text="Error: invalid username provided.")
+                        return web.Response(text="Error: invalid username provided.", status=404)
                     # Authenticate the user.
                     if self.auth_password(username, key):
                         use_auth = True
                     else:
-                        return web.Response(text="Authentication error.")
+                        return web.Response(text="Authentication error.", status=403)
                 else:
-                    return web.Response(text="Error: some authentication parameters are missing.")
+                    return web.Response(text="Error: some authentication parameters are missing.", status=400)
             else:
-                return web.Response(text="Error: authentication parameters were passed in, but this server does not support that feature.")
+                return web.Response(text="Error: authentication parameters were passed in, but this server does not support that feature.", status=500)
 
         # Determine if the job is running.
         for job in self.sc_jobs:
@@ -379,16 +379,16 @@ class Server:
                     username = params['username']
                     key = params['key']
                     if not username in self.user_keys.keys():
-                        return web.Response(text="Error: invalid username provided.")
+                        return web.Response(text="Error: invalid username provided.", status=404)
                     # Authenticate the user.
                     if self.auth_password(username, key):
                         use_auth = True
                     else:
-                        return web.Response(text="Authentication error.")
+                        return web.Response(text="Authentication error.", status=403)
                 else:
-                    return web.Response(text="Error: some authentication parameters are missing.")
+                    return web.Response(text="Error: some authentication parameters are missing.", status=400)
             else:
-                return web.Response(text="Error: authentication parameters were passed in, but this server does not support that feature.")
+                return web.Response(text="Error: authentication parameters were passed in, but this server does not support that feature.", status=500)
 
         # Determine if the job is running.
         if "%s%s_%s"%(username, job_hash, jobid) in self.sc_jobs:
