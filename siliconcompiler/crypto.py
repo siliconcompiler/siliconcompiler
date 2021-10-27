@@ -12,14 +12,19 @@ import shutil
 import subprocess
 import sys
 
-def gen_cipher_key(gen_dir, pubk_file):
+def gen_cipher_key(gen_dir, pubk_filestr, pubk_type='file'):
     # Create the key (32 random bytes = a 256-bit AES block cipher key)
     aes_key = os.urandom(32)
 
     # Use the public key file to encrypt the cipher key.
-    with open(pubk_file, 'r') as f:
+    if pubk_type == 'file':
+        with open(pubk_filestr, 'r') as f:
+            encrypt_key = serialization.load_ssh_public_key(
+                f.read().encode(),
+                backend=default_backend())
+    else:
         encrypt_key = serialization.load_ssh_public_key(
-            f.read().encode(),
+            pubk_filestr.encode(),
             backend=default_backend())
     aes_key_enc = encrypt_key.encrypt(
         aes_key,
@@ -75,22 +80,25 @@ def write_encrypted_cfgfile(cfg, job_dir, pk_bytes, file_prefix):
         # Write out any remaining data; CTR mode does not require padding.
         wf.write(encryptor.finalize())
 
-def encrypt_job(job_dir, pk_file):
+def encrypt_job(job_dir, pk_filestr, pk_type='file'):
     # Find a list of {step}{index} directories. Use 'next' to avoid recursion.
     (root, dirs, files) = next(os.walk(job_dir))
     # Encrypt each directory individually.
     for enc_dir in dirs:
-        encrypt_dir(os.path.join(job_dir, enc_dir), pk_file)
+        encrypt_dir(os.path.join(job_dir, enc_dir), pk_filestr, pk_type)
 
-def encrypt_dir(enc_dir, pk_file):
+def encrypt_dir(enc_dir, pk_filestr, pk_type='file'):
     # Collect some basic values.
     job_dir = os.path.abspath(os.path.join(enc_dir, '..'))
     top_dir = os.path.abspath(os.path.join(job_dir, '..', '..'))
     stepname = os.path.split(enc_dir)[-1]
 
     # Create cipher for decryption.
-    with open(pk_file, 'r') as keyin:
-        dk = keyin.read().encode()
+    if pk_type == 'file':
+        with open(pk_filestr, 'r') as keyin:
+            dk = keyin.read().encode()
+    else:
+        dk = pk_filestr.encode()
     decrypt_key = serialization.load_ssh_private_key(dk, None, backend=default_backend())
 
     # Decrypt the block cipher key.
@@ -178,16 +186,16 @@ def decrypt_cfgfile(crypt_file, pk_file):
                 wf.write(decryptor.update(chunk))
         wf.write(decryptor.finalize())
 
-def decrypt_job(job_dir, pk_file):
+def decrypt_job(job_dir, pk_filestr, pk_type='file'):
     # Find a list of {step}{index} encrypted dirs. Use 'next' to avoid recursion.
     (root, dirs, files) = next(os.walk(job_dir))
     # Decrypt each directory individually.
     for crypt_file in files:
         if crypt_file[-6:] == '.crypt':
             if os.path.isfile(os.path.join(job_dir, f'{crypt_file[:-6]}.iv')):
-                decrypt_dir(os.path.join(job_dir, crypt_file), pk_file)
+                decrypt_dir(os.path.join(job_dir, crypt_file), pk_filestr, pk_type)
 
-def decrypt_dir(crypt_file, pk_file):
+def decrypt_dir(crypt_file, pk_filestr, pk_type='file'):
     # Collect some basic values.
     job_dir = os.path.dirname(crypt_file)
     top_dir = os.path.abspath(os.path.join(job_dir, '..', '..'))
@@ -195,8 +203,11 @@ def decrypt_dir(crypt_file, pk_file):
     step_dir = os.path.join(job_dir, stepname)
 
     # Create cipher for decryption.
-    with open(pk_file, 'r') as keyin:
-        dk = keyin.read().encode()
+    if pk_type == 'file':
+        with open(pk_filestr, 'r') as keyin:
+            dk = keyin.read().encode()
+    else:
+        dk = pk_filestr.encode()
     decrypt_key = serialization.load_ssh_private_key(dk, None, backend=default_backend())
 
     # Decrypt the block cipher key.
