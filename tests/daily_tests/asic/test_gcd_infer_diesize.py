@@ -21,6 +21,7 @@ def test_gcd_infer_diesize(gcd_chip):
     gcd_chip.set('asic', 'corearea', [])
 
     gcd_chip.add('steplist', 'import')
+    gcd_chip.add('steplist', 'convert')
     gcd_chip.add('steplist', 'syn')
     gcd_chip.add('steplist', 'synmin')
     gcd_chip.add('steplist', 'floorplan')

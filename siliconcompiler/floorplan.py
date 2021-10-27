@@ -78,7 +78,7 @@ def _get_tech_lef_data(chip):
     libname = chip.get('asic', 'targetlib')[0]
     libtype = chip.get('library', libname, 'arch')
 
-    tech_lef = chip.find_file(chip.get('pdk', 'aprtech', stackup, libtype, 'lef')[0])
+    tech_lef = chip.find_files('pdk', 'aprtech', stackup, libtype, 'lef')[0]
     return leflib.parse(tech_lef)
 
 def _get_stdcell_info(chip, tech_lef_data):
@@ -148,7 +148,7 @@ class Floorplan:
         self.design = chip.get('design')
         self.diearea = None
         self.corearea = None
-        self.pins = []
+        self.pins = {}
         self.macros = []
         self.rows = []
         self.tracks = []
@@ -158,7 +158,7 @@ class Floorplan:
             # (<bottom>, <bottomdir>, <top>, <topdir>, <width>, <height>): [<vianame1>, <vianame2>, ... ],
         }
         # Stuff that gets placed into DEF
-        self.vias = []
+        self.vias = {}
 
         self.blockages = []
         self.obstructions = []
@@ -190,7 +190,7 @@ class Floorplan:
         self.available_cells = {}
 
         for macrolib in self.chip.get('asic', 'macrolib'):
-            lef_path = chip.find_file(self.chip.get('library', macrolib, 'lef')[0])
+            lef_path = chip.find_files('library', macrolib, 'lef')[0]
             lef_data = leflib.parse(lef_path)
 
             if 'macros' not in lef_data:
@@ -420,7 +420,7 @@ class Floorplan:
 
     def place_pins(self, pins, x, y, xpitch, ypitch, width, height, layer,
                    direction='inout', netname=None, use='signal', fixed=True,
-                   snap=False):
+                   snap=False, add_port=False):
         '''Places pins along edge of floorplan.
 
         Args:
@@ -442,6 +442,13 @@ class Floorplan:
             snap (bool): Whether to snap pin position to align it with the
                 nearest routing track. Track direction is determined by
                 preferred routing direction as specified in the tech LEF.
+            add_port (bool): If True, then calls specifying a pin name that
+                has already been placed on the floorplan will add a new port to
+                the pin definition. This will disregard the netname, direction,
+                and use arguments. If False, then calls specifying a pin name
+                that has already been placed will add a new geometry to the most
+                recently added port. This will disregard the netname, direction,
+                use, and fixed arguments.
         '''
         logging.debug('Placing pins: %s', ' '.join(pins))
 
@@ -467,21 +474,45 @@ class Floorplan:
                     logging.warning(f'Unable to snap pin on layer with '
                         f'preferred direction {layer_dir}')
 
-            port = {
-                'layer': self.layers[layer]['name'],
-                'box': [(-width/2, -height/2), (width/2, height/2)],
-                'status': 'fixed' if fixed else 'placed',
-                'point': pos,
-                'orientation': 'N'
-            }
-            pin = {
-                'name': pin_name,
-                'net': netname if netname else pin_name,
-                'direction': direction,
-                'use': use,
-                'port': port
-            }
-            self.pins.append(pin)
+            if pin_name in self.pins:
+                if not add_port:
+                    pos = self.pins[pin_name]['ports'][-1]['point']
+                    shape = {
+                        'box': [(x - pos[0], y - pos[1]),
+                                ((x - pos[0]) + width, (y - pos[1]) + height)],
+                        'layer': self.layers[layer]['name']
+                    }
+                    self.pins[pin_name]['ports'][-1]['shapes'].append(shape)
+                else:
+                    port = {
+                        'shapes': [{
+                            'box': [(-width/2, -height/2), (width/2, height/2)],
+                            'layer': self.layers[layer]['name']
+                        }],
+                        'status': 'fixed' if fixed else 'placed',
+                        'point': pos,
+                        'orientation': 'N'
+                    }
+                    self.pins[pin_name]['ports'].append(port)
+            else:
+                port = {
+                    'shapes': [{
+                        'box': [(-width/2, -height/2), (width/2, height/2)],
+                        'layer': self.layers[layer]['name']
+                    }],
+                    'status': 'fixed' if fixed else 'placed',
+                    'point': pos,
+                    'orientation': 'N'
+                }
+
+                pin = {
+                    'net': netname if netname else pin_name,
+                    'direction': direction,
+                    'use': use,
+                    'ports': [port]
+                }
+
+                self.pins[pin_name] = pin
 
             x += xpitch
             y += ypitch
@@ -546,9 +577,12 @@ class Floorplan:
                 preferred routing direction as specified in the tech LEF.
         '''
 
-        if shape.lower() not in ('ring', 'padring', 'blockring', 'stripe',
-            'followpin', 'iowire', 'corewire', 'blockwire', 'blockagewire',
-            'fillwire', 'fillwireopc', 'drcfill'):
+        legal_shapes = (
+            'ring', 'padring', 'blockring', 'stripe', 'followpin', 'iowire',
+            'corewire', 'blockwire', 'blockagewire', 'fillwire', 'fillwireopc',
+            'drcfill'
+        )
+        if shape is not None and shape.lower() not in legal_shapes:
             raise ValueError('Invalid shape')
 
         for netname in nets:
@@ -596,15 +630,52 @@ class Floorplan:
             x += xpitch
             y += ypitch
 
-    def place_vias(self, nets, x, y, xpitch, ypitch, layer, rule):
-        # TODO: document
-        # TODO: add snap arg?
+    def place_vias(self, nets, x, y, xpitch, ypitch, name, snap=False):
+        '''Place vias on floorplan.
+
+        Args:
+            nets (list of str): List of net names to associate with each via.
+                This function will place one via per entry in this list. To
+                place multiple vias associated with the same net, repeat that
+                name in the list.
+            x (float): x-coordinate of first instance in microns.
+            y (float): y-coordinate of first instance in microns.
+            xpitch (float): Increment along x-axis in microns.
+            ypitch (float): Increment along y-axis in microns.
+            name (str): Name of via definition to place.
+            snap (bool): Whether to snap via position to align it with
+                routing tracks. If the preferred routing direction of the bottom
+                layer is horizontal, the via's x position is snapped to the
+                nearest top layer x track and the y position is snapped to the
+                nearest bottom layer y track. If the preferred routing direction
+                of the bottom layer is vertical, the x position is snapped to
+                the nearest bottom layer x track, and the y position is snaped
+                to the nearest top layer y track.
+        '''
+
+        try:
+            via_def = self.vias[name]
+        except KeyError:
+            raise ValueError(f'No via definition called {name}')
+
+        bot_layer = via_def['layers'][0]
+        bot_layer_sc = self._pdk_to_sc_layer(bot_layer)
+        top_layer = via_def['layers'][2]
+        top_layer_sc = self._pdk_to_sc_layer(top_layer)
 
         for netname in nets:
+            if snap:
+                if self.layers[bot_layer_sc]['direction'] == 'horizontal':
+                    pos = self.snap_to_x_track(x, top_layer_sc), self.snap_to_y_track(y, bot_layer_sc)
+                else:
+                    pos = self.snap_to_x_track(x, bot_layer_sc), self.snap_to_y_track(y, top_layer_sc)
+            else:
+                pos = x, y
+
             via = {
-                'point': (x, y),
-                'layer': self.layers[layer]['name'],
-                'rule': rule
+                'point': pos,
+                'layer': bot_layer,
+                'name': name
             }
 
             if netname in self.nets:
@@ -616,29 +687,70 @@ class Floorplan:
             x += xpitch
             y += ypitch
 
-    def add_via(self, name, cutsize, layers, cutspacing, enclosure, rowcol=None, rule=None):
-        # TODO: document
-        # TODO: look at VIA docs in DEF to see if this makes sense/if I should
-        # add anything else
+    def add_via(self, name, bottom_layer, bottom_shapes, cut_layer, cut_shapes,
+                top_layer, top_shapes):
+        '''Adds a fixed via definition that can be placed using place_vias.
 
-        # TODO: do we want SC-agnostic via layer names? For now, just pass
-        # through non metal layers
-        tech_layers = []
-        for layer in layers:
-            if layer in self.layers:
-                tech_layers.append(self.layers[layer]['name'])
-            else:
-                tech_layers.append(layer)
+        Args:
+            name (str): Name of the via definition.
+            bottom_layer (str): Name of bottom routing layer.
+            bottom_shapes (list of tuple): Shapes to place on bottom layer.
+                Each item in the list is a rectangle specified as a tuple of
+                points representing the lower left and upper right corners of
+                the rectangle, relative to the center of the via.
+            cut_layer (str): Name of cut layer.
+            cut_shapes (list of tuple): Shapes to place on cut layer,
+                specified the same as bottom_shapes.
+            top_layer (str): Name of top routing layer.
+            top_shapes (list of tuple): Shapes to place on top layer,
+                specified the same as bottom_shapes.
 
-        self.viarules.append({
-            'name': name,
-            'rule': rule,
-            'cutsize': cutsize,
-            'layers': tech_layers,
-            'cutspacing': cutspacing,
-            'enclosure': enclosure,
-            'rowcol': rowcol
-        })
+        Examples:
+            >>> shapes = [
+                ((-10, -10), (-2.5, -2.5)),
+                ((2.5, -10), (10, -2.5)),
+                ((-10, 2.5), (-2.5, 10)),
+                ((2.5, 2.5), (10, 10))
+                ]
+            >>> fp.add_via('myvia', 'm1', shapes, 'via1', shapes, 'm2', shapes)
+            Defines via connecting layers 'm1' and 'm2' through 'via1', in the
+            form of a 2x2 array of squares.
+        '''
+
+        if name in self.vias:
+            raise ValueError(f'There is already a via definition called {name}')
+
+        if bottom_layer in self.layers:
+            bottom_layer_name = self.layers[bottom_layer]['name']
+        else:
+            raise ValueError(f'{bottom_layer} is not a valid layer')
+
+        if top_layer in self.layers:
+            top_layer_name = self.layers[top_layer]['name']
+        else:
+            raise ValueError(f'{top_layer} is not a valid layer')
+
+        layers = (bottom_layer_name, cut_layer, top_layer_name)
+        all_shapes = {
+            bottom_layer_name: bottom_shapes,
+            top_layer_name: top_shapes,
+            cut_layer: cut_shapes
+        }
+
+        rects = []
+        for layer_name in layers:
+            for ll, ur in all_shapes[layer_name]:
+                rects.append({
+                    'layer': layer_name,
+                    'll': ll,
+                    'ur': ur
+                })
+
+        self.vias[name] = {
+            'rects': rects,
+            'layers': layers,
+            'generated': False
+        }
 
     def generate_rows(self, site_name=None, flip_first_row=False, area=None):
         '''Auto-generates placement rows based on floorplan parameters and tech
@@ -1079,7 +1191,8 @@ class Floorplan:
             'cutsize': (cut_w, cut_h),
             'cutspacing': (spacing_x, spacing_y),
             'enclosure': (lower_enc_width, lower_enc_height, upper_enc_width, upper_enc_height),
-            'rowcol': (rows, cols)
+            'rowcol': (rows, cols),
+            'generated': True
         }
 
         return score, via
@@ -1111,19 +1224,16 @@ class Floorplan:
 
                 # Add generated as one of our vias and to our current stack
                 vianame = f'_via{self.via_i}'
-                best_via['name'] = vianame
                 self.via_i += 1
-                self.vias.append(best_via)
-                stack.append((vianame, f'm{i}'))
+                self.vias[vianame] = best_via
+                stack.append(vianame)
 
                 i += 1
 
             self.viastacks[stack_key] = stack
 
-        for vianame, layer in self.viastacks[stack_key]:
-            # TODO: bottom_layer is wrong thing here we need bottom laye rof
-            # this particular via
-            self.place_vias([net], x, y, 0, 0, layer, vianame)
+        for vianame in self.viastacks[stack_key]:
+            self.place_vias([net], x, y, 0, 0, vianame)
 
     def insert_vias(self, nets=[], layers=[]):
         '''Automatically insert vias.
@@ -1269,15 +1379,15 @@ def _infer_diearea(chip):
     lef_data = _get_tech_lef_data(chip)
     _, _, lib_height = _get_stdcell_info(chip, lef_data)
 
-    core_width, core_height = _calculate_core_dimensions(density, 
-                                                         coremargin, 
-                                                         aspectratio, 
-                                                         cell_area, 
+    core_width, core_height = _calculate_core_dimensions(density,
+                                                         coremargin,
+                                                         aspectratio,
+                                                         cell_area,
                                                          lib_height)
 
     diearea = [(0, 0),
                (2 * coremargin + core_width, 2 * coremargin + core_height)]
-    corearea = [(coremargin, coremargin), 
+    corearea = [(coremargin, coremargin),
                 (coremargin + core_width, coremargin + core_height)]
-    
+
     return diearea, corearea

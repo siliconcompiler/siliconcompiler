@@ -4,7 +4,6 @@ import sys
 import re
 import numpy as np
 import siliconcompiler
-import matplotlib.pyplot as plt
 
 ####################################################
 # PDK Setup

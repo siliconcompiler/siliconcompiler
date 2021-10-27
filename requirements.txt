@@ -1,7 +1,6 @@
 # Pip3 requirements file. To install Python library dependencies, run:
 # > pip3 install -r requirements.txt
 
-matplotlib >= 3.3
 numpy >= 1.19
 aiohttp >= 3.7.4.post0
 requests >= 2.22.0

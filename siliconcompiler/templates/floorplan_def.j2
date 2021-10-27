@@ -16,11 +16,10 @@ TRACKS {{ track.direction | upper }} {{ track.start | scale }} DO {{ track.total
 {% endfor %}
 
 VIAS {{ fp.vias | length }} ;
-    {% for via in fp.vias %}
-    - {{ via.name }} 
-        {% if via.rule %}
+    {% for name, via in fp.vias.items() %}
+    - {{ name }}
+    {% if via.generated %}
         + VIARULE {{ via.rule }}
-        {% endif %}
         + CUTSIZE {{ via.cutsize | map('scale') | join(' ') }}
         + LAYERS {{ via.layers | join(' ') }}
         + CUTSPACING {{ via.cutspacing | map('scale') | join(' ') }}
@@ -28,6 +27,11 @@ VIAS {{ fp.vias | length }} ;
         {% if via.rowcol %}
         + ROWCOL {{ via.rowcol | join(' ') }}
         {% endif %};
+    {% else %}
+      {% for rect in via.rects %}
+      + RECT {{ rect.layer }} {{ rect.ll | map('scale') | render_tuple }} {{ rect.ur | map('scale') | render_tuple }}
+      {% endfor %} ;
+    {% endif %}
     {% endfor %}
 END VIAS
 
@@ -44,13 +48,17 @@ COMPONENTS {{ fp.macros | length }} ;
 END COMPONENTS
 
 PINS {{ fp.pins | length }} ;
-{% for pin in fp.pins %}
-    - {{ pin.name }} + NET {{ pin.net }} + DIRECTION {{ pin.direction|upper }} + USE {{ pin.use|upper }}
+{% for name, pin in fp.pins.items() %}
+    - {{ name }} + NET {{ pin.net }} + DIRECTION {{ pin.direction|upper }} + USE {{ pin.use|upper }}
+       {% for port in pin.ports %}
        + PORT
-         + LAYER {{ pin.port.layer }} {{ pin.port.box | map('scale') | map('render_tuple') | join(' ') }}
-         {% if pin.port.status %}
-         + {{ pin.port.status|upper }} {{ pin.port.point | map('scale') | render_tuple }} {{ pin.port.orientation }} ;
+       {% for shape in port.shapes %}
+         + LAYER {{ shape.layer }} {{ shape.box | map('scale') | map('render_tuple') | join(' ') }}
+       {% endfor %}
+         {% if port.status %}
+         + {{ port.status|upper }} {{ port.point | map('scale') | render_tuple }} {{ port.orientation }} ;
          {% endif %}
+       {% endfor %}
 {% endfor %}
 END PINS
 
@@ -79,7 +87,7 @@ SPECIALNETS {{ fp.nets | length }} ;
         {% else %}
         NEW
         {% endif %}
-        {{ via.layer }} 0 + SHAPE STRIPE {{ via.point | scale | render_tuple }} {{ via.rule }}
+        {{ via.layer }} 0 + SHAPE STRIPE {{ via.point | scale | render_tuple }} {{ via.name }}
     {% endfor %} ;
 {% endfor %}
 END SPECIALNETS

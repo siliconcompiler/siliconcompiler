@@ -1698,7 +1698,7 @@ def schema_flowgraph(cfg, step='default', index='default'):
         """
     }
 
-    # Arguments passed by user to function
+    # Arguments passed by user to setup function
     cfg['flowgraph'][step][index]['args'] = {
         'switch': "-flowgraph_args 'step index <str>'",
         'type': '[str]',
@@ -1721,7 +1721,7 @@ def schema_flowgraph(cfg, step='default', index='default'):
         'type': 'bool',
         'lock': 'false',
         'requirement': None,
-        'defvalue': [],
+        'defvalue': 'false',
         'shorthelp': 'Flowgraph step/index valid bit',
         'example': [
             "cli: -flowgraph_valid 'cts 0 true'",
@@ -1731,6 +1731,28 @@ def schema_flowgraph(cfg, step='default', index='default'):
         The parameter can be used to control flow execution. If the bit
         is cleared (0), then the step/index combination is invalid and
         should not be run.
+        """
+    }
+
+    # Valid bits set by user
+    cfg['flowgraph'][step][index]['timeout'] = {
+        'switch': "-flowgraph_timeout 'step 0 <float>'",
+        'type': 'float',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Flowgraph step/index timeout value',
+        'example': [
+            "cli: -flowgraph_timeout 'cts 0 3600'",
+            "api:  chip.set('flowgraph','cts','0','timeout', 3600)"],
+        'help': """
+        Timeout value in seconds specified on a per step and per index
+        basis. The flowgraph timeout value is compared against the
+        wall time tracked by the SC runtime to determine if an
+        operation should continue. Timeout values help in situations
+        where 1.) an operation is stuck and may never finish. 2.) the
+        operation progress has saturated and continued execution has
+        a negative return on investment.
         """
     }
 
@@ -2845,8 +2867,9 @@ def schema_record(cfg, job='default', step='default', index='default'):
     cfg['record'][job][step] = {}
     cfg['record'][job][step][index] = {}
 
-    cfg['record'][job][step][index]['file'] = {
-        'switch': "-record_file 'job step index <file>'",
+
+    cfg['record'][job][step][index]['input'] = {
+        'switch': "-record_input 'job step index <file>'",
         'requirement': None,
         'type': '[file]',
         'copy': 'false',
@@ -2857,13 +2880,33 @@ def schema_record(cfg, job='default', step='default', index='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'shorthelp': 'Record of all files accessed',
-        'example': ["cli: -record_file 'job0 import 0 gcd.v'",
-                    "api: chip.set('record','job0', 'import','0','file','gcd.v')"],
+        'shorthelp': 'Record of all input files',
+        'example': [
+            "cli: -record_input 'job0 import 0 adder.v'",
+            "api: chip.set('record','job0', 'import','0','input','adder.v')"],
         'help': """
-        Record tracking all input files on a per step basis. This list
-        include files entered by the user and files automatically found
-        by the flow like in the case of the "-y" auto-discovery path.
+        Record tracking all input files on a per step and index basis.
+        """
+    }
+
+    cfg['record'][job][step][index]['output'] = {
+        'switch': "-record_output 'job step index <file>'",
+        'requirement': None,
+        'type': '[file]',
+        'copy': 'false',
+        'lock': 'false',
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Record of all output files',
+        'example': [
+            "cli: -record_output 'job0 syn 0 outputs/adder.vg'",
+            "api: chip.set('record','job0', 'syn','0','output','outsputs/adder.vg')"],
+        'help': """
+        Record tracking all input files on a per step and index basis.
         """
     }
 
@@ -2873,7 +2916,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Record of author',
+        'shorthelp': 'Author name',
         'example': [
             "cli: -record_author 'job0 dfm 0 coyote'",
             "api: chip.set('record', 'job0','dfm','0','author','coyote')"],
@@ -2888,7 +2931,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Record of user ID',
+        'shorthelp': 'User ID',
         'example': [
             "cli: -record_userid 'job0 dfm 0 0982acea'",
             "api: chip.set('record','dfm','job0','0','userid','0982acea')"],
@@ -2903,7 +2946,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Record of public key of run user',
+        'shorthelp': 'User public key',
         'example': [
             "cli: -record_publickey 'job0 dfm 0 6EB695706EB69570'",
             "api: chip.set('record','job0','dfm','0','publickey','6EB695706EB69570')"],
@@ -2912,20 +2955,20 @@ def schema_record(cfg, job='default', step='default', index='default'):
         """
     }
 
-    cfg['record'][job][step][index]['hash'] = {
-        'switch': "-record_hash 'job step index <str>'",
+    cfg['record'][job][step][index]['exitstatus'] = {
+        'switch': "-record_exitstatus 'job step index <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Record of output files hash values',
+        'shorthelp': 'Exit status',
         'example': [
-            "cli: -record_hash 'job0 dfm 0 473c04b'",
-            "api: chip.set('record', 'job0', 'dfm','0','hash','473c04b')"],
+            "cli: -record_exitstatus 'job0 dfm 0 0'",
+            "api: chip.set('record', 'job0', 'dfm','0','exitstatus','0')"],
         'help': """
-        Record with list of computed hash values for each output file produced.
-        The ordered list of step outputs is taken from the eda 'output'
-        'parameter'.
+        Record with exit status code for step index. A zero indicates
+        success, non-zero values represents an error. Non-zero values
+        are not standard and tool/platform dependent.
         """
     }
 
@@ -2958,16 +3001,31 @@ def schema_record(cfg, job='default', step='default', index='default'):
         """
     }
 
-    cfg['record'][job][step][index]['version'] = {
-        'switch': "-record_version 'job step index <str>'",
+    cfg['record'][job][step][index]['scversion'] = {
+        'switch': "-record_scversion 'job step index <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Record of sc version on node',
+        'example': [
+            "cli: -record_scversion 'job0 dfm 0 1.0'",
+            "api: chip.set('record','job0', 'dfm','0','scversion', '1.0')"],
+        'help': """
+        Record tracking the sc version number on the compute node.
+        """
+    }
+
+    cfg['record'][job][step][index]['toolversion'] = {
+        'switch': "-record_toolversion 'job step index <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
         'shorthelp': 'Record of executable version',
         'example': [
-            "cli: -record_version 'job0 dfm 0 1.0'",
-            "api: chip.set('record','job0', 'dfm','0','version', '1.0')"],
+            "cli: -record_toolversion 'job0 dfm 0 1.0'",
+            "api: chip.set('record','job0', 'dfm','0','toolversion', '1.0')"],
         'help': """
         Record tracking the version number of the executable, specified
         on per step and per index basis.
@@ -2980,7 +3038,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Record of run start time',
+        'shorthelp': 'Run start-time',
         'example': [
             "cli: -record_starttime 'job0 dfm 2021-09-06 12:20:20'",
             "api: chip.set('record','job0', 'dfm','0','starttime','2021-09-06 12:20:20')"],
@@ -2996,12 +3054,153 @@ def schema_record(cfg, job='default', step='default', index='default'):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Record of run end time',
+        'shorthelp': 'Run end-time',
         'example': ["cli: -record_endtime 'job0 dfm 0 2021-09-06 12:20:20'",
                     "api: chip.set('record','job0', 'dfm','0','endtime','2021-09-06 12:20:20')"],
         'help': """
         Record tracking the end time stamp on a per step and index basis.
         The date format is the ISO 8601 format YYYY-MM-DD HR:MIN:SEC.
+        """
+    }
+
+    cfg['record'][job][step][index]['node'] = {
+        'switch': "-record_node 'job step index <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Compute node name',
+        'example': ["cli: -record_node 'job0 dfm 0 carbon'",
+                    "api: chip.set('record','job0', 'dfm','0','node','carbon')"],
+        'help': """
+        Record tracking the machine/node name for the step/index execution.
+        (eg. carbon, silicon, mars, host0)
+        """
+    }
+
+    cfg['record'][job][step][index]['region'] = {
+        'switch': "-record_region 'job step index <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Compute node region',
+        'example': ["cli: -record_region 'job0 dfm 0 US Gov Boston'",
+                    "api: chip.set('record','job0', 'dfm','0','region','US Gov Boston')"],
+        'help': """
+        Record tracking the operational region of the node. Recommended naming methodology:
+        local: node is the local machine
+        onprem: node in on-premises IT infrastructure
+        public: generic public cloud
+        govcloud: generic US government cloud
+        <region>: cloud and entity specific region string name
+        """
+    }
+
+    cfg['record'][job][step][index]['macaddr'] = {
+        'switch': "-record_macaddr 'job step index <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Compute node MAC address',
+        'example': ["cli: -record_macaddr 'job0 dfm 0 <macaddr>'",
+                    "api: chip.set('record','job0', 'dfm','0','macaddr','<macaddr>')"],
+        'help': """
+        Record tracking the MAC address of the node.
+        """
+    }
+
+    cfg['record'][job][step][index]['ipaddr'] = {
+        'switch': "-record_ipaddr 'job step index <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Compute node IP address',
+        'example': ["cli: -record_ipaddr 'job0 dfm 0 <ipaddr>'",
+                    "api: chip.set('record','job0', 'dfm','0','ipaddr','<ipaddr>')"],
+        'help': """
+        Record tracking the IP address of the node.
+        """
+    }
+
+    cfg['record'][job][step][index]['platform'] = {
+        'switch': "-record_platform 'job step index <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Compute node platform name',
+        'example': ["cli: -record_platform 'job0 dfm 0 linux'",
+                    "api: chip.set('record','job0', 'dfm','0',platform','linux')"],
+        'help': """
+        Record tracking the platform name on the node.
+        (linux, windows, freebsd, macos, ...).
+        """
+    }
+
+    cfg['record'][job][step][index]['distro'] = {
+        'switch': "-record_distro 'job step index <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Compute node platform distribution',
+        'example': ["cli: -record_distro 'job0 dfm 0 ubuntu'",
+                    "api: chip.set('record','job0', 'dfm','0',platform','ubuntu')"],
+        'help': """
+        Record tracking the platform distribution name on the node.
+        (ubuntu, centos, redhat,...).
+        """
+    }
+
+    cfg['record'][job][step][index]['osversion'] = {
+        'switch': "-record_osversion 'job step index <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Compute node operating system version',
+        'example': [
+            "cli: -record_osversion 'job0 dfm 0 20.04.1-Ubuntu'",
+            "api: chip.set('record','job0', 'dfm','0',platform','20.04.1-Ubuntu')"],
+        'help': """
+        Record tracking the complete operating system version name. Since there is
+        not standarrd version system for operating systems, extracting information
+        from is platform dependent. For Linux based operating systems, the
+        'osversion' is the version of the distro.
+        """
+    }
+
+    cfg['record'][job][step][index]['kernelversion'] = {
+        'switch': "-record_kernelversion 'job step index <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Compute node operating system kernel version',
+        'example': [
+            "cli: -record_kernelversion 'job0 dfm 0 5.11.0-34-generic'",
+            "api: chip.set('record','job0', 'dfm','0','kernelversion','5.11.0-34-generic')"],
+        'help': """
+        Record tracking the operating system kernel version for platforms that
+        support a distinction betweem os kernels and os distributions.
+        """
+    }
+
+    cfg['record'][job][step][index]['arch'] = {
+        'switch': "-record_arch 'job step index <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Compute node hardware architecture',
+        'example': [
+            "cli: -record_arch 'job0 dfm 0 x86_64'",
+            "api: chip.set('record','job0', 'dfm','0','arch','x86_64')"],
+        'help': """
+        Record tracking the hardware architecture on the node.
         """
     }
 
