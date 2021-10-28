@@ -5,16 +5,14 @@ import re
 from siliconcompiler.core import Chip
 from siliconcompiler.floorplan import Floorplan
 
-def make_fp():
-    test_dir = os.path.dirname(os.path.abspath(__file__))
-
+def _fp(datadir):
     c = Chip(loglevel='INFO')
     c.set('design', 'test', clobber=True)
     c.target('asicflow_freepdk45')
     lib = 'ram'
     c.add('asic', 'macrolib', lib)
     c.set('library', lib, 'type', 'component')
-    c.add('library', lib, 'lef', test_dir + '/test_floorplan/ram.lef')
+    c.add('library', lib, 'lef', os.path.join(datadir, 'ram.lef'))
 
     fp = Floorplan(c)
     cell_w = fp.stdcell_width
@@ -51,28 +49,26 @@ def make_fp():
     return fp
 
 @pytest.fixture
-def fp():
-    return make_fp()
+def fp(datadir):
+    return _fp(datadir)
 
-def test_floorplan_def(fp, tmpdir):
-    file = tmpdir.join('output.def')
-    fp.write_def(file.strpath)
+def test_floorplan_def(fp, datadir):
+    output_path = 'output.def'
+    fp.write_def(output_path)
 
-    test_dir = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(datadir, 'golden.def'), 'r') as golden, \
+         open(output_path, 'r') as result:
+        assert result.read() == golden.read()
 
-    with open(test_dir + '/test_floorplan/golden.def', 'r') as golden:
-        assert file.read() == golden.read()
+def test_floorplan_lef(fp, datadir):
+    output_path = 'output.lef'
+    fp.write_lef(output_path)
 
-def test_floorplan_lef(fp, tmpdir):
-    file = tmpdir.join('output.lef')
-    fp.write_lef(file.strpath)
+    with open(os.path.join(datadir, 'golden.lef'), 'r') as golden, \
+         open(output_path, 'r') as result:
+        assert result.read() == golden.read()
 
-    test_dir = os.path.dirname(os.path.abspath(__file__))
-
-    with open(test_dir + '/test_floorplan/golden.lef', 'r') as golden:
-        assert file.read() == golden.read()
-
-def test_padring():
+def test_padring(datadir):
     ''' Replicates Yosys padring from here:
     https://github.com/YosysHQ/padring/tree/master/example
 
@@ -88,12 +84,12 @@ def test_padring():
 
     macro = 'io'
     chip.add('asic', 'macrolib', macro)
-    chip.set('library', macro, 'lef', f'{test_dir}/test_floorplan/iocells.lef')
+    chip.set('library', macro, 'lef', os.path.join(datadir, 'iocells.lef'))
     chip.set('library', macro, 'cells', 'IOPAD', 'IOPAD')
 
     macro = 'sram_32x2048_1rw'
     chip.add('asic', 'macrolib', macro)
-    chip.set('library', macro, 'lef', f'{test_dir}/test_floorplan/{macro}.lef')
+    chip.set('library', macro, 'lef', os.path.join(datadir, f'{macro}.lef'))
     chip.set('library', macro, 'cells', 'ram', 'sram_32x2048_1rw')
 
     fp = Floorplan(chip)
@@ -183,16 +179,14 @@ def test_vias_at_intersection():
 
     fp.write_def('test.def')
 
-def test_place_vias(tmpdir):
-    test_dir = os.path.dirname(os.path.abspath(__file__))
-
+def test_place_vias(datadir):
     c = Chip()
     c.set('design', 'test', clobber=True)
     c.target('asicflow_freepdk45')
     lib = 'ram'
     c.add('asic', 'macrolib', lib)
     c.set('library', lib, 'type', 'component')
-    c.add('library', lib, 'lef', test_dir + '/test_floorplan/ram.lef')
+    c.add('library', lib, 'lef', os.path.join(datadir, 'ram.lef'))
 
     fp = Floorplan(c)
 
@@ -210,10 +204,10 @@ def test_place_vias(tmpdir):
 
     fp.place_vias(['vdd'] * 5, 50, 50, 25, 0, 'myvia')
 
-    outfile = tmpdir.join('test_place_vias.def')
-    fp.write_def(outfile.strpath)
+    outfile = 'test_place_vias.def'
+    fp.write_def(outfile)
 
-    with open(outfile.strpath, 'r') as resultfile:
+    with open(outfile, 'r') as resultfile:
         result = resultfile.read()
         specnets = re.search(r'SPECIALNETS (\d+) ;\n(.*)END SPECIALNETS', result, re.MULTILINE|re.DOTALL)
         vias = re.search(r'VIAS (\d+) ;\n(.*)END VIAS', result, re.MULTILINE|re.DOTALL)
@@ -255,10 +249,11 @@ def test_place_vias(tmpdir):
     assert vias.group(2).split() == expected_vias
 
 if __name__ == "__main__":
-    import py
+    from tests.fixtures import datadir
 
-    #test_floorplan_def(make_fp(), py.path.local('.'))
-    #test_floorplan_lef(make_fp(), py.path.local('.'))
-    #test_padring()
+    mydatadir = datadir(__file__)
+    # test_floorplan_def(_fp(mydatadir), mydatadir)
+    # test_floorplan_lef(_fp(mydatadir), mydatadir)
+    # test_padring(mydatadir)
     # test_vias_at_intersection()
-    test_place_vias(py.path.local('.'))
+    test_place_vias(mydatadir)

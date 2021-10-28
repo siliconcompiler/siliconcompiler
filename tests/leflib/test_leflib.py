@@ -2,22 +2,30 @@ from siliconcompiler import leflib
 
 import os
 
-test_dir = os.path.dirname(os.path.abspath(__file__))
-sc_root = test_dir + '/../../..'
+def test_leflib(scroot):
+    path = os.path.join(scroot,
+                       'third_party',
+                       'pdks',
+                       'skywater',
+                       'skywater130',
+                       'pdk',
+                       'v0_0_2',
+                       'apr',
+                       'sky130_fd_sc_hd.tlef')
 
-def test_leflib():
-    data = leflib.parse(f'{sc_root}/third_party/pdks/skywater/skywater130/pdk/v0_0_2/apr/sky130_fd_sc_hd.tlef')
+    data = leflib.parse(path)
     assert data['version'] == 5.7
 
 def test_leflib_garbage():
     assert leflib.parse('asdf') is None
 
-def test_leflib_complete():
+def test_leflib_complete(datadir):
     # This file contains nonsense and some things that are technically illegal,
     # but good coverage of what you might see in a LEF. I've left comments where
     # the contents of `data` don't perfectly match the LEF contents, with
     # explanations as to why.
-    data = leflib.parse(f'{sc_root}/third_party/tools/openroad/tools/OpenROAD/src/OpenDB/src/lef/TEST/complete.5.8.lef')
+    path = os.path.join(datadir, 'complete.5.8.lef')
+    data = leflib.parse(path)
 
     assert data['version'] == 5.8
     assert data['fixedmask'] == True
@@ -135,7 +143,9 @@ def test_leflib_complete():
     }
 
 if __name__ == '__main__':
+    from fixtures import datadir
     import pprint
     pp = pprint.PrettyPrinter()
-    data = leflib.parse(f'{sc_root}/third_party/tools/openroad/tools/OpenROAD/src/OpenDB/src/lef/TEST/complete.5.8.lef')
+    path = os.path.join(datadir(__file__), 'complete.5.8.lef')
+    data = leflib.parse(path)
     pp.pprint(data)

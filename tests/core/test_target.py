@@ -34,3 +34,9 @@ def test_target_pdk_error():
         chip.target('asicflow_fakepdk')
     assert pytest_wrapped_e.type == SystemExit
     assert pytest_wrapped_e.value.code == 1
+
+@pytest.mark.parametrize('pdk', ['asap7', 'freepdk45', 'skywater130'])
+def test_pdk(pdk):
+    chip = siliconcompiler.Chip()
+    chip.target(pdk)
+    assert chip.get('pdk', 'process') == pdk

@@ -2,17 +2,11 @@
 
 import os
 
-from siliconcompiler import Chip
 from siliconcompiler.client import *
 from siliconcompiler.crypto import *
 
-if __name__ != "__main__":
-    from tests.fixtures import test_wrapper
-
-def test_crypto():
-    mydir = os.path.dirname(os.path.abspath(__file__))
-    sc_root = f'{mydir}/../../..'
-    crypto_key = f'{sc_root}/tests/insecure_ci_keypair'
+def test_crypto(scroot):
+    crypto_key = os.path.join(scroot, 'tests', 'data', 'insecure_ci_keypair')
 
     # Create a directory structure representing a job run.
     os.mkdir('build')
@@ -38,4 +32,5 @@ def test_crypto():
         assert test_msg == f.read()
 
 if __name__ == "__main__":
-    test_crypto()
+    from tests.fixtures import scroot
+    test_crypto(scroot())

@@ -20,5 +20,9 @@ def scroot():
     return fixtures.scroot()
 
 @pytest.fixture
+def datadir(request):
+    return fixtures.datadir(request.fspath)
+
+@pytest.fixture
 def gcd_chip():
     return fixtures.gcd_chip()
