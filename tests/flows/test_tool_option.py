@@ -52,13 +52,14 @@ def test_tool_option(scroot):
     assert chip.find_result('pkg.json', step='place', index='1') is not None
 
 @pytest.fixture
-def chip(datadir):
+def chip(scroot):
     '''Chip fixture to reuse for next few tests.
 
     This chip is configured to run two parallel 'place' steps. The user of this
     fixture must add the step used to join the two!
     '''
 
+    datadir = os.path.join(scroot, 'tests', 'data')
     netlist = os.path.join(datadir, 'oh_fifo_sync_freepdk45.vg')
     def_file = os.path.join(datadir, 'oh_fifo_sync.def')
 

@@ -1,18 +1,14 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import os
-import sys
 import siliconcompiler
-import importlib
+import pytest
 
+@pytest.mark.eda
+@pytest.mark.quick
+def test_openroad(scroot):
+    datadir = os.path.join(scroot, 'tests', 'data')
+    netlist = os.path.join(datadir, 'oh_fifo_sync_freepdk45.vg')
 
-if __name__ != "__main__":
-    from tests.fixtures import test_wrapper
-
-def test_openroad():
-
-    localdir = os.path.dirname(os.path.abspath(__file__))
-
-    netlist = f"{localdir}/../data/oh_fifo_sync_freepdk45.vg"
     design = "oh_fifo_sync"
 
     chip = siliconcompiler.Chip()
@@ -31,4 +27,5 @@ def test_openroad():
 
 #########################
 if __name__ == "__main__":
-    test_openroad()
+    from tests.fixtures import scroot
+    test_openroad(scroot())

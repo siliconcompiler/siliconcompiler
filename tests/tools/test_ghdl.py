@@ -1,17 +1,13 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import os
-import sys
 import siliconcompiler
-import importlib
+import pytest
 
-
-if __name__ != "__main__":
-    from tests.fixtures import test_wrapper
-
-def test_ghdl():
+@pytest.mark.eda
+@pytest.mark.quick
+def test_ghdl(datadir):
     design = "adder"
-    localdir = os.path.dirname(os.path.abspath(__file__))
-    design_src = f"{localdir}/../data/{design}.vhdl"
+    design_src = os.path.join(datadir, f'{design}.vhdl')
 
     chip = siliconcompiler.Chip(loglevel="INFO")
     chip.set('source', design_src)
@@ -26,4 +22,5 @@ def test_ghdl():
 
 #########################
 if __name__ == "__main__":
-    test_ghdl()
+    from tests.fixtures import datadir
+    test_ghdl(datadir(__file__))

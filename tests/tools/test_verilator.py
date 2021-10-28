@@ -1,20 +1,15 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import os
-import sys
 import siliconcompiler
-import importlib
+import pytest
 
-
-if __name__ != "__main__":
-    from tests.fixtures import test_wrapper
-
-def test_verilator():
-
-    ydir = (os.path.dirname(os.path.abspath(__file__)) +
-            "/../../third_party/designs/oh/stdlib/hdl")
+@pytest.mark.eda
+@pytest.mark.quick
+def test_verilator(scroot):
+    ydir = os.path.join(scroot, 'third_party', 'designs', 'oh', 'stdlib', 'hdl')
 
     design = "oh_fifo_sync"
-    topfile = ydir + "/" + design + ".v"
+    topfile = os.path.join(ydir, f'{design}.v')
     step = "import"
 
     chip = siliconcompiler.Chip(loglevel="INFO")
@@ -33,4 +28,5 @@ def test_verilator():
 
 #########################
 if __name__ == "__main__":
-    test_verilator()
+    from tests.fixtures import scroot
+    test_verilator(scroot())
