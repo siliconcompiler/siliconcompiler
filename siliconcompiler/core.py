@@ -1619,7 +1619,8 @@ class Chip:
         return fusesoc
 
     ###########################################################################
-    def write_flowgraph(self, filename):
+
+    def write_flowgraph(self, filename, fillcolor='#ffffff', fontcolor='#000000', fontsize='14', border=True):
         '''Writes the execution flow graph to a file.
 
         The chip object flowgraph is traversed to create a graphviz (*.dot)
@@ -1642,6 +1643,11 @@ class Chip:
         self.logger.debug('Writing flowgraph to file %s', filepath)
         fileroot, ext = os.path.splitext(filepath)
         fileformat = ext.replace(".", "")
+
+        #removing border
+        if not border:
+            penwidth = '0'
+
         dot = graphviz.Digraph(format=fileformat)
         dot.attr(bgcolor='transparent')
         for step in self.getkeys('flowgraph'):
@@ -1652,7 +1658,9 @@ class Chip:
                     labelname = step+index+'\\n('+self.get('flowgraph', step, index, 'tool')+")"
                 else:
                     labelname = step
-                dot.node(node, label=labelname)
+                dot.node(node, label=labelname, bordercolor=fontcolor, style='filled',
+                         fontcolor=fontcolor, fontsize=fontsize,
+                         penwidth=penwidth, fillcolor=fillcolor)
                 # get inputs
                 all_inputs = []
                 for stepindex in self.get('flowgraph', step, index, 'input'):
@@ -1660,6 +1668,8 @@ class Chip:
                 for item in all_inputs:
                     dot.edge(item, node)
         dot.render(filename=fileroot, cleanup=True)
+
+
 
     ########################################################################
     def _collect(self, step, index, active):
@@ -1961,7 +1971,7 @@ class Chip:
         for step in steplist:
             if show_all_indices:
                 indices_to_show[step] = self.getkeys('flowgraph', step)
-            else: 
+            else:
                 # Default for last step in list (could be tool or function)
                 indices_to_show[step] = ['0']
 
