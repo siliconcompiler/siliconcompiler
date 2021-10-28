@@ -1,18 +1,16 @@
 import os
 import subprocess
 import shlex
+import pytest
 
-from tests.fixtures import test_wrapper
-
-##################################
-def test_gcd_cli():
+@pytest.mark.eda
+def test_gcd_cli(scroot):
     '''Basic CLI test: build the GCD example by running `sc` as a command-line app.
     '''
 
     # Use subprocess to test running the `sc` scripts as a command-line program.
     # Pipe stdout to /dev/null to avoid printing to the terminal.
-    gcd_ex_dir = os.path.abspath(__file__)
-    gcd_ex_dir = gcd_ex_dir[:gcd_ex_dir.rfind('/tests/daily_tests/asic')] + '/examples/gcd'
+    gcd_ex_dir = f'{scroot}/examples/gcd'
 
     script = f'''sc {gcd_ex_dir}/gcd.v \
         -target asicflow_freepdk45 \

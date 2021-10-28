@@ -1,14 +1,14 @@
-import json
 import os
-import re
 import subprocess
-from tests.fixtures import *
+
+import pytest
 
 ###########################
 @pytest.mark.skip(reason=
     "Need to figure out how to handle check_manifest() call which fails on "
     "local import step since setup for tools running remotely hasn't been "
     "performed")
+@pytest.mark.eda
 def test_gcd_server(gcd_chip):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
        example using loopback network calls to that server.
@@ -23,9 +23,6 @@ def test_gcd_server(gcd_chip):
                                      '-port', '8082'],
                                     stdout = f)
 
-    # Find an absolute path to the example design.
-    gcd_ex_dir = os.path.abspath(__file__)
-    gcd_ex_dir = gcd_ex_dir[:gcd_ex_dir.rfind('/tests/daily_tests/asic')] + '/examples/gcd/'
     # Ensure that klayout doesn't open its GUI after results are retrieved.
     os.environ['DISPLAY'] = ''
 

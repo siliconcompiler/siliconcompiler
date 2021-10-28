@@ -1,20 +1,9 @@
-import os
-import re
-import siliconcompiler
-
 import pytest
+import re
 
-if __name__ != '__main__':
-    from tests.fixtures import *
-else:
-    from tests.utils import *
-
-##################################
+@pytest.mark.eda
 def test_gcd_infer_diesize(gcd_chip):
     '''Test inferring diesize from density/aspectratio/margin arguments
-
-    For now just tests that these flags don't break anything. TODO: is there a
-    good way to test that the actual final floorplan is correct?
     '''
 
     gcd_chip.set('asic', 'diearea', [])
@@ -44,4 +33,5 @@ def test_gcd_infer_diesize(gcd_chip):
     assert diearea == ('0', '0', '235200', '235200')
 
 if __name__ == '__main__':
+    from tests.fixtures import gcd_chip
     test_gcd_infer_diesize(gcd_chip())

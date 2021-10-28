@@ -1,12 +1,7 @@
 import os
-import siliconcompiler
+import pytest
 
-if __name__ != "__main__":
-    from tests.fixtures import *
-else:
-    from tests.utils import *
-
-##################################
+@pytest.mark.eda
 def test_slurm_local_py(gcd_chip):
     '''Basic Python API test: build the GCD example using only Python code.
     '''
@@ -21,4 +16,5 @@ def test_slurm_local_py(gcd_chip):
     assert os.path.isfile('build/gcd/job0/export/0/outputs/gcd.gds')
 
 if __name__ == "__main__":
+    from tests.fixtures import gcd_chip
     test_slurm_local_py(gcd_chip())

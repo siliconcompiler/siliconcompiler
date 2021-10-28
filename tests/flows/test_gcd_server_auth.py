@@ -1,28 +1,25 @@
 import base64
 import json
 import os
-import re
 import subprocess
-from tests.fixtures import *
 
 import pytest
 
 ###########################
-def test_gcd_server_authenticated(gcd_chip):
+@pytest.mark.eda
+def test_gcd_server_authenticated(gcd_chip, scroot):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
        example using loopback network calls to that server.
        Use authentication and encryption features.
     '''
 
-    # Collect relevant file paths.
-    root_dir = os.path.abspath(__file__)
-    root_dir = root_dir[:root_dir.rfind('/tests/daily_tests/asic')]
+    datadir = os.path.join(scroot, 'tests', 'data')
 
     # Create a JSON file with a test user / key.
     user_pwd = 'insecure_ci_password'
     os.mkdir('local_server_work')
-    with open(root_dir + '/tests/insecure_ci_keypair.pub', 'r') as pubkey:
-        with open(root_dir + '/tests/insecure_ci_keypair', 'r') as privkey:
+    with open(os.path.join(datadir, 'insecure_ci_keypair.pub'), 'r') as pubkey:
+        with open(os.path.join(datadir, 'insecure_ci_keypair'), 'r') as privkey:
             with open('local_server_work/users.json', 'w') as f:
                 # Passwords should never be stored in plaintext in a production
                 # environment, but the development server is a minimal
@@ -61,21 +58,20 @@ def test_gcd_server_authenticated(gcd_chip):
     assert os.path.isfile('build/gcd/job0/export/0/outputs/gcd.gds')
 
 ###########################
-def test_gcd_server_not_authenticated(gcd_chip):
+@pytest.mark.eda
+def test_gcd_server_not_authenticated(gcd_chip, scroot):
     '''Basic sc-server test: Run a local instance of a server, and attempt to
        authenticate a user with an invalid key. The remote run should fail.
     '''
 
-    # Collect relevant file paths.
-    root_dir = os.path.abspath(__file__)
-    root_dir = root_dir[:root_dir.rfind('/tests/daily_tests/asic')]
+    datadir = os.path.join(scroot, 'tests', 'data')
 
     # Create a JSON file with a test user / key.
     # This key is random, so it shouldn't match the stored test keypair.
     user_pwd = 'insecure_ci_password'
     os.mkdir('local_server_work')
     with open('local_server_work/users.json', 'w') as f:
-        with open(root_dir + '/tests/insecure_ci_keypair', 'r') as privkey:
+        with open(os.path.join(datadir, 'insecure_ci_keypair'), 'r') as privkey:
             f.write(json.dumps({'users': [{
                 'username': 'test_user',
                 'pub_key': 'ssh-rsa ' + base64.b64encode(os.urandom(2048)).decode(),

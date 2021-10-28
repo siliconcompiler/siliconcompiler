@@ -1,13 +1,8 @@
 import os
-import re
 import subprocess
+import pytest
 
-if __name__ != "__main__":
-    from tests.fixtures import *
-else:
-    from tests.utils import *
-
-###########################
+@pytest.mark.eda
 def test_gcd_server_slurm(gcd_chip):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
        example using loopback network calls to that server.
@@ -35,4 +30,5 @@ def test_gcd_server_slurm(gcd_chip):
     assert os.path.isfile('build/gcd/job0/export/0/outputs/gcd.gds')
 
 if __name__ == "__main__":
+    from tests.fixtures import gcd_chip
     test_gcd_server_slurm(gcd_chip())

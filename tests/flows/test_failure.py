@@ -1,25 +1,15 @@
 import os
 import siliconcompiler
-from tests.fixtures import test_wrapper
 
 import pytest
 
-##################################
-def test_failure_notquiet():
-    '''Test that SC exits early on errors without -quiet switch.
-
-    This is a regression test for an issue where SC would only exit early on a
-    command failure in cases where the -quiet switch was included.
-
-    TODO: these tests are somewhat bad because unrelated failures can cause
-    them to pass. Needs a more specific check.
-    '''
-
+@pytest.fixture
+def chip(datadir):
     # Create instance of Chip class
     chip = siliconcompiler.Chip(loglevel='NOTSET')
 
     # Inserting value into configuration
-    chip.add('source', '../../tests/daily_tests/asic/test_failure/bad.v')
+    chip.add('source', os.path.join(datadir, 'bad.v'))
     chip.set('design', 'bad')
     chip.set('asic', 'diearea', [(0, 0), (10, 10)])
     chip.set('asic',  'corearea', [(1, 1), (9, 9)])
@@ -29,6 +19,19 @@ def test_failure_notquiet():
 
     chip.add('steplist', 'import')
     chip.add('steplist', 'syn')
+
+    return chip
+
+@pytest.mark.eda
+def test_failure_notquiet(chip):
+    '''Test that SC exits early on errors without -quiet switch.
+
+    This is a regression test for an issue where SC would only exit early on a
+    command failure in cases where the -quiet switch was included.
+
+    TODO: these tests are somewhat bad because unrelated failures can cause
+    them to pass. Needs a more specific check.
+    '''
 
     # Expect that command exits early
     with pytest.raises(SystemExit):
@@ -43,24 +46,10 @@ def test_failure_notquiet():
     # Expect that synthesis doesn't run
     assert not os.path.isdir('build/bad/job0/syn/0/inputs')
 
-def test_failure_quiet():
+@pytest.mark.eda
+def test_failure_quiet(chip):
     '''Test that SC exits early on errors with -quiet switch.
     '''
-
-    # Create instance of Chip class
-    chip = siliconcompiler.Chip(loglevel='NOTSET')
-
-    # Inserting value into configuration
-    chip.add('source', '../../tests/daily_tests/asic/test_failure/bad.v')
-    chip.set('design', 'bad')
-    chip.set('asic', 'diearea', [(0, 0), (10, 10)])
-    chip.set('asic',  'corearea', [(1, 1), (9, 9)])
-    chip.set('target', 'asicflow_freepdk45')
-
-    chip.target()
-
-    chip.add('steplist', 'import')
-    chip.add('steplist', 'syn')
 
     chip.set('quiet', 'true')
 
