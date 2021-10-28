@@ -2,11 +2,10 @@
 import os
 import siliconcompiler
 
-def test_summary():
+def test_summary(datadir):
 
     chip = siliconcompiler.Chip()
-    datadir = os.path.dirname(os.path.abspath(__file__)) + "/../data/"
-    manifest = datadir + "gcd.pkg.json"
+    manifest = os.path.join(datadir, 'gcd.pkg.json')
 
     chip.read_manifest(manifest)
 
@@ -15,4 +14,5 @@ def test_summary():
 
 #########################
 if __name__ == "__main__":
-    test_summary()
+    from tests.fixtures import datadir
+    test_summary(datadir(__file__))

@@ -2,15 +2,14 @@
 import os
 import siliconcompiler
 
-def test_find_sc_file():
+def test_find_sc_file(datadir):
 
     chip = siliconcompiler.Chip()
 
     assert chip._find_sc_file("flows/asicflow.py") is not None
     assert chip._find_sc_file("pdks/freepdk45.py") is not None
 
-    datadir = os.path.dirname(os.path.abspath(__file__)) + "/../data/"
-    chip.set('scpath', f'{datadir}/sclib')
+    chip.set('scpath', os.path.join(datadir, 'sclib'))
     assert chip._find_sc_file('test.txt') is not None
 
     assert chip._find_sc_file('my_file_that_doesnt_exist.blah', missing_ok=True) is None
@@ -21,4 +20,5 @@ def test_find_sc_file():
 
 #########################
 if __name__ == "__main__":
-    test_find_sc_file()
+    from tests.fixtures import datadir
+    test_find_sc_file(datadir(__file__))
