@@ -1620,7 +1620,7 @@ class Chip:
 
     ###########################################################################
 
-    def write_flowgraph(self, filename, fillcolor='#ffffff', fontcolor='#000000', fontsize='14', border=True):
+    def write_flowgraph(self, filename, fillcolor='#ffffff', fontcolor='#000000', fontsize='14', border=True, landscape=False):
         '''Writes the execution flow graph to a file.
 
         The chip object flowgraph is traversed to create a graphviz (*.dot)
@@ -1644,9 +1644,15 @@ class Chip:
         fileroot, ext = os.path.splitext(filepath)
         fileformat = ext.replace(".", "")
 
-        #removing border
+        # controlling border width
         if not border:
             penwidth = '0'
+
+        # controlling graph direction
+        if lanscape:
+            rankdir = 'LR'
+        else:
+            rankdir = 'TB'
 
         dot = graphviz.Digraph(format=fileformat)
         dot.attr(bgcolor='transparent')
