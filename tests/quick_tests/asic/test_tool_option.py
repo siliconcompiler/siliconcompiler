@@ -34,7 +34,6 @@ def test_tool_option():
     # doesn't break anything.
     steplist = [
         'import',
-        'convert',
         'syn',
         'synmin',
         'floorplan',
