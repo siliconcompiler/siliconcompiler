@@ -17,8 +17,7 @@ def test_wrapper(tmp_path):
 def scroot():
     '''Fixture for getting absolute path to SC install root, no matter where the
     test file is in the tree.'''
-    mydir = os.path.dirname(__file__)
-    return os.path.abspath(os.path.join(mydir, '..'))
+    return fixtures.scroot()
 
 @pytest.fixture
 def gcd_chip():

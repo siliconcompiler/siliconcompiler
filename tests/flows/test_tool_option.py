@@ -2,25 +2,23 @@ import os
 import siliconcompiler
 import pytest
 
-if __name__ != "__main__":
-    from tests.fixtures import test_wrapper
-
-def test_tool_option():
-    '''Regresttion test for checker being too strict and preventing user from
+@pytest.mark.eda
+@pytest.mark.quick
+def test_tool_option(scroot):
+    '''Regression test for checker being too strict and preventing user from
     setting tool options. Doesn't check any outputs, just that this doesn't fail
     early.'''
     chip = siliconcompiler.Chip()
 
-    gcd_ex_dir = os.path.abspath(__file__)
-    gcd_ex_dir = gcd_ex_dir[:gcd_ex_dir.rfind('/tests/quick_tests/asic')] + '/examples/gcd/'
+    gcd_ex_dir = os.path.join(scroot, 'examples', 'gcd')
 
     # Inserting value into configuration
     chip.set('design', 'gcd', clobber=True)
     chip.set('target', 'asicflow_freepdk45')
-    chip.add('source', gcd_ex_dir + 'gcd.v')
+    chip.add('source', os.path.join(gcd_ex_dir, 'gcd.v'))
     chip.set('clock', 'core_clock', 'pin', 'clk')
     chip.set('clock', 'core_clock', 'period', 2)
-    chip.add('constraint', gcd_ex_dir + 'gcd_noclock.sdc')
+    chip.add('constraint', os.path.join(gcd_ex_dir, 'gcd_noclock.sdc'))
     chip.set('asic', 'diearea', [(0,0), (100.13,100.8)])
     chip.set('asic', 'corearea', [(10.07,11.2), (90.25,91)])
     chip.set('quiet', 'true')
@@ -54,16 +52,15 @@ def test_tool_option():
     assert chip.find_result('pkg.json', step='place', index='1') is not None
 
 @pytest.fixture
-def chip():
+def chip(datadir):
     '''Chip fixture to reuse for next few tests.
 
     This chip is configured to run two parallel 'place' steps. The user of this
     fixture must add the step used to join the two!
     '''
-    localdir = os.path.dirname(os.path.abspath(__file__))
 
-    netlist = f"{localdir}/../../data/oh_fifo_sync_freepdk45.vg"
-    def_file = f"{localdir}/../../data/oh_fifo_sync.def"
+    netlist = os.path.join(datadir, 'oh_fifo_sync_freepdk45.vg')
+    def_file = os.path.join(datadir, 'oh_fifo_sync.def')
 
     design = "oh_fifo_sync"
 
@@ -86,6 +83,8 @@ def chip():
 
     return chip
 
+@pytest.mark.eda
+@pytest.mark.quick
 def test_failed_branch_step_min(chip):
     '''Test that a step_minimum will allow failed inputs, as long as at least
     one passes.'''
@@ -107,6 +106,8 @@ def test_failed_branch_step_min(chip):
     # check that compilation succeeded
     assert chip.find_result('def', step='placemin') is not None
 
+@pytest.mark.eda
+@pytest.mark.quick
 def test_all_failed_step_min(chip):
     '''Test that a step_minimum will fail if both branches have errors.'''
 
@@ -126,6 +127,8 @@ def test_all_failed_step_min(chip):
     # check that compilation failed
     assert chip.find_result('def', step='placemin') is None
 
+@pytest.mark.eda
+@pytest.mark.quick
 def test_branch_failed_step_join(chip):
     '''Test that a step_join will fail if one branch has errors.'''
 
@@ -146,4 +149,5 @@ def test_branch_failed_step_join(chip):
     assert chip.find_result('def', step='placemin') is None
 
 if __name__ == "__main__":
-    test_tool_option()
+    from tests.fixtures import scroot
+    test_tool_option(scroot())

@@ -1,15 +1,13 @@
 import os
 import subprocess
 import traceback
+import pytest
 
 from unittest.mock import Mock
 
-if __name__ != "__main__":
-    from tests.fixtures import *
-else:
-    from tests.utils import *
-
 ###########################
+@pytest.mark.eda
+@pytest.mark.quick
 def test_gcd_server(gcd_chip):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
        example using loopback network calls to that server.
@@ -51,6 +49,7 @@ def test_gcd_server(gcd_chip):
     assert os.path.isfile('build/gcd/job0/export/0/outputs/gcd.gds')
 
 if __name__ == "__main__":
+    from tests.fixtures import gcd_chip
     if os.path.isdir('local_server_work'):
         os.rmdir('local_server_work')
     test_gcd_server(gcd_chip())

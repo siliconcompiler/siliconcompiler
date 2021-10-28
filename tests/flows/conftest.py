@@ -1,7 +1,8 @@
 import pytest
-import os
+
+from tests import fixtures
 
 @pytest.fixture
-def datadir(scroot):
+def datadir():
     '''Fixture for getting absolute path to this module's data directory.'''
-    return (os.path.join(scroot, 'tests', 'flows', 'data'))
+    return fixtures.datadir(__file__)

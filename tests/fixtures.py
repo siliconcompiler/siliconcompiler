@@ -2,20 +2,25 @@ import os
 import siliconcompiler
 
 def gcd_chip():
-    # TODO: once we can get fixtures all the way down, replace this with scroot
-    root_dir = os.path.abspath(__file__)
-    root_dir = root_dir[:root_dir.rfind('/tests')]
-    gcd_ex_dir = root_dir + '/examples/gcd/'
+    gcd_ex_dir = os.path.join(scroot(), 'examples', 'gcd')
 
     chip = siliconcompiler.Chip()
     chip.set('design', 'gcd', clobber=True)
     chip.target('asicflow_freepdk45')
-    chip.add('source', gcd_ex_dir + 'gcd.v')
+    chip.add('source', os.path.join(gcd_ex_dir, 'gcd.v'))
     chip.set('clock', 'clock_name', 'pin', 'clk')
-    chip.add('constraint', gcd_ex_dir + 'gcd.sdc')
+    chip.add('constraint', os.path.join(gcd_ex_dir, 'gcd.sdc'))
     chip.set('asic', 'diearea', [(0,0), (100.13,100.8)])
     chip.set('asic', 'corearea', [(10.07,11.2), (90.25,91)])
     chip.set('quiet', 'true', clobber=True)
     chip.set('relax', 'true', clobber=True)
 
     return chip
+
+def scroot():
+    mydir = os.path.dirname(__file__)
+    return os.path.abspath(os.path.join(mydir, '..'))
+
+def datadir(file):
+    mydir = os.path.dirname(file)
+    return os.path.abspath(os.path.join(mydir, 'data'))

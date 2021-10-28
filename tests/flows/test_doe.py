@@ -1,13 +1,14 @@
 import siliconcompiler
 import multiprocessing
 import os
+import pytest
 
 # unit routine
-def run_design(rootdir, design, N, job):
+def run_design(datadir, design, N, job):
 
     chip = siliconcompiler.Chip(loglevel='INFO')
     chip.set('design', design)
-    chip.add('source', rootdir+'/stdlib/hdl/'+design+'.v')
+    chip.add('source', os.path.join(datadir, f'{design}.v'))
     chip.set('param', 'N', str(N))
     chip.set('jobname', job)
     chip.set('relax', True)
@@ -16,12 +17,12 @@ def run_design(rootdir, design, N, job):
     chip.target("asicflow_freepdk45")
     chip.run()
 
-def test_doe():
+@pytest.mark.eda
+@pytest.mark.quick
+def test_doe(datadir):
     '''Test running multiple experiments sweeping different parameters in
     parallel using multiprocessing library.'''
 
-    rootdir = (os.path.dirname(os.path.abspath(__file__)) +
-           "/../../../third_party/designs/oh/")
     design = 'oh_add'
     N = [4, 8, 16, 32, 64, 128]
 
@@ -30,7 +31,7 @@ def test_doe():
     for i in range(len(N)):
         job = 'job' + str(i)
         processes.append(multiprocessing.Process(target=run_design,
-                                                args=(rootdir,
+                                                args=(datadir,
                                                       design,
                                                       str(N[i]),
                                                       job

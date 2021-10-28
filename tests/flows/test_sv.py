@@ -1,20 +1,20 @@
 import siliconcompiler
 import os
+import pytest
 
-def test_sv():
+@pytest.mark.eda
+@pytest.mark.quick
+def test_sv(datadir):
     '''Test that we can successfully synthesize a SystemVerilog design using the
     asicflow.
     '''
     design = 'prim_fifo_sync'
 
-    localdir = os.path.dirname(os.path.abspath(__file__))
-    files = f'{localdir}/../../data/sv'
-
     chip = siliconcompiler.Chip(design=design)
 
-    chip.add('source', f'{files}/prim_util_pkg.sv')
-    chip.add('source', f'{files}/{design}.sv')
-    chip.add('idir', f'{files}/inc')
+    chip.add('source', os.path.join(datadir, 'sv', 'prim_util_pkg.sv'))
+    chip.add('source', os.path.join(datadir, 'sv', f'{design}.sv'))
+    chip.add('idir', os.path.join(datadir, 'sv', 'inc/'))
     chip.add('define', 'SYNTHESIS')
 
     chip.set('flowarg', 'sv', 'true')

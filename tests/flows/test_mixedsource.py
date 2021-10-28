@@ -2,24 +2,22 @@ import os
 import pytest
 import siliconcompiler
 
-if __name__ != "__main__":
-    from tests.fixtures import test_wrapper
-
 ##################################
 @pytest.mark.skip(reason="Mixed-source functionality is still a work-in-progress.")
-def test_mixedsrc_local_py():
+@pytest.mark.eda
+@pytest.mark.quick
+def test_mixedsrc_local_py(scroot):
     '''Basic Python API test: build the mixed-source example using only Python code.
     '''
 
     # Create instance of Chip class
     chip = siliconcompiler.Chip()
 
-    ex_dir = os.path.abspath(__file__)
-    ex_dir = ex_dir[:ex_dir.rfind('/tests/quick_tests/asic')] + '/examples/mixed-source/'
+    ex_dir = os.path.join(scroot, 'examples', 'mixed-source')
 
     # Inserting value into configuration
-    chip.add('source', ex_dir + 'eq1.vhd')
-    chip.add('source', ex_dir + 'eq2.v')
+    chip.add('source', os.path.join(ex_dir, 'eq1.vhd'))
+    chip.add('source', os.path.join(ex_dir, 'eq2.v'))
     chip.set('design', 'eq2')
 
     chip.target("freepdk45")
@@ -42,4 +40,5 @@ def test_mixedsrc_local_py():
     assert os.path.isfile('build/eq2/job0/syn/0/outputs/eq2.v')
 
 if __name__ == "__main__":
-    test_mixedsrc_local_py()
+    from tests.fixtures import scroot
+    test_mixedsrc_local_py(scroot())

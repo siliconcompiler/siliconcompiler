@@ -1,28 +1,27 @@
 import os
 import siliconcompiler
-
-if __name__ != "__main__":
-    from tests.fixtures import test_wrapper
+import pytest
 
 ##################################
-def test_gcd_checks():
+@pytest.mark.eda
+@pytest.mark.quick
+def test_gcd_checks(scroot):
     '''Test EDA flow with LVS and DRC
     '''
 
     # Create instance of Chip class
     chip = siliconcompiler.Chip()
 
-    gcd_ex_dir = os.path.abspath(__file__)
-    gcd_ex_dir = gcd_ex_dir[:gcd_ex_dir.rfind('/tests/quick_tests/asic')] + '/examples/gcd/'
+    gcd_ex_dir = os.path.join(scroot, 'examples', 'gcd')
 
     # Inserting value into configuration
-    chip.add('source', gcd_ex_dir + 'gcd.v')
+    chip.add('source', os.path.join(gcd_ex_dir, 'gcd.v'))
     chip.set('design', 'gcd')
     chip.set('relax', True)
     chip.set('quiet', True)
     chip.set('clock', 'core_clock', 'pin', 'clk')
     chip.set('clock', 'core_clock', 'period', 2)
-    chip.add('constraint', gcd_ex_dir + 'gcd_noclock.sdc')
+    chip.add('constraint', os.path.join(gcd_ex_dir, 'gcd_noclock.sdc'))
     chip.set('target', 'asicflow_skywater130')
     chip.set('flowarg', 'verify', 'true')
     chip.set('asic', 'diearea', [(0, 0), (200.56, 201.28)])
@@ -41,4 +40,5 @@ def test_gcd_checks():
     assert chip.get('metric', 'drc', '0', 'errors', 'real') == 0
 
 if __name__ == "__main__":
-    test_gcd_checks()
+    from tests.fixtures import scroot
+    test_gcd_checks(scroot())
