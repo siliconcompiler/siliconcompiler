@@ -14,3 +14,4 @@ markers = [
     "eda: this test requires EDA tools installed to run. By default these tests will be run nightly, not on push.",
     "quick: always run this test on push, even if it requires EDA tools."
 ]
+testpaths = "tests"
