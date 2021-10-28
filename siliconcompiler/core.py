@@ -1645,11 +1645,13 @@ class Chip:
         fileformat = ext.replace(".", "")
 
         # controlling border width
-        if not border:
+        if border:
+            penwidth = '1'
+        else:
             penwidth = '0'
 
         # controlling graph direction
-        if lanscape:
+        if landscape:
             rankdir = 'LR'
         else:
             rankdir = 'TB'
