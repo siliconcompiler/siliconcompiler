@@ -1,7 +1,5 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
-import sys
 import siliconcompiler
-import re
 
 def test_multichip():
 

@@ -2,9 +2,6 @@
 import os
 import siliconcompiler
 
-if __name__ != "__main__":
-    from tests.fixtures import test_wrapper
-
 def test_find_function():
 
     chip = siliconcompiler.Chip()

@@ -2,9 +2,6 @@
 import siliconcompiler
 import pytest
 
-if __name__ != "__main__":
-    from tests.fixtures import test_wrapper
-
 @pytest.fixture
 def chip():
     # Create instance of Chip class

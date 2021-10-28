@@ -1,14 +1,9 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
-import sys
 import os
 import copy
 import siliconcompiler
 
 from siliconcompiler.schema import schema_flowgraph
-from siliconcompiler.schema import schema_cfg
-
-if __name__ != "__main__":
-    from tests.fixtures import test_wrapper
 
 def test_merge_manifest():
 

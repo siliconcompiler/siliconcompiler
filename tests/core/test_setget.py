@@ -1,11 +1,6 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
-import sys
-import pytest
 import siliconcompiler
 import re
-
-if __name__ != "__main__":
-    from tests.fixtures import test_wrapper
 
 def test_setget():
     '''API test for set/get methods

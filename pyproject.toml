@@ -8,3 +8,8 @@ requires = [
 ]
 
 build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+markers = [
+    "eda: marks tests that require EDA tools installed to run",
+]

@@ -1,34 +1,21 @@
 import os
-import pytest
-import shutil
+import siliconcompiler
 
-from . import utils
-
-# Setup / teardown.
-@pytest.fixture(autouse=True)
-def test_wrapper(request):
-    # Create and enter a per-function test directory.
-
-    # request.node.nodeid looks like "tests/asic/test_gcd.py::test_gcd_local"
-    # Clean it up by replacing all separators with '_'.
-    testdir = request.node.nodeid
-    testdir = testdir.replace('/', '_')
-    testdir = testdir.replace('.', '_')
-    testdir = testdir.replace('::', '_')
-
-    topdir = os.getcwd()
-
-    if os.path.isdir(testdir):
-        shutil.rmtree(testdir)
-    os.mkdir(testdir)
-    os.chdir(testdir)
-
-    # Run the test.
-    yield
-
-    # Exit the per-function directory.
-    os.chdir(topdir)
-
-@pytest.fixture
 def gcd_chip():
-    return utils.gcd_chip()
+    # TODO: once we can get fixtures all the way down, replace this with scroot
+    root_dir = os.path.abspath(__file__)
+    root_dir = root_dir[:root_dir.rfind('/tests')]
+    gcd_ex_dir = root_dir + '/examples/gcd/'
+
+    chip = siliconcompiler.Chip()
+    chip.set('design', 'gcd', clobber=True)
+    chip.target('asicflow_freepdk45')
+    chip.add('source', gcd_ex_dir + 'gcd.v')
+    chip.set('clock', 'clock_name', 'pin', 'clk')
+    chip.add('constraint', gcd_ex_dir + 'gcd.sdc')
+    chip.set('asic', 'diearea', [(0,0), (100.13,100.8)])
+    chip.set('asic', 'corearea', [(10.07,11.2), (90.25,91)])
+    chip.set('quiet', 'true', clobber=True)
+    chip.set('relax', 'true', clobber=True)
+
+    return chip
