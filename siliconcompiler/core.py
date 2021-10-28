@@ -2713,7 +2713,7 @@ class Chip:
                 cmd_error.communicate()
 
             if cmd_error.returncode != 0:
-                self.logger.warning('Command failed. See log file %s', os.path.abspath(cmdlist[-1]))
+                self.logger.warning('Command failed. See log file %s', os.path.abspath(logfile))
                 if not self.get('eda', tool, step, index, 'continue'):
                     self._haltstep(step, index, active)
         else:
