@@ -64,7 +64,6 @@ def setup_flow(chip):
     # Linear flow, up until branch to run parallel verification steps.
 
     flowpipe = ['import',
-                'convert',
                 'syn',
                 'synmin',
                 'floorplan',
@@ -106,6 +105,13 @@ def setup_flow(chip):
     verify = ('verify' in chip.getkeys('flowarg') and
               len(chip.get('flowarg', 'verify')) > 0 and
               chip.get('flowarg', 'verify')[0] == 'true')
+
+    # Perform SystemVerilog to Verilog conversion step only if `flowarg, sv` is True
+    sv = ('sv' in chip.getkeys('flowarg') and
+           len(chip.get('flowarg', 'sv')) > 0 and
+           chip.get('flowarg', 'sv')[0] == 'true')
+    if sv:
+        flowpipe = flowpipe[:1] + ['convert'] + flowpipe[1:]
 
     # Set mandatory mode
     chip.set('mode', 'asic')

@@ -20,7 +20,7 @@ def test_parameterized_instantiation():
     chip.add('source', f'{files}/and2.v')
     chip.add('source', f'{files}/or2.v')
 
-    chip.set('steplist', ['import', 'convert', 'syn'])
+    chip.set('steplist', ['import', 'syn'])
     
     # Test 1: gate as top-level, default parameter value
     design = 'gate'

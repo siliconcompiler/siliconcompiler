@@ -12,7 +12,7 @@ def run_design(rootdir, design, N, job):
     chip.set('jobname', job)
     chip.set('relax', True)
     chip.set('quiet', True)
-    chip.set('steplist', ['import', 'convert', 'syn'])
+    chip.set('steplist', ['import', 'syn'])
     chip.target("asicflow_freepdk45")
     chip.run()
 
@@ -24,7 +24,7 @@ def test_doe():
            "/../../../third_party/designs/oh/")
     design = 'oh_add'
     N = [4, 8, 16, 32, 64, 128]
-        
+
     # Define parallel processingg
     processes = []
     for i in range(len(N)):

@@ -2,7 +2,6 @@ import os
 import subprocess
 import re
 import sys
-import shutil
 import siliconcompiler
 
 ####################################################################
@@ -74,7 +73,6 @@ def setup_tool(chip):
 def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
-
     return 0
 
 ##################################################

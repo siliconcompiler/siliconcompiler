@@ -31,7 +31,6 @@ def test_gcd_server(gcd_chip):
 
     # Run an 'sc' step which stops at the 'floorplan' step.
     gcd_chip.add('steplist', 'import')
-    gcd_chip.add('steplist', 'convert')
     gcd_chip.add('steplist', 'syn')
     gcd_chip.add('steplist', 'floorplan')
     gcd_chip.set('remote', 'addr', 'localhost')
