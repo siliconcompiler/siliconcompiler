@@ -2383,7 +2383,7 @@ class Chip:
             run_cmd += f"sc -cfg {tmp_build_dir}/configs/{step}{index}.json "\
                            f"-arg_step {step} -arg_index {index} "\
                            f"-dir {tmp_job_dir} -jobscheduler '' "\
-                           f"-remote_addr '' -remote_key '' ; "
+                           f"-remote_addr '' ; "
             run_cmd += f"retcode=\\$? ; "
             run_cmd += f"sc-crypt -mode encrypt -target {tmp_build_dir} "\
                            f"-key_file {keypath} ; "
@@ -2899,10 +2899,6 @@ class Chip:
             except:
                 pass
 
-            if self.get('remote', 'key'):
-                # Decrypt the job's data for processing.
-                client_decrypt(self)
-
             # Check validity of setup
             self.check_manifest()
 
@@ -2958,10 +2954,6 @@ class Chip:
             if halt:
                 self.logger.error('Run() failed, exiting! See previous errors.')
                 sys.exit(1)
-
-            # For local encrypted jobs, re-encrypt and delete the decrypted data.
-            if self.get('remote', 'key'):
-                client_encrypt(self)
 
         # Clear scratchpad args since these are checked on run() entry
         self.set('arg', 'step', None, clobber=True)

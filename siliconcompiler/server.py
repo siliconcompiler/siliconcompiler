@@ -4,6 +4,7 @@ import argparse
 from aiohttp import web
 import asyncio
 import base64
+import glob
 import json
 import logging as log
 import os
@@ -13,9 +14,11 @@ import shutil
 import uuid
 
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives import hashes, serialization
 from siliconcompiler import Chip
+from siliconcompiler.crypto import decrypt_job, gen_cipher_key
 
 class Server:
     """
@@ -53,7 +56,11 @@ class Server:
         # If authentication is enabled, try connecting to the SQLite3 database.
         # (An empty one will be created if it does not exist.)
 
-        # If authentication is enabled, load [username : public key] mappings.
+        # If authentication is enabled, load [username : password/key] mappings.
+        # Remember, this development server is intended to be a minimal
+        # demonstration of the API, and should only be used for testing purposes.
+        # You should NEVER store plaintext passwords in a production
+        # server implementation.
         if self.cfg['auth']['value'][-1]:
             self.user_keys = {}
             json_path = self.cfg['nfsmount']['value'][-1] + '/users.json'
@@ -61,7 +68,11 @@ class Server:
                 with open(json_path, 'r') as users_file:
                     users_json = json.loads(users_file.read())
                 for mapping in users_json['users']:
-                    self.user_keys[mapping['username']] = mapping['pub_key']
+                    self.user_keys[mapping['username']] = {
+                        'pub_key': mapping['pub_key'],
+                        'priv_key': mapping['priv_key'],
+                        'password': mapping['password'],
+                    }
             except:
                 self.logger.warning("Could not find well-formatted 'users.json' "\
                                     "file in the server's working directory. "\
@@ -102,10 +113,9 @@ class Server:
             if part is None:
                 break
 
-            # If the data is encrypted, it is sent in a '.crypt' file. If not,
-            # it is sent in a zip archive. Either way, stream the file to disk.
+            # Save the initial 'import' step archive. Note: production server
+            # implementations may want to encrypt data before storing it on disk.
             if part.name == 'import':
-                # job hash may not be available yet; it's also sent in the body.
                 with open(tmp_file, 'wb') as f:
                     while True:
                         chunk = await part.read_chunk()
@@ -134,16 +144,16 @@ class Server:
                     username = job_params['username']
                     key = job_params['key']
                     if not username in self.user_keys.keys():
-                        return web.Response(text="Error: invalid username provided.")
+                        return web.Response(text="Error: invalid username provided.", status=404)
                     # Authenticate the user.
-                    if self.auth_userkey(username, key):
+                    if self.auth_password(username, key):
                         use_auth = True
                     else:
-                        return web.Response(text="Authentication error.")
+                        return web.Response(text="Authentication error.", status=403)
                 else:
-                    return web.Response(text="Error: some authentication parameters are missing.")
+                    return web.Response(text="Error: some authentication parameters are missing.", status=400)
             else:
-                return web.Response(text="Error: authentication parameters were passed in, but this server does not support that feature.")
+                return web.Response(text="Error: authentication parameters were passed in, but this server does not support that feature.", status=500)
 
         # Create a dummy Chip object to make schema traversal easier.
         chip = Chip()
@@ -159,11 +169,40 @@ class Server:
         job_root = f"{self.cfg['nfsmount']['value'][-1]}/{job_hash}"
         job_dir  = f"{job_root}/{design}/{job_name}"
         subprocess.run(['mkdir', '-p', job_dir])
-        # Move the uploaded archive and un-zip it.
-        # (Contents will be encrypted for authenticated jobs)
-        os.replace(tmp_file, '%s/import.zip'%job_root)
-        subprocess.run(['tar', '-xf', '%s/import.zip'%(job_root)],
-                       cwd=job_dir)
+
+        if use_auth:
+            # Create a new AES block cipher key, and an IV for the import step.
+            decrypt_key = serialization.load_ssh_private_key(self.user_keys[username]['priv_key'].encode(), None, backend=default_backend())
+            gen_cipher_key(job_dir, self.user_keys[username]['pub_key'], pubk_type='str')
+            # Decrypt the block cipher key.
+            with open(os.path.join(job_dir, 'import.bin'), 'rb') as f:
+                aes_key = decrypt_key.decrypt(
+                    f.read(),
+                    padding.OAEP(
+                        mgf=padding.MGF1(algorithm=hashes.SHA512()),
+                        algorithm=hashes.SHA512(),
+                        label=None,
+                    ))
+            aes_iv  = os.urandom(16)
+            with open(os.path.join(job_dir, f'import.iv'), 'wb') as f:
+                f.write(aes_iv)
+            # Encrypt the received data.
+            cipher = Cipher(algorithms.AES(aes_key), modes.CTR(aes_iv))
+            encryptor = cipher.encryptor()
+            with open(os.path.join(job_dir, f'import.crypt'), 'wb') as wf:
+                with open(tmp_file, 'rb') as rf:
+                    while True:
+                        chunk = rf.read(1024)
+                        if not chunk:
+                            break
+                        wf.write(encryptor.update(chunk))
+                    wf.write(encryptor.finalize())
+        else:
+            # Move the uploaded archive and un-zip it.
+            # (Contents will be encrypted for authenticated jobs)
+            os.replace(tmp_file, '%s/import.zip'%job_root)
+            subprocess.run(['tar', '-xf', '%s/import.zip'%(job_root)],
+                           cwd=job_dir)
 
         # Delete the temporary file if it still exists.
         if os.path.exists(tmp_file):
@@ -194,7 +233,7 @@ class Server:
         if use_auth:
             asyncio.ensure_future(self.remote_sc_auth(chip,
                                                       username,
-                                                      key))
+                                                      self.user_keys[username]['priv_key']))
         else:
             asyncio.ensure_future(self.remote_sc(chip))
 
@@ -206,16 +245,57 @@ class Server:
     async def handle_get_results(self, request):
         '''
         API handler to redirect 'get_results' POST calls.
-
         '''
 
         # Retrieve the job hash.
         job_hash = request.match_info.get('job_hash', None)
         if not job_hash:
             return web.Response(text="Error: no job hash provided.")
+        params = await request.json()
 
-        # Redirect to the same URL, but with a GET request.
-        return web.HTTPSeeOther(request.url)
+        # Check whether to use authentication.
+        use_auth = False
+        if ('username' in params) or ('key' in params):
+            if self.cfg['auth']['value'][-1]:
+                if ('username' in params) and ('key' in params):
+                    username = params['username']
+                    key = params['key']
+                    if not username in self.user_keys.keys():
+                        return web.Response(text="Error: invalid username provided.", status=404)
+                    # Authenticate the user.
+                    if self.auth_password(username, key):
+                        use_auth = True
+                    else:
+                        return web.Response(text="Authentication error.", status=403)
+                else:
+                    return web.Response(text="Error: some authentication parameters are missing.", status=400)
+            else:
+                return web.Response(text="Error: authentication parameters were passed in, but this server does not support that feature.", status=500)
+
+        resp = web.StreamResponse(
+            status = 200,
+            reason = 'OK',
+            headers = {
+                'Content-Type': 'application/x-tar',
+                'Content-Disposition': f'attachment; filename="{job_hash}.zip"'
+            },
+        )
+        await resp.prepare(request)
+
+        if use_auth:
+            # Decrypt data and re-zip it before sending it back.
+            # Production server implementations may want to avoid saving
+            # decrypted data to shared storage by doing this in-memory.
+            job_dir = next(glob.iglob(os.path.join(self.cfg['nfsmount']['value'][-1], job_hash, '**', '**')))
+            decrypt_job(job_dir, self.user_keys[username]['priv_key'], pk_type='str')
+            subprocess.run(f'tar -cf ../{job_hash}.zip */*/*.zip', cwd=os.path.join(self.cfg['nfsmount']['value'][-1], job_hash), shell = True)
+
+        zipfn = os.path.join(self.cfg['nfsmount']['value'][-1], job_hash+'.zip')
+        with open(zipfn, 'rb') as zipf:
+            await resp.write(zipf.read())
+
+        await resp.write_eof()
+        return resp
 
     ####################
     async def handle_delete_job(self, request):
@@ -230,6 +310,25 @@ class Server:
         if not 'job_hash' in params:
             return web.Response(text="Error: no job hash provided.")
         job_hash = params['job_hash']
+
+        # Check for authentication parameters.
+        use_auth = False
+        if ('username' in params) or ('key' in params):
+            if self.cfg['auth']['value'][-1]:
+                if ('username' in params) and ('key' in params):
+                    username = params['username']
+                    key = params['key']
+                    if not username in self.user_keys.keys():
+                        return web.Response(text="Error: invalid username provided.", status=404)
+                    # Authenticate the user.
+                    if self.auth_password(username, key):
+                        use_auth = True
+                    else:
+                        return web.Response(text="Authentication error.", status=403)
+                else:
+                    return web.Response(text="Error: some authentication parameters are missing.", status=400)
+            else:
+                return web.Response(text="Error: authentication parameters were passed in, but this server does not support that feature.", status=500)
 
         # Determine if the job is running.
         for job in self.sc_jobs:
@@ -272,6 +371,25 @@ class Server:
         if 'username' in params:
             username = params['username']
 
+        # Check for authentication parameters.
+        use_auth = False
+        if ('username' in params) or ('key' in params):
+            if self.cfg['auth']['value'][-1]:
+                if ('username' in params) and ('key' in params):
+                    username = params['username']
+                    key = params['key']
+                    if not username in self.user_keys.keys():
+                        return web.Response(text="Error: invalid username provided.", status=404)
+                    # Authenticate the user.
+                    if self.auth_password(username, key):
+                        use_auth = True
+                    else:
+                        return web.Response(text="Authentication error.", status=403)
+                else:
+                    return web.Response(text="Error: some authentication parameters are missing.", status=400)
+            else:
+                return web.Response(text="Error: authentication parameters were passed in, but this server does not support that feature.", status=500)
+
         # Determine if the job is running.
         if "%s%s_%s"%(username, job_hash, jobid) in self.sc_jobs:
             return web.Response(text="Job is currently running on the cluster.")
@@ -312,14 +430,15 @@ class Server:
             chip.set('dir', f'{nfs_mount}/{job_hash}', clobber=True)
             chip.set('jobscheduler', 'slurm')
             chip.set('remote', 'addr', None)
-            chip.set('remote', 'key', None)
-            chip.status['decrypt_key'] = pk
+            chip.set('remote', 'password', None)
+            chip.status['decrypt_key'] = base64.urlsafe_b64encode(pk)
             chip.run()
         else:
             chip.set('dir', build_dir, clobber=True)
             # Run the build command locally.
             from_dir = '%s/%s'%(nfs_mount, job_hash)
             to_dir   = '/tmp/%s_%s'%(job_hash, job_nameid)
+            job_dir  = os.path.join(build_dir, top_module, job_nameid)
             # Write plaintext JSON config to the build directory.
             subprocess.run(['mkdir', '-p', to_dir])
             subprocess.run(['mkdir', '-p', '%s/configs'%build_dir])
@@ -330,12 +449,13 @@ class Server:
             # Even so, use the usual 400 permissions for key files.
             keypath = f'{to_dir}/pk'
             with open(os.open(keypath, os.O_CREAT | os.O_WRONLY, 0o400), 'w+') as keyfile:
-                keyfile.write(base64.urlsafe_b64decode(pk).decode())
-            chip.set('remote', 'key', keypath, clobber=True)
+                keyfile.write(pk)
             chip.write_manifest(f"{build_dir}/configs/chip{chip.get('jobname')}.json")
             # Create the command to run.
             run_cmd  = f"cp -R {from_dir}/* {to_dir}/ ; "
-            run_cmd += f"sc -cfg {build_dir}/configs/chip{chip.get('jobname')}.json -dir {to_dir} -remote_key {keypath} -remote_addr '' ; "
+            run_cmd += f"sc-crypt -mode decrypt -target {job_dir} -key_file {keypath} ; "
+            run_cmd += f"sc -cfg {build_dir}/configs/chip{chip.get('jobname')}.json -dir {to_dir} -remote_addr '' ; "
+            run_cmd += f"sc-crypt -mode encrypt -target {job_dir} -key_file {keypath} ; "
             run_cmd += f"cp -R {to_dir}/{top_module}/* {from_dir}/{top_module}/ ; "
             run_cmd += f"rm -rf {to_dir}"
 
@@ -419,59 +539,19 @@ class Server:
         self.sc_jobs.pop("%s_%s"%(job_hash, jobid))
 
     ####################
-    def auth_userkey(self, username, private_key, enc='b64'):
-        '''Helper method to authenticate that a provided private key 'matches'
-           a stored public key. So, the private key must correctly decrypt
-           data which was encrypted using the public key.
+    def auth_password(self, username, password):
+        '''
+        Helper method to authenticate a username : password combination.
+        This minimal implementation of the API uses a simple string match, because
+        we don't have a database/signup process/etc for the development server.
+        But production server implementations should ALWAYS hash and salt
+        passwords before storing them.
+        NEVER store production passwords as plaintext!
         '''
 
-        try:
-            # Get the user's public key.
-            if username in self.user_keys:
-                pubkey = self.user_keys[username]
-            else:
-                return False
-
-            if enc == 'b64':
-                # Decode base-64 value.
-                pk_str = base64.b64decode(private_key).decode()
-            else:
-                # Unknown encoding; treat it as a string.
-                pk_str = private_key
-
-            # Create cipher objects for the public and private keys.
-            encrypt_key = serialization.load_ssh_public_key(
-                pubkey.encode(),
-                backend=default_backend())
-            decrypt_key = serialization.load_ssh_private_key(
-                pk_str.encode(),
-                None,
-                backend=default_backend())
-
-            # Encrypt a test string using the public key.
-            nonce = uuid.uuid4().hex
-            test_encrypt = encrypt_key.encrypt(
-                nonce.encode(),
-                padding.OAEP(
-                    mgf=padding.MGF1(algorithm=hashes.SHA512()),
-                    algorithm=hashes.SHA512(),
-                    label=None,
-                ))
-
-            # Check that the message decrypts correctly using the private key.
-            test_decrypt = decrypt_key.decrypt(
-                test_encrypt,
-                padding.OAEP(
-                    mgf=padding.MGF1(algorithm=hashes.SHA512()),
-                    algorithm=hashes.SHA512(),
-                    label=None,
-                ))
-
-            # Authentication succeeds if decrypted nonce matches the original.
-            return (test_decrypt and (test_decrypt.decode() == nonce))
-        except:
-            # Authentication fails if any unexpected errors occur.
+        if not username in self.user_keys:
             return False
+        return (password == self.user_keys[username]['password'])
 
     ####################
     def writecfg(self, filename, mode="all"):

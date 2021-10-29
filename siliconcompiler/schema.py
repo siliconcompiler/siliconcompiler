@@ -3761,80 +3761,18 @@ def schema_remote(cfg):
     }
 
     # Remote private key file.
-    cfg['remote']['key'] = {
-        'switch': '-remote_key <file>',
-        'type': 'file',
+    cfg['remote']['password'] = {
+        'switch': '-remote_password <str>',
+        'type': 'str',
         'lock': 'false',
         'copy': 'false',
         'requirement': 'remote',
         'defvalue': None,
-        'shorthelp': 'Remote authentication private key file.',
-        'example': ["cli: -remote_key ~/.ssh/decrypt_key",
-                    "api: chip.set('remote', 'key', './decrypt_key')"],
+        'shorthelp': 'Remote authentication password.',
+        'example': ["cli: -remote_password k7T&4iG",
+                    "api: chip.set('remote', 'password', 'k7T&4iG')"],
         'help': """
-        Specifies a private key file which will allow the server to
-        authenticate the given user and decrypt data associated with them.
-        """
-    }
-
-    # Number of temporary hosts to request for the job. (Default: 0)
-    cfg['remote']['hosts'] = {
-        'switch': "-remote_hosts <int>",
-        'type': 'int',
-        'lock': 'false',
-        'requirement': None,
-        'defvalue': '0',
-        'shorthelp': 'Number of temporary compute nodes to request.',
-        'example': ["cli: -remote_hosts 2",
-                    "api: chip.set('remote', 'hosts', '2')"],
-        'help': """
-        Sets the number of temporary hosts to request for parallel processing.
-        Should be less than or equal to the number of permutations being run.
-        No effect if the server is not configured for clustering.
-        If no hosts are requested, the job will run in the standing pool
-        of compute nodes, which is typically small and shared.
-        Depending on server-side limits and capacity, the job may receive
-        fewer temporary hosts than requested, down to and including 0.
-        """
-    }
-
-    # GiB of RAM to request in a remote host.
-    cfg['remote']['ram'] = {
-        'switch': "-remote_ram <float>",
-        'type': 'float',
-        'lock': 'false',
-        'requirement': None,
-        'defvalue': None,
-        'shorthelp': 'GiB of RAM to request in temporary cloud hosts.',
-        'example': ["cli: -remote_ram 16",
-                    "api: chip.set('remote', 'ram', '16')"],
-        'help': """
-        Sets how much RAM each temporary host should have. If the given value
-        is not a power of two, the script may request up to one power of two
-        above the given amount. For example, requesting 10GiB of RAM may allocate
-        hosts with up to 16GiB, but requesting 8GiB will not.
-        An error may be returned if no hosts can meet the given specifications.
-        """
-    }
-
-    # Number of 'virtual CPUs' to request in a remote host.
-    cfg['remote']['threads'] = {
-        'switch': "-remote_threads <int>",
-        'type': 'int',
-        'lock': 'false',
-        'requirement': 'remote',
-        'defvalue': None,
-        'shorthelp': 'Number of harts to request in each remote host.',
-        'example': ["cli: -remote_threads 4",
-                    "api: chip.set('remote', 'threads', '4')"],
-        'help': """
-        Sets how many hardware threads each temporary host should have.
-        Threads are the most common metric, but depending on the cloud hosting
-        provider, this parameter may allocate physical CPU cores in some cases.
-        If the given value is not a power of two, the script may request
-        up to one power of two above the given amount. For example, requesting
-        hosts with 6 vCPUs may allocate up to 8 vCPUS, but requesting 4 will not.
-        An error may be returned if no hosts can meet the given specifications.
+        Specifies a password for user authentication.
         """
     }
 

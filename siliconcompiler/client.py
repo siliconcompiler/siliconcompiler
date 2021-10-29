@@ -72,28 +72,6 @@ def remote_preprocess(chip):
     chip.set('steplist', remote_steplist, clobber=True)
 
 ###################################
-def client_decrypt(chip):
-    '''Helper method to decrypt project data before running a job on it.
-    '''
-
-    job_path = os.path.join(chip.get('dir'),
-                            chip.get('design'),
-                            chip.get('jobname'))
-    decrypt_job(job_path,
-                chip.get('remote', 'key'))
-
-###################################
-def client_encrypt(chip):
-    '''Helper method to re-encrypt project data after processing.
-    '''
-
-    job_path = os.path.join(chip.get('dir'),
-                            chip.get('design'),
-                            chip.get('jobname'))
-    encrypt_job(job_path,
-                chip.get('remote', 'key'))
-
-###################################
 def remote_run(chip):
     '''Helper method to run a job stage on a remote compute cluster.
     Note that files will not be copied to the remote stage; typically
@@ -144,50 +122,21 @@ def request_remote_run(chip):
             'job_hash': chip.get('remote', 'jobhash'),
         }
     }
+    local_build_dir = stepdir = os.path.join(chip.get('dir'),
+                                             chip.get('design'),
+                                             job_nameid)
     if (('user' in chip.getkeys('remote') and chip.get('remote', 'user')) and \
-        ('key' in chip.getkeys('remote') and chip.get('remote', 'key'))):
-        # Encrypt the .zip archive with the user's public key.
-        # Asymmetric key cryptography is good at signing values, but bad at
-        # encrypting bulk data. One common approach is to generate a random
-        # symmetric encryption key, which can be encrypted using the asymmetric
-        # keys. Then the data itself can be encrypted with the symmetric cipher.
-        # We'll use AES-256-CTR, because the Python 'cryptography' module's
-        # recommended 'Fernet' algorithm only works on files that fit in memory.
-        pkpath = chip.get('remote', 'key')
-        job_path = os.path.join(chip.get('dir'),
-                                chip.get('design'),
-                                job_nameid)
-
-        # AES-encrypt the job data prior to uploading.
-        # TODO: This assumes a common OpenSSL convention of using similar file
-        # paths for private and public keys: /path/to/key and /path/to/key.pub
-        # If the user has the account's private key, it is assumed that they
-        # will also have the matching public key in the same locale.
-        gen_cipher_key(job_path, f"{os.path.abspath(pkpath)}.pub")
-        encrypt_job(job_path, pkpath)
-
-        # Read the key and encode it in base64 format.
-        with open(os.path.abspath(pkpath), 'rb') as f:
-            key = f.read()
-        b64_key = base64.urlsafe_b64encode(key).decode()
+        ('password' in chip.getkeys('remote') and chip.get('remote', 'password'))):
         post_params['params']['username'] = chip.get('remote', 'user')
-        post_params['params']['key'] = b64_key
-
-        # Set up 'temporary cloud host' parameters.
-        num_temp_hosts = int(chip.get('remote', 'hosts'))
-        if num_temp_hosts > 0:
-            post_params['params']['new_hosts'] = num_temp_hosts
-            if chip.get('remote', 'ram'):
-                post_params['params']['new_host_ram'] = int(chip.get('remote', 'ram'))
-            if chip.get('remote', 'threads'):
-                post_params['params']['new_host_threads'] = int(chip.get('remote', 'threads'))
+        post_params['params']['key'] = chip.get('remote', 'password')
+        local_build_dir = stepdir = os.path.join(chip.get('dir'),
+                                                 chip.get('design'),
+                                                 job_nameid,
+                                                 'import')
 
     # If '-remote_user' and '-remote_key' are not both specified,
     # no authorizaion is configured; proceed without crypto.
     # If they were specified, these files are now encrypted.
-    local_build_dir = stepdir = os.path.join(chip.get('dir'),
-                                             chip.get('design'),
-                                             job_nameid)
     subprocess.run(['tar',
                     '-cf',
                     'import.zip',
@@ -233,12 +182,9 @@ def is_job_busy(chip):
 
     # Set authentication parameters if necessary.
     if (('user' in chip.getkeys('remote') and chip.get('remote', 'user')) and \
-        ('key' in chip.getkeys('remote') and chip.get('remote', 'key'))):
-        with open(os.path.abspath(chip.get('remote', 'key')), 'rb') as f:
-            key = f.read()
-        b64_key = base64.urlsafe_b64encode(key).decode()
+        ('password' in chip.getkeys('remote') and chip.get('remote', 'password'))):
         post_params['username'] = chip.get('remote', 'user')
-        post_params['key'] = b64_key
+        post_params['key'] = chip.get('remote', 'password')
 
     # Make the request and print its response.
     redirect_url = remote_run_url
@@ -266,12 +212,9 @@ def delete_job(chip):
 
     # Set authentication parameters if necessary.
     if (('user' in chip.getkeys('remote') and chip.get('remote', 'user')) and \
-        ('key' in chip.getkeys('remote') and chip.get('remote', 'key'))):
-        with open(os.path.abspath(chip.get('remote', 'key')), 'rb') as f:
-            key = f.read()
-        b64_key = base64.urlsafe_b64encode(key).decode()
+        ('password' in chip.getkeys('remote') and chip.get('remote', 'password'))):
         post_params['username'] = chip.get('remote', 'user')
-        post_params['key'] = b64_key
+        post_params['key'] = chip.get('remote', 'password')
 
     # Make the request.
     redirect_url = remote_run_url
@@ -296,13 +239,10 @@ def fetch_results_request(chip):
 
     # Set authentication parameters if necessary.
     if (('user' in chip.getkeys('remote') and chip.get('remote', 'user')) and \
-        ('key' in chip.getkeys('remote') and chip.get('remote', 'key'))):
-        with open(os.path.abspath(chip.get('remote', 'key')), 'rb') as f:
-            key = f.read()
-        b64_key = base64.urlsafe_b64encode(key).decode()
+        ('password' in chip.getkeys('remote') and chip.get('remote', 'password'))):
         post_params = {
             'username': chip.get('remote', 'user'),
-            'key': b64_key,
+            'key': chip.get('remote', 'password'),
         }
     else:
         post_params = {}
@@ -333,33 +273,37 @@ def fetch_results(chip):
     # Fetch the remote archive after the export stage.
     fetch_results_request(chip)
 
+    # Call 'delete_job' to remove the run from the server.
+    delete_job(chip)
+
     # Unzip the results.
     top_design = chip.get('design')
     job_hash = chip.get('remote', 'jobhash')
     job_nameid = f"{chip.get('jobname')}"
-    subprocess.run(['tar', '-xf', f'{job_hash}.zip'])
-    # Remove the results archive after it is extracted.
-    os.remove(f'{job_hash}.zip')
-
-    # Call 'delete_job' to remove the run from the server.
-    delete_job(chip)
-
-    # For encrypted jobs each permutation's result is encrypted in its own archive.
-    # For unencrypted jobs, results are simply stored in the archive.
-    if ('key' in chip.getkeys('remote')) and chip.get('remote', 'key'):
-        # Decrypt the job data.
-        decrypt_job(f"{job_hash}/{chip.get('design')}/{job_nameid}",
-                    os.path.abspath(chip.get('remote', 'key')))
-
-    # Remove dangling 'import' symlinks if necessary.
-    for import_link in glob.iglob(job_hash + '/' + top_design + '/**/import*',
-                                  recursive=True):
-        if os.path.islink(import_link):
-            os.remove(import_link)
-    # Copy the results into the local build directory, and remove the
-    # unzipped directory (including encrypted archives).
     local_dir = chip.get('dir')
-    utils.copytree(job_hash,
-                   local_dir,
-                   dirs_exist_ok = True)
-    shutil.rmtree(job_hash)
+
+    # Authenticated jobs get a zip file full of other zip files.
+    # So we need to extract and delete those.
+    if ('password' in chip.getkeys('remote')) and chip.get('remote', 'password'):
+        subprocess.run(['tar', '-xf', f'{job_hash}.zip', '-C', local_dir])
+        for zipf in glob.iglob(os.path.join(local_dir, chip.get('design'), chip.get('jobname'), '*.zip')):
+            stepdir = zipf[:-4]
+            os.makedirs(stepdir, exist_ok=True)
+            subprocess.run(['tar', '-xf', zipf, '-C', stepdir])
+            os.remove(zipf)
+    else:
+        subprocess.run(['tar', '-xf', f'{job_hash}.zip'])
+        # Remove the results archive after it is extracted.
+        os.remove(f'{job_hash}.zip')
+
+        # Remove dangling 'import' symlinks if necessary.
+        for import_link in glob.iglob(job_hash + '/' + top_design + '/**/import*',
+                                      recursive=True):
+            if os.path.islink(import_link):
+                os.remove(import_link)
+        # Copy the results into the local build directory, and remove the
+        # unzipped directory (including encrypted archives).
+        utils.copytree(job_hash,
+                       local_dir,
+                       dirs_exist_ok = True)
+        shutil.rmtree(job_hash)
