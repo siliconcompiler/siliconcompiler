@@ -77,10 +77,10 @@ def chip(scroot):
     chip.set('flowgraph', 'import', '0', 'function', 'step_join')
 
     chip.set('flowgraph', 'place', '0', 'tool', 'openroad')
-    chip.set('flowgraph', 'place', '0', 'input', 'import0')
+    chip.set('flowgraph', 'place', '0', 'input', ('import','0'))
 
     chip.set('flowgraph', 'place', '1', 'tool', 'openroad')
-    chip.set('flowgraph', 'place', '1', 'input', 'import0')
+    chip.set('flowgraph', 'place', '1', 'input', ('import','0'))
 
     return chip
 
@@ -97,7 +97,7 @@ def test_failed_branch_step_min(chip):
 
     # Perform minimum
     chip.set('flowgraph', 'placemin', '0', 'function', 'step_minimum')
-    chip.set('flowgraph', 'placemin', '0', 'input', ['place0', 'place1'])
+    chip.set('flowgraph', 'placemin', '0', 'input', [('place','0'), ('place','1')])
 
     chip.run()
 
@@ -119,7 +119,7 @@ def test_all_failed_step_min(chip):
 
     # Perform minimum
     chip.set('flowgraph', 'placemin', '0', 'function', 'step_minimum')
-    chip.set('flowgraph', 'placemin', '0', 'input', ['place0', 'place1'])
+    chip.set('flowgraph', 'placemin', '0', 'input', [('place','0'), ('place','1')])
 
     # Expect that command exits early
     with pytest.raises(SystemExit):
@@ -140,7 +140,7 @@ def test_branch_failed_step_join(chip):
 
     # Perform join
     chip.set('flowgraph', 'placemin', '0', 'function', 'step_join')
-    chip.set('flowgraph', 'placemin', '0', 'input', ['place0', 'place1'])
+    chip.set('flowgraph', 'placemin', '0', 'input', [('place','0'), ('place','1')])
 
     # Expect that command exits early
     with pytest.raises(SystemExit):
