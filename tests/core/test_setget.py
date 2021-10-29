@@ -31,7 +31,12 @@ def test_setget():
         tuplematch = re.match(r'(.*?),\((.*,.*)\)', argstring)
         if tuplematch:
             keypath = tuplematch.group(1).split(',')
-            value = tuple(map(float, tuplematch.group(2).split(',')))
+            tuplestr = tuplematch.group(2)
+            if '(str,str)' in sctype:
+                tuplestr = re.sub(r'[\(\)\'\s]','',tuplestr)
+                value = tuple(tuplestr.split(','))
+            else:
+                value = tuple(map(float, tuplestr.split(',')))
             if re.match(r'\[',sctype):
                 value = [value]
             args =  keypath + [value]

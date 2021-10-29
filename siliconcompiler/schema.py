@@ -1630,18 +1630,18 @@ def schema_flowgraph(cfg, step='default', index='default'):
 
     # Execution flowgraph
     cfg['flowgraph'][step][index]['input'] = {
-        'switch': "-flowgraph_input 'step index <str>'",
-        'type': '[str]',
+        'switch': "-flowgraph_input 'step index <(str,str)>'",
+        'type': '[(str,str)]',
         'lock': 'false',
         'requirement': None,
         'defvalue': [],
         'shorthelp': 'Flowgraph step input',
         'example': [
-            "cli: -flowgraph_input 'cts 0 place0'",
-            "api:  chip.set('flowgraph','cts','0','input,'place0')"],
+            "cli: -flowgraph_input 'cts 0 (place,0)'",
+            "api:  chip.set('flowgraph','cts','0','input', ('place','0'))"],
         'help': """
-        The step and index fo for the current step and index, listed as a
-        set of 'step+index' combinations on a per step and per index basis.
+        A list of inputs for the current step and index, specified as a
+        (step,index) tuple.
         """
     }
 
@@ -1785,18 +1785,18 @@ def schema_flowstatus(cfg, step='default', index='default'):
 
     # Flow input selector
     cfg['flowstatus'][step][index]['select'] = {
-        'switch': "-flowstatus_select 'step index <str>'",
-        'type': '[str]',
+        'switch': "-flowstatus_select 'step index <(str,str)>'",
+        'type': '[(str,str)]',
         'lock': 'false',
         'requirement': None,
         'defvalue': [],
         'shorthelp': 'Flowgraph select record',
         'example': [
-            "cli: -flowstatus_select 'cts 0 place42'",
-            "api:  chip.set('flowstatus', 'cts, '0', 'select', 'place42')"],
+            "cli: -flowstatus_select 'cts 0 (place,42)'",
+            "api:  chip.set('flowstatus', 'cts', '0', 'select', ('place','42'))"],
         'help': """
-        Status parameter that records the list of 'step+index' combinations
-        selected/copied into the current step.
+        A list of selecteed inputs for the current step/index specified as
+        (in_step,in_index) tuple.
         """
     }
 
