@@ -27,7 +27,7 @@ def main():
     chip.target("asicflow_freepdk45")
 
     # First run (import + run)
-    steplist = ['import', 'convert', 'syn']
+    steplist = ['import', 'syn']
     chip.set('steplist', steplist)
     chip.run()
 

@@ -17,7 +17,7 @@ def run_design(rootdir, design, N, job):
     chip.set('jobname', job)
     chip.set('relax', True)
     chip.set('quiet', True)
-    chip.set('steplist', ['import', 'convert', 'syn'])
+    chip.set('steplist', ['import', 'syn'])
     chip.target("asicflow_freepdk45")
     chip.run()
     #chip.summary()
