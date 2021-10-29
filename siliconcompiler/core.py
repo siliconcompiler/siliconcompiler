@@ -1,4 +1,3 @@
-
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
 import argparse
