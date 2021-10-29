@@ -45,6 +45,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - run: |
-          pip install $GITHUB_WORKSPACE/.
+          pip install -e $GITHUB_WORKSPACE/.
           pip install pytest
           pytest --import-mode=append -m "not eda"
