@@ -3,18 +3,29 @@ import pytest
 
 from tests import fixtures
 
+def pytest_addoption(parser):
+    helpstr = ("Run all tests in current working directory. Default is to run "
+               "each test in an isolated per-test temporary directory.")
+
+    parser.addoption(
+        "--cwd", action="store_true", help=helpstr
+    )
+
 @pytest.fixture(autouse=True)
-def test_wrapper(tmp_path):
+def test_wrapper(tmp_path, request):
     '''Fixture that automatically runs each test in a test-specific temporary
     directory to avoid clutter. To override this functionality, pass in the
     --cwd flag when you invoke pytest.'''
-    topdir = os.getcwd()
-    os.chdir(tmp_path)
+    if not request.config.getoption("--cwd"):
+        topdir = os.getcwd()
+        os.chdir(tmp_path)
 
-    # Run the test.
-    yield
+        # Run the test.
+        yield
 
-    os.chdir(topdir)
+        os.chdir(topdir)
+    else:
+        yield
 
 @pytest.fixture
 def scroot():
