@@ -79,13 +79,3 @@ if {$sc_mode eq "fpga"} {
 yosys write_verilog -noattr -noexpr -nohex -nodec "outputs/$sc_design.vg"
 yosys write_blif "outputs/$sc_design.blif"
 yosys write_json "outputs/${sc_design}_netlist.json"
-
-########################################################
-# Copy constraints files from inputs/ to outputs/
-########################################################
-set sc_constraints [dict get $sc_cfg constraint]
-foreach constraint $sc_constraints {
-    if { [file exists $constraint] == 1 } {
-        file copy $constraint "outputs/"
-    }
-}

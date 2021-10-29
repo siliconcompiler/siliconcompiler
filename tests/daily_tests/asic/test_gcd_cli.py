@@ -1,5 +1,7 @@
 import os
 import subprocess
+import shlex
+
 from tests.fixtures import test_wrapper
 
 ##################################
@@ -14,7 +16,9 @@ def test_gcd_cli():
 
     script = f'''sc {gcd_ex_dir}/gcd.v \
         -target asicflow_freepdk45 \
-        -constraint {gcd_ex_dir}/gcd.sdc \
+        -clock_pin "core_clock clk" \
+        -clock_period "core_clock 10" \
+        -constraint {gcd_ex_dir}/gcd_noclock.sdc \
         -asic_diearea (0,0) \
         -asic_diearea (100.13,100.8) \
         -asic_corearea (10.07,11.2) \
@@ -25,7 +29,7 @@ def test_gcd_cli():
         -design gcd'''
 
     # Run the build command.
-    subprocess.run(script.split(), stdout = subprocess.DEVNULL)
+    subprocess.run(shlex.split(script), stdout = subprocess.DEVNULL)
 
     # Verify that GDS and SVG files were generated.
     assert os.path.isfile('build/gcd/job0/export/0/outputs/gcd.gds')

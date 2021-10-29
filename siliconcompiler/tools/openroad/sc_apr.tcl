@@ -125,6 +125,20 @@ foreach lib $sc_macrolibs {
     read_lef [dict get $sc_cfg library $lib lef]
 }
 
+# Constraints
+if {[file exists "inputs/$sc_design.sdc"]} {
+    # if file exists in flow, default to that
+    read_sdc "inputs/$sc_design.sdc"
+} elseif {[llength $sc_constraints] > 0} {
+    # otherwise, if we have user-provided constraints, read those
+    foreach sdc $sc_constraints {
+        read_sdc $sdc
+    }
+} else {
+    # fall back on default constraints file
+    read_sdc "${sc_refdir}/sc_constraints.sdc"
+}
+
 # Floorplan reads synthesis verilog, others read def
 if {$sc_step == "floorplan"} {
     # read synthesized verilog if it exists
@@ -137,24 +151,13 @@ if {$sc_step == "floorplan"} {
     }
     #link design
     link_design $sc_design
-    #read all constarints
-    foreach sdc $sc_constraints {
-	read_sdc $sdc
-    }
 } else {
     # read from previous step if exists
     # else read directly from input
     if {[file exists "inputs/$sc_design.def"]} {
-	read_def "inputs/$sc_design.def"
+        read_def "inputs/$sc_design.def"
     } else {
-	read_def $sc_def
-    }
-    if {[file exists "inputs/$sc_design.sdc"]} {
-	read_sdc "inputs/$sc_design.sdc"
-    } else {
-	foreach sdc $sc_constraints {
-	    read_sdc $sdc
-	}
+        read_def $sc_def
     }
 }
 
