@@ -1,12 +1,11 @@
 import os
 import siliconcompiler
+import pytest
 
-if __name__ != "__main__":
-    import tests.fixtures
-
-def test_surelog():
-    localdir = os.path.dirname(os.path.abspath(__file__))
-    gcd_src = localdir + '/../../examples/gcd/gcd.v'
+@pytest.mark.eda
+@pytest.mark.quick
+def test_surelog(scroot):
+    gcd_src = os.path.join(scroot, 'examples', 'gcd', 'gcd.v')
     design = "gcd"
     step = "import"
 
@@ -23,4 +22,5 @@ def test_surelog():
     assert chip.find_result('v', step=step) is not None
 
 if __name__ == "__main__":
-    test_surelog()
+    from tests.fixtures import scroot
+    test_surelog(scroot())

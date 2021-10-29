@@ -1,15 +1,13 @@
 import os
 import siliconcompiler
-
-if __name__ != "__main__":
-    import tests.fixtures
+import pytest
 
 # Command line version
 # sc ../../third_party/designs/picorv32/picorv32.v -design picorv32 -mode sim -target "surelog" -arg_step "import" -quiet
 
-def test_picorv32():
-    localdir = os.path.dirname(os.path.abspath(__file__))
-    source = localdir + "/../../third_party/designs/picorv32/picorv32.v"
+@pytest.mark.eda
+def test_picorv32(scroot):
+    source = os.path.join(scroot, 'third_party', 'designs', 'picorv32', 'picorv32.v')
     design = "picorv32"
     step = "import"
 
@@ -28,4 +26,5 @@ def test_picorv32():
     assert chip.find_result('v', step=step) is not None
 
 if __name__ == "__main__":
-    test_picorv32()
+    from tests.fixtures import scroot
+    test_picorv32(scroot())

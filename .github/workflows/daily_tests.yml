@@ -9,13 +9,15 @@ jobs:
   daily_tests_job:
     timeout-minutes: 20
     runs-on: self-hosted
-    name: 'ASIC test builds'
+    name: 'All tests'
     steps:
       - uses: actions/checkout@v2
       - run: git submodule update --init --recursive third_party/tools/openroad
+      - run: git submodule update --init --recursive third_party/designs/oh
+      - run: git submodule update --init --recursive third_party/designs/picorv32
       - run: |
           python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
           source $GITHUB_WORKSPACE/clean_env/bin/activate
           echo $VIRTUAL_ENV
           pip3 install -r $GITHUB_WORKSPACE/requirements.txt -e $GITHUB_WORKSPACE/.
-          pytest -n 4 $GITHUB_WORKSPACE/tests/daily_tests/asic/
+          pytest -n 4

@@ -1,12 +1,11 @@
 import siliconcompiler
 import os
+import pytest
 
-if __name__ != "__main__":
-    from tests.fixtures import test_wrapper
-
-def test_yosys_lec():
-    localdir = os.path.dirname(os.path.abspath(__file__))
-    lec_dir = f"{localdir}/../data/lec"
+@pytest.mark.eda
+@pytest.mark.quick
+def test_yosys_lec(datadir):
+    lec_dir = os.path.join(datadir, 'lec')
 
     chip = siliconcompiler.Chip()
 
@@ -15,8 +14,8 @@ def test_yosys_lec():
     chip.set('mode', 'asic')
     chip.target('yosys_freepdk45')
 
-    chip.add('source', f'{lec_dir}/foo.v')
-    chip.add('source', f'{lec_dir}/foo.vg')
+    chip.add('source', os.path.join(lec_dir, 'foo.v'))
+    chip.add('source', os.path.join(lec_dir, 'foo.vg'))
 
     chip.run()
 
@@ -24,9 +23,10 @@ def test_yosys_lec():
 
     assert errors == 0
 
-def test_yosys_lec_broken():
-    localdir = os.path.dirname(os.path.abspath(__file__))
-    lec_dir = f"{localdir}/../data/lec"
+@pytest.mark.eda
+@pytest.mark.quick
+def test_yosys_lec_broken(datadir):
+    lec_dir = os.path.join(datadir, 'lec')
 
     chip = siliconcompiler.Chip()
 
@@ -35,8 +35,8 @@ def test_yosys_lec_broken():
     chip.set('mode', 'asic')
     chip.target('yosys_freepdk45')
 
-    chip.add('source', f'{lec_dir}/foo_broken.v')
-    chip.add('source', f'{lec_dir}/foo_broken.vg')
+    chip.add('source', os.path.join(lec_dir, 'foo_broken.v'))
+    chip.add('source', os.path.join(lec_dir, 'foo_broken.vg'))
 
     chip.run()
 
@@ -45,4 +45,5 @@ def test_yosys_lec_broken():
     assert errors == 2
 
 if __name__ == "__main__":
-    test_yosys_lec()
+    from tests.fixtures import datadir
+    test_yosys_lec(datadir(__file__))
