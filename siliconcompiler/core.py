@@ -1272,8 +1272,6 @@ class Chip:
     def _print_csv(self, cfg, file=None):
         allkeys = self.getkeys(cfg=cfg)
         for key in allkeys:
-            print(key)
-            print(json.dumps(cfg, indent=4, sort_keys=True))
             keypath = ",".join(key)
             value = self.get(*key, cfg=cfg)
             if isinstance(value,list):
@@ -1673,7 +1671,8 @@ class Chip:
                     all_inputs.append(in_step + in_index)
                 for item in all_inputs:
                     dot.edge(item, node)
-        dot.render(filename=fileroot, cleanup=True)
+        #dot.render(filename=fileroot, cleanup=True)
+        dot.render(filename=fileroot, cleanup=False)
 
 
 
@@ -2072,6 +2071,49 @@ class Chip:
                 return self._allpaths(cfg, in_step, in_index, path=newpath, allpaths=allpaths)
 
         return list(allpaths)
+
+    ###########################################################################
+    def node(self, task, tool, n=1):
+        '''
+        Creates a flow node.
+
+        Args:
+            task (str): Name of task
+            tool (str): Tool (or builtin function) to bind to task.
+            n (int): Number of nodes to create.
+
+        Examples:
+            >>> chip.node('place', 'openroad', n=100)
+           Creates 100 'place' tasks using 'openroad' as the tool.
+        '''
+
+        for i in range(n):
+            self.set('flowgraph', task, str(i), 'tool', tool)
+
+    ###########################################################################
+    def edge(self, tail, head, ntail=1, nhead=1):
+        '''
+        Creates an directed edge between nodes.
+
+        Args:
+            tail (str): Name of tail node
+            head (str): Name of head node
+            ntail (int): Number of tails to connect
+            nhead (int): Number of heads to connect
+
+        Examples:
+            >>> chip.edge('place', 'cts')
+           Creates a directed edge betweeen place and cts.
+        '''
+
+        fanout = nhead/ntail
+        for i in range(nhead):
+            for j in range(ntail):
+                if fanout < 1 :
+                    index = i*int(fanout) + j
+                else:
+                    index = j
+                self.add('flowgraph', head, str(i), 'input', (tail, str(index)))
 
     ###########################################################################
     def step_join(self, *steps):
