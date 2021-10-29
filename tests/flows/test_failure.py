@@ -44,7 +44,7 @@ def test_failure_notquiet(chip):
     # Expect that there is no import output
     assert chip.find_result('v', step='import') is None
     # Expect that synthesis doesn't run
-    assert not os.path.isdir('build/bad/job0/syn/0/inputs')
+    assert not os.path.isdir('build/bad/job0/syn/0/syn.log')
 
 @pytest.mark.eda
 def test_failure_quiet(chip):
@@ -64,4 +64,4 @@ def test_failure_quiet(chip):
     # Expect that there is no import output
     assert chip.find_result('v', step='import') is None
     # Expect that synthesis doesn't run
-    assert not os.path.isdir('build/bad/job0/syn/0/inputs')
+    assert not os.path.isdir('build/bad/job0/syn/0/syn.log')
