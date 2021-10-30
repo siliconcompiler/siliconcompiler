@@ -2438,8 +2438,6 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
-
-
     cfg['metric'][step][index]['cellarea'] = {}
     cfg['metric'][step][index]['cellarea'][group] = {
         'switch': '-metric_cellarea step index group <float>',
@@ -2454,6 +2452,41 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'help': """
         Metric tracking the sum of all non-filler standard cells on a per and per
         index basis specified in um^2.
+        """
+    }
+
+    cfg['metric'][step][index]['totalarea'] = {}
+    cfg['metric'][step][index]['totalarea'][group] = {
+        'switch': '-metric_totalarea step index group <float>',
+        'type': 'float',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Total area metric',
+        'example': [
+            "cli: -metric_totalarea 'place 0 goal 100.00'",
+            "api: chip.set('metric','place','0','totalarea','real','100.00')"],
+        'help': """
+        Metric tracking the total physical area occupied by the design,
+        including cellarea, fillers, and any addiotnal white space/margins. The
+        number is specified in um^2.
+        """
+    }
+
+    cfg['metric'][step][index]['utilization'] = {}
+    cfg['metric'][step][index]['utilization'][group] = {
+        'switch': '-metric_utilization step index group <float>',
+        'type': 'float',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Area utilization metric',
+        'example': [
+            "cli: -metric_utilization 'place 0 goal 50.00'",
+            "api: chip.set('metric','place','0','utilization','real','50.00')"],
+        'help': """
+        Metric tracking the area utilziation of the design calculated as
+        100 * (cellarea/totalarea).
         """
     }
 
@@ -2650,17 +2683,17 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
-    cfg['metric'][step][index]['bufinv'] = {}
-    cfg['metric'][step][index]['bufinv'][group] = {
-        'switch': "-metric_bufinv 'step index group <int>'",
+    cfg['metric'][step][index]['buffers'] = {}
+    cfg['metric'][step][index]['buffers'][group] = {
+        'switch': "-metric_buffers 'step index group <int>'",
         'type': 'int',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
         'shorthelp': 'Mumber of buffers and inverters in design',
         'example': [
-            "cli: -metric_bufinv 'place 0 real 100'",
-            "api: chip.set('metric','place','0','bufinv','real','100')"],
+            "cli: -metric_buffers 'place 0 real 100'",
+            "api: chip.set('metric','place','0','buffers','real','100')"],
         'help': """
         Metric tracking the total number of buffers and inverters in
         the design. An excessive count usually indicates a flow, design,
@@ -2685,17 +2718,17 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         represents the number of bits mapped to block ram.
         """
     }
-    cfg['metric'][step][index]['xtors'] = {}
-    cfg['metric'][step][index]['xtors'][group] = {
-        'switch': '-metric_xtors step index group <int>',
+    cfg['metric'][step][index]['transistors'] = {}
+    cfg['metric'][step][index]['transistors'][group] = {
+        'switch': '-metric_transistors step index group <int>',
         'type': 'int',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
         'shorthelp': 'Number of transistors in the design',
         'example': [
-            "cli: -metric_xtors 'place 0 goal 100'",
-            "api: chip.set('metric','place','0','xtors','real','100')"],
+            "cli: -metric_transistors 'place 0 goal 100'",
+            "api: chip.set('metric','place','0','transistors','real','100')"],
         'help': """
         Metric tracking the total number of transistors in the design
         on a per step basis.
