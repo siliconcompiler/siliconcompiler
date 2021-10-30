@@ -74,7 +74,7 @@ def chip(scroot):
     chip.target('freepdk45')
 
     # no-op import since we're not preprocessing source files
-    chip.set('flowgraph', 'import', '0', 'function', 'step_join')
+    chip.set('flowgraph', 'import', '0', 'tool', 'step_join')
 
     chip.set('flowgraph', 'place', '0', 'tool', 'openroad')
     chip.set('flowgraph', 'place', '0', 'input', ('import','0'))
@@ -96,7 +96,7 @@ def test_failed_branch_step_min(chip):
     chip.set('eda', 'openroad', 'place', '1', 'option', 'place_density', '0.5')
 
     # Perform minimum
-    chip.set('flowgraph', 'placemin', '0', 'function', 'step_minimum')
+    chip.set('flowgraph', 'placemin', '0', 'tool', 'step_minimum')
     chip.set('flowgraph', 'placemin', '0', 'input', [('place','0'), ('place','1')])
 
     chip.run()
@@ -118,7 +118,7 @@ def test_all_failed_step_min(chip):
     chip.set('eda', 'openroad', 'place', '1', 'option', 'place_density', 'asdf')
 
     # Perform minimum
-    chip.set('flowgraph', 'placemin', '0', 'function', 'step_minimum')
+    chip.set('flowgraph', 'placemin', '0', 'tool', 'step_minimum')
     chip.set('flowgraph', 'placemin', '0', 'input', [('place','0'), ('place','1')])
 
     # Expect that command exits early
@@ -139,7 +139,7 @@ def test_branch_failed_step_join(chip):
     chip.set('eda', 'openroad', 'place', '1', 'option', 'place_density', '0.5')
 
     # Perform join
-    chip.set('flowgraph', 'placemin', '0', 'function', 'step_join')
+    chip.set('flowgraph', 'placemin', '0', 'tool', 'step_join')
     chip.set('flowgraph', 'placemin', '0', 'input', [('place','0'), ('place','1')])
 
     # Expect that command exits early

@@ -84,7 +84,7 @@ def setup_flow(chip):
                 chip.set('flowgraph', step, str(index), 'input', ('compile', '0'))
         #join
         elif step == 'signoff':
-            chip.set('flowgraph', step, '0', 'function', tools[step])
+            chip.set('flowgraph', step, '0', 'tool', tools[step])
             for index in range(np):
                 chip.add('flowgraph', step, '0', 'input', (prevstep, str(index)))
         else:
