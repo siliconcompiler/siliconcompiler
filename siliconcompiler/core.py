@@ -2080,18 +2080,28 @@ class Chip:
         '''
         Creates a flow node.
 
+        Binds a task name to a tool. The tool can be an external tool or one
+        of the built in SC tools (ie. functions). The built in functions are:
+        minimum, maximum, join, mux, verify.
+
+        All metric weights are set to zero.
+
         Args:
             task (str): Name of task
             tool (str): Tool (or builtin function) to bind to task.
-            n (int): Number of nodes to create.
+            n (int): Number of nodes to launch for 'task'.
 
         Examples:
             >>> chip.node('place', 'openroad', n=100)
            Creates 100 'place' tasks using 'openroad' as the tool.
         '''
 
+        # bind tool to node
         for i in range(n):
             self.set('flowgraph', task, str(i), 'tool', tool)
+            # set default weights
+            for metric in self.getkeys('metric', 'default', 'default'):
+                self.set('flowgraph', task, str(i), 'weight', metric, 0)
 
     ###########################################################################
     def edge(self, tail, head, ntail=1, nhead=1):
