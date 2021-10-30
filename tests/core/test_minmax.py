@@ -30,7 +30,7 @@ def chip():
     for i, step in enumerate(flowpipe):
         for index in range(threads[step]):
             if step == "synmin":
-                chip.set('flowgraph', step, str(index), 'function', 'step_minimum')
+                chip.set('flowgraph', step, str(index), 'tool', 'step_minimum')
                 for j in range(N):
                     chip.add('flowgraph', step, '0', 'input', (flowpipe[i-1],str(j)))
             elif step == 'import':
