@@ -58,6 +58,9 @@ class Chip:
         self.cfg = schema_cfg()
         self.cfghistory = {}
 
+        self.builtin = ['step_minimum','step_maximum',
+                        'step_mux', 'step_join', 'step_verify']
+
         # We set 'design' directly in the config dictionary because of a
         # chicken-and-egg problem: self.set() relies on the logger, but the
         # logger relies on the design value.
@@ -537,7 +540,7 @@ class Chip:
                     # We must always have an import step, so add a default no-op
                     # if need be.
                     if step != 'import':
-                        self.set('flowgraph', 'import', '0', 'function', 'step_join')
+                        self.set('flowgraph', 'import', '0', 'tool', 'step_join')
                         self.set('flowgraph', step, '0', 'input', ('import','0'))
 
                     self.set('arg', 'step', None)
@@ -1439,7 +1442,7 @@ class Chip:
         for step in steplist:
             for index in self.getkeys('flowgraph', step):
                 tool = self.get('flowgraph', step, index, 'tool')
-                if tool:
+                if tool not in self.builtin:
                     # checking that requirements are set
                     if 'req' in  self.getkeys('eda', tool, step, index):
                         all_required = self.get('eda', tool, step, index, 'req')
@@ -1657,8 +1660,9 @@ class Chip:
             for index in self.getkeys('flowgraph', step):
                 node = step+index
                 # create step node
-                if self.get('flowgraph', step, index, 'tool'):
-                    labelname = step+index+'\\n('+self.get('flowgraph', step, index, 'tool')+")"
+                tool =  self.get('flowgraph', step, index, 'tool')
+                if tool not in self.builtin:
+                    labelname = f"{step}{index}\n(tool)"
                 else:
                     labelname = step
                 dot.node(node, label=labelname, bordercolor=fontcolor, style='filled',
@@ -1929,7 +1933,7 @@ class Chip:
 
         #only report tool based steps functions
         for step in steplist:
-            if not self.get('flowgraph',step,'0','tool'):
+            if self.get('flowgraph',step,'0','tool') in self.builtin:
                 index = steplist.index(step)
                 del steplist[index]
 
@@ -2276,7 +2280,7 @@ class Chip:
         return (min_score, winner)
 
     ###########################################################################
-    def step_assert(self, *steps, **assertion):
+    def step_verify(self, *steps, **assertion):
         '''
         Checks that all metrics assertion holds true for steplist provided.
 
@@ -2294,7 +2298,7 @@ class Chip:
             True if all assertions hold True for all steps.
 
         Example:
-            >>> pass = chip.step_assert(['drc','lvs'], errors=0)
+            >>> pass = chip.step_verify(['drc','lvs'], errors=0)
             Pass is True if the error metrics in the drc, lvs steps is 0.
         '''
         #TODO: implement
@@ -2597,41 +2601,31 @@ class Chip:
         self.set('arg', 'index', index, clobber=True)
 
         ##################
-        # 5. Run builtin function
+        # 5. Select inputs
 
-        if self.get('flowgraph', step, index, 'function'):
-            tool = 'builtin'
-            func = self.get('flowgraph', step, index, 'function')
-            args = self.get('flowgraph', step, index, 'args')
-            inputs = self.get('flowgraph', step, index, 'input')
-            sel_inputs = []
-            score = 0
-            # Figure out which inputs to select
-            if func == 'step_minimum':
-                (score, sel_inputs) = self.step_minimum(*inputs)
-            elif func == "step_maximum":
-                (score, sel_inputs) = self.step_maximum(*inputs)
-            elif func == "step_mux":
-                (score, sel_inputs) = self.step_mux(*inputs, selector=args)
-            elif func == "step_join":
-                sel_inputs = self.step_join(*inputs)
-            elif func == "step_assert":
-                if not self.step_assert(*inputs, assertion=args):
-                    self._haltstep(step, index, active)
-            else:
-                self.logger.error(f"Illegal function name {func}")
+        tool = self.get('flowgraph', step, index, 'tool')
+        args = self.get('flowgraph', step, index, 'args')
+        inputs = self.get('flowgraph', step, index, 'input')
+
+        sel_inputs = []
+        score = 0
+
+        # Figure out which inputs to select
+        if tool == 'step_minimum':
+            (score, sel_inputs) = self.step_minimum(*inputs)
+        elif tool == "step_maximum":
+            (score, sel_inputs) = self.step_maximum(*inputs)
+        elif tool == "step_mux":
+            (score, sel_inputs) = self.step_mux(*inputs, selector=args)
+        elif tool == "step_join":
+            sel_inputs = self.step_join(*inputs)
+        elif tool == "step_verify":
+            if not self.step_verify(*inputs, assertion=args):
                 self._haltstep(step, index, active)
-
-            if sel_inputs == None:
-                self.logger.error(f'No inputs selected')
-                self._haltstep(step, index, active)
-
-            self.set('flowstatus', step, index, 'select', sel_inputs)
         else:
-
             sel_inputs = self.get('flowgraph', step, index, 'input')
-            self.set('flowstatus', step, index, 'select', sel_inputs)
-            tool = self.get('flowgraph', step, index, 'tool')
+
+        self.set('flowstatus', step, index, 'select', sel_inputs)
 
         ##################
         # 6 Copy outputs from input steps
@@ -2658,7 +2652,7 @@ class Chip:
         ##################
         # 7. Run preprocess step for tool
 
-        if tool != 'builtin':
+        if tool not in self.builtin:
             func = self.find_function(tool, "tool", "pre_process")
             if func:
                 func(self)
@@ -2669,7 +2663,7 @@ class Chip:
         ##################
         # 7. Copy Reference Scripts
 
-        if tool != 'builtin':
+        if tool not in self.builtin:
             if self.get('eda', tool, step, index, 'copy'):
                 refdir = self.find_files('eda', tool, step, index, 'refdir')
                 utils.copytree(refdir, ".", dirs_exist_ok=True)
@@ -2716,7 +2710,7 @@ class Chip:
 
         ##################
         # 12. Run executable
-        if tool != 'builtin':
+        if tool not in self.builtin:
             cmdlist = self._makecmd(tool, step, index)
             cmdstr = ' '.join(cmdlist)
             self.logger.info("Running in %s", workdir)
@@ -2747,7 +2741,7 @@ class Chip:
         ##################
         # 13. Post process (could fail)
         post_error = 0
-        if tool != 'builtin':
+        if tool not in self.builtin:
             func = self.find_function(tool, "tool", "post_process")
             if func:
                 post_error = func(self)
@@ -2892,7 +2886,7 @@ class Chip:
                         active[stepstr] = 1
                         # Setting up tool is optional
                         tool = self.get('flowgraph', step, index, 'tool')
-                        if tool:
+                        if tool not in self.builtin:
                             self.set('arg','step', step)
                             self.set('arg','index', index)
                             func = self.find_function(tool, 'tool', 'setup_tool')

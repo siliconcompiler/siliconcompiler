@@ -143,7 +143,7 @@ def setup_flow(chip):
             if step == 'import':
                 chip.set('flowgraph', step, str(index), 'tool', tools[step])
             elif re.search(r'join|maximum|minimum|verify', tools[step]):
-                chip.set('flowgraph', step, '0', 'function', tools[step])
+                chip.set('flowgraph', step, '0', 'tool', tools[step])
                 prevparam = prevstep + "_np"
                 fanin = 1
                 if prevparam in chip.getkeys('flowarg'):
@@ -161,7 +161,7 @@ def setup_flow(chip):
         chip.set('flowgraph', 'extspice', '0', 'tool', 'magic')
         chip.add('flowgraph', 'extspice', '0', 'input', ('export','0'))
 
-        chip.set('flowgraph', 'lvsjoin', '0', 'function', 'step_join')
+        chip.set('flowgraph', 'lvsjoin', '0', 'tool', 'step_join')
         chip.add('flowgraph', 'lvsjoin', '0', 'input', ('dfmmin','0'))
         chip.add('flowgraph', 'lvsjoin', '0', 'input', ('extspice','0'))
 
@@ -171,7 +171,7 @@ def setup_flow(chip):
         chip.set('flowgraph', 'drc', '0', 'tool', 'magic')
         chip.add('flowgraph', 'drc', '0', 'input', ('export','0'))
 
-        chip.set('flowgraph', 'signoff', '0', 'function', 'step_join')
+        chip.set('flowgraph', 'signoff', '0', 'tool', 'step_join')
         chip.add('flowgraph', 'signoff', '0', 'input', ('lvs','0'))
         chip.add('flowgraph', 'signoff', '0', 'input', ('drc','0'))
 
