@@ -1664,7 +1664,7 @@ def schema_flowgraph(cfg, step='default', index='default'):
         """
     }
 
-    # Step tool
+    # Task tool/function
     cfg['flowgraph'][step][index]['tool'] = {
         'switch': "-flowgraph_tool 'step <str>'",
         'type': 'str',
@@ -1675,26 +1675,9 @@ def schema_flowgraph(cfg, step='default', index='default'):
         'example': ["cli: -flowgraph_tool 'place openroad'",
                     "api: chip.set('flowgraph','place','0','tool','openroad')"],
         'help': """
-        Name of the EDA tool to use for a specific step in the execution flow
-        graph. The name 'builtin' is reserved for built-in SC operations.
-        """
-    }
-
-    # Function to execute within tool module
-    cfg['flowgraph'][step][index]['function'] = {
-        'switch': "-flowgraph_function 'step index <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'requirement': None,
-        'defvalue': None,
-        'shorthelp': 'Flowgraph function selection',
-        'example': [
-            "cli: -flowgraph_function 'cts 0 min'",
-            "api:  chip.set('flowgraph','cts','0','function','min')"],
-        'help': """
-        Function to use during runstep. The function is used in place
-        of the 'exe' parameter within the 'eda' schema. The function
-        parameter is mutually exclusive with the tool parameter.
+        Name of the tool name used for task execution. Builtin tool names
+        associated bound to core API functions include: minimum, maximum, join,
+        verify, mux.
         """
     }
 
