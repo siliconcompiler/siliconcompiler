@@ -2383,8 +2383,8 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
 
     cfg['metric'][step][index]['luts'] = {}
     cfg['metric'][step][index]['luts'][group] = {
-        'switch': '-metric_luts step index group <float>',
-        'type': 'float',
+        'switch': '-metric_luts step index group <int>',
+        'type': 'int',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
@@ -2402,8 +2402,8 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
 
     cfg['metric'][step][index]['dsps'] = {}
     cfg['metric'][step][index]['dsps'][group] = {
-        'switch': '-metric_dsps step index group <float>',
-        'type': 'float',
+        'switch': '-metric_dsps step index group <int>',
+        'type': 'int',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
@@ -2421,8 +2421,8 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
 
     cfg['metric'][step][index]['brams'] = {}
     cfg['metric'][step][index]['brams'][group] = {
-        'switch': '-metric_brams step index group <float>',
-        'type': 'float',
+        'switch': '-metric_brams step index group <int>',
+        'type': 'int',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
@@ -2431,10 +2431,10 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
             "cli: -metric_bram 'place 0 goal 100'",
             "api: chip.set('metric','place','0','brams','real','100')"],
         'help': """
-        Metric tracking the total FPGA BRAM tiles used by the design as reported
-        by the implementation tool. There is no standard DSP definition,
-        so metric comparisons can generally only be done between runs on
-        identical tools and device families.
+        Metric tracking the total FPGA BRAM tiles used by the design as
+        reported by the implementation tool. There is no standard DSP
+        definition, so metric comparisons can generally only be done between
+        runs on identical tools and device families.
         """
     }
 
