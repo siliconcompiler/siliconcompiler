@@ -5,10 +5,16 @@ chip = siliconcompiler.Chip()           # create chip object
 # Technology setup
 chip.target("freepdk45")                # set up pdk
 
-# Flow creation
-chip.node('import', 'surelog')          # define import task
-chip.node('syn', 'yosys')               # define logical synthesis task
-chip.edge('import', 'syn')              # define logical synthesis task
+# Create tasks
+chip.node('import', 'surelog')          # import task
+chip.node('syn', 'yosys')               # synthesis task
+chip.node('floorplan', 'openroad')      # floorplan task
+chip.node('physyn', 'openroad')         # physical synthesis task
+
+# Connect tasks into a flow
+chip.edge('import', 'syn')
+chip.edge('syn', 'floorplan')
+chip.edge('floorplan', 'physyn')
 
 # Design
 chip.add('source','add.v')              # load source files
