@@ -30,14 +30,14 @@ report_wns
 puts "$PREFIX tns"
 report_tns
 
-puts "$PREFIX setup_slack"
+puts "$PREFIX setupslack"
 report_worst_slack -max
 
-puts "$PREFIX hold_slack"
+puts "$PREFIX holdslack"
 report_worst_slack -min
 
 puts "$PREFIX power"
 report_power
 
-puts "$PREFIX area_cells"
+puts "$PREFIX cellarea"
 report_design_area

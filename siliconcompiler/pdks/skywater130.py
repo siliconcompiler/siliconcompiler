@@ -74,7 +74,7 @@ def setup_pdk(chip):
                        rev])
 
     #if you are calling this file, you are in asic mode
-    chip.set('mode','asic')
+    chip.set('mode','asic', clobber = True)
 
     # process name
     chip.set('pdk','foundry', foundry)

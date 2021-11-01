@@ -2320,7 +2320,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': "-metric_errors 'step index group <int>'",
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Total errors metric',
         'example': [
@@ -2336,7 +2336,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': "-metric_warnings 'step index group <int>'",
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Total warnings metric',
         'example': [
@@ -2353,7 +2353,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': "-metric_drv 'step index group <int>'",
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Design rule violations metric',
         'example': [
@@ -2370,7 +2370,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': "-metric_unconstrained 'step index group <int>'",
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Number of unconstrained paths',
         'example': [
@@ -2383,15 +2383,15 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
 
     cfg['metric'][step][index]['luts'] = {}
     cfg['metric'][step][index]['luts'][group] = {
-        'switch': '-metric_luts step index group <float>',
-        'type': 'float',
+        'switch': '-metric_luts step index group <int>',
+        'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'fpga',
         'defvalue': None,
         'shorthelp': 'FPGA LUT metric',
         'example': [
-            "cli: -metric_luts 'place 0 goal 100.00'",
-            "api: chip.set('metric','place','0','luts','real','100.00')"],
+            "cli: -metric_luts 'place 0 goal 100'",
+            "api: chip.set('metric','place','0','luts','real','100')"],
         'help': """
         Metric tracking the total FPGA LUTs used by the design as reported
         by the implementation tool. There is no standard LUT definition,
@@ -2402,15 +2402,15 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
 
     cfg['metric'][step][index]['dsps'] = {}
     cfg['metric'][step][index]['dsps'][group] = {
-        'switch': '-metric_dsps step index group <float>',
-        'type': 'float',
+        'switch': '-metric_dsps step index group <int>',
+        'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'fpga',
         'defvalue': None,
         'shorthelp': 'FPGA DSP metric',
         'example': [
-            "cli: -metric_dsps 'place 0 goal 100.00'",
-            "api: chip.set('metric','place','0','dsps','real','100.00')"],
+            "cli: -metric_dsps 'place 0 goal 100'",
+            "api: chip.set('metric','place','0','dsps','real','100')"],
         'help': """
         Metric tracking the total FPGA DSP slices used by the design as reported
         by the implementation tool. There is no standard DSP definition,
@@ -2421,31 +2421,29 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
 
     cfg['metric'][step][index]['brams'] = {}
     cfg['metric'][step][index]['brams'][group] = {
-        'switch': '-metric_brams step index group <float>',
-        'type': 'float',
+        'switch': '-metric_brams step index group <int>',
+        'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'fpga',
         'defvalue': None,
         'shorthelp': 'FPGA BRAM metric',
         'example': [
             "cli: -metric_bram 'place 0 goal 100'",
             "api: chip.set('metric','place','0','brams','real','100')"],
         'help': """
-        Metric tracking the total FPGA BRAM tiles used by the design as reported
-        by the implementation tool. There is no standard DSP definition,
-        so metric comparisons can generally only be done between runs on
-        identical tools and device families.
+        Metric tracking the total FPGA BRAM tiles used by the design as
+        reported by the implementation tool. There is no standard DSP
+        definition, so metric comparisons can generally only be done between
+        runs on identical tools and device families.
         """
     }
-
-
 
     cfg['metric'][step][index]['cellarea'] = {}
     cfg['metric'][step][index]['cellarea'][group] = {
         'switch': '-metric_cellarea step index group <float>',
         'type': 'float',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'asic',
         'defvalue': None,
         'shorthelp': 'Cell area metric',
         'example': [
@@ -2457,12 +2455,47 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
+    cfg['metric'][step][index]['totalarea'] = {}
+    cfg['metric'][step][index]['totalarea'][group] = {
+        'switch': '-metric_totalarea step index group <float>',
+        'type': 'float',
+        'lock': 'false',
+        'requirement': 'asic',
+        'defvalue': None,
+        'shorthelp': 'Total area metric',
+        'example': [
+            "cli: -metric_totalarea 'place 0 goal 100.00'",
+            "api: chip.set('metric','place','0','totalarea','real','100.00')"],
+        'help': """
+        Metric tracking the total physical area occupied by the design,
+        including cellarea, fillers, and any addiotnal white space/margins. The
+        number is specified in um^2.
+        """
+    }
+
+    cfg['metric'][step][index]['utilization'] = {}
+    cfg['metric'][step][index]['utilization'][group] = {
+        'switch': '-metric_utilization step index group <float>',
+        'type': 'float',
+        'lock': 'false',
+        'requirement': 'asic',
+        'defvalue': None,
+        'shorthelp': 'Area utilization metric',
+        'example': [
+            "cli: -metric_utilization 'place 0 goal 50.00'",
+            "api: chip.set('metric','place','0','utilization','real','50.00')"],
+        'help': """
+        Metric tracking the area utilziation of the design calculated as
+        100 * (cellarea/totalarea).
+        """
+    }
+
     cfg['metric'][step][index]['peakpower'] = {}
     cfg['metric'][step][index]['peakpower'][group] = {
         'switch': '-metric_peakpower step index group <float>',
         'type': 'float',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Total power metric',
         'example': [
@@ -2480,7 +2513,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': '-metric_standbypower step index group <float>',
         'type': 'float',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Leakage power metric',
         'example': [
@@ -2497,7 +2530,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': "-metric_irdrop 'step index group <int>'",
         'type': 'float',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'asic',
         'defvalue': None,
         'shorthelp': 'Peak IR drop',
         'example': [
@@ -2512,14 +2545,31 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
+    cfg['metric'][step][index]['holdslack'] = {}
+    cfg['metric'][step][index]['holdslack'][group] = {
+        'switch': "-metric_holdslack 'step index group <float>'",
+        'type': 'float',
+        'lock': 'false',
+        'requirement': 'all',
+        'defvalue': None,
+        'shorthelp': 'Hold slack',
+        'example': [
+            "cli: -metric_holdslack 'place 0 real 0.0'",
+            "api: chip.set('metric','place','0','holdslack','real','0')"],
+        'help': """
+        Metric tracking of worst hold slack (positive or negative) on
+        a per per step and index basis. Metric unit is nanoseconds.
+        """
+    }
+
     cfg['metric'][step][index]['holdwns'] = {}
     cfg['metric'][step][index]['holdwns'][group] = {
         'switch': "-metric_holdwns 'step index group <float>'",
         'type': 'float',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
-        'shorthelp': 'Hold slack metric',
+        'shorthelp': 'Hold worst negative slack',
         'example': [
             "cli: -metric_holdwns 'place 0 real 0.42",
             "api: chip.set('metric','place','0','holdwns','real,'0.43')"],
@@ -2537,7 +2587,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Hold TNS metric',
+        'shorthelp': 'Hold total negative slack',
         'example': [
             "cli: -metric_holdtns 'place 0 real 0.0'",
             "api: chip.set('metric','place','0','holdtns','real','0')"],
@@ -2552,7 +2602,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': "-metric_holdpaths 'step index group <int>'",
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Total number of hold path violations',
         'example': [
@@ -2564,21 +2614,39 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
+
+    cfg['metric'][step][index]['setupslack'] = {}
+    cfg['metric'][step][index]['setupslack'][group] = {
+        'switch': "-metric_setupslack 'step index group <float>'",
+        'type': 'float',
+        'lock': 'false',
+        'requirement': 'all',
+        'defvalue': None,
+        'shorthelp': 'Setup slack',
+        'example': [
+            "cli: -metric_setupslack 'place 0 real 0.0'",
+            "api: chip.set('metric','place','0','setupslack','real','0')"],
+        'help': """
+        Metric tracking of worst setup slack (positive or negative) on
+        a per per step and index basis. Metric unit is nanoseconds.
+        """
+    }
+
     cfg['metric'][step][index]['setupwns'] = {}
     cfg['metric'][step][index]['setupwns'][group] = {
         'switch': "-metric_setupwns 'step index group <float>'",
         'type': 'float',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
-        'shorthelp': 'Setup slack metric',
+        'shorthelp': 'Setup worst negative slack metric',
         'example': [
             "cli: -metric_setupwns 'place 0 goal 0.0",
             "api: chip.set('metric','place','0','setupwns','real','0.0')"],
         'help': """
-        Metric tracking the worst setup/min timing path slack in the design.
-        Positive values means there is spare/slack, negative slack means the design
-        is failing a setup timing constrainng. The metric unit is nanoseconds.
+        Metric tracking the worst setup timing path slack in the design (WNS)
+        on a per step and per index basis. The maximum WNS is 0.0. The metric
+        unit is nanoseconds.
         """
     }
 
@@ -2587,15 +2655,15 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': "-metric_setuptns 'step index group <float>'",
         'type': 'float',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
-        'shorthelp': 'Setup TNS metric',
+        'shorthelp': 'Setup total negative slack',
         'example': [
             "cli: -metric_setuptns 'place 0 goal 0.0'",
             "api: chip.set('metric','place','0','setuptns','real','0.0')"],
         'help': """
         Metric tracking of total negative setup slack (TNS) on a per step basis.
-        Metric unit is nanoseconds.
+        The maximum TNS is 0.0.  Metric unit is nanoseconds.
         """
     }
 
@@ -2604,7 +2672,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': "-metric_setuppaths 'step index group <int>'",
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Number of setup path violations',
         'example': [
@@ -2621,7 +2689,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': '-metric_cells step index group <int>',
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'asic',
         'defvalue': None,
         'shorthelp': 'Number of cells in the design',
         'example': [
@@ -2639,7 +2707,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': "-metric_registers 'step index group <int>'",
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Number of registers in the design',
         'example': [
@@ -2650,17 +2718,17 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
-    cfg['metric'][step][index]['bufinv'] = {}
-    cfg['metric'][step][index]['bufinv'][group] = {
-        'switch': "-metric_bufinv 'step index group <int>'",
+    cfg['metric'][step][index]['buffers'] = {}
+    cfg['metric'][step][index]['buffers'][group] = {
+        'switch': "-metric_buffers 'step index group <int>'",
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'asic',
         'defvalue': None,
         'shorthelp': 'Mumber of buffers and inverters in design',
         'example': [
-            "cli: -metric_bufinv 'place 0 real 100'",
-            "api: chip.set('metric','place','0','bufinv','real','100')"],
+            "cli: -metric_buffers 'place 0 real 100'",
+            "api: chip.set('metric','place','0','buffers','real','100')"],
         'help': """
         Metric tracking the total number of buffers and inverters in
         the design. An excessive count usually indicates a flow, design,
@@ -2668,34 +2736,17 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
-    cfg['metric'][step][index]['rambits'] = {}
-    cfg['metric'][step][index]['rambits'][group] = {
-        'switch': '-metric_rambits step index group <int>',
+    cfg['metric'][step][index]['transistors'] = {}
+    cfg['metric'][step][index]['transistors'][group] = {
+        'switch': '-metric_transistors step index group <int>',
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
-        'defvalue': None,
-        'shorthelp': 'Total RAM bits in the design',
-        'example': [
-            "cli: -metric_rambits 'place 0 goal 100'",
-            "api: chip.set('metric','place','0','rambits','goal','100')"],
-        'help': """
-        Metric tracking the total number of RAM bits in the design
-        on a per step basis. In the case of FPGAs, the it
-        represents the number of bits mapped to block ram.
-        """
-    }
-    cfg['metric'][step][index]['xtors'] = {}
-    cfg['metric'][step][index]['xtors'][group] = {
-        'switch': '-metric_xtors step index group <int>',
-        'type': 'int',
-        'lock': 'false',
-        'requirement': None,
+        'requirement': 'asic',
         'defvalue': None,
         'shorthelp': 'Number of transistors in the design',
         'example': [
-            "cli: -metric_xtors 'place 0 goal 100'",
-            "api: chip.set('metric','place','0','xtors','real','100')"],
+            "cli: -metric_transistors 'place 0 goal 100'",
+            "api: chip.set('metric','place','0','transistors','real','100')"],
         'help': """
         Metric tracking the total number of transistors in the design
         on a per step basis.
@@ -2706,7 +2757,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': '-metric_nets step index group <int>',
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'asic',
         'defvalue': None,
         'shorthelp': 'Number of nets in the design',
         'example': [
@@ -2722,7 +2773,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': '-metric_pins step index group <int>',
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Number of pins in the design',
         'example': [
@@ -2738,7 +2789,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': '-metric_vias step index group <int>',
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'asic',
         'defvalue': None,
         'shorthelp': 'Number of vias in the design',
         'example': [
@@ -2753,7 +2804,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': '-metric_wirelength step index group <float>',
         'type': 'float',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'asic',
         'defvalue': None,
         'shorthelp': 'Total lenght of all wires in the design',
         'example': [
@@ -2769,7 +2820,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': '-metric_overflow step index group <int>',
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'asic',
         'defvalue': None,
         'shorthelp': 'Routing overflow metric',
         'example': [
@@ -2784,31 +2835,12 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
-    cfg['metric'][step][index]['density'] = {}
-    cfg['metric'][step][index]['density'][group] = {
-        'switch': '-metric_area_density step index group <float>',
-        'type': 'float',
-        'lock': 'false',
-        'requirement': None,
-        'defvalue': None,
-        'shorthelp': 'Effective area utilization of the design',
-        'example': [
-            "cli: -metric_density 'place 0 goal 99.9'",
-            "api: chip.set('metric','place','0','density','real','99.9')"],
-        'help': """
-        Metric tracking the effective area utilization/density calculated as the
-        ratio of cell area divided by the total core area available for
-        placement. Value is specified as a percentage (%) and does not include
-        filler cells.
-        """
-    }
-
     cfg['metric'][step][index]['runtime'] = {}
     cfg['metric'][step][index]['runtime'][group] = {
         'switch': "-metric_runtime 'step index group <float>",
         'type': 'float',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Total runtime metric',
         'example': [
@@ -2825,7 +2857,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': "-metric_memory 'step index group <float>'",
         'type': 'float',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Total memory metric',
         'example': [

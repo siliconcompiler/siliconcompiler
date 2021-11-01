@@ -1334,10 +1334,7 @@ def _find_cell_area(chip, step, index):
     '''Helper to work back through the preceeding flowgraph steps to find a step
     that's set the cellarea.'''
     select = chip.get('flowstatus', step, index, 'select')
-    for stepindex in select:
-        match = re.match(r'(\w+)(\d+)$', stepindex)
-        step, index = match.group(1, 2)
-
+    for step, index in select:
         cell_area = chip.get('metric', step, index, 'cellarea', 'real')
         if cell_area:
             return cell_area
