@@ -2111,7 +2111,7 @@ class Chip:
     ###########################################################################
     def edge(self, tail, head, tail_index=0, head_index=0):
         '''
-        Creates an directed edge between nodes.
+        Creates an directed edge from tail node to head node.
 
         Args:
             tail (str): Name of tail node
