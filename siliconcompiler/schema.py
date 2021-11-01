@@ -2390,8 +2390,8 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'defvalue': None,
         'shorthelp': 'FPGA LUT metric',
         'example': [
-            "cli: -metric_luts 'place 0 goal 100.00'",
-            "api: chip.set('metric','place','0','luts','real','100.00')"],
+            "cli: -metric_luts 'place 0 goal 100'",
+            "api: chip.set('metric','place','0','luts','real','100')"],
         'help': """
         Metric tracking the total FPGA LUTs used by the design as reported
         by the implementation tool. There is no standard LUT definition,
@@ -2409,8 +2409,8 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'defvalue': None,
         'shorthelp': 'FPGA DSP metric',
         'example': [
-            "cli: -metric_dsps 'place 0 goal 100.00'",
-            "api: chip.set('metric','place','0','dsps','real','100.00')"],
+            "cli: -metric_dsps 'place 0 goal 100'",
+            "api: chip.set('metric','place','0','dsps','real','100')"],
         'help': """
         Metric tracking the total FPGA DSP slices used by the design as reported
         by the implementation tool. There is no standard DSP definition,
@@ -2545,6 +2545,23 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
+    cfg['metric'][step][index]['holdslack'] = {}
+    cfg['metric'][step][index]['holdslack'][group] = {
+        'switch': "-metric_holdslack 'step index group <float>'",
+        'type': 'float',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Hold slack',
+        'example': [
+            "cli: -metric_holdslack 'place 0 real 0.0'",
+            "api: chip.set('metric','place','0','holdslack','real','0')"],
+        'help': """
+        Metric tracking of worst hold slack (positive or negative) on
+        a per per step and index basis. Metric unit is nanoseconds.
+        """
+    }
+
     cfg['metric'][step][index]['holdwns'] = {}
     cfg['metric'][step][index]['holdwns'][group] = {
         'switch': "-metric_holdwns 'step index group <float>'",
@@ -2552,7 +2569,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Hold slack metric',
+        'shorthelp': 'Hold worst negative slack',
         'example': [
             "cli: -metric_holdwns 'place 0 real 0.42",
             "api: chip.set('metric','place','0','holdwns','real,'0.43')"],
@@ -2570,7 +2587,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Hold TNS metric',
+        'shorthelp': 'Hold total negative slack',
         'example': [
             "cli: -metric_holdtns 'place 0 real 0.0'",
             "api: chip.set('metric','place','0','holdtns','real','0')"],
@@ -2597,6 +2614,24 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
+
+    cfg['metric'][step][index]['setupslack'] = {}
+    cfg['metric'][step][index]['setupslack'][group] = {
+        'switch': "-metric_setupslack 'step index group <float>'",
+        'type': 'float',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': None,
+        'shorthelp': 'Setup slack',
+        'example': [
+            "cli: -metric_setupslack 'place 0 real 0.0'",
+            "api: chip.set('metric','place','0','setupslack','real','0')"],
+        'help': """
+        Metric tracking of worst setup slack (positive or negative) on
+        a per per step and index basis. Metric unit is nanoseconds.
+        """
+    }
+
     cfg['metric'][step][index]['setupwns'] = {}
     cfg['metric'][step][index]['setupwns'][group] = {
         'switch': "-metric_setupwns 'step index group <float>'",
@@ -2604,14 +2639,14 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Setup slack metric',
+        'shorthelp': 'Setup worst negative slack metric',
         'example': [
             "cli: -metric_setupwns 'place 0 goal 0.0",
             "api: chip.set('metric','place','0','setupwns','real','0.0')"],
         'help': """
-        Metric tracking the worst setup/min timing path slack in the design.
-        Positive values means there is spare/slack, negative slack means the design
-        is failing a setup timing constrainng. The metric unit is nanoseconds.
+        Metric tracking the worst setup timing path slack in the design (WNS)
+        on a per step and per index basis. The maximum WNS is 0.0. The metric
+        unit is nanoseconds.
         """
     }
 
@@ -2622,13 +2657,13 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Setup TNS metric',
+        'shorthelp': 'Setup total negative slack',
         'example': [
             "cli: -metric_setuptns 'place 0 goal 0.0'",
             "api: chip.set('metric','place','0','setuptns','real','0.0')"],
         'help': """
         Metric tracking of total negative setup slack (TNS) on a per step basis.
-        Metric unit is nanoseconds.
+        The maximum TNS is 0.0.  Metric unit is nanoseconds.
         """
     }
 
