@@ -99,6 +99,35 @@ def test_winner_failed(chip):
     # winner should be second-best, not syn9
     assert winner[0] + winner[1] == 'syn8'
 
+def test_winner_fails_goal_negative(chip):
+    N = len(chip.getkeys('flowgraph', 'syn'))
+
+    chip.set('metric', 'syn', '9', 'setupwns', 'real', -1)
+
+    steplist = []
+    for i in range(N):
+        steplist.append(('syn',str(i)))
+
+    (score, winner) = chip.step_minimum(*steplist)
+
+    # winner should be second-best, not syn9
+    assert winner == ('syn', '8')
+
+def test_winner_fails_goal_positive(chip):
+    N = len(chip.getkeys('flowgraph', 'syn'))
+
+    chip.set('metric', 'syn', '9', 'errors', 'goal', 0)
+    chip.set('metric', 'syn', '9', 'errors', 'real', 1)
+
+    steplist = []
+    for i in range(N):
+        steplist.append(('syn',str(i)))
+
+    (score, winner) = chip.step_minimum(*steplist)
+
+    # winner should be second-best, not syn9
+    assert winner == ('syn', '8')
+
 #########################
 if __name__ == "__main__":
     test_minmax()
