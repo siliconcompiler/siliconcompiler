@@ -2320,7 +2320,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': "-metric_errors 'step index group <int>'",
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Total errors metric',
         'example': [
@@ -2336,7 +2336,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': "-metric_warnings 'step index group <int>'",
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Total warnings metric',
         'example': [
@@ -2353,7 +2353,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': "-metric_drv 'step index group <int>'",
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Design rule violations metric',
         'example': [
@@ -2370,7 +2370,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': "-metric_unconstrained 'step index group <int>'",
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Number of unconstrained paths',
         'example': [
@@ -2386,7 +2386,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': '-metric_luts step index group <int>',
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'fpga',
         'defvalue': None,
         'shorthelp': 'FPGA LUT metric',
         'example': [
@@ -2405,7 +2405,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': '-metric_dsps step index group <int>',
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'fpga',
         'defvalue': None,
         'shorthelp': 'FPGA DSP metric',
         'example': [
@@ -2424,7 +2424,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': '-metric_brams step index group <int>',
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'fpga',
         'defvalue': None,
         'shorthelp': 'FPGA BRAM metric',
         'example': [
@@ -2443,7 +2443,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': '-metric_cellarea step index group <float>',
         'type': 'float',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'asic',
         'defvalue': None,
         'shorthelp': 'Cell area metric',
         'example': [
@@ -2460,7 +2460,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': '-metric_totalarea step index group <float>',
         'type': 'float',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'asic',
         'defvalue': None,
         'shorthelp': 'Total area metric',
         'example': [
@@ -2478,7 +2478,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': '-metric_utilization step index group <float>',
         'type': 'float',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'asic',
         'defvalue': None,
         'shorthelp': 'Area utilization metric',
         'example': [
@@ -2495,7 +2495,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': '-metric_peakpower step index group <float>',
         'type': 'float',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Total power metric',
         'example': [
@@ -2513,7 +2513,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': '-metric_standbypower step index group <float>',
         'type': 'float',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Leakage power metric',
         'example': [
@@ -2530,7 +2530,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': "-metric_irdrop 'step index group <int>'",
         'type': 'float',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'asic',
         'defvalue': None,
         'shorthelp': 'Peak IR drop',
         'example': [
@@ -2550,7 +2550,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': "-metric_holdslack 'step index group <float>'",
         'type': 'float',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Hold slack',
         'example': [
@@ -2567,7 +2567,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': "-metric_holdwns 'step index group <float>'",
         'type': 'float',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Hold worst negative slack',
         'example': [
@@ -2602,7 +2602,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': "-metric_holdpaths 'step index group <int>'",
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Total number of hold path violations',
         'example': [
@@ -2620,7 +2620,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': "-metric_setupslack 'step index group <float>'",
         'type': 'float',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Setup slack',
         'example': [
@@ -2637,7 +2637,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': "-metric_setupwns 'step index group <float>'",
         'type': 'float',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Setup worst negative slack metric',
         'example': [
@@ -2655,7 +2655,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': "-metric_setuptns 'step index group <float>'",
         'type': 'float',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Setup total negative slack',
         'example': [
@@ -2672,7 +2672,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': "-metric_setuppaths 'step index group <int>'",
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Number of setup path violations',
         'example': [
@@ -2689,7 +2689,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': '-metric_cells step index group <int>',
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'asic',
         'defvalue': None,
         'shorthelp': 'Number of cells in the design',
         'example': [
@@ -2707,7 +2707,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': "-metric_registers 'step index group <int>'",
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Number of registers in the design',
         'example': [
@@ -2723,7 +2723,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': "-metric_buffers 'step index group <int>'",
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'asic',
         'defvalue': None,
         'shorthelp': 'Mumber of buffers and inverters in design',
         'example': [
@@ -2736,29 +2736,12 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
-    cfg['metric'][step][index]['rambits'] = {}
-    cfg['metric'][step][index]['rambits'][group] = {
-        'switch': '-metric_rambits step index group <int>',
-        'type': 'int',
-        'lock': 'false',
-        'requirement': None,
-        'defvalue': None,
-        'shorthelp': 'Total RAM bits in the design',
-        'example': [
-            "cli: -metric_rambits 'place 0 goal 100'",
-            "api: chip.set('metric','place','0','rambits','goal','100')"],
-        'help': """
-        Metric tracking the total number of RAM bits in the design
-        on a per step basis. In the case of FPGAs, the it
-        represents the number of bits mapped to block ram.
-        """
-    }
     cfg['metric'][step][index]['transistors'] = {}
     cfg['metric'][step][index]['transistors'][group] = {
         'switch': '-metric_transistors step index group <int>',
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'asic',
         'defvalue': None,
         'shorthelp': 'Number of transistors in the design',
         'example': [
@@ -2774,7 +2757,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': '-metric_nets step index group <int>',
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'asic',
         'defvalue': None,
         'shorthelp': 'Number of nets in the design',
         'example': [
@@ -2790,7 +2773,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': '-metric_pins step index group <int>',
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Number of pins in the design',
         'example': [
@@ -2806,7 +2789,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': '-metric_vias step index group <int>',
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'asic',
         'defvalue': None,
         'shorthelp': 'Number of vias in the design',
         'example': [
@@ -2821,7 +2804,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': '-metric_wirelength step index group <float>',
         'type': 'float',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'asic',
         'defvalue': None,
         'shorthelp': 'Total lenght of all wires in the design',
         'example': [
@@ -2837,7 +2820,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': '-metric_overflow step index group <int>',
         'type': 'int',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'asic',
         'defvalue': None,
         'shorthelp': 'Routing overflow metric',
         'example': [
@@ -2852,31 +2835,12 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
-    cfg['metric'][step][index]['density'] = {}
-    cfg['metric'][step][index]['density'][group] = {
-        'switch': '-metric_area_density step index group <float>',
-        'type': 'float',
-        'lock': 'false',
-        'requirement': None,
-        'defvalue': None,
-        'shorthelp': 'Effective area utilization of the design',
-        'example': [
-            "cli: -metric_density 'place 0 goal 99.9'",
-            "api: chip.set('metric','place','0','density','real','99.9')"],
-        'help': """
-        Metric tracking the effective area utilization/density calculated as the
-        ratio of cell area divided by the total core area available for
-        placement. Value is specified as a percentage (%) and does not include
-        filler cells.
-        """
-    }
-
     cfg['metric'][step][index]['runtime'] = {}
     cfg['metric'][step][index]['runtime'][group] = {
         'switch': "-metric_runtime 'step index group <float>",
         'type': 'float',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Total runtime metric',
         'example': [
@@ -2893,7 +2857,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'switch': "-metric_memory 'step index group <float>'",
         'type': 'float',
         'lock': 'false',
-        'requirement': None,
+        'requirement': 'all',
         'defvalue': None,
         'shorthelp': 'Total memory metric',
         'example': [
