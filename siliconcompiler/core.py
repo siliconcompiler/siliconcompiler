@@ -1671,7 +1671,7 @@ class Chip:
                 # create step node
                 tool =  self.get('flowgraph', step, index, 'tool')
                 if tool not in self.builtin:
-                    labelname = f"{step}{index}\n(tool)"
+                    labelname = f"{step}{index}\n({tool})"
                 else:
                     labelname = step
                 dot.node(node, label=labelname, bordercolor=fontcolor, style='filled',
@@ -2110,29 +2110,22 @@ class Chip:
                 self.set('flowgraph', task, str(i), 'weight', metric, 0)
 
     ###########################################################################
-    def edge(self, tail, head, ntail=1, nhead=1):
+    def edge(self, tail, head, tail_index=0, head_index=0):
         '''
         Creates an directed edge between nodes.
 
         Args:
             tail (str): Name of tail node
             head (str): Name of head node
-            ntail (int): Number of tails to connect
-            nhead (int): Number of heads to connect
+            tail_index (int): Index of tail node to connect
+            head_index (int): Index of head node to connect
 
         Examples:
             >>> chip.edge('place', 'cts')
            Creates a directed edge betweeen place and cts.
         '''
 
-        fanout = nhead/ntail
-        for i in range(nhead):
-            for j in range(ntail):
-                if fanout < 1 :
-                    index = i*int(fanout) + j
-                else:
-                    index = j
-                self.add('flowgraph', head, str(i), 'input', (tail, str(index)))
+        self.add('flowgraph', head, str(head_index), 'input', (tail, str(tail_index)))
 
     ###########################################################################
     def step_join(self, *steps):
