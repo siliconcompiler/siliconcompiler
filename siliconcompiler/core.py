@@ -581,11 +581,10 @@ class Chip:
             index (str): Index name used to find outputs.
 
         Returns:
-            A list of step-index pair strings.
+            A list of (step, index) tuples.
 
         Examples:
             >>> dstlist = chip.list_outputs('import', '0')
-            Variable dstlist gets list of step/index pairs driven by index 0 of import step.
 
         '''
 
@@ -594,8 +593,18 @@ class Chip:
             for b in self.getkeys('flowgraph', a):
                 for in_step, in_index in self.get('flowgraph', a, b, 'input'):
                     if (in_step + in_index) == (step + index):
-                        outputs.append(a+b)
+                        outputs.append((a,b))
         return outputs
+
+
+    ###########################################################################
+    def list_metrics(self):
+        '''
+        Returns list of all metrics ins schema.
+
+        '''
+
+        return self.getkeys('metric','default','default')
 
     ###########################################################################
     def help(self, *keypath):
@@ -1674,10 +1683,7 @@ class Chip:
                     all_inputs.append(in_step + in_index)
                 for item in all_inputs:
                     dot.edge(item, node)
-        #dot.render(filename=fileroot, cleanup=True)
-        dot.render(filename=fileroot, cleanup=False)
-
-
+        dot.render(filename=fileroot, cleanup=True)
 
     ########################################################################
     def _collect(self, step, index, active):
