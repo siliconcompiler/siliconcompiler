@@ -45,7 +45,14 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
+    n = '3'
     chip.set('flowarg','verify','true')
+    chip.set('flowarg', 'syn_np', n)
+    chip.set('flowarg', 'floorplan_np', n)
+    chip.set('flowarg', 'physyn_np', n)
+    chip.set('flowarg', 'place_np', n)
+    chip.set('flowarg', 'cts_np', n)
+    chip.set('flowarg', 'route_np', n)
     setup_flow(chip)
 
     return chip
@@ -143,7 +150,7 @@ def setup_flow(chip):
                 for i in range(fanin):
                     chip.edge(prevstep,step, tail_index=i)
             elif step != 'import':
-                chip.edge(prevstep, step)
+                chip.edge(prevstep, step, head_index=index)
             # metrics
             for metric in  ('errors','drvs','holdwns','setupwns','holdtns','setuptns'):
                 chip.set('metric', step, str(index), metric, 'goal', 0)
