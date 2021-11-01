@@ -2644,6 +2644,10 @@ class Chip:
         else:
             sel_inputs = self.get('flowgraph', step, index, 'input')
 
+        if sel_inputs == None:
+            self.logger.error(f'No inputs selected after running {tool}')
+            self._haltstep(step, index, active)
+
         self.set('flowstatus', step, index, 'select', sel_inputs)
 
         ##################
