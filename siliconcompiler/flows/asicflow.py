@@ -142,7 +142,7 @@ def setup_flow(chip):
                     fanin  = int(chip.get('flowarg', prevparam)[0])
                 for i in range(fanin):
                     chip.edge(prevstep,step, tail_index=i)
-            elif step! = 'import':
+            elif step != 'import':
                 chip.edge(prevstep, step)
             # metrics
             for metric in  ('errors','drvs','holdwns','setupwns','holdtns','setuptns'):
