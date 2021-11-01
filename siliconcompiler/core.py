@@ -2228,7 +2228,6 @@ class Chip:
 
         # Keeping track of the steps/indexes that have goals met
         failed = {}
-        goals_met = False
         for step, _ in steplist:
             failed[step] = {}
             for index in self.getkeys('flowgraph', step):
@@ -2240,10 +2239,11 @@ class Chip:
                         if 'goal' in self.getkeys('metric', step, index, metric):
                             goal = self.get('metric', step, index, metric, 'goal')
                             real = self.get('metric', step, index, metric, 'real')
-                            if bool(real > goal):
+                            if abs(real) > goal:
+                                self.logger.warning(f"Step {step}{index} failed "
+                                    f"because it didn't meet goals for '{metric}' "
+                                    "metric.")
                                 failed[step][index] = True
-                if not failed[step][index]:
-                    goals_met = True
 
         # Calculate max/min values for each metric
         max_val = {}
@@ -2267,6 +2267,9 @@ class Chip:
             min_score = float("inf")
             #TODO: why not run for all stepindex inputs?
             for index in self.getkeys('flowgraph', step):
+                if failed[step][index]:
+                    continue
+
                 if not self.get('flowstatus', step, index, 'error'):
                     score = 0.0
                     for metric in self.getkeys('flowgraph', step, index, 'weight'):
@@ -2282,7 +2285,7 @@ class Chip:
                             scaled = max_val[step][metric]
                         score = score + scaled * weight
 
-                    if (score < min_score) & (not (failed[step][index] & goals_met)):
+                    if score < min_score:
                         min_score = score
                         winner = (step,index)
 
@@ -2633,6 +2636,10 @@ class Chip:
                 self._haltstep(step, index, active)
         else:
             sel_inputs = self.get('flowgraph', step, index, 'input')
+
+        if sel_inputs == None:
+            self.logger.error(f'No inputs selected after running {tool}')
+            self._haltstep(step, index, active)
 
         self.set('flowstatus', step, index, 'select', sel_inputs)
 
