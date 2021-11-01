@@ -4,11 +4,12 @@ chip = siliconcompiler.Chip()
 
 # Tasks
 chip.node('import', 'surelog')
-chip.node('syn', 'yosys', n=pipes)
-chip.node('floorplan', 'openroad', n=pipes)
-chip.node('place', 'openroad', n=pipes)
-chip.node('route', 'openroad', n=pipes)
 chip.node('merge', 'minimum')
+for i in range(pipes):
+    chip.node('syn', 'yosys', index=i)
+    chip.node('floorplan', 'openroad', index=i)
+    chip.node('place', 'openroad', index=i)
+    chip.node('route', 'openroad', index=i)
 
 # Connections
 for i in range(pipes):

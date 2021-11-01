@@ -2082,7 +2082,7 @@ class Chip:
         return list(allpaths)
 
     ###########################################################################
-    def node(self, task, tool, n=1):
+    def node(self, task, tool, index=0):
         '''
         Creates a flow node.
 
@@ -2103,11 +2103,10 @@ class Chip:
         '''
 
         # bind tool to node
-        for i in range(n):
-            self.set('flowgraph', task, str(i), 'tool', tool)
-            # set default weights
-            for metric in self.getkeys('metric', 'default', 'default'):
-                self.set('flowgraph', task, str(i), 'weight', metric, 0)
+        self.set('flowgraph', task, str(index), 'tool', tool)
+        # set default weights
+        for metric in self.getkeys('metric', 'default', 'default'):
+            self.set('flowgraph', task, str(index), 'weight', metric, 0)
 
     ###########################################################################
     def edge(self, tail, head, tail_index=0, head_index=0):
