@@ -45,6 +45,14 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
+    n = '3'
+    chip.set('flowarg','verify','true')
+    chip.set('flowarg', 'syn_np', n)
+    chip.set('flowarg', 'floorplan_np', n)
+    chip.set('flowarg', 'physyn_np', n)
+    chip.set('flowarg', 'place_np', n)
+    chip.set('flowarg', 'cts_np', n)
+    chip.set('flowarg', 'route_np', n)
     setup_flow(chip)
 
     return chip
@@ -129,54 +137,44 @@ def setup_flow(chip):
         fanout = 1
         if param in chip.getkeys('flowarg'):
             fanout = int(chip.get('flowarg', param)[0])
+        # create nodes
         for index in range(fanout):
-            for metric in chip.getkeys('metric', 'default', 'default'):
-                if metric in ('errors','drvs','holdwns','setupwns','holdtns','setuptns'):
-                    chip.set('flowgraph', step, str(index), 'weight', metric, 0)
-                    chip.set('metric', step, str(index), metric, 'goal', 0)
-                elif metric in ('cellarea', 'peakpower', 'standbypower'):
-                    chip.set('flowgraph', step, str(index), 'weight', metric, 1.0)
-                elif metric not in ('dsps', 'brams', 'luts'):
-                    chip.set('flowgraph', step, str(index), 'weight', metric, 0)
-
-            #graph
-            if step == 'import':
-                chip.set('flowgraph', step, str(index), 'tool', tools[step])
-            elif re.search(r'join|maximum|minimum|verify', tools[step]):
-                chip.set('flowgraph', step, '0', 'tool', tools[step])
+            # nodes
+            chip.node(step, tools[step], index=index)
+            # edges
+            if re.search(r'join|maximum|minimum|verify', tools[step]):
                 prevparam = prevstep + "_np"
                 fanin = 1
                 if prevparam in chip.getkeys('flowarg'):
                     fanin  = int(chip.get('flowarg', prevparam)[0])
                 for i in range(fanin):
-                    chip.add('flowgraph', step, str(index), 'input', (prevstep, str(i)))
-            else:
-                chip.set('flowgraph', step, str(index), 'tool', tools[step])
-                chip.add('flowgraph', step, str(index), 'input', (prevstep, '0'))
-
+                    chip.edge(prevstep,step, tail_index=i)
+            elif step != 'import':
+                chip.edge(prevstep, step, head_index=index)
+            # metrics
+            for metric in  ('errors','drvs','holdwns','setupwns','holdtns','setuptns'):
+                chip.set('metric', step, str(index), metric, 'goal', 0)
+            for metric in ('cellarea', 'peakpower', 'standbypower'):
+                chip.set('flowgraph', step, str(index), 'weight', metric, 1.0)
         prevstep = step
 
     # If running verify steps, manually set up parallel LVS/DRC
     if verify:
-        chip.set('flowgraph', 'extspice', '0', 'tool', 'magic')
-        chip.add('flowgraph', 'extspice', '0', 'input', ('export','0'))
+        chip.node('extspice', 'magic')
+        chip.node('lvsjoin', 'step_join')
+        chip.node('drc', 'magic')
+        chip.node('lvs', 'netgen')
+        chip.node('signoff', 'step_join')
 
-        chip.set('flowgraph', 'lvsjoin', '0', 'tool', 'step_join')
-        chip.add('flowgraph', 'lvsjoin', '0', 'input', ('dfmmin','0'))
-        chip.add('flowgraph', 'lvsjoin', '0', 'input', ('extspice','0'))
-
-        chip.set('flowgraph', 'lvs', '0', 'tool', 'netgen')
-        chip.add('flowgraph', 'lvs', '0', 'input', ('lvsjoin','0'))
-
-        chip.set('flowgraph', 'drc', '0', 'tool', 'magic')
-        chip.add('flowgraph', 'drc', '0', 'input', ('export','0'))
-
-        chip.set('flowgraph', 'signoff', '0', 'tool', 'step_join')
-        chip.add('flowgraph', 'signoff', '0', 'input', ('lvs','0'))
-        chip.add('flowgraph', 'signoff', '0', 'input', ('drc','0'))
-
+        chip.edge('export', 'extspice')
+        chip.edge('extspice', 'lvsjoin')
+        chip.edge('dfmmin', 'lvsjoin')
+        chip.edge('lvsjoin', 'lvs')
+        chip.edge('export', 'drc')
+        chip.edge('lvs', 'signoff')
+        chip.edge('drc', 'signoff')
 
 ##################################################
 if __name__ == "__main__":
     chip = make_docs()
-    chip.writecfg("asicflow.json")
+    chip.write_flowgraph("asicflow.png")

@@ -85,23 +85,20 @@ def setup_flow(chip):
     # Minimal setup
     index = '0'
     for i, step in enumerate(flowpipe):
+        # Flow
+        tool = tool_lookup(flow, step)
+        chip.node(step, tool)
+        if i > 0:
+            chip.edge(flowpipe[i-1], flowpipe[i])
         # Hard goals
         for metric in ('errors','warnings','drvs','unconstrained',
                        'holdwns','holdtns', 'holdpaths',
                        'setupwns', 'setuptns', 'setuppaths'):
-            chip.set('flowgraph', step, index, 'weight', metric, 0)
             chip.set('metric', step, index, metric, 'goal', 0)
         # Metrics
         for metric in ('luts','dsps','brams','registers',
                        'pins','peakpower','standbypower'):
             chip.set('flowgraph', step, index, 'weight', metric, 1.0)
-        # Inputs
-        if i > 0:
-            chip.add('flowgraph', flowpipe[i], index, 'input', (flowpipe[i-1],"0"))
-
-        # Tools
-        tool = tool_lookup(flow, step)
-        chip.set('flowgraph', step, index, 'tool', tool)
 
 ##################################################
 
