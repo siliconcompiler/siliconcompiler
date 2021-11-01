@@ -191,6 +191,7 @@ def post_process(chip):
                area = re.search(r'^Design area (\d+)', line)
                tns = re.search(r'^tns (.*)',line)
                wns = re.search(r'^wns (.*)',line)
+               slack = re.search(r'^worst slack (.*)',line)
                vias = re.search(r'^Total number of vias = (.*).',line)
                wirelength = re.search(r'^Total wire length = (.*) um',line)
                power = re.search(r'^Total(.*)',line)
@@ -206,6 +207,8 @@ def post_process(chip):
                    chip.set('metric', step, index, 'setuptns', 'real', round(float(tns.group(1)),2), clobber=True)
                elif wns:
                    chip.set('metric', step, index, 'setupwns', 'real', round(float(wns.group(1)),2), clobber=True)
+               elif slack:
+                   chip.set('metric', step, index, metric, 'real', round(float(slack.group(1)),2), clobber=True)
                elif wirelength:
                    chip.set('metric', step, index, 'wirelength', 'real', round(float(wirelength.group(1)),2), clobber=True)
                elif vias:
