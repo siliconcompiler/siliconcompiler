@@ -1,6 +1,7 @@
 import siliconcompiler               # import python package
+pdkname = "freepdk45"                # name of predefined pdk
 chip = siliconcompiler.Chip()        # create chip object
-chip.target("freepdk45")             # load predefined target pdk
+chip.target(pdkname)                 # load predefined pdk settings
 chip.node('import', 'surelog')       # create import task
 chip.node('syn', 'yosys')            # create synthesis task
 chip.node('floorplan', 'openroad')   # create floorplan task
