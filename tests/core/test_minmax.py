@@ -30,7 +30,7 @@ def chip():
     for i, step in enumerate(flowpipe):
         for index in range(threads[step]):
             if step == "synmin":
-                chip.set('flowgraph', step, str(index), 'tool', 'step_minimum')
+                chip.set('flowgraph', step, str(index), 'tool', 'minimum')
                 for j in range(N):
                     chip.add('flowgraph', step, '0', 'input', (flowpipe[i-1],str(j)))
             elif step == 'import':
@@ -63,11 +63,11 @@ def test_minmax(chip):
     steplist = []
     for i in range(N):
         steplist.append(('syn',str(i)))
-    (score, winner) = chip.step_minimum(*steplist)
+    (score, winner) = chip.minimum(*steplist)
     assert winner[0] + winner[1] == 'syn9'
 
-    # TODO: fix step_maximum
-    # (score, winner) = chip.step_maximum(*[f'syn{i}' for i in range(N)])
+    # TODO: fix maximum
+    # (score, winner) = chip.maximum(*[f'syn{i}' for i in range(N)])
     # assert winner == 'syn0'
 
 def test_all_failed(chip):
@@ -80,7 +80,7 @@ def test_all_failed(chip):
     for i in range(N):
         steplist.append(('syn',str(i)))
 
-    (score, winner) = chip.step_minimum(*steplist)
+    (score, winner) = chip.minimum(*steplist)
 
     assert winner is None
 
@@ -94,7 +94,7 @@ def test_winner_failed(chip):
     for i in range(N):
         steplist.append(('syn',str(i)))
 
-    (score, winner) = chip.step_minimum(*steplist)
+    (score, winner) = chip.minimum(*steplist)
 
     # winner should be second-best, not syn9
     assert winner[0] + winner[1] == 'syn8'
@@ -108,7 +108,7 @@ def test_winner_fails_goal_negative(chip):
     for i in range(N):
         steplist.append(('syn',str(i)))
 
-    (score, winner) = chip.step_minimum(*steplist)
+    (score, winner) = chip.minimum(*steplist)
 
     # winner should be second-best, not syn9
     assert winner == ('syn', '8')
@@ -123,7 +123,7 @@ def test_winner_fails_goal_positive(chip):
     for i in range(N):
         steplist.append(('syn',str(i)))
 
-    (score, winner) = chip.step_minimum(*steplist)
+    (score, winner) = chip.minimum(*steplist)
 
     # winner should be second-best, not syn9
     assert winner == ('syn', '8')

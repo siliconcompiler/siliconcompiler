@@ -93,19 +93,19 @@ def setup_flow(chip):
         'import' : 'surelog',
         'convert': 'sv2v',
         'syn' : 'yosys',
-        'synmin' : 'step_minimum',
+        'synmin' : 'minimum',
         'floorplan' : 'openroad',
-        'floorplanmin' : 'step_minimum',
+        'floorplanmin' : 'minimum',
         'physyn' : 'openroad',
-        'physynmin' : 'step_minimum',
+        'physynmin' : 'minimum',
         'place' : 'openroad',
-        'placemin' : 'step_minimum',
+        'placemin' : 'minimum',
         'cts' : 'openroad',
-        'ctsmin' : 'step_minimum',
+        'ctsmin' : 'minimum',
         'route' : 'openroad',
-        'routemin' : 'step_minimum',
+        'routemin' : 'minimum',
         'dfm' : 'openroad',
-        'dfmmin' : 'step_minimum',
+        'dfmmin' : 'minimum',
         'export' : 'klayout',
     }
 
@@ -161,10 +161,10 @@ def setup_flow(chip):
     # If running verify steps, manually set up parallel LVS/DRC
     if verify:
         chip.node('extspice', 'magic')
-        chip.node('lvsjoin', 'step_join')
+        chip.node('lvsjoin', 'join')
         chip.node('drc', 'magic')
         chip.node('lvs', 'netgen')
-        chip.node('signoff', 'step_join')
+        chip.node('signoff', 'join')
 
         chip.edge('export', 'extspice')
         chip.edge('extspice', 'lvsjoin')

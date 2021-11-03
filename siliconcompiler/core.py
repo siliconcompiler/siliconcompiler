@@ -58,8 +58,8 @@ class Chip:
         self.cfg = schema_cfg()
         self.cfghistory = {}
 
-        self.builtin = ['step_minimum','step_maximum',
-                        'step_mux', 'step_join', 'step_verify']
+        self.builtin = ['minimum','maximum',
+                        'mux', 'join', 'verify']
 
         # We set 'design' directly in the config dictionary because of a
         # chicken-and-egg problem: self.set() relies on the logger, but the
@@ -540,7 +540,7 @@ class Chip:
                     # We must always have an import step, so add a default no-op
                     # if need be.
                     if step != 'import':
-                        self.set('flowgraph', 'import', '0', 'tool', 'step_join')
+                        self.set('flowgraph', 'import', '0', 'tool', 'join')
                         self.set('flowgraph', step, '0', 'input', ('import','0'))
 
                     self.set('arg', 'step', None)
@@ -2127,7 +2127,7 @@ class Chip:
         self.add('flowgraph', head, str(head_index), 'input', (tail, str(tail_index)))
 
     ###########################################################################
-    def step_join(self, *steps):
+    def join(self, *steps):
         '''
         Pass through function for joining multiple inputs in one step
 
@@ -2138,7 +2138,7 @@ class Chip:
             Input list
 
         Examples:
-            >>> select = chip.step_join(['lvs0', 'drc0'])
+            >>> select = chip.join(['lvs0', 'drc0'])
            Selct gets the input list ['lvs0', 'drc0']
         '''
 
@@ -2149,7 +2149,7 @@ class Chip:
         return sel_inputs
 
     ###########################################################################
-    def step_minimum(self, *steps):
+    def minimum(self, *steps):
         '''
         Calculates the minimum value for all indexes of all steps provided.
 
@@ -2175,7 +2175,7 @@ class Chip:
             - stepindex (str): Minimum stepindex pair
 
         Examples:
-            >>> (score, minindex) = chip.step_minimum(['place'])
+            >>> (score, minindex) = chip.minimum(['place'])
             The variable minstep gets the minimum index for 'place' step.
             The variable 'score' gets the minimum value computed.
 
@@ -2183,7 +2183,7 @@ class Chip:
         return self._minmax(*steps, op="minimum")
 
     ###########################################################################
-    def step_maximum(self, *steps):
+    def maximum(self, *steps):
         '''
 
         Calculates the maximum value for all indexes of all steps provided.
@@ -2210,7 +2210,7 @@ class Chip:
             - stepindex (str): Maximum stepindex pair.
 
         Examples:
-            >>> (score, maxindex) = chip.step_minimum(['place'])
+            >>> (score, maxindex) = chip.minimum(['place'])
             The variable maxstep gets the maximum index for 'place' step.
             The variable 'score' gets the maximum value computed.
 
@@ -2291,7 +2291,7 @@ class Chip:
         return (min_score, winner)
 
     ###########################################################################
-    def step_verify(self, *steps, **assertion):
+    def verify(self, *steps, **assertion):
         '''
         Checks that all metrics assertion holds true for steplist provided.
 
@@ -2309,14 +2309,14 @@ class Chip:
             True if all assertions hold True for all steps.
 
         Example:
-            >>> pass = chip.step_verify(['drc','lvs'], errors=0)
+            >>> pass = chip.verify(['drc','lvs'], errors=0)
             Pass is True if the error metrics in the drc, lvs steps is 0.
         '''
         #TODO: implement
         return True
 
     ###########################################################################
-    def step_mux(self, *steps, op='minimum', **selector):
+    def mux(self, *steps, op='minimum', **selector):
         '''
         Selects a step/index input based on the provided selector criteria.
 
@@ -2336,7 +2336,7 @@ class Chip:
             True if all assertions hold True for all steps.
 
         Example:
-            >>> sel_stepindex = chip.step_mux(['route'], wirelength=0)
+            >>> sel_stepindex = chip.mux(['route'], wirelength=0)
             Selects the routing stepindex with the shortest wirelength.
         '''
 
@@ -2622,16 +2622,16 @@ class Chip:
         score = 0
 
         # Figure out which inputs to select
-        if tool == 'step_minimum':
-            (score, sel_inputs) = self.step_minimum(*inputs)
-        elif tool == "step_maximum":
-            (score, sel_inputs) = self.step_maximum(*inputs)
-        elif tool == "step_mux":
-            (score, sel_inputs) = self.step_mux(*inputs, selector=args)
-        elif tool == "step_join":
-            sel_inputs = self.step_join(*inputs)
-        elif tool == "step_verify":
-            if not self.step_verify(*inputs, assertion=args):
+        if tool == 'minimum':
+            (score, sel_inputs) = self.minimum(*inputs)
+        elif tool == "maximum":
+            (score, sel_inputs) = self.maximum(*inputs)
+        elif tool == "mux":
+            (score, sel_inputs) = self.mux(*inputs, selector=args)
+        elif tool == "join":
+            sel_inputs = self.join(*inputs)
+        elif tool == "verify":
+            if not self.verify(*inputs, assertion=args):
                 self._haltstep(step, index, active)
         else:
             sel_inputs = self.get('flowgraph', step, index, 'input')

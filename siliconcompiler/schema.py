@@ -3078,17 +3078,17 @@ def schema_record(cfg, job='default', step='default', index='default'):
         """
     }
 
-    cfg['record'][job][step][index]['node'] = {
-        'switch': "-record_node 'job step index <str>'",
+    cfg['record'][job][step][index]['machine'] = {
+        'switch': "-record_machine 'job step index <str>'",
         'type': 'str',
         'lock': 'false',
         'requirement': None,
         'defvalue': None,
-        'shorthelp': 'Compute node name',
-        'example': ["cli: -record_node 'job0 dfm 0 carbon'",
-                    "api: chip.set('record','job0', 'dfm','0','node','carbon')"],
+        'shorthelp': 'Compute machine name',
+        'example': ["cli: -record_machine 'job0 dfm 0 carbon'",
+                    "api: chip.set('record','job0', 'dfm','0','machine','carbon')"],
         'help': """
-        Record tracking the machine/node name for the step/index execution.
+        Record tracking the machine name for the step/index execution.
         (eg. carbon, silicon, mars, host0)
         """
     }

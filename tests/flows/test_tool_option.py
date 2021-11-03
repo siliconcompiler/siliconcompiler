@@ -74,7 +74,7 @@ def chip(scroot):
     chip.target('freepdk45')
 
     # no-op import since we're not preprocessing source files
-    chip.set('flowgraph', 'import', '0', 'tool', 'step_join')
+    chip.set('flowgraph', 'import', '0', 'tool', 'join')
 
     chip.set('flowgraph', 'place', '0', 'tool', 'openroad')
     chip.set('flowgraph', 'place', '0', 'input', ('import','0'))
@@ -86,8 +86,8 @@ def chip(scroot):
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_failed_branch_step_min(chip):
-    '''Test that a step_minimum will allow failed inputs, as long as at least
+def test_failed_branch_min(chip):
+    '''Test that a minimum will allow failed inputs, as long as at least
     one passes.'''
 
     # Illegal value, so this branch will fail!
@@ -96,7 +96,7 @@ def test_failed_branch_step_min(chip):
     chip.set('eda', 'openroad', 'place', '1', 'option', 'place_density', '0.5')
 
     # Perform minimum
-    chip.set('flowgraph', 'placemin', '0', 'tool', 'step_minimum')
+    chip.set('flowgraph', 'placemin', '0', 'tool', 'minimum')
     chip.set('flowgraph', 'placemin', '0', 'input', [('place','0'), ('place','1')])
 
     chip.run()
@@ -109,8 +109,8 @@ def test_failed_branch_step_min(chip):
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_all_failed_step_min(chip):
-    '''Test that a step_minimum will fail if both branches have errors.'''
+def test_all_failed_min(chip):
+    '''Test that a minimum will fail if both branches have errors.'''
 
 
     # Illegal values, so both branches should fail
@@ -118,7 +118,7 @@ def test_all_failed_step_min(chip):
     chip.set('eda', 'openroad', 'place', '1', 'option', 'place_density', 'asdf')
 
     # Perform minimum
-    chip.set('flowgraph', 'placemin', '0', 'tool', 'step_minimum')
+    chip.set('flowgraph', 'placemin', '0', 'tool', 'minimum')
     chip.set('flowgraph', 'placemin', '0', 'input', [('place','0'), ('place','1')])
 
     # Expect that command exits early
@@ -130,8 +130,8 @@ def test_all_failed_step_min(chip):
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_branch_failed_step_join(chip):
-    '''Test that a step_join will fail if one branch has errors.'''
+def test_branch_failed_join(chip):
+    '''Test that a join will fail if one branch has errors.'''
 
     # Illegal values, so branch should fail
     chip.set('eda', 'openroad', 'place', '0', 'option', 'place_density', 'asdf')
@@ -139,7 +139,7 @@ def test_branch_failed_step_join(chip):
     chip.set('eda', 'openroad', 'place', '1', 'option', 'place_density', '0.5')
 
     # Perform join
-    chip.set('flowgraph', 'placemin', '0', 'tool', 'step_join')
+    chip.set('flowgraph', 'placemin', '0', 'tool', 'join')
     chip.set('flowgraph', 'placemin', '0', 'input', [('place','0'), ('place','1')])
 
     # Expect that command exits early
