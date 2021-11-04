@@ -2749,22 +2749,33 @@ class Chip:
             cmdstr = ' '.join(cmdlist)
             self.logger.info("Running in %s", workdir)
             self.logger.info('%s', cmdstr)
+            timeout = self.get('flowgraph', step, index, 'timeout')
             logfile = step + '.log'
-            with open(logfile, 'w') as log:
-                cmd_error = subprocess.Popen(cmdstr,
-                                             shell=True,
-                                             stdout=subprocess.PIPE,
-                                             stderr=subprocess.STDOUT)
-                for line_bytes in cmd_error.stdout:
-                    line = line_bytes.decode()
-                    if not (self.get('quiet') & (step not in self.get('bkpt'))):
-                        sys.stdout.write(line)
-                    log.write(line)
-                # The process is finished when the stdout/stderr stream closes,
-                # but we must call '.communicate()' to set '.returncode'.
-                cmd_error.communicate()
+            with open(logfile, 'w') as log_writer, open(logfile, 'r') as log_reader:
+                # Use separate reader/writer file objects as hack to display
+                # live output in non-blocking way, so we can monitor the
+                # timeout. Based on https://stackoverflow.com/a/18422264.
+                quiet = self.get('quiet') and (step not in self.get('bkpt'))
+                cmd_start_time = time.time()
+                proc = subprocess.Popen(cmdstr,
+                                        shell=True,
+                                        stdout=log_writer,
+                                        stderr=subprocess.STDOUT)
+                while proc.poll() is None:
+                    # Loop until process terminates
+                    if not quiet:
+                        sys.stdout.write(log_reader.read())
+                    if timeout is not None and time.time() - cmd_start_time > timeout:
+                        self.logger.error(f'Step timed out after {timeout} seconds')
+                        proc.terminate()
+                        self._haltstep(step, index, active)
+                    time.sleep(0.1)
 
-            if cmd_error.returncode != 0:
+                # Read the remaining
+                if not quiet:
+                    sys.stdout.write(log_reader.read())
+
+            if proc.returncode != 0:
                 self.logger.warning('Command failed. See log file %s', os.path.abspath(logfile))
                 if not self.get('eda', tool, step, index, 'continue'):
                     self._haltstep(step, index, active)
