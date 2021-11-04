@@ -1,8 +1,8 @@
 Installation
 ===================================
 
-Before installing SiliconCompiler you will need to set up a Python virtual
-environment for your platform. SiliconCompiler requires Python 3.6 - 3.10.
+Before installing the SiliconCompiler package you will need to set up a Python
+virtual environment for your platform. SiliconCompiler requires Python 3.6 - 3.10.
 
 Ubuntu
 -------
@@ -28,7 +28,7 @@ Open up a terminal and enter the following command sequence.
    brew install python
    python3 --version                                      # check for Python 3.6 - 3.10
    python3 -m venv --system-site-packages ./venv          # create a virtual env
-   source ./venv/bin/activate                             # active virtual env (bash/zsh)
+   source ./venv/bin/activate                             # active virtual env
 
 Windows
 -------
@@ -43,17 +43,16 @@ Install the latest Python package directly from `Python.org <https://www.python.
 Installation from PyPI
 -----------------------
 
-To install SiliconCompiler within your Python virtual working environment, activate the session
-environment (see above) based on your platform and enter the followinq commands.
+To install SiliconCompiler in your Python virtual working environment, activate a Python session
+environment (see above) based on your platform and enter the following commands.
 
 .. code-block:: bash
 
    pip install --upgrade pip                # upgrade pip in virtual env
    pip list                                 # show installed packages in venv
-   pip install --upgrade siliconcompiler    # install siliconcompiler in venv
-   python -m pip show siliconcompiler       # will display SC package information
+   pip install --upgrade siliconcompiler    # install SiliconCompiler in venv
+   python -m pip show siliconcompiler       # will display  SiliconCompiler package information
    python -c "import siliconcompiler;chip = siliconcompiler.Chip();print(chip.get('scversion'))"
-   deactivate                               # deactivate the virtual environment
 
 The output should be the version number you expect to see, similar to below:
 
@@ -61,11 +60,14 @@ The output should be the version number you expect to see, similar to below:
 
    \ |release|
 
+To exit the virtual environment, just type 'deactivate' and hit enter. More information about
+the Python virtual environment can be found in the `Python 'venv' documentation <https://docs.python.org/3/library/venv.html>`_.
+
 
 Installation from source
 ------------------------
 
-Installing directly from the repository sources is supported for Linux/MacOS platforms.
+Installing directly from the `SiliconCompiler repository <https://github.com/siliconcompiler/siliconcompiler>`_ is supported for Linux/MacOS platforms.
 
 .. code-block:: bash
 
@@ -86,9 +88,6 @@ to install them manually.
 Pre-requisites
 ---------------
 
-SiliconCompiler relies on a number of external tools and projects. Supporting the multi-platform
-installation of those tools is beyond the scope of the project, but we have included easy access
-links to installation instructions in the reference manual :ref:`tools<Tools directory>` section.
-
-Note that you can bypass the installation process using the remote processing workflow if you have
-access to a server where the tools are pre-installed. See the :ref:`Quickstart guide<Quickstart guide>` for more details.
+SiliconCompiler relies on a number of external tools and projects. Installation instructions
+for these tools can be found in in the tools directory of the reference manual :ref:`tools<Tools directory>` section. The tool installation process can be bypassed entirely through the remote
+processing workflow.
