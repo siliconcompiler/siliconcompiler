@@ -19,6 +19,7 @@ cmake
 # Docs dependencies
 Sphinx >= 3.5.4
 sphinx-rtd-theme >= 0.5.2
+pip-licenses
 
 # Testing dependencies
 pytest >= 6.2.4

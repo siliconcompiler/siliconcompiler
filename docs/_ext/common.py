@@ -8,9 +8,9 @@ def build_table(items):
 
     group = nodes.tgroup(cols=len(items[0]))
     table += group
-    # not sure how colwidth affects things - columns seem to adjust to contents
-    group += nodes.colspec(colwidth=50)
-    group += nodes.colspec(colwidth=100)
+    for _ in items[0]:
+        # not sure how colwidth affects things - columns seem to adjust to contents
+        group += nodes.colspec(colwidth=100)
 
     body = nodes.tbody()
     group += body
