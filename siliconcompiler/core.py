@@ -2246,66 +2246,62 @@ class Chip:
 
         # Keeping track of the steps/indexes that have goals met
         failed = {}
-        for step, _ in steplist:
-            failed[step] = {}
-            for index in self.getkeys('flowgraph', step):
-                if self.get('flowstatus', step, index, 'error'):
-                    failed[step][index] = True
-                else:
-                    failed[step][index] = False
-                    for metric in self.getkeys('metric', step, index):
-                        if 'goal' in self.getkeys('metric', step, index, metric):
-                            goal = self.get('metric', step, index, metric, 'goal')
-                            real = self.get('metric', step, index, metric, 'real')
-                            if abs(real) > goal:
-                                self.logger.warning(f"Step {step}{index} failed "
-                                    f"because it didn't meet goals for '{metric}' "
-                                    "metric.")
-                                failed[step][index] = True
+        for step, index in steplist:
+            if step not in failed:
+                failed[step] = {}
+            failed[step][index] = False
+
+            if self.get('flowstatus', step, index, 'error'):
+                failed[step][index] = True
+                continue
+
+            for metric in self.getkeys('metric', step, index):
+                if 'goal' in self.getkeys('metric', step, index, metric):
+                    goal = self.get('metric', step, index, metric, 'goal')
+                    real = self.get('metric', step, index, metric, 'real')
+                    if abs(real) > goal:
+                        self.logger.warning(f"Step {step}{index} failed "
+                            f"because it didn't meet goals for '{metric}' "
+                            "metric.")
+                        failed[step][index] = True
 
         # Calculate max/min values for each metric
         max_val = {}
         min_val = {}
-        for step, _ in steplist:
-            max_val[step] = {}
-            min_val[step] = {}
-            for metric in self.getkeys('flowgraph', step, '0', 'weight'):
-                max_val[step][metric] = 0
-                min_val[step][metric] = float("inf")
-                for index in self.getkeys('flowgraph', step):
-                    if not self.get('flowstatus', step, index, 'error'):
-                        real = self.get('metric', step, index, metric, 'real')
-                        max_val[step][metric] = max(max_val[step][metric], real)
-                        min_val[step][metric] = min(min_val[step][metric], real)
+        for metric in self.getkeys('flowgraph', step, '0', 'weight'):
+            max_val[metric] = 0
+            min_val[metric] = float("inf")
+            for step, index in steplist:
+                if not failed[step][index]:
+                    real = self.get('metric', step, index, metric, 'real')
+                    max_val[metric] = max(max_val[metric], real)
+                    min_val[metric] = min(min_val[metric], real)
 
         # Select the minimum index
-        min_score = None
+        min_score = float('inf')
         winner = None
-        for step, _ in steplist:
-            min_score = float("inf")
-            #TODO: why not run for all stepindex inputs?
-            for index in self.getkeys('flowgraph', step):
-                if failed[step][index]:
+        for step, index in steplist:
+            if failed[step][index]:
+                continue
+
+            score = 0.0
+            for metric in self.getkeys('flowgraph', step, index, 'weight'):
+                weight = self.get('flowgraph', step, index, 'weight', metric)
+                if not weight:
+                    # skip if weight is 0 or None
                     continue
 
-                if not self.get('flowstatus', step, index, 'error'):
-                    score = 0.0
-                    for metric in self.getkeys('flowgraph', step, index, 'weight'):
-                        weight = self.get('flowgraph', step, index, 'weight', metric)
-                        if not weight:
-                            # skip if weight is 0 or None
-                            continue
+                real = self.get('metric', step, index, metric, 'real')
 
-                        real = self.get('metric', step, index, metric, 'real')
-                        if not (max_val[step][metric] - min_val[step][metric]) == 0:
-                            scaled = (real - min_val[step][metric]) / (max_val[step][metric] - min_val[step][metric])
-                        else:
-                            scaled = max_val[step][metric]
-                        score = score + scaled * weight
+                if not (max_val[metric] - min_val[metric]) == 0:
+                    scaled = (real - min_val[metric]) / (max_val[metric] - min_val[metric])
+                else:
+                    scaled = max_val[metric]
+                score = score + scaled * weight
 
-                    if score < min_score:
-                        min_score = score
-                        winner = (step,index)
+            if score < min_score:
+                min_score = score
+                winner = (step,index)
 
         return (min_score, winner)
 
