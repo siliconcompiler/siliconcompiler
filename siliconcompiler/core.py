@@ -2242,6 +2242,9 @@ class Chip:
         Shared function used for min and max calculation.
         '''
 
+        if op not in ('minimum', 'maximum'):
+            raise ValueError('Invalid op')
+
         steplist = list(steps)
 
         # Keeping track of the steps/indexes that have goals met
@@ -2278,7 +2281,7 @@ class Chip:
                     min_val[metric] = min(min_val[metric], real)
 
         # Select the minimum index
-        min_score = float('inf')
+        best_score = float('inf') if op == 'minimum' else float('-inf')
         winner = None
         for step, index in steplist:
             if failed[step][index]:
@@ -2299,11 +2302,12 @@ class Chip:
                     scaled = max_val[metric]
                 score = score + scaled * weight
 
-            if score < min_score:
-                min_score = score
+            if ((op == 'minimum' and score < best_score) or
+                (op == 'maximum' and score > best_score)):
+                best_score = score
                 winner = (step,index)
 
-        return (min_score, winner)
+        return (best_score, winner)
 
     ###########################################################################
     def verify(self, *steps, **assertion):
