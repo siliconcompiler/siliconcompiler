@@ -20,8 +20,8 @@ sys.path.append(os.path.abspath('./_ext'))
 # -- Project information -----------------------------------------------------
 
 project = 'SiliconCompiler'
-copyright = '2021, Zero ASIC Corporation'
-author = 'Zero ASIC Corporation'
+copyright = '2021, Zero ASIC'
+author = 'SiliconCompiler Authors'
 
 version = siliconcompiler.__version__
 release = version
@@ -66,6 +66,19 @@ html_theme_options = {
 #    'display_version': True,
 #    'navigation_depth': 4,
 }
+
+# Custom sidebar templates, must be a dictionary that maps document names
+# to template names.
+#
+# The default sidebars (for documents that don't match any pattern) are
+# defined by theme itself.  Builtin themes are using these templates by
+# default: ``['localtoc.html', 'relations.html', 'sourcelink.html',
+# 'searchbox.html']``.
+#
+# html_sidebars = {}
+
+html_logo = '_static/sc_logo_with_text.png'
+
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
