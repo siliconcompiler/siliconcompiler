@@ -1821,6 +1821,42 @@ class Chip:
 
         return 0
 
+
+    ###########################################################################
+    def calc_area(self):
+        '''Calculates the area of a rectilinear diearea.
+
+        Uses the shoelace formulate to calculate the design area using
+        the (x,y) point tuples from the 'diearea' parameter. If only diearea
+        paramater only contains two points, then the first and second point
+        must be the lower left and upper right points of the rectangle.
+        (Ref: https://en.wikipedia.org/wiki/Shoelace_formula)
+
+        Returns:
+            Design area (float).
+
+        Examples:
+            >>> area = chip.calc_area()
+
+        '''
+
+        vertices = self.get('asic', 'diearea')
+
+        if len(vertices) == 2:
+            width = vertices[1][0] - vertices[0][0]
+            height = vertices[1][1] - vertices[0][1]
+            area = width * height
+        else:
+            area = 0.0
+            for i in range(len(vertices)):
+                j = (i + 1) % len(vertices)
+                area += vertices[i][0] * vertices[j][1]
+                area -= vertices[j][0] * vertices[i][1]
+            area = abs(area) / 2
+
+        print(area)
+        return area
+
     ###########################################################################
     def calc_yield(self, model='poisson'):
         '''Calculates raw die yield.
@@ -1845,10 +1881,7 @@ class Chip:
         '''
 
         d0 = self.get('pdk', 'd0')
-        diesize = self.get('asic', 'diearea').split()
-        diewidth = (diesize[2] - diesize[0])/1000
-        dieheight = (diesize[3] - diesize[1])/1000
-        diearea = diewidth * dieheight
+        diearea = self.calc_area()
 
         if model == 'poisson':
             dy = math.exp(-diearea * d0/100)
