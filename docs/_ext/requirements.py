@@ -1,6 +1,10 @@
 from sphinx.util.docutils import SphinxDirective
 import docutils.nodes
+from docutils.parsers.rst import directives
 import os
+import pkg_resources
+import json
+import subprocess
 
 from common import *
 
@@ -46,8 +50,45 @@ class Requirements(SphinxDirective):
 
         return [bullet_list]
 
+class RequirementsLicenses(SphinxDirective):
+    option_spec = {'version': directives.flag}
+
+    def run(self):
+        show_version = 'version' in self.options
+
+        self.env.note_dependency(f'{SC_ROOT}/setup.py')
+        pkgs = pkg_resources.require('siliconcompiler')
+        requirements = [str(pkg).split()[0] for pkg in pkgs]
+        requirements.remove('siliconcompiler')
+
+        output = subprocess.check_output(['pip-licenses', '--format=json'])
+        pkg_data = json.loads(output)
+
+        if show_version:
+            entries = [[strong('Name'), strong('Version'), strong('License')]]
+        else:
+            entries = [[strong('Name'), strong('License')]]
+
+        for pkg in pkg_data:
+            name = pkg['Name']
+            if name not in requirements:
+                continue
+            package_url = f'https://pypi.org/project/{name}'
+            p = nodes.paragraph()
+            p += link(package_url, text=name)
+            version = pkg['Version']
+            license = pkg['License']
+            if show_version:
+                entries.append([p, para(version), para(license)])
+            else:
+                entries.append([p, para(license)])
+
+        body = build_table(entries)
+        return [body]
+
 def setup(app):
     app.add_directive('requirements', Requirements)
+    app.add_directive('requirements_licenses', RequirementsLicenses)
 
     return {
         'version': '0.1',
