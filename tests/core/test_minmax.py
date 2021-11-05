@@ -52,7 +52,7 @@ def chip():
     return chip
 
 ##################################
-def test_minmax(chip):
+def test_minimum(chip):
     '''API test for min/max() methods
     '''
     N = len(chip.getkeys('flowgraph', 'syn'))
@@ -66,9 +66,15 @@ def test_minmax(chip):
     (score, winner) = chip.minimum(*steplist)
     assert winner[0] + winner[1] == 'syn9'
 
-    # TODO: fix maximum
-    # (score, winner) = chip.maximum(*[f'syn{i}' for i in range(N)])
-    # assert winner == 'syn0'
+def test_maximum(chip):
+    N = len(chip.getkeys('flowgraph', 'syn'))
+
+    steplist = []
+    for i in range(N):
+        steplist.append(('syn',str(i)))
+
+    (score, winner) = chip.maximum(*steplist)
+    assert winner == ('syn', '0')
 
 def test_all_failed(chip):
     N = len(chip.getkeys('flowgraph', 'syn'))
