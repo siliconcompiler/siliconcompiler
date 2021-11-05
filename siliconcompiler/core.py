@@ -2256,17 +2256,16 @@ class Chip:
 
             if self.get('flowstatus', step, index, 'error'):
                 failed[step][index] = True
-                continue
-
-            for metric in self.getkeys('metric', step, index):
-                if 'goal' in self.getkeys('metric', step, index, metric):
-                    goal = self.get('metric', step, index, metric, 'goal')
-                    real = self.get('metric', step, index, metric, 'real')
-                    if abs(real) > goal:
-                        self.logger.warning(f"Step {step}{index} failed "
-                            f"because it didn't meet goals for '{metric}' "
-                            "metric.")
-                        failed[step][index] = True
+            else:
+                for metric in self.getkeys('metric', step, index):
+                    if 'goal' in self.getkeys('metric', step, index, metric):
+                        goal = self.get('metric', step, index, metric, 'goal')
+                        real = self.get('metric', step, index, metric, 'real')
+                        if abs(real) > goal:
+                            self.logger.warning(f"Step {step}{index} failed "
+                                f"because it didn't meet goals for '{metric}' "
+                                "metric.")
+                            failed[step][index] = True
 
         # Calculate max/min values for each metric
         max_val = {}
