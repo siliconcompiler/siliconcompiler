@@ -1,10 +1,9 @@
 Core API
 ----------
 
-This is the class and function reference for SiliconCompiler core API. Please refer
-to the :ref:`user guide <user_guide>` for architecture concepts, as the class and
-function specifications may not be enough to give full guidelines on their uses.
-For reference on concepts repeated across the API, see :ref:`glossary`.
+This chapter describes all public methods in the SiliconCompiler core Python API.
+Refer to the User Guide for architecture concepts and the
+:ref:`glossary` for terminology and keyword definitions.
 
 .. currentmodule:: siliconcompiler
 
@@ -14,11 +13,11 @@ For reference on concepts repeated across the API, see :ref:`glossary`.
     :nosignatures:
 
     ~siliconcompiler.core.Chip.set
-    ~siliconcompiler.core.Chip.get
     ~siliconcompiler.core.Chip.add
+    ~siliconcompiler.core.Chip.get
     ~siliconcompiler.core.Chip.getkeys
     ~siliconcompiler.core.Chip.getdict
-
+    ~siliconcompiler.core.Chip.help
 
 **Flowgraph execution:**
 
@@ -51,9 +50,7 @@ For reference on concepts repeated across the API, see :ref:`glossary`.
     ~siliconcompiler.core.Chip.find_function
     ~siliconcompiler.core.Chip.find_result
     ~siliconcompiler.core.Chip.hash_files
-    ~siliconcompiler.core.Chip.help
     ~siliconcompiler.core.Chip.list_metrics
-    ~siliconcompiler.core.Chip.list_outputs
     ~siliconcompiler.core.Chip.list_steps
     ~siliconcompiler.core.Chip.merge_manifest
     ~siliconcompiler.core.Chip.read_manifest
