@@ -1,21 +1,21 @@
 Introduction
 ===================================
 
-SiliconCompiler ("SC") is an open source hardware compilation framework with native
-support for open source and commercial design tools. The goal of the
-SiliconCompiler project is to lower the barrier for custom hardware development.
+SiliconCompiler ("SC") is a open source hardware compiler infrastructure project.
+The goal of the SiliconCompiler project is to lower the barrier for hardware
+specialization.
 
 Architecture
 ----------------------
 
-SiliconCompiler is built around a central dictionary "schema" that controls
-and tracks all actions taken during hardware compilation. Schema parameters are
-accessed at runtime to dynamically drive external tools (synthesis, place and route,
-etc) through a Python API.  Metrics are collected at each compilation step and
-stored in the in-memory SC dictionary controlled by the SC runtime program. At each
-step of the compilation, JSON "manifest" files are written to disk for verification
-and data exchange purposes. The final compilation manifest serves as a provinence and
-archive record of the data (ie. gds, bitstream, etc)) created during the compilation
+SiliconCompiler is based on a unified standard data schema that controls and tracks
+all actions taken during hardware compilation. Schema parameters are accessed at
+runtime to dynamically drive external tools (synthesis, place and route, etc)
+through a Python API.  Metrics are collected at each compilation step and stored in
+the in-memory SC dictionary controlled by the SC runtime program. At each step of
+the compilation, JSON "manifest" files are written to disk for verification and data
+exchange purposes. The final compilation manifest serves as a provinence and archive
+record of the data (ie. gds, bitstream, etc)) created during the compilation
 process.
 
 .. image:: ../_images/sc_stack.svg
@@ -112,39 +112,37 @@ process.
 Historical perspective
 ------------------------
 
-The term "Silicon Compiler" generally defined as a piece of software that reads a
-high level specification and automatically translates it into a complete layout of
-an integrated circuit (IC). The term was coined in 1979 at the height of a
-VLSI revolution led by Carver Mead and Lynn Conway, who were on a mission to expand
-the realm of the possible by enabling community of engineers without a background
-in solid state device physics to design complex integrated circuits.
+The term "Silicon Compiler" dates back to the firest VLSI revoluation in the late
+1970's. The term was initially defined as a software sytem that that reads a high
+level specification and translates it into a complete layout of an integrated
+circuit (IC). The initial idea behind early Silicon Compilers was one where chips
+would be specified as a series of parameterized building blocks and the silicon
+compiler would automatically stitch them together to create the final set of
+photmasks containing all the layers needed to create transistors and interconnect.
 
-The initial idea behind early Silicon Compilers was one where chips would be
-specified as a series of parameterized building blocks and the silicon compiler
-would automatically stitch them together to create the final set of photmasks
-containing all the layers needed to create transistors and interconnect. In today’s
-terminology, we might call these types of compilers generators. The initial silicon
-compilers had a compelling vision, but were not fully automated and proved too
-limited for the rapidly evolving VLSI community. Instead, the methodology that won
-was absed on standardized high level hardware description language (Verilog/VHDL)
-is automatically translated/lowered to a physical layout using a series of
-automated transformations (synthesis --> placement --> cts--> routing- -> dfm-->etc)
-This “RTL to GDS” silicon compiler approach was rarely 100% automated, but it was
-good enough for the industry for over 30 years. Stil, significant issues remain:
 
-* Silicon compilation technology is too expensive for most
+The initial silicon compilers had a compelling vision, but were not fully automated and proved too limited for the rapidly evolving VLSI community. Instead, the
+methodology that won was based on standardized high level hardware description
+language (Verilog/VHDL) and a standad library based abstraction where the desgn is
+automatically translated/lowered to a physical layout using a series of automated
+transformations (synthesis --> placement --> cts--> routing- -> dfm-->etc) and a
+standard cell lib This “RTL to GDS” silicon compiler approach was rarely 100%
+automated, but it was good enough for the industry for over 30 years. Still,
+significant issues remain:
+
+* Silicon compilation technology is too expensive ('not free as in beer')
 * Silicon compilation is not fully automated
 * Silicon compilation is not PDK agnostic
-* Silicon design abstractions have started leaking
+* Silicon design abstractions are now leakingn
 
 Moore's law as we know it is ending and the only way we can continue to advance the
 state of the art in performance, cost, and energy efficiency in the future is
-through design of many more specialized circuits. Unfortunately, this post-Moore
-era will never materialzie at the current chip design costs which range from
+through extreme circuit specialization. Unfortunately, this post-Moore
+era vison will never materialzie at the current chip design costs which range from
 $50-500M at advanced manufacturing nodes.
 
 .. image:: ../_images/cost.png
 
-Observing the positive impact that silicon has had on the world over the last 50
-years it is a social imperative that we extend the current exponential trend for
-as long possible. The time for a 2nd VLSI revolution has arrived...
+Observing the positive impact that silicon and Moore's Law on the world over the
+last 50 years it is a social imperative that we extend the current exponential
+trend for as long possible. The time for a 2nd VLSI revolution has arrived!
