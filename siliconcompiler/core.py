@@ -2082,6 +2082,25 @@ class Chip:
         return list(allpaths)
 
     ###########################################################################
+    def clock(self, *, name, pin, period, jitter=0):
+        """
+        Sets up Returns the absolute path to an output file based arguments.
+
+        Args:
+            name (str): Clock reference name.
+            pin (str): Full hiearchical path to clk pin.
+            period (float): Clock period specified in ns
+
+        Examples:
+            >>> chip.clock(name='clk', pin='clk, period=1.0)
+           Create a clock namedd 'clk' with a 1.0ns period.
+        """
+
+        self.set('clock', name, 'pin', pin)
+        self.set('clock', name, 'period', period)
+        self.set('clock', name, 'jitter', jitter)
+
+    ###########################################################################
     def node(self, task, tool, index=0):
         '''
         Creates a flow node.

@@ -60,8 +60,8 @@ if os.path.isdir('_skbuild'):
 
 setup(
     name="siliconcompiler",
-    description="Silicon Compiler Collection (SCC)",
-    keywords=["HDL", "ASIC", "FPGA", "hardware design"],
+    description="The SiliconCompiler Project",
+    keywords=["ASIC", "FPGA", "hls", "compiler", "VHDL", "Verilog", "SystemVerilog", "machine", "learning"],
     long_description=long_desc,
     long_description_content_type="text/markdown",
     author="Andreas Olofsson",

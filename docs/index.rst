@@ -22,6 +22,7 @@ Welcome to SiliconCompiler's documentation!
    user_guide/metric
    user_guide/remoteflow
    user_guide/faq
+   user_guide/licenses
 
 .. toctree::
    :maxdepth: 3
