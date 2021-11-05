@@ -16,7 +16,7 @@ def make_docs():
 
     Sources: https://github.com/KLayout/klayout
 
-    Installation: https://github.com/KLayout/klayout
+    Installation: https://www.klayout.de/build.html
 
     '''
 

@@ -1,24 +1,26 @@
 Quickstart quide
 ===================================
 
-This chapter goes through a simple design example to illustrate the basic
-SiliconCompiler workflow. We highly recommend recommend reading the rest of
-the SiliconCompiler user guide before diving head first into your project.
+The SiliconCompiler project is designed to support automated translation from a
+broad set of high level languages into manufacturable and deployable hardware. In
+this quickstart guide, we will illustrate an example of automated compilation by
+translating a simple Verilog based design into a as GDSII IC layout database.
 
 Design
 -------
-For this guide we will be using the simple 'heartbeat' verilog module shown
-below. The module is a free running counter that creates a single clock cycle
-pulse ('heartbeat') every time the counter rolls over. Copy paste the code
-into your favorite text editor (vim, emacs, atom, notepad,etc) and save it to disk as 'heartbeat.v'.
+As a case study we will use the the simple "heartbeat" design shown below.
+The heartbeat module is a free running counter that creates a single clock cycle
+pulse ("heartbeat") every time the counter rolls over. Copy paste the code into your
+favorite text editor (vim, emacs, atom, notepad,etc) and save it to disk as
+"heartbeat.v".
 
 .. literalinclude:: examples/heartbeat.v
    :language: verilog
 
-Setup compilation
+Setup
 -----------------
 
-To run SiliconCompiler remotely, visit `beta.siliconcompiler.com <https://beta.siliconcompiler.com>`
+To run SiliconCompiler using , visit `beta.siliconcompiler.com <https://beta.siliconcompiler.com>`
 to set up an account with your work or university email address. You will then be emailed a public key
 and instructions for how to save the key. Copy paste the following code into your 'add.py' compilation
 file, replacing the content inside <> with the information from the beta signup. These commands should
@@ -33,14 +35,15 @@ To run compilation on your local machine, you will need to see the installation 
 .. literalinclude:: examples/heartbeat_remote.py
 
 
-Run
-------
+Compilation
+------------
 
 Run your compilation program from within your virtual Python environment.
 
 
 
 .. code-block:: bash
+
    (venv) $ python heartbeat.py
 
 
