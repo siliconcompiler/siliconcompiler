@@ -4837,7 +4837,7 @@ def schema_asic(cfg):
         """
     }
 
-    # Def file
+    # DEF file
     cfg['asic']['def'] = {
         'switch': "-asic_def <file>",
         'type': '[file]',
@@ -4859,6 +4859,28 @@ def schema_asic(cfg):
         layout of an integrated circuit in an ASCII format. Any references
         within the DEF to pins, nets, and components must match the verilog
         netlist read in during the floorplan step.
+        """
+    }
+
+    # GDS file
+    cfg['asic']['gds'] = {
+        'switch': "-asic_gds <file>",
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'true',
+        'requirement': None,
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'GDS file',
+        'example': ["cli: -asic_gds 'guardring.gds'",
+                    "api: chip.set('asic', 'gds', 'guardring.gds')"],
+        'help': """
+        List of hardcoded GDSII files to be merged during the final
+        compilation gds export step.
         """
     }
 
