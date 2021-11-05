@@ -3245,8 +3245,10 @@ def schema_options(cfg):
         'example': ["cli: -credentials /home/user/.sc/credentials",
                     "api: chip.set('credentials','/home/user/.sc/credentials')"],
         'help': """
-        Filepath to credentials used for remote processing. The file
-        supports the following fields:
+        Filepath to credentials used for remote processing. If the
+        credentials parameter is empty, the remote processing client program
+        tries to acceess the ".sc/credentials" file in the user's home
+        directory. The file supports the following fields:
 
         userid=<user id>
         secret_key=<secret key used for authentication>
