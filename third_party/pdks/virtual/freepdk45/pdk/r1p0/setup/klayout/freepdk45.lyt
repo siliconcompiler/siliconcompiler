@@ -5,7 +5,7 @@
  <dbu>0.0001</dbu>
  <base-path>./platforms/nangate45/</base-path>
  <original-base-path>.klayout/tech/FreePDK45/</original-base-path>
- <layer-properties_file>FreePDK45.lyp</layer-properties_file>
+ <layer-properties_file>freepdk45.lyp</layer-properties_file>
  <add-other-layers>true</add-other-layers>
  <reader-options>
   <gds2>

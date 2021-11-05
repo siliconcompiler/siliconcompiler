@@ -12,14 +12,10 @@ with open('sc_manifest.json', 'r') as f:
 
 # Extract info from manifest
 sc_stackup = sc_cfg['pdk']['stackup']['value'][0]
-print(sc_stackup)
 sc_mainlib = sc_cfg['asic']['targetlib']['value'][0]
-print(sc_mainlib)
 sc_libtype = sc_cfg['library'][sc_mainlib]['arch']['value']
-print(sc_libtype)
 
 tech_file = sc_cfg['pdk']['layermap'][sc_stackup]['def']['gds']['value'][0]
-print(tech_file)
 
 macro_lefs = []
 if 'macrolib' in sc_cfg['asic']:
@@ -62,7 +58,6 @@ layout_view = cell_view.view()
 # technology file, and resolve it relative to the tech file's directory.
 tech_file_dir = os.path.dirname(tech_file)
 lyp_path = tech_file_dir + '/' + tech.layer_properties_file
-print(lyp_path)
 
 # Set layer properties -- setting second argument to True ensures things like
 # KLayout's extra outline, blockage, and obstruction layers appear.

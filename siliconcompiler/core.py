@@ -3158,14 +3158,15 @@ class Chip:
             setup_tool(self, mode='show')
             # Running command
             cmdlist = self._makecmd(tool, step, index)
-            cmdstr = ' '.join(cmdlist)
-            cmd_error = subprocess.run(cmdstr, shell=True, executable='/bin/bash')
+            proc = subprocess.run(cmdlist)
+            success = proc.returncode == 0
         else:
             self.logger.error(f"Filetype '{filetype}' not set up in 'showtool' parameter.")
+            success = False
 
         # Returning to original directory
         os.chdir(cwd)
-        return 0
+        return success
 
     ############################################################################
     # Chip helper Functions
