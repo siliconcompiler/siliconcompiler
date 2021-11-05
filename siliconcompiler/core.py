@@ -1854,7 +1854,6 @@ class Chip:
                 area -= vertices[j][0] * vertices[i][1]
             area = abs(area) / 2
 
-        print(area)
         return area
 
     ###########################################################################
