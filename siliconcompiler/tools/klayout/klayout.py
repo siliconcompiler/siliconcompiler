@@ -43,7 +43,7 @@ def setup_tool(chip, mode="batch"):
     index = chip.get('arg','index')
 
     if mode == 'show':
-        clobber = True
+        clobber = False
         script = '/klayout_show.py'
         option = ['-rm']
     else:

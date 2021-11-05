@@ -1,22 +1,35 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import siliconcompiler
+import os
+import pytest
+from pyvirtualdisplay import Display
 
-##################################
-def test_show_file():
-    '''API test for show method
-    '''
+@pytest.fixture
+def display():
+    display = Display(visible=False)
+    display.start()
+    yield display
+    display.stop()
 
-    # Create instance of Chip class
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.parametrize('pdk, testfile',
+    [('freepdk45', 'heartbeat_freepdk45.def'),
+     ('skywater130', 'heartbeat_sky130.def')])
+def test_show_file(pdk, testfile, datadir, display, headless=True):
     chip = siliconcompiler.Chip()
-    chip.target('asicflow_freepdk45')
+    chip.target(f'asicflow_{pdk}')
     chip.set("quiet", True)
 
-    # TODO: showing these files is not supported, plus it's hard to test showing
-    # regular DEF files. How should we test this function?
-    chip.show_file("examples/gcd/gcd_golden.def.gz")
-    chip.show_file("examples/gcd/gcd_golden.pkg.json.gz")
-    chip.show_file("examples/gcd/gcd.NOT_SUPPORTED")
+    if headless:
+        # Adjust command line options to exit KLayout after run
+        chip.set('eda', 'klayout', 'showdef', '0', 'option', 'cmdline', ['-z', '-r'])
+
+    path = os.path.join(datadir, testfile)
+    assert chip.show_file(path)
 
 #########################
 if __name__ == "__main__":
-    test_show_file()
+    from tests.fixtures import datadir
+    test_show_file('freepdk45', 'heartbeat_freepdk45.def', datadir(__file__),
+                   None, headless=False)
