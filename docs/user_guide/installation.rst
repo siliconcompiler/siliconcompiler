@@ -2,7 +2,7 @@ Installation
 ===================================
 
 Before installing the SiliconCompiler package you will need to set up a Python
-virtual environment for your platform. SiliconCompiler requires Python 3.6 - 3.10.
+environment for your platform. Version 3.6 - 3.10 of Python is currently supported.
 
 Ubuntu
 -------
@@ -33,7 +33,13 @@ Open up a terminal and enter the following command sequence.
 Windows
 -------
 
-Install the latest Python package directly from `Python.org <https://www.python.org/downloads>`_ using the Windows installer. Open up a Windows shell by pressing the 'Windows' key,  typing 'PowerShell' or 'cmd', and pressing enter. Once inside the shell, enter the following sequence to activate a virtual environment.
+Install the latest Python package from `Python.org <https://www.python.org/downloads>`_ using the Windows installer. Open up a Windows shell by:
+
+1. Pressing the 'Windows' key
+2. Typing 'PowerShell' or 'cmd', and pressing enter.
+
+Once inside the command shell, enter the following sequence to create and activate a
+virtual environment.
 
 .. code-block:: doscon
 
@@ -43,31 +49,32 @@ Install the latest Python package directly from `Python.org <https://www.python.
 Installation from PyPI
 -----------------------
 
-To install SiliconCompiler in your Python virtual working environment, activate a Python session
-environment (see above) based on your platform and enter the following commands.
+To install SiliconCompiler, activate a Python vertual session in and enter the
+following sequence of commands.
 
 .. code-block:: bash
 
-   pip install --upgrade pip                # upgrade pip in virtual env
-   pip list                                 # show installed packages in venv
-   pip install --upgrade siliconcompiler    # install SiliconCompiler in venv
-   python -m pip show siliconcompiler       # will display  SiliconCompiler package information
-   python -c "import siliconcompiler;chip = siliconcompiler.Chip();print(chip.get('scversion'))"
+   (venv) pip install --upgrade pip                # upgrade pip in virtual env
+   (venv) pip list                                 # show installed packages in venv
+   (venv) pip install --upgrade siliconcompiler    # install SiliconCompiler in venv
+   (venv) python -m pip show siliconcompiler       # will display  SiliconCompiler package information
+   (venv) python -c "import siliconcompiler;chip = siliconcompiler.Chip();print(chip.get('scversion'))"
 
-The output should be the version number you expect to see, similar to below:
+The output should be the expected version number, similar to below:
 
 .. parsed-literal::
 
    \ |release|
 
-To exit the virtual environment, just type 'deactivate' and hit enter. More information about
-the Python virtual environment can be found in the `Python 'venv' documentation <https://docs.python.org/3/library/venv.html>`_.
+To exit the Python virtual environment, type 'deactivate' and hit enter. More
+information about the Python virtual environment can be found in the
+`Python 'venv' documentation <https://docs.python.org/3/library/venv.html>`_.
 
 
 Installation from source
 ------------------------
 
-Installing directly from the `SiliconCompiler repository <https://github.com/siliconcompiler/siliconcompiler>`_ is supported for Linux/MacOS platforms.
+Installing SiliconCompiler from the latest `SiliconCompiler repository <https://github.com/siliconcompiler/siliconcompiler>`_ is supported for Linux/MacOS platforms.
 
 .. code-block:: bash
 
@@ -76,18 +83,20 @@ Installing directly from the `SiliconCompiler repository <https://github.com/sil
    pip install -r requirements.txt
    python -m pip install -e .
 
-Python dependencies
+
+Tool installations
 -------------------
 
-SiliconCompiler relies on the following Python packages. Note that these will be
-installed automatically when installing SC via pip, so there should be no need
-to install them manually.
+The SiliconCompiler project depends on a number of external tools and projects.
+Installation instructions for these tools can be found in in the tools directory of
+the reference manual :ref:`Tools<Tools directory>` section. The tool installation
+process can be skipped when using the :ref:`Remote Processing<Remote processing>`
+workflow.
 
-.. requirements::
+Layout viewer
+-------------------
 
-Pre-requisites
----------------
-
-SiliconCompiler relies on a number of external tools and projects. Installation instructions
-for these tools can be found in in the tools directory of the reference manual :ref:`tools<Tools directory>` section. The tool installation process can be bypassed entirely through the remote
-processing workflow.
+To view IC layout files (DEF, GDSII) we recommend installing the open source
+multi-platform klayout tool available for (Windows, Linux, and macOS). Installation
+instructions for klayout can be found
+`HERE <https://www.klayout.de/build.html>`_.

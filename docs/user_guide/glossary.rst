@@ -14,8 +14,11 @@ The following set of terms represents fundamental SiliconCompiler definitions us
     dictionary
        Associative array, ie. a collection of key-value pairs.
 
+    edge
+       A directed connection between a tail node and head nodes in a flowgraph
+
     flowgraph
-      A directed acyclic graph specification of the hardware compilation.
+       A directed acyclic graph specification of the hardware compilation.
 
     index
        A compilation step scenario operating on input data.
@@ -23,8 +26,11 @@ The following set of terms represents fundamental SiliconCompiler definitions us
     job
        Execution of complete or partial compilation flowgraph.
 
+    keys
+       Immutable strings used as index into dictionary.
+
     keypath
-       Ordered list of keys used to access a schema parameter.
+       Ordered list of keys used to access schema parameters.
 
     keywords
        Reserved strings that cannot be used as key names.
@@ -35,11 +41,14 @@ The following set of terms represents fundamental SiliconCompiler definitions us
     manifest
        JSON file representation of the SiliconCompiler schema.
 
+    node
+       An task in the flowgraph.
+
     parameter
        Schema leaf cell with a set of pre-defined key/value pairs.
 
     program
-       User specified program with one (or more) chip instances, steps, jobs, indices.
+       User specified program with one (or more) chip instances.
 
     schema
        Nested dictionary of parameters.
@@ -48,7 +57,7 @@ The following set of terms represents fundamental SiliconCompiler definitions us
        An discrete function in a flowgraph.
 
     task
-       An atomic (step, index) action to be executed in a flowgraph.
+       An atomic (step, index) combination to be executed.
 
     tool
        Executable associated with a task in a flowgraph.

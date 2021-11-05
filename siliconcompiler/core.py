@@ -352,7 +352,7 @@ class Chip:
     #########################################################################
     def create_env(self):
         '''
-        Creates a working environment based for interactive design.
+        Creates a working environment for interactive design.
 
         Sets environment variables and initializees tools specific
         setup files based on paramater set loaded.
@@ -384,7 +384,7 @@ class Chip:
     #########################################################################
     def find_function(self, modulename, functype, funcname):
         '''
-        Imports a module and returns a module function attribute.
+        Returns a function attribute from a module on disk.
 
         Searches the SC root directory and the 'scpath' parameter for the
         modulename provided and imports the module if found. If the funcname
@@ -453,7 +453,7 @@ class Chip:
     ###########################################################################
     def target(self, name=None):
         """
-        Imports modules and runs setup functions based on a named target.
+        Configures the compilation manifest based on pre-defined target modules.
 
         The target function imports and executes a set of setup functions based
         on a '_' separated string. The following target string combinations are
@@ -568,9 +568,10 @@ class Chip:
             self.logger.warning(f"No mode set")
 
     ###########################################################################
-    def list_outputs(self, step, index):
+    def _list_outputs(self, step, index):
         '''
         Returns the outputs (destinations) of a step/index pair.
+        TODO: Fix with tuple or remove
 
         Searches the 'flowgraph' schema dictionary for inputs that match
         the string combination '<step><index>' and returns a list of
@@ -600,7 +601,7 @@ class Chip:
     ###########################################################################
     def list_metrics(self):
         '''
-        Returns list of all metrics ins schema.
+        Returns a list of all metrics in the schema.
 
         '''
 
@@ -609,7 +610,7 @@ class Chip:
     ###########################################################################
     def help(self, *keypath):
         """
-        Returns a formatted help string based on the keypath provided.
+        Returns a schema parameter description.
 
         Args:
             *keypath(str): Keypath to parameter.
@@ -668,14 +669,14 @@ class Chip:
     ###########################################################################
     def get(self, *keypath, field='value', job=None, cfg=None):
         """
-        Returns a parameter value based on keypath provided.
+        Returns a schema parameter field.
 
-        Searches the schema for the keypath provided and returns the value
-        for the specified field. The returned type is consistent with the
-        type field of the parameter. Fetching parameters with empty /
-        undefined value files returns None for scalar types and [] (empty list)
-        for list types. Accessing a non-existent keypath produces a logger
-        error message and raises the Chip object error flag.
+        Returns a schema parameter filed based on the keypath and value provided
+        in the *args. The returned type is consistent with the type field of
+        the parameter. Fetching parameters with empty or undefined value files
+        returns None for scalar types and [] (empty list) for list types.
+        Accessing a non-existent keypath produces a logger error message and
+        raises the Chip object error flag.
 
         Args:
             keypath(list str): Variable length schema key list.
@@ -708,7 +709,7 @@ class Chip:
     ###########################################################################
     def getkeys(self, *keypath, cfg=None):
         """
-        Returns list of keys based on keypath provided.
+        Returns a list of schema dictionary keys.
 
         Searches the schema for the keypath provided and returns a list of
         keys found, excluding the generic 'default' key. Accessing a
@@ -747,7 +748,7 @@ class Chip:
     ###########################################################################
     def getdict(self, *keypath, cfg=None):
         """
-        Returns a dictionary based on keypath provided.
+        Returns a schema dictionary.
 
         Searches the schema for the keypath provided and returns a complete
         dictionary. Accessing a non-existent keypath produces a logger error
@@ -778,13 +779,13 @@ class Chip:
     ###########################################################################
     def set(self, *args, field='value', clobber=True, cfg=None):
         '''
-        Sets the value of a schema parameter field based on keypath provided.
+        Sets a schema parameter field.
 
-        Searches the schema for the keypath provided and then sets the
-        specified field to the value provided. New schema dictionaries are
-        automatically created for keypaths that overlap with 'default'
-        dictionaries. The write action is ignored if the parameter value is
-        non-empty and the clobber option is set to False.
+        Sets a schema parameter field based on the keypath and value provided
+        in the *args. New schema dictionaries are automatically created for
+        keypaths that overlap with 'default' dictionaries. The write action
+        is ignored if the parameter value is non-empty and the clobber
+        option is set to False.
 
         The value provided must agree with the dictionary parameter 'type'.
         Accessing a non-existent keypath or providing a value that disagrees
@@ -792,9 +793,9 @@ class Chip:
         Chip object error flag.
 
         Args:
-            args (list): Parameter keypath followed by a legal value.
+            args (list): Parameter keypath followed by a value to set.
             field (str): Parameter field to set.
-            clobber (bool): Specifies that existing value should be overwritten.
+            clobber (bool): Existing value is overwritten if True.
             cfg(dict): Alternate dictionary to access in place of self.cfg
 
         Examples:
@@ -819,10 +820,10 @@ class Chip:
     ###########################################################################
     def add(self, *args, cfg=None):
         '''
-        Adds a value to schema parameter list based on keypath provided.
+        Adds item(s) to a schema parameter list.
 
-        Searches the schema for the keypath provided and then adds a value
-        to the existing parameter value list. New schema dictionaries are
+        Adds item(s) to schema parameter list based on the keypath and value
+        provided in the *args. New schema dictionaries are
         automatically created for keypaths that overlap with 'default'
         dictionaries.
 
@@ -832,7 +833,7 @@ class Chip:
         a logger error message and raises the Chip object error flag.
 
         Args:
-            args (list): Parameter keypath followed by a legal value.
+            args (list): Parameter keypath followed by a value to add.
             cfg(dict): Alternate dictionary to access in place of self.cfg
 
         Examples:
@@ -1234,21 +1235,25 @@ class Chip:
     ###########################################################################
     def find_result(self, filetype, step, jobname='job0', index='0'):
         """
-        Returns the absolute path to an output file based arguments.
+        Returns the absolute path of a compilation result.
+
+        Utility function that returns the absolute path to a results
+        file based on the provided arguments. The result directory
+        structure is:
+
+        <dir>/<design>/<jobname>/<step>/<index>/outputs/<design>.filetype
 
         Args:
             filetype (str): File extension (.v, .def, etc)
-            step (str): Step name ('syn', 'place', etc)
-            jobid (str): Jobid (''
-
-            index (str): Schema index
-
+            step (str): Task step name ('syn', 'place', etc)
+            jobid (str): Jobid directory name
+            index (str): Task index
 
         Returns:
             Returns absolute path to file.
 
         Examples:
-            >>> manifest_filepath = chip.find_manifest('0', 'syn', '0')
+            >>> manifest_filepath = chip.find_result('.vg', 'syn')
            Returns the absolute path to the manifest.
         """
 
@@ -1346,7 +1351,7 @@ class Chip:
     ###########################################################################
     def merge_manifest(self, cfg, job=None, clobber=True, clear=True):
         """
-        Merges the provided schema dictionary into the Chip object.
+        Merges an external manifest with the current compilation manifest.
 
         All value fields in the provided schema dictionary are merged into the
         current chip object. Dictionaries with non-existent keypath produces a
@@ -1397,7 +1402,7 @@ class Chip:
     ###########################################################################
     def check_manifest(self):
         '''
-        Checks the validity of the Chip object in memory manifest.
+        Verifies the integrity of the pre-run compilation manifest.
 
         Checks the validity of the current schema manifest in
         memory to ensure that the design has been properly set up prior
@@ -1473,7 +1478,7 @@ class Chip:
     ###########################################################################
     def read_manifest(self, filename, job=None, update=True, clear=True, clobber=True):
         """
-        Reads a schema manifest from a file into the Chip object.
+        Reads a manifest from disk and merges it with the current compilation manifest.
 
         The file format read is determined by the filename suffix. Currently
         json (*.json) and yaml(*.yaml) formats are supported.
@@ -1515,7 +1520,7 @@ class Chip:
     ###########################################################################
     def write_manifest(self, filename, prune=True, abspath=False, job=None):
         '''
-        Writes the Chip objects manifest to a file.
+        Writes the compilation manifest to a file.
 
         The write file format is determined by the filename suffix. Currently
         json (*.json), yaml (*.yaml), tcl (*.tcl), and (*.csv) formats are
@@ -1628,7 +1633,7 @@ class Chip:
     ###########################################################################
 
     def write_flowgraph(self, filename, fillcolor='#ffffff', fontcolor='#000000', fontsize='14', border=True, landscape=False):
-        '''Writes the execution flow graph to a file.
+        '''Renders and saves the compilation flowgraph to a file.
 
         The chip object flowgraph is traversed to create a graphviz (*.dot)
         file comprised of node, edges, and labels. The dot file is a
@@ -1737,7 +1742,7 @@ class Chip:
 
     ###########################################################################
     def hash_files(self, *keypath, algo='sha256', update=True):
-        '''Generate hash values for parameter files based on keypath provided.
+        '''Generates hash values for a list of parameter files.
 
         Generates a list of hash values based on the contents of the set of
         files contained within the parameter indicated by the keypath. If the
@@ -1789,7 +1794,7 @@ class Chip:
 
     ###########################################################################
     def audit_manifest(self):
-        '''Performance an audit of the chip manifest
+        '''Verifies the integrity of the post-run compilation manifest .
 
         Checks the integrity of the chip object implementation flow after
         the run() function has been completed. Errors, warnings, and debug
@@ -1818,7 +1823,7 @@ class Chip:
 
     ###########################################################################
     def calc_yield(self, model='poisson'):
-        '''Calculates raw die yield
+        '''Calculates raw die yield.
 
         Calculates the raw yield of the design as a function of design area
         and d0 defect density. Calculation can be done based on the poisson
@@ -1854,7 +1859,7 @@ class Chip:
 
     ##########################################################################
     def calc_dpw(self):
-        '''Calculates dies per wafer
+        '''Calculates dies per wafer.
 
         Calculates the gross dies per wafer based on the design area, wafersize,
         wafer edge margin, and scribe lines. The calculation is done by starting
@@ -1916,7 +1921,7 @@ class Chip:
     ###########################################################################
     def summary(self, show_all_indices=False):
         '''
-        Prints a summary of the chip object metrics.
+        Prints a summary of the compilation manifest.
 
         Metrics from the flowgraph steps, or steplist parameter if
         defined, are printed out on a per step basis. All metrics from the
@@ -2033,7 +2038,7 @@ class Chip:
     ###########################################################################
     def list_steps(self):
         '''
-        Returns an ordered list of steps from flowgraph dictionary.
+        Returns an ordered list of flowgraph steps.
 
         All step keys from the flowgraph dictionary are collected and the
         distance from the root node (ie. without any inputs defined) is
@@ -2084,12 +2089,22 @@ class Chip:
     ###########################################################################
     def clock(self, *, name, pin, period, jitter=0):
         """
-        Sets up Returns the absolute path to an output file based arguments.
+        Clock configuration helper function.
+
+        A utility function for setting all parameters associated with a
+        single clock definition in the schema.
+
+        The method modifies the following schema parameters:
+
+        ['clock', name, 'pin']
+        ['clock', name, 'period']
+        ['clock', name, 'jitter']
 
         Args:
             name (str): Clock reference name.
             pin (str): Full hiearchical path to clk pin.
-            period (float): Clock period specified in ns
+            period (float): Clock period specified in ns.
+            jitter (float): Clock jitter specified in ns.
 
         Examples:
             >>> chip.clock(name='clk', pin='clk, period=1.0)
@@ -2101,36 +2116,48 @@ class Chip:
         self.set('clock', name, 'jitter', jitter)
 
     ###########################################################################
-    def node(self, task, tool, index=0):
+    def node(self, step, tool, index=0):
         '''
-        Creates a flow node.
+        Creates a flowgraph node.
 
-        Binds a task name to a tool. The tool can be an external tool or one
-        of the built in SC tools (ie. functions). The built in functions are:
-        minimum, maximum, join, mux, verify.
+        Creates a flowgraph node by binding a tool to a task. A task is defined
+        as the combination of a step and index. A tool can be an external
+        exeuctable or one of the built in functions in the SiliconCompiler
+        framework). Built in functions include: minimum, maximum, join, mux,
+        verify.
 
-        All metric weights are set to zero.
+        The method modifies the following schema parameters:
+
+        ['flowgraph', step, index, 'tool', tool]
+        ['flowgraph', step, index, 'weight', metric]
 
         Args:
-            task (str): Name of task
-            tool (str): Tool (or builtin function) to bind to task.
-            n (int): Number of nodes to launch for 'task'.
+            step (str): Task step name
+            tool (str): Tool (or builtin function) to associate with task.
+            index (int): Task index
 
         Examples:
-            >>> chip.node('place', 'openroad', n=100)
-           Creates 100 'place' tasks using 'openroad' as the tool.
+            >>> chip.node('place', 'openroad', index=0)
+            Creates a task with step='place' and index=0 and binds it to the 'openroad' tool.
         '''
 
         # bind tool to node
-        self.set('flowgraph', task, str(index), 'tool', tool)
+        self.set('flowgraph', step, str(index), 'tool', tool)
         # set default weights
         for metric in self.getkeys('metric', 'default', 'default'):
-            self.set('flowgraph', task, str(index), 'weight', metric, 0)
+            self.set('flowgraph', step, str(index), 'weight', metric, 0)
 
     ###########################################################################
     def edge(self, tail, head, tail_index=0, head_index=0):
         '''
-        Creates an directed edge from tail node to head node.
+        Creates a directed edge from a tail node to a head node.
+
+        Connects the output of a tail node with the input of a head node by
+        setting the 'input' field of the head node in the schema flowgraph.
+
+        The method modifies the following parameters:
+
+        ['flowgraph', head, str(head_index), 'input']
 
         Args:
             tail (str): Name of tail node
@@ -2140,101 +2167,96 @@ class Chip:
 
         Examples:
             >>> chip.edge('place', 'cts')
-           Creates a directed edge betweeen place and cts.
+            Creates a directed edge from place to cts.
         '''
 
         self.add('flowgraph', head, str(head_index), 'input', (tail, str(tail_index)))
 
     ###########################################################################
-    def join(self, *steps):
+    def join(self, *tasks):
         '''
-        Pass through function for joining multiple inputs in one step
+        Merges outputs from a list of input tasks.
 
         Args:
-            steps(list str): List of inputs
+            tasks(list): List of input tasks specified as (step,index) tuples.
 
         Returns:
             Input list
 
         Examples:
-            >>> select = chip.join(['lvs0', 'drc0'])
-           Selct gets the input list ['lvs0', 'drc0']
+            >>> select = chip.join([('lvs','0'), ('drc','0')])
+           Select gets the list [('lvs','0'), ('drc','0')]
         '''
 
-        steplist = list(steps)
-        sel_inputs = steplist
+        tasklist = list(tasks)
+        sel_inputs = tasklist
 
         # no score for join, so just return 0
         return sel_inputs
 
     ###########################################################################
-    def minimum(self, *steps):
+    def minimum(self, *tasks):
         '''
-        Calculates the minimum value for all indexes of all steps provided.
+        Selects the task with the minimum metric score from a list of inputs.
 
         Sequence of operation:
 
-        1. Check all steps/indexes to see if all metrics meets goals
-        2. Check all steps/indexes to find global min/max for each metric
+        1. Check list of input tasks to see if all metrics meets goals
+        2. Check list of input tasks to find global min/max for each metric
         3. Select MIN value if all metrics are met.
         4. Normalize the min value as sel = (val - MIN) / (MAX - MIN)
-        5. Return normalized value and index
+        5. Return normalized value and task name
 
         Meeting metric goals takes precedence over compute metric scores.
         Only goals with values set and metrics with weights set are considered
         in the calculation.
 
         Args:
-            steps(list str): List of stepindex pair inputs to select from
+            tasks(list): List of input tasks specified as (step,index) tuples.
 
         Returns:
             tuple containing
 
-            - score (float): Maximum score
-            - stepindex (str): Minimum stepindex pair
+            - score (float): Minimum score
+            - task (tuple): Task with minimum score
 
         Examples:
-            >>> (score, minindex) = chip.minimum(['place'])
-            The variable minstep gets the minimum index for 'place' step.
-            The variable 'score' gets the minimum value computed.
+            >>> (score, task) = chip.minimum([('place','0'),('place','1')])
 
         '''
-        return self._minmax(*steps, op="minimum")
+        return self._minmax(*tasks, op="minimum")
 
     ###########################################################################
-    def maximum(self, *steps):
+    def maximum(self, *tasks):
         '''
-
-        Calculates the maximum value for all indexes of all steps provided.
+        Selects the task with the maximum metric score from a list of inputs.
 
         Sequence of operation:
 
-        1. Check all steps/indexes to see if all metrics meets goals
-        2. Check all steps/indexes to find global min/max for each metric
+        1. Check list of input tasks to see if all metrics meets goals
+        2. Check list of input tasks to find global min/max for each metric
         3. Select MAX value if all metrics are met.
-        4. Normalize the max value as sel = (val - MIN) / (MAX - MIN)
-        5. Return normalized value and index
+        4. Normalize the min value as sel = (val - MIN) / (MAX - MIN)
+        5. Return normalized value and task name
 
         Meeting metric goals takes precedence over compute metric scores.
         Only goals with values set and metrics with weights set are considered
         in the calculation.
 
         Args:
-            steps(list str): A variable length list of steps.
+            tasks(list): List of input tasks specified as (step,index) tuples.
 
         Returns:
             tuple containing
 
             - score (float): Maximum score.
-            - stepindex (str): Maximum stepindex pair.
+            - task (tuple): Task with minimum score
 
         Examples:
-            >>> (score, maxindex) = chip.minimum(['place'])
-            The variable maxstep gets the maximum index for 'place' step.
-            The variable 'score' gets the maximum value computed.
+            >>> (score, task) = chip.maximum([('place','0'),('place','1')])
 
         '''
-        return self._minmax(*steps, op="maximum")
+        return self._minmax(*tasks, op="maximum")
 
     ###########################################################################
     def _minmax(self, *steps, op="minimum", **selector):
@@ -2310,9 +2332,9 @@ class Chip:
         return (min_score, winner)
 
     ###########################################################################
-    def verify(self, *steps, **assertion):
+    def verify(self, *tasks, **assertion):
         '''
-        Checks that all metrics assertion holds true for steplist provided.
+        Tests an assertion on a list of input tasks.
 
         The provided steplist is verified to ensure that all assertions
         are True. If any of the assertions fail, False is returned.
@@ -2335,9 +2357,9 @@ class Chip:
         return True
 
     ###########################################################################
-    def mux(self, *steps, op='minimum', **selector):
+    def mux(self, *tasks, **selector):
         '''
-        Selects a step/index input based on the provided selector criteria.
+        Selects a task from a list of inputs.
 
         The selector criteria provided is used to create a custom function
         for selecting the best step/index pair from the inputs. Metrics and
@@ -2820,7 +2842,7 @@ class Chip:
     ###########################################################################
     def run(self):
         '''
-        Runs the execution flow set up by the manifest flowgraph dictionary.
+        Executes tasks in a flowgraph.
 
         The run function sets up tools and launches runs for every index
         in a step defined by a steplist. The steplist is taken from the schema
