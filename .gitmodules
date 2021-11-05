@@ -25,9 +25,6 @@
 [submodule "third_party/designs/adi"]
 	path = third_party/designs/adi
 	url = https://github.com/analogdevicesinc/hdl
-[submodule "third_party/designs/ettus-uhd"]
-	path = third_party/designs/ettus-uhd
-	url = https://github.com/EttusResearch/uhd
 [submodule "third_party/designs/picorv32"]
 	path = third_party/designs/picorv32
 	url = https://github.com/cliffordwolf/picorv32
