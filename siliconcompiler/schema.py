@@ -3229,6 +3229,34 @@ def schema_options(cfg):
     ''' Run-time options
     '''
 
+    cfg['credentials'] = {
+        'switch': "-credentials <file>",
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'true',
+        'requirement': None,
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'User credentials file',
+        'example': ["cli: -credentials /home/user/.sc/credentials",
+                    "api: chip.set('credentials','/home/user/.sc/credentials')"],
+        'help': """
+        Filepath to credentials used for remote processing. If the
+        credentials parameter is empty, the remote processing client program
+        tries to acceess the ".sc/credentials" file in the user's home
+        directory. The file supports the following fields:
+
+        userid=<user id>
+        secret_key=<secret key used for authentication>
+        server=<ipaddr or url>
+
+        """
+        }
+
     # SC version number
     cfg['scversion'] = {
         'switch': "-scversion <str>",
@@ -3880,11 +3908,11 @@ def schema_design(cfg):
         in order from first to last entered. File type is inferred from the
         file suffix.
         (\\*.v, \\*.vh) = Verilog
-        (\\*.vhd)      = VHDL
-        (\\*.sv)       = SystemVerilog
-        (\\*.c)        = C
-        (\\*.cpp, .cc) = C++
-        (\\*.py)       = Python
+        (\\*.vhd)       = VHDL
+        (\\*.sv)        = SystemVerilog
+        (\\*.c)         = C
+        (\\*.cpp, .cc)  = C++
+        (\\*.py)        = Python
         """
     }
 
