@@ -188,7 +188,7 @@ def post_process(chip):
                metricmatch = re.search(r'^SC_METRIC:\s+(\w+)', line)
                errmatch = re.match(r'^Error:', line)
                warnmatch = re.match(r'^\[WARNING', line)
-               area = re.search(r'^Design area (\d+)', line)
+               area = re.search(r'^Design area (\d+)\s+u\^2\s+(.*)\%\s+utilization', line)
                tns = re.search(r'^tns (.*)',line)
                wns = re.search(r'^wns (.*)',line)
                slack = re.search(r'^worst slack (.*)',line)
@@ -202,9 +202,10 @@ def post_process(chip):
                elif warnmatch:
                    warnings = warnings +1
                elif area:
+                   #TODO: not sure the openroad utilization makes sense?
                    cellarea = round(float(area.group(1)),2)
-                   totalarea = round(chip.calc_area(),2)
-                   utilization = round(100*cellarea/totalarea, 2)
+                   utilization = round(float(area.group(2)),2)
+                   totalarea = round(cellarea/(utilization/100),2)
                    chip.set('metric', step, index, 'cellarea', 'real', cellarea, clobber=True)
                    chip.set('metric', step, index, 'totalarea', 'real', totalarea, clobber=True)
                    chip.set('metric', step, index, 'utilization', 'real', utilization, clobber=True)
