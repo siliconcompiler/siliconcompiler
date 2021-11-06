@@ -3691,6 +3691,23 @@ def schema_options(cfg):
         """
     }
 
+    cfg['show'] = {
+        'switch': "-show <bool>",
+        'type': 'bool',
+        'lock': 'false',
+        'requirement': 'all',
+        'defvalue': 'false',
+        'shorthelp': "Show layout",
+        'example': ["cli: -show",
+                    "api: chip.set('show', 'true')"],
+        'help': """
+        Specifies that the final hardware layout should be
+        shown after the compilation has been completed. The
+        final layout and tool used to display the layout is
+        flow dependant.
+        """
+    }
+
     return cfg
 
 ############################################
