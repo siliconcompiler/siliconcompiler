@@ -237,10 +237,10 @@ def setup_pdk(chip):
     chip.set('mcmm','worst','check', ['setup','hold'])
 
     # Floorplanning defaults for quick experiments
-    chip.set('asic', 'density', 10, clobber=False)
+    chip.set('asic', 'density', 20, clobber=False)
     chip.set('asic', 'aspectratio', 1, clobber=False)
-    # Least common multiple of std. cell width (0.19) and height (1.4)
-    chip.set('asic', 'coremargin', 26.6, clobber=False)
+    # 10 track core margin
+    chip.set('asic', 'coremargin', 1.9, clobber=False)
 
 #########################
 if __name__ == "__main__":
