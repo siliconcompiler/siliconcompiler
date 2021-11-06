@@ -17,9 +17,9 @@ jobs:
           source $GITHUB_WORKSPACE/clean_env/bin/activate
           echo $VIRTUAL_ENV
           echo $TEST_PATHS
-          pip3 install -r $GITHUB_WORKSPACE/requirements.txt -e $GITHUB_WORKSPACE/.
+          pip3 install -r $GITHUB_WORKSPACE/requirements.txt $GITHUB_WORKSPACE/.
           PATH="$HOME/OpenFPGA/openfpga:$PATH"
-          pytest -n 4 -m "eda and quick"
+          pytest -n 4 --import-mode=append -m "eda and quick"
 
   python_test_job:
     timeout-minutes: 15
@@ -45,6 +45,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - run: |
-          pip install -e $GITHUB_WORKSPACE/.
+          pip install $GITHUB_WORKSPACE/.
           pip install pytest pyvirtualdisplay
           pytest --import-mode=append -m "not eda"
