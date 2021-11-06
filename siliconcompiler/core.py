@@ -3085,7 +3085,7 @@ class Chip:
         self.cfghistory[self.get('jobname')] = copy.deepcopy(self.cfg)
 
     ###########################################################################
-    def show_file(self, filename):
+    def show_file(self, filename=None):
         '''
         Opens a graphical viewer for the filename provided.
 
@@ -3110,14 +3110,27 @@ class Chip:
 
         Examples:
             >>> show_file('build/oh_add/job0/export/0/outputs/oh_add.gds')
-            Displays def file with a viewer assigned by 'showtool'
+            Displays gds file with a viewer assigned by 'showtool'
             >>> show_file('build/oh_add/job0/export/0/outputs/oh_add.pkg.json')
             Displays manifest in the browser
         '''
 
         self.logger.info("Showing file %s", filename)
 
-        # Parsing filepaths
+        # Finding lasts layout if no argument specified
+        if filename is None:
+            design = self.get('design')
+            laststep = self.list_steps()[-1]
+            lastindex = '0'
+            lastdir = self._getworkdir(step=laststep, index=lastindex)
+            gds_file= f"{lastdir}/outputs/{design}.gds"
+            def_file = f"{lastdir}/outputs/{design}.def"
+            if os.path.isfile(gds_file):
+                filename = gds_file
+            elif os.path.isfile(def_file):
+                filename = def_file
+
+        # Parsing filepath
         filepath = os.path.abspath(filename)
         basename = os.path.basename(filepath)
         localfile = basename.replace(".gz","")
