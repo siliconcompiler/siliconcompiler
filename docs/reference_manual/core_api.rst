@@ -39,6 +39,7 @@ Refer to the User Guide for architecture concepts and the
     :nosignatures:
 
     ~siliconcompiler.core.Chip.audit_manifest
+    ~siliconcompiler.core.Chip.calc_area
     ~siliconcompiler.core.Chip.calc_yield
     ~siliconcompiler.core.Chip.calc_dpw
     ~siliconcompiler.core.Chip.calc_diecost
