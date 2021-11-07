@@ -84,10 +84,18 @@ View layout
 ------------
 
 If you installed the Klayout program during installation, you can now
-view the layout of the heartbeat example using the 'sc-show' command
-line app distributed with SiliconCompiler. The 'sc-show' app is a
+view the layout of the heartbeat by uncommenting the show_file line
+in the heartbeat.py example.::
+
+  chip.show_file()
+
+Alternatively, you can run the SiliconCompiler app 'sc-show'
+at the command line to display the layout. The 'sc-show' app is a
 wrapper around layout viewers that helps ensure that all the
 technology/layer settings are set up correctly.
 
 .. code-block:: bash
-   (venv) sc-show heartbeat.gds
+
+   (venv) sc-show -design heartbeat
+
+.. image:: examples/heartbeat.png
