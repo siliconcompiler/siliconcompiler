@@ -17,4 +17,4 @@ for i in range(syn_np):
 chip.edge('synmin', 'floorplan')
 chip.edge('floorplan', 'lec')
 chip.edge('import', 'lec')
-chip.write_flowgraph("pattern_general.png")
+chip.write_flowgraph("../_images/pattern_general.png")

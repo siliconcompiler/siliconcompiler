@@ -2,8 +2,8 @@ Execution model
 ===================================
 
 The SiliconCompiler execution model is built around the concept of a
-`flowgraph <https://en.wikipedia.org/wiki/Flow_graph>`_. Each hardware compilation
-is performed based on a static graph with compilation steps and input/output
+`flowgraph <https://en.wikipedia.org/wiki/Flow_graph>`_. Each hardware
+compilation is performed based on a static graph with compilation steps and input/output
 relationships defined by the user. The compilation flow specification is captured in
 the 'flowgraph' schema dictionary.
 

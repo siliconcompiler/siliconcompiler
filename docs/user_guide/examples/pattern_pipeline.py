@@ -19,4 +19,4 @@ for i in range(pipes):
     chip.edge('place', 'route', tail_index=i, head_index=i)
     chip.edge('route', 'merge', tail_index=i)
 
-chip.write_flowgraph("pattern_pipeline.png")
+chip.write_flowgraph("../_images/pattern_pipeline.png")
