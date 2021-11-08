@@ -1632,7 +1632,9 @@ class Chip:
 
     ###########################################################################
 
-    def write_flowgraph(self, filename, fillcolor='#ffffff', fontcolor='#000000', fontsize='14', border=True, landscape=False):
+    def write_flowgraph(self, filename, fillcolor='#ffffff',
+                        fontcolor='#000000', fontsize='14',
+                        border=True, landscape=False):
         '''Renders and saves the compilation flowgraph to a file.
 
         The chip object flowgraph is traversed to create a graphviz (*.dot)
@@ -1671,16 +1673,22 @@ class Chip:
         dot = graphviz.Digraph(format=fileformat)
         dot.attr(bgcolor='transparent')
         for step in self.getkeys('flowgraph'):
+            irange = 0
             for index in self.getkeys('flowgraph', step):
+                irange = irange +1
+            for i in range(irange):
+                index = str(i)
                 node = step+index
                 # create step node
                 tool =  self.get('flowgraph', step, index, 'tool')
-                if tool not in self.builtin:
+                if tool in self.builtin:
+                    labelname = step
+                elif tool is not None:
                     labelname = f"{step}{index}\n({tool})"
                 else:
-                    labelname = step
+                    labelname = f"{step}{index}"
                 dot.node(node, label=labelname, bordercolor=fontcolor, style='filled',
-                         fontcolor=fontcolor, fontsize=fontsize,
+                         fontcolor=fontcolor, fontsize=fontsize, ordering="in",
                          penwidth=penwidth, fillcolor=fillcolor)
                 # get inputs
                 all_inputs = []
