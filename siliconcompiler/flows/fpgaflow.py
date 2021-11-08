@@ -79,6 +79,13 @@ def setup_flow(chip):
     else:
         flowpipe = ['import', 'syn', 'apr', 'bitstream']
 
+    # Perform SystemVerilog to Verilog conversion step only if `flowarg, sv` is True
+    sv = ('sv' in chip.getkeys('flowarg') and
+           len(chip.get('flowarg', 'sv')) > 0 and
+           chip.get('flowarg', 'sv')[0] == 'true')
+    if sv:
+        flowpipe = flowpipe[:1] + ['convert'] + flowpipe[1:]
+
     # Set the steplist which can run remotely (if required)
     chip.set('remote', 'steplist', flowpipe[1:])
 
@@ -188,6 +195,8 @@ def tool_lookup(flow, step):
     # common first step
     if step == "import":
         tool = 'surelog'
+    elif step == "convert":
+        tool = 'sv2v'
     # open source ice40 flow
     elif flow == "yosys-nextpnr":
         if step == "syn":
