@@ -70,11 +70,7 @@ def setup_pdk(chip):
     rev = 'r1p7'
     stackup = '10M'
     libtype = '7p5t'
-    pdkdir = '/'.join(["third_party/pdks",
-                       foundry,
-                       process,
-                       'pdk',
-                       rev])
+    pdkdir = os.path.join(foundry, process, 'pdk', rev)
 
     # If you got here,  you are in asic mode
     chip.set('mode', 'asic', clobber=True)
@@ -166,12 +162,7 @@ def setup_pdk(chip):
     rev = 'r1p7'
     corner = 'typical'
     objectives = ['setup']
-    libdir = '/'.join(["../third_party/pdks",
-                       foundry,
-                       process,
-                       'libs',
-                       libname,
-                       rev])
+    libdir = os.path.join(foundry, process, 'libs', libname, rev)
 
     # rev
     chip.set('library',libname,'version',rev)
