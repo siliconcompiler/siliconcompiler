@@ -11,6 +11,9 @@ def pytest_addoption(parser):
         "--cwd", action="store_true", help=helpstr
     )
 
+def pytest_generate_tests(metafunc):
+    os.environ['SCPATH'] = os.path.join(fixtures.scroot(), 'third_party', 'pdks')
+
 @pytest.fixture(autouse=True)
 def test_wrapper(tmp_path, request):
     '''Fixture that automatically runs each test in a test-specific temporary

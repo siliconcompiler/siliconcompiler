@@ -1134,12 +1134,17 @@ class Chip:
         # Otherwise, search relative to scpaths
         scpaths = [self.scroot, self.cwd]
         scpaths.extend(self.get('scpath'))
+        if 'SCPATH' in os.environ:
+            scpaths.extend(os.environ['SCPATH'].split(':'))
 
         searchdirs = ', '.join(scpaths)
         self.logger.debug(f"Searching for file {filename} in {searchdirs}")
 
         result = None
         for searchdir in scpaths:
+            if not os.path.isabs(searchdir):
+                searchdir = os.path.join(self.cwd, searchdir)
+
             abspath = os.path.abspath(searchdir + "/" + filename)
             if os.path.exists(abspath):
                 result = abspath
