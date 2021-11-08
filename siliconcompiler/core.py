@@ -3085,7 +3085,7 @@ class Chip:
         self.cfghistory[self.get('jobname')] = copy.deepcopy(self.cfg)
 
     ###########################################################################
-    def show_file(self, filename=None):
+    def show(self, filename=None):
         '''
         Opens a graphical viewer for the filename provided.
 
@@ -3109,9 +3109,9 @@ class Chip:
             filename: Name of file to display
 
         Examples:
-            >>> show_file('build/oh_add/job0/export/0/outputs/oh_add.gds')
+            >>> show('build/oh_add/job0/export/0/outputs/oh_add.gds')
             Displays gds file with a viewer assigned by 'showtool'
-            >>> show_file('build/oh_add/job0/export/0/outputs/oh_add.pkg.json')
+            >>> show('build/oh_add/job0/export/0/outputs/oh_add.pkg.json')
             Displays manifest in the browser
         '''
 

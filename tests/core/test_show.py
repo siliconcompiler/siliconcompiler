@@ -16,7 +16,7 @@ def display():
 @pytest.mark.parametrize('pdk, testfile',
     [('freepdk45', 'heartbeat_freepdk45.def'),
      ('skywater130', 'heartbeat_sky130.def')])
-def test_show_file(pdk, testfile, datadir, display, headless=True):
+def test_show(pdk, testfile, datadir, display, headless=True):
     chip = siliconcompiler.Chip()
     chip.target(f'asicflow_{pdk}')
     chip.set("quiet", True)
@@ -26,10 +26,10 @@ def test_show_file(pdk, testfile, datadir, display, headless=True):
         chip.set('eda', 'klayout', 'showdef', '0', 'option', 'cmdline', ['-z', '-r'])
 
     path = os.path.join(datadir, testfile)
-    assert chip.show_file(path)
+    assert chip.show(path)
 
 #########################
 if __name__ == "__main__":
     from tests.fixtures import datadir
-    test_show_file('freepdk45', 'heartbeat_freepdk45.def', datadir(__file__),
+    test_show('freepdk45', 'heartbeat_freepdk45.def', datadir(__file__),
                    None, headless=False)

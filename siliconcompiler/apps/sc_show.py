@@ -69,7 +69,7 @@ def main():
 
     # Read in file
     chip.logger.info("Displaying filename")
-    chip.show_file(filename)
+    chip.show(filename)
 
 #########################
 if __name__ == "__main__":
