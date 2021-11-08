@@ -1,6 +1,8 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import os
+import shutil
 import siliconcompiler
+from unittest import mock
 
 def test_find_sc_file(datadir):
 
@@ -17,6 +19,34 @@ def test_find_sc_file(datadir):
 
     assert chip._find_sc_file('my_file_that_doesnt_exist.blah') is None
     assert chip.error == 1
+
+def test_find_sc_file_env(datadir):
+    '''Ensure we can find files on a custom path by setting the SCPATH env
+    variable.'''
+    chip = siliconcompiler.Chip()
+
+    # assert precondition that we can't find this file by default
+    assert chip._find_sc_file('test.txt', missing_ok=True) is None
+
+    # check that we can find file after inserting sclib path into SCPATH env var
+    env = {'SCPATH': os.path.join(datadir, 'sclib')}
+    with mock.patch.dict(os.environ, env, clear=True):
+        assert chip._find_sc_file('test.txt', missing_ok=True) is not None
+
+def test_find_sc_file_relative(datadir):
+    '''Ensure we can find files based on a relative path added to scpath.'''
+
+    # copy sclib/ from datadir into this test's temporary working directory, so
+    # we can reference it via relative path.
+    shutil.copytree(os.path.join(datadir, 'sclib'), 'sclib')
+
+    chip = siliconcompiler.Chip()
+
+    assert chip._find_sc_file('test.txt', missing_ok=True) is None
+
+    chip.set('scpath', 'sclib')
+
+    assert chip._find_sc_file('test.txt', missing_ok=True) is not None
 
 #########################
 if __name__ == "__main__":
