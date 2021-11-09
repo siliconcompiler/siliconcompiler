@@ -27,7 +27,7 @@ def main():
         overwrite = False
         while not overwrite:
             oin = input('Overwrite existing remote configuration? (y/N)')
-            if (not oin) or (oin == 'n') or (on == 'N'):
+            if (not oin) or (oin == 'n') or (oin == 'N'):
                 print('Exiting.')
                 return
             elif (oin == 'y') or (oin == 'Y'):
