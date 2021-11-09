@@ -3741,6 +3741,19 @@ def schema_showtool(cfg, filetype='default'):
 def schema_remote(cfg):
 
     cfg['remote'] = {}
+    cfg['remote']['proc'] = {
+        'switch': "-remote_proc <bool>",
+        'type': 'bool',
+        'lock': 'false',
+        'requirement': None,
+        'defvalue': False,
+        'shorthelp': 'Flag to run a job through a remote server.',
+        'example': ["cli: -remote_proc",
+                    "api: chip.set('remote', 'proc', True)"],
+        'help': """
+        Determines whether the job should be run locally, or on a remote server.
+        """
+    }
 
     # Remote IP address/host name running sc-server app
     cfg['remote']['addr'] = {

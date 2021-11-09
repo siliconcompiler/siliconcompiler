@@ -21,8 +21,12 @@ from siliconcompiler import utils
 def get_base_url(chip):
     '''Helper method to get the root URL for API calls, given a Chip object.
     '''
-    remote_host = chip.get('remote', 'addr')
-    remote_port = chip.get('remote', 'port')
+    rcfg = chip.status['remote_cfg']
+    remote_host = rcfg['address']
+    if 'port' in rcfg:
+        remote_port = rcfg['port']
+    else:
+        remote_port = 443
     remote_host += ':' + str(remote_port)
     if remote_host.startswith('http'):
         remote_protocol = ''
@@ -125,10 +129,10 @@ def request_remote_run(chip):
     local_build_dir = stepdir = os.path.join(chip.get('dir'),
                                              chip.get('design'),
                                              job_nameid)
-    if (('user' in chip.getkeys('remote') and chip.get('remote', 'user')) and \
-        ('password' in chip.getkeys('remote') and chip.get('remote', 'password'))):
-        post_params['params']['username'] = chip.get('remote', 'user')
-        post_params['params']['key'] = chip.get('remote', 'password')
+    if chip.get('remote', 'proc'):
+        rcfg = chip.status['remote_cfg']
+        post_params['params']['username'] = rcfg['username']
+        post_params['params']['key'] = rcfg['password']
 
     # If '-remote_user' and '-remote_key' are not both specified,
     # no authorizaion is configured; proceed without crypto.
@@ -177,10 +181,10 @@ def is_job_busy(chip):
     }
 
     # Set authentication parameters if necessary.
-    if (('user' in chip.getkeys('remote') and chip.get('remote', 'user')) and \
-        ('password' in chip.getkeys('remote') and chip.get('remote', 'password'))):
-        post_params['username'] = chip.get('remote', 'user')
-        post_params['key'] = chip.get('remote', 'password')
+    if chip.get('remote', 'proc'):
+        rcfg = chip.status['remote_cfg']
+        post_params['username'] = rcfg['username']
+        post_params['key'] = rcfg['password']
 
     # Make the request and print its response.
     redirect_url = remote_run_url
@@ -207,10 +211,10 @@ def delete_job(chip):
     }
 
     # Set authentication parameters if necessary.
-    if (('user' in chip.getkeys('remote') and chip.get('remote', 'user')) and \
-        ('password' in chip.getkeys('remote') and chip.get('remote', 'password'))):
-        post_params['username'] = chip.get('remote', 'user')
-        post_params['key'] = chip.get('remote', 'password')
+    if chip.get('remote', 'proc'):
+        rcfg = chip.status['remote_cfg']
+        post_params['username'] = rcfg['username']
+        post_params['key'] = rcfg['password']
 
     # Make the request.
     redirect_url = remote_run_url
@@ -234,11 +238,11 @@ def fetch_results_request(chip):
     remote_run_url = get_base_url(chip) + '/get_results/' + job_hash + '.zip'
 
     # Set authentication parameters if necessary.
-    if (('user' in chip.getkeys('remote') and chip.get('remote', 'user')) and \
-        ('password' in chip.getkeys('remote') and chip.get('remote', 'password'))):
+    if chip.get('remote', 'proc'):
+        rcfg = chip.status['remote_cfg']
         post_params = {
-            'username': chip.get('remote', 'user'),
-            'key': chip.get('remote', 'password'),
+            'username': rcfg['username'],
+            'key': rcfg['password'],
         }
     else:
         post_params = {}
