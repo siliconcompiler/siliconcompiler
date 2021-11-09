@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 import traceback
@@ -32,8 +33,12 @@ def test_gcd_server(gcd_chip):
     # Ensure that klayout doesn't open its GUI after results are retrieved.
     os.environ['DISPLAY'] = ''
 
-    gcd_chip.set('remote', 'addr', 'localhost')
-    gcd_chip.set('remote', 'port', '8080')
+    # Create the temporary credentials file, and set the Chip to use it.
+    tmp_creds = '.test_remote_cfg'
+    with open(tmp_creds, 'w') as tmp_cred_file:
+        tmp_cred_file.write(json.dumps({'address': 'localhost', 'port': 8080}))
+    gcd_chip.set('remote', 'proc', True)
+    gcd_chip.set('credentials', os.path.abspath(tmp_creds))
 
     # Run the remote job.
     try:

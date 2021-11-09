@@ -21,8 +21,12 @@ from siliconcompiler import utils
 def get_base_url(chip):
     '''Helper method to get the root URL for API calls, given a Chip object.
     '''
-    remote_host = chip.get('remote', 'addr')
-    remote_port = chip.get('remote', 'port')
+    rcfg = chip.status['remote_cfg']
+    remote_host = rcfg['address']
+    if 'port' in rcfg:
+        remote_port = rcfg['port']
+    else:
+        remote_port = 443
     remote_host += ':' + str(remote_port)
     if remote_host.startswith('http'):
         remote_protocol = ''
@@ -95,7 +99,7 @@ def remote_run(chip):
     while is_busy:
       chip.logger.info("Job is still running. (%d seconds)"%(
                        int(time.monotonic() - step_start)))
-      time.sleep(10)
+      time.sleep(30)
       try:
           is_busy = is_job_busy(chip)
       except:
@@ -125,14 +129,10 @@ def request_remote_run(chip):
     local_build_dir = stepdir = os.path.join(chip.get('dir'),
                                              chip.get('design'),
                                              job_nameid)
-    if (('user' in chip.getkeys('remote') and chip.get('remote', 'user')) and \
-        ('password' in chip.getkeys('remote') and chip.get('remote', 'password'))):
-        post_params['params']['username'] = chip.get('remote', 'user')
-        post_params['params']['key'] = chip.get('remote', 'password')
-        local_build_dir = stepdir = os.path.join(chip.get('dir'),
-                                                 chip.get('design'),
-                                                 job_nameid,
-                                                 'import')
+    rcfg = chip.status['remote_cfg']
+    if ('username' in rcfg) and ('password' in rcfg):
+        post_params['params']['username'] = rcfg['username']
+        post_params['params']['key'] = rcfg['password']
 
     # If '-remote_user' and '-remote_key' are not both specified,
     # no authorizaion is configured; proceed without crypto.
@@ -181,10 +181,10 @@ def is_job_busy(chip):
     }
 
     # Set authentication parameters if necessary.
-    if (('user' in chip.getkeys('remote') and chip.get('remote', 'user')) and \
-        ('password' in chip.getkeys('remote') and chip.get('remote', 'password'))):
-        post_params['username'] = chip.get('remote', 'user')
-        post_params['key'] = chip.get('remote', 'password')
+    rcfg = chip.status['remote_cfg']
+    if ('username' in rcfg) and ('password' in rcfg):
+        post_params['username'] = rcfg['username']
+        post_params['key'] = rcfg['password']
 
     # Make the request and print its response.
     redirect_url = remote_run_url
@@ -211,10 +211,10 @@ def delete_job(chip):
     }
 
     # Set authentication parameters if necessary.
-    if (('user' in chip.getkeys('remote') and chip.get('remote', 'user')) and \
-        ('password' in chip.getkeys('remote') and chip.get('remote', 'password'))):
-        post_params['username'] = chip.get('remote', 'user')
-        post_params['key'] = chip.get('remote', 'password')
+    rcfg = chip.status['remote_cfg']
+    if ('username' in rcfg) and ('password' in rcfg):
+        post_params['username'] = rcfg['username']
+        post_params['key'] = rcfg['password']
 
     # Make the request.
     redirect_url = remote_run_url
@@ -238,11 +238,11 @@ def fetch_results_request(chip):
     remote_run_url = get_base_url(chip) + '/get_results/' + job_hash + '.zip'
 
     # Set authentication parameters if necessary.
-    if (('user' in chip.getkeys('remote') and chip.get('remote', 'user')) and \
-        ('password' in chip.getkeys('remote') and chip.get('remote', 'password'))):
+    rcfg = chip.status['remote_cfg']
+    if ('username' in rcfg) and ('password' in rcfg):
         post_params = {
-            'username': chip.get('remote', 'user'),
-            'key': chip.get('remote', 'password'),
+            'username': rcfg['username'],
+            'key': rcfg['password'],
         }
     else:
         post_params = {}
@@ -284,26 +284,18 @@ def fetch_results(chip):
 
     # Authenticated jobs get a zip file full of other zip files.
     # So we need to extract and delete those.
-    if ('password' in chip.getkeys('remote')) and chip.get('remote', 'password'):
-        subprocess.run(['tar', '-xf', f'{job_hash}.zip', '-C', local_dir])
-        for zipf in glob.iglob(os.path.join(local_dir, chip.get('design'), chip.get('jobname'), '*.zip')):
-            stepdir = zipf[:-4]
-            os.makedirs(stepdir, exist_ok=True)
-            subprocess.run(['tar', '-xf', zipf, '-C', stepdir])
-            os.remove(zipf)
-    else:
-        subprocess.run(['tar', '-xf', f'{job_hash}.zip'])
-        # Remove the results archive after it is extracted.
-        os.remove(f'{job_hash}.zip')
+    subprocess.run(['tar', '-xf', f'{job_hash}.zip'])
+    # Remove the results archive after it is extracted.
+    os.remove(f'{job_hash}.zip')
 
-        # Remove dangling 'import' symlinks if necessary.
-        for import_link in glob.iglob(job_hash + '/' + top_design + '/**/import*',
-                                      recursive=True):
-            if os.path.islink(import_link):
-                os.remove(import_link)
-        # Copy the results into the local build directory, and remove the
-        # unzipped directory (including encrypted archives).
-        utils.copytree(job_hash,
-                       local_dir,
-                       dirs_exist_ok = True)
-        shutil.rmtree(job_hash)
+    # Remove dangling 'import' symlinks if necessary.
+    for import_link in glob.iglob(job_hash + '/' + top_design + '/**/import*',
+                                  recursive=True):
+        if os.path.islink(import_link):
+            os.remove(import_link)
+    # Copy the results into the local build directory, and remove the
+    # unzipped directory (including encrypted archives).
+    utils.copytree(job_hash,
+                   local_dir,
+                   dirs_exist_ok = True)
+    shutil.rmtree(job_hash)
