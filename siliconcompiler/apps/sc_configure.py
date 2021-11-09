@@ -15,10 +15,14 @@ def main():
     -----------------------------------------------------------
     """
 
+    # Find the config file/directory path.
     cfg_dir = os.path.join(Path.home(), '.siliconcompiler')
     cfg_file = os.path.join(cfg_dir, '.remote_config')
+    # Create directory if it doesn't exist.
     if not os.path.isdir(cfg_dir):
         os.makedirs(cfg_dir)
+
+    # If an existing config file exists, prompt the user to overwrite it.
     if os.path.isfile(cfg_file):
         overwrite = False
         while not overwrite:
@@ -28,9 +32,13 @@ def main():
                 return
             elif (oin == 'y') or (oin == 'Y'):
                 overwrite = True
+
+    # Get parameters from user input.
     srv_addr = input('Remote server address: ')
     username = input('Remote username: ')
     user_pass = input('Remote password: ')
+
+    # Save the values to the target config file in JSON format.
     with open(cfg_file, 'w') as f:
         f.write('''\
 {
@@ -38,6 +46,8 @@ def main():
   "username": "%s",
   "password": "%s"
 }'''%(srv_addr, username, user_pass))
+
+    # Let the user know that we finished successfully.
     print('Configuration saved.')
 
 #########################

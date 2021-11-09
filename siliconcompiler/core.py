@@ -2661,7 +2661,6 @@ class Chip:
 
         design = self.get('design')
         all_inputs = []
-        #if not self.get('remote', 'addr'):
         if not self.get('remote', 'proc'):
             for in_step, in_index in self.get('flowgraph', step, index, 'input'):
                 index_error = error[in_step + in_index]

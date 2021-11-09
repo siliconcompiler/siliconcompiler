@@ -3741,6 +3741,7 @@ def schema_showtool(cfg, filetype='default'):
 def schema_remote(cfg):
 
     cfg['remote'] = {}
+
     cfg['remote']['proc'] = {
         'switch': "-remote_proc <bool>",
         'type': 'bool',
@@ -3752,37 +3753,6 @@ def schema_remote(cfg):
                     "api: chip.set('remote', 'proc', True)"],
         'help': """
         Determines whether the job should be run locally, or on a remote server.
-        """
-    }
-
-    # Remote IP address/host name running sc-server app
-    cfg['remote']['addr'] = {
-        'switch': "-remote_addr <str>",
-        'type': 'str',
-        'lock': 'false',
-        'requirement': 'remote',
-        'defvalue': None,
-        'shorthelp': 'Remote server address',
-        'example': ["cli: -remote_addr 192.168.1.100",
-                    "api: chip.set('remote', 'addr', '192.168.1.100')"],
-        'help': """
-        Dictates that all steps after the compilation step should be executed
-        on the remote server specified by the IP address or domain name.
-        """
-    }
-
-    # Port number that the remote host is running 'sc-server' on.
-    cfg['remote']['port'] = {
-        'switch': "-remote_port <int>",
-        'type': 'int',
-        'lock': 'false',
-        'requirement': 'remote',
-        'defvalue': '443',
-        'shorthelp': 'Remote server port',
-        'example': ["cli: -remote_port 8080",
-                    "api: chip.set('remote', 'port', '8080')"],
-        'help': """
-        Sets the server port to be used in communicating with the remote host.
         """
     }
 
@@ -3815,37 +3785,6 @@ def schema_remote(cfg):
                     "api: chip.set('remote', 'steplist', 'syn')"],
         'help': """
         List of steps to execute remotely.
-        """
-    }
-
-    # Remote username
-    cfg['remote']['user'] = {
-        'switch': "-remote_user <str>",
-        'type': 'str',
-        'lock': 'false',
-        'requirement': 'remote',
-        'defvalue': None,
-        'shorthelp': 'Remote authentication username.',
-        'example': ["cli: -remote_user testuser",
-                    "api: chip.set('remote', 'user', 'testuser')"],
-        'help': """
-        Specifies a username for authenticating calls with a remote server.
-        """
-    }
-
-    # Remote private key file.
-    cfg['remote']['password'] = {
-        'switch': '-remote_password <str>',
-        'type': 'str',
-        'lock': 'false',
-        'copy': 'false',
-        'requirement': 'remote',
-        'defvalue': None,
-        'shorthelp': 'Remote authentication password.',
-        'example': ["cli: -remote_password k7T&4iG",
-                    "api: chip.set('remote', 'password', 'k7T&4iG')"],
-        'help': """
-        Specifies a password for user authentication.
         """
     }
 
