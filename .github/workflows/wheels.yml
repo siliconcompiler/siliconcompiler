@@ -36,9 +36,6 @@ jobs:
         CIBW_TEST_COMMAND: >
           pytest --import-mode=append -m "not eda" &&
           pytest --import-mode=append {package}/tests/tools/test_surelog.py
-        # TODO: test on every platform once we have Windows and other Python
-        # versions working.
-        CIBW_TEST_SKIP: "*win* cp36* cp37* cp310*"
     - name: Verify clean directory
       run: git diff --exit-code
       shell: bash
