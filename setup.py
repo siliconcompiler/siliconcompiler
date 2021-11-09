@@ -112,6 +112,11 @@ setup(
             "scikit-build >= 0.12",
             "cython",
             "cmake"
+        ],
+        "test": [
+            "pytest >= 6.2.4",
+            "pytest-xdist >= 2.3.0",
+            "pyvirtualdisplay"
         ]
     },
     entry_points={"console_scripts": entry_points},
