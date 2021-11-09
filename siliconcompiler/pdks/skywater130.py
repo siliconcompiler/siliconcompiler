@@ -67,7 +67,7 @@ def setup_pdk(chip):
     vscribe = 0.1
     edgemargin = 2
 
-    pdkdir = os.path.join(foundry, process, 'pdk', rev)
+    pdkdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'pdk', rev)
 
     #if you are calling this file, you are in asic mode
     chip.set('mode','asic', clobber = True)
@@ -156,7 +156,7 @@ def setup_pdk(chip):
     # TODO: should I be using a different name for the corner
     corner = 'typical'
 
-    libdir = os.path.join(foundry, process, 'libs', libname, rev)
+    libdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'libs', libname, rev)
 
 
     chip.set('library', libname, 'type', 'stdcell')
