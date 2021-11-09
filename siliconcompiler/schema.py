@@ -3231,9 +3231,9 @@ def schema_options(cfg):
 
     cfg['credentials'] = {
         'switch': "-credentials <file>",
-        'type': '[file]',
+        'type': 'file',
         'lock': 'false',
-        'copy': 'true',
+        'copy': 'false',
         'requirement': None,
         'defvalue': [],
         'filehash': [],

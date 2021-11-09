@@ -2949,15 +2949,21 @@ class Chip:
         # Remote workflow: Dispatch the Chip to a remote server for processing.
         if self.get('remote', 'proc'):
             # Load the remote storage config into the status dictionary.
-            cfg_dir = os.path.join(Path.home(), '.siliconcompiler')
-            cfg_file = os.path.join(cfg_dir, '.remote_config')
+            if self.get('credentials'):
+                # Use the provided remote credentials file.
+                cfg_file = self.get('credentials')
+                cfg_dir = os.path.dirname(cfg_file)
+            else:
+                # Use the default config file path.
+                cfg_dir = os.path.join(Path.home(), '.siliconcompiler')
+                cfg_file = os.path.join(cfg_dir, '.remote_config')
             if (not os.path.isdir(cfg_dir)) or (not os.path.isfile(cfg_file)):
-                chip.logger.error('Could not find remote server configuration - please run "sc-configure" and enter your server address and credentials.')
+                self.logger.error('Could not find remote server configuration - please run "sc-configure" and enter your server address and credentials.')
                 sys.exit(1)
             with open(cfg_file, 'r') as cfgf:
                 self.status['remote_cfg'] = json.loads(cfgf.read())
             if (not 'address' in self.status['remote_cfg']):
-                chip.logger.error('Improperly formatted remote server configuration - please run "sc-configure" and enter your server address and credentials.')
+                self.logger.error('Improperly formatted remote server configuration - please run "sc-configure" and enter your server address and credentials.')
                 sys.exit(1)
 
             # Pre-process: Run an 'import' stage locally, and upload the
