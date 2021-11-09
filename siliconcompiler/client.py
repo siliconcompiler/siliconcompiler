@@ -129,8 +129,8 @@ def request_remote_run(chip):
     local_build_dir = stepdir = os.path.join(chip.get('dir'),
                                              chip.get('design'),
                                              job_nameid)
-    if chip.get('remote', 'proc'):
-        rcfg = chip.status['remote_cfg']
+    rcfg = chip.status['remote_cfg']
+    if ('username' in rcfg) and ('password' in rcfg):
         post_params['params']['username'] = rcfg['username']
         post_params['params']['key'] = rcfg['password']
 
@@ -181,8 +181,8 @@ def is_job_busy(chip):
     }
 
     # Set authentication parameters if necessary.
-    if chip.get('remote', 'proc'):
-        rcfg = chip.status['remote_cfg']
+    rcfg = chip.status['remote_cfg']
+    if ('username' in rcfg) and ('password' in rcfg):
         post_params['username'] = rcfg['username']
         post_params['key'] = rcfg['password']
 
@@ -211,8 +211,8 @@ def delete_job(chip):
     }
 
     # Set authentication parameters if necessary.
-    if chip.get('remote', 'proc'):
-        rcfg = chip.status['remote_cfg']
+    rcfg = chip.status['remote_cfg']
+    if ('username' in rcfg) and ('password' in rcfg):
         post_params['username'] = rcfg['username']
         post_params['key'] = rcfg['password']
 
@@ -238,8 +238,8 @@ def fetch_results_request(chip):
     remote_run_url = get_base_url(chip) + '/get_results/' + job_hash + '.zip'
 
     # Set authentication parameters if necessary.
-    if chip.get('remote', 'proc'):
-        rcfg = chip.status['remote_cfg']
+    rcfg = chip.status['remote_cfg']
+    if ('username' in rcfg) and ('password' in rcfg):
         post_params = {
             'username': rcfg['username'],
             'key': rcfg['password'],

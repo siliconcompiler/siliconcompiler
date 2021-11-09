@@ -2957,9 +2957,7 @@ class Chip:
                 sys.exit(1)
             with open(cfg_file, 'r') as cfgf:
                 self.status['remote_cfg'] = json.loads(cfgf.read())
-            if (not 'address' in self.status['remote_cfg']) or \
-               (not 'username' in self.status['remote_cfg']) or \
-               (not 'password' in self.status['remote_cfg']):
+            if (not 'address' in self.status['remote_cfg']):
                 chip.logger.error('Improperly formatted remote server configuration - please run "sc-configure" and enter your server address and credentials.')
                 sys.exit(1)
 
