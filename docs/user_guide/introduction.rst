@@ -158,33 +158,44 @@ the program into polygons. An IR for hardware compilation will need to
 rely on a mix of formal specifications, template compilation recipes, and
 standardized tuning parameters.
 
+In 2017, the US Defense Advanced Projects Agency (DARPA) established
+the disruptive IDEA and POSH research programs aiming to reduce the
+barrier to hardware specialziation. The IDEA program aimed to
+"develop a fully automated no-human-in-the-loop circuit layout
+generator that enables users with no electronic design expertise to
+complete physical design of electronic hardware." The POSH program aimed
+to "bootstrap an open source SoC design and verification eco-system to
+enable cost effective design of ultra-complex SoCs." Significant
+contributes made by DARPA and IDEA reserach teams included:
 
+* OpenROAD: Automated RTL2GDS compilation
+* Align/Magical: Automated place and route of analog circuits
+* FASOC: Automated mixed signal design generation
+* ACT: Asynchronous circuit compiler
+* OpenFPGA: Automated FPGA generator
+* Ilang: Formal hardware modeling and verification platform
 
-Recent research efforts like DARPA's IDEA program made great stride towards
-addressing these challenges with projects like OpenRoad, Align, and Magical,
-but we are still some distance away from a general purpose hardware compiler
-that can automatically compile code into production worthy layout at state
-of the art processing nodes.
+These academic projects represent incredible technical advancements,
+but they are still in the prototype stage. Significant technical work
+remains to improve: capacity, speed, feature completeness, stability,
+standards compliance, and documentation.
 
-
-Epiphany V was a 24 hour 100% compilation of a 4.5 billion transistor
-design at 16nm, but it took a silicon veteran of 20 years 3 months to create
-that flow and the design was highly regular.
-
-Recent research efforts like DARPA's IDEA program made great stride towards
-addressing these challenges with projects like OpenRoad, Align, and Magical,
-but we are still some distance away from a general purpose hardware compiler
-that can automatically compile code into production worthy layout at state
-of the art processing nodes.
-
-
-
-No automated commercial general purpose flow
-
-Gaps in particular
-- parallel processing
-- standards
-
+A less well known recent example of silicon compilation is the
+DARPA funded parallel DSP chip "Epiphany-V" from 2016. The chip
+was created using a generator based approach reminiscient of the
+early silicon compiler work from the 1980's. The Epiphany-V chip
+included 4.5 billion transistors 4096 macros, and 1024 IO pins in
+16nm. The fully automated RTL2GDS tapeout flow could compile RTL
+into a manufacturable design database in less than 24hrs on a single
+server. The efficiency metrics of the compiler are impressive but
+they hide the fact that the design was highly regular and the
+compilation flow was customized for the specific chip over the span
+of 3 months by a 20 year silicon veteran. The Epiphany-V flow
+demonstrated: 1.) the feasibility of state of the art automation
+and 2.) the importance of layout/architeture co-design. Unfortunately,
+the large up front work assocaited with creating the chi generator/flow
+makes the approach impractical for creating a general purpose
+compiler which must be capable of compiling any legal program.
 
 
 Our Approach
