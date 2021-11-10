@@ -42,8 +42,14 @@ def setup_tool(chip):
     step = chip.get('arg','step')
     index = chip.get('arg','index')
 
+    exe = tool
+    # Although Windows will find the binary even if the .exe suffix is omitted,
+    # Surelog won't find the relative builtin.sv file unless we add it.
+    if sys.platform.startswith('win32'):
+        exe = f'{tool}.exe'
+
     # Standard Setup
-    chip.set('eda', tool, step, index, 'exe', tool, clobber=False)
+    chip.set('eda', tool, step, index, 'exe', exe, clobber=False)
     chip.set('eda', tool, step, index, 'vswitch', '--version', clobber=False)
     chip.set('eda', tool, step, index, 'version', '0.0', clobber=False)
     chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=False)
