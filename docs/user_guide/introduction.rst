@@ -4,57 +4,41 @@ Introduction
 SiliconCompiler ("SC") is an open source compiler infrastructure project that
 lowers the barrier to custom silicon.
 
-**TL;DR** – Here is the :ref:`Installation` and :ref:`Quickstart quide`
-
-**DRAFT**
+**TL;DR** – Here is the :ref:`Installation` and :ref:`Quickstart guide`
 
 Motivation
 -----------
 
-Processing scaling as we know it is ending and the only option for extending
-Moore's Law indefinitely comes from extreme hardware specialization.
-Unfortunately, this post-Moore era cannot happen with the current design
-methods approaches. Current chip design costs range from $50M - $500M per
-project, making the cost barrier out of scope for all but a small
-number of highly profitable applications. Observing the positive
-impact that silicon has had on the world over the last 50 years,
-it is a social imperative that we extend the exponential Moore's
-Law trend for as long possible. The time has arrived for a second VLSI
-revolution!
+Moore's Law is ending and the only option for continuing on our current
+exponential improvement path is hardware specialization. Unfortunately, using
+today's technology, chip projects development cost can exceed $100M,
+limiting hardware specialization to a small number of highly profitable
+applications. Observing the positive impact that silicon has had
+on the world over the last 50 years, we consider it a social imperative to
+extend Moore's Law for as long possible. Enabling the level of hardware
+specialization needed for the post-Moore era will require a fully automated
+hardware compiler similar to the ones that we take for granted in software
+development.
+
 
 .. image:: ../_images/cost.png
 
-The first silicon design revolution (started in the 1970's by Carver Mead and
-Lynn Conway) introduced a design framework to a generation of engineers and
-laid the foundation for the semiconductor ecosystem that drives the world
-today. It was a time of great excitement, with no limits on big ideas. One of
-the biggest ideas proposed, was the idea of an automated "silicon compiler"
-that could turn a specification into layout the same way we turn a program
-into an exeuctable binary. These early silicon compilers were developed
-around the vision that chips could be autmatically constructured using a set
-of parametrized building blocks. Unfortunately, the appraoch was too limited
-for the rapidly evolving VLSI community. Instead, the design approach that
-did work out was based on mapping a general purpose hardware design language
-(Verilog/VHDL) into a standard cell based netlist abstraciton, and then
-placing and routing that mapped netlist using fully automated algorithms.
-Thousands of silicon miracles are taped out every year using this methods, but
-exponentially increasing design cost suggest there is plenty of room at the
-bottom.
 
 Challenges
 ------------
 
-A core challenge to creating silicon compilers today is the incredible
-numerical complexity of making billions of connected nanoscale devices
-work reliably at low cost. To produce a correct and optimal physical chip
-layout of a chip requires searching an unbounded search space of
-parameter for optimal settings. Selection of each one of the parameters and
-recipes requires access to state of the art EDA tools, design exports,
-reference recipes, and foundry PDKs. The number of physical design concerns
-has been steadily increasing with every CMOS process node advancement,
-starting at 180nm. To qualify production level silicon solutions state
-of the art process nodes (16nm and below) requires sophisticated
-implementation and verification flows with expertise needed in:
+A core challenge in creating a silicon compiler is the incredible numerical
+complexity of optimizing billions of inter-connected devices for power, cost,
+area, speed while ensuring that the produced circuit will operate reliably
+under all possible temperature, voltage, and process conditions. Successful
+compilation requires searching an (almost) unbounded parameter space and
+selecting optimal values based on templated recipes ("reference flows") and
+process constraints derived from foundries, EDA vendors, IP providers, and
+design experts. The number of physical design concerns has been steadily
+increasing with every process node since the beginning of Moore's Law.
+Designing production grade silicon solutions in state of the art process nodes
+(16nm and below) requires expert knowledge in a broad set of highly specialized
+hardware design domains:
 
 * physical floorplanning
 * static timing analysis
@@ -71,43 +55,42 @@ implementation and verification flows with expertise needed in:
 * high performance computing
 * on chip variability
 * statistical yield analysis
-* multic-corner multi-mode analysis
+* multi-corner multi-mode analysis
 * stress and proximity effects
 * complex patterning density rules
 * design for manufacturability
 * double and triple pattern lithography
 * advanced packaging
-* reliability and device fatique
+* reliability and device fatigue
 
-Large semiconductor companies minimize EDA, IP, and PDK project design costs
-through establishment of internal central CAD teams that provide
-infrastructure and enablement for all of the company’s product design teams
-to enable successful silicon tapeout miracles. The key services provided by
-internal CAD teams generally include:
+Large semiconductor companies minimize EDA, IP, and PDK design project costs
+through establishment of central CAD teams that maximize reuse of shared
+infrastructure and design flows. Key services provided by internal CAD teams
+include:
 
-* Enabling the HPC resources needed for chip design
-* Procurement, licensing, and package management for EDA and IP
-* Internal design daatbase infrastructure
-* Establishment of qualified reference flows("recipes")
+* Establishing massive computing resources needed for chip design.
+* Procurement, licensing, and package management for EDA and IP.
+* Design infrastructure (git, CI, backups, vpn, etc).
+* Establishment of hardened per PDK reference flows ("recipes")
 
-A second challenge implied by the numerical complexity of chip design
+A second challenge associated with the numerical complexity of chip design
 is excessive compile times. Software developers operate at the second or
 minute time scales. Current chip design compilation cycles range from
-hours to months, depending on the fidelity of the result needed. To make
-hardware compilation practical for co-design loop will require an order
+hours to months depending on the fidelity of the result needed. To make
+hardware compilation practical for co-design will require an order
 of magnitude improvement in compilation latencies. Achieving significant
 speed ups will require building infrastructure that enables built in
-support for massively parallel compilation (different from LLVM!) and
-the rearchitecting serial transformations for cloud scale compute.
+support for massively parallel compilation and the redesign of
+serial algorithms for massive parallelism.
 (see `Amdahl's law. <https://en.wikipedia.org/wiki/Amdahl%27s_law>`_)
 
 A third challenge to creating a universal silicon compiler ("LLVM for
-hardware") is rooted in the economic fundamentals of the semiconducotr
+hardware") is rooted in the economic fundamentals of the semiconductor
 ecosystem. A competitive semiconductor the hard reality of
 `zero-sum economics <https://en.wikipedia.org/wiki/Zero-sum_game>`_
-has prevented data exchange standards and IRs from taking hold. Without
-a standardized IR, creating a a multi platform hardware compiler would
-require writing translaters from 1000's of designs to 10's of PDKs using
+has prevented the established of robust data exchange standards and IRs.
+Without a standardized IR, creating a a multi platform hardware compiler would
+require writing translators from 1000's of designs to 10's of PDKs using
 10's of individual tool executables, resulting in 1000's of separate
 configurations and translators and high per design efforts.
 
@@ -121,41 +104,68 @@ efficient efficient solution relies on constructing an intermediate
 representation "IR" that enables all sources to be translated to all
 destinations using 2*N translators. The IR approach has served as a guiding
 principle for a number of successful software projects, including
-`LLVM <https://llvm.org/>`_ and `Pandoc <chttps://pandoc.org/>`_. To replicate
-the success of LLVM would require an exact IR specification adopted by all
-producers and consumers within the compiler flow. While the design database
-has an exact description as it goes through compilation (source code, gate level
-netlist, spice netlists, and polygon based layouts), there is no mathematical
-basis for the compilation recipe used for lowering the program into polygons.
-This means that an IR for hardware compilation will likely need to be a mix
-of formal specifications, template compilation recipes, and standardized
-tuning parameters.
+`LLVM <https://llvm.org/>`_ and `Pandoc <chttps://pandoc.org/>`_.
 
 A related challenge to hardware compilation comes from the severe restrictions
 placed on data sharing within the semiconductor industry. Every commercial
-PDK, IP, and EDA tool is bound by NDAs and restrictive license/EULA agreemnets.
+PDK, IP, and EDA tool is bound by NDAs and restrictive license/EULA agreements.
 Software communities like the LLVM compiler community and the machine
 learning communities have clearly demonstrated that a global collaborative
 effort can solve problems that no single entity can (or should) solve alone.
-It is exceedingly unlikely that the semicondcutor industry will become as
+It is exceedingly unlikely that the semiconductor industry will become as
 open as the compiler/ML community so any technical solution will need to
-accomodate severe restrictions on information sharing.
+accommodate severe restrictions on information sharing.
 
 The final and biggest challenge to general purpose hardware compilers
-comes from the complexity of no human in the loop automation. The fields of
-robotics and autonomous drive have shown us that removing humans out of the
-loop gets exponentially harder with expected autonomy. Creating a "smart"
-chip generator can be done today, creating a compiler that can completely
-replicate the millions of man-hours spent on physical design of chips
-yearly may be impossible.
+comes from the complexity of no human in the loop automation in areas in areas
+that are mathematically imprecise. The fields of robotics and autonomous drive
+have shown us that removing humans out of the loop gets exponentially harder
+with increasing quality requirements. Creating a "smart" chip generator can be
+done easily today, creating a compiler that can completely replicate the
+millions of man-hours spent on physical design of chips yearly may prove
+impossible.
 
 A working silicon compiler will need to successfully address all these
-challenges to enable the extreme hardware specilization required to
-enable the hyper-specializtion required for the post-Moore era.
+challenges to enable the extreme hardware specialization required to
+enable the hyper-specialization required for the post-Moore era.
 
 
-Prior efforts
--------------
+Related efforts
+----------------
+
+Why can't we have "LLVM for hardware"? Using LLVM, we can cross-compile a
+single source to a large number of architecture by simply modifying
+the target string.
+
+.. code-block:: bash
+
+    $ clang --target=aarch64-linux-gnu hello.c -o hello
+
+Each one of the architecture targets was created with manual work by a
+software developer (and team of developers). The LLVM project has been
+incredibly successful by creating an IR and an associated collection of
+modular and reusable compiler that makes simplify the creation of new high
+quality back end targets and new front end programming interfaces. Many of the
+concepts and methods established by the LLVM project are directly transferrable
+to the hardware comppilation domain, but ther are some key differences
+between software compilers and hadware design which is grounded in physics.
+To replicate the success of LLVM would require an exact IR specification
+adopted by all producers and consumers within the compiler flow. While the
+design database has an exact description as it goes through compilation
+(source code, gate level netlist, spice netlists, and polygon based layouts),
+there is no mathematical basis for the compilation recipe used for lowering
+the program into polygons. An IR for hardware compilation will need to
+rely on a mix of formal specifications, template compilation recipes, and
+standardized tuning parameters.
+
+
+
+Recent research efforts like DARPA's IDEA program made great stride towards
+addressing these challenges with projects like OpenRoad, Align, and Magical,
+but we are still some distance away from a general purpose hardware compiler
+that can automatically compile code into production worthy layout at state
+of the art processing nodes.
+
 
 Epiphany V was a 24 hour 100% compilation of a 4.5 billion transistor
 design at 16nm, but it took a silicon veteran of 20 years 3 months to create
@@ -167,16 +177,7 @@ but we are still some distance away from a general purpose hardware compiler
 that can automatically compile code into production worthy layout at state
 of the art processing nodes.
 
-LLVM, works but only for software, focused on single node
 
-
-Theoretically, it should be possible to apply a similar approach to physical
-design and hardware compilation. If successful, the result look similar to the
-LLVM cross compilation model.
-
-.. code-block:: bash
-
-    $ clang --target=aarch64-linux-gnu hello.c -o hello
 
 No automated commercial general purpose flow
 
@@ -189,13 +190,29 @@ Gaps in particular
 Our Approach
 -------------
 
+The first silicon design revolution (started in the 1970's by Carver Mead and
+Lynn Conway) introduced a design framework to a generation of engineers and
+laid the foundation for the semiconductor ecosystem that drives the world
+today. It was a time of great excitement, with no limits on big ideas. One of
+the biggest ideas proposed, was the idea of an automated "silicon compiler"
+that could turn a specification into layout the same way we turn a program
+into an executable binary. These early silicon compilers were developed
+around the vision that chips could be automatically constructed using a set
+of parameterized building blocks. Unfortunately, the approach was too limited
+for the rapidly evolving VLSI community. Instead, the design approach that
+did work out was based on mapping a general purpose hardware design language
+(Verilog/VHDL) into a standard cell based netlist abstraction, and then
+placing and routing that mapped netlist using fully automated algorithms.
+Thousands of silicon miracles are taped out every year using this methods, but
+exponentially increasing design cost suggest there is plenty of room at the
+bottom.
 
 The aim of the SiliconCompiler project is to help further accelerates the
 development of a general purpose hardware compiler by creating missing
-infrastructre that "lifts all boats".  In particular, the
+infrastructure that "lifts all boats".  In particular, the
 SiliconCompiler project makes two main technical contributions:
 
-1. A database schema that enables arbitrary combiations of design, tools, and PDKs
+1. A database schema that enables arbitrary combinations of design, tools, and PDKs
 2. A parallel programming model and run-time for cloud scale hardware compilation
 
 The starting point for the work that led up to these contributions were two assertions:
@@ -214,7 +231,7 @@ as having the following characteristics:
 * Failure of one more more nodes does not cause the system to crash.
 
 We note that our definition of a "distributed system" can applies equally well
-to computing and software developmenf if we replace node with "machine" for
+to computing and software development if we replace node with "machine" for
 execution and "human" for software development.
 
 The table below summarizes the properties of current state of the art
@@ -232,7 +249,7 @@ are best defined as "centralized" and "monolithic".
      - Yes
      - Yes
    * - Large node count
-     - No (some point tools ditributed)
+     - No (some point tools distributed)
      - No (1 company = 1 node)
    * - Standardized Messages
      - No (non standard proprietary)
@@ -244,7 +261,7 @@ are best defined as "centralized" and "monolithic".
      - No
      - No
 
-The table below summarizes the concerns associted with distributed system
+The table below summarizes the concerns associated with distributed system
 design and how we approached them in the SiliconCompiler project. The rest
 of this section will review the details of each technique in more detail.
 
@@ -263,15 +280,15 @@ of this section will review the details of each technique in more detail.
    * - Large node count
      - Communication
      - Leverage cloud infrastructure
-     - Hiearchical abstraction
+     - Hierarchical abstraction
    * - Message passing
      - Communication
      - Standardized schema (JSON)
      - Standards/languages
    * - Lack global clock
      - Synchronization
-     - Dataflow programming model
-     - Hiearchical abstraction
+     - Data flow programming model
+     - Hierarchical abstraction
    * - Fault tolerance
      - Complexity
      - Watchdog + task redundancy
@@ -373,7 +390,7 @@ The following table summarizes some of the key features of the SiliconCompiler p
      - Reducing adoption barrier to zero
    * - Fully automated
      - Yes* (work in progress)
-     - It's not a compiler withouout it...
+     - It's not a compiler without it...
    * - PDK agnostic APR setup
      - Yes
      - Design time/cost
