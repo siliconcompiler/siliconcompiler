@@ -2,6 +2,8 @@ name: Wheels
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'
   release:
     types:
       - published
@@ -21,13 +23,34 @@ jobs:
     - name: Clone tool submodules
       run: git submodule update --init --recursive third_party/tools
 
+    - name: Get Surelog version
+      id: get-surelog
+      run: |
+        echo "::set-output name=version::$(cd third_party/tools/surelog && git rev-parse HEAD)"
+      shell: bash
+
+    - uses: actions/cache@v2
+      id: surelog-cache
+      if: matrix.os != ubuntu-latest
+      with:
+        path: |
+          $GITHUB_WORKSPACE/siliconcompiler/tools/surelog/bin/surelog*
+          $GITHUB_WORKSPACE/siliconcompiler/tools/surelog/lib/surelog/sv/builtin.sv
+        key: ${{ matrix.os }}-${{ steps.get-surelog.outputs.version }}
+
+    - name: Build Surelog (Windows)
+      if: matrix.os == 'windows-latest' && steps.surelog-cache.outputs.cache-hit != 'true'
+      run: call .github/workflows/bin/setup_wheel_env_win.bat
+
+    - name: Build Surelog (macOS)
+      if: matrix.os == 'macos-latest' && steps.surelog-cache.outputs.cache-hit != 'true'
+      run: .github/workflows/bin/setup_wheel_env_macos.sh
+
     - uses: pypa/cibuildwheel@v2.1.1
       env:
         CIBW_BEFORE_ALL_LINUX: >
           export PREFIX={package}/siliconcompiler/tools/surelog &&
           {package}/.github/workflows/bin/setup_wheel_env_linux.sh
-        CIBW_BEFORE_ALL_MACOS: .github/workflows/bin/setup_wheel_env_macos.sh
-        CIBW_BEFORE_ALL_WINDOWS: call .github/workflows/bin/setup_wheel_env_win.bat
         CIBW_ENVIRONMENT_WINDOWS: SC_CMAKEARGS="-DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake."
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
         CIBW_SKIP: "pp* *win32 *i686"
