@@ -53,6 +53,7 @@ Welcome to SiliconCompiler's documentation!
    :caption: Resources
    :numbered:
 
+   resources/references
    resources/primer
    resources/glossary
 
