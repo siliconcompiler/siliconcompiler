@@ -27,15 +27,14 @@ jobs:
       id: get-surelog
       run: |
         echo "::set-output name=version::$(cd third_party/tools/surelog && git rev-parse HEAD)"
-      shell: bash
 
     - uses: actions/cache@v2
       id: surelog-cache
-      if: matrix.os != ubuntu-latest
+      if: matrix.os != 'ubuntu-latest'
       with:
         path: |
-          $GITHUB_WORKSPACE/siliconcompiler/tools/surelog/bin/surelog*
-          $GITHUB_WORKSPACE/siliconcompiler/tools/surelog/lib/surelog/sv/builtin.sv
+          siliconcompiler/tools/surelog/bin/surelog*
+          siliconcompiler/tools/surelog/lib/surelog/sv/builtin.sv
         key: ${{ matrix.os }}-${{ steps.get-surelog.outputs.version }}
 
     - name: Build Surelog (Windows)
