@@ -100,7 +100,7 @@ setup(
         "pandas >= 1.1.5",
         "Jinja2 >= 2.11.3",
         "cryptography >= 3.4.7",
-        "graphviz >=0.17"
+        "graphviz == 0.17"
     ],
     extras_require = {
         "docs": [
