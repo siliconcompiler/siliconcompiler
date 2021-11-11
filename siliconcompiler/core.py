@@ -2446,6 +2446,9 @@ class Chip:
 
         # Determine which HPC job scheduler being used.
         scheduler_type = self.get('jobscheduler')
+        username = self.status['slurm_account']
+        partition = self.status['slurm_partition']
+        job_hash = self.get('remote', 'jobhash')
         if scheduler_type == 'slurm':
             # The script defining this Chip object may specify feature(s) to
             # ensure that the job runs on a specific subset of available nodes.
@@ -2453,7 +2456,12 @@ class Chip:
                 slurm_constraint = self.status['slurm_constraint']
             else:
                 slurm_constraint = 'SHARED'
-            schedule_cmd = f'srun --constraint {slurm_constraint}'
+            schedule_cmd = f'sbatch --exclusive '\
+                           f'--constraint {slurm_constraint} '\
+                           f'--account "{username}" '\
+                           f'--partition {partition} '\
+                           f'--chdir {self.get("dir")} '\
+                           f'--job-name "{job_hash}_{step}{index}"'
         elif scheduler_type == 'lsf':
             # TODO: LSF support is untested and currently unsupported.
             schedule_cmd = 'lsrun'
@@ -2463,7 +2471,7 @@ class Chip:
             # compute node's local storage.
             job_nameid = f"{self.get('jobname')}"
             cur_build_dir = f"{self.get('dir')}/{self.get('design')}/{job_nameid}"
-            tmp_job_dir = f"/tmp/{self.get('remote', 'jobhash')}"
+            tmp_job_dir = f"/tmp/{job_hash}"
             ctrl_node_dir = self.get('dir')
             self.set('dir', tmp_job_dir, clobber=True)
             tmp_build_dir = "/".join([tmp_job_dir,
@@ -2511,8 +2519,7 @@ class Chip:
                            f"-key_file {keypath} ; "
             run_cmd += f"sc -cfg {tmp_build_dir}/configs/{step}{index}.json "\
                            f"-arg_step {step} -arg_index {index} "\
-                           f"-dir {tmp_job_dir} -jobscheduler '' "\
-                           f"-remote_addr '' ; "
+                           f"-dir {tmp_job_dir} -jobscheduler '' ; "
             run_cmd += f"retcode=\\$? ; "
             run_cmd += f"sc-crypt -mode encrypt -target {tmp_build_dir} "\
                            f"-key_file {keypath} ; "
@@ -2535,11 +2542,13 @@ class Chip:
             self.write_manifest(cfg_file)
 
             # Create a command to defer execution to a compute node.
-            run_cmd  = f'{schedule_cmd} bash -c "'
-            run_cmd += f"sc -cfg {cfg_file} -dir {self.get('dir')} "\
-                       f"-arg_step {step} -arg_index {index} "\
-                        "-jobscheduler '' -remote_addr ''"
-            run_cmd += '"'
+            script_path = f'{cfg_dir}/{step}{index}.sh'
+            with open(script_path, 'w') as sf:
+                sf.write('#!/bin/bash\n')
+                sf.write(f'sc -cfg {cfg_file} -dir {self.get("dir")} '\
+                         f'-arg_step {step} -arg_index {index} '\
+                         f"-jobscheduler ''")
+            run_cmd = f'{schedule_cmd} {script_path}'
 
         # Run the 'srun' command, and track its output.
         step_result = subprocess.Popen(run_cmd,
@@ -2549,22 +2558,38 @@ class Chip:
 
         # TODO: output should be fed to log, and stdout if quiet = False
 
-        # If a watchdog was configured, feed it whenever new output is printed.
-        for line in step_result.stdout:
-            if 'watchdog' in self.status:
-                self.status['watchdog'].set()
-
         # Wait for the subprocess call to complete. It should already be done,
         # as it has closed its output stream. But if we don't call '.wait()',
         # the '.returncode' value will not be set correctly.
         step_result.wait()
+        result_msg = step_result.stdout.read().decode()
+        sbatch_id = result_msg.split(' ')[-1]
+        retcode = 0
+        while True:
+            time.sleep(3.0)
+            jobcheck = subprocess.run(f'scontrol show job {sbatch_id}',
+                                      shell=True,
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.STDOUT)
+            jobout = jobcheck.stdout.decode()
+            if ('RUNNING' in jobout) or ('PENDING' in jobout):
+                if 'watchdog' in self.status:
+                    self.status['watchdog'].set()
+            elif 'COMPLETED' in jobout:
+                break
+            elif 'Invalid job id specified' in jobout:
+                # May have already completed and been purged from active list.
+                break
+            else:
+                # FAILED, etc.
+                retcode = 1
+                break
 
-        if step_result.returncode > 0:
-            self.logger.error(f'srun command for {step} failed with code '
-                              f'{step_result.returncode}')
+        if retcode > 0:
+            self.logger.error(f'srun command for {step} failed.')
 
         # Clear active bit after the 'srun' command, and set 'error' accordingly.
-        error[step + str(index)] = step_result.returncode
+        error[step + str(index)] = retcode
         active[step + str(index)] = 0
 
     ###########################################################################
