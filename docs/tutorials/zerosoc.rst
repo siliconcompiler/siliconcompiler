@@ -989,6 +989,44 @@ corresponding to the lists defined earlier.
 
 .. image:: _images/unfilled_padring.png
 
+One other thing we need to do is insert wires connecting the VDDIO power pads to
+the pins on the core. We can accomplish this with another set of four loops over
+the pads on each side::
+
+  pin_width = 23.9
+  pin_offsets = (0.495, 50.39)
+
+  pad_h = fp.available_cells[VDDIO].height
+  pow_gap = fp.available_cells[GPIO].height - pad_h
+
+  # Place wires/pins connecting power pads to the power ring
+  fp.add_net('_vddio', [], 'power')
+  for pad_type, y in we_pads:
+      if pad_type == VDDIO:
+          for offset in pin_offsets:
+              fp.place_wires (['_vddio'], pad_h, y + offset, 0, 0,
+                              margin_left + pow_gap, pin_width, 'm3')
+
+  margin_top = core_h - (margin_bottom + place_h)
+  for pad_type, x in no_pads:
+      if pad_type == VDDIO:
+          for offset in pin_offsets:
+              fp.place_wires (['_vddio'], x + offset, top_h - pad_h - (margin_top + pow_gap), 0, 0,
+                              pin_width, margin_top + pow_gap, 'm3')
+
+  margin_right = core_w - (margin_left + place_w)
+  for pad_type, y in ea_pads:
+      if pad_type == VDDIO:
+          for offset in pin_offsets:
+              fp.place_wires (['_vddio'], top_w - pad_h - (margin_right + pow_gap), y + offset, 0, 0,
+                              margin_right + pow_gap, pin_width, 'm3')
+
+  for pad_type, x in so_pads:
+      if pad_type == VDDIO:
+          for offset in pin_offsets:
+              fp.place_wires (['_vddio'], x + offset, pad_h, 0, 0,
+                              pin_width, margin_bottom + pow_gap, 'm3')
+
 Next, we need to fill in the padring in order to allow power to be routed
 throughout it. First, we'll place corner cells on each of the four corners,
 using another set of ``place_macros()`` calls::
@@ -1157,7 +1195,7 @@ Here's the completed function for building the ZeroSoC top-level::
                          0, 0, pin_dim, pin_dim, 'm5')
 
 
-      # Connections to vddio pins
+      ## Connections to vddio pins ##
       pin_width = 23.9
       pin_offsets = (0.495, 50.39)
 
