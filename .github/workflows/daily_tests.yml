@@ -27,6 +27,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - run: |
+          python -m pip install --upgrade pip
           python -m venv create $GITHUB_WORKSPACE/clean_env --clear
           source $GITHUB_WORKSPACE/clean_env/bin/activate
           echo $VIRTUAL_ENV
