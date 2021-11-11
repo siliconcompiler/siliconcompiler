@@ -2,14 +2,14 @@ Introduction
 ===================================
 
 SiliconCompiler ("SC") is an open source compiler infrastructure project that
-lowers the barrier to custom silicon.
+aims to lower the barrier to custom silicon.
 
 **TL;DR** – Here is the :ref:`Installation` and :ref:`Quickstart guide`
 
 Motivation
 -----------
 
-Moore's Law is ending and the only option for continuing on our current
+Moore's Law is ending and the only option for continuing the current
 exponential improvement path is hardware specialization. Unfortunately, using
 today's technology, chip projects development cost can exceed $100M,
 limiting hardware specialization to a small number of highly profitable
@@ -17,8 +17,7 @@ applications. Observing the positive impact that silicon has had
 on the world over the last 50 years, we consider it a social imperative to
 extend Moore's Law for as long possible. Enabling the level of hardware
 specialization needed for the post-Moore era will require a fully automated
-hardware compiler similar to the ones that we take for granted in software
-development.
+hardware compiler similar to the ones that we take for granted in software.
 
 
 .. image:: ../_images/cost.png
@@ -34,11 +33,12 @@ under all possible temperature, voltage, and process conditions. Successful
 compilation requires searching an (almost) unbounded parameter space and
 selecting optimal values based on templated recipes ("reference flows") and
 process constraints derived from foundries, EDA vendors, IP providers, and
-design experts. The number of physical design concerns has been steadily
-increasing with every process node since the beginning of Moore's Law.
-Designing production grade silicon solutions in state of the art process nodes
-(16nm and below) requires expert knowledge in a broad set of highly specialized
-hardware design domains:
+design experts. A sizable portion of the EDA field over the last 50 years
+have been focused on tackling these NP-hard problems.  The number
+of physical design concerns has been steadily increasing with every process
+node since the beginning of Moore's Law. Designing production grade silicon
+solutions in state of the art process nodes (16nm and below) requires expert
+knowledge in a broad set of highly specialized hardware design domains:
 
 * physical floorplanning
 * static timing analysis
@@ -126,12 +126,38 @@ millions of man-hours spent on physical design of chips yearly may prove
 impossible.
 
 A working silicon compiler will need to successfully address all these
-challenges to enable the extreme hardware specialization required to
-enable the hyper-specialization required for the post-Moore era.
+challenges to enable the extreme hardware specialization required to enable the
+hyper-specialization required for the post-Moore era.
 
 
 Related efforts
 ----------------
+
+The first silicon compilers were invented in the 1970's during the height of
+the by VLSI revolution led by Carver Mead and Lynn Convway. Their efforts
+introduced formal design methods to a generation of new engineers and laid the
+foundatiuon for today's semiconductor design methods. It was a time of great
+excitement, with no limits on big ideas. One of the biggest ideas proposed,
+was the idea of an automated "silicon compiler" that could turn a specification
+into layout the same way we turn a program into an executable binary. These
+early silicon compilers were developed around the vision that chips could be
+automatically constructed using a set of parameterized building blocks.
+Unfortunately, this generator approach was too brittle and too time consuming
+for the rapidly evolving VLSI community.
+
+The compiler approach that ended up succeeding in industry was based on mapping
+a general purpose hardware design language (Verilog/VHDL) into a standard cell
+based netlist abstraction, and then placing and routing that mapped netlist
+using fully automated algorithms. These "RTL2GDS" type compilers have been
+served us well as demonstrated by the thousands of silicon miracles taped out
+every year. However, the inconvenient truth is that these RTL2GDS flows are
+not really true
+compilers because they require a significant level of manual work and
+optimization for each design that runs throught the design. Comparing
+to software, they would be the equivalent of having a C-compiler that
+would require the user to write a portion of the program in assembly
+for every architecture and to manually fix 1000's of errors in the
+final binary executable on every compilation cycle.
 
 Why can't we have "LLVM for hardware"? Using LLVM, we can cross-compile a
 single source to a large number of architecture by simply modifying
@@ -158,7 +184,7 @@ the program into polygons. An IR for hardware compilation will need to
 rely on a mix of formal specifications, template compilation recipes, and
 standardized tuning parameters.
 
-In 2017, the US Defense Advanced Projects Agency (DARPA) established
+In 2017, the US Defense Advanced Research Projects Agency (DARPA) established
 the disruptive IDEA and POSH research programs aiming to reduce the
 barrier to hardware specialziation. The IDEA program aimed to
 "develop a fully automated no-human-in-the-loop circuit layout
@@ -168,12 +194,12 @@ to "bootstrap an open source SoC design and verification eco-system to
 enable cost effective design of ultra-complex SoCs." Significant
 contributes made by DARPA and IDEA reserach teams included:
 
-* OpenROAD: Automated RTL2GDS compilation
-* Align/Magical: Automated place and route of analog circuits
-* FASOC: Automated mixed signal design generation
-* ACT: Asynchronous circuit compiler
-* OpenFPGA: Automated FPGA generator
-* Ilang: Formal hardware modeling and verification platform
+* `OpenROAD <https://github.com/The-OpenROAD-Project>`_: Automated RTL2GDS compilation
+* `Align <https://github.com/ALIGN-analoglayout>`_: Automated place and route of analog circuits
+* `FASoC <https://github.com/idea-fasoc>`_: Automated mixed signal design generation
+* `ACT <https://github.com/asyncvlsi/act>`_: Asynchronous circuit compiler
+* `OpenFPGA <https://github.com/lnis-uofu/OpenFPGA>`_: Automated FPGA generator
+* `ILAng <https://github.com/PrincetonUniversity/ILAng>`_: Formal hardware modeling and verification platform
 
 These academic projects represent incredible technical advancements,
 but they are still in the prototype stage. Significant technical work
@@ -201,39 +227,24 @@ compiler which must be capable of compiling any legal program.
 Our Approach
 -------------
 
-The first silicon design revolution (started in the 1970's by Carver Mead and
-Lynn Conway) introduced a design framework to a generation of engineers and
-laid the foundation for the semiconductor ecosystem that drives the world
-today. It was a time of great excitement, with no limits on big ideas. One of
-the biggest ideas proposed, was the idea of an automated "silicon compiler"
-that could turn a specification into layout the same way we turn a program
-into an executable binary. These early silicon compilers were developed
-around the vision that chips could be automatically constructed using a set
-of parameterized building blocks. Unfortunately, the approach was too limited
-for the rapidly evolving VLSI community. Instead, the design approach that
-did work out was based on mapping a general purpose hardware design language
-(Verilog/VHDL) into a standard cell based netlist abstraction, and then
-placing and routing that mapped netlist using fully automated algorithms.
-Thousands of silicon miracles are taped out every year using this methods, but
-exponentially increasing design cost suggest there is plenty of room at the
-bottom.
+The goal of SiliconCompiler project is not to solve any one compiler
+task, but to provide core infrastructure that help accelerate
+the path to a general purpose hardware compiler.
 
-The aim of the SiliconCompiler project is to help further accelerates the
-development of a general purpose hardware compiler by creating missing
-infrastructure that "lifts all boats".  In particular, the
 SiliconCompiler project makes two main technical contributions:
 
-1. A database schema that enables arbitrary combinations of design, tools, and PDKs
-2. A parallel programming model and run-time for cloud scale hardware compilation
+1. A unified database schema that enables arbitrary combinations of design, tools, and PDKs
+2. A parallel programming model for distributed cloud scale hardware compilation
 
-The starting point for the work that led up to these contributions were two assertions:
-
-1. Fast compilation of complex design is only possible with massively parallel compute resources.
-2. General purpose silicon compilation is too big a problem for one entity to solve.
-
-Given these assertions and, we decided to take a holistic distributed systems
-approach to infrastructure development. A distributed systems an be loosely defined
-as having the following characteristics:
+Implicit in our project goals are two assertions about the scope and nature of
+automated hardwdare development: 1.) General purpose silicon compilation is
+too complex a problem for one company to solve alone so effective collaboration
+is a mandatory condition for progress. 2.) Massive distributed computing
+resoures will be required to enable compilation times aligned with software
+development time constants. Given these assertions, a promising approach to
+scalable hardware compiler infrastruture is to adopt principles from the field
+of distributed computing.  A distributed systems an be loosely defined as
+having the following characteristics:
 
 * System has a large node count (>>1).
 * Participating nodes share a common goal.
@@ -320,21 +331,20 @@ problem..
 
 
 The SiliconCompiler programming model is based on a simple and open
-Python :ref:`core API` model where compilation parameters are set up
-by the user and arbitrary static compilation passes are executed by
+Python programming model(:ref:`core API`) in which compilation parameters are
+set up by the user and arbitrary static compilation passes are executed by
 a SiliconCompiler runtime.
 
 .. literalinclude:: examples/heartbeat.py
 
 The SiliconCompiler :ref:`core API` interfaces with the :ref:`Schema`,
-decoupling the user from the tool configurations and PDKs, and paving
-the way for extensive derivative package development and knowledge
-sharing using `Python package manager <https://pypi.org>`_. We are
-hopeful to one day see foundry PDK setup files and EDA tool
-configuration files being shared in a manner similar to how Python
-and JavaScript packages are shared today through PyPI and npm.
-
-.. image:: ../_images/sc_stack.svg
+decoupling the user from tool configurations and PDKs, and paving
+the way for derivative package development and knowledge sharing using
+Python's powerful package manager (see `PyPI <https://pypi.org>`_). The
+SiliconCompiler API and Schema were architected to enable distribution of
+open and proprietary PDK setup files and EDA tool configuration files
+as easily as Python and JavaScript packages are shared today through
+PyPI and npm.
 
 To address the long compilation times of physical design steps, an
 abstracted asynchronous flowgraph programming model was developed that
@@ -344,7 +354,6 @@ data centers.
 .. literalinclude:: examples/pattern_forkjoin.py
 
 .. image:: _images/pattern_forkjoin.png
-
 
 To solve the challenge of restrictive NDAs prevalent in the semiconductor
 industry, SiliconCompiler has been designed from ground up for cloud and
@@ -357,25 +366,28 @@ can be carefully controlled.
 
 .. image:: _images/siliconcompiler_proxy.png
 
+The development of the architecture and code base was guided by a number
+of core principles listed below.
 
-* Modern hardware compilation is a high performance computing (HPC) problem and
-  compilation must make optimal use of the underlying computing platform whether
-  we run on a laptop, powerful, workstation, or in a warehouse scale data center.
+* Modern hardware compilation is a high performance computing (HPC) problem.
+* Compilation should make optimal use of a diverse se of computing platforms. (latop, workstation, datacenter).
 * Computing platform details should be abstracted from the user.
+* Communication details should be abstracted from the user.
+* File system details should be abstracted from the user.
+* Vendor specific information/names should be abstracted from the user
 * Adoption is maximized by prioritizing developer community size (Python).
 * Adoption is maximized by serving all client platforms (Windows, macOS, Linux).
-* Accept things we cannot change. Legacy tools with TCL interfaces will not
-  (should not) be converted to Python. Leading edge tools and PDKs will remain
-  closed source and proprietary for the foreseeable future.
-* Use standardized ASCII text file formats for data exchange whenever possible.
-  (JSON, YAML, DEF, Verilog).
-* Build generators, not instances. (sw, hw, docs,...)
+* Accept things we cannot change. TCL is not going away.
+* Accept things we cannot change. The NDA problem is not going away..
+* All non-critical databases should be plain-tet readable.
+* Avoid creating custom file formats(use json, yaml, def, verilog, etc)
+* Build generators not instances (applies to sw/hw/docs)
 * Design for the lowest common denominator. Some brilliant EEs are terrible
   programmers and some brilliant programmers are bad engineers.
   Tools and frameworks should lower the bar for all. Create enough
   abstraction layers to serve the novice user and expert user effectively.
 
-The following table summarizes some of the key features of the SiliconCompiler project.
+The following table summarizes key features of the SiliconCompiler project.
 
 .. list-table::
    :widths: 20 10 25
