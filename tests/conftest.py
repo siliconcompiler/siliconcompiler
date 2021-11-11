@@ -12,7 +12,7 @@ def pytest_addoption(parser):
     )
 
 def pytest_generate_tests(metafunc):
-    os.environ['SCPATH'] = os.path.join(fixtures.scroot(), 'third_party', 'pdks')
+    os.environ['SCPATH'] = os.path.join(fixtures.scroot(), 'siliconcompiler')
 
 @pytest.fixture(autouse=True)
 def test_wrapper(tmp_path, request):
