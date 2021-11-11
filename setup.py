@@ -102,6 +102,18 @@ setup(
         "cryptography >= 3.4.7",
         "graphviz >=0.17"
     ],
+    extras_require = {
+        "docs": [
+            "Sphinx >= 3.5.4",
+            "sphinx-rtd-theme >= 0.5.2"
+            "pip-licenses"
+        ],
+        "build": [
+            "scikit-build >= 0.12",
+            "cython",
+            "cmake"
+        ]
+    },
     entry_points={"console_scripts": entry_points},
     cmake_install_dir="siliconcompiler/leflib",
     cmake_args=cmake_args
