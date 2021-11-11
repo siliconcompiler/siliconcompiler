@@ -60,7 +60,7 @@ def setup_pdk(chip):
     edgemargin = 2
     d0 = 1.25
 
-    pdkdir = os.path.join(foundry, process, 'pdk', rev)
+    pdkdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'pdk', rev)
 
     # If you got here,  you are in asic mode
     chip.set('mode', 'asic', clobber=True)
@@ -145,7 +145,7 @@ def setup_pdk(chip):
     corner = 'typical'
     objectives = ['setup']
 
-    libdir = os.path.join(foundry, process, 'libs', libname, rev)
+    libdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'libs', libname, rev)
 
     # standard cell typ
     chip.set('library',libname,'type','stdcell')
