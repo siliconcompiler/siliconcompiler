@@ -10,14 +10,25 @@ jobs:
     timeout-minutes: 20
     runs-on: self-hosted
     name: 'All tests'
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
     steps:
       - uses: actions/checkout@v2
+
       - run: git submodule update --init --recursive third_party/tools/openroad
       - run: git submodule update --init --recursive third_party/designs/oh
       - run: git submodule update --init --recursive third_party/designs/picorv32
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
       - run: |
-          python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
+          python -m venv create $GITHUB_WORKSPACE/clean_env --clear
           source $GITHUB_WORKSPACE/clean_env/bin/activate
           echo $VIRTUAL_ENV
-          pip3 install -r $GITHUB_WORKSPACE/requirements.txt $GITHUB_WORKSPACE/.
+          pip install -r $GITHUB_WORKSPACE/requirements.txt $GITHUB_WORKSPACE/.
           pytest -n 4 --import-mode=append
