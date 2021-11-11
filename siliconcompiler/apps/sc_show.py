@@ -24,31 +24,22 @@ def main():
 
     chip = siliconcompiler.Chip()
     chip.create_cmdline(progname,
-                        switchlist=['design', 'asic_gds', 'asic_def', 'loglevel'],
+                        switchlist=['design', 'asic_gds', 'asic_def', 'loglevel', 'cfg'],
                         description=description)
 
     #Error checking
-    design_mode =bool(chip.get('design'))
-    def_mode =bool(chip.get('asic', 'gds'))
-    gds_mode =bool(chip.get('asic', 'def'))
+    gds_mode =bool(chip.get('asic', 'gds'))
+    def_mode =bool(chip.get('asic', 'def'))
 
-    if (design_mode + def_mode + gds_mode) < 1:
-        print(progname+": error: gds file, def file or design name required")
-        sys.exit()
-    elif (design_mode + def_mode + gds_mode) > 1:
-        print(progname+": error: gds, def, design options are mutually exclusive")
+    if (def_mode + gds_mode) > 1:
+        print(progname+": error: gds, def options are mutually exclusive")
         sys.exit()
 
-    # sources specified in the -cfg file go first in the list, so we display the
-    # last source file in the list
-
-    if gds_mode | def_mode:
+    if gds_mode:
         filename = chip.get('asic', 'gds')[-1]
     elif def_mode:
         filename = chip.get('asic', 'def')[-1]
-
-    # read in file name
-    if design_mode:
+    else:
         design = chip.get('design')
         dirlist =[chip.cwd,
                   'build',
@@ -61,7 +52,9 @@ def main():
         manifest = os.path.join(*dirlist)
         chip.read_manifest(manifest)
         filename = None
-    else:
+
+    if chip.get('cfg') is None:
+        # only autoload manifest if user doesn't supply manually
         design = os.path.splitext(os.path.basename(filename))[0]
         dirname = os.path.dirname(filename)
         manifest = os.path.join(*[dirname, design+'.pkg.json'])
