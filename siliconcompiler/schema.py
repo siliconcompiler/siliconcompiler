@@ -1983,7 +1983,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     # exe version
     cfg['eda'][tool][step][index]['version'] = {
         'switch': "-eda_version 'tool step index <str>'",
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'require': None,
         'defvalue': None,

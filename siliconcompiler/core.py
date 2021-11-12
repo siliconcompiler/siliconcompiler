@@ -2770,11 +2770,18 @@ class Chip:
             fullexe = self._resolve_env_vars(exe)
             cmdlist = [fullexe, veropt]
             self.logger.info("Checking version of tool '%s'", tool)
-            version = subprocess.run(cmdlist, stdout=PIPE, stderr=PIPE, universal_newlines=True)
-            check_version = self.find_function(tool, 'tool', 'check_version')
-            #print(json.dumps(self.cfg, indent=4, sort_keys=True))
-            if check_version(self, version.stdout):
+            proc = subprocess.run(cmdlist, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+            parse_version = self.find_function(tool, 'tool', 'parse_version')
+            if parse_version is None:
+                self.logger.error(f'{tool} does not implement parse_version.')
+                self._haltstep(step, index, active)
+
+            version = parse_version(proc.stdout)
+            allowed_versions = self.get('eda', tool, step, index, 'version')
+            if version not in allowed_versions:
+                allowedstr = ', '.join(allowed_versions)
                 self.logger.error(f"Version check failed for {tool}. Check installation.")
+                self.logger.error(f"Found version {version}, expected one of [{allowedstr}].")
                 self._haltstep(step, index, active)
 
         ##################
