@@ -5,6 +5,7 @@ import base64
 import time
 import datetime
 import multiprocessing
+import tarfile
 import traceback
 import asyncio
 from subprocess import run, PIPE
@@ -1753,6 +1754,59 @@ class Chip:
                             shutil.copy(filepath, indir)
                         else:
                             self._haltstep(step,index,active)
+
+    ###########################################################################
+    def archive(self, step=None, index=None, all_files=False):
+        '''Archive a job directory.
+
+        Creates a single compressed archive (.tgz) based on the design,
+        jobname, and flowgraph in the current chip manifest. Individual
+        steps and/or indices can be archived based on argumnets specified.
+        By default, all steps and indices in the flowgraph are archived.
+        By default, only the outputs directory content and the log file
+        are archived.
+
+        Args:
+            step(str): Step to archive.
+            index (str): Index to archive
+            all_files (bool): If True, all files are archived.
+
+        '''
+
+        jobname = self.get('jobname')
+        design = self.get('design')
+        buildpath = self.get('dir')
+
+        if step:
+            steplist = [step]
+        elif self.get('arg', 'step'):
+            steplist = [self.get('arg', 'step')]
+        elif self.get('steplist'):
+            steplist = self.get('steplist')
+        else:
+            steplist = self.list_steps()
+
+        if step:
+            archive_name = f"{design}_{jobname}_{step}.tgz"
+        else:
+            archive_name = f"{design}_{jobname}.tgz"
+
+        with tarfile.open(archive_name, "w:gz") as tar:
+            for step in steplist:
+                if index:
+                    indexlist = [index]
+                else:
+                    indexlist = self.getkeys('flowgraph', step)
+                for item in indexlist:
+                    basedir = os.path.join(buildpath, design, jobname, step, item)
+                    if all_files:
+                         tar.add(os.path.abspath(basedir), arcname=basedir)
+                    else:
+                        outdir = os.path.join(basedir,'outputs')
+                        logfile = os.path.join(basedir, step+'.log')
+                        tar.add(os.path.abspath(outdir), arcname=outdir)
+                        if os.path.isfile(logfile):
+                            tar.add(os.path.abspath(logfile), arcname=logfile)
 
     ###########################################################################
     def hash_files(self, *keypath, algo='sha256', update=True):
