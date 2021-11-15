@@ -45,7 +45,7 @@ def setup_tool(chip, mode="batch"):
     if mode == 'show':
         clobber = False
         script = '/klayout_show.py'
-        option = ['-rm']
+        option = ['-nc', '-rm']
     else:
         clobber = False
         script = '/klayout_export.py'
