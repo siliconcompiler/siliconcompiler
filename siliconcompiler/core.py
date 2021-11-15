@@ -1138,7 +1138,7 @@ class Chip:
         scpaths = [self.scroot, self.cwd]
         scpaths.extend(self.get('scpath'))
         if 'SCPATH' in os.environ:
-            scpaths.extend(os.environ['SCPATH'].split(':'))
+            scpaths.extend(os.environ['SCPATH'].split(os.pathsep))
 
         searchdirs = ', '.join(scpaths)
         self.logger.debug(f"Searching for file {filename} in {searchdirs}")
@@ -1148,7 +1148,7 @@ class Chip:
             if not os.path.isabs(searchdir):
                 searchdir = os.path.join(self.cwd, searchdir)
 
-            abspath = os.path.abspath(searchdir + "/" + filename)
+            abspath = os.path.abspath(os.path.join(searchdir, filename))
             if os.path.exists(abspath):
                 result = abspath
                 break

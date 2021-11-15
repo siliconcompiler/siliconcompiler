@@ -100,7 +100,7 @@ setup(
         "pandas >= 1.1.5",
         "Jinja2 >= 2.11.3",
         "cryptography >= 3.4.7",
-        "graphviz >=0.17"
+        "graphviz == 0.17"
     ],
     extras_require = {
         "docs": [
@@ -112,6 +112,11 @@ setup(
             "scikit-build >= 0.12",
             "cython",
             "cmake"
+        ],
+        "test": [
+            "pytest >= 6.2.4",
+            "pytest-xdist >= 2.3.0",
+            "pyvirtualdisplay"
         ]
     },
     entry_points={"console_scripts": entry_points},

@@ -45,6 +45,5 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - run: |
-          pip install $GITHUB_WORKSPACE/.
-          pip install pytest pyvirtualdisplay
+          pip install $GITHUB_WORKSPACE/.[test]
           pytest --import-mode=append -m "not eda"

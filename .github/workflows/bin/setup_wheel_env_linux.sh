@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Install dependencies
-yum install -y libuuid-devel zlib-devel java-1.8.0-openjdk-devel
+yum install -y libuuid-devel zlib-devel java-1.8.0-openjdk-devel graphviz
 
 # Build surelog (install prefix defined outside file)
 cd third_party/tools/surelog
