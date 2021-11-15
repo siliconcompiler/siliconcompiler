@@ -60,6 +60,25 @@ def setup_tool(chip, mode="batch"):
 
     chip.set('eda', tool, step, index, 'option', 'cmdline', option, clobber=clobber)
 
+    # Adding requirements
+    targetlibs = chip.get('asic', 'targetlib')
+    stackup = chip.get('asic', 'stackup')
+    if bool(stackup) & bool(targetlibs):
+        mainlib = targetlibs[0]
+        macrolibs = chip.get('asic', 'macrolib')
+
+        chip.add('eda', tool, step, index, 'require', ",".join(['asic', 'targetlib']))
+        chip.add('eda', tool, step, index, 'require', ",".join(['asic', 'stackup']))
+        chip.add('eda', tool, step, index, 'require', ",".join(['pdk', 'layermap', stackup, 'def','gds']))
+
+        for lib in (targetlibs + macrolibs):
+            chip.add('eda', tool, step, index, 'require', ",".join(['library', lib, 'gds']))
+            chip.add('eda', tool, step, index, 'require', ",".join(['library', lib, 'lef']))
+    else:
+        chip.error = 1
+        chip.logger.error(f'Stackup and targetlib paremeters required for OpenROAD.')
+
+
 ################################
 #  Environment setup
 ################################
@@ -91,7 +110,6 @@ def runtime_options(chip):
     stackup = chip.get('pdk','stackup')[0]
     libtype = chip.get('library', libname, 'arch')
     techfile = chip.find_files('pdk','layermap', stackup, 'def', 'gds')[0]
-    techlef = chip.find_files('pdk','aprtech', stackup, libtype, 'lef')[0]
     #TODO: fix this!, is foundry_lefs they only way??
     #needed?
     liblef = chip.find_files('library',libname,'lef')[0]

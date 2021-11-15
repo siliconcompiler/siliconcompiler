@@ -70,11 +70,11 @@ def setup_tool(chip):
 
     #Schema requirements
     if chip.get('mode') == 'asic':
-        chip.add('eda', tool, step, index, 'req', ",".join(['pdk', 'process']))
-        chip.add('eda', tool, step, index, 'req', ",".join(['design']))
-        chip.add('eda', tool, step, index, 'req', ",".join(['asic', 'targetlib']))
+        chip.add('eda', tool, step, index, 'require', ",".join(['pdk', 'process']))
+        chip.add('eda', tool, step, index, 'require', ",".join(['design']))
+        chip.add('eda', tool, step, index, 'require', ",".join(['asic', 'targetlib']))
     else:
-        chip.add('eda', tool, step, index, 'req', ",".join(['fpga','partname']))
+        chip.add('eda', tool, step, index, 'require', ",".join(['fpga','partname']))
 
 #############################################
 # Runtime pre processing
