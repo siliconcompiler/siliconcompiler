@@ -23,12 +23,12 @@ cd -
 sudo ln -s /usr/bin/python3 /usr/bin/python
 sudo ln -s /usr/local/lib/libtcl8.6.so /usr/local/lib/libtcl.so
 
-git clone https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts
-cd OpenROAD-flow-scripts
+cd -
+
+git submodule update --init --recursive third_party/tools/openroad
+cd third_party/tools/openroad
 ./build_openroad.sh -o
 
 echo "Please add \"source $(pwd)/setup_env.sh\" to your .bashrc"
 
 cd -
-
-echo 'source /home/vagrant/OpenROAD-flow-scripts/setup_env.sh' >> ~/.bashrc

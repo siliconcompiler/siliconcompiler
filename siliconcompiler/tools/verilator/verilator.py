@@ -55,7 +55,7 @@ def setup_tool(chip):
     # Standard Setup
     chip.set('eda', tool, step, index, 'exe', 'verilator', clobber=False)
     chip.set('eda', tool, step, index, 'vswitch', '--version', clobber=False)
-    chip.set('eda', tool, step, index, 'version', '4.211', clobber=False)
+    chip.set('eda', tool, step, index, 'version', '4.028', clobber=False)
     chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=False)
 
     # Options driven on a per step basis (use 'set' on first call!)
@@ -109,18 +109,9 @@ def runtime_options(chip):
 # Version Check
 ################################
 
-def check_version(chip, version):
-    ''' Tool specific version checking
-    '''
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-
-    required = chip.get('eda', 'verilator', step, index, 'version')
-    #insert code for parsing the funtion based on some tool specific
-    #semantics.
-    #syntax for version is string, >=string
-
-    return 0
+def parse_version(stdout):
+    # Verilator 4.104 2020-11-14 rev v4.104
+    return stdout.split()[1]
 
 ################################
 # Post_process (post executable)

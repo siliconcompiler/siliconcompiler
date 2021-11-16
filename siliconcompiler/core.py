@@ -2766,11 +2766,12 @@ class Chip:
 
         veropt = self.get('eda', tool, step, index, 'vswitch')
         exe = self.get('eda', tool, step, index, 'exe')
-        if (veropt != None) & (exe !=None):
+        version = None
+        if (veropt is not None) and (exe is not None):
             fullexe = self._resolve_env_vars(exe)
-            cmdlist = [fullexe, veropt]
+            cmdlist = [fullexe] + veropt.split()
             self.logger.info("Checking version of tool '%s'", tool)
-            proc = subprocess.run(cmdlist, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+            proc = subprocess.run(cmdlist, stdout=PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
             parse_version = self.find_function(tool, 'tool', 'parse_version')
             if parse_version is None:
                 self.logger.error(f'{tool} does not implement parse_version.')

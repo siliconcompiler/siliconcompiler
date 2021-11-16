@@ -1986,7 +1986,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'type': '[str]',
         'lock': 'false',
         'require': None,
-        'defvalue': None,
+        'defvalue': [],
         'shorthelp': 'Executable version number',
         'example': [
             "cli: -eda_version 'openroad cts 0 1.0'",

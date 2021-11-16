@@ -76,18 +76,9 @@ def runtime_options(chip):
 # Version Check
 ################################
 
-def check_version(chip, version):
-    ''' Tool specific version checking
-    '''
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-
-    required = chip.get('eda', 'nextpnr', step, index, 'version')
-    #insert code for parsing the funtion based on some tool specific
-    #semantics.
-    #syntax for version is string, >=string
-
-    return 0
+def parse_version(stdout):
+    # nextpnr-ice40 -- Next Generation Place and Route (Version c73d4cf6)
+    return stdout.split()[-1].rstrip(')')
 
 ################################
 # Setup Tool (pre executable)

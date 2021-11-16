@@ -51,7 +51,7 @@ def setup_tool(chip):
     # Standard Setup
     chip.set('eda', tool, step, index, 'exe', exe, clobber=False)
     chip.set('eda', tool, step, index, 'vswitch', '--version', clobber=False)
-    chip.set('eda', tool, step, index, 'version', '1.14', clobber=False)
+    chip.set('eda', tool, step, index, 'version', '1.13', clobber=False)
     chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=False)
 
     # -parse is slow but ensures the SV code is valid
@@ -63,13 +63,13 @@ def setup_tool(chip):
     # Wite back options tp cfg
     chip.add('eda', tool, step, index, 'option', 'cmdline', options)
 
-def parse_version(version):
+def parse_version(stdout):
     # Surelog --version output looks like:
     # VERSION: 1.13
     # BUILT  : Nov 10 2021
 
     # grab version # by splitting on whitespace
-    return version.split()[1]
+    return stdout.split()[1]
 
 ################################
 #  Custom runtime options

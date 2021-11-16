@@ -48,7 +48,8 @@ def setup_tool(chip):
     script = 'sc_lvs.tcl'
 
     chip.set('eda', tool, step, index, 'exe', tool)
-    chip.set('eda', tool, step, index, 'version', '0.0')
+    chip.set('eda', tool, step, index, 'vswitch', '-batch')
+    chip.set('eda', tool, step, index, 'version', '1.5.192')
     chip.set('eda', tool, step, index, 'threads', 4)
     chip.set('eda', tool, step, index, 'refdir', refdir)
     chip.set('eda', tool, step, index, 'script', refdir + '/' + script)
@@ -63,15 +64,9 @@ def setup_tool(chip):
 # Version Check
 ################################
 
-def check_version(chip, version):
-    ''' Tool specific version checking
-    '''
-    required = chip.get('eda', 'netgen', step, index, 'version')
-    #insert code for parsing the funtion based on some tool specific
-    #semantics.
-    #syntax for version is string, >=string
-
-    return 0
+def parse_version(stdout):
+    # First line: Netgen 1.5.190 compiled on Fri Jun 25 16:05:36 EDT 2021
+    return stdout.split()[1]
 
 ################################
 # Post_process (post executable)
