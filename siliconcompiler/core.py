@@ -635,7 +635,7 @@ class Chip:
         typestr = self.get(*keypath, field='type')
         switchstr = str(self.get(*keypath, field='switch'))
         defstr = str(self.get(*keypath, field='defvalue'))
-        requirement = str(self.get(*keypath, field='requirement'))
+        requirement = str(self.get(*keypath, field='require'))
         helpstr = self.get(*keypath, field='help')
         example = self.get(*keypath, field='example')
 
@@ -737,7 +737,7 @@ class Chip:
             cfg = self.cfg
 
         if len(list(keypath)) > 0:
-            keypathstr = ','.join(keypath[:-1])
+            keypathstr = ','.join(keypath)
             self.logger.debug('Getting schema parameter keys for: %s', keypathstr)
             keys = list(self._search(cfg, keypathstr, *keypath, mode='getkeys'))
             if 'default' in keys:
@@ -773,7 +773,7 @@ class Chip:
             cfg = self.cfg
 
         if len(list(keypath)) > 0:
-            keypathstr = ','.join(keypath[:-1])
+            keypathstr = ','.join(keypath)
             self.logger.debug('Getting cfg for: %s', keypathstr)
             localcfg = self._search(cfg, keypathstr, *keypath, mode='getcfg')
 
@@ -912,7 +912,7 @@ class Chip:
                 list_type =bool(re.match(r'\[', cfg[param]['type']))
                 # copying over defvalue if value doesn't exist
                 if 'value' not in cfg[param]:
-                    cfg[param]['value'] = cfg[param]['defvalue']
+                    cfg[param]['value'] = copy.deepcopy(cfg[param]['defvalue'])
                 # checking for illegal fields
                 if not field in cfg[param] and (field != 'value'):
                     self.logger.error(f"Field '{field}' for keypath [{keypath}]' is not a valid field.")
@@ -933,7 +933,7 @@ class Chip:
                 if field not in cfg[param]:
                     selval = cfg[param]['defvalue']
                 else:
-                    selval =  cfg[param]['value']
+                    selval = cfg[param]['value']
                 # updating values
                 if cfg[param]['lock'] == "true":
                     self.logger.debug("Ignoring {mode}{} to [{keypath}]. Lock bit is set.")
@@ -1452,7 +1452,7 @@ class Chip:
             keypath = ",".join(key)
             if 'default' not in key:
                 key_empty = self._keypath_empty(key)
-                requirement = self.get(*key, field='requirement')
+                requirement = self.get(*key, field='require')
                 if key_empty and (str(requirement) == 'all'):
                     self.error = 1
                     self.logger.error(f"Global requirement missing for [{keypath}].")
@@ -1838,32 +1838,29 @@ class Chip:
              Hashlist gets list of hash values computed from 'sources' files.
         '''
 
-        hashmode = self.get('hashmode')
-        self.logger.info(f"Computing  hashmode = {hashmode}, algo = {algo}")
-
-        #TODO: Implement algo selection
-        if 'filehash' in keypath:
+        if 'file' in self.get(*keypath, field='type'):
+            keypathstr = ','.join(keypath)
+            self.logger.debug(f"Computing hash for param [{keypathstr}] with algorithm {algo}")
             filelist = self.find_files(*keypath)
-            #Clearing list
-            self.set([keypath,[]], clobber=True)
             hashlist = []
             for filename in filelist:
                 self.logger.debug('Computing hash value for %s', filename)
                 if os.path.isfile(filename):
-                    sha256_hash = hashlib.sha256()
+                    #TODO: Implement algo selection
+                    hashobj = hashlib.sha256()
                     with open(filename, "rb") as f:
                         for byte_block in iter(lambda: f.read(4096), b""):
-                            sha256_hash.update(byte_block)
-                    hash_value = sha256_hash.hexdigest()
+                            hashobj.update(byte_block)
+                    hash_value = hashobj.hexdigest()
                     hashlist.append(hash_value)
-            self.set([keypath,hashlist], clobber=True)
-        else:
-            self.error = 1
-            self.logger.error(f"Illegal attempt to hash non-file parameter")
+                else:
+                    self.error = 1
+                    self.logger.info(f"Internal hashing error, file not found")
+            self.set(*keypath, hashlist, field='filehash', clobber=True)
 
     ###########################################################################
     def audit_manifest(self):
-        '''Verifies the integrity of the post-run compilation manifest .
+        '''Verifies the integrity of the post-run compilation manifest.
 
         Checks the integrity of the chip object implementation flow after
         the run() function has been completed. Errors, warnings, and debug
@@ -2167,6 +2164,45 @@ class Chip:
         #Sort steps based on path lenghts
         sorted_dict = dict(sorted(depth.items(), key=lambda depth: depth[1]))
         return list(sorted_dict.keys())
+
+    ###########################################################################
+    def list_files(self, abspath=False):
+        '''
+        Returns a list all files used.
+
+        1. list the import/outputs directory
+        2. list all files used in target/macro libs, walkd dict (and metal stack)
+        3. resolve the tcl files based flowgraph on refdir (package tcl?)
+        4.
+
+        All step keys from the flowgraph dictionary are collected and the
+        distance from the root node (ie. without any inputs defined) is
+        measured for each step. The step list is then sorted based on
+        the distance from root and returned.
+
+        Returns:
+            A list of steps sorted by distance from the root node.
+
+        Example:
+            >>> steplist = chip.list_steps()
+            Variable steplist gets list of steps sorted by distance from root.
+        '''
+
+
+        all_files = []
+
+        # Cycle through pdk
+        pdk_keys = self.getkeys()
+
+
+        for keypath in allkeys:
+            if (self.get(*keypath, field='type') == '[file]'):
+                files = self.get(*keypath)
+
+                if files:
+                    print(files)
+
+
 
     ###########################################################################
     def _allpaths(self, cfg, step, index, path=None, allpaths=None):
