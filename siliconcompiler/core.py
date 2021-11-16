@@ -1735,10 +1735,8 @@ class Chip:
         copied_filenames = set()
         #copy all parameter take from self dictionary
         copyall = self.get('copyall')
-        allkeys = self.getkeys()
-        for key in allkeys:
-            leaftype = self.get(*key,field='type')
-            if re.search('file', leaftype):
+        for key in self.getkeys():
+            if 'file' in self.get(*key,field='type'):
                 copy = self.get(*key, field='copy')
                 value = self.get(*key)
                 if copyall or copy:
@@ -2521,7 +2519,7 @@ class Chip:
         return None
 
     ###########################################################################
-    def _runstep_safe(self, step, index, active, error):
+    def _runtask_safe(self, step, index, active, error):
         try:
             self._init_logger(step, index)
         except:
@@ -2531,7 +2529,7 @@ class Chip:
             self._haltstep(step, index, active, log=False)
 
         try:
-            self._runstep(step, index, active, error)
+            self._runtask(step, index, active, error)
         except SystemExit:
             # calling sys.exit() in _haltstep triggers a "SystemExit"
             # exception, but we can ignore these -- if we call sys.exit(), we've
@@ -2544,7 +2542,7 @@ class Chip:
             self._haltstep(step, index, active)
 
     ###########################################################################
-    def _runstep(self, step, index, active, error):
+    def _runtask(self, step, index, active, error):
         '''
         Private per step run method called by run().
         The method takes in a step string and index string to indicated what
@@ -3018,12 +3016,12 @@ class Chip:
                 else:
                     indexlist = self.getkeys('flowgraph', step)
                 for index in indexlist:
-                    processes.append(multiprocessing.Process(target=self._runstep_safe,
+                    processes.append(multiprocessing.Process(target=self._runtask_safe,
                                                              args=(step, index, active, error,)))
 
 
             # We have to deinit the chip's logger before spawning the processes
-            # since the logger object is not serializable. _runstep_safe will
+            # since the logger object is not serializable. _runtask_safe will
             # reinitialize the logger in each new process, and we reinitialize
             # the primary chip's logger after the processes complete.
             self._deinit_logger()
