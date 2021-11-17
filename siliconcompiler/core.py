@@ -2652,6 +2652,9 @@ class Chip:
 
         ##################
         # 7. Resetting metrics to zero
+        # TODO: There should be no need for this, but need to fix
+        # without it we need to be more careful with flows to make sure
+        # things like the builtin functions don't look at None values
         for metric in self.getkeys('metric', 'default', 'default'):
             self.set('metric', step, index, metric, 'real', 0)
 

@@ -21,14 +21,14 @@ def test_gcd_server(gcd_chip):
                                  '-cluster', 'local'])
 
     # Mock the _runstep method.
-    old__runstep = gcd_chip._runstep
-    def mocked_runstep(*args, **kwargs):
+    old__runtask = gcd_chip._runtask
+    def mocked_runtask(*args, **kwargs):
         if args[0] == 'import':
-            old__runstep(*args)
+            old__runtask(*args)
         else:
             gcd_chip.logger.error('Non-import step run locally in remote job!')
-    gcd_chip._runstep = Mock()
-    gcd_chip._runstep.side_effect = mocked_runstep
+    gcd_chip._runtask = Mock()
+    gcd_chip._runtask.side_effect = mocked_runtask
 
     # Ensure that klayout doesn't open its GUI after results are retrieved.
     os.environ['DISPLAY'] = ''
