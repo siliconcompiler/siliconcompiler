@@ -51,7 +51,7 @@ def setup_tool(chip):
     # Standard Setup
     chip.set('eda', tool, step, index, 'exe', exe, clobber=False)
     chip.set('eda', tool, step, index, 'vswitch', '--version', clobber=False)
-    chip.set('eda', tool, step, index, 'version', '1.13', clobber=False)
+    chip.set('eda', tool, step, index, 'version', '1.14', clobber=False)
     chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=False)
 
     # -parse is slow but ensures the SV code is valid

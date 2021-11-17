@@ -56,7 +56,7 @@ def setup_tool(chip, mode="batch"):
     chip.set('eda', tool, step, index, 'refdir', refdir, clobber=clobber)
     chip.set('eda', tool, step, index, 'script', refdir + script, clobber=clobber)
     chip.set('eda', tool, step, index, 'vswitch', '-zz -v', clobber=clobber)
-    chip.set('eda', tool, step, index, 'version', '0.26.11', clobber=clobber)
+    chip.set('eda', tool, step, index, 'version', '0.27.5', clobber=clobber)
 
     chip.set('eda', tool, step, index, 'option', 'cmdline', option, clobber=clobber)
 
