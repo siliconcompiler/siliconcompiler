@@ -1,2 +1,2 @@
 #!/bin/sh
-sudo apt-get install verilator
+sudo apt-get install -y verilator
