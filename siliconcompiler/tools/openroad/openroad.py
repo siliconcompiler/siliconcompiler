@@ -66,6 +66,30 @@ def setup_tool(chip, mode='batch'):
     chip.set('eda', tool, step, index, 'refdir', refdir, clobber=clobber)
     chip.set('eda', tool, step, index, 'script', refdir + script, clobber=clobber)
 
+    # openroad makes use of these parameters
+    targetlibs = chip.get('asic', 'targetlib')
+    stackup = chip.get('asic', 'stackup')
+    if bool(stackup) & bool(targetlibs):
+        mainlib = targetlibs[0]
+        macrolibs = chip.get('asic', 'macrolib')
+        libtype = str(chip.get('library', mainlib, 'arch'))
+        techlef = chip.get('pdk', 'aprtech', stackup, libtype, 'lef')
+
+        chip.add('eda', tool, step, index, 'require', ",".join(['asic', 'targetlib']))
+        chip.add('eda', tool, step, index, 'require', ",".join(['asic', 'stackup']))
+        chip.add('eda', tool, step, index, 'require', ",".join(['library', mainlib, 'arch']))
+        chip.add('eda', tool, step, index, 'require', ",".join(['pdk', 'aprtech', stackup, libtype, 'lef']))
+
+        for lib in (targetlibs + macrolibs):
+            for corner in chip.getkeys('library',  lib, 'nldm'):
+                nldm = chip.get('library', lib, 'nldm', corner, 'lib')
+                chip.add('eda', tool, step, index, 'require', ",".join(['library', lib, 'nldm', corner, 'lib']))
+            lef = chip.get('library', lib, 'lef')
+            chip.add('eda', tool, step, index, 'require', ",".join(['library', lib, 'lef']))
+    else:
+        chip.error = 1
+        chip.logger.error(f'Stackup and targetlib paremeters required for OpenROAD.')
+
     # defining default dictionary
     default_options = {
         'place_density': [],
@@ -127,8 +151,8 @@ def setup_tool(chip, mode='batch'):
             chip.set('eda', tool, step, index, 'option', option, default_options[option], clobber=clobber)
 
     for clock in chip.getkeys('clock'):
-        chip.add('eda', tool, step, index, 'req', ','.join(['clock', clock, 'period']))
-        chip.add('eda', tool, step, index, 'req', ','.join(['clock', clock, 'pin']))
+        chip.add('eda', tool, step, index, 'require', ','.join(['clock', clock, 'period']))
+        chip.add('eda', tool, step, index, 'require', ','.join(['clock', clock, 'pin']))
 
 ################################
 # Version Check
@@ -260,4 +284,4 @@ def post_process(chip):
 if __name__ == "__main__":
 
     chip = make_docs()
-    chip.writecfg("openroad.json")
+    chip.write_manifest("openroad.json")

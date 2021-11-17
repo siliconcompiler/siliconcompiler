@@ -70,11 +70,11 @@ def setup_tool(chip):
 
     #Schema requirements
     if chip.get('mode') == 'asic':
-        chip.add('eda', tool, step, index, 'req', ",".join(['pdk', 'process']))
-        chip.add('eda', tool, step, index, 'req', ",".join(['design']))
-        chip.add('eda', tool, step, index, 'req', ",".join(['asic', 'targetlib']))
+        chip.add('eda', tool, step, index, 'require', ",".join(['pdk', 'process']))
+        chip.add('eda', tool, step, index, 'require', ",".join(['design']))
+        chip.add('eda', tool, step, index, 'require', ",".join(['asic', 'targetlib']))
     else:
-        chip.add('eda', tool, step, index, 'req', ",".join(['fpga','partname']))
+        chip.add('eda', tool, step, index, 'require', ",".join(['fpga','partname']))
 
 #############################################
 # Runtime pre processing
@@ -145,12 +145,13 @@ def post_process(chip):
     index = chip.get('arg','index')
 
     if step == 'syn':
+        #TODO: looks like Yosys exits on error, so no need to check metric
+        chip.set('metric', step, index, 'errors', 'real', 0, clobber=True)
         with open(step + ".log") as f:
             for line in f:
                 area = re.search(r'Chip area for module.*\:\s+(.*)', line)
                 cells = re.search(r'Number of cells\:\s+(.*)', line)
                 warnings = re.search(r'Warnings.*\s(\d+)\s+total', line)
-
                 if area:
                     chip.set('metric', step, index, 'cellarea', 'real', round(float(area.group(1)),2), clobber=True)
                 elif cells:

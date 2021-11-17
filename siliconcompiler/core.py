@@ -635,7 +635,7 @@ class Chip:
         typestr = self.get(*keypath, field='type')
         switchstr = str(self.get(*keypath, field='switch'))
         defstr = str(self.get(*keypath, field='defvalue'))
-        requirement = str(self.get(*keypath, field='requirement'))
+        requirement = str(self.get(*keypath, field='require'))
         helpstr = self.get(*keypath, field='help')
         example = self.get(*keypath, field='example')
 
@@ -737,7 +737,7 @@ class Chip:
             cfg = self.cfg
 
         if len(list(keypath)) > 0:
-            keypathstr = ','.join(keypath[:-1])
+            keypathstr = ','.join(keypath)
             self.logger.debug('Getting schema parameter keys for: %s', keypathstr)
             keys = list(self._search(cfg, keypathstr, *keypath, mode='getkeys'))
             if 'default' in keys:
@@ -773,7 +773,7 @@ class Chip:
             cfg = self.cfg
 
         if len(list(keypath)) > 0:
-            keypathstr = ','.join(keypath[:-1])
+            keypathstr = ','.join(keypath)
             self.logger.debug('Getting cfg for: %s', keypathstr)
             localcfg = self._search(cfg, keypathstr, *keypath, mode='getcfg')
 
@@ -912,7 +912,7 @@ class Chip:
                 list_type =bool(re.match(r'\[', cfg[param]['type']))
                 # copying over defvalue if value doesn't exist
                 if 'value' not in cfg[param]:
-                    cfg[param]['value'] = cfg[param]['defvalue']
+                    cfg[param]['value'] = copy.deepcopy(cfg[param]['defvalue'])
                 # checking for illegal fields
                 if not field in cfg[param] and (field != 'value'):
                     self.logger.error(f"Field '{field}' for keypath [{keypath}]' is not a valid field.")
@@ -933,7 +933,7 @@ class Chip:
                 if field not in cfg[param]:
                     selval = cfg[param]['defvalue']
                 else:
-                    selval =  cfg[param]['value']
+                    selval = cfg[param]['value']
                 # updating values
                 if cfg[param]['lock'] == "true":
                     self.logger.debug("Ignoring {mode}{} to [{keypath}]. Lock bit is set.")
@@ -1452,7 +1452,7 @@ class Chip:
             keypath = ",".join(key)
             if 'default' not in key:
                 key_empty = self._keypath_empty(key)
-                requirement = self.get(*key, field='requirement')
+                requirement = self.get(*key, field='require')
                 if key_empty and (str(requirement) == 'all'):
                     self.error = 1
                     self.logger.error(f"Global requirement missing for [{keypath}].")
@@ -1735,10 +1735,8 @@ class Chip:
         copied_filenames = set()
         #copy all parameter take from self dictionary
         copyall = self.get('copyall')
-        allkeys = self.getkeys()
-        for key in allkeys:
-            leaftype = self.get(*key,field='type')
-            if re.search('file', leaftype):
+        for key in self.getkeys():
+            if 'file' in self.get(*key,field='type'):
                 copy = self.get(*key, field='copy')
                 value = self.get(*key)
                 if copyall or copy:
@@ -1838,32 +1836,29 @@ class Chip:
              Hashlist gets list of hash values computed from 'sources' files.
         '''
 
-        hashmode = self.get('hashmode')
-        self.logger.info(f"Computing  hashmode = {hashmode}, algo = {algo}")
-
-        #TODO: Implement algo selection
-        if 'filehash' in keypath:
+        if 'file' in self.get(*keypath, field='type'):
+            keypathstr = ','.join(keypath)
+            self.logger.debug(f"Computing hash for param [{keypathstr}] with algorithm {algo}")
             filelist = self.find_files(*keypath)
-            #Clearing list
-            self.set([keypath,[]], clobber=True)
             hashlist = []
             for filename in filelist:
                 self.logger.debug('Computing hash value for %s', filename)
                 if os.path.isfile(filename):
-                    sha256_hash = hashlib.sha256()
+                    #TODO: Implement algo selection
+                    hashobj = hashlib.sha256()
                     with open(filename, "rb") as f:
                         for byte_block in iter(lambda: f.read(4096), b""):
-                            sha256_hash.update(byte_block)
-                    hash_value = sha256_hash.hexdigest()
+                            hashobj.update(byte_block)
+                    hash_value = hashobj.hexdigest()
                     hashlist.append(hash_value)
-            self.set([keypath,hashlist], clobber=True)
-        else:
-            self.error = 1
-            self.logger.error(f"Illegal attempt to hash non-file parameter")
+                else:
+                    self.error = 1
+                    self.logger.info(f"Internal hashing error, file not found")
+            self.set(*keypath, hashlist, field='filehash', clobber=True)
 
     ###########################################################################
     def audit_manifest(self):
-        '''Verifies the integrity of the post-run compilation manifest .
+        '''Verifies the integrity of the post-run compilation manifest.
 
         Checks the integrity of the chip object implementation flow after
         the run() function has been completed. Errors, warnings, and debug
@@ -2167,6 +2162,45 @@ class Chip:
         #Sort steps based on path lenghts
         sorted_dict = dict(sorted(depth.items(), key=lambda depth: depth[1]))
         return list(sorted_dict.keys())
+
+    ###########################################################################
+    def list_files(self, abspath=False):
+        '''
+        Returns a list all files used.
+
+        1. list the import/outputs directory
+        2. list all files used in target/macro libs, walkd dict (and metal stack)
+        3. resolve the tcl files based flowgraph on refdir (package tcl?)
+        4.
+
+        All step keys from the flowgraph dictionary are collected and the
+        distance from the root node (ie. without any inputs defined) is
+        measured for each step. The step list is then sorted based on
+        the distance from root and returned.
+
+        Returns:
+            A list of steps sorted by distance from the root node.
+
+        Example:
+            >>> steplist = chip.list_steps()
+            Variable steplist gets list of steps sorted by distance from root.
+        '''
+
+
+        all_files = []
+
+        # Cycle through pdk
+        pdk_keys = self.getkeys()
+
+
+        for keypath in allkeys:
+            if (self.get(*keypath, field='type') == '[file]'):
+                files = self.get(*keypath)
+
+                if files:
+                    print(files)
+
+
 
     ###########################################################################
     def _allpaths(self, cfg, step, index, path=None, allpaths=None):
@@ -2485,7 +2519,7 @@ class Chip:
         return None
 
     ###########################################################################
-    def _runstep_safe(self, step, index, active, error):
+    def _runtask_safe(self, step, index, active, error):
         try:
             self._init_logger(step, index)
         except:
@@ -2495,7 +2529,7 @@ class Chip:
             self._haltstep(step, index, active, log=False)
 
         try:
-            self._runstep(step, index, active, error)
+            self._runtask(step, index, active, error)
         except SystemExit:
             # calling sys.exit() in _haltstep triggers a "SystemExit"
             # exception, but we can ignore these -- if we call sys.exit(), we've
@@ -2508,7 +2542,7 @@ class Chip:
             self._haltstep(step, index, active)
 
     ###########################################################################
-    def _runstep(self, step, index, active, error):
+    def _runtask(self, step, index, active, error):
         '''
         Private per step run method called by run().
         The method takes in a step string and index string to indicated what
@@ -2517,29 +2551,31 @@ class Chip:
 
         Execution flow:
         1. Wait in loop until all previous steps/indexes have completed
-        2. Set up working directory
-        3. Check inputs for errors. Halt if one of the steps yielded
-           zero valid results, otherwise merge cfg from previous step
-        4. Start job (timer)
-        5. Run pre_process
-        6. Copy in all input directories selected
-        7. Copy in reference scripts to working dir
-        8. Save dictionary to be used for running the tool/runstep
-        9. Run dynamic check()
-        10. Set all metrics for runstep to 0
-        11. Check exe version
-        12. Run EXE
-        13. Post process
-        14. Record successful exit
-        15. Save package in output dir
-        16. Change back to original dir
-        17. Lower active bit
+        2. Defer job to compute node if using job scheduler
+        3. Start task timer
+        4. Set up working directory + chdir
+        5. Merge manifests from all input dependancies
+        6. Write unified manifest to input directory for convenience
+        7. Resetting all metrics to 0
+        8. Select inputs
+        9. Copy data from previous step outputs into inputs
+        10. Run pre_process() function (order??)
+        11. Copy reference script directory (order??)
+        12. Check consistency of manifest (ordedr??)
+        13. Hash all inputs files
+        14. Save manifest as TCL/YAML for pickup by tools
+        15. Check EXE version
+        16. Run EXE
+        17. Run post_process()
+        18. Stop task timer
+        19. Save output manifest
+        20. chdir back
+        21. clear error and active bits and return control to run()
 
-        Note that since each _runstep call occurs in its own process with a
-        separate address space, any changes made to the `self` object will not
-        be reflected in the parent. We rely on reading/writing the chip config
-        to the filesystem to communicate updates to the schema (primarily just
-        metrics).
+        Note that since _runtask occurs in its own process with a separate
+        address space, any changes made to the `self` object will not
+        be reflected in the parent. We rely on reading/writing the chip manifest
+        to the filesystem to communicate updates between processes.
         '''
 
         ##################
@@ -2556,6 +2592,8 @@ class Chip:
             # Short sleep
             time.sleep(0.1)
 
+        ##################
+        # 2. Defer job to compute node
         # If the job is configured to run on a cluster, collect the schema
         # and send it to a compute node for deferred execution.
         # (Run the initial 'import' stage[s] locally)
@@ -2566,11 +2604,16 @@ class Chip:
             _deferstep(self, step, index, active, error)
             return
 
-        # If the job is configured to run on the local machine, run it.
         ##################
-        # 2. Directory setup
+        # 3. Start Task Timer
+        self.logger.debug(f"Starting process")
+        start = time.time()
 
-        # Handling cross job references
+
+        ##################
+        # 4. Directory setup
+
+        # support for sharing data across jobids
         job = self.get('jobname')
         if job in self.getkeys('jobinput'):
             if step in self.getkeys('jobinput',job):
@@ -2587,7 +2630,7 @@ class Chip:
         os.makedirs('reports', exist_ok=True)
 
         ##################
-        # 3. Collect run cfg and record prev step errors
+        # 5. Merge manifests from all input dependancies
 
         design = self.get('design')
         all_inputs = []
@@ -2599,23 +2642,24 @@ class Chip:
                     cfgfile = f"../../../{job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
                     self.read_manifest(cfgfile, clobber=False)
 
-        # Write configuration prior to step running into inputs/
+        ##################
+        # 6. Write configuration prior to step running into inputs
+
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
         os.makedirs('inputs', exist_ok=True)
         self.write_manifest(f'inputs/{design}.pkg.json')
 
         ##################
-        # 4. Starting job
-
-        self.logger.debug(f"Starting process")
-        start = time.time()
-
-        self.set('arg', 'step', step, clobber=True)
-        self.set('arg', 'index', index, clobber=True)
+        # 7. Resetting metrics to zero
+        # TODO: There should be no need for this, but need to fix
+        # without it we need to be more careful with flows to make sure
+        # things like the builtin functions don't look at None values
+        for metric in self.getkeys('metric', 'default', 'default'):
+            self.set('metric', step, index, metric, 'real', 0)
 
         ##################
-        # 5. Select inputs
+        # 8. Select inputs
 
         tool = self.get('flowgraph', step, index, 'tool')
         args = self.get('flowgraph', step, index, 'args')
@@ -2646,7 +2690,7 @@ class Chip:
         self.set('flowstatus', step, index, 'select', sel_inputs)
 
         ##################
-        # 6 Copy outputs from input steps
+        # 9. Copy outputs from input steps
 
         if step == 'import':
             self._collect(step, index, active)
@@ -2668,7 +2712,7 @@ class Chip:
                 ignore=[f'{design}.pkg.json'])
 
         ##################
-        # 7. Run preprocess step for tool
+        # 10. Run preprocess step for tool
 
         if tool not in self.builtin:
             func = self.find_function(tool, "tool", "pre_process")
@@ -2679,34 +2723,41 @@ class Chip:
                     self._haltstep(step, index, active)
 
         ##################
-        # 7. Copy Reference Scripts
+        # 11. Copy Reference Scripts
 
         if tool not in self.builtin:
             if self.get('eda', tool, step, index, 'copy'):
                 refdir = self.find_files('eda', tool, step, index, 'refdir')
                 utils.copytree(refdir, ".", dirs_exist_ok=True)
 
-        ##################
-        # 8. Save config files required by EDA tools
-        # (for tools and slurm)
-
-        self.write_manifest("sc_manifest.json")
-        self.write_manifest("sc_manifest.yaml")
-        self.write_manifest("sc_manifest.tcl", abspath=True)
 
         ##################
-        # 9. Final check() before run
+        # 12. Final check() before run
         if self.check_manifest():
             self.logger.error(f"Fatal error in check()! See previous errors.")
             self._haltstep(step, index, active)
 
         ##################
-        # 10. Resetting metrics (so tool doesn't have to worry about defaults)
-        for metric in self.getkeys('metric', 'default', 'default'):
-            self.set('metric', step, index, metric, 'real', 0)
+        # 13. Hash input files
+        allkeys = self.getkeys()
+        hashmode = self.get('hashmode')
+        self.logger.info('Computing file hashes with hashmode = %s', hashmode)
+        for keypath in allkeys:
+            if 'filehash' in keypath:
+                self.hash_files(keypath)
 
         ##################
-        # 11. Set license variable and check exe version
+        # 14. Save config files required by EDA tools
+        # (for tools and slurm)
+
+        self.set('arg', 'step', step, clobber=True)
+        self.set('arg', 'index', index, clobber=True)
+        self.write_manifest("sc_manifest.json")
+        self.write_manifest("sc_manifest.yaml")
+        self.write_manifest("sc_manifest.tcl", abspath=True)
+
+        ##################
+        # 15. Set license variable and check exe version
 
         for item in self.getkeys('eda', tool, step, index, 'license'):
             license_file = self.get('eda', tool, step, index, 'license', item)
@@ -2727,7 +2778,7 @@ class Chip:
                 self._haltstep(step, index, active)
 
         ##################
-        # 12. Run executable
+        # 16. Run executable
         if tool not in self.builtin:
             cmdlist = self._makecmd(tool, step, index)
             cmdstr = ' '.join(cmdlist)
@@ -2768,7 +2819,7 @@ class Chip:
             utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True)
 
         ##################
-        # 13. Post process (could fail)
+        # 17. Post process (could fail)
         post_error = 0
         if tool not in self.builtin:
             func = self.find_function(tool, "tool", "post_process")
@@ -2779,7 +2830,7 @@ class Chip:
                     self._haltstep(step, index, active)
 
         ##################
-        # 14. Record successful exit
+        # 18. Record successful exit
         self.set('flowstatus', step, str(index), 'error', 0)
         end = time.time()
         elapsed_time = end - start
@@ -2787,20 +2838,22 @@ class Chip:
 
         start_date = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
         end_date = datetime.datetime.fromtimestamp(end).strftime('%Y-%m-%d %H:%M:%S')
+
+        #TODO: fix
         self._makerecord(step, index, start_date, end_date)
 
         ##################
-        # 15. save a successful manifest (minus scratch args)
+        # 19. save a successful manifest (minus scratch args)
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
         self.write_manifest("outputs/" + self.get('design') +'.pkg.json')
 
         ##################
-        # 16. return fo original directory
+        # 20. return fo original directory
         os.chdir(cwd)
 
         ##################
-        # 17. clearing active and error bits
+        # 21. clearing active and error bits
         # !!Do not move this code!!
         error[step + str(index)] = 0
         active[step + str(index)] = 0
@@ -2867,14 +2920,6 @@ class Chip:
                           f'{self.get("jobname")}'
             if os.path.isdir(cur_job_dir):
                 shutil.rmtree(cur_job_dir)
-
-        # Hash all files before run
-        allkeys = self.getkeys()
-        hashmode = self.get('hashmode')
-        self.logger.info('Computing file hashes with hashmode = %s', hashmode)
-        for keypath in allkeys:
-            if 'filehash' in keypath:
-                self.hash_files(keypath)
 
         # Remote workflow: Dispatch the Chip to a remote server for processing.
         if self.get('remote', 'proc'):
@@ -2982,12 +3027,12 @@ class Chip:
                 else:
                     indexlist = self.getkeys('flowgraph', step)
                 for index in indexlist:
-                    processes.append(multiprocessing.Process(target=self._runstep_safe,
+                    processes.append(multiprocessing.Process(target=self._runtask_safe,
                                                              args=(step, index, active, error,)))
 
 
             # We have to deinit the chip's logger before spawning the processes
-            # since the logger object is not serializable. _runstep_safe will
+            # since the logger object is not serializable. _runtask_safe will
             # reinitialize the logger in each new process, and we reinitialize
             # the primary chip's logger after the processes complete.
             self._deinit_logger()
