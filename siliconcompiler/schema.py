@@ -2074,9 +2074,28 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'example': ["cli: -eda_output 'openroad place 0 oh_add.def'",
                     "api: chip.set('eda','openroad','place','0','output','oh_add.def')"],
         'help': """
-        List of data files produced by the current step and placed in the
+        List of data files produced by the current task and placed in the
         'output' directory. During execution, if a file is missing, the
         program exists on an error.
+        """
+    }
+
+    # report files
+    report_type = 'default'
+    cfg['eda'][tool][step][index][report_type] = {}
+    cfg['eda'][tool][step][index][report_type]['report'] = {
+        'switch': "-eda_report 'tool step index report_type <str>'",
+        'type': '[str]',
+        'lock': 'false',
+        'require': None,
+        'defvalue': [],
+        'shorthelp': 'List of report files ',
+        'example': [
+            "cli: -eda_report 'yosys syn 0 hold hold.rpt'",
+            "api: chip.set('eda','yosys','syn','0', 'hold', 'report','hold.rpt')"],
+        'help': """
+        Name of report file of type 'reptype' produced by the task within the
+        local 'reports' directory.
         """
     }
 
