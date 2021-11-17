@@ -2551,29 +2551,31 @@ class Chip:
 
         Execution flow:
         1. Wait in loop until all previous steps/indexes have completed
-        2. Set up working directory
-        3. Check inputs for errors. Halt if one of the steps yielded
-           zero valid results, otherwise merge cfg from previous step
-        4. Start job (timer)
-        5. Run pre_process
-        6. Copy in all input directories selected
-        7. Copy in reference scripts to working dir
-        8. Save dictionary to be used for running the tool/runstep
-        9. Run dynamic check()
-        10. Set all metrics for runstep to 0
-        11. Check exe version
-        12. Run EXE
-        13. Post process
-        14. Record successful exit
-        15. Save package in output dir
-        16. Change back to original dir
-        17. Lower active bit
+        2. Defer job to compute node if using job scheduler
+        3. Start task timer
+        4. Set up working directory + chdir
+        5. Merge manifests from all input dependancies
+        6. Write unified manifest to input directory for convenience
+        7. Resetting all metrics to 0
+        8. Select inputs
+        9. Copy data from previous step outputs into inputs
+        10. Run pre_process() function (order??)
+        11. Copy reference script directory (order??)
+        12. Check consistency of manifest (ordedr??)
+        13. Hash all inputs files
+        14. Save manifest as TCL/YAML for pickup by tools
+        15. Check EXE version
+        16. Run EXE
+        17. Run post_process()
+        18. Stop task timer
+        19. Save output manifest
+        20. chdir back
+        21. clear error and active bits and return control to run()
 
-        Note that since each _runstep call occurs in its own process with a
-        separate address space, any changes made to the `self` object will not
-        be reflected in the parent. We rely on reading/writing the chip config
-        to the filesystem to communicate updates to the schema (primarily just
-        metrics).
+        Note that since _runtask occurs in its own process with a separate
+        address space, any changes made to the `self` object will not
+        be reflected in the parent. We rely on reading/writing the chip manifest
+        to the filesystem to communicate updates between processes.
         '''
 
         ##################
@@ -2590,6 +2592,8 @@ class Chip:
             # Short sleep
             time.sleep(0.1)
 
+        ##################
+        # 2. Defer job to compute node
         # If the job is configured to run on a cluster, collect the schema
         # and send it to a compute node for deferred execution.
         # (Run the initial 'import' stage[s] locally)
@@ -2600,11 +2604,16 @@ class Chip:
             _deferstep(self, step, index, active, error)
             return
 
-        # If the job is configured to run on the local machine, run it.
         ##################
-        # 2. Directory setup
+        # 3. Start Task Timer
+        self.logger.debug(f"Starting process")
+        start = time.time()
 
-        # Handling cross job references
+
+        ##################
+        # 4. Directory setup
+
+        # support for sharing data across jobids
         job = self.get('jobname')
         if job in self.getkeys('jobinput'):
             if step in self.getkeys('jobinput',job):
@@ -2621,7 +2630,7 @@ class Chip:
         os.makedirs('reports', exist_ok=True)
 
         ##################
-        # 3. Collect run cfg and record prev step errors
+        # 5. Merge manifests from all input dependancies
 
         design = self.get('design')
         all_inputs = []
@@ -2633,23 +2642,21 @@ class Chip:
                     cfgfile = f"../../../{job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
                     self.read_manifest(cfgfile, clobber=False)
 
-        # Write configuration prior to step running into inputs/
+        ##################
+        # 6. Write configuration prior to step running into inputs
+
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
         os.makedirs('inputs', exist_ok=True)
         self.write_manifest(f'inputs/{design}.pkg.json')
 
         ##################
-        # 4. Starting job
-
-        self.logger.debug(f"Starting process")
-        start = time.time()
-
-        self.set('arg', 'step', step, clobber=True)
-        self.set('arg', 'index', index, clobber=True)
+        # 7. Resetting metrics to zero
+        for metric in self.getkeys('metric', 'default', 'default'):
+            self.set('metric', step, index, metric, 'real', 0)
 
         ##################
-        # 5. Select inputs
+        # 8. Select inputs
 
         tool = self.get('flowgraph', step, index, 'tool')
         args = self.get('flowgraph', step, index, 'args')
@@ -2680,7 +2687,7 @@ class Chip:
         self.set('flowstatus', step, index, 'select', sel_inputs)
 
         ##################
-        # 6 Copy outputs from input steps
+        # 9. Copy outputs from input steps
 
         if step == 'import':
             self._collect(step, index, active)
@@ -2702,7 +2709,7 @@ class Chip:
                 ignore=[f'{design}.pkg.json'])
 
         ##################
-        # 7. Run preprocess step for tool
+        # 10. Run preprocess step for tool
 
         if tool not in self.builtin:
             func = self.find_function(tool, "tool", "pre_process")
@@ -2713,34 +2720,41 @@ class Chip:
                     self._haltstep(step, index, active)
 
         ##################
-        # 7. Copy Reference Scripts
+        # 11. Copy Reference Scripts
 
         if tool not in self.builtin:
             if self.get('eda', tool, step, index, 'copy'):
                 refdir = self.find_files('eda', tool, step, index, 'refdir')
                 utils.copytree(refdir, ".", dirs_exist_ok=True)
 
-        ##################
-        # 8. Save config files required by EDA tools
-        # (for tools and slurm)
-
-        self.write_manifest("sc_manifest.json")
-        self.write_manifest("sc_manifest.yaml")
-        self.write_manifest("sc_manifest.tcl", abspath=True)
 
         ##################
-        # 9. Final check() before run
+        # 12. Final check() before run
         if self.check_manifest():
             self.logger.error(f"Fatal error in check()! See previous errors.")
             self._haltstep(step, index, active)
 
         ##################
-        # 10. Resetting metrics (so tool doesn't have to worry about defaults)
-        for metric in self.getkeys('metric', 'default', 'default'):
-            self.set('metric', step, index, metric, 'real', 0)
+        # 13. Hash input files
+        allkeys = self.getkeys()
+        hashmode = self.get('hashmode')
+        self.logger.info('Computing file hashes with hashmode = %s', hashmode)
+        for keypath in allkeys:
+            if 'filehash' in keypath:
+                self.hash_files(keypath)
 
         ##################
-        # 11. Set license variable and check exe version
+        # 14. Save config files required by EDA tools
+        # (for tools and slurm)
+
+        self.set('arg', 'step', step, clobber=True)
+        self.set('arg', 'index', index, clobber=True)
+        self.write_manifest("sc_manifest.json")
+        self.write_manifest("sc_manifest.yaml")
+        self.write_manifest("sc_manifest.tcl", abspath=True)
+
+        ##################
+        # 15. Set license variable and check exe version
 
         for item in self.getkeys('eda', tool, step, index, 'license'):
             license_file = self.get('eda', tool, step, index, 'license', item)
@@ -2761,7 +2775,7 @@ class Chip:
                 self._haltstep(step, index, active)
 
         ##################
-        # 12. Run executable
+        # 16. Run executable
         if tool not in self.builtin:
             cmdlist = self._makecmd(tool, step, index)
             cmdstr = ' '.join(cmdlist)
@@ -2802,7 +2816,7 @@ class Chip:
             utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True)
 
         ##################
-        # 13. Post process (could fail)
+        # 17. Post process (could fail)
         post_error = 0
         if tool not in self.builtin:
             func = self.find_function(tool, "tool", "post_process")
@@ -2813,7 +2827,7 @@ class Chip:
                     self._haltstep(step, index, active)
 
         ##################
-        # 14. Record successful exit
+        # 18. Record successful exit
         self.set('flowstatus', step, str(index), 'error', 0)
         end = time.time()
         elapsed_time = end - start
@@ -2821,20 +2835,22 @@ class Chip:
 
         start_date = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
         end_date = datetime.datetime.fromtimestamp(end).strftime('%Y-%m-%d %H:%M:%S')
+
+        #TODO: fix
         self._makerecord(step, index, start_date, end_date)
 
         ##################
-        # 15. save a successful manifest (minus scratch args)
+        # 19. save a successful manifest (minus scratch args)
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
         self.write_manifest("outputs/" + self.get('design') +'.pkg.json')
 
         ##################
-        # 16. return fo original directory
+        # 20. return fo original directory
         os.chdir(cwd)
 
         ##################
-        # 17. clearing active and error bits
+        # 21. clearing active and error bits
         # !!Do not move this code!!
         error[step + str(index)] = 0
         active[step + str(index)] = 0
@@ -2901,14 +2917,6 @@ class Chip:
                           f'{self.get("jobname")}'
             if os.path.isdir(cur_job_dir):
                 shutil.rmtree(cur_job_dir)
-
-        # Hash all files before run
-        allkeys = self.getkeys()
-        hashmode = self.get('hashmode')
-        self.logger.info('Computing file hashes with hashmode = %s', hashmode)
-        for keypath in allkeys:
-            if 'filehash' in keypath:
-                self.hash_files(keypath)
 
         # Remote workflow: Dispatch the Chip to a remote server for processing.
         if self.get('remote', 'proc'):
