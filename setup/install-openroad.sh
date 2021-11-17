@@ -23,7 +23,7 @@ cd -
 sudo ln -s /usr/bin/python3 /usr/bin/python
 sudo ln -s /usr/local/lib/libtcl8.6.so /usr/local/lib/libtcl.so
 
-cd -
+cd ..
 
 git submodule update --init --recursive third_party/tools/openroad
 cd third_party/tools/openroad
