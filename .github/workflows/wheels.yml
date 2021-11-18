@@ -39,7 +39,9 @@ jobs:
 
     - name: Setup env (Windows)
       if: matrix.os == 'windows-latest'
-      run: choco install -y graphviz
+      run: |
+        choco install -y graphviz winflexbison3
+        vcpkg install zlib zlib:x64-windows
 
     - name: Setup env (macOS)
       if: matrix.os == 'macos-latest'

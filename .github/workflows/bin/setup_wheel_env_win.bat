@@ -1,8 +1,6 @@
 :: Install dependencies
 choco install -y make
 choco install -y swig --side-by-side --version=3.0.12
-choco install -y winflexbison3
-vcpkg install zlib zlib:x64-windows
 
 :: Build Surelog
 :: Based on Surelog CI script: https://github.com/chipsalliance/Surelog/blob/master/.github/workflows/main.yml
