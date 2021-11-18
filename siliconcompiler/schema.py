@@ -2074,9 +2074,28 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'example': ["cli: -eda_output 'openroad place 0 oh_add.def'",
                     "api: chip.set('eda','openroad','place','0','output','oh_add.def')"],
         'help': """
-        List of data files produced by the current step and placed in the
+        List of data files produced by the current task and placed in the
         'output' directory. During execution, if a file is missing, the
         program exists on an error.
+        """
+    }
+
+    # report files
+    report_type = 'default'
+    cfg['eda'][tool][step][index][report_type] = {}
+    cfg['eda'][tool][step][index][report_type]['report'] = {
+        'switch': "-eda_report 'tool step index report_type <str>'",
+        'type': '[str]',
+        'lock': 'false',
+        'require': None,
+        'defvalue': [],
+        'shorthelp': 'List of report files ',
+        'example': [
+            "cli: -eda_report 'yosys syn 0 hold hold.rpt'",
+            "api: chip.set('eda','yosys','syn','0', 'hold', 'report','hold.rpt')"],
+        'help': """
+        Name of report file of type 'reptype' produced by the task within the
+        local 'reports' directory.
         """
     }
 
@@ -2925,12 +2944,31 @@ def schema_record(cfg, job='default', step='default', index='default'):
         """
     }
 
-    cfg['record'][job][step][index]['author'] = {
-        'switch': "-record_author 'job step index <str>'",
-        'type': 'str',
+
+    cfg['record'][job][step][index]['chipid'] = {
+        'switch': "-record_chipid 'job step index <str>'",
+        'type': '[str]',
         'lock': 'false',
         'require': None,
         'defvalue': None,
+        'shorthelp': 'Chip ID',
+        'example': [
+            "cli: -record_chipid 'job0 dfm 0 42'",
+            "api: chip.set('record', 'job0','dfm','0','chipid','42')"],
+        'help': """
+        A unique ID for the chip object. The parameter is used to
+        store a new ID for steps that generate a unique chip ID number
+        and as readback verification for steps that process the chip
+        but does not generate a new chip ID.
+        """
+    }
+
+    cfg['record'][job][step][index]['author'] = {
+        'switch': "-record_author 'job step index <str>'",
+        'type': '[str]',
+        'lock': 'false',
+        'require': None,
+        'defvalue': [],
         'shorthelp': 'Author name',
         'example': [
             "cli: -record_author 'job0 dfm 0 coyote'",
@@ -2942,10 +2980,10 @@ def schema_record(cfg, job='default', step='default', index='default'):
 
     cfg['record'][job][step][index]['userid'] = {
         'switch': "-record_userid 'job step index <str>'",
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'require': None,
-        'defvalue': None,
+        'defvalue': [],
         'shorthelp': 'User ID',
         'example': [
             "cli: -record_userid 'job0 dfm 0 0982acea'",
@@ -2989,10 +3027,10 @@ def schema_record(cfg, job='default', step='default', index='default'):
 
     cfg['record'][job][step][index]['org'] = {
         'switch': "-record_org 'job step index <str>'",
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'require': None,
-        'defvalue': None,
+        'defvalue': [],
         'shorthelp': 'Record of run organization',
         'example': ["cli: -record_org 'job0 dfm 0 earth'",
                     "api: chip.set('record','job0','dfm','0','org','earth')"],
@@ -3003,10 +3041,10 @@ def schema_record(cfg, job='default', step='default', index='default'):
 
     cfg['record'][job][step][index]['location'] = {
         'switch': "-record_location 'job step index <str>'",
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'require': None,
-        'defvalue': None,
+        'defvalue': [],
         'shorthelp': 'Record of run location',
         'example': [
             "cli: -record_location 'job0 dfm 0 Boston'",
@@ -3085,8 +3123,9 @@ def schema_record(cfg, job='default', step='default', index='default'):
         'require': None,
         'defvalue': None,
         'shorthelp': 'Compute machine name',
-        'example': ["cli: -record_machine 'job0 dfm 0 carbon'",
-                    "api: chip.set('record','job0', 'dfm','0','machine','carbon')"],
+        'example': [
+            "cli: -record_machine 'job0 dfm 0 carbon'",
+            "api: chip.set('record','job0', 'dfm','0','machine','carbon')"],
         'help': """
         Record tracking the machine name for the step/index execution.
         (eg. carbon, silicon, mars, host0)
@@ -3101,7 +3140,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
         'defvalue': None,
         'shorthelp': 'Compute node region',
         'example': ["cli: -record_region 'job0 dfm 0 US Gov Boston'",
-                    "api: chip.set('record','job0', 'dfm','0','region','US Gov Boston')"],
+                    "api: chip.set('record','job0', 'dfm','0', 'region','US Gov Boston')"],
         'help': """
         Record tracking the operational region of the node. Recommended naming methodology:
         local: node is the local machine
@@ -3119,8 +3158,9 @@ def schema_record(cfg, job='default', step='default', index='default'):
         'require': None,
         'defvalue': None,
         'shorthelp': 'Compute node MAC address',
-        'example': ["cli: -record_macaddr 'job0 dfm 0 <macaddr>'",
-                    "api: chip.set('record','job0', 'dfm','0','macaddr','<macaddr>')"],
+        'example': [
+            "cli: -record_macaddr 'job0 dfm 0 <addr>'",
+            "api: chip.set('record', 'job0', 'dfm', '0', 'macaddr', '<addr>')"],
         'help': """
         Record tracking the MAC address of the node.
         """
@@ -3133,8 +3173,9 @@ def schema_record(cfg, job='default', step='default', index='default'):
         'require': None,
         'defvalue': None,
         'shorthelp': 'Compute node IP address',
-        'example': ["cli: -record_ipaddr 'job0 dfm 0 <ipaddr>'",
-                    "api: chip.set('record','job0', 'dfm','0','ipaddr','<ipaddr>')"],
+        'example': [
+            "cli: -record_ipaddr 'job0 dfm 0 <addr>'",
+            "api: chip.set('record', 'job0', 'dfm', '0', 'ipaddr', '<addr>')"],
         'help': """
         Record tracking the IP address of the node.
         """
@@ -3147,8 +3188,9 @@ def schema_record(cfg, job='default', step='default', index='default'):
         'require': None,
         'defvalue': None,
         'shorthelp': 'Compute node platform name',
-        'example': ["cli: -record_platform 'job0 dfm 0 linux'",
-                    "api: chip.set('record','job0', 'dfm','0',platform','linux')"],
+        'example': [
+            "cli: -record_platform 'job0 dfm 0 linux'",
+            "api: chip.set('record', 'job0', 'dfm', '0', 'platform', 'linux')"],
         'help': """
         Record tracking the platform name on the node.
         (linux, windows, freebsd, macos, ...).
@@ -3162,8 +3204,9 @@ def schema_record(cfg, job='default', step='default', index='default'):
         'require': None,
         'defvalue': None,
         'shorthelp': 'Compute node platform distribution',
-        'example': ["cli: -record_distro 'job0 dfm 0 ubuntu'",
-                    "api: chip.set('record','job0', 'dfm','0',platform','ubuntu')"],
+        'example': [
+            "cli: -record_distro 'job0 dfm 0 ubuntu'",
+            "api: chip.set('record', 'job0', 'dfm', '0', 'distro', 'ubuntu')"],
         'help': """
         Record tracking the platform distribution name on the node.
         (ubuntu, centos, redhat,...).
@@ -3171,7 +3214,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
     }
 
     cfg['record'][job][step][index]['osversion'] = {
-        'switch': "-record_osversion 'job step index <str>'",
+        'switch': "-record_osversion 'job step index machine <str>'",
         'type': 'str',
         'lock': 'false',
         'require': None,
@@ -3179,7 +3222,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
         'shorthelp': 'Compute node operating system version',
         'example': [
             "cli: -record_osversion 'job0 dfm 0 20.04.1-Ubuntu'",
-            "api: chip.set('record','job0', 'dfm','0',platform','20.04.1-Ubuntu')"],
+            "api: chip.set('record', 'job0', 'dfm', '0', 'osversion', '20.04.1-Ubuntu')"],
         'help': """
         Record tracking the complete operating system version name. Since there is
         not standarrd version system for operating systems, extracting information
@@ -3197,7 +3240,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
         'shorthelp': 'Compute node operating system kernel version',
         'example': [
             "cli: -record_kernelversion 'job0 dfm 0 5.11.0-34-generic'",
-            "api: chip.set('record','job0', 'dfm','0','kernelversion','5.11.0-34-generic')"],
+            "api: chip.set('record', 'job0', 'dfm', '0', 'kernelversion', '5.11.0-34-generic')"],
         'help': """
         Record tracking the operating system kernel version for platforms that
         support a distinction betweem os kernels and os distributions.
@@ -3205,7 +3248,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
     }
 
     cfg['record'][job][step][index]['arch'] = {
-        'switch': "-record_arch 'job step index <str>'",
+        'switch': "-record_arch 'job step index machine <str>'",
         'type': 'str',
         'lock': 'false',
         'require': None,
@@ -3213,7 +3256,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
         'shorthelp': 'Compute node hardware architecture',
         'example': [
             "cli: -record_arch 'job0 dfm 0 x86_64'",
-            "api: chip.set('record','job0', 'dfm','0','arch','x86_64')"],
+            "api: chip.set('record', 'job0', 'dfm', '0', 'arch', 'x86_64')"],
         'help': """
         Record tracking the hardware architecture on the node.
         """
@@ -3610,6 +3653,22 @@ def schema_options(cfg):
         """
     }
 
+    cfg['vercheck'] = {
+        'switch': "-vercheck <bool>",
+        'type': 'bool',
+        'lock': 'false',
+        'require': 'all',
+        'defvalue': 'false',
+        'shorthelp': 'Enforice version checking',
+        'example': ["cli: -vercheck",
+                    "api: chip.set('vercheck', 'true')"],
+        'help': """
+        Enforces strict version checking on all invoked tools if True. The
+        list of supported version numbers is defined in the 'version'
+        parameter in the 'eda' dictionary for each tool.
+        """
+    }
+
     cfg['relax'] = {
         'switch': "-relax <bool>",
         'type': 'bool',
@@ -3956,10 +4015,10 @@ def schema_design(cfg):
     cfg['dependency'][package] = {}
     cfg['dependency'][package]['version'] = {
         'switch': "-dependency 'package version <str>'",
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'require': None,
-        'defvalue': None,
+        'defvalue': [],
         'shorthelp': 'Project dependancies',
         'example': ["cli: -dependency 'hello version 1.0.0",
                     "api: chip.set('dependency', 'hello', 'version', '1.0.0')"],
@@ -4028,10 +4087,10 @@ def schema_design(cfg):
 
     cfg['location'] = {
         'switch': "-location <str>",
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'require': None,
-        'defvalue': None,
+        'defvalue': [],
         'shorthelp': 'Project location',
         'example': ["cli: -location mars",
                     "api: chip.set('location', 'mars')"],
@@ -4042,10 +4101,10 @@ def schema_design(cfg):
 
     cfg['org'] = {
         'switch': "-org <str>",
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'require': None,
-        'defvalue': None,
+        'defvalue': [],
         'shorthelp': 'Project organization',
         'example': ["cli: -org humanity",
                     "api: chip.set('org', 'humanity')"],
@@ -4056,10 +4115,10 @@ def schema_design(cfg):
 
     cfg['author'] = {
         'switch': "-author <str>",
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'require': None,
-        'defvalue': None,
+        'defvalue': [],
         'shorthelp': 'Project author',
         'example': ["cli: -author wiley",
                     "api: chip.set('author', 'wiley')"],
@@ -4070,10 +4129,10 @@ def schema_design(cfg):
 
     cfg['userid'] = {
         'switch': "-userid <str>",
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'require': None,
-        'defvalue': None,
+        'defvalue': [],
         'shorthelp': 'User ID',
         'example': ["cli: -userid 0123",
                     "api: chip.set('userid', '0123')"],

@@ -17,6 +17,7 @@ def heartbeat_dir(scroot):
 
     return os.path.join(os.getcwd(), 'build')
 
+@pytest.mark.skip(reason="There should only be one json file referenced.")
 @pytest.mark.parametrize('flags', [
     ['-asic_def', 'build/heartbeat/job0/export/0/inputs/heartbeat.def'],
     ['-asic_gds', 'build/heartbeat/job0/export/0/outputs/heartbeat.gds'],
