@@ -49,7 +49,8 @@ def setup_tool(chip):
     chip.set('eda', tool, step, index, 'threads', '4', clobber=clobber)
     chip.set('eda', tool, step, index, 'copy', 'false', clobber=clobber)
     chip.set('eda', tool, step, index, 'exe', 'ghdl', clobber=clobber)
-    chip.set('eda', tool, step, index, 'version', '0.0', clobber=clobber)
+    chip.set('eda', tool, step, index, 'vswitch', '--version', clobber=clobber)
+    chip.set('eda', tool, step, index, 'version', '2.0.0-dev', clobber=clobber)
 
 ################################
 #  Custom runtime options
@@ -89,18 +90,9 @@ def runtime_options(chip):
 # Version Check
 ################################
 
-def check_version(chip, version):
-    ''' Tool specific version checking
-    '''
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-
-    required = chip.get('eda', 'ghdl', step, index, 'version')
-    #insert code for parsing the funtion based on some tool specific
-    #semantics.
-    #syntax for version is string, >=string
-
-    return 0
+def parse_version(stdout):
+    # first line: GHDL 2.0.0-dev (1.0.0.r827.ge49cb7b9) [Dunoon edition]
+    return stdout.split()[1]
 
 ################################
 # Post_process (post executable)

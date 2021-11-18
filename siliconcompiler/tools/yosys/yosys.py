@@ -51,7 +51,7 @@ def setup_tool(chip):
     chip.set('eda', tool, step, index, 'copy', 'true', clobber=False)
     chip.set('eda', tool, step, index, 'exe', 'yosys', clobber=False)
     chip.set('eda', tool, step, index, 'vswitch', '--version', clobber=False)
-    chip.set('eda', tool, step, index, 'version', '0.9+3672', clobber=False)
+    chip.set('eda', tool, step, index, 'version', '0.9', clobber=False)
     chip.set('eda', tool, step, index, 'option', 'cmdline', '-c', clobber=False)
     chip.set('eda', tool, step, index, 'refdir', refdir, clobber=False)
 
@@ -120,18 +120,10 @@ def pre_process(chip):
 # Version Check
 ################################
 
-def check_version(chip, version):
-    ''' Tool specific version checking
-    '''
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-
-    required = chip.get('eda', 'yosys', step, index, 'version')
-    #insert code for parsing the funtion based on some tool specific
-    #semantics.
-    #syntax for version is string, >=string
-
-    return 0
+def parse_version(stdout):
+    # Yosys 0.9+3672 (git sha1 014c7e26, gcc 7.5.0-3ubuntu1~18.04 -fPIC -Os)
+    version = stdout.split()[1]
+    return version.split('+')[0]
 
 ################################
 # Post_process (post executable)

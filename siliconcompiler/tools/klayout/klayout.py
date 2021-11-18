@@ -45,7 +45,7 @@ def setup_tool(chip, mode="batch"):
     if mode == 'show':
         clobber = False
         script = '/klayout_show.py'
-        option = ['-rm']
+        option = ['-nc', '-rm']
     else:
         clobber = False
         script = '/klayout_export.py'
@@ -56,7 +56,7 @@ def setup_tool(chip, mode="batch"):
     chip.set('eda', tool, step, index, 'refdir', refdir, clobber=clobber)
     chip.set('eda', tool, step, index, 'script', refdir + script, clobber=clobber)
     chip.set('eda', tool, step, index, 'vswitch', '-zz -v', clobber=clobber)
-    chip.set('eda', tool, step, index, 'version', '0.26.10', clobber=clobber)
+    chip.set('eda', tool, step, index, 'version', '0.26.11', clobber=clobber)
 
     chip.set('eda', tool, step, index, 'option', 'cmdline', option, clobber=clobber)
 
@@ -172,17 +172,9 @@ def runtime_options(chip):
 # Version Check
 ################################
 
-def check_version(chip, version):
-    ''' Tool specific version checking
-    '''
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-    required = chip.get('eda', 'klayout', step, index, 'version')
-    #insert code for parsing the funtion based on some tool specific
-    #semantics.
-    #syntax for version is string, >=string
-
-    return 0
+def parse_version(stdout):
+    # KLayout 0.26.11
+    return stdout.split()[1]
 
 ##################################################
 if __name__ == "__main__":

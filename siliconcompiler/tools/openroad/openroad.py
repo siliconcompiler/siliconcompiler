@@ -60,7 +60,7 @@ def setup_tool(chip, mode='batch'):
 
     chip.set('eda', tool, step, index, 'exe', tool, clobber=clobber)
     chip.set('eda', tool, step, index, 'vswitch', '-version', clobber=clobber)
-    chip.set('eda', tool, step, index, 'version', '0', clobber=clobber)
+    chip.set('eda', tool, step, index, 'version', 'cf744a3734204ef12378150d429acf32af385ea4', clobber=clobber)
     chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=clobber)
     chip.set('eda', tool, step, index, 'option', 'cmdline', option, clobber=clobber)
     chip.set('eda', tool, step, index, 'refdir', refdir, clobber=clobber)
@@ -158,17 +158,9 @@ def setup_tool(chip, mode='batch'):
 # Version Check
 ################################
 
-def check_version(chip, version):
-    ''' Tool specific version checking
-    '''
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-    required = chip.get('eda', 'openroad', step, index, 'version')
-    #insert code for parsing the funtion based on some tool specific
-    #semantics.
-    #syntax for version is string, >=string
-
-    return 0
+def parse_version(stdout):
+    # 1 08de3b46c71e329a10aa4e753dcfeba2ddf54ddd
+    return stdout.split()[1]
 
 def pre_process(chip):
     step = chip.get('arg', 'step')

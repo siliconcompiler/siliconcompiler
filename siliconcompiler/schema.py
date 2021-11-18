@@ -1983,10 +1983,10 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     # exe version
     cfg['eda'][tool][step][index]['version'] = {
         'switch': "-eda_version 'tool step index <str>'",
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'require': None,
-        'defvalue': None,
+        'defvalue': [],
         'shorthelp': 'Executable version number',
         'example': [
             "cli: -eda_version 'openroad cts 0 1.0'",
