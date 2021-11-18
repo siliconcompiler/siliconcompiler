@@ -1565,7 +1565,7 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'require': None,
         'type': '[str]',
         'lock': 'false',
-        'defvalue': None,
+        'defvalue': [],
         'shorthelp': 'Library site name',
         'example': ["cli: -library_site 'mylib core'",
                     "api: chip.set('library','mylib','site','core')"],
@@ -2950,7 +2950,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
         'type': '[str]',
         'lock': 'false',
         'require': None,
-        'defvalue': None,
+        'defvalue': [],
         'shorthelp': 'Chip ID',
         'example': [
             "cli: -record_chipid 'job0 dfm 0 42'",
