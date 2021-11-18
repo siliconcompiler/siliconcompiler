@@ -10,7 +10,7 @@ def test_lock():
     chip = siliconcompiler.Chip()
     chip.target('asicflow_freepdk45')
     chip.set('design', "gcd")
-    chip.set('design', "true", field="lock")
+    chip.set('design', True, field="lock")
     chip.set('design', "FAIL")
 
     assert (chip.get('design') == "gcd")
