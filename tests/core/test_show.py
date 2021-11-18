@@ -11,6 +11,7 @@ def display():
     yield display
     display.stop()
 
+@pytest.mark.skip(reason="There should only be one json file referenced.")
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.parametrize('pdk, testfile',
