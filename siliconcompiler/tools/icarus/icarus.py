@@ -91,19 +91,9 @@ def runtime_options(chip):
 # Version Check
 ################################
 
-def check_version(chip, version):
-    ''' Tool specific version checking
-    '''
-
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-
-    required = chip.get('eda', 'icarus', step, index, 'version')
-    #insert code for parsing the funtion based on some tool specific
-    #semantics.
-    #syntax for version is string, >=string
-
-    return 0
+def parse_version(stdout):
+    # First line: Icarus Verilog version 10.1 (stable) ()
+    return stdout.split()[3]
 
 ################################
 # Post_process (post executable)

@@ -13,6 +13,8 @@ git clone https://github.com/verilator/verilator
 unset VERILATOR_ROOT
 cd verilator
 
+git checkout v4.028
+
 autoconf
 ./configure
 make -j$(nproc)

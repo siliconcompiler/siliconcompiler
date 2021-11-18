@@ -60,23 +60,6 @@ def setup_tool(chip, mode='batch'):
     chip.set('eda', tool, step, index, 'option', 'cmdline', option, clobber=clobber)
 
 ################################
-# Version Check
-################################
-
-def check_version(chip, version):
-    ''' Tool specific version checking
-    '''
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-    required = chip.get('eda', 'vivado', step, index, 'version')
-
-    #insert code for parsing the funtion based on some tool specific
-    #semantics.
-    #syntax for version is string, >=string
-
-    return 0
-
-################################
 # Post_process (post executable)
 ################################
 

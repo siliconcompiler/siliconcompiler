@@ -49,7 +49,8 @@ def setup_tool(chip):
     index = chip.get('arg','index')
 
     chip.set('eda', tool, step, index, 'exe', tool)
-    chip.set('eda', tool, step, index, 'version', '0.0')
+    chip.set('eda', tool, step, index, 'vswitch', '--numeric-version')
+    chip.set('eda', tool, step, index, 'version', '0.0.9')
     chip.set('eda', tool, step, index, 'threads', 4)
 
     # Since we run sv2v after the import/preprocess step, there should be no
@@ -65,6 +66,10 @@ def setup_tool(chip):
     chip.set('eda', tool, step, index, 'option', 'cmdline', [])
     chip.add('eda', tool, step, index, 'option', 'cmdline', "inputs/" + topmodule + ".v")
     chip.add('eda', tool, step, index, 'option', 'cmdline', "--write=outputs/" + topmodule + ".v")
+
+def parse_version(stdout):
+    # 0.0.7-130-g1aa30ea
+    return stdout.split('-')[0]
 
 ################################
 # Post_process (post executable)

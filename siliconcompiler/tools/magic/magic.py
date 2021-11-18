@@ -55,7 +55,8 @@ def setup_tool(chip):
         raise ValueError(f"Magic tool doesn't support step {step}.")
 
     chip.set('eda', tool, step, index, 'exe', tool)
-    chip.set('eda', tool, step, index, 'version', '0.0')
+    chip.set('eda', tool, step, index, 'vswitch', '--version')
+    chip.set('eda', tool, step, index, 'version', '8.3.196')
     chip.set('eda', tool, step, index, 'threads', 4)
     chip.set('eda', tool, step, index, 'refdir', refdir)
     chip.set('eda', tool, step, index, 'script', refdir + '/' + script)
@@ -75,15 +76,8 @@ def setup_tool(chip):
 # Version Check
 ################################
 
-def check_version(chip, version):
-    ''' Tool specific version checking
-    '''
-    required = chip.get('eda', 'magic', step, index, 'version')
-    #insert code for parsing the funtion based on some tool specific
-    #semantics.
-    #syntax for version is string, >=string
-
-    return 0
+def parse_version(stdout):
+    return stdout.strip('\n')
 
 ################################
 # Post_process (post executable)
