@@ -2764,10 +2764,11 @@ class Chip:
             if license_file:
                 os.environ[item] = license_file
 
+        vercheck = self.get('vercheck')
         veropt = self.get('eda', tool, step, index, 'vswitch')
         exe = self.get('eda', tool, step, index, 'exe')
         version = None
-        if (veropt is not None) and (exe is not None):
+        if vercheck and (veropt is not None) and (exe is not None):
             fullexe = self._resolve_env_vars(exe)
             cmdlist = [fullexe] + veropt.split()
             self.logger.info("Checking version of tool '%s'", tool)

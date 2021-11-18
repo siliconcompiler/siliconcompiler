@@ -3653,6 +3653,22 @@ def schema_options(cfg):
         """
     }
 
+    cfg['vercheck'] = {
+        'switch': "-vercheck <bool>",
+        'type': 'bool',
+        'lock': 'false',
+        'require': 'all',
+        'defvalue': 'false',
+        'shorthelp': 'Enforice version checking',
+        'example': ["cli: -vercheck",
+                    "api: chip.set('vercheck', 'true')"],
+        'help': """
+        Enforces strict version checking on all invoked tools if True. The
+        list of supported version numbers is defined in the 'version'
+        parameter in the 'eda' dictionary for each tool.
+        """
+    }
+
     cfg['relax'] = {
         'switch': "-relax <bool>",
         'type': 'bool',
