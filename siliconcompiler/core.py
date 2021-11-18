@@ -1417,7 +1417,7 @@ class Chip:
                 # update other fields that a user might modify
                 fields_to_copy = ('copy', 'lock', 'filehash', 'date', 'author', 'signature')
                 for field in fields_to_copy:
-                    if field not in self.getdict(*keylist):
+                    if field not in self.getdict(*keylist, cfg=cfg):
                         continue
                     v = self.get(*keylist, cfg=cfg, field=field)
                     self.set(*keylist, v, cfg=dst, field=field)
