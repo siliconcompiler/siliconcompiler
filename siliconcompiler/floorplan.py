@@ -77,7 +77,7 @@ def _get_tech_lef_data(chip):
     libname = chip.get('asic', 'targetlib')[0]
     libtype = chip.get('library', libname, 'arch')
 
-    tech_lef = chip.find_files('pdk', 'aprtech', stackup, libtype, 'lef')[0]
+    tech_lef = chip.find_files('pdk', 'aprtech', stackup, libtype, 'lef', check_workdir=False)[0]
     return leflib.parse(tech_lef)
 
 def _get_stdcell_info(chip, tech_lef_data):
@@ -189,7 +189,7 @@ class Floorplan:
         self.available_cells = {}
 
         for macrolib in self.chip.get('asic', 'macrolib'):
-            lef_path = chip.find_files('library', macrolib, 'lef')[0]
+            lef_path = chip.find_files('library', macrolib, 'lef', check_workdir=False)[0]
             lef_data = leflib.parse(lef_path)
 
             if 'macros' not in lef_data:
