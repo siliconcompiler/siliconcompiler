@@ -1007,6 +1007,8 @@ class Chip:
                     if bool(re.match(r'\[', cfg[param]['type'])):
                         sctype = re.sub(r'[\[\]]', '', cfg[param]['type'])
                         return_list = []
+                        if selval is None:
+                            return None
                         for item in selval:
                             if sctype == 'int':
                                 return_list.append(int(item))
