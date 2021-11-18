@@ -314,13 +314,15 @@
                         ]
                     },
                     "version": {
-                        "defvalue": null,
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "shorthelp": "Executable version number",
                         "switch": "-eda_version 'tool step index <str>'",
-                        "type": "str",
-                        "value": "0.26.10"
+                        "type": "[str]",
+                        "value": [
+                            "0.26.11"
+                        ]
                     },
                     "vswitch": {
                         "defvalue": null,
@@ -639,16 +641,18 @@
                         "shorthelp": "Job parallelism",
                         "switch": "-eda_threads 'tool step index <int>'",
                         "type": "int",
-                        "value": "20"
+                        "value": "2"
                     },
                     "version": {
-                        "defvalue": null,
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "shorthelp": "Executable version number",
                         "switch": "-eda_version 'tool step index <str>'",
-                        "type": "str",
-                        "value": "0"
+                        "type": "[str]",
+                        "value": [
+                            "cf744a3734204ef12378150d429acf32af385ea4"
+                        ]
                     },
                     "vswitch": {
                         "defvalue": null,
@@ -809,16 +813,18 @@
                         "shorthelp": "Job parallelism",
                         "switch": "-eda_threads 'tool step index <int>'",
                         "type": "int",
-                        "value": "20"
+                        "value": "2"
                     },
                     "version": {
-                        "defvalue": null,
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "shorthelp": "Executable version number",
                         "switch": "-eda_version 'tool step index <str>'",
-                        "type": "str",
-                        "value": "0"
+                        "type": "[str]",
+                        "value": [
+                            "cf744a3734204ef12378150d429acf32af385ea4"
+                        ]
                     },
                     "vswitch": {
                         "defvalue": null,
@@ -979,16 +985,18 @@
                         "shorthelp": "Job parallelism",
                         "switch": "-eda_threads 'tool step index <int>'",
                         "type": "int",
-                        "value": "20"
+                        "value": "2"
                     },
                     "version": {
-                        "defvalue": null,
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "shorthelp": "Executable version number",
                         "switch": "-eda_version 'tool step index <str>'",
-                        "type": "str",
-                        "value": "0"
+                        "type": "[str]",
+                        "value": [
+                            "cf744a3734204ef12378150d429acf32af385ea4"
+                        ]
                     },
                     "vswitch": {
                         "defvalue": null,
@@ -1149,16 +1157,18 @@
                         "shorthelp": "Job parallelism",
                         "switch": "-eda_threads 'tool step index <int>'",
                         "type": "int",
-                        "value": "20"
+                        "value": "2"
                     },
                     "version": {
-                        "defvalue": null,
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "shorthelp": "Executable version number",
                         "switch": "-eda_version 'tool step index <str>'",
-                        "type": "str",
-                        "value": "0"
+                        "type": "[str]",
+                        "value": [
+                            "cf744a3734204ef12378150d429acf32af385ea4"
+                        ]
                     },
                     "vswitch": {
                         "defvalue": null,
@@ -1319,16 +1329,18 @@
                         "shorthelp": "Job parallelism",
                         "switch": "-eda_threads 'tool step index <int>'",
                         "type": "int",
-                        "value": "20"
+                        "value": "2"
                     },
                     "version": {
-                        "defvalue": null,
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "shorthelp": "Executable version number",
                         "switch": "-eda_version 'tool step index <str>'",
-                        "type": "str",
-                        "value": "0"
+                        "type": "[str]",
+                        "value": [
+                            "cf744a3734204ef12378150d429acf32af385ea4"
+                        ]
                     },
                     "vswitch": {
                         "defvalue": null,
@@ -1489,16 +1501,18 @@
                         "shorthelp": "Job parallelism",
                         "switch": "-eda_threads 'tool step index <int>'",
                         "type": "int",
-                        "value": "20"
+                        "value": "2"
                     },
                     "version": {
-                        "defvalue": null,
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "shorthelp": "Executable version number",
                         "switch": "-eda_version 'tool step index <str>'",
-                        "type": "str",
-                        "value": "0"
+                        "type": "[str]",
+                        "value": [
+                            "cf744a3734204ef12378150d429acf32af385ea4"
+                        ]
                     },
                     "vswitch": {
                         "defvalue": null,
@@ -1562,16 +1576,18 @@
                         "shorthelp": "Job parallelism",
                         "switch": "-eda_threads 'tool step index <int>'",
                         "type": "int",
-                        "value": "20"
+                        "value": "2"
                     },
                     "version": {
-                        "defvalue": null,
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "shorthelp": "Executable version number",
                         "switch": "-eda_version 'tool step index <str>'",
-                        "type": "str",
-                        "value": "0.0"
+                        "type": "[str]",
+                        "value": [
+                            "1.14"
+                        ]
                     },
                     "vswitch": {
                         "defvalue": null,
@@ -1690,13 +1706,15 @@
                         ]
                     },
                     "version": {
-                        "defvalue": null,
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "shorthelp": "Executable version number",
                         "switch": "-eda_version 'tool step index <str>'",
-                        "type": "str",
-                        "value": "0.9+3672"
+                        "type": "[str]",
+                        "value": [
+                            "0.9"
+                        ]
                     },
                     "vswitch": {
                         "defvalue": null,
@@ -7582,7 +7600,7 @@
                         "shorthelp": "Cell area metric",
                         "switch": "-metric_cellarea step index group <float>",
                         "type": "float",
-                        "value": "499.0"
+                        "value": "567.0"
                     }
                 },
                 "cells": {
@@ -7593,7 +7611,7 @@
                         "shorthelp": "Number of cells in the design",
                         "switch": "-metric_cells step index group <int>",
                         "type": "int",
-                        "value": "421"
+                        "value": "476"
                     }
                 },
                 "drvs": {
@@ -7750,7 +7768,7 @@
                         "shorthelp": "Number of nets in the design",
                         "switch": "-metric_nets step index group <int>",
                         "type": "int",
-                        "value": "378"
+                        "value": "433"
                     }
                 },
                 "overflow": {
@@ -7772,7 +7790,7 @@
                         "shorthelp": "Total power metric",
                         "switch": "-metric_peakpower step index group <float>",
                         "type": "float",
-                        "value": "0.000279"
+                        "value": "0.00028"
                     }
                 },
                 "pins": {
@@ -7805,7 +7823,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "3.0"
+                        "value": "7.91"
                     }
                 },
                 "setuppaths": {
@@ -7878,7 +7896,7 @@
                         "shorthelp": "Leakage power metric",
                         "switch": "-metric_standbypower step index group <float>",
                         "type": "float",
-                        "value": "1.17e-05"
+                        "value": "1.28e-05"
                     }
                 },
                 "totalarea": {
@@ -7889,7 +7907,7 @@
                         "shorthelp": "Total area metric",
                         "switch": "-metric_totalarea step index group <float>",
                         "type": "float",
-                        "value": "6237.5"
+                        "value": "6300.0"
                     }
                 },
                 "transistors": {
@@ -7922,7 +7940,7 @@
                         "shorthelp": "Area utilization metric",
                         "switch": "-metric_utilization step index group <float>",
                         "type": "float",
-                        "value": "8.0"
+                        "value": "9.0"
                     }
                 },
                 "vias": {
@@ -8215,7 +8233,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.59"
+                        "value": "1.58"
                     }
                 },
                 "setuppaths": {
@@ -8402,7 +8420,7 @@
                         "shorthelp": "Cell area metric",
                         "switch": "-metric_cellarea step index group <float>",
                         "type": "float",
-                        "value": "499.0"
+                        "value": "6398.0"
                     }
                 },
                 "cells": {
@@ -8413,7 +8431,7 @@
                         "shorthelp": "Number of cells in the design",
                         "switch": "-metric_cells step index group <int>",
                         "type": "int",
-                        "value": "1869"
+                        "value": "2035"
                     }
                 },
                 "drvs": {
@@ -8570,7 +8588,7 @@
                         "shorthelp": "Number of nets in the design",
                         "switch": "-metric_nets step index group <int>",
                         "type": "int",
-                        "value": "378"
+                        "value": "433"
                     }
                 },
                 "overflow": {
@@ -8592,7 +8610,7 @@
                         "shorthelp": "Total power metric",
                         "switch": "-metric_peakpower step index group <float>",
                         "type": "float",
-                        "value": "0.000292"
+                        "value": "0.000293"
                     }
                 },
                 "pins": {
@@ -8625,7 +8643,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "1.58"
+                        "value": "2.53"
                     }
                 },
                 "setuppaths": {
@@ -8698,7 +8716,7 @@
                         "shorthelp": "Leakage power metric",
                         "switch": "-metric_standbypower step index group <float>",
                         "type": "float",
-                        "value": "1.17e-05"
+                        "value": "1.28e-05"
                     }
                 },
                 "totalarea": {
@@ -8709,7 +8727,7 @@
                         "shorthelp": "Total area metric",
                         "switch": "-metric_totalarea step index group <float>",
                         "type": "float",
-                        "value": "6237.5"
+                        "value": "6398.0"
                     }
                 },
                 "transistors": {
@@ -8742,7 +8760,7 @@
                         "shorthelp": "Area utilization metric",
                         "switch": "-metric_utilization step index group <float>",
                         "type": "float",
-                        "value": "8.0"
+                        "value": "100.0"
                     }
                 },
                 "vias": {
@@ -9035,7 +9053,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.65"
+                        "value": "1.31"
                     }
                 },
                 "setuppaths": {
@@ -9445,7 +9463,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "1.56"
+                        "value": "2.48"
                     }
                 },
                 "setuppaths": {
@@ -9632,7 +9650,7 @@
                         "shorthelp": "Cell area metric",
                         "switch": "-metric_cellarea step index group <float>",
                         "type": "float",
-                        "value": "414.0"
+                        "value": "486.0"
                     }
                 },
                 "cells": {
@@ -9643,7 +9661,7 @@
                         "shorthelp": "Number of cells in the design",
                         "switch": "-metric_cells step index group <int>",
                         "type": "int",
-                        "value": "363"
+                        "value": "416"
                     }
                 },
                 "drvs": {
@@ -9800,7 +9818,7 @@
                         "shorthelp": "Number of nets in the design",
                         "switch": "-metric_nets step index group <int>",
                         "type": "int",
-                        "value": "320"
+                        "value": "373"
                     }
                 },
                 "overflow": {
@@ -9822,7 +9840,7 @@
                         "shorthelp": "Total power metric",
                         "switch": "-metric_peakpower step index group <float>",
                         "type": "float",
-                        "value": "0.000188"
+                        "value": "0.000192"
                     }
                 },
                 "pins": {
@@ -9855,7 +9873,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "1.33"
+                        "value": "2.17"
                     }
                 },
                 "setuppaths": {
@@ -9928,7 +9946,7 @@
                         "shorthelp": "Leakage power metric",
                         "switch": "-metric_standbypower step index group <float>",
                         "type": "float",
-                        "value": "8.62e-06"
+                        "value": "9.75e-06"
                     }
                 },
                 "totalarea": {
@@ -9939,7 +9957,7 @@
                         "shorthelp": "Total area metric",
                         "switch": "-metric_totalarea step index group <float>",
                         "type": "float",
-                        "value": "6900.0"
+                        "value": "6075.0"
                     }
                 },
                 "transistors": {
@@ -9972,7 +9990,7 @@
                         "shorthelp": "Area utilization metric",
                         "switch": "-metric_utilization step index group <float>",
                         "type": "float",
-                        "value": "6.0"
+                        "value": "8.0"
                     }
                 },
                 "vias": {
@@ -10265,7 +10283,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.49"
+                        "value": "0.99"
                     }
                 },
                 "setuppaths": {
@@ -10675,7 +10693,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.85"
+                        "value": "1.44"
                     }
                 },
                 "setuppaths": {
@@ -10862,7 +10880,7 @@
                         "shorthelp": "Cell area metric",
                         "switch": "-metric_cellarea step index group <float>",
                         "type": "float",
-                        "value": "414.0"
+                        "value": "486.0"
                     }
                 },
                 "cells": {
@@ -10873,7 +10891,7 @@
                         "shorthelp": "Number of cells in the design",
                         "switch": "-metric_cells step index group <int>",
                         "type": "int",
-                        "value": "363"
+                        "value": "416"
                     }
                 },
                 "drvs": {
@@ -11030,7 +11048,7 @@
                         "shorthelp": "Number of nets in the design",
                         "switch": "-metric_nets step index group <int>",
                         "type": "int",
-                        "value": "320"
+                        "value": "373"
                     }
                 },
                 "overflow": {
@@ -11052,7 +11070,7 @@
                         "shorthelp": "Total power metric",
                         "switch": "-metric_peakpower step index group <float>",
                         "type": "float",
-                        "value": "0.000188"
+                        "value": "0.000192"
                     }
                 },
                 "pins": {
@@ -11085,7 +11103,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "1.44"
+                        "value": "2.21"
                     }
                 },
                 "setuppaths": {
@@ -11158,7 +11176,7 @@
                         "shorthelp": "Leakage power metric",
                         "switch": "-metric_standbypower step index group <float>",
                         "type": "float",
-                        "value": "8.62e-06"
+                        "value": "9.75e-06"
                     }
                 },
                 "totalarea": {
@@ -11169,7 +11187,7 @@
                         "shorthelp": "Total area metric",
                         "switch": "-metric_totalarea step index group <float>",
                         "type": "float",
-                        "value": "6900.0"
+                        "value": "6075.0"
                     }
                 },
                 "transistors": {
@@ -11202,7 +11220,7 @@
                         "shorthelp": "Area utilization metric",
                         "switch": "-metric_utilization step index group <float>",
                         "type": "float",
-                        "value": "6.0"
+                        "value": "8.0"
                     }
                 },
                 "vias": {
@@ -11495,7 +11513,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.53"
+                        "value": "1.12"
                     }
                 },
                 "setuppaths": {
@@ -11682,7 +11700,7 @@
                         "shorthelp": "Cell area metric",
                         "switch": "-metric_cellarea step index group <float>",
                         "type": "float",
-                        "value": "490.0"
+                        "value": "558.0"
                     }
                 },
                 "cells": {
@@ -11693,7 +11711,7 @@
                         "shorthelp": "Number of cells in the design",
                         "switch": "-metric_cells step index group <int>",
                         "type": "int",
-                        "value": "416"
+                        "value": "471"
                     }
                 },
                 "drvs": {
@@ -11850,7 +11868,7 @@
                         "shorthelp": "Number of nets in the design",
                         "switch": "-metric_nets step index group <int>",
                         "type": "int",
-                        "value": "373"
+                        "value": "428"
                     }
                 },
                 "overflow": {
@@ -11905,7 +11923,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "1.67"
+                        "value": "5.86"
                     }
                 },
                 "setuppaths": {
@@ -11927,7 +11945,7 @@
                         "shorthelp": "Setup slack",
                         "switch": "-metric_setupslack 'step index group <float>'",
                         "type": "float",
-                        "value": "1.11"
+                        "value": "1.12"
                     }
                 },
                 "setuptns": {
@@ -11978,7 +11996,7 @@
                         "shorthelp": "Leakage power metric",
                         "switch": "-metric_standbypower step index group <float>",
                         "type": "float",
-                        "value": "1.13e-05"
+                        "value": "1.24e-05"
                     }
                 },
                 "totalarea": {
@@ -11989,7 +12007,7 @@
                         "shorthelp": "Total area metric",
                         "switch": "-metric_totalarea step index group <float>",
                         "type": "float",
-                        "value": "6125.0"
+                        "value": "6200.0"
                     }
                 },
                 "transistors": {
@@ -12022,7 +12040,7 @@
                         "shorthelp": "Area utilization metric",
                         "switch": "-metric_utilization step index group <float>",
                         "type": "float",
-                        "value": "8.0"
+                        "value": "9.0"
                     }
                 },
                 "vias": {
@@ -12315,7 +12333,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.59"
+                        "value": "1.14"
                     }
                 },
                 "setuppaths": {
@@ -12502,7 +12520,7 @@
                         "shorthelp": "Cell area metric",
                         "switch": "-metric_cellarea step index group <float>",
                         "type": "float",
-                        "value": "499.0"
+                        "value": "6398.0"
                     }
                 },
                 "cells": {
@@ -12513,7 +12531,7 @@
                         "shorthelp": "Number of cells in the design",
                         "switch": "-metric_cells step index group <int>",
                         "type": "int",
-                        "value": "1869"
+                        "value": "2035"
                     }
                 },
                 "drvs": {
@@ -12670,7 +12688,7 @@
                         "shorthelp": "Number of nets in the design",
                         "switch": "-metric_nets step index group <int>",
                         "type": "int",
-                        "value": "378"
+                        "value": "433"
                     }
                 },
                 "overflow": {
@@ -12692,7 +12710,7 @@
                         "shorthelp": "Total power metric",
                         "switch": "-metric_peakpower step index group <float>",
                         "type": "float",
-                        "value": "0.000291"
+                        "value": "0.000293"
                     }
                 },
                 "pins": {
@@ -12725,7 +12743,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "3.16"
+                        "value": "9.83"
                     }
                 },
                 "setuppaths": {
@@ -12747,7 +12765,7 @@
                         "shorthelp": "Setup slack",
                         "switch": "-metric_setupslack 'step index group <float>'",
                         "type": "float",
-                        "value": "1.09"
+                        "value": "1.1"
                     }
                 },
                 "setuptns": {
@@ -12798,7 +12816,7 @@
                         "shorthelp": "Leakage power metric",
                         "switch": "-metric_standbypower step index group <float>",
                         "type": "float",
-                        "value": "1.17e-05"
+                        "value": "1.28e-05"
                     }
                 },
                 "totalarea": {
@@ -12809,7 +12827,7 @@
                         "shorthelp": "Total area metric",
                         "switch": "-metric_totalarea step index group <float>",
                         "type": "float",
-                        "value": "6237.5"
+                        "value": "6398.0"
                     }
                 },
                 "transistors": {
@@ -12842,7 +12860,7 @@
                         "shorthelp": "Area utilization metric",
                         "switch": "-metric_utilization step index group <float>",
                         "type": "float",
-                        "value": "8.0"
+                        "value": "100.0"
                     }
                 },
                 "vias": {
@@ -12853,7 +12871,7 @@
                         "shorthelp": "Number of vias in the design",
                         "switch": "-metric_vias step index group <int>",
                         "type": "int",
-                        "value": "2194"
+                        "value": "0"
                     }
                 },
                 "warnings": {
@@ -12864,7 +12882,7 @@
                         "shorthelp": "Total warnings metric",
                         "switch": "-metric_warnings 'step index group <int>'",
                         "type": "int",
-                        "value": "3"
+                        "value": "2"
                     }
                 },
                 "wirelength": {
@@ -12875,7 +12893,7 @@
                         "shorthelp": "Total lenght of all wires in the design",
                         "switch": "-metric_wirelength step index group <float>",
                         "type": "float",
-                        "value": "6291.0"
+                        "value": "0.0"
                     }
                 }
             }
@@ -13135,7 +13153,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.65"
+                        "value": "1.34"
                     }
                 },
                 "setuppaths": {
@@ -13545,7 +13563,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "1.18"
+                        "value": "1.9"
                     }
                 },
                 "setuppaths": {
@@ -13955,7 +13973,7 @@
                         "shorthelp": "Total runtime metric",
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.48"
+                        "value": "0.91"
                     }
                 },
                 "setuppaths": {
@@ -14975,6 +14993,15 @@
         "require": "all",
         "shorthelp": "Enables simulation trace output",
         "switch": "-trace <bool>",
+        "type": "bool",
+        "value": "false"
+    },
+    "vercheck": {
+        "defvalue": "false",
+        "lock": "false",
+        "require": "all",
+        "shorthelp": "Enforice version checking",
+        "switch": "-vercheck <bool>",
         "type": "bool",
         "value": "false"
     },

@@ -65,6 +65,24 @@ def test_setget():
 
     assert(error==0)
 
+def test_set_field_bool():
+    chip = siliconcompiler.Chip()
+    chip.set('source', False, field='copy')
+    assert chip.get('source', field='copy') is False
+
+def test_set_field_error():
+    chip = siliconcompiler.Chip()
+    chip.set('source', 'asdf', field='copy')
+    # expect copy flag unchanged and error triggered
+    assert chip.get('source', field='copy') is True
+    assert chip.error == 1
+
+def test_set_add_field_list():
+    chip = siliconcompiler.Chip()
+    chip.set('source', 'Alyssa P. Hacker', field='author')
+    chip.add('source', 'Ben Bitdiddle', field='author')
+    assert chip.get('source', field='author') == ['Alyssa P. Hacker', 'Ben Bitdiddle']
+
 #########################
 if __name__ == "__main__":
     test_setget()

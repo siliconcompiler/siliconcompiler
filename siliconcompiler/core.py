@@ -821,7 +821,7 @@ class Chip:
         return self._search(cfg, keypathstr, *all_args, field=field, mode='set', clobber=clobber)
 
     ###########################################################################
-    def add(self, *args, cfg=None):
+    def add(self, *args, cfg=None, field='value'):
         '''
         Adds item(s) to a schema parameter list.
 
@@ -838,6 +838,7 @@ class Chip:
         Args:
             args (list): Parameter keypath followed by a value to add.
             cfg(dict): Alternate dictionary to access in place of self.cfg
+            field (str): Parameter field to set.
 
         Examples:
             >>> chip.add('source', 'hello.v')
@@ -856,7 +857,7 @@ class Chip:
         all_args = list(args)
 
         self.logger.debug(f'Appending value {args[-1]} to [{keypathstr}]')
-        return self._search(cfg, keypathstr, *all_args, field='value', mode='add')
+        return self._search(cfg, keypathstr, *all_args, field=field, mode='add')
 
 
     ###########################################################################
@@ -924,7 +925,7 @@ class Chip:
                         self.logger.error("%s", type_error)
                         self.error = 1
                 # converting python True/False to lower case string
-                if (cfg[param]['type'] == 'bool' ):
+                if (field == 'value') and (cfg[param]['type'] == 'bool'):
                     if val == True:
                         val = "true"
                     elif val == False:
@@ -939,7 +940,21 @@ class Chip:
                     self.logger.debug("Ignoring {mode}{} to [{keypath}]. Lock bit is set.")
                 elif (mode == 'set'):
                     if (selval in empty) | clobber:
-                        if (not list_type) & (val is None):
+                        if field in ('copy', 'lock'):
+                            # boolean fields
+                            if val is True:
+                                cfg[param][field] = "true"
+                            elif val is False:
+                                cfg[param][field] = "false"
+                            else:
+                                self.logger.error(f'{field} must be set to boolean.')
+                                self.error = 1
+                        elif field in ('filehash', 'date', 'author', 'signature'):
+                            if isinstance(val, list):
+                                cfg[param][field] = val
+                            else:
+                                cfg[param][field] = [val]
+                        elif (not list_type) & (val is None):
                             cfg[param][field] = None
                         elif (not list_type) & (not isinstance(val, list)):
                             cfg[param][field] = str(val)
@@ -956,7 +971,12 @@ class Chip:
                     else:
                         self.logger.debug(f"Ignoring set() to [{keypath}], value already set. Use clobber=true to override.")
                 elif (mode == 'add'):
-                    if list_type & (not isinstance(val, list)):
+                    if field in ('filehash', 'date', 'author', 'signature'):
+                        cfg[param][field].append(str(val))
+                    elif field in ('copy', 'lock'):
+                        self.logger.error(f"Illegal use of add() for scalar field {field}.")
+                        self.error = 1
+                    elif list_type & (not isinstance(val, list)):
                         cfg[param][field].append(str(val))
                     elif list_type & isinstance(val, list):
                         cfg[param][field].extend(val)
@@ -1024,7 +1044,7 @@ class Chip:
                         else:
                             scalar = selval
                         return scalar
-                #all non-value fields are strings
+                #all non-value fields are strings (or lists of strings)
                 else:
                     if cfg[param][field] == 'true':
                         return True
@@ -1384,6 +1404,7 @@ class Chip:
 
         for keylist in self.getkeys(cfg=cfg):
             if 'default' not in keylist:
+                # update value, handling scalars vs. lists
                 typestr = self.get(*keylist, cfg=cfg, field='type')
                 val = self.get(*keylist, cfg=cfg)
                 arg = keylist.copy()
@@ -1392,6 +1413,14 @@ class Chip:
                     self.add(*arg, cfg=dst)
                 else:
                     self.set(*arg, cfg=dst, clobber=clobber)
+
+                # update other fields that a user might modify
+                fields_to_copy = ('copy', 'lock', 'filehash', 'date', 'author', 'signature')
+                for field in fields_to_copy:
+                    if field not in self.getdict(*keylist):
+                        continue
+                    v = self.get(*keylist, cfg=cfg, field=field)
+                    self.set(*keylist, v, cfg=dst, field=field)
 
     ###########################################################################
     def _keypath_empty(self, key):
