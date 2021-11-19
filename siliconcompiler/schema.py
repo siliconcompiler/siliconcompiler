@@ -2391,7 +2391,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'require': 'all',
         'defvalue': None,
-        'shorthelp': 'Number of unconstrained paths',
+        'shorthelp': 'Unconstrained paths metric',
         'example': [
             "cli: -metric_unconstrained 'place 0 goal 0'",
             "api: chip.set('metric','place','0','unconstrained','goal','0')"],
@@ -2399,6 +2399,45 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         Metric tracking the total number of unconstrained timing paths.
         """
     }
+
+    cfg['metric'][step][index]['testcoverage'] = {}
+    cfg['metric'][step][index]['testcoverage'][group] = {
+        'switch': "-metric_testcoverage 'step index group <float>'",
+        'type': 'float',
+        'lock': 'false',
+        'require': 'all',
+        'defvalue': None,
+        'shorthelp': 'Test coverage metric',
+        'example': [
+            "cli: -metric_testcoverage 'place 0 goal 99.9'",
+            "api: chip.set('metric','place','0','testcoverage','goal','99.9')"],
+        'help': """
+        Metric tracking the test coverage in the design expressed as a percentage
+        with 100 meaning full coverage. The meaning of the metric depends on the
+        task being executed. It can refer to code coverage, feature coverage,
+        stuck at fault coverage.
+        """
+    }
+
+    cfg['metric'][step][index]['security'] = {}
+    cfg['metric'][step][index]['security'][group] = {
+        'switch': "-metric_security 'step index group <float>'",
+        'type': 'float',
+        'lock': 'false',
+        'require': 'all',
+        'defvalue': None,
+        'shorthelp': 'Security metric',
+        'example': [
+            "cli: -metric_security 'place 0 goal 100'",
+            "api: chip.set('metric','place','0','security','goal','100')"],
+        'help': """
+        Metric tracking the level of security (1/vulnerability) of the design.
+        A completely secure design would have a score of 100. There is no
+        absolute scale for the security metrics (like with power, area, etc)
+        so the metric will be task and tool dependant.
+        """
+    }
+
 
     cfg['metric'][step][index]['luts'] = {}
     cfg['metric'][step][index]['luts'][group] = {
@@ -2426,7 +2465,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'require': 'fpga',
         'defvalue': None,
-        'shorthelp': 'FPGA DSP metric',
+        'shorthelp': 'FPGA DSP count metric',
         'example': [
             "cli: -metric_dsps 'place 0 goal 100'",
             "api: chip.set('metric','place','0','dsps','real','100')"],
@@ -2445,7 +2484,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'require': 'fpga',
         'defvalue': None,
-        'shorthelp': 'FPGA BRAM metric',
+        'shorthelp': 'FPGA BRAM count metric',
         'example': [
             "cli: -metric_bram 'place 0 goal 100'",
             "api: chip.set('metric','place','0','brams','real','100')"],
@@ -2551,7 +2590,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'require': 'asic',
         'defvalue': None,
-        'shorthelp': 'Peak IR drop',
+        'shorthelp': 'Peak IR drop metric',
         'example': [
             "cli: -metric_irdrop 'place 0 real 0.05'",
             "api: chip.set('metric','place','0','irdrop','real','0.05')"],
@@ -2571,7 +2610,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'require': 'all',
         'defvalue': None,
-        'shorthelp': 'Hold slack',
+        'shorthelp': 'Hold slack metric',
         'example': [
             "cli: -metric_holdslack 'place 0 real 0.0'",
             "api: chip.set('metric','place','0','holdslack','real','0')"],
@@ -2588,7 +2627,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'require': 'all',
         'defvalue': None,
-        'shorthelp': 'Hold worst negative slack',
+        'shorthelp': 'Hold worst negative slack metric',
         'example': [
             "cli: -metric_holdwns 'place 0 real 0.42",
             "api: chip.set('metric','place','0','holdwns','real,'0.43')"],
@@ -2606,7 +2645,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'require': None,
         'defvalue': None,
-        'shorthelp': 'Hold total negative slack',
+        'shorthelp': 'Hold total negative slack metric',
         'example': [
             "cli: -metric_holdtns 'place 0 real 0.0'",
             "api: chip.set('metric','place','0','holdtns','real','0')"],
@@ -2623,7 +2662,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'require': 'all',
         'defvalue': None,
-        'shorthelp': 'Total number of hold path violations',
+        'shorthelp': 'Hold path violations metric',
         'example': [
             "cli: -metric_holdpaths 'place 0 real 0'",
             "api: chip.set('metric','place','0','holdpaths','real','0')"],
@@ -2641,7 +2680,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'require': 'all',
         'defvalue': None,
-        'shorthelp': 'Setup slack',
+        'shorthelp': 'Setup slack metric',
         'example': [
             "cli: -metric_setupslack 'place 0 real 0.0'",
             "api: chip.set('metric','place','0','setupslack','real','0')"],
@@ -2676,7 +2715,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'require': 'all',
         'defvalue': None,
-        'shorthelp': 'Setup total negative slack',
+        'shorthelp': 'Setup total negative slack metric',
         'example': [
             "cli: -metric_setuptns 'place 0 goal 0.0'",
             "api: chip.set('metric','place','0','setuptns','real','0.0')"],
@@ -2693,7 +2732,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'require': 'all',
         'defvalue': None,
-        'shorthelp': 'Number of setup path violations',
+        'shorthelp': 'Setup path violations metric',
         'example': [
             "cli: -metric_setuppaths 'place 0 real 0'",
             "api: chip.set('metric','place','0','setuppaths','real','0')"],
@@ -2710,7 +2749,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'require': 'asic',
         'defvalue': None,
-        'shorthelp': 'Number of cells in the design',
+        'shorthelp': 'Instance count metric',
         'example': [
             "cli: -metric_cells 'place 0 goal 100'",
             "api: chip.set('metric','place','0','cells','goal,'100')"],
@@ -2728,7 +2767,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'require': 'all',
         'defvalue': None,
-        'shorthelp': 'Number of registers in the design',
+        'shorthelp': 'Register count metric',
         'example': [
             "cli: -metric_registers 'place 0 real 100'",
             "api: chip.set('metric','place','0','registers','real','100')"],
@@ -2744,7 +2783,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'require': 'asic',
         'defvalue': None,
-        'shorthelp': 'Mumber of buffers and inverters in design',
+        'shorthelp': 'Buffer count metric',
         'example': [
             "cli: -metric_buffers 'place 0 real 100'",
             "api: chip.set('metric','place','0','buffers','real','100')"],
@@ -2762,7 +2801,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'require': 'asic',
         'defvalue': None,
-        'shorthelp': 'Number of transistors in the design',
+        'shorthelp': 'Transistor count metric',
         'example': [
             "cli: -metric_transistors 'place 0 goal 100'",
             "api: chip.set('metric','place','0','transistors','real','100')"],
@@ -2778,7 +2817,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'require': 'asic',
         'defvalue': None,
-        'shorthelp': 'Number of nets in the design',
+        'shorthelp': 'Net count metric',
         'example': [
             "cli: -metric_nets 'place 0 real 100'",
             "api: chip.set('metric','place','0','nets','real','100')"],
@@ -2794,7 +2833,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'require': 'all',
         'defvalue': None,
-        'shorthelp': 'Number of pins in the design',
+        'shorthelp': 'Pin count metric',
         'example': [
             "cli: -metric_pins 'place 0 real 100'",
             "api: chip.set('metric','place','0','pins','real','100')"],
@@ -2810,7 +2849,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'require': 'asic',
         'defvalue': None,
-        'shorthelp': 'Number of vias in the design',
+        'shorthelp': 'Via count metric',
         'example': [
             "cli: -metric_vias 'route 0 real 100'",
             "api: chip.set('metric','place','0','vias','real','100')"],
@@ -2825,7 +2864,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'require': 'asic',
         'defvalue': None,
-        'shorthelp': 'Total lenght of all wires in the design',
+        'shorthelp': 'Wirelength metric',
         'example': [
             "cli: -metric_wirelength 'route 0 real 100.00'",
             "api: chip.set('metric','place','0','wirelength','real','100.42')"],
