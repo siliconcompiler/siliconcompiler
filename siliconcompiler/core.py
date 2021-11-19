@@ -1843,16 +1843,16 @@ class Chip:
     def hash_files(self, *keypath, algo='sha256', update=True):
         '''Generates hash values for a list of parameter files.
 
-        Generates a list of hash values based on the contents of the set of
-        files contained within the parameter indicated by the keypath. If the
-        update variable is True, the has values are then recorded in the
+        Generates a a hash value for each file found in the keypath.
+        If the  update variable is True, the has values are recorded in the
         'filehash' field of the parameter, following the order dictated by
         the files within the 'values' parameter field.
+
+        Files are located using the find_files() function.
 
         The file hash calculation is performed basd on the 'algo' setting.
         Supported algorithms include SHA1, SHA224, SHA256, SHA384, SHA512,
         and MD5.
-
 
         Args:
             *keypath(str): Keypath to parameter.
@@ -1868,13 +1868,21 @@ class Chip:
              Hashlist gets list of hash values computed from 'sources' files.
         '''
 
-        if 'file' in self.get(*keypath, field='type'):
-            keypathstr = ','.join(keypath)
-            self.logger.debug(f"Computing hash for param [{keypathstr}] with algorithm {algo}")
-            filelist = self.find_files(*keypath)
+        keypathstr = ','.join(keypath)
+        #TODO: Insert into find_files?
+        if 'file' not in self.get(*keypath, field='type'):
+            self.logger.error(f"Illegal attempt to hash non-file parameter [{keypathstr}].")
+            self.error = 1
+        else:
+            if 'output' in keypath:
+                filelist = [os.path.join('outputs',path) for path in self.get(*keypath)]
+            else:
+                filelist = self.find_file(*keypath)
+            #cycle through all paths
             hashlist = []
+            if filelist:
+                self.logger.info('Computing hash value for %s', filelist)
             for filename in filelist:
-                self.logger.debug('Computing hash value for %s', filename)
                 if os.path.isfile(filename):
                     #TODO: Implement algo selection
                     hashobj = hashlib.sha256()
@@ -1887,6 +1895,7 @@ class Chip:
                     self.error = 1
                     self.logger.info(f"Internal hashing error, file not found")
             self.set(*keypath, hashlist, field='filehash', clobber=True)
+
 
     ###########################################################################
     def audit_manifest(self):
@@ -2582,29 +2591,29 @@ class Chip:
         multiprocessing Manager dicts.
 
         Execution flow:
-        1. Wait in loop until all previous steps/indexes have completed
-        2. Defer job to compute node if using job scheduler
-        3. Start task timer
-        4. Set up working directory + chdir
-        5. Merge manifests from all input dependancies
-        6. Write manifest to input directory for convenience
-        7. Resetting all metrics to 0 (consider removing)
-        8. Select inputs
-        9. Copy data from previous step outputs into inputs
-        10. Copy reference script directory
-        11. Check manifest
-        12. Save manifest as TCL/YAML for pickup by tools
-        13. Run pre_process() function (order??)
-        14. Set license file
-        15. Check EXE version
-        16. Run EXE
-        17. Run post_process()
-        18. Hash all task files
-        19. Make a task record
-        20. Measure run time
-        21. Save manifest to disk
-        22. chdir
-        23. clear error/active bits and return control to run()
+        T1. Wait in loop until all previous steps/indexes have completed
+        T2. Defer job to compute node if using job scheduler
+        T3. Start task timer
+        T4. Set up working directory + chdir
+        T5. Merge manifests from all input dependancies
+        T6. Write manifest to input directory for convenience
+        T7. Resetting all metrics to 0 (consider removing)
+        T8. Select inputs
+        T9. Copy data from previous step outputs into inputs
+        T10. Copy reference script directory
+        T11. Check manifest
+        T12. Save manifest as TCL/YAML for pickup by tools
+        T13. Run pre_process() function (order??)
+        T14. Set license file
+        T15. Check EXE version
+        T16. Run EXE
+        T17. Run post_process()
+        T18. Hash all task files
+        T19. Make a task record
+        T20. Measure run time
+        T21. Save manifest to disk
+        T22. chdir
+        T23. clear error/active bits and return control to run()
 
         Note that since _runtask occurs in its own process with a separate
         address space, any changes made to the `self` object will not
@@ -2615,7 +2624,7 @@ class Chip:
         ##################
         # Shared parameters (long function!)
         design = self.get('design')
-
+        tool = self.get('flowgraph', step, index, 'tool')
 
         ##################
         # 1. Wait loop
@@ -2699,25 +2708,27 @@ class Chip:
         ##################
         # 8. Select inputs
 
-        tool = self.get('flowgraph', step, index, 'tool')
+
         args = self.get('flowgraph', step, index, 'args')
         inputs = self.get('flowgraph', step, index, 'input')
 
         sel_inputs = []
         score = 0
 
-        # Figure out which inputs to select
-        if tool == 'minimum':
-            (score, sel_inputs) = self.minimum(*inputs)
-        elif tool == "maximum":
-            (score, sel_inputs) = self.maximum(*inputs)
-        elif tool == "mux":
-            (score, sel_inputs) = self.mux(*inputs, selector=args)
-        elif tool == "join":
-            sel_inputs = self.join(*inputs)
-        elif tool == "verify":
-            if not self.verify(*inputs, assertion=args):
-                self._haltstep(step, index, active)
+        if tool in self.builtin:
+            self.logger.info(f"Running built in task '{tool}'")
+            # Figure out which inputs to select
+            if tool == 'minimum':
+                (score, sel_inputs) = self.minimum(*inputs)
+            elif tool == "maximum":
+                (score, sel_inputs) = self.maximum(*inputs)
+            elif tool == "mux":
+                (score, sel_inputs) = self.mux(*inputs, selector=args)
+            elif tool == "join":
+                sel_inputs = self.join(*inputs)
+            elif tool == "verify":
+                if not self.verify(*inputs, assertion=args):
+                    self._haltstep(step, index, active)
         else:
             sel_inputs = self.get('flowgraph', step, index, 'input')
 
@@ -2728,7 +2739,7 @@ class Chip:
         self.set('flowstatus', step, index, 'select', sel_inputs)
 
         ##################
-        # 9. Copy outputs from input steps
+        # 9. Copy outputs from previous steps
 
         if step == 'import':
             self._collect(step, index, active)
@@ -2819,9 +2830,11 @@ class Chip:
                 self._haltstep(step, index, active)
 
         ##################
-        # 16. Run executable
+        # 16. Run executable (or copy inputs to outputs for builtin functions)
 
-        if tool not in self.builtin:
+        if tool in self.builtin:
+            utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True)
+        else:
             cmdlist = self._makecmd(tool, step, index)
             cmdstr = ' '.join(cmdlist)
             self.logger.info("Running in %s", workdir)
@@ -2856,9 +2869,7 @@ class Chip:
                 self.logger.warning('Command failed. See log file %s', os.path.abspath(logfile))
                 if not self.get('eda', tool, step, index, 'continue'):
                     self._haltstep(step, index, active)
-        else:
-            #for builtins, copy selected inputs to outputs
-            utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True)
+
 
         ##################
         # 17. Post process (could fail)
@@ -2873,16 +2884,11 @@ class Chip:
 
         ##################
         # 18. Hash files
-        allkeys = self.getkeys()
-        hashmode = self.get('hashmode')
-        self.logger.info('Computing file hashes with hashmode = %s', hashmode)
-        for keypath in allkeys:
-            if 'filehash' in keypath:
-                self.hash_files(keypath)
+        if self.get('hash') and (tool not in self.builtin):
+            self.hash_files('eda', tool, step, index, 'output')
 
         ##################
         # 19. Make a record if tracking is enabled
-
         if self.get('track'):
             self._make_record(job, step, index, version)
 

@@ -11,4 +11,5 @@ sc examples/gcd/gcd.v \
    -loglevel "INFO" \
    -quiet \
    -relax \
+   -hash \
    -design gcd  $OPT
