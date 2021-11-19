@@ -2400,6 +2400,26 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
+    cfg['metric'][step][index]['testcoverage'] = {}
+    cfg['metric'][step][index]['testcoverage'][group] = {
+        'switch': "-metric_testcoverage 'step index group <float>'",
+        'type': 'float',
+        'lock': 'false',
+        'require': 'all',
+        'defvalue': None,
+        'shorthelp': 'Test coverage',
+        'example': [
+            "cli: -metric_testcoverage 'place 0 goal 99.9'",
+            "api: chip.set('metric','place','0','testcoverage','goal','99.9')"],
+        'help': """
+        Metric tracking the test coverage in the design expressed as a percentage
+        with 100 meaning full coverage. The meaning of the metric depends on the
+        task being executed. It can refer to code coverage, feature coverage,
+        stuck at fault coverage.
+        """
+    }
+
+
     cfg['metric'][step][index]['luts'] = {}
     cfg['metric'][step][index]['luts'][group] = {
         'switch': '-metric_luts step index group <int>',
