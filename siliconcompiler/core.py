@@ -2747,7 +2747,7 @@ class Chip:
             # Skip copying pkg.json files here, since we write the current chip
             # configuration into inputs/{design}.pkg.json earlier in _runstep.
             utils.copytree(f"../../../{job}/{in_step}/{in_index}/outputs", 'inputs/', dirs_exist_ok=True,
-                ignore=[f'{design}.pkg.json'])
+                ignore=[f'{design}.pkg.json'], link=True)
 
 
         ##################
@@ -2858,7 +2858,7 @@ class Chip:
                     self._haltstep(step, index, active)
         else:
             #for builtins, copy selected inputs to outputs
-            utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True)
+            utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True, link=True)
 
         ##################
         # 17. Post process (could fail)
