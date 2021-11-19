@@ -8,7 +8,8 @@ def test_hash_files():
     chip.write_manifest("raw.json")
     allkeys = chip.getkeys()
     for keypath in allkeys:
-        chip.hash_files(*keypath)
+        if 'file' in chip.get(*keypath, field='type'):
+            chip.hash_files(*keypath)
     chip.write_manifest("hashed.json")
 
 #########################

@@ -1877,7 +1877,7 @@ class Chip:
             if 'output' in keypath:
                 filelist = [os.path.join('outputs',path) for path in self.get(*keypath)]
             else:
-                filelist = self.find_file(*keypath)
+                filelist = self.find_files(*keypath)
             #cycle through all paths
             hashlist = []
             if filelist:
@@ -2885,7 +2885,10 @@ class Chip:
         ##################
         # 18. Hash files
         if self.get('hash') and (tool not in self.builtin):
+            # hash all outputs
             self.hash_files('eda', tool, step, index, 'output')
+            # hash all requirements
+
 
         ##################
         # 19. Make a record if tracking is enabled
