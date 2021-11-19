@@ -2881,16 +2881,17 @@ class Chip:
                 self.hash_files(keypath)
 
         ##################
-        # 19. Make a record of task information
+        # 19. Make a record if tracking is enabled
 
-        self._make_record(job, step, index, version)
+        if self.get('track'):
+            self._make_record(job, step, index, version)
 
         ##################
         # 20. Capture total runtime
 
         end = time.time()
-        elapsed_time = end - start
-        self.set('metric',step, index, 'runtime', 'real', round(elapsed_time,2))
+        elapsed_time = round((end - start),2)
+        self.set('metric',step, index, 'runtime', 'real', elapsed_time)
 
         ##################
         # 21. Save a successful manifest

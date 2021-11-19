@@ -3724,6 +3724,22 @@ def schema_options(cfg):
         """
     }
 
+    cfg['track'] = {
+        'switch': "-track <bool>",
+        'type': 'bool',
+        'lock': 'false',
+        'require': 'all',
+        'defvalue': 'false',
+        'shorthelp': 'Enable execution tracking',
+        'example': ["cli: -track",
+                    "api: chip.set('track', 'true')"],
+        'help': """
+        Turns on tracking of all 'record' parameters during each task. Tracking
+        will result in potentially sensitive data being recorded in the manifest
+        so only turn on this feature if you have control of the final manifest.
+        """
+    }
+
     cfg['trace'] = {
         'switch': "-trace <bool>",
         'type': 'bool',
