@@ -63,6 +63,10 @@ def setup_tool(chip):
     # Wite back options tp cfg
     chip.add('eda', tool, step, index, 'option', 'cmdline', options)
 
+    # Input/Output requirements
+    chip.add('eda', tool, step, index, 'output', chip.get('design') + '.v')
+
+
 def parse_version(stdout):
     # Surelog --version output looks like:
     # VERSION: 1.13

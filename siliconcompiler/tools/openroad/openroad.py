@@ -66,6 +66,11 @@ def setup_tool(chip, mode='batch'):
     chip.set('eda', tool, step, index, 'refdir', refdir, clobber=clobber)
     chip.set('eda', tool, step, index, 'script', refdir + script, clobber=clobber)
 
+    # Input/Output requirements
+    chip.add('eda', tool, step, index, 'output', chip.get('design') + '.sdc')
+    chip.add('eda', tool, step, index, 'output', chip.get('design') + '.vg')
+    chip.add('eda', tool, step, index, 'output', chip.get('design') + '.def')
+
     # openroad makes use of these parameters
     targetlibs = chip.get('asic', 'targetlib')
     stackup = chip.get('asic', 'stackup')
