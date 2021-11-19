@@ -1182,7 +1182,7 @@ class Chip:
         return result
 
     ###########################################################################
-    def find_files(self, *keypath, missing_ok=True, cfg=None, check_workdir=True):
+    def find_files(self, *keypath, cfg=None):
         """
         Returns absolute paths to files or directories based on the keypath
         provided.
@@ -1197,15 +1197,8 @@ class Chip:
 
         Args:
             keypath (list str): Variable length schema key list.
-            missing_ok (bool): Whether to trigger an error if a file cannot be
-                found.
             cfg (dict): Alternate dictionary to access in place of the default
                 chip object schema dictionary.
-            check_workdir (bool): If False, always try to resolve paths by
-                looking at relative files or SC paths, rather than checking the
-                import directory. This must be set to False when called before
-                the import step is run, and must be set to True for any calls
-                that might run remotely.
 
         Returns:
             If keys points to a scalar entry, returns an absolute path to that
@@ -1242,19 +1235,37 @@ class Chip:
         if not is_list:
             paths = [paths]
 
-        if (copyall or copy) and ('file' in paramtype) and (check_workdir):
-            result = []
+        result = []
+
+        # Special case where we're looking to find tool outputs: check the
+        # output directory and return those files directly
+        if len(keypath) == 5 and keypath[0] == 'eda' and keypath[-1] == 'output':
+            step = keypath[2]
+            index = keypath[3]
+            outdir = os.path.join(self._getworkdir(step=step, index=index), 'outputs')
             for path in paths:
+                abspath = os.path.join(outdir, path)
+                if os.path.isfile(abspath):
+                    result.append(path)
+                else:
+                    self.error = 1
+                    self.logger.error(f"File {path} was not found in outputs for {step}{index}")
+                    result.append(None)
+
+            return result
+
+        for path in paths:
+            if (copyall or copy) and ('file' in paramtype):
                 name = os.path.basename(path)
                 abspath = os.path.join(self._getworkdir(step='import'), 'outputs', name)
-                if not os.path.isfile(abspath):
-                    if not missing_ok:
-                        self.error = 1
-                        self.logger.error(f'File {abspath} was not found')
-                    abspath = None
-                result.append(abspath)
-        else:
-            result = [self._find_sc_file(path, missing_ok=missing_ok) for path in paths]
+                if os.path.isfile(abspath):
+                    # if copy is True and file is found in import outputs,
+                    # continue. Otherwise, fall through to _find_sc_file (the
+                    # file may not have been gathered in imports yet)
+                    result.append(abspath)
+                    continue
+
+            result.append(self._find_sc_file(path, missing_ok=False))
 
         # Convert back to scalar if that was original type
         if not is_list:
@@ -1311,7 +1322,7 @@ class Chip:
 
             #only do something if type is file or dir
             if 'file' in paramtype or 'dir' in paramtype:
-                abspaths = self.find_files(*keypath, missing_ok=True, cfg=cfg)
+                abspaths = self.find_files(*keypath, cfg=cfg)
                 self.set(*keypath, abspaths, cfg=cfg)
 
     ###########################################################################

@@ -94,9 +94,9 @@ def runtime_options(chip):
         cmdlist.append('-I' + value)
     for value in chip.get('define'):
         cmdlist.append('-D' + value)
-    for value in chip.find_files('cmdfile', check_workdir=False):
+    for value in chip.find_files('cmdfile'):
         cmdlist.append('-f ' + value)
-    for value in chip.find_files('source', check_workdir=False):
+    for value in chip.find_files('source'):
         cmdlist.append(value)
 
     cmdlist.append('-top ' + chip.get('design'))
