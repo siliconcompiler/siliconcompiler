@@ -71,7 +71,7 @@ def runtime_options(chip):
     options.append('--out=verilog')
 
     # Add sources
-    for value in chip.find_files('source', check_workdir=(step != 'import')):
+    for value in chip.find_files('source'):
         options.append(value)
 
     # Set top module
