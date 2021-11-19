@@ -24,6 +24,7 @@ def make_docs():
     chip.target('freepdk45')
     chip.set('arg','step','export')
     chip.set('arg','index','<index>')
+    chip.set('design', '<design>')
     setup_tool(chip)
 
     return chip
