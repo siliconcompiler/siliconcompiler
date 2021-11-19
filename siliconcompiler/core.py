@@ -1224,8 +1224,8 @@ class Chip:
             copy = False
 
         if 'file' not in paramtype and 'dir' not in paramtype:
-            self.chip.error('Can only call find_files on file or dir types')
-            self.chip.error = 1
+            self.logger.error('Can only call find_files on file or dir types')
+            self.error = 1
             return None
 
         is_list = bool(re.match(r'\[', paramtype))
@@ -1246,7 +1246,7 @@ class Chip:
             for path in paths:
                 abspath = os.path.join(outdir, path)
                 if os.path.isfile(abspath):
-                    result.append(path)
+                    result.append(abspath)
                 else:
                     self.error = 1
                     self.logger.error(f"File {path} was not found in outputs for {step}{index}")
