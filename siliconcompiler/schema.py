@@ -2046,8 +2046,15 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     # input files
     cfg['eda'][tool][step][index]['input'] = {
         'switch': "-eda_input 'tool step index <str>'",
-        'type': '[str]',
+        'type': '[file]',
         'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
         'require': None,
         'defvalue': [],
         'shorthelp': 'List of input files',
@@ -2066,8 +2073,15 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     # output files
     cfg['eda'][tool][step][index]['output'] = {
         'switch': "-eda_output 'tool step index <str>'",
-        'type': '[str]',
+        'type': '[file]',
         'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
         'require': None,
         'defvalue': [],
         'shorthelp': 'List of output files ',
