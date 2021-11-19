@@ -3524,19 +3524,19 @@ def schema_options(cfg):
         """
     }
 
-    cfg['hashmode'] = {
-        'switch': "-hashmode <str>",
-        'type': 'str',
+    cfg['hash'] = {
+        'switch': "-hash <str>",
+        'type': 'bool',
         'lock': 'false',
         'require': 'all',
-        'defvalue': 'OFF',
-        'shorthelp': 'File hash mode',
-        'example': ["cli: -hashmode 'ALL'",
-                    "api: chip.set('hashmode', 'ALL')"],
+        'defvalue': 'false',
+        'shorthelp': 'Enabling file hashing',
+        'example': ["cli: -hash",
+                    "api: chip.set('hash', True)"],
         'help': """
-        The switch controls how/if setup files and source files are hashed
-        during compilation. Valid entries include OFF, ALL, ACTIVE.
-        ACTIVE specifies to only hash files being used in the current cfg.
+        Enables hashing of all inputs and outputs during
+        compilation. The hash values are stored in the hashvalue field
+        of the individual parameters.
         """
     }
 
@@ -3548,7 +3548,7 @@ def schema_options(cfg):
         'defvalue': 'false',
         'shorthelp': 'Quiet execution',
         'example': ["cli: -quiet",
-                    "api: chip.set('quiet', 'true')"],
+                    "api: chip.set('quiet', True)"],
         'help': """
         Modern EDA tools print significant content to the screen. The -quiet
         option forces all steps to print to a log file. The quiet
