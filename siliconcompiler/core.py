@@ -1787,7 +1787,7 @@ class Chip:
 
                         filepath = self._find_sc_file(item)
                         if filepath:
-                            self.logger.info(f"Copying {filepath} to step inputs/ directory")
+                            self.logger.info(f"Copying {filepath} to 'inputs' directory")
                             shutil.copy(filepath, indir)
                         else:
                             self._haltstep(step,index,active)
@@ -2576,8 +2576,8 @@ class Chip:
         T9. Copy data from previous step outputs into inputs
         T10. Copy reference script directory
         T11. Check manifest
-        T12. Save manifest as TCL/YAML for pickup by tools
-        T13. Run pre_process() function (order??)
+        T12. Run pre_process() function
+        T13. Save manifest as TCL/YAML
         T14. Set license file
         T15. Check EXE version
         T16. Run EXE
@@ -2682,7 +2682,6 @@ class Chip:
         ##################
         # 8. Select inputs
 
-
         args = self.get('flowgraph', step, index, 'args')
         inputs = self.get('flowgraph', step, index, 'input')
 
@@ -2734,7 +2733,6 @@ class Chip:
             utils.copytree(f"../../../{job}/{in_step}/{in_index}/outputs", 'inputs/', dirs_exist_ok=True,
                 ignore=[f'{design}.pkg.json'], link=True)
 
-
         ##################
         # 10. Copy Reference Scripts
         if tool not in self.builtin:
@@ -2748,19 +2746,11 @@ class Chip:
             self.logger.error(f"Fatal error in check()! See previous errors.")
             self._haltstep(step, index, active)
 
-        ##################
-        # 12. Save config files required by EDA tools
-        # (for tools and slurm)
 
+        ##################
+        # 12. Run preprocess step for tool
         self.set('arg', 'step', step, clobber=True)
         self.set('arg', 'index', index, clobber=True)
-        self.write_manifest("sc_manifest.json")
-        self.write_manifest("sc_manifest.yaml")
-        self.write_manifest("sc_manifest.tcl", abspath=True)
-
-
-        ##################
-        # 13. Run preprocess step for tool
 
         if tool not in self.builtin:
             func = self.find_function(tool, "tool", "pre_process")
@@ -2769,6 +2759,15 @@ class Chip:
                 if self.error:
                     self.logger.error(f"Pre-processing failed for '{tool}'")
                     self._haltstep(step, index, active)
+
+        ##################
+        # 13. Save config files required by EDA tools
+        # (for tools and slurm)
+
+        self.write_manifest("sc_manifest.json")
+        self.write_manifest("sc_manifest.yaml")
+        self.write_manifest("sc_manifest.tcl", abspath=True)
+
 
         ##################
         # 14. Set license variable
