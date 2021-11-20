@@ -99,9 +99,9 @@ def runtime_options(chip):
         cmdlist.append('-I' + value)
     for value in chip.get('define'):
         cmdlist.append('-D' + value)
-    for value in chip.find_files('cmdfile', check_workdir=False):
+    for value in chip.find_files('cmdfile'):
         cmdlist.append('-f ' + value)
-    for value in chip.find_files('source', check_workdir=False):
+    for value in chip.find_files('source'):
         cmdlist.append(value)
 
     cmdlist.append('-top ' + chip.get('design'))
@@ -128,11 +128,6 @@ def post_process(chip):
     if step != 'import':
         return 0
 
-    # Copy files from inputs to outputs. Need to do this before pickling since
-    # we may otherwise overwrite the pickled file with one of the Verilog
-    # sources.
-    utils.copytree("inputs", "outputs", dirs_exist_ok=True)
-
     # Look in slpp_all/file_elab.lst for list of Verilog files included in
     # design, read these and concatenate them into one pickled output file.
     with open('slpp_all/file_elab.lst', 'r') as filelist, \
@@ -145,6 +140,11 @@ def post_process(chip):
                 outfile.write(infile.read())
             # in case end of file is missing a newline
             outfile.write('\n')
+
+    # Copy files from inputs to outputs. Need to skip pickled Verilog and
+    # manifest since new versions of those are written.
+    utils.copytree("inputs", "outputs", dirs_exist_ok=True, link=True,
+                   ignore=[f'{design}.v', f'{design}.pkg.json'])
 
     # Clean up
     shutil.rmtree('slpp_all')

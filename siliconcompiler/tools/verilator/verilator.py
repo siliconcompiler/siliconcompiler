@@ -94,9 +94,9 @@ def runtime_options(chip):
         cmdlist.append('-I' + value)
     for value in chip.get('define'):
         cmdlist.append('-D' + value)
-    for value in chip.find_files('cmdfile', check_workdir=check_workdir):
+    for value in chip.find_files('cmdfile'):
         cmdlist.append('-f ' + value)
-    for value in chip.find_files('source', check_workdir=check_workdir):
+    for value in chip.find_files('source'):
         cmdlist.append(value)
 
     #  make warnings non-fatal in relaxed mode
@@ -152,11 +152,12 @@ def post_process(chip):
     else:
         topmodule = chip.cfg['design']['value']
 
-    # Copy files from inputs to outputs
-    utils.copytree("inputs", "outputs", dirs_exist_ok=True)
-
     # Moving pickled file to outputs
     os.rename("verilator.v", "outputs/" + topmodule + ".v")
+
+    # Copy files from inputs to outputs
+    utils.copytree("inputs", "outputs", dirs_exist_ok=True, link=True,
+                   ignore=[f'{topmodule}.v', f'{topmodule}.pkg.json'])
 
     # Clean up
     shutil.rmtree('obj_dir')
