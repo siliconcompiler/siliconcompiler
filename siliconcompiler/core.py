@@ -669,6 +669,41 @@ class Chip:
 
         return fullstr
 
+
+    ###########################################################################
+    def valid(self, *keypath):
+        """
+        Checks validity of a keypath.
+
+        Checks the validity of a parameter keypath and returns True if the
+        keypath is valid and False if invalid.
+
+        Args:
+            keypath(list str): Variable length schema key list.
+
+        Returns:
+            Boolean indicating validity of keypath.
+
+        Examples:
+            >>> check = chip.valid('design')
+            Returns True.
+            >>> check = chip.valid('blah')
+            Returns False.
+        """
+
+        key_valid = False
+        allkeys = self.getkeys()
+        for item in allkeys:
+            if item == list(keypath):
+                key_valid = True
+
+        if not key_valid:
+            keypathstr = ','.join(keypath)
+            ver = self.get('scversion')
+            self.logger.warning(f'Keypath [{keypathstr}] not found in schema verion {ver}.')
+
+        return key_valid
+
     ###########################################################################
     def get(self, *keypath, field='value', job=None, cfg=None):
         """
