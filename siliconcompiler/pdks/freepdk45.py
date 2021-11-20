@@ -78,7 +78,7 @@ def setup_pdk(chip):
     chip.set('pdk','d0', d0)
 
     chip.set('pdk','tapmax', 120)
-    chip.set('pdk','tapoffset', 0)
+    chip.set('pdk','tapoffset', 2)
 
     # APR tech file
     chip.set('pdk','aprtech',stackup, libtype, 'lef',pdkdir+'/apr/freepdk45.tech.lef')
@@ -228,7 +228,7 @@ def setup_pdk(chip):
     chip.set('mcmm','worst','check', ['setup','hold'])
 
     # Floorplanning defaults for quick experiments
-    chip.set('asic', 'density', 20, clobber=False)
+    chip.set('asic', 'density', 10, clobber=False)
     chip.set('asic', 'aspectratio', 1, clobber=False)
     # 10 track core margin
     chip.set('asic', 'coremargin', 1.9, clobber=False)
