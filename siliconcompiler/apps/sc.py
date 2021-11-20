@@ -21,22 +21,19 @@ def main():
     progname = "sc"
     description = """
     ------------------------------------------------------------
-    SiliconCompiler is an open source Python based meta compiler
-    project that aims to fully automate the translation of high
-    level source code into manufacturable hardware. This program
-    is a command line utility app around the SC API/schema that
-    executes the following operations in sequence:
+    SiliconCompiler is an open source compiler framework that
+    aims to enable automated translation from source code to
+    silicon.
 
-    1. load setup files through target(),
-    2. load settings from json files provided with -cfg switch
-    3. override settings using other switches
-    4. run()
-    5. summary()
+    The sc program includes the followins steps.
 
-    **More Information:**
-    Website:       https://www.siliconcompiler.com
-    Documentation: https://www.siliconcompiler.com/docs
-    Community:     https://www.siliconcompiler.com/community
+    1. Read command line arguments
+    2. If not set, 'design' is set to base of first source file.
+    3. If not set, 'target' is set to 'asicflow_freepdk45.
+    4. Run compilation
+    5. Display summary
+
+    Sources: https://github.com/siliconcompiler/siliconcompiler
     ------------------------------------------------------------
     """
 
@@ -46,6 +43,16 @@ def main():
     # Read command-line inputs and generate Chip objects to run the flow on.
     chip.create_cmdline(progname,
                         description=description)
+
+    # Set design if none specified
+    if not chip.get('design'):
+        topfile = chip.get('source')[0]
+        topmodule = os.path.splitext(os.path.basename(topfile))[0]
+        chip.set('design', topmodule)
+
+    # Set target if none specified
+    if not chip.get('target'):
+        chip.target('asicflow_freepdk45')
 
     # Run flow
     chip.run()
