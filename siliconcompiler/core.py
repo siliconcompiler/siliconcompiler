@@ -2577,9 +2577,9 @@ class Chip:
         T10. Copy reference script directory
         T11. Check manifest
         T12. Run pre_process() function
-        T13. Save manifest as TCL/YAML
-        T14. Set license file
-        T15. Check EXE version
+        T13. Set license file
+        T14. Check EXE version
+        T15. Save manifest as TCL/YAML
         T16. Run EXE
         T17. Run post_process()
         T18. Hash all task files
@@ -2761,16 +2761,7 @@ class Chip:
                     self._haltstep(step, index, active)
 
         ##################
-        # 13. Save config files required by EDA tools
-        # (for tools and slurm)
-
-        self.write_manifest("sc_manifest.json")
-        self.write_manifest("sc_manifest.yaml")
-        self.write_manifest("sc_manifest.tcl", abspath=True)
-
-
-        ##################
-        # 14. Set license variable
+        # 13. Set license variable
 
         for item in self.getkeys('eda', tool, step, index, 'license'):
             license_file = self.get('eda', tool, step, index, 'license', item)
@@ -2778,7 +2769,7 @@ class Chip:
                 os.environ[item] = license_file
 
         ##################
-        # 15. Check exe version
+        # 14. Check exe version
 
         vercheck = self.get('vercheck')
         veropt = self.get('eda', tool, step, index, 'vswitch')
@@ -2801,6 +2792,14 @@ class Chip:
                 self.logger.error(f"Version check failed for {tool}. Check installation.")
                 self.logger.error(f"Found version {version}, expected one of [{allowedstr}].")
                 self._haltstep(step, index, active)
+
+
+        ##################
+        # 15. Interface with tools (Don't move this!)
+
+        self.write_manifest("sc_manifest.json")
+        self.write_manifest("sc_manifest.yaml")
+        self.write_manifest("sc_manifest.tcl", abspath=True)
 
         ##################
         # 16. Run executable (or copy inputs to outputs for builtin functions)
