@@ -1247,11 +1247,6 @@ class Chip:
                 abspath = os.path.join(outdir, path)
                 if os.path.isfile(abspath):
                     result.append(abspath)
-                else:
-                    self.error = 1
-                    self.logger.error(f"File {path} was not found in outputs for {step}{index}")
-                    result.append(None)
-
             return result
 
         for path in paths:
@@ -1265,7 +1260,7 @@ class Chip:
                     result.append(abspath)
                     continue
 
-            result.append(self._find_sc_file(path, missing_ok=False))
+            result.append(self._find_sc_file(path, missing_ok=True))
 
         # Convert back to scalar if that was original type
         if not is_list:
@@ -1892,7 +1887,7 @@ class Chip:
             #cycle through all paths
             hashlist = []
             if filelist:
-                self.logger.info('Computing hash value for %s', filelist)
+                self.logger.info(f'Computing hash value for [{keypathstr}]')
             for filename in filelist:
                 if os.path.isfile(filename):
                     #TODO: Implement algo selection
@@ -1905,6 +1900,12 @@ class Chip:
                 else:
                     self.error = 1
                     self.logger.info(f"Internal hashing error, file not found")
+            # compare previous hash to new hash
+            oldhash = self.get(*keypath,field='filehash')
+            for i,item in enumerate(oldhash):
+                if item != hashlist[i]:
+                    self.logger.error(f"Hash mismatch for [{keypath}]")
+                    self.error = 1
             self.set(*keypath, hashlist, field='filehash', clobber=True)
 
 
@@ -2214,44 +2215,6 @@ class Chip:
         #Sort steps based on path lenghts
         sorted_dict = dict(sorted(depth.items(), key=lambda depth: depth[1]))
         return list(sorted_dict.keys())
-
-    ###########################################################################
-    def list_files(self, abspath=False):
-        '''
-        Returns a list all files used.
-
-        1. list the import/outputs directory
-        2. list all files used in target/macro libs, walkd dict (and metal stack)
-        3. resolve the tcl files based flowgraph on refdir (package tcl?)
-        4.
-
-        All step keys from the flowgraph dictionary are collected and the
-        distance from the root node (ie. without any inputs defined) is
-        measured for each step. The step list is then sorted based on
-        the distance from root and returned.
-
-        Returns:
-            A list of steps sorted by distance from the root node.
-
-        Example:
-            >>> steplist = chip.list_steps()
-            Variable steplist gets list of steps sorted by distance from root.
-        '''
-
-
-        all_files = []
-
-        # Cycle through pdk
-        pdk_keys = self.getkeys()
-
-
-        for keypath in allkeys:
-            if (self.get(*keypath, field='type') == '[file]'):
-                files = self.get(*keypath)
-
-                if files:
-                    print(files)
-
 
 
     ###########################################################################
@@ -2898,7 +2861,10 @@ class Chip:
             # hash all outputs
             self.hash_files('eda', tool, step, index, 'output')
             # hash all requirements
-
+            for item in self.get('eda', tool, step, index, 'require'):
+                args = item.split(',')
+                if 'file' in self.get(*args, field='type'):
+                    self.hash_files(*args)
 
         ##################
         # 19. Make a record if tracking is enabled
