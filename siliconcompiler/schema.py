@@ -3524,8 +3524,24 @@ def schema_options(cfg):
         """
     }
 
+    cfg['clean'] = {
+        'switch': "-clean <bool>",
+        'type': 'bool',
+        'lock': 'false',
+        'require': 'all',
+        'defvalue': 'false',
+        'shorthelp': 'Clean up files after run',
+        'example': ["cli: -clean",
+                    "api: chip.set('clean', True)"],
+        'help': """
+        Clean up all intermediate and non essential files at the end
+        of a task, leaving only the log file and 'report' and
+        'output' parameters associated with the task tool.
+        """
+    }
+
     cfg['hash'] = {
-        'switch': "-hash <str>",
+        'switch': "-hash <bool>",
         'type': 'bool',
         'lock': 'false',
         'require': 'all',

@@ -2886,6 +2886,11 @@ class Chip:
         self.write_manifest("outputs/" + self.get('design') +'.pkg.json')
 
         ##################
+        # 22. Clean up non-essential files
+        if self.get('clean'):
+            self.logger.error('Self clean not implemented')
+
+        ##################
         # 22. return fo original directory
         os.chdir(cwd)
 
