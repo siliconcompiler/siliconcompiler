@@ -26,7 +26,7 @@ except ImportError:
 with open("README.md", "r", encoding="utf-8") as readme:
   long_desc = readme.read()
 
-if not os.path.isdir('third_party/tools/openroad/tools/OpenROAD/src/OpenDB/src/lef'):
+if not os.path.isdir('third_party/tools/openroad/tools/OpenROAD/src/odb/src/lef'):
     print('Source for LEF parser library not found! Install OpenROAD submodule before continuing with install:\n'
           'git submodule update --init --recursive third_party/tools/openroad')
     sys.exit(1)
