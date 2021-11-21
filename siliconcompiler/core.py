@@ -1295,8 +1295,7 @@ class Chip:
                     # file may not have been gathered in imports yet)
                     result.append(abspath)
                     continue
-
-            result.append(self._find_sc_file(path, missing_ok=True))
+            result.append(self._find_sc_file(path, missing_ok=False))
 
         # Convert back to scalar if that was original type
         if not is_list:
