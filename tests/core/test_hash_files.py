@@ -4,6 +4,7 @@ import siliconcompiler
 
 def test_hash_files():
     chip = siliconcompiler.Chip()
+    chip.set('design', 'top')
     chip.target("asicflow_freepdk45")
     chip.write_manifest("raw.json")
     allkeys = chip.getkeys()
