@@ -99,6 +99,11 @@ def test_failed_branch_min(chip):
     chip.set('flowgraph', 'placemin', '0', 'tool', 'minimum')
     chip.set('flowgraph', 'placemin', '0', 'input', [('place','0'), ('place','1')])
 
+    # Don't need CTS for what this test is focused on, but this lets it double
+    # as a regression test for issue #651.
+    chip.set('flowgraph', 'cts', '0', 'tool', 'openroad')
+    chip.set('flowgraph', 'cts', '0', 'input', [('placemin', '0')])
+
     chip.run()
 
     assert chip.get('flowstatus', 'place', '0', 'error') == 1

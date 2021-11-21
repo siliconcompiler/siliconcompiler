@@ -3046,8 +3046,7 @@ class Chip:
                     else:
                         indexlist = self.getkeys('flowgraph', step)
                     if (step in steplist) & (index in indexlist):
-                        self.set('flowstatus', step, str(index), 'error', 1)
-                        error[stepstr] = self.get('flowstatus', step, str(index), 'error')
+                        error[stepstr] = 1
                         active[stepstr] = 1
                         # Setting up tool is optional
                         tool = self.get('flowgraph', step, index, 'tool')
@@ -3062,8 +3061,7 @@ class Chip:
                             self.set('arg','step', None)
                             self.set('arg','index', None)
                     else:
-                        self.set('flowstatus', step, str(index), 'error', 0)
-                        error[stepstr] = self.get('flowstatus', step, str(index), 'error')
+                        error[stepstr] = 0
                         active[stepstr] = 0
 
             # Implement auto-update of jobincrement
