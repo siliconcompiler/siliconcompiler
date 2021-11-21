@@ -2171,6 +2171,24 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         """
     }
 
+    # manifest format
+    cfg['eda'][tool][step][index]['format'] = {
+        'switch': "-eda_format 'tool step index <file>'",
+        'require': None,
+        'type': 'str',
+        'lock': 'false',
+        'defvalue': 'tcl',
+        'shorthelp': 'File format tool interface',
+        'example': [
+            "cli: -eda_format 'yosys syn 0 tcl'",
+            "api: chip.set('eda','yosys','syn','0','format','tcl')"],
+        'help': """
+        File format for manifest handoff to tool. Supported formats are tcl,
+        yaml, and json.
+        """
+    }
+
+
     # pre execution script
     cfg['eda'][tool][step][index]['prescript'] = {
         'switch': "-eda_prescript 'tool step index <file>'",
