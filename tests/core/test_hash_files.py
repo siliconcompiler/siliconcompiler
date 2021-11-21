@@ -4,11 +4,13 @@ import siliconcompiler
 
 def test_hash_files():
     chip = siliconcompiler.Chip()
+    chip.set('design', 'top')
     chip.target("asicflow_freepdk45")
     chip.write_manifest("raw.json")
     allkeys = chip.getkeys()
     for keypath in allkeys:
-        chip.hash_files(*keypath)
+        if 'file' in chip.get(*keypath, field='type'):
+            chip.hash_files(*keypath)
     chip.write_manifest("hashed.json")
 
 #########################

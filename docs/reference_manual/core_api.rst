@@ -17,6 +17,7 @@ Refer to the User Guide for architecture concepts and the
     ~siliconcompiler.core.Chip.get
     ~siliconcompiler.core.Chip.getkeys
     ~siliconcompiler.core.Chip.getdict
+    ~siliconcompiler.core.Chip.valid
     ~siliconcompiler.core.Chip.help
 
 **Flowgraph execution:**
@@ -45,9 +46,9 @@ Refer to the User Guide for architecture concepts and the
     ~siliconcompiler.core.Chip.calc_diecost
     ~siliconcompiler.core.Chip.check_manifest
     ~siliconcompiler.core.Chip.clock
-    ~siliconcompiler.core.Chip.create_commandline
+    ~siliconcompiler.core.Chip.create_cmdline
     ~siliconcompiler.core.Chip.create_env
-    ~siliconcompiler.core.Chip.find_file
+    ~siliconcompiler.core.Chip.find_files
     ~siliconcompiler.core.Chip.find_function
     ~siliconcompiler.core.Chip.find_result
     ~siliconcompiler.core.Chip.hash_files

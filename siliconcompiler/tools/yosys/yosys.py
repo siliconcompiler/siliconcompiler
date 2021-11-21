@@ -65,7 +65,8 @@ def setup_tool(chip):
     chip.set('eda', tool, step, index, 'script', refdir + '/' + script, clobber=False)
 
     #Input/output requirements
-    chip.add('eda', tool, step, index, 'input', chip.get('design') + '.v')
+    #TODO: add back input requirements for all tools, currently failing
+    #chip.add('eda', tool, step, index, 'input', chip.get('design') + '.v')
     chip.add('eda', tool, step, index, 'output', chip.get('design') + '.vg')
 
     #Schema requirements

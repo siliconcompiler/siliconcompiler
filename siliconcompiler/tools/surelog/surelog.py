@@ -27,6 +27,7 @@ def make_docs():
     chip = siliconcompiler.Chip()
     chip.set('arg','step','import')
     chip.set('arg','index','0')
+    chip.set('design', '<design>')
     setup_tool(chip)
     return chip
 
@@ -62,6 +63,10 @@ def setup_tool(chip):
 
     # Wite back options tp cfg
     chip.add('eda', tool, step, index, 'option', 'cmdline', options)
+
+    # Input/Output requirements
+    chip.add('eda', tool, step, index, 'output', chip.get('design') + '.v')
+
 
 def parse_version(stdout):
     # Surelog --version output looks like:

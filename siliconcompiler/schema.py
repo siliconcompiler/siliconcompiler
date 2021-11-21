@@ -2046,8 +2046,15 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     # input files
     cfg['eda'][tool][step][index]['input'] = {
         'switch': "-eda_input 'tool step index <str>'",
-        'type': '[str]',
+        'type': '[file]',
         'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
         'require': None,
         'defvalue': [],
         'shorthelp': 'List of input files',
@@ -2066,8 +2073,15 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     # output files
     cfg['eda'][tool][step][index]['output'] = {
         'switch': "-eda_output 'tool step index <str>'",
-        'type': '[str]',
+        'type': '[file]',
         'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
         'require': None,
         'defvalue': [],
         'shorthelp': 'List of output files ',
@@ -2156,6 +2170,24 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         specified on a per tool and per step basis.
         """
     }
+
+    # manifest format
+    cfg['eda'][tool][step][index]['format'] = {
+        'switch': "-eda_format 'tool step index <file>'",
+        'require': None,
+        'type': 'str',
+        'lock': 'false',
+        'defvalue': 'tcl',
+        'shorthelp': 'File format tool interface',
+        'example': [
+            "cli: -eda_format 'yosys syn 0 tcl'",
+            "api: chip.set('eda','yosys','syn','0','format','tcl')"],
+        'help': """
+        File format for manifest handoff to tool. Supported formats are tcl,
+        yaml, and json.
+        """
+    }
+
 
     # pre execution script
     cfg['eda'][tool][step][index]['prescript'] = {
@@ -3510,19 +3542,35 @@ def schema_options(cfg):
         """
     }
 
-    cfg['hashmode'] = {
-        'switch': "-hashmode <str>",
-        'type': 'str',
+    cfg['clean'] = {
+        'switch': "-clean <bool>",
+        'type': 'bool',
         'lock': 'false',
         'require': 'all',
-        'defvalue': 'OFF',
-        'shorthelp': 'File hash mode',
-        'example': ["cli: -hashmode 'ALL'",
-                    "api: chip.set('hashmode', 'ALL')"],
+        'defvalue': 'false',
+        'shorthelp': 'Clean up files after run',
+        'example': ["cli: -clean",
+                    "api: chip.set('clean', True)"],
         'help': """
-        The switch controls how/if setup files and source files are hashed
-        during compilation. Valid entries include OFF, ALL, ACTIVE.
-        ACTIVE specifies to only hash files being used in the current cfg.
+        Clean up all intermediate and non essential files at the end
+        of a task, leaving only the log file and 'report' and
+        'output' parameters associated with the task tool.
+        """
+    }
+
+    cfg['hash'] = {
+        'switch': "-hash <bool>",
+        'type': 'bool',
+        'lock': 'false',
+        'require': 'all',
+        'defvalue': 'false',
+        'shorthelp': 'Enabling file hashing',
+        'example': ["cli: -hash",
+                    "api: chip.set('hash', True)"],
+        'help': """
+        Enables hashing of all inputs and outputs during
+        compilation. The hash values are stored in the hashvalue field
+        of the individual parameters.
         """
     }
 
@@ -3534,7 +3582,7 @@ def schema_options(cfg):
         'defvalue': 'false',
         'shorthelp': 'Quiet execution',
         'example': ["cli: -quiet",
-                    "api: chip.set('quiet', 'true')"],
+                    "api: chip.set('quiet', True)"],
         'help': """
         Modern EDA tools print significant content to the screen. The -quiet
         option forces all steps to print to a log file. The quiet
@@ -3721,6 +3769,22 @@ def schema_options(cfg):
         Specifies that tools should be lenient and suppress some warnings that
         may or may not indicate design issues. The default is to enforce strict
         checks for all steps.
+        """
+    }
+
+    cfg['track'] = {
+        'switch': "-track <bool>",
+        'type': 'bool',
+        'lock': 'false',
+        'require': 'all',
+        'defvalue': 'false',
+        'shorthelp': 'Enable execution tracking',
+        'example': ["cli: -track",
+                    "api: chip.set('track', 'true')"],
+        'help': """
+        Turns on tracking of all 'record' parameters during each task. Tracking
+        will result in potentially sensitive data being recorded in the manifest
+        so only turn on this feature if you have control of the final manifest.
         """
     }
 

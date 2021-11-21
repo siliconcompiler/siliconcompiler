@@ -669,6 +669,42 @@ class Chip:
 
         return fullstr
 
+
+    ###########################################################################
+    def valid(self, *args):
+        """
+        Checks validity of a keypath.
+
+        Checks the validity of a parameter keypath and returns True if the
+        keypath is valid and False if invalid.
+
+        Args:
+            keypath(list str): Variable length schema key list.
+
+        Returns:
+            Boolean indicating validity of keypath.
+
+        Examples:
+            >>> check = chip.valid('design')
+            Returns True.
+            >>> check = chip.valid('blah')
+            Returns False.
+        """
+
+        keypathstr = ','.join(args)
+        keylist = list(args)
+
+        # Look for a full match with default playing wild card
+        for key in self.getkeys():
+            for i in range(len(keylist)):
+                if key[i] not in (keylist[i], 'default'):
+                    break
+                return True
+
+        # Match not found
+        self.logger.warning(f"Keypath [{keypathstr}] is not valid")
+        return False
+
     ###########################################################################
     def get(self, *keypath, field='value', job=None, cfg=None):
         """
@@ -1247,11 +1283,6 @@ class Chip:
                 abspath = os.path.join(outdir, path)
                 if os.path.isfile(abspath):
                     result.append(abspath)
-                else:
-                    self.error = 1
-                    self.logger.error(f"File {path} was not found in outputs for {step}{index}")
-                    result.append(None)
-
             return result
 
         for path in paths:
@@ -1264,7 +1295,6 @@ class Chip:
                     # file may not have been gathered in imports yet)
                     result.append(abspath)
                     continue
-
             result.append(self._find_sc_file(path, missing_ok=False))
 
         # Convert back to scalar if that was original type
@@ -1416,7 +1446,8 @@ class Chip:
             dst = self.cfg
 
         for keylist in self.getkeys(cfg=cfg):
-            if 'default' not in keylist:
+            #only read in valid keypaths without 'default'
+            if self.valid(*keylist)  and 'default' not in keylist:
                 # update value, handling scalars vs. lists
                 typestr = self.get(*keylist, cfg=cfg, field='type')
                 val = self.get(*keylist, cfg=cfg)
@@ -1549,7 +1580,7 @@ class Chip:
         """
 
         abspath = os.path.abspath(filename)
-        self.logger.debug('Reading manifest %s', abspath)
+        self.logger.info('Reading manifest %s', abspath)
 
         #Read arguments from file based on file type
         with open(abspath, 'r') as f:
@@ -1590,7 +1621,7 @@ class Chip:
         '''
 
         filepath = os.path.abspath(filename)
-        self.logger.debug('Writing configuration to file %s', filepath)
+        self.logger.info('Writing manifest to %s', filepath)
 
         if not os.path.exists(os.path.dirname(filepath)):
             os.makedirs(os.path.dirname(filepath))
@@ -1792,7 +1823,7 @@ class Chip:
 
                         filepath = self._find_sc_file(item)
                         if filepath:
-                            self.logger.info(f"Copying {filepath} to step inputs/ directory")
+                            self.logger.info(f"Copying {filepath} to 'inputs' directory")
                             shutil.copy(filepath, indir)
                         else:
                             self._haltstep(step,index,active)
@@ -1854,16 +1885,16 @@ class Chip:
     def hash_files(self, *keypath, algo='sha256', update=True):
         '''Generates hash values for a list of parameter files.
 
-        Generates a list of hash values based on the contents of the set of
-        files contained within the parameter indicated by the keypath. If the
-        update variable is True, the has values are then recorded in the
+        Generates a a hash value for each file found in the keypath.
+        If the  update variable is True, the has values are recorded in the
         'filehash' field of the parameter, following the order dictated by
         the files within the 'values' parameter field.
+
+        Files are located using the find_files() function.
 
         The file hash calculation is performed basd on the 'algo' setting.
         Supported algorithms include SHA1, SHA224, SHA256, SHA384, SHA512,
         and MD5.
-
 
         Args:
             *keypath(str): Keypath to parameter.
@@ -1879,13 +1910,18 @@ class Chip:
              Hashlist gets list of hash values computed from 'sources' files.
         '''
 
-        if 'file' in self.get(*keypath, field='type'):
-            keypathstr = ','.join(keypath)
-            self.logger.debug(f"Computing hash for param [{keypathstr}] with algorithm {algo}")
+        keypathstr = ','.join(keypath)
+        #TODO: Insert into find_files?
+        if 'file' not in self.get(*keypath, field='type'):
+            self.logger.error(f"Illegal attempt to hash non-file parameter [{keypathstr}].")
+            self.error = 1
+        else:
             filelist = self.find_files(*keypath)
+            #cycle through all paths
             hashlist = []
+            if filelist:
+                self.logger.info(f'Computing hash value for [{keypathstr}]')
             for filename in filelist:
-                self.logger.debug('Computing hash value for %s', filename)
                 if os.path.isfile(filename):
                     #TODO: Implement algo selection
                     hashobj = hashlib.sha256()
@@ -1897,7 +1933,14 @@ class Chip:
                 else:
                     self.error = 1
                     self.logger.info(f"Internal hashing error, file not found")
+            # compare previous hash to new hash
+            oldhash = self.get(*keypath,field='filehash')
+            for i,item in enumerate(oldhash):
+                if item != hashlist[i]:
+                    self.logger.error(f"Hash mismatch for [{keypath}]")
+                    self.error = 1
             self.set(*keypath, hashlist, field='filehash', clobber=True)
+
 
     ###########################################################################
     def audit_manifest(self):
@@ -2205,44 +2248,6 @@ class Chip:
         #Sort steps based on path lenghts
         sorted_dict = dict(sorted(depth.items(), key=lambda depth: depth[1]))
         return list(sorted_dict.keys())
-
-    ###########################################################################
-    def list_files(self, abspath=False):
-        '''
-        Returns a list all files used.
-
-        1. list the import/outputs directory
-        2. list all files used in target/macro libs, walkd dict (and metal stack)
-        3. resolve the tcl files based flowgraph on refdir (package tcl?)
-        4.
-
-        All step keys from the flowgraph dictionary are collected and the
-        distance from the root node (ie. without any inputs defined) is
-        measured for each step. The step list is then sorted based on
-        the distance from root and returned.
-
-        Returns:
-            A list of steps sorted by distance from the root node.
-
-        Example:
-            >>> steplist = chip.list_steps()
-            Variable steplist gets list of steps sorted by distance from root.
-        '''
-
-
-        all_files = []
-
-        # Cycle through pdk
-        pdk_keys = self.getkeys()
-
-
-        for keypath in allkeys:
-            if (self.get(*keypath, field='type') == '[file]'):
-                files = self.get(*keypath)
-
-                if files:
-                    print(files)
-
 
 
     ###########################################################################
@@ -2593,29 +2598,29 @@ class Chip:
         multiprocessing Manager dicts.
 
         Execution flow:
-        1. Wait in loop until all previous steps/indexes have completed
-        2. Defer job to compute node if using job scheduler
-        3. Start task timer
-        4. Set up working directory + chdir
-        5. Merge manifests from all input dependancies
-        6. Write manifest to input directory for convenience
-        7. Resetting all metrics to 0 (consider removing)
-        8. Select inputs
-        9. Copy data from previous step outputs into inputs
-        10. Copy reference script directory
-        11. Check manifest
-        12. Save manifest as TCL/YAML for pickup by tools
-        13. Run pre_process() function (order??)
-        14. Set license file
-        15. Check EXE version
-        16. Run EXE
-        17. Run post_process()
-        18. Hash all task files
-        19. Make a task record
-        20. Measure run time
-        21. Save manifest to disk
-        22. chdir
-        23. clear error/active bits and return control to run()
+        T1. Wait in loop until all previous steps/indexes have completed
+        T2. Defer job to compute node if using job scheduler
+        T3. Start task timer
+        T4. Set up working directory + chdir
+        T5. Merge manifests from all input dependancies
+        T6. Write manifest to input directory for convenience
+        T7. Resetting all metrics to 0 (consider removing)
+        T8. Select inputs
+        T9. Copy data from previous step outputs into inputs
+        T10. Copy reference script directory
+        T11. Check manifest
+        T12. Run pre_process() function
+        T13. Set license file
+        T14. Check EXE version
+        T15. Save manifest as TCL/YAML
+        T16. Run EXE
+        T17. Run post_process()
+        T18. Hash all task files
+        T19. Make a task record
+        T20. Measure run time
+        T21. Save manifest to disk
+        T22. chdir
+        T23. clear error/active bits and return control to run()
 
         Note that since _runtask occurs in its own process with a separate
         address space, any changes made to the `self` object will not
@@ -2626,7 +2631,7 @@ class Chip:
         ##################
         # Shared parameters (long function!)
         design = self.get('design')
-
+        tool = self.get('flowgraph', step, index, 'tool')
 
         ##################
         # 1. Wait loop
@@ -2697,7 +2702,7 @@ class Chip:
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
         os.makedirs('inputs', exist_ok=True)
-        self.write_manifest(f'inputs/{design}.pkg.json')
+        #self.write_manifest(f'inputs/{design}.pkg.json')
 
         ##################
         # 7. Resetting metrics to zero
@@ -2710,25 +2715,26 @@ class Chip:
         ##################
         # 8. Select inputs
 
-        tool = self.get('flowgraph', step, index, 'tool')
         args = self.get('flowgraph', step, index, 'args')
         inputs = self.get('flowgraph', step, index, 'input')
 
         sel_inputs = []
         score = 0
 
-        # Figure out which inputs to select
-        if tool == 'minimum':
-            (score, sel_inputs) = self.minimum(*inputs)
-        elif tool == "maximum":
-            (score, sel_inputs) = self.maximum(*inputs)
-        elif tool == "mux":
-            (score, sel_inputs) = self.mux(*inputs, selector=args)
-        elif tool == "join":
-            sel_inputs = self.join(*inputs)
-        elif tool == "verify":
-            if not self.verify(*inputs, assertion=args):
-                self._haltstep(step, index, active)
+        if tool in self.builtin:
+            self.logger.info(f"Running built in task '{tool}'")
+            # Figure out which inputs to select
+            if tool == 'minimum':
+                (score, sel_inputs) = self.minimum(*inputs)
+            elif tool == "maximum":
+                (score, sel_inputs) = self.maximum(*inputs)
+            elif tool == "mux":
+                (score, sel_inputs) = self.mux(*inputs, selector=args)
+            elif tool == "join":
+                sel_inputs = self.join(*inputs)
+            elif tool == "verify":
+                if not self.verify(*inputs, assertion=args):
+                    self._haltstep(step, index, active)
         else:
             sel_inputs = self.get('flowgraph', step, index, 'input')
 
@@ -2739,7 +2745,7 @@ class Chip:
         self.set('flowstatus', step, index, 'select', sel_inputs)
 
         ##################
-        # 9. Copy outputs from input steps
+        # 9. Copy outputs from previous steps
 
         if step == 'import':
             self._collect(step, index, active)
@@ -2760,7 +2766,6 @@ class Chip:
             utils.copytree(f"../../../{job}/{in_step}/{in_index}/outputs", 'inputs/', dirs_exist_ok=True,
                 ignore=[f'{design}.pkg.json'], link=True)
 
-
         ##################
         # 10. Copy Reference Scripts
         if tool not in self.builtin:
@@ -2774,19 +2779,11 @@ class Chip:
             self.logger.error(f"Fatal error in check()! See previous errors.")
             self._haltstep(step, index, active)
 
-        ##################
-        # 12. Save config files required by EDA tools
-        # (for tools and slurm)
 
+        ##################
+        # 12. Run preprocess step for tool
         self.set('arg', 'step', step, clobber=True)
         self.set('arg', 'index', index, clobber=True)
-        self.write_manifest("sc_manifest.json")
-        self.write_manifest("sc_manifest.yaml")
-        self.write_manifest("sc_manifest.tcl", abspath=True)
-
-
-        ##################
-        # 13. Run preprocess step for tool
 
         if tool not in self.builtin:
             func = self.find_function(tool, "tool", "pre_process")
@@ -2797,7 +2794,7 @@ class Chip:
                     self._haltstep(step, index, active)
 
         ##################
-        # 14. Set license variable
+        # 13. Set license variable
 
         for item in self.getkeys('eda', tool, step, index, 'license'):
             license_file = self.get('eda', tool, step, index, 'license', item)
@@ -2805,7 +2802,7 @@ class Chip:
                 os.environ[item] = license_file
 
         ##################
-        # 15. Check exe version
+        # 14. Check exe version
 
         vercheck = self.get('vercheck')
         veropt = self.get('eda', tool, step, index, 'vswitch')
@@ -2829,10 +2826,18 @@ class Chip:
                 self.logger.error(f"Found version {version}, expected one of [{allowedstr}].")
                 self._haltstep(step, index, active)
 
-        ##################
-        # 16. Run executable
 
-        if tool not in self.builtin:
+        ##################
+        # 15. Interface with tools (Don't move this!)
+        suffix = self.get('eda', tool, step, index, 'format')
+        self.write_manifest(f"sc_manifest.{suffix}", abspath=True)
+
+        ##################
+        # 16. Run executable (or copy inputs to outputs for builtin functions)
+
+        if tool in self.builtin:
+            utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True, link=True)
+        else:
             cmdlist = self._makecmd(tool, step, index)
             cmdstr = ' '.join(cmdlist)
             self.logger.info("Running in %s", workdir)
@@ -2867,9 +2872,6 @@ class Chip:
                 self.logger.warning('Command failed. See log file %s', os.path.abspath(logfile))
                 if not self.get('eda', tool, step, index, 'continue'):
                     self._haltstep(step, index, active)
-        else:
-            #for builtins, copy selected inputs to outputs
-            utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True, link=True)
 
         ##################
         # 17. Post process (could fail)
@@ -2884,24 +2886,26 @@ class Chip:
 
         ##################
         # 18. Hash files
-        allkeys = self.getkeys()
-        hashmode = self.get('hashmode')
-        self.logger.info('Computing file hashes with hashmode = %s', hashmode)
-        for keypath in allkeys:
-            if 'filehash' in keypath:
-                self.hash_files(keypath)
+        if self.get('hash') and (tool not in self.builtin):
+            # hash all outputs
+            self.hash_files('eda', tool, step, index, 'output')
+            # hash all requirements
+            for item in self.get('eda', tool, step, index, 'require'):
+                args = item.split(',')
+                if 'file' in self.get(*args, field='type'):
+                    self.hash_files(*args)
 
         ##################
-        # 19. Make a record of task information
-
-        self._make_record(job, step, index, version)
+        # 19. Make a record if tracking is enabled
+        if self.get('track'):
+            self._make_record(job, step, index, version)
 
         ##################
         # 20. Capture total runtime
 
         end = time.time()
-        elapsed_time = end - start
-        self.set('metric',step, index, 'runtime', 'real', round(elapsed_time,2))
+        elapsed_time = round((end - start),2)
+        self.set('metric',step, index, 'runtime', 'real', elapsed_time)
 
         ##################
         # 21. Save a successful manifest
@@ -2911,6 +2915,11 @@ class Chip:
         self.set('arg', 'index', None, clobber=True)
 
         self.write_manifest("outputs/" + self.get('design') +'.pkg.json')
+
+        ##################
+        # 22. Clean up non-essential files
+        if self.get('clean'):
+            self.logger.error('Self clean not implemented')
 
         ##################
         # 22. return fo original directory
