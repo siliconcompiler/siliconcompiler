@@ -671,7 +671,7 @@ class Chip:
 
 
     ###########################################################################
-    def valid(self, *keypath):
+    def valid(self, *args):
         """
         Checks validity of a keypath.
 
@@ -691,18 +691,19 @@ class Chip:
             Returns False.
         """
 
-        key_valid = False
-        allkeys = self.getkeys()
-        for item in allkeys:
-            if item == list(keypath):
-                key_valid = True
+        keypathstr = ','.join(args)
+        keylist = list(args)
 
-        if not key_valid:
-            keypathstr = ','.join(keypath)
-            ver = self.get('scversion')
-            self.logger.warning(f'Keypath [{keypathstr}] not found in schema verion {ver}.')
+        # Look for a full match with default playing wild card
+        for key in self.getkeys():
+            for i in range(len(keylist)):
+                if key[i] not in (keylist[i], 'default'):
+                    break
+                return True
 
-        return key_valid
+        # Match not found
+        self.logger.warning(f"Keypath [{keypathstr}] is not valid")
+        return False
 
     ###########################################################################
     def get(self, *keypath, field='value', job=None, cfg=None):
@@ -1446,7 +1447,8 @@ class Chip:
             dst = self.cfg
 
         for keylist in self.getkeys(cfg=cfg):
-            if 'default' not in keylist:
+            #only read in valid keypaths without 'default'
+            if self.valid(*keylist)  and 'default' not in keylist:
                 # update value, handling scalars vs. lists
                 typestr = self.get(*keylist, cfg=cfg, field='type')
                 val = self.get(*keylist, cfg=cfg)
@@ -1579,7 +1581,7 @@ class Chip:
         """
 
         abspath = os.path.abspath(filename)
-        self.logger.debug('Reading manifest %s', abspath)
+        self.logger.info('Reading manifest %s', abspath)
 
         #Read arguments from file based on file type
         with open(abspath, 'r') as f:
@@ -1620,7 +1622,7 @@ class Chip:
         '''
 
         filepath = os.path.abspath(filename)
-        self.logger.debug('Writing configuration to file %s', filepath)
+        self.logger.info('Writing manifest to %s', filepath)
 
         if not os.path.exists(os.path.dirname(filepath)):
             os.makedirs(os.path.dirname(filepath))
@@ -1915,10 +1917,7 @@ class Chip:
             self.logger.error(f"Illegal attempt to hash non-file parameter [{keypathstr}].")
             self.error = 1
         else:
-            if 'output' in keypath:
-                filelist = [os.path.join('outputs',path) for path in self.get(*keypath)]
-            else:
-                filelist = self.find_files(*keypath)
+            filelist = self.find_files(*keypath)
             #cycle through all paths
             hashlist = []
             if filelist:
@@ -2704,7 +2703,7 @@ class Chip:
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
         os.makedirs('inputs', exist_ok=True)
-        self.write_manifest(f'inputs/{design}.pkg.json')
+        #self.write_manifest(f'inputs/{design}.pkg.json')
 
         ##################
         # 7. Resetting metrics to zero
@@ -2831,10 +2830,8 @@ class Chip:
 
         ##################
         # 15. Interface with tools (Don't move this!)
-
-        self.write_manifest("sc_manifest.json")
-        self.write_manifest("sc_manifest.yaml")
-        self.write_manifest("sc_manifest.tcl", abspath=True)
+        suffix = self.get('eda', tool, step, index, 'format')
+        self.write_manifest(f"sc_manifest.{suffix}", abspath=True)
 
         ##################
         # 16. Run executable (or copy inputs to outputs for builtin functions)
