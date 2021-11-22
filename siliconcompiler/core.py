@@ -26,6 +26,7 @@ import yaml
 import graphviz
 import time
 import uuid
+import shlex
 from pathlib import Path
 from timeit import default_timer as timer
 from siliconcompiler.client import *
@@ -2863,8 +2864,7 @@ class Chip:
                 # timeout. Based on https://stackoverflow.com/a/18422264.
                 quiet = self.get('quiet') and (step not in self.get('bkpt'))
                 cmd_start_time = time.time()
-                proc = subprocess.Popen(cmdstr,
-                                        shell=True,
+                proc = subprocess.Popen(cmdlist,
                                         stdout=log_writer,
                                         stderr=subprocess.STDOUT)
                 while proc.poll() is None:
@@ -3337,10 +3337,10 @@ class Chip:
         exe = self.get('eda', tool, step, index, 'exe')
         fullexe = self._resolve_env_vars(exe)
 
+        options = []
         if 'cmdline' in self.getkeys('eda', tool, step, index, 'option'):
-            options = self.get('eda', tool, step, index, 'option', 'cmdline')
-        else:
-            options = []
+            for option in self.get('eda', tool, step, index, 'option', 'cmdline'):
+                options.extend(shlex.split(option))
 
         # Add scripts files
         scripts = self.find_files('eda', tool, step, index, 'script')
@@ -3352,7 +3352,8 @@ class Chip:
         runtime_options = self.find_function(tool, 'tool', 'runtime_options')
         if runtime_options:
             #print(runtime_options(self))
-            cmdlist.extend(runtime_options(self))
+            for option in runtime_options(self):
+                cmdlist.extend(shlex.split(option))
 
         #create replay file
         with open('replay.sh', 'w') as f:
