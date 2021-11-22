@@ -2850,8 +2850,7 @@ class Chip:
                 # timeout. Based on https://stackoverflow.com/a/18422264.
                 quiet = self.get('quiet') and (step not in self.get('bkpt'))
                 cmd_start_time = time.time()
-                proc = subprocess.Popen(cmdstr,
-                                        shell=True,
+                proc = subprocess.Popen(cmdlist,
                                         stdout=log_writer,
                                         stderr=subprocess.STDOUT)
                 while proc.poll() is None:

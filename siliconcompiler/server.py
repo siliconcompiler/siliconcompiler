@@ -283,14 +283,6 @@ class Server:
         )
         await resp.prepare(request)
 
-        if use_auth:
-            # Decrypt data and re-zip it before sending it back.
-            # Production server implementations may want to avoid saving
-            # decrypted data to shared storage by doing this in-memory.
-            job_dir = next(glob.iglob(os.path.join(self.cfg['nfsmount']['value'][-1], job_hash, '**', '**')))
-            decrypt_job(job_dir, self.user_keys[username]['priv_key'], pk_type='str')
-            subprocess.run(f'tar -cf ../{job_hash}.zip */*/*.zip', cwd=os.path.join(self.cfg['nfsmount']['value'][-1], job_hash), shell = True)
-
         zipfn = os.path.join(self.cfg['nfsmount']['value'][-1], job_hash+'.zip')
         with open(zipfn, 'rb') as zipf:
             await resp.write(zipf.read())
@@ -422,7 +414,7 @@ class Server:
 
         # Rename source files in the config dict; the 'import' step already
         # ran and collected the sources into a single Verilog file.
-        #TODO: This only works for import? (was current id)        
+        #TODO: This only works for import? (was current id)
         chip.set('source', f"{build_dir}/{top_module}/{job_nameid}/import/0/outputs/{top_module}.v", clobber=True)
 
         run_cmd = ''
