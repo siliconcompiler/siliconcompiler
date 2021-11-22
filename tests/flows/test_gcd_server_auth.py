@@ -7,6 +7,7 @@ import pytest
 
 ###########################
 @pytest.mark.eda
+@pytest.mark.skip(reason='No longer using encryption')
 def test_gcd_server_authenticated(gcd_chip, scroot):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
        example using loopback network calls to that server.
