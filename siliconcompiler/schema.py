@@ -3902,51 +3902,18 @@ def schema_showtool(cfg, filetype='default'):
 #############################################
 def schema_remote(cfg):
 
-    cfg['remote'] = {}
 
-    cfg['remote']['proc'] = {
-        'switch': "-remote_proc <bool>",
+    cfg['remote'] = {
+        'switch': "-remote <bool>",
         'type': 'bool',
         'lock': 'false',
         'require': None,
         'defvalue': False,
         'shorthelp': 'Flag to run a job through a remote server.',
-        'example': ["cli: -remote_proc",
-                    "api: chip.set('remote', 'proc', True)"],
+        'example': ["cli: -remote",
+                    "api: chip.set('remote', True)"],
         'help': """
         Determines whether the job should be run locally, or on a remote server.
-        """
-    }
-
-    # Job hash. Used to resume or cancel remote jobs after they are started.
-    cfg['remote']['jobhash'] = {
-        'switch': "-remote_jobhash <str>",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'defvalue': None,
-        'shorthelp': 'Job hash/UUID value',
-        'example': ["cli: -remote_jobhash 0123456789abcdeffedcba9876543210",
-                    "api: chip.set('remote', 'jobhash','0123456789abcdeffedcba9876543210')"],
-        'help': """
-        A unique ID associated with a job run. This field should be left blank
-        when starting a new job, but it can be provided to resume an interrupted
-        remote job, or to clean up after unexpected failures.
-        """
-    }
-
-    # Remote execution steplist
-    cfg['remote']['steplist'] = {
-        'switch': "-remote_steplist <str>",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'defvalue': [],
-        'shorthelp': 'Remote steplist execution',
-        'example': ["cli: -remote_steplist syn",
-                    "api: chip.set('remote', 'steplist', 'syn')"],
-        'help': """
-        List of steps to execute remotely.
         """
     }
 

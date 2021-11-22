@@ -40,39 +40,31 @@ def remote_preprocess(chip):
     '''
 
     # Assign a new 'job_hash' to the chip if necessary.
-    if not chip.get('remote', 'jobhash'):
+    if not 'jobhash' in chip.status:
         job_hash = uuid.uuid4().hex
-        chip.set('remote', 'jobhash', job_hash)
+        chip.status['jobhash'] = job_hash
 
     manager = multiprocessing.Manager()
     error = manager.dict()
     active = manager.dict()
 
-    # Run any local steps if necessary.
-    local_steps = []
-    for step in chip.getkeys('flowgraph'):
-        if not step in chip.get('remote', 'steplist'):
-            local_steps.append(step)
-
     # Setup up tools for all local functions
-    for step in local_steps:
-        indexlist = chip.getkeys('flowgraph', step)
-        for index in indexlist:
-            tool = chip.get('flowgraph', step, index, 'tool')
-            # Setting up tool is optional (step may be a builtin function)
-            if tool:
-                chip.set('arg','step', step)
-                chip.set('arg','index', index)
-                func = chip.find_function(tool, 'tool', 'setup_tool')
-                func(chip)
+    remote_steplist = chip.getkeys('flowgraph')
+    local_step = remote_steplist[0]
+    indexlist = chip.getkeys('flowgraph', local_step)
+    for index in indexlist:
+        tool = chip.get('flowgraph', local_step, index, 'tool')
+        # Setting up tool is optional (step may be a builtin function)
+        if tool:
+            chip.set('arg', 'step', local_step)
+            chip.set('arg', 'index', index)
+            func = chip.find_function(tool, 'tool', 'setup_tool')
+            func(chip)
             # Run the actual import step locally.
-            chip._runtask(step, index, active, error)
+            chip._runtask(local_step, index, active, error)
 
     # Set 'steplist' to only the remote steps, for the future server-side run.
-    remote_steplist = []
-    for step in chip.getkeys('flowgraph'):
-        if not step in local_steps:
-            remote_steplist.append(step)
+    remote_steplist = remote_steplist[1:]
     chip.set('steplist', remote_steplist, clobber=True)
 
 ###################################
@@ -123,7 +115,7 @@ def request_remote_run(chip):
     post_params = {
         'chip_cfg': chip.cfg,
         'params': {
-            'job_hash': chip.get('remote', 'jobhash'),
+            'job_hash': chip.status['jobhash'],
         }
     }
     local_build_dir = stepdir = os.path.join(chip.get('dir'),
@@ -176,7 +168,7 @@ def is_job_busy(chip):
 
     # Set common parameters.
     post_params = {
-        'job_hash': chip.get('remote', 'jobhash'),
+        'job_hash': chip.status['jobhash'],
         'job_id': chip.get('jobname'),
     }
 
@@ -207,7 +199,7 @@ def delete_job(chip):
 
     # Set common parameter.
     post_params = {
-        'job_hash': chip.get('remote', 'jobhash'),
+        'job_hash': chip.status['jobhash'],
     }
 
     # Set authentication parameters if necessary.
@@ -234,7 +226,7 @@ def fetch_results_request(chip):
     '''
 
     # Set the request URL.
-    job_hash = chip.get('remote', 'jobhash')
+    job_hash = chip.status['jobhash']
     remote_run_url = get_base_url(chip) + '/get_results/' + job_hash + '.zip'
 
     # Set authentication parameters if necessary.
@@ -278,7 +270,7 @@ def fetch_results(chip):
 
     # Unzip the results.
     top_design = chip.get('design')
-    job_hash = chip.get('remote', 'jobhash')
+    job_hash = chip.status['jobhash']
     job_nameid = f"{chip.get('jobname')}"
     local_dir = chip.get('dir')
 

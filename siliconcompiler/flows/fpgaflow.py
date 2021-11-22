@@ -86,9 +86,6 @@ def setup_flow(chip):
     if sv:
         flowpipe = flowpipe[:1] + ['convert'] + flowpipe[1:]
 
-    # Set the steplist which can run remotely (if required)
-    chip.set('remote', 'steplist', flowpipe[1:])
-
     # Minimal setup
     index = '0'
     for i, step in enumerate(flowpipe):

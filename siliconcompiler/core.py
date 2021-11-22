@@ -2688,7 +2688,7 @@ class Chip:
         # 5. Merge manifests from all input dependancies
 
         all_inputs = []
-        if not self.get('remote', 'proc'):
+        if not self.get('remote'):
             for in_step, in_index in self.get('flowgraph', step, index, 'input'):
                 index_error = error[in_step + in_index]
                 self.set('flowstatus', in_step, in_index, 'error', index_error)
@@ -2995,7 +2995,7 @@ class Chip:
                 shutil.rmtree(cur_job_dir)
 
         # Remote workflow: Dispatch the Chip to a remote server for processing.
-        if self.get('remote', 'proc'):
+        if self.get('remote'):
             # Load the remote storage config into the status dictionary.
             if self.get('credentials'):
                 # Use the provided remote credentials file.
