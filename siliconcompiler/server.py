@@ -164,6 +164,7 @@ class Server:
         job_name = chip.get('jobname')
         job_id = chip.get('jobname')
         job_nameid = f'{job_name}'
+        chip.status['jobhash'] = job_hash
 
         # Ensure that the job's root directory exists.
         job_root = f"{self.cfg['nfsmount']['value'][-1]}/{job_hash}"
@@ -221,7 +222,7 @@ class Server:
         #subprocess.run(['ln', '-s', '%s/import0'%build_dir, '%s/%s/import0'%(jobs_dir, job_nameid)])
 
         # Remove 'remote' JSON config value to run locally on compute node.
-        chip.set('remote', 'proc', False, clobber=True)
+        chip.set('remote', False, clobber=True)
         chip.set('remote', 'credentials', '', clobber=True)
         # Rename source files in the config dict; the 'import' step already
         # ran and collected the sources into a single Verilog file.
@@ -407,7 +408,7 @@ class Server:
         '''
 
         # Assemble core job parameters.
-        job_hash = chip.get('remote', 'jobhash')
+        job_hash = chip.status['jobhash']
         top_module = chip.get('design')
         job_nameid = f"{chip.get('jobname')}"
         nfs_mount = self.cfg['nfsmount']['value'][-1]
@@ -430,7 +431,7 @@ class Server:
             # Run the job with slurm clustering.
             chip.set('dir', f'{nfs_mount}/{job_hash}', clobber=True)
             chip.set('jobscheduler', 'slurm')
-            chip.set('remote', 'proc', False)
+            chip.set('remote', False)
             chip.set('remote', 'credentials', '', clobber=True)
             chip.status['decrypt_key'] = base64.urlsafe_b64encode(pk)
             chip.run()
@@ -490,7 +491,7 @@ class Server:
         '''
 
         # Collect a few bookkeeping values.
-        job_hash = chip.get('remote', 'jobhash')
+        job_hash = chip.status['jobhash']
         top_module = chip.get('design')
         sc_sources = chip.get('source')
         build_dir = chip.get('dir')

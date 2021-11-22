@@ -11,4 +11,4 @@ include siliconcompiler/AUTHORS
 graft siliconcompiler/leflib
 graft siliconcompiler/templates
 graft siliconcompiler/tools
-graft third_party/tools/openroad/tools/OpenROAD/src/OpenDB/src/lef
+graft third_party/tools/openroad/tools/OpenROAD/src/odb/src/lef

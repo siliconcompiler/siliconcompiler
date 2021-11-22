@@ -40,7 +40,7 @@ if(NOT WIN32)
 endif()
 
 # Stuff to include Si2 LEF library
-set(LEF_DIR ${CMAKE_CURRENT_LIST_DIR}/third_party/tools/openroad/tools/OpenROAD/src/OpenDB/src/lef)
+set(LEF_DIR ${CMAKE_CURRENT_LIST_DIR}/third_party/tools/openroad/tools/OpenROAD/src/odb/src/lef)
 
 # this lets us include lef headers
 include_directories(${LEF_DIR}/lef)
