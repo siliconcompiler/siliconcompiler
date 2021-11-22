@@ -55,7 +55,6 @@ class Chip:
         # Local variables
         self.scroot = os.path.dirname(os.path.abspath(__file__))
         self.cwd = os.getcwd()
-        self.loglevel = loglevel
         self.status = {}
         self.error = 0
         self.cfg = schema_cfg()
@@ -64,10 +63,11 @@ class Chip:
         self.builtin = ['minimum','maximum',
                         'mux', 'join', 'verify']
 
-        # We set 'design' directly in the config dictionary because of a
-        # chicken-and-egg problem: self.set() relies on the logger, but the
-        # logger relies on the design value.
+        # We set 'design' and 'loglevel' directly in the config dictionary
+        # because of a chicken-and-egg problem: self.set() relies on the logger,
+        # but the logger relies on these values.
         self.cfg['design']['value'] = design
+        self.cfg['loglevel']['value'] = loglevel
         # We set scversion directly because it has its 'lock' flag set by default.
         self.cfg['scversion']['value'] = _metadata.version
 
@@ -79,7 +79,11 @@ class Chip:
 
         # Don't propagate log messages to "root" handler (we get duplicate
         # messages without this)
+        # TODO: this prevents us from being able to capture logs with pytest:
+        # we should revisit it
         self.logger.propagate = False
+
+        loglevel = self.get('loglevel')
 
         jobname = self.get('jobname')
         if jobname == None:
@@ -92,7 +96,7 @@ class Chip:
 
         run_info = '%-7s | %-12s | %-3s' % (jobname, step, index)
 
-        if self.loglevel=='DEBUG':
+        if loglevel=='DEBUG':
             logformat = '| %(levelname)-7s | %(funcName)-10s | %(lineno)-4s | ' + run_info + ' | %(message)s'
         else:
             logformat = '| %(levelname)-7s | ' + run_info + ' | %(message)s'
@@ -108,7 +112,7 @@ class Chip:
             self.logger.handlers.clear()
 
         self.logger.addHandler(handler)
-        self.logger.setLevel(self.loglevel)
+        self.logger.setLevel(loglevel)
 
     ###########################################################################
     def _deinit_logger(self):
@@ -852,6 +856,10 @@ class Chip:
 
         keypathstr = ','.join(args[:-1])
         all_args = list(args)
+
+        # Special case to ensure loglevel is updated ASAP
+        if len(args) == 2 and args[0] == 'loglevel':
+            self.logger.setLevel(args[1])
 
         self.logger.debug(f"Setting [{keypathstr}] to {args[-1]}")
         return self._search(cfg, keypathstr, *all_args, field=field, mode='set', clobber=clobber)
