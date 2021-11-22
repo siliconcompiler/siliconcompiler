@@ -15,6 +15,22 @@ def schema_cfg():
 
     cfg = {}
 
+    # SC version number (bump on every non trivial change)
+    # Version number following semver standard.
+    cfg['schemaversion'] = {
+        'switch': "-schemaversion <str>",
+        'type': 'str',
+        'lock': 'true',
+        'require': 'all',
+        'defvalue': '0.1.0',
+        'shorthelp': 'Schema version number',
+        'example': ["cli: -schemaversion",
+                    "api: chip.get('schemaversion')"],
+        'help': """
+        SiliconCompiler schema version number.
+        """
+    }
+
     # Flow graph Setup
     cfg = schema_flowgraph(cfg)
 

@@ -1420,7 +1420,7 @@ class Chip:
                                prefix=prefix)
 
     ###########################################################################
-    def merge_manifest(self, cfg, job=None, clobber=True, clear=True):
+    def merge_manifest(self, cfg, job=None, clobber=True, clear=True, check=False):
         """
         Merges an external manifest with the current compilation manifest.
 
@@ -1429,8 +1429,10 @@ class Chip:
         logger error message and raises the Chip object error flag.
 
         Args:
+            job (str): Specifies non-default job to merge into
             clear (bool): If True, disables append operations for list type
             clobber (bool): If True, overwrites existing parameter value
+            check (bool): If True, checks the validity of each key
 
         Examples:
             >>> chip.merge_manifest('my.pkg.json')
@@ -1447,7 +1449,10 @@ class Chip:
 
         for keylist in self.getkeys(cfg=cfg):
             #only read in valid keypaths without 'default'
-            if self.valid(*keylist)  and 'default' not in keylist:
+            key_valid = True
+            if check:
+                key_valid = self.valid(*keylist)
+            if key_valid and 'default' not in keylist:
                 # update value, handling scalars vs. lists
                 typestr = self.get(*keylist, cfg=cfg, field='type')
                 val = self.get(*keylist, cfg=cfg)
