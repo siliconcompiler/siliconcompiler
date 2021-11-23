@@ -1495,6 +1495,47 @@ class Chip:
 
         return value_empty
 
+    def _check_files(self):
+        allowed_paths = [os.path.join(self.cwd, self.get('dir'))]
+        allowed_paths.extend(os.environ['SC_VALID_PATHS'].split(os.pathsep))
+
+        for keypath in self.getkeys():
+            if 'default' in keypath:
+                continue
+
+            paramtype = self.get(*keypath, field='type')
+            #only do something if type is file or dir
+            if 'file' in paramtype or 'dir' in paramtype:
+
+                if self.get(*keypath) is None:
+                    # skip unset values (some directories are None by default)
+                    continue
+
+                # TODO: reintroducing missing_ok here would probably be a good
+                # idea - find_files() will log an error when the file isn't
+                # found, which can be used to leak metadata (which filenames
+                # exist on the shared storage)
+                abspaths = self.find_files(*keypath)
+                if not isinstance(abspaths, list):
+                    abspaths = [abspaths]
+
+                for abspath in abspaths:
+                    if abspath is None:
+                        return False
+
+                    ok = False
+                    for allowed_path in allowed_paths:
+                        if os.path.commonpath([abspath, allowed_path]) == allowed_path:
+                            ok = True
+                            continue
+
+                    if not ok:
+                        self.logger.error(f'Keypath {keypath} contains path(s) '
+                            'that resolve to files outside of allowed directories.')
+                        return False
+
+        return True
+
     ###########################################################################
     def check_manifest(self):
         '''
@@ -1568,6 +1609,10 @@ class Chip:
                     if self._keypath_empty(['eda', tool, step, index, 'version']):
                         self.error = 1
                         self.logger.error(f'Version not specified for tool {tool}')
+
+        if 'SC_VALID_PATHS' in os.environ:
+            if not self._check_files():
+                self.error = 1
 
         return self.error
 

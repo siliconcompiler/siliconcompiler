@@ -1,6 +1,10 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import siliconcompiler
 
+import os
+
+import pytest
+
 def test_check_manifest():
 
     chip = siliconcompiler.Chip(loglevel="INFO")
@@ -19,6 +23,50 @@ def test_check_manifest():
 
     setup_tool(chip)
     assert chip.check_manifest() == 0
+
+@pytest.mark.eda
+@pytest.mark.quick
+def test_check_allowed_filepaths_pass(scroot, monkeypatch):
+    chip = siliconcompiler.Chip()
+    chip.set('design', 'gcd')
+
+    chip.set('source', os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
+    chip.target('asicflow_freepdk45')
+
+    # run an import just to collect files
+    chip.set('steplist', 'import')
+    chip.run()
+
+    env = {
+        'SC_VALID_PATHS': os.path.join(scroot, 'third_party', 'pdks'),
+        'SCPATH': os.environ['SCPATH']
+    }
+    monkeypatch.setattr(os, 'environ', env)
+
+    assert chip.check_manifest() == 0
+
+@pytest.mark.eda
+@pytest.mark.quick
+def test_check_allowed_filepaths_fail(scroot, monkeypatch):
+    chip = siliconcompiler.Chip()
+    chip.set('design', 'gcd')
+
+    chip.set('source', os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
+    chip.set('constraint', '/random/abs/path/to/file.sdc')
+    chip.set('constraint', False, field='copy')
+    chip.target('asicflow_freepdk45')
+
+    # run an import just to collect files
+    chip.set('steplist', 'import')
+    chip.run()
+
+    env = {
+        'SC_VALID_PATHS': os.path.join(scroot, 'third_party', 'pdks'),
+        'SCPATH': os.environ['SCPATH']
+    }
+    monkeypatch.setattr(os, 'environ', env)
+
+    assert chip.check_manifest() == 1
 
 #########################
 if __name__ == "__main__":
