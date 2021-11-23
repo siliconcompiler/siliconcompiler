@@ -1240,7 +1240,7 @@ class Chip:
         return result
 
     ###########################################################################
-    def find_files(self, *keypath, cfg=None):
+    def find_files(self, *keypath, cfg=None, missing_ok=False):
         """
         Returns absolute paths to files or directories based on the keypath
         provided.
@@ -1317,7 +1317,7 @@ class Chip:
                     # file may not have been gathered in imports yet)
                     result.append(abspath)
                     continue
-            result.append(self._find_sc_file(path, missing_ok=False))
+            result.append(self._find_sc_file(path, missing_ok=missing_ok))
 
         # Convert back to scalar if that was original type
         if not is_list:
@@ -1524,27 +1524,23 @@ class Chip:
                     # skip unset values (some directories are None by default)
                     continue
 
-                # TODO: reintroducing missing_ok here would probably be a good
-                # idea - find_files() will log an error when the file isn't
-                # found, which can be used to leak metadata (which filenames
-                # exist on the shared storage)
-                abspaths = self.find_files(*keypath)
+                abspaths = self.find_files(*keypath, missing_ok=True)
                 if not isinstance(abspaths, list):
                     abspaths = [abspaths]
 
                 for abspath in abspaths:
-                    if abspath is None:
-                        return False
-
                     ok = False
-                    for allowed_path in allowed_paths:
-                        if os.path.commonpath([abspath, allowed_path]) == allowed_path:
-                            ok = True
-                            continue
+
+                    if abspath is not None:
+                        for allowed_path in allowed_paths:
+                            if os.path.commonpath([abspath, allowed_path]) == allowed_path:
+                                ok = True
+                                continue
 
                     if not ok:
                         self.logger.error(f'Keypath {keypath} contains path(s) '
-                            'that resolve to files outside of allowed directories.')
+                            'that do not exist or resolve to files outside of '
+                            'allowed directories.')
                         return False
 
         return True
