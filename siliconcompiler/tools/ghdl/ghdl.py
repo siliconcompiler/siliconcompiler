@@ -1,8 +1,5 @@
 import os
-import subprocess
-import re
-import sys
-import json
+import shutil
 import siliconcompiler
 
 #####################################################################
@@ -79,11 +76,6 @@ def runtime_options(chip):
     options.append('-e')
     options.append(design)
 
-    # ghdl dumps output to stdout, so have to insert redirection as part of
-    # command
-    options.append('>')
-    options.append(f'outputs/{design}.v')
-
     return options
 
 ################################
@@ -101,6 +93,16 @@ def parse_version(stdout):
 def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
+
+    # Hack: since ghdl outputs netlist to stdout, we produce the Verilog output
+    # by copying the log.
+
+    design = chip.get('design')
+    step = chip.get('arg', 'step')
+    infile = f'{step}.log'
+    outfile = os.path.join('outputs', f'{design}.v')
+
+    shutil.copyfile(infile, outfile)
 
     return 0
 

@@ -26,6 +26,7 @@ import yaml
 import graphviz
 import time
 import uuid
+import shlex
 from pathlib import Path
 from timeit import default_timer as timer
 from siliconcompiler.client import *
@@ -55,7 +56,6 @@ class Chip:
         # Local variables
         self.scroot = os.path.dirname(os.path.abspath(__file__))
         self.cwd = os.getcwd()
-        self.loglevel = loglevel
         self.status = {}
         self.error = 0
         self.cfg = schema_cfg()
@@ -64,10 +64,11 @@ class Chip:
         self.builtin = ['minimum','maximum',
                         'mux', 'join', 'verify']
 
-        # We set 'design' directly in the config dictionary because of a
-        # chicken-and-egg problem: self.set() relies on the logger, but the
-        # logger relies on the design value.
+        # We set 'design' and 'loglevel' directly in the config dictionary
+        # because of a chicken-and-egg problem: self.set() relies on the logger,
+        # but the logger relies on these values.
         self.cfg['design']['value'] = design
+        self.cfg['loglevel']['value'] = loglevel
         # We set scversion directly because it has its 'lock' flag set by default.
         self.cfg['scversion']['value'] = _metadata.version
 
@@ -79,7 +80,11 @@ class Chip:
 
         # Don't propagate log messages to "root" handler (we get duplicate
         # messages without this)
+        # TODO: this prevents us from being able to capture logs with pytest:
+        # we should revisit it
         self.logger.propagate = False
+
+        loglevel = self.get('loglevel')
 
         jobname = self.get('jobname')
         if jobname == None:
@@ -92,7 +97,7 @@ class Chip:
 
         run_info = '%-7s | %-12s | %-3s' % (jobname, step, index)
 
-        if self.loglevel=='DEBUG':
+        if loglevel=='DEBUG':
             logformat = '| %(levelname)-7s | %(funcName)-10s | %(lineno)-4s | ' + run_info + ' | %(message)s'
         else:
             logformat = '| %(levelname)-7s | ' + run_info + ' | %(message)s'
@@ -108,7 +113,7 @@ class Chip:
             self.logger.handlers.clear()
 
         self.logger.addHandler(handler)
-        self.logger.setLevel(self.loglevel)
+        self.logger.setLevel(loglevel)
 
     ###########################################################################
     def _deinit_logger(self):
@@ -853,6 +858,10 @@ class Chip:
         keypathstr = ','.join(args[:-1])
         all_args = list(args)
 
+        # Special case to ensure loglevel is updated ASAP
+        if len(args) == 2 and args[0] == 'loglevel':
+            self.logger.setLevel(args[1])
+
         self.logger.debug(f"Setting [{keypathstr}] to {args[-1]}")
         return self._search(cfg, keypathstr, *all_args, field=field, mode='set', clobber=clobber)
 
@@ -1420,7 +1429,7 @@ class Chip:
                                prefix=prefix)
 
     ###########################################################################
-    def merge_manifest(self, cfg, job=None, clobber=True, clear=True):
+    def merge_manifest(self, cfg, job=None, clobber=True, clear=True, check=False):
         """
         Merges an external manifest with the current compilation manifest.
 
@@ -1429,8 +1438,10 @@ class Chip:
         logger error message and raises the Chip object error flag.
 
         Args:
+            job (str): Specifies non-default job to merge into
             clear (bool): If True, disables append operations for list type
             clobber (bool): If True, overwrites existing parameter value
+            check (bool): If True, checks the validity of each key
 
         Examples:
             >>> chip.merge_manifest('my.pkg.json')
@@ -1447,7 +1458,10 @@ class Chip:
 
         for keylist in self.getkeys(cfg=cfg):
             #only read in valid keypaths without 'default'
-            if self.valid(*keylist)  and 'default' not in keylist:
+            key_valid = True
+            if check:
+                key_valid = self.valid(*keylist)
+            if key_valid and 'default' not in keylist:
                 # update value, handling scalars vs. lists
                 typestr = self.get(*keylist, cfg=cfg, field='type')
                 val = self.get(*keylist, cfg=cfg)
@@ -2850,8 +2864,7 @@ class Chip:
                 # timeout. Based on https://stackoverflow.com/a/18422264.
                 quiet = self.get('quiet') and (step not in self.get('bkpt'))
                 cmd_start_time = time.time()
-                proc = subprocess.Popen(cmdstr,
-                                        shell=True,
+                proc = subprocess.Popen(cmdlist,
                                         stdout=log_writer,
                                         stderr=subprocess.STDOUT)
                 while proc.poll() is None:
@@ -3324,10 +3337,10 @@ class Chip:
         exe = self.get('eda', tool, step, index, 'exe')
         fullexe = self._resolve_env_vars(exe)
 
+        options = []
         if 'cmdline' in self.getkeys('eda', tool, step, index, 'option'):
-            options = self.get('eda', tool, step, index, 'option', 'cmdline')
-        else:
-            options = []
+            for option in self.get('eda', tool, step, index, 'option', 'cmdline'):
+                options.extend(shlex.split(option))
 
         # Add scripts files
         scripts = self.find_files('eda', tool, step, index, 'script')
@@ -3339,7 +3352,8 @@ class Chip:
         runtime_options = self.find_function(tool, 'tool', 'runtime_options')
         if runtime_options:
             #print(runtime_options(self))
-            cmdlist.extend(runtime_options(self))
+            for option in runtime_options(self):
+                cmdlist.extend(shlex.split(option))
 
         #create replay file
         with open('replay.sh', 'w') as f:
