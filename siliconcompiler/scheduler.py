@@ -2,6 +2,7 @@ import base64
 import os
 import shlex
 import subprocess
+import time
 
 ###########################################################################
 def _deferstep(chip, step, index, active, error):
@@ -30,12 +31,18 @@ def _deferstep(chip, step, index, active, error):
             slurm_constraint = chip.status['slurm_constraint']
         else:
             slurm_constraint = 'SHARED'
+        output_file = os.path.join(chip.get('design'),
+                                   chip.get('jobname'),
+                                   step,
+                                   index,
+                                   'sc_remote.log')
         schedule_cmd = ['sbatch', '--exclusive',
                        '--constraint', slurm_constraint,
                        '--account', username,
                        '--partition', partition,
                        '--chdir', chip.get("dir"),
-                       '--job-name', f'{job_hash}_{step}{index}']
+                       '--job-name', f'{job_hash}_{step}{index}',
+                       '--output', output_file]
     elif scheduler_type == 'lsf':
         # TODO: LSF support is untested and currently unsupported.
         schedule_cmd = ['lsrun']
