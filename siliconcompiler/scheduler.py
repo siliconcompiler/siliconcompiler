@@ -75,6 +75,11 @@ def _deferstep(chip, step, index, active, error):
     sbatch_id = result_msg.split(' ')[-1]
     retcode = 0
     while True:
+        # Return early with an error if the batch ID is not an integer.
+        if not sbatch_id.isdigit():
+            retcode = 1
+            break
+
         # Rate-limit the status checks to once every few seconds.
         time.sleep(3.0)
 
@@ -96,7 +101,8 @@ def _deferstep(chip, step, index, active, error):
                 break
 
         # Check whether the job is still running.
-        jobcheck = subprocess.run(['scontrol', 'show', 'job', sbatch_id],
+        jobcheck = subprocess.run(f'scontrol show job {sbatch_id}',
+                                  shell=True,
                                   stdout=subprocess.PIPE,
                                   stderr=subprocess.STDOUT)
         jobout = jobcheck.stdout.decode()
