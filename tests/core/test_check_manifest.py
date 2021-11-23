@@ -66,7 +66,7 @@ def test_check_allowed_filepaths_fail(scroot, monkeypatch):
     }
     monkeypatch.setattr(os, 'environ', env)
 
-    assert chip.check_manifest() == 0
+    assert chip.check_manifest() == 1
 
 #########################
 if __name__ == "__main__":
