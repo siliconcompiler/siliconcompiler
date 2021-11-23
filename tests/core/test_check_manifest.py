@@ -3,6 +3,8 @@ import siliconcompiler
 
 import os
 
+import pytest
+
 def test_check_manifest():
 
     chip = siliconcompiler.Chip(loglevel="INFO")
@@ -22,6 +24,8 @@ def test_check_manifest():
     setup_tool(chip)
     assert chip.check_manifest() == 0
 
+@pytest.mark.eda
+@pytest.mark.quick
 def test_check_allowed_filepaths_pass(scroot, monkeypatch):
     chip = siliconcompiler.Chip()
     chip.set('design', 'gcd')
@@ -38,6 +42,8 @@ def test_check_allowed_filepaths_pass(scroot, monkeypatch):
 
     assert chip.check_manifest() == 0
 
+@pytest.mark.eda
+@pytest.mark.quick
 def test_check_allowed_filepaths_fail(scroot, monkeypatch):
     chip = siliconcompiler.Chip()
     chip.set('design', 'gcd')
