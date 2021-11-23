@@ -2220,7 +2220,15 @@ class Chip:
             row = []
             for step in steplist:
                 for index in indices_to_show[step]:
-                    value = str(self.get('metric', step, index, metric, 'real'))
+                    value = None
+                    if 'real' in self.getkeys('metric', step, index, metric):
+                        value = self.get('metric', step, index, metric, 'real')
+
+                    if value is None:
+                        value = 'ERR'
+                    else:
+                        value = str(value)
+
                     row.append(" " + value.center(colwidth))
             data.append(row)
 
