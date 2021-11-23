@@ -1218,6 +1218,44 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         """
     }
 
+    cfg['library'][lib]['signoff'] = {
+         'switch': "-library_signoff <file>",
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'false',
+        'require': None,
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Library signoff reports',
+        'example': [
+            "cli: -library_signoff mylib lib_review.md",
+            "api: chip.set('library', 'mylib', 'signoff', 'lib_review.md')"],
+        'help': """
+        Final signoff report(s) for the library.
+        """
+    }
+
+    cfg['library'][lib]['checklist'] = {}
+    cfg['library'][lib]['checklist']['default'] = {
+        'switch': "-library_checklist 'name <bool>",
+        'type': 'bool',
+        'lock': 'false',
+        'require': None,
+        'defvalue': None,
+        'shorthelp': 'Library signoff checklist',
+        'example': [
+            "cli: -library_checklist 'mylib LINT_PASS True",
+            "api: chip.set('library', 'mylib', 'checklist ', LINT_PASS, True)"],
+        'help': """
+        Final design signoff checklist specified as a key value
+        pair. Values are True/False booleans.
+        """
+    }
+
     cfg['library'][lib]['arch'] = {
         'switch': "-library_arch 'lib <str>'",
         'require': None,
@@ -4002,6 +4040,43 @@ def schema_design(cfg):
         """
     }
 
+    cfg['signoff'] = {
+        'switch': "-signoff <file>",
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'true',
+        'require': None,
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Design signoff reports',
+        'example': ["cli: -signoff hello_world_review.md",
+                    "api: chip.set('signoff', 'hello_world_review.md')"],
+        'help': """
+        Final signoff report(s) for the design.
+        """
+    }
+
+    cfg['checklist'] = {}
+    cfg['checklist']['default'] = {
+    'switch': "-checklist 'name <bool>",
+        'type': 'bool',
+        'lock': 'false',
+        'require': None,
+        'defvalue': None,
+        'shorthelp': 'Design signoff checklist',
+        'example': [
+            "cli: -checklist 'LINT_PASS True",
+            "api: chip.set('checklist ', LINT_PASS, True)"],
+        'help': """
+        Final design signoff checklist specified as a key value
+        pair. Values are True/False booleans.
+        """
+    }
+
     cfg['source'] = {
         'switch': None,
         'type': '[file]',
@@ -4029,8 +4104,6 @@ def schema_design(cfg):
         (\\*.py)        = Python
         """
     }
-
-
 
     cfg['netlist'] = {
         'switch': '-netlist <file>',
