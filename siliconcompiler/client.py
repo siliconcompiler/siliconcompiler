@@ -132,6 +132,8 @@ def request_remote_run(chip):
     subprocess.run(['tar',
                     '-cf',
                     'import.zip',
+                    '--exclude',
+                    'import.zip',
                     '.'],
                    cwd=local_build_dir)
     upload_file = os.path.abspath(os.path.join(local_build_dir, 'import.zip'))
