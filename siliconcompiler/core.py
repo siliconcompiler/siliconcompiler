@@ -689,7 +689,7 @@ class Chip:
 
 
     ###########################################################################
-    def valid(self, *args, valid_keypaths=None):
+    def valid(self, *args, valid_keypaths=None, quiet=False):
         """
         Checks validity of a keypath.
 
@@ -700,6 +700,7 @@ class Chip:
             keypath(list str): Variable length schema key list.
             valid_keypaths (list of list): List of valid keypaths as lists. If
                 None, check against all keypaths in the schema.
+            quiet (bool): If True, don't display warnings for invalid keypaths.
 
         Returns:
             Boolean indicating validity of keypath.
@@ -731,7 +732,8 @@ class Chip:
                 return True
 
         # Match not found
-        self.logger.warning(f"Keypath [{keypathstr}] is not valid")
+        if not quiet:
+            self.logger.warning(f"Keypath [{keypathstr}] is not valid")
         return False
 
     ###########################################################################
