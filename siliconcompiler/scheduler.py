@@ -79,9 +79,14 @@ def _deferstep(chip, step, index, active, error):
     # the '.returncode' value will not be set correctly.
     step_result.wait()
     result_msg = step_result.stdout.read().decode()
-    sbatch_id = result_msg.split(' ')[-1]
+    sbatch_id = result_msg.split(' ')[-1].strip()
     retcode = 0
     while True:
+        # Return early with an error if the batch ID is not an integer.
+        if not sbatch_id.isdigit():
+            retcode = 1
+            break
+
         # Rate-limit the status checks to once every few seconds.
         time.sleep(3.0)
 
