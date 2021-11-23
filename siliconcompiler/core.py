@@ -3391,9 +3391,11 @@ class Chip:
         fullexe = self._resolve_env_vars(exe)
 
         options = []
+        is_posix = ('win' not in sys.platform)
+
         if 'cmdline' in self.getkeys('eda', tool, step, index, 'option'):
             for option in self.get('eda', tool, step, index, 'option', 'cmdline'):
-                options.extend(shlex.split(option))
+                options.extend(shlex.split(option, posix=is_posix))
 
         # Add scripts files
         scripts = self.find_files('eda', tool, step, index, 'script')
@@ -3406,7 +3408,7 @@ class Chip:
         if runtime_options:
             #print(runtime_options(self))
             for option in runtime_options(self):
-                cmdlist.extend(shlex.split(option))
+                cmdlist.extend(shlex.split(option, posix=is_posix))
 
         #create replay file
         with open('replay.sh', 'w') as f:

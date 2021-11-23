@@ -47,4 +47,10 @@ include_directories(${LEF_DIR}/lef)
 # this causes cmake to build lef/
 add_subdirectory(${LEF_DIR})
 
+# The CMake config for the LEF parser sets a single compilation option,
+# -Wno-class-memaccess, which is incompatible with Microsoft's compiler. I don't
+# see any particular reason to enable this warning, so overwrite the flags here
+# to ensure our Windows build passes.
+set_target_properties(lef PROPERTIES COMPILE_OPTIONS "")
+
 install(TARGETS _leflib DESTINATION .)
