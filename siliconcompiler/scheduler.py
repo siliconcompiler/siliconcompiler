@@ -72,7 +72,7 @@ def _deferstep(chip, step, index, active, error):
     # the '.returncode' value will not be set correctly.
     step_result.wait()
     result_msg = step_result.stdout.read().decode()
-    sbatch_id = result_msg.split(' ')[-1]
+    sbatch_id = result_msg.split(' ')[-1].strip()
     retcode = 0
     while True:
         # Return early with an error if the batch ID is not an integer.
@@ -101,8 +101,7 @@ def _deferstep(chip, step, index, active, error):
                 break
 
         # Check whether the job is still running.
-        jobcheck = subprocess.run(f'scontrol show job {sbatch_id}',
-                                  shell=True,
+        jobcheck = subprocess.run(['scontrol', 'show', 'job', sbatch_id],
                                   stdout=subprocess.PIPE,
                                   stderr=subprocess.STDOUT)
         jobout = jobcheck.stdout.decode()
