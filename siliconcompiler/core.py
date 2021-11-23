@@ -2225,7 +2225,7 @@ class Chip:
                         value = self.get('metric', step, index, metric, 'real')
 
                     if value is None:
-                        value = '-'
+                        value = 'ERR'
                     else:
                         value = str(value)
 
