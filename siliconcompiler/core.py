@@ -3225,7 +3225,9 @@ class Chip:
         lastdir = self._getworkdir(step=laststep, index=lastindex)
         lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
         if os.path.isfile(lastcfg):
+            local_dir = self.get('dir')
             self.read_manifest(lastcfg, clobber=True, clear=True)
+            self.set('dir', local_dir)
 
         # Store run in history
         self.cfghistory[self.get('jobname')] = copy.deepcopy(self.cfg)
