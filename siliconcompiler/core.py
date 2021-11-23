@@ -3104,7 +3104,6 @@ class Chip:
 
             # Fetch results (and delete the job's data from the server).
             fetch_results(self)
-
         else:
             manager = multiprocessing.Manager()
             error = manager.dict()
@@ -3228,6 +3227,27 @@ class Chip:
             local_dir = self.get('dir')
             self.read_manifest(lastcfg, clobber=True, clear=True)
             self.set('dir', local_dir)
+        else:
+            # Hack to find first failed step by checking for presence of output
+            # manifests.
+            failed_step = laststep
+            for step in steplist[:-1]:
+                step_has_cfg = False
+                for index in self.getkeys('flowgraph', step):
+                    stepdir = self._getworkdir(step=step, index=lastindex)
+                    cfg = f"{stepdir}/outputs/{self.get('design')}.pkg.json"
+                    if os.path.isfile(cfg):
+                        step_has_cfg = True
+                        break
+
+                if not step_has_cfg:
+                    failed_step = step
+                    break
+
+            stepdir = self._getworkdir(step=failed_step)[:-1]
+            self.logger.error(f'Run() failed on step {failed_step}, exiting! '
+                f'See logs in {stepdir} for error details.')
+            sys.exit(1)
 
         # Store run in history
         self.cfghistory[self.get('jobname')] = copy.deepcopy(self.cfg)
