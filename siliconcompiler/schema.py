@@ -1051,6 +1051,42 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         """
     }
 
+    cfg['library'][lib]['repo'] = {
+        'switch': "-library_repo <str>",
+        'type': '[str]',
+        'lock': 'false',
+        'require': None,
+        'defvalue': [],
+        'shorthelp': 'Library repository',
+        'example': ["cli: -library_repo git@github.com:aolofsson/oh.git",
+                    "api: chip.set('library', 'repo','git@github.com:aolofsson/oh.git')"],
+        'help': """
+        Optional address to the library repository for the library.
+        """
+    }
+
+    cfg['library'][lib]['testplan'] = {
+        'switch': "-library_testplan 'lib testplan<file>'",
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'true',
+        'require': None,
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Library test plan',
+        'example': [
+            "cli: -library_testplan 'mylib testplan.md'",
+            "api: chip.set('ibrary', 'mylib', 'testplan', 'testplan.md')"],
+        'help': """
+        Detailed specification describing the tests to be developed
+        to achieve design reliability and quality.
+        """
+    }
+
     cfg['library'][lib]['testbench'] = {}
     cfg['library'][lib]['testbench']['default'] = {
         'switch': "-library_testbench 'lib simtype <file>'",
@@ -1090,7 +1126,6 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         Version of a named dependency for the library.
         """
     }
-
 
     cfg['library'][lib]['pdk'] = {
         'switch': "-library_pdk 'lib <str>'",
@@ -4128,6 +4163,27 @@ def schema_design(cfg):
         """
     }
 
+    cfg['testplan'] = {
+        'switch': '-testplan <file>',
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'true',
+        'require': None,
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Test plan',
+        'example': ["cli: -testplan testplan.md",
+                    "api: chip.set('testplan', 'testplan.md')"],
+        'help': """
+        Detailed specification describing the tests to be developed
+        to achieve design reliability and quality.
+        """
+    }
+
     cfg['testbench'] = {
         'switch': '-testbench <file>',
         'type': '[file]',
@@ -4161,7 +4217,7 @@ def schema_design(cfg):
         'lock': 'false',
         'require': None,
         'defvalue': [],
-        'shorthelp': 'Repository link',
+        'shorthelp': 'Design repository',
         'example': ["cli: -repo git@github.com:aolofsson/oh.git",
                     "api: chip.set('repo','git@github.com:aolofsson/oh.git')"],
         'help': """
@@ -4223,24 +4279,6 @@ def schema_design(cfg):
                     "api: chip.set('license', './LICENSE')"],
         'help': """
         Filepath to the technology license for current design.
-        """
-    }
-
-    cfg['name'] = {
-        'switch': "-name <str>",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'defvalue': None,
-        'shorthelp': 'Project alias',
-        'example': ["cli: -name hello",
-                    "api: chip.set('name', 'hello')"],
-        'help': """
-        An alias for the top level design name. Can be useful when top level
-        designs have long and confusing names or when multiple configuration
-        packages are created for the same design. The nickname is used in all
-        output file prefixes. The top level design name is used if no
-        'name' parameter is defined.
         """
     }
 
@@ -4935,7 +4973,6 @@ def schema_asic(cfg):
         looked up through the 'grid' dictionary.
         """
     }
-
 
     # For density driven floorplanning
     cfg['asic']['density'] = {
