@@ -56,10 +56,23 @@ class Chip:
         # Local variables
         self.scroot = os.path.dirname(os.path.abspath(__file__))
         self.cwd = os.getcwd()
-        self.status = {}
         self.error = 0
         self.cfg = schema_cfg()
         self.cfghistory = {}
+        # The 'status' dictionary can be used to store ephemeral config values.
+        # Its contents will not be saved, and can be set by parent scripts
+        # such as a web server or supervisor process. Currently supported keys:
+        # * 'jobhash': A hash or UUID which can identify jobs in a larger system.
+        # * 'remote_cfg': Dictionary containing remote server configurations
+        #                 (address, credentials, etc.)
+        # * 'slurm_account': User account ID in a connected slurm HPC cluster.
+        # * 'slurm_partition': Name of the partition in which a task should run
+        #                      on a connected slurm HPC cluster.
+        # * 'watchdog': Activity-monitoring semaphore for jobs scheduled on an
+        #               HPC cluster; expects a 'threading.Event'-like object.
+        # * 'max_fs_bytes': A limit on how much disk space a job is allowed
+        #                   to consume in a connected HPC cluster's storage.
+        self.status = {}
 
         self.builtin = ['minimum','maximum',
                         'mux', 'join', 'verify']
