@@ -1668,7 +1668,7 @@ def schema_flowgraph(cfg, step='default', index='default'):
         'type': 'float',
         'lock': 'false',
         'require': None,
-        'defvalue': [],
+        'defvalue': None,
         'shorthelp': 'Flowgraph metric weights',
         'example': [
             "cli: -flowgraph_weight 'cts 0 area_cells 1.0'",
@@ -3533,7 +3533,7 @@ def schema_options(cfg):
         'type': 'str',
         'lock': 'false',
         'require': None,
-        'defvalue': [],
+        'defvalue': None,
         'shorthelp': 'Environment variables',
         'example': ["cli: -env 'PDK_HOME /disk/mypdk'",
                     "api: chip.set('env', 'PDK_HOME', '/disk/mypdk')"],
