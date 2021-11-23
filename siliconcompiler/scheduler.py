@@ -21,7 +21,7 @@ def _deferstep(chip, step, index, active, error):
     scheduler_type = chip.get('jobscheduler')
     username = chip.status['slurm_account']
     partition = chip.status['slurm_partition']
-    job_hash = chip.get('remote', 'jobhash')
+    job_hash = chip.status['jobhash']
     if scheduler_type == 'slurm':
         # The script defining this Chip object may specify feature(s) to
         # ensure that the job runs on a specific subset of available nodes.
@@ -140,6 +140,25 @@ def _deferstep(chip, step, index, active, error):
     retcode = 0
     while True:
         time.sleep(3.0)
+
+        # If a maximum disk space was defined, ensure that it is respected.
+        if 'max_fs_bytes' in chip.status:
+            du_cmd = subprocess.run(['du', '-sb', chip.get('dir')],
+                                    stdout=subprocess.PIPE)
+            cur_fs_bytes = int(du_cmd.stdout.decode().split()[0])
+            if cur_fs_bytes > int(chip.status['max_fs_bytes']):
+                # File size overrun; cancel the current task, and mark an error.
+                retcode = 1
+                sq_out = subprocess.run(['squeue',
+                                         '--partition', 'debug',
+                                         '--name', f'{job_hash}_{step}{index}',
+                                         '--noheader'],
+                                        stdout=subprocess.PIPE)
+                for line in sq_out.stdout.splitlines():
+                    subprocess.run(['sudo', 'scancel', line.split()[0]])
+                break
+
+        # Check whether the job is still running.
         jobcheck = subprocess.run(f'scontrol show job {sbatch_id}',
                                   shell=True,
                                   stdout=subprocess.PIPE,
