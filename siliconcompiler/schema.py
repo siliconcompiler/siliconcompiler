@@ -311,7 +311,7 @@ def schema_pdk(cfg, stackup='default'):
         'type': 'float',
         'lock': 'false',
         'defvalue': None,
-        'shorthelp': 'Horizontal scribeline width',
+        'shorthelp': 'Horizontal scribe line width',
         'example': ["cli: -pdk_hscribe 0.1",
                     "api:  chip.set('pdk', 'hscribe', 0.1)"],
         'help': """
@@ -329,7 +329,7 @@ def schema_pdk(cfg, stackup='default'):
         'type': 'float',
         'lock': 'false',
         'defvalue': None,
-        'shorthelp': 'Vertical scribeline width',
+        'shorthelp': 'Vertical scribbling width',
         'example': ["cli: -pdk_vscribe 0.1",
                     "api:  chip.set('pdk', 'vscribe', 0.1)"],
         'help': """
@@ -347,11 +347,11 @@ def schema_pdk(cfg, stackup='default'):
         'type': 'float',
         'lock': 'false',
         'defvalue': None,
-        'shorthelp': 'Wafer edge keepout margin',
+        'shorthelp': 'Wafer edge keep-out margin',
         'example': ["cli: -pdk_edgemargin 1",
                     "api:  chip.set('pdk', 'edgemargin', 1)"],
         'help': """
-        Keepout distance/margin from the wafer edge inwards specified in mm.
+        Keep-out distance/margin from the wafer edge inwards specified in mm.
         The wafer edge is prone to chipping and need special treatment that
         preclude placement of designs in this area. The edge value is used to
         calculate effective dies per wafer and full factory cost.
@@ -1832,7 +1832,7 @@ def schema_flowstatus(cfg, step='default', index='default'):
             "cli: -flowstatus_select 'cts 0 (place,42)'",
             "api:  chip.set('flowstatus', 'cts', '0', 'select', ('place','42'))"],
         'help': """
-        A list of selecteed inputs for the current step/index specified as
+        A list of selected inputs for the current step/index specified as
         (in_step,in_index) tuple.
         """
     }
@@ -2068,7 +2068,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         Defines a set of tool specific environment variables used by the executables
         that depend on license key servers to control access. For multiple servers,
         separate each server by a 'colon'. The named license variable are read at
-        runtime (run()) and the environment variablse are set.
+        runtime (run()) and the environment variables are set.
         """
     }
 
@@ -2486,17 +2486,17 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
-    cfg['metric'][step][index]['testcoverage'] = {}
-    cfg['metric'][step][index]['testcoverage'][group] = {
-        'switch': "-metric_testcoverage 'step index group <float>'",
+    cfg['metric'][step][index]['coverage'] = {}
+    cfg['metric'][step][index]['coverage'][group] = {
+        'switch': "-metric_coverage 'step index group <float>'",
         'type': 'float',
         'lock': 'false',
         'require': 'all',
         'defvalue': None,
         'shorthelp': 'Test coverage metric',
         'example': [
-            "cli: -metric_testcoverage 'place 0 goal 99.9'",
-            "api: chip.set('metric','place','0','testcoverage','goal','99.9')"],
+            "cli: -metric_coverage 'place 0 goal 99.9'",
+            "api: chip.set('metric','place','0','coverage','goal','99.9')"],
         'help': """
         Metric tracking the test coverage in the design expressed as a percentage
         with 100 meaning full coverage. The meaning of the metric depends on the
@@ -2520,7 +2520,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         Metric tracking the level of security (1/vulnerability) of the design.
         A completely secure design would have a score of 100. There is no
         absolute scale for the security metrics (like with power, area, etc)
-        so the metric will be task and tool dependant.
+        so the metric will be task and tool dependent.
         """
     }
 
@@ -2629,7 +2629,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
             "cli: -metric_utilization 'place 0 goal 50.00'",
             "api: chip.set('metric','place','0','utilization','real','50.00')"],
         'help': """
-        Metric tracking the area utilziation of the design calculated as
+        Metric tracking the area utilization of the design calculated as
         100 * (cellarea/totalarea).
         """
     }
@@ -2876,7 +2876,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'help': """
         Metric tracking the total number of buffers and inverters in
         the design. An excessive count usually indicates a flow, design,
-        or constaints problem.
+        or constraints problem.
         """
     }
 
@@ -3063,7 +3063,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
         'shorthelp': 'Record of all output files',
         'example': [
             "cli: -record_output 'job0 syn 0 outputs/adder.vg'",
-            "api: chip.set('record','job0', 'syn','0','output','outsputs/adder.vg')"],
+            "api: chip.set('record','job0', 'syn','0','output','outputs/adder.vg')"],
         'help': """
         Record tracking all input files on a per step and index basis.
         """
@@ -3368,7 +3368,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
             "api: chip.set('record', 'job0', 'dfm', '0', 'kernelversion', '5.11.0-34-generic')"],
         'help': """
         Record tracking the operating system kernel version for platforms that
-        support a distinction betweem os kernels and os distributions.
+        support a distinction between os kernels and os distributions.
         """
     }
 
@@ -3415,7 +3415,7 @@ def schema_options(cfg):
         'help': """
         Filepath to credentials used for remote processing. If the
         credentials parameter is empty, the remote processing client program
-        tries to acceess the ".sc/credentials" file in the user's home
+        tries to access the ".sc/credentials" file in the user's home
         directory. The file supports the following fields:
 
         userid=<user id>
@@ -3689,7 +3689,7 @@ def schema_options(cfg):
         Jobname during invocation of run(). The jobname combined with a
         defined director structure (<dir>/<design>/<jobname>/<step>/<index>)
         enables multiple levels of transparent job, step, and index
-        introspecetion.
+        introspection.
         """
     }
 
@@ -3703,8 +3703,8 @@ def schema_options(cfg):
         'example': ["cli: -jobincr",
                     "api: chip.set('jobincr', True)"],
         'help': """
-        Forces an auuto-update of the jobname parameter if a directory
-        mathcing the jobname is found in the build directory. If the
+        Forces an auto-update of the jobname parameter if a directory
+        matching the jobname is found in the build directory. If the
         jobname does not include a trailing digit, then a the number
         '1' is added to the jobname before updating the jobname
         parameter.  The option can be useful for automatically keeping
@@ -3800,7 +3800,7 @@ def schema_options(cfg):
         'lock': 'false',
         'require': 'all',
         'defvalue': 'false',
-        'shorthelp': 'Enforice version checking',
+        'shorthelp': 'Enforce version checking',
         'example': ["cli: -vercheck",
                     "api: chip.set('vercheck', 'true')"],
         'help': """
@@ -3854,7 +3854,7 @@ def schema_options(cfg):
         'help': """
         Specifies that tools should dump simulation traces when the parameter
         is set to "true". For Verilog and VHDL simulation this switch
-        should be used to control dumping of waverforms (VCD or other
+        should be used to control dumping of waveform (VCD or other
         format). The switch is global and should control all simulation
         steps of an execution flow.
         """
@@ -3920,7 +3920,7 @@ def schema_options(cfg):
         Specifies that the final hardware layout should be
         shown after the compilation has been completed. The
         final layout and tool used to display the layout is
-        flow dependant.
+        flow dependent.
         """
     }
 
@@ -4178,11 +4178,11 @@ def schema_design(cfg):
         'lock': 'false',
         'require': None,
         'defvalue': [],
-        'shorthelp': 'Project dependancies',
+        'shorthelp': 'Project dependencies',
         'example': ["cli: -dependency 'hello version 1.0.0",
                     "api: chip.set('dependency', 'hello', 'version', '1.0.0')"],
         'help': """
-        Version of a named package dependency needeed for the project.
+        Version of a named package dependency needed for the project.
         """
     }
 
@@ -4560,9 +4560,9 @@ def schema_design(cfg):
                     "api: chip.set('constraint','top.sdc')"],
         'help': """
         List of default constraints for the design to use during compilation.
-        Types of constraints include timing (SDC) and pin cpin mappings for FPGAs.
-        More than one file can be supplied. Timing constraints are global and
-        sourced in all MCMM scenarios.
+        Types of constraints include timing (SDC) and pin mappings files (PCF)
+        for FPGAs. More than one file can be supplied. Timing constraints are
+        global and sourced in all MCMM scenarios.
         """
     }
 
