@@ -37,7 +37,10 @@ def test_check_allowed_filepaths_pass(scroot, monkeypatch):
     chip.set('steplist', 'import')
     chip.run()
 
-    env = {'SC_VALID_PATHS': os.path.join(scroot, 'third_party', 'pdks')}
+    env = {
+        'SC_VALID_PATHS': os.path.join(scroot, 'third_party', 'pdks'),
+        'SCPATH': os.environ['SCPATH']
+    }
     monkeypatch.setattr(os, 'environ', env)
 
     assert chip.check_manifest() == 0
@@ -57,7 +60,10 @@ def test_check_allowed_filepaths_fail(scroot, monkeypatch):
     chip.set('steplist', 'import')
     chip.run()
 
-    env = {'SC_VALID_PATHS': os.path.join(scroot, 'third_party', 'pdks')}
+    env = {
+        'SC_VALID_PATHS': os.path.join(scroot, 'third_party', 'pdks'),
+        'SCPATH': os.environ['SCPATH']
+    }
     monkeypatch.setattr(os, 'environ', env)
 
     assert chip.check_manifest() == 0
