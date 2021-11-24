@@ -151,7 +151,7 @@ def request_remote_run(chip):
             if resp.status_code == 302:
                 redirect_url = resp.headers['Location']
             elif resp.status_code >= 400:
-                chip.logger.info(resp.text)
+                chip.logger.error(resp.json()['message'])
                 chip.logger.error('Error starting remote job run; quitting.')
                 sys.exit(1)
             else:
