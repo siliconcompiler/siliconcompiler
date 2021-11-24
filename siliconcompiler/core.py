@@ -69,7 +69,7 @@ class Chip:
         # logger relies on the design value.
         self.cfg['design']['value'] = design
         # We set scversion directly because it has its 'lock' flag set by default.
-        self.cfg['scversion']['value'] = _metadata.version
+        self.cfg['version']['sc']['value'] = _metadata.version
 
         self._init_logger()
 
