@@ -110,7 +110,7 @@ def runtime_options(chip):
     index = chip.get('arg','index')
     libname = chip.get('asic', 'targetlib')[0]
     pdk_rev = chip.get('pdk', 'version')
-    lib_rev = chip.get('library', libname, 'version')
+    lib_rev = chip.get('library', libname, 'package', 'version')
     stackup = chip.get('pdk','stackup')[0]
     libtype = chip.get('library', libname, 'arch')
     techfile = chip.find_files('pdk','layermap', stackup, 'def', 'gds')[0]
