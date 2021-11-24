@@ -3,6 +3,8 @@
 import re
 import os
 import sys
+import copy
+import json
 
 #############################################################################
 # CHIP CONFIGURATION
@@ -13,72 +15,99 @@ def schema_cfg():
     All the keys defined in this dictionary are reserved words.
     '''
 
-    cfg = {}
-
     # SC version number (bump on every non trivial change)
     # Version number following semver standard.
-    cfg['schemaversion'] = {
-        'switch': "-schemaversion <str>",
+    SCHEMA_VERSION = '0.1.0'
+
+    # Basic schema setup
+    cfg = {}
+
+    # Version handling
+    cfg = schema_version(cfg, SCHEMA_VERSION)
+
+    # Runtime options
+    cfg = schema_options(cfg)
+
+    # Project configuration
+    cfg = schema_package(cfg, group='project')
+    cfg = schema_design(cfg)
+    cfg = schema_fpga(cfg)
+    cfg = schema_asic(cfg)
+    cfg = schema_mcmm(cfg)
+
+    # Flow Information
+    cfg = schema_flowgraph(cfg)
+    cfg = schema_flowstatus(cfg)
+    cfg = schema_eda(cfg)
+    cfg = schema_arg(cfg)
+    cfg = schema_jobs(cfg)
+
+    # PDK
+    cfg = schema_pdk(cfg)
+
+    # Package management
+    cfg = schema_hier(cfg)
+    cfg = schema_libs(cfg)
+    cfg = schema_package(cfg, group='library')
+
+    # Compilation records
+    cfg = schema_metric(cfg)
+    cfg = schema_record(cfg)
+
+    return cfg
+
+###############################################################################
+# Minimal setupFPGA
+###############################################################################
+
+def schema_version(cfg, version):
+
+    cfg['version'] = {}
+    cfg['version']['schema'] = {
+        'switch': "-version_schema <str>",
         'type': 'str',
         'lock': 'true',
         'require': 'all',
-        'defvalue': '0.1.0',
+        'defvalue': version,
         'shorthelp': 'Schema version number',
-        'example': ["cli: -schemaversion",
-                    "api: chip.get('schemaversion')"],
+        'example': ["cli: -version_schema",
+                    "api: chip.get('version', 'schema')"],
         'help': """
         SiliconCompiler schema version number.
         """
     }
 
-    # Flow graph Setup
-    cfg = schema_flowgraph(cfg)
+    cfg['version']['sc'] = {
+        'switch': "-version_sc <str>",
+        'type': 'str',
+        'lock': 'true',
+        'require': 'all',
+        'defvalue': None,
+        'shorthelp': 'SiliconCompiler version number',
+        'example': ["cli: -version_sc",
+                    "api: chip.get('version', 'sc')"],
+        'help': """
+        SiliconCompiler software version number.
+        """
+    }
 
-    # Keeping track of flow execution
-    cfg = schema_flowstatus(cfg)
-
-    # Job dependencies
-    cfg = schema_jobs(cfg)
-
-    # Design Hierarchy
-    cfg = schema_hier(cfg)
-
-    # EDA setup
-    cfg = schema_eda(cfg)
-
-    # Dynamic Tool Arguments
-    cfg = schema_arg(cfg)
-
-    # Metric tracking
-    cfg = schema_metric(cfg)
-
-    # Recording design provenance
-    cfg = schema_record(cfg)
-
-    # FPGA parameters
-    cfg = schema_fpga(cfg)
-
-    # ASIC parameters
-    cfg = schema_pdk(cfg)
-    cfg = schema_asic(cfg)
-
-    # Designer's choice
-    cfg = schema_design(cfg)
-    cfg = schema_mcmm(cfg)
-
-    # Library/Component Definitions
-    cfg = schema_libs(cfg)
-
-    # Designer runtime options
-    cfg = schema_options(cfg)
-
-    # Data showtool options
-    cfg = schema_showtool(cfg)
-
-    # Remote options
-    cfg = schema_remote(cfg)
+    # Print SC version number
+    cfg['version']['print'] = {
+        'switch': "-version <bool>",
+        'type': 'bool',
+        'lock': 'false',
+        'require': 'all',
+        'defvalue': 'false',
+        'shorthelp': 'Print version number',
+        'example': ["cli: -version",
+                    "api: chip.get('version')"],
+        'help': """
+        Command line switch to print SC version number.
+        """
+    }
 
     return cfg
+
 
 ###############################################################################
 # FPGA
@@ -998,13 +1027,15 @@ def schema_pdk(cfg, stackup='default'):
 # Library Configuration
 ###############################################################################
 
+#TODO: refactor to pull project parameters diretly from 'project'
+
 def schema_libs(cfg, lib='default', stackup='default', corner='default'):
 
     cfg['library'] = {}
     cfg['library'][lib] = {}
     cfg['library'][lib][corner] = {}
 
-
+    #data related fields
     cfg['library'][lib]['type'] = {
         'switch': "-library_type 'lib <str>'",
         'require': None,
@@ -1023,7 +1054,7 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
     }
 
     cfg['library'][lib]['source'] = {
-        'switch': "-library_source '<file>'",
+        'switch': "-library_source 'lib <file>'",
         'require': None,
         'type': '[file]',
         'lock': 'false',
@@ -1051,42 +1082,6 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         """
     }
 
-    cfg['library'][lib]['repo'] = {
-        'switch': "-library_repo <str>",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'defvalue': [],
-        'shorthelp': 'Library repository',
-        'example': ["cli: -library_repo git@github.com:aolofsson/oh.git",
-                    "api: chip.set('library', 'repo','git@github.com:aolofsson/oh.git')"],
-        'help': """
-        Optional address to the library repository for the library.
-        """
-    }
-
-    cfg['library'][lib]['testplan'] = {
-        'switch': "-library_testplan 'lib testplan<file>'",
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'true',
-        'require': None,
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Library test plan',
-        'example': [
-            "cli: -library_testplan 'mylib testplan.md'",
-            "api: chip.set('ibrary', 'mylib', 'testplan', 'testplan.md')"],
-        'help': """
-        Detailed specification describing the tests to be developed
-        to achieve design reliability and quality.
-        """
-    }
-
     cfg['library'][lib]['testbench'] = {}
     cfg['library'][lib]['testbench']['default'] = {
         'switch': "-library_testbench 'lib simtype <file>'",
@@ -1107,23 +1102,6 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'help': """
         Filepaths to testbench specified on a per library and per simtype basis.
         Typical simulation types include rtl, spice.
-        """
-    }
-
-    cfg['library'][lib]['dependency'] = {}
-    cfg['library'][lib]['dependency']['default'] = {}
-    cfg['library'][lib]['dependency']['default']['version'] = {
-        'switch': "-library_dependency 'lib package version <str>'",
-        'require': None,
-        'type': 'str',
-        'lock': 'false',
-        'defvalue': None,
-        'shorthelp': 'Library dependencies',
-        'example': [
-            "cli: -library_dependency 'mylib myip version 1.0.0'",
-            "api: chip.set('library','mylib','dependency','myip','version','1.0.0')"],
-        'help': """
-        Version of a named dependency for the library.
         """
     }
 
@@ -1155,139 +1133,6 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'help': """
         Name of the PDK metal stackup used by the library. The parameter is
         required for hardened technology specific library types.
-        """
-    }
-
-    cfg['library'][lib]['version'] = {
-        'switch': "-library_version 'lib <str>'",
-        'require': None,
-        'type': 'str',
-        'lock': 'false',
-        'defvalue': None,
-        'shorthelp': 'Library version number',
-        'example': ["cli: -library_version 'mylib 1.0'",
-                    "api: chip.set('library','mylib','version','1.0')"],
-        'help': """
-        Library version. Verification of correct PDK and IP versions is
-        hard require in commercial ASIC projects.
-        """
-    }
-
-    cfg['library'][lib]['origin'] = {
-        'switch': "-library_origin 'lib <str>'",
-        'require': None,
-        'type': 'str',
-        'lock': 'false',
-        'defvalue': None,
-        'shorthelp': 'Library origin',
-        'example': ["cli: -library_origin 'mylib US'",
-                    "api: chip.set('library','mylib','origin', 'US')"],
-        'help': """
-        Library country of origin.
-        """
-    }
-
-    cfg['library'][lib]['license'] = {
-        'switch': "-library_license 'lib <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Library license file',
-        'example': [
-            "cli: -library_license 'mylib ./LICENSE'",
-            "api: chip.set('library','mylib','license','./LICENSE')"],
-        'help': """
-        File path to library license.
-        """
-    }
-
-    cfg['library'][lib]['doc'] = {
-        'switch': "-library_doc 'lib <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Library documentation',
-        'example': ["cli: -library_doc 'lib lib_guide.pdf'",
-                    "api: chip.set('library','lib','doc,'lib_guide.pdf')"],
-        'help': """
-        List of filepaths to critical library documents entered in order of
-        importance.
-        """
-    }
-
-    cfg['library'][lib]['datasheet'] = {
-        'switch': "-library_datasheet 'lib <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Library datasheets',
-        'example': [
-            "cli: -library_datasheet 'lib lib_ds.pdf'",
-            "api: chip.set('library','lib','datasheet','lib_ds.pdf')"],
-        'help': """
-        Complete collection of library datasheets. The documentation can be
-        provided as a PDF or as a file path to a directory with one HTMl file
-        per cell. This parameter is optional for libraries where the datasheet
-        is merged within the library integration document.
-        """
-    }
-
-    cfg['library'][lib]['signoff'] = {
-         'switch': "-library_signoff <file>",
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'require': None,
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Library signoff reports',
-        'example': [
-            "cli: -library_signoff mylib lib_review.md",
-            "api: chip.set('library', 'mylib', 'signoff', 'lib_review.md')"],
-        'help': """
-        Final signoff report(s) for the library.
-        """
-    }
-
-    cfg['library'][lib]['checklist'] = {}
-    cfg['library'][lib]['checklist']['default'] = {
-        'switch': "-library_checklist 'name <bool>",
-        'type': 'bool',
-        'lock': 'false',
-        'require': None,
-        'defvalue': None,
-        'shorthelp': 'Library signoff checklist',
-        'example': [
-            "cli: -library_checklist 'mylib LINT_PASS True",
-            "api: chip.set('library', 'mylib', 'checklist ', LINT_PASS, True)"],
-        'help': """
-        Final design signoff checklist specified as a key value
-        pair. Values are True/False booleans.
         """
     }
 
@@ -3213,32 +3058,32 @@ def schema_record(cfg, job='default', step='default', index='default'):
         Record tracking the user's location/site.
         """
     }
-
-    cfg['record'][job][step][index]['scversion'] = {
-        'switch': "-record_scversion 'job step index <str>'",
+    cfg['record'][job][step][index]['version']={}
+    cfg['record'][job][step][index]['version']['sc'] = {
+        'switch': "-record_version_sc 'job step index <str>'",
         'type': 'str',
         'lock': 'false',
         'require': None,
         'defvalue': None,
-        'shorthelp': 'Record of sc version on node',
+        'shorthelp': 'Record of sc version',
         'example': [
-            "cli: -record_scversion 'job0 dfm 0 1.0'",
-            "api: chip.set('record','job0', 'dfm','0','scversion', '1.0')"],
+            "cli: -record_version_sc 'job0 dfm 0 1.0'",
+            "api: chip.set('record','job0', 'dfm','0', 'sc', 'version', '1.0')"],
         'help': """
         Record tracking the sc version number on the compute node.
         """
     }
 
-    cfg['record'][job][step][index]['toolversion'] = {
-        'switch': "-record_toolversion 'job step index <str>'",
+    cfg['record'][job][step][index]['version']['tool'] = {
+        'switch': "-record_version_tool 'job step index <str>'",
         'type': 'str',
         'lock': 'false',
         'require': None,
         'defvalue': None,
         'shorthelp': 'Record of executable version',
         'example': [
-            "cli: -record_toolversion 'job0 dfm 0 1.0'",
-            "api: chip.set('record','job0', 'dfm','0','toolversion', '1.0')"],
+            "cli: -record_version_tool 'job0 dfm 0 1.0'",
+            "api: chip.set('record','job0','dfm','0','version','tool','1.0')"],
         'help': """
         Record tracking the version number of the executable, specified
         on per step and per index basis.
@@ -3373,16 +3218,16 @@ def schema_record(cfg, job='default', step='default', index='default'):
         """
     }
 
-    cfg['record'][job][step][index]['osversion'] = {
-        'switch': "-record_osversion 'job step index machine <str>'",
+    cfg['record'][job][step][index]['version']['os'] = {
+        'switch': "-record_version_os 'job step index machine <str>'",
         'type': 'str',
         'lock': 'false',
         'require': None,
         'defvalue': None,
         'shorthelp': 'Compute node operating system version',
         'example': [
-            "cli: -record_osversion 'job0 dfm 0 20.04.1-Ubuntu'",
-            "api: chip.set('record', 'job0', 'dfm', '0', 'osversion', '20.04.1-Ubuntu')"],
+            "cli: -record_version_os 'job0 dfm 0 20.04.1-Ubuntu'",
+            "api: chip.set('record', 'job0', 'dfm', '0', 'version', 'os' '20.04.1-Ubuntu')"],
         'help': """
         Record tracking the complete operating system version name. Since there is
         not standarrd version system for operating systems, extracting information
@@ -3391,16 +3236,16 @@ def schema_record(cfg, job='default', step='default', index='default'):
         """
     }
 
-    cfg['record'][job][step][index]['kernelversion'] = {
-        'switch': "-record_kernelversion 'job step index <str>'",
+    cfg['record'][job][step][index]['version']['kernel'] = {
+        'switch': "-record_version_kernel 'job step index <str>'",
         'type': 'str',
         'lock': 'false',
         'require': None,
         'defvalue': None,
         'shorthelp': 'Compute node operating system kernel version',
         'example': [
-            "cli: -record_kernelversion 'job0 dfm 0 5.11.0-34-generic'",
-            "api: chip.set('record', 'job0', 'dfm', '0', 'kernelversion', '5.11.0-34-generic')"],
+            "cli: -record_version_kernel 'job0 dfm 0 5.11.0-34-generic'",
+            "api: chip.set('record', 'job0', 'dfm', '0', 'version','kernel', '5.11.0-34-generic')"],
         'help': """
         Record tracking the operating system kernel version for platforms that
         support a distinction between os kernels and os distributions.
@@ -3432,6 +3277,21 @@ def schema_options(cfg):
     ''' Run-time options
     '''
 
+
+    cfg['remote'] = {
+        'switch': "-remote <bool>",
+        'type': 'bool',
+        'lock': 'false',
+        'require': None,
+        'defvalue': False,
+        'shorthelp': 'Flag to run a job through a remote server.',
+        'example': ["cli: -remote",
+                    "api: chip.set('remote', True)"],
+        'help': """
+        Determines whether the job should be run locally, or on a remote server.
+        """
+    }
+
     cfg['credentials'] = {
         'switch': "-credentials <file>",
         'type': '[file]',
@@ -3459,36 +3319,6 @@ def schema_options(cfg):
 
         """
         }
-
-    # SC version number
-    cfg['scversion'] = {
-        'switch': "-scversion <str>",
-        'type': 'str',
-        'lock': 'true',
-        'require': 'all',
-        'defvalue': None,
-        'shorthelp': 'SC version number',
-        'example': ["cli: -scversion",
-                    "api: chip.get('scversion')"],
-        'help': """
-        SC version number.
-        """
-    }
-
-    # Print SC version number
-    cfg['version'] = {
-        'switch': "-version <bool>",
-        'type': 'bool',
-        'lock': 'false',
-        'require': 'all',
-        'defvalue': 'false',
-        'shorthelp': 'Print version number',
-        'example': ["cli: -version",
-                    "api: chip.get('version')"],
-        'help': """
-        Command line switch to print SC version number.
-        """
-    }
 
     cfg['mode'] = {
         'switch': "-mode <str>",
@@ -3959,16 +3789,9 @@ def schema_options(cfg):
         """
     }
 
-    return cfg
-
-############################################
-# Show tool configuration
-#############################################
-def schema_showtool(cfg, filetype='default'):
-
+    # Linking show tools with filetypes
+    filetype = 'default'
     cfg['showtool'] = {}
-
-    # Remote IP address/host name running sc-server app
     cfg['showtool'][filetype] = {
         'switch': "-showtool 'filetype <str>'",
         'type': 'str',
@@ -3987,30 +3810,269 @@ def schema_showtool(cfg, filetype='default'):
     return cfg
 
 ############################################
-# Remote Run Options
-#############################################
-def schema_remote(cfg):
+# Package information
+############################################
+
+def schema_package(cfg, group):
+
+    localcfg = {}
+
+    if group == 'project':
+        lib = ""
+        comma= ""
+    elif group == 'library':
+        lib = 'lib '
+        comma = ','
+
+    # the project name becomes the package key
+    if group == 'project':
+        localcfg['name'] = {
+            'switch': "-project_name <str>",
+            'type': 'str',
+            'lock': 'false',
+            'require': None,
+            'defvalue': None,
+            'shorthelp': 'Project name',
+            'example': ["cli: -project_name yac",
+                        "api: chip.set('project', 'name', 'yac')"],
+            'help': """
+            Project name.
+            """
+        }
 
 
-    cfg['remote'] = {
-        'switch': "-remote <bool>",
+    localcfg['version'] = {
+        'switch': f"-{group}_version '{lib}<str>'",
+        'type': 'str',
+        'lock': 'false',
+        'require': None,
+        'defvalue': None,
+        'shorthelp': f"{group} version number",
+        'example': [
+            f"cli: -{group}_version '{lib}1.0'",
+            f"api: chip.set({group},{lib}{comma}'version', '1.0')"],
+        'help': f"""
+        Version number. Can be a branch, tag, commit hash, or a major.minor
+        type version string. It is recommended to follow the semver standard.
+        """
+    }
+
+    localcfg['description'] = {
+        'switch': f"-{group}_description '{lib}<str>'",
+        'type': 'str',
+        'lock': 'false',
+        'require': None,
+        'defvalue': None,
+        'shorthelp': f'Short {group} description',
+        'example': [
+            f"cli: -{group}_description '{lib}Yet another cpu'",
+            f"api: chip.set('{group}',{lib}{comma}'description', 'Yet another cpu')"],
+        'help': """
+        Short one line description for package managers and summary reports.
+        """
+    }
+
+    doctypes = ['datasheet', 'specification', 'testplan',
+                'userguide', 'appnote', 'tutorial',
+                'reference']
+    for item in doctypes:
+        localcfg['doc'] = {}
+        localcfg['doc'][item] = {
+            'switch': f"-{group}_doc_{item} '{lib}<file>'",
+            'type': '[file]',
+            'lock': 'false',
+            'copy': 'true',
+            'require': None,
+            'defvalue': [],
+            'filehash': [],
+            'hashalgo': 'sha256',
+            'date': [],
+            'author': [],
+            'signature': [],
+            'shorthelp': f'{group} {item}',
+            'example': [
+                f"cli: -{group}_doc_{item} '{lib}design.pdf",
+                f"api: chip.set('{group}',{lib}{comma}'doc',{item},'design.pdf')"],
+            'help': f"""
+            List of {item} documents.
+            """
+        }
+
+    localcfg['signoff'] = {
+        'switch': f"-{group}_signoff '{lib}<file>'",
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'true',
+        'require': None,
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': f'{group} signoff documents',
+        'example': [
+            f"cli: -{group}_signoff '{lib}hello_review.md",
+            f"api: chip.set('{group}',{lib}{comma}'signoff','hello_review.md')"],
+        'help': """
+        Final signoff report(s).
+        """
+    }
+
+    localcfg['checklist'] = {}
+    localcfg['checklist']['default'] = {
+        'switch': f"-{group}_checklist '{lib}name <bool>'",
         'type': 'bool',
         'lock': 'false',
         'require': None,
-        'defvalue': False,
-        'shorthelp': 'Flag to run a job through a remote server.',
-        'example': ["cli: -remote",
-                    "api: chip.set('remote', True)"],
+        'defvalue': None,
+        'shorthelp': f'{group} signoff checklist',
+        'example': [
+            f"cli: -{group}_checklist '{lib}LINT_PASS True",
+            f"api: chip.set('{group}',{lib}{comma}'checklist',LINT_PASS,True)"],
         'help': """
-        Determines whether the job should be run locally, or on a remote server.
+        Final signoff checklist specified as a key value pair. Values are
+        True/False booleans.
         """
     }
+
+    localcfg['repo'] = {
+        'switch': f"-{group}_repo '{lib}<str>'",
+        'type': '[str]',
+        'lock': 'false',
+        'require': None,
+        'defvalue': [],
+        'shorthelp': f"{group} repository",
+        'example': [
+            f"cli: -{group}_repo git@github.com:aolofsson/oh.git",
+            f"api: chip.set('{group}',{lib}{comma}'repo','git@github.com:aolofsson/oh.git')"],
+        'help': f"""
+        Optional address to the {group} repository.
+        """
+    }
+
+    localcfg['dependency'] = {
+        'switch': f"-{group}_dependency '{lib}(<package>,<version>)'",
+        'type': '[(str,str)]',
+        'lock': 'false',
+        'require': None,
+        'defvalue': [],
+        'shorthelp': f'{group} dependency',
+        'example': [
+            f"cli: -{group}_dependency '{lib}(hello,1.0.0)'",
+            f"api: chip.set('{group}',{lib}{comma}'dependency',('hello','1.0.0')"],
+        'help': """
+        Version of a named package dependency needed for the project.
+        """
+    }
+
+    localcfg['license'] = {
+        'switch': f"-{group}_license '{lib}<file>'",
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'true',
+        'require': None,
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': f'{group} license file',
+        'example': [
+            f"cli: -{group}_license '{lib}./LICENSE",
+            f"api: chip.set('{group}',{lib}{comma}'license', './LICENSE')"],
+        'help': f"""
+        Filepath to the technology license for {group}.
+        """
+    }
+
+    localcfg['location'] = {
+        'switch': f"-{group}_location '{lib}<str>'",
+        'type': '[str]',
+        'lock': 'false',
+        'require': None,
+        'defvalue': [],
+        'shorthelp': f'{group} location',
+        'example': [
+            f"cli: -{group}_location mars",
+            f"api: chip.set('{group}', {lib}{comma}'location', 'mars')"],
+        'help': """
+        Location of origin for project.
+        """
+    }
+
+    localcfg['organization'] = {
+        'switch': f"-{group}_organization '{lib}<str>'",
+        'type': '[str]',
+        'lock': 'false',
+        'require': None,
+        'defvalue': [],
+        'shorthelp': f"{group} organization",
+        'example': [
+            f"cli: -{group}_organization '{lib}humanity'",
+            f"api: chip.set('{group}',{lib}{comma}'organization', 'humanity')"],
+        'help': """
+        Projection organization name.
+        """
+    }
+
+    localcfg['author'] = {
+        'switch': f"-{group}_author '{lib}<str>'",
+        'type': '[str]',
+        'lock': 'false',
+        'require': None,
+        'defvalue': [],
+        'shorthelp': f'{group} author',
+        'example': [
+            f"cli: -{group}_author '{lib}wiley",
+            f"api: chip.set('{group}',{lib}{comma}'author', 'wiley')"],
+        'help': """
+        Author name(s).
+        """
+    }
+
+    localcfg['userid'] = {
+        'switch': f"-{group}_userid '{lib}<str>'",
+        'type': '[str]',
+        'lock': 'false',
+        'require': None,
+        'defvalue': [],
+        'shorthelp': f'{group} author user ID',
+        'example': [
+            f"cli: -{group}_userid '{lib}0123",
+            f"api: chip.set('{group}',{lib}{comma}'userid', '0123')"],
+        'help': """
+        List of anonymized authoer user ID(s).
+        """
+    }
+
+    localcfg['publickey'] = {
+        'switch': f"-{group}_publickey '{lib}<str>'",
+        'type': 'str',
+        'lock': 'false',
+        'require': None,
+        'defvalue': None,
+        'shorthelp': f"{group} public key",
+        'example': [
+            f"cli: -{group}_publickey '{lib}6EB695706EB69570'",
+            f"api: chip.set('{group}',{lib}{comma}'publickey','6EB695706EB69570')"],
+        'help': f"""
+        Public key for {group}.
+        """
+    }
+
+    # copy package dictionary into library/project
+    if group == 'project':
+        cfg['package'] = copy.deepcopy(localcfg)
+    elif group == 'library':
+        cfg['library']['default']['package'] = copy.deepcopy(localcfg)
 
     return cfg
 
 ############################################
 # Design Setup
-#############################################
+############################################
 
 def schema_design(cfg):
     ''' Design Sources
@@ -4028,87 +4090,6 @@ def schema_design(cfg):
         'help': """
         Name of the top level module to compile. Required for all designs with
         more than one module.
-        """
-    }
-
-    cfg['project'] = {
-        'switch': "-project <str>",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'defvalue': None,
-        'shorthelp': 'Project name',
-        'example': ["cli: -project yac",
-                    "api: chip.set('project', 'yac')"],
-        'help': """
-        Project name associated with the design.
-        """
-    }
-
-    cfg['description'] = {
-        'switch': "-description <str>",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'defvalue': None,
-        'shorthelp': 'Short design description',
-        'example': ["cli: -description 'Yet another RISC-V core'",
-                    "api: chip.set('description', 'Yet another RISC-V core')"],
-        'help': """
-        Short one line description of the design purpose intended for package
-        managers and design summary reports.
-        """
-    }
-
-    cfg['designversion'] = {
-        'switch': "-designversion <str>",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'defvalue': None,
-        'shorthelp': 'Design version number',
-        'example': ["cli: -designversion 1.0",
-                    "api: chip.set('designversion', '1.0')"],
-        'help': """
-        Specifies the version of the current design. Can be a branch, tag,
-        commit hash, or a major.minor type version string.
-        """
-    }
-
-    cfg['signoff'] = {
-        'switch': "-signoff <file>",
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'true',
-        'require': None,
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Design signoff reports',
-        'example': ["cli: -signoff hello_world_review.md",
-                    "api: chip.set('signoff', 'hello_world_review.md')"],
-        'help': """
-        Final signoff report(s) for the design.
-        """
-    }
-
-    cfg['checklist'] = {}
-    cfg['checklist']['default'] = {
-    'switch': "-checklist 'name <bool>",
-        'type': 'bool',
-        'lock': 'false',
-        'require': None,
-        'defvalue': None,
-        'shorthelp': 'Design signoff checklist',
-        'example': [
-            "cli: -checklist 'LINT_PASS True",
-            "api: chip.set('checklist ', LINT_PASS, True)"],
-        'help': """
-        Final design signoff checklist specified as a key value
-        pair. Values are True/False booleans.
         """
     }
 
@@ -4163,27 +4144,6 @@ def schema_design(cfg):
         """
     }
 
-    cfg['testplan'] = {
-        'switch': '-testplan <file>',
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'true',
-        'require': None,
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Test plan',
-        'example': ["cli: -testplan testplan.md",
-                    "api: chip.set('testplan', 'testplan.md')"],
-        'help': """
-        Detailed specification describing the tests to be developed
-        to achieve design reliability and quality.
-        """
-    }
-
     cfg['testbench'] = {
         'switch': '-testbench <file>',
         'type': '[file]',
@@ -4211,146 +4171,6 @@ def schema_design(cfg):
         """
     }
 
-    cfg['repo'] = {
-        'switch': "-repo <str>",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'defvalue': [],
-        'shorthelp': 'Design repository',
-        'example': ["cli: -repo git@github.com:aolofsson/oh.git",
-                    "api: chip.set('repo','git@github.com:aolofsson/oh.git')"],
-        'help': """
-        Optional address to the design repositories used in design.
-        """
-    }
-
-    package = 'default'
-    cfg['dependency'] = {}
-    cfg['dependency'][package] = {}
-    cfg['dependency'][package]['version'] = {
-        'switch': "-dependency 'package version <str>'",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'defvalue': [],
-        'shorthelp': 'Project dependencies',
-        'example': ["cli: -dependency 'hello version 1.0.0",
-                    "api: chip.set('dependency', 'hello', 'version', '1.0.0')"],
-        'help': """
-        Version of a named package dependency needed for the project.
-        """
-    }
-
-    cfg['doc'] = {
-        'switch': "-doc <file>",
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'true',
-        'require': None,
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Project documentation',
-        'example': ["cli: -doc spec.pdf",
-                    "api: chip.set('doc', 'spec.pdf')"],
-        'help': """
-        List of design documents. Files are read in order from first to last.
-        """
-    }
-
-    cfg['license'] = {
-        'switch': "-license <file>",
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'true',
-        'require': None,
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Project license file',
-        'example': ["cli: -license ./LICENSE",
-                    "api: chip.set('license', './LICENSE')"],
-        'help': """
-        Filepath to the technology license for current design.
-        """
-    }
-
-    cfg['location'] = {
-        'switch': "-location <str>",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'defvalue': [],
-        'shorthelp': 'Project location',
-        'example': ["cli: -location mars",
-                    "api: chip.set('location', 'mars')"],
-        'help': """
-        Location of origin for design. (optional)
-        """
-    }
-
-    cfg['org'] = {
-        'switch': "-org <str>",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'defvalue': [],
-        'shorthelp': 'Project organization',
-        'example': ["cli: -org humanity",
-                    "api: chip.set('org', 'humanity')"],
-        'help': """
-        Design organization (optional)
-        """
-    }
-
-    cfg['author'] = {
-        'switch': "-author <str>",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'defvalue': [],
-        'shorthelp': 'Project author',
-        'example': ["cli: -author wiley",
-                    "api: chip.set('author', 'wiley')"],
-        'help': """
-        Author name (optional)
-        """
-    }
-
-    cfg['userid'] = {
-        'switch': "-userid <str>",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'defvalue': [],
-        'shorthelp': 'User ID',
-        'example': ["cli: -userid 0123",
-                    "api: chip.set('userid', '0123')"],
-        'help': """
-        User ID (optional)
-        """
-    }
-
-    cfg['publickey'] = {
-        'switch': "-publickey <str>",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'defvalue': None,
-        'shorthelp': 'User public key',
-        'example': ["cli: -publickey 6EB695706EB69570",
-                    "api: chip.set('publickey', '6EB695706EB69570')"],
-        'help': """
-        User public key (optional)
-        """
-    }
 
     cfg['clock'] = {}
     cfg['clock']['default'] = {}
@@ -5251,3 +5071,10 @@ def schema_mcmm(cfg, scenario='default'):
     }
 
     return cfg
+
+
+##############################################################################
+# Main routie
+if __name__ == "__main__":
+    cfg = schema_cfg()
+    print(json.dumps(cfg, indent=4, sort_keys=True))
