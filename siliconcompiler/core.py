@@ -2905,7 +2905,7 @@ class Chip:
 
             version = parse_version(proc.stdout)
             allowed_versions = self.get('eda', tool, step, index, 'version')
-            if version not in allowed_versions:
+            if allowed_versions and version not in allowed_versions:
                 allowedstr = ', '.join(allowed_versions)
                 self.logger.error(f"Version check failed for {tool}. Check installation.")
                 self.logger.error(f"Found version {version}, expected one of [{allowedstr}].")
