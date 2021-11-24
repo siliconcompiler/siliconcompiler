@@ -162,7 +162,7 @@ def setup_pdk(chip):
     chip.set('library', libname, 'type', 'stdcell')
 
     # rev
-    chip.set('library', libname, 'version', rev)
+    chip.set('library', libname, 'package', 'version', rev)
 
     # timing
     chip.add('library', libname, 'nldm', corner, 'lib',

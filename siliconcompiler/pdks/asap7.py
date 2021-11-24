@@ -165,7 +165,7 @@ def setup_pdk(chip):
     libdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'libs', libname, rev)
 
     # rev
-    chip.set('library',libname,'version',rev)
+    chip.set('library',libname, 'package', 'version',rev)
 
     # timing
     chip.add('library', libname, 'nldm', corner, 'lib',
