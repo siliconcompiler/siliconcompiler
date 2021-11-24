@@ -29,7 +29,7 @@ def schema_cfg():
     cfg = schema_options(cfg)
 
     # Project configuration
-    cfg = schema_package(cfg, group='project')
+    cfg = schema_package(cfg, group='package')
     cfg = schema_design(cfg)
     cfg = schema_fpga(cfg)
     cfg = schema_asic(cfg)
@@ -3068,7 +3068,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
         'shorthelp': 'Record of sc version',
         'example': [
             "cli: -record_version_sc 'job0 dfm 0 1.0'",
-            "api: chip.set('record','job0', 'dfm','0', 'sc', 'version', '1.0')"],
+            "api: chip.set('record','job0', 'dfm','0', 'version', 'sc', '1.0')"],
         'help': """
         Record tracking the sc version number on the compute node.
         """
@@ -3227,7 +3227,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
         'shorthelp': 'Compute node operating system version',
         'example': [
             "cli: -record_version_os 'job0 dfm 0 20.04.1-Ubuntu'",
-            "api: chip.set('record', 'job0', 'dfm', '0', 'version', 'os' '20.04.1-Ubuntu')"],
+            "api: chip.set('record', 'job0', 'dfm', '0', 'version', 'os', '20.04.1-Ubuntu')"],
         'help': """
         Record tracking the complete operating system version name. Since there is
         not standarrd version system for operating systems, extracting information
@@ -3817,12 +3817,12 @@ def schema_package(cfg, group):
 
     localcfg = {}
 
-    if group == 'project':
+    if group == 'package':
         lib = ""
-        comma= ""
+        libapi= ""
     elif group == 'library':
         lib = 'lib '
-        comma = ','
+        libapi = "'lib','package',"
 
     localcfg['name'] = {
         'switch': f"-{group}_name '{lib}<str>'",
@@ -3832,8 +3832,8 @@ def schema_package(cfg, group):
         'defvalue': None,
         'shorthelp': f"{group} name",
         'example': [
-            f"cli: -{group}_name yac",
-            f"api: chip.set('{group}','{lib}{comma}'name', 'yac')"],
+            f"cli: -{group}_name {lib}yac",
+            f"api: chip.set('{group}',{libapi}'name', 'yac')"],
         'help': f"""
         Name of {group}.
         """
@@ -3848,7 +3848,7 @@ def schema_package(cfg, group):
         'shorthelp': f"{group} version number",
         'example': [
             f"cli: -{group}_version '{lib}1.0'",
-            f"api: chip.set({group},{lib}{comma}'version', '1.0')"],
+            f"api: chip.set({group},{libapi}'version', '1.0')"],
         'help': f"""
         Version number. Can be a branch, tag, commit hash, or a major.minor
         type version string. It is recommended to follow the semver standard.
@@ -3864,7 +3864,7 @@ def schema_package(cfg, group):
         'shorthelp': f'Short {group} description',
         'example': [
             f"cli: -{group}_description '{lib}Yet another cpu'",
-            f"api: chip.set('{group}',{lib}{comma}'description', 'Yet another cpu')"],
+            f"api: chip.set('{group}',{libapi}'description', 'Yet another cpu')"],
         'help': """
         Short one line description for package managers and summary reports.
         """
@@ -3879,7 +3879,7 @@ def schema_package(cfg, group):
         'shorthelp': f"{group} keyword",
         'example': [
             f"cli: -{group}_keyword yac",
-            f"api: chip.set('{group}','{lib}{comma}'keyword', 'yac')"],
+            f"api: chip.set('{group}','{libapi}'keyword', 'yac')"],
         'help': f"""
         List of keyword(s) used to search for {group}.
         """
@@ -3894,7 +3894,7 @@ def schema_package(cfg, group):
         'shorthelp': f"{group} homepage",
         'example': [
             f"cli: -{group}_homepage yac",
-            f"api: chip.set('{group}','{lib}{comma}'homepage', 'yac')"],
+            f"api: chip.set('{group}','{libapi}'homepage', 'yac')"],
         'help': f"""
         Homepage for {group}.
         """
@@ -3921,7 +3921,7 @@ def schema_package(cfg, group):
             'shorthelp': f'{group} {item}',
             'example': [
                 f"cli: -{group}_doc_{item} '{lib}design.pdf",
-                f"api: chip.set('{group}',{lib}{comma}'doc',{item},'design.pdf')"],
+                f"api: chip.set('{group}',{libapi}'doc',{item},'design.pdf')"],
             'help': f"""
             List of {item} documents.
             """
@@ -3942,7 +3942,7 @@ def schema_package(cfg, group):
         'shorthelp': f'{group} signoff documents',
         'example': [
             f"cli: -{group}_signoff '{lib}hello_review.md",
-            f"api: chip.set('{group}',{lib}{comma}'signoff','hello_review.md')"],
+            f"api: chip.set('{group}',{libapi}'signoff','hello_review.md')"],
         'help': """
         Final signoff report(s).
         """
@@ -3958,7 +3958,7 @@ def schema_package(cfg, group):
         'shorthelp': f'{group} signoff checklist',
         'example': [
             f"cli: -{group}_checklist '{lib}LINT_PASS True",
-            f"api: chip.set('{group}',{lib}{comma}'checklist',LINT_PASS,True)"],
+            f"api: chip.set('{group}',{libapi}'checklist',LINT_PASS,True)"],
         'help': """
         Final signoff checklist specified as a key value pair. Values are
         True/False booleans.
@@ -3974,16 +3974,16 @@ def schema_package(cfg, group):
         'shorthelp': f"{group} repository",
         'example': [
             f"cli: -{group}_repo git@github.com:aolofsson/oh.git",
-            f"api: chip.set('{group}',{lib}{comma}'repo','git@github.com:aolofsson/oh.git')"],
+            f"api: chip.set('{group}',{libapi}'repo','git@github.com:aolofsson/oh.git')"],
         'help': f"""
         Optional address to the {group} repository.
         """
     }
 
-    package = 'default'
+    dep = 'default'
     localcfg['dependency'] = {}
-    localcfg['dependency'][package] = {
-        'switch': f"-{group}_dependency '{lib}<package> <version>'",
+    localcfg['dependency'][dep] = {
+        'switch': f"-{group}_dependency '{lib}<dep> <version>'",
         'type': 'str',
         'lock': 'false',
         'require': None,
@@ -3991,7 +3991,7 @@ def schema_package(cfg, group):
         'shorthelp': f'{group} dependency version',
         'example': [
             f"cli: -{group}_dependency '{lib}hello 1.0.0'",
-            f"api: chip.set('{group}',{lib}{comma}'dependency','hello','1.0.0'"],
+            f"api: chip.set('{group}',{libapi}'dependency','hello','1.0.0')"],
         'help': """
         Package version.
         """
@@ -4012,7 +4012,7 @@ def schema_package(cfg, group):
         'shorthelp': f'{group} license file',
         'example': [
             f"cli: -{group}_license '{lib}./LICENSE",
-            f"api: chip.set('{group}',{lib}{comma}'license', './LICENSE')"],
+            f"api: chip.set('{group}',{libapi}'license', './LICENSE')"],
         'help': f"""
         Filepath to the technology license for {group}.
         """
@@ -4027,7 +4027,7 @@ def schema_package(cfg, group):
         'shorthelp': f'{group} location',
         'example': [
             f"cli: -{group}_location mars",
-            f"api: chip.set('{group}', {lib}{comma}'location', 'mars')"],
+            f"api: chip.set('{group}', {libapi}'location', 'mars')"],
         'help': """
         Location of origin for project.
         """
@@ -4042,7 +4042,7 @@ def schema_package(cfg, group):
         'shorthelp': f"{group} organization",
         'example': [
             f"cli: -{group}_organization '{lib}humanity'",
-            f"api: chip.set('{group}',{lib}{comma}'organization', 'humanity')"],
+            f"api: chip.set('{group}',{libapi}'organization', 'humanity')"],
         'help': """
         Projection organization name.
         """
@@ -4057,7 +4057,7 @@ def schema_package(cfg, group):
         'shorthelp': f'{group} author',
         'example': [
             f"cli: -{group}_author '{lib}wiley",
-            f"api: chip.set('{group}',{lib}{comma}'author', 'wiley')"],
+            f"api: chip.set('{group}',{libapi}'author', 'wiley')"],
         'help': """
         Author name(s).
         """
@@ -4072,7 +4072,7 @@ def schema_package(cfg, group):
         'shorthelp': f'{group} author user ID',
         'example': [
             f"cli: -{group}_userid '{lib}0123",
-            f"api: chip.set('{group}',{lib}{comma}'userid', '0123')"],
+            f"api: chip.set('{group}',{libapi}'userid', '0123')"],
         'help': """
         List of anonymized authoer user ID(s).
         """
@@ -4087,7 +4087,7 @@ def schema_package(cfg, group):
         'shorthelp': f"{group} public key",
         'example': [
             f"cli: -{group}_publickey '{lib}6EB695706EB69570'",
-            f"api: chip.set('{group}',{lib}{comma}'publickey','6EB695706EB69570')"],
+            f"api: chip.set('{group}',{libapi}'publickey','6EB695706EB69570')"],
         'help': f"""
         Public key for {group}.
         """
@@ -4098,7 +4098,6 @@ def schema_package(cfg, group):
         cfg['package'] = copy.deepcopy(localcfg)
     elif group == 'library':
         cfg['library']['default']['package'] = copy.deepcopy(localcfg)
-
     return cfg
 
 ############################################

@@ -10,6 +10,7 @@ def test_setget():
     schema examples are valid.
     '''
 
+    DEBUG = False
     chip = siliconcompiler.Chip()
     error = 0
 
@@ -17,6 +18,8 @@ def test_setget():
     for key in allkeys:
         sctype = chip.get(*key, field='type')
         examples = chip.get(*key, field='example')
+        if DEBUG:
+            print(key, sctype, examples)
         for example in examples:
             match = re.match(r'api\:\s+chip.(set|add|get)\((.*)\)', example)
             if match is not None:
@@ -54,6 +57,8 @@ def test_setget():
             args = keypath + [value]
 
         if match.group(1) == 'set':
+            if DEBUG:
+                print(args)
             chip.set(*args, clobber=True)
         elif match.group(1) == 'add':
             chip.add(*args)
