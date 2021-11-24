@@ -53,6 +53,7 @@ def schema_cfg():
     # Compilation records
     cfg = schema_metric(cfg)
     cfg = schema_record(cfg)
+    cfg = schema_package(cfg, 'record')
 
     return cfg
 
@@ -2922,7 +2923,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
         'shorthelp': 'Record of all input files',
         'example': [
             "cli: -record_input 'job0 import 0 adder.v'",
-            "api: chip.set('record','job0', 'import','0','input','adder.v')"],
+            "api: chip.set('record','job0','import','0','input','adder.v')"],
         'help': """
         Record tracking all input files on a per step and index basis.
         """
@@ -2968,51 +2969,6 @@ def schema_record(cfg, job='default', step='default', index='default'):
         """
     }
 
-    cfg['record'][job][step][index]['author'] = {
-        'switch': "-record_author 'job step index <str>'",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'defvalue': [],
-        'shorthelp': 'Author name',
-        'example': [
-            "cli: -record_author 'job0 dfm 0 coyote'",
-            "api: chip.set('record', 'job0','dfm','0','author','coyote')"],
-        'help': """
-        Record tracking the author name.
-        """
-    }
-
-    cfg['record'][job][step][index]['userid'] = {
-        'switch': "-record_userid 'job step index <str>'",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'defvalue': [],
-        'shorthelp': 'User ID',
-        'example': [
-            "cli: -record_userid 'job0 dfm 0 0982acea'",
-            "api: chip.set('record','dfm','job0','0','userid','0982acea')"],
-        'help': """
-        Record tracking the run userid.
-        """
-    }
-
-    cfg['record'][job][step][index]['publickey'] = {
-        'switch': "-record_publickey 'job step index <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'defvalue': None,
-        'shorthelp': 'User public key',
-        'example': [
-            "cli: -record_publickey 'job0 dfm 0 6EB695706EB69570'",
-            "api: chip.set('record','job0','dfm','0','publickey','6EB695706EB69570')"],
-        'help': """
-        Record tracking the run public key.
-        """
-    }
-
     cfg['record'][job][step][index]['exitstatus'] = {
         'switch': "-record_exitstatus 'job step index <str>'",
         'type': 'str',
@@ -3030,34 +2986,6 @@ def schema_record(cfg, job='default', step='default', index='default'):
         """
     }
 
-    cfg['record'][job][step][index]['org'] = {
-        'switch': "-record_org 'job step index <str>'",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'defvalue': [],
-        'shorthelp': 'Record of run organization',
-        'example': ["cli: -record_org 'job0 dfm 0 earth'",
-                    "api: chip.set('record','job0','dfm','0','org','earth')"],
-        'help': """
-        Record tracking the user's organization.
-        """
-    }
-
-    cfg['record'][job][step][index]['location'] = {
-        'switch': "-record_location 'job step index <str>'",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'defvalue': [],
-        'shorthelp': 'Record of run location',
-        'example': [
-            "cli: -record_location 'job0 dfm 0 Boston'",
-            "api: chip.set('record','job0,'dfm','0','location,'Boston')"],
-        'help': """
-        Record tracking the user's location/site.
-        """
-    }
     cfg['record'][job][step][index]['version']={}
     cfg['record'][job][step][index]['version']['sc'] = {
         'switch': "-record_version_sc 'job step index <str>'",
@@ -3823,6 +3751,9 @@ def schema_package(cfg, group):
     elif group == 'library':
         lib = 'lib '
         libapi = "'lib','package',"
+    elif group == 'record':
+        lib = 'job step index '
+        libapi = "'job0','import','0','package',"
 
     localcfg['name'] = {
         'switch': f"-{group}_name '{lib}<str>'",
@@ -4095,6 +4026,8 @@ def schema_package(cfg, group):
     # copy package dictionary into library/project
     if group == 'package':
         cfg['package'] = copy.deepcopy(localcfg)
+    elif group == 'record':
+        cfg['record']['default']['default']['default']['package'] = copy.deepcopy(localcfg)
     elif group == 'library':
         cfg['library']['default']['package'] = copy.deepcopy(localcfg)
     return cfg
