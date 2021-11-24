@@ -72,6 +72,7 @@ class Chip:
         #               HPC cluster; expects a 'threading.Event'-like object.
         # * 'max_fs_bytes': A limit on how much disk space a job is allowed
         #                   to consume in a connected HPC cluster's storage.
+        # * 'local_dir': For remote runs, the original local build directory.
         self.status = {}
 
         self.builtin = ['minimum','maximum',
@@ -950,6 +951,25 @@ class Chip:
         return keylist
 
     ###########################################################################
+    def _getfilekeys(self, cfg=None):
+        '''
+        Returns list of all non-default keypaths with file or dir type in the schema.
+        '''
+
+        file_keypaths = []
+
+        for keypath in self.getkeys(cfg=cfg):
+            if 'default' in keypath:
+                continue
+
+            paramtype = self.get(*keypath, field='type')
+            #only do something if type is file or dir
+            if 'file' in paramtype or 'dir' in paramtype:
+                file_keypaths.append(keypath)
+
+        return file_keypaths
+
+    ###########################################################################
     def _search(self, cfg, keypath, *args, field='value', mode='get', clobber=True):
         '''
         Internal recursive function that searches the Chip schema for a
@@ -1525,36 +1545,29 @@ class Chip:
         allowed_paths = [os.path.join(self.cwd, self.get('dir'))]
         allowed_paths.extend(os.environ['SC_VALID_PATHS'].split(os.pathsep))
 
-        for keypath in self.getkeys():
-            if 'default' in keypath:
+        for keypath in self._getfilekeys():
+            if self.get(*keypath) is None:
+                # skip unset values (some directories are None by default)
                 continue
 
-            paramtype = self.get(*keypath, field='type')
-            #only do something if type is file or dir
-            if 'file' in paramtype or 'dir' in paramtype:
+            abspaths = self.find_files(*keypath, missing_ok=True)
+            if not isinstance(abspaths, list):
+                abspaths = [abspaths]
 
-                if self.get(*keypath) is None:
-                    # skip unset values (some directories are None by default)
-                    continue
+            for abspath in abspaths:
+                ok = False
 
-                abspaths = self.find_files(*keypath, missing_ok=True)
-                if not isinstance(abspaths, list):
-                    abspaths = [abspaths]
+                if abspath is not None:
+                    for allowed_path in allowed_paths:
+                        if os.path.commonpath([abspath, allowed_path]) == allowed_path:
+                            ok = True
+                            continue
 
-                for abspath in abspaths:
-                    ok = False
-
-                    if abspath is not None:
-                        for allowed_path in allowed_paths:
-                            if os.path.commonpath([abspath, allowed_path]) == allowed_path:
-                                ok = True
-                                continue
-
-                    if not ok:
-                        self.logger.error(f'Keypath {keypath} contains path(s) '
-                            'that do not exist or resolve to files outside of '
-                            'allowed directories.')
-                        return False
+                if not ok:
+                    self.logger.error(f'Keypath {keypath} contains path(s) '
+                        'that do not exist or resolve to files outside of '
+                        'allowed directories.')
+                    return False
 
         return True
 
@@ -1721,6 +1734,47 @@ class Chip:
         # resolve absolute paths
         if abspath:
             self._abspath(cfgcopy)
+
+        if (not abspath) and ('local_dir' in self.status) and (self.status['local_dir'] != self.get('dir')):
+            # If we have 'local_dir' in self.status and we're not told to
+            # resolve absolute paths, we want to replace the path of any file or
+            # directory that's under a remote build directory with the path to
+            # that file under the local build directory.
+
+            for keypath in self._getfilekeys(cfg=cfgcopy):
+                paths = self.get(*keypath)
+                if paths is None:
+                    # skip unset values (some directories are None by default)
+                    continue
+
+                if not isinstance(paths, list):
+                    pathslist = [paths]
+                else:
+                    pathslist = paths
+
+                localpaths = []
+                for path in pathslist:
+                    if os.path.commonpath([path, self.get('dir')]) == self.get('dir'):
+                        # If this path is under the build dir...
+
+                        # get path as relative path from build dir
+                        relpath = os.path.relpath(path, start=self.get('dir'))
+
+                        # append this relative path to the local build dir
+                        # to construct a new path
+                        if relpath == '.':
+                            newpath = self.status['local_dir']
+                        else:
+                            newpath = os.path.join(self.status['local_dir'], relpath)
+
+                        localpaths.append(newpath)
+                    else:
+                        localpaths.append(path)
+
+                if isinstance(paths, list):
+                    self.set(*keypath, localpaths, cfg=cfgcopy)
+                else:
+                    self.set(*keypath, localpaths[0], cfg=cfgcopy)
 
         # format specific dumping
         with open(filepath, 'w') as f:
