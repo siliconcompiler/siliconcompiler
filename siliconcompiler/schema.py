@@ -3824,22 +3824,20 @@ def schema_package(cfg, group):
         lib = 'lib '
         comma = ','
 
-    # the project name becomes the package key
-    if group == 'project':
-        localcfg['name'] = {
-            'switch': "-project_name <str>",
-            'type': 'str',
-            'lock': 'false',
-            'require': None,
-            'defvalue': None,
-            'shorthelp': 'Project name',
-            'example': ["cli: -project_name yac",
-                        "api: chip.set('project', 'name', 'yac')"],
-            'help': """
-            Project name.
-            """
-        }
-
+    localcfg['name'] = {
+        'switch': f"-{group}_name '{lib}<str>'",
+        'type': 'str',
+        'lock': 'false',
+        'require': None,
+        'defvalue': None,
+        'shorthelp': f"{group} name",
+        'example': [
+            f"cli: -{group}_name yac",
+            f"api: chip.set('{group}','{lib}{comma}'name', 'yac')"],
+        'help': f"""
+        Name of {group}.
+        """
+    }
 
     localcfg['version'] = {
         'switch': f"-{group}_version '{lib}<str>'",
@@ -3871,6 +3869,37 @@ def schema_package(cfg, group):
         Short one line description for package managers and summary reports.
         """
     }
+
+    localcfg['keyword'] = {
+        'switch': f"-{group}_keyword '{lib}<str>'",
+        'type': 'str',
+        'lock': 'false',
+        'require': None,
+        'defvalue': None,
+        'shorthelp': f"{group} keyword",
+        'example': [
+            f"cli: -{group}_keyword yac",
+            f"api: chip.set('{group}','{lib}{comma}'keyword', 'yac')"],
+        'help': f"""
+        List of keyword(s) used to search for {group}.
+        """
+    }
+
+    localcfg['homepage'] = {
+        'switch': f"-{group}_homepage '{lib}<str>'",
+        'type': 'str',
+        'lock': 'false',
+        'require': None,
+        'defvalue': None,
+        'shorthelp': f"{group} homepage",
+        'example': [
+            f"cli: -{group}_homepage yac",
+            f"api: chip.set('{group}','{lib}{comma}'homepage', 'yac')"],
+        'help': f"""
+        Homepage for {group}.
+        """
+    }
+
 
     doctypes = ['datasheet', 'specification', 'testplan',
                 'userguide', 'appnote', 'tutorial',
@@ -3951,18 +3980,20 @@ def schema_package(cfg, group):
         """
     }
 
-    localcfg['dependency'] = {
-        'switch': f"-{group}_dependency '{lib}(<package>,<version>)'",
-        'type': '[(str,str)]',
+    package = 'default'
+    localcfg['dependency'] = {}
+    localcfg['dependency'][package] = {
+        'switch': f"-{group}_dependency '{lib}<package> <version>'",
+        'type': 'str',
         'lock': 'false',
         'require': None,
         'defvalue': [],
-        'shorthelp': f'{group} dependency',
+        'shorthelp': f'{group} dependency version',
         'example': [
-            f"cli: -{group}_dependency '{lib}(hello,1.0.0)'",
-            f"api: chip.set('{group}',{lib}{comma}'dependency',('hello','1.0.0')"],
+            f"cli: -{group}_dependency '{lib}hello 1.0.0'",
+            f"api: chip.set('{group}',{lib}{comma}'dependency','hello','1.0.0'"],
         'help': """
-        Version of a named package dependency needed for the project.
+        Package version.
         """
     }
 
