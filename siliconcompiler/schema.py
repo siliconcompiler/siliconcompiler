@@ -29,7 +29,7 @@ def schema_cfg():
     cfg = schema_options(cfg)
 
     # Project configuration
-    cfg = schema_package(cfg, group='package')
+    cfg = schema_package(cfg, 'package')
     cfg = schema_design(cfg)
     cfg = schema_fpga(cfg)
     cfg = schema_asic(cfg)
@@ -48,7 +48,7 @@ def schema_cfg():
     # Package management
     cfg = schema_hier(cfg)
     cfg = schema_libs(cfg)
-    cfg = schema_package(cfg, group='library')
+    cfg = schema_package(cfg, 'library')
 
     # Compilation records
     cfg = schema_metric(cfg)
@@ -1639,7 +1639,7 @@ def schema_flowgraph(cfg, step='default', index='default'):
         'lock': 'false',
         'require': None,
         'defvalue': 'false',
-        'shorthelp': 'Flowgraph step/index valid bit',
+        'shorthelp': 'Flowgraph task valid bit',
         'example': [
             "cli: -flowgraph_valid 'cts 0 true'",
             "api:  chip.set('flowgraph','cts','0','valid',True)"],
@@ -2373,7 +2373,7 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'lock': 'false',
         'require': 'all',
         'defvalue': None,
-        'shorthelp': 'Test coverage metric',
+        'shorthelp': 'Coverage metric',
         'example': [
             "cli: -metric_coverage 'place 0 goal 99.9'",
             "api: chip.set('metric','place','0','coverage','goal','99.9')"],
@@ -3483,7 +3483,7 @@ def schema_options(cfg):
         'lock': 'false',
         'require': 'all',
         'defvalue': 'false',
-        'shorthelp': 'Enabling file hashing',
+        'shorthelp': 'Enable file hashing',
         'example': ["cli: -hash",
                     "api: chip.set('hash', True)"],
         'help': """
@@ -3830,7 +3830,7 @@ def schema_package(cfg, group):
         'lock': 'false',
         'require': None,
         'defvalue': None,
-        'shorthelp': f"{group} name",
+        'shorthelp': f"{group.capitalize()} name",
         'example': [
             f"cli: -{group}_name {lib}yac",
             f"api: chip.set('{group}',{libapi}'name', 'yac')"],
@@ -3845,7 +3845,7 @@ def schema_package(cfg, group):
         'lock': 'false',
         'require': None,
         'defvalue': None,
-        'shorthelp': f"{group} version number",
+        'shorthelp': f"{group.capitalize()} version number",
         'example': [
             f"cli: -{group}_version '{lib}1.0'",
             f"api: chip.set({group},{libapi}'version', '1.0')"],
@@ -3861,7 +3861,7 @@ def schema_package(cfg, group):
         'lock': 'false',
         'require': None,
         'defvalue': None,
-        'shorthelp': f'Short {group} description',
+        'shorthelp': f"{group.capitalize()} short description",
         'example': [
             f"cli: -{group}_description '{lib}Yet another cpu'",
             f"api: chip.set('{group}',{libapi}'description', 'Yet another cpu')"],
@@ -3876,7 +3876,7 @@ def schema_package(cfg, group):
         'lock': 'false',
         'require': None,
         'defvalue': None,
-        'shorthelp': f"{group} keyword",
+        'shorthelp': f"{group.capitalize()} keywords",
         'example': [
             f"cli: -{group}_keyword yac",
             f"api: chip.set('{group}','{libapi}'keyword', 'yac')"],
@@ -3891,7 +3891,7 @@ def schema_package(cfg, group):
         'lock': 'false',
         'require': None,
         'defvalue': None,
-        'shorthelp': f"{group} homepage",
+        'shorthelp': f"{group.capitalize()} homepage",
         'example': [
             f"cli: -{group}_homepage yac",
             f"api: chip.set('{group}','{libapi}'homepage', 'yac')"],
@@ -3900,12 +3900,11 @@ def schema_package(cfg, group):
         """
     }
 
-
     doctypes = ['datasheet', 'specification', 'testplan',
                 'userguide', 'appnote', 'tutorial',
                 'reference']
+    localcfg['doc'] = {}
     for item in doctypes:
-        localcfg['doc'] = {}
         localcfg['doc'][item] = {
             'switch': f"-{group}_doc_{item} '{lib}<file>'",
             'type': '[file]',
@@ -3918,7 +3917,7 @@ def schema_package(cfg, group):
             'date': [],
             'author': [],
             'signature': [],
-            'shorthelp': f'{group} {item}',
+            'shorthelp': f"{group.capitalize()} {item}",
             'example': [
                 f"cli: -{group}_doc_{item} '{lib}design.pdf",
                 f"api: chip.set('{group}',{libapi}'doc',{item},'design.pdf')"],
@@ -3939,7 +3938,7 @@ def schema_package(cfg, group):
         'date': [],
         'author': [],
         'signature': [],
-        'shorthelp': f'{group} signoff documents',
+        'shorthelp': f"{group.capitalize()} signoff documents",
         'example': [
             f"cli: -{group}_signoff '{lib}hello_review.md",
             f"api: chip.set('{group}',{libapi}'signoff','hello_review.md')"],
@@ -3955,7 +3954,7 @@ def schema_package(cfg, group):
         'lock': 'false',
         'require': None,
         'defvalue': None,
-        'shorthelp': f'{group} signoff checklist',
+        'shorthelp': f"{group.capitalize()} signoff checklist",
         'example': [
             f"cli: -{group}_checklist '{lib}LINT_PASS True",
             f"api: chip.set('{group}',{libapi}'checklist',LINT_PASS,True)"],
@@ -3971,7 +3970,7 @@ def schema_package(cfg, group):
         'lock': 'false',
         'require': None,
         'defvalue': [],
-        'shorthelp': f"{group} repository",
+        'shorthelp': f"{group.capitalize()} repository",
         'example': [
             f"cli: -{group}_repo git@github.com:aolofsson/oh.git",
             f"api: chip.set('{group}',{libapi}'repo','git@github.com:aolofsson/oh.git')"],
@@ -3988,7 +3987,7 @@ def schema_package(cfg, group):
         'lock': 'false',
         'require': None,
         'defvalue': [],
-        'shorthelp': f'{group} dependency version',
+        'shorthelp': f"{group.capitalize()} dependency version",
         'example': [
             f"cli: -{group}_dependency '{lib}hello 1.0.0'",
             f"api: chip.set('{group}',{libapi}'dependency','hello','1.0.0')"],
@@ -4009,7 +4008,7 @@ def schema_package(cfg, group):
         'date': [],
         'author': [],
         'signature': [],
-        'shorthelp': f'{group} license file',
+        'shorthelp': f"{group.capitalize()} license file",
         'example': [
             f"cli: -{group}_license '{lib}./LICENSE",
             f"api: chip.set('{group}',{libapi}'license', './LICENSE')"],
@@ -4024,7 +4023,7 @@ def schema_package(cfg, group):
         'lock': 'false',
         'require': None,
         'defvalue': [],
-        'shorthelp': f'{group} location',
+        'shorthelp': f"{group.capitalize()} location",
         'example': [
             f"cli: -{group}_location mars",
             f"api: chip.set('{group}', {libapi}'location', 'mars')"],
@@ -4054,7 +4053,7 @@ def schema_package(cfg, group):
         'lock': 'false',
         'require': None,
         'defvalue': [],
-        'shorthelp': f'{group} author',
+        'shorthelp': f"{group.capitalize()} author",
         'example': [
             f"cli: -{group}_author '{lib}wiley",
             f"api: chip.set('{group}',{libapi}'author', 'wiley')"],
@@ -4069,7 +4068,7 @@ def schema_package(cfg, group):
         'lock': 'false',
         'require': None,
         'defvalue': [],
-        'shorthelp': f'{group} author user ID',
+        'shorthelp': f"{group.capitalize()} author user ID",
         'example': [
             f"cli: -{group}_userid '{lib}0123",
             f"api: chip.set('{group}',{libapi}'userid', '0123')"],
@@ -4084,7 +4083,7 @@ def schema_package(cfg, group):
         'lock': 'false',
         'require': None,
         'defvalue': None,
-        'shorthelp': f"{group} public key",
+        'shorthelp': f"{group.capitalize()} public key",
         'example': [
             f"cli: -{group}_publickey '{lib}6EB695706EB69570'",
             f"api: chip.set('{group}',{libapi}'publickey','6EB695706EB69570')"],
@@ -4094,7 +4093,7 @@ def schema_package(cfg, group):
     }
 
     # copy package dictionary into library/project
-    if group == 'project':
+    if group == 'package':
         cfg['package'] = copy.deepcopy(localcfg)
     elif group == 'library':
         cfg['library']['default']['package'] = copy.deepcopy(localcfg)
@@ -4443,7 +4442,7 @@ def schema_design(cfg):
         'date': [],
         'author': [],
         'signature': [],
-        'shorthelp': 'Design constraint files',
+        'shorthelp': 'Design constraints files',
         'example': ["cli: -constraint top.sdc",
                     "api: chip.set('constraint','top.sdc')"],
         'help': """
