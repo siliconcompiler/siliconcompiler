@@ -1628,10 +1628,6 @@ class Chip:
                         self.error = 1
                         self.logger.error(f'Executable not specified for tool {tool}')
 
-                    if self._keypath_empty(['eda', tool, step, index, 'version']):
-                        self.error = 1
-                        self.logger.error(f'Version not specified for tool {tool}')
-
         if 'SC_VALID_PATHS' in os.environ:
             if not self._check_files():
                 self.error = 1
