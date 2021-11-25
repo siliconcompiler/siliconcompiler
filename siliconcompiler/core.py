@@ -1628,10 +1628,6 @@ class Chip:
                         self.error = 1
                         self.logger.error(f'Executable not specified for tool {tool}')
 
-                    if self._keypath_empty(['eda', tool, step, index, 'version']):
-                        self.error = 1
-                        self.logger.error(f'Version not specified for tool {tool}')
-
         if 'SC_VALID_PATHS' in os.environ:
             if not self._check_files():
                 self.error = 1
@@ -2909,7 +2905,7 @@ class Chip:
 
             version = parse_version(proc.stdout)
             allowed_versions = self.get('eda', tool, step, index, 'version')
-            if version not in allowed_versions:
+            if allowed_versions and version not in allowed_versions:
                 allowedstr = ', '.join(allowed_versions)
                 self.logger.error(f"Version check failed for {tool}. Check installation.")
                 self.logger.error(f"Found version {version}, expected one of [{allowedstr}].")
