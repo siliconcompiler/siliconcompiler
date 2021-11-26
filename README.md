@@ -6,32 +6,25 @@
 [![Documentation](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/docs_test.yml/badge.svg)](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/docs_test.yml)
 [![Wheels](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/wheels.yml/badge.svg?event=schedule)](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/wheels.yml)
 
-SiliconCompiler ("SC") is a open source compiler infrastructure project that aims
-to lower the barrier to hardware specialization through a simple distributed
-programming model and standardized tool configurations.
+SiliconCompiler is an open source compiler framework that aims to enable automated translation from source code to silicon.
 
 - **Website:**  https://www.siliconcompiler.com
-- **Documentation:**  https://www.siliconcompiler.com/docs
+- **Documentation:**  https://docs.siliconcompiler.com
 - **Sources:**  https://github.com/siliconcompiler/siliconcompiler
-- **Issues:**  https://github.com/siliconcompiler/siliconcompiler/Issues
+- **Issues:**  https://github.com/siliconcompiler/siliconcompiler/issues
 - **RFCs:**  https://github.com/siliconcompiler/rfcs
 - **Disussion:** https://github.com/siliconcompiler/siliconcompiler/discussions
 
-## Quick Start
 
-Hardware compilation includes four basic steps:
-
- 1. Create a SiliconCompiler instance.
- 2. Set up all compilation parameters.
- 3. Run compilation.
- 4. Inspect results.
-
-For simple prepackaged flows, only a small number of parameters need to be set.
-The following Python code snippet illustrates the basics. For a complete set of
-parameters, functions, and examples
-[READ THE DOCS](https://www.siliconcompiler.com/docs).
+## Programming Interface
+The SiliconCompiler project is based on an expansive compilation configuration
+[SCHEMA](https://docs.siliconcompiler.com/reference_manual/schema.html) and a
+simple [PYTHON API](https://docs.siliconcompiler.com/reference_manual/schema.html).
+The Python interface enables sophisticated compilation flows that leverage the
+full power of the Python programming language and package platform.
 
 ```python
+
 import siliconcompiler                        # import python package
 chip = siliconcompiler.Chip()                 # create chip object
 chip.set('source', 'heartbeat.v')             # define list of sources
@@ -41,42 +34,79 @@ chip.target('asicflow_freepdk45')             # load pre-defined flow
 chip.run()                                    # run compilation
 chip.summary()                                # print run summary
 chip.show()                                   # show layout
+
+```
+
+## Command Line Interface
+
+To simplify the on-ramp and to maximize experimentation productivity, the
+SiliconCompiler project includes a command line program 'sc',  with full
+support for all compiler schema parameters.
+
+#### Hello world
+
+For very simple designs, compiling using *sc* is as easy as using gcc or llvm.
+
+```bash
+pip install siliconcompiler
+sc hello.v
+```
+
+#### Complex design
+More complex designs are handled by adding  more  options. For
+scenarios with more than five command line options, the SiliconCompiler
+Python interface is usually a better option.
+
+```bash
+sc hello.v add.v -constraint hello.sdc -target "asicflow_skywater130"
+```
+
+
+## Remote Compilation
+
+To simplify tool installation and job scheduling, SiliconCompiler also supports a
+"-remote" option, which directs the compiler to send all steps to a remote
+server for processing. The -remote option relies on a credentials file located at
+~/.sc/credentials on Linux or macOS, or at C:\Users\USERNAME\\.sc\credentials on Windows.
+
+```bash
+sc hello.v -remote
 ```
 
 ## Installation
 
-SiliconCompiler is available as wheel packages for macOS, Windows and Linux on
-PyPI. To install the current release in your Python environment:
+SiliconCompiler is available as wheel packages on PyPI for macOS, Windows and
+Linux platforms. Full installation instructions can be found in the [USER GUIDE](https://docs.siliconcompiler.com/user_guide/installation.html) If you
+already have a working Python 3.6-3.10 environment, installation is simply:
 
 ```sh
-  python -m pip install siliconcompiler
+python -m pip install siliconcompiler
 ```
-
-Installation is also supported from source on Linux and macOS platforms:
+To install the project from source (supported on Linux and macOS platforms):
 
 ```bash
- git clone https://github.com/siliconcompiler/siliconcompiler
- cd siliconcompiler
- pip install -r requirements.txt
- python -m pip install -e .
+git clone https://github.com/siliconcompiler/siliconcompiler
+cd siliconcompiler
+pip install -r requirements.txt
+python -m pip install -e .
 ```
 
-## Dependancies
+## External Dependencies
 
-All SiliconCompiler based compilation flows depend on the correct operation of
-external executables. Installation instructions for all supported tools can be
-found in the tools directory of the
-[documentation](https://www.siliconcompiler.com/docs).
+SiliconCompiler depends on the correct installation of external executables to
+run locally. Installation instructions for all external tools can be found in the [TOOLS](https://docs.siliconcompiler.com/reference_manual/tools.html) documentation. For the '-remote' option,
+there are no external dependencies.
 
 ## Contributing
 
-To find out how to contribute to the project, please see our
-[contributing guidelines](./CONTRIBUTING.md)
+We need help! To find out how to contribute to the project, see our
+[CONTRIBUTING GUIDELINES.](./CONTRIBUTING.md)
 
 ## Issues / Bug Reports
 
-We use [GitHub issues](https://github.com/siliconcompiler/siliconcompiler/Issues)
+We use [GITHUB ISSUES](https://github.com/siliconcompiler/siliconcompiler/issues)
 for tracking requests and bugs.
 
+## License
 
-## Licensing
+[Apache License 2.0](LICENSE)
