@@ -15,49 +15,12 @@ SiliconCompiler is an open source compiler framework that aims to enable automat
 - **RFCs:**  https://github.com/siliconcompiler/rfcs
 - **Disussion:** https://github.com/siliconcompiler/siliconcompiler/discussions
 
-## Command Line Interface
 
-SiliconCompiler supports a simple command line interface 'sc' and an advanced
-Python API. Both models offer full access to 300+ standardized compiler
-schema parameters. For a complete set of parameters, functions, and examples
-read the [DOCUMENTATION](https://docs.siliconcompiler.com)!
-
-
-
-#### Hello world
-For very simple designs, compiling using *sc* is as easy as using gcc or llvm.
-
-```bash
-pip install siliconcompiler
-sc hello.v
-```
-
-#### Remote Compilation
-
-To simplify tool installation and job scheduling, SiliconCompiler supports a
-"-remote" option, which directs the compiler to send all steps to a remote
-server for processing. The -remote option relies on a credentials file located at
-~/.sc/credentials on Linux or macOS, or at C:\Users\USERNAME\\.sc\credentials on Windows.
-
-```bash
-sc hello.v -remote
-```
-
-#### Complex design
-More complex designs are handled by adding  more  options. For
-scenarios with more than five command line options, the SiliconCompiler
-Python interface is usually a better option.
-
-```bash
-sc hello.v add.v -constraint hello.sdc -target "asicflow_skywater130"
-```
-
-
-## Python Interface
-The SiliconCompiler
-[PYTHON API]((https://docs.siliconcompiler.com/reference_manual/schema.html) is
-a abstraction layer that sits on top of the compilation configuration
-[SCHEMA](https://docs.siliconcompiler.com/reference_manual/schema.html). The Python interface enables sophisticated design compilations that leverage the
+## Programming Interface
+The SiliconCompiler project is based on an expansive compilation configuration
+[SCHEMA](https://docs.siliconcompiler.com/reference_manual/schema.html) and a
+simple [PYTHON API](https://docs.siliconcompiler.com/reference_manual/schema.html).
+The Python interface enables sophisticated compilation flows that leverage the
 full power of the Python programming language and package platform.
 
 ```python
@@ -72,6 +35,42 @@ chip.run()                                    # run compilation
 chip.summary()                                # print run summary
 chip.show()                                   # show layout
 
+```
+
+## Command Line Interface
+
+To simplify the on-ramp and to maximize experimentation productivity, the
+SiliconCompiler project includes a command line program 'sc',  with full
+support for all compiler schema parameters.
+
+#### Hello world
+
+For very simple designs, compiling using *sc* is as easy as using gcc or llvm.
+
+```bash
+pip install siliconcompiler
+sc hello.v
+```
+
+#### Complex design
+More complex designs are handled by adding  more  options. For
+scenarios with more than five command line options, the SiliconCompiler
+Python interface is usually a better option.
+
+```bash
+sc hello.v add.v -constraint hello.sdc -target "asicflow_skywater130"
+```
+
+
+## Remote Compilation
+
+To simplify tool installation and job scheduling, SiliconCompiler also supports a
+"-remote" option, which directs the compiler to send all steps to a remote
+server for processing. The -remote option relies on a credentials file located at
+~/.sc/credentials on Linux or macOS, or at C:\Users\USERNAME\\.sc\credentials on Windows.
+
+```bash
+sc hello.v -remote
 ```
 
 ## Installation
@@ -96,7 +95,7 @@ python -m pip install -e .
 
 SiliconCompiler depends on the correct installation of external executables to
 run locally. Installation instructions for all external tools can be found in the [TOOLS](https://docs.siliconcompiler.com/reference_manual/tools.html) documentation. For the '-remote' option,
-there are no external dependencies.   
+there are no external dependencies.
 
 ## Contributing
 
