@@ -1,86 +1,215 @@
 Data model
 ===================================
 
-The SC project relies on a unified schema to exchange data between tools, foundry PDKs, and the design during the compilation process. The SC schema is designed to hold all information needed to drive hardware compilation from start to finish while successfully tracking all transformations performed in the process.
-
-For a complete description of the SC schema, refer to the :ref:`Schema Reference Manual<Schema>`.
-
-The schema is not designed to be accessed directly, but rather through the :ref:`SC core API<Core API>`. Individual parameter acess is accomplished through the get(), getkeys(), set(), and add() core API methods.
-
-The SC is rouhghy split into the following groups:
-
-* **design**: Parameters associated with the design and compilation process. Examples of user parameters include source files, constraints, supply definitions, clock definitions, and run time compile options.
-
-* **eda**: Parameters used to interface with tools at each step and index of the compilation flow. Examples of eda parameters include, executable name, optional command line flags, thread parallelism, install path,a nd required version number.
-  
-* **compilation flow**: Parameters that define the compilation flow on a per step and per index basis. A 'flowgraph' dictionary defines the function/tool to be called on a per step basis, the input/output relationship for all steps and indices, and the 'weight'/importance of each metric during the compilation process.
-  
-* **pdk**:  Parameters associated with a foundry PDK such file paths to design rule modles, spice models, pex models, and APR setup files.
-  
-* **library**: Parameters associated with a packaged library. Examples of library parameters include filepaths to timing models, layout data, netlists, source files, datasheets, user manuals, testbenches.
-   
-* **metric**: Parameters that hold all metrics to be tracked during the compilation process. Examples of metrics include errors, warnings, cell area, power, hold violation, setup violations, and design rule violations.
-  
-* **record**: Parameters that record data captured during the compilation process to track design provencence throughut the design and manufacturing process.
-  
-
-Reading and writing the schema to and from disk is done throught the read_manifest() and write_manifest() methods. The write_manifest supports dumping the complete SC schema as a JSON or YAML formatted file. In addition, dumping to TCL and CSV formatted files is supported to interface with legacy EDA tools.
-
-
-The basic schema structure as implemented in python cane be seen below.
-
+The SiliconCompiler Schema is a data structure that stores all configiruations  and metrics  gathered during the compilation process. Each schema entry ("parameter") is a self contained leaf cell with a required set of standardized key/value pairs ("fields"). The example below shows the definition of one of the parameters named 'design'.
 
 .. code-block:: python
 
    cfg['design'] = {
-        'switch': '-design',
+        'switch': "-design <str>",
         'type': 'str',
         'lock': 'false',
-        'requirement': 'optional',
+        'require': None,
         'defvalue': None,
-        'short_help': 'Design Top Module Name',
-        'param_help': "design <str>",
+        'shorthelp': 'Design top module name',
         'example': ["cli: -design hello_world",
-                    "api: chip.add('design', 'hello_world')"],
+                    "api: chip.set('design', 'hello_world')"],
         'help': """
-        Name of the top level design to compile. Required for all designs with
+        Name of the top level module to compile. Required for all designs with
         more than one module.
         """
     }
 
+The table below summarizes mandatory fields used in all parameter definitions.
 
-Example of a nested SC schema entry. The step variable below can be any legal python sctring except for 'default'.
+.. list-table::
+   :widths: 10 25 50
+   :header-rows: 1
 
-.. code-block:: python
+   * - Field
+     - Description
+     - Values
 
-   cfg['flowgraph'][step]['input'] = {
-        'switch': '-flowgraph_input',
-        'type': '[str]',
-        'lock': 'false',
-        'requirement': 'all',
-        'defvalue': [],
-        'short_help': 'Flowgraph Step Input',
-        'param_help': "flowgraph stepvar input <str>",
-        'example': ["cli: -flowgraph_input 'cts place'",
-                    "api:  chip.set('flowgraph', 'cts', 'input', 'place')"],
-        'help': """
-        List of input step dependancies for the current step.
-        """
-    }
+   * - **type**
+     - Parameter type
+     - file, dir, str, float, bool, int, [], (a,b)
+
+   * - **defvalue**
+     - Default schema value
+     - Type dependent
+
+   * - **shorthelp**
+     - Short single line help string.
+     - String
+
+   * - **help**
+     - Multi-line documentation string
+     - String
+
+   * - **example**
+     - Usage examples for CLI ad API
+     - String
+
+   * - **lock**
+     - Enable/disable for set()/add() methods
+     - True / False
+
+   * - **require**
+     - Flow based use requirements
+     - String
+
+   * - **switch**
+     - Mapping of parameter to a CLI switch
+     - String
+
+The file type parameters have the additional required fields show in the table below:
+
+.. list-table::
+   :widths: 10 25 50
+   :header-rows: 1
+
+   * - Field
+     - Description
+     - Legal Values
+
+   * - **author**
+     - File author
+     - String
+
+   * - **date**
+     - File date stamp
+     - String
+
+   * - **signature**
+     - Author signature key
+     - String
+
+   * - **filehash**
+     - File hash value
+     - String
+
+   * - **hashalgo**
+     - Hashing algorithm used
+     - sha256,md5,...
 
 
-Example of json record of SC schema:
+Accessing schema parameters is done using the set(), get(), and add() Python methods. The following shows how to create a chip object and manipulating a schema parameter in Python::
 
+  import siliconcompiler
+  chip = siliconcompiler.Chip()
+  chip.set('design', "hello_world")
+  print(chip.get('design'))
+
+Reading and writing the schema to and from disk is handled by the read_manifest() and write_manifest() Python API methods. Supported export file formats include TCL, JSON, and YAML. By default, only non-empty values are written to disk.::
+
+  import siliconcompiler
+  chip = siliconcompiler.Chip()
+  chip.set('design', "hello_world")
+  chip.write_manifest("hello_world.json")
+
+The JSON structure below shows the 'design' parameter exported by the write_manifest()  method.
 
 .. code-block:: json
 
-  "design": {
-        "type": "str",
-        "lock": "false",
-        "requirement": "optional",
+   "design": {
         "defvalue": null,
-        "shorthelp": "Design name",
-        "value": "oh_add"
+        "lock": "false",
+        "require": null,
+        "shorthelp": "Design top module name",
+        "switch": "-design <str>",
+        "type": "str",
+        "value": "hello_world"
     },
 
 
+To handle complex scenarios required by advanced PDKs, the Schema supports dynamic nested dictionaries. A 'default' keyword is used to define the dictionary structure during objection creation. Populating the object dictionary with actual keys is done by the user during compilation setup. The example below illustrates how 'default' is used as a placeholder for the library name and corner. These dynamic dictionaries makes it easy to set up an arbitrary number of libraries and corners in a PDK using Python loops.
+
+.. code-block:: python
+
+   lib = 'default
+   corner = 'default'
+   cfg['library'][lib]['nldm'] = {}
+   cfg['library'][lib]['nldm'][corner] = {}
+   cfg['library'][lib]['nldm'][corner]['default'] = {
+       'switch': "-library_nldm 'lib corner format <file>'",
+       'require': None,
+       'type': '[file]',
+       'lock': 'false',
+       'copy': 'false',
+       'defvalue': [],
+       'filehash': [],
+       'hashalgo': 'sha256',
+       'date': [],
+       'author': [],
+       'signature': [],
+       'shorthelp': 'Library NLDM timing model',
+       'example': [
+       "cli: -library_nldm 'lib ss lib ss.lib.gz'",
+       "api: chip.set('library','lib','nldm','ss','lib','ss.lib.gz')"],
+       'help': """
+       Filepaths to NLDM models. Timing files are specified on a per lib,
+       per corner, and per format basis. Legal file formats are lib (ascii)
+       and ldb (binary). File decompression is handled automatically for
+       gz, zip, and bz2 compression formats.
+       """
+    }
+
+The SiliconCompiler Schema is roughly divided into the following major sub-groups:
+
+.. list-table::
+   :widths: 10 10 50
+   :header-rows: 1
+
+   * - Group
+     - Parameters
+     - Description
+
+   * - *root*
+     - 52
+     - Source files and compilation options
+
+   * - **eda**
+     - 22
+     - Individual tool settings
+
+   * - **flowgraph**
+     - 6
+     - Exexcution flow definition
+
+   * - **pdk**
+     - 38
+     - PDK related settings
+
+   * - **asic**
+     - 21
+     - ASIC related settings
+
+   * - **fpga**
+     - 6
+     - FPGA related settings
+
+   * - **mcmm**
+     - 8
+     - Advanced timing analysis settings
+
+   * - **library**
+     - 46
+     - Library/package definitions
+
+   * - **metric**
+     - 35
+     - Metric tracking
+
+   * - **record**
+     - 39
+     - Compilation history tracking
+
+   * - **package**
+     - 32
+     - Packaging manifest
+
+   * - **total**
+     - 306
+     -
+
+Refer to the :ref:`Schema<Schema>` and :ref:`Python API<Core API>` sections of the reference manual for more information. Another good resource is the single file `Schema source code <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/schema.py>`_.
