@@ -1,11 +1,15 @@
 Installation
 ===================================
 
-Before installing the SiliconCompiler package you will need to set up a Python
-environment for your platform. Version 3.6 - 3.10 of Python is currently supported.
+
+Python Setup
+-------------
+
+Before installing the SiliconCompiler package you will need to set up a Python environment. Currently Python 3-6-3.10 is supported.
 
 Ubuntu
--------
+^^^^^^^
+
 Open up a terminal and enter the following command sequence.
 
 .. code-block:: bash
@@ -17,7 +21,7 @@ Open up a terminal and enter the following command sequence.
     source ./venv/bin/activate                             # active virtual env (bash/zsh)
 
 macOS
------
+^^^^^
 Open up a terminal and enter the following command sequence.
 
 .. code-block:: bash
@@ -31,26 +35,24 @@ Open up a terminal and enter the following command sequence.
    source ./venv/bin/activate                             # active virtual env
 
 Windows
--------
+^^^^^^^
 
 Install the latest Python package from `Python.org <https://www.python.org/downloads>`_ using the Windows installer. Open up a Windows shell by:
 
 1. Pressing the 'Windows' key
 2. Typing 'PowerShell' or 'cmd', and pressing enter.
 
-Once inside the command shell, enter the following sequence to create and activate a
-virtual environment.
+From the command shell, enter the following sequence to create and activate a virtual environment.
 
 .. code-block:: doscon
 
   python -m venv --system-site-packages .\venv
   .\venv\Scripts\activate
 
-Installation from PyPI
------------------------
+SiliconCompiler Setup
+---------------------
 
-To install SiliconCompiler, activate a Python vertual session in and enter the
-following sequence of commands.
+Once the Python environment has been set up, SiliconCompiler can be installed directly from from PyPI using pip. The instructions are the same for Windows, Linux, and macOS.
 
 .. code-block:: bash
 
@@ -66,15 +68,10 @@ The output should be the expected version number, similar to below:
 
    \ |release|
 
-To exit the Python virtual environment, type 'deactivate' and hit enter. More
-information about the Python virtual environment can be found in the
-`Python 'venv' documentation <https://docs.python.org/3/library/venv.html>`_.
+To exit the Python virtual environment, type 'deactivate' and hit enter. More information about the Python virtual environment can be found in the `Python 'venv' documentation <https://docs.python.org/3/library/venv.html>`_.
 
-
-Installation from source
-------------------------
-
-Installing SiliconCompiler from the latest `SiliconCompiler repository <https://github.com/siliconcompiler/siliconcompiler>`_ is supported for Linux/MacOS platforms.
+You can also install SiliconCompiler from the latest `SiliconCompiler GitHub Repository <https://github.com/siliconcompiler/siliconcompiler>`_. This option is currently
+only supported on Linux/MacOS platforms.
 
 .. code-block:: bash
 
@@ -84,19 +81,11 @@ Installing SiliconCompiler from the latest `SiliconCompiler repository <https://
    python -m pip install -e .
 
 
-Tool installations
--------------------
+Tool Setup
+------------
 
-The SiliconCompiler project depends on a number of external tools and projects.
-Installation instructions for these tools can be found in in the tools directory of
-the reference manual :ref:`Tools<Tools directory>` section. The tool installation
-process can be skipped when using the :ref:`Remote Processing<Remote processing>`
-workflow.
+The SiliconCompiler project depends on a number of external tools (synthesis, placement, routing, etc). Installation instructions for these tools are best written by the original authors so we will not include them here. For convenience, links to installation documentation for all supported tools can be found in the tools directory of the reference manual :ref:`Tools<Tools directory>`.
 
-Layout viewer
--------------------
+The tool installation process can be skipped entirely by leveraging the :ref:`Remote Processing<Remote processing>` workflow to access a server with pre-installed tools.
 
-To view IC layout files (DEF, GDSII) we recommend installing the open source
-multi-platform klayout tool available for (Windows, Linux, and macOS). Installation
-instructions for klayout can be found
-`HERE <https://www.klayout.de/build.html>`_.
+To view IC layout files (DEF, GDSII) we recommend installing the open source multi-platform 'klayout' viewer (available for Windows, Linux, and macOS). Installation instructions for klayout can be found `HERE <https://www.klayout.de/build.html>`_.
