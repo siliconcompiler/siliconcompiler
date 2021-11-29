@@ -90,3 +90,10 @@ html_static_path = ['_static']
 html_css_files = [
     'css/custom.css',
 ]
+
+# -- Options for Latex output ------------------------------------------------
+
+# Don't add blank pages after some chapters
+latex_elements = {
+  'extraclassoptions': 'openany,oneside'
+}

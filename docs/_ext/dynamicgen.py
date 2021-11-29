@@ -23,15 +23,20 @@ import siliconcompiler
 # We need this in a few places, so just make it global
 SC_ROOT = os.path.abspath(f'{__file__}/../../../')
 
-def build_schema_value_table(schema, keypath_prefix=[]):
+def build_schema_value_table(schema, keypath_prefix=[], skip_zero_weight=False):
     '''Helper function for displaying values set in schema as a docutils table.'''
     table = [[strong('Keypath'), strong('Value')]]
     flat_cfg = flatten(schema)
     for keys, val in flat_cfg.items():
-        if len(keypath_prefix) > 0:
-            keypath = ', '.join(keypath_prefix) + ', ' + ', '.join(keys)
-        else:
-            keypath = ', '.join(keys)
+        full_keypath = list(keypath_prefix) + list(keys)
+
+        if (skip_zero_weight and
+            len(full_keypath) == 5 and full_keypath[0] == 'flowgraph' and full_keypath[-2] == 'weight' and
+            'value' in val and val['value'] == '0'):
+            continue
+
+        keypath = ', '.join(full_keypath)
+
         if 'value' in val:
             # Don't display false booleans
             if val['type'] == 'bool' and val['value'] == 'false':
@@ -229,7 +234,7 @@ class FlowGen(DynamicGen):
                     step_cfg[prefix] = {}
                 step_cfg[prefix][step] = pruned
 
-            section += build_schema_value_table(step_cfg)
+            section += build_schema_value_table(step_cfg, skip_zero_weight=True)
             settings += section
 
         # Build table for non-step items (just showtool for now)
