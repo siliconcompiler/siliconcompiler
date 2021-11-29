@@ -1,7 +1,7 @@
 Data model
 ===================================
 
-The SiliconCompiler Schema is a data structure that stores all configiruations  and metrics  gathered during the compilation process. Each schema entry ("parameter") is a self contained leaf cell with a required set of standardized key/value pairs ("fields"). The example below shows the definition of one of the parameters named 'design'.
+The SiliconCompiler Schema is a data structure that stores all configurations  and metrics  gathered during the compilation process. Each schema entry ("parameter") is a self contained leaf cell with a required set of standardized key/value pairs ("fields"). The example below shows the definition of one of the parameters named 'design'.
 
 .. code-block:: python
 
@@ -93,19 +93,13 @@ The file type parameters have the additional required fields show in the table b
      - sha256,md5,...
 
 
-Accessing schema parameters is done using the set(), get(), and add() Python methods. The following shows how to create a chip object and manipulating a schema parameter in Python::
+Accessing schema parameters is done using the set(), get(), and add() Python methods. The following shows how to create a chip object and manipulating a schema parameter in Python.
 
-  import siliconcompiler
-  chip = siliconcompiler.Chip()
-  chip.set('design', "hello_world")
-  print(chip.get('design'))
+.. literalinclude:: examples/datamodel_setget.py
 
-Reading and writing the schema to and from disk is handled by the read_manifest() and write_manifest() Python API methods. Supported export file formats include TCL, JSON, and YAML. By default, only non-empty values are written to disk.::
+Reading and writing the schema to and from disk is handled by the read_manifest() and write_manifest() Python API methods. Supported export file formats include TCL, JSON, and YAML. By default, only non-empty values are written to disk.
 
-  import siliconcompiler
-  chip = siliconcompiler.Chip()
-  chip.set('design', "hello_world")
-  chip.write_manifest("hello_world.json")
+.. literalinclude:: examples/datamodel_manifest.py
 
 The JSON structure below shows the 'design' parameter exported by the write_manifest()  method.
 
@@ -174,7 +168,7 @@ The SiliconCompiler Schema is roughly divided into the following major sub-group
 
    * - **flowgraph**
      - 6
-     - Exexcution flow definition
+     - Execution flow definition
 
    * - **pdk**
      - 38
