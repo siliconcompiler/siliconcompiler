@@ -268,7 +268,7 @@ def fetch_results(chip):
     fetch_results_request(chip)
 
     # Call 'delete_job' to remove the run from the server.
-    #delete_job(chip)
+    delete_job(chip)
 
     # Unzip the results.
     top_design = chip.get('design')
