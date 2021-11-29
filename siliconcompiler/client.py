@@ -130,13 +130,13 @@ def request_remote_run(chip):
     # no authorizaion is configured; proceed without crypto.
     # If they were specified, these files are now encrypted.
     subprocess.run(['tar',
-                    '-cf',
-                    'import.zip',
+                    '-czf',
+                    'import.tar.gz',
                     '--exclude',
-                    'import.zip',
+                    'import.tar.gz',
                     '.'],
                    cwd=local_build_dir)
-    upload_file = os.path.abspath(os.path.join(local_build_dir, 'import.zip'))
+    upload_file = os.path.abspath(os.path.join(local_build_dir, 'import.tar.gz'))
 
     # Make the actual request, streaming the bulk data as a multipart file.
     # Redirected POST requests are translated to GETs. This is actually
@@ -229,7 +229,7 @@ def fetch_results_request(chip):
 
     # Set the request URL.
     job_hash = chip.status['jobhash']
-    remote_run_url = get_base_url(chip) + '/get_results/' + job_hash + '.zip'
+    remote_run_url = get_base_url(chip) + '/get_results/' + job_hash + '.tar.gz'
 
     # Set authentication parameters if necessary.
     rcfg = chip.status['remote_cfg']
@@ -245,7 +245,7 @@ def fetch_results_request(chip):
     redirect_url = remote_run_url
     can_redirect = False
     while redirect_url:
-        with open('%s.zip'%job_hash, 'wb') as zipf:
+        with open('%s.tar.gz'%job_hash, 'wb') as zipf:
             resp = requests.post(redirect_url,
                                  data=json.dumps(post_params),
                                  allow_redirects=can_redirect,
@@ -268,7 +268,7 @@ def fetch_results(chip):
     fetch_results_request(chip)
 
     # Call 'delete_job' to remove the run from the server.
-    delete_job(chip)
+    #delete_job(chip)
 
     # Unzip the results.
     top_design = chip.get('design')
@@ -278,9 +278,9 @@ def fetch_results(chip):
 
     # Authenticated jobs get a zip file full of other zip files.
     # So we need to extract and delete those.
-    subprocess.run(['tar', '-xf', f'{job_hash}.zip'])
+    subprocess.run(['tar', '-xzf', f'{job_hash}.tar.gz'])
     # Remove the results archive after it is extracted.
-    os.remove(f'{job_hash}.zip')
+    os.remove(f'{job_hash}.tar.gz')
 
     # Remove dangling 'import' symlinks if necessary.
     for import_link in glob.iglob(job_hash + '/' + top_design + '/**/import*',
