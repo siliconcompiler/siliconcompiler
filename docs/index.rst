@@ -17,7 +17,7 @@ Welcome to SiliconCompiler's documentation!
    user_guide/glossary
    user_guide/data_model
    user_guide/execution_model
-   user_guide/tool
+   user_guide/tools
    user_guide/target
    user_guide/metric
    user_guide/remoteflow

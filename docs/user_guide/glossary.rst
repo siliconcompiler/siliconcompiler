@@ -57,7 +57,7 @@ The following set of terms represents fundamental SiliconCompiler definitions us
        An discrete function in a flowgraph.
 
     task
-       An atomic (step, index) combination to be executed.
+       An atomic (step, index) task to be executed.
 
     tool
        Executable associated with a task in a flowgraph.

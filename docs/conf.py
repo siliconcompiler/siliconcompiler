@@ -20,7 +20,7 @@ sys.path.append(os.path.abspath('./_ext'))
 # -- Project information -----------------------------------------------------
 
 project = 'SiliconCompiler'
-copyright = '2021, Zero ASIC'
+copyright = '2020, Zero ASIC'
 author = 'SiliconCompiler Authors'
 
 version = siliconcompiler.__version__
@@ -52,6 +52,8 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
+# The name of the Pygments (syntax highlighting) style to use.
+pygments_style = 'friendly'
 
 # -- Options for HTML output -------------------------------------------------
 
