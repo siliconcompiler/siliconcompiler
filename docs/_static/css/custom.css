@@ -2,3 +2,8 @@ dl.method.py > dt {
     background-color: rgb(235, 241, 245) !important;
     border-color: rgb(155, 190, 213) !important;
 }
+
+code.literal {
+    color: #404040 !important;
+    background-color: #fbfbfb !important;
+}
