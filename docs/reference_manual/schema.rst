@@ -1,5 +1,14 @@
+.. _SiliconCompiler Schema:
+
 Schema
 =====================
+
+Keywords
+---------
+
+.. glossary::
+   default
+       Reserved SiliconCompiler schema key that can be replaced by any legal string.
 
 Parameter Fields
 -----------------
