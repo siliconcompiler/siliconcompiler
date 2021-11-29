@@ -1,25 +1,82 @@
 FAQ
 ===================================
 
-* Q: Where are the output files from my run?
-* Q: How do I display the outputs of my run?
-* Q: How do I debug failures?
-* Q: How do change the logger level?
-* Q: How do I check my setup before running?
-* Q: How do I set the target library for the ASIC flow?
-* Q: How do I set the target partname for the FPGA flow?
-* Q: How do I set up a new target?
-* Q: How do I set up a new tool?
-* Q: How do I set up a new flow?
-* Q: How do I set up a new pdk?
-* Q: How does SC find my custom targets/tools/setups?
-* Q: How do I relax the parse contraints on import?
-* Q: How do I change the build directory?
-* Q: How can I use the setup json file from a previous run?
-* Q: How can set variables in my tool's TCL script?
-* Q: How can I drive custom TCL code into the EDA flow?
-* Q: How do I control the thread parallelism for a tool?
-* Q: How can I restart a flow from a specific step?
-* Q: How can I run part of a flow?
-* Q: How can I print help about a parameter?
-* Q: How can I print help about a function?
+This is a list of Frequently Asked Questions about SiliconCompiler. Feel free to suggest new entries!
+
+How do I...
+-----------
+
+... set up a new tool?
+
+    See :ref:`Tools`
+
+... set up a new flow?
+
+    See :ref:`Flows`
+
+... set up a new pdk?
+
+    See :ref:`PDKs`
+
+
+... create a chip object?
+   .. code-block:: python
+
+      import siliconcompiler
+      chip = siliconcompiler.Chip()
+
+... run a compilation?
+   .. code-block:: python
+
+      chip.run()
+
+... display my layout?
+   .. code-block:: python
+
+       chip.show()
+
+... display a previous run from the command line?
+    .. code-block:: bash
+
+       sc-show -design <name>
+
+... change the logger level?
+    .. code-block:: python
+
+        chip = siliconcompiler.Chip(loglevel=<INFO|ERROR|DEBUG>)
+
+... check my setup before running?
+    .. code-block:: python
+
+        chip.check()
+
+... relax the parse contraints on import?
+    .. code-block:: python
+
+       chip.set('relax', True)
+
+... change the build directory?
+    .. code-block:: python
+
+       chip.set('dir', <dirpath>)
+
+... use the setup json file from a previous run?
+    .. code-block:: python
+
+       chip.read_manifest(<filepath>)
+
+... drive custom TCL code into the a target EDA flow?
+    .. code-block:: python
+
+       chip.set('eda', <tool>, <step>, <index>, 'prescript', <file>)
+       chip.set('eda', <tool>, <step>, <index>, 'postscript', <file>)
+
+... control the thread parallelism for a tool?
+    .. code-block:: python
+
+       chip.set('eda', <tool>, <step>, <index>, 'threads', <n>)
+
+... print the description of a parameter?
+    .. code-block:: python
+
+       print(chip.help(keypath))
