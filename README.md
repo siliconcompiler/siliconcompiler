@@ -6,7 +6,6 @@
 [![Documentation](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/docs_test.yml/badge.svg)](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/docs_test.yml)
 [![Wheels](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/wheels.yml/badge.svg?event=schedule)](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/wheels.yml)
 
-SiliconCompiler is an open source compiler framework that aims to enable automated translation from source code to silicon.
 
 - **Website:**  https://www.siliconcompiler.com
 - **Documentation:**  https://docs.siliconcompiler.com
@@ -16,34 +15,43 @@ SiliconCompiler is an open source compiler framework that aims to enable automat
 - **Disussion:** https://github.com/siliconcompiler/siliconcompiler/discussions
 
 
+## Mission
+
+SiliconCompiler is an open source compiler framework that aims to automate
+translation from source code to silicon.
+
 ## Programming Interface
-The SiliconCompiler project is based on an expansive compilation configuration
-[SCHEMA](https://docs.siliconcompiler.com/reference_manual/schema.html) and a
-simple [PYTHON API](https://docs.siliconcompiler.com/reference_manual/schema.html).
-The Python interface enables sophisticated compilation flows that leverage the
-full power of the Python programming language and package platform.
+
+The SiliconCompiler project is based on a standardized data Schema that supports
+orthogonal combinations of design, tools, and Process Design Kits (PDKs).
+The schema design philosophy is to "make the complex possible while keeping
+the simple simple".
+
+To simplify flow development, the project includes simple object oriented
+Python API that leverages the awesome power of the Python language and community.
+
+To further reduce access barriers, the project also supports a client-server
+execution model that enables compilation without tools and PDK installations.
 
 ```python
-
-import siliconcompiler                        # import python package
-chip = siliconcompiler.Chip()                 # create chip object
-chip.set('source', 'heartbeat.v')             # define list of sources
-chip.set('design', 'heartbeat')               # set top module name
-chip.clock(name='clk', pin='clk', period=1.0) # define a clock
-chip.target('asicflow_freepdk45')             # load pre-defined flow
-chip.run()                                    # run compilation
-chip.summary()                                # print run summary
-chip.show()                                   # show layout
-
+import siliconcompiler                    # import python package
+chip = siliconcompiler.Chip()             # create chip object
+chip.target('asicflow_freepdk45')         # load pre-defined flow
+chip.set('source', 'heartbeat.v')         # define list of sources
+chip.set('design', 'heartbeat')           # set top module name
+chip.set('constraint', 'heartbeat.sdc')   # define constraints
+chip.set('remote', True)                  # compiler remotely
+chip.run()                                # run compilation
+chip.summary()                            # print run summary
+chip.show()                               # show layout
 ```
 
 ## Command Line Interface
 
-To simplify the on-ramp and to maximize experimentation productivity, the
-SiliconCompiler project includes a command line program 'sc',  with full
+For complex flows, the Python programming interface is the correct approach,
+but fir simple experiments a command line interface program can be very
+effective. SiliconCompiler includes a command line program 'sc',  with full
 support for all compiler schema parameters.
-
-#### Hello world
 
 For very simple designs, compiling using *sc* is as easy as using gcc or llvm.
 
@@ -51,11 +59,7 @@ For very simple designs, compiling using *sc* is as easy as using gcc or llvm.
 pip install siliconcompiler
 sc hello.v
 ```
-
-#### Complex design
-More complex designs are handled by adding  more  options. For
-scenarios with more than five command line options, the SiliconCompiler
-Python interface is usually a better option.
+More complex designs are handled by simply adding more options.
 
 ```bash
 sc hello.v add.v -constraint hello.sdc -target "asicflow_skywater130"
@@ -64,10 +68,11 @@ sc hello.v add.v -constraint hello.sdc -target "asicflow_skywater130"
 
 ## Remote Compilation
 
-To simplify tool installation and job scheduling, SiliconCompiler also supports a
+To simplify tool installation and job scheduling, SiliconCompiler supports a
 "-remote" option, which directs the compiler to send all steps to a remote
 server for processing. The -remote option relies on a credentials file located at
-~/.sc/credentials on Linux or macOS, or at C:\Users\USERNAME\\.sc\credentials on Windows.
+~/.sc/credentials on Linux or macOS, or at C:\Users\USERNAME\\.sc\credentials on
+Windows.
 
 ```bash
 sc hello.v -remote
@@ -76,12 +81,14 @@ sc hello.v -remote
 ## Installation
 
 SiliconCompiler is available as wheel packages on PyPI for macOS, Windows and
-Linux platforms. Full installation instructions can be found in the [USER GUIDE](https://docs.siliconcompiler.com/user_guide/installation.html) If you
-already have a working Python 3.6-3.10 environment, installation is simply:
+Linux platforms. Full installation instructions can be found in the
+[Installation Guide](https://docs.siliconcompiler.com/user_guide/installation.html).
+If you already have a working Python 3.6-3.10 environment, just use pip:
 
 ```sh
 python -m pip install siliconcompiler
 ```
+
 To install the project from source (supported on Linux and macOS platforms):
 
 ```bash
@@ -93,18 +100,20 @@ python -m pip install -e .
 
 ## External Dependencies
 
-SiliconCompiler depends on the correct installation of external executables to
-run locally. Installation instructions for all external tools can be found in the [TOOLS](https://docs.siliconcompiler.com/reference_manual/tools.html) documentation. For the '-remote' option,
-there are no external dependencies.
+SiliconCompiler depends on the correct installation of all tool executables to
+run locally. Installation instructions for all external tools can be found in the
+[Tools Directory](https://docs.siliconcompiler.com/reference_manual/tools.html).
+For the '-remote' option, there are no external dependencies.
 
 ## Contributing
 
-We need help! To find out how to contribute to the project, see our
-[CONTRIBUTING GUIDELINES.](./CONTRIBUTING.md)
+SiliconCompiler is an open-source project and welcomes contributions. To find out
+how to contribute to the project, see our
+[Contributing Guidelines.](./CONTRIBUTING.md)
 
 ## Issues / Bug Reports
 
-We use [GITHUB ISSUES](https://github.com/siliconcompiler/siliconcompiler/issues)
+We use [GitHub Issues](https://github.com/siliconcompiler/siliconcompiler/issues)
 for tracking requests and bugs.
 
 ## License
