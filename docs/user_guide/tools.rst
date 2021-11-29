@@ -51,7 +51,7 @@ SiliconCompiler execution depends on implementing adapter code "drivers" for eac
 
    * - **make_docs**
      - Doc generator
-     - chip
+     - None
      - chip
      - sphinx
      - no

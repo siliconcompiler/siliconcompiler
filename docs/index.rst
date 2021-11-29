@@ -18,9 +18,10 @@ Welcome to SiliconCompiler's documentation!
    user_guide/data_model
    user_guide/execution_model
    user_guide/tools
-   user_guide/target
+   user_guide/pdks
+   user_guide/flows
+   user_guide/targets
    user_guide/metric
-   user_guide/remoteflow
    user_guide/faq
    user_guide/licenses
 
