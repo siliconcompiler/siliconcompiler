@@ -3342,10 +3342,16 @@ class Chip:
             self.set('arg', 'index', index)
             setup_tool = self.find_function(tool, 'tool', 'setup_tool')
             setup_tool(self, mode='show')
-            # Running command
-            cmdlist = self._makecmd(tool, step, index)
-            proc = subprocess.run(cmdlist)
-            success = proc.returncode == 0
+
+            exe = self.get('eda', tool, step, index, 'exe')
+            if shutil.which(exe) is None:
+                self.logger.error(f'Executable {exe} not found.')
+                success = False
+            else:
+                # Running command
+                cmdlist = self._makecmd(tool, step, index)
+                proc = subprocess.run(cmdlist)
+                success = proc.returncode == 0
         else:
             self.logger.error(f"Filetype '{filetype}' not set up in 'showtool' parameter.")
             success = False

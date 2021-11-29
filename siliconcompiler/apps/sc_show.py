@@ -28,11 +28,12 @@ def main():
                         description=description)
 
     #Error checking
-    gds_mode =bool(chip.get('asic', 'gds'))
-    def_mode =bool(chip.get('asic', 'def'))
+    design = bool(chip.get('design'))
+    gds_mode = bool(chip.get('asic', 'gds'))
+    def_mode = bool(chip.get('asic', 'def'))
 
-    if (def_mode + gds_mode) > 1:
-        print(progname+": error: gds, def options are mutually exclusive")
+    if (def_mode + gds_mode + design) != 1:
+        chip.logger.error('Exactly one of -asic_gds, -asic_def, or -design must be provided.')
         sys.exit(1)
 
     if gds_mode:
@@ -61,10 +62,15 @@ def main():
         design = os.path.splitext(os.path.basename(filename))[0]
         dirname = os.path.dirname(filename)
         manifest = os.path.join(*[dirname, design+'.pkg.json'])
+        if not os.path.isfile(manifest):
+            chip.logger.error(f'Unable to automatically find manifest for design {design}. '
+                'Please provide a manifest explicitly using -cfg.')
+            sys.exit(1)
         chip.read_manifest(manifest)
 
     # Read in file
-    chip.logger.info("Displaying filename")
+    chip.logger.info(f"Displaying {filename}")
+
     success = chip.show(filename)
 
     return 0 if success else 1
