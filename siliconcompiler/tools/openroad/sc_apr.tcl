@@ -73,7 +73,8 @@ set sc_endcap      [dict get $sc_cfg library $sc_mainlib cells endcap]
 
 # PDK Design Rules
 set sc_techlef     [dict get $sc_cfg pdk aprtech $sc_stackup $sc_libtype lef]
-set sc_tapmax      [lindex [dict get $sc_cfg pdk tapmax] end]
+# TODO: workaround until OpenROAD allows floating-point 'tapmax' values.
+set sc_tapmax      [expr {int([lindex [dict get $sc_cfg pdk tapmax] end])}]
 set sc_tapoffset   [lindex [dict get $sc_cfg pdk tapoffset] end]
 
 # APR Layers

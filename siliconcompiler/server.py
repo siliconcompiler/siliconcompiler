@@ -84,7 +84,7 @@ class Server:
             web.post('/remote_run/', self.handle_remote_run),
             web.post('/check_progress/', self.handle_check_progress),
             web.post('/delete_job/', self.handle_delete_job),
-            web.post('/get_results/{job_hash}.zip', self.handle_get_results),
+            web.post('/get_results/{job_hash}.tar.gz', self.handle_get_results),
         ])
         # TODO: Put zip files in a different directory.
         # For security reasons, this is not a good public-facing solution.
@@ -201,8 +201,8 @@ class Server:
         else:
             # Move the uploaded archive and un-zip it.
             # (Contents will be encrypted for authenticated jobs)
-            os.replace(tmp_file, '%s/import.zip'%job_root)
-            subprocess.run(['tar', '-xf', '%s/import.zip'%(job_root)],
+            os.replace(tmp_file, '%s/import.tar.gz'%job_root)
+            subprocess.run(['tar', '-xzf', '%s/import.tar.gz'%(job_root)],
                            cwd=job_dir)
 
         # Delete the temporary file if it still exists.
@@ -279,12 +279,12 @@ class Server:
             reason = 'OK',
             headers = {
                 'Content-Type': 'application/x-tar',
-                'Content-Disposition': f'attachment; filename="{job_hash}.zip"'
+                'Content-Disposition': f'attachment; filename="{job_hash}.tar.gz"'
             },
         )
         await resp.prepare(request)
 
-        zipfn = os.path.join(self.cfg['nfsmount']['value'][-1], job_hash+'.zip')
+        zipfn = os.path.join(self.cfg['nfsmount']['value'][-1], job_hash+'.tar.gz')
         with open(zipfn, 'rb') as zipf:
             await resp.write(zipf.read())
 
@@ -338,9 +338,9 @@ class Server:
           if os.path.exists(build_dir):
             #print('Deleting: %s'%build_dir)
             shutil.rmtree(build_dir)
-          if os.path.exists('%s.zip'%build_dir):
-            #print('Deleting: %s.zip'%build_dir)
-            os.remove('%s.zip'%build_dir)
+          if os.path.exists('%s.tar.gz'%build_dir):
+            #print('Deleting: %s.tar.gz'%build_dir)
+            os.remove('%s.tar.gz'%build_dir)
 
         return web.Response(text="Job deleted.")
 
@@ -465,8 +465,8 @@ class Server:
 
         # Zip results after all job stages have finished.
         subprocess.run(['tar',
-                        '-cf',
-                        '%s.zip'%job_hash,
+                        '-czf',
+                        '%s.tar.gz'%job_hash,
                         '%s'%job_hash],
                        cwd = nfs_mount)
 
@@ -524,8 +524,8 @@ class Server:
 
         # Create a single-file archive to return if results are requested.
         subprocess.run(['tar',
-                        '-cf',
-                        '%s.zip'%job_hash,
+                        '-czf',
+                        '%s.tar.gz'%job_hash,
                         '%s'%job_hash],
                        cwd=self.cfg['nfsmount']['value'][-1])
 

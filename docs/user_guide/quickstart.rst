@@ -85,8 +85,7 @@ shown below. Set the :ref:`quiet` parameter to True of you want to redirect this
 information to a log file. By default, all SiliconCompiler outputs are placed in
 the build/<design> directory.
 
-.. literalinclude:: examples/heartbeat.log
-   :language: console
+.. image:: _images/heartbeat_summary.png
 
 View layout
 ------------

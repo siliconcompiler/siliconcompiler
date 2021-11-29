@@ -1628,10 +1628,6 @@ class Chip:
                         self.error = 1
                         self.logger.error(f'Executable not specified for tool {tool}')
 
-                    if self._keypath_empty(['eda', tool, step, index, 'version']):
-                        self.error = 1
-                        self.logger.error(f'Version not specified for tool {tool}')
-
         if 'SC_VALID_PATHS' in os.environ:
             if not self._check_files():
                 self.error = 1
@@ -2910,7 +2906,7 @@ class Chip:
 
             version = parse_version(proc.stdout)
             allowed_versions = self.get('eda', tool, step, index, 'version')
-            if version not in allowed_versions:
+            if allowed_versions and version not in allowed_versions:
                 allowedstr = ', '.join(allowed_versions)
                 self.logger.error(f"Version check failed for {tool}. Check installation.")
                 self.logger.error(f"Found version {version}, expected one of [{allowedstr}].")
@@ -3092,8 +3088,8 @@ class Chip:
                 cfg_dir = os.path.dirname(cfg_file)
             else:
                 # Use the default config file path.
-                cfg_dir = os.path.join(Path.home(), '.siliconcompiler')
-                cfg_file = os.path.join(cfg_dir, '.remote_config')
+                cfg_dir = os.path.join(Path.home(), '.sc')
+                cfg_file = os.path.join(cfg_dir, '.credentials')
             if (not os.path.isdir(cfg_dir)) or (not os.path.isfile(cfg_file)):
                 self.logger.error('Could not find remote server configuration - please run "sc-configure" and enter your server address and credentials.')
                 sys.exit(1)
@@ -3347,10 +3343,16 @@ class Chip:
             self.set('arg', 'index', index)
             setup_tool = self.find_function(tool, 'tool', 'setup_tool')
             setup_tool(self, mode='show')
-            # Running command
-            cmdlist = self._makecmd(tool, step, index)
-            proc = subprocess.run(cmdlist)
-            success = proc.returncode == 0
+
+            exe = self.get('eda', tool, step, index, 'exe')
+            if shutil.which(exe) is None:
+                self.logger.error(f'Executable {exe} not found.')
+                success = False
+            else:
+                # Running command
+                cmdlist = self._makecmd(tool, step, index)
+                proc = subprocess.run(cmdlist)
+                success = proc.returncode == 0
         else:
             self.logger.error(f"Filetype '{filetype}' not set up in 'showtool' parameter.")
             success = False
