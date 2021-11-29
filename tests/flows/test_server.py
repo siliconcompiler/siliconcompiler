@@ -3,6 +3,7 @@ import os
 import subprocess
 import traceback
 import pytest
+import time
 
 from unittest.mock import Mock
 
@@ -19,6 +20,7 @@ def test_gcd_server(gcd_chip):
     srv_proc = subprocess.Popen(['sc-server',
                                  '-nfs_mount', './local_server_work',
                                  '-cluster', 'local'])
+    time.sleep(3)
 
     # Mock the _runstep method.
     old__runtask = gcd_chip._runtask
