@@ -21,7 +21,8 @@ Welcome to SiliconCompiler's documentation!
    user_guide/pdks
    user_guide/flows
    user_guide/targets
-   user_guide/metric
+   user_guide/metrics
+   user_guide/packages
    user_guide/faq
    user_guide/licenses
 
