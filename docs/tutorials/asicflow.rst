@@ -249,41 +249,7 @@ To get a complete summary of the run from start to finish, we can use the summar
 
 The console output should look something like the following.
 
-.. code-block:: console
-
-  SUMMARY:
-
-  design = gcd
-  foundry = virtual
-  process = freepdk45
-  targetlibs = NangateOpenCellLibrary
-  jobdir = build/gcd/job0
-
-                  import0      syn0   floorplan0   synopt0     place0      cts0      route0      dfm0     export0
-  errors            0          0          1          1          1          1          1          1          0
-  warnings          0          72         1          0          2          3          4          0          0
-  drv               0          0          0          0          0          0          0          0          0
-  cellarea         0.0       413.63     414.0      414.0      490.0      499.0       0.0       499.0       0.0
-  peakpower        0.0        0.0      0.000188   0.000188   0.000206   0.000279     0.0      0.000292     0.0
-  standbypower     0.0        0.0      8.62e-06   8.62e-06   1.13e-05   1.17e-05     0.0      1.17e-05     0.0
-  holdwns          0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0
-  holdtns          0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0
-  setupwns         0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0
-  setuptns         0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0
-  registers         0          0          0          0          0          0          0          0          0
-  cells             0         249         0          0          0          0          0          0          0
-  rambits           0          0          0          0          0          0          0          0          0
-  xtors             0          0          0          0          0          0          0          0          0
-  nets              0          0          0          0          0          0          0          0          0
-  pins              0          0          0          0          0          0          0          0          0
-  vias              0          0          0          0          0          0         2093        0          0
-  wirelength       0.0        0.0        0.0        0.0        0.0        0.0       6251.0      0.0        0.0
-  overflow          0          0          0          0          0          0          0          0          0
-  density          0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0
-  runtime          0.16       0.82       1.02       1.12       1.53       2.99       5.83       1.0        0.9
-  memory           0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0
-  --------------------------------------------------------------------------------------------------------------
-
+.. image:: _images/asicflow_summary_linear.png
 
 Show
 ------------------
@@ -318,41 +284,7 @@ As a simple illustrative example, consider the placement_density variale for Ope
 One of the coolest features of SC is that all of the indices withina a step are run in parallel, so if you are runnign on a parallel machine, you get close to strong scaling up to the number of physical CPU cores (or servers) available!  Once all the indices have completed, a minimum() function is called under the hood to select the best index from the lot to use for the next step in the exeuction grap. Some indices will fail, but that's ok: we only need one great to succeed for the input of the cts step. Below you can see the output from the chip.summary() call. In this case it wasn't a huge gain  because our design was small and simple, but it should give you an idea of what is possible. A clever person could easily extend the example above to sweep interesting tool settings for every step in the flowgraph to realize significant per design gais.;-)
 
 
-.. code-block:: console
-
-  SUMMARY:
-
-  design = gcd
-  foundry = virtual
-  process = freepdk45
-  targetlibs = NangateOpenCellLibrary
-  jobdir = build/gcd/job0
-
-                  import0      syn0   floorplan0   synopt0     place8      cts0      route0      dfm0     export0
-  errors            0          0          1          1          1          1          1          1          0
-  warnings          0          72         1          0          2          3          4          0          0
-  drv               0          0          0          0          0          0          0          0          0
-  cellarea         0.0       413.63     414.0      414.0      490.0      499.0       0.0       499.0       0.0
-  peakpower        0.0        0.0      0.000188   0.000188   0.000206   0.000279     0.0      0.000292     0.0
-  standbypower     0.0        0.0      8.62e-06   8.62e-06   1.13e-05   1.17e-05     0.0      1.17e-05     0.0
-  holdwns          0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0
-  holdtns          0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0
-  setupwns         0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0
-  setuptns         0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0
-  registers         0          0          0          0          0          0          0          0          0
-  cells             0         249         0          0          0          0          0          0          0
-  rambits           0          0          0          0          0          0          0          0          0
-  xtors             0          0          0          0          0          0          0          0          0
-  nets              0          0          0          0          0          0          0          0          0
-  pins              0          0          0          0          0          0          0          0          0
-  vias              0          0          0          0          0          0         2093        0          0
-  wirelength       0.0        0.0        0.0        0.0        0.0        0.0       6251.0      0.0        0.0
-  overflow          0          0          0          0          0          0          0          0          0
-  density          0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0
-  runtime          0.16       0.82       1.02       1.12       1.53       2.99       5.83       1.0        0.9
-  memory           0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0        0.0
-  --------------------------------------------------------------------------------------------------------------
-
+.. image:: _images/asicflow_summary_parallel.png
 
 Conclusion
 ------------------
