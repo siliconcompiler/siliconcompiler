@@ -1509,10 +1509,10 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         for the tool.
         """
     }
-    cfg['library'][lib]['layoutdb'] = {}
-    cfg['library'][lib]['layoutdb'][stackup] = {}
-    cfg['library'][lib]['layoutdb'][stackup]['default'] = {
-        'switch': "-library_layoutdb 'lib stackup format <file>'",
+    cfg['library'][lib]['binary'] = {}
+    cfg['library'][lib]['binary'][stackup] = {}
+    cfg['library'][lib]['binary'][stackup]['default'] = {
+        'switch': "-library_binary 'lib stack format <file>'",
         'require': None,
         'type': '[file]',
         'lock': 'false',
@@ -1523,13 +1523,13 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'shorthelp': 'Library layout database',
+        'shorthelp': 'Library binary database',
         'example': [
-            "cli: -library_layoutdb 'lib M10 oa ~/libdb'",
-            "api: chip.set('library','lib','layoutdb','M10','oa','~/libdb')"],
+            "cli: -library_binary 'lib M10 oa ~/libdb'",
+            "api: chip.set('library','lib','binary','M10','oa','~/libdb')"],
         'help': """
-        Filepaths to compiled library layout database specified on a per format
-        basis. Example formats include oa, mw, ndm.
+        Filepaths to compiled library database specified on a per format
+        basis. Example formats include oa, mw, ndm, opendb.
         """
     }
 
