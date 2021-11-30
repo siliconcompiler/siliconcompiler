@@ -2031,8 +2031,8 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
 
     # report files
     report_type = 'default'
-    cfg['eda'][tool][step][index][report_type] = {}
-    cfg['eda'][tool][step][index][report_type]['report'] = {
+    cfg['eda'][tool][step][index]['report'] = {}
+    cfg['eda'][tool][step][index]['report'][report_type] = {
         'switch': "-eda_report 'tool step index report_type <str>'",
         'type': '[str]',
         'lock': 'false',
@@ -2950,6 +2950,20 @@ def schema_record(cfg, job='default', step='default', index='default'):
         """
     }
 
+    cfg['record'][job][step][index]['tool'] = {
+        'switch': "-record_tool 'job step index <file>'",
+        'require': None,
+        'type': 'str',
+        'lock': 'false',
+        'defvalue': None,
+        'shorthelp': 'Record of tool name',
+        'example': [
+            "cli: -record_tool 'job0 syn 0 yosys'",
+            "api: chip.set('record','job0', 'syn','0','tool','yosys')"],
+        'help': """
+        Record tracking the name of the tool on a per step and index basis.
+        """
+    }
 
     cfg['record'][job][step][index]['chipid'] = {
         'switch': "-record_chipid 'job step index <str>'",
@@ -3923,7 +3937,7 @@ def schema_package(cfg, group):
             f"cli: -{group}_dependency '{lib}hello 1.0.0'",
             f"api: chip.set('{group}',{libapi}'dependency','hello','1.0.0')"],
         'help': """
-        Package version.
+        Package dependency specifed as a key value pair.
         """
     }
 
