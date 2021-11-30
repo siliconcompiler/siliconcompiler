@@ -5,9 +5,9 @@ cd deps
 
 version=$(lsb_release -sr)
 
-if [ $version = "18.04" ]; then
+if [ "$version" = "18.04" ]; then
     url=https://www.klayout.org/downloads/Ubuntu-18/klayout_0.26.11-1_amd64.deb
-elif [ $version == "20.04" ]; then
+elif [ "$version" = "20.04" ]; then
     url=https://www.klayout.org/downloads/Ubuntu-20/klayout_0.26.11-1_amd64.deb
 else
     echo "Script doesn't support Ubuntu version $version."
