@@ -885,7 +885,7 @@ class Chip:
         all_args = list(args)
 
         # Special case to ensure loglevel is updated ASAP
-        if len(args) == 2 and args[0] == 'loglevel':
+        if len(args) == 2 and args[0] == 'loglevel' and field == 'value':
             self.logger.setLevel(args[1])
 
         self.logger.debug(f"Setting [{keypathstr}] to {args[-1]}")
