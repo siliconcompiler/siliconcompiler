@@ -58,7 +58,7 @@ def setup_tool(chip):
     options = []
     options.append('-batch')
     options.append('source')
-    chip.add('eda', tool, step, index, 'option', options)
+    chip.set('eda', tool, step, index, 'option', options, clobber=False)
 
 ################################
 # Version Check
