@@ -1,4 +1,5 @@
 Records
 =======
 
-asdf
+
+.. recordgen::
