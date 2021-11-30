@@ -1,7 +1,7 @@
 Execution model
 ===================================
 
-The SiliconCompiler execution model is based on a directed static data flow graph consisting of nodes and edges. The static flowgraph approach was chosen for a number reasons:
+The complete SiliconCompiler compilation is handled by a single call to the run() function. Within that function call, the execution model is based on a directed static data flow graph consisting of nodes and edges. The static flowgraph approach was chosen for a number reasons:
 
 * Performance scalability ("cloud-scale")
 * High abstraction level (not locked into one language and/or shared memory model)
@@ -18,7 +18,7 @@ The execution flowgraph can be rendered using the write_flowgraph(), which prove
 
   chip.write_flowgraph("flowgraph.svg", landscape=True)
 
-.. image:: examples/flowgraph.svg
+.. image:: _images/flowgraph.svg
 	   :align: center
 
 The previous heartbeat example did not include any mention of index, so the index defaults to 0. While not essential to basic execution, the 'index' is fundamental to searching and optimizing tool and design options. One example use case for the index feature would be to run a design through synthesis with a range of settings and then selecting the optimal settings based on power, performance, and area. The snippet below shows how a massively parallel optimization flow can be programmed using the SiliconCompiler Python API.
@@ -26,7 +26,7 @@ The previous heartbeat example did not include any mention of index, so the inde
 .. literalinclude:: examples/flowgraph_doe.py
 
 
-.. image:: examples/flowgraph_doe.svg
+.. image:: _images/flowgraph_doe.svg
 
 The SiliconCompiler directory structure follows the convention shown below. Each step/index combination ("task") has a separate work directory, with all data inputs read from a local 'inputs' directory and all data outputs placed in a local 'outputs' directory. Reports are placed in the task's local  'reports' directory. Control communication between tasks is done entirely through file based communication. The compilation schema containing all setup parameters and run time metrics are read from 'inputs' directory at the start of a task and written to the 'outputs' directory at the end of a task.
 

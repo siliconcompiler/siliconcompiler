@@ -16,6 +16,7 @@ Welcome to SiliconCompiler's documentation!
    user_guide/quickstart
    user_guide/glossary
    user_guide/data_model
+   user_guide/programming_model
    user_guide/execution_model
    user_guide/tools
    user_guide/pdks
@@ -31,8 +32,9 @@ Welcome to SiliconCompiler's documentation!
    :caption: Tutorials
    :numbered:
 
-   tutorials/asicflow
    tutorials/zerosoc
+   tutorials/contribution
+   tutorials/parallel
    tutorials/slurmsetup
 
 .. toctree::
