@@ -89,6 +89,7 @@ class Chip:
 
     ###########################################################################
     def _init_logger(self, step=None, index=None):
+
         self.logger = logging.getLogger(uuid.uuid4().hex)
 
         # Don't propagate log messages to "root" handler (we get duplicate
@@ -587,36 +588,6 @@ class Chip:
             self.logger.info(f"Operating in '{self.get('mode')}' mode")
         else:
             self.logger.warning(f"No mode set")
-
-    ###########################################################################
-    def _list_outputs(self, step, index):
-        '''
-        Returns the outputs (destinations) of a step/index pair.
-        TODO: Fix with tuple or remove
-
-        Searches the 'flowgraph' schema dictionary for inputs that match
-        the string combination '<step><index>' and returns a list of
-        all destination matches in the form '<step><index>'.
-
-        Args:
-            step (str): Step name used to find outputs.
-            index (str): Index name used to find outputs.
-
-        Returns:
-            A list of (step, index) tuples.
-
-        Examples:
-            >>> dstlist = chip.list_outputs('import', '0')
-
-        '''
-
-        outputs = []
-        for a in self.getkeys('flowgraph'):
-            for b in self.getkeys('flowgraph', a):
-                for in_step, in_index in self.get('flowgraph', a, b, 'input'):
-                    if (in_step + in_index) == (step + index):
-                        outputs.append((a,b))
-        return outputs
 
 
     ###########################################################################
@@ -1657,7 +1628,7 @@ class Chip:
         """
 
         abspath = os.path.abspath(filename)
-        self.logger.info('Reading manifest %s', abspath)
+        self.logger.debug('Reading manifest %s', abspath)
 
         #Read arguments from file based on file type
         with open(abspath, 'r') as f:
@@ -1738,6 +1709,46 @@ class Chip:
             else:
                 self.logger.error('File format not recognized %s', filepath)
                 self.error = 1
+
+    ###########################################################################
+    def package(self, filename, prune=True):
+        '''
+        Create sanitized project package.
+
+        The SiliconCompiler project is filtered and exported as a JSON file.
+        If the prune option is set to True, then all metrics, records and
+        results are pruned from the package file.
+
+        Args:
+            filename (filepath): Output filepath
+            prune (bool): If True, only essential source parameters are
+                 included in the package.
+
+        Examples:
+            >>> chip.package('package.json')
+            Write project information to 'package.json'
+        '''
+
+        return(0)
+
+    ###########################################################################
+    def publish(self, filename):
+        '''
+        Publishes package to registry.
+
+        The filename is uploaed to a central package registry based on the
+        the user credentials found in ~/.sc/credentials.
+
+        Args:
+            filename (filepath): Package filename
+
+        Examples:
+            >>> chip.publish('hello.json')
+            Publish hello.json to central repository.
+        '''
+
+        return(0)
+
 
     ###########################################################################
     def _dump_fusesoc(self, cfg):
@@ -2882,8 +2893,8 @@ class Chip:
         ##################
         # 13. Set license variable
 
-        for item in self.getkeys('eda', tool, step, index, 'license'):
-            license_file = self.get('eda', tool, step, index, 'license', item)
+        for item in self.getkeys('eda', tool, step, index, 'licenseserver'):
+            license_file = self.get('eda', tool, step, index, 'licenseserver', item)
             if license_file:
                 os.environ[item] = license_file
 
