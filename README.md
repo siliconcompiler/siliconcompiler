@@ -23,15 +23,12 @@ translation from source code to silicon.
 ## Programming Interface
 
 The SiliconCompiler project is based on a standardized data Schema that supports
-orthogonal combinations of design, tools, and Process Design Kits (PDKs).
-The schema design philosophy is to "make the complex possible while keeping
-the simple simple".
-
-To simplify flow development, the project includes simple object oriented
-Python API that leverages the awesome power of the Python language and community.
-
-To further reduce access barriers, the project also supports a client-server
-execution model that enables compilation without tools and PDK installations.
+orthogonal combinations of design, tools, and Process Design Kits (PDKs). The schema
+design philosophy is to "make the complex possible while keeping the simple simple".
+To simplify flow development, the project includes simple object oriented Python API
+that leverages the awesome power of the Python language and community. To further
+reduce access barriers, the project also supports a client-server execution model
+that enables compilation without tools and PDK installations.
 
 ```python
 import siliconcompiler                    # import python package
