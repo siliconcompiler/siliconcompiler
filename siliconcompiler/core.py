@@ -1719,7 +1719,7 @@ class Chip:
     ###########################################################################
     def package(self, filename, prune=True):
         '''
-        Create sanitized project package.
+        Create sanitized project package. (WIP)
 
         The SiliconCompiler project is filtered and exported as a JSON file.
         If the prune option is set to True, then all metrics, records and
@@ -1740,7 +1740,7 @@ class Chip:
     ###########################################################################
     def publish(self, filename):
         '''
-        Publishes package to registry.
+        Publishes package to registry. (WIP)
 
         The filename is uploaed to a central package registry based on the
         the user credentials found in ~/.sc/credentials.

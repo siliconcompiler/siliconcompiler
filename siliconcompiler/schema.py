@@ -1512,7 +1512,7 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
     filetype = 'default'
     cfg['library'][lib]['binary'] = {}
     cfg['library'][lib]['binary'][filetype] = {
-        'switch': "-library_binary 'lib filetypet <file>'",
+        'switch': "-library_binary 'lib filetype <file>'",
         'require': None,
         'type': '[file]',
         'lock': 'false',
@@ -1898,11 +1898,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'help': """
         List of command line options for the tool executable, specified on
         a per tool and per step basis. Options should not include spaces.
-        For multiple argument options, each option is a separate list
-        For command line options, a variable should be 'cmdline'. For TCL
-        variables fed into specific tools,  the variable name can be anything
-        that is compatible with the tool, thus enabling the driving of an
-        arbitrary set of parameters within the tool.
+        For multiple argument options, each option is a separate list element.
         """
     }
 

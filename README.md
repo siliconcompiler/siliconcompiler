@@ -20,7 +20,7 @@
 SiliconCompiler is an open source compiler framework that aims to automate
 translation from source code to silicon.
 
-## Programming Interface
+## Project Overview
 
 The SiliconCompiler project is based on a standardized data Schema that supports
 orthogonal combinations of design, tools, and Process Design Kits (PDKs). The schema
@@ -29,6 +29,9 @@ To simplify flow development, the project includes simple object oriented Python
 that leverages the awesome power of the Python language and community. To further
 reduce access barriers, the project also supports a client-server execution model
 that enables compilation without tools and PDK installations.
+
+Intrigued? Check out the extensive [documentation!](https://docs.siliconcompiler.com)
+
 
 ```python
 import siliconcompiler                    # import python package
@@ -46,7 +49,7 @@ chip.show()                               # show layout
 ## Command Line Interface
 
 For complex flows, the Python programming interface is the correct approach,
-but fir simple experiments a command line interface program can be very
+but for simple experiments a command line interface program can be very
 effective. SiliconCompiler includes a command line program 'sc',  with full
 support for all compiler schema parameters.
 
