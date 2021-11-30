@@ -12,7 +12,7 @@
 - **Sources:**  https://github.com/siliconcompiler/siliconcompiler
 - **Issues:**  https://github.com/siliconcompiler/siliconcompiler/issues
 - **RFCs:**  https://github.com/siliconcompiler/rfcs
-- **Disussion:** https://github.com/siliconcompiler/siliconcompiler/discussions
+- **Discussion:** https://github.com/siliconcompiler/siliconcompiler/discussions
 
 
 ## Mission
@@ -22,13 +22,9 @@ translation from source code to silicon.
 
 ## Project Overview
 
-The SiliconCompiler project is based on a standardized data Schema that supports
-orthogonal combinations of design, tools, and Process Design Kits (PDKs). The schema
-design philosophy is to "make the complex possible while keeping the simple simple".
-To simplify flow development, the project includes simple object oriented Python API
-that leverages the awesome power of the Python language and community. To further
-reduce access barriers, the project also supports a client-server execution model
-that enables compilation without tools and PDK installations.
+The SiliconCompiler project includes a standardized compiler data Schema, a Python
+object oriented API, and a distributed systems execution model. The project
+philosophy is to "make the complex possible while keeping the simple simple".
 
 Intrigued? Check out the extensive [documentation!](https://docs.siliconcompiler.com)
 
@@ -48,12 +44,11 @@ chip.show()                               # show layout
 
 ## Command Line Interface
 
-For complex flows, the Python programming interface is the correct approach,
-but for simple experiments a command line interface program can be very
-effective. SiliconCompiler includes a command line program 'sc',  with full
-support for all compiler schema parameters.
+Command line interface programs are very effective for quick experimentation.
+SiliconCompiler includes a command line program 'sc',  with full support for all
+compiler schema parameters.
 
-For very simple designs, compiling using *sc* is as easy as using gcc or llvm.
+For simple designs, compiling using *sc* is as easy as using gcc or llvm.
 
 ```bash
 pip install siliconcompiler
@@ -65,14 +60,12 @@ More complex designs are handled by simply adding more options.
 sc hello.v add.v -constraint hello.sdc -target "asicflow_skywater130"
 ```
 
-
 ## Remote Compilation
 
-To simplify tool installation and job scheduling, SiliconCompiler supports a
-"-remote" option, which directs the compiler to send all steps to a remote
-server for processing. The -remote option relies on a credentials file located at
-~/.sc/credentials on Linux or macOS, or at C:\Users\USERNAME\\.sc\credentials on
-Windows.
+SiliconCompiler supports a "-remote" option, which directs the compiler to send all
+steps to a remote server for processing. The -remote option relies on a credentials
+file located at ~/.sc/credentials on Linux or macOS, or at
+C:\Users\USERNAME\\.sc\credentials on Windows.
 
 ```bash
 sc hello.v -remote
@@ -100,8 +93,7 @@ python -m pip install -e .
 
 ## External Dependencies
 
-SiliconCompiler depends on the correct installation of all tool executables to
-run locally. Installation instructions for all external tools can be found in the
+Installation instructions for all external tools can be found in the
 [Tools Directory](https://docs.siliconcompiler.com/reference_manual/tools.html).
 For the '-remote' option, there are no external dependencies.
 
