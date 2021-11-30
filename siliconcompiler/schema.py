@@ -46,7 +46,6 @@ def schema_cfg():
     cfg = schema_pdk(cfg)
 
     # Package management
-    cfg = schema_hier(cfg)
     cfg = schema_libs(cfg)
     cfg = schema_package(cfg, 'library')
 
@@ -1779,57 +1778,6 @@ def schema_jobs (cfg, job='default', step='default', index='default'):
         Specifies jobname inputs for the current run() on a per step
         and per index basis. During execution, the default behavior is to
         copy inputs from the current job.
-        """
-    }
-
-    return cfg
-
-###########################################################################
-# Design Hierarchy
-###########################################################################
-
-def schema_hier(cfg, parent='default', child='default'):
-
-
-    cfg['hier'] = {}
-    cfg['hier'][parent] = {}
-    cfg['hier'][parent][child] = {}
-
-    # Flow graph definition
-    cfg['hier'][parent][child]['package'] = {
-        'switch': "-hier_package 'parent child <file>'",
-        'type': '[file]',
-        'lock': 'false',
-        'require': None,
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Component package file',
-        'example': [
-            "cli: -hier_package 'top padring padring_package.json'",
-            "api:  chip.set('hier','top','padring','package','padring_package.json')"],
-        'help': """
-        Path to an instantiated child component package file. The file format is
-        the standard JSON format exported by SC.
-        """
-    }
-
-    # Hierarchical build indicator
-    cfg['hier'][parent][child]['build'] = {
-        'switch': "-hier_build 'parent child <bool>'",
-        'type': 'bool',
-        'lock': 'false',
-        'require': None,
-        'defvalue': "false",
-        'shorthelp': 'Child ',
-        'example': ["cli: -hier_build 'top padring true'",
-                    "api:  chip.set('hier', 'top', 'padring', 'build', 'true')"],
-        'help': """
-        Path to an instantiated child cell package file.
         """
     }
 
@@ -3675,11 +3623,7 @@ def schema_options(cfg):
         'example': ["cli: -trace",
                     "api: chip.set('trace', True)"],
         'help': """
-        Specifies that tools should dump simulation traces when the parameter
-        is set to "true". For Verilog and VHDL simulation this switch
-        should be used to control dumping of waveform (VCD or other
-        format). The switch is global and should control all simulation
-        steps of an execution flow.
+        Enables tracing during compilation and/or runtime.
         """
     }
 
