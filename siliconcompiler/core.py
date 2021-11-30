@@ -1689,6 +1689,12 @@ class Chip:
         if abspath:
             self._abspath(cfgcopy)
 
+        # TODO: fix
+        #remove long help (adds no value)
+        #allkeys = self.getkeys(cfg=cfgcopy)
+        #for key in allkeys:
+        #    self.set(*key, "...", cfg=cfgcopy, field='help')
+
         # format specific dumping
         with open(filepath, 'w') as f:
             if filepath.endswith('.json'):
