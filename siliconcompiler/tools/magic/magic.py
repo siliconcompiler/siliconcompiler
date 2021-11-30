@@ -70,7 +70,7 @@ def setup_tool(chip):
     options.append('-dnull')
     options.append('-rcfile')
     options.append('sc.magicrc')
-    chip.add('eda', tool, step, index, 'option', options)
+    chip.set('eda', tool, step, index, 'option', options, clobber=False)
 
 ################################
 # Version Check
