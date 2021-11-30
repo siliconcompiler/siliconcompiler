@@ -41,7 +41,7 @@ def setup_tool(chip):
     chip.set('eda', tool, step, index, 'exe', 'nextpnr-ice40', clobber=clobber)
     chip.set('eda', tool, step, index, 'vswitch', '--version', clobber=clobber)
     chip.set('eda', tool, step, index, 'version', 'c73d4cf6', clobber=clobber)
-    chip.set('eda', tool, step, index, 'option', 'cmdline', "", clobber=clobber)
+    chip.set('eda', tool, step, index, 'option', "", clobber=clobber)
 
 ################################
 #  Custom runtime options

@@ -57,7 +57,7 @@ def setup_tool(chip, mode='batch'):
     chip.set('eda', tool, step, index, 'vswitch', '-version', clobber=clobber)
     chip.set('eda', tool, step, index, 'version', '0', clobber=clobber)
     chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=clobber)
-    chip.set('eda', tool, step, index, 'option', 'cmdline', option, clobber=clobber)
+    chip.set('eda', tool, step, index, 'option', option, clobber=clobber)
 
 ################################
 # Post_process (post executable)

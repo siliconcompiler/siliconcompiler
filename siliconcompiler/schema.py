@@ -46,7 +46,6 @@ def schema_cfg():
     cfg = schema_pdk(cfg)
 
     # Package management
-    cfg = schema_hier(cfg)
     cfg = schema_libs(cfg)
     cfg = schema_package(cfg, 'library')
 
@@ -445,51 +444,34 @@ def schema_pdk(cfg, stackup='default'):
         tracking and tapeout checklists.
         """
     }
+    doctypes = ['datasheet',
+                'reference',
+                'userguide',
+                'releasenotes',
+                'tutorial']
 
-    cfg['pdk']['drm'] = {
-        'switch': "-pdk_drm <file>",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Design rule manuals',
-        'example': ["cli: -pdk_drm asap7_drm.pdf",
-                    "api:  chip.set('pdk', 'drm', 'asap7_drm.pdf')"],
-        'help': """
-        Document that includes complete information about physical and
-        electrical design rules to comply with in the design and layout of the
-        chip. In advanced technologies, design rules may be split across
-        multiple documents, in which case all files should be listed.
-        """
-    }
-
-    cfg['pdk']['doc'] = {
-        'switch': "-pdk_doc <file>",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'PDK documents',
-        'example': ["cli: -pdk_doc asap7_userguide.pdf",
-                    "api: chip.set('pdk', 'doc', 'asap7_userguide.pdf')"],
-        'help': """
-        List of all critical PDK design documents (non-drm) provided by the
-        foundry entered in order of priority to document design methodologies
-        and best practices.
-        """
-    }
+    cfg['pdk']['doc'] = {}
+    for item in doctypes:
+        cfg['pdk']['doc'][item] = {
+            'switch': f"-pdk_doc_{item} '<file>'",
+            'type': '[file]',
+            'lock': 'false',
+            'copy': 'true',
+            'require': None,
+            'defvalue': [],
+            'filehash': [],
+            'hashalgo': 'sha256',
+            'date': [],
+            'author': [],
+            'signature': [],
+            'shorthelp': f"PDK {item}",
+            'example': [
+                f"cli: -pdk_doc_{item} 'pdk.pdf",
+                f"api: chip.set('pdk','doc',{item},'pdk.pdf')"],
+            'help': f"""
+            List of {item} documents for the PDK.
+            """
+        }
 
     cfg['pdk']['stackup'] = {
         'switch': "-pdk_stackup <str>",
@@ -1392,8 +1374,8 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
             "cli: -library_spice 'mylib pspice mylib.sp'",
             "api: chip.set('library','mylib','spice','pspice','mylib.sp')"],
         'help': """
-        List of files containing library spice netlists used for circuit
-        simulation specified on a per format basis.
+        List of files containing simulation spice netlists specified on a
+        per format basis.
         """
     }
 
@@ -1505,7 +1487,7 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'example': ["cli: -library_site 'mylib core'",
                     "api: chip.set('library','mylib','site','core')"],
         'help': """
-        List of sites to use for APR. The first
+        List of sites to use for APR.
         """
     }
 
@@ -1522,15 +1504,15 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
             "api: chip.set('library','mylib','cells','dontuse','*eco*')"],
         'help': """
         List of cells grouped by a property that can be accessed
-        directly by the designer and EDA tools. The example below shows how
+        directly by the designer and tools. The example below shows how
         all cells containing the string 'eco' could be marked as dont use
         for the tool.
         """
     }
-    cfg['library'][lib]['layoutdb'] = {}
-    cfg['library'][lib]['layoutdb'][stackup] = {}
-    cfg['library'][lib]['layoutdb'][stackup]['default'] = {
-        'switch': "-library_layoutdb 'lib stackup format <file>'",
+    filetype = 'default'
+    cfg['library'][lib]['binary'] = {}
+    cfg['library'][lib]['binary'][filetype] = {
+        'switch': "-library_binary 'lib filetype <file>'",
         'require': None,
         'type': '[file]',
         'lock': 'false',
@@ -1541,13 +1523,13 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'shorthelp': 'Library layout database',
+        'shorthelp': 'Library binary database',
         'example': [
-            "cli: -library_layoutdb 'lib M10 oa ~/libdb'",
-            "api: chip.set('library','lib','layoutdb','M10','oa','~/libdb')"],
+            "cli: -library_binary 'lib oa ~/libdb'",
+            "api: chip.set('library','lib','binary', 'oa','~/libdb')"],
         'help': """
-        Filepaths to compiled library layout database specified on a per format
-        basis. Example formats include oa, mw, ndm.
+        Filepaths to compiled library database specified on a per format
+        basis. Example formats include oa, mw, ndm, opendb.
         """
     }
 
@@ -1785,57 +1767,6 @@ def schema_jobs (cfg, job='default', step='default', index='default'):
     return cfg
 
 ###########################################################################
-# Design Hierarchy
-###########################################################################
-
-def schema_hier(cfg, parent='default', child='default'):
-
-
-    cfg['hier'] = {}
-    cfg['hier'][parent] = {}
-    cfg['hier'][parent][child] = {}
-
-    # Flow graph definition
-    cfg['hier'][parent][child]['package'] = {
-        'switch': "-hier_package 'parent child <file>'",
-        'type': '[file]',
-        'lock': 'false',
-        'require': None,
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Component package file',
-        'example': [
-            "cli: -hier_package 'top padring padring_package.json'",
-            "api:  chip.set('hier','top','padring','package','padring_package.json')"],
-        'help': """
-        Path to an instantiated child component package file. The file format is
-        the standard JSON format exported by SC.
-        """
-    }
-
-    # Hierarchical build indicator
-    cfg['hier'][parent][child]['build'] = {
-        'switch': "-hier_build 'parent child <bool>'",
-        'type': 'bool',
-        'lock': 'false',
-        'require': None,
-        'defvalue': "false",
-        'shorthelp': 'Child ',
-        'example': ["cli: -hier_build 'top padring true'",
-                    "api:  chip.set('hier', 'top', 'padring', 'build', 'true')"],
-        'help': """
-        Path to an instantiated child cell package file.
-        """
-    }
-
-    return cfg
-
-###########################################################################
 # EDA Tool Setup
 ###########################################################################
 
@@ -1933,18 +1864,18 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         """
     }
 
-    # licensefile
-    cfg['eda'][tool][step][index]['license'] = {}
-    cfg['eda'][tool][step][index]['license']['default'] = {
-        'switch': "-eda_licensefile 'tool step index name <str>'",
+    # licenseserver
+    cfg['eda'][tool][step][index]['licenseserver'] = {}
+    cfg['eda'][tool][step][index]['licenseserver']['default'] = {
+        'switch': "-eda_licenseserver 'tool step index name <str>'",
         'type': 'str',
         'lock': 'false',
         'require': None,
         'defvalue': None,
         'shorthelp': 'Executable license server',
         'example': [
-            "cli: -eda_license 'atool place 0 ACME_LICENSE_FILE 1700@server'",
-            "api:  chip.set('eda','atool','place','0','license', 'ACME_LICENSE_FILE', '1700@server')"],
+            "cli: -eda_licenseserver 'atool place 0 ACME_LICENSE_FILE 1700@server'",
+            "api:  chip.set('eda','atool','place','0','licenseserver', 'ACME_LICENSE_FILE', '1700@server')"],
         'help': """
         Defines a set of tool specific environment variables used by the executables
         that depend on license key servers to control access. For multiple servers,
@@ -1954,8 +1885,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     }
 
     # options
-    cfg['eda'][tool][step][index]['option'] = {}
-    cfg['eda'][tool][step][index]['option']['default'] = {
+    cfg['eda'][tool][step][index]['option'] = {
         'switch': "-eda_option 'tool step index name <str>'",
         'type': '[str]',
         'lock': 'false',
@@ -1963,18 +1893,31 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'defvalue': [],
         'shorthelp': 'Executable options',
         'example': [
-            "cli: -eda_option 'openroad cts 0 cmdline -no_init'",
-            "api: chip.set('eda','openroad','cts','0','option','cmdline','-no_init')"],
+            "cli: -eda_option 'openroad cts 0 -no_init'",
+            "api: chip.set('eda','openroad','cts','0','option','-no_init')"],
         'help': """
         List of command line options for the tool executable, specified on
-        a per tool and per step basis. For multiple argument options, enter
-        each argument and value as a one list entry, specified on a per
-        step basis. Options that include spaces must be enclosed in in double
-        quotes. The options are entered as a dictionary assigned to a variable.
-        For command line options, a variable should be 'cmdline'. For TCL
-        variables fed into specific tools,  the variable name can be anything
-        that is compatible with the tool, thus enabling the driving of an
-        arbitrary set of parameters within the tool.
+        a per tool and per step basis. Options should not include spaces.
+        For multiple argument options, each option is a separate list element.
+        """
+    }
+
+    # variables
+    cfg['eda'][tool][step][index]['variable'] = {}
+    cfg['eda'][tool][step][index]['variable']['default'] = {
+        'switch': "-eda_variable 'tool step index name <str>'",
+        'type': '[str]',
+        'lock': 'false',
+        'require': None,
+        'defvalue': [],
+        'shorthelp': 'Executable script variables',
+        'example': [
+            "cli: -eda_variable 'openroad cts 0 myvar 42'",
+            "api: chip.set('eda','openroad','cts','0','variable','myvar', '42')"],
+        'help': """
+        Executable script variables specified as key value pairs. Variable
+        names and value types must match the name and type of tool and reference
+        script consuming the variable.
         """
     }
 
@@ -2031,8 +1974,8 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
 
     # report files
     report_type = 'default'
-    cfg['eda'][tool][step][index][report_type] = {}
-    cfg['eda'][tool][step][index][report_type]['report'] = {
+    cfg['eda'][tool][step][index]['report'] = {}
+    cfg['eda'][tool][step][index]['report'][report_type] = {
         'switch': "-eda_report 'tool step index report_type <str>'",
         'type': '[str]',
         'lock': 'false',
@@ -2041,7 +1984,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'shorthelp': 'List of report files ',
         'example': [
             "cli: -eda_report 'yosys syn 0 hold hold.rpt'",
-            "api: chip.set('eda','yosys','syn','0', 'hold', 'report','hold.rpt')"],
+            "api: chip.set('eda','yosys','syn','0','report','hold','hold.rpt')"],
         'help': """
         Name of report file of type 'reptype' produced by the task within the
         local 'reports' directory.
@@ -2950,6 +2893,20 @@ def schema_record(cfg, job='default', step='default', index='default'):
         """
     }
 
+    cfg['record'][job][step][index]['tool'] = {
+        'switch': "-record_tool 'job step index <file>'",
+        'require': None,
+        'type': 'str',
+        'lock': 'false',
+        'defvalue': None,
+        'shorthelp': 'Record of tool name',
+        'example': [
+            "cli: -record_tool 'job0 syn 0 yosys'",
+            "api: chip.set('record','job0', 'syn','0','tool','yosys')"],
+        'help': """
+        Record tracking the name of the tool on a per step and index basis.
+        """
+    }
 
     cfg['record'][job][step][index]['chipid'] = {
         'switch': "-record_chipid 'job step index <str>'",
@@ -3645,11 +3602,7 @@ def schema_options(cfg):
         'example': ["cli: -trace",
                     "api: chip.set('trace', True)"],
         'help': """
-        Specifies that tools should dump simulation traces when the parameter
-        is set to "true". For Verilog and VHDL simulation this switch
-        should be used to control dumping of waveform (VCD or other
-        format). The switch is global and should control all simulation
-        steps of an execution flow.
+        Enables tracing during compilation and/or runtime.
         """
     }
 
@@ -3831,9 +3784,12 @@ def schema_package(cfg, group):
         """
     }
 
-    doctypes = ['datasheet', 'specification', 'testplan',
-                'userguide', 'appnote', 'tutorial',
-                'reference']
+    doctypes = ['datasheet',
+                'reference',
+                'userguide',
+                'releasenotes',
+                'testplan',
+                'tutorial']
     localcfg['doc'] = {}
     for item in doctypes:
         localcfg['doc'][item] = {
@@ -3923,28 +3879,38 @@ def schema_package(cfg, group):
             f"cli: -{group}_dependency '{lib}hello 1.0.0'",
             f"api: chip.set('{group}',{libapi}'dependency','hello','1.0.0')"],
         'help': """
-        Package version.
+        Package dependency specifed as a key value pair.
+        """
+    }
+
+    localcfg['target'] = {
+        'switch': f"-{group}_target '{lib}<str>'",
+        'type': '[str]',
+        'lock': 'false',
+        'require': None,
+        'defvalue': None,
+        'shorthelp': f"{group.capitalize()} target list",
+        'example': [
+            f"cli: -{group}_target '{lib}asicflow_freepdk45",
+            f"api: chip.set('{group}',{libapi}'target', 'asicflow_freepdk45')"],
+        'help': f"""
+        List of tested and qualified targets for the package.
         """
     }
 
     localcfg['license'] = {
         'switch': f"-{group}_license '{lib}<file>'",
-        'type': '[file]',
+        'type': 'str',
         'lock': 'false',
-        'copy': 'true',
         'require': None,
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': f"{group.capitalize()} license file",
+        'defvalue': None,
+        'shorthelp': f"{group.capitalize()} license name",
         'example': [
             f"cli: -{group}_license '{lib}./LICENSE",
             f"api: chip.set('{group}',{libapi}'license', './LICENSE')"],
         'help': f"""
-        Filepath to the technology license for {group}.
+        The license for {group}. SPDX identifiers should be used when
+        applicable.
         """
     }
 

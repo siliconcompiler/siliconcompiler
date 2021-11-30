@@ -59,7 +59,7 @@ def setup_tool(chip, mode="batch"):
     chip.set('eda', tool, step, index, 'vswitch', '-zz -v', clobber=clobber)
     chip.set('eda', tool, step, index, 'version', '0.26.11', clobber=clobber)
 
-    chip.set('eda', tool, step, index, 'option', 'cmdline', option, clobber=clobber)
+    chip.set('eda', tool, step, index, 'option', option, clobber=clobber)
 
     # Input/Output requirements
     chip.add('eda', tool, step, index, 'output', chip.get('design') + '.gds')

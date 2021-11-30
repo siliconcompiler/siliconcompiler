@@ -40,6 +40,7 @@ extensions = [
     'clientservergen',
     'dynamicgen',
     'metricgen',
+    'recordgen',
     'packagegen',
     'sphinx.ext.autosummary',
     'requirements'

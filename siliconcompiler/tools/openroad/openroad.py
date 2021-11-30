@@ -63,7 +63,7 @@ def setup_tool(chip, mode='batch'):
     chip.set('eda', tool, step, index, 'vswitch', '-version', clobber=clobber)
     chip.set('eda', tool, step, index, 'version', 'v2.0', clobber=clobber)
     chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=clobber)
-    chip.set('eda', tool, step, index, 'option', 'cmdline', option, clobber=clobber)
+    chip.set('eda', tool, step, index, 'option', option, clobber=clobber)
     chip.set('eda', tool, step, index, 'refdir', refdir, clobber=clobber)
     chip.set('eda', tool, step, index, 'script', refdir + script, clobber=clobber)
 
@@ -148,13 +148,13 @@ def setup_tool(chip, mode='batch'):
         }
 
     for option in default_options:
-        if option in chip.getkeys('eda', tool, step, index, 'option'):
-            chip.logger.info('User provided option %s OpenROAD flow detected.', option)
+        if option in chip.getkeys('eda', tool, step, index, 'variable'):
+            chip.logger.info('User provided variable %s OpenROAD flow detected.', option)
         elif not default_options[option]:
             chip.error = 1
-            chip.logger.error('Missing option %s for OpenROAD.', option)
+            chip.logger.error('Missing variable %s for OpenROAD.', option)
         else:
-            chip.set('eda', tool, step, index, 'option', option, default_options[option], clobber=clobber)
+            chip.set('eda', tool, step, index, 'variable', option, default_options[option], clobber=clobber)
 
     for clock in chip.getkeys('clock'):
         chip.add('eda', tool, step, index, 'require', ','.join(['clock', clock, 'period']))

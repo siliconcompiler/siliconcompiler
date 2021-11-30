@@ -54,12 +54,12 @@ def setup_tool(chip):
 
     if step == 'apr':
         chip.set('eda', tool, step, index, 'exe', 'openfpga')
-        chip.add('eda', tool, step, index, 'option', 'cmdline', '-batch -f ' + OPENFPGA_SCRIPT)
+        chip.add('eda', tool, step, index, 'option', '-batch -f ' + OPENFPGA_SCRIPT)
     elif step == 'bitstream':
         # bitstream step is currently a NOP, since apr and bitstream generation
         # are integrated in shell script
         chip.set('eda', tool, step, index, 'exe', 'cp')
-        chip.add('eda', tool, step, index, 'option', 'cmdline', ' -r inputs/ outputs/')
+        chip.add('eda', tool, step, index, 'option', ' -r inputs/ outputs/')
 
 
 def pre_process(chip):
