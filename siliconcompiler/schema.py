@@ -3929,22 +3929,17 @@ def schema_package(cfg, group):
 
     localcfg['license'] = {
         'switch': f"-{group}_license '{lib}<file>'",
-        'type': '[file]',
+        'type': 'str',
         'lock': 'false',
-        'copy': 'true',
         'require': None,
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': f"{group.capitalize()} license file",
+        'defvalue': None,
+        'shorthelp': f"{group.capitalize()} license name",
         'example': [
             f"cli: -{group}_license '{lib}./LICENSE",
             f"api: chip.set('{group}',{libapi}'license', './LICENSE')"],
         'help': f"""
-        Filepath to the technology license for {group}.
+        The license for {group}. SPDX identifiers should be used when
+        applicable.
         """
     }
 
