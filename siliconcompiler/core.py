@@ -459,13 +459,14 @@ class Chip:
             else:
                 self.logger.info(f"Loading function '{funcname}' from module '{modulename}'")
             try:
-                sys.path.append(os.path.dirname(fullpath))
-                imported = importlib.import_module(modulename)
+                spec = importlib.util.spec_from_file_location(modulename, fullpath)
+                imported = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(imported)
+
                 if hasattr(imported, funcname):
                     function = getattr(imported, funcname)
                 else:
                     function = None
-                sys.path.pop()
                 return function
             except:
                 traceback.print_exc()
@@ -3156,6 +3157,9 @@ class Chip:
                             self.set('arg','step', step)
                             self.set('arg','index', index)
                             func = self.find_function(tool, 'tool', 'setup_tool')
+                            if func is None:
+                                self.logger.error(f'setup_tool() not found for tool {tool}')
+                                sys.exit(1)
                             func(self)
                             # Need to clear index, otherwise we will skip
                             # setting up other indices. Clear step for good
