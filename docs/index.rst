@@ -23,6 +23,8 @@ Welcome to SiliconCompiler's documentation!
    user_guide/flows
    user_guide/targets
    user_guide/metrics
+   user_guide/records
+   user_guide/libraries
    user_guide/packages
    user_guide/faq
    user_guide/licenses
@@ -47,7 +49,6 @@ Welcome to SiliconCompiler's documentation!
    reference_manual/server_api
    reference_manual/floorplan_api
    reference_manual/apps
-   reference_manual/examples
    reference_manual/flows
    reference_manual/tools
    reference_manual/pdks
@@ -57,8 +58,6 @@ Welcome to SiliconCompiler's documentation!
    :caption: Resources
    :numbered:
 
-   resources/references
-   resources/primer
    resources/glossary
 
 Indices and tables
