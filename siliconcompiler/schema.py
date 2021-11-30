@@ -3941,6 +3941,21 @@ def schema_package(cfg, group):
         """
     }
 
+    localcfg['target'] = {
+        'switch': f"-{group}_target '{lib}<str>'",
+        'type': '[str]',
+        'lock': 'false',
+        'require': None,
+        'defvalue': None,
+        'shorthelp': f"{group.capitalize()} target list",
+        'example': [
+            f"cli: -{group}_target '{lib}asicflow_freepdk45",
+            f"api: chip.set('{group}',{libapi}'target', 'asicflow_freepdk45')"],
+        'help': f"""
+        List of tested and qualified targets for the package.
+        """
+    }
+
     localcfg['license'] = {
         'switch': f"-{group}_license '{lib}<file>'",
         'type': 'str',
