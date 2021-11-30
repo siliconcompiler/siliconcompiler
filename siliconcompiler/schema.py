@@ -444,51 +444,34 @@ def schema_pdk(cfg, stackup='default'):
         tracking and tapeout checklists.
         """
     }
+    doctypes = ['datasheet',
+                'reference',
+                'userguide',
+                'releasenotes',
+                'tutorial']
 
-    cfg['pdk']['drm'] = {
-        'switch': "-pdk_drm <file>",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Design rule manuals',
-        'example': ["cli: -pdk_drm asap7_drm.pdf",
-                    "api:  chip.set('pdk', 'drm', 'asap7_drm.pdf')"],
-        'help': """
-        Document that includes complete information about physical and
-        electrical design rules to comply with in the design and layout of the
-        chip. In advanced technologies, design rules may be split across
-        multiple documents, in which case all files should be listed.
-        """
-    }
-
-    cfg['pdk']['doc'] = {
-        'switch': "-pdk_doc <file>",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'PDK documents',
-        'example': ["cli: -pdk_doc asap7_userguide.pdf",
-                    "api: chip.set('pdk', 'doc', 'asap7_userguide.pdf')"],
-        'help': """
-        List of all critical PDK design documents (non-drm) provided by the
-        foundry entered in order of priority to document design methodologies
-        and best practices.
-        """
-    }
+    cfg['pdk']['doc'] = {}
+    for item in doctypes:
+        cfg['pdk']['doc'][item] = {
+            'switch': f"-pdk_doc_{item} '<file>'",
+            'type': '[file]',
+            'lock': 'false',
+            'copy': 'true',
+            'require': None,
+            'defvalue': [],
+            'filehash': [],
+            'hashalgo': 'sha256',
+            'date': [],
+            'author': [],
+            'signature': [],
+            'shorthelp': f"PDK {item}",
+            'example': [
+                f"cli: -pdk_doc_{item} 'pdk.pdf",
+                f"api: chip.set('pdk','doc',{item},'pdk.pdf')"],
+            'help': f"""
+            List of {item} documents for the PDK.
+            """
+        }
 
     cfg['pdk']['stackup'] = {
         'switch': "-pdk_stackup <str>",
@@ -3805,9 +3788,12 @@ def schema_package(cfg, group):
         """
     }
 
-    doctypes = ['datasheet', 'specification', 'testplan',
-                'userguide', 'appnote', 'tutorial',
-                'reference']
+    doctypes = ['datasheet',
+                'reference',
+                'userguide',
+                'releasenotes',
+                'testplan',
+                'tutorial']
     localcfg['doc'] = {}
     for item in doctypes:
         localcfg['doc'][item] = {
