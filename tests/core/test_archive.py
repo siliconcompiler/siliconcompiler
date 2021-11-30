@@ -2,7 +2,7 @@
 import siliconcompiler
 import os
 import pytest
-
+@pytest.mark.skip(reason="broken file path")
 def test_archive():
     scroot = os.path.abspath(os.path.join(os.path.dirname(__file__),"..",".."))
     srcdir = os.path.join(scroot,
