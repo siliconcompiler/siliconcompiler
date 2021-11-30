@@ -57,7 +57,7 @@ def setup_tool(chip):
 
      options.append(blif)
 
-     chip.add('eda', tool, step, index, 'option', 'cmdline', options)
+     chip.add('eda', tool, step, index, 'option', options)
 
 ################################
 # Post_process (post executable)

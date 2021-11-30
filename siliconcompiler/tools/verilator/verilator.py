@@ -59,13 +59,13 @@ def setup_tool(chip):
     chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=False)
 
     # Options driven on a per step basis (use 'set' on first call!)
-    chip.set('eda', tool, step, index, 'option', 'cmdline', '-sv', clobber=False)
+    chip.set('eda', tool, step, index, 'option', '-sv', clobber=False)
 
     # Differentiate between import step and compilation
     if step in ['import', 'lint']:
-        chip.add('eda', tool, step, index, 'option', 'cmdline', ['--lint-only','--debug'])
+        chip.add('eda', tool, step, index, 'option', ['--lint-only','--debug'])
     elif (step == 'compile'):
-        chip.add('eda', tool, step, index, 'option', 'cmdline', '--cc')
+        chip.add('eda', tool, step, index, 'option', '--cc')
     else:
         chip.logger.error('Step %s not supported for verilator', step)
         sys.exit()

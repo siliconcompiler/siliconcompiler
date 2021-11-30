@@ -3451,9 +3451,8 @@ class Chip:
         options = []
         is_posix = ('win' not in sys.platform)
 
-        if 'cmdline' in self.getkeys('eda', tool, step, index, 'option'):
-            for option in self.get('eda', tool, step, index, 'option', 'cmdline'):
-                options.extend(shlex.split(option, posix=is_posix))
+        for option in self.get('eda', tool, step, index, 'option'):
+            options.extend(shlex.split(option, posix=is_posix))
 
         # Add scripts files
         scripts = self.find_files('eda', tool, step, index, 'script')

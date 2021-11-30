@@ -51,9 +51,9 @@ def setup_tool(chip):
     chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=False)
 
     if step == 'compile':
-        chip.set('eda', tool, step, index,'option','cmdline','-o outputs/'+design+'.vvp')
+        chip.set('eda', tool, step, index,'option','-o outputs/'+design+'.vvp')
     elif step == 'run':
-        chip.set('eda', tool, step, index,'option','cmdline','')
+        chip.set('eda', tool, step, index,'option','')
     else:
         chip.logger.error(f"Step '{step}' not supported in Icarus tool")
 

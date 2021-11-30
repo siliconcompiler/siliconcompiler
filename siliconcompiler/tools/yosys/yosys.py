@@ -52,7 +52,7 @@ def setup_tool(chip):
     chip.set('eda', tool, step, index, 'exe', 'yosys', clobber=False)
     chip.set('eda', tool, step, index, 'vswitch', '--version', clobber=False)
     chip.set('eda', tool, step, index, 'version', '0.9', clobber=False)
-    chip.set('eda', tool, step, index, 'option', 'cmdline', '-c', clobber=False)
+    chip.set('eda', tool, step, index, 'option', '-c', clobber=False)
     chip.set('eda', tool, step, index, 'refdir', refdir, clobber=False)
 
     if step == 'syn':

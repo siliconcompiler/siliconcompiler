@@ -20,11 +20,11 @@ set sc_tool    openroad
 set sc_step    [dict get $sc_cfg arg step]
 set sc_index   [dict get $sc_cfg arg index]
 
-set openroad_place_density [lindex [dict get $sc_cfg eda $sc_tool $sc_step $sc_index option  place_density] 0]
-set openroad_pad_global_place [lindex [dict get $sc_cfg eda $sc_tool $sc_step $sc_index option  pad_global_place] 0]
-set openroad_pad_detail_place [lindex [dict get $sc_cfg eda $sc_tool $sc_step $sc_index option  pad_detail_place] 0]
-set openroad_macro_place_halo [dict get $sc_cfg eda $sc_tool $sc_step $sc_index option  macro_place_halo]
-set openroad_macro_place_channel [dict get $sc_cfg eda $sc_tool $sc_step $sc_index option  macro_place_channel]
+set openroad_place_density [lindex [dict get $sc_cfg eda $sc_tool $sc_step $sc_index {variable} place_density] 0]
+set openroad_pad_global_place [lindex [dict get $sc_cfg eda $sc_tool $sc_step $sc_index {variable} pad_global_place] 0]
+set openroad_pad_detail_place [lindex [dict get $sc_cfg eda $sc_tool $sc_step $sc_index {variable} pad_detail_place] 0]
+set openroad_macro_place_halo [dict get $sc_cfg eda $sc_tool $sc_step $sc_index {variable} macro_place_halo]
+set openroad_macro_place_channel [dict get $sc_cfg eda $sc_tool $sc_step $sc_index {variable} macro_place_channel]
 
 #Handling remote/local script execution
 if {[dict get $sc_cfg eda $sc_tool $sc_step $sc_index copy] eq True} {

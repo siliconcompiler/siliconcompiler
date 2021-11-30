@@ -62,7 +62,7 @@ def setup_tool(chip):
     options.append('-parse')
 
     # Wite back options tp cfg
-    chip.add('eda', tool, step, index, 'option', 'cmdline', options)
+    chip.add('eda', tool, step, index, 'option', options)
 
     # Input/Output requirements
     chip.add('eda', tool, step, index, 'output', chip.get('design') + '.v')

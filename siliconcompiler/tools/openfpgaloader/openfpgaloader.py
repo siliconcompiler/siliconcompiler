@@ -54,7 +54,7 @@ def setup_tool(chip):
 
     options = []
     options.append("inputs" + chip.get('design') + ".bit")
-    chip.add('eda', tool, step, index, 'option', 'cmdline', options)
+    chip.add('eda', tool, step, index, 'option', options)
 
 ################################
 # Version Check

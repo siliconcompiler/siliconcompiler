@@ -1954,8 +1954,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     }
 
     # options
-    cfg['eda'][tool][step][index]['option'] = {}
-    cfg['eda'][tool][step][index]['option']['default'] = {
+    cfg['eda'][tool][step][index]['option'] = {
         'switch': "-eda_option 'tool step index name <str>'",
         'type': '[str]',
         'lock': 'false',
@@ -1963,18 +1962,35 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'defvalue': [],
         'shorthelp': 'Executable options',
         'example': [
-            "cli: -eda_option 'openroad cts 0 cmdline -no_init'",
-            "api: chip.set('eda','openroad','cts','0','option','cmdline','-no_init')"],
+            "cli: -eda_option 'openroad cts 0 -no_init'",
+            "api: chip.set('eda','openroad','cts','0','option','-no_init')"],
         'help': """
         List of command line options for the tool executable, specified on
-        a per tool and per step basis. For multiple argument options, enter
-        each argument and value as a one list entry, specified on a per
-        step basis. Options that include spaces must be enclosed in in double
-        quotes. The options are entered as a dictionary assigned to a variable.
+        a per tool and per step basis. Options should not include spaces.
+        For multiple argument options, each option is a separate list
         For command line options, a variable should be 'cmdline'. For TCL
         variables fed into specific tools,  the variable name can be anything
         that is compatible with the tool, thus enabling the driving of an
         arbitrary set of parameters within the tool.
+        """
+    }
+
+    # variables
+    cfg['eda'][tool][step][index]['variable'] = {}
+    cfg['eda'][tool][step][index]['variable']['default'] = {
+        'switch': "-eda_variable 'tool step index name <str>'",
+        'type': '[str]',
+        'lock': 'false',
+        'require': None,
+        'defvalue': [],
+        'shorthelp': 'Executable script variables',
+        'example': [
+            "cli: -eda_variable 'openroad cts 0 myvar 42'",
+            "api: chip.set('eda','openroad','cts','0','variable','myvar', '42')"],
+        'help': """
+        Executable script variables specified as key value pairs. Variable
+        names and value types must match the name and type of tool and reference
+        script consuming the variable.
         """
     }
 
@@ -2041,7 +2057,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'shorthelp': 'List of report files ',
         'example': [
             "cli: -eda_report 'yosys syn 0 hold hold.rpt'",
-            "api: chip.set('eda','yosys','syn','0', 'hold', 'report','hold.rpt')"],
+            "api: chip.set('eda','yosys','syn','0','report','hold','hold.rpt')"],
         'help': """
         Name of report file of type 'reptype' produced by the task within the
         local 'reports' directory.
