@@ -1374,8 +1374,8 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
             "cli: -library_spice 'mylib pspice mylib.sp'",
             "api: chip.set('library','mylib','spice','pspice','mylib.sp')"],
         'help': """
-        List of files containing library spice netlists used for circuit
-        simulation specified on a per format basis.
+        List of files containing simulation spice netlists specified on a
+        per format basis.
         """
     }
 
@@ -1487,7 +1487,7 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'example': ["cli: -library_site 'mylib core'",
                     "api: chip.set('library','mylib','site','core')"],
         'help': """
-        List of sites to use for APR. The first
+        List of sites to use for APR.
         """
     }
 
@@ -1504,15 +1504,15 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
             "api: chip.set('library','mylib','cells','dontuse','*eco*')"],
         'help': """
         List of cells grouped by a property that can be accessed
-        directly by the designer and EDA tools. The example below shows how
+        directly by the designer and tools. The example below shows how
         all cells containing the string 'eco' could be marked as dont use
         for the tool.
         """
     }
+    filetype = 'default'
     cfg['library'][lib]['binary'] = {}
-    cfg['library'][lib]['binary'][stackup] = {}
-    cfg['library'][lib]['binary'][stackup]['default'] = {
-        'switch': "-library_binary 'lib stack format <file>'",
+    cfg['library'][lib]['binary'][filetype] = {
+        'switch': "-library_binary 'lib filetypet <file>'",
         'require': None,
         'type': '[file]',
         'lock': 'false',
@@ -1525,8 +1525,8 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'signature': [],
         'shorthelp': 'Library binary database',
         'example': [
-            "cli: -library_binary 'lib M10 oa ~/libdb'",
-            "api: chip.set('library','lib','binary','M10','oa','~/libdb')"],
+            "cli: -library_binary 'lib oa ~/libdb'",
+            "api: chip.set('library','lib','binary', 'oa','~/libdb')"],
         'help': """
         Filepaths to compiled library database specified on a per format
         basis. Example formats include oa, mw, ndm, opendb.
