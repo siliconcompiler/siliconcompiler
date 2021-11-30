@@ -16,11 +16,14 @@ Welcome to SiliconCompiler's documentation!
    user_guide/quickstart
    user_guide/glossary
    user_guide/data_model
+   user_guide/programming_model
    user_guide/execution_model
    user_guide/tools
-   user_guide/target
-   user_guide/metric
-   user_guide/remoteflow
+   user_guide/pdks
+   user_guide/flows
+   user_guide/targets
+   user_guide/metrics
+   user_guide/packages
    user_guide/faq
    user_guide/licenses
 
@@ -29,8 +32,9 @@ Welcome to SiliconCompiler's documentation!
    :caption: Tutorials
    :numbered:
 
-   tutorials/asicflow
    tutorials/zerosoc
+   tutorials/contribution
+   tutorials/parallel
    tutorials/slurmsetup
 
 .. toctree::

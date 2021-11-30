@@ -95,11 +95,11 @@ The file type parameters have the additional required fields show in the table b
 
 Accessing schema parameters is done using the set(), get(), and add() Python methods. The following shows how to create a chip object and manipulating a schema parameter in Python.
 
-.. literalinclude:: examples/datamodel_setget.py
+.. literalinclude:: examples/setget.py
 
 Reading and writing the schema to and from disk is handled by the read_manifest() and write_manifest() Python API methods. Supported export file formats include TCL, JSON, and YAML. By default, only non-empty values are written to disk.
 
-.. literalinclude:: examples/datamodel_manifest.py
+.. literalinclude:: examples/write_manifest.py
 
 The JSON structure below shows the 'design' parameter exported by the write_manifest()  method.
 
@@ -206,4 +206,4 @@ The SiliconCompiler Schema is roughly divided into the following major sub-group
      - 306
      -
 
-Refer to the :ref:`Schema<Schema>` and :ref:`Python API<Core API>` sections of the reference manual for more information. Another good resource is the single file `Schema source code <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/schema.py>`_.
+Refer to the :ref:`Schema <SiliconCompiler Schema>` and :ref:`Python API<Core API>` sections of the reference manual for more information. Another good resource is the single file `Schema source code <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/schema.py>`_.

@@ -1830,6 +1830,7 @@ class Chip:
             rankdir = 'TB'
 
         dot = graphviz.Digraph(format=fileformat)
+        dot.graph_attr['rankdir'] = rankdir
         dot.attr(bgcolor='transparent')
         for step in self.getkeys('flowgraph'):
             irange = 0

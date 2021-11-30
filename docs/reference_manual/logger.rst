@@ -1,8 +1,0 @@
-Logger
-========================
-
-* levels
-
-* formats
-
-* controlling

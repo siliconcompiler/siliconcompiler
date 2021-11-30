@@ -98,4 +98,4 @@ from the command line as shown below:
 
    (venv) sc-show -design heartbeat
 
-.. image:: examples/heartbeat.png
+.. image:: _images/heartbeat.png
