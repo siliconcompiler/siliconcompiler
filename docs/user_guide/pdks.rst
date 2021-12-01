@@ -1,7 +1,7 @@
 PDKs
 ===================================
 
-Process Design Kits (PDKs) for leading process nodes generally include hundreds of files, documents, and configuration parameters, resulting in significant startup times in porting a design to a new node. The SiliconCompiler project minimize per design PDK setup efforts by packaging PDKs as standardized reusable objects and making them available as named modules by the target() function. A complete set of supported open PDKs can be found in the :ref:`PDK Directory`. The table below shows the function interfaces supported in setting up PDKs.
+Process Design Kits (PDKs) for leading process nodes generally include hundreds of files, documents, and configuration parameters, resulting in significant startup times in porting a design to a new node. The SiliconCompiler project minimizes per design PDK setup efforts by packaging PDKs as standardized reusable objects and making them available as named modules by the target() function. A complete set of supported open PDKs can be found in the :ref:`PDK Directory`. The table below shows the function interfaces supported in setting up PDKs.
 
 
 .. list-table::
@@ -49,7 +49,7 @@ The following Schema parameters are mandatory in setting up PDKs for SiliconComp
     chip.set('pdk','lvs',<tool>, <stackup>, 'runset', <file>)
     chip.set('pdk','devmodel', <stackup>, <modeltype>, <tool>, <file>)
 
-To support standard RTl2GDS flows, the PDK setup will also need to specify pointers to routing technology rules, timing libraries, layout abstractions, layer maps, and routing grids as shown in the below example. For a complete set of available PDK parameters, see the :ref:`Schema<SiliconCompiler Schema>`. ::
+To support standard RTL2GDS flows, the PDK setup will also need to specify pointers to routing technology rules, timing libraries, layout abstractions, layer maps, and routing grids as shown in the below example. For a complete set of available PDK parameters, see the :ref:`Schema<SiliconCompiler Schema>`. ::
 
     chip.set('pdk','aprtech', <stackup>, <libtype>, 'lef', <file>)
     chip.add('library',<libname>, 'nldm', <corner>, <libformat>, <file>)

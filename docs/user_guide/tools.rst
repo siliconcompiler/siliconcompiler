@@ -62,17 +62,17 @@ For a complete example of a tool setup module, see `OpenROAD <https://github.com
 setup_tool(chip)
 -----------------
 
-Tool setup is done for each step and index within the run() function prior to launching each indiidual task. Tools can be configured independetly for different steps (ie. the place step is different from the route step), so we need a method for passing information about the current step and index to the setup function. This is accomplished with the reserved 'scratch' parameters shown below.::
+Tool setup is done for each step and index within the run() function prior to launching each indiidual task. Tools can be configured independetly for different steps (ie. the place step is different from the route step), so we need a method for passing information about the current step and index to the setup function. This is accomplished with the reserved 'scratch' parameters shown below. ::
 
   step = chip.get('arg','step')
   index = chip.get('arg','index')
 
-All tools are required to bind the toolname to an executable name and to define any required command line options.::
+All tools are required to bind the toolname to an executable name and to define any required command line options. ::
 
   chip.set('eda', <toolname>, step, index, 'exe', <exename>)
-  chip.set('eda', <toolname>, step, index, 'option', 'cmdline', <option>)
+  chip.set('eda', <toolname>, step, index, 'option', <option>)
 
-For tools such as TCL based EDA tools, we also need to define the entry script and any associated script directories.::
+For tools such as TCL based EDA tools, we also need to define the entry script and any associated script directories. ::
 
   chip.set('eda', <toolname>, step, index, 'script', <entry_script>)
   chip.set('eda', <toolname>, step, index, 'refdir', <scriptdir>)
@@ -89,7 +89,7 @@ To leverage the run() function's internal setup checking logic, it is highly rec
 
 parse_version(stdout)
 -----------------------
-The run() function includes built in executable version checking. The executable option to use for printing out the version number is specified with the 'vswitch' parameter within the setup_tool() function. Commonly used options include '-v', '--version', '-version'. The executable output varies widely, so we need a parsing function that processes the output and returns a single uniform version string. The example shows hoe this fucntion is implemented for the Yosys tool. ::
+The run() function includes built in executable version checking. The executable option to use for printing out the version number is specified with the 'vswitch' parameter within the setup_tool() function. Commonly used options include '-v', '\-\-version', '-version'. The executable output varies widely, so we need a parsing function that processes the output and returns a single uniform version string. The example shows how this function is implemented for the Yosys tool. ::
 
   def parse_version(stdout):
       # Yosys 0.9+3672 (git sha1 014c7e26, gcc 7.5.0-3ubuntu1~18.04 -fPIC -Os)
@@ -100,13 +100,13 @@ The run() function compares the returned parsed version against the 'version' pa
 
 pre_process(chip)
 -----------------------
-For certain tools and steps, we may nee to set some Schema parameters immediately before task execution. For example, we may want to set the die and core area before the floorplan step based on the area result from the synthesis step.
+For certain tools and steps, we may need to set some Schema parameters immediately before task execution. For example, we may want to set the die and core area before the floorplan step based on the area result from the synthesis step.
 
 post_process(chip)
 -----------------------
 The post process step is required to extract metrics from the tool log files. At a minimum the post process step should extract the number of warnings and errors from the tool log file and insert the value into the Schema. The post_process() logic is straight forward, but the regular expression logic can get involved for complex log files. Perhaps some day, EDA tools will produce SiliconCompiler compatible JSON metrics files.
 
-The post_process function can also be used to post process the output data in the case of command line executable to produce an output that can be ingested by the SiliconCompiler framework. The Surelog post_process() implementation illustrates the power of the post_process functionlity. ::
+The post_process function can also be used to post process the output data in the case of command line executable to produce an output that can be ingested by the SiliconCompiler framework. The Surelog post_process() implementation illustrates the power of the post_process functionality. ::
 
   def post_process(chip):
     ''' Tool specific function to run after step execution
@@ -181,7 +181,7 @@ The distributed execution model of SiliconCompiler mandates that absolute paths 
 
 make_docs()
 -----------------------
-The SiliconComopiler includes automated document generators that search all tool modules for functions called make_docs(). It is highly recommended for all tools to include a make_docs() function. The function docstring is used for general narrative, while the body of the function is used to auto-generate a settings table based on the manifeset created. At a minimum, the docstring should include a short description and links to the Documenetation, Sources, and Installation. The example below shows the make_docs function for surelog. ::
+The SiliconComopiler includes automated document generators that search all tool modules for functions called make_docs(). It is highly recommended for all tools to include a make_docs() function. The function docstring is used for general narrative, while the body of the function is used to auto-generate a settings table based on the manifeset created. At a minimum, the docstring should include a short description and links to the Documentation, Sources, and Installation. The example below shows the make_docs function for surelog. ::
 
   def make_docs():
     '''
@@ -212,7 +212,7 @@ TCL interface
 
    SiliconCompiler configuration settings are communicated to all script based tools as TCL nested dictionaries.
 
-Schema configuration handoff from SiliconCompiler to script based tools is accomplished in within the run() function by using the write_manifest() function to write out the complete schema as a nested TCL dictionary. A snippet of the resulting TCL dictionary is shown below.
+Schema configuration handoff from SiliconCompiler to script based tools is accomplished within the run() function by using the write_manifest() function to write out the complete schema as a nested TCL dictionary. A snippet of the resulting TCL dictionary is shown below.
 
 .. code-block:: tcl
 

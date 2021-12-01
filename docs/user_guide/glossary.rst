@@ -15,7 +15,7 @@ The following set of terms represents fundamental SiliconCompiler definitions us
        Associative array, ie. a collection of key-value pairs.
 
     edge
-       A directed connection between a tail node and head nodes in a flowgraph
+       A directed connection between a tail node and head nodes in a flowgraph.
 
     flowgraph
        A directed acyclic graph specification of the hardware compilation.
@@ -54,7 +54,7 @@ The following set of terms represents fundamental SiliconCompiler definitions us
        Nested dictionary of parameters.
 
     step
-       An discrete function in a flowgraph.
+       A discrete function in a flowgraph.
 
     task
        An atomic (step, index) task to be executed.

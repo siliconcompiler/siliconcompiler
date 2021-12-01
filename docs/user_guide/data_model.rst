@@ -92,6 +92,10 @@ The file type parameters have the additional required fields show in the table b
      - Hashing algorithm used
      - sha256,md5,...
 
+   * - **copy**
+     - Whether to copy files into build directory
+     - True / False
+
 
 Accessing schema parameters is done using the set(), get(), and add() Python methods. The following shows how to create a chip object and manipulating a schema parameter in Python.
 
@@ -116,7 +120,7 @@ The JSON structure below shows the 'design' parameter exported by the write_mani
     },
 
 
-To handle complex scenarios required by advanced PDKs, the Schema supports dynamic nested dictionaries. A 'default' keyword is used to define the dictionary structure during objection creation. Populating the object dictionary with actual keys is done by the user during compilation setup. The example below illustrates how 'default' is used as a placeholder for the library name and corner. These dynamic dictionaries makes it easy to set up an arbitrary number of libraries and corners in a PDK using Python loops.
+To handle complex scenarios required by advanced PDKs, the Schema supports dynamic nested dictionaries. A 'default' keyword is used to define the dictionary structure during object creation. Populating the object dictionary with actual keys is done by the user during compilation setup. The example below illustrates how 'default' is used as a placeholder for the library name and corner. These dynamic dictionaries makes it easy to set up an arbitrary number of libraries and corners in a PDK using Python loops.
 
 .. code-block:: python
 

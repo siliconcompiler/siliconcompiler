@@ -2,7 +2,7 @@ Quickstart guide
 ===================================
 
 In this quickstart guide, we will illustrate core concepts of the project by
-translating a simple Verilog based design into a as GDSII IC layout database using
+translating a simple Verilog based design into a GDSII IC layout database using
 the freepdk45 virtual PDK.
 
 Design
@@ -42,7 +42,7 @@ flow, and tool parameters based on a "tuple" of strings separated by underscore
 :ref:`Flows Directory` and :ref:`PDK Directory` sections of the reference manual and
 read the source code for
 `asicflow <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/flows/asicflow.py>`_ and
-`freepdk45 <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/pdks/freepdk45.py>`_
+`freepdk45 <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/pdks/freepdk45.py>`_.
 
 .. note::
 
@@ -57,7 +57,7 @@ read the source code for
    at C:\\Users\\USERNAME\\.sc\\credentials on Windows.
 
    Remote processing option is enabled by setting the :ref:`remote` parameter to
-   True.::
+   True. ::
 
      chip.set('remote', True)
 
