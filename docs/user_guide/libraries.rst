@@ -12,6 +12,6 @@ The following code snippet shows how library gds and lef files can be set up in 
     chip.add('library','NangateOpenCellLibrary','lef','$FREEPDK45/lef/NangateOpenCellLibrary.lef')
     chip.add('library','NangateOpenCellLibrary','gds','$FREEPDK45/gds/NangateOpenCellLibrary.gds')
 
-To enable simple 'target' based access, it is recommended that fundamental physical foundry sponsored IP (stdcells, GPIO, memory macros) are bundled together as part of a single PDK target.
+To enable simple 'target' based access, it is recommended that fundamental physical foundry sponsored IP (stdcells, GPIO, memory macros) are set up as part of the setup_pdk function.
 
-Soft library IP can be
+SiliconCompiler also supports referencing soft libraroes (RTL, C-code, etc), in which case many of the physical IP parameters can be omitted.
