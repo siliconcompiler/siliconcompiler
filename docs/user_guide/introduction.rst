@@ -22,3 +22,8 @@ The expansive data schema, standardized plug-in interfaces, and built-in dynamic
 To further reduce design access barriers, the project also supports a :ref:`client-server <Remote Processing>` execution model that leverages the cloud to: 1.) reduce tool installation barriers, 2.) reduce the barrier to massively parallel elastic compute, 3) address the NDA barrier for PDK and EDA tools.
 
 .. image:: ../_images/sc_arch.svg
+
+Authors
+-------------
+
+SiliconCompiler project authors in chronological order.
