@@ -19,21 +19,21 @@ Include the following information in your post:
 
 - Describe what you expected to happen.
 - Include a [minimal reproducible example](https://stackoverflow.com/help/minimal-reproducible-example)
-- Describe what actually happened. 
+- Describe what actually happened.
 - Include the full traceback if there was an exception.
-- List your Python and SiliconCompiler versions. 
+- List your Python and SiliconCompiler versions.
 - Check if this issue is already fixed in the latest releases
 
 ## Submitting patches
 
-If there is not an open issue for what you want to submit, prefer opening one 
-for discussion before working on a PR. You can work on any issue that doesn't 
-have an open PR linked to it or a maintainer assigned to it. These show up in 
+If there is not an open issue for what you want to submit, prefer opening one
+for discussion before working on a PR. You can work on any issue that doesn't
+have an open PR linked to it or a maintainer assigned to it. These show up in
 the sidebar. No need to ask if you can work on an issue that interests you.
 
 Include the following in your patch:
 
-- Include tests if your patch adds or changes code.(should fail w/o patch) 
+- Include tests if your patch adds or changes code.(should fail w/o patch)
 - Update any relevant docs pages and docstrings.
 
 
@@ -71,7 +71,7 @@ $ git remote add fork https://github.com/{username}/siliconcompiler
 
 
 
-## Instasll Python Requirements
+## Install Python Requirements
 
 -  Create a virtualenv.
 ```sh
@@ -83,15 +83,15 @@ $ . env/bin/activate
 ```sh
 $ python -m pip install --upgrade pip setuptools
 ```
-   
+
 - Install the development dependencies
 ```sh
-$ pip install -r requirements/dev.txt && pip install -e .
+$ pip install -r requirements.txt && pip install -e .
 ```
-  
+
 ## Start coding
 
--  Create a branch to identify the issue you would like to work on. 
+-  Create a branch to identify the issue you would like to work on.
 
 ```sh
 $ git fetch origin
@@ -121,8 +121,9 @@ $ git push -u origin your-branch-name
 $ pytest
 ```
 - This runs the tests for the current environment, which is usually sufficient. CI will run the full suite when you submit your pull
-request. You can run the full test suite with tox if you don't want to wait.
+request.
 
+- For more information on the test suite, see [tests/README.md](tests/README.md).
 
 ## Create a Pull Request
 
@@ -130,7 +131,7 @@ request. You can run the full test suite with tox if you don't want to wait.
 
 ## Running test coverage
 
-- Generating a report of lines that do not have test coverage can indicate where to start contributing. 
+- Generating a report of lines that do not have test coverage can indicate where to start contributing.
 - Run ``pytest`` using [coverage](https://coverage.readthedocs.io) and generate a report.
 
 ```sh
