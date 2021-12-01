@@ -3,9 +3,9 @@ Metrics
 
 The SiliconCompiler schema includes a a 'metric' dictionary with a large number of parameters to be tracked on a per step and per index basis. Each type of 'metric' has a 'goal' and a 'real' value. The 'goal' value is used to track the expected/intended result while the 'real' value is used by the SC run() infrastructure to record results captured during compilation.
 
-The 'real' metrics  values are used in the step_minimum() and step_maximum() functions to select the best compilation based on the metrics 'goal' specified and the metric 'weight set for the step and index within the 'flowgraph. For a complete description of the minimum() function, see the :ref:`Core API` section of the reference manual.
+The 'real' metrics values are used in the minimum() and maximum() functions to select the best compilation based on the metrics 'goal' specified and the metric 'weight' set for the step and index within the 'flowgraph'. For a complete description of the minimum() function, see the :ref:`Core API` section of the reference manual.
 
-The default 'asicflow' demonstrates a traditional ASIC optimziation function, with hard requirements set up for hold, setup, warnings, and errors and soft requirements for area and power. ::
+The default 'asicflow' demonstrates a traditional ASIC optimization function, with hard requirements set up for hold, setup, warnings, and errors and soft requirements for area and power. ::
 
   if metric in ('errors','warnings','drvs','holdwns','setupwns','holdtns','setuptns'):
       chip.set('flowgraph', step, index, 'weight', metric, 1.0)

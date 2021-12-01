@@ -80,7 +80,7 @@ def main():
 
     print(f" Serial = {serial_time}s\n",
           f"Parallel steps = {parastep_time}s\n",
-          f"Paralle flows = {paraflow_time}s\n")
+          f"Parallel flows = {paraflow_time}s\n")
 
 if __name__ == '__main__':
     main()

@@ -84,7 +84,7 @@ only supported on Linux/MacOS platforms.
 Tool Setup
 ------------
 
-The SiliconCompiler project depends on a number of external tools (synthesis, placement, routing, etc). Installation instructions for these tools are best written by the original authors so we will not include them here. For convenience, links to installation documentation for all supported tools can be found in the tools directory of the reference manual :ref:`Tools<Tools directory>`.
+The SiliconCompiler project depends on a number of external tools (synthesis, placement, routing, etc). Installation instructions for these tools are best written by the original authors so we will not include them here. For convenience, links to installation documentation for all supported tools can be found in the tools directory of the reference manual :ref:`here<Tools directory>`.
 
 The tool installation process can be skipped entirely by leveraging the :ref:`Remote Processing<Remote processing>` workflow to access a server with pre-installed tools.
 

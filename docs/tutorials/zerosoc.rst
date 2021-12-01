@@ -48,21 +48,21 @@ and that it matches the Verilog netlist. Understanding this two-part build is
 important since we will specify the floorplans of each component separately.
 
 .. figure:: _images/abutment.png
-  
+
   Note how the pins on the edge of the ZeroSoC core (white background) line up
-  with the pins along the edge of the GPIO pads (gray background).  
+  with the pins along the edge of the GPIO pads (gray background).
 
 Let's begin by cloning the ZeroSoC Github repository. Be sure to initialize the
 submodules to pull down the required third-party design files:
 
-.. code-block:: console 
+.. code-block:: console
 
   $ git clone https://github.com/siliconcompiler/zerosoc.git
   $ git submodule update --init --recursive
 
 In order to follow along, you should also :ref:`install
 SiliconCompiler<Installation from PyPI>` and the :ref:`KLayout layout
-viewer<Layout viewer>`. 
+viewer<Layout viewer>`.
 
 If you install SC from PyPI rather than from source, you'll need to clone the
 SiliconCompiler repository and configure your SC path to point to the repo in
@@ -73,11 +73,11 @@ order to access the included PDK files:
   $ git clone https://github.com/siliconcompiler/siliconcompiler.git
   $ export SCPATH=$PWD/siliconcompiler/siliconcompiler
 
-.. note:: 
+.. note::
    If you close your shell, you'll need to rerun the ``export`` command from the
    code block above in your next session. To avoid this, you can add the command
    to your ``~/.bashrc`` to have it always apply.
-   
+
 The ZeroSoC repo already includes a completed floorplan, ``floorplan.py``. If
 you want to follow along with each step of this tutorial, go ahead and delete or
 rename that file and create a blank ``floorplan.py`` in its place. Then, copy in
@@ -159,7 +159,7 @@ parameter::
 
   chip.add('asic', 'macrolib', libname)
 
-Finally, it's a good idea to specify the "type" of a macro libray in order to
+Finally, it's a good idea to specify the "type" of a macro library in order to
 distinguish it from the technology target-defined standard cell library used for
 automated place and route. The standard type for a macro library is
 "component"::
@@ -1264,5 +1264,5 @@ ASIC flow.
 
 This will put together the entire ZeroSoC hierarchy and run DRC/LVS
 verification. The final result will be found in
-``<build_dir>/asic_top/job0/export0/outputs/asic_top.gds``.
+``<build_dir>/asic_top/job0/export/0/outputs/asic_top.gds``.
 

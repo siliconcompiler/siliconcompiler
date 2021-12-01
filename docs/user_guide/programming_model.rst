@@ -17,9 +17,9 @@ Compilation is based on a single chip object that follows the design from start 
 Setup
 ----------------
 
-Once the chip object has been created, functions and data is all contained within that object. A compilation is set up by accessing methods and parameters from the chip object. Parameters can be configured in any order during setup.
+Once the chip object has been created, functions and data are all contained within that object. A compilation is set up by accessing methods and parameters from the chip object. Parameters can be configured in any order during setup.
 
-The snippet of code below shows the basic princples. ::
+The snippet of code below shows the basic principles. ::
 
   chip.set('design', <name>)
 

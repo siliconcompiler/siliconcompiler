@@ -5,7 +5,7 @@ To faciliate grouping and encapsulation of schema parameters, SiliconCompiler im
 
   chip.target('asicflow_freepdk45')
 
-To following example demonstrates the functional equivelency at the command line:
+The following example demonstrates the functional equivalent at the command line:
 
 .. code-block:: bash
 

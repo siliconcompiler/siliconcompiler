@@ -43,7 +43,7 @@ The core Slurm scheduling logic is contained in two daemons:
 
 - `slurmd`: The "Slurm daemon" runs on "compute nodes". This daemon listens for new commands from the "control node", and executes jobs which are sent to the host that it is running on.
 
-Because we are setting up a test cluster on a single host, we will run both deamons on the same machine.
+Because we are setting up a test cluster on a single host, we will run both daemons on the same machine.
 
 The slurm daemons, and a supporting `slurm-client` package, should be available in the package managers of common Linux distributions. In Ubuntu, you can install them with::
 
