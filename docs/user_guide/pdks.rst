@@ -64,9 +64,7 @@ To support standard RTL2GDS flows, the PDK setup will also need to specify point
     chip.set('pdk','grid', <stackup>, <sc_name>, 'ypitch',  0.14)
     chip.set('pdk','grid', <stackup>, <sc_name>, 'adj',     1.0)
 
-
-
-
+Note that the 'techarg' dictionary in the schema can be used to pass named arguments to configure PDK setup.
 
 make_docs()
 -----------------
