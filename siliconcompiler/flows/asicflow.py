@@ -38,7 +38,6 @@ def make_docs():
     * place_np : Number of parallel place jobs to launch
     * cts_np : Number of parallel clock tree synthesis jobs to launch
     * route_np : Number of parallel routing jobs to launch
-    * dfm_np : Number of parallel dfm jobs to launch
 
     In order to enable running DRC and LVS verification, set the 'flowarg',
     'verify' arg to "true" (currently supported for Skywater130 only).
@@ -84,7 +83,6 @@ def setup_flow(chip):
                 'route',
                 'routemin',
                 'dfm',
-                'dfmmin',
                 'export']
 
     tools = {
@@ -103,7 +101,6 @@ def setup_flow(chip):
         'route' : 'openroad',
         'routemin' : 'minimum',
         'dfm' : 'openroad',
-        'dfmmin' : 'minimum',
         'export' : 'klayout',
     }
 
@@ -172,7 +169,7 @@ def setup_flow(chip):
 
         chip.edge('export', 'extspice')
         chip.edge('extspice', 'lvsjoin')
-        chip.edge('dfmmin', 'lvsjoin')
+        chip.edge('dfm', 'lvsjoin')
         chip.edge('lvsjoin', 'lvs')
         chip.edge('export', 'drc')
         chip.edge('lvs', 'signoff')

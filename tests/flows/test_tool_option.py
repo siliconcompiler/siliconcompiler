@@ -34,11 +34,8 @@ def test_tool_option(scroot):
     steplist = [
         'import',
         'syn',
-        'synmin',
         'floorplan',
-        'floorplanmin',
         'physyn',
-        'physynmin',
         'place',
         'placemin'
     ]
