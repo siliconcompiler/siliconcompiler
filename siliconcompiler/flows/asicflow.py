@@ -38,7 +38,6 @@ def make_docs():
     * place_np : Number of parallel place jobs to launch
     * cts_np : Number of parallel clock tree synthesis jobs to launch
     * route_np : Number of parallel routing jobs to launch
-    * dfm_np : Number of parallel dfm jobs to launch
 
     In order to enable running DRC and LVS verification, set the 'flowarg',
     'verify' arg to "true" (currently supported for Skywater130 only).
@@ -70,8 +69,7 @@ def setup_flow(chip):
     '''
 
     # Linear flow, up until branch to run parallel verification steps.
-
-    flowpipe = ['import',
+    longpipe = ['import',
                 'syn',
                 'synmin',
                 'floorplan',
@@ -85,9 +83,7 @@ def setup_flow(chip):
                 'route',
                 'routemin',
                 'dfm',
-                'dfmmin',
                 'export']
-
 
     tools = {
         'import' : 'surelog',
@@ -105,9 +101,19 @@ def setup_flow(chip):
         'route' : 'openroad',
         'routemin' : 'minimum',
         'dfm' : 'openroad',
-        'dfmmin' : 'minimum',
         'export' : 'klayout',
     }
+
+
+    #Remove built in steps where appropriate
+    flowpipe = []
+    for step in longpipe:
+        if re.search(r'join|maximum|minimum|verify', tools[step]):
+            if bool(prevstep + "_np" in chip.getkeys('flowarg')):
+                flowpipe.append(step)
+        else:
+            flowpipe.append(step)
+        prevstep = step
 
     # Run verification steps only if `flowarg, verify` is True
     verify = ('verify' in chip.getkeys('flowarg') and
@@ -141,9 +147,7 @@ def setup_flow(chip):
             # edges
             if re.search(r'join|maximum|minimum|verify', tools[step]):
                 prevparam = prevstep + "_np"
-                fanin = 1
-                if prevparam in chip.getkeys('flowarg'):
-                    fanin  = int(chip.get('flowarg', prevparam)[0])
+                fanin  = int(chip.get('flowarg', prevparam)[0])
                 for i in range(fanin):
                     chip.edge(prevstep,step, tail_index=i)
             elif step != 'import':
@@ -165,7 +169,7 @@ def setup_flow(chip):
 
         chip.edge('export', 'extspice')
         chip.edge('extspice', 'lvsjoin')
-        chip.edge('dfmmin', 'lvsjoin')
+        chip.edge('dfm', 'lvsjoin')
         chip.edge('lvsjoin', 'lvs')
         chip.edge('export', 'drc')
         chip.edge('lvs', 'signoff')
