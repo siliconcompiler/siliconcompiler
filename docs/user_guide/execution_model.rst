@@ -10,7 +10,9 @@ The complete SiliconCompiler compilation is handled by a single call to the run(
 
 A SiliconCompiler flowgraph consists of a set of connected nodes and edges, where a node is an executable tool performing some ("task"), and an edge is the connection between those tasks. SiliconCompiler defines a "task" as an atomic combination of a step and an index, where: 1.) STEP is defined as discrete function performed within compilation flow such as synthesis, linting, placement, routing, etc, and 2.) INDEX is defined as variant of a step operating on identical data.  Flowgraph execution is done through the run() function which checks the flowgraph for correctness and then executes all tasks in the flowgraph from start to finish.
 
-The :ref:`quickstart guide` example called the built in "`asicflow <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/flows/asicflow.py>`_" compilation flow through the target function. Custom flowgraphs can be easily created through the set()/get() methods or the node()/edge methods (**recommended**). All flows must contain an import step that 'imports' source files into the SiliconCompiler schema. Otherwise the user is free to define any reasonable combination of steps and indices based on available tools and PDKs. The example below shows the 'heartbeat' example modified to include a simple three step (import + synthesis + minimum) compilation pipeline. The built in functions are important to minimize data movement in remote processing workflows, where intermediate results may not be accessible.
+The :ref:`quickstart guide` example called the built in "`asicflow <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/flows/asicflow.py>`_" compilation flow through the target function. Custom flowgraphs can be easily created through the set()/get() methods or the node()/edge() methods (**recommended**). All flows must contain an import step that 'imports' source files into the SiliconCompiler schema. Otherwise the user is free to define any reasonable combination of steps and indices based on available tools and PDKs. The example below shows the 'heartbeat' example modified to include a simple two step (import + synthesis) compilation pipeline.
+
+.. The built in functions are important to minimize data movement in remote processing workflows, where intermediate results may not be accessible.
 
 .. literalinclude:: examples/heartbeat_flowgraph.py
 
@@ -33,19 +35,19 @@ The SiliconCompiler directory structure follows the convention shown below. Each
 ::
 
     heartbeat
-    └── jobname
+    └── <jobname>
         ├── floorplan
-        │   └── index
+        │   └── <index>
         │       ├── inputs
         │       ├── outputs
         │       └── reports
         ├── import
-        │   └── index
+        │   └── <index>
         │       ├── inputs
         │       ├── outputs
         │       └── reports
         └── syn
-            └── index
+            └── <index>
                 ├── inputs
                 ├── outputs
                 └── reports

@@ -50,6 +50,7 @@ Flows that support SiliconCompiler metric functions (minimum, maximum, summary) 
             for metric in ('cellarea', 'peakpower', 'standbypower'):
                 chip.set('flowgraph', step, str(index), 'weight', metric, 1.0)
 
+Note that the 'flowarg' dictionary in the schema can be used to pass named arguments to configure flow setup. For example, the built-in asicflow and fpgaflow use the 'techarg', 'sv' parameter to enable or disable a SystemVerilog to Verilog conversion step.
 
 For a complete working example, see the `asicflow <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/flows/asicflow.py>`_ and `fpgaflow <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/flows/fpgaflow.py>`_ source code.
 
