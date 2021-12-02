@@ -70,8 +70,7 @@ def setup_flow(chip):
     '''
 
     # Linear flow, up until branch to run parallel verification steps.
-
-    flowpipe = ['import',
+    longpipe = ['import',
                 'syn',
                 'synmin',
                 'floorplan',
@@ -87,7 +86,6 @@ def setup_flow(chip):
                 'dfm',
                 'dfmmin',
                 'export']
-
 
     tools = {
         'import' : 'surelog',
@@ -108,6 +106,17 @@ def setup_flow(chip):
         'dfmmin' : 'minimum',
         'export' : 'klayout',
     }
+
+
+    #Remove built in steps where appropriate
+    flowpipe = []
+    for step in longpipe:
+        if re.search(r'join|maximum|minimum|verify', tools[step]):
+            if bool(prevstep + "_np" in chip.getkeys('flowarg')):
+                flowpipe.append(step)
+        else:
+            flowpipe.append(step)
+        prevstep = step
 
     # Run verification steps only if `flowarg, verify` is True
     verify = ('verify' in chip.getkeys('flowarg') and
@@ -141,9 +150,7 @@ def setup_flow(chip):
             # edges
             if re.search(r'join|maximum|minimum|verify', tools[step]):
                 prevparam = prevstep + "_np"
-                fanin = 1
-                if prevparam in chip.getkeys('flowarg'):
-                    fanin  = int(chip.get('flowarg', prevparam)[0])
+                fanin  = int(chip.get('flowarg', prevparam)[0])
                 for i in range(fanin):
                     chip.edge(prevstep,step, tail_index=i)
             elif step != 'import':
