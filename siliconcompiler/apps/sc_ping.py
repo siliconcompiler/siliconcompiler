@@ -18,6 +18,14 @@ def main():
     -----------------------------------------------------------
     """
 
+    # Return early and print a help string if necessary.
+    if (len(sys.argv) > 1) and \
+       ((sys.argv[1] == '--help') or (sys.argv[1] == '-h')):
+        print('Usage: sc-ping')
+        print('Prints remote user account information.')
+        print('Requires a remote configuration file (run "sc-configure")')
+        sys.exit(0)
+
     # Find the config file/directory path.
     cfg_dir = os.path.join(Path.home(), '.sc')
     cfg_file = os.path.join(cfg_dir, '.credentials')
@@ -74,3 +82,7 @@ def main():
     except:
         print('Error fetching user information from the remote server.')
         sys.exit(1)
+
+#########################
+if __name__ == "__main__":
+    sys.exit(main())

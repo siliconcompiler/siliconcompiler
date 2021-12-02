@@ -37,7 +37,16 @@ You can either created the credentials file manually, or leverage the SiliconCom
   Remote password: "mypass"
   Configuration saved.
 
-To verify that your credentials file and server is configured correctly, try compiling the 'heartbeat' design from the `Quickstart Guide` with the remote switch.
+To verify that your credentials file and server is configured correctly, run the `sc-ping` command. This will also print your account's usage limits during our initial beta period.
+
+.. code-block:: console
+
+  (siliconcompiler) $ sc-ping
+  User myname validated successfully!
+    Remaining compute time: 1440.00 minutes
+    Remaining results bandwidth: 5242880 KiB
+
+Once you have verified that your remote configuration works, you can try compiling the 'heartbeat' design from the `Quickstart Guide` with the remote switch.
 
 .. code-block:: bash
 
