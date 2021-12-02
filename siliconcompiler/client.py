@@ -21,6 +21,7 @@ from siliconcompiler import utils
 def get_base_url(chip):
     '''Helper method to get the root URL for API calls, given a Chip object.
     '''
+
     rcfg = chip.status['remote_cfg']
     remote_host = rcfg['address']
     if 'port' in rcfg:
@@ -31,7 +32,7 @@ def get_base_url(chip):
     if remote_host.startswith('http'):
         remote_protocol = ''
     else:
-        remote_protocol = 'https://' if remote_port == '443' else 'http://'
+        remote_protocol = 'https://' if str(remote_port) == '443' else 'http://'
     return remote_protocol + remote_host
 
 ###################################
@@ -135,6 +136,8 @@ def request_remote_run(chip):
                     '--exclude',
                     'import.tar.gz',
                     '.'],
+                   stdout=subprocess.PIPE,
+                   stderr=subprocess.STDOUT,
                    cwd=local_build_dir)
     upload_file = os.path.abspath(os.path.join(local_build_dir, 'import.tar.gz'))
 
