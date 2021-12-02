@@ -34,9 +34,9 @@ def main():
                 overwrite = True
 
     # Get parameters from user input.
-    srv_addr = input('Remote server address: ')
-    username = input('Remote username: ')
-    user_pass = input('Remote password: ')
+    srv_addr = input('Remote server address: ').replace(" ","")
+    username = input('Remote username: ').replace(" ","")
+    user_pass = input('Remote password: ').replace(" ","")
 
     # Save the values to the target config file in JSON format.
     with open(cfg_file, 'w') as f:

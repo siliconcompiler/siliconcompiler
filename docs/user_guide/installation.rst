@@ -108,7 +108,7 @@ To create the credentials file, use a text editor to create the credentials file
 
 .. code-block:: console
 
-  (siliconcompiler) $ sc-configure
+  $ sc-configure
   Remote server address: "your-server"
   Remote username: "your-username"
   Remote password: "your-key"
