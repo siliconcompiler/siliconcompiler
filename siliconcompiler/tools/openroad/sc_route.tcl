@@ -70,4 +70,14 @@ detailed_route -guide "route.guide" \
                -output_guide "reports/${sc_design}_guide.mode" \
                -verbose 1
 
+#########################
+# Delete Obstructions
+#########################
 
+set db [ord::get_db]
+set chip [$db getChip]
+set block [$chip getBlock]
+set obstructions [$block getObstructions]
+foreach obstruction $obstructions {
+    odb::dbObstruction_destroy $obstruction
+}
