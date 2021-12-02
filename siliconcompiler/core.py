@@ -1359,7 +1359,7 @@ class Chip:
 
             #only do something if type is file or dir
             if 'file' in paramtype or 'dir' in paramtype:
-                abspaths = self.find_files(*keypath, cfg=cfg)
+                abspaths = self.find_files(*keypath, cfg=cfg, missing_ok=True)
                 self.set(*keypath, abspaths, cfg=cfg)
 
     ###########################################################################
