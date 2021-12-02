@@ -48,7 +48,7 @@ def main():
 }'''%(srv_addr, username, user_pass))
 
     # Let the user know that we finished successfully.
-    print('Configuration saved.')
+    print(f'Remote configuration saved to: {cfg_file}')
 
 #########################
 if __name__ == "__main__":
