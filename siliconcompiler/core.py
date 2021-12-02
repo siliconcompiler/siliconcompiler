@@ -714,7 +714,7 @@ class Chip:
         Returns a schema parameter field.
 
         Returns a schema parameter filed based on the keypath and value provided
-        in the *args. The returned type is consistent with the type field of
+        in the ``*args``. The returned type is consistent with the type field of
         the parameter. Fetching parameters with empty or undefined value files
         returns None for scalar types and [] (empty list) for list types.
         Accessing a non-existent keypath produces a logger error message and
@@ -824,7 +824,7 @@ class Chip:
         Sets a schema parameter field.
 
         Sets a schema parameter field based on the keypath and value provided
-        in the *args. New schema dictionaries are automatically created for
+        in the ``*args``. New schema dictionaries are automatically created for
         keypaths that overlap with 'default' dictionaries. The write action
         is ignored if the parameter value is non-empty and the clobber
         option is set to False.
@@ -869,7 +869,7 @@ class Chip:
         Adds item(s) to a schema parameter list.
 
         Adds item(s) to schema parameter list based on the keypath and value
-        provided in the *args. New schema dictionaries are
+        provided in the ``*args``. New schema dictionaries are
         automatically created for keypaths that overlap with 'default'
         dictionaries.
 
@@ -1814,7 +1814,7 @@ class Chip:
                         border=True, landscape=False):
         '''Renders and saves the compilation flowgraph to a file.
 
-        The chip object flowgraph is traversed to create a graphviz (*.dot)
+        The chip object flowgraph is traversed to create a graphviz (\*.dot)
         file comprised of node, edges, and labels. The dot file is a
         graphical representation of the flowgraph useful for validating the
         correctness of the execution flow graph. The dot file is then

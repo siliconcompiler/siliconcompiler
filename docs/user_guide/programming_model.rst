@@ -82,7 +82,6 @@ For complete information, see the :ref:`Core API` section of the reference manua
     ~siliconcompiler.core.Chip.calc_area
     ~siliconcompiler.core.Chip.calc_yield
     ~siliconcompiler.core.Chip.calc_dpw
-    ~siliconcompiler.core.Chip.calc_diecost
     ~siliconcompiler.core.Chip.check_manifest
     ~siliconcompiler.core.Chip.clock
     ~siliconcompiler.core.Chip.create_cmdline
