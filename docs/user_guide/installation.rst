@@ -2,14 +2,13 @@ Installation
 ===================================
 
 
-Python Setup
--------------
+Python
+------
 
 Before installing the SiliconCompiler package you will need to set up a Python environment. Currently Python 3-6-3.10 is supported.
 
-Ubuntu
-^^^^^^^
-
+Ubuntu (>=18.04)
+^^^^^^^^^^^^^^^^
 Open up a terminal and enter the following command sequence.
 
 .. code-block:: bash
@@ -20,8 +19,17 @@ Open up a terminal and enter the following command sequence.
     python3 -m venv --system-site-packages ./venv          # create a virtual env
     source ./venv/bin/activate                             # active virtual env (bash/zsh)
 
-macOS
-^^^^^
+RHEL (>=RHEL 7)
+^^^^^^^^^^^^^^^^^^^
+Open up a terminal and enter the following command sequence.
+
+.. code-block:: bash
+
+   python3 --version                                      # check for Python 3.6 - 3.10
+
+
+macOS (>=10.15)
+^^^^^^^^^^^^^^^
 Open up a terminal and enter the following command sequence.
 
 .. code-block:: bash
@@ -34,8 +42,8 @@ Open up a terminal and enter the following command sequence.
    python3 -m venv --system-site-packages ./venv          # create a virtual env
    source ./venv/bin/activate                             # active virtual env
 
-Windows
-^^^^^^^
+Windows (>= Windows 10)
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 Install the latest Python package from `Python.org <https://www.python.org/downloads>`_ using the Windows installer. Open up a Windows shell by:
 
@@ -49,20 +57,20 @@ From the command shell, enter the following sequence to create and activate a vi
   python -m venv --system-site-packages .\venv
   .\venv\Scripts\activate
 
-SiliconCompiler Setup
----------------------
+SiliconCompiler
+---------------
 
-Once the Python environment has been set up, SiliconCompiler can be installed directly from from PyPI using pip. The instructions are the same for Windows, Linux, and macOS.
+Once the Python environment has been set up, SiliconCompiler can be installed directly from from PyPI using pip. Activate your Python virtual environment and following the instructions below. (identical for Windows, Linux, and macOS).
 
 .. code-block:: bash
 
-   (venv) pip install --upgrade pip                # upgrade pip in virtual env
-   (venv) pip list                                 # show installed packages in venv
-   (venv) pip install --upgrade siliconcompiler    # install SiliconCompiler in venv
-   (venv) python -m pip show siliconcompiler       # will display  SiliconCompiler package information
-   (venv) python -c "import siliconcompiler;chip = siliconcompiler.Chip();print(chip.get('scversion'))"
+ (venv) pip install --upgrade pip                # upgrade pip in virtual env
+ (venv) pip list                                 # show installed packages in venv
+ (venv) pip install --upgrade siliconcompiler    # install SiliconCompiler in venv
+ (venv) python -m pip show siliconcompiler       # will display  SiliconCompiler package information
+ (venv) python -c "import siliconcompiler;chip=siliconcompiler.Chip();print(chip.get('version','sc'))"
 
-The output should be the expected version number, similar to below:
+The expectedion version should be printed to the display:
 
 .. parsed-literal::
 
@@ -81,11 +89,45 @@ only supported on Linux/MacOS platforms.
    python -m pip install -e .
 
 
-Tool Setup
-------------
+Cloud Acccess
+--------------
 
-The SiliconCompiler project depends on a number of external tools (synthesis, placement, routing, etc). Installation instructions for these tools are best written by the original authors so we will not include them here. For convenience, links to installation documentation for all supported tools can be found in the tools directory of the reference manual :ref:`here<Tools directory>`.
+The SiliconCompiler project supports a remote processing model that leverages the cloud for compilation. To enable remote, processing you will need to have access to a SiliconCompiler server.
 
-The tool installation process can be skipped entirely by leveraging the :ref:`Remote Processing<Remote processing>` workflow to access a server with pre-installed tools.
+Remote server login credentials is handled through a special SiliconCompiler credentials text file, located at ~/.sc/credentials on Linux or macOS, or at C:\\Users\\USERNAME\\.sc\\credentials on Windows. The credentials file contains information about the remote server address, username, and password. An example credentials file is shown below.
+
+.. code-block:: json
+
+   {
+   "address": "your-server",
+   "username": "your-username",
+   "password": "your-key"
+   }
+
+To create the credentials file, use a text editor to create the credentials file or use the SiliconCompiler 'sc-configure' app.
+
+.. code-block:: console
+
+  (siliconcompiler) $ sc-configure
+  Remote server address: "your-server"
+  Remote username: "your-username"
+  Remote password: "your-key"
+  Remote configuration saved to: /home/<USER>/.sc/.credentials
+
+Validate your setup with the simple example below:
+
+.. code-block:: bash
+
+   echo "module flipflop (input clk, d, output reg out); \
+   always @ (posedge clk) out <= d; endmodule"> flipflop.v
+   sc flipflop.v -remote
+
+Layout Viewer
+-------------
 
 To view IC layout files (DEF, GDSII) we recommend installing the open source multi-platform 'klayout' viewer (available for Windows, Linux, and macOS). Installation instructions for klayout can be found `HERE <https://www.klayout.de/build.html>`_.
+
+Other Tools
+-----------
+
+The SiliconCompiler project depends on a number of external tools (synthesis, placement, routing, etc). To run compilation locally, you will need to install each tool individually. Installation instructions for these tools are best written by the original authors so we will not include them here. For convenience, links to installation documentation for all supported tools can be found in the tools directory of the reference manual :ref:`here<Tools directory>`.
