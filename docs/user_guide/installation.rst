@@ -23,9 +23,20 @@ RHEL (>=RHEL 7)
 ^^^^^^^^^^^^^^^^^^^
 Open up a terminal and enter the following command sequence.
 
+..  Note: when testing on AWS I had to use a different repository name in the first command:
+.. sudo subscription-manager repos --enable rhel-server-rhui-rhscl-7-rpms
+.. However, that seemed AWS-specific, and the command used in the docs comes from Red Hat itself:
+.. https://developers.redhat.com/blog/2018/08/13/install-python3-rhel#
+
 .. code-block:: bash
 
-   python3 --version                                      # check for Python 3.6 - 3.10
+   sudo subscription-manager repos --enable rhel-server-rhscl-7-rpms  # enable Red Hat Software Collections repository
+   sudo yum -y install rh-python36                                    # install Python 3.6
+   scl enable rh-python36 bash                                        # enable Python in current environment
+   python3 --version                                                  # check for Python 3.6 - 3.10
+   python3 -m venv --system-site-packages ./venv                      # create a virtual env
+   source ./venv/bin/activate                                         # active virtual env (bash/zsh)
+   pip install --upgrade pip                                          # upgrade Pip
 
 
 macOS (>=10.15)
