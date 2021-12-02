@@ -11,7 +11,7 @@ import sys
 def make_docs():
     '''
     A configurable FPGA compilation flow.
-.
+
     The 'fpgaflow' module is a configurable FPGA flow with support for
     open source and commercial tool flows. The fpgaflow relies on the
     FPGA partname to determine which design tools to use for RTL to

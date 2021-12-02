@@ -61,8 +61,8 @@ submodules to pull down the required third-party design files:
   $ git submodule update --init --recursive
 
 In order to follow along, you should also :ref:`install
-SiliconCompiler<Installation from PyPI>` and the :ref:`KLayout layout
-viewer<Layout viewer>`.
+SiliconCompiler<SiliconCompiler Setup>` and the :ref:`KLayout layout
+viewer<Tool Setup>`.
 
 If you install SC from PyPI rather than from source, you'll need to clone the
 SiliconCompiler repository and configure your SC path to point to the repo in
