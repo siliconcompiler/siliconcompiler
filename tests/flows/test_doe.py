@@ -55,3 +55,7 @@ def test_doe(scroot):
         # expect to have increasing area as we increase adder width
         assert area > prev_area
         prev_area = area
+
+if __name__ == "__main__":
+    from tests.fixtures import scroot
+    test_doe(scroot())
