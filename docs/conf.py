@@ -26,6 +26,12 @@ author = 'SiliconCompiler Authors'
 version = siliconcompiler.__version__
 release = version
 
+# Inject the authors list from _metadata.py as a variable |authors| that can be
+# inserted into rst.
+rst_epilog = f"""
+.. |authors| replace:: {', '.join(siliconcompiler._metadata.authors)}
+"""
+
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be

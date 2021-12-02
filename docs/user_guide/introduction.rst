@@ -26,4 +26,4 @@ To further reduce design access barriers, the project also supports a :ref:`clie
 Authors
 -------------
 
-SiliconCompiler project authors in chronological order.
+SiliconCompiler project authors in chronological order: |authors|.

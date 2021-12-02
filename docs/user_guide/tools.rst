@@ -89,7 +89,7 @@ To leverage the run() function's internal setup checking logic, it is highly rec
 
 parse_version(stdout)
 -----------------------
-The run() function includes built in executable version checking. The executable option to use for printing out the version number is specified with the 'vswitch' parameter within the setup_tool() function. Commonly used options include '-v', '\-\-version', '-version'. The executable output varies widely, so we need a parsing function that processes the output and returns a single uniform version string. The example shows how this function is implemented for the Yosys tool. ::
+The run() function includes built in executable version checking, which can be enabled or disabled with the 'vercheck' parmameter. The executable option to use for printing out the version number is specified with the 'vswitch' parameter within the setup_tool() function. Commonly used options include '-v', '\-\-version', '-version'. The executable output varies widely, so we need a parsing function that processes the output and returns a single uniform version string. The example shows how this function is implemented for the Yosys tool. ::
 
   def parse_version(stdout):
       # Yosys 0.9+3672 (git sha1 014c7e26, gcc 7.5.0-3ubuntu1~18.04 -fPIC -Os)
@@ -140,9 +140,17 @@ The post_process function can also be used to post process the output data in th
 
     return 0
 
+Note that the return value of the post_process() function is interpreted as an integer error code where zero indicates success. This can be used to signal errors that should halt execution but do not trigger a non-zero exit status from the executable itself.
+
 runtime_options(chip)
 -----------------------
-The distributed execution model of SiliconCompiler mandates that absolute paths be resolved at task run time. The setup_tool() function is run at run() launch to check flow validity, so we need a second function interface (runtime_options) to create the final commandline options. The runtime_options() function inspects the Schema and returns a cmdlist to be used by the 'exe' during task execution. The Surelog example below illustrates the process of defining a runtime_options function. ::
+The distributed execution model of SiliconCompiler mandates that absolute paths be resolved at task run time. The setup_tool() function is run at run() launch to check flow validity, so we need a second function interface (runtime_options) to create the final commandline options. The runtime_options() function inspects the Schema and returns a cmdlist to be used by the 'exe' during task execution. The sequence of items used to generate the final command line invocation is as follows:
+
+::
+
+  <'eda',...,'exe'> <'eda',...,'option'> <'eda',...,'script'> <runtime_options()>
+
+The Surelog example below illustrates the process of defining a runtime_options function. ::
 
   def runtime_options(chip):
 
