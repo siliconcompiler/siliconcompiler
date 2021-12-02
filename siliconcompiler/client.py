@@ -136,6 +136,8 @@ def request_remote_run(chip):
                     '--exclude',
                     'import.tar.gz',
                     '.'],
+                   stdout=subprocess.PIPE,
+                   stderr=subprocess.STDOUT,
                    cwd=local_build_dir)
     upload_file = os.path.abspath(os.path.join(local_build_dir, 'import.tar.gz'))
 
