@@ -73,14 +73,14 @@ yosys opt
 source "$sc_refdir/syn_strategies.tcl"
 
 set script ""
-if {[dict exists $sc_cfg eda $sc_tool $sc_step $sc_index option strategy]} {
-    set sc_strategy [dict get $sc_cfg eda $sc_tool $sc_step $sc_index option strategy]
+if {[dict exists $sc_cfg eda $sc_tool $sc_step $sc_index variable strategy]} {
+    set sc_strategy [dict get $sc_cfg eda $sc_tool $sc_step $sc_index variable strategy]
     if { [dict exists $syn_strategies $sc_strategy] } {
         set script [dict get $syn_strategies $sc_strategy]
     } else {
         puts "Warning: no such synthesis strategy $sc_strategy"
     }
-} 
+}
 
 # TODO: other abc flags passed in by OpenLANE we can adopt:
 # -D: clock period

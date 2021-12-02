@@ -21,8 +21,8 @@ set sc_targetlibs  [dict get $sc_cfg asic targetlib]
 set lib [lindex $sc_targetlibs 0]
 set sc_liberty [dict get $sc_cfg library $lib nldm typical lib]
 
-if {[dict exists $sc_cfg eda $sc_tool $sc_step $sc_index option induction_steps]} {
-    set sc_induction_steps [lindex [dict get $sc_cfg eda $sc_tool $sc_step $sc_index option induction_steps] 0]
+if {[dict exists $sc_cfg eda $sc_tool $sc_step $sc_index variable induction_steps]} {
+    set sc_induction_steps [lindex [dict get $sc_cfg eda $sc_tool $sc_step $sc_index variable induction_steps] 0]
 } else {
     # Yosys default
     set sc_induction_steps 4
