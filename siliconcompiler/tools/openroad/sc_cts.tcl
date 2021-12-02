@@ -33,4 +33,9 @@ if {[llength [all_clocks]] > 0} {
 
     check_placement
 
+    repair_timing -setup
+    repair_timing -hold
+
+    detailed_placement
+    check_placement
 }
