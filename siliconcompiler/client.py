@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import sys
 import time
+import urllib.parse
 import uuid
 
 from siliconcompiler.crypto import *
@@ -109,7 +110,7 @@ def request_remote_run(chip):
     '''
 
     # Set the request URL.
-    remote_run_url = get_base_url(chip) + '/remote_run/'
+    remote_run_url = urllib.parse.urljoin(get_base_url(chip), '/remote_run/')
 
     # Use authentication if necessary.
     job_nameid = f"{chip.get('jobname')}"
@@ -169,7 +170,7 @@ def is_job_busy(chip):
     '''
 
     # Set the request URL.
-    remote_run_url = get_base_url(chip) + '/check_progress/'
+    remote_run_url = urllib.parse.urljoin(get_base_url(chip), '/check_progress/')
 
     # Set common parameters.
     post_params = {
@@ -200,7 +201,7 @@ def delete_job(chip):
     '''
 
     # Set the request URL.
-    remote_run_url = get_base_url(chip) + '/delete_job/'
+    remote_run_url = urllib.parse.urljoin(get_base_url(chip), '/delete_job/')
 
     # Set common parameter.
     post_params = {
@@ -232,7 +233,7 @@ def fetch_results_request(chip):
 
     # Set the request URL.
     job_hash = chip.status['jobhash']
-    remote_run_url = get_base_url(chip) + '/get_results/' + job_hash + '.tar.gz'
+    remote_run_url = urllib.parse.urljoin(get_base_url(chip), '/get_results/' + job_hash + '.tar.gz')
 
     # Set authentication parameters if necessary.
     rcfg = chip.status['remote_cfg']
