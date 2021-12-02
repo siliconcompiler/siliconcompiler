@@ -1868,10 +1868,10 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     cfg['eda'][tool][step][index]['licenseserver'] = {}
     cfg['eda'][tool][step][index]['licenseserver']['default'] = {
         'switch': "-eda_licenseserver 'tool step index name <str>'",
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'require': None,
-        'defvalue': None,
+        'defvalue': [],
         'shorthelp': 'Executable license server',
         'example': [
             "cli: -eda_licenseserver 'atool place 0 ACME_LICENSE_FILE 1700@server'",
@@ -1977,7 +1977,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     cfg['eda'][tool][step][index]['report'] = {}
     cfg['eda'][tool][step][index]['report'][report_type] = {
         'switch': "-eda_report 'tool step index report_type <str>'",
-        'type': '[str]',
+        'type': '[file]',
         'lock': 'false',
         'require': None,
         'defvalue': [],
@@ -1986,7 +1986,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
             "cli: -eda_report 'yosys syn 0 hold hold.rpt'",
             "api: chip.set('eda','yosys','syn','0','report','hold','hold.rpt')"],
         'help': """
-        Name of report file of type 'reptype' produced by the task within the
+        List of reports of type of a certain kind produced by the task within the
         local 'reports' directory.
         """
     }
@@ -3735,7 +3735,7 @@ def schema_package(cfg, group):
             f"api: chip.set({group},{libapi}'version', '1.0')"],
         'help': f"""
         Version number. Can be a branch, tag, commit hash, or a major.minor
-        type version string. It is recommended to follow the semver standard.
+        type version string. Versions shall fllow the semver standard.
         """
     }
 
@@ -3756,7 +3756,7 @@ def schema_package(cfg, group):
 
     localcfg['keyword'] = {
         'switch': f"-{group}_keyword '{lib}<str>'",
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'require': None,
         'defvalue': None,
@@ -3771,7 +3771,7 @@ def schema_package(cfg, group):
 
     localcfg['homepage'] = {
         'switch': f"-{group}_homepage '{lib}<str>'",
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'require': None,
         'defvalue': None,
@@ -3870,7 +3870,7 @@ def schema_package(cfg, group):
     localcfg['dependency'] = {}
     localcfg['dependency'][dep] = {
         'switch': f"-{group}_dependency '{lib}<dep> <version>'",
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'require': None,
         'defvalue': [],
@@ -3879,7 +3879,8 @@ def schema_package(cfg, group):
             f"cli: -{group}_dependency '{lib}hello 1.0.0'",
             f"api: chip.set('{group}',{libapi}'dependency','hello','1.0.0')"],
         'help': """
-        Package dependency specifed as a key value pair.
+        Package dependency specifed as a key value pair. Versions shall follow
+        the semver standard.
         """
     }
 
