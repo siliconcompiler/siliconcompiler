@@ -3107,7 +3107,7 @@ class Chip:
             else:
                 # Use the default config file path.
                 cfg_dir = os.path.join(Path.home(), '.sc')
-                cfg_file = os.path.join(cfg_dir, '.credentials')
+                cfg_file = os.path.join(cfg_dir, 'credentials')
             if (not os.path.isdir(cfg_dir)) or (not os.path.isfile(cfg_file)):
                 self.logger.error('Could not find remote server configuration - please run "sc-configure" and enter your server address and credentials.')
                 sys.exit(1)

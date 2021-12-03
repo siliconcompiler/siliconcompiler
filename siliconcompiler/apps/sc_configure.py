@@ -17,7 +17,7 @@ def main():
 
     # Find the config file/directory path.
     cfg_dir = os.path.join(Path.home(), '.sc')
-    cfg_file = os.path.join(cfg_dir, '.credentials')
+    cfg_file = os.path.join(cfg_dir, 'credentials')
     # Create directory if it doesn't exist.
     if not os.path.isdir(cfg_dir):
         os.makedirs(cfg_dir)

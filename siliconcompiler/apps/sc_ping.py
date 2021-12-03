@@ -28,7 +28,7 @@ def main():
 
     # Find the config file/directory path.
     cfg_dir = os.path.join(Path.home(), '.sc')
-    cfg_file = os.path.join(cfg_dir, '.credentials')
+    cfg_file = os.path.join(cfg_dir, 'credentials')
 
     # Check the configuration.
     if not os.path.isfile(cfg_file):
