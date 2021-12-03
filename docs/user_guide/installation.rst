@@ -81,7 +81,7 @@ Once the Python environment has been set up, SiliconCompiler can be installed di
  (venv) python -m pip show siliconcompiler       # will display  SiliconCompiler package information
  (venv) python -c "import siliconcompiler;chip=siliconcompiler.Chip();print(chip.get('version','sc'))"
 
-The expectedion version should be printed to the display:
+The expected version should be printed to the display:
 
 .. parsed-literal::
 
@@ -96,11 +96,12 @@ only supported on Linux/MacOS platforms.
 
    git clone https://github.com/siliconcompiler/siliconcompiler
    cd siliconcompiler
+   git submodule update --init --recursive third_party/tools/openroad
    pip install -r requirements.txt
    python -m pip install -e .
 
 
-Cloud Acccess
+Cloud Access
 --------------
 
 The SiliconCompiler project supports a remote processing model that leverages the cloud for compilation. To enable remote, processing you will need to have access to a SiliconCompiler server.
@@ -125,7 +126,16 @@ To create the credentials file, use a text editor to create the credentials file
   Remote password: "your-key"
   Remote configuration saved to: /home/<USER>/.sc/.credentials
 
-Validate your setup with the simple example below:
+To verify that your credentials file and server is configured correctly, run the `sc-ping` command.
+
+.. code-block:: console
+
+  $ sc-ping
+  User myname validated successfully!
+  Remaining compute time: 1440.00 minutes
+  Remaining results bandwidth: 5242880 KiB
+
+Once you have verified that your remote configuration works, try compiling a simple design:
 
 .. code-block:: bash
 

@@ -205,7 +205,8 @@ class FlowGen(DynamicGen):
 
     def extra_content(self, chip, modname):
         flow_path = f'_images/gen/{modname}.svg'
-        chip.write_flowgraph(flow_path, fillcolor='#1c4587', fontcolor='#f1c232', border=False)
+        #chip.write_flowgraph(flow_path, fillcolor='#1c4587', fontcolor='#f1c232', border=False)
+        chip.write_flowgraph(flow_path)
         return [image(flow_path, center=True)]
 
     def display_config(self, chip, modname):

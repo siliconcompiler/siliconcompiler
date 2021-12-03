@@ -46,35 +46,25 @@ chip.show()                               # show layout
 
 Command line interface programs are very effective for quick experimentation.
 SiliconCompiler includes a command line program 'sc',  with full support for all
-compiler schema parameters.
-
-For simple designs, compiling using *sc* is as easy as using gcc or llvm.
+compiler schema parameters. For simple designs, compiling using *sc* is as
+easy as using gcc or llvm.
 
 ```bash
 pip install siliconcompiler
-sc hello.v
+echo "module flipflop (input clk, d, output reg out); \
+	always @ (posedge clk) out <= d; endmodule"> flipflop.v
+sc flipflop.v -remote
 ```
 More complex designs are handled by simply adding more options.
 
 ```bash
-sc hello.v add.v -constraint hello.sdc -target "asicflow_skywater130"
-```
-
-## Remote Compilation
-
-SiliconCompiler supports a "-remote" option, which directs the compiler to send all
-steps to a remote server for processing. The -remote option relies on a credentials
-file located at ~/.sc/credentials on Linux or macOS, or at
-C:\Users\USERNAME\\.sc\credentials on Windows.
-
-```bash
-sc hello.v -remote
+sc hello.v add.v -remote -constraint hello.sdc -target "asicflow_skywater130"
 ```
 
 ## Installation
 
 SiliconCompiler is available as wheel packages on PyPI for macOS, Windows and
-Linux platforms. Full installation instructions can be found in the
+Linux platforms. Full complete installation instructions see the
 [Installation Guide](https://docs.siliconcompiler.com/user_guide/installation.html).
 If you already have a working Python 3.6-3.10 environment, just use pip:
 
@@ -87,6 +77,7 @@ To install the project from source (supported on Linux and macOS platforms):
 ```bash
 git clone https://github.com/siliconcompiler/siliconcompiler
 cd siliconcompiler
+git submodule update --init --recursive third_party/tools/openroad
 pip install -r requirements.txt
 python -m pip install -e .
 ```

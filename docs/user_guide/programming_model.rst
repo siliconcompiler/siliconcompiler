@@ -1,7 +1,7 @@
 Programming model
 =================
 
-The SiliconCompiler project includes a Python API and programming model to faciliate development
+The SiliconCompiler project includes a Python API and programming model to facilitate development
 of advanced hardware compilation flows. The basic programming model includes the following ordered steps.
 
 Object Creation
