@@ -84,7 +84,15 @@ def post_process(chip):
     if step == 'lvs':
         # Export metrics
         lvs_failures = count_lvs.count_LVS_failures(f'outputs/{design}.lvs.json')
-        chip.set('metric', step, index, 'errors', 'real', lvs_failures[0])
+
+        # We don't count top-level pin mismatches as errors b/c we seem to get
+        # false positives for disconnected pins. Report them as warnings
+        # instead, the designer can then take a look at the full report for
+        # details.
+        pin_failures = lvs_failures[3]
+        errors = lvs_failures[0] - pin_failures
+        chip.set('metric', step, index, 'errors', 'real', errors)
+        chip.set('metric', step, index, 'warnings', 'real', pin_failures)
 
     #TODO: return error code
     return 0
