@@ -94,3 +94,5 @@ For security reasons, only a subset of the full Schema parameters is currently s
      - None
    * - ``checkonly``
      - None
+   * - ``eda, ..., variable, ...``
+     - None
