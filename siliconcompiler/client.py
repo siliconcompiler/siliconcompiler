@@ -88,6 +88,14 @@ def remote_run(chip):
     # Ask the remote server to start processing the requested step.
     request_remote_run(chip)
 
+    # Remove the local 'import.tar.gz' archive.
+    local_archive = stepdir = os.path.join(chip.get('dir'),
+                                           chip.get('design'),
+                                           chip.get('jobname'),
+                                           'import.tar.gz')
+    if os.path.isfile(local_archive):
+        os.remove(local_archive)
+
     # Check the job's progress periodically until it finishes.
     is_busy = True
     while is_busy:
