@@ -254,7 +254,7 @@ def setup_pdk(chip):
     # Methodology
     ###############################################
 
-    chip.add('asic', 'targetlib', libname)
+    chip.set('asic', 'targetlib', libname)
     chip.set('asic', 'stackup', chip.get('pdk', 'stackup')[0])
     # TODO: how does LI get taken into account?
     chip.set('asic', 'minlayer', "m1")
