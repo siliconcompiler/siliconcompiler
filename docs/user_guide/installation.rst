@@ -126,7 +126,16 @@ To create the credentials file, use a text editor to create the credentials file
   Remote password: "your-key"
   Remote configuration saved to: /home/<USER>/.sc/.credentials
 
-Validate your setup with the simple example below:
+To verify that your credentials file and server is configured correctly, run the `sc-ping` command.
+
+.. code-block:: console
+
+  $ sc-ping
+  User myname validated successfully!
+  Remaining compute time: 1440.00 minutes
+  Remaining results bandwidth: 5242880 KiB
+
+Once you have verified that your remote configuration works, try compiling a simple design:
 
 .. code-block:: bash
 
