@@ -54,11 +54,17 @@ def main():
     if not chip.get('target'):
         chip.target('asicflow_freepdk45')
 
+    # Storing user entered steplist/args before running
+    if chip.get('arg','step'):
+        steplist = [chip.get('arg','step')]
+    else:
+        steplist = chip.get('steplist')
+
     # Run flow
     chip.run()
 
     # Print Job Summary
-    chip.summary()
+    chip.summary(steplist=steplist)
 
 #########################
 if __name__ == "__main__":
