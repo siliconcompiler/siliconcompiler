@@ -16,7 +16,7 @@ Open up a terminal and enter the following command sequence.
     python3 --version                                      # check for Python 3.6 - 3.10
     sudo apt update                                        # update package information
     sudo apt install python3-dev python3-pip python3-venv  # install dependencies
-    python3 -m venv --system-site-packages ./venv          # create a virtual env
+    python3 -m venv  ./venv                                # create a virtual env
     source ./venv/bin/activate                             # active virtual env (bash/zsh)
 
 RHEL (>=RHEL 7)
@@ -34,7 +34,7 @@ Open up a terminal and enter the following command sequence.
    sudo yum -y install rh-python36                                    # install Python 3.6
    scl enable rh-python36 bash                                        # enable Python in current environment
    python3 --version                                                  # check for Python 3.6 - 3.10
-   python3 -m venv --system-site-packages ./venv                      # create a virtual env
+   python3 -m venv ./venv                                             # create a virtual env
    source ./venv/bin/activate                                         # active virtual env (bash/zsh)
    pip install --upgrade pip                                          # upgrade Pip
 
@@ -50,7 +50,7 @@ Open up a terminal and enter the following command sequence.
    brew update
    brew install python
    python3 --version                                      # check for Python 3.6 - 3.10
-   python3 -m venv --system-site-packages ./venv          # create a virtual env
+   python3 -m venv  ./venv                                # create a virtual env
    source ./venv/bin/activate                             # active virtual env
 
 Windows (>= Windows 10)
@@ -65,7 +65,7 @@ From the command shell, enter the following sequence to create and activate a vi
 
 .. code-block:: doscon
 
-  python -m venv --system-site-packages .\venv
+  python -m venv  .\venv
   .\venv\Scripts\activate
 
 SiliconCompiler
