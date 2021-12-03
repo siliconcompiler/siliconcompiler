@@ -96,6 +96,7 @@ only supported on Linux/MacOS platforms.
 
    git clone https://github.com/siliconcompiler/siliconcompiler
    cd siliconcompiler
+   git submodule update --init --recursive third_party/tools/openroad
    pip install -r requirements.txt
    python -m pip install -e .
 
