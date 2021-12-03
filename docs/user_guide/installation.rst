@@ -5,7 +5,7 @@ Installation
 Python
 ------
 
-Before installing the SiliconCompiler package you will need to set up a Python environment. Currently Python 3-6-3.10 is supported.
+Before installing the SiliconCompiler package you will need to set up a Python environment. Currently Python 3.6-3.10 is supported.
 
 Ubuntu (>=18.04)
 ^^^^^^^^^^^^^^^^
