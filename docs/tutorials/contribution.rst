@@ -45,4 +45,4 @@ The process for target contributions is as follows:
 
   chip.target('asicflow_<newpdk>')
 
-4.) Submit a PR!
+4.) Read the `CONTRIBUTING <https://github.com/siliconcompiler/siliconcompiler/blob/main/CONTRIBUTING.md>`_ guide to learn how to submit a PR.
