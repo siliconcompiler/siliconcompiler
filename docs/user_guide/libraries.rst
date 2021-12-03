@@ -14,4 +14,4 @@ The following code snippet shows how library gds and lef files can be set up in 
 
 To enable simple 'target' based access, it is recommended that fundamental physical foundry sponsored IP (stdcells, GPIO, memory macros) are set up as part of the setup_pdk function.
 
-SiliconCompiler also supports referencing soft libraroes (RTL, C-code, etc), in which case many of the physical IP parameters can be omitted.
+SiliconCompiler also supports referencing soft libraries (RTL, C-code, etc), in which case many of the physical IP parameters can be omitted.

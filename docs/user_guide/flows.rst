@@ -43,7 +43,7 @@ In addition, the setup needs to define the compilation mode. ::
 
   chip.set('mode', 'asic')
 
-Flows that support SiliconCompiler metric functions (minimum, maximum, summary) should also set appropriate metric weights and goals for correct behahior. ::
+Flows that support SiliconCompiler metric functions (minimum, maximum, summary) should also set appropriate metric weights and goals for correct behavior. ::
 
   for metric in  ('errors','drvs','holdwns','setupwns','holdtns','setuptns'):
                 chip.set('metric', step, str(index), metric, 'goal', 0)

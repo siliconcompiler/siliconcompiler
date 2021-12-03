@@ -81,7 +81,7 @@ Once the Python environment has been set up, SiliconCompiler can be installed di
  (venv) python -m pip show siliconcompiler       # will display  SiliconCompiler package information
  (venv) python -c "import siliconcompiler;chip=siliconcompiler.Chip();print(chip.get('version','sc'))"
 
-The expectedion version should be printed to the display:
+The expected version should be printed to the display:
 
 .. parsed-literal::
 
@@ -101,7 +101,7 @@ only supported on Linux/MacOS platforms.
    python -m pip install -e .
 
 
-Cloud Acccess
+Cloud Access
 --------------
 
 The SiliconCompiler project supports a remote processing model that leverages the cloud for compilation. To enable remote, processing you will need to have access to a SiliconCompiler server.
