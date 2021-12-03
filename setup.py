@@ -65,6 +65,7 @@ setup(
     long_description_content_type="text/markdown",
     license='Apache License 2.0',
     author="Andreas Olofsson",
+    author_email="andreas.d.olofsson@gmail.com",
     url="https://siliconcompiler.com",
     project_urls={
         "Documentation": "https://docs.siliconcompiler.com",
