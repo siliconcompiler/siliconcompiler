@@ -65,7 +65,7 @@ sc hello.v add.v -remote -constraint hello.sdc -target "asicflow_skywater130"
 
 SiliconCompiler is available as wheel packages on PyPI for macOS, Windows and
 Linux platforms. Full complete installation instructions see the
-[Installation Guide](https://docs.siliconcompiler.com/user_guide/installation.html).
+[Installation Guide](https://docs.siliconcompiler.com/en/latest/user_guide/installation.html).
 If you already have a working Python 3.6-3.10 environment, just use pip:
 
 ```sh
@@ -85,7 +85,7 @@ python -m pip install -e .
 ## External Dependencies
 
 Installation instructions for all external tools can be found in the
-[Tools Directory](https://docs.siliconcompiler.com/reference_manual/tools.html).
+[Tools Directory](https://docs.siliconcompiler.com/en/latest/reference_manual/tools.html).
 For the '-remote' option, there are no external dependencies.
 
 ## Contributing
