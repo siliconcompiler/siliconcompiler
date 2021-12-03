@@ -2197,7 +2197,7 @@ class Chip:
         return int(dies)
 
     ###########################################################################
-    def summary(self, show_all_indices=False):
+    def summary(self, steplist=None, show_all_indices=False):
         '''
         Prints a summary of the compilation manifest.
 
@@ -2216,7 +2216,7 @@ class Chip:
             Prints out a summary of the run to stdout.
         '''
 
-        steplist = self.get('steplist')
+        # display whole flowgraph if no steplist specified
         if not steplist:
             steplist = self.list_steps()
 

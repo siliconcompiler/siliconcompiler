@@ -9,7 +9,7 @@ defusedxml >= 0.7.1
 pandas >= 1.1.5
 Jinja2 >= 2.11.3
 cryptography >= 3.4.7
-graphviz == 0.17
+graphviz >= 0.18.1
 
 # Build dependencies
 scikit-build >= 0.12
@@ -25,4 +25,3 @@ pip-licenses
 pytest >= 6.2.4
 pytest-xdist >= 2.3.0
 pyvirtualdisplay
-

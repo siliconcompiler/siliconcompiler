@@ -62,12 +62,12 @@ For a complete example of a tool setup module, see `OpenROAD <https://github.com
 setup_tool(chip)
 -----------------
 
-Tool setup is done for each step and index within the run() function prior to launching each indiidual task. Tools can be configured independetly for different steps (ie. the place step is different from the route step), so we need a method for passing information about the current step and index to the setup function. This is accomplished with the reserved 'scratch' parameters shown below. ::
+Tool setup is done for each step and index within the run() function prior to launching each individual task. Tools can be configured independently for different steps (ie. the place step is different from the route step), so we need a method for passing information about the current step and index to the setup function. This is accomplished with the reserved 'scratch' parameters shown below. ::
 
   step = chip.get('arg','step')
   index = chip.get('arg','index')
 
-All tools are required to bind the toolname to an executable name and to define any required command line options. ::
+All tools are required to bind the tool name to an executable name and to define any required command line options. ::
 
   chip.set('eda', <toolname>, step, index, 'exe', <exename>)
   chip.set('eda', <toolname>, step, index, 'option', <option>)
@@ -89,14 +89,14 @@ To leverage the run() function's internal setup checking logic, it is highly rec
 
 parse_version(stdout)
 -----------------------
-The run() function includes built in executable version checking, which can be enabled or disabled with the 'vercheck' parmameter. The executable option to use for printing out the version number is specified with the 'vswitch' parameter within the setup_tool() function. Commonly used options include '-v', '\-\-version', '-version'. The executable output varies widely, so we need a parsing function that processes the output and returns a single uniform version string. The example shows how this function is implemented for the Yosys tool. ::
+The run() function includes built in executable version checking, which can be enabled or disabled with the 'vercheck' parameter. The executable option to use for printing out the version number is specified with the 'vswitch' parameter within the setup_tool() function. Commonly used options include '-v', '\-\-version', '-version'. The executable output varies widely, so we need a parsing function that processes the output and returns a single uniform version string. The example shows how this function is implemented for the Yosys tool. ::
 
   def parse_version(stdout):
       # Yosys 0.9+3672 (git sha1 014c7e26, gcc 7.5.0-3ubuntu1~18.04 -fPIC -Os)
       version = stdout.split()[1]
       return version.split('+')[0]
 
-The run() function compares the returned parsed version against the 'version' parameter specified in the setup_tool() function to ensure that a qualified excutable version is being used.
+The run() function compares the returned parsed version against the 'version' parameter specified in the setup_tool() function to ensure that a qualified executable version is being used.
 
 pre_process(chip)
 -----------------------
@@ -154,7 +154,7 @@ The Surelog example below illustrates the process of defining a runtime_options 
 
   def runtime_options(chip):
 
-    ''' Custom runtime options, returnst list of command line options.
+    ''' Custom runtime options, returns list of command line options.
     '''
 
     step = chip.get('arg','step')
@@ -189,12 +189,12 @@ The Surelog example below illustrates the process of defining a runtime_options 
 
 make_docs()
 -----------------------
-The SiliconComopiler includes automated document generators that search all tool modules for functions called make_docs(). It is highly recommended for all tools to include a make_docs() function. The function docstring is used for general narrative, while the body of the function is used to auto-generate a settings table based on the manifeset created. At a minimum, the docstring should include a short description and links to the Documentation, Sources, and Installation. The example below shows the make_docs function for surelog. ::
+The SiliconCompiler includes automated document generators that search all tool modules for functions called make_docs(). It is highly recommended for all tools to include a make_docs() function. The function docstring is used for general narrative, while the body of the function is used to auto-generate a settings table based on the manifest created. At a minimum, the docstring should include a short description and links to the Documentation, Sources, and Installation. The example below shows the make_docs function for surelog. ::
 
   def make_docs():
     '''
     Surelog is a SystemVerilog pre-processor, parser, elaborator,
-    and UHDM compiler that provdes IEEE design and testbench
+    and UHDM compiler that provides IEEE design and testbench
     C/C++ VPI and a Python AST API.
 
     Documentation: https://github.com/chipsalliance/Surelog
