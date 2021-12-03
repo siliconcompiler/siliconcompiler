@@ -12,21 +12,26 @@ metadata = {}
 with open('siliconcompiler/_metadata.py') as f:
     exec(f.read(), metadata)
 
-try:
-    from skbuild import setup
-except ImportError:
-    print(
-        "Error finding build dependencies!\n"
-        "If you're installing this project using pip, make sure you're using pip version 10 or greater.\n"
-        "If you're installing this project by running setup.py, manually install all dependencies listed in requirements.txt.",
-        file=sys.stderr
-    )
-    raise
+on_rtd = os.environ.get('READTHEDOCS') == 'True'
+
+if not on_rtd:
+    try:
+        from skbuild import setup
+    except ImportError:
+        print(
+            "Error finding build dependencies!\n"
+            "If you're installing this project using pip, make sure you're using pip version 10 or greater.\n"
+            "If you're installing this project by running setup.py, manually install all dependencies listed in requirements.txt.",
+            file=sys.stderr
+        )
+        raise
+else:
+    from setuptools import setup
 
 with open("README.md", "r", encoding="utf-8") as readme:
   long_desc = readme.read()
 
-if not os.path.isdir('third_party/tools/openroad/tools/OpenROAD/src/odb/src/lef'):
+if not on_rtd and not os.path.isdir('third_party/tools/openroad/tools/OpenROAD/src/odb/src/lef'):
     print('Source for LEF parser library not found! Install OpenROAD submodule before continuing with install:\n'
           'git submodule update --init --recursive third_party/tools/openroad')
     sys.exit(1)
@@ -57,6 +62,14 @@ entry_points = entry_points_apps + ["sc-server=siliconcompiler.server:main", "sc
 if os.path.isdir('_skbuild'):
      print("Note: removing existing _skbuild/ directory.")
      shutil.rmtree('_skbuild')
+
+if not on_rtd:
+    skbuild_args = {
+        'cmake_install_dir': 'siliconcompiler/leflib',
+        'cmake_args': cmake_args
+    }
+else:
+    skbuild_args = {}
 
 setup(
     name="siliconcompiler",
@@ -112,7 +125,7 @@ setup(
     extras_require = {
         "docs": [
             "Sphinx >= 3.5.4",
-            "sphinx-rtd-theme >= 0.5.2"
+            "sphinx-rtd-theme >= 0.5.2",
             "pip-licenses"
         ],
         "build": [
@@ -127,6 +140,5 @@ setup(
         ]
     },
     entry_points={"console_scripts": entry_points},
-    cmake_install_dir="siliconcompiler/leflib",
-    cmake_args=cmake_args
+    **skbuild_args
 )

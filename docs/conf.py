@@ -107,3 +107,7 @@ html_css_files = [
 latex_elements = {
   'extraclassoptions': 'openany,oneside'
 }
+
+# -- Options for autodoc -----------------------------------------------------
+
+autodoc_mock_imports = ['siliconcompiler.leflib._leflib']

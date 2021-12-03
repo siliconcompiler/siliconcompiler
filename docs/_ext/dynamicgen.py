@@ -177,6 +177,8 @@ class DynamicGen(SphinxDirective):
         directory.'''
         modules = []
         for importer, modname, _ in pkgutil.iter_modules([module_dir]):
+            if modname in ('sc_floorplan'):
+                continue
             module = importer.find_module(modname).load_module(modname)
             modules.append((module, modname))
 
@@ -341,7 +343,7 @@ class AppGen(DynamicGen):
 
     def document_module(self, module, modname, path):
         # TODO: Auto-documentation does not work with apps that use 'input(...)'
-        if modname == 'sc_configure':
+        if modname in ('sc_configure'):
             return
 
         cmd_name = modname.replace('_', '-')
