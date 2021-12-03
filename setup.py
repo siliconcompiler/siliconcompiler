@@ -60,12 +60,18 @@ if os.path.isdir('_skbuild'):
 
 setup(
     name="siliconcompiler",
-    description="The SiliconCompiler Project",
-    keywords=["ASIC", "FPGA", "hls", "compiler", "VHDL", "Verilog", "SystemVerilog", "machine", "learning"],
+    description="A compiler framework that automates translation from source code to silicon.",
     long_description=long_desc,
     long_description_content_type="text/markdown",
+    license='Apache License 2.0',
     author="Andreas Olofsson",
-    url="https://github.com/siliconcompiler/siliconcompiler",
+    url="https://siliconcompiler.com",
+    project_urls={
+        "Documentation": "https://docs.siliconcompiler.com",
+        "Source Code": "https://github.com/siliconcompiler/siliconcompiler",
+        "Bug Tracker": "https://github.com/siliconcompiler/siliconcompiler/issues",
+        "Forum": "https://github.com/siliconcompiler/siliconcompiler/discussions"
+    },
     version=metadata['version'],
     packages=find_packages(where='.', exclude=['tests*']),
 
