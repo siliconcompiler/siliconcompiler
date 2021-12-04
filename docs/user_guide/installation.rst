@@ -44,6 +44,7 @@ macOS (>=10.15)
 Open up a terminal and enter the following command sequence.
 
 .. code-block:: bash
+
    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
    export PATH="/usr/local/opt/python/libexec/bin:$PATH"
    brew update
