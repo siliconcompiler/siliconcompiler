@@ -59,7 +59,7 @@ Windows (>= Windows 10)
 Install the latest Python package from `Python.org <https://www.python.org/downloads>`_ using the Windows installer. Open up a Windows shell by:
 
 1. Pressing the 'Windows' key
-2. Typing 'PowerShell' or 'cmd', and pressing enter.
+2. Typing 'cmd', and pressing enter.
 
 From the command shell, enter the following sequence to create and activate a virtual environment.
 
@@ -71,7 +71,7 @@ From the command shell, enter the following sequence to create and activate a vi
 SiliconCompiler
 ---------------
 
-SiliconCompiler is installed directly from pypi.org using pip. Activate your `Python Virtual Environment <https://docs.python.org/3/library/venv.html>`_ and follow the instructions below. (identical for Windows, Linux, and macOS).
+SiliconCompiler is installed directly from `pypi.org <https://pypi.org>`_ using pip. Activate your `Python Virtual Environment <https://docs.python.org/3/library/venv.html>`_ and follow the instructions below. (identical for Windows, Linux, and macOS).
 
 .. code-block:: bash
 
@@ -118,7 +118,7 @@ Use a text editor to create the credentials file. Alternatively you can use 'sc-
 
 .. code-block:: console
 
-  $ sc-configure
+  (venv) sc-configure
   Remote server address: your-server
   Remote username: your-username
   Remote password: your-key
@@ -128,7 +128,7 @@ To verify that your credentials file and server is configured correctly, run the
 
 .. code-block:: console
 
-  $ sc-ping
+  (venv) sc-ping
   User myname validated successfully!
   Remaining compute time: 1440.00 minutes
   Remaining results bandwidth: 5242880 KiB
@@ -137,15 +137,21 @@ Once you have verified that your remote configuration works, try compiling a sim
 
 .. code-block:: bash
 
-   echo "module flipflop (input clk, d, output reg out); always @ (posedge clk) out <= d; endmodule"> flipflop.v
-   sc flipflop.v -remote
+   (venv) curl https://raw.githubusercontent.com/siliconcompiler/siliconcompiler/main/docs/user_guide/examples/heartbeat.v > heartbeat.v
+   (venv) sc heartbeat.v -remote
 
 Layout Viewer
 -------------
 
 To view IC layout files (DEF, GDSII) we recommend installing the open source multi-platform 'klayout' viewer (available for Windows, Linux, and macOS). Installation instructions for klayout can be found `HERE <https://www.klayout.de/build.html>`_.
 
-Other Tools
------------
+To test the klayout installation, run the 'sc-show' to display the 'heartbeat' layout:
 
-The SiliconCompiler project depends on a number of external tools (synthesis, placement, routing, etc). To run compilation locally, you will need to install each tool individually. Installation instructions for these tools are best written by the original authors so we will not include them here. For convenience, links to installation documentation for all supported tools can be found in the tools directory of the reference manual :ref:`here<Tools directory>`.
+.. code-block:: bash
+
+   (venv) sc-show -design heartbeat
+
+External Tools
+--------------
+
+To run compilation locally (instead of remotely), you will need to install a number of tools. Installation instructions for these tools are best written by the original authors so we will not include them here. For convenience, links to installation documentation for all supported tools can be found in the tools directory of the reference manual :ref:`here<Tools directory>`.
