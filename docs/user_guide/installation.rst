@@ -44,8 +44,7 @@ macOS (>=10.15)
 Open up a terminal and enter the following command sequence.
 
 .. code-block:: bash
-
-   /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
    export PATH="/usr/local/opt/python/libexec/bin:$PATH"
    brew update
    brew install python
@@ -121,10 +120,10 @@ To create the credentials file, use a text editor to create the credentials file
 .. code-block:: console
 
   $ sc-configure
-  Remote server address: "your-server"
-  Remote username: "your-username"
-  Remote password: "your-key"
-  Remote configuration saved to: /home/<USER>/.sc/.credentials
+  Remote server address: your-server
+  Remote username: your-username
+  Remote password: your-key
+  Remote configuration saved to: /home/<USER>/.sc/credentials
 
 To verify that your credentials file and server is configured correctly, run the `sc-ping` command.
 
@@ -139,8 +138,7 @@ Once you have verified that your remote configuration works, try compiling a sim
 
 .. code-block:: bash
 
-   echo "module flipflop (input clk, d, output reg out); \
-   always @ (posedge clk) out <= d; endmodule"> flipflop.v
+   echo "module flipflop (input clk, d, output reg out); always @ (posedge clk) out <= d; endmodule"> flipflop.v
    sc flipflop.v -remote
 
 Layout Viewer
