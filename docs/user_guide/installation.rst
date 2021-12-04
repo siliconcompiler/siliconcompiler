@@ -71,7 +71,7 @@ From the command shell, enter the following sequence to create and activate a vi
 SiliconCompiler
 ---------------
 
-Once the Python environment has been set up, SiliconCompiler can be installed directly from from PyPI using pip. Activate your Python virtual environment and following the instructions below. (identical for Windows, Linux, and macOS).
+SiliconCompiler is installed directly from pypi.org using pip. Activate your `Python Virtual Environment <https://docs.python.org/3/library/venv.html>`_ and follow the instructions below. (identical for Windows, Linux, and macOS).
 
 .. code-block:: bash
 
@@ -87,7 +87,7 @@ The expected version should be printed to the display:
 
    \ |release|
 
-To exit the Python virtual environment, type 'deactivate' and hit enter. More information about the Python virtual environment can be found in the `Python 'venv' documentation <https://docs.python.org/3/library/venv.html>`_.
+To exit the Python virtual environment, type 'deactivate' and hit enter.
 
 You can also install SiliconCompiler from the latest `SiliconCompiler GitHub Repository <https://github.com/siliconcompiler/siliconcompiler>`_. This option is currently
 only supported on Linux/MacOS platforms.
@@ -104,9 +104,7 @@ only supported on Linux/MacOS platforms.
 Cloud Access
 --------------
 
-The SiliconCompiler project supports a remote processing model that leverages the cloud for compilation. To enable remote, processing you will need to have access to a SiliconCompiler server.
-
-Remote server login credentials is handled through a special SiliconCompiler credentials text file, located at ~/.sc/credentials on Linux or macOS, or at C:\\Users\\USERNAME\\.sc\\credentials on Windows. The credentials file contains information about the remote server address, username, and password. An example credentials file is shown below.
+Remote server access requires a credentials text file located at ~/.sc/credentials on Linux or macOS, or at C:\\Users\\USERNAME\\.sc\\credentials on Windows. The credentials file is a JSON formatted file containing information about the remote server address, username, and password.
 
 .. code-block:: json
 
@@ -116,7 +114,7 @@ Remote server login credentials is handled through a special SiliconCompiler cre
    "password": "your-key"
    }
 
-To create the credentials file, use a text editor to create the credentials file or use the SiliconCompiler 'sc-configure' app.
+Use a text editor to create the credentials file. Alternatively you can use 'sc-configure' app to generate it from the command line.
 
 .. code-block:: console
 
