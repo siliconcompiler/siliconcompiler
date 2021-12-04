@@ -1,4 +1,5 @@
 import os
+import platform
 import re
 import shutil
 import siliconcompiler
@@ -43,6 +44,13 @@ def setup_tool(chip, mode="batch"):
     step = chip.get('arg','step')
     index = chip.get('arg','index')
 
+    if platform.system() == 'Windows':
+        klayout_exe = 'klayout_app.exe'
+    else:
+        klayout_exe = 'klayout'
+    if not shutil.which(klayout_exe):
+        klayout_exe = os.path.join('$SCPATH', klayout_exe)
+
     if mode == 'show':
         clobber = False
         script = '/klayout_show.py'
@@ -52,7 +60,7 @@ def setup_tool(chip, mode="batch"):
         script = '/klayout_export.py'
         option = '-zz'
 
-    chip.set('eda', tool, step, index, 'exe', 'klayout', clobber=clobber)
+    chip.set('eda', tool, step, index, 'exe', klayout_exe, clobber=clobber)
     chip.set('eda', tool, step, index, 'copy', 'true', clobber=clobber)
     chip.set('eda', tool, step, index, 'refdir', refdir, clobber=clobber)
     chip.set('eda', tool, step, index, 'script', refdir + script, clobber=clobber)
