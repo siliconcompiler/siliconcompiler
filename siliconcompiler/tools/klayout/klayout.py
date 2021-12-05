@@ -117,7 +117,7 @@ def runtime_options(chip):
     #TODO: fix this!, is foundry_lefs they only way??
     #needed?
     liblef = chip.find_files('library',libname,'lef')[0]
-    lefpath = os.path.dirname(liblef)
+    lefpath = os.path.dirname(liblef) if liblef else None
     #TODO: fix to add fill
     config_file = ""
 
