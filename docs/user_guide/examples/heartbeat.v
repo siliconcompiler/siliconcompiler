@@ -3,7 +3,7 @@ module heartbeat #(parameter N = 8)
     //inputs
     input      clk,// clock
     input      nreset,//async active low reset
-    output reg out //hreatbeat
+    output reg out //heartbeat
     );
 
    reg [N-1:0] counter_reg;
