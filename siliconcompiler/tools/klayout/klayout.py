@@ -81,22 +81,22 @@ def setup_tool(chip, mode="batch"):
     chip.add('eda', tool, step, index, 'output', chip.get('design') + '.gds')
 
     # Adding requirements
-    targetlibs = chip.get('asic', 'targetlib')
-    stackup = chip.get('asic', 'stackup')
-    if bool(stackup) & bool(targetlibs):
-        mainlib = targetlibs[0]
-        macrolibs = chip.get('asic', 'macrolib')
+    if mode != 'show':
+        targetlibs = chip.get('asic', 'targetlib')
+        stackup = chip.get('asic', 'stackup')
+        if bool(stackup) & bool(targetlibs):
+            macrolibs = chip.get('asic', 'macrolib')
 
-        chip.add('eda', tool, step, index, 'require', ",".join(['asic', 'targetlib']))
-        chip.add('eda', tool, step, index, 'require', ",".join(['asic', 'stackup']))
-        chip.add('eda', tool, step, index, 'require', ",".join(['pdk', 'layermap', stackup, 'def','gds']))
+            chip.add('eda', tool, step, index, 'require', ",".join(['asic', 'targetlib']))
+            chip.add('eda', tool, step, index, 'require', ",".join(['asic', 'stackup']))
+            chip.add('eda', tool, step, index, 'require', ",".join(['pdk', 'layermap', stackup, 'def','gds']))
 
-        for lib in (targetlibs + macrolibs):
-            chip.add('eda', tool, step, index, 'require', ",".join(['library', lib, 'gds']))
-            chip.add('eda', tool, step, index, 'require', ",".join(['library', lib, 'lef']))
-    else:
-        chip.error = 1
-        chip.logger.error(f'Stackup and targetlib paremeters required for OpenROAD.')
+            for lib in (targetlibs + macrolibs):
+                chip.add('eda', tool, step, index, 'require', ",".join(['library', lib, 'gds']))
+                chip.add('eda', tool, step, index, 'require', ",".join(['library', lib, 'lef']))
+        else:
+            chip.error = 1
+            chip.logger.error(f'Stackup and targetlib paremeters required for KLayout.')
 
 
 ################################
