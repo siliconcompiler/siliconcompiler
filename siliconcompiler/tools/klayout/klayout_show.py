@@ -28,7 +28,18 @@ lib_lef = sc_cfg['library'][sc_mainlib]['lef']['value'][0]
 
 # Load KLayout technology file
 tech = pya.Technology()
-tech.load(tech_file)
+if tech_file and os.path.isfile(tech_file):
+    tech.load(tech_file)
+else:
+    # Create an empty tech file if the project's couldn't be found.
+    # It's possible the user hasn't checked out submodules or something.
+    # This will display the design, but without PDK layer info.
+    with open('notech.lyt', 'w') as tf:
+        tf.write('<?xml version="1.0" encoding="utf-8"?>')
+        tf.write('<technology>')
+        tf.write('</technology>')
+    tech.load('notech.lyt')
+    os.remove('notech.lyt')
 layoutOptions = tech.load_layout_options
 
 lefs = []
@@ -62,11 +73,12 @@ app.set_config('text-visible', 'false')
 cell_view = pya.MainWindow.instance().load_layout(filename, layoutOptions, 0)
 layout_view = cell_view.view()
 
-# We assume the layer properties file is specified as a relative path in our
-# technology file, and resolve it relative to the tech file's directory.
-tech_file_dir = os.path.dirname(tech_file)
-lyp_path = tech_file_dir + '/' + tech.layer_properties_file
+if tech_file and os.path.isfile(tech_file):
+    # We assume the layer properties file is specified as a relative path in our
+    # technology file, and resolve it relative to the tech file's directory.
+    tech_file_dir = os.path.dirname(tech_file)
+    lyp_path = tech_file_dir + '/' + tech.layer_properties_file
 
-# Set layer properties -- setting second argument to True ensures things like
-# KLayout's extra outline, blockage, and obstruction layers appear.
-layout_view.load_layer_props(lyp_path, True)
+    # Set layer properties -- setting second argument to True ensures things like
+    # KLayout's extra outline, blockage, and obstruction layers appear.
+    layout_view.load_layer_props(lyp_path, True)
