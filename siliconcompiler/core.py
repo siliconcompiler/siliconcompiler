@@ -3366,9 +3366,8 @@ class Chip:
             setup_tool(self, mode='show')
 
             exe = self.get('eda', tool, step, index, 'exe')
-            fullexe = self._resolve_env_vars(exe)
-            if shutil.which(fullexe) is None:
-                self.logger.error(f'Executable {fullexe} not found.')
+            if shutil.which(exe) is None:
+                self.logger.error(f'Executable {exe} not found.')
                 success = False
             else:
                 # Running command

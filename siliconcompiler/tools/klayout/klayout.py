@@ -3,6 +3,7 @@ import platform
 import re
 import shutil
 import siliconcompiler
+from pathlib import Path
 
 ####################################################################
 # Make Docs
@@ -46,10 +47,17 @@ def setup_tool(chip, mode="batch"):
 
     if platform.system() == 'Windows':
         klayout_exe = 'klayout_app.exe'
+        if not shutil.which(klayout_exe):
+            loc_dir = os.path.join(Path.home(), 'AppData', 'Roaming', 'KLayout')
+            global_dir = os.path.join(os.path.splitdrive(Path.home())[0],
+                                      'Program Files (x86)',
+                                      'KLayout')
+            if os.path.isdir(loc_dir):
+                os.environ['PATH'] = os.environ['PATH'] + ';' + loc_dir
+            elif os.path.isdir(global_dir):
+                os.environ['PATH'] = os.environ['PATH'] + ';' + global_dir
     else:
         klayout_exe = 'klayout'
-    if not shutil.which(klayout_exe):
-        klayout_exe = os.path.join('$SCPATH', klayout_exe)
 
     if mode == 'show':
         clobber = False
