@@ -1,9 +1,11 @@
 import os
-
 import hashlib
+import pytest
 
 import siliconcompiler
 
+@pytest.mark.eda
+@pytest.mark.quick
 def test_klayout(datadir):
     in_def = os.path.join(datadir, 'heartbeat_wrapper.def')
     library_gds = os.path.join(datadir, 'heartbeat.gds')
