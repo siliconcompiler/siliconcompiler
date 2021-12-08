@@ -30,16 +30,6 @@ lib_lef = sc_cfg['library'][sc_mainlib]['lef']['value'][0]
 tech = pya.Technology()
 if tech_file and os.path.isfile(tech_file):
     tech.load(tech_file)
-else:
-    # Create an empty tech file if the project's couldn't be found.
-    # It's possible the user hasn't checked out submodules or something.
-    # This will display the design, but without PDK layer info.
-    with open('notech.lyt', 'w') as tf:
-        tf.write('<?xml version="1.0" encoding="utf-8"?>')
-        tf.write('<technology>')
-        tf.write('</technology>')
-    tech.load('notech.lyt')
-    os.remove('notech.lyt')
 layoutOptions = tech.load_layout_options
 
 lefs = []
