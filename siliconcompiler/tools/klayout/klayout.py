@@ -1,7 +1,9 @@
 import os
+import platform
 import re
 import shutil
 import siliconcompiler
+from pathlib import Path
 
 ####################################################################
 # Make Docs
@@ -43,6 +45,20 @@ def setup_tool(chip, mode="batch"):
     step = chip.get('arg','step')
     index = chip.get('arg','index')
 
+    if platform.system() == 'Windows':
+        klayout_exe = 'klayout_app.exe'
+        if not shutil.which(klayout_exe):
+            loc_dir = os.path.join(Path.home(), 'AppData', 'Roaming', 'KLayout')
+            global_dir = os.path.join(os.path.splitdrive(Path.home())[0],
+                                      'Program Files (x86)',
+                                      'KLayout')
+            if os.path.isdir(loc_dir):
+                os.environ['PATH'] = os.environ['PATH'] + ';' + loc_dir
+            elif os.path.isdir(global_dir):
+                os.environ['PATH'] = os.environ['PATH'] + ';' + global_dir
+    else:
+        klayout_exe = 'klayout'
+
     if mode == 'show':
         clobber = False
         script = '/klayout_show.py'
@@ -52,7 +68,7 @@ def setup_tool(chip, mode="batch"):
         script = '/klayout_export.py'
         option = '-zz'
 
-    chip.set('eda', tool, step, index, 'exe', 'klayout', clobber=clobber)
+    chip.set('eda', tool, step, index, 'exe', klayout_exe, clobber=clobber)
     chip.set('eda', tool, step, index, 'copy', 'true', clobber=clobber)
     chip.set('eda', tool, step, index, 'refdir', refdir, clobber=clobber)
     chip.set('eda', tool, step, index, 'script', refdir + script, clobber=clobber)
@@ -117,7 +133,7 @@ def runtime_options(chip):
     #TODO: fix this!, is foundry_lefs they only way??
     #needed?
     liblef = chip.find_files('library',libname,'lef')[0]
-    lefpath = os.path.dirname(liblef)
+    lefpath = os.path.dirname(liblef) if liblef else None
     #TODO: fix to add fill
     config_file = ""
 
