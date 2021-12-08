@@ -74,6 +74,7 @@ def setup_tool(chip, mode="batch"):
     chip.set('eda', tool, step, index, 'script', refdir + script, clobber=clobber)
     chip.set('eda', tool, step, index, 'vswitch', '-zz -v', clobber=clobber)
     chip.set('eda', tool, step, index, 'version', '0.26.11', clobber=clobber)
+    chip.set('eda', tool, step, index, 'format', 'json')
 
     chip.set('eda', tool, step, index, 'option', option, clobber=clobber)
 
