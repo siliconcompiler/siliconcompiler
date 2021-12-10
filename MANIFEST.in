@@ -6,7 +6,6 @@ include setup.py
 include README.md
 
 include CMakeLists.txt
-include siliconcompiler/AUTHORS
 
 graft siliconcompiler/leflib
 graft siliconcompiler/templates
