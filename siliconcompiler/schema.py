@@ -4090,7 +4090,7 @@ def schema_checklist(cfg, group='checklist'):
         'type': 'float',
         'lock': 'false',
         'require': None,
-        'defvalue': [],
+        'defvalue': None,
         'shorthelp': f"{emit_help} item quantity",
         'example': [
             f"cli: -{emit_group}_quanity '{emit_switch}D000 99.9'",
@@ -4100,34 +4100,20 @@ def schema_checklist(cfg, group='checklist'):
         """
     }
 
-    localcfg[item]['tool'] = {
-        'switch': f"-{emit_group}_tool '{emit_switch}item <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'defvalue': None,
-        'shorthelp': f"{emit_help} item tool name",
-        'example': [
-            f"cli: -{emit_group}_tool '{emit_switch}D000 openroad'",
-            f"api: chip.set({emit_api},'D000','tool','openroad')"],
-        'help': f"""
-        Name of tool used to verify the {group} checklist item {item}. If validation is
-        human centric, leave blank.
-        """
-    }
-
     localcfg[item]['step'] = {
         'switch': f"-{emit_group}_step '{emit_switch}item <str>'",
         'type': 'str',
         'lock': 'false',
         'require': None,
-        'defvalue': [],
+        'defvalue': None,
         'shorthelp': f"{emit_help} item step ",
         'example': [
             f"cli: -{emit_group}_step '{emit_switch}D000 place'",
             f"api: chip.set({emit_api},'D000','step','place')"],
         'help': """
-        The flowgraph step name used to verify the {group} checklist item.
+        The flowgraph step used to verify the {group} checklist item.
+        The parameter should be left empty for manual verification
+        not related to automated tool reports.
         """
     }
 
@@ -4143,6 +4129,7 @@ def schema_checklist(cfg, group='checklist'):
             f"api: chip.set({emit_api},'D000','step','place')"],
         'help': """
         The flowgraph index used to verify the {group} checklist item.
+        The index value defaults to 0.
         """
     }
 
@@ -4158,8 +4145,8 @@ def schema_checklist(cfg, group='checklist'):
             f"api: chip.set({emit_api},'D000','ok', True)"],
         'help': """
         Boolean checkmark for the {group} checklist item. A value of
-        True indicates a human has inspected the all item dictiionary entries
-        and they check out.
+        True indicates a human has inspected the all item dictionary
+        parameters check out.
         """
     }
 
