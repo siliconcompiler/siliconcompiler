@@ -30,6 +30,7 @@ def schema_cfg():
 
     # Project configuration
     cfg = schema_package(cfg, 'package')
+    cfg = schema_checklist(cfg)
     cfg = schema_design(cfg)
     cfg = schema_fpga(cfg)
     cfg = schema_asic(cfg)
@@ -48,6 +49,7 @@ def schema_cfg():
     # Package management
     cfg = schema_libs(cfg)
     cfg = schema_package(cfg, 'library')
+    cfg = schema_checklist(cfg, 'library')
 
     # Compilation records
     cfg = schema_metric(cfg)
@@ -3841,23 +3843,6 @@ def schema_package(cfg, group):
         """
     }
 
-    localcfg['checklist'] = {}
-    localcfg['checklist']['default'] = {
-        'switch': f"-{group}_checklist '{lib}name <bool>'",
-        'type': 'bool',
-        'lock': 'false',
-        'require': None,
-        'defvalue': None,
-        'shorthelp': f"{group.capitalize()} signoff checklist",
-        'example': [
-            f"cli: -{group}_checklist '{lib}LINT_PASS True",
-            f"api: chip.set('{group}',{libapi}'checklist',LINT_PASS,True)"],
-        'help': """
-        Final signoff checklist specified as a key value pair. Values are
-        True/False booleans.
-        """
-    }
-
     localcfg['repo'] = {
         'switch': f"-{group}_repo '{lib}<str>'",
         'type': '[str]',
@@ -4004,6 +3989,186 @@ def schema_package(cfg, group):
         cfg['record']['default']['default']['default']['package'] = copy.deepcopy(localcfg)
     elif group == 'library':
         cfg['library']['default']['package'] = copy.deepcopy(localcfg)
+    return cfg
+
+############################################
+# Design Checklist
+############################################
+
+def schema_checklist(cfg, group='checklist'):
+
+    if group == 'library':
+        emit_group = "library_checklist"
+        emit_switch = "lib "
+        emit_api = "'library','lib','checklist'"
+        emit_help = "Library checklist"
+    else:
+        emit_group = "checklist"
+        emit_switch = ""
+        emit_api = "'checklist'"
+        emit_help = "Checklist"
+
+    item = 'default'
+    localcfg = {}
+    localcfg[item]={}
+
+    localcfg[item]['description'] = {
+        'switch': f"-{emit_group}_description '{emit_switch}item <str>",
+        'require': None,
+        'type': 'str',
+        'lock': 'false',
+        'defvalue': None,
+        'shorthelp': f"{emit_help} item description",
+        'example': [
+            f"cli: -{emit_group}_description '{emit_switch}D000 A-DESCRIPTION'",
+            f"api: chip.set({emit_api},'D000','description','A-DESCRIPTION')"],
+        'help': f"""
+        A short one line description of the {group} checklist item.
+        """
+    }
+
+    localcfg[item]['requirement'] = {
+        'switch': f"-{emit_group}_requirement '{emit_switch}item <str>",
+        'require': None,
+        'type': 'str',
+        'lock': 'false',
+        'defvalue': None,
+        'shorthelp': f"{emit_help} item requirement",
+        'example': [
+            f"cli: -{emit_group}_requirement '{emit_switch}D000 DOCSTRING'",
+            f"api: chip.set({emit_api},'D000','requirement','DOCSTRING')"],
+        'help': f"""
+        A complete requirement description of the {group} checklist item
+        entered as a multi-line string.
+        """
+    }
+
+    localcfg[item]['report'] = {
+        'switch': f"-{emit_group}_report '{emit_switch}item <file>'",
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'true',
+        'require': None,
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': f"{emit_help} item report",
+        'example': [
+            f"cli: -{emit_group}_report '{emit_switch}D000 my.rpt'",
+            f"api: chip.set({emit_api},'D000','report','my.rpt')"],
+        'help': f"""
+        Filepath to report(s) documenting the successful validation of
+        the {group} checklist item."""
+        }
+
+    localcfg[item]['waiver'] = {
+        'switch': f"-{emit_group}_waiver '{emit_switch}item <file>'",
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'true',
+        'require': None,
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': f"{emit_help} item waiver report",
+        'example': [
+            f"cli: -{emit_group}_waiver '{emit_switch}D000 my.waiver'",
+            f"api: chip.set({emit_api},'D000','waiver','my.waiver')"],
+        'help': f"""
+        Filepath to report(s) documenting waivers for the {group} checklist
+        item."""
+        }
+
+    localcfg[item]['quantity'] = {
+        'switch': f"-{emit_group}_quantity '{emit_switch}item <float>'",
+        'type': 'float',
+        'lock': 'false',
+        'require': None,
+        'defvalue': [],
+        'shorthelp': f"{emit_help} item quantity",
+        'example': [
+            f"cli: -{emit_group}_quanity '{emit_switch}D000 99.9'",
+            f"api: chip.set({emit_api},'D000','quantity', '99.9')"],
+        'help': f"""
+        Quantity specific to the checklist item {group}.
+        """
+    }
+
+    localcfg[item]['tool'] = {
+        'switch': f"-{emit_group}_tool '{emit_switch}item <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'require': None,
+        'defvalue': None,
+        'shorthelp': f"{emit_help} item tool name",
+        'example': [
+            f"cli: -{emit_group}_tool '{emit_switch}D000 openroad'",
+            f"api: chip.set({emit_api},'D000','tool','openroad')"],
+        'help': f"""
+        Name of tool used to verify the {group} checklist item {item}. If validation is
+        human centric, leave blank.
+        """
+    }
+
+    localcfg[item]['step'] = {
+        'switch': f"-{emit_group}_step '{emit_switch}item <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'require': None,
+        'defvalue': [],
+        'shorthelp': f"{emit_help} item step ",
+        'example': [
+            f"cli: -{emit_group}_step '{emit_switch}D000 place'",
+            f"api: chip.set({emit_api},'D000','step','place')"],
+        'help': """
+        The flowgraph step name used to verify the {group} checklist item.
+        """
+    }
+
+    localcfg[item]['index'] = {
+        'switch': f"-{emit_group}_index '{emit_switch}item <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'require': None,
+        'defvalue': "0",
+        'shorthelp': f"{emit_help} item index",
+        'example': [
+            f"cli: -{emit_group}_step '{emit_switch}D000 place'",
+            f"api: chip.set({emit_api},'D000','step','place')"],
+        'help': """
+        The flowgraph index used to verify the {group} checklist item.
+        """
+    }
+
+    localcfg[item]['ok'] = {
+        'switch': f"-{emit_group}_ok '{emit_switch}item <str>'",
+        'type': 'bool',
+        'lock': 'false',
+        'require': None,
+        'defvalue': "false",
+        'shorthelp': f"{emit_help} item ok",
+        'example': [
+            f"cli: -{emit_group}_ok '{emit_switch}D000 true'",
+            f"api: chip.set({emit_api},'D000','ok', True)"],
+        'help': """
+        Boolean checkmark for the {group} checklist item. A value of
+        True indicates a human has inspected the all item dictiionary entries
+        and they check out.
+        """
+    }
+
+    # copy package dictionary into library/project
+    if group == 'library':
+        cfg['library']['default']['checklist'] = copy.deepcopy(localcfg)
+    else:
+        cfg['checklist'] = copy.deepcopy(localcfg)
+
     return cfg
 
 ############################################
