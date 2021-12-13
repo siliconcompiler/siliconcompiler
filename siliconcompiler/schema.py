@@ -27,11 +27,19 @@ def schema_cfg():
 
     # Runtime options
     cfg = schema_options(cfg)
+    cfg = schema_arg(cfg)
+
+    # Primary sources
+    cfg = schema_design(cfg)
+
+    # Constraints
+    #cfg = schema_constraints(cfg)
 
     # Project configuration
     cfg = schema_package(cfg, 'package')
     cfg = schema_checklist(cfg)
     cfg = schema_design(cfg)
+    cfg = schema_read(cfg)
     cfg = schema_fpga(cfg)
     cfg = schema_asic(cfg)
     cfg = schema_mcmm(cfg)
@@ -40,8 +48,6 @@ def schema_cfg():
     cfg = schema_flowgraph(cfg)
     cfg = schema_flowstatus(cfg)
     cfg = schema_eda(cfg)
-    cfg = schema_arg(cfg)
-    cfg = schema_jobs(cfg)
 
     # PDK
     cfg = schema_pdk(cfg)
@@ -100,7 +106,7 @@ def schema_version(cfg, version):
         'lock': 'false',
         'require': 'all',
         'defvalue': 'false',
-        'shorthelp': 'Print version number',
+        'shorthelp': 'Prints version number',
         'example': ["cli: -version",
                     "api: chip.get('version')"],
         'help': """
@@ -1740,35 +1746,6 @@ def schema_flowstatus(cfg, step='default', index='default'):
 
 
 ###########################################################################
-# Job flow
-###########################################################################
-
-def schema_jobs (cfg, job='default', step='default', index='default'):
-
-    # Flow step min
-    cfg['jobinput'] = {}
-    cfg['jobinput'][job] = {}
-    cfg['jobinput'][job][step] = {}
-    cfg['jobinput'][job][step][index] = {
-        'switch': "-jobinput 'job step index <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'defvalue': None,
-        'shorthelp': 'Jobname inputs to current run',
-        'example': [
-            "cli: -jobinput 'job1 cts 0 job0'",
-            "api:  chip.set('jobinput', 'job1', 'cts, '0', 'job0')"],
-        'help': """
-        Specifies jobname inputs for the current run() on a per step
-        and per index basis. During execution, the default behavior is to
-        copy inputs from the current job.
-        """
-    }
-
-    return cfg
-
-###########################################################################
 # EDA Tool Setup
 ###########################################################################
 
@@ -3178,7 +3155,7 @@ def schema_options(cfg):
         'lock': 'false',
         'require': None,
         'defvalue': False,
-        'shorthelp': 'Enable remote processing',
+        'shorthelp': 'Enables remote processing',
         'example': ["cli: -remote",
                     "api: chip.set('remote', True)"],
         'help': """
@@ -3377,7 +3354,7 @@ def schema_options(cfg):
         'lock': 'false',
         'require': 'all',
         'defvalue': 'false',
-        'shorthelp': 'Enable file hashing',
+        'shorthelp': 'Enables file hashing',
         'example': ["cli: -hash",
                     "api: chip.set('hash', True)"],
         'help': """
@@ -3452,6 +3429,31 @@ def schema_options(cfg):
         """
     }
 
+    # Flow step min
+    step='default'
+    index='default'
+    job = 'default'
+    cfg['jobinput'] = {}
+    cfg['jobinput'][job] = {}
+    cfg['jobinput'][job][step] = {}
+    cfg['jobinput'][job][step][index] = {
+        'switch': "-jobinput 'job step index <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'require': None,
+        'defvalue': None,
+        'shorthelp': 'Input job name',
+        'example': [
+            "cli: -jobinput 'job1 cts 0 job0'",
+            "api:  chip.set('jobinput', 'job1', 'cts, '0', 'job0')"],
+        'help': """
+        Specifies jobname inputs for the current run() on a per step
+        and per index basis. During execution, the default behavior is to
+        copy inputs from the current job.
+        """
+    }
+
+
     cfg['jobincr'] = {
         'switch': "-jobincr <bool>",
         'type': 'bool',
@@ -3508,7 +3510,7 @@ def schema_options(cfg):
         'lock': 'false',
         'require': None,
         'defvalue': [],
-        'shorthelp': 'Message event',
+        'shorthelp': 'Message trigger',
         'example': ["cli: -msgevent export",
                     "api: chip.set('msgevent','export')"],
         'help': """
@@ -3524,7 +3526,7 @@ def schema_options(cfg):
         'lock': 'false',
         'require': None,
         'defvalue': [],
-        'shorthelp': 'Message contact',
+        'shorthelp': 'Message recipient',
         'example': ["cli: -msgcontact 'wile.e.coyote@acme.com'",
                     "api: chip.set('msgcontact','wile.e.coyote@acme.com')"],
         'help': """
@@ -3559,7 +3561,7 @@ def schema_options(cfg):
         'lock': 'false',
         'require': 'all',
         'defvalue': 'false',
-        'shorthelp': 'Enforce version checking',
+        'shorthelp': 'Enables version checking',
         'example': ["cli: -vercheck",
                     "api: chip.set('vercheck', 'true')"],
         'help': """
@@ -3591,7 +3593,7 @@ def schema_options(cfg):
         'lock': 'false',
         'require': 'all',
         'defvalue': 'false',
-        'shorthelp': 'Enable execution tracking',
+        'shorthelp': 'Enables execution tracking',
         'example': ["cli: -track",
                     "api: chip.set('track', 'true')"],
         'help': """
@@ -3607,7 +3609,7 @@ def schema_options(cfg):
         'lock': 'false',
         'require': 'all',
         'defvalue': 'false',
-        'shorthelp': 'Enable simulation trace output',
+        'shorthelp': 'Enables simulation tracing',
         'example': ["cli: -trace",
                     "api: chip.set('trace', True)"],
         'help': """
@@ -4209,28 +4211,7 @@ def schema_design(cfg):
         """
     }
 
-    cfg['netlist'] = {
-        'switch': '-netlist <file>',
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'true',
-        'require': None,
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Technology mapped verilog netlist',
-        'example': ["cli: netlist.v",
-                    "api: chip.add('netlist', 'netlist.v')"],
-        'help': """
-        List of technology mapped Verilog modules for post-synthesis
-        implementation steps. The actual entry point of the netlist
-        depends on the flow used. In the standard 'asicflow', the
-        netlist is read in as part of the floorplan step.
-        """
-    }
+
 
     cfg['testbench'] = {
         'switch': '-testbench <file>',
@@ -4386,27 +4367,6 @@ def schema_design(cfg):
         """
     }
 
-    cfg['ydir'] = {
-        'switch': "-y <dir>",
-        'type': '[dir]',
-        'lock': 'false',
-        'require': None,
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Design module search path',
-        'example': ["cli: -y './mylib'",
-                    "api: chip.set('ydir','./mylib')"],
-        'help': """
-        Search paths to look for modules found in the the source list.
-        The import engine will look for modules inside files with the
-        specified +libext+ param suffix
-        """
-    }
-
     cfg['idir'] = {
         'switch': "+incdir+<dir>",
         'type': '[dir]',
@@ -4424,6 +4384,27 @@ def schema_design(cfg):
         'help': """
         Search paths to look for files included in the design using
         the ```include`` statement.
+        """
+    }
+
+    cfg['ydir'] = {
+        'switch': "-y <dir>",
+        'type': '[dir]',
+        'lock': 'false',
+        'require': None,
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Verilog module search path',
+        'example': ["cli: -y './mylib'",
+                    "api: chip.set('ydir','./mylib')"],
+        'help': """
+        Search paths to look for modules found in the the source list.
+        The import engine will look for modules inside files with the
+        specified +libext+ param suffix
         """
     }
 
@@ -4489,8 +4470,21 @@ def schema_design(cfg):
         """
     }
 
-    cfg['constraint'] = {
-        'switch': "-constraint <file>",
+    return cfg
+
+###########################
+# Reading Files
+###########################
+
+def schema_read(cfg, step='default', index='default'):
+
+    cfg['read'] ={}
+
+    # SPEF parasistics file
+    cfg['read']['spef'] = {}
+    cfg['read']['spef'][step] = {}
+    cfg['read']['spef'][step][index] = {
+        'switch': "-read_spef 'step index <file>'",
         'type': '[file]',
         'lock': 'false',
         'copy': 'true',
@@ -4501,19 +4495,163 @@ def schema_design(cfg):
         'date': [],
         'author': [],
         'signature': [],
-        'shorthelp': 'Design constraints files',
-        'example': ["cli: -constraint top.sdc",
-                    "api: chip.set('constraint','top.sdc')"],
+        'shorthelp': 'Read SPEF parasitics file',
+        'example': ["cli: -read_spef 'sta 0 mydesign.spef'",
+                    "api: chip.set('read','spef','sta','0','mydesign.spef')"],
         'help': """
-        List of default constraints for the design to use during compilation.
-        Types of constraints include timing (SDC) and pin mappings files (PCF)
-        for FPGAs. More than one file can be supplied. Timing constraints are
+        File(s) containing parasitics specified in the Standard Parasitic Exchange
+        format. The file is used in static timing and power signoff analysis and
+        should be generated by an accurate parasitic extraction engine.
+        """
+    }
+
+    # Standard Delay Format
+    cfg['read']['sdf'] = {}
+    cfg['read']['sdf'][step] = {}
+    cfg['read']['sdf'][step][index] = {
+        'switch': "-read_sdf 'step index <file>'",
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'true',
+        'require': None,
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Read SDF timing file',
+        'example': ["cli: -read_sdf 'sta 0 mydesign.sdf'",
+                    "api: chip.set('read,'sdf','sta','0','mydesign.sdf')"],
+        'help': """
+        File(s) containing timing data in Standard Delay Format (SDF).
+        """
+    }
+
+    # Switch activity file
+    cfg['read']['saif'] = {}
+    cfg['read']['saif'][step] = {}
+    cfg['read']['saif'][step][index] = {
+        'switch': "-read_saif 'step index <file>'",
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'true',
+        'require': None,
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Read SAIF power file',
+        'example': ["cli: -read_saif 'place 0 mytrace.saif'",
+                    "api: chip.set('read','saif','place','0','mytrace.saif')"],
+        'help': """
+        File(s) containing toogle counts and signal level probability for
+        some or all nets in the design. The file can be used for coarse
+        power modeling.
+        """
+    }
+
+    # GDS file
+    cfg['read']['gds'] = {}
+    cfg['read']['gds'][step] = {}
+    cfg['read']['gds'][step][index] = {
+        'switch': "-read_gds 'step index <file>'",
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'true',
+        'require': None,
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Read GDS layout file',
+        'example': ["cli: -read_gds 'export 0 guardring.gds'",
+                    "api: chip.set('read','gds','export','0','guardring.gds')"],
+        'help': """
+        List of technology specific GDS layout files.
+        """
+    }
+
+    # DEF file
+    cfg['read']['def'] = {}
+    cfg['read']['def'][step] = {}
+    cfg['read']['def'][step][index] = {
+        'switch': "-read_def 'step index <file>'",
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'true',
+        'require': None,
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Read DEF layout file',
+        'example': ["cli: -read_def 'floorplan 0 hello.def'",
+                    "api: chip.set('read','def','floorplan','0','hello.def')"],
+        'help': """
+        List of technology specific DEF layout files.
+        """
+    }
+
+    # Netlist file
+    cfg['read']['netlist'] = {}
+    cfg['read']['netlist'][step] = {}
+    cfg['read']['netlist'][step][index] = {
+        'switch': "-read_netlist 'step index <file>'",
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'true',
+        'require': None,
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Read mapped verilog netlist',
+        'example': [
+            "cli: -read_netlist 'floorplan 0 netlist.v",
+            "api: chip.add('read','netlist','floorplan','0','netlist.v')"],
+        'help': """
+        List of post synthesis mapped Verilog files.
+        """
+    }
+
+    # SDC timing file
+    cfg['read']['sdc'] = {}
+    cfg['read']['sdc'][step] = {}
+    cfg['read']['sdc'][step][index] = {
+        'switch': "-read_sdc 'step index <file>'",
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'true',
+        'require': None,
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Read SDC timing constraints',
+        'example': ["cli: -read_sdc 'cts 0 top.sdc'",
+                    "api: chip.set('read','sdc','cts','0','top.sdc')"],
+        'help': """
+        List of default SDC timing constraints. Timing constraints are
         global and sourced in all MCMM scenarios.
         """
     }
 
-    cfg['vcd'] = {
-        'switch': "-vcd <file>",
+    # Pin Constraints File
+    cfg['read']['pcf'] = {}
+    cfg['read']['pcf'][step] = {}
+    cfg['read']['pcf'][step][index] = {
+        'switch': "-read_pcf 'step index <file>'",
         'type': '[file]',
         'lock': 'false',
         'copy': 'true',
@@ -4524,112 +4662,36 @@ def schema_design(cfg):
         'date': [],
         'author': [],
         'signature': [],
-        'shorthelp': 'VCD file',
-        'example': ["cli: -vcd mytrace.vcd",
-                    "api: chip.set('vcd','mytrace.vcd')"],
+        'shorthelp': 'Read PCF fpga pin constraints',
+        'example': ["cli: -read_pcf 'syn 0 top.pcf'",
+                    "api: chip.set('read','pcf','syn','0','top.pcf')"],
+        'help': """
+        List of pin mappings files constraints file (PCF) to to use
+        during FPGA synthesis and automated place and route.
+        """
+    }
+
+    # Waveform
+    cfg['read']['vcd'] = {}
+    cfg['read']['vcd'][step] = {}
+    cfg['read']['vcd'][step][index] = {
+        'switch': "-read_vcd 'step index <file>'",
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'true',
+        'require': None,
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Read VCD file',
+        'example': ["cli: -read_vcd 'place 0 mytrace.vcd'",
+                    "api: chip.set('read','vcd','place','0','mytrace.vcd')"],
         'help': """
         Simulation trace that can be used to model the peak and
         average power consumption of a design.
-        """
-    }
-
-    cfg['saif'] = {
-        'switch': "-saif <file>",
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'true',
-        'require': None,
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'SAIF file',
-        'example': ["cli: -saif mytrace.saif",
-                    "api: chip.set('saif','mytrace.saif')"],
-        'help': """
-        Simulation trace with static probability and toggle rates for nets
-        in the design. The file can be used for coarse power modeling during
-        compilation.
-        """
-    }
-
-    cfg['activityfactor'] = {
-        'switch': "-activityfactor <float>",
-        'type': 'float',
-        'lock': 'false',
-        'require': None,
-        'defvalue': None,
-        'shorthelp': 'Global toggle activity factor',
-        'example': ["cli: -activityfactor 0.1",
-                    "api: chip.set('activityfactor,'0.1')"],
-        'help': """
-        Sets a global activity factor for all nodes in the design. Note
-        accurate, but better than nothing. The 'activityfactor' parameter can
-        be used in cases when a VCD file or SAIF file is unavailable. Typical
-        activity factors: clock(1), max_data(0.5), random_data(0.25),
-        typical_rate(0.1).
-        """
-    }
-
-    cfg['spef'] = {
-        'switch': "-spef <file>",
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'true',
-        'require': None,
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'SPEF file',
-        'example': ["cli: -spef mydesign.spef",
-                    "api: chip.set('spef','mydesign.spef')"],
-        'help': """
-        File containing parasitics specified in the Standard Parasitic Exchange
-        format. The file is used in signoff static timing analysis and power
-        analysis and should be generated by an accurate parasitic extraction
-        engine.
-        """
-    }
-
-    cfg['sdf'] = {
-        'switch': "-sdf <file>",
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'true',
-        'require': None,
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'SDF file',
-        'example': ["cli: -sdf mydesign.sdf",
-                    "api: chip.set('sdf','mydesign.sdf')"],
-        'help': """
-        File containing timing data in Standard Delay Format (SDF).
-        """
-    }
-
-    cfg['exclude'] = {
-        'switch': "-exclude <str>",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'defvalue': [],
-        'shorthelp': 'List of cells to exclude',
-        'example': ["cli: -exclude sram_macro",
-                    "api: chip.set('exclude','sram_macro')"],
-        'help': """
-        List of physical cells to exclude during execution. The process
-        of exclusion is controlled by the flow step and tool setup. The list
-        is commonly used by DRC tools and GDS export tools to direct the tool
-        to exclude GDS information during GDS merge/export.
         """
     }
 
@@ -4715,7 +4777,7 @@ def schema_asic(cfg):
         'lock': 'false',
         'copy': 'true',
         'require': None,
-        'defvalue': [],
+        'defvalue': None,
         'filehash': [],
         'hashalgo': 'sha256',
         'date': [],
@@ -4969,52 +5031,23 @@ def schema_asic(cfg):
         """
     }
 
-    # DEF file
-    cfg['asic']['def'] = {
-        'switch': "-asic_def <file>",
-        'type': '[file]',
+    cfg['asic']['exclude'] = {
+        'switch': "-asic_exclude <str>",
+        'type': '[str]',
         'lock': 'false',
-        'copy': 'true',
         'require': None,
         'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'ASIC DEF file',
-        'example': ["cli: -asic_def 'hello.def'",
-                    "api: chip.set('asic', 'def', 'hello.def')"],
+        'shorthelp': 'List of cells to exclude',
+        'example': ["cli: -asic_exclude sram_macro",
+                    "api: chip.set('asic', 'exclude','sram_macro')"],
         'help': """
-        Design Exchange Format (DEF) file read in during the floorplanning step.
-        The file is a standardized ASIC text representation of the physical
-        layout of an integrated circuit in an ASCII format. Any references
-        within the DEF to pins, nets, and components must match the verilog
-        netlist read in during the floorplan step.
+        List of physical cells to exclude during execution. The process
+        of exclusion is controlled by the flow step and tool setup. The list
+        is commonly used by DRC tools and GDS export tools to direct the tool
+        to exclude GDS information during GDS merge/export.
         """
     }
 
-    # GDS file
-    cfg['asic']['gds'] = {
-        'switch': "-asic_gds <file>",
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'true',
-        'require': None,
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'ASIC GDS file',
-        'example': ["cli: -asic_gds 'guardring.gds'",
-                    "api: chip.set('asic', 'gds', 'guardring.gds')"],
-        'help': """
-        List of hardcoded GDSII files to be merged during the final
-        compilation gds export step.
-        """
-    }
 
     return cfg
 
