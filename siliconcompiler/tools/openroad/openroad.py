@@ -184,7 +184,7 @@ def pre_process(chip):
     if (step != 'floorplan' or
         chip.get('asic', 'diearea') or
         chip.get('asic', 'corearea') or
-        chip.get('asic', 'def')):
+        ('floorplan' in chip.getkeys('read', 'def'))):
         return
 
     r = _infer_diearea(chip)

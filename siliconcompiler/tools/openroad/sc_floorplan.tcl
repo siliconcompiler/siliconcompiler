@@ -18,10 +18,8 @@ proc design_has_macros {} {
   return false
 }
 
-if {[llength $sc_def] > 0} {
-    #TODO: Only one def supported for now
-    read_def -floorplan_initialize $sc_def
-} else {
+# Auto-generate floorplan if not defined yet
+if {[expr ! [dict exists $sc_cfg "read" def $sc_step $sc_index]]} {
 
     #########################
     #Init Floorplan

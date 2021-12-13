@@ -96,29 +96,20 @@ set sc_threads [dict get $sc_cfg eda $sc_tool $sc_step $sc_index threads]
 # MACROS
 set sc_macrolibs [dict get $sc_cfg asic macrolib]
 
-# CONSTRAINTS
-set sc_constraints [dict get $sc_cfg constraint]
-
-# NETLISTS
-set sc_netlists [dict get $sc_cfg netlist]
-
-# DEF
-set sc_def [dict get $sc_cfg asic def]
-
 ###############################
 # Read Files
 ###############################
 
-# read techlef
+# Read techlef
 read_lef  $sc_techlef
 
-# read targetlibs
+# Read Targetlibs
 foreach lib $sc_targetlibs {
 	read_liberty [dict get $sc_cfg library $lib nldm typical lib]
 	read_lef [dict get $sc_cfg library $lib lef]
- }
+}
 
-# Macrolibs
+# Read Macrolibs
 foreach lib $sc_macrolibs {
     if {[dict exists $sc_cfg library $lib model]} {
         read_liberty [dict get $sc_cfg library $lib nldm typical lib]
@@ -126,42 +117,44 @@ foreach lib $sc_macrolibs {
     read_lef [dict get $sc_cfg library $lib lef]
 }
 
-# Floorplan reads synthesis verilog, others read def
-if {$sc_step == "floorplan"} {
-    # read synthesized verilog if it exists
-    if {[file exists "inputs/$sc_design.vg"]} {
-	read_verilog "inputs/$sc_design.vg"
-    }
-    # read netlists if they exist
-    foreach netlist [dict get $sc_cfg netlist] {
+# Read Verilog
+if {[dict exists $sc_cfg "read" netlist $sc_step $sc_index]} {
+    foreach netlist [dict get $sc_cfg "read" netlist $sc_step $sc_index] {
 	read_verilog $netlist
     }
-    #link design
     link_design $sc_design
-} else {
-    # read from previous step if exists
-    # else read directly from input
-    if {[file exists "inputs/$sc_design.def"]} {
-        read_def "inputs/$sc_design.def"
-    } else {
-        read_def $sc_def
-    }
+} elseif {$sc_step == "floorplan"} {
+    read_verilog "inputs/$sc_design.vg"
+    link_design $sc_design
 }
 
-# Constraints
-if {[file exists "inputs/$sc_design.sdc"]} {
-    # if file exists in flow, default to that
-    read_sdc "inputs/$sc_design.sdc"
-} elseif {[llength $sc_constraints] > 0} {
-    # otherwise, if we have user-provided constraints, read those
-    foreach sdc $sc_constraints {
-        read_sdc $sdc
+# Read DEF
+if {[dict exists $sc_cfg "read" def $sc_step $sc_index]} {
+    foreach def [dict get $sc_cfg "read" def $sc_step $sc_index] {
+	if {$sc_step == "floorplan"} {
+	    #only one floorplan supported
+	    read_def -floorplan_initialize $def
+	} else {
+	    read_def $def
+	}
     }
+} elseif {[file exists "inputs/$sc_design.def"]} {
+    read_def "inputs/$sc_design.def"
+}
+
+# Read SDC (in order of priority)
+if {[dict exists $sc_cfg "read" sdc $sc_step $sc_index]} {
+    foreach sdc [dict get $sc_cfg "read" sdc $sc_step $sc_index] {
+	# read step constraint if exists
+	read_sdc $sdc
+    }
+} elseif {[file exists "inputs/$sc_design.sdc"]} {
+    # get from previous step
+    read_sdc "inputs/$sc_design.sdc"
 } else {
-    # fall back on default constraints file
+    # fall back on default auto generated constraints file
     read_sdc "${sc_refdir}/sc_constraints.sdc"
 }
-
 
 ###############################
 # Common Setup
