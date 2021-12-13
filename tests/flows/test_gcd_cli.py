@@ -16,7 +16,7 @@ def test_gcd_cli(scroot):
         -target asicflow_freepdk45 \
         -clock_pin "core_clock clk" \
         -clock_period "core_clock 10" \
-        -constraint {gcd_ex_dir}/gcd_noclock.sdc \
+        -read_sdc 'import 0 {gcd_ex_dir}/gcd_noclock.sdc' \
         -asic_diearea (0,0) \
         -asic_diearea (100.13,100.8) \
         -asic_corearea (10.07,11.2) \

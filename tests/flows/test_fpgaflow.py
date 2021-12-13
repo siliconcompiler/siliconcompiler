@@ -16,7 +16,7 @@ def test_icebreaker(scroot):
     # Run the build command for an iCE40 board.
     subprocess.run(['sc',
                     os.path.join(blinky_ex_dir, 'blinky.v'),
-                    '-constraint', os.path.join(blinky_ex_dir, 'icebreaker.pcf'),
+                    '-read_pcf', f"import 0 {os.path.join(blinky_ex_dir, 'icebreaker.pcf')}",
                     '-design', 'blinky',
                     '-target', 'fpgaflow_ice40up5k-sg48'])
 

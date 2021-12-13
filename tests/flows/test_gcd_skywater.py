@@ -21,7 +21,7 @@ def test_gcd_checks(scroot):
     chip.set('quiet', True)
     chip.set('clock', 'core_clock', 'pin', 'clk')
     chip.set('clock', 'core_clock', 'period', 2)
-    chip.add('constraint', os.path.join(gcd_ex_dir, 'gcd_noclock.sdc'))
+    chip.add('read', 'sdc', 'import', '0,', os.path.join(gcd_ex_dir, 'gcd_noclock.sdc'))
     chip.set('target', 'asicflow_skywater130')
     chip.set('flowarg', 'verify', 'true')
     chip.set('asic', 'diearea', [(0, 0), (200.56, 201.28)])

@@ -52,8 +52,8 @@ def test_check_allowed_filepaths_fail(scroot, monkeypatch):
     chip.set('design', 'gcd')
 
     chip.set('source', os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
-    chip.set('constraint', '/random/abs/path/to/file.sdc')
-    chip.set('constraint', False, field='copy')
+    chip.set('read', 'sdc', 'import', '0', '/random/abs/path/to/file.sdc')
+    chip.set('read', 'sdc', 'import', '0', False, field='copy')
     chip.target('asicflow_freepdk45')
 
     # run an import just to collect files
