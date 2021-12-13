@@ -1366,7 +1366,7 @@ class Chip:
     def _print_csv(self, cfg, file=None):
         allkeys = self.getkeys(cfg=cfg)
         for key in allkeys:
-            keypath = ",".join(key)
+            keypath = f'"{",".join(key)}"'
             value = self.get(*key, cfg=cfg)
             if isinstance(value,list):
                 for item in value:
@@ -1716,6 +1716,13 @@ class Chip:
             else:
                 self.logger.error('File format not recognized %s', filepath)
                 self.error = 1
+
+    ###########################################################################
+    def read_file(self, filename, step='import', index='0'):
+        '''
+        Read file defined in schema. (WIP)
+        '''
+        return(0)
 
     ###########################################################################
     def package(self, filename, prune=True):
