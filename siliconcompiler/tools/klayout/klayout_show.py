@@ -39,8 +39,10 @@ lefs.extend(macro_lefs)
 # Technology LEFs -- these are generally specified in the KLayout tech file, but
 # we overwrite them with the paths in the manifest we don't have to worry if the
 # paths in the tech file don't resolve right.
-lefs.append(tech_lef)
-lefs.append(lib_lef)
+if tech_lef is not None:
+    lefs.append(tech_lef)
+if lib_lef is not None:
+    lefs.append(lib_lef)
 
 # Overwrite LEFs specified in tech file with the LEFs we took from the manifest.
 layoutOptions.lefdef_config.lef_files = lefs
