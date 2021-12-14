@@ -64,6 +64,8 @@ jobs:
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
         CIBW_SKIP: "pp* *win32 *i686"
         MACOSX_DEPLOYMENT_TARGET: "10.15"
+        CIBW_ARCHS_MACOS: x86_64 arm64
+        CIBW_TEST_SKIP: "*_arm64"
         CIBW_TEST_EXTRAS: test
         CIBW_TEST_COMMAND: >
           pytest --import-mode=append {package}/tests/ -m "not eda" &&
