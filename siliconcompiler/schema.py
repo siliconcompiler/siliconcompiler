@@ -4011,42 +4011,44 @@ def schema_checklist(cfg, group='checklist'):
         emit_help = "Checklist"
 
     item = 'default'
+    standard = 'default'
+
     localcfg = {}
     localcfg[item]={}
-
-    localcfg[item]['description'] = {
-        'switch': f"-{emit_group}_description '{emit_switch}item <str>",
+    localcfg[standard][item]={}
+    localcfg[standard][item]['description'] = {
+        'switch': f"-{emit_group}_description '{emit_switch}standard item <str>",
         'require': None,
         'type': 'str',
         'lock': 'false',
         'defvalue': None,
         'shorthelp': f"{emit_help} item description",
         'example': [
-            f"cli: -{emit_group}_description '{emit_switch}D000 A-DESCRIPTION'",
-            f"api: chip.set({emit_api},'D000','description','A-DESCRIPTION')"],
+            f"cli: -{emit_group}_description '{emit_switch}ISO D000 A-DESCRIPTION'",
+            f"api: chip.set({emit_api},'ISO','D000','description','A-DESCRIPTION')"],
         'help': f"""
         A short one line description of the {group} checklist item.
         """
     }
 
-    localcfg[item]['requirement'] = {
-        'switch': f"-{emit_group}_requirement '{emit_switch}item <str>",
+    localcfg[standard][item]['requirement'] = {
+        'switch': f"-{emit_group}_requirement '{emit_switch}standard item <str>",
         'require': None,
         'type': 'str',
         'lock': 'false',
         'defvalue': None,
         'shorthelp': f"{emit_help} item requirement",
         'example': [
-            f"cli: -{emit_group}_requirement '{emit_switch}D000 DOCSTRING'",
-            f"api: chip.set({emit_api},'D000','requirement','DOCSTRING')"],
+            f"cli: -{emit_group}_requirement '{emit_switch}ISO D000 DOCSTRING'",
+            f"api: chip.set({emit_api},'ISO','D000','requirement','DOCSTRING')"],
         'help': f"""
         A complete requirement description of the {group} checklist item
         entered as a multi-line string.
         """
     }
 
-    localcfg[item]['report'] = {
-        'switch': f"-{emit_group}_report '{emit_switch}item <file>'",
+    localcfg[standard][item]['report'] = {
+        'switch': f"-{emit_group}_report '{emit_switch}standard item <file>'",
         'type': '[file]',
         'lock': 'false',
         'copy': 'true',
@@ -4059,15 +4061,15 @@ def schema_checklist(cfg, group='checklist'):
         'signature': [],
         'shorthelp': f"{emit_help} item report",
         'example': [
-            f"cli: -{emit_group}_report '{emit_switch}D000 my.rpt'",
-            f"api: chip.set({emit_api},'D000','report','my.rpt')"],
+            f"cli: -{emit_group}_report '{emit_switch}ISO D000 my.rpt'",
+            f"api: chip.set({emit_api},'ISO','D000','report','my.rpt')"],
         'help': f"""
         Filepath to report(s) documenting the successful validation of
         the {group} checklist item."""
         }
 
-    localcfg[item]['waiver'] = {
-        'switch': f"-{emit_group}_waiver '{emit_switch}item <file>'",
+    localcfg[standard][item]['waiver'] = {
+        'switch': f"-{emit_group}_waiver '{emit_switch}standard item <file>'",
         'type': '[file]',
         'lock': 'false',
         'copy': 'true',
@@ -4080,38 +4082,38 @@ def schema_checklist(cfg, group='checklist'):
         'signature': [],
         'shorthelp': f"{emit_help} item waiver report",
         'example': [
-            f"cli: -{emit_group}_waiver '{emit_switch}D000 my.waiver'",
-            f"api: chip.set({emit_api},'D000','waiver','my.waiver')"],
+            f"cli: -{emit_group}_waiver '{emit_switch}ISO D000 my.waiver'",
+            f"api: chip.set({emit_api},'ISO','D000','waiver','my.waiver')"],
         'help': f"""
         Filepath to report(s) documenting waivers for the {group} checklist
         item."""
         }
 
-    localcfg[item]['quantity'] = {
-        'switch': f"-{emit_group}_quantity '{emit_switch}item <float>'",
+    localcfg[standard][item]['quantity'] = {
+        'switch': f"-{emit_group}_quantity '{emit_switch}standard item <float>'",
         'type': 'float',
         'lock': 'false',
         'require': None,
         'defvalue': None,
         'shorthelp': f"{emit_help} item quantity",
         'example': [
-            f"cli: -{emit_group}_quanity '{emit_switch}D000 99.9'",
-            f"api: chip.set({emit_api},'D000','quantity', '99.9')"],
+            f"cli: -{emit_group}_quanity '{emit_switch}ISO D000 99.9'",
+            f"api: chip.set({emit_api},'ISO','D000','quantity', '99.9')"],
         'help': f"""
         Quantity specific to the checklist item {group}.
         """
     }
 
-    localcfg[item]['step'] = {
-        'switch': f"-{emit_group}_step '{emit_switch}item <str>'",
+    localcfg[standard][item]['step'] = {
+        'switch': f"-{emit_group}_step '{emit_switch}standard item <str>'",
         'type': 'str',
         'lock': 'false',
         'require': None,
         'defvalue': None,
         'shorthelp': f"{emit_help} item step ",
         'example': [
-            f"cli: -{emit_group}_step '{emit_switch}D000 place'",
-            f"api: chip.set({emit_api},'D000','step','place')"],
+            f"cli: -{emit_group}_step '{emit_switch}ISO D000 place'",
+            f"api: chip.set({emit_api},'ISO','D000','step','place')"],
         'help': """
         The flowgraph step used to verify the {group} checklist item.
         The parameter should be left empty for manual verification
@@ -4119,32 +4121,32 @@ def schema_checklist(cfg, group='checklist'):
         """
     }
 
-    localcfg[item]['index'] = {
-        'switch': f"-{emit_group}_index '{emit_switch}item <str>'",
+    localcfg[standard][item]['index'] = {
+        'switch': f"-{emit_group}_index '{emit_switch}standard item <str>'",
         'type': 'str',
         'lock': 'false',
         'require': None,
         'defvalue': "0",
         'shorthelp': f"{emit_help} item index",
         'example': [
-            f"cli: -{emit_group}_step '{emit_switch}D000 place'",
-            f"api: chip.set({emit_api},'D000','step','place')"],
+            f"cli: -{emit_group}_step '{emit_switch}ISO D000 place'",
+            f"api: chip.set({emit_api},'ISO','D000','step','place')"],
         'help': """
         The flowgraph index used to verify the {group} checklist item.
         The index value defaults to 0.
         """
     }
 
-    localcfg[item]['ok'] = {
-        'switch': f"-{emit_group}_ok '{emit_switch}item <str>'",
+    localcfg[standard][item]['ok'] = {
+        'switch': f"-{emit_group}_ok '{emit_switch}standard item <str>'",
         'type': 'bool',
         'lock': 'false',
         'require': None,
         'defvalue': "false",
         'shorthelp': f"{emit_help} item ok",
         'example': [
-            f"cli: -{emit_group}_ok '{emit_switch}D000 true'",
-            f"api: chip.set({emit_api},'D000','ok', True)"],
+            f"cli: -{emit_group}_ok '{emit_switch}ISO D000 true'",
+            f"api: chip.set({emit_api},'ISO','D000','ok', True)"],
         'help': """
         Boolean checkmark for the {group} checklist item. A value of
         True indicates a human has inspected the all item dictionary
