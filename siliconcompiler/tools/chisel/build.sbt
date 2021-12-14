@@ -1,4 +1,4 @@
-// See README.md for license details.
+// Based on https://github.com/freechipsproject/chisel-template/blob/main/build.sbt
 
 ThisBuild / scalaVersion     := "2.12.13"
 
