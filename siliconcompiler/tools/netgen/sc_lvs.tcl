@@ -2,7 +2,7 @@ source ./sc_manifest.tcl
 
 set sc_design  [dict get $sc_cfg design]
 set sc_macrolibs [dict get $sc_cfg asic macrolib]
-set sc_exclude [dict get $sc_cfg exclude]
+set sc_exclude [dict get $sc_cfg asic exclude]
 set sc_stackup [dict get $sc_cfg asic stackup]
 set sc_runset [dict get $sc_cfg pdk lvs netgen $sc_stackup runset]
 
