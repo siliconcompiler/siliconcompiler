@@ -11,7 +11,7 @@ def test_help():
         shorthelp=chip.get(*key, field='shorthelp')
         typestr=chip.get(*key, field='type')
         keystr = ','.join(key)
-        row = [typestr, shorthelp, keystr]
+        row = [typestr, f',"{shorthelp}"', f',"{keystr}"']
         print("{: <15} {: <40} {: <60}".format(*row))
 
 #########################

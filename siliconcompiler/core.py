@@ -326,6 +326,8 @@ class Chip:
 
         for key, val in cmdargs.items():
 
+
+
             # Unifying around no underscores for now
             keylist = key.split('_')
 
@@ -365,11 +367,15 @@ class Chip:
                         # Adding data value
                         args = args + [extrakeys[i]]
                         # Set/add value based on type
-                        if re.match(r'\[', self.get(*args[:-1], field='type')):
-                            self.add(*args)
+
+                        #Check that keypath is valid
+                        if self.valid(*args[:-1], quiet=True, default_valid=False):
+                            if re.match(r'\[', self.get(*args[:-1], field='type')):
+                                self.add(*args)
+                            else:
+                                self.set(*args, clobber=True)
                         else:
                             self.set(*args, clobber=True)
-
 
     #########################################################################
     def create_env(self):
@@ -661,7 +667,7 @@ class Chip:
 
 
     ###########################################################################
-    def valid(self, *args, valid_keypaths=None, quiet=False):
+    def valid(self, *args, valid_keypaths=None, quiet=False, default_valid=True):
         """
         Checks validity of a keypath.
 
@@ -686,6 +692,10 @@ class Chip:
 
         keypathstr = ','.join(args)
         keylist = list(args)
+        if default_valid:
+            default = 'default'
+        else:
+            default = None
 
         if valid_keypaths is None:
             valid_keypaths = self.getkeys()
@@ -697,7 +707,7 @@ class Chip:
 
             ok = True
             for i in range(len(keylist)):
-                if valid_keypath[i] not in (keylist[i], 'default'):
+                if valid_keypath[i] not in (keylist[i], default):
                     ok = False
                     break
             if ok:
@@ -1366,7 +1376,7 @@ class Chip:
     def _print_csv(self, cfg, file=None):
         allkeys = self.getkeys(cfg=cfg)
         for key in allkeys:
-            keypath = ",".join(key)
+            keypath = f'"{",".join(key)}"'
             value = self.get(*key, cfg=cfg)
             if isinstance(value,list):
                 for item in value:
@@ -1716,6 +1726,13 @@ class Chip:
             else:
                 self.logger.error('File format not recognized %s', filepath)
                 self.error = 1
+
+    ###########################################################################
+    def read_file(self, filename, step='import', index='0'):
+        '''
+        Read file defined in schema. (WIP)
+        '''
+        return(0)
 
     ###########################################################################
     def package(self, filename, prune=True):
