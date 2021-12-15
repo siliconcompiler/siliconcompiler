@@ -1304,7 +1304,7 @@ class Chip:
 
         for path in paths:
             if (copyall or copy) and ('file' in paramtype):
-                name = os.path.basename(path)
+                name = self._get_imported_filename(path)
                 abspath = os.path.join(self._getworkdir(step='import'), 'outputs', name)
                 if os.path.isfile(abspath):
                     # if copy is True and file is found in import outputs,
@@ -1919,7 +1919,6 @@ class Chip:
 
         self.logger.info('Collecting input sources')
 
-        copied_filenames = set()
         #copy all parameter take from self dictionary
         copyall = self.get('copyall')
         for key in self.getkeys():
@@ -1928,16 +1927,11 @@ class Chip:
                 value = self.get(*key)
                 if copyall or copy:
                     for item in value:
-                        filename = os.path.basename(item)
-                        if filename in copied_filenames:
-                            self.logger.error(f'Filename {filename} already copied into inputs/ directory. Make sure all copied files have unique names')
-                            self._haltstep(step,index,active)
-                        copied_filenames.add(filename)
-
+                        filename = self._get_imported_filename(item)
                         filepath = self._find_sc_file(item)
                         if filepath:
                             self.logger.info(f"Copying {filepath} to 'inputs' directory")
-                            shutil.copy(filepath, indir)
+                            shutil.copy(filepath, os.path.join(indir, filename))
                         else:
                             self._haltstep(step,index,active)
 
@@ -3558,6 +3552,14 @@ class Chip:
             filepath = filepath.replace("$"+item, varpath)
 
         return filepath
+
+    #######################################
+    def _get_imported_filename(self, path):
+        ''' Utility to map collected files to an unambigious name based on their path.'''
+
+        basename = os.path.basename(path)
+        pathhash = hashlib.md5(path.encode('utf-8')).hexdigest()
+        return f'{basename}.{pathhash}'
 
 ###############################################################################
 # Package Customization classes
