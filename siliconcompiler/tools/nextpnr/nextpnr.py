@@ -66,8 +66,9 @@ def runtime_options(chip):
         options.append('--up5k --package sg48')
 
     pcf_file = None
-    for constraint_file in chip.find_files('read','pcf','import','0'):
-        options.append('--pcf ' + constraint_file)
+    for constraint_file in chip.find_files('constraint'):
+        if os.path.splitext(constraint_file)[-1] == '.pcf':
+            options.append('--pcf ' + constraint_file)
 
     return options
 
