@@ -66,7 +66,7 @@ def setup_tool(chip, mode="batch"):
     else:
         clobber = False
         script = '/klayout_export.py'
-        option = '-zz'
+        option = ['-zz', '-r']
 
     chip.set('eda', tool, step, index, 'exe', klayout_exe, clobber=clobber)
     chip.set('eda', tool, step, index, 'copy', 'true', clobber=clobber)
@@ -125,71 +125,6 @@ def runtime_options(chip):
     '''
     Custom runtime options, returns list of command line options.
     '''
-
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-    libname = chip.get('asic', 'targetlib')[0]
-    pdk_rev = chip.get('pdk', 'version')
-    lib_rev = chip.get('library', libname, 'package', 'version')
-    stackup = chip.get('pdk','stackup')[0]
-    libtype = chip.get('library', libname, 'arch')
-    techfile = chip.find_files('pdk','layermap', stackup, 'def', 'gds')[0]
-    #TODO: fix this!, is foundry_lefs they only way??
-    #needed?
-    liblef = chip.find_files('library',libname,'lef')[0]
-    lefpath = os.path.dirname(liblef) if liblef else None
-    #TODO: fix to add fill
-    config_file = ""
-
-    #TODO: Fix fill file (once this is a python)
-    #config_file = '%s/setup/klayout/fill.json'%(foundry_path)
-
-    if step == 'export':
-        options = []
-        options.append('-rd')
-        options.append('design_name=%s'%(chip.get('design')))
-        options.append('-rd')
-        options.append('in_def=inputs/%s.def'%(chip.get('design')))
-        options.append('-rd')
-        options.append('seal_file=""')
-        options.append('-rd')
-        gds_files = []
-        for lib in chip.get('asic', 'targetlib'):
-            for gds in chip.find_files('library', lib, 'gds'):
-                gds_files.append(gds)
-        for lib in chip.get('asic', 'macrolib'):
-            for gds in chip.find_files('library', lib, 'gds'):
-                gds_files.append(gds)
-        gds_list = ' '.join(gds_files)
-        options.append(f'in_files="{gds_list}"')
-        options.append('-rd')
-        options.append('out_file=outputs/%s.gds'%(chip.get('design')))
-        options.append('-rd')
-        options.append('tech_file=%s'%techfile)
-        options.append('-rd')
-        options.append('foundry_lefs=%s'%lefpath)
-        lef_files = []
-        #for lib in chip.get('asic', 'targetlib'):
-        #    for lef in chip.get('library', lib, 'lef'):
-        #        lef_files.append(chip.find(lef))
-        for lib in chip.get('asic', 'macrolib'):
-            for lef in chip.find_files('library', lib, 'lef'):
-                lef_files.append(lef)
-        lef_list = ' '.join(lef_files)
-        options.append('-rd')
-        options.append(f'macro_lefs="{lef_list}"')
-        options.append('-rd')
-        if os.path.isfile(config_file):
-            options.append('config_file=%s'%config_file)
-        else:
-            options.append('config_file=""')
-        options.append('-r')
-        options.append('klayout_export.py')
-
-        return options
-    elif step.startswith('show'):
-        return []
-
     return []
 
 ################################
