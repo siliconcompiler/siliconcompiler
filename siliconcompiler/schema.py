@@ -3272,14 +3272,13 @@ def schema_options(cfg):
         'example': ["cli: -cfg mypdk.json",
                     "api: chip.set('cfg','mypdk.json')"],
         'help': """
-        List of filepaths to legal SC schema configuration dictionaries
-        saved as a JSON files using the writecfg() method. The files are
-        read in automatically when using the 'sc' command line application.
-        In Python programs, the cfg parameter is accessed by the readcfg()
-        method to read and merge all files specified into the current
-        project configuration schema.
+        List of filepaths to JSON formatted schema configuration
+        manifests. The files are read in automatically when using the
+        'sc' command line application. In Python programs, JSON manifests
+        can be merged into the current working manifest using the
+        read_manifest() method.
         """
-        }
+    }
 
     cfg['jobscheduler'] = {
         'switch': "-jobscheduler <str>",
@@ -4213,7 +4212,28 @@ def schema_design(cfg):
         """
     }
 
-
+    cfg['constraint'] = {
+        'switch': "-constraint <file>",
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'true',
+        'require': None,
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Design constraints files',
+        'example': ["cli: -constraint top.sdc",
+                    "api: chip.set('constraint','top.sdc')"],
+        'help': """
+        List of default constraints for the design to use during compilation.
+        Types of constraints include timing (SDC) and pin mappings files (PCF)
+        for FPGAs. More than one file can be supplied. Timing constraints are
+        global and sourced in all MCMM scenarios.
+        """
+    }
 
     cfg['testbench'] = {
         'switch': '-testbench <file>',
