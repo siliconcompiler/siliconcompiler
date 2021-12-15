@@ -1096,6 +1096,30 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         """
     }
 
+    cfg['library'][lib]['waveform'] = {}
+        'switch': "-library_waveform 'lib <file>'",
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'true',
+        'require': None,
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Library golden waveforms',
+        'example': [
+            "cli: -library_waveform 'mylib mytrace.vcd'",
+            "api: chip.set('library','waveform','mylib', 'mytrace.vcd')"],
+        'help': """
+        Library waveform(s) used as a golden testvectors to ensure that
+        compilation transformations do not modify the functional behavior of
+        the source code. The waveform file must be compatible with the
+        testbench and compilation flow tools.
+        """
+    }
+
     cfg['library'][lib]['pdk'] = {
         'switch': "-library_pdk 'lib <str>'",
         'require': None,
@@ -4278,11 +4302,10 @@ def schema_design(cfg):
         'example': ["cli: -waveform mytrace.vcd",
                     "api: chip.set('waveform','mytrace.vcd')"],
         'help': """
-        Read in a waveform(s) used as a golden testvectors to ensure
-        that compilation transformations do not modify the
-        functional behavior of the source code. The waveform file
-        must be compatible with the testbench and compilation flow
-        tools.
+        Waveform(s) used as a golden testvectors to ensure that compilation
+        transformations do not modify the functional behavior of the source
+        code. The waveform file must be compatible with the testbench and
+        compilation flow tools.
         """
     }
 
