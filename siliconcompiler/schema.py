@@ -4262,6 +4262,29 @@ def schema_design(cfg):
         """
     }
 
+    cfg['waveform'] = {
+        'switch': "-waveform <file>",
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'true',
+        'require': None,
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Golden waveforms',
+        'example': ["cli: -waveform mytrace.vcd",
+                    "api: chip.set('waveform','mytrace.vcd')"],
+        'help': """
+        Read in a waveform(s) used as a golden testvectors to ensure
+        that compilation transformations do not modify the
+        functional behavior of the source code. The waveform file
+        must be compatible with the testbench and compilation flow
+        tools.
+        """
+    }
 
     cfg['clock'] = {}
     cfg['clock']['default'] = {}
