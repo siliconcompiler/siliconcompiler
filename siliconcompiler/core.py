@@ -10,6 +10,7 @@ import traceback
 import asyncio
 from subprocess import run, PIPE
 import os
+import pathlib
 import sys
 import gzip
 import re
@@ -1930,7 +1931,7 @@ class Chip:
                         filename = self._get_imported_filename(item)
                         filepath = self._find_sc_file(item)
                         if filepath:
-                            self.logger.info(f"Copying {filepath} to 'inputs' directory")
+                            self.logger.info(f"Copying {filepath} to '{indir}' directory")
                             shutil.copy(filepath, os.path.join(indir, filename))
                         else:
                             self._haltstep(step,index,active)
@@ -3554,12 +3555,17 @@ class Chip:
         return filepath
 
     #######################################
-    def _get_imported_filename(self, path):
-        ''' Utility to map collected files to an unambigious name based on their path.'''
+    def _get_imported_filename(self, pathstr):
+        ''' Utility to map collected file to an unambigious name based on its path.
 
-        basename = os.path.basename(path)
-        pathhash = hashlib.md5(path.encode('utf-8')).hexdigest()
-        return f'{basename}.{pathhash}'
+        The mapping looks like:
+        path/to/file.ext => file_<md5('path/to/file.ext')>.ext
+        '''
+        path = pathlib.Path(pathstr)
+        oldstem = path.stem
+        pathhash = hashlib.md5(pathstr.encode('utf-8')).hexdigest()
+
+        return str(path.with_stem(f'{oldstem}_{pathhash}').name)
 
 ###############################################################################
 # Package Customization classes
