@@ -1767,8 +1767,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
             "cli: -eda_exe 'openroad cts 0 openroad'",
             "api:  chip.set('eda','openroad','cts','0','exe','openroad')"],
         'help': """
-        Name of the executable or the full path to the executable
-        specified on a per tool and step basis.
+        Tool executable name.
         """
     }
 
@@ -1783,9 +1782,10 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
             "cli: -eda_path 'openroad cts 0 /usr/local/bin'",
             "api:  chip.set('eda','openroad','cts','0','path','/usr/local/bin')"],
         'help': """
-        File system path to tool executable. The path is appended to the 'exe'
+        File system path to tool executable. The path is prepended to the 'exe'
         parameter for batch runs and output as an environment variable for
-        interactive setup.
+        interactive setup. The path parameter can be left blank if the 'exe'
+        is already in the environment search path.
         """
     }
 
@@ -4754,9 +4754,30 @@ def schema_asic(cfg):
         'example': ["cli: -asic_targetlib asap7sc7p5t_lvt",
                     "api: chip.set('asic', 'targetlib', 'asap7sc7p5t_lvt')"],
         'help': """
-        List of library names to use for synthesis and automated place and
-        route. Names must match up exactly with the library name handle in the
-        'stdcells' dictionary.
+        Logical libraries used in all steps of asic implementation for mapping
+        source code to netlist. Names must match up exactly with the library
+        name handle in the 'library' dictionary.
+        """
+    }
+
+    step = 'default'
+    index = 'default'
+    cfg['asic']['optlib'] = {}
+    cfg['asic']['optlib'][step] = {}
+    cfg['asic']['optlib'][step][index] = {
+        'switch': "-asic_optlib 'step index <str>'",
+        'type': '[str]',
+        'lock': 'false',
+        'defvalue': [],
+        'require': None,
+        'shorthelp': 'ASIC optimization libraries',
+        'example': [
+            "cli: -asic_optlib 'place 0 asap7sc7p5t_lvt'",
+            "api: chip.set('asic','optlib','place','0','asap7sc7p5t_lvt')"],
+        'help': """
+        Logical libraries used in the specified step and index in the
+        asic implementation flow. Names must match up exactly with the library
+        name handle in the 'library' dictionary.
         """
     }
 
