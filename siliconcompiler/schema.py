@@ -1096,7 +1096,7 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         """
     }
 
-    cfg['library'][lib]['waveform'] = {}
+    cfg['library'][lib]['waveform'] = {
         'switch': "-library_waveform 'lib <file>'",
         'type': '[file]',
         'lock': 'false',
@@ -1111,7 +1111,7 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'shorthelp': 'Library golden waveforms',
         'example': [
             "cli: -library_waveform 'mylib mytrace.vcd'",
-            "api: chip.set('library','waveform','mylib', 'mytrace.vcd')"],
+            "api: chip.set('library','mylib','waveform','mytrace.vcd')"],
         'help': """
         Library waveform(s) used as a golden testvectors to ensure that
         compilation transformations do not modify the functional behavior of
