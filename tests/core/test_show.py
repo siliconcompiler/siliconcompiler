@@ -5,6 +5,8 @@ import pytest
 from pyvirtualdisplay import Display
 from unittest import mock
 
+from unittest import mock
+
 @pytest.fixture
 def display():
     display = Display(visible=False)
@@ -32,7 +34,6 @@ def test_show(pdk, testfile, datadir, display, headless=True):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.skip(reason="fails to produce testfile on CI host")
 def test_show_nopdk(datadir, display):
     chip = siliconcompiler.Chip()
     chip.set('design', 'heartbeat')
