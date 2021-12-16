@@ -1,10 +1,5 @@
-Alternate frontends
-========================================
-
-Along with Verilog and SystemVerilog, SiliconCompiler can be used with several other frontends that allow you to describe designs in a higher-level language.
-
-Migen (Python)
----------------------------
+Python-based frontends
+===========================
 
 Since SC itself is a Python library, it can be used as-is in an end-to-end build script with any Python-based HDL that can be scripted to export designs to Verilog.
 
