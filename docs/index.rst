@@ -39,6 +39,7 @@ Welcome to SiliconCompiler's documentation!
    tutorials/contribution
    tutorials/parallel
    tutorials/slurmsetup
+   tutorials/frontends
 
 .. toctree::
    :maxdepth: 3
