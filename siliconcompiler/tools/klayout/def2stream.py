@@ -219,11 +219,9 @@ sc_libtype = sc_cfg['library'][sc_mainlib]['arch']['value']
 tech_file = sc_cfg['pdk']['layermap'][sc_stackup]['def']['gds']['value'][0]
 
 design = sc_cfg['design']['value']
-if ('def' in sc_cfg['read'] and
-    sc_step in sc_cfg['read']['def'] and
-    sc_index in sc_cfg['read']['def'][sc_step]):
+try:
   in_def = sc_cfg['read']['def'][sc_step][sc_index]['value'][0]
-else:
+except (KeyError, IndexError):
   in_def = os.path.join('inputs', f'{design}.def')
 out_gds = os.path.join('outputs', f'{design}.gds')
 
