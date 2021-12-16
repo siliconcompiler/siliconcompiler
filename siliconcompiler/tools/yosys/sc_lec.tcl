@@ -30,7 +30,12 @@ if {[dict exists $sc_cfg eda $sc_tool $sc_step $sc_index variable induction_step
 
 # Gold netlist
 yosys read_liberty -ignore_miss_func $sc_liberty
-yosys read_verilog "inputs/$sc_design.v"
+if {[file exists "inputs/$sc_design.v"]} {
+    set source "inputs/$sc_design.v"
+} else {
+    set source [lindex [dict get $sc_cfg source] 0]
+}
+yosys read_verilog $source
 
 yosys proc
 yosys rmports
@@ -45,7 +50,12 @@ yosys design -stash gold
 
 # Gate netlist
 yosys read_liberty -ignore_miss_func $sc_liberty
-yosys read_verilog "inputs/$sc_design.vg"
+if {[dict exists $sc_cfg read netlist $sc_step $sc_index]} {
+    set netlist [lindex [dict get $sc_cfg read netlist $sc_step $sc_index] 0]
+} else {
+    set netlist "inputs/$design.vg"
+}
+yosys read_verilog $netlist
 
 yosys proc
 yosys rmports
