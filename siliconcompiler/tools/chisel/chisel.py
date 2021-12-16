@@ -72,9 +72,8 @@ def runtime_options(chip):
 
     cmdlist = []
 
-    # TODO: handle these flags
+    # TODO: handle these parameters
 
-    # # source files
     # for value in chip.find_files('ydir'):
     #     cmdlist.append('-y ' + value)
     # for value in chip.find_files('vlib'):
@@ -85,12 +84,6 @@ def runtime_options(chip):
     #     cmdlist.append('-D' + value)
     # for value in chip.find_files('cmdfile'):
     #     cmdlist.append('-f ' + value)
-    # for value in chip.find_files('source'):
-    #     cmdlist.append(value)
-
-    # cmdlist.append('-top ' + chip.get('design'))
-    # # make sure we can find .sv files in ydirs
-    # cmdlist.append('+libext+.sv')
 
     # # Set up user-provided parameters to ensure we elaborate the correct modules
     # for param in chip.getkeys('param'):

@@ -4,7 +4,6 @@ import pytest
 
 @pytest.mark.eda
 @pytest.mark.quick
-# @pytest.skip(reason='Scala not installed on test runner')
 def test_chisel(datadir):
     design = 'gcd'
     gcd_src = os.path.join(datadir, f'{design}.scala')

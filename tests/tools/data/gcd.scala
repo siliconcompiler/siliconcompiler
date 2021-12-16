@@ -1,5 +1,3 @@
-// See README.md for license details.
-
 import chisel3._
 
 /**
