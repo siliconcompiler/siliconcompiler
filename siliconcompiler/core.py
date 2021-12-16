@@ -3562,10 +3562,16 @@ class Chip:
         path/to/file.ext => file_<md5('path/to/file.ext')>.ext
         '''
         path = pathlib.Path(pathstr)
-        oldstem = path.stem
+        ext = ''.join(path.suffixes)
+
+        # strip off all file suffixes to get just the bare name
+        while path.suffix:
+            path = pathlib.Path(path.stem)
+        filename = str(path)
+
         pathhash = hashlib.md5(pathstr.encode('utf-8')).hexdigest()
 
-        return str(path.with_stem(f'{oldstem}_{pathhash}').name)
+        return f'{filename}_{pathhash}{ext}'
 
 ###############################################################################
 # Package Customization classes
