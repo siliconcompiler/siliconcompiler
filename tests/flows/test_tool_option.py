@@ -57,15 +57,14 @@ def chip(scroot):
     '''
 
     datadir = os.path.join(scroot, 'tests', 'data')
-    netlist = os.path.join(datadir, 'oh_fifo_sync_freepdk45.vg')
     def_file = os.path.join(datadir, 'oh_fifo_sync.def')
 
     design = "oh_fifo_sync"
 
     chip = siliconcompiler.Chip()
     chip.set('design', design)
-    chip.set('read', 'netlist', 'floorplan', '0', netlist)
-    chip.set('read', 'def', 'floorplan', '0', def_file)
+    chip.set('read', 'def', 'place', '0', def_file)
+    chip.set('read', 'def', 'place', '1', def_file)
     chip.set('mode', 'asic')
     chip.set('quiet', True)
     chip.target('freepdk45')

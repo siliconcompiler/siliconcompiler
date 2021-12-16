@@ -209,6 +209,9 @@ with open('sc_manifest.json', 'r') as f:
     sc_cfg = json.load(f)
 
 # Extract info from manifest
+sc_step = sc_cfg['arg']['step']['value']
+sc_index = sc_cfg['arg']['index']['value']
+
 sc_stackup = sc_cfg['pdk']['stackup']['value'][0]
 sc_mainlib = sc_cfg['asic']['targetlib']['value'][0]
 sc_libtype = sc_cfg['library'][sc_mainlib]['arch']['value']
@@ -216,7 +219,10 @@ sc_libtype = sc_cfg['library'][sc_mainlib]['arch']['value']
 tech_file = sc_cfg['pdk']['layermap'][sc_stackup]['def']['gds']['value'][0]
 
 design = sc_cfg['design']['value']
-in_def = os.path.join('inputs', f'{design}.def')
+try:
+  in_def = sc_cfg['read']['def'][sc_step][sc_index]['value'][0]
+except (KeyError, IndexError):
+  in_def = os.path.join('inputs', f'{design}.def')
 out_gds = os.path.join('outputs', f'{design}.gds')
 
 libs = sc_cfg['asic']['targetlib']['value']

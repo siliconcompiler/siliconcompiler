@@ -13,7 +13,7 @@ def test_klayout(datadir):
 
     chip = siliconcompiler.Chip()
     chip.set('design', 'heartbeat_wrapper')
-    chip.set('read', 'def', 'floorplan', '0', in_def)
+    chip.set('read', 'def', 'export', '0', in_def)
 
     chip.add('asic', 'macrolib', 'heartbeat')
     chip.set('library', 'heartbeat', 'lef', library_lef)
