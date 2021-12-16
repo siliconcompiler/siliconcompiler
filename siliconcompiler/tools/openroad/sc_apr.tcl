@@ -119,13 +119,14 @@ foreach lib $sc_macrolibs {
 }
 
 # Read Verilog
-if {[dict exists $sc_cfg "read" netlist $sc_step $sc_index]} {
-    foreach netlist [dict get $sc_cfg "read" netlist $sc_step $sc_index] {
-	read_verilog $netlist
+if {$sc_step == "floorplan"} {
+    if {[dict exists $sc_cfg "read" netlist $sc_step $sc_index]} {
+        foreach netlist [dict get $sc_cfg "read" netlist $sc_step $sc_index] {
+            read_verilog $netlist
+        }
+    } else {
+        read_verilog "inputs/$sc_design.vg"
     }
-    link_design $sc_design
-} elseif {$sc_step == "floorplan"} {
-    read_verilog "inputs/$sc_design.vg"
     link_design $sc_design
 }
 
