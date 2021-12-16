@@ -42,9 +42,9 @@ For security reasons, only a subset of the full Schema parameters is currently s
      - Allowed if key isn't the name of a built-in PDK standard cell library
    * - ``source``
      - None
-   * - ``netlist``
-     - None
    * - ``testbench``
+     - None
+   * - ``waveform``
      - None
    * - ``clock, ...``
      - None
@@ -64,17 +64,23 @@ For security reasons, only a subset of the full Schema parameters is currently s
      - None
    * - ``cmdfile``
      - None
-   * - ``vcd``
-     - None
-   * - ``saif``
-     - None
    * - ``activityfactor``
      - None
-   * - ``spef``
+   * - ``read, spef, ...``
      - None
-   * - ``sdf``
+   * - ``read, sdf, ...``
      - None
-   * - ``exclude``
+   * - ``read, saif, ...``
+     - None
+   * - ``read, gds, ...``
+     - None
+   * - ``read, def, ...``
+     - None
+   * - ``read, netlist, ...``
+     - None
+   * - ``read, pcf, ...``
+     - None
+   * - ``read, vcd, ...``
      - None
    * - ``asic, ...``
      - None
