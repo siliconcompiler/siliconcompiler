@@ -58,6 +58,9 @@ class RemoteAPIGen(SphinxDirective):
         # Get the JSONSchema API files to include.
         api_schemas = glob.iglob('server_schema/*.json')
 
+        # Create a top-level section node to contain the individual API tables.
+        top_section = nodes.section(ids = [nodes.make_id('server_top')])
+
         # Process each API individually, adding its doc components to the
         # array which we will return.
         for schema_file in api_schemas:
@@ -83,9 +86,10 @@ class RemoteAPIGen(SphinxDirective):
             section += table
             # Add the endpoint's description.
             section += nodes.paragraph(text = api_schema['description'])
-            new_doc += section
+            top_section += section
 
         # Done; return the array of document objects.
+        new_doc += top_section
         return new_doc
 
 def setup(app):
