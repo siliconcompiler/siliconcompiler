@@ -3883,7 +3883,8 @@ def schema_options(cfg):
         'help': """
         Specifies the frontend that flows should use for importing and
         processing source files. Default option is 'verilog', also supports
-        'systemverilog' and 'chisel'.
+        'systemverilog' and 'chisel'. When using the Python API, this parameter
+        must be configured before calling target().
         """
     }
 
