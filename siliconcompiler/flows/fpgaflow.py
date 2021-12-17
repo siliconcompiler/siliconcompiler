@@ -1,8 +1,7 @@
-import importlib
-import os
 import siliconcompiler
 import re
-import sys
+
+from siliconcompiler.flows._common import setup_frontend
 
 ############################################################################
 # DOCS
@@ -75,25 +74,21 @@ def setup_flow(chip):
     #Setting up pipeline
     #TODO: Going forward we want to standardize steps
     if  flow in ('vivado', 'quartus'):
-        flowpipe = ['import', 'syn', 'place', 'route', 'bitstream']
+        flowpipe = ['syn', 'place', 'route', 'bitstream']
     else:
-        flowpipe = ['import', 'syn', 'apr', 'bitstream']
+        flowpipe = ['syn', 'apr', 'bitstream']
 
-    # Perform SystemVerilog to Verilog conversion step only if `flowarg, sv` is True
-    sv = ('sv' in chip.getkeys('flowarg') and
-           len(chip.get('flowarg', 'sv')) > 0 and
-           chip.get('flowarg', 'sv')[0] == 'true')
-    if sv:
-        flowpipe = flowpipe[:1] + ['convert'] + flowpipe[1:]
+    flowtools = setup_frontend(chip)
+    for step in flowpipe:
+        flowtools.append((step, tool_lookup(flow, step)))
 
     # Minimal setup
     index = '0'
-    for i, step in enumerate(flowpipe):
+    for step, tool in flowtools:
         # Flow
-        tool = tool_lookup(flow, step)
         chip.node(step, tool)
-        if i > 0:
-            chip.edge(flowpipe[i-1], flowpipe[i])
+        if step != 'import':
+            chip.edge(prevstep, step)
         # Hard goals
         for metric in ('errors','warnings','drvs','unconstrained',
                        'holdwns','holdtns', 'holdpaths',
@@ -103,6 +98,7 @@ def setup_flow(chip):
         for metric in ('luts','dsps','brams','registers',
                        'pins','peakpower','standbypower'):
             chip.set('flowgraph', step, index, 'weight', metric, 1.0)
+        prevstep = step
 
 ##################################################
 
@@ -189,13 +185,8 @@ def tool_lookup(flow, step):
     based on flow and step.
     '''
 
-    # common first step
-    if step == "import":
-        tool = 'surelog'
-    elif step == "convert":
-        tool = 'sv2v'
     # open source ice40 flow
-    elif flow == "yosys-nextpnr":
+    if flow == "yosys-nextpnr":
         if step == "syn":
             tool = "yosys"
         elif step == "apr":
@@ -222,4 +213,4 @@ def tool_lookup(flow, step):
 ##################################################
 if __name__ == "__main__":
     chip = make_docs()
-    chip.writecfg("fpgaflow.json")
+    chip.write_flowgraph("fpgaflow.png")

@@ -1,7 +1,7 @@
-import importlib
-import os
 import siliconcompiler
 import re
+
+from siliconcompiler.flows._common import setup_frontend
 
 ############################################################################
 # DOCS
@@ -69,8 +69,7 @@ def setup_flow(chip):
     '''
 
     # Linear flow, up until branch to run parallel verification steps.
-    longpipe = ['import',
-                'syn',
+    longpipe = ['syn',
                 'synmin',
                 'floorplan',
                 'floorplanmin',
@@ -86,8 +85,6 @@ def setup_flow(chip):
                 'export']
 
     tools = {
-        'import' : 'surelog',
-        'convert': 'sv2v',
         'syn' : 'yosys',
         'synmin' : 'minimum',
         'floorplan' : 'openroad',
@@ -120,13 +117,6 @@ def setup_flow(chip):
               len(chip.get('flowarg', 'verify')) > 0 and
               chip.get('flowarg', 'verify')[0] == 'true')
 
-    # Perform SystemVerilog to Verilog conversion step only if `flowarg, sv` is True
-    sv = ('sv' in chip.getkeys('flowarg') and
-           len(chip.get('flowarg', 'sv')) > 0 and
-           chip.get('flowarg', 'sv')[0] == 'true')
-    if sv:
-        flowpipe = flowpipe[:1] + ['convert'] + flowpipe[1:]
-
     # Set mandatory mode
     chip.set('mode', 'asic')
 
@@ -134,8 +124,12 @@ def setup_flow(chip):
     chip.set('showtool', 'def', 'klayout')
     chip.set('showtool', 'gds', 'klayout')
 
-    # Programatically build linear portion of flowgraph and fanin/fanout args
+    flowtools = setup_frontend(chip)
     for step in flowpipe:
+        flowtools.append((step, tools[step]))
+
+    # Programatically build linear portion of flowgraph and fanin/fanout args
+    for step, tool in flowtools:
         param = step + "_np"
         fanout = 1
         if param in chip.getkeys('flowarg'):
@@ -143,9 +137,9 @@ def setup_flow(chip):
         # create nodes
         for index in range(fanout):
             # nodes
-            chip.node(step, tools[step], index=index)
+            chip.node(step, tool, index=index)
             # edges
-            if re.search(r'join|maximum|minimum|verify', tools[step]):
+            if re.search(r'join|maximum|minimum|verify', tool):
                 prevparam = prevstep + "_np"
                 fanin  = int(chip.get('flowarg', prevparam)[0])
                 for i in range(fanin):
