@@ -472,13 +472,39 @@ def schema_pdk(cfg, stackup='default'):
         tracking and tapeout checklists.
         """
     }
+
+    #Documentation index
+    cfg['pdk']['doc'] = {}
+    cfg['pdk']['doc']['homepage'] = {
+            'switch': f"-pdk_doc_homepage '<file>'",
+            'type': '[file]',
+            'lock': 'false',
+            'copy': 'true',
+            'require': None,
+            'defvalue': [],
+            'filehash': [],
+            'hashalgo': 'sha256',
+            'date': [],
+            'author': [],
+            'signature': [],
+            'shorthelp': f"PDK doccumentation homepage",
+            'example': [
+                f"cli: -pdk_doc_homepage 'index.html",
+                f"api: chip.set('pdk','doc','homepage','index.html')"],
+            'help': f"""
+            Filepath to PDK docs homepage. Modern PDKs can include tens or
+            hundreds of individual documenets. A single html entry point can
+            be used to present an organized documentation dashboard to the
+            designer.
+            """
+    }
+
     doctypes = ['datasheet',
                 'reference',
                 'userguide',
                 'releasenotes',
                 'tutorial']
 
-    cfg['pdk']['doc'] = {}
     for item in doctypes:
         cfg['pdk']['doc'][item] = {
             'switch': f"-pdk_doc_{item} '<file>'",
@@ -494,8 +520,8 @@ def schema_pdk(cfg, stackup='default'):
             'signature': [],
             'shorthelp': f"PDK {item}",
             'example': [
-                f"cli: -pdk_doc_{item} 'pdk.pdf",
-                f"api: chip.set('pdk','doc',{item},'pdk.pdf')"],
+                f"cli: -pdk_doc_{item} '{item}.pdf",
+                f"api: chip.set('pdk','doc',{item},'{item}.pdf')"],
             'help': f"""
             List of {item} documents for the PDK.
             """
@@ -3954,7 +3980,7 @@ def schema_package(cfg, group):
         List of keyword(s) used to search for {group}.
         """
     }
-
+    # project home page
     localcfg['homepage'] = {
         'switch': f"-{group}_homepage '{lib}<str>'",
         'type': '[str]',
@@ -3969,6 +3995,32 @@ def schema_package(cfg, group):
         'help': f"""
         Homepage for {group}.
         """
+    }
+
+    # documentation homepage
+    localcfg['doc'] = {}
+    localcfg['doc']['homepage'] = {
+            'switch': f"-{group}_doc_homepage '{lib}<file>'",
+            'type': '[file]',
+            'lock': 'false',
+            'copy': 'true',
+            'require': None,
+            'defvalue': [],
+            'filehash': [],
+            'hashalgo': 'sha256',
+            'date': [],
+            'author': [],
+            'signature': [],
+            'shorthelp': f"{group.capitalize()} homepage",
+            'example': [
+                f"cli: -{group}_doc_homepage 'index.html",
+                f"api: chip.set('{group}',{libapi}'doc','homepage','index.html')"],
+            'help': f"""
+            Filepath to design docs homepage. Complex designs can can include
+            a long non standard list of documents dependant.  single html
+            entry point can be used to present an organized documentation
+            dashboard to the designer.
+            """
     }
 
     doctypes = ['datasheet',
