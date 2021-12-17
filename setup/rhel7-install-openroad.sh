@@ -120,8 +120,11 @@ if [[ ! -z "${RHEL7_OPENROAD_INSTALL_DEVTOOLS}" ]]; then
     echo "export LD_LIBRARY_PATH=/usr/local/lib64" >> $(pwd)/setup_env.sh
 fi
 
-echo "Done!"
 echo ""
-echo "Please run \"source $(pwd)/setup_env.sh\", and add that line to your ~/.bashrc file"
+echo "Done!"
+echo "Please run the following line, and add it to your ~/.bashrc file:"
+echo ""
+echo "  source $(pwd)/setup_env.sh"
+echo ""
 
 cd -
