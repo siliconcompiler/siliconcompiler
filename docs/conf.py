@@ -49,7 +49,8 @@ extensions = [
     'recordgen',
     'packagegen',
     'sphinx.ext.autosummary',
-    'requirements'
+    'requirements',
+    'installgen'
 ]
 
 # Add any paths that contain templates here, relative to this directory.

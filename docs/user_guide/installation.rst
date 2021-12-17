@@ -154,4 +154,8 @@ To test the klayout installation, run the 'sc-show' to display the 'heartbeat' l
 External Tools
 --------------
 
-To run compilation locally (instead of remotely), you will need to install a number of tools. Installation instructions for these tools are best written by the original authors so we will not include them here. For convenience, links to installation documentation for all supported tools can be found in the tools directory of the reference manual :ref:`here<Tools directory>`.
+To run compilation locally (instead of remotely), you will need to install a number of tools. For reference, we have provided install scripts for many of these tools. Unless otherwise specified in the script name, these scripts target Ubuntu 20.04.
+
+.. installscripts::
+
+In addition, links to installation documentation written by the original authors of all supported tools can be found in the tools directory of the reference manual :ref:`here<Tools directory>`.
