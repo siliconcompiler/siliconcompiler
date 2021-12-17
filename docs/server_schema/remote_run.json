@@ -9,13 +9,6 @@
             "username": "valid_user",
             "key": "valid_base64_encoded_key",
             "job_hash": "0123456789abcdeffedcba9876543210"
-        },
-        {
-            "username": "valid_user",
-            "key": "valid_base64_encoded_key",
-            "job_hash": "0123456789abcdeffedcba9876543210",
-            "new_hosts": 2,
-            "new_host_ram": 8
         }
     ],
 
@@ -46,32 +39,6 @@
 
             "type": "string",
             "pattern": "^[0-9a-f]{32}$"
-        },
-
-        "new_hosts": {
-            "title": "New Hosts to Request",
-            "description": "Number of temporary cloud hosts to request for this job. Requires authentication.",
-            "examples": [0, 2],
-
-            "type": "integer"
-        },
-
-        "new_host_ram": {
-            "title": "New Host RAM (GiB)",
-            "description": "Amount of RAM to request in temporary hosts, in gigabytes. 0 = 'smallest available'.",
-            "examples": [4, 10],
-
-            "type": "integer",
-            "default": 0
-        },
-
-        "new_host_threads": {
-            "title": "New Host Threads",
-            "description": "Number of threads to request in temporary hosts. 0 = 'smallest available'.",
-            "examples": [2, 8],
-
-            "type": "integer",
-            "default": 0
         }
     },
 
@@ -79,9 +46,6 @@
 
     "dependencies": {
         "username": ["key"],
-        "key": ["username"],
-        "new_hosts": ["key"],
-        "new_host_ram": ["new_hosts"],
-        "new_host_threads": ["new_hosts"]
+        "key": ["username"]
     }
 }
