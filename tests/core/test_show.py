@@ -27,7 +27,7 @@ def test_show(pdk, testfile, datadir, display, headless=True):
 
     if headless:
         # Adjust command line options to exit KLayout after run
-        chip.set('eda', 'klayout', 'showdef', '0', 'option', ['-z', '-r'])
+        chip.set('eda', 'klayout', 'option', 'showdef', '0', ['-z', '-r'])
 
     path = os.path.join(datadir, testfile)
     assert chip.show(path)
@@ -40,7 +40,7 @@ def test_show_nopdk(datadir, display):
     chip.target(f'asicflow_freepdk45')
     chip.set("quiet", True)
     # Adjust command line options to exit KLayout after run
-    chip.set('eda', 'klayout', 'showdef', '0', 'option', ['-z', '-r'])
+    chip.set('eda', 'klayout', 'option', 'showdef', '0', ['-z', '-r'])
 
     testfile = os.path.join(datadir, 'heartbeat_freepdk45.def')
 
