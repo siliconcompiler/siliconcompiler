@@ -48,8 +48,7 @@
             "description": "ID associated with the 'job_hash' and the individual job that is being checked on.",
             "examples": ["1", "2"],
 
-            "type": "string",
-            "pattern": "^[0-9]+$"
+            "type": "string"
         }
     },
 

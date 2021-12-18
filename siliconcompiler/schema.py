@@ -3904,6 +3904,24 @@ def schema_options(cfg):
         """
     }
 
+    cfg['frontend'] = {
+        'switch': "-frontend <frontend>",
+        'type': 'str',
+        'lock': 'false',
+        'require': 'all',
+        'signature': None,
+        'defvalue': 'verilog',
+        'shorthelp': "Select frontend for compilation",
+        'example': ["cli: -frontend systemverilog",
+                    "api: chip.set('frontend', 'systemverilog')"],
+        'help': """
+        Specifies the frontend that flows should use for importing and
+        processing source files. Default option is 'verilog', also supports
+        'systemverilog' and 'chisel'. When using the Python API, this parameter
+        must be configured before calling target().
+        """
+    }
+
     return cfg
 
 ############################################

@@ -3,14 +3,12 @@
     "description": "Schema for metadata required to remotely run a siliconcompiler job stage.",
     "examples": [
         {
-            "job_hash": "0123456789abcdeffedcba9876543210",
-            "stage": "route"
+            "job_hash": "0123456789abcdeffedcba9876543210"
         },
         {
             "username": "valid_user",
             "key": "valid_base64_encoded_key",
-            "job_hash": "0123456789abcdeffedcba9876543210",
-            "stage": "route"
+            "job_hash": "0123456789abcdeffedcba9876543210"
         }
     ],
 
@@ -41,19 +39,10 @@
 
             "type": "string",
             "pattern": "^[0-9a-f]{32}$"
-        },
-
-        "stage": {
-            "title": "Stage",
-            "description": "Name of the workflow stage to run.",
-            "examples": ["syn", "place", "route"],
-
-            "type": "string",
-            "pattern": "^[^\\s;]*$"
         }
     },
 
-    "required": ["job_hash", "stage"],
+    "required": ["job_hash"],
 
     "dependencies": {
         "username": ["key"],
