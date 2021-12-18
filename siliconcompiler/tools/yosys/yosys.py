@@ -48,12 +48,13 @@ def setup_tool(chip):
     index = chip.get('arg','index')
 
     # Standard Setup
-    chip.set('eda', tool, step, index, 'copy', 'true', clobber=False)
-    chip.set('eda', tool, step, index, 'exe', 'yosys', clobber=False)
-    chip.set('eda', tool, step, index, 'vswitch', '--version', clobber=False)
-    chip.set('eda', tool, step, index, 'version', '0.9', clobber=False)
-    chip.set('eda', tool, step, index, 'option', '-c', clobber=False)
-    chip.set('eda', tool, step, index, 'refdir', refdir, clobber=False)
+    chip.set('eda', tool, 'exe', 'yosys', clobber=False)
+    chip.set('eda', tool, 'vswitch', '--version', clobber=False)
+    chip.set('eda', tool, 'version', '0.9', clobber=False)
+    chip.set('eda', tool, 'format', 'tcl', clobber=False)
+    chip.set('eda', tool, 'copy', step, index,  'true', clobber=False)
+    chip.set('eda', tool, 'option', step, index, '-c', clobber=False)
+    chip.set('eda', tool, 'refdir', step, index, refdir, clobber=False)
 
     if step == 'syn':
         script = 'sc_syn.tcl'
@@ -62,20 +63,20 @@ def setup_tool(chip):
     else:
         chip.logger.error(f'Yosys does not support step {step}.')
 
-    chip.set('eda', tool, step, index, 'script', refdir + '/' + script, clobber=False)
+    chip.set('eda', tool, 'script', step, index, refdir + '/' + script, clobber=False)
 
     #Input/output requirements
     #TODO: add back input requirements for all tools, currently failing
     #chip.add('eda', tool, step, index, 'input', chip.get('design') + '.v')
-    chip.add('eda', tool, step, index, 'output', chip.get('design') + '.vg')
+    chip.add('eda', tool, 'output', step, index, chip.get('design') + '.vg')
 
     #Schema requirements
     if chip.get('mode') == 'asic':
-        chip.add('eda', tool, step, index, 'require', ",".join(['pdk', 'process']))
-        chip.add('eda', tool, step, index, 'require', ",".join(['design']))
-        chip.add('eda', tool, step, index, 'require', ",".join(['asic', 'targetlib']))
+        chip.add('eda', tool, 'require', step, index, ",".join(['pdk', 'process']))
+        chip.add('eda', tool, 'require', step, index, ",".join(['design']))
+        chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'targetlib']))
     else:
-        chip.add('eda', tool, step, index, 'require', ",".join(['fpga','partname']))
+        chip.add('eda', tool, 'require', step, index, ",".join(['fpga','partname']))
 
 #############################################
 # Runtime pre processing

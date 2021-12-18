@@ -59,18 +59,20 @@ def setup_tool(chip, mode='batch'):
     if (mode=='batch') & (step not in chip.get('bkpt')):
         option += " -exit"
 
-    chip.set('eda', tool, step, index, 'exe', tool, clobber=clobber)
-    chip.set('eda', tool, step, index, 'vswitch', '-version', clobber=clobber)
-    chip.set('eda', tool, step, index, 'version', 'v2.0', clobber=clobber)
-    chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=clobber)
-    chip.set('eda', tool, step, index, 'option', option, clobber=clobber)
-    chip.set('eda', tool, step, index, 'refdir', refdir, clobber=clobber)
-    chip.set('eda', tool, step, index, 'script', refdir + script, clobber=clobber)
+    chip.set('eda', tool, 'exe', tool, clobber=clobber)
+    chip.set('eda', tool, 'vswitch', '-version', clobber=clobber)
+    chip.set('eda', tool, 'version', 'v2.0', clobber=clobber)
+    chip.set('eda', tool, 'format', 'tcl', clobber=clobber)
+    chip.set('eda', tool, 'threads', step, index, os.cpu_count(), clobber=clobber)
+    chip.set('eda', tool, 'option',  step, index, option, clobber=clobber)
+    chip.set('eda', tool, 'copy', step, index, 'true', clobber=clobber)
+    chip.set('eda', tool, 'refdir',  step, index, refdir, clobber=clobber)
+    chip.set('eda', tool, 'script',  step, index, refdir + script, clobber=clobber)
 
     # Input/Output requirements
-    chip.add('eda', tool, step, index, 'output', chip.get('design') + '.sdc')
-    chip.add('eda', tool, step, index, 'output', chip.get('design') + '.vg')
-    chip.add('eda', tool, step, index, 'output', chip.get('design') + '.def')
+    chip.add('eda', tool, 'output', step, index, chip.get('design') + '.sdc')
+    chip.add('eda', tool, 'output', step, index, chip.get('design') + '.vg')
+    chip.add('eda', tool, 'output', step, index, chip.get('design') + '.def')
 
     # openroad makes use of these parameters
     targetlibs = chip.get('asic', 'targetlib')
@@ -81,17 +83,17 @@ def setup_tool(chip, mode='batch'):
         libtype = str(chip.get('library', mainlib, 'arch'))
         techlef = chip.get('pdk', 'aprtech', stackup, libtype, 'lef')
 
-        chip.add('eda', tool, step, index, 'require', ",".join(['asic', 'targetlib']))
-        chip.add('eda', tool, step, index, 'require', ",".join(['asic', 'stackup']))
-        chip.add('eda', tool, step, index, 'require', ",".join(['library', mainlib, 'arch']))
-        chip.add('eda', tool, step, index, 'require', ",".join(['pdk', 'aprtech', stackup, libtype, 'lef']))
+        chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'targetlib']))
+        chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'stackup']))
+        chip.add('eda', tool, 'require', step, index, ",".join(['library', mainlib, 'arch']))
+        chip.add('eda', tool, 'require', step, index, ",".join(['pdk', 'aprtech', stackup, libtype, 'lef']))
 
         for lib in (targetlibs + macrolibs):
             for corner in chip.getkeys('library',  lib, 'nldm'):
                 nldm = chip.get('library', lib, 'nldm', corner, 'lib')
-                chip.add('eda', tool, step, index, 'require', ",".join(['library', lib, 'nldm', corner, 'lib']))
+                chip.add('eda', tool, 'require', step, index, ",".join(['library', lib, 'nldm', corner, 'lib']))
             lef = chip.get('library', lib, 'lef')
-            chip.add('eda', tool, step, index, 'require', ",".join(['library', lib, 'lef']))
+            chip.add('eda', tool, 'require', step, index, ",".join(['library', lib, 'lef']))
     else:
         chip.error = 1
         chip.logger.error(f'Stackup and targetlib paremeters required for OpenROAD.')
@@ -148,17 +150,17 @@ def setup_tool(chip, mode='batch'):
         }
 
     for option in default_options:
-        if option in chip.getkeys('eda', tool, step, index, 'variable'):
+        if chip.valid('eda', tool, 'variable', step, index, option, quiet=True, default_valid=False):
             chip.logger.info('User provided variable %s OpenROAD flow detected.', option)
         elif not default_options[option]:
             chip.error = 1
             chip.logger.error('Missing variable %s for OpenROAD.', option)
         else:
-            chip.set('eda', tool, step, index, 'variable', option, default_options[option], clobber=clobber)
+            chip.set('eda', tool, 'variable', step, index, option, default_options[option], clobber=clobber)
 
     for clock in chip.getkeys('clock'):
-        chip.add('eda', tool, step, index, 'require', ','.join(['clock', clock, 'period']))
-        chip.add('eda', tool, step, index, 'require', ','.join(['clock', clock, 'pin']))
+        chip.add('eda', tool, 'require', step, index, ','.join(['clock', clock, 'period']))
+        chip.add('eda', tool, 'require', step, index, ','.join(['clock', clock, 'pin']))
 
 ################################
 # Version Check

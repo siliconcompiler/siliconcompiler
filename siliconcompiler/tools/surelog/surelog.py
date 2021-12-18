@@ -50,10 +50,10 @@ def setup_tool(chip):
         exe = f'{tool}.exe'
 
     # Standard Setup
-    chip.set('eda', tool, step, index, 'exe', exe, clobber=False)
-    chip.set('eda', tool, step, index, 'vswitch', '--version', clobber=False)
-    chip.set('eda', tool, step, index, 'version', '1.14', clobber=False)
-    chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=False)
+    chip.set('eda', tool, 'exe', exe, clobber=False)
+    chip.set('eda', tool, 'vswitch', '--version', clobber=False)
+    chip.set('eda', tool, 'version', '1.14', clobber=False)
+    chip.set('eda', tool, 'threads', step, index,  os.cpu_count(), clobber=False)
 
     # -parse is slow but ensures the SV code is valid
     # we might want an option to control when to enable this
@@ -62,10 +62,10 @@ def setup_tool(chip):
     options.append('-parse')
 
     # Wite back options tp cfg
-    chip.add('eda', tool, step, index, 'option', options)
+    chip.add('eda', tool, 'option', step, index, options)
 
     # Input/Output requirements
-    chip.add('eda', tool, step, index, 'output', chip.get('design') + '.v')
+    chip.add('eda', tool, 'output', step, index, chip.get('design') + '.v')
 
 
 def parse_version(stdout):
