@@ -1597,8 +1597,8 @@ class Chip:
                 tool = self.get('flowgraph', step, index, 'tool')
                 if tool not in self.builtin:
                     # checking that requirements are set
-                    if 'req' in  self.getkeys('eda', tool, step, index):
-                        all_required = self.get('eda', tool, step, index, 'req')
+                    if self.valid('eda', tool, 'require', step, index):
+                        all_required = self.get('eda', tool, 'require', step, index)
                         for item in all_required:
                             keypath = item.split(',')
                             if self._keypath_empty(keypath):
