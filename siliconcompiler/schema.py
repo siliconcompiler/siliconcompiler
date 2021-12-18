@@ -17,7 +17,7 @@ def schema_cfg():
 
     # SC version number (bump on every non trivial change)
     # Version number following semver standard.
-    SCHEMA_VERSION = '0.2.0'
+    SCHEMA_VERSION = '0.3.0'
 
     # Basic schema setup
     cfg = {}
