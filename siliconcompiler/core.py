@@ -370,7 +370,7 @@ class Chip:
                         # Set/add value based on type
 
                         #Check that keypath is valid
-                        if self.valid(*args[:-1], quiet=True, default_valid=False):
+                        if self.valid(*args[:-1], quiet=False, default_valid=True):
                             if re.match(r'\[', self.get(*args[:-1], field='type')):
                                 self.add(*args)
                             else:
@@ -395,15 +395,12 @@ class Chip:
 
         # Add paths
         env_path = os.environ['PATH']
-        for tools in self.getkeys('eda'):
-            for step in self.getkeys('eda', tool):
-                # Set up paths
-                for index in self.getkeys('eda', tool, step):
-                    for path in self.get('eda', tool, step, 'path'):
-                        env_path = env_path +  os.pathsep + path
+        for tool in self.getkeys('eda'):
+            for path in self.get('eda', tool):
+                env_path = env_path +  os.pathsep + path
 
         # Call setup_env functions
-        for tools in self.getkeys('eda'):
+        for tool in self.getkeys('eda'):
             for step in self.getkeys('eda', tool):
                 setup_env = self.find_function(tool, 'tool', 'setup_env')
                 if setup_env:
@@ -668,7 +665,7 @@ class Chip:
 
 
     ###########################################################################
-    def valid(self, *args, valid_keypaths=None, quiet=False, default_valid=True):
+    def valid(self, *args, valid_keypaths=None, quiet=True, default_valid=False):
         """
         Checks validity of a keypath.
 
@@ -1293,7 +1290,7 @@ class Chip:
 
         # Special case where we're looking to find tool outputs: check the
         # output directory and return those files directly
-        if len(keypath) == 5 and keypath[0] == 'eda' and keypath[-1] == 'output':
+        if len(keypath) == 5 and keypath[0] == 'eda' and keypath[2] == 'output':
             step = keypath[2]
             index = keypath[3]
             outdir = os.path.join(self._getworkdir(step=step, index=index), 'outputs')
@@ -1469,7 +1466,7 @@ class Chip:
             #only read in valid keypaths without 'default'
             key_valid = True
             if check:
-                key_valid = self.valid(*keylist)
+                key_valid = self.valid(*keylist, quiet=False, default_valid=True)
             if key_valid and 'default' not in keylist:
                 # update value, handling scalars vs. lists
                 typestr = self.get(*keylist, cfg=cfg, field='type')
@@ -1607,7 +1604,7 @@ class Chip:
                             if self._keypath_empty(keypath):
                                 self.error = 1
                                 self.logger.error(f"Value empty for [{keypath}].")
-                    if self._keypath_empty(['eda', tool, step, index, 'exe']):
+                    if self._keypath_empty(['eda', tool, 'exe']):
                         self.error = 1
                         self.logger.error(f'Executable not specified for tool {tool}')
 
@@ -2744,6 +2741,8 @@ class Chip:
         to the filesystem to communicate updates between processes.
         '''
 
+        self.write_manifest(step+'.json', prune=False)
+
         ##################
         # Shared parameters (long function!)
         design = self.get('design')
@@ -2885,9 +2884,10 @@ class Chip:
         ##################
         # 10. Copy Reference Scripts
         if tool not in self.builtin:
-            if self.get('eda', tool, step, index, 'copy'):
-                refdir = self.find_files('eda', tool, step, index, 'refdir')
-                utils.copytree(refdir, ".", dirs_exist_ok=True)
+            if self.valid('eda', tool, 'copy', step, index):
+                if self.get('eda', tool, 'copy', step, index):
+                    refdir = self.find_files('eda', tool, 'refdir', step, index)
+                    utils.copytree(refdir, ".", dirs_exist_ok=True)
 
         ##################
         # 11. Check that all requirements met
@@ -2912,8 +2912,8 @@ class Chip:
         ##################
         # 13. Set license variable
 
-        for item in self.getkeys('eda', tool, step, index, 'licenseserver'):
-            license_file = self.get('eda', tool, step, index, 'licenseserver', item)
+        for item in self.getkeys('eda', tool, 'licenseserver'):
+            license_file = self.get('eda', tool, 'licenseserver', item)
             if license_file:
                 os.environ[item] = license_file
 
@@ -2921,8 +2921,8 @@ class Chip:
         # 14. Check exe version
 
         vercheck = self.get('vercheck')
-        veropt = self.get('eda', tool, step, index, 'vswitch')
-        exe = self.get('eda', tool, step, index, 'exe')
+        veropt = self.get('eda', tool, 'vswitch')
+        exe = self.get('eda', tool, 'exe')
         version = None
         if vercheck and (veropt is not None) and (exe is not None):
             fullexe = self._resolve_env_vars(exe)
@@ -2935,7 +2935,7 @@ class Chip:
                 self._haltstep(step, index, active)
 
             version = parse_version(proc.stdout)
-            allowed_versions = self.get('eda', tool, step, index, 'version')
+            allowed_versions = self.get('eda', tool, 'version')
             if allowed_versions and version not in allowed_versions:
                 allowedstr = ', '.join(allowed_versions)
                 self.logger.error(f"Version check failed for {tool}. Check installation.")
@@ -2945,8 +2945,9 @@ class Chip:
 
         ##################
         # 15. Interface with tools (Don't move this!)
-        suffix = self.get('eda', tool, step, index, 'format')
-        self.write_manifest(f"sc_manifest.{suffix}", abspath=True)
+        suffix = self.get('eda', tool, 'format')
+        if suffix:
+            self.write_manifest(f"sc_manifest.{suffix}", abspath=True)
 
         ##################
         # 16. Run executable (or copy inputs to outputs for builtin functions)
@@ -2985,7 +2986,7 @@ class Chip:
 
             if proc.returncode != 0:
                 self.logger.warning('Command failed. See log file %s', os.path.abspath(logfile))
-                if not self.get('eda', tool, step, index, 'continue'):
+                if not self.get('eda', tool, 'continue'):
                     self._haltstep(step, index, active)
 
         ##################
@@ -3003,12 +3004,13 @@ class Chip:
         # 18. Hash files
         if self.get('hash') and (tool not in self.builtin):
             # hash all outputs
-            self.hash_files('eda', tool, step, index, 'output')
+            self.hash_files('eda', tool, 'output', step, index)
             # hash all requirements
-            for item in self.get('eda', tool, step, index, 'require'):
-                args = item.split(',')
-                if 'file' in self.get(*args, field='type'):
-                    self.hash_files(*args)
+            if self.valid('eda', tool, 'require', step, index, quiet=True):
+                for item in self.get('eda', tool, 'require', step, index):
+                    args = item.split(',')
+                    if 'file' in self.get(*args, field='type'):
+                        self.hash_files(*args)
 
         ##################
         # 19. Make a record if tracking is enabled
@@ -3377,7 +3379,7 @@ class Chip:
             setup_tool = self.find_function(tool, 'tool', 'setup_tool')
             setup_tool(self, mode='show')
 
-            exe = self.get('eda', tool, step, index, 'exe')
+            exe = self.get('eda', tool, 'exe')
             if shutil.which(exe) is None:
                 self.logger.error(f'Executable {exe} not found.')
                 success = False
@@ -3467,17 +3469,20 @@ class Chip:
         Creates a replay.sh command in current directory.
         '''
 
-        exe = self.get('eda', tool, step, index, 'exe')
+        exe = self.get('eda', tool, 'exe')
         fullexe = self._resolve_env_vars(exe)
 
         options = []
         is_posix = ('win' not in sys.platform)
 
-        for option in self.get('eda', tool, step, index, 'option'):
+        for option in self.get('eda', tool, 'option', step, index):
             options.extend(shlex.split(option, posix=is_posix))
 
         # Add scripts files
-        scripts = self.find_files('eda', tool, step, index, 'script')
+        if self.valid('eda', tool, 'script', step, index):
+            scripts = self.find_files('eda', tool, 'script', step, index)
+        else:
+            scripts = []
 
         cmdlist = [fullexe]
         logfile = step + ".log"
