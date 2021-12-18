@@ -1856,11 +1856,9 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
 
     cfg['eda'] = {}
     cfg['eda'][tool] = {}
-    cfg['eda'][tool][step] = {}
-    cfg['eda'][tool][step][index] = {}
 
-    cfg['eda'][tool][step][index]['exe'] = {
-        'switch': "-eda_exe 'tool step index <str>'",
+    cfg['eda'][tool]['exe'] = {
+        'switch': "-eda_exe 'tool<str>",
         'type': 'str',
         'lock': 'false',
         'require': None,
@@ -1868,15 +1866,15 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'defvalue': None,
         'shorthelp': 'Tool executable name',
         'example': [
-            "cli: -eda_exe 'openroad cts 0 openroad'",
-            "api:  chip.set('eda','openroad','cts','0','exe','openroad')"],
+            "cli: -eda_exe 'openroad openroad'",
+            "api:  chip.set('eda','openroad','exe','openroad')"],
         'help': """
         Tool executable name.
         """
     }
 
-    cfg['eda'][tool][step][index]['path'] = {
-        'switch': "-eda_path 'tool step index <str>'",
+    cfg['eda'][tool]['path'] = {
+        'switch': "-eda_path 'tool <dir>'",
         'type': '[dir]',
         'lock': 'false',
         'require': None,
@@ -1884,8 +1882,8 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'defvalue': [],
         'shorthelp': 'Tool executable path',
         'example': [
-            "cli: -eda_path 'openroad cts 0 /usr/local/bin'",
-            "api:  chip.set('eda','openroad','cts','0','path','/usr/local/bin')"],
+            "cli: -eda_path 'openroad /usr/local/bin'",
+            "api:  chip.set('eda','openroad','path','/usr/local/bin')"],
         'help': """
         File system path to tool executable. The path is prepended to the 'exe'
         parameter for batch runs and output as an environment variable for
@@ -1894,9 +1892,8 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         """
     }
 
-    # version-check
-    cfg['eda'][tool][step][index]['vswitch'] = {
-        'switch': "-eda_vswitch 'tool step index <str>'",
+    cfg['eda'][tool]['vswitch'] = {
+        'switch': "-eda_vswitch 'tool <str>'",
         'type': 'str',
         'lock': 'false',
         'require': None,
@@ -1904,8 +1901,8 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'defvalue': None,
         'shorthelp': 'Tool executable version switch',
         'example': [
-            "cli: -eda_vswitch 'openroad cts 0 -version'",
-            "api:  chip.set('eda','openroad','cts','0','vswitch','-version')"],
+            "cli: -eda_vswitch 'openroad -version'",
+            "api:  chip.set('eda','openroad','vswitch','-version')"],
         'help': """
         Command line switch to use with executable used to print out
         the version number. Common switches include -v, -version,
@@ -1913,17 +1910,16 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         """
     }
 
-    # exe vendor
-    cfg['eda'][tool][step][index]['vendor'] = {
-        'switch': "-eda_vendor 'tool step index <str>'",
+    cfg['eda'][tool]['vendor'] = {
+        'switch': "-eda_vendor 'tool <str>'",
         'type': 'str',
         'lock': 'false',
         'require': None,
         'signature' : None,
         'defvalue': None,
         'shorthelp': 'Tool vendor',
-        'example': ["cli: -eda_vendor 'yosys syn 0 yosys'",
-                    "api: chip.set('eda','yosys','syn','0','vendor','yosys')"],
+        'example': ["cli: -eda_vendor 'yosys yosys'",
+                    "api: chip.set('eda','yosys','vendor','yosys')"],
         'help': """
         Name of the tool vendor specified on a per tool and step basis.
         Parameter can be used to set vendor specific technology variables
@@ -1932,9 +1928,8 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         """
     }
 
-    # exe version
-    cfg['eda'][tool][step][index]['version'] = {
-        'switch': "-eda_version 'tool step index <str>'",
+    cfg['eda'][tool]['version'] = {
+        'switch': "-eda_version 'tool <str>'",
         'type': '[str]',
         'lock': 'false',
         'require': None,
@@ -1942,8 +1937,8 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'defvalue': [],
         'shorthelp': 'Tool version number',
         'example': [
-            "cli: -eda_version 'openroad cts 0 1.0'",
-            "api:  chip.set('eda','openroad','cts','0','version','1.0')"],
+            "cli: -eda_version 'openroad 1.0'",
+            "api:  chip.set('eda','openroad','version','1.0')"],
         'help': """
         Version of the tool executable specified on a per tool and per step
         basis. Mismatch between the step specified and the step available results
@@ -1952,9 +1947,9 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     }
 
     # licenseserver
-    cfg['eda'][tool][step][index]['licenseserver'] = {}
-    cfg['eda'][tool][step][index]['licenseserver']['default'] = {
-        'switch': "-eda_licenseserver 'tool step index name <str>'",
+    cfg['eda'][tool]['licenseserver'] = {}
+    cfg['eda'][tool]['licenseserver']['default'] = {
+        'switch': "-eda_licenseserver 'tool name <str>'",
         'type': '[str]',
         'lock': 'false',
         'require': None,
@@ -1962,8 +1957,8 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'defvalue': [],
         'shorthelp': 'Tool license server',
         'example': [
-            "cli: -eda_licenseserver 'atool place 0 ACME_LICENSE_FILE 1700@server'",
-            "api:  chip.set('eda','atool','place','0','licenseserver', 'ACME_LICENSE_FILE', '1700@server')"],
+            "cli: -eda_licenseserver 'atool ACME_LICENSE_FILE 1700@server'",
+            "api:  chip.set('eda','atool','licenseserver','ACME_LICENSE_FILE','1700@server')"],
         'help': """
         Defines a set of tool specific environment variables used by the executables
         that depend on license key servers to control access. For multiple servers,
@@ -1972,8 +1967,62 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         """
     }
 
-    # options
-    cfg['eda'][tool][step][index]['option'] = {
+
+    cfg['eda'][tool]['format'] = {
+        'switch': "-eda_format 'tool <file>'",
+        'require': None,
+        'type': 'str',
+        'lock': 'false',
+        'signature' : None,
+        'defvalue': None,
+        'shorthelp': 'Tool manifest file format',
+        'example': [
+            "cli: -eda_format 'yosys tcl'",
+            "api: chip.set('eda','yosys','format','tcl')"],
+        'help': """
+        File format for manifest handoff to tool. Supported formats are tcl,
+        yaml, and json.
+        """
+    }
+
+    cfg['eda'][tool]['woff'] = {
+        'switch': "-eda_woff 'tool <str>'",
+        'type': '[str]',
+        'lock': 'false',
+        'require': None,
+        'signature': None,
+        'defvalue': None,
+        'shorthelp': 'Tool warning filter',
+        'example': ["cli: -eda_woff 'verilator COMBDLY'",
+                    "api: chip.set('eda','verilator','woff','COMBDLY')"],
+        'help': """
+        A list of EDA warnings for which printing should be suppressed
+        specified on a per tool and per step basis. Generally this is done on
+        a per design basis after review has determined that warning can be
+        safely ignored The code for turning off warnings can be found in the
+        specific tool reference manual.
+        """
+    }
+
+    cfg['eda'][tool]['continue'] = {
+        'switch': "-eda_continue 'tool <bool>'",
+        'type': 'bool',
+        'lock': 'false',
+        'require': 'all',
+        'signature': None,
+        'defvalue': 'false',
+        'shorthelp': "Tool continue-on-error",
+        'example': [
+            "cli: -eda_continue 'verilator true'",
+            "api: chip.set('eda','verilator','continue', true)"],
+        'help': """
+        Directs tool to not exit on error.
+        """
+    }
+
+    cfg['eda'][tool]['option'] = {}
+    cfg['eda'][tool]['option'][step] = {}
+    cfg['eda'][tool]['option'][step][index] = {
         'switch': "-eda_option 'tool step index name <str>'",
         'type': '[str]',
         'lock': 'false',
@@ -1983,7 +2032,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'shorthelp': 'Tool options',
         'example': [
             "cli: -eda_option 'openroad cts 0 -no_init'",
-            "api: chip.set('eda','openroad','cts','0','option','-no_init')"],
+            "api: chip.set('eda','openroad','option','cts','0','-no_init')"],
         'help': """
         List of command line options for the tool executable, specified on
         a per tool and per step basis. Options should not include spaces.
@@ -1991,9 +2040,10 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         """
     }
 
-    # variables
-    cfg['eda'][tool][step][index]['variable'] = {}
-    cfg['eda'][tool][step][index]['variable']['default'] = {
+    cfg['eda'][tool]['variable'] = {}
+    cfg['eda'][tool]['variable'][step] = {}
+    cfg['eda'][tool]['variable'][step][index] = {}
+    cfg['eda'][tool]['variable'][step][index]['default'] = {
         'switch': "-eda_variable 'tool step index name <str>'",
         'type': '[str]',
         'lock': 'false',
@@ -2003,7 +2053,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'shorthelp': 'Tool script variables',
         'example': [
             "cli: -eda_variable 'openroad cts 0 myvar 42'",
-            "api: chip.set('eda','openroad','cts','0','variable','myvar', '42')"],
+            "api: chip.set('eda','openroad','variable','cts','0','myvar','42')"],
         'help': """
         Executable script variables specified as key value pairs. Variable
         names and value types must match the name and type of tool and reference
@@ -2011,8 +2061,9 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         """
     }
 
-    # input files
-    cfg['eda'][tool][step][index]['input'] = {
+    cfg['eda'][tool]['input'] = {}
+    cfg['eda'][tool]['input'][step] = {}
+    cfg['eda'][tool]['input'][step][index] = {
         'switch': "-eda_input 'tool step index <str>'",
         'type': '[file]',
         'lock': 'false',
@@ -2028,7 +2079,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'shorthelp': 'Tool input files',
         'example': [
             "cli: -eda_input 'openroad place 0 oh_add.def'",
-            "api: chip.set('eda','openroad','place','0','input','oh_add.def')"],
+            "api: chip.set('eda','openroad','input','place','0','oh_add.def')"],
         'help': """
         List of data files to be copied from previous flowgraph steps 'output'
         directory. The list of steps to copy files from is defined by the
@@ -2038,8 +2089,9 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         """
     }
 
-    # output files
-    cfg['eda'][tool][step][index]['output'] = {
+    cfg['eda'][tool]['output'] = {}
+    cfg['eda'][tool]['output'][step] = {}
+    cfg['eda'][tool]['output'][step][index] = {
         'switch': "-eda_output 'tool step index <str>'",
         'type': '[file]',
         'lock': 'false',
@@ -2054,7 +2106,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'defvalue': [],
         'shorthelp': 'Tool output files ',
         'example': ["cli: -eda_output 'openroad place 0 oh_add.def'",
-                    "api: chip.set('eda','openroad','place','0','output','oh_add.def')"],
+                    "api: chip.set('eda','openroad','output','place','0','oh_add.def')"],
         'help': """
         List of data files produced by the current task and placed in the
         'output' directory. During execution, if a file is missing, the
@@ -2062,10 +2114,11 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         """
     }
 
-    # report files
     report_type = 'default'
-    cfg['eda'][tool][step][index]['report'] = {}
-    cfg['eda'][tool][step][index]['report'][report_type] = {
+    cfg['eda'][tool]['report'] = {}
+    cfg['eda'][tool]['report'][step] = {}
+    cfg['eda'][tool]['report'][step][index] = {}
+    cfg['eda'][tool]['report'][step][index][report_type] = {
         'switch': "-eda_report 'tool step index report_type <str>'",
         'type': '[file]',
         'lock': 'false',
@@ -2081,15 +2134,16 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'shorthelp': 'Tool report files ',
         'example': [
             "cli: -eda_report 'yosys syn 0 hold hold.rpt'",
-            "api: chip.set('eda','yosys','syn','0','report','hold','hold.rpt')"],
+            "api: chip.set('eda','yosys','report','syn','0','hold','hold.rpt')"],
         'help': """
         List of reports of type of a certain kind produced by the task within the
         local 'reports' directory.
         """
     }
 
-    # list of parameters used by tool
-    cfg['eda'][tool][step][index]['require'] = {
+    cfg['eda'][tool]['require'] = {}
+    cfg['eda'][tool]['require'][step] = {}
+    cfg['eda'][tool]['require'][step][index] = {
         'switch': "-eda_req 'tool step index <str>'",
         'type': '[str]',
         'lock': 'false',
@@ -2099,7 +2153,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'shorthelp': 'Tool parameter requirements',
         'example': [
             "cli: -eda_require 'openroad cts 0 design'",
-            "api: chip.set('eda','openroad', 'cts','0','require','design')"],
+            "api: chip.set('eda','openroad','require','cts','0','design')"],
         'help': """
         List of keypaths to required tool parameters. The list is used
         by check() to verify that all parameters have been set up before
@@ -2107,8 +2161,9 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         """
     }
 
-    # refdir
-    cfg['eda'][tool][step][index]['refdir'] = {
+    cfg['eda'][tool]['refdir'] = {}
+    cfg['eda'][tool]['refdir'][step] = {}
+    cfg['eda'][tool]['refdir'][step][index] = {
         'switch': "-eda_refdir 'tool step index <dir>'",
         'type': 'dir',
         'lock': 'false',
@@ -2118,15 +2173,16 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'shorthelp': 'Tool reference directory',
         'example': [
             "cli: -eda_refdir 'yosys syn 0 ./myref'",
-            "api:  chip.set('eda','yosys','syn','0','refdir','./myref')"],
+            "api:  chip.set('eda','yosys','refdir','syn','0','./myref')"],
         'help': """
         Path to directories  containing compilation scripts, specified
         on a per step basis.
         """
     }
 
-    # entry point scripts
-    cfg['eda'][tool][step][index]['script'] = {
+    cfg['eda'][tool]['script'] = {}
+    cfg['eda'][tool]['script'][step] = {}
+    cfg['eda'][tool]['script'][step][index] = {
         'switch': "-eda_script 'tool step index <file>'",
         'require': None,
         'type': '[file]',
@@ -2141,34 +2197,18 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'shorthelp': 'Tool entry script',
         'example': [
             "cli: -eda_script 'yosys syn 0 syn.tcl'",
-            "api: chip.set('eda','yosys','syn','0','script','syn.tcl')"],
+            "api: chip.set('eda','yosys','script','syn','0','syn.tcl')"],
         'help': """
         Path to the entry point compilation script called by the executable,
         specified on a per tool and per step basis.
         """
     }
 
-    # manifest format
-    cfg['eda'][tool][step][index]['format'] = {
-        'switch': "-eda_format 'tool step index <file>'",
-        'require': None,
-        'type': 'str',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': 'tcl',
-        'shorthelp': 'Tool manifest file format',
-        'example': [
-            "cli: -eda_format 'yosys syn 0 tcl'",
-            "api: chip.set('eda','yosys','syn','0','format','tcl')"],
-        'help': """
-        File format for manifest handoff to tool. Supported formats are tcl,
-        yaml, and json.
-        """
-    }
 
 
-    # pre execution script
-    cfg['eda'][tool][step][index]['prescript'] = {
+    cfg['eda'][tool]['prescript'] = {}
+    cfg['eda'][tool]['prescript'][step] = {}
+    cfg['eda'][tool]['prescript'][step][index] = {
         'switch': "-eda_prescript 'tool step index <file>'",
         'require': None,
         'type': '[file]',
@@ -2183,7 +2223,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'shorthelp': 'Tool pre-script plugin',
         'example': [
             "cli: -eda_prescript 'yosys syn 0 pre.tcl'",
-            "api: chip.set('eda','yosys','syn','0','prescript','pre.tcl')"],
+            "api: chip.set('eda','yosys','prescript','syn','0','pre.tcl')"],
         'help': """
         Path to a user supplied script to execute after reading in the design
         but before the main execution stage of the step. Exact entry point
@@ -2193,8 +2233,9 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         """
     }
 
-    # post execution script
-    cfg['eda'][tool][step][index]['postscript'] = {
+    cfg['eda'][tool]['postscript'] = {}
+    cfg['eda'][tool]['postscript'][step] = {}
+    cfg['eda'][tool]['postscript'][step][index] = {
         'switch': "-eda_postscript 'tool step index <file>'",
         'require': None,
         'type': '[file]',
@@ -2208,7 +2249,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'signature': [],
         'shorthelp': 'Tool post-script plugin',
         'example': ["cli: -eda_postscript 'yosys syn 0 post.tcl'",
-                    "api: chip.set('eda','yosys','syn','0','postscript','post.tcl')"],
+                    "api: chip.set('eda','yosys','postscript','syn','0','post.tcl')"],
         'help': """
         Path to a user supplied script to execute after reading in the design
         but before the main execution stage of the step. Exact entry point
@@ -2218,8 +2259,9 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         """
     }
 
-    # copy
-    cfg['eda'][tool][step][index]['copy'] = {
+    cfg['eda'][tool]['copy'] = {}
+    cfg['eda'][tool]['copy'][step] = {}
+    cfg['eda'][tool]['copy'][step][index] = {
         'switch': "-eda_copy 'tool step index <bool>'",
         'type': 'bool',
         'lock': 'false',
@@ -2228,7 +2270,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'defvalue': "false",
         'shorthelp': 'Tool copy-local option',
         'example': ["cli: -eda_copy 'openroad cts 0 true'",
-                    "api: chip.set('eda','openroad','cts','0','copy',true)"],
+                    "api: chip.set('eda','openroad','copy','cts','0',true)"],
         'help': """
         Specifies that the reference script directory should be copied and run
         from the local run directory. The option is specified on a per tool and
@@ -2236,8 +2278,9 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         """
     }
 
-    # parallelism
-    cfg['eda'][tool][step][index]['threads'] = {
+    cfg['eda'][tool]['threads'] = {}
+    cfg['eda'][tool]['threads'][step] = {}
+    cfg['eda'][tool]['threads'][step][index] = {
         'switch': "-eda_threads 'tool step index <int>'",
         'type': 'int',
         'lock': 'false',
@@ -2246,7 +2289,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'defvalue': None,
         'shorthelp': 'Tool job parallelism',
         'example': ["cli: -eda_threads 'magic drc 0 64'",
-                    "api: chip.set('eda','magic','drc','0','threads','64')"],
+                    "api: chip.set('eda','magic','threads','drc','0','64')"],
         'help': """
         Thread parallelism to use for execution specified on a per tool and per
         step basis. If not specified, SC queries the operating system and sets
@@ -2255,42 +2298,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         """
     }
 
-    # turn off warning
-    cfg['eda'][tool][step][index]['woff'] = {
-        'switch': "-eda_woff 'tool step index name <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Tool warning filter',
-        'example': ["cli: -eda_woff 'verilator import 0 COMBDLY'",
-                    "api: chip.set('eda','verilator','import','0','woff','COMBDLY')"],
-        'help': """
-        A list of EDA warnings for which printing should be suppressed specified
-        on a per tool and per step basis. Generally this is done on a per
-        design basis after review has determined that warning can be safely
-        ignored The code for turning off warnings can be found in the specific
-        tool reference manual.
-        """
-    }
 
-    # continue
-    cfg['eda'][tool][step][index]['continue'] = {
-        'switch': "-eda_continue 'tool step index <bool>'",
-        'type': 'bool',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': 'false',
-        'shorthelp': "Tool continue-on-error",
-        'example': [
-            "cli: -eda_continue 'verilator import 0 true'",
-            "api: chip.set('eda','verilator','import','0','continue',true)"],
-        'help': """
-        Directs tool to not exit on error.
-        """
-    }
 
     return cfg
 
