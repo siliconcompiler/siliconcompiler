@@ -317,20 +317,16 @@
                 "value": "false"
             },
             "copy": {
-                "export": {
-                    "0": {
-                        "defvalue": "false",
-                        "lock": "false",
-                        "require": null,
-                        "shorthelp": "Tool copy-local option",
-                        "signature": [
-                            null
-                        ],
-                        "switch": "-eda_copy 'tool step index <bool>'",
-                        "type": "bool",
-                        "value": "true"
-                    }
-                }
+                "defvalue": "false",
+                "lock": "false",
+                "require": null,
+                "shorthelp": "Tool copy-local option",
+                "signature": [
+                    null
+                ],
+                "switch": "-eda_copy 'tool <bool>'",
+                "type": "bool",
+                "value": "true"
             },
             "exe": {
                 "defvalue": null,
@@ -512,90 +508,16 @@
                 "value": "false"
             },
             "copy": {
-                "cts": {
-                    "0": {
-                        "defvalue": "false",
-                        "lock": "false",
-                        "require": null,
-                        "shorthelp": "Tool copy-local option",
-                        "signature": [
-                            null
-                        ],
-                        "switch": "-eda_copy 'tool step index <bool>'",
-                        "type": "bool",
-                        "value": "true"
-                    }
-                },
-                "dfm": {
-                    "0": {
-                        "defvalue": "false",
-                        "lock": "false",
-                        "require": null,
-                        "shorthelp": "Tool copy-local option",
-                        "signature": [
-                            null
-                        ],
-                        "switch": "-eda_copy 'tool step index <bool>'",
-                        "type": "bool",
-                        "value": "true"
-                    }
-                },
-                "floorplan": {
-                    "0": {
-                        "defvalue": "false",
-                        "lock": "false",
-                        "require": null,
-                        "shorthelp": "Tool copy-local option",
-                        "signature": [
-                            null
-                        ],
-                        "switch": "-eda_copy 'tool step index <bool>'",
-                        "type": "bool",
-                        "value": "true"
-                    }
-                },
-                "physyn": {
-                    "0": {
-                        "defvalue": "false",
-                        "lock": "false",
-                        "require": null,
-                        "shorthelp": "Tool copy-local option",
-                        "signature": [
-                            null
-                        ],
-                        "switch": "-eda_copy 'tool step index <bool>'",
-                        "type": "bool",
-                        "value": "true"
-                    }
-                },
-                "place": {
-                    "0": {
-                        "defvalue": "false",
-                        "lock": "false",
-                        "require": null,
-                        "shorthelp": "Tool copy-local option",
-                        "signature": [
-                            null
-                        ],
-                        "switch": "-eda_copy 'tool step index <bool>'",
-                        "type": "bool",
-                        "value": "true"
-                    }
-                },
-                "route": {
-                    "0": {
-                        "defvalue": "false",
-                        "lock": "false",
-                        "require": null,
-                        "shorthelp": "Tool copy-local option",
-                        "signature": [
-                            null
-                        ],
-                        "switch": "-eda_copy 'tool step index <bool>'",
-                        "type": "bool",
-                        "value": "true"
-                    }
-                }
+                "defvalue": "false",
+                "lock": "false",
+                "require": null,
+                "shorthelp": "Tool copy-local option",
+                "signature": [
+                    null
+                ],
+                "switch": "-eda_copy 'tool <bool>'",
+                "type": "bool",
+                "value": "true"
             },
             "exe": {
                 "defvalue": null,
@@ -1699,6 +1621,18 @@
                 "type": "bool",
                 "value": "false"
             },
+            "copy": {
+                "defvalue": "false",
+                "lock": "false",
+                "require": null,
+                "shorthelp": "Tool copy-local option",
+                "signature": [
+                    null
+                ],
+                "switch": "-eda_copy 'tool <bool>'",
+                "type": "bool",
+                "value": "false"
+            },
             "exe": {
                 "defvalue": null,
                 "lock": "false",
@@ -1805,20 +1739,16 @@
                 "value": "false"
             },
             "copy": {
-                "syn": {
-                    "0": {
-                        "defvalue": "false",
-                        "lock": "false",
-                        "require": null,
-                        "shorthelp": "Tool copy-local option",
-                        "signature": [
-                            null
-                        ],
-                        "switch": "-eda_copy 'tool step index <bool>'",
-                        "type": "bool",
-                        "value": "true"
-                    }
-                }
+                "defvalue": "false",
+                "lock": "false",
+                "require": null,
+                "shorthelp": "Tool copy-local option",
+                "signature": [
+                    null
+                ],
+                "switch": "-eda_copy 'tool <bool>'",
+                "type": "bool",
+                "value": "true"
             },
             "exe": {
                 "defvalue": null,
@@ -6963,7 +6893,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "2.45"
+                        "value": "2.43"
                     }
                 },
                 "security": {
@@ -7509,7 +7439,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "1.01"
+                        "value": "1.07"
                     }
                 },
                 "security": {
@@ -8015,7 +7945,7 @@
                         "signature": null,
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.92"
+                        "value": "0.83"
                     }
                 },
                 "security": {
@@ -8535,7 +8465,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.91"
+                        "value": "0.96"
                     }
                 },
                 "security": {
@@ -9081,7 +9011,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.33"
+                        "value": "0.44"
                     }
                 },
                 "security": {
@@ -9627,7 +9557,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.97"
+                        "value": "0.92"
                     }
                 },
                 "security": {
@@ -10719,7 +10649,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "3.01"
+                        "value": "2.64"
                     }
                 },
                 "security": {
@@ -11265,7 +11195,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.79"
+                        "value": "0.82"
                     }
                 },
                 "security": {
@@ -12607,17 +12537,17 @@
             "signature": null,
             "switch": "-version_sc <str>",
             "type": "str",
-            "value": "0.2.0"
+            "value": "0.3.0"
         },
         "schema": {
-            "defvalue": "0.2.0",
+            "defvalue": "0.3.0",
             "lock": "true",
             "require": "all",
             "shorthelp": "Schema version number",
             "signature": null,
             "switch": "-version_schema <str>",
             "type": "str",
-            "value": "0.2.0"
+            "value": "0.3.0"
         }
     }
 }
