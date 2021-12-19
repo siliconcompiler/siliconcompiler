@@ -26,8 +26,8 @@ def test_tool_option(scroot):
     chip.set('flowarg', 'place_np', ['2'])
     chip.target()
 
-    chip.set('eda', 'openroad', 'place', '0', 'variable', 'place_density', '0.15')
-    chip.set('eda', 'openroad', 'place', '1', 'variable', 'place_density', '0.3')
+    chip.set('eda', 'openroad', 'variable', 'place', '0',  'place_density', '0.15')
+    chip.set('eda', 'openroad', 'variable', 'place', '1',  'place_density', '0.3')
 
     # No need to run beyond place, we just want to check that setting place_density
     # doesn't break anything.
@@ -87,9 +87,9 @@ def test_failed_branch_min(chip):
     one passes.'''
 
     # Illegal value, so this branch will fail!
-    chip.set('eda', 'openroad', 'place', '0', 'variable', 'place_density', 'asdf')
+    chip.set('eda', 'openroad', 'variable', 'place', '0', 'place_density', 'asdf')
     # Legal value, so this branch should succeed
-    chip.set('eda', 'openroad', 'place', '1', 'variable', 'place_density', '0.5')
+    chip.set('eda', 'openroad', 'variable', 'place', '1', 'place_density', '0.5')
 
     # Perform minimum
     chip.set('flowgraph', 'placemin', '0', 'tool', 'minimum')
@@ -110,8 +110,8 @@ def test_all_failed_min(chip):
 
 
     # Illegal values, so both branches should fail
-    chip.set('eda', 'openroad', 'place', '0', 'variable', 'place_density', 'asdf')
-    chip.set('eda', 'openroad', 'place', '1', 'variable', 'place_density', 'asdf')
+    chip.set('eda', 'openroad', 'variable', 'place', '0', 'place_density', 'asdf')
+    chip.set('eda', 'openroad', 'variable', 'place', '1', 'place_density', 'asdf')
 
     # Perform minimum
     chip.set('flowgraph', 'placemin', '0', 'tool', 'minimum')
@@ -130,9 +130,9 @@ def test_branch_failed_join(chip):
     '''Test that a join will fail if one branch has errors.'''
 
     # Illegal values, so branch should fail
-    chip.set('eda', 'openroad', 'place', '0', 'variable', 'place_density', 'asdf')
+    chip.set('eda', 'openroad', 'variable', 'place', '0', 'place_density', 'asdf')
     # Legal value, so branch should succeed
-    chip.set('eda', 'openroad', 'place', '1', 'variable', 'place_density', '0.5')
+    chip.set('eda', 'openroad', 'variable', 'place', '1', 'place_density', '0.5')
 
     # Perform join
     chip.set('flowgraph', 'placemin', '0', 'tool', 'join')
