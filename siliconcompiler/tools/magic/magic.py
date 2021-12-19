@@ -54,15 +54,13 @@ def setup_tool(chip):
     else:
         raise ValueError(f"Magic tool doesn't support step {step}.")
 
-    chip.set('eda', tool, step, index, 'exe', tool)
-    chip.set('eda', tool, step, index, 'vswitch', '--version')
-    chip.set('eda', tool, step, index, 'version', '8.3.196')
-    chip.set('eda', tool, step, index, 'threads', 4)
-    chip.set('eda', tool, step, index, 'refdir', refdir)
-    chip.set('eda', tool, step, index, 'script', refdir + '/' + script)
-
-    # copy in .magicrc file
-    chip.set('eda', tool, step, index, 'copy', 'true')
+    chip.set('eda', tool, 'exe', tool)
+    chip.set('eda', tool, 'vswitch', '--version')
+    chip.set('eda', tool, 'version', '8.3.196')
+    chip.set('eda', tool, 'copy', 'true') # copy in .magicrc file
+    chip.set('eda', tool, 'threads', step, index,  4)
+    chip.set('eda', tool, 'refdir', step, index,  refdir)
+    chip.set('eda', tool, 'script', step, index,  refdir + '/' + script)
 
     # set options
     options = []
@@ -70,7 +68,7 @@ def setup_tool(chip):
     options.append('-dnull')
     options.append('-rcfile')
     options.append('sc.magicrc')
-    chip.set('eda', tool, step, index, 'option', options, clobber=False)
+    chip.set('eda', tool, 'option', step, index,  options, clobber=False)
 
 ################################
 # Version Check

@@ -370,7 +370,7 @@ class Chip:
                         # Set/add value based on type
 
                         #Check that keypath is valid
-                        if self.valid(*args[:-1], quiet=False, default_valid=True):
+                        if self.valid(*args[:-1], quiet=True):
                             if re.match(r'\[', self.get(*args[:-1], field='type')):
                                 self.add(*args)
                             else:
@@ -2740,8 +2740,6 @@ class Chip:
         be reflected in the parent. We rely on reading/writing the chip manifest
         to the filesystem to communicate updates between processes.
         '''
-
-        self.write_manifest(step+'.json', prune=False)
 
         ##################
         # Shared parameters (long function!)

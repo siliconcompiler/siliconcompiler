@@ -43,11 +43,11 @@ def setup_tool(chip):
     step = chip.get('arg','step')
     index = chip.get('arg','index')
 
-    chip.set('eda', tool, step, index, 'threads', '4', clobber=clobber)
-    chip.set('eda', tool, step, index, 'copy', 'false', clobber=clobber)
-    chip.set('eda', tool, step, index, 'exe', 'ghdl', clobber=clobber)
-    chip.set('eda', tool, step, index, 'vswitch', '--version', clobber=clobber)
-    chip.set('eda', tool, step, index, 'version', '2.0.0-dev', clobber=clobber)
+    chip.set('eda', tool, 'copy', 'false', clobber=clobber)
+    chip.set('eda', tool, 'exe', 'ghdl', clobber=clobber)
+    chip.set('eda', tool, 'vswitch', '--version', clobber=clobber)
+    chip.set('eda', tool, 'version', '2.0.0-dev', clobber=clobber)
+    chip.set('eda', tool, 'threads', step, index, '4', clobber=clobber)
 
 ################################
 #  Custom runtime options
@@ -58,8 +58,8 @@ def runtime_options(chip):
     ''' Custom runtime options, returnst list of command line options.
     '''
 
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
 
     options = []
 

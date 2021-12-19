@@ -48,10 +48,10 @@ def setup_tool(chip):
     step = chip.get('arg','step')
     index = chip.get('arg','index')
 
-    chip.set('eda', tool, step, index, 'exe', tool)
-    chip.set('eda', tool, step, index, 'vswitch', '--numeric-version')
-    chip.set('eda', tool, step, index, 'version', '0.0.9')
-    chip.set('eda', tool, step, index, 'threads', 4)
+    chip.set('eda', tool, 'exe', tool)
+    chip.set('eda', tool, 'vswitch', '--numeric-version')
+    chip.set('eda', tool, 'version', '0.0.9')
+    chip.set('eda', tool, 'threads', step, index,  4)
 
     # Since we run sv2v after the import/preprocess step, there should be no
     # need for specifying include dirs/defines. However we don't want to pass
@@ -63,9 +63,9 @@ def setup_tool(chip):
     # set and we can read the pickled Verilog without accessing the original
     # sources
     topmodule = chip.get('design')
-    chip.set('eda', tool, step, index, 'option', [])
-    chip.add('eda', tool, step, index, 'option', "inputs/" + topmodule + ".v")
-    chip.add('eda', tool, step, index, 'option', "--write=outputs/" + topmodule + ".v")
+    chip.set('eda', tool, 'option', step, index,  [])
+    chip.add('eda', tool, 'option', step, index,  "inputs/" + topmodule + ".v")
+    chip.add('eda', tool, 'option', step, index,  "--write=outputs/" + topmodule + ".v")
 
 def parse_version(stdout):
     # 0.0.7-130-g1aa30ea

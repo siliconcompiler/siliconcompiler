@@ -47,18 +47,18 @@ def setup_tool(chip):
     # magic used for drc and lvs
     script = 'sc_lvs.tcl'
 
-    chip.set('eda', tool, step, index, 'exe', tool)
-    chip.set('eda', tool, step, index, 'vswitch', '-batch')
-    chip.set('eda', tool, step, index, 'version', '1.5.192')
-    chip.set('eda', tool, step, index, 'threads', 4)
-    chip.set('eda', tool, step, index, 'refdir', refdir)
-    chip.set('eda', tool, step, index, 'script', refdir + '/' + script)
+    chip.set('eda', tool, 'exe', tool)
+    chip.set('eda', tool, 'vswitch', '-batch')
+    chip.set('eda', tool, 'version', '1.5.192')
+    chip.set('eda', tool, 'threads', step, index, 4)
+    chip.set('eda', tool, 'refdir', step, index, refdir)
+    chip.set('eda', tool, 'script', step, index, refdir + '/' + script)
 
     # set options
     options = []
     options.append('-batch')
     options.append('source')
-    chip.set('eda', tool, step, index, 'option', options, clobber=False)
+    chip.set('eda', tool, 'option', step, index, options, clobber=False)
 
 ################################
 # Version Check
