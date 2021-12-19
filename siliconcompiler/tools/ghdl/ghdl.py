@@ -48,6 +48,7 @@ def setup_tool(chip):
     chip.set('eda', tool, 'vswitch', '--version', clobber=clobber)
     chip.set('eda', tool, 'version', '2.0.0-dev', clobber=clobber)
     chip.set('eda', tool, 'threads', step, index, '4', clobber=clobber)
+    chip.set('eda', tool, 'option', step, index, '', clobber=clobber)
 
 ################################
 #  Custom runtime options
