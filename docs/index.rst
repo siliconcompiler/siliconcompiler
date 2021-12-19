@@ -40,6 +40,7 @@ Welcome to SiliconCompiler's documentation!
    tutorials/parallel
    tutorials/slurmsetup
    tutorials/migen
+   tutorials/chisel
 
 .. toctree::
    :maxdepth: 3
