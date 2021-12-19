@@ -2884,10 +2884,9 @@ class Chip:
         ##################
         # 10. Copy Reference Scripts
         if tool not in self.builtin:
-            if self.valid('eda', tool, 'copy', step, index):
-                if self.get('eda', tool, 'copy', step, index):
-                    refdir = self.find_files('eda', tool, 'refdir', step, index)
-                    utils.copytree(refdir, ".", dirs_exist_ok=True)
+            if self.get('eda', tool, 'copy'):
+                refdir = self.find_files('eda', tool, 'refdir', step, index)
+                utils.copytree(refdir, ".", dirs_exist_ok=True)
 
         ##################
         # 11. Check that all requirements met

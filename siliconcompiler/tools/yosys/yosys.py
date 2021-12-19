@@ -52,7 +52,7 @@ def setup_tool(chip):
     chip.set('eda', tool, 'vswitch', '--version', clobber=False)
     chip.set('eda', tool, 'version', '0.9', clobber=False)
     chip.set('eda', tool, 'format', 'tcl', clobber=False)
-    chip.set('eda', tool, 'copy', step, index,  'true', clobber=False)
+    chip.set('eda', tool, 'copy', 'true', clobber=False)
     chip.set('eda', tool, 'option', step, index, '-c', clobber=False)
     chip.set('eda', tool, 'refdir', step, index, refdir, clobber=False)
 

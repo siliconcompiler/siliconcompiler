@@ -1921,10 +1921,10 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'example': ["cli: -eda_vendor 'yosys yosys'",
                     "api: chip.set('eda','yosys','vendor','yosys')"],
         'help': """
-        Name of the tool vendor specified on a per tool and step basis.
-        Parameter can be used to set vendor specific technology variables
-        in the PDK and libraries. For open source projects, the project
-        name should be used in place of vendor.
+        Name of the tool vendor. Parameter can be used to set vendor
+        specific technology variables in the PDK and libraries. For
+        open source projects, the project name should be used in
+        place of vendor.
         """
     }
 
@@ -1940,13 +1940,77 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
             "cli: -eda_version 'openroad 1.0'",
             "api:  chip.set('eda','openroad','version','1.0')"],
         'help': """
-        Version of the tool executable specified on a per tool and per step
-        basis. Mismatch between the step specified and the step available results
-        in an error.
+        Version of the tool executable.
         """
     }
 
-    # licenseserver
+    cfg['eda'][tool]['format'] = {
+        'switch': "-eda_format 'tool <file>'",
+        'require': None,
+        'type': 'str',
+        'lock': 'false',
+        'signature' : None,
+        'defvalue': None,
+        'shorthelp': 'Tool manifest file format',
+        'example': [
+            "cli: -eda_format 'yosys tcl'",
+            "api: chip.set('eda','yosys','format','tcl')"],
+        'help': """
+        File format for tool manifest handoff. Supported formats are tcl,
+        yaml, and json.
+        """
+    }
+
+    cfg['eda'][tool]['woff'] = {
+        'switch': "-eda_woff 'tool <str>'",
+        'type': '[str]',
+        'lock': 'false',
+        'require': None,
+        'signature': None,
+        'defvalue': None,
+        'shorthelp': 'Tool warning filter',
+        'example': ["cli: -eda_woff 'verilator COMBDLY'",
+                    "api: chip.set('eda','verilator','woff','COMBDLY')"],
+        'help': """
+        A list of EDA warnings for which printing should be suppressed.
+        Generally this is done on a per design basis after review has
+        determined that warning can be safely ignored The code for turning
+        off warnings can be found in the specific tool reference manual.
+        """
+    }
+
+    cfg['eda'][tool]['continue'] = {
+        'switch': "-eda_continue 'tool <bool>'",
+        'type': 'bool',
+        'lock': 'false',
+        'require': 'all',
+        'signature': None,
+        'defvalue': 'false',
+        'shorthelp': "Tool continue-on-error",
+        'example': [
+            "cli: -eda_continue 'verilator true'",
+            "api: chip.set('eda','verilator','continue', true)"],
+        'help': """
+        Directs tool to not exit on error.
+        """
+    }
+
+    cfg['eda'][tool]['copy'] = {
+        'switch': "-eda_copy 'tool <bool>'",
+        'type': 'bool',
+        'lock': 'false',
+        'require': None,
+        'signature': None,
+        'defvalue': "false",
+        'shorthelp': 'Tool copy-local option',
+        'example': ["cli: -eda_copy 'openroad true'",
+                    "api: chip.set('eda','openroad','copy',true)"],
+        'help': """
+        Specifies that the reference script directory should be copied and run
+        from the local run directory.
+        """
+    }
+
     cfg['eda'][tool]['licenseserver'] = {}
     cfg['eda'][tool]['licenseserver']['default'] = {
         'switch': "-eda_licenseserver 'tool name <str>'",
@@ -1967,58 +2031,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         """
     }
 
-
-    cfg['eda'][tool]['format'] = {
-        'switch': "-eda_format 'tool <file>'",
-        'require': None,
-        'type': 'str',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'Tool manifest file format',
-        'example': [
-            "cli: -eda_format 'yosys tcl'",
-            "api: chip.set('eda','yosys','format','tcl')"],
-        'help': """
-        File format for manifest handoff to tool. Supported formats are tcl,
-        yaml, and json.
-        """
-    }
-
-    cfg['eda'][tool]['woff'] = {
-        'switch': "-eda_woff 'tool <str>'",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Tool warning filter',
-        'example': ["cli: -eda_woff 'verilator COMBDLY'",
-                    "api: chip.set('eda','verilator','woff','COMBDLY')"],
-        'help': """
-        A list of EDA warnings for which printing should be suppressed
-        specified on a per tool and per step basis. Generally this is done on
-        a per design basis after review has determined that warning can be
-        safely ignored The code for turning off warnings can be found in the
-        specific tool reference manual.
-        """
-    }
-
-    cfg['eda'][tool]['continue'] = {
-        'switch': "-eda_continue 'tool <bool>'",
-        'type': 'bool',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': 'false',
-        'shorthelp': "Tool continue-on-error",
-        'example': [
-            "cli: -eda_continue 'verilator true'",
-            "api: chip.set('eda','verilator','continue', true)"],
-        'help': """
-        Directs tool to not exit on error.
-        """
-    }
+    # eda entries below work on step/index basis
 
     cfg['eda'][tool]['option'] = {}
     cfg['eda'][tool]['option'][step] = {}
@@ -2259,24 +2272,6 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         """
     }
 
-    cfg['eda'][tool]['copy'] = {}
-    cfg['eda'][tool]['copy'][step] = {}
-    cfg['eda'][tool]['copy'][step][index] = {
-        'switch': "-eda_copy 'tool step index <bool>'",
-        'type': 'bool',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': "false",
-        'shorthelp': 'Tool copy-local option',
-        'example': ["cli: -eda_copy 'openroad cts 0 true'",
-                    "api: chip.set('eda','openroad','copy','cts','0',true)"],
-        'help': """
-        Specifies that the reference script directory should be copied and run
-        from the local run directory. The option is specified on a per tool and
-        per step basis.
-        """
-    }
 
     cfg['eda'][tool]['threads'] = {}
     cfg['eda'][tool]['threads'][step] = {}

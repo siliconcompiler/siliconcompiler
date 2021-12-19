@@ -63,11 +63,11 @@ def setup_tool(chip, mode='batch'):
     chip.set('eda', tool, 'vswitch', '-version', clobber=clobber)
     chip.set('eda', tool, 'version', 'v2.0', clobber=clobber)
     chip.set('eda', tool, 'format', 'tcl', clobber=clobber)
-    chip.set('eda', tool, 'threads', step, index, os.cpu_count(), clobber=clobber)
+    chip.set('eda', tool, 'copy', 'true', clobber=clobber)
     chip.set('eda', tool, 'option',  step, index, option, clobber=clobber)
-    chip.set('eda', tool, 'copy', step, index, 'true', clobber=clobber)
     chip.set('eda', tool, 'refdir',  step, index, refdir, clobber=clobber)
     chip.set('eda', tool, 'script',  step, index, refdir + script, clobber=clobber)
+    chip.set('eda', tool, 'threads', step, index, os.cpu_count(), clobber=clobber)
 
     # Input/Output requirements
     chip.add('eda', tool, 'output', step, index, chip.get('design') + '.sdc')

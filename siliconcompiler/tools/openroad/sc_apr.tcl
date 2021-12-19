@@ -27,7 +27,7 @@ set openroad_macro_place_halo [dict get $sc_cfg eda $sc_tool {variable} $sc_step
 set openroad_macro_place_channel [dict get $sc_cfg eda $sc_tool {variable} $sc_step $sc_index  macro_place_channel]
 
 #Handling remote/local script execution
-if {[dict get $sc_cfg eda $sc_tool copy $sc_step $sc_index ] eq True} {
+if {[dict get $sc_cfg eda $sc_tool copy] eq True} {
     set sc_refdir "."
 } else {
     set sc_refdir [dict get $sc_cfg eda $sc_tool refdir $sc_step $sc_index ]
