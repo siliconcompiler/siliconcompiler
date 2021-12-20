@@ -60,7 +60,6 @@ def schema_cfg():
     # Compilation records
     cfg = schema_metric(cfg)
     cfg = schema_record(cfg)
-    cfg = schema_package(cfg, 'record')
 
     return cfg
 
@@ -3012,7 +3011,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
             "cli: -record_input 'job0 import 0 adder.v'",
             "api: chip.set('record','job0','import','0','input','adder.v')"],
         'help': """
-        Record tracking all input files on a per step and index basis.
+        Record tracking all input files per job, step, index.
         """
     }
 
@@ -3033,12 +3032,44 @@ def schema_record(cfg, job='default', step='default', index='default'):
             "cli: -record_output 'job0 syn 0 outputs/adder.vg'",
             "api: chip.set('record','job0', 'syn','0','output','outputs/adder.vg')"],
         'help': """
-        Record tracking all input files on a per step and index basis.
+        Record tracking all input files per job, step, index.
+        """
+    }
+
+    cfg['record'][job][step][index]['userid'] = {
+        'switch': "-record_userid 'job step index <str>'",
+        'require': None,
+        'signature': None,
+        'type': 'str',
+        'lock': 'false',
+        'defvalue': None,
+        'shorthelp': 'Record userid',
+        'example': [
+            "cli: -record_userid 'job0 syn 0 tjelvar'",
+            "api: chip.set('record','job0','syn','0','userid','tjelvar')"],
+        'help': """
+        Record tracking the userid per job, step, index.
+        """
+    }
+
+    cfg['record'][job][step][index]['publickey'] = {
+        'switch': "-record_publickey 'job step index <str>'",
+        'require': None,
+        'signature': None,
+        'type': 'str',
+        'lock': 'false',
+        'defvalue': None,
+        'shorthelp': 'Record user publickey',
+        'example': [
+            "cli: -record_publickey 'job0 syn 0 <key>'",
+            "api: chip.set('record','job0','syn','0','userid','<key>')"],
+        'help': """
+        Record tracking the user public key per job, step, index.
         """
     }
 
     cfg['record'][job][step][index]['tool'] = {
-        'switch': "-record_tool 'job step index <file>'",
+        'switch': "-record_tool 'job step index <str>'",
         'require': None,
         'signature': None,
         'type': 'str',
@@ -3049,26 +3080,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
             "cli: -record_tool 'job0 syn 0 yosys'",
             "api: chip.set('record','job0', 'syn','0','tool','yosys')"],
         'help': """
-        Record tracking the name of the tool on a per step and index basis.
-        """
-    }
-
-    cfg['record'][job][step][index]['chipid'] = {
-        'switch': "-record_chipid 'job step index <str>'",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'signature': [],
-        'defvalue': [],
-        'shorthelp': 'Record chip ID',
-        'example': [
-            "cli: -record_chipid 'job0 dfm 0 42'",
-            "api: chip.set('record', 'job0','dfm','0','chipid','42')"],
-        'help': """
-        A unique ID for the chip object. The parameter is used to
-        store a new ID for steps that generate a unique chip ID number
-        and as readback verification for steps that process the chip
-        but does not generate a new chip ID.
+        Record tracking the tool name per job, step, index.
         """
     }
 
@@ -3084,9 +3096,8 @@ def schema_record(cfg, job='default', step='default', index='default'):
             "cli: -record_exitstatus 'job0 dfm 0 0'",
             "api: chip.set('record', 'job0', 'dfm','0','exitstatus','0')"],
         'help': """
-        Record with exit status code for step index. A zero indicates
-        success, non-zero values represents an error. Non-zero values
-        are not standard and tool/platform dependent.
+        Record with exit status code per job, step, index. A zero
+        indicates success, non-zero values represents an error.
         """
     }
 
@@ -3103,7 +3114,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
             "cli: -record_version_sc 'job0 dfm 0 1.0'",
             "api: chip.set('record','job0', 'dfm','0', 'version', 'sc', '1.0')"],
         'help': """
-        Record tracking the sc version number on the compute node.
+        Record tracking the 'sc' version number per job, step, index.
         """
     }
 
@@ -3119,8 +3130,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
             "cli: -record_version_tool 'job0 dfm 0 1.0'",
             "api: chip.set('record','job0','dfm','0','version','tool','1.0')"],
         'help': """
-        Record tracking the version number of the executable, specified
-        on per step and per index basis.
+        Record tracking the tool version number per job, step, index.
         """
     }
 
@@ -3136,7 +3146,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
             "cli: -record_starttime 'job0 dfm 2021-09-06 12:20:20'",
             "api: chip.set('record','job0', 'dfm','0','starttime','2021-09-06 12:20:20')"],
         'help': """
-        Record tracking the start time stamp on a per step and index basis.
+        Record tracking the start time stamp per job, step, index.
         The date format is the ISO 8601 format YYYY-MM-DD HR:MIN:SEC.
         """
     }
@@ -3152,7 +3162,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
         'example': ["cli: -record_endtime 'job0 dfm 0 2021-09-06 12:20:20'",
                     "api: chip.set('record','job0', 'dfm','0','endtime','2021-09-06 12:20:20')"],
         'help': """
-        Record tracking the end time stamp on a per step and index basis.
+        Record tracking the end time stamp per job, step, index.
         The date format is the ISO 8601 format YYYY-MM-DD HR:MIN:SEC.
         """
     }
@@ -3169,7 +3179,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
             "cli: -record_machine 'job0 dfm 0 carbon'",
             "api: chip.set('record','job0', 'dfm','0','machine','carbon')"],
         'help': """
-        Record tracking the machine name for the step/index execution.
+        Record tracking the machine name per job, step, index.
         (eg. carbon, silicon, mars, host0)
         """
     }
@@ -3185,12 +3195,13 @@ def schema_record(cfg, job='default', step='default', index='default'):
         'example': ["cli: -record_region 'job0 dfm 0 US Gov Boston'",
                     "api: chip.set('record','job0', 'dfm','0', 'region','US Gov Boston')"],
         'help': """
-        Record tracking the operational region of the node. Recommended naming methodology:
-        local: node is the local machine
-        onprem: node in on-premises IT infrastructure
-        public: generic public cloud
-        govcloud: generic US government cloud
-        <region>: cloud and entity specific region string name
+        Record tracking the operational region per job, step, index.
+        Recommended naming methodology:
+         * local: node is the local machine
+         * onprem: node in on-premises IT infrastructure
+         * public: generic public cloud
+         * govcloud: generic US government cloud
+         * <region>: cloud and entity specific region string name
         """
     }
 
@@ -3206,7 +3217,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
             "cli: -record_macaddr 'job0 dfm 0 <addr>'",
             "api: chip.set('record', 'job0', 'dfm', '0', 'macaddr', '<addr>')"],
         'help': """
-        Record tracking the MAC address of the node.
+        Record tracking the MAC address per job, step, index.
         """
     }
 
@@ -3222,7 +3233,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
             "cli: -record_ipaddr 'job0 dfm 0 <addr>'",
             "api: chip.set('record', 'job0', 'dfm', '0', 'ipaddr', '<addr>')"],
         'help': """
-        Record tracking the IP address of the node.
+        Record tracking the IP address per job, step, index.
         """
     }
 
@@ -3238,7 +3249,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
             "cli: -record_platform 'job0 dfm 0 linux'",
             "api: chip.set('record', 'job0', 'dfm', '0', 'platform', 'linux')"],
         'help': """
-        Record tracking the platform name on the node.
+        Record tracking the platform name per job, step, index.
         (linux, windows, freebsd, macos, ...).
         """
     }
@@ -3255,7 +3266,7 @@ def schema_record(cfg, job='default', step='default', index='default'):
             "cli: -record_distro 'job0 dfm 0 ubuntu'",
             "api: chip.set('record', 'job0', 'dfm', '0', 'distro', 'ubuntu')"],
         'help': """
-        Record tracking the platform distribution name on the node.
+        Record tracking the platform distribution name per job, step, index.
         (ubuntu, centos, redhat,...).
         """
     }
@@ -3272,10 +3283,10 @@ def schema_record(cfg, job='default', step='default', index='default'):
             "cli: -record_version_os 'job0 dfm 0 20.04.1-Ubuntu'",
             "api: chip.set('record', 'job0', 'dfm', '0', 'version', 'os', '20.04.1-Ubuntu')"],
         'help': """
-        Record tracking the complete operating system version name. Since there is
-        not standarrd version system for operating systems, extracting information
-        from is platform dependent. For Linux based operating systems, the
-        'osversion' is the version of the distro.
+        Record tracking the operating system version name per job, step, index.
+        Since there is not standard version system for operating systems,
+        extracting information from is platform dependent. For Linux based
+        operating systems, the 'osversion' is the version of the distro.
         """
     }
 
@@ -3291,8 +3302,9 @@ def schema_record(cfg, job='default', step='default', index='default'):
             "cli: -record_version_kernel 'job0 dfm 0 5.11.0-34-generic'",
             "api: chip.set('record', 'job0', 'dfm', '0', 'version','kernel', '5.11.0-34-generic')"],
         'help': """
-        Record tracking the operating system kernel version for platforms that
-        support a distinction between os kernels and os distributions.
+        Record tracking the operating system kernel version per job, step, index.
+        Used for platforms that support a distinction between os kernels and
+        os distributions.
         """
     }
 
@@ -3308,7 +3320,8 @@ def schema_record(cfg, job='default', step='default', index='default'):
             "cli: -record_arch 'job0 dfm 0 x86_64'",
             "api: chip.set('record', 'job0', 'dfm', '0', 'arch', 'x86_64')"],
         'help': """
-        Record tracking the hardware architecture on the node.
+        Record tracking the hardware architecture per job, step, index.
+        (eg. x86_64).
         """
     }
 
@@ -3936,9 +3949,6 @@ def schema_package(cfg, group):
     elif group == 'library':
         lib = 'lib '
         libapi = "'lib','package',"
-    elif group == 'record':
-        lib = 'job step index '
-        libapi = "'job0','import','0','package',"
 
     localcfg['name'] = {
         'switch': f"-{group}_name '{lib}<str>'",
@@ -4151,17 +4161,17 @@ def schema_package(cfg, group):
 
     localcfg['license'] = {
         'switch': f"-{group}_license '{lib}<file>'",
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': f"{group.capitalize()} license name",
+        'signature': [],
+        'defvalue': [],
+        'shorthelp': f"{group.capitalize()} license names",
         'example': [
             f"cli: -{group}_license '{lib}./LICENSE",
             f"api: chip.set('{group}',{libapi}'license', './LICENSE')"],
         'help': f"""
-        The license for {group}. SPDX identifiers should be used when
+        The license(s) for {group}. SPDX identifiers should be used when
         applicable.
         """
     }
