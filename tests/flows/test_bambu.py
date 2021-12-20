@@ -4,7 +4,7 @@ import pytest
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_chisel(datadir):
+def test_bambu(datadir):
     design = 'gcd'
     gcd_src = os.path.join(datadir, f'{design}.c')
 
