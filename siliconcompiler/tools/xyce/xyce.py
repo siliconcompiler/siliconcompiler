@@ -35,17 +35,16 @@ def make_docs():
 ################################
 def setup_tool(chip):
 
-
      tool = 'xyce'
      refdir = 'tools/'+tool
      step = chip.get('arg','step')
      index = chip.get('arg','index')
      clobber = False
 
-     chip.set('eda', tool, step, index, 'exe', tool, clobber=clobber)
-     chip.set('eda', tool, step, index, 'copy', 'false', clobber=clobber)
-     chip.set('eda', tool, step, index, 'version', '0.0', clobber=clobber)
-     chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=clobber)
+     chip.set('eda', tool, 'exe', tool, clobber=clobber)
+     chip.set('eda', tool, 'copy', 'false', clobber=clobber)
+     chip.set('eda', tool, 'version', '0.0', clobber=clobber)
+     chip.set('eda', tool, 'threads', step, index, os.cpu_count(), clobber=clobber)
 
 ################################
 # Post_process (post executable)

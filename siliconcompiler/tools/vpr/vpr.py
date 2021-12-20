@@ -44,9 +44,9 @@ def setup_tool(chip):
      step = chip.get('arg','step')
      index = chip.get('arg','index')
 
-     chip.set('eda', tool, step, index, 'exe', tool, clobber=False)
-     chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=False)
-     chip.set('eda', tool, step, index, 'version', '0.0', clobber=False)
+     chip.set('eda', tool, 'exe', tool, clobber=False)
+     chip.set('eda', tool, 'version', '0.0', clobber=False)
+     chip.set('eda', tool, 'threads', step, index, os.cpu_count(), clobber=False)
 
      topmodule = chip.get('design')
      blif = "inputs/" + topmodule + ".blif"
@@ -57,7 +57,7 @@ def setup_tool(chip):
 
      options.append(blif)
 
-     chip.add('eda', tool, step, index, 'option', options)
+     chip.add('eda', tool, 'option', step, index,  options)
 
 ################################
 # Post_process (post executable)

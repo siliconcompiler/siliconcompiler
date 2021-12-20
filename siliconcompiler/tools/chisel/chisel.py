@@ -43,19 +43,19 @@ def setup_tool(chip):
 
     # Standard Setup
     refdir = 'tools/'+tool
-    chip.set('eda', tool, step, index, 'exe', 'sbt', clobber=False)
-    chip.set('eda', tool, step, index, 'refdir', refdir, clobber=False)
-    chip.set('eda', tool, step, index, 'vswitch', '--version', clobber=False)
-    chip.set('eda', tool, step, index, 'version', '1.5.5', clobber=False)
-    chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=False)
-    chip.set('eda', tool, step, index, 'copy', True, clobber=False)
+    chip.set('eda', tool, 'exe', 'sbt', clobber=False)
+    chip.set('eda', tool, 'vswitch', '--version', clobber=False)
+    chip.set('eda', tool, 'version', '1.5.5', clobber=False)
+    chip.set('eda', tool, 'copy', True, clobber=False)
+    chip.set('eda', tool, 'refdir', step, index,  refdir, clobber=False)
+    chip.set('eda', tool, 'threads', step, index,  os.cpu_count(), clobber=False)
 
     design = chip.get('design')
     option = f'"runMain SCDriver --module {design} -o ../outputs/{design}.v"'
-    chip.set('eda', tool, step, index, 'option', option)
+    chip.set('eda', tool, 'option', step, index,  option)
 
     # Input/Output requirements
-    chip.add('eda', tool, step, index, 'output', chip.get('design') + '.v')
+    chip.add('eda', tool, 'output', step, index, chip.get('design') + '.v')
 
 def parse_version(stdout):
     # sbt version in this project: 1.5.5

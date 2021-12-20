@@ -50,14 +50,14 @@ def setup_tool(chip, mode='batch'):
         option = "-mode batch -source"
 
     # General settings
-    chip.set('eda', tool, step, index, 'exe', tool, clobber=clobber)
-    chip.set('eda', tool, step, index, 'vendor', vendor, clobber=clobber)
-    chip.set('eda', tool, step, index, 'refdir', refdir, clobber=clobber)
-    chip.set('eda', tool, step, index, 'script', refdir + script, clobber=clobber)
-    chip.set('eda', tool, step, index, 'vswitch', '-version', clobber=clobber)
-    chip.set('eda', tool, step, index, 'version', '0', clobber=clobber)
-    chip.set('eda', tool, step, index, 'threads', os.cpu_count(), clobber=clobber)
-    chip.set('eda', tool, step, index, 'option', option, clobber=clobber)
+    chip.set('eda', tool, 'exe', tool, clobber=clobber)
+    chip.set('eda', tool, 'vendor', vendor, clobber=clobber)
+    chip.set('eda', tool, 'vswitch', '-version', clobber=clobber)
+    chip.set('eda', tool, 'version', '0', clobber=clobber)
+    chip.set('eda', tool, 'refdir', step, index, refdir, clobber=clobber)
+    chip.set('eda', tool, 'script', step, index, refdir + script, clobber=clobber)
+    chip.set('eda', tool, 'threads', step, index, os.cpu_count(), clobber=clobber)
+    chip.set('eda', tool, 'option', step, index, option, clobber=clobber)
 
 ################################
 # Post_process (post executable)

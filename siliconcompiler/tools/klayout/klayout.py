@@ -68,21 +68,20 @@ def setup_tool(chip, mode="batch"):
         script = '/klayout_export.py'
         option = ['-zz', '-r']
 
-    chip.set('eda', tool, step, index, 'exe', klayout_exe, clobber=clobber)
-    chip.set('eda', tool, step, index, 'copy', 'true', clobber=clobber)
-    chip.set('eda', tool, step, index, 'refdir', refdir, clobber=clobber)
-    chip.set('eda', tool, step, index, 'script', refdir + script, clobber=clobber)
-    chip.set('eda', tool, step, index, 'vswitch', '-zz -v', clobber=clobber)
-    chip.set('eda', tool, step, index, 'version', '0.26.11', clobber=clobber)
-    chip.set('eda', tool, step, index, 'format', 'json')
-
-    chip.set('eda', tool, step, index, 'option', option, clobber=clobber)
+    chip.set('eda', tool, 'exe', klayout_exe, clobber=clobber)
+    chip.set('eda', tool, 'vswitch', '-zz -v', clobber=clobber)
+    chip.set('eda', tool, 'version', '0.26.11', clobber=clobber)
+    chip.set('eda', tool, 'format', 'json', clobber=clobber)
+    chip.set('eda', tool, 'copy', 'true', clobber=clobber)
+    chip.set('eda', tool, 'refdir', step, index, refdir, clobber=clobber)
+    chip.set('eda', tool, 'script', step, index, refdir + script, clobber=clobber)
+    chip.set('eda', tool, 'option', step, index, option, clobber=clobber)
 
     # Export GDS with timestamps by default.
-    chip.set('eda', tool, step, index, 'variable', 'timestamps', 'true', clobber=False)
+    chip.set('eda', tool, 'variable', step, index, 'timestamps', 'true', clobber=False)
 
     # Input/Output requirements
-    chip.add('eda', tool, step, index, 'output', chip.get('design') + '.gds')
+    chip.add('eda', tool, 'output', step, index, chip.get('design') + '.gds')
 
     # Adding requirements
     if mode != 'show':
@@ -91,13 +90,13 @@ def setup_tool(chip, mode="batch"):
         if bool(stackup) & bool(targetlibs):
             macrolibs = chip.get('asic', 'macrolib')
 
-            chip.add('eda', tool, step, index, 'require', ",".join(['asic', 'targetlib']))
-            chip.add('eda', tool, step, index, 'require', ",".join(['asic', 'stackup']))
-            chip.add('eda', tool, step, index, 'require', ",".join(['pdk', 'layermap', stackup, 'def','gds']))
+            chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'targetlib']))
+            chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'stackup']))
+            chip.add('eda', tool, 'require', step, index,  ",".join(['pdk', 'layermap', stackup, 'def','gds']))
 
             for lib in (targetlibs + macrolibs):
-                chip.add('eda', tool, step, index, 'require', ",".join(['library', lib, 'gds']))
-                chip.add('eda', tool, step, index, 'require', ",".join(['library', lib, 'lef']))
+                chip.add('eda', tool, 'require', step, index, ",".join(['library', lib, 'gds']))
+                chip.add('eda', tool, 'require', step, index, ",".join(['library', lib, 'lef']))
         else:
             chip.error = 1
             chip.logger.error(f'Stackup and targetlib paremeters required for KLayout.')

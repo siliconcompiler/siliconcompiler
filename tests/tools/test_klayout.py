@@ -20,7 +20,7 @@ def test_klayout(datadir):
     chip.set('library', 'heartbeat', 'gds', library_gds)
 
     chip.set('arg', 'step', 'export')
-    chip.set('eda', 'klayout', 'export', '0', 'variable', 'timestamps', 'false')
+    chip.set('eda', 'klayout', 'variable', 'export', '0', 'timestamps', 'false')
     chip.target('klayout_freepdk45')
 
     chip.run()

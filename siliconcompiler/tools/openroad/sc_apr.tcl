@@ -20,17 +20,17 @@ set sc_tool    openroad
 set sc_step    [dict get $sc_cfg arg step]
 set sc_index   [dict get $sc_cfg arg index]
 
-set openroad_place_density [lindex [dict get $sc_cfg eda $sc_tool $sc_step $sc_index {variable} place_density] 0]
-set openroad_pad_global_place [lindex [dict get $sc_cfg eda $sc_tool $sc_step $sc_index {variable} pad_global_place] 0]
-set openroad_pad_detail_place [lindex [dict get $sc_cfg eda $sc_tool $sc_step $sc_index {variable} pad_detail_place] 0]
-set openroad_macro_place_halo [dict get $sc_cfg eda $sc_tool $sc_step $sc_index {variable} macro_place_halo]
-set openroad_macro_place_channel [dict get $sc_cfg eda $sc_tool $sc_step $sc_index {variable} macro_place_channel]
+set openroad_place_density [lindex [dict get $sc_cfg eda $sc_tool {variable} $sc_step $sc_index  place_density] 0]
+set openroad_pad_global_place [lindex [dict get $sc_cfg eda $sc_tool {variable} $sc_step $sc_index  pad_global_place] 0]
+set openroad_pad_detail_place [lindex [dict get $sc_cfg eda $sc_tool {variable} $sc_step $sc_index  pad_detail_place] 0]
+set openroad_macro_place_halo [dict get $sc_cfg eda $sc_tool {variable} $sc_step  $sc_index  macro_place_halo]
+set openroad_macro_place_channel [dict get $sc_cfg eda $sc_tool {variable} $sc_step $sc_index  macro_place_channel]
 
 #Handling remote/local script execution
-if {[dict get $sc_cfg eda $sc_tool $sc_step $sc_index copy] eq True} {
+if {[dict get $sc_cfg eda $sc_tool copy] eq True} {
     set sc_refdir "."
 } else {
-    set sc_refdir [dict get $sc_cfg eda $sc_tool $sc_step $sc_index refdir]
+    set sc_refdir [dict get $sc_cfg eda $sc_tool refdir $sc_step $sc_index ]
 }
 
 # Design
@@ -87,7 +87,7 @@ dict for {key value} [dict get $sc_cfg pdk grid $sc_stackup] {
     lappend sc_layers $key
 }
 
-set sc_threads [dict get $sc_cfg eda $sc_tool $sc_step $sc_index threads]
+set sc_threads [dict get $sc_cfg eda $sc_tool threads $sc_step $sc_index ]
 
 ###############################
 # Optional

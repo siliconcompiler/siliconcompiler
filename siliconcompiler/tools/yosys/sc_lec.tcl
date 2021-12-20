@@ -9,10 +9,10 @@ yosys echo on
 set sc_step   [dict get $sc_cfg arg step]
 set sc_index  [dict get $sc_cfg arg index]
 
-if {[dict get $sc_cfg eda $sc_tool $sc_step $sc_index copy ] eq True} {
+if {[dict get $sc_cfg eda $sc_tool copy] eq True} {
     set sc_refdir "."
 } else {
-    set sc_refdir [dict get $sc_cfg eda $sc_tool $sc_step $sc_index refdir]
+    set sc_refdir [dict get $sc_cfg eda $sc_tool refdir $sc_step $sc_index ]
 }
 
 set sc_mode        [dict get $sc_cfg mode]
@@ -21,8 +21,8 @@ set sc_targetlibs  [dict get $sc_cfg asic targetlib]
 set lib [lindex $sc_targetlibs 0]
 set sc_liberty [dict get $sc_cfg library $lib nldm typical lib]
 
-if {[dict exists $sc_cfg eda $sc_tool $sc_step $sc_index variable induction_steps]} {
-    set sc_induction_steps [lindex [dict get $sc_cfg eda $sc_tool $sc_step $sc_index variable induction_steps] 0]
+if {[dict exists $sc_cfg eda $sc_tool "variable" $sc_step $sc_index induction_steps]} {
+    set sc_induction_steps [lindex [dict get $sc_cfg eda $sc_tool "variable" $sc_step $sc_index induction_steps] 0]
 } else {
     # Yosys default
     set sc_induction_steps 4
