@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import glob
 import os
 import shutil
 import sys
@@ -71,6 +72,12 @@ if not on_rtd:
 else:
     skbuild_args = {}
 
+tool_package_data = []
+for f in glob.glob('siliconcompiler/tools/**/*', recursive=True):
+    if os.path.isfile(f):
+        # strip off directory and add to list
+        tool_package_data.append(f[len('siliconcompiler/tools/'):])
+
 setup(
     name="siliconcompiler",
     description="A compiler framework that automates translation from source code to silicon.",
@@ -97,9 +104,7 @@ setup(
     #include_package_data=True,
     package_data={
         'siliconcompiler': ['templates/*.j2'],
-        'siliconcompiler.tools': [
-            '**/*'
-        ]
+        'siliconcompiler.tools': tool_package_data
     },
 
     python_requires=">=3.6",
