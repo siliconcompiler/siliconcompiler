@@ -1,7 +1,10 @@
 import siliconcompiler
 
 import os
+import pytest
 
+@pytest.mark.quick
+@pytest.mark.eda
 def test_bluespec(datadir):
     src = os.path.join(datadir, 'FibOne.bsv')
     chip = siliconcompiler.Chip()
