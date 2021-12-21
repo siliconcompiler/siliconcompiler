@@ -42,6 +42,7 @@ Welcome to SiliconCompiler's documentation!
    tutorials/migen
    tutorials/chisel
    tutorials/bambu
+   tutorials/bluespec
 
 .. toctree::
    :maxdepth: 3
