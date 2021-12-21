@@ -4321,6 +4321,24 @@ def schema_checklist(cfg, group='checklist'):
         """
     }
 
+    localcfg[standard][item]['rationale'] = {
+        'switch': f"-{emit_group}_rationale '{emit_switch}standard item <str>",
+        'require': None,
+        'type': 'str',
+        'lock': 'false',
+        'signature': None,
+        'defvalue': None,
+        'shorthelp': f"{emit_help} item rational",
+        'example': [
+            f"cli: -{emit_group}_rational '{emit_switch}ISO D000 reliability'",
+            f"api: chip.set({emit_api},'ISO','D000','rationale','reliability')"],
+        'help': f"""
+        Rationale for the the {group} checklist item. Rationale should be a
+        unique alphanumeric code used by the standrd or a short one line
+        or single word description.
+        """
+    }
+
     localcfg[standard][item]['report'] = {
         'switch': f"-{emit_group}_report '{emit_switch}standard item <file>'",
         'type': '[file]',
