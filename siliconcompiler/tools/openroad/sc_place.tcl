@@ -48,8 +48,3 @@ detailed_placement
 optimize_mirroring
 
 check_placement -verbose
-
-estimate_parasitics -placement
-
-
-

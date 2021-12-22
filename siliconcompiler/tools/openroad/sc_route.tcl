@@ -45,19 +45,6 @@ estimate_parasitics -global_routing
 check_antennas -report_file "reports/${sc_design}_antenna.rpt"
 
 ######################
-# Triton Temp Hack
-######################
-
-#set param_file [open "route.params" "w"]
-#puts $param_file \
-#"guide:./route.guide
-#outputDRC:./reports/$sc_design.drc
-#gap:0
-#verbose:1"
-#close $param_file
-#set param_filepath [file normalize "route.params"]
-
-######################
 # Detailed Route
 ######################
 
