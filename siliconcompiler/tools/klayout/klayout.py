@@ -81,6 +81,9 @@ def setup_tool(chip, mode="batch"):
     chip.set('eda', tool, 'variable', step, index, 'timestamps', 'true', clobber=False)
 
     # Input/Output requirements
+    if (not chip.valid('read', 'def', step, index) or
+        not chip.get('read', 'def', step, index)):
+        chip.add('eda', tool, 'input', step, index, chip.get('design') + '.def')
     chip.add('eda', tool, 'output', step, index, chip.get('design') + '.gds')
 
     # Adding requirements

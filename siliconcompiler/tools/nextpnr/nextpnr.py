@@ -43,6 +43,10 @@ def setup_tool(chip):
     chip.set('eda', tool, 'version', 'c73d4cf6', clobber=clobber)
     chip.set('eda', tool, 'option', step, index, "", clobber=clobber)
 
+    topmodule = chip.get('design')
+    chip.set('eda', tool, 'input', step, index, f'{topmodule}_netlist.json')
+    chip.set('eda', tool, 'output', step, index, f'{topmodule}.asc')
+
 ################################
 #  Custom runtime options
 ################################
@@ -65,7 +69,6 @@ def runtime_options(chip):
     if partname == 'ice40up5k-sg48':
         options.append('--up5k --package sg48')
 
-    pcf_file = None
     for constraint_file in chip.find_files('constraint'):
         if os.path.splitext(constraint_file)[-1] == '.pcf':
             options.append('--pcf ' + constraint_file)

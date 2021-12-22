@@ -42,6 +42,10 @@ def setup_tool(chip):
     chip.set('eda', tool, 'exe', tool, clobber=clobber)
     chip.set('eda', tool, 'option', step, index, "", clobber=clobber)
 
+    design = chip.get('design')
+    chip.set('eda', tool, 'input', step, index, f'{design}.asc')
+    chip.set('eda', tool, 'output', step, index, f'{design}.bit')
+
 ################################
 #  Custom runtime options
 ################################

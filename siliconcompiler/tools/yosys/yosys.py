@@ -65,10 +65,20 @@ def setup_tool(chip):
 
     chip.set('eda', tool, 'script', step, index, refdir + '/' + script, clobber=False)
 
-    #Input/output requirements
-    #TODO: add back input requirements for all tools, currently failing
-    #chip.add('eda', tool, step, index, 'input', chip.get('design') + '.v')
-    chip.add('eda', tool, 'output', step, index, chip.get('design') + '.vg')
+    # Input/output requirements
+    if step == 'syn':
+        # TODO: Our yosys script can also accept uhdm or ilang files. How do we
+        # represent a set of possible inputs where you must pick one?
+        chip.set('eda', tool, 'input', step, index, chip.get('design') + '.v')
+        chip.set('eda', tool, 'output', step, index, chip.get('design') + '.vg')
+        chip.add('eda', tool, 'output', step, index, chip.get('design') + '_netlist.json')
+        chip.add('eda', tool, 'output', step, index, chip.get('design') + '.blif')
+    elif step == 'lec':
+        if (not chip.valid('read', 'netlist', step, index) or
+            not chip.get('read', 'netlist', step, index)):
+            chip.set('eda', tool, 'input', step, index, chip.get('design') + '.vg')
+        if not chip.get('source'):
+            chip.set('eda', tool, 'input', step, index, chip.get('design') + '.v')
 
     #Schema requirements
     if chip.get('mode') == 'asic':

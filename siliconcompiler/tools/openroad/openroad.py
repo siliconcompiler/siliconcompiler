@@ -70,6 +70,15 @@ def setup_tool(chip, mode='batch'):
     chip.set('eda', tool, 'threads', step, index, os.cpu_count(), clobber=clobber)
 
     # Input/Output requirements
+    if step == 'floorplan':
+        if (not chip.valid('read', 'netlist', step, index) or
+            not chip.get('read', 'netlist', step, index)):
+            chip.add('eda', tool, 'input', step, index, chip.get('design') +'.vg')
+    else:
+        if (not chip.valid('read', 'def', step, index) or
+            not chip.get('read', 'def', step, index)):
+            chip.add('eda', tool, 'input', step, index, chip.get('design') +'.def')
+
     chip.add('eda', tool, 'output', step, index, chip.get('design') + '.sdc')
     chip.add('eda', tool, 'output', step, index, chip.get('design') + '.vg')
     chip.add('eda', tool, 'output', step, index, chip.get('design') + '.def')
