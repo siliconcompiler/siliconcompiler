@@ -1,4 +1,5 @@
 import os
+import subprocess
 import pytest
 
 from tests import fixtures
@@ -46,3 +47,25 @@ def gcd_chip():
     '''Returns a fully configured chip object that will compile the GCD example
     design using freepdk45 and the asicflow.'''
     return fixtures.gcd_chip()
+
+# Submodule fixtures
+# Tests that rely on data from design submodules should use this pattern to
+# create a fixture for the submodule, which will clone it if needed (and will
+# not attempt to do so more than once per session). This prevents us from having
+# to separately document which tests require submodules, and makes it easier to
+# specify tests in CI systems.
+
+def clone_submodule(dir):
+    scroot = fixtures.scroot()
+    subprocess.run(['git', 'submodule', 'update', '--init', '--recursive', dir], cwd=scroot)
+    return os.path.join(scroot, dir)
+
+@pytest.fixture(scope='session')
+def picorv32_dir():
+    dir = os.path.join('third_party', 'designs', 'picorv32')
+    return clone_submodule(dir)
+
+@pytest.fixture(scope='session')
+def oh_dir():
+    dir = os.path.join('third_party', 'designs', 'oh')
+    return clone_submodule(dir)

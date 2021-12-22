@@ -6,8 +6,8 @@ import pytest
 # sc ../../third_party/designs/picorv32/picorv32.v -design picorv32 -mode sim -target "surelog" -arg_step "import" -quiet
 
 @pytest.mark.eda
-def test_picorv32(scroot):
-    source = os.path.join(scroot, 'third_party', 'designs', 'picorv32', 'picorv32.v')
+def test_picorv32(picorv32_dir):
+    source = os.path.join(picorv32_dir, 'picorv32.v')
     design = "picorv32"
     step = "import"
 

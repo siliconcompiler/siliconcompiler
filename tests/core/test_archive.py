@@ -3,14 +3,8 @@ import siliconcompiler
 import os
 import pytest
 @pytest.mark.skip(reason="broken file path")
-def test_archive():
-    scroot = os.path.abspath(os.path.join(os.path.dirname(__file__),"..",".."))
-    srcdir = os.path.join(scroot,
-                          'third_party',
-                          'designs',
-                          'oh',
-                          'stdlib',
-                          'hdl')
+def test_archive(oh_dir):
+    srcdir = os.path.join(oh_dir, 'stdlib', 'hdl')
 
     chip = siliconcompiler.Chip()
     chip.set('design', 'oh_add')

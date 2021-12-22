@@ -4,6 +4,7 @@ import glob
 import os
 import shutil
 import sys
+import subprocess
 from setuptools import find_packages
 
 # Hack to get version number since it's considered bad practice to import your
@@ -56,10 +57,8 @@ def parse_reqs():
 
     return install_reqs, extras_reqs
 
-if not on_rtd and not os.path.isdir('third_party/tools/openroad/tools/OpenROAD/src/odb/src/lef'):
-    print('Source for LEF parser library not found! Install OpenROAD submodule before continuing with install:\n'
-          'git submodule update --init --recursive third_party/tools/openroad')
-    sys.exit(1)
+if not on_rtd:
+    subprocess.run(['git', 'submodule', 'update', '--init', '--recursive', 'third_party/tools/openroad'])
 
 # Let us pass in generic arguments to CMake via an environment variable, since
 # our automated build servers need to pass in a certain argument when building

@@ -9,9 +9,6 @@ jobs:
     name: 'Tool-based tests'
     steps:
       - uses: actions/checkout@v2
-      - run: git submodule update --init --recursive third_party/tools/openroad
-      - run: git submodule update --init --recursive third_party/designs/oh
-      - run: git submodule update --init --recursive third_party/designs/picorv32
       - run: |
           python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
           source $GITHUB_WORKSPACE/clean_env/bin/activate
@@ -29,8 +26,6 @@ jobs:
         python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
     steps:
       - uses: actions/checkout@v2
-
-      - run: git submodule update --init --recursive third_party/tools/openroad
 
       - name: Install Dependencies
         run: |

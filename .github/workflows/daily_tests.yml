@@ -17,10 +17,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - run: git submodule update --init --recursive third_party/tools/openroad
-      - run: git submodule update --init --recursive third_party/designs/oh
-      - run: git submodule update --init --recursive third_party/designs/picorv32
-
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:

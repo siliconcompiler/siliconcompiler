@@ -5,8 +5,8 @@ import pytest
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_verilator(scroot):
-    ydir = os.path.join(scroot, 'third_party', 'designs', 'oh', 'stdlib', 'hdl')
+def test_verilator(oh_dir):
+    ydir = os.path.join(oh_dir, 'stdlib', 'hdl')
 
     design = "oh_fifo_sync"
     topfile = os.path.join(ydir, f'{design}.v')
@@ -28,5 +28,5 @@ def test_verilator(scroot):
 
 #########################
 if __name__ == "__main__":
-    from tests.fixtures import scroot
-    test_verilator(scroot())
+    oh_dir = os.path.join('third_party', 'designs', 'oh')
+    test_verilator(oh_dir)
