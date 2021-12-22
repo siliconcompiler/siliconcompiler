@@ -1108,8 +1108,12 @@ class Chip:
         #if not leaf cell descend tree
         else:
             ##copying in default tree for dynamic trees
-            if not param in cfg:
+            if not param in cfg and 'default' in cfg:
                 cfg[param] = copy.deepcopy(cfg['default'])
+            elif not param in cfg:
+                self.error = 1
+                self.logger.error(f"Get keypath [{keypath}] does not exist.")
+                return None
             all_args.pop(0)
             return self._search(cfg[param], keypath, *all_args, field=field, mode=mode, clobber=clobber)
 
