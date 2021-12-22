@@ -11,17 +11,19 @@ def test_check_manifest():
     chip.target("asicflow_freepdk45")
     chip.set('source', 'examples/gcd/gcd.v')
 
-    step = "syn"
     index = "0"
-    tool = chip.get('flowgraph', step, index, 'tool')
-    chip.set('arg', 'step', step)
-    chip.set('arg', 'index', index)
-    chip.set('design', 'test')
+    for step in ('import', 'syn'):
+        tool = chip.get('flowgraph', step, index, 'tool')
+        chip.set('arg', 'step', step)
+        chip.set('arg', 'index', index)
+        chip.set('design', 'gcd')
 
-    setup_tool = chip.find_function('yosys', 'tool', 'setup_tool')
-    assert setup_tool is not None
+        setup_tool = chip.find_function(tool, 'tool', 'setup_tool')
+        assert setup_tool is not None
+        setup_tool(chip)
 
-    setup_tool(chip)
+    chip.set('arg', 'step', None)
+    chip.set('arg', 'index', None)
     assert chip.check_manifest() == 0
 
 @pytest.mark.eda

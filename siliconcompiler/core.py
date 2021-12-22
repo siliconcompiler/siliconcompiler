@@ -1290,12 +1290,13 @@ class Chip:
 
         # Special case where we're looking to find tool outputs: check the
         # output directory and return those files directly
-        if len(keypath) == 5 and keypath[0] == 'eda' and keypath[2] == 'output':
-            step = keypath[2]
-            index = keypath[3]
-            outdir = os.path.join(self._getworkdir(step=step, index=index), 'outputs')
+        if len(keypath) == 5 and keypath[0] == 'eda' and keypath[2] in ('input', 'output'):
+            step = keypath[3]
+            index = keypath[4]
+            io = keypath[2] + 's' # inputs or outputs
+            iodir = os.path.join(self._getworkdir(step=step, index=index), io)
             for path in paths:
-                abspath = os.path.join(outdir, path)
+                abspath = os.path.join(iodir, path)
                 if os.path.isfile(abspath):
                     result.append(abspath)
             return result
@@ -1311,7 +1312,6 @@ class Chip:
                     result.append(abspath)
                     continue
             result.append(self._find_sc_file(path, missing_ok=missing_ok))
-
         # Convert back to scalar if that was original type
         if not is_list:
             return result[0]
@@ -1501,6 +1501,7 @@ class Chip:
 
         return value_empty
 
+    ###########################################################################
     def _check_files(self):
         allowed_paths = [os.path.join(self.cwd, self.get('dir'))]
         allowed_paths.extend(os.environ['SC_VALID_PATHS'].split(os.pathsep))
@@ -1612,7 +1613,117 @@ class Chip:
             if not self._check_files():
                 self.error = 1
 
+        if not self._check_flowgraph_io():
+            self.error = 1
+
+        # Dynamic checks
+        # We only perform these if arg, step and arg, index are set.
+        step = self.get('arg', 'step')
+        index = self.get('arg', 'index')
+        if step and index:
+            tool = self.get('flowgraph', step, index, 'tool')
+            if self.valid('eda', tool, 'input', step, index):
+                required_inputs = self.get('eda', tool, 'input', step, index)
+            else:
+                required_inputs = []
+            input_dir = os.path.join(self._getworkdir(step=step, index=index), 'inputs')
+
+            for filename in required_inputs:
+                path = os.path.join(input_dir, filename)
+                if not os.path.isfile(path):
+                    self.logger.error(f'Required input {filename} not received for {step}{index}.')
+                    self.error = 1
+
+            # TODO: loop through all param requirements, and check that any file
+            # reqs resolve successfuly.
+
         return self.error
+
+    ###########################################################################
+    def _gather_outputs(self, step, index):
+        '''Return set of filenames that are guaranteed to be in outputs
+        directory after a successful run of step/index.'''
+
+        tool = self.get('flowgraph', step, index, 'tool')
+
+        outputs = set()
+        if tool in self.builtin:
+            in_tasks = self.get('flowgraph', step, index, 'input')
+            in_task_outputs = [self._gather_outputs(*task) for task in in_tasks]
+
+            if tool in ('minimum', 'maximum'):
+                if len(in_task_outputs) > 0:
+                    outputs = in_task_outputs[0].intersection(*in_task_outputs[1:])
+            elif tool in ('join'):
+                if len(in_task_outputs) > 0:
+                    outputs = in_task_outputs[0].union(*in_task_outputs[1:])
+            else:
+                # TODO: logic should be added here when mux/verify builtins are implemented.
+                self.logger.error(f'Builtin {tool} not yet implemented')
+        else:
+            # Not builtin tool
+            if self.valid('eda', tool, 'output', step, index):
+                outputs = set(self.get('eda', tool, 'output', step, index))
+            else:
+                outputs = set()
+
+        if step == 'import':
+            imports = {self._get_imported_filename(p) for p in self._collect_paths()}
+            outputs.update(imports)
+
+        return outputs
+
+    ###########################################################################
+    def _check_flowgraph_io(self):
+        '''Check if flowgraph is valid in terms of input and output files.
+
+        Returns True if valid, False otherwise.
+        '''
+
+        steplist = self.get('steplist')
+        if not steplist:
+            steplist = self.list_steps()
+
+        for step in steplist:
+            for index in self.getkeys('flowgraph', step):
+                # For each task, check input requirements.
+                tool = self.get('flowgraph', step, index, 'tool')
+                if tool in self.builtin:
+                    # We can skip builtins since they don't have any particular
+                    # input requirements -- they just pass through what they
+                    # receive.
+                    continue
+
+                # Get files we receive from input tasks.
+                in_tasks = self.get('flowgraph', step, index, 'input')
+                if len(in_tasks) > 1:
+                    self.logger.error(f'Tool task {step}{index} has more than one input task.')
+                elif len(in_tasks) > 0:
+                    in_step, in_index = in_tasks[0]
+                    if in_step not in steplist:
+                        # If we're not running the input step, the required
+                        # inputs need to already be copied into the build
+                        # directory.
+                        workdir = self._getworkdir(step=in_step, index=in_index)
+                        in_step_out_dir = os.path.join(workdir, 'outputs')
+                        inputs = set(os.listdir(in_step_out_dir))
+                    else:
+                        inputs = self._gather_outputs(in_step, in_index)
+                else:
+                    inputs = set()
+
+                if self.valid('eda', tool, 'input', step, index):
+                    requirements = self.get('eda', tool, 'input', step, index)
+                else:
+                    requirements = []
+
+                for requirement in requirements:
+                    if requirement not in inputs:
+                        self.logger.error(f'Invalid flow: {step}{index} will '
+                            f'not receive required input {requirement}.')
+                        return False
+
+        return True
 
     ###########################################################################
     def read_manifest(self, filename, job=None, update=True, clear=True, clobber=True):
@@ -1892,10 +2003,32 @@ class Chip:
         dot.render(filename=fileroot, cleanup=True)
 
     ########################################################################
+    def _collect_paths(self):
+        '''
+        Returns list of paths to files that will be collected by import step.
+
+        See docstring for _collect() for more details.
+        '''
+        paths = []
+
+        copyall = self.get('copyall')
+        allkeys = self.getkeys()
+        for key in allkeys:
+            leaftype = self.get(*key, field='type')
+            if re.search('file', leaftype):
+                copy = self.get(*key, field='copy')
+                value = self.get(*key)
+                if copyall or copy:
+                    for item in value:
+                        paths.append(item)
+
+        return paths
+
+    ########################################################################
     def _collect(self, step, index, active):
         '''
         Collects files found in the configuration dictionary and places
-        them in 'dir'. The function only copies in files that have the 'copy'
+        them in inputs/. The function only copies in files that have the 'copy'
         field set as true. If 'copyall' is set to true, then all files are
         copied in.
 
@@ -1904,9 +2037,6 @@ class Chip:
         3. run tool to collect files, pickle file in output/design.v
         4. copy in rest of the files below
         5. record files read in to schema
-
-        Args:
-           dir (filepath): Destination directory
 
         '''
 
@@ -1917,21 +2047,36 @@ class Chip:
 
         self.logger.info('Collecting input sources')
 
-        #copy all parameter take from self dictionary
-        copyall = self.get('copyall')
-        for key in self.getkeys():
-            if 'file' in self.get(*key,field='type'):
-                copy = self.get(*key, field='copy')
-                value = self.get(*key)
-                if copyall or copy:
-                    for item in value:
-                        filename = self._get_imported_filename(item)
-                        filepath = self._find_sc_file(item)
-                        if filepath:
-                            self.logger.info(f"Copying {filepath} to '{indir}' directory")
-                            shutil.copy(filepath, os.path.join(indir, filename))
-                        else:
-                            self._haltstep(step,index,active)
+        for path in self._collect_paths():
+            filename = self._get_imported_filename(path)
+            abspath = self._find_sc_file(path)
+            if abspath:
+                self.logger.info(f"Copying {abspath} to '{indir}' directory")
+                shutil.copy(abspath, os.path.join(indir, filename))
+            else:
+                self._haltstep(step, index, active)
+
+        outdir = 'outputs'
+        if not os.path.exists(outdir):
+            os.makedirs(outdir)
+
+        # Logic to make links from outputs/ to inputs/, skipping anything that
+        # will be output by the tool as well as the manifest. We put this here
+        # so that tools used for the import stage don't have to duplicate this
+        # logic. We skip this logic for 'join'-based single-step imports, since
+        # 'join' does the copy for us.
+        tool = self.get('flowgraph', step, index, 'tool')
+        if tool not in self.builtin:
+            if self.valid('eda', tool, 'output', step, index):
+                outputs = self.get('eda', tool, 'output', step, index)
+            else:
+                outputs = []
+            design = self.get('design')
+            ignore = outputs + [f'{design}.pkg.json']
+            utils.copytree(indir, outdir, dirs_exist_ok=True, link=True, ignore=ignore)
+        elif tool != 'join':
+            self.error = 1
+            self.logger.error(f'Invalid import step builtin {tool}. Must be tool or join.')
 
     ###########################################################################
     def archive(self, step=None, index=None, all_files=False):
@@ -2888,6 +3033,9 @@ class Chip:
 
         ##################
         # 11. Check that all requirements met
+        self.set('arg', 'step', step, clobber=True)
+        self.set('arg', 'index', index, clobber=True)
+
         if self.check_manifest():
             self.logger.error(f"Fatal error in check()! See previous errors.")
             self._haltstep(step, index, active)
@@ -2895,9 +3043,6 @@ class Chip:
 
         ##################
         # 12. Run preprocess step for tool
-        self.set('arg', 'step', step, clobber=True)
-        self.set('arg', 'index', index, clobber=True)
-
         if tool not in self.builtin:
             func = self.find_function(tool, "tool", "pre_process")
             if func:

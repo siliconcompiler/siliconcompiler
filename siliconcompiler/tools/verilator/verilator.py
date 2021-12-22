@@ -70,6 +70,10 @@ def setup_tool(chip):
         chip.logger.error('Step %s not supported for verilator', step)
         sys.exit()
 
+    if step == 'import':
+        design = chip.get('design')
+        chip.set('eda', tool, 'output', step, index, f'{design}.v')
+
 ################################
 #  Custom runtime options
 ################################
@@ -154,10 +158,6 @@ def post_process(chip):
 
     # Moving pickled file to outputs
     os.rename("verilator.v", "outputs/" + topmodule + ".v")
-
-    # Copy files from inputs to outputs
-    utils.copytree("inputs", "outputs", dirs_exist_ok=True, link=True,
-                   ignore=[f'{topmodule}.v', f'{topmodule}.pkg.json'])
 
     # Clean up
     shutil.rmtree('obj_dir')
