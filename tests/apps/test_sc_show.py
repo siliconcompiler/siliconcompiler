@@ -1,30 +1,43 @@
 import os
-import tarfile
 
 import pytest
+import siliconcompiler
 
 from siliconcompiler.apps import sc_show
 from siliconcompiler import Chip
 
-@pytest.fixture
-def heartbeat_dir(scroot):
-    '''Fixture that extracts a tarred copy of the heartbeat build dir into test
-    directory.
+# TODO: I think moving back to something like a tarfile would be nice here to
+# remove the dependency on EDA tools. Maybe make that tarfile the single source
+# of truth rather than gcd.pkg.json.
+@pytest.fixture(scope='module')
+def heartbeat_dir(tmpdir_factory):
+    '''Fixture that creates a heartbeat build directory by running a build.
     '''
+    scroot = os.path.join(os.path.dirname(__file__), '..', '..')
     datadir = os.path.join(scroot, 'tests', 'data')
-    with tarfile.open(os.path.join(datadir, 'heartbeat.tar.gz')) as tar:
-        tar.extractall()
 
-    return os.path.join(os.getcwd(), 'build')
+    cwd = str(tmpdir_factory.mktemp("heartbeat"))
 
-@pytest.mark.skip(reason="There should only be one json file referenced.")
+    os.chdir(cwd)
+    chip = siliconcompiler.Chip()
+    chip.set('design', 'heartbeat')
+    chip.set('loglevel', 'ERROR')
+    chip.set('quiet', True)
+    chip.add('source', os.path.join(datadir, 'heartbeat.v'))
+    chip.target('asicflow_freepdk45')
+    chip.run()
+
+    return cwd
+
 @pytest.mark.parametrize('flags', [
-    ['-asic_def', 'build/heartbeat/job0/export/0/inputs/heartbeat.def'],
-    ['-asic_gds', 'build/heartbeat/job0/export/0/outputs/heartbeat.gds'],
+    ['-read_def', 'show 0 build/heartbeat/job0/dfm/0/outputs/heartbeat.def'],
+    ['-read_gds', 'show 0 build/heartbeat/job0/export/0/outputs/heartbeat.gds'],
     ['-design', 'heartbeat'],
-    ['-asic_def', 'build/heartbeat/job0/export/0/inputs/heartbeat.def',
-        '-cfg', 'build/heartbeat/job0/export/0/inputs/heartbeat.pkg.json']
+    ['-read_def', '"show 0 build/heartbeat/job0/export/0/inputs/heartbeat.def"',
+        '-cfg', 'build/heartbeat/job0/export/0/outputs/heartbeat.pkg.json']
     ])
+@pytest.mark.eda
+@pytest.mark.quick
 def test_sc_show(flags, monkeypatch, heartbeat_dir):
     '''Test sc-show app on a few sets of flags.'''
 
@@ -46,6 +59,9 @@ def test_sc_show(flags, monkeypatch, heartbeat_dir):
 
         chip.logger.info('Showing ' + filename)
         return True
+
+    os.chdir(heartbeat_dir)
+
     monkeypatch.setattr(Chip, 'show', fake_show)
 
     monkeypatch.setattr('sys.argv', ['sc-show'] + flags)

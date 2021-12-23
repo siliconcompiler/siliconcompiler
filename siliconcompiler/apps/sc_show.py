@@ -17,29 +17,29 @@ def main():
     sc-show -design adder
     (displays build/job0/adder/export/0/outputs/adder.gds)
 
-    sc-show -asic_def build/job0/adder/route/1/outputs/adder.def
+    sc-show -read_def "show 0 build/job0/adder/route/1/outputs/adder.def"
     (displays build/job0/adder/route/1/outputs/adder.def)
 
     """
 
     chip = siliconcompiler.Chip()
     chip.create_cmdline(progname,
-                        switchlist=['design', 'asic_gds', 'asic_def', 'loglevel', 'cfg'],
+                        switchlist=['design', 'read_def', 'read_gds', 'loglevel', 'cfg'],
                         description=description)
 
     #Error checking
     design = bool(chip.get('design'))
-    gds_mode = bool(chip.get('asic', 'gds'))
-    def_mode = bool(chip.get('asic', 'def'))
+    gds_mode = chip.valid('read', 'gds', 'show', '0') and bool(chip.get('read', 'gds', 'show', '0'))
+    def_mode = chip.valid('read', 'def', 'show', '0') and bool(chip.get('read', 'def', 'show', '0'))
 
     if (def_mode + gds_mode + design) != 1:
-        chip.logger.error('Exactly one of -asic_gds, -asic_def, or -design must be provided.')
+        chip.logger.error('Exactly one of -read_gds, -read_def, or -design must be provided.')
         sys.exit(1)
 
     if gds_mode:
-        filename = chip.get('asic', 'gds')[-1]
+        filename = chip.get('read', 'gds', 'show', '0')[-1]
     elif def_mode:
-        filename = chip.get('asic', 'def')[-1]
+        filename = chip.get('read', 'def', 'show', '0')[-1]
     else:
         design = chip.get('design')
         dirlist =[chip.cwd,

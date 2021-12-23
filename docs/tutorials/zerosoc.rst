@@ -342,7 +342,7 @@ file in KLayout by running the following command:
 
 .. code-block:: console
 
-  $ sc-show -asic_def asic_core.def -cfg core_manifest.json
+  $ sc-show -read_def "show 0 asic_core.def" -cfg core_manifest.json
 
 ``sc-show`` uses the information in ``core_manifest.json`` to configure KLayout
 according to our technology and macro library specifications to give you a
