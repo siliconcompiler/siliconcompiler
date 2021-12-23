@@ -16,9 +16,7 @@ jobs:
           python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
           source $GITHUB_WORKSPACE/clean_env/bin/activate
           echo $VIRTUAL_ENV
-          echo $TEST_PATHS
           pip3 install -r $GITHUB_WORKSPACE/requirements.txt $GITHUB_WORKSPACE/.
-          PATH="$HOME/OpenFPGA/openfpga:$PATH"
           pytest -n 4 --import-mode=append -m "eda and quick"
 
   python_test_job:

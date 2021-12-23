@@ -141,11 +141,6 @@ def post_process(chip):
             # in case end of file is missing a newline
             outfile.write('\n')
 
-    # Copy files from inputs to outputs. Need to skip pickled Verilog and
-    # manifest since new versions of those are written.
-    utils.copytree("inputs", "outputs", dirs_exist_ok=True, link=True,
-                   ignore=[f'{design}.v', f'{design}.pkg.json'])
-
     # Clean up
     shutil.rmtree('slpp_all')
 

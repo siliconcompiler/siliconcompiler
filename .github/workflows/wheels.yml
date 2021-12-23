@@ -82,7 +82,7 @@ jobs:
   publish:
     needs: [build_wheels]
     runs-on: ubuntu-latest
-    if: github.event_name == 'release' && github.event.action == 'published'
+    if: github.event_name == 'release' && github.event.action == 'published' && !contains(github.event.release.body, 'NOPUBLISH')
 
     steps:
     - uses: actions/download-artifact@v2
@@ -93,4 +93,4 @@ jobs:
     - uses: pypa/gh-action-pypi-publish@v1.4.2
       with:
         user: __token__
-        password: ${{ secrets.pypi_password }}
+        password: ${{ secrets.PYPI_DEPLOY }}

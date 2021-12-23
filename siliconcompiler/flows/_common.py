@@ -9,6 +9,10 @@ def setup_frontend(chip):
         frontend_flow.append(('import', 'surelog'))
     elif frontend == 'chisel':
         frontend_flow.append(('import', 'chisel'))
+    elif frontend == 'c':
+        frontend_flow.append(('import', 'bambu'))
+    elif frontend == 'bluespec':
+        frontend_flow.append(('import', 'bluespec'))
     else:
         raise ValueError(f'Unsupported frontend: {frontend}')
 
