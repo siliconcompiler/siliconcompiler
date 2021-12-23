@@ -50,6 +50,7 @@ def setup_tool(chip, mode="batch"):
         if not shutil.which(klayout_exe):
             loc_dir = os.path.join(Path.home(), 'AppData', 'Roaming', 'KLayout')
             global_dir = os.path.join(os.path.splitdrive(Path.home())[0],
+                                      os.path.sep,
                                       'Program Files (x86)',
                                       'KLayout')
             if os.path.isdir(loc_dir):

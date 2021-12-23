@@ -42,6 +42,7 @@ jobs:
       run: |
         choco install -y graphviz winflexbison3
         vcpkg install zlib zlib:x64-windows
+        .github/workflows/bin/install_klayout_win.bat
 
     - name: Setup env (macOS)
       if: matrix.os == 'macos-latest'
@@ -70,6 +71,10 @@ jobs:
         CIBW_TEST_COMMAND: >
           pytest --import-mode=append {package}/tests/ -m "not eda" &&
           pytest --import-mode=append {package}/tests/tools/test_surelog.py
+        CIBW_TEST_COMMAND_WINDOWS: >
+          pytest --import-mode=append {package}/tests/ -m "not eda" &&
+          pytest --import-mode=append {package}/tests/tools/test_surelog.py &&
+          pytest --import-mode=append {package}/tests/core/test_show.py
     - name: Verify clean directory
       run: git diff --exit-code
       shell: bash
