@@ -4334,7 +4334,7 @@ def schema_checklist(cfg, group='checklist'):
             f"api: chip.set({emit_api},'ISO','D000','rationale','reliability')"],
         'help': f"""
         Rationale for the the {group} checklist item. Rationale should be a
-        unique alphanumeric code used by the standrd or a short one line
+        unique alphanumeric code used by the standard or a short one line
         or single word description.
         """
     }
