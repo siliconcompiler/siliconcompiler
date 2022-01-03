@@ -3230,17 +3230,6 @@ class Chip:
             Runs the execution flow defined by the flowgraph dictionary.
         '''
 
-        # We package SC wheels with a precompiled copy of Surelog installed to
-        # tools/surelog/bin. Add this path to the system path before attempting to
-        # execute Surelog so the system checks here.
-        surelog_path = f'{os.path.dirname(__file__)}/tools/surelog/bin'
-        try:
-            ospath = os.environ['PATH'] + os.pathsep
-        except KeyError:
-            ospath = ''
-        ospath += f'{surelog_path}'
-        os.environ['PATH'] = ospath
-
         # Run steps if set, otherwise run whole graph
         if self.get('arg', 'step'):
             steplist = [self.get('arg', 'step')]
