@@ -4348,8 +4348,8 @@ def schema_checklist(cfg, group='checklist'):
         'defvalue': [],
         'shorthelp': f"{emit_help} item signoff criteria",
         'example': [
-            f"cli: -{emit_group}_goal '{emit_switch}ISO D000 errors==0'",
-            f"api: chip.set({emit_api},'ISO','D000','goal','errors==0')"],
+            f"cli: -{emit_group}_criteria '{emit_switch}ISO D000 errors==0'",
+            f"api: chip.set({emit_api},'ISO','D000','criteria','errors==0')"],
         'help': f"""
         Simple list of signoff criteria for {group} checklist item which
         must all be met for signoff. Each signoff criteris consists of
