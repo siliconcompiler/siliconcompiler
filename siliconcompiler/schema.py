@@ -4352,8 +4352,8 @@ def schema_checklist(cfg, group='checklist'):
             f"api: chip.set({emit_api},'ISO','D000','criteria','errors==0')"],
         'help': f"""
         Simple list of signoff criteria for {group} checklist item which
-        must all be met for signoff. Each signoff criteris consists of
-        a metric, a relational operator, and a valaue in the form.
+        must all be met for signoff. Each signoff criteria consists of
+        a metric, a relational operator, and a value in the form.
         'metric op value'.
         """
     }
