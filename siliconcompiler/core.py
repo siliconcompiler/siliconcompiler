@@ -3068,11 +3068,10 @@ class Chip:
 
         vercheck = self.get('vercheck')
         veropt = self.get('eda', tool, 'vswitch')
-        exe = self.get('eda', tool, 'exe')
+        exe = self._getexe(tool)
         version = None
         if vercheck and (veropt is not None) and (exe is not None):
-            fullexe = self._resolve_env_vars(exe)
-            cmdlist = [fullexe] + veropt.split()
+            cmdlist = [exe] + veropt.split()
             self.logger.info("Checking version of tool '%s'", tool)
             proc = subprocess.run(cmdlist, stdout=PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
             parse_version = self.find_function(tool, 'tool', 'parse_version')
@@ -3525,7 +3524,7 @@ class Chip:
             setup_tool = self.find_function(tool, 'tool', 'setup_tool')
             setup_tool(self, mode='show')
 
-            exe = self.get('eda', tool, 'exe')
+            exe = self._getexe(tool)
             if shutil.which(exe) is None:
                 self.logger.error(f'Executable {exe} not found.')
                 success = False
@@ -3609,14 +3608,29 @@ class Chip:
         return (ok, errormsg)
 
     #######################################
+    def _getexe(self, tool):
+        path = self.get('eda', tool, 'path')
+        exe = self.get('eda', tool, 'exe')
+        if exe is None:
+            return None
+
+        if path:
+            exe_with_path = os.path.join(path, exe)
+        else:
+            exe_with_path = exe
+
+        fullexe = self._resolve_env_vars(exe_with_path)
+
+        return fullexe
+
+    #######################################
     def _makecmd(self, tool, step, index):
         '''
         Constructs a subprocess run command based on eda tool setup.
         Creates a replay.sh command in current directory.
         '''
 
-        exe = self.get('eda', tool, 'exe')
-        fullexe = self._resolve_env_vars(exe)
+        fullexe = self._getexe(tool)
 
         options = []
         is_posix = ('win' not in sys.platform)
