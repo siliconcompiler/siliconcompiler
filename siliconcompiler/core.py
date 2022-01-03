@@ -1907,7 +1907,7 @@ class Chip:
                         op = m.group(2)
                         goal = str(m.group(3))
                         value = str(self.get('metric', step, index, param, 'real'))
-                        criteria_ok = eval(value + op + goal)
+                        criteria_ok = self._safecompare(value, op, goal)
 
             #item check
             if not report_ok:
@@ -3754,6 +3754,24 @@ class Chip:
                 self.set('record', step, index, key, self.get(key))
             else:
                 self.logger.debug(f"Record ignored for {key}, parameter not set up")
+
+
+    #######################################
+    def _safecompare(self, value, op, goal):
+        # supported relational oprations
+        # >, >=, <=, <. ==, !=
+        if op == ">":
+            return(bool(value>goal))
+        elif op == ">=":
+            return(bool(value>=goal))
+        elif op == "<":
+            return(bool(value<goal))
+        elif op == "<=":
+            return(bool(value<=goal))
+        elif op == "==":
+            return(bool(value==goal))
+        elif op == "!=":
+            return(bool(value!=goal))
 
 
     #######################################
