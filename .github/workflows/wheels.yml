@@ -43,7 +43,9 @@ jobs:
 
     - name: Setup env (macOS)
       if: matrix.os == 'macos-latest'
-      run: brew install graphviz
+      run: |
+        brew install graphviz
+        brew install --cask klayout
 
     - name: Build Surelog (Windows)
       if: matrix.os == 'windows-latest' && steps.surelog-cache.outputs.cache-hit != 'true'
@@ -66,9 +68,6 @@ jobs:
         CIBW_TEST_SKIP: "*_arm64"
         CIBW_TEST_EXTRAS: test
         CIBW_TEST_COMMAND: >
-          pytest --import-mode=append {package}/tests/ -m "not eda" &&
-          pytest --import-mode=append {package}/tests/tools/test_surelog.py
-        CIBW_TEST_COMMAND_WINDOWS: >
           pytest --import-mode=append {package}/tests/ -m "not eda" &&
           pytest --import-mode=append {package}/tests/tools/test_surelog.py &&
           pytest --import-mode=append {package}/tests/core/test_show.py
