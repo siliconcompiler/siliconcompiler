@@ -1841,6 +1841,87 @@ class Chip:
                 self.error = 1
 
     ###########################################################################
+    def check_checklist(self, standard, item=None):
+        '''
+        Check an item in checklist.
+
+        Checks the status of an item in the checklist for the standard
+        provided. If the item is unspecified, all items are checked.
+
+        The function relies on the checklist 'criteria' parameter and
+        'step' parameter to check for the existence of report filess
+        and a passing metric based criteria. Checklist items with
+        empty 'report' values or unmet criteria result in error messages
+        and raising the error flag.
+
+        Args:
+            standard(str): Standard to check.
+            item(str): Item to check from standard.
+
+        Returns:
+            Status of item check.
+
+        Examples:
+            >>> status = chip.check_checklist('iso9000', 'd000')
+            Returns status.
+        '''
+
+        if item is None:
+            items = self.getkeys('checklist', standard)
+        else:
+            items = [item]
+
+        global_check = True
+
+        for item in items:
+            step = self.get('checklist', standard, item, 'step')
+            index = self.get('checklist', standard, item, 'index')
+            all_criteria = self.get('checklist', standard, item, 'criteria')
+            report_ok = False
+            criteria_ok = True
+            # manual
+            if step not in self.getkeys('flowgraph'):
+                #criteria not used, so always ok
+                criteria_ok = True
+                if len(self.getkeys('checklist',standard, item, 'report')) <2:
+                    self.logger.error(f"No report found for {item}")
+                    report_ok = False
+            else:
+                tool = self.get('flowgraph', step, index, 'tool')
+                # copy report paths over to checklsit
+                for reptype in self.getkeys('eda', tool, 'report', step, index):
+                    report_ok = True
+                    report = self.get('eda', tool, 'report', step, index, reptype)
+                    self.set('checklist', standard, item, 'report', reptype, report)
+                # quantifiable checklist criteria
+                for criteria in all_criteria:
+                    m = re.match(r'(\w+)([\>\=\<]+)(\w+)', criteria)
+                    if not m:
+                        self.logger.error(f"Illegal checklist criteria: {criteria}")
+                        return False
+                    elif m.group(1) not in self.getkeys('metric', step, index):
+                        self.logger.error(f"Critera must use legal metrics only: {criteria}")
+                        return False
+                    else:
+                        param = m.group(1)
+                        op = m.group(2)
+                        goal = str(m.group(3))
+                        value = str(self.get('metric', step, index, param, 'real'))
+                        criteria_ok = self._safecompare(value, op, goal)
+
+            #item check
+            if not report_ok:
+                self.logger.error(f"Report missing for checklist: {standard} {item}")
+                global_check = False
+                self.error = 1
+            elif not criteria_ok:
+                self.logger.error(f"Criteria check failed for checklist: {standard} {item}")
+                global_check = False
+                self.error = 1
+
+        return global_check
+
+    ###########################################################################
     def read_file(self, filename, step='import', index='0'):
         '''
         Read file defined in schema. (WIP)
@@ -3676,6 +3757,27 @@ class Chip:
                 self.set('record', step, index, key, self.get(key))
             else:
                 self.logger.debug(f"Record ignored for {key}, parameter not set up")
+
+
+    #######################################
+    def _safecompare(self, value, op, goal):
+        # supported relational oprations
+        # >, >=, <=, <. ==, !=
+        if op == ">":
+            return(bool(value>goal))
+        elif op == ">=":
+            return(bool(value>=goal))
+        elif op == "<":
+            return(bool(value<goal))
+        elif op == "<=":
+            return(bool(value<=goal))
+        elif op == "==":
+            return(bool(value==goal))
+        elif op == "!=":
+            return(bool(value!=goal))
+        else:
+            self.error = 1
+            self.logger.error(f"Illegal comparison operation {op}")
 
 
     #######################################

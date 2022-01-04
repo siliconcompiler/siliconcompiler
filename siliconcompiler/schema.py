@@ -4321,8 +4321,46 @@ def schema_checklist(cfg, group='checklist'):
         """
     }
 
-    localcfg[standard][item]['report'] = {
-        'switch': f"-{emit_group}_report '{emit_switch}standard item <file>'",
+    localcfg[standard][item]['rationale'] = {
+        'switch': f"-{emit_group}_rationale '{emit_switch}standard item <str>",
+        'require': None,
+        'type': '[str]',
+        'lock': 'false',
+        'signature': None,
+        'defvalue': None,
+        'shorthelp': f"{emit_help} item rational",
+        'example': [
+            f"cli: -{emit_group}_rational '{emit_switch}ISO D000 reliability'",
+            f"api: chip.set({emit_api},'ISO','D000','rationale','reliability')"],
+        'help': f"""
+        Rationale for the the {group} checklist item. Rationale should be a
+        unique alphanumeric code used by the standard or a short one line
+        or single word description.
+        """
+    }
+
+    localcfg[standard][item]['criteria'] = {
+        'switch': f"-{emit_group}_criteria '{emit_switch}standard item <float>'",
+        'type': '[str]',
+        'lock': 'false',
+        'require': None,
+        'signature': None,
+        'defvalue': [],
+        'shorthelp': f"{emit_help} item signoff criteria",
+        'example': [
+            f"cli: -{emit_group}_criteria '{emit_switch}ISO D000 errors==0'",
+            f"api: chip.set({emit_api},'ISO','D000','criteria','errors==0')"],
+        'help': f"""
+        Simple list of signoff criteria for {group} checklist item which
+        must all be met for signoff. Each signoff criteria consists of
+        a metric, a relational operator, and a value in the form.
+        'metric op value'.
+        """
+    }
+
+    localcfg[standard][item]['report'] = {}
+    localcfg[standard][item]['report']['default'] = {
+        'switch': f"-{emit_group}_report '{emit_switch}standard item type <file>'",
         'type': '[file]',
         'lock': 'false',
         'copy': 'true',
@@ -4335,12 +4373,13 @@ def schema_checklist(cfg, group='checklist'):
         'signature': [],
         'shorthelp': f"{emit_help} item report",
         'example': [
-            f"cli: -{emit_group}_report '{emit_switch}ISO D000 my.rpt'",
-            f"api: chip.set({emit_api},'ISO','D000','report','my.rpt')"],
+            f"cli: -{emit_group}_report '{emit_switch}ISO D000 bold my.rpt'",
+            f"api: chip.set({emit_api},'ISO','D000','report','hold', 'my.rpt')"],
         'help': f"""
-        Filepath to report(s) documenting the successful validation of
-        the {group} checklist item."""
-        }
+        Filepath to report(s) of specified type documenting the successful
+        validation of the {group} checklist item for the.
+        """
+    }
 
     localcfg[standard][item]['waiver'] = {
         'switch': f"-{emit_group}_waiver '{emit_switch}standard item <file>'",
@@ -4362,22 +4401,6 @@ def schema_checklist(cfg, group='checklist'):
         Filepath to report(s) documenting waivers for the {group} checklist
         item."""
         }
-
-    localcfg[standard][item]['quantity'] = {
-        'switch': f"-{emit_group}_quantity '{emit_switch}standard item <float>'",
-        'type': 'float',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': f"{emit_help} item quantity",
-        'example': [
-            f"cli: -{emit_group}_quanity '{emit_switch}ISO D000 99.9'",
-            f"api: chip.set({emit_api},'ISO','D000','quantity', '99.9')"],
-        'help': f"""
-        Quantity specific to the checklist item {group}.
-        """
-    }
 
     localcfg[standard][item]['step'] = {
         'switch': f"-{emit_group}_step '{emit_switch}standard item <str>'",
