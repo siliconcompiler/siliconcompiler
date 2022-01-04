@@ -193,30 +193,42 @@ class Chip:
             typestr = self.get(*key, field='type')
             #Switch field fully describes switch format
             switch = self.get(*key, field='switch')
-            if switch is not None:
+            if switch is None:
+                switches = []
+            elif isinstance(switch, list):
+                switches = switch
+            else:
+                switches = [switch]
+
+            switchstrs = []
+            dest = None
+            for switch in switches:
                 switchmatch = re.match(r'(-[\w_]+)\s+(.*)', switch)
                 gccmatch = re.match(r'(-[\w_]+)(.*)', switch)
                 plusmatch = re.match(r'(\+[\w_\+]+)(.*)', switch)
                 if switchmatch:
                     switchstr = switchmatch.group(1)
                     if re.search('_', switchstr):
-                        dest = re.sub('-','',switchstr)
+                        this_dest = re.sub('-','',switchstr)
                     else:
-                        dest = key[0]
+                        this_dest = key[0]
                 elif gccmatch:
                     switchstr = gccmatch.group(1)
-                    dest = key[0]
+                    this_dest = key[0]
                 elif plusmatch:
                     switchstr = plusmatch.group(1)
-                    dest = key[0]
-            else:
-                switchstr = None
-                dest = None
+                    this_dest = key[0]
+
+                switchstrs.append(switchstr)
+                if dest is None:
+                    dest = this_dest
+                elif dest != this_dest:
+                    raise ValueError('Destination for each switch in list must match')
 
             #Four switch types (source, scalar, list, bool)
             if ('source' not in key) & ((switchlist == []) | (dest in switchlist)):
                 if typestr == 'bool':
-                    parser.add_argument(switchstr,
+                    parser.add_argument(*switchstrs,
                                         metavar='',
                                         dest=dest,
                                         action='store_const',
@@ -226,7 +238,7 @@ class Chip:
                 #list type arguments
                 elif re.match(r'\[', typestr):
                     #all the rest
-                    parser.add_argument(switchstr,
+                    parser.add_argument(*switchstrs,
                                         metavar='',
                                         dest=dest,
                                         action='append',
@@ -234,7 +246,7 @@ class Chip:
                                         default=argparse.SUPPRESS)
                 else:
                     #all the rest
-                    parser.add_argument(switchstr,
+                    parser.add_argument(*switchstrs,
                                         metavar='',
                                         dest=dest,
                                         help=helpstr,
