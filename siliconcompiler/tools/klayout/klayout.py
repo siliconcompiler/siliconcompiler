@@ -57,6 +57,16 @@ def setup_tool(chip, mode="batch"):
                 chip.set('eda', tool, 'path', loc_dir)
             elif os.path.isdir(global_dir):
                 chip.set('eda', tool, 'path', global_dir)
+    elif platform.system() == 'Darwin':
+        klayout_exe = 'klayout'
+        if not shutil.which(klayout_exe):
+            klayout_dir = os.path.join(os.path.sep,
+                                       'Applications',
+                                       'klayout.app',
+                                       'Contents',
+                                       'MacOS')
+            if os.path.isdir(klayout_dir):
+                chip.set('eda', tool, 'path', klayout_dir)
     else:
         klayout_exe = 'klayout'
 
