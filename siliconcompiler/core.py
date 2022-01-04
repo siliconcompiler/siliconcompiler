@@ -28,6 +28,10 @@ import graphviz
 import time
 import uuid
 import shlex
+import platform
+import getpass
+import distro
+import netifaces
 from pathlib import Path
 from timeit import default_timer as timer
 from siliconcompiler.client import *
@@ -2959,8 +2963,8 @@ class Chip:
         T16. Run EXE
         T17. Run post_process()
         T18. Hash all task files
-        T19. Make a task record
-        T20. Measure run time
+        T19. Measure run time
+        T20. Make a task record
         T21. Save manifest to disk
         T22. chdir
         T23. clear error/active bits and return control to run()
@@ -3151,7 +3155,7 @@ class Chip:
         veropt = self.get('eda', tool, 'vswitch')
         exe = self._getexe(tool)
         version = None
-        if vercheck and (veropt is not None) and (exe is not None):
+        if (veropt is not None) and (exe is not None):
             cmdlist = [exe] + veropt.split()
             self.logger.info("Checking version of tool '%s'", tool)
             proc = subprocess.run(cmdlist, stdout=PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
@@ -3159,15 +3163,15 @@ class Chip:
             if parse_version is None:
                 self.logger.error(f'{tool} does not implement parse_version.')
                 self._haltstep(step, index, active)
-
             version = parse_version(proc.stdout)
-            allowed_versions = self.get('eda', tool, 'version')
-            if allowed_versions and version not in allowed_versions:
-                allowedstr = ', '.join(allowed_versions)
-                self.logger.error(f"Version check failed for {tool}. Check installation.")
-                self.logger.error(f"Found version {version}, expected one of [{allowedstr}].")
-                self._haltstep(step, index, active)
 
+            if vercheck:
+                allowed_versions = self.get('eda', tool, 'version')
+                if allowed_versions and version not in allowed_versions:
+                    allowedstr = ', '.join(allowed_versions)
+                    self.logger.error(f"Version check failed for {tool}. Check installation.")
+                    self.logger.error(f"Found version {version}, expected one of [{allowedstr}].")
+                    self._haltstep(step, index, active)
 
         ##################
         # 15. Interface with tools (Don't move this!)
@@ -3239,16 +3243,16 @@ class Chip:
                         self.hash_files(*args)
 
         ##################
-        # 19. Make a record if tracking is enabled
-        if self.get('track'):
-            self._make_record(job, step, index, version)
-
-        ##################
-        # 20. Capture total runtime
+        # 19. Capture total runtime
 
         end = time.time()
         elapsed_time = round((end - start),2)
         self.set('metric',step, index, 'runtime', 'real', elapsed_time)
+
+        ##################
+        # 20. Make a record if tracking is enabled
+        if self.get('track'):
+            self._make_record(job, step, index, start, end, version)
 
         ##################
         # 21. Save a successful manifest
@@ -3732,32 +3736,78 @@ class Chip:
         return cmdlist
 
     #######################################
-    def _make_record(self, job, step, index, toolversion):
+    def _get_cloud_region(self):
+        # TODO: add logic to figure out if we're running on a remote cluster and
+        # extract the region in a provider-specific way.
+        return 'local'
+
+    #######################################
+    def _make_record(self, job, step, index, start, end, toolversion):
         '''
         Records provenance details for a runstep.
         '''
 
-        #start_date = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
+        start_date = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
+        end_date = datetime.datetime.fromtimestamp(end).strftime('%Y-%m-%d %H:%M:%S')
 
-        for key in self.getkeys('record', 'default', 'default'):
-            if key == 'starttime':
-                self.set('record', step, index,'starttime', start)
-            elif key == 'endtime':
-                self.set('record', step, index, 'endtime', end)
-            elif key == 'input':
-                #TODO
-                pass
-            elif key == 'hash':
-                #TODO
-                pass
-            elif key == 'version':
-                #TODO
-                pass
-            elif self.get(key):
-                self.set('record', step, index, key, self.get(key))
-            else:
-                self.logger.debug(f"Record ignored for {key}, parameter not set up")
+        userid = getpass.getuser()
+        self.set('record', job, step, index, 'userid', userid)
 
+        scversion = self.get('version', 'sc')
+        self.set('record', job, step, index, 'version', 'sc', scversion)
+
+        if toolversion:
+            self.set('record', job, step, index, 'version', 'tool', toolversion)
+
+        self.set('record', job, step, index, 'starttime', start_date)
+        self.set('record', job, step, index, 'endtime', end_date)
+
+        machine = platform.node()
+        self.set('record', job, step, index, 'machine', machine)
+
+        self.set('record', job, step, index, 'region', self._get_cloud_region())
+
+        try:
+            gateways = netifaces.gateways()
+            ipaddr, interface = gateways['default'][netifaces.AF_INET]
+            macaddr = netifaces.ifaddresses(interface)[netifaces.AF_LINK][0]['addr']
+            self.set('record', job, step, index, 'ipaddr', ipaddr)
+            self.set('record', job, step, index, 'macaddr', macaddr)
+        except KeyError:
+            self.logger.warning('Could not find default network interface info')
+
+        system = platform.system()
+        if system == 'Darwin':
+            lower_sys_name = 'macos'
+        else:
+            lower_sys_name = system.lower()
+        self.set('record', job, step, index, 'platform', lower_sys_name)
+
+        if system == 'Linux':
+            distro_name = distro.id()
+            self.set('record', job, step, index, 'distro', distro_name)
+
+        if system == 'Darwin':
+            osversion, _, _ = platform.mac_ver()
+        elif system == 'Linux':
+            osversion = distro.version()
+        else:
+            osversion = platform.release()
+        self.set('record', job, step, index, 'version', 'os', osversion)
+
+        if system == 'Linux':
+            kernelversion = platform.release()
+        elif system == 'Windows':
+            kernelversion = platform.version()
+        elif system == 'Darwin':
+            kernelversion = platform.release()
+        else:
+            kernelversion = None
+        if kernelversion:
+            self.set('record', job, step, index, 'version', 'kernel', kernelversion)
+
+        arch = platform.machine()
+        self.set('record', job, step, index, 'arch', arch)
 
     #######################################
     def _safecompare(self, value, op, goal):

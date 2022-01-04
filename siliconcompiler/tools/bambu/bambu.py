@@ -44,7 +44,7 @@ def setup_tool(chip):
 def parse_version(stdout):
     # Long multiline output, but second-to-last line looks like:
     # Version: PandA 0.9.6 - Revision 5e5e306b86383a7d85274d64977a3d71fdcff4fe-main
-    version_line = stdout.split('\n')[-2]
+    version_line = stdout.split('\n')[-3]
     return version_line.split()[2]
 
 ################################
