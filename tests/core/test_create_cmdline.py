@@ -1,9 +1,6 @@
 import siliconcompiler
 
-# TODO: find pytest-based way to do mocking
-import unittest.mock
-
-def test_cli_multi_source():
+def test_cli_multi_source(monkeypatch):
     ''' Regression test for bug where CLI parser wasn't handling multiple
     source files properly.
     '''
@@ -14,9 +11,25 @@ def test_cli_multi_source():
     args = ['sc', 'examples/ibex/ibex_alu.v', 'examples/ibex/ibex_branch_predict.v',
             '-target', 'asicflow_freepdk45']
 
-    with unittest.mock.patch('sys.argv', args):
-        chip.create_cmdline('sc')
+    monkeypatch.setattr('sys.argv', args)
+    chip.create_cmdline('sc')
 
     assert chip.get('source') == ['examples/ibex/ibex_alu.v',
                                   'examples/ibex/ibex_branch_predict.v']
     assert chip.get('target') == 'asicflow_freepdk45'
+
+def test_cli_include_flag(monkeypatch):
+    ''' Regression test for bug where CLI parser wasn't handling multiple
+    source files properly.
+    '''
+    chip = siliconcompiler.Chip()
+
+    # It doesn't matter that these files/dirs don't exist, since we're just
+    # checking that the CLI app parses them correctly
+    args = ['sc', 'source.v', '-I', 'include/inc1', '+incdir+include/inc2']
+
+    monkeypatch.setattr('sys.argv', args)
+    chip.create_cmdline('sc')
+
+    assert chip.get('source') == ['source.v']
+    assert chip.get('idir') == ['include/inc1', 'include/inc2']

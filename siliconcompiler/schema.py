@@ -4647,7 +4647,7 @@ def schema_design(cfg):
     }
 
     cfg['idir'] = {
-        'switch': "+incdir+<dir>",
+        'switch': ['+incdir+<dir>', '-I <dir>'],
         'type': '[dir]',
         'lock': 'false',
         'require': None,
