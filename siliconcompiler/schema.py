@@ -1875,11 +1875,11 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
 
     cfg['eda'][tool]['path'] = {
         'switch': "-eda_path 'tool <dir>'",
-        'type': '[dir]',
+        'type': 'dir',
         'lock': 'false',
         'require': None,
         'signature' : [],
-        'defvalue': [],
+        'defvalue': None,
         'shorthelp': 'Tool executable path',
         'example': [
             "cli: -eda_path 'openroad /usr/local/bin'",

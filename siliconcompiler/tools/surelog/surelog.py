@@ -67,6 +67,12 @@ def setup_tool(chip):
     # Input/Output requirements
     chip.add('eda', tool, 'output', step, index, chip.get('design') + '.v')
 
+    # We package SC wheels with a precompiled copy of Surelog installed to
+    # tools/surelog/bin. If the user doesn't have Surelog installed on their
+    # system path, set the path to the bundled copy in the schema.
+    if shutil.which('surelog') is None:
+        surelog_path = os.path.join(os.path.dirname(__file__), 'bin')
+        chip.set('eda', tool, 'path', surelog_path, clobber=False)
 
 def parse_version(stdout):
     # Surelog --version output looks like:

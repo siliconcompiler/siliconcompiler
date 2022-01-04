@@ -54,9 +54,9 @@ def setup_tool(chip, mode="batch"):
                                       'Program Files (x86)',
                                       'KLayout')
             if os.path.isdir(loc_dir):
-                os.environ['PATH'] = os.environ['PATH'] + ';' + loc_dir
+                chip.set('eda', tool, 'path', loc_dir)
             elif os.path.isdir(global_dir):
-                os.environ['PATH'] = os.environ['PATH'] + ';' + global_dir
+                chip.set('eda', tool, 'path', global_dir)
     else:
         klayout_exe = 'klayout'
 
