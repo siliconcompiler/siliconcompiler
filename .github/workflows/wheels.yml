@@ -49,11 +49,11 @@ jobs:
 
     - name: Build Surelog (Windows)
       if: matrix.os == 'windows-latest' && steps.surelog-cache.outputs.cache-hit != 'true'
-      run: .github/workflows/bin/setup_wheel_env_win.bat
+      run: .github/workflows/bin/install_surelog_win.bat
 
     - name: Build Surelog (macOS)
       if: matrix.os == 'macos-latest' && steps.surelog-cache.outputs.cache-hit != 'true'
-      run: .github/workflows/bin/setup_wheel_env_macos.sh
+      run: .github/workflows/bin/install_surelog_macos.sh
 
     - uses: pypa/cibuildwheel@v2.1.1
       env:
