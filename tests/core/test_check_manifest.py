@@ -70,6 +70,26 @@ def test_check_allowed_filepaths_fail(scroot, monkeypatch):
 
     assert chip.check_manifest() == 1
 
+def test_check_missing_file_param():
+    chip = siliconcompiler.Chip()
+    chip.set('design', 'gcd')
+    chip.target('asicflow_freepdk45')
+
+    chip.set('arg', 'step', 'syn')
+    chip.set('arg', 'index', '0')
+    setup_tool = chip.find_function('yosys', 'tool', 'setup_tool')
+    setup_tool(chip)
+
+    chip.set('eda', 'yosys', 'input', 'syn', '0', [])
+    chip.set('eda', 'yosys', 'output', 'syn', '0',[])
+
+    # not real file, will cause error
+    libname = 'NangateOpenCellLibrary'
+    corner = 'typical'
+    chip.add('library', libname, 'nldm', corner, 'lib', '/fake/timing/file.lib')
+
+    assert chip.check_manifest() == 1
+
 #########################
 if __name__ == "__main__":
     test_check_manifest()
