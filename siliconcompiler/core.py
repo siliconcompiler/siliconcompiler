@@ -1863,7 +1863,7 @@ class Chip:
 
         Examples:
             >>> status = chip.check_checklist('iso9000', 'd000')
-            Returns status of item check.
+            Returns status.
         '''
 
         if item is None:
@@ -3772,6 +3772,9 @@ class Chip:
             return(bool(value==goal))
         elif op == "!=":
             return(bool(value!=goal))
+        else:
+            self.error = 1
+            self.logger.error(f"Illegal comparison operation {op}")
 
 
     #######################################
