@@ -3,16 +3,19 @@ import siliconcompiler
 import os
 import pytest
 from pyvirtualdisplay import Display
-from unittest import mock
+import sys
 
 from unittest import mock
 
 @pytest.fixture
 def display():
-    display = Display(visible=False)
-    display.start()
-    yield display
-    display.stop()
+    if sys.platform != 'win32':
+        display = Display(visible=False)
+        display.start()
+        yield display
+        display.stop()
+    else:
+        yield False
 
 @pytest.mark.eda
 @pytest.mark.quick
