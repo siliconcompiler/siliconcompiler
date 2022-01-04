@@ -3753,6 +3753,9 @@ class Chip:
         userid = getpass.getuser()
         self.set('record', job, step, index, 'userid', userid)
 
+        scversion = self.get('version', 'sc')
+        self.set('record', job, step, index, 'version', 'sc', scversion)
+
         if toolversion:
             self.set('record', job, step, index, 'version', 'tool', toolversion)
 

@@ -3027,6 +3027,21 @@ def schema_record(cfg, job='default', step='default', index='default'):
     }
 
     cfg['record'][job][step][index]['version']={}
+    cfg['record'][job][step][index]['version']['sc'] = {
+        'switch': "-record_version_sc 'job step index <str>'",
+        'type': 'str',
+        'lock': 'false',
+        'require': None,
+        'signature': None,
+        'defvalue': None,
+        'shorthelp': 'Record sc version',
+        'example': [
+            "cli: -record_version_sc 'job0 dfm 0 1.0'",
+            "api: chip.set('record','job0', 'dfm','0', 'version', 'sc', '1.0')"],
+        'help': """
+        Record tracking the 'sc' version number per job, step, index.
+        """
+    }
     cfg['record'][job][step][index]['version']['tool'] = {
         'switch': "-record_version_tool 'job step index <str>'",
         'type': 'str',
