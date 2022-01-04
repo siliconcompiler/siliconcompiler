@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Install dependencies
-yum install -y libuuid-devel zlib-devel java-1.8.0-openjdk-devel graphviz
+yum install -y libuuid-devel zlib-devel java-1.8.0-openjdk-devel graphviz xorg-x11-server-Xvfb
 
 # Install Klayout (for chip.show() test)
 wget https://www.klayout.org/downloads/CentOS_7/klayout-0.27.5-0.x86_64.rpm
