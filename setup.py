@@ -4,6 +4,7 @@ import glob
 import os
 import shutil
 import sys
+import subprocess
 from setuptools import find_packages
 
 # Hack to get version number since it's considered bad practice to import your
@@ -32,10 +33,32 @@ else:
 with open("README.md", "r", encoding="utf-8") as readme:
   long_desc = readme.read()
 
-if not on_rtd and not os.path.isdir('third_party/tools/openroad/tools/OpenROAD/src/odb/src/lef'):
-    print('Source for LEF parser library not found! Install OpenROAD submodule before continuing with install:\n'
-          'git submodule update --init --recursive third_party/tools/openroad')
-    sys.exit(1)
+def parse_reqs():
+    '''Parse out each requirement category from requirements.txt'''
+    install_reqs = []
+    extras_reqs = {}
+    current_section = None # default to install
+
+    with open('requirements.txt', 'r') as reqs_file:
+        for line in reqs_file.readlines():
+            line = line.rstrip('\n')
+            if line.startswith('#:'):
+                # strip off '#:' prefix to read extras name
+                current_section = line[2:]
+                if current_section not in extras_reqs:
+                    extras_reqs[current_section] = []
+            elif not line or line.startswith('#'):
+                # skip blanks and comments
+                continue
+            elif current_section is None:
+                install_reqs.append(line)
+            else:
+                extras_reqs[current_section].append(line)
+
+    return install_reqs, extras_reqs
+
+if not on_rtd:
+    subprocess.run(['git', 'submodule', 'update', '--init', '--recursive', 'third_party/tools/openroad'])
 
 # Let us pass in generic arguments to CMake via an environment variable, since
 # our automated build servers need to pass in a certain argument when building
@@ -78,6 +101,8 @@ for f in glob.glob('siliconcompiler/tools/**/*', recursive=True):
         # strip off directory and add to list
         tool_package_data.append(f[len('siliconcompiler/tools/'):])
 
+install_reqs, extras_req = parse_reqs()
+
 setup(
     name="siliconcompiler",
     description="A compiler framework that automates translation from source code to silicon.",
@@ -108,34 +133,8 @@ setup(
     },
 
     python_requires=">=3.6",
-    install_requires=[
-        "numpy >= 1.19",
-        "aiohttp >= 3.7.4.post0",
-        "requests >= 2.22.0",
-        "PyYAML >= 5.4.1",
-        "defusedxml >= 0.7.1",
-        "pandas >= 1.1.5",
-        "Jinja2 >= 2.11.3",
-        "cryptography >= 3.4.7",
-        "graphviz >= 0.18.1"
-    ],
-    extras_require = {
-        "docs": [
-            "Sphinx >= 3.5.4",
-            "sphinx-rtd-theme >= 0.5.2",
-            "pip-licenses"
-        ],
-        "build": [
-            "scikit-build >= 0.12",
-            "cython",
-            "cmake"
-        ],
-        "test": [
-            "pytest >= 6.2.4",
-            "pytest-xdist >= 2.3.0",
-            "pyvirtualdisplay"
-        ]
-    },
+    install_requires=install_reqs,
+    extras_require = extras_req,
     entry_points={"console_scripts": entry_points},
     **skbuild_args
 )

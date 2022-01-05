@@ -8,6 +8,7 @@ def test_gcd_local_py(gcd_chip):
     '''Basic Python API test: build the GCD example using only Python code.
     '''
 
+    gcd_chip.set('track', True)
     gcd_chip.run()
 
     # Verify that GDS file was generated.

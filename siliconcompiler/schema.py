@@ -1901,11 +1901,11 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
 
     cfg['eda'][tool]['path'] = {
         'switch': "-eda_path 'tool <dir>'",
-        'type': '[dir]',
+        'type': 'dir',
         'lock': 'false',
         'require': None,
         'signature' : [],
-        'defvalue': [],
+        'defvalue': None,
         'shorthelp': 'Tool executable path',
         'example': [
             "cli: -eda_path 'openroad /usr/local/bin'",
@@ -3020,48 +3020,6 @@ def schema_record(cfg, job='default', step='default', index='default'):
     cfg['record'][job][step][index] = {}
 
 
-    cfg['record'][job][step][index]['input'] = {
-        'switch': "-record_input 'job step index <file>'",
-        'require': None,
-        'type': '[file]',
-        'copy': 'false',
-        'lock': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Record input files',
-        'example': [
-            "cli: -record_input 'job0 import 0 adder.v'",
-            "api: chip.set('record','job0','import','0','input','adder.v')"],
-        'help': """
-        Record tracking all input files per job, step, index.
-        """
-    }
-
-    cfg['record'][job][step][index]['output'] = {
-        'switch': "-record_output 'job step index <file>'",
-        'require': None,
-        'type': '[file]',
-        'copy': 'false',
-        'lock': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Record output files',
-        'example': [
-            "cli: -record_output 'job0 syn 0 outputs/adder.vg'",
-            "api: chip.set('record','job0', 'syn','0','output','outputs/adder.vg')"],
-        'help': """
-        Record tracking all input files per job, step, index.
-        """
-    }
-
     cfg['record'][job][step][index]['userid'] = {
         'switch': "-record_userid 'job step index <str>'",
         'require': None,
@@ -3094,39 +3052,6 @@ def schema_record(cfg, job='default', step='default', index='default'):
         """
     }
 
-    cfg['record'][job][step][index]['tool'] = {
-        'switch': "-record_tool 'job step index <str>'",
-        'require': None,
-        'signature': None,
-        'type': 'str',
-        'lock': 'false',
-        'defvalue': None,
-        'shorthelp': 'Record tool name',
-        'example': [
-            "cli: -record_tool 'job0 syn 0 yosys'",
-            "api: chip.set('record','job0', 'syn','0','tool','yosys')"],
-        'help': """
-        Record tracking the tool name per job, step, index.
-        """
-    }
-
-    cfg['record'][job][step][index]['exitstatus'] = {
-        'switch': "-record_exitstatus 'job step index <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Record exit status',
-        'example': [
-            "cli: -record_exitstatus 'job0 dfm 0 0'",
-            "api: chip.set('record', 'job0', 'dfm','0','exitstatus','0')"],
-        'help': """
-        Record with exit status code per job, step, index. A zero
-        indicates success, non-zero values represents an error.
-        """
-    }
-
     cfg['record'][job][step][index]['version']={}
     cfg['record'][job][step][index]['version']['sc'] = {
         'switch': "-record_version_sc 'job step index <str>'",
@@ -3143,7 +3068,6 @@ def schema_record(cfg, job='default', step='default', index='default'):
         Record tracking the 'sc' version number per job, step, index.
         """
     }
-
     cfg['record'][job][step][index]['version']['tool'] = {
         'switch': "-record_version_tool 'job step index <str>'",
         'type': 'str',
@@ -4750,7 +4674,7 @@ def schema_design(cfg):
     }
 
     cfg['idir'] = {
-        'switch': "+incdir+<dir>",
+        'switch': ['+incdir+<dir>', '-I <dir>'],
         'type': '[dir]',
         'lock': 'false',
         'require': None,

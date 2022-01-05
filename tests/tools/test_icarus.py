@@ -5,10 +5,8 @@ import pytest
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_icarus(scroot):
-    ydir = os.path.join(scroot, 'third_party', 'designs', 'oh', 'stdlib', 'hdl')
-
-    assert os.path.isdir(ydir), 'third_party/designs/oh submodule not cloned!'
+def test_icarus(oh_dir):
+    ydir = os.path.join(oh_dir, 'stdlib', 'hdl')
 
     design = "oh_fifo_sync"
     topfile = os.path.join(ydir, f'{design}.v')
@@ -27,5 +25,5 @@ def test_icarus(scroot):
 
 #########################
 if __name__ == "__main__":
-    from tests.fixtures import scroot
-    test_icarus(scroot())
+    oh_dir = os.path.join('third_party', 'designs', 'oh')
+    test_icarus(oh_dir)

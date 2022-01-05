@@ -1,6 +1,11 @@
 # Pip3 requirements file. To install Python library dependencies, run:
 # > pip3 install -r requirements.txt
 
+# To make this file a single source of truth for managing package dependencies,
+# this file is parsed by setup.py. The dependencies in the following block are
+# configured as install requirements, and dependencies listed after #:<tag>
+# lines are added as extras under a group called "<tag>".
+
 numpy >= 1.19
 aiohttp >= 3.7.4.post0
 requests >= 2.22.0
@@ -10,18 +15,23 @@ pandas >= 1.1.5
 Jinja2 >= 2.11.3
 cryptography >= 3.4.7
 graphviz >= 0.18.1
+netifaces >= 0.11.0
+distro >= 1.6.0
 
 # Build dependencies
+#:build
 scikit-build >= 0.12
 cython
 cmake
 
 # Docs dependencies
+#:docs
 Sphinx >= 3.5.4
 sphinx-rtd-theme >= 0.5.2
 pip-licenses
 
 # Testing dependencies
+#:test
 pytest >= 6.2.4
 pytest-xdist >= 2.3.0
 pyvirtualdisplay

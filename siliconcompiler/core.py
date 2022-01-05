@@ -28,6 +28,10 @@ import graphviz
 import time
 import uuid
 import shlex
+import platform
+import getpass
+import distro
+import netifaces
 from pathlib import Path
 from timeit import default_timer as timer
 from siliconcompiler.client import *
@@ -193,30 +197,42 @@ class Chip:
             typestr = self.get(*key, field='type')
             #Switch field fully describes switch format
             switch = self.get(*key, field='switch')
-            if switch is not None:
+            if switch is None:
+                switches = []
+            elif isinstance(switch, list):
+                switches = switch
+            else:
+                switches = [switch]
+
+            switchstrs = []
+            dest = None
+            for switch in switches:
                 switchmatch = re.match(r'(-[\w_]+)\s+(.*)', switch)
                 gccmatch = re.match(r'(-[\w_]+)(.*)', switch)
                 plusmatch = re.match(r'(\+[\w_\+]+)(.*)', switch)
                 if switchmatch:
                     switchstr = switchmatch.group(1)
                     if re.search('_', switchstr):
-                        dest = re.sub('-','',switchstr)
+                        this_dest = re.sub('-','',switchstr)
                     else:
-                        dest = key[0]
+                        this_dest = key[0]
                 elif gccmatch:
                     switchstr = gccmatch.group(1)
-                    dest = key[0]
+                    this_dest = key[0]
                 elif plusmatch:
                     switchstr = plusmatch.group(1)
-                    dest = key[0]
-            else:
-                switchstr = None
-                dest = None
+                    this_dest = key[0]
+
+                switchstrs.append(switchstr)
+                if dest is None:
+                    dest = this_dest
+                elif dest != this_dest:
+                    raise ValueError('Destination for each switch in list must match')
 
             #Four switch types (source, scalar, list, bool)
             if ('source' not in key) & ((switchlist == []) | (dest in switchlist)):
                 if typestr == 'bool':
-                    parser.add_argument(switchstr,
+                    parser.add_argument(*switchstrs,
                                         metavar='',
                                         dest=dest,
                                         action='store_const',
@@ -226,7 +242,7 @@ class Chip:
                 #list type arguments
                 elif re.match(r'\[', typestr):
                     #all the rest
-                    parser.add_argument(switchstr,
+                    parser.add_argument(*switchstrs,
                                         metavar='',
                                         dest=dest,
                                         action='append',
@@ -234,7 +250,7 @@ class Chip:
                                         default=argparse.SUPPRESS)
                 else:
                     #all the rest
-                    parser.add_argument(switchstr,
+                    parser.add_argument(*switchstrs,
                                         metavar='',
                                         dest=dest,
                                         help=helpstr,
@@ -2959,8 +2975,8 @@ class Chip:
         T16. Run EXE
         T17. Run post_process()
         T18. Hash all task files
-        T19. Make a task record
-        T20. Measure run time
+        T19. Measure run time
+        T20. Make a task record
         T21. Save manifest to disk
         T22. chdir
         T23. clear error/active bits and return control to run()
@@ -3149,26 +3165,25 @@ class Chip:
 
         vercheck = self.get('vercheck')
         veropt = self.get('eda', tool, 'vswitch')
-        exe = self.get('eda', tool, 'exe')
+        exe = self._getexe(tool)
         version = None
-        if vercheck and (veropt is not None) and (exe is not None):
-            fullexe = self._resolve_env_vars(exe)
-            cmdlist = [fullexe] + veropt.split()
+        if (veropt is not None) and (exe is not None):
+            cmdlist = [exe] + veropt.split()
             self.logger.info("Checking version of tool '%s'", tool)
             proc = subprocess.run(cmdlist, stdout=PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
             parse_version = self.find_function(tool, 'tool', 'parse_version')
             if parse_version is None:
                 self.logger.error(f'{tool} does not implement parse_version.')
                 self._haltstep(step, index, active)
-
             version = parse_version(proc.stdout)
-            allowed_versions = self.get('eda', tool, 'version')
-            if allowed_versions and version not in allowed_versions:
-                allowedstr = ', '.join(allowed_versions)
-                self.logger.error(f"Version check failed for {tool}. Check installation.")
-                self.logger.error(f"Found version {version}, expected one of [{allowedstr}].")
-                self._haltstep(step, index, active)
 
+            if vercheck:
+                allowed_versions = self.get('eda', tool, 'version')
+                if allowed_versions and version not in allowed_versions:
+                    allowedstr = ', '.join(allowed_versions)
+                    self.logger.error(f"Version check failed for {tool}. Check installation.")
+                    self.logger.error(f"Found version {version}, expected one of [{allowedstr}].")
+                    self._haltstep(step, index, active)
 
         ##################
         # 15. Interface with tools (Don't move this!)
@@ -3240,16 +3255,16 @@ class Chip:
                         self.hash_files(*args)
 
         ##################
-        # 19. Make a record if tracking is enabled
-        if self.get('track'):
-            self._make_record(job, step, index, version)
-
-        ##################
-        # 20. Capture total runtime
+        # 19. Capture total runtime
 
         end = time.time()
         elapsed_time = round((end - start),2)
         self.set('metric',step, index, 'runtime', 'real', elapsed_time)
+
+        ##################
+        # 20. Make a record if tracking is enabled
+        if self.get('track'):
+            self._make_record(job, step, index, start, end, version)
 
         ##################
         # 21. Save a successful manifest
@@ -3311,17 +3326,6 @@ class Chip:
             >>> run()
             Runs the execution flow defined by the flowgraph dictionary.
         '''
-
-        # We package SC wheels with a precompiled copy of Surelog installed to
-        # tools/surelog/bin. Add this path to the system path before attempting to
-        # execute Surelog so the system checks here.
-        surelog_path = f'{os.path.dirname(__file__)}/tools/surelog/bin'
-        try:
-            ospath = os.environ['PATH'] + os.pathsep
-        except KeyError:
-            ospath = ''
-        ospath += f'{surelog_path}'
-        os.environ['PATH'] = ospath
 
         # Run steps if set, otherwise run whole graph
         if self.get('arg', 'step'):
@@ -3606,7 +3610,7 @@ class Chip:
             setup_tool = self.find_function(tool, 'tool', 'setup_tool')
             setup_tool(self, mode='show')
 
-            exe = self.get('eda', tool, 'exe')
+            exe = self._getexe(tool)
             if shutil.which(exe) is None:
                 self.logger.error(f'Executable {exe} not found.')
                 success = False
@@ -3690,14 +3694,29 @@ class Chip:
         return (ok, errormsg)
 
     #######################################
+    def _getexe(self, tool):
+        path = self.get('eda', tool, 'path')
+        exe = self.get('eda', tool, 'exe')
+        if exe is None:
+            return None
+
+        if path:
+            exe_with_path = os.path.join(path, exe)
+        else:
+            exe_with_path = exe
+
+        fullexe = self._resolve_env_vars(exe_with_path)
+
+        return fullexe
+
+    #######################################
     def _makecmd(self, tool, step, index):
         '''
         Constructs a subprocess run command based on eda tool setup.
         Creates a replay.sh command in current directory.
         '''
 
-        exe = self.get('eda', tool, 'exe')
-        fullexe = self._resolve_env_vars(exe)
+        fullexe = self._getexe(tool)
 
         options = []
         is_posix = ('win' not in sys.platform)
@@ -3729,32 +3748,78 @@ class Chip:
         return cmdlist
 
     #######################################
-    def _make_record(self, job, step, index, toolversion):
+    def _get_cloud_region(self):
+        # TODO: add logic to figure out if we're running on a remote cluster and
+        # extract the region in a provider-specific way.
+        return 'local'
+
+    #######################################
+    def _make_record(self, job, step, index, start, end, toolversion):
         '''
         Records provenance details for a runstep.
         '''
 
-        #start_date = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
+        start_date = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
+        end_date = datetime.datetime.fromtimestamp(end).strftime('%Y-%m-%d %H:%M:%S')
 
-        for key in self.getkeys('record', 'default', 'default'):
-            if key == 'starttime':
-                self.set('record', step, index,'starttime', start)
-            elif key == 'endtime':
-                self.set('record', step, index, 'endtime', end)
-            elif key == 'input':
-                #TODO
-                pass
-            elif key == 'hash':
-                #TODO
-                pass
-            elif key == 'version':
-                #TODO
-                pass
-            elif self.get(key):
-                self.set('record', step, index, key, self.get(key))
-            else:
-                self.logger.debug(f"Record ignored for {key}, parameter not set up")
+        userid = getpass.getuser()
+        self.set('record', job, step, index, 'userid', userid)
 
+        scversion = self.get('version', 'sc')
+        self.set('record', job, step, index, 'version', 'sc', scversion)
+
+        if toolversion:
+            self.set('record', job, step, index, 'version', 'tool', toolversion)
+
+        self.set('record', job, step, index, 'starttime', start_date)
+        self.set('record', job, step, index, 'endtime', end_date)
+
+        machine = platform.node()
+        self.set('record', job, step, index, 'machine', machine)
+
+        self.set('record', job, step, index, 'region', self._get_cloud_region())
+
+        try:
+            gateways = netifaces.gateways()
+            ipaddr, interface = gateways['default'][netifaces.AF_INET]
+            macaddr = netifaces.ifaddresses(interface)[netifaces.AF_LINK][0]['addr']
+            self.set('record', job, step, index, 'ipaddr', ipaddr)
+            self.set('record', job, step, index, 'macaddr', macaddr)
+        except KeyError:
+            self.logger.warning('Could not find default network interface info')
+
+        system = platform.system()
+        if system == 'Darwin':
+            lower_sys_name = 'macos'
+        else:
+            lower_sys_name = system.lower()
+        self.set('record', job, step, index, 'platform', lower_sys_name)
+
+        if system == 'Linux':
+            distro_name = distro.id()
+            self.set('record', job, step, index, 'distro', distro_name)
+
+        if system == 'Darwin':
+            osversion, _, _ = platform.mac_ver()
+        elif system == 'Linux':
+            osversion = distro.version()
+        else:
+            osversion = platform.release()
+        self.set('record', job, step, index, 'version', 'os', osversion)
+
+        if system == 'Linux':
+            kernelversion = platform.release()
+        elif system == 'Windows':
+            kernelversion = platform.version()
+        elif system == 'Darwin':
+            kernelversion = platform.release()
+        else:
+            kernelversion = None
+        if kernelversion:
+            self.set('record', job, step, index, 'version', 'kernel', kernelversion)
+
+        arch = platform.machine()
+        self.set('record', job, step, index, 'arch', arch)
 
     #######################################
     def _safecompare(self, value, op, goal):

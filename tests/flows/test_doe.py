@@ -19,11 +19,11 @@ def run_design(datadir, design, N, job):
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_doe(scroot):
+def test_doe(oh_dir):
     '''Test running multiple experiments sweeping different parameters in
     parallel using multiprocessing library.'''
 
-    datadir = os.path.join(scroot, 'third_party', 'designs', 'oh', 'stdlib', 'hdl')
+    datadir = os.path.join(oh_dir, 'stdlib', 'hdl')
     design = 'oh_add'
     N = [4, 8, 16, 32, 64, 128]
 
@@ -57,5 +57,5 @@ def test_doe(scroot):
         prev_area = area
 
 if __name__ == "__main__":
-    from tests.fixtures import scroot
-    test_doe(scroot())
+    oh_dir = os.path.join('third_party', 'designs', 'oh')
+    test_doe(oh_dir)
