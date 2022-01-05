@@ -65,8 +65,17 @@ def setup_tool(chip, mode="batch"):
                                        'klayout.app',
                                        'Contents',
                                        'MacOS')
+            # different install directory when installed using Homebrew
+            klayout_brew_dir = os.path.join(os.path.sep,
+                                            'Applications',
+                                            'KLayout',
+                                            'klayout.app',
+                                            'Contents',
+                                            'MacOS')
             if os.path.isdir(klayout_dir):
                 chip.set('eda', tool, 'path', klayout_dir)
+            elif os.path.isdir(klayout_brew_dir):
+                chip.set('eda', tool, 'path', klayout_brew_dir)
     else:
         klayout_exe = 'klayout'
 
