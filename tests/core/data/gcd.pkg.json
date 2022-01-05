@@ -352,6 +352,29 @@
                 "type": "str",
                 "value": "json"
             },
+            "input": {
+                "export": {
+                    "0": {
+                        "author": [],
+                        "copy": "false",
+                        "date": [],
+                        "defvalue": [],
+                        "filehash": [],
+                        "hashalgo": [
+                            "sha256"
+                        ],
+                        "lock": "false",
+                        "require": null,
+                        "shorthelp": "Tool input files",
+                        "signature": [],
+                        "switch": "-eda_input 'tool step index <str>'",
+                        "type": "[file]",
+                        "value": [
+                            "gcd.def"
+                        ]
+                    }
+                }
+            },
             "option": {
                 "export": {
                     "0": {
@@ -376,7 +399,9 @@
                         "copy": "false",
                         "date": [],
                         "defvalue": [],
-                        "filehash": [],
+                        "filehash": [
+                            "3f52284dd84a818073f148c71f46fdfb8f10c27cb04564f4424577ddc127e2e4"
+                        ],
                         "hashalgo": [
                             "sha256"
                         ],
@@ -543,6 +568,134 @@
                 "type": "str",
                 "value": "tcl"
             },
+            "input": {
+                "cts": {
+                    "0": {
+                        "author": [],
+                        "copy": "false",
+                        "date": [],
+                        "defvalue": [],
+                        "filehash": [],
+                        "hashalgo": [
+                            "sha256"
+                        ],
+                        "lock": "false",
+                        "require": null,
+                        "shorthelp": "Tool input files",
+                        "signature": [],
+                        "switch": "-eda_input 'tool step index <str>'",
+                        "type": "[file]",
+                        "value": [
+                            "gcd.def"
+                        ]
+                    }
+                },
+                "dfm": {
+                    "0": {
+                        "author": [],
+                        "copy": "false",
+                        "date": [],
+                        "defvalue": [],
+                        "filehash": [],
+                        "hashalgo": [
+                            "sha256"
+                        ],
+                        "lock": "false",
+                        "require": null,
+                        "shorthelp": "Tool input files",
+                        "signature": [],
+                        "switch": "-eda_input 'tool step index <str>'",
+                        "type": "[file]",
+                        "value": [
+                            "gcd.def"
+                        ]
+                    }
+                },
+                "floorplan": {
+                    "0": {
+                        "author": [],
+                        "copy": "false",
+                        "date": [],
+                        "defvalue": [],
+                        "filehash": [],
+                        "hashalgo": [
+                            "sha256"
+                        ],
+                        "lock": "false",
+                        "require": null,
+                        "shorthelp": "Tool input files",
+                        "signature": [],
+                        "switch": "-eda_input 'tool step index <str>'",
+                        "type": "[file]",
+                        "value": [
+                            "gcd.vg"
+                        ]
+                    }
+                },
+                "physyn": {
+                    "0": {
+                        "author": [],
+                        "copy": "false",
+                        "date": [],
+                        "defvalue": [],
+                        "filehash": [],
+                        "hashalgo": [
+                            "sha256"
+                        ],
+                        "lock": "false",
+                        "require": null,
+                        "shorthelp": "Tool input files",
+                        "signature": [],
+                        "switch": "-eda_input 'tool step index <str>'",
+                        "type": "[file]",
+                        "value": [
+                            "gcd.def"
+                        ]
+                    }
+                },
+                "place": {
+                    "0": {
+                        "author": [],
+                        "copy": "false",
+                        "date": [],
+                        "defvalue": [],
+                        "filehash": [],
+                        "hashalgo": [
+                            "sha256"
+                        ],
+                        "lock": "false",
+                        "require": null,
+                        "shorthelp": "Tool input files",
+                        "signature": [],
+                        "switch": "-eda_input 'tool step index <str>'",
+                        "type": "[file]",
+                        "value": [
+                            "gcd.def"
+                        ]
+                    }
+                },
+                "route": {
+                    "0": {
+                        "author": [],
+                        "copy": "false",
+                        "date": [],
+                        "defvalue": [],
+                        "filehash": [],
+                        "hashalgo": [
+                            "sha256"
+                        ],
+                        "lock": "false",
+                        "require": null,
+                        "shorthelp": "Tool input files",
+                        "signature": [],
+                        "switch": "-eda_input 'tool step index <str>'",
+                        "type": "[file]",
+                        "value": [
+                            "gcd.def"
+                        ]
+                    }
+                }
+            },
             "option": {
                 "cts": {
                     "0": {
@@ -636,7 +789,11 @@
                         "copy": "false",
                         "date": [],
                         "defvalue": [],
-                        "filehash": [],
+                        "filehash": [
+                            "a743e4bdb0cff719b2fa0d870ef1f28e4955e2dbcd827b5ad27178fad71050cd",
+                            "d125ed3a40ac3355c6241e031f6b7103a3cc6ca09ae9a79d0df9cf7ffe08dabf",
+                            "72cca6700097f25e736706f2b376a37aa1f32f69b163e237a3b6e0c11d062e4e"
+                        ],
                         "hashalgo": [
                             "sha256"
                         ],
@@ -659,7 +816,11 @@
                         "copy": "false",
                         "date": [],
                         "defvalue": [],
-                        "filehash": [],
+                        "filehash": [
+                            "cef20c407971038c6f6fae2af3020d9b53e6688fcff706bc5eb9edf394faa550",
+                            "bcf492011e7b6545cbaaf0a00899f633d6135627659fbfed0270caa0a826e0d2",
+                            "d980b0fd242270232de6f246499679975f58f9924de710f6e121937bc716dfcd"
+                        ],
                         "hashalgo": [
                             "sha256"
                         ],
@@ -682,7 +843,11 @@
                         "copy": "false",
                         "date": [],
                         "defvalue": [],
-                        "filehash": [],
+                        "filehash": [
+                            "394e5f9b63a364ea565bc25418e13ab21ab63ce7a619b70492d70d912ddc7cd7",
+                            "2abf00d9b1884fc1a480b6e632728efe27f50e5973f535a73668293623477dbc",
+                            "ee9330ff683c7e5c937e80cf02a9ae754d94956820b5219bdf190183824fa6e3"
+                        ],
                         "hashalgo": [
                             "sha256"
                         ],
@@ -705,7 +870,11 @@
                         "copy": "false",
                         "date": [],
                         "defvalue": [],
-                        "filehash": [],
+                        "filehash": [
+                            "dcb42e4b99a2d8a09e93960955b5bd0b24e3d7b8c818f9e460e00d199a1c7b93",
+                            "b9e167868eb68b99889eac2003b7be2922a8044c14fc474133bd2ae539796a9a",
+                            "ee9330ff683c7e5c937e80cf02a9ae754d94956820b5219bdf190183824fa6e3"
+                        ],
                         "hashalgo": [
                             "sha256"
                         ],
@@ -728,7 +897,11 @@
                         "copy": "false",
                         "date": [],
                         "defvalue": [],
-                        "filehash": [],
+                        "filehash": [
+                            "23e3082117e4cd306ac4605c016f7c9d552e6903e37f49fbc2c3de081f517985",
+                            "6c9dd2f63d89edb1968fd5718f20355a8c1f354ae804bb97d02488c8cd86d403",
+                            "a445806caca8bb73b960101d70bb8d36a253bc3388d8eb3228abb3822a73ee3a"
+                        ],
                         "hashalgo": [
                             "sha256"
                         ],
@@ -751,7 +924,11 @@
                         "copy": "false",
                         "date": [],
                         "defvalue": [],
-                        "filehash": [],
+                        "filehash": [
+                            "b566259e6a35491973758f6f522c6b15dbda336a280ea82950c658898f7970d4",
+                            "27077f6a065dae32925c01b02b196fecce007d29968c52c08da860a3122acfac",
+                            "d980b0fd242270232de6f246499679975f58f9924de710f6e121937bc716dfcd"
+                        ],
                         "hashalgo": [
                             "sha256"
                         ],
@@ -869,7 +1046,7 @@
                             "asic,targetlib",
                             "asic,stackup",
                             "library,NangateOpenCellLibrary,arch",
-                            "pdk,aprtech,10M,10t,lef",
+                            "pdk,aprtech,openroad,10M,10t,lef",
                             "library,NangateOpenCellLibrary,nldm,typical,lib",
                             "library,NangateOpenCellLibrary,lef"
                         ]
@@ -888,7 +1065,7 @@
                             "asic,targetlib",
                             "asic,stackup",
                             "library,NangateOpenCellLibrary,arch",
-                            "pdk,aprtech,10M,10t,lef",
+                            "pdk,aprtech,openroad,10M,10t,lef",
                             "library,NangateOpenCellLibrary,nldm,typical,lib",
                             "library,NangateOpenCellLibrary,lef"
                         ]
@@ -907,7 +1084,7 @@
                             "asic,targetlib",
                             "asic,stackup",
                             "library,NangateOpenCellLibrary,arch",
-                            "pdk,aprtech,10M,10t,lef",
+                            "pdk,aprtech,openroad,10M,10t,lef",
                             "library,NangateOpenCellLibrary,nldm,typical,lib",
                             "library,NangateOpenCellLibrary,lef"
                         ]
@@ -926,7 +1103,7 @@
                             "asic,targetlib",
                             "asic,stackup",
                             "library,NangateOpenCellLibrary,arch",
-                            "pdk,aprtech,10M,10t,lef",
+                            "pdk,aprtech,openroad,10M,10t,lef",
                             "library,NangateOpenCellLibrary,nldm,typical,lib",
                             "library,NangateOpenCellLibrary,lef"
                         ]
@@ -945,7 +1122,7 @@
                             "asic,targetlib",
                             "asic,stackup",
                             "library,NangateOpenCellLibrary,arch",
-                            "pdk,aprtech,10M,10t,lef",
+                            "pdk,aprtech,openroad,10M,10t,lef",
                             "library,NangateOpenCellLibrary,nldm,typical,lib",
                             "library,NangateOpenCellLibrary,lef"
                         ]
@@ -964,7 +1141,7 @@
                             "asic,targetlib",
                             "asic,stackup",
                             "library,NangateOpenCellLibrary,arch",
-                            "pdk,aprtech,10M,10t,lef",
+                            "pdk,aprtech,openroad,10M,10t,lef",
                             "library,NangateOpenCellLibrary,nldm,typical,lib",
                             "library,NangateOpenCellLibrary,lef"
                         ]
@@ -1668,7 +1845,9 @@
                         "copy": "false",
                         "date": [],
                         "defvalue": [],
-                        "filehash": [],
+                        "filehash": [
+                            "176431bdd8f7b061a3f2b3f5753332d26394a3bf1735df062e9d7dd289340120"
+                        ],
                         "hashalgo": [
                             "sha256"
                         ],
@@ -1774,6 +1953,29 @@
                 "type": "str",
                 "value": "tcl"
             },
+            "input": {
+                "syn": {
+                    "0": {
+                        "author": [],
+                        "copy": "false",
+                        "date": [],
+                        "defvalue": [],
+                        "filehash": [],
+                        "hashalgo": [
+                            "sha256"
+                        ],
+                        "lock": "false",
+                        "require": null,
+                        "shorthelp": "Tool input files",
+                        "signature": [],
+                        "switch": "-eda_input 'tool step index <str>'",
+                        "type": "[file]",
+                        "value": [
+                            "gcd.v"
+                        ]
+                    }
+                }
+            },
             "option": {
                 "syn": {
                     "0": {
@@ -1797,7 +1999,9 @@
                         "copy": "false",
                         "date": [],
                         "defvalue": [],
-                        "filehash": [],
+                        "filehash": [
+                            "59292a57f839e7369b606247eb09baad8e183195ff1d79262dbae95e493e4d21"
+                        ],
                         "hashalgo": [
                             "sha256"
                         ],
@@ -1808,7 +2012,9 @@
                         "switch": "-eda_output 'tool step index <str>'",
                         "type": "[file]",
                         "value": [
-                            "gcd.vg"
+                            "gcd.vg",
+                            "gcd_netlist.json",
+                            "gcd.blif"
                         ]
                     }
                 }
@@ -6376,9 +6582,7 @@
                 "lock": "false",
                 "require": null,
                 "shorthelp": "Library default driver cell",
-                "signature": [
-                    null
-                ],
+                "signature": [],
                 "switch": "-library_driver 'lib <str>'",
                 "type": "[str]",
                 "value": [
@@ -6756,6 +6960,9 @@
                         "lock": "false",
                         "require": "all",
                         "shorthelp": "Metric hold worst negative slack",
+                        "signature": [
+                            null
+                        ],
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
                         "value": "0"
@@ -6765,6 +6972,9 @@
                         "lock": "false",
                         "require": "all",
                         "shorthelp": "Metric hold worst negative slack",
+                        "signature": [
+                            null
+                        ],
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
                         "value": "0.0"
@@ -6893,7 +7103,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "2.43"
+                        "value": "2.36"
                     }
                 },
                 "security": {
@@ -7302,6 +7512,9 @@
                         "lock": "false",
                         "require": "all",
                         "shorthelp": "Metric hold worst negative slack",
+                        "signature": [
+                            null
+                        ],
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
                         "value": "0"
@@ -7311,6 +7524,9 @@
                         "lock": "false",
                         "require": "all",
                         "shorthelp": "Metric hold worst negative slack",
+                        "signature": [
+                            null
+                        ],
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
                         "value": "0.0"
@@ -7439,7 +7655,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "1.07"
+                        "value": "1.03"
                     }
                 },
                 "security": {
@@ -7826,6 +8042,9 @@
                         "lock": "false",
                         "require": "all",
                         "shorthelp": "Metric hold worst negative slack",
+                        "signature": [
+                            null
+                        ],
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
                         "value": "0"
@@ -7835,6 +8054,7 @@
                         "lock": "false",
                         "require": "all",
                         "shorthelp": "Metric hold worst negative slack",
+                        "signature": null,
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
                         "value": "0"
@@ -7945,7 +8165,7 @@
                         "signature": null,
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.83"
+                        "value": "1.42"
                     }
                 },
                 "security": {
@@ -8328,6 +8548,9 @@
                         "lock": "false",
                         "require": "all",
                         "shorthelp": "Metric hold worst negative slack",
+                        "signature": [
+                            null
+                        ],
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
                         "value": "0"
@@ -8337,6 +8560,9 @@
                         "lock": "false",
                         "require": "all",
                         "shorthelp": "Metric hold worst negative slack",
+                        "signature": [
+                            null
+                        ],
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
                         "value": "0.0"
@@ -8465,7 +8691,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.96"
+                        "value": "1.84"
                     }
                 },
                 "security": {
@@ -8874,6 +9100,9 @@
                         "lock": "false",
                         "require": "all",
                         "shorthelp": "Metric hold worst negative slack",
+                        "signature": [
+                            null
+                        ],
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
                         "value": "0"
@@ -8883,6 +9112,9 @@
                         "lock": "false",
                         "require": "all",
                         "shorthelp": "Metric hold worst negative slack",
+                        "signature": [
+                            null
+                        ],
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
                         "value": "0.0"
@@ -9011,7 +9243,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.44"
+                        "value": "0.74"
                     }
                 },
                 "security": {
@@ -9420,6 +9652,9 @@
                         "lock": "false",
                         "require": "all",
                         "shorthelp": "Metric hold worst negative slack",
+                        "signature": [
+                            null
+                        ],
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
                         "value": "0"
@@ -9429,6 +9664,9 @@
                         "lock": "false",
                         "require": "all",
                         "shorthelp": "Metric hold worst negative slack",
+                        "signature": [
+                            null
+                        ],
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
                         "value": "0.0"
@@ -9557,7 +9795,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.92"
+                        "value": "0.95"
                     }
                 },
                 "security": {
@@ -9966,6 +10204,9 @@
                         "lock": "false",
                         "require": "all",
                         "shorthelp": "Metric hold worst negative slack",
+                        "signature": [
+                            null
+                        ],
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
                         "value": "0"
@@ -9975,6 +10216,9 @@
                         "lock": "false",
                         "require": "all",
                         "shorthelp": "Metric hold worst negative slack",
+                        "signature": [
+                            null
+                        ],
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
                         "value": "0.0"
@@ -10061,7 +10305,7 @@
                         ],
                         "switch": "-metric_peakpower step index group <float>",
                         "type": "float",
-                        "value": "0.000207"
+                        "value": "0.000206"
                     }
                 },
                 "pins": {
@@ -10103,7 +10347,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "1.12"
+                        "value": "1.15"
                     }
                 },
                 "security": {
@@ -10512,6 +10756,9 @@
                         "lock": "false",
                         "require": "all",
                         "shorthelp": "Metric hold worst negative slack",
+                        "signature": [
+                            null
+                        ],
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
                         "value": "0"
@@ -10521,6 +10768,9 @@
                         "lock": "false",
                         "require": "all",
                         "shorthelp": "Metric hold worst negative slack",
+                        "signature": [
+                            null
+                        ],
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
                         "value": "0.0"
@@ -10649,7 +10899,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "2.64"
+                        "value": "2.5"
                     }
                 },
                 "security": {
@@ -11058,6 +11308,9 @@
                         "lock": "false",
                         "require": "all",
                         "shorthelp": "Metric hold worst negative slack",
+                        "signature": [
+                            null
+                        ],
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
                         "value": "0"
@@ -11067,6 +11320,9 @@
                         "lock": "false",
                         "require": "all",
                         "shorthelp": "Metric hold worst negative slack",
+                        "signature": [
+                            null
+                        ],
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
                         "value": "0.0"
@@ -11195,7 +11451,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.82"
+                        "value": "1.29"
                     }
                 },
                 "security": {
@@ -11433,28 +11689,30 @@
     },
     "pdk": {
         "aprtech": {
-            "10M": {
-                "10t": {
-                    "lef": {
-                        "author": [],
-                        "copy": "false",
-                        "date": [],
-                        "defvalue": [],
-                        "filehash": [
-                            "834a79295054cd4209178d1bade67c353863c47bb4b3c22ee38b862b7cec37f2"
-                        ],
-                        "hashalgo": [
-                            "sha256"
-                        ],
-                        "lock": "false",
-                        "require": null,
-                        "shorthelp": "PDK APR technology file",
-                        "signature": [],
-                        "switch": "-pdk_aprtech 'stackup libarch filetype <file>'",
-                        "type": "[file]",
-                        "value": [
-                            "../third_party/pdks/virtual/freepdk45/pdk/r1p0/apr/freepdk45.tech.lef"
-                        ]
+            "openroad": {
+                "10M": {
+                    "10t": {
+                        "lef": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "filehash": [
+                                "834a79295054cd4209178d1bade67c353863c47bb4b3c22ee38b862b7cec37f2"
+                            ],
+                            "hashalgo": [
+                                "sha256"
+                            ],
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "PDK APR technology file",
+                            "signature": [],
+                            "switch": "-pdk_aprtech 'tool stackup libarch filetype <file>'",
+                            "type": "[file]",
+                            "value": [
+                                "../third_party/pdks/virtual/freepdk45/pdk/r1p0/apr/freepdk45.tech.lef"
+                            ]
+                        }
                     }
                 }
             }
@@ -12537,7 +12795,7 @@
             "signature": null,
             "switch": "-version_sc <str>",
             "type": "str",
-            "value": "0.3.0"
+            "value": "0.3.1"
         },
         "schema": {
             "defvalue": "0.3.0",
