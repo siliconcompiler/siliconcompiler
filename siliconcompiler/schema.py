@@ -17,7 +17,7 @@ def schema_cfg():
 
     # SC version number (bump on every non trivial change)
     # Version number following semver standard.
-    SCHEMA_VERSION = '0.3.0'
+    SCHEMA_VERSION = '0.4.0'
 
     # Basic schema setup
     cfg = {}
@@ -246,6 +246,11 @@ def schema_fpga(cfg):
 def schema_pdk(cfg, stackup='default'):
     ''' Process design kit configuration
     '''
+
+    # for clarity
+    tool = 'default'
+    filetype = 'default'
+
     cfg['pdk'] = {}
     cfg['pdk']['foundry'] = {
         'switch': "-pdk_foundry <str>",
@@ -501,6 +506,7 @@ def schema_pdk(cfg, stackup='default'):
     doctypes = ['datasheet',
                 'reference',
                 'userguide',
+                'quickstart',
                 'releasenotes',
                 'tutorial']
 
@@ -535,7 +541,7 @@ def schema_pdk(cfg, stackup='default'):
         'defvalue': [],
         'shorthelp': 'PDK metal stackups',
         'example': ["cli: -pdk_stackup 2MA4MB2MC",
-                    "api: chip.add('pdk', 'stackup', '2MA4MB2MC')"],
+                    "api: chip.add('pdk','stackup','2MA4MB2MC')"],
         'help': """
         List of all metal stackups offered in the process node. Older process
         nodes may only offer a single metal stackup, while advanced nodes
@@ -552,10 +558,10 @@ def schema_pdk(cfg, stackup='default'):
     }
 
     cfg['pdk']['devmodel'] = {}
-    cfg['pdk']['devmodel'][stackup] = {}
-    cfg['pdk']['devmodel'][stackup]['default'] = {}
-    cfg['pdk']['devmodel'][stackup]['default']['default'] = {
-        'switch': "-pdk_devmodel 'stackup simtype tool <file>'",
+    cfg['pdk']['devmodel'][tool] = {}
+    cfg['pdk']['devmodel'][tool][stackup] = {}
+    cfg['pdk']['devmodel'][tool][stackup]['default'] = {
+        'switch': "-pdk_devmodel 'tool stackup simtype <file>'",
         'require': None,
         'type': '[file]',
         'lock': 'false',
@@ -568,8 +574,8 @@ def schema_pdk(cfg, stackup='default'):
         'signature': [],
         'shorthelp': 'PDK device models',
         'example': [
-            "cli: -pdk_devmodel 'M10 spice xyce asap7.sp'",
-            "api: chip.set('pdk','devmodel','M10','spice','xyce','asap7.sp')"],
+            "cli: -pdk_devmodel 'xyce M10 spice asap7.sp'",
+            "api: chip.set('pdk','devmodel','xyce','M10','spice','asap7.sp')"],
         'help': """
         List of filepaths to PDK device models for different simulation
         purposes and for different tools. Examples of device model types
@@ -584,10 +590,10 @@ def schema_pdk(cfg, stackup='default'):
     }
 
     cfg['pdk']['pexmodel'] = {}
-    cfg['pdk']['pexmodel'][stackup] = {}
-    cfg['pdk']['pexmodel'][stackup]['default'] = {}
-    cfg['pdk']['pexmodel'][stackup]['default']['default'] = {
-        'switch': "-pdk_pexmodel 'stackup corner tool <file>'",
+    cfg['pdk']['pexmodel'][tool] = {}
+    cfg['pdk']['pexmodel'][tool][stackup] = {}
+    cfg['pdk']['pexmodel'][tool][stackup]['default'] = {
+        'switch': "-pdk_pexmodel 'tool stackup corner <file>'",
         'require': None,
         'type': '[file]',
         'lock': 'false',
@@ -600,8 +606,8 @@ def schema_pdk(cfg, stackup='default'):
         'signature': [],
         'shorthelp': 'PDK parasitic TCAD models',
         'example': [
-            "cli: -pdk_pexmodel 'M10 max fastcap wire.mod'",
-            "api: chip.set('pdk','pexmodel','M10','max','fastcap','wire.mod')"],
+            "cli: -pdk_pexmodel 'fastcap M10 max wire.mod'",
+            "api: chip.set('pdk','pexmodel','fastcap','M10','max','wire.mod')"],
         'help': """
         List of filepaths to PDK wire TCAD models used during automated
         synthesis, APR, and signoff verification. Pexmodels are specified on
@@ -610,6 +616,24 @@ def schema_pdk(cfg, stackup='default'):
         For exact names, refer to the DRM. Pexmodels are generally not
         standardized and specified on a per tool basis. An example of pexmodel
         type is 'fastcap'.
+        """
+    }
+
+    cfg['pdk']['techdir'] = {}
+    cfg['pdk']['techdir'][tool] = {}
+    cfg['pdk']['techdir'][tool][stackup] = {
+        'switch': "-pdk_techdir 'tool stackup <file>'",
+        'require': None,
+        'type': 'dir',
+        'lock': 'false',
+        'defvalue': None,
+        'shorthelp': 'PDK technology directory',
+        'example': [
+            "cli: -pdk_techdir 'klayout M10 ~/mytechdir'",
+            "api: chip.set('pdk','techdir','klayout','M10','~/mytechdir')"],
+        'help': """
+        Filepath to technology library for custom design, specified on a per
+        stackup and per tool basis.
         """
     }
 
@@ -647,9 +671,9 @@ def schema_pdk(cfg, stackup='default'):
     }
 
     cfg['pdk']['display'] = {}
-    cfg['pdk']['display'][stackup] = {}
-    cfg['pdk']['display'][stackup]['default'] = {
-        'switch': "-pdk_display 'stackup tool <file>'",
+    cfg['pdk']['display'][tool] = {}
+    cfg['pdk']['display'][tool][stackup] = {
+        'switch': "-pdk_display 'tool stackup <file>'",
         'require': None,
         'type': '[file]',
         'lock': 'false',
@@ -662,8 +686,8 @@ def schema_pdk(cfg, stackup='default'):
         'signature': [],
         'shorthelp': 'PDK display configuration file',
         'example': [
-            "cli: -pdk_display 'M10 klayout display.lyt'",
-            "api: chip.set('pdk','display','M10','klayout','display.cfg')"],
+            "cli: -pdk_display 'klayout M10 display.lyt'",
+            "api: chip.set('pdk','display','klayout','M10','display.cfg')"],
         'help': """
         Display configuration files describing colors and pattern schemes for
         all layers in the PDK. The display configuration file is entered on a
@@ -672,9 +696,9 @@ def schema_pdk(cfg, stackup='default'):
     }
 
     cfg['pdk']['plib'] = {}
-    cfg['pdk']['plib'][stackup] = {}
-    cfg['pdk']['plib'][stackup]['default'] = {
-        'switch': "-pdk_plib 'stackup tool <file>'",
+    cfg['pdk']['plib'][tool] = {}
+    cfg['pdk']['plib'][tool][stackup] = {
+        'switch': "-pdk_plib 'tool stackup <file>'",
         'require': None,
         'type': '[file]',
         'lock': 'false',
@@ -687,8 +711,8 @@ def schema_pdk(cfg, stackup='default'):
         'signature': [],
         'shorthelp': 'PDK process primitive cell libraries',
         'example': [
-            "cli: -pdk_plib 'M10 klayout ~/devlib'",
-            "api: chip.set('pdk','plib','M10','klayout','~/devlib')"],
+            "cli: -pdk_plib 'klayout M10 ~/devlib'",
+            "api: chip.set('pdk','plib','klayout','M10','~/devlib')"],
         'help': """
         Filepaths to primitive cell libraries supported by the PDK specified
         on a per stackup and per tool basis. The plib cells is the first layer
@@ -699,11 +723,14 @@ def schema_pdk(cfg, stackup='default'):
         """
     }
 
+    libarch = 'default'
+
     cfg['pdk']['aprtech'] = {}
-    cfg['pdk']['aprtech'][stackup] = {}
-    cfg['pdk']['aprtech'][stackup]['default'] = {}
-    cfg['pdk']['aprtech'][stackup]['default']['default'] = {
-        'switch': "-pdk_aprtech 'stackup libarch filetype <file>'",
+    cfg['pdk']['aprtech'][tool] = {}
+    cfg['pdk']['aprtech'][tool][stackup] = {}
+    cfg['pdk']['aprtech'][tool][stackup][libarch] = {}
+    cfg['pdk']['aprtech'][tool][stackup][libarch][filetype] = {
+        'switch': "-pdk_aprtech 'tool stackup libarch filetype <file>'",
         'require': None,
         'type': '[file]',
         'lock': 'false',
@@ -716,18 +743,17 @@ def schema_pdk(cfg, stackup='default'):
         'signature': [],
         'shorthelp': 'PDK APR technology file',
         'example': [
-            "cli: -pdk_aprtech 'M10 12t lef tech.lef'",
-            "api: chip.set('pdk','aprtech','M10','12t','lef','tech.lef')"],
+            "cli: -pdk_aprtech 'openroad M10 12t lef tech.lef'",
+            "api: chip.set('pdk','aprtech','openroad','M10','12t','lef','tech.lef')"],
         'help': """
         Technology file containing the design rule and setup information needed
         to enable DRC clean APR for the specified stackup, libarch, and format.
         The 'libarch' specifies the library architecture (e.g. library height).
         For example a PDK with support for 9 and 12 track libraries might have
-        'libarchs' called 9t and 12t. During APR there
-        can only be on technology file, so all libraries used for synthesis
-        and APR must point to the same libarch technology file. The standard
-        filetype for specifying place and route design rules for a process node
-        is through a 'lef' format technology file.
+        'libarchs' called 9t and 12t. The standard filetype for specifying place
+        and route design rules for a process node is through a 'lef' format
+        technology file. The 'filetype' used in the aprtech is used by the tool
+        specific APR TCL scripts to set up the technology parameters.
         """
     }
 
@@ -4060,6 +4086,7 @@ def schema_package(cfg, group):
     doctypes = ['datasheet',
                 'reference',
                 'userguide',
+                'quickstart',
                 'releasenotes',
                 'testplan',
                 'tutorial']
