@@ -11,7 +11,7 @@ source ./sc_manifest.tcl
 set sc_mainlib     [lindex [dict get $sc_cfg asic targetlib] 0]
 set sc_libtype     [dict get $sc_cfg library $sc_mainlib arch]
 set sc_stackup     [dict get $sc_cfg asic stackup]
-set sc_techlef     [dict get $sc_cfg pdk aprtech $sc_stackup $sc_libtype lef]
+set sc_techlef     [dict get $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype lef]
 
 ###############################
 # Generic LEF/DEF Reader

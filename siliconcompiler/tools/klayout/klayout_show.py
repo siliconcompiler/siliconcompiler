@@ -23,7 +23,7 @@ if 'macrolib' in sc_cfg['asic']:
     for lib in sc_macrolibs:
         macro_lefs.append(sc_cfg['library'][lib]['lef']['value'][0])
 
-tech_lef = sc_cfg['pdk']['aprtech'][sc_stackup][sc_libtype]['lef']['value'][0]
+tech_lef = sc_cfg['pdk']['aprtech']['klayout'][sc_stackup][sc_libtype]['lef']['value'][0]
 lib_lef = sc_cfg['library'][sc_mainlib]['lef']['value'][0]
 
 # Load KLayout technology file

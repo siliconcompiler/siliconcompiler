@@ -77,7 +77,7 @@ def _get_tech_lef_data(chip):
     libname = chip.get('asic', 'targetlib')[0]
     libtype = chip.get('library', libname, 'arch')
 
-    tech_lef = chip.find_files('pdk', 'aprtech', stackup, libtype, 'lef')[0]
+    tech_lef = chip.find_files('pdk', 'aprtech', 'openroad', stackup, libtype, 'lef')[0]
     return leflib.parse(tech_lef)
 
 def _get_stdcell_info(chip, tech_lef_data):

@@ -90,12 +90,12 @@ def setup_tool(chip, mode='batch'):
         mainlib = targetlibs[0]
         macrolibs = chip.get('asic', 'macrolib')
         libtype = str(chip.get('library', mainlib, 'arch'))
-        techlef = chip.get('pdk', 'aprtech', stackup, libtype, 'lef')
+        techlef = chip.get('pdk', 'aprtech', 'openroad', stackup, libtype, 'lef')
 
         chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'targetlib']))
         chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'stackup']))
         chip.add('eda', tool, 'require', step, index, ",".join(['library', mainlib, 'arch']))
-        chip.add('eda', tool, 'require', step, index, ",".join(['pdk', 'aprtech', stackup, libtype, 'lef']))
+        chip.add('eda', tool, 'require', step, index, ",".join(['pdk', 'aprtech', 'openroad', stackup, libtype, 'lef']))
 
         for lib in (targetlibs + macrolibs):
             for corner in chip.getkeys('library',  lib, 'nldm'):

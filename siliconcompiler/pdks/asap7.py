@@ -84,8 +84,9 @@ def setup_pdk(chip):
     chip.set('pdk','tapoffset', 0)
 
     # APR tech file
-    chip.set('pdk','aprtech',stackup, libtype, 'lef',
-             pdkdir+'/apr/asap7_tech.lef')
+    for tool in ('openroad', 'klayout', 'magic'):
+        chip.set('pdk','aprtech',tool, stackup, libtype, 'lef',
+                 pdkdir+'/apr/asap7_tech.lef')
 
     # Routing Grid Definitions
     for sc_name, pdk_name in [('m1', 'M1')]:
