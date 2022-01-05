@@ -85,6 +85,14 @@ def setup_tool(chip):
         chip.add('eda', tool, 'require', step, index, ",".join(['pdk', 'process']))
         chip.add('eda', tool, 'require', step, index, ",".join(['design']))
         chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'targetlib']))
+
+        mainlib = chip.get('asic', 'targetlib')[0]
+        chip.add('eda', tool, 'require', step, index, ",".join(['library', mainlib, 'nldm', 'typical', 'lib']))
+
+        macrolibs = chip.get('asic', 'macrolib')
+        for lib in macrolibs:
+            if 'nldm' in chip.getkeys('library', lib):
+                chip.add('eda', tool, 'require', step, index, ",".join(['library', lib, 'nldm', 'typical', 'lib']))
     else:
         chip.add('eda', tool, 'require', step, index, ",".join(['fpga','partname']))
 

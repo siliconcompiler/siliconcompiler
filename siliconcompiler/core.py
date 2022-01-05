@@ -1654,8 +1654,16 @@ class Chip:
                     self.logger.error(f'Required input {filename} not received for {step}{index}.')
                     self.error = 1
 
-            # TODO: loop through all param requirements, and check that any file
-            # reqs resolve successfuly.
+            if (not tool in self.builtin) and self.valid('eda', tool, 'require', step, index):
+                all_required = self.get('eda', tool, 'require', step, index)
+                for item in all_required:
+                    keypath = item.split(',')
+                    paramtype = self.get(*keypath, field='type')
+                    if ('file' in paramtype) or ('dir' in paramtype):
+                        abspath = self.find_files(*keypath)
+                        if abspath is None or (isinstance(abspath, list) and None in abspath):
+                            self.logger.error(f"Required file keypath {keypath} can't be resolved.")
+                            self.error = 1
 
         return self.error
 
@@ -3138,7 +3146,7 @@ class Chip:
         self.set('arg', 'index', index, clobber=True)
 
         if self.check_manifest():
-            self.logger.error(f"Fatal error in check()! See previous errors.")
+            self.logger.error(f"Fatal error in check_manifest()! See previous errors.")
             self._haltstep(step, index, active)
 
 
