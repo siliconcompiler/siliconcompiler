@@ -1,5 +1,6 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import siliconcompiler
+import gzip
 import os
 import pytest
 from pyvirtualdisplay import Display
@@ -43,9 +44,13 @@ def test_show_nopdk(datadir, display):
     chip.target(f'asicflow_freepdk45')
     chip.set("quiet", True)
     # Adjust command line options to exit KLayout after run
-    chip.set('eda', 'klayout', 'option', 'showdef', '0', ['-z', '-r'])
+    chip.set('eda', 'klayout', 'option', 'showgds', '0', ['-z', '-r'])
 
-    testfile = os.path.join(datadir, 'heartbeat_freepdk45.def')
+    # uncompress test file
+    testfile = 'heartbeat.gds'
+    with gzip.open(os.path.join(datadir, 'heartbeat.gds.gz'), 'rb') as gds_gz:
+        with open(testfile, 'wb') as gds:
+            gds.write(gds_gz.read())
 
     # For some reason, if we try to use monkeypath to modify the env, the
     # subprocess call performed by chip.show() doesn't use the patched env. We
