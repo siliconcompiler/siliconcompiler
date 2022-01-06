@@ -91,7 +91,7 @@ def setup_tool(chip):
 
         macrolibs = chip.get('asic', 'macrolib')
         for lib in macrolibs:
-            if 'nldm' in chip.getkeys('library', lib):
+            if chip.valid('library', lib, 'nldm', 'typical', 'lib'):
                 chip.add('eda', tool, 'require', step, index, ",".join(['library', lib, 'nldm', 'typical', 'lib']))
     else:
         chip.add('eda', tool, 'require', step, index, ",".join(['fpga','partname']))
