@@ -3350,6 +3350,11 @@ class Chip:
             if os.path.isdir(cur_job_dir):
                 shutil.rmtree(cur_job_dir)
 
+        # Set env variables
+        for envvar in self.getkeys('env'):
+            val = self.get('env', envvar)
+            os.environ[envvar] = val
+
         # Remote workflow: Dispatch the Chip to a remote server for processing.
         if self.get('remote'):
             # Load the remote storage config into the status dictionary.
