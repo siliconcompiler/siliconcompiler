@@ -33,7 +33,7 @@ def heartbeat_dir(tmpdir_factory):
     ['-read_def', 'show 0 build/heartbeat/job0/dfm/0/outputs/heartbeat.def'],
     ['-read_gds', 'show 0 build/heartbeat/job0/export/0/outputs/heartbeat.gds'],
     ['-design', 'heartbeat'],
-    ['-read_def', '"show 0 build/heartbeat/job0/export/0/inputs/heartbeat.def"',
+    ['-read_def', 'show 0 build/heartbeat/job0/export/0/inputs/heartbeat.def',
         '-cfg', 'build/heartbeat/job0/export/0/outputs/heartbeat.pkg.json']
     ])
 @pytest.mark.eda
