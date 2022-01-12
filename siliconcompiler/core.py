@@ -1218,10 +1218,7 @@ class Chip:
         """
 
         # Replacing environment variables
-        vars = re.findall(r'\$(\w+)', filename)
-        for item in vars:
-            varpath = os.getenv(item)
-            filename = filename.replace("$"+item, varpath)
+        filename = self._resolve_env_vars(filename)
 
         # If we have a path relative to our cwd or an abs path, pass-through here
         if os.path.exists(os.path.abspath(filename)):
@@ -3878,12 +3875,16 @@ class Chip:
 
     #######################################
     def _resolve_env_vars(self, filepath):
-        vars = re.findall(r'\$(\w+)', filepath)
-        for item in vars:
-            varpath = os.getenv(item)
-            filepath = filepath.replace("$"+item, varpath)
+        resolved_path = os.path.expandvars(filepath)
 
-        return filepath
+        # variables that don't exist in environment get ignored by `expandvars`,
+        # but we can do our own error checking to ensure this doesn't result in
+        # silent bugs
+        envvars = re.findall(r'\$(\w+)', resolved_path)
+        for var in envvars:
+            self.logger.warning(f'Variable {var} in {filepath} not defined in environment')
+
+        return resolved_path
 
     #######################################
     def _get_imported_filename(self, pathstr):
