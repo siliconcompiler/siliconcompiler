@@ -36,7 +36,7 @@ target_link_libraries(_leflib lef)
 # Microsoft's compiler uses a totally different set of flags, so we just set
 # these for MacOS/Linux (which will be using GCC or clang).
 if(NOT WIN32)
-    target_compile_options(_leflib PRIVATE -Wall -pedantic -Werror -Wno-error=deprecated-declarations)
+    target_compile_options(_leflib PRIVATE -Wall -Werror -Wno-error=deprecated-declarations)
 endif()
 
 # Stuff to include Si2 LEF library
