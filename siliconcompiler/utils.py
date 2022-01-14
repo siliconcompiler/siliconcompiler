@@ -1,7 +1,5 @@
 import os
-import hashlib
 import shutil
-import sys
 
 def copytree(src, dst, ignore=[], dirs_exist_ok=False, link=False):
     '''Simple implementation of shutil.copytree to give us a dirs_exist_ok
