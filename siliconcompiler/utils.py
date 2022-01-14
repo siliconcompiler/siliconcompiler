@@ -30,7 +30,7 @@ def insecure_md5(data):
     '''Wrapper around hashlib md5 function to enable use on FIPS compliant
     platforms.
 
-    This function SHOULD NOT be used for crypotgraphy/security-related purposes.
+    This function SHOULD NOT be used for cryptography/security-related purposes.
     '''
     encoded_data = data.encode('utf-8')
 
