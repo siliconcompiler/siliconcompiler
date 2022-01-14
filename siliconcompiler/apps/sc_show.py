@@ -32,8 +32,11 @@ def main():
     gds_mode = chip.valid('read', 'gds', 'show', '0') and bool(chip.get('read', 'gds', 'show', '0'))
     def_mode = chip.valid('read', 'def', 'show', '0') and bool(chip.get('read', 'def', 'show', '0'))
 
-    if (def_mode + gds_mode + design) != 1:
-        chip.logger.error('Exactly one of -read_gds, -read_def, or -design must be provided.')
+    if def_mode and gds_mode:
+        chip.logger.error('Exclusive options -read_gds and -read_def cannot both be defined.')
+        sys.exit(1)
+    if not (design or def_mode or gds_mode):
+        chip.logger.error('Nothing to load: please define a target with -cfg, -design, -read_def, and/or -read_gds.')
         sys.exit(1)
 
     if gds_mode:
