@@ -3901,7 +3901,7 @@ class Chip:
             path = pathlib.Path(path.stem)
         filename = str(path)
 
-        pathhash = utils.insecure_md5(pathstr)
+        pathhash = hashlib.sha1(pathstr.encode('utf-8')).hexdigest()
 
         return f'{filename}_{pathhash}{ext}'
 
