@@ -16,13 +16,15 @@ class InstallScripts(SphinxDirective):
         scripts = {}
 
         for script in os.listdir(setup_dir):
-            components = script.split('.')[0].split('-')
-            tool = components[1]
+            # Ignore directories such as 'setup/docker/'.
+            if os.path.isfile(script):
+                components = script.split('.')[0].split('-')
+                tool = components[1]
 
-            if tool not in scripts:
-                scripts[tool] = [script]
-            else:
-                scripts[tool].append(script)
+                if tool not in scripts:
+                    scripts[tool] = [script]
+                else:
+                    scripts[tool].append(script)
 
         bullet_list = docutils.nodes.bullet_list()
         for tool, scripts in scripts.items():
