@@ -17,7 +17,7 @@ def schema_cfg():
 
     # SC version number (bump on every non trivial change)
     # Version number following semver standard.
-    SCHEMA_VERSION = '0.4.0'
+    SCHEMA_VERSION = '0.5.0'
 
     # Basic schema setup
     cfg = {}
@@ -64,7 +64,7 @@ def schema_cfg():
     return cfg
 
 ###############################################################################
-# Minimal setupFPGA
+# Minimal setup FPGA
 ###############################################################################
 
 def schema_version(cfg, version):
@@ -491,13 +491,13 @@ def schema_pdk(cfg, stackup='default'):
             'date': [],
             'author': [],
             'signature': [],
-            'shorthelp': f"PDK doccumentation homepage",
+            'shorthelp': f"PDK documentation homepage",
             'example': [
                 f"cli: -pdk_doc_homepage 'index.html",
                 f"api: chip.set('pdk','doc','homepage','index.html')"],
             'help': f"""
             Filepath to PDK docs homepage. Modern PDKs can include tens or
-            hundreds of individual documenets. A single html entry point can
+            hundreds of individual documents. A single html entry point can
             be used to present an organized documentation dashboard to the
             designer.
             """
@@ -638,10 +638,11 @@ def schema_pdk(cfg, stackup='default'):
     }
 
     cfg['pdk']['layermap'] = {}
-    cfg['pdk']['layermap'][stackup] = {}
-    cfg['pdk']['layermap'][stackup]['default'] = {}
-    cfg['pdk']['layermap'][stackup]['default']['default'] = {
-        'switch': "-pdk_layermap 'stackup src dst <file>'",
+    cfg['pdk']['layermap'][tool] = {}
+    cfg['pdk']['layermap'][tool][stackup] = {}
+    cfg['pdk']['layermap'][tool][stackup]['default'] = {}
+    cfg['pdk']['layermap'][tool][stackup]['default']['default'] = {
+        'switch': "-pdk_layermap 'tool stackup src dst <file>'",
         'require': None,
         'type': '[file]',
         'lock': 'false',
@@ -654,8 +655,8 @@ def schema_pdk(cfg, stackup='default'):
         'signature': [],
         'shorthelp': 'PDK layout data mapping file',
         'example': [
-            "cli: -pdk_layermap 'M10 klayout gds asap7.map'",
-            "api: chip.set('pdk','layermap','M10','klayout','gds','asap7.map')"],
+            "cli: -pdk_layermap 'klayout M10 db gds asap7.map'",
+            "api: chip.set('pdk','layermap','klayout','M10','db','gds','asap7.map')"],
         'help': """
         Files describing input/output mapping for streaming layout data from
         one format to another. A foundry PDK will include an official layer
@@ -893,13 +894,13 @@ def schema_pdk(cfg, stackup='default'):
         'defvalue': None,
         'shorthelp': 'PDK preferred metal routing direction',
         'example': [
-            "cli: -pdk_grid_dir 'M10 m1 x'""",
-            "api: chip.set('pdk','grid','M10','m1','dir','x')"],
+            "cli: -pdk_grid_dir 'M10 m1 horizontal'""",
+            "api: chip.set('pdk','grid','M10','m1','dir','horizontal')"],
         'help': """
         Preferred routing direction specified on a per stackup
-        and per SC metal basis.  Valid directions are x for horizontal
-        and y for vertical wires. If not defined, the value is taken
-        from the PDK tech.lef.
+        and per SC metal basis. Valid routing directions are horizontal
+        and vertical. If not defined, the value is taken from the PDK
+        tech.lef.
         """
     }
 
@@ -1102,7 +1103,7 @@ def schema_pdk(cfg, stackup='default'):
 # Library Configuration
 ###############################################################################
 
-#TODO: refactor to pull project parameters diretly from 'project'
+#TODO: refactor to pull project parameters directly from 'project'
 
 def schema_libs(cfg, lib='default', stackup='default', corner='default'):
 
@@ -1198,7 +1199,7 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
             "cli: -library_waveform 'mylib mytrace.vcd'",
             "api: chip.set('library','mylib','waveform','mytrace.vcd')"],
         'help': """
-        Library waveform(s) used as a golden testvectors to ensure that
+        Library waveform(s) used as a golden test vectors to ensure that
         compilation transformations do not modify the functional behavior of
         the source code. The waveform file must be compatible with the
         testbench and compilation flow tools.
@@ -1601,19 +1602,42 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         """
     }
 
+    name = 'default'
+    cfg['library'][lib]['site'] = {}
+    cfg['library'][lib]['site'][name] = {}
 
-    cfg['library'][lib]['site'] = {
-        'switch': "-library_site 'lib <str>'",
+    cfg['library'][lib]['site'][name]['symmetry'] = {
+        'switch': "-library_site_symmetry 'lib name <str>'",
         'require': None,
-        'type': '[str]',
+        'type': 'str',
         'lock': 'false',
         'signature' : [],
-        'defvalue': [],
-        'shorthelp': 'Library site name',
-        'example': ["cli: -library_site 'mylib core'",
-                    "api: chip.set('library','mylib','site','core')"],
+        'defvalue': None,
+        'shorthelp': 'Library site symmetry',
+        'example': [
+            "cli: -library_site_symmetry 'mylib core X Y'",
+            "api: chip.set('library','mylib','site','core','symmetry','X Y')"],
         'help': """
-        List of sites to use for APR.
+        Site flip-symmetry based on LEF standard definition. 'X' implies
+        symmetric about the x axis, 'Y' implies symmetry about the y axis, and
+        'X Y' implies symmetry about the x and y axis.
+        """
+    }
+
+    cfg['library'][lib]['site'][name]['size'] = {
+        'switch': "-library_site_size 'lib name (float,float)'",
+        'require': None,
+        'type': '(float,float)',
+        'lock': 'false',
+        'signature' : [],
+        'defvalue': None,
+        'shorthelp': 'Library site size',
+        'example': [
+            "cli: -library_site_size 'mylib core (1.0,1.0)'",
+            "api: chip.set('library','mylib','site','core','size',(1.0,1.0))"],
+        'help': """
+        Site flip-symmetry based on LEF standard definition. The dimensions
+        are specified in the normal (or north) orientations in microns.
         """
     }
 
@@ -1911,7 +1935,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
             "cli: -eda_path 'openroad /usr/local/bin'",
             "api:  chip.set('eda','openroad','path','/usr/local/bin')"],
         'help': """
-        File system path to tool executable. The path is prepended to the 'exe'
+        File system path to tool executable. The path is pre pended to the 'exe'
         parameter for batch runs and output as an environment variable for
         interactive setup. The path parameter can be left blank if the 'exe'
         is already in the environment search path.
@@ -3929,7 +3953,7 @@ def schema_package(cfg, group):
             f"api: chip.set({group},{libapi}'version', '1.0')"],
         'help': f"""
         Version number. Can be a branch, tag, commit hash, or a major.minor
-        type version string. Versions shall fllow the semver standard.
+        type version string. Versions shall follow the semver standard.
         """
     }
 
@@ -4001,7 +4025,7 @@ def schema_package(cfg, group):
                 f"api: chip.set('{group}',{libapi}'doc','homepage','index.html')"],
             'help': f"""
             Filepath to design docs homepage. Complex designs can can include
-            a long non standard list of documents dependant.  single html
+            a long non standard list of documents dependent.  single html
             entry point can be used to present an organized documentation
             dashboard to the designer.
             """
@@ -4089,7 +4113,7 @@ def schema_package(cfg, group):
             f"cli: -{group}_dependency '{lib}hello 1.0.0'",
             f"api: chip.set('{group}',{libapi}'dependency','hello','1.0.0')"],
         'help': """
-        Package dependency specifed as a key value pair. Versions shall follow
+        Package dependency specified as a key value pair. Versions shall follow
         the semver standard.
         """
     }
@@ -4187,7 +4211,7 @@ def schema_package(cfg, group):
             f"cli: -{group}_userid '{lib}0123",
             f"api: chip.set('{group}',{libapi}'userid', '0123')"],
         'help': """
-        List of anonymized authoer user ID(s).
+        List of anonymous author user ID(s).
         """
     }
 
@@ -4400,7 +4424,7 @@ def schema_checklist(cfg, group='checklist'):
             f"cli: -{emit_group}_ok '{emit_switch}ISO D000 true'",
             f"api: chip.set({emit_api},'ISO','D000','ok', True)"],
         'help': """
-        Boolean checkmark for the {group} checklist item. A value of
+        Boolean check mark for the {group} checklist item. A value of
         True indicates a human has inspected the all item dictionary
         parameters check out.
         """
@@ -4532,7 +4556,7 @@ def schema_design(cfg):
         'example': ["cli: -waveform mytrace.vcd",
                     "api: chip.set('waveform','mytrace.vcd')"],
         'help': """
-        Waveform(s) used as a golden testvectors to ensure that compilation
+        Waveform(s) used as a golden test vectors to ensure that compilation
         transformations do not modify the functional behavior of the source
         code. The waveform file must be compatible with the testbench and
         compilation flow tools.
@@ -4779,7 +4803,7 @@ def schema_read(cfg, step='default', index='default'):
 
     cfg['read'] ={}
 
-    # SPEF parasistics file
+    # SPEF parasitics file
     cfg['read']['spef'] = {}
     cfg['read']['spef'][step] = {}
     cfg['read']['spef'][step][index] = {
@@ -4846,7 +4870,7 @@ def schema_read(cfg, step='default', index='default'):
         'example': ["cli: -read_saif 'place 0 mytrace.saif'",
                     "api: chip.set('read','saif','place','0','mytrace.saif')"],
         'help': """
-        File(s) containing toogle counts and signal level probability for
+        File(s) containing toggle counts and signal level probability for
         some or all nets in the design. The file can be used for coarse
         power modeling.
         """
@@ -5542,7 +5566,7 @@ def schema_mcmm(cfg, scenario='default'):
 
 
 ##############################################################################
-# Main routie
+# Main routine
 if __name__ == "__main__":
     cfg = schema_cfg()
     print(json.dumps(cfg, indent=4, sort_keys=True))
