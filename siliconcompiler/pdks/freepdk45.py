@@ -86,8 +86,7 @@ def setup_pdk(chip):
                  pdkdir+'/apr/freepdk45.tech.lef')
 
     # Klayout setup file
-
-    chip.set('pdk','layermap',stackup, 'def', 'gds',
+    chip.set('pdk','layermap','klayout',stackup, 'def', 'gds',
              pdkdir+'/setup/klayout/freepdk45.lyt')
 
     # Routing Grid Definitions
@@ -168,7 +167,12 @@ def setup_pdk(chip):
     chip.add('library',libname,'gds',
              libdir+'/gds/NangateOpenCellLibrary.gds')
     # site name
-    chip.set('library',libname,'site', 'FreePDK45_38x28_10R_NP_162NW_34O')
+    chip.set('library',libname,
+             'site','FreePDK45_38x28_10R_NP_162NW_34O',
+             'symmetry', 'Y')
+    chip.set('library',libname,
+             'site','FreePDK45_38x28_10R_NP_162NW_34O',
+             'size', (0.19,1.4))
 
     # lib arch
     chip.set('library',libname,'arch',libtype)

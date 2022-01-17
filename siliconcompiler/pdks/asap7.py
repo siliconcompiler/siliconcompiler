@@ -178,8 +178,10 @@ def setup_pdk(chip):
     # gds
     chip.add('library',libname,'gds',
              libdir+'/gds/'+libname+'.gds')
+
     # site name
-    chip.set('library',libname,'site', 'asap7sc7p5t')
+    chip.set('library', libname, 'site', 'asap7sc7p5t', 'symmetry', 'Y')
+    chip.set('library', libname, 'site', 'asap7sc7p5t', 'size', (0.054,0.270))
 
     # lib arch
     chip.set('library',libname,'arch',libtype)

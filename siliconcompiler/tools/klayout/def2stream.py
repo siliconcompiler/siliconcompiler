@@ -216,7 +216,7 @@ sc_stackup = sc_cfg['pdk']['stackup']['value'][0]
 sc_mainlib = sc_cfg['asic']['targetlib']['value'][0]
 sc_libtype = sc_cfg['library'][sc_mainlib]['arch']['value']
 
-tech_file = sc_cfg['pdk']['layermap'][sc_stackup]['def']['gds']['value'][0]
+tech_file = sc_cfg['pdk']['layermap']['klayout'][sc_stackup]['def']['gds']['value'][0]
 
 design = sc_cfg['design']['value']
 try:

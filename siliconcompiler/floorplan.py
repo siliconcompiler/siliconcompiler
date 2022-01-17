@@ -82,7 +82,7 @@ def _get_tech_lef_data(chip):
 
 def _get_stdcell_info(chip, tech_lef_data):
     libname = chip.get('asic', 'targetlib')[0]
-    site_name = chip.get('library', libname, 'site')[0]
+    site_name = chip.getkeys('library', libname, 'site')[0]
     if 'sites' not in tech_lef_data or site_name not in tech_lef_data['sites']:
         raise ValueError('Site {site_name} not found in tech LEF.')
 

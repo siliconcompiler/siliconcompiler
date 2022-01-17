@@ -100,7 +100,7 @@ def setup_pdk(chip):
     chip.set('pdk','lvs','netgen', stackup, 'runset', pdkdir+'/setup/netgen/lvs_setup.tcl')
 
     # Layer map
-    chip.set('pdk','layermap',stackup, 'def', 'gds', pdkdir+'/setup/klayout/skywater130.lyt')
+    chip.set('pdk','layermap','klayout',stackup, 'def', 'gds', pdkdir+'/setup/klayout/skywater130.lyt')
 
     # Routing Grid Definitions
 
@@ -176,8 +176,13 @@ def setup_pdk(chip):
     # gds
     chip.add('library', libname, 'gds',
              libdir+'/gds/sky130_fd_sc_hd.gds')
-    # site name
-    chip.set('library', libname, 'site', 'unithd')
+
+    # placement sites
+    chip.set('library', libname, 'site', 'unithd', 'symmetry', 'Y')
+    chip.set('library', libname, 'site', 'unithd', 'size', (0.46,2.72))
+
+    chip.set('library', libname, 'site', 'unithddbl', 'symmetry', 'Y')
+    chip.set('library', libname, 'site', 'unithddbl', 'size', (0.46,5.44))
 
     # lib arch
     chip.set('library', libname, 'arch', libtype)

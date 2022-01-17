@@ -400,7 +400,7 @@
                         "date": [],
                         "defvalue": [],
                         "filehash": [
-                            "3f52284dd84a818073f148c71f46fdfb8f10c27cb04564f4424577ddc127e2e4"
+                            "5999d641f8f28a39113e51ff7544ab324f652c686c685019dcb0c0723e21907d"
                         ],
                         "hashalgo": [
                             "sha256"
@@ -446,7 +446,7 @@
                         "value": [
                             "asic,targetlib",
                             "asic,stackup",
-                            "pdk,layermap,10M,def,gds",
+                            "pdk,layermap,klayout,10M,def,gds",
                             "library,NangateOpenCellLibrary,gds",
                             "library,NangateOpenCellLibrary,lef"
                         ]
@@ -790,7 +790,7 @@
                         "date": [],
                         "defvalue": [],
                         "filehash": [
-                            "a743e4bdb0cff719b2fa0d870ef1f28e4955e2dbcd827b5ad27178fad71050cd",
+                            "7144151af8096df0f3c4e95f5de24349f7647777edc3f70c7a91360f1d0263f3",
                             "d125ed3a40ac3355c6241e031f6b7103a3cc6ca09ae9a79d0df9cf7ffe08dabf",
                             "72cca6700097f25e736706f2b376a37aa1f32f69b163e237a3b6e0c11d062e4e"
                         ],
@@ -817,7 +817,7 @@
                         "date": [],
                         "defvalue": [],
                         "filehash": [
-                            "cef20c407971038c6f6fae2af3020d9b53e6688fcff706bc5eb9edf394faa550",
+                            "6c45430cb1e3dad5398b8eedfdca83bc0a87ae5b18aa8cd7ec791078a43e1d68",
                             "bcf492011e7b6545cbaaf0a00899f633d6135627659fbfed0270caa0a826e0d2",
                             "d980b0fd242270232de6f246499679975f58f9924de710f6e121937bc716dfcd"
                         ],
@@ -844,7 +844,7 @@
                         "date": [],
                         "defvalue": [],
                         "filehash": [
-                            "394e5f9b63a364ea565bc25418e13ab21ab63ce7a619b70492d70d912ddc7cd7",
+                            "a763592e50b7f77fe30a490c2093ea17f417e3cf211723c8717f930cf26e4189",
                             "2abf00d9b1884fc1a480b6e632728efe27f50e5973f535a73668293623477dbc",
                             "ee9330ff683c7e5c937e80cf02a9ae754d94956820b5219bdf190183824fa6e3"
                         ],
@@ -871,7 +871,7 @@
                         "date": [],
                         "defvalue": [],
                         "filehash": [
-                            "dcb42e4b99a2d8a09e93960955b5bd0b24e3d7b8c818f9e460e00d199a1c7b93",
+                            "f8b77a21aa58149ce05348ec9b127e44716c5545b37b54643c04505dd3c1fb24",
                             "b9e167868eb68b99889eac2003b7be2922a8044c14fc474133bd2ae539796a9a",
                             "ee9330ff683c7e5c937e80cf02a9ae754d94956820b5219bdf190183824fa6e3"
                         ],
@@ -898,7 +898,7 @@
                         "date": [],
                         "defvalue": [],
                         "filehash": [
-                            "23e3082117e4cd306ac4605c016f7c9d552e6903e37f49fbc2c3de081f517985",
+                            "5519d4b5bf84246cc8fcc5e10c36050be7245e27c0a9b974cdbf8653ec7cee4b",
                             "6c9dd2f63d89edb1968fd5718f20355a8c1f354ae804bb97d02488c8cd86d403",
                             "a445806caca8bb73b960101d70bb8d36a253bc3388d8eb3228abb3822a73ee3a"
                         ],
@@ -925,7 +925,7 @@
                         "date": [],
                         "defvalue": [],
                         "filehash": [
-                            "b566259e6a35491973758f6f522c6b15dbda336a280ea82950c658898f7970d4",
+                            "802caaba7c334981de6c70804e2441e5c606a958dbd32a5c7540dfc624d86260",
                             "27077f6a065dae32925c01b02b196fecce007d29968c52c08da860a3122acfac",
                             "d980b0fd242270232de6f246499679975f58f9924de710f6e121937bc716dfcd"
                         ],
@@ -2048,7 +2048,8 @@
                         "value": [
                             "pdk,process",
                             "design",
-                            "asic,targetlib"
+                            "asic,targetlib",
+                            "library,NangateOpenCellLibrary,nldm,typical,lib"
                         ]
                     }
                 }
@@ -6671,16 +6672,28 @@
                 }
             },
             "site": {
-                "defvalue": [],
-                "lock": "false",
-                "require": null,
-                "shorthelp": "Library site name",
-                "signature": [],
-                "switch": "-library_site 'lib <str>'",
-                "type": "[str]",
-                "value": [
-                    "FreePDK45_38x28_10R_NP_162NW_34O"
-                ]
+                "FreePDK45_38x28_10R_NP_162NW_34O": {
+                    "size": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": null,
+                        "shorthelp": "Library site size",
+                        "signature": [],
+                        "switch": "-library_site_size 'lib name (float,float)'",
+                        "type": "(float,float)",
+                        "value": "(0.19, 1.4)"
+                    },
+                    "symmetry": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": null,
+                        "shorthelp": "Library site symmetry",
+                        "signature": [],
+                        "switch": "-library_site_symmetry 'lib name <str>'",
+                        "type": "str",
+                        "value": "Y"
+                    }
+                }
             },
             "type": {
                 "defvalue": null,
@@ -7103,7 +7116,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "2.36"
+                        "value": "2.49"
                     }
                 },
                 "security": {
@@ -7655,7 +7668,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "1.03"
+                        "value": "1.04"
                     }
                 },
                 "security": {
@@ -8165,7 +8178,7 @@
                         "signature": null,
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "1.42"
+                        "value": "0.99"
                     }
                 },
                 "security": {
@@ -8691,7 +8704,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "1.84"
+                        "value": "1.06"
                     }
                 },
                 "security": {
@@ -9243,7 +9256,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.74"
+                        "value": "0.37"
                     }
                 },
                 "security": {
@@ -9795,7 +9808,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.95"
+                        "value": "0.96"
                     }
                 },
                 "security": {
@@ -10347,7 +10360,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "1.15"
+                        "value": "1.18"
                     }
                 },
                 "security": {
@@ -10899,7 +10912,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "2.5"
+                        "value": "2.74"
                     }
                 },
                 "security": {
@@ -11451,7 +11464,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "1.29"
+                        "value": "0.84"
                     }
                 },
                 "security": {
@@ -11689,6 +11702,56 @@
     },
     "pdk": {
         "aprtech": {
+            "klayout": {
+                "10M": {
+                    "10t": {
+                        "lef": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "filehash": [],
+                            "hashalgo": [
+                                "sha256"
+                            ],
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "PDK APR technology file",
+                            "signature": [],
+                            "switch": "-pdk_aprtech 'tool stackup libarch filetype <file>'",
+                            "type": "[file]",
+                            "value": [
+                                "../third_party/pdks/virtual/freepdk45/pdk/r1p0/apr/freepdk45.tech.lef"
+                            ]
+                        }
+                    }
+                }
+            },
+            "magic": {
+                "10M": {
+                    "10t": {
+                        "lef": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "filehash": [],
+                            "hashalgo": [
+                                "sha256"
+                            ],
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "PDK APR technology file",
+                            "signature": [],
+                            "switch": "-pdk_aprtech 'tool stackup libarch filetype <file>'",
+                            "type": "[file]",
+                            "value": [
+                                "../third_party/pdks/virtual/freepdk45/pdk/r1p0/apr/freepdk45.tech.lef"
+                            ]
+                        }
+                    }
+                }
+            },
             "openroad": {
                 "10M": {
                     "10t": {
@@ -12510,28 +12573,30 @@
             "value": "0.1"
         },
         "layermap": {
-            "10M": {
-                "def": {
-                    "gds": {
-                        "author": [],
-                        "copy": "false",
-                        "date": [],
-                        "defvalue": [],
-                        "filehash": [
-                            "ccbc54dc057432a39f553cc7299bd725976a077f944288d7383560bb30e81c7d"
-                        ],
-                        "hashalgo": [
-                            "sha256"
-                        ],
-                        "lock": "false",
-                        "require": null,
-                        "shorthelp": "PDK layout data mapping file",
-                        "signature": [],
-                        "switch": "-pdk_layermap 'stackup src dst <file>'",
-                        "type": "[file]",
-                        "value": [
-                            "../third_party/pdks/virtual/freepdk45/pdk/r1p0/setup/klayout/freepdk45.lyt"
-                        ]
+            "klayout": {
+                "10M": {
+                    "def": {
+                        "gds": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "filehash": [
+                                "ccbc54dc057432a39f553cc7299bd725976a077f944288d7383560bb30e81c7d"
+                            ],
+                            "hashalgo": [
+                                "sha256"
+                            ],
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "PDK layout data mapping file",
+                            "signature": [],
+                            "switch": "-pdk_layermap 'tool stackup src dst <file>'",
+                            "type": "[file]",
+                            "value": [
+                                "../third_party/pdks/virtual/freepdk45/pdk/r1p0/setup/klayout/freepdk45.lyt"
+                            ]
+                        }
                     }
                 }
             }
@@ -12795,17 +12860,17 @@
             "signature": null,
             "switch": "-version_sc <str>",
             "type": "str",
-            "value": "0.3.1"
+            "value": "0.5.0"
         },
         "schema": {
-            "defvalue": "0.3.0",
+            "defvalue": "0.5.0",
             "lock": "true",
             "require": "all",
             "shorthelp": "Schema version number",
             "signature": null,
             "switch": "-version_schema <str>",
             "type": "str",
-            "value": "0.3.0"
+            "value": "0.5.0"
         }
     }
 }

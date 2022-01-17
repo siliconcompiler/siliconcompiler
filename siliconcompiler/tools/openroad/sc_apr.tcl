@@ -39,6 +39,7 @@ set sc_optmode    [dict get $sc_cfg optmode]
 
 # APR Parameters
 set sc_mainlib     [lindex [dict get $sc_cfg asic targetlib] 0]
+
 set sc_targetlibs  [dict get $sc_cfg asic targetlib]
 set sc_stackup     [dict get $sc_cfg asic stackup]
 set sc_density     [dict get $sc_cfg asic density]
@@ -60,7 +61,7 @@ set sc_maxslew     [dict get $sc_cfg asic maxslew]
 
 # Library
 set sc_libtype     [dict get $sc_cfg library $sc_mainlib arch]
-set sc_site        [dict get $sc_cfg library $sc_mainlib site]
+set sc_site        [lindex [dict get $sc_cfg library $sc_mainlib site] 0]
 set sc_driver      [dict get $sc_cfg library $sc_mainlib driver]
 set sc_filler      [dict get $sc_cfg library $sc_mainlib cells filler]
 set sc_dontuse     [dict get $sc_cfg library $sc_mainlib cells ignore]
