@@ -506,6 +506,7 @@ def schema_pdk(cfg, stackup='default'):
     doctypes = ['datasheet',
                 'reference',
                 'userguide',
+                'install',
                 'quickstart',
                 'releasenotes',
                 'tutorial']
@@ -874,12 +875,12 @@ def schema_pdk(cfg, stackup='default'):
         'defvalue': None,
         'shorthelp': 'PDK metal layer name map',
         'example': [
-            "cli: -pdk_grid_name 'M10 m1 metal1'""",
-            "api: chip.set('pdk','grid','M10','m1','name','metal1')"],
+            "cli: -pdk_grid_name 'M10 metal1 m1'""",
+            "api: chip.set('pdk','grid','M10','metal1','name','m1')"],
         'help': """
-        Maps PDK metal names found in the tech to the SC standardized
-        metal naming scheme that starts with m1 (lowest routing layer)
-        and ends with m<n>(highest routing layer). The map is
+        Maps PDK metal names to the SC standardized layer stack
+        starting with m1 as the lowest routing layer and ending
+        wityh m<n> as the highest routing layer. The map is
         specified on a per metal stack basis.
         """
     }
@@ -898,9 +899,8 @@ def schema_pdk(cfg, stackup='default'):
             "api: chip.set('pdk','grid','M10','m1','dir','horizontal')"],
         'help': """
         Preferred routing direction specified on a per stackup
-        and per SC metal basis. Valid routing directions are horizontal
-        and vertical. If not defined, the value is taken from the PDK
-        tech.lef.
+        and per metal basis. Valid routing directions are horizontal
+        and vertical.
         """
     }
 
@@ -918,9 +918,7 @@ def schema_pdk(cfg, stackup='default'):
             "api: chip.set('pdk','grid','M10','m1','xpitch','0.5')"],
         'help': """
         Defines the routing pitch for vertical wires on a per stackup and
-        per metal basis, specified in um. Metal layers are ordered
-        from m1 to m<n>, where m1 is the lowest routing layer in the tech.lef.
-        If not defined, the value is taken from the PDK tech.lef.
+        per metal basis, specified in um.
         """
     }
 
@@ -938,9 +936,7 @@ def schema_pdk(cfg, stackup='default'):
             "api: chip.set('pdk','grid','M10','m2','ypitch','0.5')"],
         'help': """
         Defines the routing pitch for horizontal wires on a per stackup and
-        per metal basis, specified in um. Metal layers are ordered
-        from m1 to mn, where m1 is the lowest routing layer in the tech.lef.
-        If not defined, the value is taken from the PDK tech.lef.
+        per metal basis, specified in um.
         """
     }
 
@@ -959,7 +955,6 @@ def schema_pdk(cfg, stackup='default'):
         'help': """
         Defines the grid offset of a vertical metal layer specified on a per
         stackup and per metal basis, specified in um.
-        If not defined, the value is taken from the PDK tech.lef.
         """
     }
 
@@ -978,7 +973,6 @@ def schema_pdk(cfg, stackup='default'):
         'help': """
         Defines the grid offset of a horizontal metal layer specified on a per
         stackup and per metal basis, specified in um.
-        If not defined, the value is taken from the PDK tech.lef.
         """
     }
 
