@@ -5254,9 +5254,8 @@ def schema_asic(cfg):
         Technology agnostic metal layer to be used for parasitic
         extraction estimation during APR for the wire type specified
         Current the supported wire types are: clk, data. The metal
-        layers are specified as technology agnostic SC layers starting
-        with m1. Actual technology metal layers are looked up through the
-        'grid' dictionary.
+        layers can be specified as technology agnostic SC layers
+        starting with m1 or as hard PDK specific layer names.
         """
     }
 
@@ -5272,9 +5271,9 @@ def schema_asic(cfg):
                     "api: chip.set('asic', 'vpinlayer', 'm3')"],
         'help': """
         Metal layer to use for automated vertical pin placement
-        during APR.  The metal layers are specified as technology agnostic
-        SC layers starting with m1. Actual technology metal layers are
-        looked up through the 'grid' dictionary.
+        during APR.  The metal layers can be specified as technology
+        agnostic SC layers starting with m1 or as hard PDK specific
+        layer names.
         """
     }
 
@@ -5290,9 +5289,8 @@ def schema_asic(cfg):
                     "api: chip.set('asic', 'hpinlayer', 'm2')"],
         'help': """
         Metal layer to use for automated horizontal pin placement
-        during APR.  The metal layers are specified as technology agnostic
-        SC layers starting with m1. Actual technology metal layers are
-        looked up through the 'grid' dictionary.
+        during APR.  The metal layers can be specified as technology agnostic
+        SC layers starting with m1 or as hard PDK specific layer names.
         """
     }
 
