@@ -24,7 +24,10 @@ _MacroInfo = namedtuple("_MacroInfo", "width height")
 
 def _layer_i(layer):
     '''Helper function to go from SC layer name to layer position in stackup.'''
-    return int(layer.lstrip('m'))
+    try:
+        return int(layer.lstrip('m'))
+    except:
+        raise ValueError(f'Invalid routing layer {layer}.')
 
 def _get_rect_intersection(r1, r2):
     '''Get intersection of two rectangles r1 and r2.
@@ -133,10 +136,14 @@ class Floorplan:
 
         diearea (tuple): A tuple of two floats `(width, height)` storing the
             size of the die area in microns.
-        layers (dict): A dictionary mapping SiliconCompiler layer names to
-            technology-specific info about the layers. The values in this
-            dictionary are dictionaries themselves, containing the keys `name`,
-            `width`, `xpitch`, `ypitch`, `xoffset`, and `yoffset`.
+        layers (dict): A dictionary mapping names to technology-specific info
+            about the layers. This dictionary can be accessed using either
+            SC-standardized layer names or PDK-specific layer names. Note that
+            this means the dictionary should not be iterated over to extract all
+            layers. Instead, the function `get_layers()` can be used for this.
+            The values in this dictionary are dictionaries themselves,
+            containing the keys `name`, `width`, `xpitch`, `ypitch`, `xoffset`,
+            and `yoffset`.
         stdcell_width (float): Width of standard cells in microns.
         stdcell_height (float): Height of standard cells in microns.
     '''
@@ -226,13 +233,16 @@ class Floorplan:
 
         # extract layers based on stackup
         stackup = self.chip.get('asic', 'stackup')
+        self._stackup = stackup
+        # TODO: consider making this a dictionary of namedtuples to ensure layer
+        # info is immutable.
         self.layers = {}
-        for name in self.chip.getkeys('pdk', 'grid', stackup):
-            pdk_name = self.chip.get('pdk', 'grid', stackup, name, 'name')
-            xpitch = self.chip.get('pdk', 'grid', stackup, name, 'xpitch')
-            ypitch = self.chip.get('pdk', 'grid', stackup, name, 'ypitch')
-            xoffset = self.chip.get('pdk', 'grid', stackup, name, 'xoffset')
-            yoffset = self.chip.get('pdk', 'grid', stackup, name, 'yoffset')
+        for pdk_name in self.chip.getkeys('pdk', 'grid', stackup):
+            sc_name = self.chip.get('pdk', 'grid', stackup, pdk_name, 'name')
+            xpitch = self.chip.get('pdk', 'grid', stackup, pdk_name, 'xpitch')
+            ypitch = self.chip.get('pdk', 'grid', stackup, pdk_name, 'ypitch')
+            xoffset = self.chip.get('pdk', 'grid', stackup, pdk_name, 'xoffset')
+            yoffset = self.chip.get('pdk', 'grid', stackup, pdk_name, 'yoffset')
 
             if ('layers' not in tech_lef_data) or (pdk_name not in tech_lef_data['layers']):
                 raise ValueError(f'No layer named {pdk_name} in tech LEF!')
@@ -245,7 +255,7 @@ class Floorplan:
             width = layer['width']
             direction = layer['direction']
 
-            self.layers[name] = {
+            self.layers[sc_name] = {
                 'name': pdk_name,
                 'width': width,
                 'direction': direction,
@@ -254,6 +264,7 @@ class Floorplan:
                 'xoffset': xoffset,
                 'yoffset': yoffset
             }
+            self.layers[pdk_name] = self.layers[sc_name]
 
         # VIARULE GENERATEs extracted from tech LEF
         try:
@@ -301,11 +312,19 @@ class Floorplan:
             l0_name = self._pdk_to_sc_layer(routing_layers[0]['name'])
             if l0_name is None:
                 raise ValueError(f'No routing layer named {l0_name}')
-            l0 = _layer_i(l0_name)
             l1_name = self._pdk_to_sc_layer(routing_layers[1]['name'])
             if l1_name is None:
                 raise ValueError(f'No routing layer named {l1_name}')
-            l1 = _layer_i(l1_name)
+
+            try:
+                l0 = _layer_i(l0_name)
+                l1 = _layer_i(l1_name)
+            except ValueError:
+                # Some of the viarules might be for layers that are not part of
+                # our SC metal stackup, so we throw those away - e.g. li1 in
+                # Skywater130.
+                continue
+
             if l0 < l1:
                 bottom = routing_layers[0]
                 bottom_i = l0
@@ -344,6 +363,14 @@ class Floorplan:
             })
 
         return viarules
+
+    def get_layers(self):
+        '''Returns list of SC-standardized layer names defined in schema.'''
+        layers = []
+        for pdk_name in self.chip.getkeys('pdk', 'grid', self._stackup):
+            sc_name = self.chip.get('pdk', 'grid', self._stackup, pdk_name, 'name')
+            layers.append(sc_name)
+        return layers
 
     def create_diearea(self, diearea, corearea=None, generate_rows=True,
                         generate_tracks=True):
@@ -823,7 +850,8 @@ class Floorplan:
         start_x, start_y = area[0]
         die_width, die_height = area[1]
 
-        for layer in self.layers.values():
+        for sc_name in self.get_layers():
+            layer = self.layers[sc_name]
             layer_name = layer['name']
             offset_x = layer['xoffset'] + start_x
             offset_y = layer['yoffset'] + start_y
@@ -895,7 +923,7 @@ class Floorplan:
         '''
 
         if layers is None:
-            layers = list(self.layers.keys())
+            layers = self.get_layers()
 
         if snap:
             x = self.snap(x, self.stdcell_width)
@@ -1330,10 +1358,7 @@ class Floorplan:
             raise ValueError('Invalid orientation')
 
     def _pdk_to_sc_layer(self, layer):
-        for k, v in self.layers.items():
-            if v['name'] == layer:
-                return k
-        return None
+        return self.chip.get('pdk', 'grid', self._stackup, layer, 'name')
 
 # Helper functions used for diearea inference. These are more-or-less
 # floorplanning related, so including them in this file.

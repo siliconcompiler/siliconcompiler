@@ -880,7 +880,7 @@ def schema_pdk(cfg, stackup='default'):
         'help': """
         Maps PDK metal names to the SC standardized layer stack
         starting with m1 as the lowest routing layer and ending
-        wityh m<n> as the highest routing layer. The map is
+        with m<n> as the highest routing layer. The map is
         specified on a per metal stack basis.
         """
     }
