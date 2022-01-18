@@ -89,70 +89,70 @@ def setup_pdk(chip):
                  pdkdir+'/apr/asap7_tech.lef')
 
     # Routing Grid Definitions
-    for sc_name, pdk_name in [('m1', 'M1')]:
-        chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)
-        chip.set('pdk','grid', stackup, sc_name, 'xoffset', 0.036)
-        chip.set('pdk','grid', stackup, sc_name, 'xpitch',  0.036)
-        chip.set('pdk','grid', stackup, sc_name, 'yoffset', 0.036)
-        chip.set('pdk','grid', stackup, sc_name, 'ypitch',  0.036)
-        chip.set('pdk','grid', stackup, sc_name, 'adj',     1.0)
+    for layer, sc_name in [('M1', 'm1')]:
+        chip.set('pdk','grid', stackup, layer, 'name', sc_name)
+        chip.set('pdk','grid', stackup, layer, 'xoffset', 0.036)
+        chip.set('pdk','grid', stackup, layer, 'xpitch',  0.036)
+        chip.set('pdk','grid', stackup, layer, 'yoffset', 0.036)
+        chip.set('pdk','grid', stackup, layer, 'ypitch',  0.036)
+        chip.set('pdk','grid', stackup, layer, 'adj',     1.0)
 
-    for sc_name, pdk_name in [('m2', 'M2')]:
-        chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)
-        chip.set('pdk','grid', stackup, sc_name, 'xoffset', 0.018)
-        chip.set('pdk','grid', stackup, sc_name, 'xpitch',  0.036)
-        chip.set('pdk','grid', stackup, sc_name, 'yoffset', 0.00)
-        chip.set('pdk','grid', stackup, sc_name, 'ypitch',  0.027)
-        chip.set('pdk','grid', stackup, sc_name, 'adj',     0.8)
+    for layer, sc_name in [('M2', 'm2')]:
+        chip.set('pdk','grid', stackup, layer, 'name', sc_name)
+        chip.set('pdk','grid', stackup, layer, 'xoffset', 0.018)
+        chip.set('pdk','grid', stackup, layer, 'xpitch',  0.036)
+        chip.set('pdk','grid', stackup, layer, 'yoffset', 0.00)
+        chip.set('pdk','grid', stackup, layer, 'ypitch',  0.027)
+        chip.set('pdk','grid', stackup, layer, 'adj',     0.8)
 
-    for sc_name, pdk_name in [('m3', 'M3')]:
-        chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)
-        chip.set('pdk','grid', stackup, sc_name, 'xoffset', 0.018)
-        chip.set('pdk','grid', stackup, sc_name, 'xpitch',  0.036)
-        chip.set('pdk','grid', stackup, sc_name, 'yoffset', 0.018)
-        chip.set('pdk','grid', stackup, sc_name, 'ypitch',  0.036)
-        chip.set('pdk','grid', stackup, sc_name, 'adj',     0.7)
+    for layer, sc_name in [('M3', 'm3')]:
+        chip.set('pdk','grid', stackup, layer, 'name', sc_name)
+        chip.set('pdk','grid', stackup, layer, 'xoffset', 0.018)
+        chip.set('pdk','grid', stackup, layer, 'xpitch',  0.036)
+        chip.set('pdk','grid', stackup, layer, 'yoffset', 0.018)
+        chip.set('pdk','grid', stackup, layer, 'ypitch',  0.036)
+        chip.set('pdk','grid', stackup, layer, 'adj',     0.7)
 
-    for sc_name, pdk_name in [('m4', 'M4')]:
-        chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)
-        chip.set('pdk','grid', stackup, sc_name, 'xoffset', 0.028)
-        chip.set('pdk','grid', stackup, sc_name, 'xpitch',  0.036)
-        chip.set('pdk','grid', stackup, sc_name, 'yoffset', 0.069)
-        chip.set('pdk','grid', stackup, sc_name, 'ypitch',  0.048)
-        chip.set('pdk','grid', stackup, sc_name, 'adj',     0.4)
+    for layer, sc_name in [('M4', 'm4')]:
+        chip.set('pdk','grid', stackup, layer, 'name', sc_name)
+        chip.set('pdk','grid', stackup, layer, 'xoffset', 0.028)
+        chip.set('pdk','grid', stackup, layer, 'xpitch',  0.036)
+        chip.set('pdk','grid', stackup, layer, 'yoffset', 0.069)
+        chip.set('pdk','grid', stackup, layer, 'ypitch',  0.048)
+        chip.set('pdk','grid', stackup, layer, 'adj',     0.4)
 
-    for sc_name, pdk_name in [('m5', 'M5')]:
-        chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)
-        chip.set('pdk','grid', stackup, sc_name, 'xoffset', 0.040)
-        chip.set('pdk','grid', stackup, sc_name, 'xpitch',  0.048)
-        chip.set('pdk','grid', stackup, sc_name, 'yoffset', 0.069)
-        chip.set('pdk','grid', stackup, sc_name, 'ypitch',  0.048)
-        chip.set('pdk','grid', stackup, sc_name, 'adj',     0.4)
+    for layer, sc_name in [('M5', 'm5')]:
+        chip.set('pdk','grid', stackup, layer, 'name', sc_name)
+        chip.set('pdk','grid', stackup, layer, 'xoffset', 0.040)
+        chip.set('pdk','grid', stackup, layer, 'xpitch',  0.048)
+        chip.set('pdk','grid', stackup, layer, 'yoffset', 0.069)
+        chip.set('pdk','grid', stackup, layer, 'ypitch',  0.048)
+        chip.set('pdk','grid', stackup, layer, 'adj',     0.4)
 
 
-    for sc_name, pdk_name in [('m6', 'M6')]:
-        chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)
-        chip.set('pdk','grid', stackup, sc_name, 'xoffset', 0.030)
-        chip.set('pdk','grid', stackup, sc_name, 'xpitch',  0.048)
-        chip.set('pdk','grid', stackup, sc_name, 'yoffset', 0.082)
-        chip.set('pdk','grid', stackup, sc_name, 'ypitch',  0.064)
-        chip.set('pdk','grid', stackup, sc_name, 'adj',     0.4)
+    for layer, sc_name in [('M6', 'm6')]:
+        chip.set('pdk','grid', stackup, layer, 'name', sc_name)
+        chip.set('pdk','grid', stackup, layer, 'xoffset', 0.030)
+        chip.set('pdk','grid', stackup, layer, 'xpitch',  0.048)
+        chip.set('pdk','grid', stackup, layer, 'yoffset', 0.082)
+        chip.set('pdk','grid', stackup, layer, 'ypitch',  0.064)
+        chip.set('pdk','grid', stackup, layer, 'adj',     0.4)
 
-    for sc_name, pdk_name in [('m7', 'M7')]:
-        chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)
-        chip.set('pdk','grid', stackup, sc_name, 'xoffset', 0.082)
-        chip.set('pdk','grid', stackup, sc_name, 'xpitch',  0.064)
-        chip.set('pdk','grid', stackup, sc_name, 'yoffset', 0.036)
-        chip.set('pdk','grid', stackup, sc_name, 'ypitch',  0.064)
-        chip.set('pdk','grid', stackup, sc_name, 'adj',     0.4)
+    for layer, sc_name in [('M7', 'm7')]:
+        chip.set('pdk','grid', stackup, layer, 'name', sc_name)
+        chip.set('pdk','grid', stackup, layer, 'xoffset', 0.082)
+        chip.set('pdk','grid', stackup, layer, 'xpitch',  0.064)
+        chip.set('pdk','grid', stackup, layer, 'yoffset', 0.036)
+        chip.set('pdk','grid', stackup, layer, 'ypitch',  0.064)
+        chip.set('pdk','grid', stackup, layer, 'adj',     0.4)
 
-    for sc_name, pdk_name in [('m8', 'M8'), ('m9', 'M9')]:
-        chip.set('pdk','grid', stackup, sc_name, 'name', pdk_name)
-        chip.set('pdk','grid', stackup, sc_name, 'xoffset', 0.098)
-        chip.set('pdk','grid', stackup, sc_name, 'xpitch',  0.08)
-        chip.set('pdk','grid', stackup, sc_name, 'yoffset', 0.098)
-        chip.set('pdk','grid', stackup, sc_name, 'ypitch',  0.08)
-        chip.set('pdk','grid', stackup, sc_name, 'adj',     0.4)
+    for layer, sc_name in [('M8', 'm8'), ('M9', 'm9')]:
+        chip.set('pdk','grid', stackup, layer, 'name', sc_name)
+        chip.set('pdk','grid', stackup, layer, 'xoffset', 0.098)
+        chip.set('pdk','grid', stackup, layer, 'xpitch',  0.08)
+        chip.set('pdk','grid', stackup, layer, 'yoffset', 0.098)
+        chip.set('pdk','grid', stackup, layer, 'ypitch',  0.08)
+        chip.set('pdk','grid', stackup, layer, 'adj',     0.4)
 
     ###############################################
     # Libraries
@@ -178,8 +178,10 @@ def setup_pdk(chip):
     # gds
     chip.add('library',libname,'gds',
              libdir+'/gds/'+libname+'.gds')
+
     # site name
-    chip.set('library',libname,'site', 'asap7sc7p5t')
+    chip.set('library', libname, 'site', 'asap7sc7p5t', 'symmetry', 'Y')
+    chip.set('library', libname, 'site', 'asap7sc7p5t', 'size', (0.054,0.270))
 
     # lib arch
     chip.set('library',libname,'arch',libtype)

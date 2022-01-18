@@ -100,52 +100,52 @@ def setup_pdk(chip):
     chip.set('pdk','lvs','netgen', stackup, 'runset', pdkdir+'/setup/netgen/lvs_setup.tcl')
 
     # Layer map
-    chip.set('pdk','layermap',stackup, 'def', 'gds', pdkdir+'/setup/klayout/skywater130.lyt')
+    chip.set('pdk','layermap','klayout',stackup, 'def', 'gds', pdkdir+'/setup/klayout/skywater130.lyt')
 
     # Routing Grid Definitions
 
     # TODO: what should the SC-internal name of the LI layer be?
-    chip.set('pdk','grid', stackup, 'm6', 'name', 'li1')
-    chip.set('pdk','grid', stackup, 'm6', 'xoffset', 0.23)
-    chip.set('pdk','grid', stackup, 'm6', 'xpitch',  0.46)
-    chip.set('pdk','grid', stackup, 'm6', 'yoffset', 0.17)
-    chip.set('pdk','grid', stackup, 'm6', 'ypitch',  0.34)
-    chip.set('pdk','grid', stackup, 'm6', 'adj', 1.0)
+    chip.set('pdk','grid', stackup, 'li1', 'name', 'li1')
+    chip.set('pdk','grid', stackup, 'li1', 'xoffset', 0.23)
+    chip.set('pdk','grid', stackup, 'li1', 'xpitch',  0.46)
+    chip.set('pdk','grid', stackup, 'li1', 'yoffset', 0.17)
+    chip.set('pdk','grid', stackup, 'li1', 'ypitch',  0.34)
+    chip.set('pdk','grid', stackup, 'li1', 'adj', 1.0)
 
-    chip.set('pdk','grid', stackup, 'm1', 'name', 'met1')
-    chip.set('pdk','grid', stackup, 'm1', 'xoffset', 0.17)
-    chip.set('pdk','grid', stackup, 'm1', 'xpitch',  0.34)
-    chip.set('pdk','grid', stackup, 'm1', 'yoffset', 0.17)
-    chip.set('pdk','grid', stackup, 'm1', 'ypitch',  0.34)
-    chip.set('pdk','grid', stackup, 'm1', 'adj', 0.5)
+    chip.set('pdk','grid', stackup, 'met1', 'name', 'm1')
+    chip.set('pdk','grid', stackup, 'met1', 'xoffset', 0.17)
+    chip.set('pdk','grid', stackup, 'met1', 'xpitch',  0.34)
+    chip.set('pdk','grid', stackup, 'met1', 'yoffset', 0.17)
+    chip.set('pdk','grid', stackup, 'met1', 'ypitch',  0.34)
+    chip.set('pdk','grid', stackup, 'met1', 'adj', 0.5)
 
-    chip.set('pdk','grid', stackup, 'm2', 'name', 'met2')
-    chip.set('pdk','grid', stackup, 'm2', 'xoffset', 0.23)
-    chip.set('pdk','grid', stackup, 'm2', 'xpitch',  0.46)
-    chip.set('pdk','grid', stackup, 'm2', 'yoffset', 0.23)
-    chip.set('pdk','grid', stackup, 'm2', 'ypitch',  0.46)
-    chip.set('pdk','grid', stackup, 'm2', 'adj', 0.5)
+    chip.set('pdk','grid', stackup, 'met2', 'name', 'm2')
+    chip.set('pdk','grid', stackup, 'met2', 'xoffset', 0.23)
+    chip.set('pdk','grid', stackup, 'met2', 'xpitch',  0.46)
+    chip.set('pdk','grid', stackup, 'met2', 'yoffset', 0.23)
+    chip.set('pdk','grid', stackup, 'met2', 'ypitch',  0.46)
+    chip.set('pdk','grid', stackup, 'met2', 'adj', 0.5)
 
-    chip.set('pdk','grid', stackup, 'm3', 'name', 'met3')
-    chip.set('pdk','grid', stackup, 'm3', 'xoffset', 0.34)
-    chip.set('pdk','grid', stackup, 'm3', 'xpitch',  0.68)
-    chip.set('pdk','grid', stackup, 'm3', 'yoffset', 0.34)
-    chip.set('pdk','grid', stackup, 'm3', 'ypitch',  0.68)
-    chip.set('pdk','grid', stackup, 'm3', 'adj', 0.5)
+    chip.set('pdk','grid', stackup, 'met3', 'name', 'm3')
+    chip.set('pdk','grid', stackup, 'met3', 'xoffset', 0.34)
+    chip.set('pdk','grid', stackup, 'met3', 'xpitch',  0.68)
+    chip.set('pdk','grid', stackup, 'met3', 'yoffset', 0.34)
+    chip.set('pdk','grid', stackup, 'met3', 'ypitch',  0.68)
+    chip.set('pdk','grid', stackup, 'met3', 'adj', 0.5)
 
-    chip.set('pdk','grid', stackup, 'm4', 'name', 'met4')
-    chip.set('pdk','grid', stackup, 'm4', 'xoffset', 0.46)
-    chip.set('pdk','grid', stackup, 'm4', 'xpitch',  0.92)
-    chip.set('pdk','grid', stackup, 'm4', 'yoffset', 0.46)
-    chip.set('pdk','grid', stackup, 'm4', 'ypitch',  0.92)
-    chip.set('pdk','grid', stackup, 'm4', 'adj', 0.5)
+    chip.set('pdk','grid', stackup, 'met4', 'name', 'm4')
+    chip.set('pdk','grid', stackup, 'met4', 'xoffset', 0.46)
+    chip.set('pdk','grid', stackup, 'met4', 'xpitch',  0.92)
+    chip.set('pdk','grid', stackup, 'met4', 'yoffset', 0.46)
+    chip.set('pdk','grid', stackup, 'met4', 'ypitch',  0.92)
+    chip.set('pdk','grid', stackup, 'met4', 'adj', 0.5)
 
-    chip.set('pdk','grid', stackup, 'm5', 'name', 'met5')
-    chip.set('pdk','grid', stackup, 'm5', 'xoffset', 1.7)
-    chip.set('pdk','grid', stackup, 'm5', 'xpitch',  3.4)
-    chip.set('pdk','grid', stackup, 'm5', 'yoffset', 1.7)
-    chip.set('pdk','grid', stackup, 'm5', 'ypitch',  3.4)
-    chip.set('pdk','grid', stackup, 'm5', 'adj', 0.5)
+    chip.set('pdk','grid', stackup, 'met5', 'name', 'm5')
+    chip.set('pdk','grid', stackup, 'met5', 'xoffset', 1.7)
+    chip.set('pdk','grid', stackup, 'met5', 'xpitch',  3.4)
+    chip.set('pdk','grid', stackup, 'met5', 'yoffset', 1.7)
+    chip.set('pdk','grid', stackup, 'met5', 'ypitch',  3.4)
+    chip.set('pdk','grid', stackup, 'met5', 'adj', 0.5)
 
     ###############################################
     # Libraries
@@ -176,8 +176,13 @@ def setup_pdk(chip):
     # gds
     chip.add('library', libname, 'gds',
              libdir+'/gds/sky130_fd_sc_hd.gds')
-    # site name
-    chip.set('library', libname, 'site', 'unithd')
+
+    # placement sites
+    chip.set('library', libname, 'site', 'unithd', 'symmetry', 'Y')
+    chip.set('library', libname, 'site', 'unithd', 'size', (0.46,2.72))
+
+    chip.set('library', libname, 'site', 'unithddbl', 'symmetry', 'Y')
+    chip.set('library', libname, 'site', 'unithddbl', 'size', (0.46,5.44))
 
     # lib arch
     chip.set('library', libname, 'arch', libtype)

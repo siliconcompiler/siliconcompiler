@@ -14,10 +14,9 @@ check_placement
 # GLOBAL ROUTE
 ######################
 
-foreach layer $sc_layers {
-    set name [lindex [dict get $sc_cfg pdk grid $sc_stackup $layer name] end]
-    set adjustment [lindex [dict get $sc_cfg pdk grid $sc_stackup $layer adj] end]
-    set_global_routing_layer_adjustment $name $adjustment
+dict for {key value} [dict get $sc_cfg pdk grid $sc_stackup] {
+    set adjustment [lindex [dict get $sc_cfg pdk grid $sc_stackup $key adj] end]
+    set_global_routing_layer_adjustment $key $adjustment
 }
 
 set_routing_layers -signal $sc_minmetal-$sc_maxmetal

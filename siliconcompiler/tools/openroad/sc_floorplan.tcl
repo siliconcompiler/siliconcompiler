@@ -24,7 +24,7 @@ if {[expr ! [dict exists $sc_cfg "read" def $sc_step $sc_index]]} {
     #########################
     #Init Floorplan
     #########################
-	#NOTE: assuming a two tuple value as lower left, upper right
+    #NOTE: assuming a two tuple value as lower left, upper right
     set sc_diearea   [dict get $sc_cfg asic diearea]
     set sc_corearea  [dict get $sc_cfg asic corearea]
     set sc_diesize   [regsub -all {[\,\)\(]} $sc_diearea " "]
@@ -34,6 +34,7 @@ if {[expr ! [dict exists $sc_cfg "read" def $sc_step $sc_index]]} {
     puts $sc_diesize
     puts $sc_coresize
 
+    #TODO: if there is more than one site, pick the first one?
     initialize_floorplan -die_area $sc_diesize \
 	-core_area $sc_coresize \
 	-site $sc_site
@@ -49,13 +50,12 @@ if {[expr ! [dict exists $sc_cfg "read" def $sc_step $sc_index]]} {
 
     foreach metal $metal_list {
 	#extracting values from dictionary
-	set name [dict get $sc_cfg pdk grid $sc_stackup $metal name]
 	set xpitch [dict get $sc_cfg pdk grid $sc_stackup $metal xpitch]
 	set xoffset [dict get $sc_cfg pdk grid $sc_stackup $metal xoffset]
 	set ypitch [dict get $sc_cfg pdk grid $sc_stackup $metal ypitch]
 	set yoffset [dict get $sc_cfg pdk grid $sc_stackup $metal yoffset]
 
-	make_tracks $name \
+	make_tracks $metal \
 	    -x_offset $xoffset \
 	    -x_pitch $xpitch \
 	    -y_offset $yoffset \

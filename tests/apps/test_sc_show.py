@@ -54,7 +54,7 @@ def test_sc_show(flags, monkeypatch, heartbeat_dir):
         assert chip.get('showtool', ext)
 
         sc_stackup = chip.get('pdk', 'stackup')[0]
-        tech_file = chip.get('pdk', 'layermap', sc_stackup, 'def', 'gds')[0]
+        tech_file = chip.get('pdk', 'layermap', 'klayout', sc_stackup, 'def', 'gds')[0]
         assert tech_file is not None
 
         chip.logger.info('Showing ' + filename)

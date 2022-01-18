@@ -39,28 +39,49 @@ set sc_optmode    [dict get $sc_cfg optmode]
 
 # APR Parameters
 set sc_mainlib     [lindex [dict get $sc_cfg asic targetlib] 0]
+
 set sc_targetlibs  [dict get $sc_cfg asic targetlib]
 set sc_stackup     [dict get $sc_cfg asic stackup]
 set sc_density     [dict get $sc_cfg asic density]
-set sc_hpinlayer   [dict get $sc_cfg asic hpinlayer]
-set sc_vpinlayer   [dict get $sc_cfg asic vpinlayer]
-set sc_hpinmetal   [dict get $sc_cfg pdk grid $sc_stackup $sc_hpinlayer name]
-set sc_vpinmetal   [dict get $sc_cfg pdk grid $sc_stackup $sc_vpinlayer name]
-set sc_rclayer     [dict get $sc_cfg asic rclayer data]
-set sc_clklayer    [dict get $sc_cfg asic rclayer clk]
-set sc_rcmetal     [dict get $sc_cfg pdk grid $sc_stackup $sc_rclayer name]
-set sc_clkmetal    [dict get $sc_cfg pdk grid $sc_stackup $sc_clklayer name]
+set sc_hpinmetal   [dict get $sc_cfg asic hpinlayer]
+set sc_vpinmetal   [dict get $sc_cfg asic vpinlayer]
+set sc_rcmetal     [dict get $sc_cfg asic rclayer data]
+set sc_clkmetal    [dict get $sc_cfg asic rclayer clk]
 set sc_aspectratio [dict get $sc_cfg asic aspectratio]
-set sc_minlayer    [dict get $sc_cfg asic minlayer]
-set sc_maxlayer    [dict get $sc_cfg asic maxlayer]
+set sc_minmetal    [dict get $sc_cfg asic minlayer]
+set sc_maxmetal    [dict get $sc_cfg asic maxlayer]
 set sc_maxfanout   [dict get $sc_cfg asic maxfanout]
 set sc_maxlength   [dict get $sc_cfg asic maxlength]
 set sc_maxcap      [dict get $sc_cfg asic maxcap]
 set sc_maxslew     [dict get $sc_cfg asic maxslew]
 
+# TPDK agnostic design rule translation
+dict for {key value} [dict get $sc_cfg pdk grid $sc_stackup] {
+    set sc_name [dict get $sc_cfg pdk grid $sc_stackup $key name]
+
+    if {$sc_name == $sc_minmetal} {
+	set sc_minmetal $key
+    }
+    if {$sc_name == $sc_maxmetal} {
+	set sc_maxmetal $key
+    }
+    if {$sc_name == $sc_hpinmetal} {
+	set sc_hpinmetal $key
+    }
+    if {$sc_name == $sc_vpinmetal} {
+	set sc_vpinmetal $key
+    }
+    if {$sc_name == $sc_rcmetal} {
+	set sc_rcmetal $key
+    }
+    if {$sc_name == $sc_clkmetal} {
+	set sc_clkmetal $key
+    }
+}
+
 # Library
 set sc_libtype     [dict get $sc_cfg library $sc_mainlib arch]
-set sc_site        [dict get $sc_cfg library $sc_mainlib site]
+set sc_site        [lindex [dict get $sc_cfg library $sc_mainlib site] 0]
 set sc_driver      [dict get $sc_cfg library $sc_mainlib driver]
 set sc_filler      [dict get $sc_cfg library $sc_mainlib cells filler]
 set sc_dontuse     [dict get $sc_cfg library $sc_mainlib cells ignore]
@@ -76,16 +97,6 @@ set sc_techlef     [dict get $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtyp
 # TODO: workaround until OpenROAD allows floating-point 'tapmax' values.
 set sc_tapmax      [expr {int([lindex [dict get $sc_cfg pdk tapmax] end])}]
 set sc_tapoffset   [lindex [dict get $sc_cfg pdk tapoffset] end]
-
-# APR Layers
-set sc_minmetal    [dict get $sc_cfg pdk grid $sc_stackup $sc_minlayer name]
-set sc_maxmetal    [dict get $sc_cfg pdk grid $sc_stackup $sc_maxlayer name]
-
-# Layer Definitions
-set sc_layers ""
-dict for {key value} [dict get $sc_cfg pdk grid $sc_stackup] {
-    lappend sc_layers $key
-}
 
 set sc_threads [dict get $sc_cfg eda $sc_tool threads $sc_step $sc_index ]
 

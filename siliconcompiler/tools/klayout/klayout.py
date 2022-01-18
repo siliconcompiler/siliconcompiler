@@ -115,7 +115,7 @@ def setup_tool(chip, mode="batch"):
 
             chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'targetlib']))
             chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'stackup']))
-            chip.add('eda', tool, 'require', step, index,  ",".join(['pdk', 'layermap', stackup, 'def','gds']))
+            chip.add('eda', tool, 'require', step, index,  ",".join(['pdk', 'layermap', 'klayout', stackup, 'def','gds']))
 
             for lib in (targetlibs + macrolibs):
                 chip.add('eda', tool, 'require', step, index, ",".join(['library', lib, 'gds']))
