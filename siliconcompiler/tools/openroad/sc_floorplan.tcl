@@ -50,13 +50,12 @@ if {[expr ! [dict exists $sc_cfg "read" def $sc_step $sc_index]]} {
 
     foreach metal $metal_list {
 	#extracting values from dictionary
-	set name [dict get $sc_cfg pdk grid $sc_stackup $metal name]
 	set xpitch [dict get $sc_cfg pdk grid $sc_stackup $metal xpitch]
 	set xoffset [dict get $sc_cfg pdk grid $sc_stackup $metal xoffset]
 	set ypitch [dict get $sc_cfg pdk grid $sc_stackup $metal ypitch]
 	set yoffset [dict get $sc_cfg pdk grid $sc_stackup $metal yoffset]
 
-	make_tracks $name \
+	make_tracks $metal \
 	    -x_offset $xoffset \
 	    -x_pitch $xpitch \
 	    -y_offset $yoffset \
