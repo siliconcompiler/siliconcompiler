@@ -117,6 +117,9 @@ class Floorplan:
         chip (Chip): Object storing the chip config. The Floorplan API expects
             the chip's configuration to be populated with information from a
             tech library.
+        tool (str): String specifying which tool will consume the generated
+            floorplan. This tool should have an associated tech LEF configured
+            in the PDK setup file. Defaults to 'openroad'.
 
     Attributes:
         available_cells (dict): A dictionary mapping macro names to information
