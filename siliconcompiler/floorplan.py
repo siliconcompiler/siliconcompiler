@@ -75,12 +75,12 @@ def _wire_to_rect(wire):
 
     return (left, bottom, right, top)
 
-def _get_tech_lef_data(chip):
+def _get_tech_lef_data(chip, tool):
     stackup = chip.get('asic', 'stackup')
     libname = chip.get('asic', 'targetlib')[0]
     libtype = chip.get('library', libname, 'arch')
 
-    tech_lef = chip.find_files('pdk', 'aprtech', 'openroad', stackup, libtype, 'lef')[0]
+    tech_lef = chip.find_files('pdk', 'aprtech', tool, stackup, libtype, 'lef')[0]
     return leflib.parse(tech_lef)
 
 def _get_stdcell_info(chip, tech_lef_data):
@@ -117,6 +117,9 @@ class Floorplan:
         chip (Chip): Object storing the chip config. The Floorplan API expects
             the chip's configuration to be populated with information from a
             tech library.
+        tool (str): String specifying which tool will consume the generated
+            floorplan. This tool should have an associated tech LEF configured
+            in the PDK setup file. Defaults to 'openroad'.
 
     Attributes:
         available_cells (dict): A dictionary mapping macro names to information
@@ -148,7 +151,7 @@ class Floorplan:
         stdcell_height (float): Height of standard cells in microns.
     '''
 
-    def __init__(self, chip):
+    def __init__(self, chip, tool='openroad'):
         self.chip = chip
 
         self.design = chip.get('design')
@@ -214,7 +217,7 @@ class Floorplan:
                     logging.warning(f'Macro {name} missing size in LEF, not adding '
                         'to available cells.')
 
-        tech_lef_data = _get_tech_lef_data(chip)
+        tech_lef_data = _get_tech_lef_data(chip, tool)
 
         stdcell_info = _get_stdcell_info(chip, tech_lef_data)
         self.stdcell_name, self.stdcell_width, self.stdcell_height = stdcell_info
@@ -1406,7 +1409,7 @@ def _infer_diearea(chip):
         chip.error = 1
         return None
 
-    lef_data = _get_tech_lef_data(chip)
+    lef_data = _get_tech_lef_data(chip, 'openroad')
     _, _, lib_height = _get_stdcell_info(chip, lef_data)
 
     core_width, core_height = _calculate_core_dimensions(density,
