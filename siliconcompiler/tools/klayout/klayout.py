@@ -89,7 +89,7 @@ def setup_tool(chip, mode="batch"):
         option = ['-zz', '-r']
 
     chip.set('eda', tool, 'exe', klayout_exe, clobber=True)
-    chip.set('eda', tool, 'vswitch', '-zz -v', clobber=clobber)
+    chip.set('eda', tool, 'vswitch', ['-zz', '-v'], clobber=clobber)
     chip.set('eda', tool, 'version', '0.26.11', clobber=clobber)
     chip.set('eda', tool, 'format', 'json', clobber=clobber)
     chip.set('eda', tool, 'copy', 'true', clobber=clobber)

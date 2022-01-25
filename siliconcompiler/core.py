@@ -3173,7 +3173,8 @@ class Chip:
         exe = self._getexe(tool)
         version = None
         if (veropt is not None) and (exe is not None):
-            cmdlist = [exe] + veropt.split()
+            cmdlist = [exe]
+            cmdlist.extend(veropt)
             self.logger.info("Checking version of tool '%s'", tool)
             proc = subprocess.run(cmdlist, stdout=PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
             parse_version = self.find_function(tool, 'tool', 'parse_version')
