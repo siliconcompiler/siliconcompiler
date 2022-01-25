@@ -17,7 +17,7 @@ def schema_cfg():
 
     # SC version number (bump on every non trivial change)
     # Version number following semver standard.
-    SCHEMA_VERSION = '0.5.0'
+    SCHEMA_VERSION = '0.5.1'
 
     # Basic schema setup
     cfg = {}
@@ -1938,7 +1938,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
 
     cfg['eda'][tool]['vswitch'] = {
         'switch': "-eda_vswitch 'tool <str>'",
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'require': None,
         'signature' : None,
@@ -1950,7 +1950,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'help': """
         Command line switch to use with executable used to print out
         the version number. Common switches include -v, -version,
-        --version.
+        --version. Some tools may require extra flags to run in batch mode.
         """
     }
 
