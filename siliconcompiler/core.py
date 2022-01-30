@@ -1635,9 +1635,10 @@ class Chip:
 
         # Dynamic checks
         # We only perform these if arg, step and arg, index are set.
+        # We don't check inputs for checkonly pass through
         step = self.get('arg', 'step')
         index = self.get('arg', 'index')
-        if step and index:
+        if step and index and not self.get('checkonly'):
             tool = self.get('flowgraph', step, index, 'tool')
             if self.valid('eda', tool, 'input', step, index):
                 required_inputs = self.get('eda', tool, 'input', step, index)
@@ -1814,7 +1815,7 @@ class Chip:
         '''
 
         filepath = os.path.abspath(filename)
-        self.logger.info('Writing manifest to %s', filepath)
+        self.logger.debug('Writing manifest to %s', filepath)
 
         if not os.path.exists(os.path.dirname(filepath)):
             os.makedirs(os.path.dirname(filepath))
@@ -3175,14 +3176,13 @@ class Chip:
         if (veropt is not None) and (exe is not None):
             cmdlist = [exe]
             cmdlist.extend(veropt)
-            self.logger.info("Checking version of tool '%s'", tool)
             proc = subprocess.run(cmdlist, stdout=PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
             parse_version = self.find_function(tool, 'tool', 'parse_version')
             if parse_version is None:
                 self.logger.error(f'{tool} does not implement parse_version.')
                 self._haltstep(step, index, active)
             version = parse_version(proc.stdout)
-
+            self.logger.info(f"Checking executable version of {tool} returns '{version}'")
             if vercheck:
                 allowed_versions = self.get('eda', tool, 'version')
                 if allowed_versions and version not in allowed_versions:
@@ -3202,7 +3202,7 @@ class Chip:
 
         if tool in self.builtin:
             utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True, link=True)
-        else:
+        elif not self.get('checkonly'):
             cmdlist = self._makecmd(tool, step, index)
             cmdstr = ' '.join(cmdlist)
             self.logger.info("Running in %s", workdir)
@@ -3240,13 +3240,15 @@ class Chip:
         ##################
         # 17. Post process (could fail)
         post_error = 0
-        if tool not in self.builtin:
+        if (tool not in self.builtin) and (not self.get('checkonly')) :
             func = self.find_function(tool, "tool", "post_process")
             if func:
                 post_error = func(self)
                 if post_error:
                     self.logger.error('Post-processing check failed')
                     self._haltstep(step, index, active)
+
+
 
         ##################
         # 18. Hash files
@@ -3446,11 +3448,6 @@ class Chip:
             # Check if there were errors before proceeding with run
             if self.error:
                 self.logger.error(f"Check failed. See previous errors.")
-                sys.exit()
-
-            # Enable checkonly mode
-            if self.get('checkonly'):
-                self.logger.info("Exiting after static check(), checkonly=True")
                 sys.exit()
 
             # Create all processes
