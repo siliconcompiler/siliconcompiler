@@ -2459,7 +2459,8 @@ class Chip:
 
 
     ###########################################################################
-    def check_logfile(self, step, logfile=None, jobname='job0', index='0', display=True):
+    def check_logfile(self, step=None, jobname=None, index=None,
+                      logfile=None, display=True):
         '''
         Checks logfile for patterns found in the 'regex' parameter.
 
@@ -2479,18 +2480,29 @@ class Chip:
             Searches for regex matches in the place logfile.
         '''
 
-        tool = self.get('flowgraph',step,index,'tool')
-        design = self.get('design')
-
+        # Using manifest to get defults
+        if step is None:
+            step = self.get('arg', 'step')
+        if index is None:
+            index = self.getkeys('flowgraph', step)[0]
+        if jobname is None:
+            jobname = self.get('jobname')
         if logfile is None:
-            workdir = self._getworkdir(jobname=jobname, step=step, index=index)
-            logfile = os.path.join(workdir, step, f"{design}.log")
+            logfile = f"{step}.log"
+
+        tool = self.get('flowgraph', step, index, 'tool')
+        design = self.get('design')
 
         # Creating local dictionary (for speed)
         checks = {}
-        for suffix in self.getkeys('eda', tool, 'regex', step, index):
+
+        regex_list = []
+        if self.valid('eda', tool, 'regex', step, index, 'default'):
+            regex_list = self.getkeys('eda', tool, 'regex', step, index)
+
+        for suffix in regex_list:
             checks[suffix] = {}
-            checks[suffix]['report'] = open(f"{design}.{suffix}", "w")
+            checks[suffix]['report'] = open(f"{step}.{suffix}", "w")
             checks[suffix]['patterns'] = []
             patterns = self.get('eda', tool, 'regex', step, index, suffix)
             for item in patterns:
@@ -2514,7 +2526,7 @@ class Chip:
                       print(line.strip(), file=checks[suffix]['report'])
                       #selectively print to display
                       if display:
-                          print(line.strip())
+                          self.logger.info(line.strip())
 
     ###########################################################################
     def summary(self, steplist=None, show_all_indices=False):
@@ -3039,12 +3051,14 @@ class Chip:
         T15. Save manifest as TCL/YAML
         T16. Run EXE
         T17. Run post_process()
-        T18. Hash all task files
-        T19. Measure run time
-        T20. Make a task record
-        T21. Save manifest to disk
-        T22. chdir
-        T23. clear error/active bits and return control to run()
+        T18. Check log file
+        T19. Hash all task files
+        T20. Measure run time
+        T21. Make a task record
+        T22. Save manifest to disk
+        T23. Clean up
+        T24. chdir
+        T25. clear error/active bits and return control to run()
 
         Note that since _runtask occurs in its own process with a separate
         address space, any changes made to the `self` object will not
@@ -3307,10 +3321,12 @@ class Chip:
                     self.logger.error('Post-processing check failed')
                     self._haltstep(step, index, active)
 
-
+        ##################
+        # 18. Check log file
+        self.check_logfile(display=not quiet)
 
         ##################
-        # 18. Hash files
+        # 19. Hash files
         if self.get('hash') and (tool not in self.builtin):
             # hash all outputs
             self.hash_files('eda', tool, 'output', step, index)
@@ -3322,19 +3338,19 @@ class Chip:
                         self.hash_files(*args)
 
         ##################
-        # 19. Capture total runtime
+        # 20. Capture total runtime
 
         end = time.time()
         elapsed_time = round((end - start),2)
         self.set('metric',step, index, 'runtime', 'real', elapsed_time)
 
         ##################
-        # 20. Make a record if tracking is enabled
+        # 21. Make a record if tracking is enabled
         if self.get('track'):
             self._make_record(job, step, index, start, end, version)
 
         ##################
-        # 21. Save a successful manifest
+        # 22. Save a successful manifest
 
         self.set('flowstatus', step, str(index), 'error', 0)
         self.set('arg', 'step', None, clobber=True)
@@ -3343,16 +3359,16 @@ class Chip:
         self.write_manifest("outputs/" + self.get('design') +'.pkg.json')
 
         ##################
-        # 22. Clean up non-essential files
+        # 23. Clean up non-essential files
         if self.get('clean'):
             self.logger.error('Self clean not implemented')
 
         ##################
-        # 22. return fo original directory
+        # 24. return to original directory
         os.chdir(cwd)
 
         ##################
-        # 23. clearing active and error bits
+        # 25. clearing active and error bits
         # !!Do not move this code!!
         error[step + str(index)] = 0
         active[step + str(index)] = 0
