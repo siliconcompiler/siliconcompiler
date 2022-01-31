@@ -1349,7 +1349,7 @@ class Chip:
         Args:
             filetype (str): File extension (.v, .def, etc)
             step (str): Task step name ('syn', 'place', etc)
-            jobid (str): Jobid directory name
+            jobname (str): Jobid directory name
             index (str): Task index
 
         Returns:
@@ -2457,6 +2457,65 @@ class Chip:
 
         return int(dies)
 
+
+    ###########################################################################
+    def check_logfile(self, step, logfile=None, jobname='job0', index='0', display=True):
+        '''
+        Checks logfile for patterns found in the 'regex' parameter.
+
+        Reads the content of the step's log file and compares the
+        content found in step 'regex' parameter. The matches are
+        stored in the file 'reports/<design>.<suffix>' in the run directory.
+        The matches are printed to STDOUT if display is set to True.
+
+        Args:
+            step (str): Task step name ('syn', 'place', etc)
+            jobname (str): Jobid directory name
+            index (str): Task index
+            display (bool): If True, printes matches to STDOUT.
+
+        Examples:
+            >>> chip.check_logfile('place')
+            Searches for regex matches in the place logfile.
+        '''
+
+        tool = self.get('flowgraph',step,index,'tool')
+        design = self.get('design')
+
+        if logfile is None:
+            workdir = self._getworkdir(jobname=jobname, step=step, index=index)
+            logfile = os.path.join(workdir, step, f"{design}.log")
+
+        # Creating local dictionary (for speed)
+        checks = {}
+        for suffix in self.getkeys('eda', tool, 'regex', step, index):
+            checks[suffix] = {}
+            checks[suffix]['report'] = open(f"{design}.{suffix}", "w")
+            checks[suffix]['patterns'] = []
+            patterns = self.get('eda', tool, 'regex', step, index, suffix)
+            for item in patterns:
+                negate  = re.search(r'^-v (\w+)', item)
+                if negate:
+                    checks[suffix]['patterns'].append((True,negate.group(1)))
+                else:
+                    checks[suffix]['patterns'].append((False, item))
+
+        # Looping through patterns for each line
+        with open(logfile) as f:
+          for line in f:
+              for suffix in checks:
+                  found = True
+                  for (negate, regex) in checks[suffix]['patterns']:
+                      match = re.search(rf"({regex})", line)
+                      if bool(match) == bool(negate):
+                          found = False
+                  if found:
+                      #always print to file
+                      print(line.strip(), file=checks[suffix]['report'])
+                      #selectively print to display
+                      if display:
+                          print(line.strip())
+
     ###########################################################################
     def summary(self, steplist=None, show_all_indices=False):
         '''
@@ -3182,7 +3241,7 @@ class Chip:
                 self.logger.error(f'{tool} does not implement parse_version.')
                 self._haltstep(step, index, active)
             version = parse_version(proc.stdout)
-            self.logger.info(f"Checking executable version of {tool} returns '{version}'")
+            self.logger.info(f"Checking executable. Tool '{tool}' found with version '{version}'")
             if vercheck:
                 allowed_versions = self.get('eda', tool, 'version')
                 if allowed_versions and version not in allowed_versions:
