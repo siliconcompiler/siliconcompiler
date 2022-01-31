@@ -1,0 +1,337 @@
+OpenROAD 1 4dca404c76b3302aa4e6ef8af1cd976c8de91cb4
+This program is licensed under the BSD-3 license. See the LICENSE file for details.
+Components of this program may be licensed under more restrictive licenses which must be honored.
+[INFO ODB-0222] Reading LEF file: /tmp/siliconcompiler/third_party/pdks/virtual/freepdk45/pdk/r1p0/apr/freepdk45.tech.lef
+[INFO ODB-0223]     Created 22 technology layers
+[INFO ODB-0224]     Created 27 technology vias
+[INFO ODB-0226] Finished LEF file:  /tmp/siliconcompiler/third_party/pdks/virtual/freepdk45/pdk/r1p0/apr/freepdk45.tech.lef
+[INFO ODB-0222] Reading LEF file: /tmp/siliconcompiler/third_party/pdks/virtual/freepdk45/libs/NangateOpenCellLibrary/r1p0/lef/NangateOpenCellLibrary.macro.mod.lef
+[INFO ODB-0225]     Created 134 library cells
+[INFO ODB-0226] Finished LEF file:  /tmp/siliconcompiler/third_party/pdks/virtual/freepdk45/libs/NangateOpenCellLibrary/r1p0/lef/NangateOpenCellLibrary.macro.mod.lef
+[INFO ODB-0127] Reading DEF file: inputs/gcd.def
+[INFO ODB-0128] Design: gcd
+[INFO ODB-0130]     Created 54 pins.
+[INFO ODB-0131]     Created 363 components and 1643 component-terminals.
+[INFO ODB-0133]     Created 320 nets and 917 connections.
+[INFO ODB-0134] Finished DEF file: inputs/gcd.def
+[INFO GPL-0002] DBU: 2000
+[INFO GPL-0003] SiteSize: 380 2800
+[INFO GPL-0004] CoreAreaLxLy: 20140 22400
+[INFO GPL-0005] CoreAreaUxUy: 180500 182000
+[INFO GPL-0006] NumInstances: 363
+[INFO GPL-0007] NumPlaceInstances: 249
+[INFO GPL-0008] NumFixedInstances: 114
+[INFO GPL-0009] NumDummyInstances: 0
+[INFO GPL-0010] NumNets: 320
+[INFO GPL-0011] NumPins: 971
+[INFO GPL-0012] DieAreaLxLy: 0 0
+[INFO GPL-0013] DieAreaUxUy: 200260 201600
+[INFO GPL-0014] CoreAreaLxLy: 20140 22400
+[INFO GPL-0015] CoreAreaUxUy: 180500 182000
+[INFO GPL-0016] CoreArea: 25593456000
+[INFO GPL-0017] NonPlaceInstsArea: 121296000
+[INFO GPL-0018] PlaceInstsArea: 2714264000
+[INFO GPL-0019] Util(%): 10.66
+[INFO GPL-0020] StdInstsArea: 2714264000
+[INFO GPL-0021] MacroInstsArea: 0
+[InitialPlace]  Iter: 1 CG Error: 0.00000009 HPWL: 12645960
+[InitialPlace]  Iter: 2 CG Error: 0.00000011 HPWL: 10071395
+[InitialPlace]  Iter: 3 CG Error: 0.00000012 HPWL: 10081540
+[InitialPlace]  Iter: 4 CG Error: 0.00000009 HPWL: 10085109
+[InitialPlace]  Iter: 5 CG Error: 0.00000010 HPWL: 10085674
+[INFO GPL-0031] FillerInit: NumGCells: 719
+[INFO GPL-0032] FillerInit: NumGNets: 320
+[INFO GPL-0033] FillerInit: NumGPins: 971
+[INFO GPL-0023] TargetDensity: 0.30
+[INFO GPL-0024] AveragePlaceInstArea: 10900658
+[INFO GPL-0025] IdealBinArea: 36335524
+[INFO GPL-0026] IdealBinCnt: 704
+[INFO GPL-0027] TotalBinArea: 25593456000
+[INFO GPL-0028] BinCnt: 16 16
+[INFO GPL-0029] BinSize: 10023 9975
+[INFO GPL-0030] NumBins: 256
+[NesterovSolve] Iter: 1 overflow: 0.735313 HPWL: 10410722
+[NesterovSolve] Snapshot saved at iter = 2
+[NesterovSolve] Iter: 10 overflow: 0.405026 HPWL: 10492584
+[NesterovSolve] Iter: 20 overflow: 0.425183 HPWL: 10619154
+[NesterovSolve] Iter: 30 overflow: 0.430277 HPWL: 10559253
+[NesterovSolve] Iter: 40 overflow: 0.428548 HPWL: 10543345
+[NesterovSolve] Iter: 50 overflow: 0.426088 HPWL: 10534090
+[NesterovSolve] Iter: 60 overflow: 0.426771 HPWL: 10549821
+[NesterovSolve] Iter: 70 overflow: 0.428236 HPWL: 10543202
+[NesterovSolve] Iter: 80 overflow: 0.427026 HPWL: 10537484
+[NesterovSolve] Iter: 90 overflow: 0.426634 HPWL: 10545077
+[NesterovSolve] Iter: 100 overflow: 0.427419 HPWL: 10546133
+[NesterovSolve] Iter: 110 overflow: 0.427269 HPWL: 10541221
+[NesterovSolve] Iter: 120 overflow: 0.42638 HPWL: 10539868
+[NesterovSolve] Iter: 130 overflow: 0.426107 HPWL: 10541867
+[NesterovSolve] Iter: 140 overflow: 0.425925 HPWL: 10540187
+[NesterovSolve] Iter: 150 overflow: 0.424802 HPWL: 10537768
+[NesterovSolve] Iter: 160 overflow: 0.423248 HPWL: 10538544
+[NesterovSolve] Iter: 170 overflow: 0.421485 HPWL: 10528169
+[NesterovSolve] Iter: 180 overflow: 0.418248 HPWL: 10502785
+[NesterovSolve] Iter: 190 overflow: 0.413062 HPWL: 10482051
+[NesterovSolve] Iter: 200 overflow: 0.405437 HPWL: 10453484
+[NesterovSolve] Iter: 210 overflow: 0.39552 HPWL: 10410867
+[NesterovSolve] Iter: 220 overflow: 0.382191 HPWL: 10368774
+[NesterovSolve] Iter: 230 overflow: 0.364542 HPWL: 10331149
+[NesterovSolve] Iter: 240 overflow: 0.341428 HPWL: 10256533
+[NesterovSolve] Iter: 250 overflow: 0.31519 HPWL: 10184502
+[NesterovSolve] Iter: 260 overflow: 0.289832 HPWL: 10118299
+[NesterovSolve] Iter: 270 overflow: 0.262889 HPWL: 10076374
+[NesterovSolve] Iter: 280 overflow: 0.244785 HPWL: 10063651
+[NesterovSolve] Iter: 290 overflow: 0.20824 HPWL: 10024832
+[INFO GPL-0075] Routability numCall: 1 inflationIterCnt: 1 bloatIterCnt: 0
+[INFO GRT-0020] Min routing layer: metal1
+[INFO GRT-0021] Max routing layer: metal10
+[INFO GRT-0022] Global adjustment: 0%
+[INFO GRT-0023] Grid origin: (0, 0)
+[WARNING GRT-0043] No OR_DEFAULT vias defined.
+[INFO GRT-0224] Chose via via1_4 as default.
+[INFO GRT-0224] Chose via via2_8 as default.
+[INFO GRT-0224] Chose via via3_2 as default.
+[INFO GRT-0224] Chose via via4_0 as default.
+[INFO GRT-0224] Chose via via5_0 as default.
+[INFO GRT-0224] Chose via via6_0 as default.
+[INFO GRT-0224] Chose via via7_0 as default.
+[INFO GRT-0224] Chose via via8_0 as default.
+[INFO GRT-0224] Chose via via9_0 as default.
+[INFO GRT-0088] Layer metal1  Track-Pitch = 0.1400  line-2-Via Pitch: 0.1350
+[INFO GRT-0088] Layer metal2  Track-Pitch = 0.1900  line-2-Via Pitch: 0.1400
+[INFO GRT-0088] Layer metal3  Track-Pitch = 0.1400  line-2-Via Pitch: 0.1400
+[INFO GRT-0088] Layer metal4  Track-Pitch = 0.2800  line-2-Via Pitch: 0.2800
+[INFO GRT-0088] Layer metal5  Track-Pitch = 0.2800  line-2-Via Pitch: 0.2800
+[INFO GRT-0088] Layer metal6  Track-Pitch = 0.2800  line-2-Via Pitch: 0.2800
+[INFO GRT-0088] Layer metal7  Track-Pitch = 0.8000  line-2-Via Pitch: 0.8000
+[INFO GRT-0088] Layer metal8  Track-Pitch = 0.8000  line-2-Via Pitch: 0.8000
+[INFO GRT-0088] Layer metal9  Track-Pitch = 1.6000  line-2-Via Pitch: 1.6000
+[INFO GRT-0088] Layer metal10 Track-Pitch = 1.6000  line-2-Via Pitch: 1.6000
+[INFO GRT-0003] Macros: 0
+[INFO GRT-0004] Blockages: 1668
+[INFO GRT-0019] Found 1 clock nets.
+[INFO GRT-0001] Minimum degree: 2
+[INFO GRT-0002] Maximum degree: 38
+[INFO GRT-0017] Processing 4894 blockages on layer metal1.
+
+[INFO GRT-0053] Routing resources analysis:
+          Routing      Original      Derated      Resource
+Layer     Direction    Resources     Resources    Reduction (%)
+---------------------------------------------------------------
+metal1     Horizontal      33840         32479          4.02%
+metal2     Vertical        24816         24581          0.95%
+metal3     Horizontal      33840         33028          2.40%
+metal4     Vertical        15792         15698          0.60%
+metal5     Horizontal      15792         15410          2.42%
+metal6     Vertical        15792         15698          0.60%
+metal7     Horizontal       4512          4370          3.15%
+metal8     Vertical         4512          4512          0.00%
+metal9     Horizontal       2256          2162          4.17%
+metal10    Vertical         2256          2209          2.08%
+---------------------------------------------------------------
+
+[INFO GRT-0111] Final number of vias: 704
+[INFO GRT-0112] Final usage 3D: 4751
+
+[INFO GRT-0096] Final congestion report:
+Layer         Resource        Demand        Usage (%)    Max H / Max V / Total Overflow
+---------------------------------------------------------------------------------------
+metal1           32479          1340            4.13%             0 /  0 /  0
+metal2           24581          1241            5.05%             0 /  0 /  0
+metal3           33028            58            0.18%             0 /  0 /  0
+metal4           15698             0            0.00%             0 /  0 /  0
+metal5           15410             0            0.00%             0 /  0 /  0
+metal6           15698             0            0.00%             0 /  0 /  0
+metal7            4370             0            0.00%             0 /  0 /  0
+metal8            4512             0            0.00%             0 /  0 /  0
+metal9            2162             0            0.00%             0 /  0 /  0
+metal10           2209             0            0.00%             0 /  0 /  0
+---------------------------------------------------------------------------------------
+Total           150147          2639            1.76%             0 /  0 /  0
+
+[INFO GRT-0018] Total wirelength: 7633 um
+[INFO GPL-0036] TileLxLy: 0 0
+[INFO GPL-0037] TileSize: 4200 4200
+[INFO GPL-0038] TileCnt: 47 49
+[INFO GPL-0039] numRoutingLayers: 10
+[INFO GPL-0040] NumTiles: 2303
+[INFO GPL-0063] TotalRouteOverflowH2: 0.0
+[INFO GPL-0064] TotalRouteOverflowV2: 0.0
+[INFO GPL-0065] OverflowTileCnt2: 0
+[INFO GPL-0066] 0.5%RC: 0.70363637750799
+[INFO GPL-0067] 1.0%RC: 0.593333340774883
+[INFO GPL-0068] 2.0%RC: 0.43575758426026867
+[INFO GPL-0069] 5.0%RC: 0.24394805836406622
+[INFO GPL-0070] 0.5rcK: 1.0
+[INFO GPL-0071] 1.0rcK: 1.0
+[INFO GPL-0072] 2.0rcK: 0.0
+[INFO GPL-0073] 5.0rcK: 0.0
+[INFO GPL-0074] FinalRC: 0.6484849
+[NesterovSolve] Iter: 300 overflow: 0.188987 HPWL: 10004038
+[NesterovSolve] Iter: 310 overflow: 0.16846 HPWL: 9977061
+[NesterovSolve] Iter: 320 overflow: 0.142842 HPWL: 9983955
+[NesterovSolve] Iter: 330 overflow: 0.121557 HPWL: 9976688
+[NesterovSolve] Iter: 340 overflow: 0.100763 HPWL: 9975949
+[NesterovSolve] Finished with Overflow: 0.099467
+[INFO RSZ-0027] Inserted 35 input buffers.
+[INFO RSZ-0028] Inserted 18 output buffers.
+[INFO RSZ-0058] Using max wire length 853um.
+[INFO RSZ-0039] Resized 40 instances.
+[WARNING DPL-0011] Could not find power special net.
+Placement Analysis
+---------------------------------
+total displacement        288.9 u
+average displacement        0.7 u
+max displacement            3.8 u
+original HPWL            5019.0 u
+legalized HPWL           5207.8 u
+delta HPWL                    4 %
+
+[INFO DPL-0020] Mirrored 149 instances
+[INFO DPL-0021] HPWL before            5207.8 u
+[INFO DPL-0022] HPWL after             5122.0 u
+[INFO DPL-0023] HPWL delta               -1.6 %
+SC_METRIC: report_checks -path_delay max
+Startpoint: _696_ (rising edge-triggered flip-flop clocked by core_clock)
+Endpoint: _701_ (rising edge-triggered flip-flop clocked by core_clock)
+Path Group: core_clock
+Path Type: max
+
+    Cap   Delay    Time   Description
+----------------------------------------------------------------
+           0.00    0.00   clock core_clock (rise edge)
+           0.00    0.00   clock network delay (ideal)
+           0.00    0.00 ^ _696_/CK (DFF_X2)
+  11.19    0.12    0.12 ^ _696_/Q (DFF_X2)
+   4.47    0.05    0.17 ^ _401_/Z (XOR2_X2)
+   2.53    0.02    0.19 v _402_/ZN (AOI21_X1)
+   4.04    0.04    0.23 ^ _403_/ZN (OAI21_X1)
+   4.29    0.03    0.26 v _406_/ZN (AOI21_X1)
+   4.41    0.05    0.31 ^ _407_/ZN (OAI21_X1)
+   4.48    0.03    0.33 v _410_/ZN (AOI21_X1)
+   4.24    0.05    0.38 ^ _411_/ZN (OAI21_X1)
+   6.57    0.03    0.41 v _412_/ZN (OAI21_X2)
+   3.40    0.04    0.45 ^ _414_/ZN (OAI211_X1)
+   8.15    0.03    0.48 v _415_/ZN (OAI21_X2)
+   1.03    0.03    0.50 ^ _417_/ZN (OAI211_X1)
+   6.13    0.05    0.55 ^ _418_/ZN (AND2_X1)
+   8.50    0.02    0.57 v _419_/ZN (OAI21_X2)
+   7.63    0.04    0.62 ^ _420_/ZN (AOI21_X2)
+   8.27    0.03    0.64 v _422_/ZN (AOI211_X2)
+  12.05    0.05    0.70 ^ _465_/ZN (OAI22_X4)
+   5.65    0.04    0.73 v _466_/ZN (NAND3_X1)
+  41.68    0.05    0.78 ^ _467_/ZN (NAND2_X4)
+   1.14    0.06    0.84 v _481_/Z (MUX2_X1)
+           0.00    0.84 v _701_/D (DFF_X2)
+                   0.84   data arrival time
+
+           2.00    2.00   clock core_clock (rise edge)
+           0.00    2.00   clock network delay (ideal)
+           0.00    2.00   clock reconvergence pessimism
+                   2.00 ^ _701_/CK (DFF_X2)
+          -0.04    1.96   library setup time
+                   1.96   data required time
+----------------------------------------------------------------
+                   1.96   data required time
+                  -0.84   data arrival time
+----------------------------------------------------------------
+                   1.11   slack (MET)
+
+
+SC_METRIC: report_checks -path_delay min
+Startpoint: _693_ (rising edge-triggered flip-flop clocked by core_clock)
+Endpoint: _693_ (rising edge-triggered flip-flop clocked by core_clock)
+Path Group: core_clock
+Path Type: min
+
+    Cap   Delay    Time   Description
+----------------------------------------------------------------
+           0.00    0.00   clock core_clock (rise edge)
+           0.00    0.00   clock network delay (ideal)
+           0.00    0.00 ^ _693_/CK (DFF_X1)
+   3.25    0.08    0.08 v _693_/Q (DFF_X1)
+   1.88    0.01    0.10 ^ _463_/ZN (NAND2_X1)
+   1.23    0.01    0.11 v _464_/ZN (OAI21_X1)
+           0.00    0.11 v _693_/D (DFF_X1)
+                   0.11   data arrival time
+
+           0.00    0.00   clock core_clock (rise edge)
+           0.00    0.00   clock network delay (ideal)
+           0.00    0.00   clock reconvergence pessimism
+                   0.00 ^ _693_/CK (DFF_X1)
+           0.00    0.00   library hold time
+                   0.00   data required time
+----------------------------------------------------------------
+                   0.00   data required time
+                  -0.11   data arrival time
+----------------------------------------------------------------
+                   0.11   slack (MET)
+
+
+SC_METRIC: unconstrained
+Startpoint: _696_ (rising edge-triggered flip-flop clocked by core_clock)
+Endpoint: _701_ (rising edge-triggered flip-flop clocked by core_clock)
+Path Group: core_clock
+Path Type: max
+
+    Cap   Delay    Time   Description
+----------------------------------------------------------------
+           0.00    0.00   clock core_clock (rise edge)
+           0.00    0.00   clock network delay (ideal)
+           0.00    0.00 ^ _696_/CK (DFF_X2)
+  11.19    0.12    0.12 ^ _696_/Q (DFF_X2)
+   4.47    0.05    0.17 ^ _401_/Z (XOR2_X2)
+   2.53    0.02    0.19 v _402_/ZN (AOI21_X1)
+   4.04    0.04    0.23 ^ _403_/ZN (OAI21_X1)
+   4.29    0.03    0.26 v _406_/ZN (AOI21_X1)
+   4.41    0.05    0.31 ^ _407_/ZN (OAI21_X1)
+   4.48    0.03    0.33 v _410_/ZN (AOI21_X1)
+   4.24    0.05    0.38 ^ _411_/ZN (OAI21_X1)
+   6.57    0.03    0.41 v _412_/ZN (OAI21_X2)
+   3.40    0.04    0.45 ^ _414_/ZN (OAI211_X1)
+   8.15    0.03    0.48 v _415_/ZN (OAI21_X2)
+   1.03    0.03    0.50 ^ _417_/ZN (OAI211_X1)
+   6.13    0.05    0.55 ^ _418_/ZN (AND2_X1)
+   8.50    0.02    0.57 v _419_/ZN (OAI21_X2)
+   7.63    0.04    0.62 ^ _420_/ZN (AOI21_X2)
+   8.27    0.03    0.64 v _422_/ZN (AOI211_X2)
+  12.05    0.05    0.70 ^ _465_/ZN (OAI22_X4)
+   5.65    0.04    0.73 v _466_/ZN (NAND3_X1)
+  41.68    0.05    0.78 ^ _467_/ZN (NAND2_X4)
+   1.14    0.06    0.84 v _481_/Z (MUX2_X1)
+           0.00    0.84 v _701_/D (DFF_X2)
+                   0.84   data arrival time
+
+           2.00    2.00   clock core_clock (rise edge)
+           0.00    2.00   clock network delay (ideal)
+           0.00    2.00   clock reconvergence pessimism
+                   2.00 ^ _701_/CK (DFF_X2)
+          -0.04    1.96   library setup time
+                   1.96   data required time
+----------------------------------------------------------------
+                   1.96   data required time
+                  -0.84   data arrival time
+----------------------------------------------------------------
+                   1.11   slack (MET)
+
+
+SC_METRIC: wns
+wns 0.00
+SC_METRIC: tns
+tns 0.00
+SC_METRIC: setupslack
+worst slack 1.11
+SC_METRIC: holdslack
+worst slack 0.11
+SC_METRIC: power
+Group                  Internal  Switching    Leakage      Total
+                          Power      Power      Power      Power
+----------------------------------------------------------------
+Sequential             1.09e-04   1.89e-05   3.52e-06   1.32e-04  63.8%
+Combinational          3.75e-05   2.93e-05   7.79e-06   7.46e-05  36.2%
+Macro                  0.00e+00   0.00e+00   0.00e+00   0.00e+00   0.0%
+Pad                    0.00e+00   0.00e+00   0.00e+00   0.00e+00   0.0%
+----------------------------------------------------------------
+Total                  1.47e-04   4.82e-05   1.13e-05   2.06e-04 100.0%
+                          71.2%      23.4%       5.5%
+SC_METRIC: cellarea
+Design area 490 u^2 8% utilization.
