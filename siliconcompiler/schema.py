@@ -17,7 +17,7 @@ def schema_cfg():
 
     # SC version number (bump on every non trivial change)
     # Version number following semver standard.
-    SCHEMA_VERSION = '0.5.1'
+    SCHEMA_VERSION = '0.5.2'
 
     # Basic schema setup
     cfg = {}
@@ -1766,7 +1766,7 @@ def schema_flowgraph(cfg, step='default', index='default'):
 
     # Valid bits set by user
     cfg['flowgraph'][step][index]['valid'] = {
-        'switch': "-flowgraph_valid 'step 0 <str>'",
+        'switch': "-flowgraph_valid 'step index <str>'",
         'type': 'bool',
         'lock': 'false',
         'require': None,
@@ -1783,6 +1783,7 @@ def schema_flowgraph(cfg, step='default', index='default'):
         should not be run.
         """
     }
+
 
     # Valid bits set by user
     cfg['flowgraph'][step][index]['timeout'] = {
@@ -2023,6 +2024,8 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         """
     }
 
+
+
     cfg['eda'][tool]['continue'] = {
         'switch': "-eda_continue 'tool <bool>'",
         'type': 'bool',
@@ -2076,6 +2079,40 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     }
 
     # eda entries below work on step/index basis
+
+    suffix = 'default'
+    cfg['eda'][tool]['regex'] = {}
+    cfg['eda'][tool]['regex'][step] = {}
+    cfg['eda'][tool]['regex'][step][index] = {}
+    cfg['eda'][tool]['regex'][step][index][suffix] = {
+        'switch': "-eda_regex 'tool step index suffix <str>'",
+        'type': '[str]',
+        'lock': 'false',
+        'require': None,
+        'signature': [],
+        'defvalue': [],
+        'shorthelp': 'Tool regex filter',
+        'example': [
+            "cli: -eda_regex 'openroad place 0 error -v ERROR",
+            "api: chip.set('eda','openroad','regex','place',0,'error','-v ERROR')"],
+        'help': """
+        A list of regular expressions patterns that together emulate a
+        single line grep/pipe Unix pattern. The first regex is compared
+        to the log file, and any matches are the compared to the second
+        patterns, etc. The complete regex comparison is placed in the
+        output file reports/<design>.<suffix>. The parameters supports
+        the '-v ' not operation found in the Unix grep command. The
+        example below illustrates how to implement a simple grep type
+        filter with the 'regex' paramter:
+
+        GREP:
+        >> grep WARNING syn.log | grep -v "blackbox" > syn.warnings
+
+        SC:
+        chip.set('eda','yosys','regex','syn',0','warnings',['WARNING','-v blackbox'])
+        """
+    }
+
 
     cfg['eda'][tool]['option'] = {}
     cfg['eda'][tool]['option'][step] = {}
