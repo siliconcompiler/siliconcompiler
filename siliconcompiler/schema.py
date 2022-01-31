@@ -2100,8 +2100,8 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         single line grep/pipe Unix pattern. The first regex is compared
         to the log file, and any matches are the compared to the second
         patterns, etc. The complete regex comparison is placed in the
-        output file reports/<design>.<suffix>. The parameters supports
-        the '-v ' not operation found in the Unix grep command. The
+        output file <design>.<suffix>. A 'not' operation is supported by prepending
+        the the '-v ' to the regex pattern (like in the Unix grep command). The
         example below illustrates how to implement a simple grep type
         filter with the 'regex' paramter:
 

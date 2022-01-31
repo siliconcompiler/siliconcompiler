@@ -12,11 +12,11 @@ def test_check_logfile(datadir):
     # add regex
     chip.write_manifest("tmp.json", prune=False)
     chip.add('eda', 'openroad', 'regex', 'place', '0', 'warnings', "WARNING")
-    #chip.add('eda', 'openroad', 'regex', 'place', '0', 'warnings', "-v DPL")
+    chip.add('eda', 'openroad', 'regex', 'place', '0', 'warnings', "-v DPL")
 
     # check log
     logfile = os.path.join(datadir, 'place.log')
-    chip.check_logfile('place', logfile)
+    chip.check_logfile(step='place', logfile=logfile)
 
 
 #########################
