@@ -2098,18 +2098,18 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'help': """
         A list of regular expressions patterns that together emulate a
         single line grep/pipe Unix pattern. The first regex is compared
-        to the log file, and any matches are the compared to the second
+        to the log file, and any matches are then compared to the second
         patterns, etc. The complete regex comparison is placed in the
         output file <design>.<suffix>. A 'not' operation is supported by prepending
-        the the '-v ' to the regex pattern (like in the Unix grep command). The
+        the '-v ' to the regex pattern (like in the Unix grep command). The
         example below illustrates how to implement a simple grep type
-        filter with the 'regex' paramter:
+        filter with the 'regex' parameter:
 
         GREP:
         >> grep WARNING syn.log | grep -v "blackbox" > syn.warnings
 
         SC:
-        chip.set('eda','yosys','regex','syn',0','warnings',['WARNING','-v blackbox'])
+        chip.set('eda','yosys','regex','syn','0','warnings',['WARNING','-v blackbox'])
         """
     }
 
