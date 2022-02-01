@@ -3070,6 +3070,7 @@ class Chip:
         # Shared parameters (long function!)
         design = self.get('design')
         tool = self.get('flowgraph', step, index, 'tool')
+        quiet = self.get('quiet') and (step not in self.get('bkpt'))
 
         ##################
         # 1. Wait loop
@@ -3286,7 +3287,6 @@ class Chip:
                 # Use separate reader/writer file objects as hack to display
                 # live output in non-blocking way, so we can monitor the
                 # timeout. Based on https://stackoverflow.com/a/18422264.
-                quiet = self.get('quiet') and (step not in self.get('bkpt'))
                 cmd_start_time = time.time()
                 proc = subprocess.Popen(cmdlist,
                                         stdout=log_writer,
@@ -3323,7 +3323,8 @@ class Chip:
 
         ##################
         # 18. Check log file
-        self.check_logfile(display=not quiet)
+        if (tool not in self.builtin) and (not self.get('checkonly')) :
+            self.check_logfile(display=not quiet)
 
         ##################
         # 19. Hash files
