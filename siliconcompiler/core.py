@@ -2506,7 +2506,7 @@ class Chip:
             checks[suffix]['patterns'] = []
             patterns = self.get('eda', tool, 'regex', step, index, suffix)
             for item in patterns:
-                negate  = re.search(r'^-v (\w+)', item)
+                negate  = re.search(r'^-v (.*)', item)
                 if negate:
                     checks[suffix]['patterns'].append((True,negate.group(1)))
                 else:
