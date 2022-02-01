@@ -2480,7 +2480,7 @@ class Chip:
             Searches for regex matches in the place logfile.
         '''
 
-        # Using manifest to get defults
+        # Using manifest to get defaults
         if step is None:
             step = self.get('arg', 'step')
         if index is None:
