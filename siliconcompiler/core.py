@@ -1582,7 +1582,7 @@ class Chip:
         '''
 
         steplist = self.get('steplist')
-        if steplist is None:
+        if not steplist:
             steplist = self.list_steps()
 
         #1. Checking that flowgraph is legal
