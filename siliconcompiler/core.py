@@ -38,7 +38,6 @@ from siliconcompiler.client import *
 from siliconcompiler.schema import *
 from siliconcompiler.scheduler import _deferstep
 from siliconcompiler import utils
-
 from siliconcompiler import _metadata
 
 class Chip:
@@ -2457,6 +2456,67 @@ class Chip:
 
         return int(dies)
 
+    ###########################################################################
+    def grep(self, args, line):
+        """
+        Emulates the Unix grep command on a string.
+
+        Emulates the behavior of the Unix grep command that is etched into
+        our muscle memory. Partially implemented, not all features supported.
+        The function returns None if no match is found.
+
+        Args:
+            arg (string): Command line arguments for grep command
+            line (string): Line to process
+
+        Returns:
+            Result of grep command (string).
+
+        """
+
+        # Quick return if input is None
+        if line is None:
+            return None
+
+        # Partial list of supported grep options
+        options = {
+            '-v' : False, # Invert the sense of matching
+            '-i' : False, # Ignore case distinctions in patterns and data
+            '-E' : False, # Interpret PATTERNS as extended regular expressions.
+            '-e' : False, # Safe interpretation of pattern starting with "-"
+            '-x' : False, # Select only matches that exactly match the whole line.
+            '-q' : False, # Quiet; do not write anything to standard output.
+            '-o' : False, # Print only the match parts of a matching line
+            '-w' : False} # Select only lines containing matches that form whole words.
+
+        # Split into repeating switches and everything else
+        match = re.match(r'\s*((?:\-\w\s)*)(.*)', args)
+
+        pattern = match.group(2)
+
+        # Split space separated switch string into list
+        switches = match.group(1).strip().split(' ')
+
+        # Find special -e switch update the pattern
+        for i in range(len(switches)):
+            if switches[i] == "-e":
+                if i != (len(switches)):
+                    pattern = ' '.join(switches[i+1:]) + " " + pattern
+                    switches = switches[0:i+1]
+                    break
+                options["-e"] = True
+            elif switches[i] in options.keys():
+                options[switches[i]] = True
+            elif switches[i] !='':
+                print("ERROR",switches[i])
+
+        #REGEX
+        #TODO: add all the other optinos
+        match = re.search(rf"({pattern})", line)
+        if bool(match) == bool(options["-v"]):
+            return None
+        else:
+            return line
 
     ###########################################################################
     def check_logfile(self, step=None, jobname=None, index=None,
@@ -2494,39 +2554,32 @@ class Chip:
         design = self.get('design')
 
         # Creating local dictionary (for speed)
+        # self.get is slow
         checks = {}
-
         regex_list = []
         if self.valid('eda', tool, 'regex', step, index, 'default'):
             regex_list = self.getkeys('eda', tool, 'regex', step, index)
-
         for suffix in regex_list:
             checks[suffix] = {}
             checks[suffix]['report'] = open(f"{step}.{suffix}", "w")
-            checks[suffix]['patterns'] = []
-            patterns = self.get('eda', tool, 'regex', step, index, suffix)
-            for item in patterns:
-                negate  = re.search(r'^-v (.*)', item)
-                if negate:
-                    checks[suffix]['patterns'].append((True,negate.group(1)))
-                else:
-                    checks[suffix]['patterns'].append((False, item))
+            checks[suffix]['args'] = self.get('eda', tool, 'regex', step, index, suffix)
 
         # Looping through patterns for each line
         with open(logfile) as f:
           for line in f:
               for suffix in checks:
-                  found = True
-                  for (negate, regex) in checks[suffix]['patterns']:
-                      match = re.search(rf"({regex})", line)
-                      if bool(match) == bool(negate):
-                          found = False
-                  if found:
+                  string = line
+                  for item in checks[suffix]['args']:
+                      if string is None:
+                          break
+                      else:
+                          string = self.grep(item, string)
+                  if string is not None:
                       #always print to file
-                      print(line.strip(), file=checks[suffix]['report'])
+                      print(string.strip(), file=checks[suffix]['report'])
                       #selectively print to display
                       if display:
-                          self.logger.info(line.strip())
+                          self.logger.info(string.strip())
 
     ###########################################################################
     def summary(self, steplist=None, show_all_indices=False):

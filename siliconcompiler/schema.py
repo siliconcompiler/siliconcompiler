@@ -2094,22 +2094,20 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'shorthelp': 'Tool regex filter',
         'example': [
             "cli: -eda_regex 'openroad place 0 error -v ERROR",
-            "api: chip.set('eda','openroad','regex','place',0,'error','-v ERROR')"],
+            "api: chip.set('eda','openroad','regex','place',0,'error','-v ERROR'"],
         'help': """
-        A list of regular expressions patterns that together emulate a
-        single line grep/pipe Unix pattern. The first regex is compared
-        to the log file, and any matches are the compared to the second
-        patterns, etc. The complete regex comparison is placed in the
-        output file <design>.<suffix>. A 'not' operation is supported by prepending
-        the the '-v ' to the regex pattern (like in the Unix grep command). The
-        example below illustrates how to implement a simple grep type
-        filter with the 'regex' paramter:
+        A list of command line grep commands that follow a single line
+        grep/pipe pattern. Each entry represents a set of command line
+        arguments for grep including the regex pattern to match. Starting
+        with the first list entry, each grep output is piped into the next
+        list entry. Patterns starting with "-" should be directly preceeded
+        with the "-e" option. The following example illustrates the concept.
 
-        GREP:
-        >> grep WARNING syn.log | grep -v "blackbox" > syn.warnings
+        unix grep:
+        >> grep WARNING place.log | grep -v "blackbox" > place.warnings
 
-        SC:
-        chip.set('eda','yosys','regex','syn',0','warnings',['WARNING','-v blackbox'])
+        siliconcompiler:
+        chip.set('eda','openroad','regex','place',0','warnings',["WARNING","-v blackbox"])
         """
     }
 
