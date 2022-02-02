@@ -12,7 +12,8 @@ def test_check_manifest():
     chip.set('source', 'examples/gcd/gcd.v')
 
     index = "0"
-    for step in ('import', 'syn'):
+    steps = ['import', 'syn']
+    for step in steps:
         tool = chip.get('flowgraph', step, index, 'tool')
         chip.set('arg', 'step', step)
         chip.set('arg', 'index', index)
@@ -21,6 +22,8 @@ def test_check_manifest():
         setup_tool = chip.find_function(tool, 'tool', 'setup_tool')
         assert setup_tool is not None
         setup_tool(chip)
+
+    chip.set('steplist', steps)
 
     chip.set('arg', 'step', None)
     chip.set('arg', 'index', None)

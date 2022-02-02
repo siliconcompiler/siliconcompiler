@@ -62,8 +62,13 @@ def remote_preprocess(chip):
             chip.set('arg', 'index', index)
             func = chip.find_function(tool, 'tool', 'setup_tool')
             func(chip)
-            # Run the actual import step locally.
-            chip._runtask(local_step, index, active, error)
+
+        # Need to override steplist here to make sure check_manifest() doesn't
+        # check steps that haven't been setup.
+        chip.set('steplist', local_step)
+
+        # Run the actual import step locally.
+        chip._runtask(local_step, index, active, error)
 
     # Set 'steplist' to only the remote steps, for the future server-side run.
     remote_steplist = remote_steplist[1:]
