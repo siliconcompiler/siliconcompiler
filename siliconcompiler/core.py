@@ -38,7 +38,6 @@ from siliconcompiler.client import *
 from siliconcompiler.schema import *
 from siliconcompiler.scheduler import _deferstep
 from siliconcompiler import utils
-
 from siliconcompiler import _metadata
 
 class Chip:
@@ -1349,7 +1348,7 @@ class Chip:
         Args:
             filetype (str): File extension (.v, .def, etc)
             step (str): Task step name ('syn', 'place', etc)
-            jobid (str): Jobid directory name
+            jobname (str): Jobid directory name
             index (str): Task index
 
         Returns:
@@ -1635,9 +1634,10 @@ class Chip:
 
         # Dynamic checks
         # We only perform these if arg, step and arg, index are set.
+        # We don't check inputs for checkonly pass through
         step = self.get('arg', 'step')
         index = self.get('arg', 'index')
-        if step and index:
+        if step and index and not self.get('checkonly'):
             tool = self.get('flowgraph', step, index, 'tool')
             if self.valid('eda', tool, 'input', step, index):
                 required_inputs = self.get('eda', tool, 'input', step, index)
@@ -1814,7 +1814,7 @@ class Chip:
         '''
 
         filepath = os.path.abspath(filename)
-        self.logger.info('Writing manifest to %s', filepath)
+        self.logger.debug('Writing manifest to %s', filepath)
 
         if not os.path.exists(os.path.dirname(filepath)):
             os.makedirs(os.path.dirname(filepath))
@@ -2457,6 +2457,130 @@ class Chip:
         return int(dies)
 
     ###########################################################################
+    def grep(self, args, line):
+        """
+        Emulates the Unix grep command on a string.
+
+        Emulates the behavior of the Unix grep command that is etched into
+        our muscle memory. Partially implemented, not all features supported.
+        The function returns None if no match is found.
+
+        Args:
+            arg (string): Command line arguments for grep command
+            line (string): Line to process
+
+        Returns:
+            Result of grep command (string).
+
+        """
+
+        # Quick return if input is None
+        if line is None:
+            return None
+
+        # Partial list of supported grep options
+        options = {
+            '-v' : False, # Invert the sense of matching
+            '-i' : False, # Ignore case distinctions in patterns and data
+            '-E' : False, # Interpret PATTERNS as extended regular expressions.
+            '-e' : False, # Safe interpretation of pattern starting with "-"
+            '-x' : False, # Select only matches that exactly match the whole line.
+            '-o' : False, # Print only the match parts of a matching line
+            '-w' : False} # Select only lines containing matches that form whole words.
+
+        # Split into repeating switches and everything else
+        match = re.match(r'\s*((?:\-\w\s)*)(.*)', args)
+
+        pattern = match.group(2)
+
+        # Split space separated switch string into list
+        switches = match.group(1).strip().split(' ')
+
+        # Find special -e switch update the pattern
+        for i in range(len(switches)):
+            if switches[i] == "-e":
+                if i != (len(switches)):
+                    pattern = ' '.join(switches[i+1:]) + " " + pattern
+                    switches = switches[0:i+1]
+                    break
+                options["-e"] = True
+            elif switches[i] in options.keys():
+                options[switches[i]] = True
+            elif switches[i] !='':
+                print("ERROR",switches[i])
+
+        #REGEX
+        #TODO: add all the other optinos
+        match = re.search(rf"({pattern})", line)
+        if bool(match) == bool(options["-v"]):
+            return None
+        else:
+            return line
+
+    ###########################################################################
+    def check_logfile(self, step=None, jobname=None, index=None,
+                      logfile=None, display=True):
+        '''
+        Checks logfile for patterns found in the 'regex' parameter.
+
+        Reads the content of the step's log file and compares the
+        content found in step 'regex' parameter. The matches are
+        stored in the file 'reports/<design>.<suffix>' in the run directory.
+        The matches are printed to STDOUT if display is set to True.
+
+        Args:
+            step (str): Task step name ('syn', 'place', etc)
+            jobname (str): Jobid directory name
+            index (str): Task index
+            display (bool): If True, printes matches to STDOUT.
+
+        Examples:
+            >>> chip.check_logfile('place')
+            Searches for regex matches in the place logfile.
+        '''
+
+        # Using manifest to get defaults
+        if step is None:
+            step = self.get('arg', 'step')
+        if index is None:
+            index = self.getkeys('flowgraph', step)[0]
+        if jobname is None:
+            jobname = self.get('jobname')
+        if logfile is None:
+            logfile = f"{step}.log"
+
+        tool = self.get('flowgraph', step, index, 'tool')
+        design = self.get('design')
+
+        # Creating local dictionary (for speed)
+        # self.get is slow
+        checks = {}
+        regex_list = []
+        if self.valid('eda', tool, 'regex', step, index, 'default'):
+            regex_list = self.getkeys('eda', tool, 'regex', step, index)
+        for suffix in regex_list:
+            checks[suffix] = {}
+            checks[suffix]['report'] = open(f"{step}.{suffix}", "w")
+            checks[suffix]['args'] = self.get('eda', tool, 'regex', step, index, suffix)
+
+        # Looping through patterns for each line
+        with open(logfile) as f:
+          for line in f:
+              for suffix in checks:
+                  string = line
+                  for item in checks[suffix]['args']:
+                      if string is None:
+                          break
+                      else:
+                          string = self.grep(item, string)
+                  if string is not None:
+                      #always print to file
+                      print(string.strip(), file=checks[suffix]['report'])
+                      #selectively print to display
+                      if display:
+                          self.logger.info(string.strip())
+
+    ###########################################################################
     def summary(self, steplist=None, show_all_indices=False):
         '''
         Prints a summary of the compilation manifest.
@@ -2979,12 +3103,14 @@ class Chip:
         T15. Save manifest as TCL/YAML
         T16. Run EXE
         T17. Run post_process()
-        T18. Hash all task files
-        T19. Measure run time
-        T20. Make a task record
-        T21. Save manifest to disk
-        T22. chdir
-        T23. clear error/active bits and return control to run()
+        T18. Check log file
+        T19. Hash all task files
+        T20. Measure run time
+        T21. Make a task record
+        T22. Save manifest to disk
+        T23. Clean up
+        T24. chdir
+        T25. clear error/active bits and return control to run()
 
         Note that since _runtask occurs in its own process with a separate
         address space, any changes made to the `self` object will not
@@ -2996,6 +3122,7 @@ class Chip:
         # Shared parameters (long function!)
         design = self.get('design')
         tool = self.get('flowgraph', step, index, 'tool')
+        quiet = self.get('quiet') and (step not in self.get('bkpt'))
 
         ##################
         # 1. Wait loop
@@ -3175,14 +3302,13 @@ class Chip:
         if (veropt is not None) and (exe is not None):
             cmdlist = [exe]
             cmdlist.extend(veropt)
-            self.logger.info("Checking version of tool '%s'", tool)
             proc = subprocess.run(cmdlist, stdout=PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
             parse_version = self.find_function(tool, 'tool', 'parse_version')
             if parse_version is None:
                 self.logger.error(f'{tool} does not implement parse_version.')
                 self._haltstep(step, index, active)
             version = parse_version(proc.stdout)
-
+            self.logger.info(f"Checking executable. Tool '{tool}' found with version '{version}'")
             if vercheck:
                 allowed_versions = self.get('eda', tool, 'version')
                 if allowed_versions and version not in allowed_versions:
@@ -3202,7 +3328,7 @@ class Chip:
 
         if tool in self.builtin:
             utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True, link=True)
-        else:
+        elif not self.get('checkonly'):
             cmdlist = self._makecmd(tool, step, index)
             cmdstr = ' '.join(cmdlist)
             self.logger.info("Running in %s", workdir)
@@ -3213,7 +3339,6 @@ class Chip:
                 # Use separate reader/writer file objects as hack to display
                 # live output in non-blocking way, so we can monitor the
                 # timeout. Based on https://stackoverflow.com/a/18422264.
-                quiet = self.get('quiet') and (step not in self.get('bkpt'))
                 cmd_start_time = time.time()
                 proc = subprocess.Popen(cmdlist,
                                         stdout=log_writer,
@@ -3240,7 +3365,7 @@ class Chip:
         ##################
         # 17. Post process (could fail)
         post_error = 0
-        if tool not in self.builtin:
+        if (tool not in self.builtin) and (not self.get('checkonly')) :
             func = self.find_function(tool, "tool", "post_process")
             if func:
                 post_error = func(self)
@@ -3249,7 +3374,12 @@ class Chip:
                     self._haltstep(step, index, active)
 
         ##################
-        # 18. Hash files
+        # 18. Check log file
+        if (tool not in self.builtin) and (not self.get('checkonly')) :
+            self.check_logfile(display=not quiet)
+
+        ##################
+        # 19. Hash files
         if self.get('hash') and (tool not in self.builtin):
             # hash all outputs
             self.hash_files('eda', tool, 'output', step, index)
@@ -3261,19 +3391,19 @@ class Chip:
                         self.hash_files(*args)
 
         ##################
-        # 19. Capture total runtime
+        # 20. Capture total runtime
 
         end = time.time()
         elapsed_time = round((end - start),2)
         self.set('metric',step, index, 'runtime', 'real', elapsed_time)
 
         ##################
-        # 20. Make a record if tracking is enabled
+        # 21. Make a record if tracking is enabled
         if self.get('track'):
             self._make_record(job, step, index, start, end, version)
 
         ##################
-        # 21. Save a successful manifest
+        # 22. Save a successful manifest
 
         self.set('flowstatus', step, str(index), 'error', 0)
         self.set('arg', 'step', None, clobber=True)
@@ -3282,16 +3412,16 @@ class Chip:
         self.write_manifest("outputs/" + self.get('design') +'.pkg.json')
 
         ##################
-        # 22. Clean up non-essential files
+        # 23. Clean up non-essential files
         if self.get('clean'):
             self.logger.error('Self clean not implemented')
 
         ##################
-        # 22. return fo original directory
+        # 24. return to original directory
         os.chdir(cwd)
 
         ##################
-        # 23. clearing active and error bits
+        # 25. clearing active and error bits
         # !!Do not move this code!!
         error[step + str(index)] = 0
         active[step + str(index)] = 0
@@ -3446,11 +3576,6 @@ class Chip:
             # Check if there were errors before proceeding with run
             if self.error:
                 self.logger.error(f"Check failed. See previous errors.")
-                sys.exit()
-
-            # Enable checkonly mode
-            if self.get('checkonly'):
-                self.logger.info("Exiting after static check(), checkonly=True")
                 sys.exit()
 
             # Create all processes

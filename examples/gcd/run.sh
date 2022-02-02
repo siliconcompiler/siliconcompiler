@@ -1,6 +1,8 @@
 #!/bin/sh
 
 OPT=$1
+
+echo $OPT
 sc examples/gcd/gcd.v \
    -target "asicflow_freepdk45" \
    -constraint "examples/gcd/gcd.sdc" \
@@ -11,5 +13,4 @@ sc examples/gcd/gcd.v \
    -loglevel "INFO" \
    -quiet \
    -relax \
-   -hash \
-   -design gcd  $OPT
+   -design gcd $OPT

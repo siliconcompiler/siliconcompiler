@@ -96,6 +96,11 @@ def setup_tool(chip):
     else:
         chip.add('eda', tool, 'require', step, index, ",".join(['fpga','partname']))
 
+    #Log file parsing
+    chip.set('eda', tool, 'regex', step, index, 'warnings', "Warning", clobber=False)
+    chip.set('eda', tool, 'regex', step, index, 'errors', "Error", clobber=False)
+
+
 #############################################
 # Runtime pre processing
 #############################################

@@ -107,6 +107,11 @@ def setup_tool(chip, mode='batch'):
         chip.error = 1
         chip.logger.error(f'Stackup and targetlib paremeters required for OpenROAD.')
 
+
+    # basic warning and error grep check on logfile
+    chip.set('eda', tool, 'regex', step, index, 'warnings', "WARNING", clobber=False)
+    chip.set('eda', tool, 'regex', step, index, 'errors', "ERROR", clobber=False)
+
     # defining default dictionary
     default_options = {
         'place_density': [],
