@@ -2485,7 +2485,6 @@ class Chip:
             '-E' : False, # Interpret PATTERNS as extended regular expressions.
             '-e' : False, # Safe interpretation of pattern starting with "-"
             '-x' : False, # Select only matches that exactly match the whole line.
-            '-q' : False, # Quiet; do not write anything to standard output.
             '-o' : False, # Print only the match parts of a matching line
             '-w' : False} # Select only lines containing matches that form whole words.
 
