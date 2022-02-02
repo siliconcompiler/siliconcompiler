@@ -2094,7 +2094,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'shorthelp': 'Tool regex filter',
         'example': [
             "cli: -eda_regex 'openroad place 0 error -v ERROR",
-            "api: chip.set('eda','openroad','regex','place',0,'error','-v ERROR'"],
+            "api: chip.set('eda','openroad','regex','place','0','error','-v ERROR')"],
         'help': """
         A list of piped together grep commands. Each entry represents a set
         of command line arguments for grep including the regex pattern to
