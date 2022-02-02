@@ -2096,14 +2096,15 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
             "cli: -eda_regex 'openroad place 0 error -v ERROR",
             "api: chip.set('eda','openroad','regex','place',0,'error','-v ERROR'"],
         'help': """
-        A list of command line grep commands that follow a single line
-        grep/pipe pattern. Each entry represents a set of command line
-        arguments for grep including the regex pattern to match. Starting
-        with the first list entry, each grep output is piped into the next
-        list entry. Patterns starting with "-" should be directly preceeded
-        with the "-e" option. The following example illustrates the concept.
+        A list of piped together grep commands. Each entry represents a set
+        of command line arguments for grep including the regex pattern to
+        match. Starting with the first list entry, each grep output is piped
+        into the following grep command in the list. Supported grep options
+        include, -t, -i, -E, -x, -e. Patterns starting with "-" should be
+        directly preceeded by the "-e" option. The following example
+        illustrates the concept.
 
-        unix grep:
+        UNIX grep:
         >> grep WARNING place.log | grep -v "blackbox" > place.warnings
 
         siliconcompiler:
