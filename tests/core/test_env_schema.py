@@ -10,6 +10,9 @@ import multiprocessing
 def test_env(monkeypatch):
     chip = siliconcompiler.Chip()
     chip.set('design', 'test')
+    # File doesn't need to resolve, just need to put something in the schema so
+    # we don't fail the initial static check_manifest().
+    chip.add('source', 'fake.v')
     chip.target('asicflow_freepdk45')
     chip.set('steplist', 'import')
 

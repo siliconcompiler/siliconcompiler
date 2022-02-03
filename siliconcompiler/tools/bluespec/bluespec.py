@@ -58,6 +58,9 @@ def setup_tool(chip):
     # Input/Output requirements
     chip.add('eda', tool, 'output', step, index, chip.get('design') + '.v')
 
+    # Schema requirements
+    chip.add('eda', tool, 'require', step, index, 'source')
+
 def parse_version(stdout):
     # Bluespec Compiler, version 2021.12.1-27-g9a7d5e05 (build 9a7d5e05)
 

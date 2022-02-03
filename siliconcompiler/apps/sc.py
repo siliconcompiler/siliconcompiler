@@ -46,7 +46,13 @@ def main():
 
     # Set design if none specified
     if not chip.get('design'):
-        topfile = chip.get('source')[0]
+        sources = chip.get('source')
+        if len(sources) > 0:
+            topfile = chip.get('source')[0]
+        else:
+            chip.logger.error('Invalid arguments: either specify -design or provide sources.')
+            sys.exit(1)
+
         topmodule = os.path.splitext(os.path.basename(topfile))[0]
         chip.set('design', topmodule)
 
