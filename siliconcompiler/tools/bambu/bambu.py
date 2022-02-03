@@ -41,6 +41,9 @@ def setup_tool(chip):
     # Input/Output requirements
     chip.add('eda', tool, 'output', step, index, chip.get('design') + '.v')
 
+    # Schema requirements
+    chip.add('eda', tool, 'require', step, index, 'source')
+
 def parse_version(stdout):
     # Long multiline output, but second-to-last line looks like:
     # Version: PandA 0.9.6 - Revision 5e5e306b86383a7d85274d64977a3d71fdcff4fe-main
