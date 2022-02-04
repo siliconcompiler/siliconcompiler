@@ -3307,7 +3307,7 @@ class Chip:
                 self.logger.error(f'{tool} does not implement parse_version.')
                 self._haltstep(step, index, active)
             version = parse_version(proc.stdout)
-            self.logger.info(f"Checking executable. Tool '{tool}' found with version '{version}'")
+            self.logger.info(f"Checking executable. Tool '{exe}' found with version '{version}'")
             if vercheck:
                 allowed_versions = self.get('eda', tool, 'version')
                 if allowed_versions and version not in allowed_versions:
