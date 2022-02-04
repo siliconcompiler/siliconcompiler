@@ -17,7 +17,7 @@ def schema_cfg():
 
     # SC version number (bump on every non trivial change)
     # Version number following semver standard.
-    SCHEMA_VERSION = '0.5.2'
+    SCHEMA_VERSION = '0.5.3'
 
     # Basic schema setup
     cfg = {}
@@ -2392,7 +2392,7 @@ def schema_arg(cfg):
         'require': None,
         'signature': None,
         'defvalue': None,
-        'shorthelp': 'Current execution step',
+        'shorthelp': 'Current step',
         'example': ["cli: -arg_step 'route'",
                     "api: chip.set('arg', 'step', 'route')"],
         'help': """
@@ -2411,12 +2411,29 @@ def schema_arg(cfg):
         'require': None,
         'signature': None,
         'defvalue': '0',
-        'shorthelp': 'Current step Index',
+        'shorthelp': 'Current index',
         'example': ["cli: -arg_index 0",
                     "api: chip.set('arg','index','0')"],
         'help': """
         Dynamic variable passed in by the sc runtime as an argument to
         an EDA tool to indicate the index of the step being worked on.
+        """
+    }
+
+    cfg['arg']['mode'] = {
+        'switch': "-arg_mode <str>",
+        'type': 'str',
+        'lock': 'false',
+        'require': None,
+        'signature': None,
+        'defvalue': '0',
+        'shorthelp': 'Current operating mode',
+        'example': ["cli: -arg_mode batch",
+                    "api: chip.set('arg','mode','batch')"],
+        'help': """
+        Dynamic variable passed in by the sc runtime as an argument to
+        an EDA tool to indicate the operating mode of the step being
+        worked on.
         """
     }
 
