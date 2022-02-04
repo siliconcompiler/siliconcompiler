@@ -3289,8 +3289,7 @@ class Chip:
 
         for item in self.getkeys('eda', tool, 'licenseserver'):
             license_file = self.get('eda', tool, 'licenseserver', item)
-            if license_file:
-                os.environ[item] = license_file
+            os.environ[item] = ':'.join(license_file)
 
         ##################
         # 14. Check exe version
