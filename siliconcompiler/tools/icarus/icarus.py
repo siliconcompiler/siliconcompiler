@@ -57,6 +57,9 @@ def setup_tool(chip):
     else:
         chip.logger.error(f"Step '{step}' not supported in Icarus tool")
 
+    # Schema requirements
+    chip.add('eda', tool, 'require', step, index, 'source')
+
 ################################
 #  Custom runtime options
 ################################

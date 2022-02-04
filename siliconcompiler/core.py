@@ -291,7 +291,7 @@ class Chip:
         if ((switchlist == []) &
             (not '-cfg' in scargs)) | ('source' in switchlist) :
             parser.add_argument('source',
-                                nargs='+',
+                                nargs='*',
                                 help=self.get('source', field='shorthelp'))
 
         #Grab argument from pre-process sysargs

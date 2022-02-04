@@ -74,6 +74,9 @@ def setup_tool(chip):
         design = chip.get('design')
         chip.set('eda', tool, 'output', step, index, f'{design}.v')
 
+    # Schema requirements
+    chip.add('eda', tool, 'require', step, index, 'source')
+
 ################################
 #  Custom runtime options
 ################################

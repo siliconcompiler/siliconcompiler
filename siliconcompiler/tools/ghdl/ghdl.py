@@ -50,6 +50,9 @@ def setup_tool(chip):
     chip.set('eda', tool, 'threads', step, index, '4', clobber=clobber)
     chip.set('eda', tool, 'option', step, index, '', clobber=clobber)
 
+    # Schema requirements
+    chip.add('eda', tool, 'require', step, index, 'source')
+
 ################################
 #  Custom runtime options
 ################################

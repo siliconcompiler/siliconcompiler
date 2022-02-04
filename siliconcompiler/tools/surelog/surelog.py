@@ -67,6 +67,9 @@ def setup_tool(chip):
     # Input/Output requirements
     chip.add('eda', tool, 'output', step, index, chip.get('design') + '.v')
 
+    # Schema requirements
+    chip.add('eda', tool, 'require', step, index, 'source')
+
     # We package SC wheels with a precompiled copy of Surelog installed to
     # tools/surelog/bin. If the user doesn't have Surelog installed on their
     # system path, set the path to the bundled copy in the schema.
