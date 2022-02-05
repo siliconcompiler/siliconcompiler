@@ -2420,23 +2420,6 @@ def schema_arg(cfg):
         """
     }
 
-    cfg['arg']['mode'] = {
-        'switch': "-arg_mode <str>",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': '0',
-        'shorthelp': 'Current operating mode',
-        'example': ["cli: -arg_mode batch",
-                    "api: chip.set('arg','mode','batch')"],
-        'help': """
-        Dynamic variable passed in by the sc runtime as an argument to
-        an EDA tool to indicate the operating mode of the step being
-        worked on.
-        """
-    }
-
     return cfg
 
 
