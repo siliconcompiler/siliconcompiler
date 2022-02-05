@@ -3412,28 +3412,78 @@ def schema_options(cfg):
         'signature': None,
         'defvalue': None,
         'shorthelp': 'Compilation mode',
-        'example': ["cli: -mode fpga",
-                    "api: chip.set('mode','fpga')"],
+        'example': ["cli: -mode asic",
+                    "api: chip.set('mode','asic')"],
         'help': """
-        Sets the compilation flow.
+        Sets the compilation mode. Valid modes are: asic, fpga, sim.
         """
     }
 
-    cfg['target'] = {
-        'switch': "-target <str>",
+    cfg['target'] =  {}
+
+    cfg['target']['project'] =  {
+        'switch': "-target_project <str>",
         'type': 'str',
         'lock': 'false',
-        'require': None,
+        'require': 'all',
         'signature': None,
         'defvalue': None,
-        'shorthelp': 'Compilation target',
-        'example': ["cli: -target 'asicflow_freepdk45'",
-                    "api: chip.set('target','asicflow_freepdk45')"],
+        'shorthelp': 'Target project',
+        'example': [
+            "cli: -target_project freepdk45_demo",
+            "api: chip.set('target','project','freepdk45_demo')"],
         'help': """
-        Compilation target double string separated by a single underscore,
-        specified as "<process>_<edaflow>" for ASIC compilation and
-        "<partname>_<edaflow>" for FPGA compilation. The process, edaflow,
-        partname fields must be alphanumeric and cannot contain underscores.
+        Sets the target project to use. It is recommended (but
+        not required) for the project to set target_flow, target_pdk, and
+        target_lib parameters.
+        """
+    }
+
+    cfg['target']['flow'] =  {
+        'switch': "-target_flow <str>",
+        'type': 'str',
+        'lock': 'false',
+        'require': 'all',
+        'signature': None,
+        'defvalue': None,
+        'shorthelp': 'Target flow',
+        'example': [
+            "cli: -target_flow asicfow",
+            "api: chip.set('target','flow','asicflow')"],
+        'help': """
+        Sets the target compilation flow.
+        """
+    }
+
+    cfg['target']['pdk'] =  {
+        'switch': "-target_pdk <str>",
+        'type': 'str',
+        'lock': 'false',
+        'require': 'all',
+        'signature': None,
+        'defvalue': None,
+        'shorthelp': 'Target PDK',
+        'example': [
+            "cli: -target_pdk freepdk45",
+            "api: chip.set('target','pdk','freepdk45')"],
+        'help': """
+        Sets the target PDK used in asic mode.
+        """
+    }
+
+    cfg['target']['lib'] =  {
+        'switch': "-target_lib <str>",
+        'type': '[str]',
+        'lock': 'false',
+        'require': 'all',
+        'signature': None,
+        'defvalue': [],
+        'shorthelp': 'Target libraries',
+        'example': [
+            "cli: -target_lib nangate45",
+            "api: chip.set('target','lib','nangate45')"],
+        'help': """
+        Sets the target libraries used for mapping during compilation.
         """
     }
 
