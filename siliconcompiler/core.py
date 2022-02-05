@@ -2787,7 +2787,7 @@ class Chip:
         self.set('clock', name, 'jitter', jitter)
 
     ###########################################################################
-    def node(self, step, tool, index=0):
+    def node(self, flow, step, tool, index=0):
         '''
         Creates a flowgraph node.
 
@@ -2799,27 +2799,28 @@ class Chip:
 
         The method modifies the following schema parameters:
 
-        ['flowgraph', step, index, 'tool', tool]
-        ['flowgraph', step, index, 'weight', metric]
+        ['flowgraph', flow, step, index, 'tool', tool]
+        ['flowgraph', flow, step, index, 'weight', metric]
 
         Args:
+            flow (str): Flow name
             step (str): Task step name
             tool (str): Tool (or builtin function) to associate with task.
             index (int): Task index
 
         Examples:
-            >>> chip.node('place', 'openroad', index=0)
+            >>> chip.node('asicflow', 'place', 'openroad', index=0)
             Creates a task with step='place' and index=0 and binds it to the 'openroad' tool.
         '''
 
         # bind tool to node
-        self.set('flowgraph', step, str(index), 'tool', tool)
+        self.set('flowgraph', flow, step, str(index), 'tool', tool)
         # set default weights
         for metric in self.getkeys('metric', 'default', 'default'):
-            self.set('flowgraph', step, str(index), 'weight', metric, 0)
+            self.set('flowgraph', flow, step, str(index), 'weight', metric, 0)
 
     ###########################################################################
-    def edge(self, tail, head, tail_index=0, head_index=0):
+    def edge(self, flow, tail, head, tail_index=0, head_index=0):
         '''
         Creates a directed edge from a tail node to a head node.
 
@@ -2828,9 +2829,10 @@ class Chip:
 
         The method modifies the following parameters:
 
-        ['flowgraph', head, str(head_index), 'input']
+        ['flowgraph', flow, head, str(head_index), 'input']
 
         Args:
+            flow (str): Name of flow
             tail (str): Name of tail node
             head (str): Name of head node
             tail_index (int): Index of tail node to connect
@@ -2841,7 +2843,7 @@ class Chip:
             Creates a directed edge from place to cts.
         '''
 
-        self.add('flowgraph', head, str(head_index), 'input', (tail, str(tail_index)))
+        self.add('flowgraph', flow, head, str(head_index), 'input', (tail, str(tail_index)))
 
     ###########################################################################
     def join(self, *tasks):
@@ -3289,8 +3291,7 @@ class Chip:
 
         for item in self.getkeys('eda', tool, 'licenseserver'):
             license_file = self.get('eda', tool, 'licenseserver', item)
-            if license_file:
-                os.environ[item] = license_file
+            os.environ[item] = ':'.join(license_file)
 
         ##################
         # 14. Check exe version
@@ -3308,7 +3309,7 @@ class Chip:
                 self.logger.error(f'{tool} does not implement parse_version.')
                 self._haltstep(step, index, active)
             version = parse_version(proc.stdout)
-            self.logger.info(f"Checking executable. Tool '{tool}' found with version '{version}'")
+            self.logger.info(f"Checking executable. Tool '{exe}' found with version '{version}'")
             if vercheck:
                 allowed_versions = self.get('eda', tool, 'version')
                 if allowed_versions and version not in allowed_versions:
