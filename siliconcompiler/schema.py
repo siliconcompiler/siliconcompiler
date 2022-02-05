@@ -17,7 +17,7 @@ def schema_cfg():
 
     # SC version number (bump on every non trivial change)
     # Version number following semver standard.
-    SCHEMA_VERSION = '0.5.2'
+    SCHEMA_VERSION = '0.6.0'
 
     # Basic schema setup
     cfg = {}
@@ -1684,15 +1684,16 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
 # Flow Configuration
 ###############################################################################
 
-def schema_flowgraph(cfg, step='default', index='default'):
+def schema_flowgraph(cfg, name='default', step='default', index='default'):
 
     cfg['flowgraph'] = {}
-    cfg['flowgraph'][step] =  {}
-    cfg['flowgraph'][step][index] =  {}
+    cfg['flowgraph'][name] = {}
+    cfg['flowgraph'][name][step] =  {}
+    cfg['flowgraph'][name][step][index] =  {}
 
     # Execution flowgraph
-    cfg['flowgraph'][step][index]['input'] = {
-        'switch': "-flowgraph_input 'step index <(str,str)>'",
+    cfg['flowgraph'][name][step][index]['input'] = {
+        'switch': "-flowgraph_input 'name step index <(str,str)>'",
         'type': '[(str,str)]',
         'lock': 'false',
         'require': None,
@@ -1700,8 +1701,8 @@ def schema_flowgraph(cfg, step='default', index='default'):
         'defvalue': [],
         'shorthelp': 'Flowgraph step input',
         'example': [
-            "cli: -flowgraph_input 'cts 0 (place,0)'",
-            "api:  chip.set('flowgraph','cts','0','input', ('place','0'))"],
+            "cli: -flowgraph_input 'asicflow cts 0 (place,0)'",
+            "api:  chip.set('flowgraph','asicflow','cts','0','input',('place','0'))"],
         'help': """
         A list of inputs for the current step and index, specified as a
         (step,index) tuple.
@@ -1709,9 +1710,9 @@ def schema_flowgraph(cfg, step='default', index='default'):
     }
 
     # Flow graph score weights
-    cfg['flowgraph'][step][index]['weight'] = {}
-    cfg['flowgraph'][step][index]['weight']['default'] = {
-        'switch': "-flowgraph_weight 'step metric <float>'",
+    cfg['flowgraph'][name][step][index]['weight'] = {}
+    cfg['flowgraph'][name][step][index]['weight']['default'] = {
+        'switch': "-flowgraph_weight 'name step metric <float>'",
         'type': 'float',
         'lock': 'false',
         'require': None,
@@ -1719,8 +1720,8 @@ def schema_flowgraph(cfg, step='default', index='default'):
         'defvalue': None,
         'shorthelp': 'Flowgraph metric weights',
         'example': [
-            "cli: -flowgraph_weight 'cts 0 area_cells 1.0'",
-            "api:  chip.set('flowgraph','cts','0','weight','area_cells',1.0)"],
+            "cli: -flowgraph_weight 'asicflow cts 0 area_cells 1.0'",
+            "api:  chip.set('flowgraph','asicflow','cts','0','weight','area_cells',1.0)"],
         'help': """
         Weights specified on a per step and per metric basis used to give
         effective "goodnes" score for a step by calculating the sum all step
@@ -1729,16 +1730,17 @@ def schema_flowgraph(cfg, step='default', index='default'):
     }
 
     # Task tool/function
-    cfg['flowgraph'][step][index]['tool'] = {
-        'switch': "-flowgraph_tool 'step <str>'",
+    cfg['flowgraph'][name][step][index]['tool'] = {
+        'switch': "-flowgraph_tool 'name step <str>'",
         'type': 'str',
         'lock': 'false',
         'require': None,
         'signature' : None,
         'defvalue': None,
         'shorthelp': 'Flowgraph tool selection',
-        'example': ["cli: -flowgraph_tool 'place openroad'",
-                    "api: chip.set('flowgraph','place','0','tool','openroad')"],
+        'example': [
+            "cli: -flowgraph_tool 'asicflow place openroad'",
+            "api: chip.set('flowgraph','asicflow','place','0','tool','openroad')"],
         'help': """
         Name of the tool name used for task execution. Builtin tool names
         associated bound to core API functions include: minimum, maximum, join,
@@ -1747,8 +1749,8 @@ def schema_flowgraph(cfg, step='default', index='default'):
     }
 
     # Arguments passed by user to setup function
-    cfg['flowgraph'][step][index]['args'] = {
-        'switch': "-flowgraph_args 'step index <str>'",
+    cfg['flowgraph'][name][step][index]['args'] = {
+        'switch': "-flowgraph_args 'name step index <str>'",
         'type': '[str]',
         'lock': 'false',
         'require': None,
@@ -1756,8 +1758,8 @@ def schema_flowgraph(cfg, step='default', index='default'):
         'defvalue': [],
         'shorthelp': 'Flowgraph function selection',
         'example': [
-            "cli: -flowgraph_args 'cts 0 0'",
-            "api:  chip.add('flowgraph','cts','0','args','0')"],
+            "cli: -flowgraph_args 'asicflow cts 0 0'",
+            "api:  chip.add('flowgraph','asicflow','cts','0','args','0')"],
         'help': """
         User specified flowgraph string arguments specified on a
         per step and per index basis.
@@ -1765,8 +1767,8 @@ def schema_flowgraph(cfg, step='default', index='default'):
     }
 
     # Valid bits set by user
-    cfg['flowgraph'][step][index]['valid'] = {
-        'switch': "-flowgraph_valid 'step index <str>'",
+    cfg['flowgraph'][name][step][index]['valid'] = {
+        'switch': "-flowgraph_valid 'name step index <str>'",
         'type': 'bool',
         'lock': 'false',
         'require': None,
@@ -1774,8 +1776,8 @@ def schema_flowgraph(cfg, step='default', index='default'):
         'defvalue': 'false',
         'shorthelp': 'Flowgraph task valid bit',
         'example': [
-            "cli: -flowgraph_valid 'cts 0 true'",
-            "api:  chip.set('flowgraph','cts','0','valid',True)"],
+            "cli: -flowgraph_valid 'asicflow cts 0 true'",
+            "api:  chip.set('flowgraph','asicflow','cts','0','valid',True)"],
         'help': """
         Flowgraph valid bit specified on a per step and per index basis.
         The parameter can be used to control flow execution. If the bit
@@ -1786,8 +1788,8 @@ def schema_flowgraph(cfg, step='default', index='default'):
 
 
     # Valid bits set by user
-    cfg['flowgraph'][step][index]['timeout'] = {
-        'switch': "-flowgraph_timeout 'step 0 <float>'",
+    cfg['flowgraph'][name][step][index]['timeout'] = {
+        'switch': "-flowgraph_timeout 'name step 0 <float>'",
         'type': 'float',
         'lock': 'false',
         'require': None,
@@ -1795,8 +1797,8 @@ def schema_flowgraph(cfg, step='default', index='default'):
         'defvalue': None,
         'shorthelp': 'Flowgraph step/index timeout value',
         'example': [
-            "cli: -flowgraph_timeout 'cts 0 3600'",
-            "api:  chip.set('flowgraph','cts','0','timeout', 3600)"],
+            "cli: -flowgraph_timeout 'asicflow cts 0 3600'",
+            "api:  chip.set('flowgraph','asicflow','cts','0','timeout', 3600)"],
         'help': """
         Timeout value in seconds specified on a per step and per index
         basis. The flowgraph timeout value is compared against the
@@ -1805,6 +1807,25 @@ def schema_flowgraph(cfg, step='default', index='default'):
         where 1.) an operation is stuck and may never finish. 2.) the
         operation progress has saturated and continued execution has
         a negative return on investment.
+        """
+    }
+
+    cfg['flowgraph'][name][step][index]['flowin'] = {
+        'switch': "-flowgraph_flowin 'name step 0 <(str,str)>'",
+        'type': '(str,str)',
+        'lock': 'false',
+        'require': None,
+        'signature' : None,
+        'defvalue': None,
+        'shorthelp': 'Flowgraph flow input',
+        'example': [
+            "cli: -flowgraph_flowin 'toflow netlist 0 (asicflow,export)",
+            "api:  chip.set('flowgraph','toflow','netlist','0','flowin',('asicflow','export')"],
+        'help': """
+        Flowgraph input specified as a tuple with the format (flowname,stepname).
+        The current flowgraph us used as input if th parameter is empty.
+        The (flowname,step) index value is always '0'. The flowin parameter
+        enables flowgraph reuse and modular flow design.
         """
     }
 
@@ -2392,7 +2413,7 @@ def schema_arg(cfg):
         'require': None,
         'signature': None,
         'defvalue': None,
-        'shorthelp': 'Current execution step',
+        'shorthelp': 'Current step',
         'example': ["cli: -arg_step 'route'",
                     "api: chip.set('arg', 'step', 'route')"],
         'help': """
@@ -2411,7 +2432,7 @@ def schema_arg(cfg):
         'require': None,
         'signature': None,
         'defvalue': '0',
-        'shorthelp': 'Current step Index',
+        'shorthelp': 'Current index',
         'example': ["cli: -arg_index 0",
                     "api: chip.set('arg','index','0')"],
         'help': """
