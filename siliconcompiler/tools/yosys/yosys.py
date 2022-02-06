@@ -84,9 +84,9 @@ def setup_tool(chip):
     if chip.get('mode') == 'asic':
         chip.add('eda', tool, 'require', step, index, ",".join(['pdk', 'process']))
         chip.add('eda', tool, 'require', step, index, ",".join(['design']))
-        chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'targetlib']))
+        chip.add('eda', tool, 'require', step, index, ",".join(['target', 'lib']))
 
-        mainlib = chip.get('asic', 'targetlib')[0]
+        mainlib = chip.get('target', 'lib')[0]
         chip.add('eda', tool, 'require', step, index, ",".join(['library', mainlib, 'nldm', 'typical', 'lib']))
 
         macrolibs = chip.get('asic', 'macrolib')
@@ -110,36 +110,6 @@ def pre_process(chip):
     tool = 'yosys'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-
-    #TODO: remove special treatment for fpga??
-    if chip.get('target') is None:
-        return
-    targetlist = chip.get('target').split('_')
-
-    if len(targetlist) == 2 and targetlist[1] == 'openfpga':
-        # Synthesis for OpenFPGA/VPR needs to know the size of the LUTs in the
-        # FPGA architecture. We infer this from the VPR architecture file, then
-        # dump it to a TCL file imported by the synthesis script.
-        # Inference code adapted from OpenFPGA:
-        # https://github.com/lnis-uofu/OpenFPGA/blob/c393ee695975c98342b8708c5bee19b677f4a062/openfpga_flow/scripts/run_fpga_flow.py#L473
-
-        lut_size = None
-        for arch_file in chip.find_files('fpga', 'arch'):
-            tree = ET.parse(arch_file)
-            root = tree.getroot()
-            if root.tag == 'architecture':
-                lut_size = max([int(pb_type.find("input").get("num_pins"))
-                                for pb_type in root.iter("pb_type")
-                                if pb_type.get("class") == "lut"])
-
-        if lut_size == None:
-            chip.logger.error('Could not infer FPGA LUT size from architecture '
-                'files')
-            os.sys.exit()
-
-        with open('fpga_lutsize.tcl', 'w') as f:
-            f.write('set lutsize ' + str(lut_size))
-
 
 ################################
 # Version Check

@@ -56,9 +56,15 @@ def main():
         topmodule = os.path.splitext(os.path.basename(topfile))[0]
         chip.set('design', topmodule)
 
-    # Set target if none specified
-    if not chip.get('target'):
-        chip.target('asicflow_freepdk45')
+    # Set demo target if none specified
+    if ((not chip.get('target','project')) &
+        (not chip.get('target','flow')) &
+        (not chip.get('target','pdk')) &
+        (not chip.get('target','lib'))):
+        print("loading target")
+        chip.target(project='freepdk45_demo')
+    else:
+        chip.target()
 
     # Storing user entered steplist/args before running
     if chip.get('arg','step'):

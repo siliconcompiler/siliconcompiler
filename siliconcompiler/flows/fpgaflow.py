@@ -55,6 +55,8 @@ def setup_flow(chip):
 
     '''
 
+    flowname = 'fpgaflow'
+
     # Set partname if not set
     partname = "UNDEFINED"
     if chip.get('fpga', 'partname'):
@@ -86,9 +88,9 @@ def setup_flow(chip):
     index = '0'
     for step, tool in flowtools:
         # Flow
-        chip.node(step, tool)
+        chip.node(flowname, step, tool)
         if step != 'import':
-            chip.edge(prevstep, step)
+            chip.edge(flowname, prevstep, step)
         # Hard goals
         for metric in ('errors','warnings','drvs','unconstrained',
                        'holdwns','holdtns', 'holdpaths',
@@ -97,7 +99,7 @@ def setup_flow(chip):
         # Metrics
         for metric in ('luts','dsps','brams','registers',
                        'pins','peakpower','standbypower'):
-            chip.set('flowgraph', step, index, 'weight', metric, 1.0)
+            chip.set('flowgraph', flowname, step, index, 'weight', metric, 1.0)
         prevstep = step
 
 ##################################################

@@ -108,12 +108,12 @@ def setup_tool(chip, mode="batch"):
 
     # Adding requirements
     if mode != 'show':
-        targetlibs = chip.get('asic', 'targetlib')
+        targetlibs = chip.get('target', 'lib')
         stackup = chip.get('asic', 'stackup')
         if bool(stackup) & bool(targetlibs):
             macrolibs = chip.get('asic', 'macrolib')
 
-            chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'targetlib']))
+            chip.add('eda', tool, 'require', step, index, ",".join(['target', 'lib']))
             chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'stackup']))
             chip.add('eda', tool, 'require', step, index,  ",".join(['pdk', 'layermap', 'klayout', stackup, 'def','gds']))
 
@@ -122,7 +122,7 @@ def setup_tool(chip, mode="batch"):
                 chip.add('eda', tool, 'require', step, index, ",".join(['library', lib, 'lef']))
         else:
             chip.error = 1
-            chip.logger.error(f'Stackup and targetlib paremeters required for KLayout.')
+            chip.logger.error(f'Stackup and targetlib paremeters required for Klayout.')
 
 
 ################################

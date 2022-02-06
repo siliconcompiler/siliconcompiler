@@ -4,8 +4,8 @@
 # Read Macro Libraries
 ########################################################
 set sc_process     [dict get $sc_cfg pdk process]
-set sc_mainlib     [lindex [dict get $sc_cfg asic targetlib] 0]
-set sc_targetlibs  [dict get $sc_cfg asic targetlib]
+set sc_mainlib     [lindex [dict get $sc_cfg target lib] 0]
+set sc_targetlibs  [dict get $sc_cfg target lib]
 set sc_tie         [dict get $sc_cfg library $sc_mainlib cells tie]
 set sc_buf         [dict get $sc_cfg library $sc_mainlib cells buf]
 

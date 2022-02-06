@@ -3419,7 +3419,7 @@ def schema_options(cfg):
         """
     }
 
-    cfg['target'] =  {}
+    cfg['target'] = {}
 
     cfg['target']['project'] =  {
         'switch': "-target_project <str>",
@@ -3483,7 +3483,7 @@ def schema_options(cfg):
             "cli: -target_lib nangate45",
             "api: chip.set('target','lib','nangate45')"],
         'help': """
-        Sets the target libraries used for mapping during compilation.
+        Sets the target libraries used by the compiler.
         """
     }
 

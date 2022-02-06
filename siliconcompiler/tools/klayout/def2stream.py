@@ -213,7 +213,7 @@ sc_step = sc_cfg['arg']['step']['value']
 sc_index = sc_cfg['arg']['index']['value']
 
 sc_stackup = sc_cfg['pdk']['stackup']['value'][0]
-sc_mainlib = sc_cfg['asic']['targetlib']['value'][0]
+sc_mainlib = sc_cfg['target']['lib']['value'][0]
 sc_libtype = sc_cfg['library'][sc_mainlib]['arch']['value']
 
 tech_file = sc_cfg['pdk']['layermap']['klayout'][sc_stackup]['def']['gds']['value'][0]
@@ -225,7 +225,7 @@ except (KeyError, IndexError):
   in_def = os.path.join('inputs', f'{design}.def')
 out_gds = os.path.join('outputs', f'{design}.gds')
 
-libs = sc_cfg['asic']['targetlib']['value']
+libs = sc_cfg['target']['lib']['value']
 if 'macrolib' in sc_cfg['asic']:
   libs += sc_cfg['asic']['macrolib']['value']
 
