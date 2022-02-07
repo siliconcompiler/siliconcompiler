@@ -3,10 +3,6 @@ import sys
 import re
 import siliconcompiler
 
-############################################################################
-# DOCS
-############################################################################
-
 def make_docs():
     '''
     The asap7 PDK was developed at ASU in collaboration with ARM Research.
@@ -16,7 +12,7 @@ def make_docs():
     Design Rule Checker (DRC), Layout vs Schematic Checker (LVS) and
     Extraction Deck for the 7nm technology node. For more details regarding
     the technical specifications of the PDK, please refer the PDK
-    documentation and associated publication. Please note that this process
+    documentation and associated publication. Note that this process
     design kit is provided as an academic and research aid only and the
     resulting designs are not manufacturable.
 
@@ -50,19 +46,10 @@ def make_docs():
 
     return chip
 
-
-####################################################
-# PDK Setup
-####################################################
-
 def setup_pdk(chip):
     '''
     TODO: Add process information
     '''
-
-    ###############################################
-    # Process
-    ###############################################
 
     foundry = 'virtual'
     process = 'asap7'
@@ -78,6 +65,7 @@ def setup_pdk(chip):
     # process name
     chip.set('pdk','foundry', foundry)
     chip.set('pdk','process', process)
+    chip.set('pdk','node', node)
     chip.set('pdk','version', rev)
     chip.set('pdk','stackup', stackup)
     chip.set('pdk','tapmax', 25)
@@ -85,165 +73,67 @@ def setup_pdk(chip):
 
     # APR tech file
     for tool in ('openroad', 'klayout', 'magic'):
-        chip.set('pdk','aprtech',tool, stackup, libtype, 'lef',
+        chip.set('pdk','aprtech', tool, stackup, libtype, 'lef',
                  pdkdir+'/apr/asap7_tech.lef')
+
+    # Openroad APR setup files
+    chip.set('pdk', 'aprtech', 'openroad', stackup, libtype, 'tracks',
+             pdkdir + '/apr/openroad_tracks.tcl')
+    chip.set('pdk', 'aprtech', 'openroad', stackup, libtype, 'tapcells',
+             pdkdir + '/apr/openroad_tapcells.tcl')
+
+    # Klayout setup file
+    chip.set('pdk','layermap','klayout',stackup, 'def', 'gds',
+             pdkdir+'/setup/klayout/asap7.lyt')
 
     # Routing Grid Definitions
     for layer, sc_name in [('M1', 'm1')]:
         chip.set('pdk','grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk','grid', stackup, layer, 'xoffset', 0.036)
         chip.set('pdk','grid', stackup, layer, 'xpitch',  0.036)
-        chip.set('pdk','grid', stackup, layer, 'yoffset', 0.036)
         chip.set('pdk','grid', stackup, layer, 'ypitch',  0.036)
         chip.set('pdk','grid', stackup, layer, 'adj',     1.0)
 
     for layer, sc_name in [('M2', 'm2')]:
         chip.set('pdk','grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk','grid', stackup, layer, 'xoffset', 0.018)
         chip.set('pdk','grid', stackup, layer, 'xpitch',  0.036)
-        chip.set('pdk','grid', stackup, layer, 'yoffset', 0.00)
         chip.set('pdk','grid', stackup, layer, 'ypitch',  0.027)
         chip.set('pdk','grid', stackup, layer, 'adj',     0.8)
 
     for layer, sc_name in [('M3', 'm3')]:
         chip.set('pdk','grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk','grid', stackup, layer, 'xoffset', 0.018)
         chip.set('pdk','grid', stackup, layer, 'xpitch',  0.036)
-        chip.set('pdk','grid', stackup, layer, 'yoffset', 0.018)
         chip.set('pdk','grid', stackup, layer, 'ypitch',  0.036)
         chip.set('pdk','grid', stackup, layer, 'adj',     0.7)
 
     for layer, sc_name in [('M4', 'm4')]:
         chip.set('pdk','grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk','grid', stackup, layer, 'xoffset', 0.028)
         chip.set('pdk','grid', stackup, layer, 'xpitch',  0.036)
-        chip.set('pdk','grid', stackup, layer, 'yoffset', 0.069)
         chip.set('pdk','grid', stackup, layer, 'ypitch',  0.048)
         chip.set('pdk','grid', stackup, layer, 'adj',     0.4)
 
     for layer, sc_name in [('M5', 'm5')]:
         chip.set('pdk','grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk','grid', stackup, layer, 'xoffset', 0.040)
         chip.set('pdk','grid', stackup, layer, 'xpitch',  0.048)
-        chip.set('pdk','grid', stackup, layer, 'yoffset', 0.069)
         chip.set('pdk','grid', stackup, layer, 'ypitch',  0.048)
         chip.set('pdk','grid', stackup, layer, 'adj',     0.4)
 
-
     for layer, sc_name in [('M6', 'm6')]:
         chip.set('pdk','grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk','grid', stackup, layer, 'xoffset', 0.030)
         chip.set('pdk','grid', stackup, layer, 'xpitch',  0.048)
-        chip.set('pdk','grid', stackup, layer, 'yoffset', 0.082)
         chip.set('pdk','grid', stackup, layer, 'ypitch',  0.064)
         chip.set('pdk','grid', stackup, layer, 'adj',     0.4)
 
     for layer, sc_name in [('M7', 'm7')]:
         chip.set('pdk','grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk','grid', stackup, layer, 'xoffset', 0.082)
         chip.set('pdk','grid', stackup, layer, 'xpitch',  0.064)
-        chip.set('pdk','grid', stackup, layer, 'yoffset', 0.036)
         chip.set('pdk','grid', stackup, layer, 'ypitch',  0.064)
         chip.set('pdk','grid', stackup, layer, 'adj',     0.4)
 
     for layer, sc_name in [('M8', 'm8'), ('M9', 'm9')]:
         chip.set('pdk','grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk','grid', stackup, layer, 'xoffset', 0.098)
         chip.set('pdk','grid', stackup, layer, 'xpitch',  0.08)
-        chip.set('pdk','grid', stackup, layer, 'yoffset', 0.098)
         chip.set('pdk','grid', stackup, layer, 'ypitch',  0.08)
         chip.set('pdk','grid', stackup, layer, 'adj',     0.4)
-
-    ###############################################
-    # Libraries
-    ###############################################
-
-    libname = 'asap7sc7p5t_rvt'
-    libtype = '7p5t'
-    rev = 'r1p7'
-    corner = 'typical'
-    objectives = ['setup']
-    libdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'libs', libname, rev)
-
-    # rev
-    chip.set('library',libname, 'package', 'version',rev)
-
-    # timing
-    chip.add('library', libname, 'nldm', corner, 'lib',
-             libdir+'/nldm/'+libname+'_ff.lib')
-
-    # lef
-    chip.add('library',libname,'lef',
-             libdir+'/lef/'+libname+'.lef')
-    # gds
-    chip.add('library',libname,'gds',
-             libdir+'/gds/'+libname+'.gds')
-
-    # site name
-    chip.set('library', libname, 'site', 'asap7sc7p5t', 'symmetry', 'Y')
-    chip.set('library', libname, 'site', 'asap7sc7p5t', 'size', (0.054,0.270))
-
-    # lib arch
-    chip.set('library',libname,'arch',libtype)
-
-    #driver
-    chip.add('library',libname,'driver', "BUFx2_ASAP7_75t_R")
-
-    # clock buffers
-    chip.add('library',libname,'cells','clkbuf', "BUFx2_ASAP7_75t_R")
-
-    # tie cells
-    chip.add('library',libname,'cells','tie', ["TIEHIx1_ASAP7_75t_R/H",
-                                               "TIELOx1_ASAP7_75t_R/L"])
-
-
-    # hold cells
-    chip.add('library',libname,'cells','hold', "BUFx2_ASAP7_75t_R")
-
-    # filler
-    chip.add('library',libname,'cells','filler', ["FILLER_ASAP7_75t_R"])
-
-    # Stupid small cells
-    chip.add('library',libname,'cells','ignore', [
-        "*x1_ASAP7*", "*x1p*_ASAP7*", "*xp*_ASAP7*",
-        "SDF*", "ICG*", "DFFH*",
-    ])
-
-    # Tapcell
-    chip.add('library',libname,'cells','tapcell', "TAPCELL_ASAP7_75t_R")
-
-    # Endcap
-    chip.add('library',libname,'cells','endcap', "DECAPx1_ASAP7_75t_R")
-
-    ###############################################
-    # Methodology
-    ###############################################
-
-    chip.set('asic', 'stackup', chip.get('pdk', 'stackup')[0])
-    chip.add('asic', 'targetlib', libname)
-    chip.set('asic', 'minlayer', "m2")
-    chip.set('asic', 'maxlayer', "m7")
-    chip.set('asic', 'maxfanout', 64)
-    chip.set('asic', 'maxlength', 1000)
-    chip.set('asic', 'maxslew', 1.5e-9)
-    chip.set('asic', 'maxcap', 1e-12)
-    chip.set('asic', 'rclayer', 'clk', 'm5')
-    chip.set('asic', 'rclayer', 'data', 'm3')
-    chip.set('asic', 'hpinlayer', "m4")
-    chip.set('asic', 'vpinlayer', "m5")
-
-    # hard coded mcmm settings (only one corner!)
-    corner = 'typical'
-    chip.set('mcmm','worst','libcorner', corner)
-    chip.set('mcmm','worst','pexcorner', corner)
-    chip.set('mcmm','worst','mode', 'func')
-    chip.add('mcmm','worst','check', ['setup','hold'])
-
-    # Floorplanning defaults for quick experiments
-    chip.set('asic', 'density', 10, clobber=False)
-    chip.set('asic', 'aspectratio', 1, clobber=False)
-    # Least common multiple of std. cell width (0.054) and height (0.270)
-    chip.set('asic', 'coremargin', 0.270, clobber=False)
 
 #########################
 if __name__ == "__main__":
