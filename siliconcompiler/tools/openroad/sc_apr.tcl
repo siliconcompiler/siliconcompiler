@@ -82,7 +82,6 @@ dict for {key value} [dict get $sc_cfg pdk grid $sc_stackup] {
 # Library
 set sc_libtype     [dict get $sc_cfg library $sc_mainlib arch]
 set sc_site        [lindex [dict get $sc_cfg library $sc_mainlib site] 0]
-set sc_driver      [dict get $sc_cfg library $sc_mainlib driver]
 set sc_filler      [dict get $sc_cfg library $sc_mainlib cells filler]
 set sc_dontuse     [dict get $sc_cfg library $sc_mainlib cells ignore]
 set sc_clkbuf      [dict get $sc_cfg library $sc_mainlib cells clkbuf]
@@ -94,11 +93,12 @@ set sc_endcap      [dict get $sc_cfg library $sc_mainlib cells endcap]
 
 # PDK Design Rules
 set sc_techlef     [dict get $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype lef]
+
 # TODO: workaround until OpenROAD allows floating-point 'tapmax' values.
 set sc_tapmax      [expr {int([lindex [dict get $sc_cfg pdk tapmax] end])}]
 set sc_tapoffset   [lindex [dict get $sc_cfg pdk tapoffset] end]
 
-set sc_threads [dict get $sc_cfg eda $sc_tool threads $sc_step $sc_index ]
+set sc_threads     [dict get $sc_cfg eda $sc_tool threads $sc_step $sc_index ]
 
 ###############################
 # Optional

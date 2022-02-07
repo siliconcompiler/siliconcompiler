@@ -48,18 +48,24 @@ if {[expr ! [dict exists $sc_cfg "read" def $sc_step $sc_index]]} {
 	lappend metal_list $key
     }
 
-    foreach metal $metal_list {
-	#extracting values from dictionary
-	set xpitch [dict get $sc_cfg pdk grid $sc_stackup $metal xpitch]
-	set xoffset [dict get $sc_cfg pdk grid $sc_stackup $metal xoffset]
-	set ypitch [dict get $sc_cfg pdk grid $sc_stackup $metal ypitch]
-	set yoffset [dict get $sc_cfg pdk grid $sc_stackup $metal yoffset]
+    # source tracks from file if found, else else use schema entries
+    if [dict exists $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype tracks] {
+	puts "READING FILE"
+	source [lindex [dict get $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype tracks] 0]
+    } else {
+	foreach metal $metal_list {
+	    #extracting values from dictionary
+	    set xpitch [dict get $sc_cfg pdk grid $sc_stackup $metal xpitch]
+	    set xoffset [dict get $sc_cfg pdk grid $sc_stackup $metal xoffset]
+	    set ypitch [dict get $sc_cfg pdk grid $sc_stackup $metal ypitch]
+	    set yoffset [dict get $sc_cfg pdk grid $sc_stackup $metal yoffset]
 
-	make_tracks $metal \
-	    -x_offset $xoffset \
-	    -x_pitch $xpitch \
-	    -y_offset $yoffset \
-	    -y_pitch $ypitch
+	    make_tracks $metal \
+		-x_offset $xoffset \
+		-x_pitch $xpitch \
+		-y_offset $yoffset \
+		-y_pitch $ypitch
+	}
     }
 
     ###########################
@@ -103,10 +109,15 @@ if {[expr ! [dict exists $sc_cfg "read" def $sc_step $sc_index]]} {
 ###########################
 # Tap Cells
 ###########################
-tapcell \
-    -endcap_cpp $sc_tapoffset \
-    -distance $sc_tapmax \
-    -tapcell_master $sc_tapcell \
-    -endcap_master $sc_endcap
+
+if [dict exists $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype tapcells] {
+    source [lindex [dict get $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype tapcells] 0]
+} else {
+    tapcell \
+	-endcap_cpp $sc_tapoffset \
+	-distance $sc_tapmax \
+	-tapcell_master $sc_tapcell \
+	-endcap_master $sc_endcap
+}
 
 remove_buffers
