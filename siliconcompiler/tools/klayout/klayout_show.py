@@ -19,12 +19,14 @@ sc_libtype = sc_cfg['library'][sc_mainlib]['arch']['value']
 # or in the standalone format (.lyp).
 tech_filename = sc_cfg['pdk']['layermap']['klayout'][sc_stackup]['def']['gds']['value'][0]
 tech_file = None
-if tech_filename[-4:] == '.lyt':
-    # 'lyp_path' will be read out of the .lyt file later.
-    tech_file = tech_filename
-elif tech_filename[-4:] == '.lyp':
-    # Tech file will not be imported, only layermap properties.
-    lyp_path = tech_filename
+lyp_path = None
+if tech_filename:
+    if tech_filename[-4:] == '.lyt':
+        # 'lyp_path' will be read out of the .lyt file later.
+        tech_file = tech_filename
+    elif tech_filename[-4:] == '.lyp':
+        # Tech file will not be imported, only layermap properties.
+        lyp_path = tech_filename
 
 macro_lefs = []
 if 'macrolib' in sc_cfg['asic']:
