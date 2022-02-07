@@ -748,14 +748,16 @@ def schema_pdk(cfg, stackup='default'):
             "cli: -pdk_aprtech 'openroad M10 12t lef tech.lef'",
             "api: chip.set('pdk','aprtech','openroad','M10','12t','lef','tech.lef')"],
         'help': """
-        Technology file containing the design rule and setup information needed
-        to enable DRC clean APR for the specified stackup, libarch, and format.
-        The 'libarch' specifies the library architecture (e.g. library height).
-        For example a PDK with support for 9 and 12 track libraries might have
-        'libarchs' called 9t and 12t. The standard filetype for specifying place
-        and route design rules for a process node is through a 'lef' format
-        technology file. The 'filetype' used in the aprtech is used by the tool
-        specific APR TCL scripts to set up the technology parameters.
+        Technology file containing setup information needed to enable DRC clean APR
+        for the specified stackup, libarch, and format. The 'libarch' specifies the
+        library architecture (e.g. library height). For example a PDK with support
+        for 9 and 12 track libraries might have 'libarchs' called 9t and 12t.
+        The standard filetype for specifying place and route design rules for a
+        process node is through a 'lef' format technology file. The
+        'filetype' used in the aprtech is used by the tool specific APR TCL scripts
+        to set up the technology parameters. Some tools may require additional
+        files beyond the tech.lef file. Examples of extra file types include
+        antenna, tracks, tapcell, viarules, em.
         """
     }
 
@@ -1297,6 +1299,33 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         hold, power, noise, reliability but can be extended based on eda
         support and methodology.
         """
+    }
+
+    # Library units
+    units = ['time',
+             'capacitance',
+             'resistance',
+             'inducatance',
+             'voltage',
+             'current',
+             'power']
+
+    cfg['library'][lib]['units'] = {}
+    for item in units:
+        cfg['library'][lib]['units'][item] = {
+            'switch': "-library_units_{item} 'lib <str>'",
+            'type': 'str',
+            'lock': 'false',
+            'require': None,
+            'defvalue': None,
+            'signature': [],
+            'shorthelp': f"Library {item} units",
+            'example': [
+                f"cli: -library_units_{item} 'mylib ps'",
+                f"api: chip.set('library','mylib','units',{item},'ps')"],
+            'help': f"""
+            Library {item} units in library characterization files.
+            """
     }
 
     #NLDM
@@ -4143,7 +4172,7 @@ def schema_package(cfg, group):
     localcfg['doc'] = {}
     for item in doctypes:
         localcfg['doc'][item] = {
-            'switch': f"-{group}_doc_{item} '{lib}<file>'",
+            'switch': f"-{group}_doc_{item} '{lib} <file>'",
             'type': '[file]',
             'lock': 'false',
             'copy': 'false',
