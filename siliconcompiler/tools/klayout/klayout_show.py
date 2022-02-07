@@ -37,11 +37,11 @@ if 'macrolib' in sc_cfg['asic']:
 # Tech / library LEF files are optional.
 try:
     tech_lef = sc_cfg['pdk']['aprtech']['klayout'][sc_stackup][sc_libtype]['lef']['value'][0]
-except:
+except KeyError:
     tech_lef = None
 try:
     lib_lef = sc_cfg['library'][sc_mainlib]['lef']['value'][0]
-except:
+except KeyError:
     lib_lef = None
 
 # Load KLayout technology file
