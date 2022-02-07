@@ -1302,16 +1302,18 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
     }
 
     # Library units
-    units = ['time',
-             'capacitance',
-             'resistance',
-             'inducatance',
-             'voltage',
-             'current',
-             'power']
+    units = {
+        'time' : 'ns',
+        'capacitance' : 'pf',
+        'resistance' : 'ohm',
+        'inducatance' : 'nh',
+        'voltage' : 'mv',
+        'current' : 'ma',
+        'power' : 'mw'
+    }
 
     cfg['library'][lib]['units'] = {}
-    for item in units:
+    for item in units.keys():
         cfg['library'][lib]['units'][item] = {
             'switch': f"-library_units_{item} 'lib <str>'",
             'type': 'str',
@@ -1321,8 +1323,8 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
             'signature': [],
             'shorthelp': f"Library {item} units",
             'example': [
-                f"cli: -library_units_{item} 'mylib ps'",
-                f"api: chip.set('library','mylib','units',{item},'ps')"],
+                f"cli: -library_units_{item} 'mylib {units[item]}'",
+                f"api: chip.set('library','mylib','units',{item},'{units[item]}')"],
             'help': f"""
             Library {item} units in library characterization files.
             """
@@ -1605,26 +1607,6 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         """
     }
 
-
-    cfg['library'][lib]['driver'] = {
-        'switch': "-library_driver 'lib <str>'",
-        'require': None,
-        'type': '[str]',
-        'lock': 'false',
-        'signature' : [],
-        'defvalue': [],
-        'shorthelp': 'Library default driver cell',
-        'example': ["cli: -library_driver 'mylib BUFX1/Z'",
-                    "api: chip.set('library','mylib','driver','BUFX1/Z')"],
-        'help': """
-        Name of a library cell to be used as the default driver for
-        block timing constraints. The cell should be strong enough to drive
-        a block input from another block including wire capacitance.
-        In cases where the actual driver is known, the actual driver cell
-        should be used. The output driver should include the output pin.
-        """
-    }
-
     name = 'default'
     cfg['library'][lib]['site'] = {}
     cfg['library'][lib]['site'][name] = {}
@@ -1664,23 +1646,36 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         """
     }
 
+
+    # Library units
+    names = ['driver',
+             'buf',
+             'tie',
+             'hold',
+             'clkbuf',
+             'ignore',
+             'filler',
+             'tapcell',
+             'endcap']
+
     cfg['library'][lib]['cells'] = {}
-    cfg['library'][lib]['cells']['default'] = {
-        'switch': "-library_cells 'lib group <str>'",
-        'require': None,
-        'type': '[str]',
-        'lock': 'false',
-        'signature' : [],
-        'defvalue': [],
-        'shorthelp': 'Library cell lists',
-        'example': [
-            "cli: -library_cells 'mylib dontuse *eco*'",
-            "api: chip.set('library','mylib','cells','dontuse','*eco*')"],
-        'help': """
-        List of cells grouped by a property that can be accessed
-        directly by the designer and tools. The example below shows how
-        all cells containing the string 'eco' could be marked as dont use
-        for the tool.
+    for item in names:
+        cfg['library'][lib]['cells'][item] = {
+            'switch': f"-library_cells_{item} 'lib <str>'",
+            'require': None,
+            'type': '[str]',
+            'lock': 'false',
+            'signature' : [],
+            'defvalue': [],
+            'shorthelp': f"Library {item} cell list",
+            'example': [
+                f"cli: -library_cells_{item} 'mylib *eco*'",
+                f"api: chip.set('library','mylib','cells','dontuse','*eco*')"],
+            'help': """
+            List of cells grouped by a property that can be accessed
+            directly by the designer and tools. The example below shows how
+            all cells containing the string 'eco' could be marked as dont use
+            for the tool.
         """
     }
     filetype = 'default'
