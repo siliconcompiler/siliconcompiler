@@ -1313,7 +1313,7 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
     cfg['library'][lib]['units'] = {}
     for item in units:
         cfg['library'][lib]['units'][item] = {
-            'switch': "-library_units_{item} 'lib <str>'",
+            'switch': f"-library_units_{item} 'lib <str>'",
             'type': 'str',
             'lock': 'false',
             'require': None,
