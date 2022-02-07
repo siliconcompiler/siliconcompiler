@@ -496,34 +496,21 @@ class Chip:
                 self.error = 1
 
     ###########################################################################
-    def target(self, project=None, flow=None, pdk=None, lib=None):
+    def target(self, project=None):
         """
         Configures the compilation manifest based on pre-defined target modules.
 
-        The target function loads modules from the project, flow, pdk, and lib
-        search paths in the following order. It is recommended to create
-        project modules that calls a set of flow, pdk, and lib modules.
-
-        1. project (if defined)
-        2. flow (if defined)
-        3. pdk (if defined)
-        4. lib (if defined)
-
-        Targets are read from the 'target' schema dictionary whenever the
-        function arguments are None. The function arguments override
-        settings from loaded modules.
-
-        The target function uses the find_function() method to import and
-        execute setup functions based on the 'scpath' search parameter.
+        The target function loads modules from non-empty project, flow, pdk,
+        and lib target parameters based on the $SCPATH. If the project
+        argument is left empty, the project name is fetched from the
+        manifest. The flow, pdk, and lib parameters are fetched from the
+        manifest.
 
         Args:
             project (str): Project module name
-            flow (str): Flow module name
-            pdk (str): PDK module name
-            lib (list): List of library module names
 
         Examples:
-            >>> chip.target(project='freepdk45_demo")
+            >>> chip.target('freepdk45_demo")
             Loads the 'freepdk45_demo' target
 
         """
@@ -540,12 +527,8 @@ class Chip:
                 func_project(self)
 
         # Flow
-        if flow is not None:
-            self.set('target', 'flow',  flow)
-        else:
-            flow = self.get('target', 'flow')
-
-        if self.get('target', 'flow'):
+        flow = self.get('target', 'flow')
+        if flow:
             func_flow = self.find_function(flow, 'flow', 'setup_flow')
             if func_flow is not None:
                 func_flow(self)
@@ -557,12 +540,8 @@ class Chip:
             sys.exit(1)
 
         # PDK
-        if pdk is not None:
-            self.set('target', 'pdk',  pdk)
-        else:
-            pdk = self.get('target', 'pdk')
-
-        if self.get('target', 'pdk'):
+        pdk = self.get('target', 'pdk')
+        if pdk:
             func_pdk = self.find_function(pdk, 'pdk', 'setup_pdk')
             if func_pdk is not None:
                 func_pdk(self)
@@ -574,12 +553,8 @@ class Chip:
             sys.exit(1)
 
         # LIB
-        if lib is not None:
-            self.set('target', 'lib',  lib)
-        else:
-            lib = self.get('target', 'lib')
-
-        if self.get('target', 'lib'):
+        lib = self.get('target', 'lib')
+        if lib:
             for item in lib:
                 func_lib = self.find_function(item, 'lib', 'setup_lib')
                 if func_lib is not None:
