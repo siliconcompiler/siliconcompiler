@@ -63,8 +63,8 @@ def setup_lib(chip):
     # lib arch
     chip.set('library',libname,'arch',libtype)
 
-    #driver
-    chip.add('library',libname,'driver', "BUF_X4")
+    # driver
+    chip.add('library',libname, 'cells','driver', "BUF_X4")
 
     # clock buffers
     chip.add('library',libname,'cells','clkbuf', "BUF_X4")
@@ -74,7 +74,7 @@ def setup_lib(chip):
                                                "LOGIC0_X1/Z"])
 
     # buffer cell
-    chip.add('library', libname, 'cells', 'buf', ['BUF_X1/A/Z'])
+    chip.add('library', libname,'cells', 'buf', ['BUF_X1/A/Z'])
 
     # hold cells
     chip.add('library',libname,'cells','hold', "BUF_X1")
