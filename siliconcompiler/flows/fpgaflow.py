@@ -1,5 +1,6 @@
 import siliconcompiler
 import re
+import sys
 
 from siliconcompiler.flows._common import setup_frontend
 
@@ -57,14 +58,13 @@ def setup(chip):
 
     flowname = 'fpgaflow'
 
-    # Set partname if not set
-    partname = "UNDEFINED"
+    # Check that partname has been set
+
     if chip.get('fpga', 'partname'):
         partname = chip.get('fpga', 'partname')
-    elif chip.get('target'):
-        if len(chip.get('target').split('_')) == 2:
-            partname = chip.get('target').split('_')[1]
-    chip.set('fpga', 'partname', partname)
+    else:
+        chip.logger.error("FPGA partname not specified")
+        sys.exit()
 
     # Set FPGA mode if not set
     chip.set('mode', 'fpga')
