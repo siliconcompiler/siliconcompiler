@@ -394,36 +394,7 @@ class Chip:
                             self.set(*args, clobber=True)
 
     #########################################################################
-    def create_env(self):
-        '''
-        Creates a working environment for interactive design.
-
-        Sets environment variables and initializees tools specific
-        setup files based on paramater set loaded.
-
-        Actions taken:
-
-          * Append values found in eda 'path' parameter to current path
-          *
-
-        '''
-
-        # Add paths
-        env_path = os.environ['PATH']
-        for tool in self.getkeys('eda'):
-            for path in self.get('eda', tool):
-                env_path = env_path +  os.pathsep + path
-
-        # Call setup_env functions
-        for tool in self.getkeys('eda'):
-            for step in self.getkeys('eda', tool):
-                setup_env = self.find_function(tool, 'tool', 'setup_env')
-                if setup_env:
-                    setup_env(self)
-
-
-    #########################################################################
-    def find_function(self, modulename, functype, funcname):
+    def find_function(self, modulename, funcname, moduletype=None):
         '''
         Returns a function attribute from a module on disk.
 
@@ -438,45 +409,50 @@ class Chip:
         * flows/modulename.py
         * pdks/modulname.py
 
+        If the modtype is None, the module paths are search in the
+        order: 'projects'->'flows'->'tools'->'pdks'->'libs'):
+
+
         Supported functions include:
 
-        * pdk (make_docs, setup_pdk)
-        * flow (make_docs, setup_flow)
-        * tool (make_docs, setup_tool, check_version, runtime_options,
+        * projects (make_docs, setup)
+        * pdks (make_docs, setup)
+        * flows (make_docs, setup)
+        * tools (make_docs, setup, check_version, runtime_options,
           pre_process, post_process)
-        * lib (make_docs, setup_lib)
+        * libs (make_docs, setup)
 
         Args:
             modulename (str): Name of module to import.
-            functype (str): Type of function to import (tool,flow, pdk).
             funcname (str): Name of the function to find within the module.
+            modtype (str): Type of module (tools,flows, pdks,libs,projects).
 
         Examples:
-            >>> setup_pdk = chip.find_function('freepdk45','pdk','setup_pdk')
+            >>> setup_pdk = chip.find_function('freepdk45', 'setup', 'pdk')
             >>> setup_pdk()
             Imports the freepdk45 module and runs the setup_pdk function
 
         '''
 
-        # module search path depends on functype
-        if functype == 'tool':
-            fullpath = self._find_sc_file(f"tools/{modulename}/{modulename}.py", missing_ok=True)
-        elif functype == 'flow':
-            fullpath = self._find_sc_file(f"flows/{modulename}.py", missing_ok=True)
-        elif functype == 'pdk':
-            fullpath = self._find_sc_file(f"pdks/{modulename}.py", missing_ok=True)
-        elif functype == 'project':
-            fullpath = self._find_sc_file(f"projects/{modulename}.py", missing_ok=True)
-        elif functype == 'lib':
-            fullpath = self._find_sc_file(f"libs/{modulename}.py", missing_ok=True)
+        # module search path depends on modtype
+        if moduletype is None:
+            for item in ('projects', 'flows', 'pdks', 'libs'):
+                relpath = f"{item}/{modulename}.py"
+                fullpath = self._find_sc_file(relpath, missing_ok=True)
+                if fullpath:
+                    break;
+        elif moduletype in ('projects','flows', 'pdks', 'libs'):
+            fullpath = self._find_sc_file(f"{moduletype}/{modulename}.py", missing_ok=True)
+        elif moduletype in ('tools'):
+            fullpath = self._find_sc_file(f"{moduletype}/{modulename}/{modulename}.py", missing_ok=True)
         else:
-            self.logger.error(f"Illegal module type '{functype}'.")
+            self.logger.error(f"Illegal module type '{moduletype}'.")
             self.error = 1
             return
 
         # try loading module if found
         if fullpath:
-            if functype == 'tool':
+            if moduletype == 'tools':
                 self.logger.debug(f"Loading function '{funcname}' from module '{modulename}'")
             else:
                 self.logger.info(f"Loading function '{funcname}' from module '{modulename}'")
@@ -495,73 +471,104 @@ class Chip:
                 self.logger.error(f"Module setup failed for '{modulename}'")
                 self.error = 1
 
-    ###########################################################################
-    def target(self, project=None):
+    ##########################################################################
+    def load_project(self, name):
         """
-        Configures the compilation manifest based on pre-defined target modules.
+        Loads a project module and runs the setup() function.
 
-        The target function loads modules from non-empty project, flow, pdk,
-        and lib target parameters based on the $SCPATH. If the project
-        argument is left empty, the project name is fetched from the
-        manifest. The flow, pdk, and lib parameters are fetched from the
-        manifest.
+        The function searches the $SCPATH for projects/<name>.py and runs
+        the setup function in that module if found.
 
         Args:
-            project (str): Project module name
+            name (str): Module name
 
         Examples:
-            >>> chip.target('freepdk45_demo")
-            Loads the 'freepdk45_demo' target
+            >>> chip.load_project('freepdk45_demo')
+            Loads the 'freepdk45_demo' project
 
         """
 
-        # Project
-        if project is not None:
-            self.set('target', 'project',  project)
+        func = self.find_function(name, 'setup', 'projects')
+        print(func, name)
+        if func is not None:
+            func(self)
         else:
-            project = self.get('target', 'project')
-
-        if self.get('target', 'project'):
-            func_project = self.find_function(project, 'project', 'setup_project')
-            if func_project is not None:
-                func_project(self)
-
-        # Flow
-        flow = self.get('target', 'flow')
-        if flow:
-            func_flow = self.find_function(flow, 'flow', 'setup_flow')
-            if func_flow is not None:
-                func_flow(self)
-            else:
-                self.logger.error(f'Target flow {flow} not found.')
-                sys.exit(1)
-        elif self.get('mode') == 'asic':
-            self.logger.error('Target flow is missing.')
+            self.logger.error(f'Module {name} not found.')
             sys.exit(1)
 
-        # PDK
-        pdk = self.get('target', 'pdk')
-        if pdk:
-            func_pdk = self.find_function(pdk, 'pdk', 'setup_pdk')
-            if func_pdk is not None:
-                func_pdk(self)
-            else:
-                self.logger.error(f'PDK {pdk} not found')
-                sys.exit(1)
-        elif self.get('mode') == 'asic':
-            self.logger.error(f'Target PDK not defined in asic mode')
+    ##########################################################################
+    def load_pdk(self, name):
+        """
+        Loads a PDK module and runs the setup() function.
+
+        The function searches the $SCPATH for pdks/<name>.py and runs
+        the setup function in that module if found.
+
+        Args:
+            name (str): Module name
+
+        Examples:
+            >>> chip.load_pdk('freepdk45_pdk')
+            Loads the 'freepdk45' pdk
+
+        """
+
+        func = self.find_function(name, 'setup', 'pdks')
+        if func is not None:
+            func(self)
+        else:
+            self.logger.error(f'Module {name} not found.')
             sys.exit(1)
 
-        # LIB
-        lib = self.get('target', 'lib')
-        if lib:
-            for item in lib:
-                func_lib = self.find_function(item, 'lib', 'setup_lib')
-                if func_lib is not None:
-                    func_lib(self)
-                else:
-                    self.logger.error(f'Library {item} not found')
-                    sys.exit(1)
+    ##########################################################################
+    def load_flow(self, name):
+        """
+        Loads a flow  module and runs the setup() function.
+
+        The function searches the $SCPATH for flows/<name>.py and runs
+        the setup function in that module if found.
+
+        Args:
+            name (str): Module name
+
+        Examples:
+            >>> chip.load_flow('asicflow')
+            Loads the 'asicflow' flow
+
+        """
+
+        func = self.find_function(name, 'setup', 'flows')
+        if func is not None:
+            func(self)
+        else:
+            self.logger.error(f'Module {name} not found.')
+            sys.exit(1)
+
+    ##########################################################################
+    def load_lib(self, name):
+        """
+        Loads a library  module and runs the setup() function.
+
+        The function searches the $SCPATH for libs/<name>.py and runs
+        the setup function in that module if found.
+
+        Args:
+            name (str): Module name
+
+        Examples:
+            >>> chip.load_lib('nangate45')
+            Loads the 'nangate45' library
+
+        """
+
+        func = self.find_function(name, 'setup', 'libs')
+        if func is not None:
+            func(self)
+        else:
+            self.logger.error(f'Module {name} not found.')
+            sys.exit(1)
+
+
 
     ###########################################################################
     def list_metrics(self):
@@ -2491,7 +2498,7 @@ class Chip:
             return line
 
     ###########################################################################
-    def check_logfile(self, step=None, jobname=None, index=None,
+    def check_logfile(self, jobname=None, step=None, index='0',
                       logfile=None, display=True):
         '''
         Checks logfile for patterns found in the 'regex' parameter.
@@ -2514,10 +2521,6 @@ class Chip:
 
         # Using manifest to get defaults
 
-        if step is None:
-            step = self.get('arg', 'step')
-        if index is None:
-            index =  self.get('arg', 'index')
         if jobname is None:
             jobname = self.get('jobname')
         if logfile is None:
@@ -2526,6 +2529,7 @@ class Chip:
         flow = self.get('target', 'flow')
         tool = self.get('flowgraph', flow, step, index, 'tool')
         design = self.get('design')
+
 
         # Creating local dictionary (for speed)
         # self.get is slow
@@ -3257,7 +3261,7 @@ class Chip:
         ##################
         # 12. Run preprocess step for tool
         if tool not in self.builtin:
-            func = self.find_function(tool, "tool", "pre_process")
+            func = self.find_function(tool, "pre_process", 'tools')
             if func:
                 func(self)
                 if self.error:
@@ -3282,7 +3286,7 @@ class Chip:
             cmdlist = [exe]
             cmdlist.extend(veropt)
             proc = subprocess.run(cmdlist, stdout=PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
-            parse_version = self.find_function(tool, 'tool', 'parse_version')
+            parse_version = self.find_function(tool, 'parse_version', 'tools')
             if parse_version is None:
                 self.logger.error(f'{tool} does not implement parse_version.')
                 self._haltstep(step, index, active)
@@ -3345,7 +3349,7 @@ class Chip:
         # 17. Post process (could fail)
         post_error = 0
         if (tool not in self.builtin) and (not self.get('checkonly')) :
-            func = self.find_function(tool, "tool", "post_process")
+            func = self.find_function(tool, 'post_process', 'tools')
             if func:
                 post_error = func(self)
                 if post_error:
@@ -3355,7 +3359,7 @@ class Chip:
         ##################
         # 18. Check log file
         if (tool not in self.builtin) and (not self.get('checkonly')) :
-            self.check_logfile(display=not quiet)
+            self.check_logfile(step=step, index=index, display=not quiet)
 
         ##################
         # 19. Hash files
@@ -3523,9 +3527,9 @@ class Chip:
                         if tool not in self.builtin:
                             self.set('arg','step', step)
                             self.set('arg','index', index)
-                            func = self.find_function(tool, 'tool', 'setup_tool')
+                            func = self.find_function(tool, 'setup', 'tools')
                             if func is None:
-                                self.logger.error(f'setup_tool() not found for tool {tool}')
+                                self.logger.error(f'setup() not found for tool {tool}')
                                 sys.exit(1)
                             func(self)
                             # Need to clear index, otherwise we will skip
@@ -3725,7 +3729,7 @@ class Chip:
             index = "0"
             self.set('arg', 'step', step)
             self.set('arg', 'index', index)
-            setup_tool = self.find_function(tool, 'tool', 'setup_tool')
+            setup_tool = self.find_function(tool, 'setup', 'tools')
             setup_tool(self, mode='show')
 
             exe = self._getexe(tool)
@@ -3852,7 +3856,7 @@ class Chip:
         logfile = step + ".log"
         cmdlist.extend(options)
         cmdlist.extend(scripts)
-        runtime_options = self.find_function(tool, 'tool', 'runtime_options')
+        runtime_options = self.find_function(tool, 'runtime_options', 'tools')
         if runtime_options:
             #print(runtime_options(self))
             for option in runtime_options(self):
