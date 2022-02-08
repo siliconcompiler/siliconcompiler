@@ -84,9 +84,9 @@ def setup(chip):
     if chip.get('mode') == 'asic':
         chip.add('eda', tool, 'require', step, index, ",".join(['pdk', 'process']))
         chip.add('eda', tool, 'require', step, index, ",".join(['design']))
-        chip.add('eda', tool, 'require', step, index, ",".join(['target', 'lib']))
+        chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'logiclib']))
 
-        mainlib = chip.get('target', 'lib')[0]
+        mainlib = chip.get('asic', 'logiclib')[0]
         chip.add('eda', tool, 'require', step, index, ",".join(['library', mainlib, 'nldm', 'typical', 'lib']))
 
         macrolibs = chip.get('asic', 'macrolib')

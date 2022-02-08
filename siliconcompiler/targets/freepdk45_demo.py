@@ -28,19 +28,18 @@ def setup(chip):
 
     #1. Defining the project
     project = 'freepdk45_demo'
-    chip.set('target', 'project', project)
+    chip.set('target', project)
 
     #2. Load PDK, flow, libs
     chip.load_pdk('freepdk45')
     chip.load_flow('asicflow')
     chip.load_lib('nangate45')
 
-    #3. Set default targets
-    chip.set('target', 'flow', 'asicflow')
-    chip.set('target', 'lib', 'nangate45')
-    chip.set('target', 'pdk', 'asicflow')
+    #3. Set default flow
+    chip.set('flow', 'asicflow')
 
     #4. Set project specific design choices
+    chip.set('asic', 'logiclib', 'nangate45')
     chip.set('asic', 'stackup', '10M')
     chip.set('asic', 'minlayer', "m1")
     chip.set('asic', 'maxlayer', "m10")

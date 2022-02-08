@@ -329,7 +329,7 @@ class Chip:
             if 'arg_step' in cmdargs.keys():
                 self.set('arg', 'step', cmdargs['arg_step'], clobber=True)
             # running target command
-            self.target(cmdargs['target'])
+            self.load_target(cmdargs['target'])
 
         # 4. read in all cfg files
         if 'cfg' in cmdargs.keys():
@@ -410,12 +410,12 @@ class Chip:
         * pdks/modulname.py
 
         If the modtype is None, the module paths are search in the
-        order: 'projects'->'flows'->'tools'->'pdks'->'libs'):
+        order: 'targets'->'flows'->'tools'->'pdks'->'libs'):
 
 
         Supported functions include:
 
-        * projects (make_docs, setup)
+        * targets (make_docs, setup)
         * pdks (make_docs, setup)
         * flows (make_docs, setup)
         * tools (make_docs, setup, check_version, runtime_options,
@@ -425,7 +425,7 @@ class Chip:
         Args:
             modulename (str): Name of module to import.
             funcname (str): Name of the function to find within the module.
-            modtype (str): Type of module (tools,flows, pdks,libs,projects).
+            modtype (str): Type of module (tools,flows, pdks,libs,targets).
 
         Examples:
             >>> setup_pdk = chip.find_function('freepdk45', 'setup', 'pdk')
@@ -436,12 +436,12 @@ class Chip:
 
         # module search path depends on modtype
         if moduletype is None:
-            for item in ('projects', 'flows', 'pdks', 'libs'):
+            for item in ('targets', 'flows', 'pdks', 'libs'):
                 relpath = f"{item}/{modulename}.py"
                 fullpath = self._find_sc_file(relpath, missing_ok=True)
                 if fullpath:
                     break;
-        elif moduletype in ('projects','flows', 'pdks', 'libs'):
+        elif moduletype in ('targets','flows', 'pdks', 'libs'):
             fullpath = self._find_sc_file(f"{moduletype}/{modulename}.py", missing_ok=True)
         elif moduletype in ('tools'):
             fullpath = self._find_sc_file(f"{moduletype}/{modulename}/{modulename}.py", missing_ok=True)
@@ -472,11 +472,11 @@ class Chip:
                 self.error = 1
 
     ##########################################################################
-    def load_project(self, name):
+    def load_target(self, name):
         """
         Loads a project module and runs the setup() function.
 
-        The function searches the $SCPATH for projects/<name>.py and runs
+        The function searches the $SCPATH for targets/<name>.py and runs
         the setup function in that module if found.
 
         Args:
@@ -488,8 +488,7 @@ class Chip:
 
         """
 
-        func = self.find_function(name, 'setup', 'projects')
-        print(func, name)
+        func = self.find_function(name, 'setup', 'targets')
         if func is not None:
             func(self)
         else:
@@ -1539,7 +1538,7 @@ class Chip:
             Returns True of the Chip object dictionary checks out.
 
         '''
-        flow = self.get('target', 'flow')
+        flow = self.get('flow')
         steplist = self.get('steplist')
         if not steplist:
             steplist = self.list_steps()
@@ -1555,7 +1554,7 @@ class Chip:
             self.logger.error("Flowgraph doesn't contain import step.")
 
         #2. Check libary names
-        for item in self.get('target', 'lib'):
+        for item in self.get('asic', 'logiclib'):
             if item not in self.getkeys('library'):
                 self.error = 1
                 self.logger.error(f"Target library {item} not found.")
@@ -1635,7 +1634,7 @@ class Chip:
         '''Return set of filenames that are guaranteed to be in outputs
         directory after a successful run of step/index.'''
 
-        flow = self.get('target','flow')
+        flow = self.get('flow')
         tool = self.get('flowgraph', flow, step, index, 'tool')
 
         outputs = set()
@@ -1672,7 +1671,7 @@ class Chip:
         Returns True if valid, False otherwise.
         '''
 
-        flow = self.get('target','flow')
+        flow = self.get('flow')
         steplist = self.get('steplist')
 
         if not steplist:
@@ -1861,7 +1860,7 @@ class Chip:
         else:
             items = [item]
 
-        flow = self.get('target', 'flow')
+        flow = self.get('flow')
         global_check = True
 
         for item in items:
@@ -2044,7 +2043,7 @@ class Chip:
         fileformat = ext.replace(".", "")
 
         if flow is None:
-            flow = self.get('target', 'flow')
+            flow = self.get('flow')
 
         # controlling border width
         if border:
@@ -2126,7 +2125,7 @@ class Chip:
         '''
 
         indir = 'inputs'
-        flow = self.get('target', 'flow')
+        flow = self.get('flow')
 
         if not os.path.exists(indir):
             os.makedirs(indir)
@@ -2526,7 +2525,7 @@ class Chip:
         if logfile is None:
             logfile = f"{step}.log"
 
-        flow = self.get('target', 'flow')
+        flow = self.get('flow')
         tool = self.get('flowgraph', flow, step, index, 'tool')
         design = self.get('design')
 
@@ -2580,7 +2579,7 @@ class Chip:
         '''
 
         # display whole flowgraph if no steplist specified
-        flow = self.get('target', 'flow')
+        flow = self.get('flow')
         if not steplist:
             steplist = self.list_steps()
 
@@ -2612,7 +2611,7 @@ class Chip:
         if self.get('mode') == 'asic':
             info_list.extend(["foundry : " + self.get('pdk', 'foundry'),
                               "process : " + self.get('pdk', 'process'),
-                              "targetlibs : "+" ".join(self.get('asic', 'targetlib'))])
+                              "targetlibs : "+" ".join(self.get('asic', 'logiclib'))])
         elif self.get('mode') == 'fpga':
             info_list.extend(["partname : "+self.get('fpga','partname')])
 
@@ -2704,7 +2703,7 @@ class Chip:
         '''
 
         if flow is None:
-            flow = self.get('target', 'flow')
+            flow = self.get('flow')
 
         #Get length of paths from step to root
         depth = {}
@@ -2920,7 +2919,7 @@ class Chip:
         if op not in ('minimum', 'maximum'):
             raise ValueError('Invalid op')
 
-        flow = self.get('target', 'flow')
+        flow = self.get('flow')
         steplist = list(steps)
 
         # Keeping track of the steps/indexes that have goals met
@@ -3104,7 +3103,7 @@ class Chip:
         ##################
         # Shared parameters (long function!)
         design = self.get('design')
-        flow = self.get('target', 'flow')
+        flow = self.get('flow')
         tool = self.get('flowgraph', flow, step, index, 'tool')
         quiet = self.get('quiet') and (step not in self.get('bkpt'))
 
@@ -3446,7 +3445,7 @@ class Chip:
             Runs the execution flow defined by the flowgraph dictionary.
         '''
 
-        flow = self.get('target', 'flow')
+        flow = self.get('flow')
 
         # Run steps if set, otherwise run whole graph
         if self.get('arg', 'step'):

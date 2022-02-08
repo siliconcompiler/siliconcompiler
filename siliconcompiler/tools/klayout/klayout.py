@@ -23,7 +23,7 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
-    chip.target('freepdk45')
+    chip.load_target('freepdk45_demo')
     chip.set('arg','step','export')
     chip.set('arg','index','<index>')
     chip.set('design', '<design>')
@@ -108,12 +108,12 @@ def setup(chip, mode="batch"):
 
     # Adding requirements
     if mode != 'show':
-        targetlibs = chip.get('target', 'lib')
+        targetlibs = chip.get('asic', 'logiclib')
         stackup = chip.get('asic', 'stackup')
         if bool(stackup) & bool(targetlibs):
             macrolibs = chip.get('asic', 'macrolib')
 
-            chip.add('eda', tool, 'require', step, index, ",".join(['target', 'lib']))
+            chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'logiclib']))
             chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'stackup']))
             chip.add('eda', tool, 'require', step, index,  ",".join(['pdk', 'layermap', 'klayout', stackup, 'def','gds']))
 
@@ -165,8 +165,8 @@ if __name__ == "__main__":
 
     # create a chip instance
     chip = siliconcompiler.Chip()
-    chip.target("freepdk45")
+    chip.load_target("freepdk45_demo")
     # load configuration
-    setup_tool(chip, step='export', index='0')
+    setup(chip, step='export', index='0')
     # write out results
     chip.writecfg(output)

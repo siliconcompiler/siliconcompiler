@@ -57,11 +57,8 @@ def main():
         chip.set('design', topmodule)
 
     # Set demo target if none specified
-    project = chip.get('target', 'project')
-    if project:
-        chip.load_project(project)
-    else:
-        chip.load_project("freepdk45_demo")
+    if not chip.get('target'):
+        chip.load_target("freepdk45_demo")
 
     # Storing user entered steplist/args before running
     if chip.get('arg','step'):

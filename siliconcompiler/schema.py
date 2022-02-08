@@ -3443,71 +3443,37 @@ def schema_options(cfg):
         """
     }
 
-    cfg['target'] = {}
-
-    cfg['target']['project'] =  {
-        'switch': "-target_project <str>",
+    cfg['target'] =  {
+        'switch': "-target <str>",
         'type': 'str',
         'lock': 'false',
         'require': 'all',
         'signature': None,
         'defvalue': None,
-        'shorthelp': 'Target project',
+        'shorthelp': 'Compilation target',
         'example': [
-            "cli: -target_project freepdk45_demo",
-            "api: chip.set('target','project','freepdk45_demo')"],
+            "cli: -target freepdk45_demo",
+            "api: chip.set('target','freepdk45_demo')"],
         'help': """
-        Sets the target project to use. It is recommended (but
-        not required) for the project to set target_flow, target_pdk, and
-        target_lib parameters.
+        Sets a target module to be used for compilation. The target
+        module must set up all paramaters needed. The target module
+        may load multiple flows and libraries.
         """
     }
 
-    cfg['target']['flow'] =  {
-        'switch': "-target_flow <str>",
+    cfg['flow'] =  {
+        'switch': "-flow <str>",
         'type': 'str',
         'lock': 'false',
         'require': 'all',
         'signature': None,
         'defvalue': None,
-        'shorthelp': 'Target flow',
+        'shorthelp': 'Compilation flow',
         'example': [
-            "cli: -target_flow asicfow",
-            "api: chip.set('target','flow','asicflow')"],
+            "cli: -flow asicfow",
+            "api: chip.set('flow','asicflow')"],
         'help': """
-        Sets the target compilation flow.
-        """
-    }
-
-    cfg['target']['pdk'] =  {
-        'switch': "-target_pdk <str>",
-        'type': 'str',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Target PDK',
-        'example': [
-            "cli: -target_pdk freepdk45",
-            "api: chip.set('target','pdk','freepdk45')"],
-        'help': """
-        Sets the target PDK used in asic mode.
-        """
-    }
-
-    cfg['target']['lib'] =  {
-        'switch': "-target_lib <str>",
-        'type': '[str]',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': [],
-        'shorthelp': 'Target libraries',
-        'example': [
-            "cli: -target_lib nangate45",
-            "api: chip.set('target','lib','nangate45')"],
-        'help': """
-        Sets the target libraries used by the compiler.
+        Sets the flow of the current run.
         """
     }
 
@@ -5171,20 +5137,19 @@ def schema_asic(cfg):
         """
     }
 
-    cfg['asic']['targetlib'] = {
-        'switch': "-asic_targetlib <str>",
+    cfg['asic']['logiclib'] =  {
+        'switch': "-asic_logiclib <str>",
         'type': '[str]',
         'lock': 'false',
+        'require': 'all',
+        'signature': None,
         'defvalue': [],
-        'require': None,
-        'signature': [],
-        'shorthelp': 'ASIC target libraries',
-        'example': ["cli: -asic_targetlib asap7sc7p5t_lvt",
-                    "api: chip.set('asic', 'targetlib', 'asap7sc7p5t_lvt')"],
+        'shorthelp': 'Comppilaton target logic libraries',
+        'example': [
+            "cli: -asic_logiclib nangate45",
+            "api: chip.set('asic', 'logiclib','nangate45')"],
         'help': """
-        Logical libraries used in all steps of asic implementation for mapping
-        source code to netlist. Names must match up exactly with the library
-        name handle in the 'library' dictionary.
+        Sets the target libraries used by the compiler.
         """
     }
 

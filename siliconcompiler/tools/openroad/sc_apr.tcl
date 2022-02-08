@@ -38,8 +38,8 @@ set sc_design     [dict get $sc_cfg design]
 set sc_optmode    [dict get $sc_cfg optmode]
 
 # APR Parameters
-set sc_mainlib     [lindex [dict get $sc_cfg target lib] 0]
-set sc_targetlibs  [dict get $sc_cfg target lib]
+set sc_mainlib     [lindex [dict get $sc_cfg asic logiclib] 0]
+set sc_targetlibs  [dict get $sc_cfg asic logiclib]
 
 set sc_stackup     [dict get $sc_cfg asic stackup]
 set sc_density     [dict get $sc_cfg asic density]
