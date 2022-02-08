@@ -5,7 +5,7 @@ import re
 def test_valid():
 
     chip = siliconcompiler.Chip()
-    chip.target("freepdk45")
+    chip.load_project("freepdk45_demo")
     #basic
     valid =  chip.valid('design')
     assert valid

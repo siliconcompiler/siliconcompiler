@@ -20,13 +20,13 @@ def display():
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.parametrize('pdk, testfile',
-    [('freepdk45', 'heartbeat_freepdk45.def'),
-     ('skywater130', 'heartbeat_sky130.def')])
-def test_show(pdk, testfile, datadir, display, headless=True):
+@pytest.mark.parametrize('project, testfile',
+    [('freepdk45_demo', 'heartbeat_freepdk45.def'),
+     ('skywater130_demo', 'heartbeat_sky130.def')])
+def test_show(project, testfile, datadir, display, headless=True):
     chip = siliconcompiler.Chip()
     chip.set('design', 'heartbeat')
-    chip.target(f'asicflow_{pdk}')
+    chip.load_project(project)
     chip.set("quiet", True)
 
     if headless:
@@ -41,7 +41,7 @@ def test_show(pdk, testfile, datadir, display, headless=True):
 def test_show_nopdk(datadir, display):
     chip = siliconcompiler.Chip()
     chip.set('design', 'heartbeat')
-    chip.target(f'asicflow_freepdk45')
+    chip.load_project('freepdk45_demo')
     chip.set("quiet", True)
     # Adjust command line options to exit KLayout after run
     chip.set('eda', 'klayout', 'option', 'showgds', '0', ['-z', '-r'])
@@ -62,5 +62,7 @@ def test_show_nopdk(datadir, display):
 #########################
 if __name__ == "__main__":
     from tests.fixtures import datadir
-    test_show('freepdk45', 'heartbeat_freepdk45.def', datadir(__file__),
+    test_show('freepdk45_demo', 'heartbeat_freepdk45.def', datadir(__file__),
+                   None, headless=False)
+    test_show('skywater130_demo', 'heartbeat_skywater130.def', datadir(__file__),
                    None, headless=False)

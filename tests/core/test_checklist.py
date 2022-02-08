@@ -6,7 +6,7 @@ def test_checklist():
     '''
 
     chip = siliconcompiler.Chip(loglevel="INFO")
-    chip.target('asicflow_freepdk45')
+    chip.load_project('freepdk45_demo')
 
     #automated fail
     chip.set('metric','syn','0', 'errors', 'real', 1)

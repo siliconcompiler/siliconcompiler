@@ -3,21 +3,24 @@ import siliconcompiler
 def test_check_flowgraph():
     chip = siliconcompiler.Chip()
 
+
     chip.set('design', 'foo')
     chip.add('source', 'foo.v')
 
-    chip.node('import', 'surelog')
-    chip.node('syn', 'yosys')
-    chip.edge('import', 'syn')
+    flow = 'test'
+    chip.set('target', 'flow', flow)
+    chip.node(flow, 'import', 'surelog')
+    chip.node(flow, 'syn', 'yosys')
+    chip.edge(flow, 'import', 'syn')
 
-    for step in chip.getkeys('flowgraph'):
-        for index in chip.getkeys('flowgraph', step):
+    for step in chip.getkeys('flowgraph', flow):
+        for index in chip.getkeys('flowgraph', flow, step):
             # Setting up tool is optional
-            tool = chip.get('flowgraph', step, index, 'tool')
+            tool = chip.get('flowgraph', flow, step, index, 'tool')
             if tool not in chip.builtin:
                 chip.set('arg','step', step)
                 chip.set('arg','index', index)
-                func = chip.find_function(tool, 'tool', 'setup_tool')
+                func = chip.find_function(tool, 'setup', 'tools')
                 func(chip)
                 # Need to clear index, otherwise we will skip
                 # setting up other indices. Clear step for good
@@ -32,14 +35,16 @@ def test_check_flowgraph_join():
 
     chip.set('design', 'foo')
 
-    chip.node('prejoin1', 'fake_out')
-    chip.node('prejoin2', 'fake_out')
-    chip.node('dojoin', 'join')
-    chip.node('postjoin', 'fake_in')
+    flow = 'test'
+    chip.set('target', 'flow', flow)
+    chip.node(flow, 'prejoin1', 'fake_out')
+    chip.node(flow, 'prejoin2', 'fake_out')
+    chip.node(flow, 'dojoin', 'join')
+    chip.node(flow, 'postjoin', 'fake_in')
 
-    chip.edge('prejoin1', 'dojoin')
-    chip.edge('prejoin2', 'dojoin')
-    chip.edge('dojoin', 'postjoin')
+    chip.edge(flow, 'prejoin1', 'dojoin')
+    chip.edge(flow, 'prejoin2', 'dojoin')
+    chip.edge(flow, 'dojoin', 'postjoin')
 
     chip.set('eda', 'fake_out', 'output', 'prejoin1', '0', 'a.v')
     chip.set('eda', 'fake_out', 'output', 'prejoin2', '0', 'b.v')
@@ -52,14 +57,16 @@ def test_check_flowgraph_min():
 
     chip.set('design', 'foo')
 
-    chip.node('premin', 'fake_out', index=0)
-    chip.node('premin', 'fake_out', index=1)
-    chip.node('domin', 'minimum')
-    chip.node('postmin', 'fake_in')
+    flow = 'test'
+    chip.set('target', 'flow', flow)
+    chip.node(flow, 'premin', 'fake_out', index=0)
+    chip.node(flow, 'premin', 'fake_out', index=1)
+    chip.node(flow, 'domin', 'minimum')
+    chip.node(flow, 'postmin', 'fake_in')
 
-    chip.edge('premin', 'domin', tail_index=0)
-    chip.edge('premin', 'domin', tail_index=1)
-    chip.edge('domin', 'postmin')
+    chip.edge(flow, 'premin', 'domin', tail_index=0)
+    chip.edge(flow, 'premin', 'domin', tail_index=1)
+    chip.edge(flow, 'domin', 'postmin')
 
     chip.set('eda', 'fake_out', 'output', 'premin', '0', ['a.v', 'common.v'])
     chip.set('eda', 'fake_out', 'output', 'premin', '1', ['b.v', 'common.v'])
@@ -72,14 +79,16 @@ def test_check_flowgraph_min_fail():
 
     chip.set('design', 'foo')
 
-    chip.node('premin', 'fake_out', index=0)
-    chip.node('premin', 'fake_out', index=1)
-    chip.node('domin', 'minimum')
-    chip.node('postmin', 'fake_in')
+    flow = 'test'
+    chip.set('target', 'flow', flow)
+    chip.node(flow, 'premin', 'fake_out', index=0)
+    chip.node(flow, 'premin', 'fake_out', index=1)
+    chip.node(flow, 'domin', 'minimum')
+    chip.node(flow, 'postmin', 'fake_in')
 
-    chip.edge('premin', 'domin', tail_index=0)
-    chip.edge('premin', 'domin', tail_index=1)
-    chip.edge('domin', 'postmin')
+    chip.edge(flow, 'premin', 'domin', tail_index=0)
+    chip.edge(flow, 'premin', 'domin', tail_index=1)
+    chip.edge(flow, 'domin', 'postmin')
 
     chip.set('eda', 'fake_out', 'output', 'premin', '0', ['a.v'])
     chip.set('eda', 'fake_out', 'output', 'premin', '1', ['b.v'])

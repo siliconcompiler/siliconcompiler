@@ -8,20 +8,20 @@ import pytest
 def test_check_manifest():
 
     chip = siliconcompiler.Chip(loglevel="INFO")
-    chip.target("asicflow_freepdk45")
+    chip.load_project("freepdk45_demo")
     chip.set('source', 'examples/gcd/gcd.v')
-
+    flow = chip.get('target', 'flow')
     index = "0"
     steps = ['import', 'syn']
     for step in steps:
-        tool = chip.get('flowgraph', step, index, 'tool')
+        tool = chip.get('flowgraph', flow, step, index, 'tool')
         chip.set('arg', 'step', step)
         chip.set('arg', 'index', index)
         chip.set('design', 'gcd')
 
-        setup_tool = chip.find_function(tool, 'tool', 'setup_tool')
-        assert setup_tool is not None
-        setup_tool(chip)
+        setup = chip.find_function(tool, 'setup', 'tools')
+        assert setup is not None
+        setup(chip)
 
     chip.set('steplist', steps)
 
@@ -36,7 +36,7 @@ def test_check_allowed_filepaths_pass(scroot, monkeypatch):
     chip.set('design', 'gcd')
 
     chip.set('source', os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
-    chip.target('asicflow_freepdk45')
+    chip.load_project("freepdk45_demo")
 
     # run an import just to collect files
     chip.set('steplist', 'import')
@@ -59,7 +59,7 @@ def test_check_allowed_filepaths_fail(scroot, monkeypatch):
     chip.set('source', os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
     chip.set('read', 'sdc', 'import', '0', '/random/abs/path/to/file.sdc')
     chip.set('read', 'sdc', 'import', '0', False, field='copy')
-    chip.target('asicflow_freepdk45')
+    chip.load_project("freepdk45_demo")
 
     # run an import just to collect files
     chip.set('steplist', 'import')
@@ -76,11 +76,11 @@ def test_check_allowed_filepaths_fail(scroot, monkeypatch):
 def test_check_missing_file_param():
     chip = siliconcompiler.Chip()
     chip.set('design', 'gcd')
-    chip.target('asicflow_freepdk45')
+    chip.load_project("freepdk45_demo")
 
     chip.set('arg', 'step', 'syn')
     chip.set('arg', 'index', '0')
-    setup_tool = chip.find_function('yosys', 'tool', 'setup_tool')
+    setup_tool = chip.find_function('yosys', 'setup', 'tools')
     setup_tool(chip)
 
     chip.set('eda', 'yosys', 'input', 'syn', '0', [])

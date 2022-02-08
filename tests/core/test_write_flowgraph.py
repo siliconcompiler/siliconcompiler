@@ -9,7 +9,7 @@ def test_write_flowgraph():
     ################################################
 
     chip = siliconcompiler.Chip(loglevel="INFO")
-    chip.target('asicflow_freepdk45')
+    chip.load_project('freepdk45_demo')
     chip.write_flowgraph('serial.png')
 
     assert os.path.isfile('serial.png')
@@ -22,7 +22,7 @@ def test_write_flowgraph():
     chip.set('flowarg','syn_np', "4")
     chip.set('flowarg','place_np', "4")
     chip.set('flowarg','route_np', "4")
-    chip.target('asicflow_freepdk45')
+    chip.load_project('freepdk45_demo')
     chip.write_flowgraph('forkjoin.png')
 
     assert os.path.isfile('forkjoin.png')
@@ -33,7 +33,9 @@ def test_write_flowgraph():
 
     chip = siliconcompiler.Chip(loglevel="INFO")
     chip.set('flowarg','np', "10")
-    chip.target('dvflow_freepdk45')
+    chip.load_pdk('freepdk45')
+    chip.load_flow('dvflow')
+    chip.set('target', 'flow', 'dvflow')
     chip.write_flowgraph('pipes.png')
 
     assert os.path.isfile('pipes.png')

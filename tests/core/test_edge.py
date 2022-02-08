@@ -8,18 +8,20 @@ def test_edge():
 
     syn_np = 10
 
+    flow = 'test'
+    chip.set('target', 'flow', flow)
     #nodes
-    chip.node('import', 'surelog')
+    chip.node(flow, 'import', 'surelog')
     for i in range(syn_np):
-        chip.node('syn', 'yosys', index=i)
-    chip.node('synmin', 'minimum')
-    chip.node('floorplan', 'openroad')
+        chip.node(flow, 'syn', 'yosys', index=i)
+    chip.node(flow, 'synmin', 'minimum')
+    chip.node(flow, 'floorplan', 'openroad')
 
     #edges
     for i in range(syn_np):
-        chip.edge('import', 'syn', head_index=i)
-        chip.edge('syn', 'synmin', tail_index=i)
-    chip.edge('synmin', 'floorplan')
+        chip.edge(flow, 'import', 'syn', head_index=i)
+        chip.edge(flow, 'syn', 'synmin', tail_index=i)
+    chip.edge(flow, 'synmin', 'floorplan')
     chip.write_flowgraph('flow.png')
     assert os.path.isfile('flow.png')
 
