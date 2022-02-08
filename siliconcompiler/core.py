@@ -328,6 +328,8 @@ class Chip:
                 sys.exit()
             if 'arg_step' in cmdargs.keys():
                 self.set('arg', 'step', cmdargs['arg_step'], clobber=True)
+            if 'fpga_partname' in cmdargs.keys():
+                self.set('fpga', 'partname', cmdargs['fpga_partname'], clobber=True)
             # running target command
             self.load_target(cmdargs['target'])
 
@@ -341,8 +343,6 @@ class Chip:
         allkeys = self.getkeys()
 
         for key, val in cmdargs.items():
-
-
 
             # Unifying around no underscores for now
             keylist = key.split('_')
@@ -472,7 +472,7 @@ class Chip:
                 self.error = 1
 
     ##########################################################################
-    def load_target(self, name):
+    def load_target(self, name=None):
         """
         Loads a project module and runs the setup() function.
 
@@ -487,6 +487,8 @@ class Chip:
             Loads the 'freepdk45_demo' target
 
         """
+
+        self.set('target', name)
 
         func = self.find_function(name, 'setup', 'targets')
         if func is not None:
@@ -1609,7 +1611,6 @@ class Chip:
             else:
                 required_inputs = []
             input_dir = os.path.join(self._getworkdir(step=step, index=index), 'inputs')
-
             for filename in required_inputs:
                 path = os.path.join(input_dir, filename)
                 if not os.path.isfile(path):
