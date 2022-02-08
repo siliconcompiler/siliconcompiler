@@ -35,7 +35,7 @@ def make_docs():
 # Setup tool
 ####################################################################
 
-def setup_tool(chip, mode="batch"):
+def setup(chip, mode="batch"):
     '''
     Setup function for Klayout
     '''

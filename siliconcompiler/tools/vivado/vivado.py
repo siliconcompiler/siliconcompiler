@@ -30,7 +30,7 @@ def make_docs():
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip, mode='batch'):
+def setup(chip, mode='batch'):
     '''
     '''
 

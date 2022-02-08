@@ -35,7 +35,7 @@ VLOG_DIR = 'verilog'
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip):
+def setup(chip):
     ''' Sets up default settings on a per step basis
     '''
 

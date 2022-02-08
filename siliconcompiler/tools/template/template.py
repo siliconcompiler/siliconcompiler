@@ -17,7 +17,7 @@ def make_docs():
     setup_tool(chip)
     return chip
 
-def setup_tool(chip):
+def setup(chip):
     '''
     Setup Tool (pre executable)
     '''

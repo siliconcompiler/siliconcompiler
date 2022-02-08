@@ -33,7 +33,7 @@ def make_docs():
 ################################
 # Setup Tool (pre executable)
 ################################
-def setup_tool(chip):
+def setup(chip):
 
      tool = 'xyce'
      refdir = 'tools/'+tool

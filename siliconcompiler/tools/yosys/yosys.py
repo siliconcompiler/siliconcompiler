@@ -37,7 +37,7 @@ def make_docs():
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip):
+def setup(chip):
     ''' Tool specific function to run before step execution
     '''
 

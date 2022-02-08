@@ -38,7 +38,7 @@ def make_docs():
 
 OPENFPGA_SCRIPT = 'openfpga_script.openfpga'
 
-def setup_tool(chip):
+def setup(chip):
     ''' Sets up default settings on a per step basis
     '''
 

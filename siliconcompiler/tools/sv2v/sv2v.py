@@ -37,7 +37,7 @@ def make_docs():
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip):
+def setup(chip):
     ''' Per tool function that returns a dynamic options string based on
     the dictionary settings.
     '''

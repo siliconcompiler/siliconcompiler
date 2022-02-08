@@ -29,7 +29,7 @@ def make_docs():
 # Setup NextPNR
 ################################
 
-def setup_tool(chip):
+def setup(chip):
     ''' Sets up default settings on a per step basis
     '''
 
