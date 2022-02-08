@@ -13,6 +13,7 @@ def test_verilator(oh_dir):
     step = "import"
 
     chip = siliconcompiler.Chip(loglevel="INFO")
+    chip.load_target('freepdk45_demo')
     chip.set('ydir', ydir)
     chip.set('design', design)
     chip.set('source', topfile)
@@ -20,7 +21,8 @@ def test_verilator(oh_dir):
     chip.set('quiet', True)
     chip.set('mode', 'sim')
     chip.set('arg','step',step)
-    chip.target("verilator")
+    chip.set('flow','test')
+    chip.load_tool('verilator', standalone=True)
     chip.run()
 
     # check that compilation succeeded

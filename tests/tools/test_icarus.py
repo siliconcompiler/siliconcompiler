@@ -12,12 +12,14 @@ def test_icarus(oh_dir):
     topfile = os.path.join(ydir, f'{design}.v')
 
     chip = siliconcompiler.Chip(loglevel="INFO")
+    chip.load_target('freepdk45_demo')
     chip.set('ydir', ydir)
     chip.set('design', design)
     chip.set('source', topfile)
     chip.set('mode', 'sim')
     chip.set('arg','step','compile')
-    chip.target("icarus")
+    chip.set('flow', 'test')
+    chip.load_tool('icarus', standalone=True)
     chip.run()
 
     # check that compilation succeeded

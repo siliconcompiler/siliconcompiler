@@ -2,6 +2,7 @@
 import os
 import siliconcompiler
 import pytest
+import sys
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -13,13 +14,20 @@ def test_openroad(scroot):
 
     chip = siliconcompiler.Chip()
     chip.set('design', design)
+
     chip.set('read', 'netlist', 'floorplan', '0', netlist)
-    chip.set('mode', 'asic')
     chip.set('quiet', True)
     chip.set('asic', 'diearea', [(0,0), (100.13,100.8)])
     chip.set('asic', 'corearea', [(10.07,11.2), (90.25,91)])
-    chip.set('arg','step', 'floorplan')
-    chip.target("openroad_freepdk45")
+
+    # load tech
+    chip.load_target("freepdk45_demo")
+
+    # set up tool for floorplan
+    chip.set('flow', 'test')
+    chip.set('arg', 'step', 'floorplan')
+    chip.load_tool("openroad", standalone=True)
+
     chip.run()
 
     # check that compilation succeeded
