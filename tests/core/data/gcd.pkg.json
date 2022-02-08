@@ -88,6 +88,20 @@
             "type": "str",
             "value": "m3"
         },
+        "logiclib": {
+            "defvalue": [],
+            "lock": "false",
+            "require": "all",
+            "shorthelp": "ASIC logic libraries",
+            "signature": [
+                null
+            ],
+            "switch": "-asic_logiclib <str>",
+            "type": "[str]",
+            "value": [
+                "nangate45"
+            ]
+        },
         "maxcap": {
             "defvalue": null,
             "lock": "false",
@@ -430,7 +444,7 @@
                         "switch": "-eda_req 'tool step index <str>'",
                         "type": "[str]",
                         "value": [
-                            "target,lib",
+                            "asic,logiclib",
                             "asic,stackup",
                             "pdk,layermap,klayout,10M,def,gds",
                             "library,nangate45,gds",
@@ -1178,7 +1192,7 @@
                         "switch": "-eda_req 'tool step index <str>'",
                         "type": "[str]",
                         "value": [
-                            "target,lib",
+                            "asic,logiclib",
                             "asic,stackup",
                             "library,nangate45,arch",
                             "pdk,aprtech,openroad,10M,10t,lef",
@@ -1197,7 +1211,7 @@
                         "switch": "-eda_req 'tool step index <str>'",
                         "type": "[str]",
                         "value": [
-                            "target,lib",
+                            "asic,logiclib",
                             "asic,stackup",
                             "library,nangate45,arch",
                             "pdk,aprtech,openroad,10M,10t,lef",
@@ -1216,7 +1230,7 @@
                         "switch": "-eda_req 'tool step index <str>'",
                         "type": "[str]",
                         "value": [
-                            "target,lib",
+                            "asic,logiclib",
                             "asic,stackup",
                             "library,nangate45,arch",
                             "pdk,aprtech,openroad,10M,10t,lef",
@@ -1235,7 +1249,7 @@
                         "switch": "-eda_req 'tool step index <str>'",
                         "type": "[str]",
                         "value": [
-                            "target,lib",
+                            "asic,logiclib",
                             "asic,stackup",
                             "library,nangate45,arch",
                             "pdk,aprtech,openroad,10M,10t,lef",
@@ -1254,7 +1268,7 @@
                         "switch": "-eda_req 'tool step index <str>'",
                         "type": "[str]",
                         "value": [
-                            "target,lib",
+                            "asic,logiclib",
                             "asic,stackup",
                             "library,nangate45,arch",
                             "pdk,aprtech,openroad,10M,10t,lef",
@@ -1273,7 +1287,7 @@
                         "switch": "-eda_req 'tool step index <str>'",
                         "type": "[str]",
                         "value": [
-                            "target,lib",
+                            "asic,logiclib",
                             "asic,stackup",
                             "library,nangate45,arch",
                             "pdk,aprtech,openroad,10M,10t,lef",
@@ -1423,7 +1437,7 @@
                         ],
                         "switch": "-eda_threads 'tool step index <int>'",
                         "type": "int",
-                        "value": "8"
+                        "value": "20"
                     }
                 },
                 "dfm": {
@@ -1437,7 +1451,7 @@
                         ],
                         "switch": "-eda_threads 'tool step index <int>'",
                         "type": "int",
-                        "value": "8"
+                        "value": "20"
                     }
                 },
                 "floorplan": {
@@ -1451,7 +1465,7 @@
                         ],
                         "switch": "-eda_threads 'tool step index <int>'",
                         "type": "int",
-                        "value": "8"
+                        "value": "20"
                     }
                 },
                 "physyn": {
@@ -1465,7 +1479,7 @@
                         ],
                         "switch": "-eda_threads 'tool step index <int>'",
                         "type": "int",
-                        "value": "8"
+                        "value": "20"
                     }
                 },
                 "place": {
@@ -1479,7 +1493,7 @@
                         ],
                         "switch": "-eda_threads 'tool step index <int>'",
                         "type": "int",
-                        "value": "8"
+                        "value": "20"
                     }
                 },
                 "route": {
@@ -1493,7 +1507,7 @@
                         ],
                         "switch": "-eda_threads 'tool step index <int>'",
                         "type": "int",
-                        "value": "8"
+                        "value": "20"
                     }
                 }
             },
@@ -2026,7 +2040,7 @@
                         ],
                         "switch": "-eda_threads 'tool step index <int>'",
                         "type": "int",
-                        "value": "8"
+                        "value": "20"
                     }
                 }
             },
@@ -2229,7 +2243,7 @@
                         "value": [
                             "pdk,process",
                             "design",
-                            "target,lib",
+                            "asic,logiclib",
                             "library,nangate45,nldm,typical,lib"
                         ]
                     }
@@ -2285,6 +2299,18 @@
                 ]
             }
         }
+    },
+    "flow": {
+        "defvalue": null,
+        "lock": "false",
+        "require": "all",
+        "shorthelp": "Compilation flow",
+        "signature": [
+            null
+        ],
+        "switch": "-flow <str>",
+        "type": "str",
+        "value": "asicflow"
     },
     "flowgraph": {
         "asicflow": {
@@ -7009,7 +7035,7 @@
                         ],
                         "switch": "-metric_cells step index group <int>",
                         "type": "int",
-                        "value": "419"
+                        "value": "421"
                     }
                 },
                 "coverage": {
@@ -7295,7 +7321,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "3.37"
+                        "value": "2.49"
                     }
                 },
                 "security": {
@@ -7561,7 +7587,7 @@
                         ],
                         "switch": "-metric_cells step index group <int>",
                         "type": "int",
-                        "value": "1877"
+                        "value": "1869"
                     }
                 },
                 "coverage": {
@@ -7847,7 +7873,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "1.4"
+                        "value": "1.04"
                     }
                 },
                 "security": {
@@ -8357,7 +8383,7 @@
                         "signature": null,
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "1.34"
+                        "value": "0.99"
                     }
                 },
                 "security": {
@@ -8597,7 +8623,7 @@
                         ],
                         "switch": "-metric_cells step index group <int>",
                         "type": "int",
-                        "value": "361"
+                        "value": "363"
                     }
                 },
                 "coverage": {
@@ -8883,7 +8909,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "1.29"
+                        "value": "1.0"
                     }
                 },
                 "security": {
@@ -9005,7 +9031,7 @@
                         ],
                         "switch": "-metric_totalarea step index group <float>",
                         "type": "float",
-                        "value": "5914.29"
+                        "value": "6900.0"
                     }
                 },
                 "transistors": {
@@ -9047,7 +9073,7 @@
                         ],
                         "switch": "-metric_utilization step index group <float>",
                         "type": "float",
-                        "value": "7.0"
+                        "value": "6.0"
                     }
                 },
                 "vias": {
@@ -9435,7 +9461,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.62"
+                        "value": "0.39"
                     }
                 },
                 "security": {
@@ -9701,7 +9727,7 @@
                         ],
                         "switch": "-metric_cells step index group <int>",
                         "type": "int",
-                        "value": "361"
+                        "value": "363"
                     }
                 },
                 "coverage": {
@@ -9987,7 +10013,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "1.24"
+                        "value": "0.97"
                     }
                 },
                 "security": {
@@ -10109,7 +10135,7 @@
                         ],
                         "switch": "-metric_totalarea step index group <float>",
                         "type": "float",
-                        "value": "5914.29"
+                        "value": "6900.0"
                     }
                 },
                 "transistors": {
@@ -10151,7 +10177,7 @@
                         ],
                         "switch": "-metric_utilization step index group <float>",
                         "type": "float",
-                        "value": "7.0"
+                        "value": "6.0"
                     }
                 },
                 "vias": {
@@ -10253,7 +10279,7 @@
                         ],
                         "switch": "-metric_cells step index group <int>",
                         "type": "int",
-                        "value": "414"
+                        "value": "416"
                     }
                 },
                 "coverage": {
@@ -10539,7 +10565,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "1.55"
+                        "value": "1.18"
                     }
                 },
                 "security": {
@@ -10805,7 +10831,7 @@
                         ],
                         "switch": "-metric_cells step index group <int>",
                         "type": "int",
-                        "value": "1877"
+                        "value": "1869"
                     }
                 },
                 "coverage": {
@@ -11049,7 +11075,7 @@
                         ],
                         "switch": "-metric_peakpower step index group <float>",
                         "type": "float",
-                        "value": "0.000292"
+                        "value": "0.000291"
                     }
                 },
                 "pins": {
@@ -11091,7 +11117,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "3.71"
+                        "value": "2.65"
                     }
                 },
                 "security": {
@@ -11269,7 +11295,7 @@
                         ],
                         "switch": "-metric_vias step index group <int>",
                         "type": "int",
-                        "value": "2196"
+                        "value": "2194"
                     }
                 },
                 "warnings": {
@@ -11297,7 +11323,7 @@
                         ],
                         "switch": "-metric_wirelength step index group <float>",
                         "type": "float",
-                        "value": "6324.0"
+                        "value": "6291.0"
                     }
                 }
             }
@@ -11643,7 +11669,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "1.26"
+                        "value": "0.86"
                     }
                 },
                 "security": {
@@ -12967,56 +12993,16 @@
         ]
     },
     "target": {
-        "flow": {
-            "defvalue": null,
-            "lock": "false",
-            "require": "all",
-            "shorthelp": "Target flow",
-            "signature": [
-                null
-            ],
-            "switch": "-target_flow <str>",
-            "type": "str",
-            "value": "asicflow"
-        },
-        "lib": {
-            "defvalue": [],
-            "lock": "false",
-            "require": "all",
-            "shorthelp": "Target libraries",
-            "signature": [
-                null
-            ],
-            "switch": "-target_lib <str>",
-            "type": "[str]",
-            "value": [
-                "nangate45"
-            ]
-        },
-        "pdk": {
-            "defvalue": null,
-            "lock": "false",
-            "require": "all",
-            "shorthelp": "Target PDK",
-            "signature": [
-                null
-            ],
-            "switch": "-target_pdk <str>",
-            "type": "str",
-            "value": "asicflow"
-        },
-        "project": {
-            "defvalue": null,
-            "lock": "false",
-            "require": "all",
-            "shorthelp": "Target project",
-            "signature": [
-                null
-            ],
-            "switch": "-target_project <str>",
-            "type": "str",
-            "value": "freepdk45_demo"
-        }
+        "defvalue": null,
+        "lock": "false",
+        "require": "all",
+        "shorthelp": "Compilation target",
+        "signature": [
+            null
+        ],
+        "switch": "-target <str>",
+        "type": "str",
+        "value": "freepdk45_demo"
     },
     "trace": {
         "defvalue": "false",
