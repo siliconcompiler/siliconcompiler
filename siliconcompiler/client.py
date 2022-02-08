@@ -51,16 +51,16 @@ def remote_preprocess(chip):
     active = manager.dict()
 
     # Setup up tools for all local functions
-    remote_steplist = chip.getkeys('flowgraph')
+    remote_steplist = chip.getkeys('flowgraph',chip.get('flow'))
     local_step = remote_steplist[0]
-    indexlist = chip.getkeys('flowgraph', local_step)
+    indexlist = chip.getkeys('flowgraph', chip.get('flow'), local_step)
     for index in indexlist:
-        tool = chip.get('flowgraph', local_step, index, 'tool')
+        tool = chip.get('flowgraph', chip.get('flow'), local_step, index, 'tool')
         # Setting up tool is optional (step may be a builtin function)
         if tool:
             chip.set('arg', 'step', local_step)
             chip.set('arg', 'index', index)
-            func = chip.find_function(tool, 'tool', 'setup_tool')
+            func = chip.find_function(tool, 'setup', 'tools')
             func(chip)
 
         # Need to override steplist here to make sure check_manifest() doesn't
