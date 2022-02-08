@@ -52,14 +52,15 @@ def make_docs():
     chip.set('flowarg', 'place_np', n)
     chip.set('flowarg', 'cts_np', n)
     chip.set('flowarg', 'route_np', n)
-    setup_flow(chip)
+    chip.set('flow', 'asicflow')
+    setup(chip)
 
     return chip
 
 ###########################################################################
 # Flowgraph Setup
 ############################################################################
-def setup(chip):
+def setup(chip, flowname='asicflow'):
     '''
     Setup function for 'asicflow' ASIC compilation execution flowgraph.
 
@@ -67,8 +68,6 @@ def setup(chip):
         chip (object): SC Chip object
 
     '''
-
-    flowname = 'asicflow'
 
     # Linear flow, up until branch to run parallel verification steps.
     longpipe = ['syn',

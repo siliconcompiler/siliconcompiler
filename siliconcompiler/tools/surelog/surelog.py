@@ -28,7 +28,7 @@ def make_docs():
     chip.set('arg','step','import')
     chip.set('arg','index','0')
     chip.set('design', '<design>')
-    setup_tool(chip)
+    setup(chip)
     return chip
 
 ################################

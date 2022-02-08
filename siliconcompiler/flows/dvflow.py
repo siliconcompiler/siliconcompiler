@@ -27,14 +27,15 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
-    setup_flow(chip)
+    chip.set('flow', 'dvflow')
+    setup(chip)
 
     return chip
 
 #############################################################################
 # Flowgraph Setup
 #############################################################################
-def setup(chip):
+def setup(chip, flow='dflow'):
     '''
     Setup function for 'dvflow'
     '''

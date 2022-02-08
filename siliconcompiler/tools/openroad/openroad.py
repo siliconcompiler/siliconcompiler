@@ -29,7 +29,7 @@ def make_docs():
     chip.set('arg','step','<step>')
     chip.set('arg','index','<index>')
     chip.set('design', '<design>')
-    setup_tool(chip)
+    setup(chip)
 
     return chip
 

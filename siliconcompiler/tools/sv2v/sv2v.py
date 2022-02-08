@@ -29,7 +29,7 @@ def make_docs():
     chip.set('arg','step', '<step>')
     chip.set('arg','index', '<index>')
     chip.set('design', '<design>')
-    setup_tool(chip)
+    setup(chip)
     return chip
 
 
@@ -93,6 +93,6 @@ if __name__ == "__main__":
     # create a chip instance
     chip = siliconcompiler.Chip()
     # load configuration
-    setup_tool(chip)
+    setup(chip)
     # write out results
     chip.writecfg(output)

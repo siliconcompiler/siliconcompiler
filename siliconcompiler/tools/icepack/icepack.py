@@ -24,7 +24,7 @@ def make_docs():
     chip = siliconcompiler.Chip()
     chip.set('arg','step','bitstream')
     chip.set('arg','index','<index>')
-    setup_tool(chip)
+    setup(chip)
     return chip
 
 

@@ -20,16 +20,16 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
-    chip.target('skywater130')
+    chip.load_pdk('skywater130')
     chip.set('arg','index','<index>')
 
     # check drc
     chip.set('arg','step','drc')
-    setup_tool(chip)
+    setup(chip)
 
     # check lvs
     chip.set('arg','step', 'extspice')
-    setup_tool(chip)
+    setup(chip)
 
     return chip
 

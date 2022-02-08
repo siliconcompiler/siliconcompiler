@@ -40,14 +40,16 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
-    setup_flow(chip)
+    chip.set('flow', 'fpgaflow')
+    chip.set('fpga', 'partname', '<fpga-partname>')
+    setup(chip)
 
     return chip
 
 ############################################################################
 # Flowgraph Setup
 ############################################################################
-def setup(chip):
+def setup(chip, flowname='fpgaflow'):
     '''
     Setup function for 'fpgaflow'
 
@@ -55,8 +57,6 @@ def setup(chip):
         chip (object): SC Chip object
 
     '''
-
-    flowname = 'fpgaflow'
 
     # Check that partname has been set
 

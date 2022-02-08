@@ -30,7 +30,7 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
-    setup_pdk(chip)
+    setup(chip)
 
     return chip
 
