@@ -59,7 +59,7 @@ def make_docs():
 ###########################################################################
 # Flowgraph Setup
 ############################################################################
-def setup_flow(chip):
+def setup(chip):
     '''
     Setup function for 'asicflow' ASIC compilation execution flowgraph.
 
