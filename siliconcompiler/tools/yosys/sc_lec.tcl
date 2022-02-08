@@ -17,7 +17,7 @@ if {[dict get $sc_cfg eda $sc_tool copy] eq True} {
 
 set sc_mode        [dict get $sc_cfg mode]
 set sc_design      [dict get $sc_cfg design]
-set sc_targetlibs  [dict get $sc_cfg asic targetlib]
+set sc_targetlibs  [dict get $sc_cfg asic logiclib]
 set lib [lindex $sc_targetlibs 0]
 set sc_liberty [dict get $sc_cfg library $lib nldm typical lib]
 

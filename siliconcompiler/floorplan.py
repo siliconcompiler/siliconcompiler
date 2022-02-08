@@ -77,14 +77,14 @@ def _wire_to_rect(wire):
 
 def _get_tech_lef_data(chip, tool):
     stackup = chip.get('asic', 'stackup')
-    libname = chip.get('asic', 'targetlib')[0]
+    libname = chip.get('asic', 'logiclib')[0]
     libtype = chip.get('library', libname, 'arch')
 
     tech_lef = chip.find_files('pdk', 'aprtech', tool, stackup, libtype, 'lef')[0]
     return leflib.parse(tech_lef)
 
 def _get_stdcell_info(chip, tech_lef_data):
-    libname = chip.get('asic', 'targetlib')[0]
+    libname = chip.get('asic', 'logiclib')[0]
     site_name = chip.getkeys('library', libname, 'site')[0]
     if 'sites' not in tech_lef_data or site_name not in tech_lef_data['sites']:
         raise ValueError('Site {site_name} not found in tech LEF.')

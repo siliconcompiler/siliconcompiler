@@ -8,7 +8,7 @@ source ./sc_manifest.tcl
 # Manifest adapter
 ###############################
 
-set sc_mainlib     [lindex [dict get $sc_cfg asic targetlib] 0]
+set sc_mainlib     [lindex [dict get $sc_cfg asic logiclib] 0]
 set sc_libtype     [dict get $sc_cfg library $sc_mainlib arch]
 set sc_stackup     [dict get $sc_cfg asic stackup]
 set sc_techlef     [dict get $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype lef]
@@ -26,8 +26,8 @@ if {[dict exists $sc_cfg asic macrolib]} {
     set sc_macrolibs    ""
 }
 
-if {[dict exists $sc_cfg asic targetlib]} {
-    set sc_stdlibs [dict get $sc_cfg asic targetlib]
+if {[dict exists $sc_cfg asic logiclib]} {
+    set sc_stdlibs [dict get $sc_cfg asic logiclib]
 } else {
     set sc_stdlibs    ""
 }
