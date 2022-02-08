@@ -5140,7 +5140,7 @@ def schema_asic(cfg):
         'switch': "-asic_logiclib <str>",
         'type': '[str]',
         'lock': 'false',
-        'require': 'all',
+        'require': 'asic',
         'signature': None,
         'defvalue': [],
         'shorthelp': 'ASIC logic libraries',
