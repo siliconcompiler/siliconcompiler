@@ -17,7 +17,7 @@ def make_docs():
     setup_lib(chip)
     return chip
 
-def setup_lib(chip):
+def setup(chip):
 
     libname = 'nangate45'
     foundry = 'virtual'

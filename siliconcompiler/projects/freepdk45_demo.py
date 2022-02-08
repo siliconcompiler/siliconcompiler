@@ -21,21 +21,26 @@ def make_docs():
 # PDK Setup
 ####################################################
 
-def setup_project(chip):
+def setup(chip):
     '''
     Template project file.
     '''
 
-    #1. Set PDK
-    chip.set('target', 'pdk', 'freepdk45')
+    #1. Defining the project
+    project = 'freepdk45_demo'
+    chip.set('target', 'project', project)
 
-    #2. Specify flow
+    #2. Load PDK, flow, libs
+    chip.load_pdk('freepdk45')
+    chip.load_flow('asicflow')
+    chip.load_lib('nangate45')
+
+    #3. Set default targets
     chip.set('target', 'flow', 'asicflow')
+    chip.set('target', 'lib', 'nangate45')
+    chip.set('target', 'pdk', 'asicflow')
 
-    #3. Specify target libs
-    chip.add('target', 'lib', 'nangate45')
-
-    #4. Project specific design choices
+    #4. Set project specific design choices
     chip.set('asic', 'stackup', '10M')
     chip.set('asic', 'minlayer', "m1")
     chip.set('asic', 'maxlayer', "m10")
@@ -51,7 +56,7 @@ def setup_project(chip):
     chip.set('asic', 'aspectratio', 1)
     chip.set('asic', 'coremargin', 1.9)
 
-    # Timing corners
+    #5. Timing corners
     corner = 'typical'
     chip.set('mcmm','worst','libcorner', corner)
     chip.set('mcmm','worst','pexcorner', corner)

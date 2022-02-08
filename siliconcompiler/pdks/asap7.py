@@ -46,7 +46,7 @@ def make_docs():
 
     return chip
 
-def setup_pdk(chip):
+def setup(chip):
     '''
     TODO: Add process information
     '''

@@ -39,7 +39,7 @@ def make_docs():
 # PDK Setup
 ####################################################
 
-def setup_pdk(chip):
+def setup(chip):
     '''
     Setup function for the freepdk45 PDK.
     '''
