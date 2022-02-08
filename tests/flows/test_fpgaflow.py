@@ -18,7 +18,8 @@ def test_icebreaker(scroot):
                     os.path.join(blinky_ex_dir, 'blinky.v'),
                     '-read_pcf', f"import 0 {os.path.join(blinky_ex_dir, 'icebreaker.pcf')}",
                     '-design', 'blinky',
-                    '-target', 'fpgaflow_ice40up5k-sg48'])
+                    '-fpga_partname', 'ice40up5k-sg48',
+                    '-target', 'fpgaflow_demo'])
 
     # Verify that a bitstream was generated
     assert os.path.isfile('build/blinky/job0/bitstream/0/outputs/blinky.bit')

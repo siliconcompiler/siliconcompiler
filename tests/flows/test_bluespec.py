@@ -11,7 +11,7 @@ def test_bluespec(datadir):
     chip.add('source', src)
     chip.set('design', 'mkFibOne')
     chip.set('frontend', 'bluespec')
-    chip.target('asicflow_freepdk45')
+    chip.load_target('freepdk45_demo')
 
     chip.run()
 

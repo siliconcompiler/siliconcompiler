@@ -13,7 +13,7 @@ def test_gcd_cli(scroot):
     gcd_ex_dir = f'{scroot}/examples/gcd'
 
     script = f'''sc {gcd_ex_dir}/gcd.v \
-        -target asicflow_freepdk45 \
+        -target freepdk45_demo \
         -clock_pin "core_clock clk" \
         -clock_period "core_clock 10" \
         -constraint {gcd_ex_dir}/gcd_noclock.sdc \

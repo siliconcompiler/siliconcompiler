@@ -6,7 +6,7 @@ def gcd_chip():
 
     chip = siliconcompiler.Chip()
     chip.set('design', 'gcd', clobber=True)
-    chip.target('asicflow_freepdk45')
+    chip.load_target('freepdk45_demo')
     chip.add('source', os.path.join(gcd_ex_dir, 'gcd.v'))
     chip.set('clock', 'clock_name', 'pin', 'clk')
     chip.set('clock', 'clock_name', 'period', 2)

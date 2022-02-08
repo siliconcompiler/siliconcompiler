@@ -13,9 +13,7 @@ def chip(datadir):
     chip.set('design', 'bad')
     chip.set('asic', 'diearea', [(0, 0), (10, 10)])
     chip.set('asic',  'corearea', [(1, 1), (9, 9)])
-    chip.set('target', 'asicflow_freepdk45')
-
-    chip.target()
+    chip.load_target("freepdk45_demo")
 
     chip.add('steplist', 'import')
     chip.add('steplist', 'syn')
