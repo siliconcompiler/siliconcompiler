@@ -483,8 +483,8 @@ class Chip:
             name (str): Module name
 
         Examples:
-            >>> chip.load_project('freepdk45_demo')
-            Loads the 'freepdk45_demo' project
+            >>> chip.load_target('freepdk45_demo')
+            Loads the 'freepdk45_demo' target
 
         """
 

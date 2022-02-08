@@ -13,7 +13,7 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
-    setup_project(chip)
+    setup(chip)
     return chip
 
 
@@ -23,14 +23,14 @@ def make_docs():
 
 def setup(chip):
     '''
-    Template project file.
+    Target setup
     '''
 
     #1. Defining the project
     project = 'freepdk45_demo'
     chip.set('target', project)
 
-    #2. Load PDK, flow, libs
+    #2. Load PDK, flow, libs combo
     chip.load_pdk('freepdk45')
     chip.load_flow('asicflow')
     chip.load_lib('nangate45')
@@ -38,8 +38,10 @@ def setup(chip):
     #3. Set default flow
     chip.set('flow', 'asicflow')
 
-    #4. Set project specific design choices
+    #4. Select libraries
     chip.set('asic', 'logiclib', 'nangate45')
+
+    #5. Set project specific design choices
     chip.set('asic', 'stackup', '10M')
     chip.set('asic', 'minlayer', "m1")
     chip.set('asic', 'maxlayer', "m10")
@@ -55,7 +57,7 @@ def setup(chip):
     chip.set('asic', 'aspectratio', 1)
     chip.set('asic', 'coremargin', 1.9)
 
-    #5. Timing corners
+    #6. Timing corners
     corner = 'typical'
     chip.set('mcmm','worst','libcorner', corner)
     chip.set('mcmm','worst','pexcorner', corner)

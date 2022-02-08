@@ -31,6 +31,7 @@ def setup(chip):
     chip.set('target', project)
 
     #2. Load PDK, flow, libs
+    chip.load_pdk('skywater130')
     chip.load_flow('asicflow')
     chip.load_lib('sky130')
 
@@ -39,6 +40,8 @@ def setup(chip):
 
     #4. Set project specific design choices
     chip.set('asic', 'logiclib', 'sky130hd')
+
+    #5. et project specific design choices
     chip.set('asic', 'stackup', '5M1LI')
     # TODO: how does LI get taken into account?
     chip.set('asic', 'minlayer', "m1")

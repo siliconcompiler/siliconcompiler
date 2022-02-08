@@ -5143,12 +5143,12 @@ def schema_asic(cfg):
         'require': 'all',
         'signature': None,
         'defvalue': [],
-        'shorthelp': 'Comppilaton target logic libraries',
+        'shorthelp': 'ASIC logic libraries',
         'example': [
             "cli: -asic_logiclib nangate45",
             "api: chip.set('asic', 'logiclib','nangate45')"],
         'help': """
-        Sets the target libraries used by the compiler.
+        Logical libraries used in all synthesis and place and route steps.
         """
     }
 
