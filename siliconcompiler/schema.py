@@ -727,6 +727,8 @@ def schema_pdk(cfg, stackup='default'):
 
     libarch = 'default'
 
+    #TODO: create firm list of accepted files
+
     cfg['pdk']['aprtech'] = {}
     cfg['pdk']['aprtech'][tool] = {}
     cfg['pdk']['aprtech'][tool][stackup] = {}
@@ -1670,7 +1672,7 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
             'shorthelp': f"Library {item} cell list",
             'example': [
                 f"cli: -library_cells_{item} 'mylib *eco*'",
-                f"api: chip.set('library','mylib','cells','dontuse','*eco*')"],
+                f"api: chip.set('library','mylib','cells',{item},'*eco*')"],
             'help': """
             List of cells grouped by a property that can be accessed
             directly by the designer and tools. The example below shows how
@@ -1708,16 +1710,16 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
 # Flow Configuration
 ###############################################################################
 
-def schema_flowgraph(cfg, name='default', step='default', index='default'):
+def schema_flowgraph(cfg, flow='default', step='default', index='default'):
 
     cfg['flowgraph'] = {}
-    cfg['flowgraph'][name] = {}
-    cfg['flowgraph'][name][step] =  {}
-    cfg['flowgraph'][name][step][index] =  {}
+    cfg['flowgraph'][flow] = {}
+    cfg['flowgraph'][flow][step] =  {}
+    cfg['flowgraph'][flow][step][index] =  {}
 
     # Execution flowgraph
-    cfg['flowgraph'][name][step][index]['input'] = {
-        'switch': "-flowgraph_input 'name step index <(str,str)>'",
+    cfg['flowgraph'][flow][step][index]['input'] = {
+        'switch': "-flowgraph_input 'flow step index <(str,str)>'",
         'type': '[(str,str)]',
         'lock': 'false',
         'require': None,
@@ -1734,9 +1736,9 @@ def schema_flowgraph(cfg, name='default', step='default', index='default'):
     }
 
     # Flow graph score weights
-    cfg['flowgraph'][name][step][index]['weight'] = {}
-    cfg['flowgraph'][name][step][index]['weight']['default'] = {
-        'switch': "-flowgraph_weight 'name step metric <float>'",
+    cfg['flowgraph'][flow][step][index]['weight'] = {}
+    cfg['flowgraph'][flow][step][index]['weight']['default'] = {
+        'switch': "-flowgraph_weight 'flow step metric <float>'",
         'type': 'float',
         'lock': 'false',
         'require': None,
@@ -1754,8 +1756,8 @@ def schema_flowgraph(cfg, name='default', step='default', index='default'):
     }
 
     # Task tool/function
-    cfg['flowgraph'][name][step][index]['tool'] = {
-        'switch': "-flowgraph_tool 'name step <str>'",
+    cfg['flowgraph'][flow][step][index]['tool'] = {
+        'switch': "-flowgraph_tool 'flow step <str>'",
         'type': 'str',
         'lock': 'false',
         'require': None,
@@ -1773,8 +1775,8 @@ def schema_flowgraph(cfg, name='default', step='default', index='default'):
     }
 
     # Arguments passed by user to setup function
-    cfg['flowgraph'][name][step][index]['args'] = {
-        'switch': "-flowgraph_args 'name step index <str>'",
+    cfg['flowgraph'][flow][step][index]['args'] = {
+        'switch': "-flowgraph_args 'flow step index <str>'",
         'type': '[str]',
         'lock': 'false',
         'require': None,
@@ -1791,8 +1793,8 @@ def schema_flowgraph(cfg, name='default', step='default', index='default'):
     }
 
     # Valid bits set by user
-    cfg['flowgraph'][name][step][index]['valid'] = {
-        'switch': "-flowgraph_valid 'name step index <str>'",
+    cfg['flowgraph'][flow][step][index]['valid'] = {
+        'switch': "-flowgraph_valid 'flow step index <str>'",
         'type': 'bool',
         'lock': 'false',
         'require': None,
@@ -1812,8 +1814,8 @@ def schema_flowgraph(cfg, name='default', step='default', index='default'):
 
 
     # Valid bits set by user
-    cfg['flowgraph'][name][step][index]['timeout'] = {
-        'switch': "-flowgraph_timeout 'name step 0 <float>'",
+    cfg['flowgraph'][flow][step][index]['timeout'] = {
+        'switch': "-flowgraph_timeout 'flow step 0 <float>'",
         'type': 'float',
         'lock': 'false',
         'require': None,
@@ -1834,22 +1836,20 @@ def schema_flowgraph(cfg, name='default', step='default', index='default'):
         """
     }
 
-    cfg['flowgraph'][name][step][index]['flowin'] = {
-        'switch': "-flowgraph_flowin 'name step 0 <(str,str)>'",
-        'type': '(str,str)',
+    cfg['flowgraph'][flow][step][index]['flowin'] = {
+        'switch': "-flowgraph_flowin 'flow step 0 <str>'",
+        'type': 'str',
         'lock': 'false',
         'require': None,
         'signature' : None,
         'defvalue': None,
         'shorthelp': 'Flowgraph flow input',
         'example': [
-            "cli: -flowgraph_flowin 'toflow netlist 0 (asicflow,export)",
-            "api:  chip.set('flowgraph','toflow','netlist','0','flowin',('asicflow','export')"],
+            "cli: -flowgraph_flowin 'to netlist 0 asicflow",
+            "api:  chip.set('flowgraph','to','netlist','0','flowin','asicflow')"],
         'help': """
-        Flowgraph input specified as a tuple with the format (flowname,stepname).
-        The current flowgraph us used as input if th parameter is empty.
-        The (flowname,step) index value is always '0'. The flowin parameter
-        enables flowgraph reuse and modular flow design.
+        Name of the flow that is the input of the target flow. By default,
+        the input to the flow is an empty list.
         """
     }
 
