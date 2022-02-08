@@ -18,8 +18,7 @@ def test_icarus(oh_dir):
     chip.set('source', topfile)
     chip.set('mode', 'sim')
     chip.set('arg','step','compile')
-    chip.set('flow', 'test')
-    chip.load_tool('icarus', standalone=True)
+    chip.set('flow', 'icarus')
     chip.run()
 
     # check that compilation succeeded

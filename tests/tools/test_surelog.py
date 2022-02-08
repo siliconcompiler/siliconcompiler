@@ -16,8 +16,7 @@ def test_surelog(scroot):
     chip.set('design', design)
     chip.set('mode', 'sim')
     chip.set('arg', 'step', step)
-    chip.set('flow', 'test')
-    chip.load_tool('surelog', standalone=True)
+    chip.set('flow', 'surelog')
 
     chip.run()
 
@@ -38,8 +37,7 @@ def test_surelog_preproc_regression(datadir):
     chip.set('design', design)
     chip.set('mode', 'asicflow')
     chip.set('arg', 'step', step)
-    chip.set('flow', 'test')
-    chip.load_tool('surelog', standalone=True)
+    chip.set('flow', 'surelog')
 
     chip.run()
 

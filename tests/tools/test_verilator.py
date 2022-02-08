@@ -21,8 +21,7 @@ def test_verilator(oh_dir):
     chip.set('quiet', True)
     chip.set('mode', 'sim')
     chip.set('arg','step',step)
-    chip.set('flow','test')
-    chip.load_tool('verilator', standalone=True)
+    chip.set('flow','verilator')
     chip.run()
 
     # check that compilation succeeded

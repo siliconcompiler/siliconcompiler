@@ -570,44 +570,6 @@ class Chip:
             self.logger.error(f'Module {name} not found.')
             sys.exit(1)
 
-    ##########################################################################
-    def load_tool(self, name, standalone=False):
-        """
-        Loads a tool module and runs the setup() function.
-
-        The function searches the $SCPATH for tools/<name>/<name>.py and runs
-        the setup function in that module if found.
-
-        Args:
-            name (str): Module name
-            flow
-
-        Examples:
-            >>> chip.lad_tool('openroad')
-            Loads the 'openroad' tool settings
-
-        """
-
-        # Set up a one step flow if flow is defined.
-        flow = self.get('flow')
-        step = self.get('arg', 'step')
-        if standalone:
-            self.set('flowgraph', flow, step, '0', 'tool', name)
-            self.set('flowgraph', flow, step, '0', 'weight', 'errors', 0)
-            self.set('flowgraph', flow, step, '0', 'weight', 'warnings', 0)
-            self.set('flowgraph', flow, step, '0', 'weight', 'runtime', 0)
-            if step != 'import':
-                #self.set('flowgraph', flow, step, '0', 'input', ('import','0'))
-                self.set('flowgraph', flow, 'import', '0', 'tool', 'join')
-
-        #load the tool
-        func = self.find_function(name, 'setup', 'tools')
-        if func is not None:
-            func(self)
-        else:
-            self.logger.error(f'Module {name} not found.')
-            sys.exit(1)
-
 
     ###########################################################################
     def list_metrics(self):
@@ -3487,6 +3449,26 @@ class Chip:
         '''
 
         flow = self.get('flow')
+
+        if not flow in self.getkeys('flowgraph'):
+            # If not a pre-loaded flow, we'll assume that 'flow' specifies a
+            # single-step tool run with flow being the name of the tool. Set up
+            # a basic flowgraph for this tool with a no-op import and default
+            # weights.
+            tool = flow
+            step = self.get('arg', 'step')
+            if step is None:
+                self.logger.error('arg, step must be specified for single tool flow.')
+
+            self.set('flowgraph', flow, step, '0', 'tool', tool)
+            self.set('flowgraph', flow, step, '0', 'weight', 'errors', 0)
+            self.set('flowgraph', flow, step, '0', 'weight', 'warnings', 0)
+            self.set('flowgraph', flow, step, '0', 'weight', 'runtime', 0)
+            if step != 'import':
+                self.set('flowgraph', flow, step, '0', 'input', ('import','0'))
+                self.set('flowgraph', flow, 'import', '0', 'tool', 'join')
+
+            self.set('arg', 'step', None)
 
         # Run steps if set, otherwise run whole graph
         if self.get('arg', 'step'):
