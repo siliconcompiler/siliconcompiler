@@ -1,0 +1,100 @@
+.. for github, vim: syntax=reStructuredText
+
+=================================
+Revision History and Change Log
+=================================
+
+The changes in each SiliconCompiler release version are described below.   Commit
+version shown in (). Where applicable, the contributors that suggested a given
+feature are shown in [].
+
+SiliconCompiler 0.6.0 (2022-02-11)
+=========================================
+
+**Major:**
+
+* Schema: Added 'flow' key to flowgraph to enable multi-flow targets.
+* Schema: Added 'flow' parameter to enable selection between flows in flowgraph.
+* Schema: Changed '_' separated tuple target to a single 'module' load target.
+* Schema: Added 'regex' for grep like functionality.
+* Schema: Changed metal grid to use PDK metal name as the major key.
+* Schema: Added 'tool' key to PDK settings to avoid tool file conflicts.
+* Schema: Added 'units' parameter to enable tech agnostic SDC.
+* Schema: Added ability to specify tricky setup files on a per tool basis (tracks, taps, vias, antenna, etc).
+* Schema: Added checklist functionality
+* Schema: Changed cell types to be hardcoded (tapcell, buf, clkbuf, etc) to avoid fragmentation.
+* Added core.grep function
+* Added core.check_logfile function to core API to emulate grep behavior
+* Added core.load_{target, flow, lib, pdk} functions to core API in place of target()
+* Added -checkonly option to speed up new flow installation.
+* Added asap7 target
+* Added docker support for basic RTL2GDS tool chain
+* Removed core.target() function
+
+**Minor:**
+
+* Schema: Moving lib 'driver' into cells (consistency)
+* Schema: Adding site symmetry to avoid full lef parser.
+* Schema: Make tool version switch a list
+* Schema: Changing 'asic', 'targetlib' to 'asic', 'logiclib' for clarity.
+
+
+SiliconCompiler 0.4.1 (2022-01-06)
+===================================
+
+**Minor:**
+
+* Fix bug in Yosys parameter requirements spec that made check_manifest() too scrict
+
+SiliconCompiler 0.4.0 (2022-01-05)
+===================================
+
+**Major:**
+
+* Schema: Add 'tool' key to PDK fields
+* Schema: Remove unneeded 'record' keys
+* Implement automatic record-keeping
+* Implement checks that flow make sense in terms of file I/O and that required files resolve
+* Allow importing multiple files with the same basename
+
+**Minor:**
+
+* Automatically configure KLayout path on macOS
+* Allow importing multiple files with the same basename
+* Implement -I CLI switch for include directory
+
+
+SiliconCompiler 0.3.1 (2021-12-21)
+===================================
+
+**Minor:**
+
+* Fix sc-show on Windows.
+
+SiliconCompiler 0.3.0 (2021-12-21)
+===================================
+
+**Major:**
+
+* Schema: add 'read' section.
+* Schema: Add alternate frontend support.
+
+**Minor:**
+
+* Fix old version of Surelog bundled with wheels
+
+
+SiliconCompiler 0.1.1 (2021-12-08)
+===================================
+
+**Minor:**
+
+* Fix: Prevent sc-show crash when PDK files are not found.
+* Fix: Ensure sc-show can find KLayout executable on Windows
+
+SiliconCompiler 0.1.0 (2021-12-03)
+===================================
+
+**Major:**
+
+* First public release!!!
