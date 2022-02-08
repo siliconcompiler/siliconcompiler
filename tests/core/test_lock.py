@@ -8,7 +8,7 @@ def test_lock():
 
     # Create instance of Chip class
     chip = siliconcompiler.Chip()
-    chip.load_project('freepdk45_demo')
+    chip.load_target('freepdk45_demo')
     chip.set('design', "gcd")
     chip.set('design', True, field="lock")
     chip.set('design', "FAIL")

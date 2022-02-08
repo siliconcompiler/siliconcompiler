@@ -4,7 +4,7 @@ import pytest
 def test_target_valid():
     '''Basic test of target function.'''
     chip = siliconcompiler.Chip()
-    chip.load_project('freepdk45_demo')
+    chip.load_target('freepdk45_demo')
 
     assert chip.get('mode') == 'asic'
 
@@ -16,7 +16,7 @@ def test_target_flipped_error():
     # Test that call triggers a system exit with status code 1
     # source: https://medium.com/python-pandemonium/testing-sys-exit-with-pytest-10c6e5f7726f
     with pytest.raises(SystemExit) as pytest_wrapped_e:
-        chip.load_project('freepdk45_demo')
+        chip.load_target('freepdk45_demo')
     assert pytest_wrapped_e.type == SystemExit
     assert pytest_wrapped_e.value.code == 1
 
@@ -26,7 +26,7 @@ def test_target_fpga_valid():
     chip = siliconcompiler.Chip()
     chip.set('fpga','partname','myfpga')
     chip.load_flow('fpgaflow')
-    chip.set('target', 'flow', 'fpgaflow')
+    chip.set('flow', 'fpgaflow')
 
     assert chip.get('mode') == 'fpga'
 

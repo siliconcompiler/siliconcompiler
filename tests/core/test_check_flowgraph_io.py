@@ -8,7 +8,7 @@ def test_check_flowgraph():
     chip.add('source', 'foo.v')
 
     flow = 'test'
-    chip.set('target', 'flow', flow)
+    chip.set('flow', flow)
     chip.node(flow, 'import', 'surelog')
     chip.node(flow, 'syn', 'yosys')
     chip.edge(flow, 'import', 'syn')
@@ -36,7 +36,7 @@ def test_check_flowgraph_join():
     chip.set('design', 'foo')
 
     flow = 'test'
-    chip.set('target', 'flow', flow)
+    chip.set('flow', flow)
     chip.node(flow, 'prejoin1', 'fake_out')
     chip.node(flow, 'prejoin2', 'fake_out')
     chip.node(flow, 'dojoin', 'join')
@@ -58,7 +58,7 @@ def test_check_flowgraph_min():
     chip.set('design', 'foo')
 
     flow = 'test'
-    chip.set('target', 'flow', flow)
+    chip.set('flow', flow)
     chip.node(flow, 'premin', 'fake_out', index=0)
     chip.node(flow, 'premin', 'fake_out', index=1)
     chip.node(flow, 'domin', 'minimum')
@@ -80,7 +80,7 @@ def test_check_flowgraph_min_fail():
     chip.set('design', 'foo')
 
     flow = 'test'
-    chip.set('target', 'flow', flow)
+    chip.set('flow', flow)
     chip.node(flow, 'premin', 'fake_out', index=0)
     chip.node(flow, 'premin', 'fake_out', index=1)
     chip.node(flow, 'domin', 'minimum')

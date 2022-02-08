@@ -9,7 +9,7 @@ def test_edge():
     syn_np = 10
 
     flow = 'test'
-    chip.set('target', 'flow', flow)
+    chip.set('flow', flow)
     #nodes
     chip.node(flow, 'import', 'surelog')
     for i in range(syn_np):

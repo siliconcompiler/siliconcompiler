@@ -20,7 +20,7 @@ def chip():
 
     N = 10
     flow = 'testflow'
-    chip.set('target', 'flow', flow)
+    chip.set('flow', flow)
 
     threads = {
         'import': 1,
@@ -57,7 +57,7 @@ def chip():
 def test_minimum(chip):
     '''API test for min/max() methods
     '''
-    N = len(chip.getkeys('flowgraph', chip.get('target', 'flow'), 'syn'))
+    N = len(chip.getkeys('flowgraph', chip.get('flow'), 'syn'))
 
     chip.write_flowgraph('minmax.png')
     chip.write_manifest('minmax.json')
@@ -69,7 +69,7 @@ def test_minimum(chip):
     assert winner[0] + winner[1] == 'syn9'
 
 def test_maximum(chip):
-    N = len(chip.getkeys('flowgraph', chip.get('target', 'flow'), 'syn'))
+    N = len(chip.getkeys('flowgraph', chip.get('flow'), 'syn'))
 
     steplist = []
     for i in range(N):
@@ -79,7 +79,7 @@ def test_maximum(chip):
     assert winner == ('syn', '0')
 
 def test_all_failed(chip):
-    N = len(chip.getkeys('flowgraph', chip.get('target', 'flow'), 'syn'))
+    N = len(chip.getkeys('flowgraph', chip.get('flow'), 'syn'))
 
     for index in range(N):
         chip.set('flowstatus', 'syn', str(index), 'error', 1)
@@ -93,7 +93,7 @@ def test_all_failed(chip):
     assert winner is None
 
 def test_winner_failed(chip):
-    N = len(chip.getkeys('flowgraph', chip.get('target', 'flow'), 'syn'))
+    N = len(chip.getkeys('flowgraph', chip.get('flow'), 'syn'))
 
     # set error bit on what would otherwise be winner
     chip.set('flowstatus', 'syn', '9', 'error', 1)
@@ -108,7 +108,7 @@ def test_winner_failed(chip):
     assert winner[0] + winner[1] == 'syn8'
 
 def test_winner_fails_goal_negative(chip):
-    N = len(chip.getkeys('flowgraph', chip.get('target', 'flow'), 'syn'))
+    N = len(chip.getkeys('flowgraph', chip.get('flow'), 'syn'))
 
     chip.set('metric', 'syn', '9', 'setupwns', 'real', -1)
 
@@ -122,7 +122,7 @@ def test_winner_fails_goal_negative(chip):
     assert winner == ('syn', '8')
 
 def test_winner_fails_goal_positive(chip):
-    N = len(chip.getkeys('flowgraph', chip.get('target', 'flow'), 'syn'))
+    N = len(chip.getkeys('flowgraph', chip.get('flow'), 'syn'))
 
     chip.set('metric', 'syn', '9', 'errors', 'goal', 0)
     chip.set('metric', 'syn', '9', 'errors', 'real', 1)

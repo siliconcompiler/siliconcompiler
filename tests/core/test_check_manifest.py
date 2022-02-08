@@ -8,9 +8,9 @@ import pytest
 def test_check_manifest():
 
     chip = siliconcompiler.Chip(loglevel="INFO")
-    chip.load_project("freepdk45_demo")
+    chip.load_target("freepdk45_demo")
     chip.set('source', 'examples/gcd/gcd.v')
-    flow = chip.get('target', 'flow')
+    flow = chip.get('flow')
     index = "0"
     steps = ['import', 'syn']
     for step in steps:
@@ -36,7 +36,7 @@ def test_check_allowed_filepaths_pass(scroot, monkeypatch):
     chip.set('design', 'gcd')
 
     chip.set('source', os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
-    chip.load_project("freepdk45_demo")
+    chip.load_target("freepdk45_demo")
 
     # run an import just to collect files
     chip.set('steplist', 'import')
@@ -59,7 +59,7 @@ def test_check_allowed_filepaths_fail(scroot, monkeypatch):
     chip.set('source', os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
     chip.set('read', 'sdc', 'import', '0', '/random/abs/path/to/file.sdc')
     chip.set('read', 'sdc', 'import', '0', False, field='copy')
-    chip.load_project("freepdk45_demo")
+    chip.load_target("freepdk45_demo")
 
     # run an import just to collect files
     chip.set('steplist', 'import')
@@ -76,7 +76,7 @@ def test_check_allowed_filepaths_fail(scroot, monkeypatch):
 def test_check_missing_file_param():
     chip = siliconcompiler.Chip()
     chip.set('design', 'gcd')
-    chip.load_project("freepdk45_demo")
+    chip.load_target("freepdk45_demo")
 
     chip.set('arg', 'step', 'syn')
     chip.set('arg', 'index', '0')

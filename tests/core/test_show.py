@@ -26,7 +26,7 @@ def display():
 def test_show(project, testfile, datadir, display, headless=True):
     chip = siliconcompiler.Chip()
     chip.set('design', 'heartbeat')
-    chip.load_project(project)
+    chip.load_target(project)
     chip.set("quiet", True)
 
     if headless:
@@ -41,7 +41,7 @@ def test_show(project, testfile, datadir, display, headless=True):
 def test_show_nopdk(datadir, display):
     chip = siliconcompiler.Chip()
     chip.set('design', 'heartbeat')
-    chip.load_project('freepdk45_demo')
+    chip.load_target('freepdk45_demo')
     chip.set("quiet", True)
     # Adjust command line options to exit KLayout after run
     chip.set('eda', 'klayout', 'option', 'showgds', '0', ['-z', '-r'])

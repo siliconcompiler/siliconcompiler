@@ -5,7 +5,7 @@ import siliconcompiler
 def test_hash_files():
     chip = siliconcompiler.Chip()
     chip.set('design', 'top')
-    chip.load_project("freepdk45_demo")
+    chip.load_target("freepdk45_demo")
     chip.write_manifest("raw.json")
     allkeys = chip.getkeys()
     for keypath in allkeys:
