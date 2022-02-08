@@ -41,8 +41,6 @@ def test_surelog_preproc_regression(datadir):
     chip.set('flow', 'test')
     chip.load_tool('surelog', standalone=True)
 
-    chip.write_manifest("/home/aolofsson/tmp.json")
-
     chip.run()
 
     result = chip.find_result('v', step=step)
