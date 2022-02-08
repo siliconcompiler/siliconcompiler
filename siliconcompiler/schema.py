@@ -3446,7 +3446,7 @@ def schema_options(cfg):
         'switch': "-target <str>",
         'type': 'str',
         'lock': 'false',
-        'require': 'all',
+        'require': None,
         'signature': None,
         'defvalue': None,
         'shorthelp': 'Compilation target',
