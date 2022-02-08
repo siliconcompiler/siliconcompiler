@@ -1303,35 +1303,6 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         """
     }
 
-    # Library units
-    units = {
-        'time' : 'ns',
-        'capacitance' : 'pf',
-        'resistance' : 'ohm',
-        'inducatance' : 'nh',
-        'voltage' : 'mv',
-        'current' : 'ma',
-        'power' : 'mw'
-    }
-
-    cfg['library'][lib]['units'] = {}
-    for item in units.keys():
-        cfg['library'][lib]['units'][item] = {
-            'switch': f"-library_units_{item} 'lib <str>'",
-            'type': 'str',
-            'lock': 'false',
-            'require': None,
-            'defvalue': None,
-            'signature': [],
-            'shorthelp': f"Library {item} units",
-            'example': [
-                f"cli: -library_units_{item} 'mylib {units[item]}'",
-                f"api: chip.set('library','mylib','units',{item},'{units[item]}')"],
-            'help': f"""
-            Library {item} units in library characterization files.
-            """
-    }
-
     #NLDM
     cfg['library'][lib]['nldm'] = {}
     cfg['library'][lib]['nldm'][corner] = {}
@@ -3384,6 +3355,34 @@ def schema_options(cfg):
     ''' Run-time options
     '''
 
+    # Units
+    units = {
+        'time' : 'ns',
+        'capacitance' : 'pf',
+        'resistance' : 'ohm',
+        'inducatance' : 'nh',
+        'voltage' : 'mv',
+        'current' : 'ma',
+        'power' : 'mw'
+    }
+
+    cfg['units'] = {}
+    for item in units.keys():
+        cfg['units'][item] = {
+            'switch': f"-units_{item} '<str>'",
+            'type': 'str',
+            'lock': 'false',
+            'require': None,
+            'defvalue': None,
+            'signature': [],
+            'shorthelp': f"Units used for {item}",
+            'example': [
+                f"cli: -units_{item} {units[item]}'",
+                f"api: chip.set('units',{item},'{units[item]}')"],
+            'help': f"""
+            Units implied during compilation when not explicitly specified.
+            """
+    }
 
     cfg['remote'] = {
         'switch': "-remote <bool>",
