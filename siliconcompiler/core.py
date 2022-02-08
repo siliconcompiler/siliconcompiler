@@ -597,7 +597,7 @@ class Chip:
             self.set('flowgraph', flow, step, '0', 'weight', 'warnings', 0)
             self.set('flowgraph', flow, step, '0', 'weight', 'runtime', 0)
             if step != 'import':
-                self.set('flowgraph', flow, step, '0', 'input', ('import','0'))
+                #self.set('flowgraph', flow, step, '0', 'input', ('import','0'))
                 self.set('flowgraph', flow, 'import', '0', 'tool', 'join')
 
         #load the tool
