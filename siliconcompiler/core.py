@@ -597,6 +597,7 @@ class Chip:
             self.set('flowgraph', flow, step, '0', 'weight', 'warnings', 0)
             self.set('flowgraph', flow, step, '0', 'weight', 'runtime', 0)
             if step != 'import':
+                self.set('flowgraph', flow, step, '0', 'input', ('import','0'))
                 self.set('flowgraph', flow, 'import', '0', 'tool', 'join')
 
         #load the tool
@@ -1750,7 +1751,6 @@ class Chip:
                     requirements = self.get('eda', tool, 'input', step, index)
                 else:
                     requirements = []
-
                 for requirement in requirements:
                     if requirement not in inputs:
                         self.logger.error(f'Invalid flow: {step}{index} will '
