@@ -12,15 +12,14 @@ def test_picorv32(picorv32_dir):
     step = "import"
 
     chip = siliconcompiler.Chip(loglevel="INFO")
+    chip.load_target('freepdk45_demo')
 
     chip.add('source', source)
     chip.set('design', design)
     chip.set('steplist', ['import'])
     chip.set('mode', 'sim')
     chip.set('arg', 'step', step)
-    chip.target('surelog')
-
-    chip.set('steplist', ['import'])
+    chip.set('flow', 'surelog')
     chip.run()
 
     assert chip.find_result('v', step=step) is not None
