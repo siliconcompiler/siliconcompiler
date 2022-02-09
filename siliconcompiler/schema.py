@@ -1807,23 +1807,6 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
         """
     }
 
-    cfg['flowgraph'][flow][step][index]['flowin'] = {
-        'switch': "-flowgraph_flowin 'flow step 0 <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'Flowgraph flow input',
-        'example': [
-            "cli: -flowgraph_flowin 'to netlist 0 asicflow",
-            "api:  chip.set('flowgraph','to','netlist','0','flowin','asicflow')"],
-        'help': """
-        Name of the flow that is the input of the target flow. By default,
-        the input to the flow is an empty list.
-        """
-    }
-
     return cfg
 
 ###########################################################################

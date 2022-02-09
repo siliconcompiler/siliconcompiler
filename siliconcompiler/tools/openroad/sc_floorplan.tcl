@@ -50,7 +50,6 @@ if {[expr ! [dict exists $sc_cfg "read" def $sc_step $sc_index]]} {
 
     # source tracks from file if found, else else use schema entries
     if [dict exists $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype tracks] {
-	puts "READING FILE"
 	source [lindex [dict get $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype tracks] 0]
     } else {
 	foreach metal $metal_list {
