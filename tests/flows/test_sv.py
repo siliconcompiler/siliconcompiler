@@ -18,7 +18,7 @@ def test_sv(datadir):
     chip.add('define', 'SYNTHESIS')
 
     chip.set('frontend', 'systemverilog')
-    chip.target('asicflow_freepdk45')
+    chip.load_target('freepdk45_demo')
 
     chip.add('steplist', 'import')
     chip.add('steplist', 'convert')

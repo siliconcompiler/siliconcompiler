@@ -10,12 +10,13 @@ def test_surelog(scroot):
     step = "import"
 
     chip = siliconcompiler.Chip(loglevel="INFO")
+    chip.load_target('freepdk45_demo')
 
     chip.add('source', gcd_src)
     chip.set('design', design)
     chip.set('mode', 'sim')
     chip.set('arg', 'step', step)
-    chip.target('surelog')
+    chip.set('flow', 'surelog')
 
     chip.run()
 
@@ -29,13 +30,14 @@ def test_surelog_preproc_regression(datadir):
     step = "import"
 
     chip = siliconcompiler.Chip(loglevel="INFO")
+    chip.load_target('freepdk45_demo')
 
     chip.add('source', src)
     chip.add('define', 'MEM_ROOT=test')
     chip.set('design', design)
-    chip.set('mode', 'sim')
+    chip.set('mode', 'asicflow')
     chip.set('arg', 'step', step)
-    chip.target('surelog')
+    chip.set('flow', 'surelog')
 
     chip.run()
 
@@ -48,4 +50,6 @@ def test_surelog_preproc_regression(datadir):
 
 if __name__ == "__main__":
     from tests.fixtures import scroot
+    from tests.fixtures import datadir
     test_surelog(scroot())
+    test_surelog_preproc_regression(datadir(__file__))

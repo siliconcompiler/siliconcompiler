@@ -1,5 +1,6 @@
 import siliconcompiler
 import re
+import sys
 
 from siliconcompiler.flows._common import setup_frontend
 
@@ -39,14 +40,16 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
-    setup_flow(chip)
+    chip.set('flow', 'fpgaflow')
+    chip.set('fpga', 'partname', '<fpga-partname>')
+    setup(chip)
 
     return chip
 
 ############################################################################
 # Flowgraph Setup
 ############################################################################
-def setup_flow(chip):
+def setup(chip, flowname='fpgaflow'):
     '''
     Setup function for 'fpgaflow'
 
@@ -55,14 +58,13 @@ def setup_flow(chip):
 
     '''
 
-    # Set partname if not set
-    partname = "UNDEFINED"
+    # Check that partname has been set
+
     if chip.get('fpga', 'partname'):
         partname = chip.get('fpga', 'partname')
-    elif chip.get('target'):
-        if len(chip.get('target').split('_')) == 2:
-            partname = chip.get('target').split('_')[1]
-    chip.set('fpga', 'partname', partname)
+    else:
+        chip.logger.error("FPGA partname not specified")
+        sys.exit()
 
     # Set FPGA mode if not set
     chip.set('mode', 'fpga')
@@ -86,9 +88,9 @@ def setup_flow(chip):
     index = '0'
     for step, tool in flowtools:
         # Flow
-        chip.node(step, tool)
+        chip.node(flowname, step, tool)
         if step != 'import':
-            chip.edge(prevstep, step)
+            chip.edge(flowname, prevstep, step)
         # Hard goals
         for metric in ('errors','warnings','drvs','unconstrained',
                        'holdwns','holdtns', 'holdpaths',
@@ -97,7 +99,7 @@ def setup_flow(chip):
         # Metrics
         for metric in ('luts','dsps','brams','registers',
                        'pins','peakpower','standbypower'):
-            chip.set('flowgraph', step, index, 'weight', metric, 1.0)
+            chip.set('flowgraph', flowname, step, index, 'weight', metric, 1.0)
         prevstep = step
 
 ##################################################

@@ -26,14 +26,14 @@ def make_docs():
     chip = siliconcompiler.Chip()
     chip.set('arg','step', 'sim')
     chip.set('arg','index', '<index>')
-    setup_tool(chip)
+    setup(chip)
     return chip
 
 ################################
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip):
+def setup(chip):
     ''' Per tool function that returns a dynamic options string based on
     the dictionary settings.
     '''

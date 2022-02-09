@@ -10,7 +10,6 @@ def test_check_logfile(datadir):
     chip.read_manifest(manifest)
 
     # add regex
-    chip.write_manifest("tmp.json", prune=False)
     chip.add('eda', 'openroad', 'regex', 'place', '0', 'warnings', "WARNING")
     chip.add('eda', 'openroad', 'regex', 'place', '0', 'warnings', "-v DPL")
 

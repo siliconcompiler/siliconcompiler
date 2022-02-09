@@ -27,13 +27,13 @@ def make_docs():
     chip = siliconcompiler.Chip()
     chip.set('arg','step', 'spice')
     chip.set('arg','index', '<index>')
-    setup_tool(chip)
+    setup(chip)
     return chip
 
 ################################
 # Setup Tool (pre executable)
 ################################
-def setup_tool(chip):
+def setup(chip):
 
      tool = 'xyce'
      refdir = 'tools/'+tool

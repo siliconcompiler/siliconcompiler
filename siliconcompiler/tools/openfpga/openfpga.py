@@ -29,7 +29,7 @@ def make_docs():
     chip = siliconcompiler.Chip()
     chip.set('arg','step','fpgagen')
     chip.set('arg','index','<index>')
-    setup_tool(chip)
+    setup(chip)
     return chip
 
 ################################
@@ -38,7 +38,7 @@ def make_docs():
 
 OPENFPGA_SCRIPT = 'openfpga_script.openfpga'
 
-def setup_tool(chip):
+def setup(chip):
     ''' Sets up default settings on a per step basis
     '''
 

@@ -12,6 +12,8 @@ def test_klayout(datadir):
     library_lef = os.path.join(datadir, 'heartbeat.lef')
 
     chip = siliconcompiler.Chip()
+    chip.load_target('freepdk45_demo')
+
     chip.set('design', 'heartbeat_wrapper')
     chip.set('read', 'def', 'export', '0', in_def)
 
@@ -20,8 +22,9 @@ def test_klayout(datadir):
     chip.set('library', 'heartbeat', 'gds', library_gds)
 
     chip.set('arg', 'step', 'export')
+    chip.set('flow', 'klayout')
+
     chip.set('eda', 'klayout', 'variable', 'export', '0', 'timestamps', 'false')
-    chip.target('klayout_freepdk45')
 
     chip.run()
 

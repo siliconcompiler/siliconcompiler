@@ -17,7 +17,7 @@ def schema_cfg():
 
     # SC version number (bump on every non trivial change)
     # Version number following semver standard.
-    SCHEMA_VERSION = '0.5.2'
+    SCHEMA_VERSION = '0.6.0'
 
     # Basic schema setup
     cfg = {}
@@ -727,6 +727,8 @@ def schema_pdk(cfg, stackup='default'):
 
     libarch = 'default'
 
+    #TODO: create firm list of accepted files
+
     cfg['pdk']['aprtech'] = {}
     cfg['pdk']['aprtech'][tool] = {}
     cfg['pdk']['aprtech'][tool][stackup] = {}
@@ -748,14 +750,16 @@ def schema_pdk(cfg, stackup='default'):
             "cli: -pdk_aprtech 'openroad M10 12t lef tech.lef'",
             "api: chip.set('pdk','aprtech','openroad','M10','12t','lef','tech.lef')"],
         'help': """
-        Technology file containing the design rule and setup information needed
-        to enable DRC clean APR for the specified stackup, libarch, and format.
-        The 'libarch' specifies the library architecture (e.g. library height).
-        For example a PDK with support for 9 and 12 track libraries might have
-        'libarchs' called 9t and 12t. The standard filetype for specifying place
-        and route design rules for a process node is through a 'lef' format
-        technology file. The 'filetype' used in the aprtech is used by the tool
-        specific APR TCL scripts to set up the technology parameters.
+        Technology file containing setup information needed to enable DRC clean APR
+        for the specified stackup, libarch, and format. The 'libarch' specifies the
+        library architecture (e.g. library height). For example a PDK with support
+        for 9 and 12 track libraries might have 'libarchs' called 9t and 12t.
+        The standard filetype for specifying place and route design rules for a
+        process node is through a 'lef' format technology file. The
+        'filetype' used in the aprtech is used by the tool specific APR TCL scripts
+        to set up the technology parameters. Some tools may require additional
+        files beyond the tech.lef file. Examples of extra file types include
+        antenna, tracks, tapcell, viarules, em.
         """
     }
 
@@ -1576,26 +1580,6 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         """
     }
 
-
-    cfg['library'][lib]['driver'] = {
-        'switch': "-library_driver 'lib <str>'",
-        'require': None,
-        'type': '[str]',
-        'lock': 'false',
-        'signature' : [],
-        'defvalue': [],
-        'shorthelp': 'Library default driver cell',
-        'example': ["cli: -library_driver 'mylib BUFX1/Z'",
-                    "api: chip.set('library','mylib','driver','BUFX1/Z')"],
-        'help': """
-        Name of a library cell to be used as the default driver for
-        block timing constraints. The cell should be strong enough to drive
-        a block input from another block including wire capacitance.
-        In cases where the actual driver is known, the actual driver cell
-        should be used. The output driver should include the output pin.
-        """
-    }
-
     name = 'default'
     cfg['library'][lib]['site'] = {}
     cfg['library'][lib]['site'][name] = {}
@@ -1635,23 +1619,36 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         """
     }
 
+
+    # Library units
+    names = ['driver',
+             'buf',
+             'tie',
+             'hold',
+             'clkbuf',
+             'ignore',
+             'filler',
+             'tapcell',
+             'endcap']
+
     cfg['library'][lib]['cells'] = {}
-    cfg['library'][lib]['cells']['default'] = {
-        'switch': "-library_cells 'lib group <str>'",
-        'require': None,
-        'type': '[str]',
-        'lock': 'false',
-        'signature' : [],
-        'defvalue': [],
-        'shorthelp': 'Library cell lists',
-        'example': [
-            "cli: -library_cells 'mylib dontuse *eco*'",
-            "api: chip.set('library','mylib','cells','dontuse','*eco*')"],
-        'help': """
-        List of cells grouped by a property that can be accessed
-        directly by the designer and tools. The example below shows how
-        all cells containing the string 'eco' could be marked as dont use
-        for the tool.
+    for item in names:
+        cfg['library'][lib]['cells'][item] = {
+            'switch': f"-library_cells_{item} 'lib <str>'",
+            'require': None,
+            'type': '[str]',
+            'lock': 'false',
+            'signature' : [],
+            'defvalue': [],
+            'shorthelp': f"Library {item} cell list",
+            'example': [
+                f"cli: -library_cells_{item} 'mylib *eco*'",
+                f"api: chip.set('library','mylib','cells',{item},'*eco*')"],
+            'help': """
+            List of cells grouped by a property that can be accessed
+            directly by the designer and tools. The example below shows how
+            all cells containing the string 'eco' could be marked as dont use
+            for the tool.
         """
     }
     filetype = 'default'
@@ -1684,15 +1681,16 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
 # Flow Configuration
 ###############################################################################
 
-def schema_flowgraph(cfg, step='default', index='default'):
+def schema_flowgraph(cfg, flow='default', step='default', index='default'):
 
     cfg['flowgraph'] = {}
-    cfg['flowgraph'][step] =  {}
-    cfg['flowgraph'][step][index] =  {}
+    cfg['flowgraph'][flow] = {}
+    cfg['flowgraph'][flow][step] =  {}
+    cfg['flowgraph'][flow][step][index] =  {}
 
     # Execution flowgraph
-    cfg['flowgraph'][step][index]['input'] = {
-        'switch': "-flowgraph_input 'step index <(str,str)>'",
+    cfg['flowgraph'][flow][step][index]['input'] = {
+        'switch': "-flowgraph_input 'flow step index <(str,str)>'",
         'type': '[(str,str)]',
         'lock': 'false',
         'require': None,
@@ -1700,8 +1698,8 @@ def schema_flowgraph(cfg, step='default', index='default'):
         'defvalue': [],
         'shorthelp': 'Flowgraph step input',
         'example': [
-            "cli: -flowgraph_input 'cts 0 (place,0)'",
-            "api:  chip.set('flowgraph','cts','0','input', ('place','0'))"],
+            "cli: -flowgraph_input 'asicflow cts 0 (place,0)'",
+            "api:  chip.set('flowgraph','asicflow','cts','0','input',('place','0'))"],
         'help': """
         A list of inputs for the current step and index, specified as a
         (step,index) tuple.
@@ -1709,9 +1707,9 @@ def schema_flowgraph(cfg, step='default', index='default'):
     }
 
     # Flow graph score weights
-    cfg['flowgraph'][step][index]['weight'] = {}
-    cfg['flowgraph'][step][index]['weight']['default'] = {
-        'switch': "-flowgraph_weight 'step metric <float>'",
+    cfg['flowgraph'][flow][step][index]['weight'] = {}
+    cfg['flowgraph'][flow][step][index]['weight']['default'] = {
+        'switch': "-flowgraph_weight 'flow step metric <float>'",
         'type': 'float',
         'lock': 'false',
         'require': None,
@@ -1719,8 +1717,8 @@ def schema_flowgraph(cfg, step='default', index='default'):
         'defvalue': None,
         'shorthelp': 'Flowgraph metric weights',
         'example': [
-            "cli: -flowgraph_weight 'cts 0 area_cells 1.0'",
-            "api:  chip.set('flowgraph','cts','0','weight','area_cells',1.0)"],
+            "cli: -flowgraph_weight 'asicflow cts 0 area_cells 1.0'",
+            "api:  chip.set('flowgraph','asicflow','cts','0','weight','area_cells',1.0)"],
         'help': """
         Weights specified on a per step and per metric basis used to give
         effective "goodnes" score for a step by calculating the sum all step
@@ -1729,16 +1727,17 @@ def schema_flowgraph(cfg, step='default', index='default'):
     }
 
     # Task tool/function
-    cfg['flowgraph'][step][index]['tool'] = {
-        'switch': "-flowgraph_tool 'step <str>'",
+    cfg['flowgraph'][flow][step][index]['tool'] = {
+        'switch': "-flowgraph_tool 'flow step <str>'",
         'type': 'str',
         'lock': 'false',
         'require': None,
         'signature' : None,
         'defvalue': None,
         'shorthelp': 'Flowgraph tool selection',
-        'example': ["cli: -flowgraph_tool 'place openroad'",
-                    "api: chip.set('flowgraph','place','0','tool','openroad')"],
+        'example': [
+            "cli: -flowgraph_tool 'asicflow place openroad'",
+            "api: chip.set('flowgraph','asicflow','place','0','tool','openroad')"],
         'help': """
         Name of the tool name used for task execution. Builtin tool names
         associated bound to core API functions include: minimum, maximum, join,
@@ -1747,8 +1746,8 @@ def schema_flowgraph(cfg, step='default', index='default'):
     }
 
     # Arguments passed by user to setup function
-    cfg['flowgraph'][step][index]['args'] = {
-        'switch': "-flowgraph_args 'step index <str>'",
+    cfg['flowgraph'][flow][step][index]['args'] = {
+        'switch': "-flowgraph_args 'flow step index <str>'",
         'type': '[str]',
         'lock': 'false',
         'require': None,
@@ -1756,8 +1755,8 @@ def schema_flowgraph(cfg, step='default', index='default'):
         'defvalue': [],
         'shorthelp': 'Flowgraph function selection',
         'example': [
-            "cli: -flowgraph_args 'cts 0 0'",
-            "api:  chip.add('flowgraph','cts','0','args','0')"],
+            "cli: -flowgraph_args 'asicflow cts 0 0'",
+            "api:  chip.add('flowgraph','asicflow','cts','0','args','0')"],
         'help': """
         User specified flowgraph string arguments specified on a
         per step and per index basis.
@@ -1765,8 +1764,8 @@ def schema_flowgraph(cfg, step='default', index='default'):
     }
 
     # Valid bits set by user
-    cfg['flowgraph'][step][index]['valid'] = {
-        'switch': "-flowgraph_valid 'step index <str>'",
+    cfg['flowgraph'][flow][step][index]['valid'] = {
+        'switch': "-flowgraph_valid 'flow step index <str>'",
         'type': 'bool',
         'lock': 'false',
         'require': None,
@@ -1774,8 +1773,8 @@ def schema_flowgraph(cfg, step='default', index='default'):
         'defvalue': 'false',
         'shorthelp': 'Flowgraph task valid bit',
         'example': [
-            "cli: -flowgraph_valid 'cts 0 true'",
-            "api:  chip.set('flowgraph','cts','0','valid',True)"],
+            "cli: -flowgraph_valid 'asicflow cts 0 true'",
+            "api:  chip.set('flowgraph','asicflow','cts','0','valid',True)"],
         'help': """
         Flowgraph valid bit specified on a per step and per index basis.
         The parameter can be used to control flow execution. If the bit
@@ -1786,8 +1785,8 @@ def schema_flowgraph(cfg, step='default', index='default'):
 
 
     # Valid bits set by user
-    cfg['flowgraph'][step][index]['timeout'] = {
-        'switch': "-flowgraph_timeout 'step 0 <float>'",
+    cfg['flowgraph'][flow][step][index]['timeout'] = {
+        'switch': "-flowgraph_timeout 'flow step 0 <float>'",
         'type': 'float',
         'lock': 'false',
         'require': None,
@@ -1795,8 +1794,8 @@ def schema_flowgraph(cfg, step='default', index='default'):
         'defvalue': None,
         'shorthelp': 'Flowgraph step/index timeout value',
         'example': [
-            "cli: -flowgraph_timeout 'cts 0 3600'",
-            "api:  chip.set('flowgraph','cts','0','timeout', 3600)"],
+            "cli: -flowgraph_timeout 'asicflow cts 0 3600'",
+            "api:  chip.set('flowgraph','asicflow','cts','0','timeout', 3600)"],
         'help': """
         Timeout value in seconds specified on a per step and per index
         basis. The flowgraph timeout value is compared against the
@@ -2392,7 +2391,7 @@ def schema_arg(cfg):
         'require': None,
         'signature': None,
         'defvalue': None,
-        'shorthelp': 'Current execution step',
+        'shorthelp': 'Current step',
         'example': ["cli: -arg_step 'route'",
                     "api: chip.set('arg', 'step', 'route')"],
         'help': """
@@ -2411,7 +2410,7 @@ def schema_arg(cfg):
         'require': None,
         'signature': None,
         'defvalue': '0',
-        'shorthelp': 'Current step Index',
+        'shorthelp': 'Current index',
         'example': ["cli: -arg_index 0",
                     "api: chip.set('arg','index','0')"],
         'help': """
@@ -3339,6 +3338,34 @@ def schema_options(cfg):
     ''' Run-time options
     '''
 
+    # Units
+    units = {
+        'time' : 'ns',
+        'capacitance' : 'pf',
+        'resistance' : 'ohm',
+        'inducatance' : 'nh',
+        'voltage' : 'mv',
+        'current' : 'ma',
+        'power' : 'mw'
+    }
+
+    cfg['units'] = {}
+    for item in units.keys():
+        cfg['units'][item] = {
+            'switch': f"-units_{item} '<str>'",
+            'type': 'str',
+            'lock': 'false',
+            'require': None,
+            'defvalue': None,
+            'signature': [],
+            'shorthelp': f"Units used for {item}",
+            'example': [
+                f"cli: -units_{item} {units[item]}'",
+                f"api: chip.set('units',{item},'{units[item]}')"],
+            'help': f"""
+            Units implied during compilation when not explicitly specified.
+            """
+    }
 
     cfg['remote'] = {
         'switch': "-remote <bool>",
@@ -3391,14 +3418,14 @@ def schema_options(cfg):
         'signature': None,
         'defvalue': None,
         'shorthelp': 'Compilation mode',
-        'example': ["cli: -mode fpga",
-                    "api: chip.set('mode','fpga')"],
+        'example': ["cli: -mode asic",
+                    "api: chip.set('mode','asic')"],
         'help': """
-        Sets the compilation flow.
+        Sets the compilation mode. Valid modes are: asic, fpga, sim.
         """
     }
 
-    cfg['target'] = {
+    cfg['target'] =  {
         'switch': "-target <str>",
         'type': 'str',
         'lock': 'false',
@@ -3406,13 +3433,29 @@ def schema_options(cfg):
         'signature': None,
         'defvalue': None,
         'shorthelp': 'Compilation target',
-        'example': ["cli: -target 'asicflow_freepdk45'",
-                    "api: chip.set('target','asicflow_freepdk45')"],
+        'example': [
+            "cli: -target freepdk45_demo",
+            "api: chip.set('target','freepdk45_demo')"],
         'help': """
-        Compilation target double string separated by a single underscore,
-        specified as "<process>_<edaflow>" for ASIC compilation and
-        "<partname>_<edaflow>" for FPGA compilation. The process, edaflow,
-        partname fields must be alphanumeric and cannot contain underscores.
+        Sets a target module to be used for compilation. The target
+        module must set up all paramaters needed. The target module
+        may load multiple flows and libraries.
+        """
+    }
+
+    cfg['flow'] =  {
+        'switch': "-flow <str>",
+        'type': 'str',
+        'lock': 'false',
+        'require': 'all',
+        'signature': None,
+        'defvalue': None,
+        'shorthelp': 'Compilation flow',
+        'example': [
+            "cli: -flow asicfow",
+            "api: chip.set('flow','asicflow')"],
+        'help': """
+        Sets the flow of the current run.
         """
     }
 
@@ -4072,7 +4115,7 @@ def schema_package(cfg, group):
     localcfg['doc'] = {}
     for item in doctypes:
         localcfg['doc'][item] = {
-            'switch': f"-{group}_doc_{item} '{lib}<file>'",
+            'switch': f"-{group}_doc_{item} '{lib} <file>'",
             'type': '[file]',
             'lock': 'false',
             'copy': 'false',
@@ -5076,20 +5119,19 @@ def schema_asic(cfg):
         """
     }
 
-    cfg['asic']['targetlib'] = {
-        'switch': "-asic_targetlib <str>",
+    cfg['asic']['logiclib'] =  {
+        'switch': "-asic_logiclib <str>",
         'type': '[str]',
         'lock': 'false',
+        'require': 'asic',
+        'signature': None,
         'defvalue': [],
-        'require': None,
-        'signature': [],
-        'shorthelp': 'ASIC target libraries',
-        'example': ["cli: -asic_targetlib asap7sc7p5t_lvt",
-                    "api: chip.set('asic', 'targetlib', 'asap7sc7p5t_lvt')"],
+        'shorthelp': 'ASIC logic libraries',
+        'example': [
+            "cli: -asic_logiclib nangate45",
+            "api: chip.set('asic', 'logiclib','nangate45')"],
         'help': """
-        Logical libraries used in all steps of asic implementation for mapping
-        source code to netlist. Names must match up exactly with the library
-        name handle in the 'library' dictionary.
+        Logical libraries used in all synthesis and place and route steps.
         """
     }
 

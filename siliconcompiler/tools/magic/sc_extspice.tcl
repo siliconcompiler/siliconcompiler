@@ -1,7 +1,7 @@
 source ./sc_manifest.tcl
 
 set sc_design  [dict get $sc_cfg design]
-set sc_mainlib [dict get $sc_cfg asic targetlib]
+set sc_mainlib [dict get $sc_cfg asic logiclib]
 set sc_stackup [dict get $sc_cfg asic stackup]
 set sc_libtype [dict get $sc_cfg library $sc_mainlib arch]
 set sc_techlef [dict get $sc_cfg pdk aprtech magic $sc_stackup $sc_libtype lef]

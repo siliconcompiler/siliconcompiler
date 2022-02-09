@@ -8,7 +8,7 @@ from siliconcompiler.floorplan import Floorplan
 def _fp(datadir):
     c = Chip(loglevel='INFO')
     c.set('design', 'test', clobber=True)
-    c.target('asicflow_freepdk45')
+    c.load_target('freepdk45_demo')
     lib = 'ram'
     c.add('asic', 'macrolib', lib)
     c.set('library', lib, 'type', 'component')
@@ -80,7 +80,7 @@ def test_padring(datadir):
 
     chip = Chip(loglevel='INFO')
     chip.set('design', 'mypadring', clobber=True)
-    chip.target('asicflow_freepdk45')
+    chip.load_target('freepdk45_demo')
 
     macro = 'io'
     chip.add('asic', 'macrolib', macro)
@@ -163,7 +163,7 @@ def test_padring(datadir):
 def test_vias_at_intersection():
     c = Chip(loglevel='INFO')
     c.set('design', 'test')
-    c.target('skywater130')
+    c.load_target('skywater130_demo')
 
     fp = Floorplan(c)
     fp.create_diearea([(0, 0), (100, 100)])
@@ -182,7 +182,7 @@ def test_vias_at_intersection():
 def test_place_vias(datadir):
     c = Chip()
     c.set('design', 'test', clobber=True)
-    c.target('asicflow_freepdk45')
+    c.load_target('freepdk45_demo')
     lib = 'ram'
     c.add('asic', 'macrolib', lib)
     c.set('library', lib, 'type', 'component')

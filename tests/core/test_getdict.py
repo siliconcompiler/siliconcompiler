@@ -4,7 +4,7 @@ import siliconcompiler
 def test_getdict():
 
     chip = siliconcompiler.Chip()
-    chip.target('freepdk45')
+    chip.load_target('freepdk45_demo')
     localcfg = chip.getdict('pdk')
 
     assert localcfg['process']['value'] == 'freepdk45'

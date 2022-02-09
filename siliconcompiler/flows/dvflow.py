@@ -27,17 +27,21 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
-    setup_flow(chip)
+    chip.set('flow', 'dvflow')
+    setup(chip)
 
     return chip
 
 #############################################################################
 # Flowgraph Setup
 #############################################################################
-def setup_flow(chip):
+def setup(chip, flow='dflow'):
     '''
     Setup function for 'dvflow'
     '''
+
+    # Definting a flow
+    flow = 'dvflow'
 
     # A simple linear flow
     flowpipe = ['import',
@@ -72,25 +76,25 @@ def setup_flow(chip):
     for step in flowpipe:
         #start
         if step == 'import':
-            chip.set('flowgraph', step, '0', 'tool', tools[step])
+            chip.set('flowgraph', flow, step, '0', 'tool', tools[step])
         #serial
         elif step == 'compile':
-            chip.set('flowgraph', step, '0', 'tool', tools[step])
-            chip.set('flowgraph', step, '0', 'input', ('import', '0'))
+            chip.set('flowgraph', flow, step, '0', 'tool', tools[step])
+            chip.set('flowgraph', flow, step, '0', 'input', ('import', '0'))
         #fork
         elif step == 'testgen':
             for index in range(np):
-                chip.set('flowgraph', step, str(index), 'tool', tools[step])
-                chip.set('flowgraph', step, str(index), 'input', ('compile', '0'))
+                chip.set('flowgraph', flow, step, str(index), 'tool', tools[step])
+                chip.set('flowgraph', flow, step, str(index), 'input', ('compile', '0'))
         #join
         elif step == 'signoff':
-            chip.set('flowgraph', step, '0', 'tool', tools[step])
+            chip.set('flowgraph', flow, step, '0', 'tool', tools[step])
             for index in range(np):
-                chip.add('flowgraph', step, '0', 'input', (prevstep, str(index)))
+                chip.add('flowgraph', flow, step, '0', 'input', (prevstep, str(index)))
         else:
             for index in range(np):
-                chip.set('flowgraph', step, str(index), 'tool', tools[step])
-                chip.set('flowgraph', step, str(index), 'input', (prevstep, str(index)))
+                chip.set('flowgraph', flow, step, str(index), 'tool', tools[step])
+                chip.set('flowgraph', flow, step, str(index), 'input', (prevstep, str(index)))
 
         prevstep = step
 

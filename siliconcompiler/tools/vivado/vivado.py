@@ -22,7 +22,7 @@ def make_docs():
     chip = siliconcompiler.Chip()
     chip.set('arg','step', 'compile')
     chip.set('arg','index', '<index>')
-    setup_tool(chip)
+    setup(chip)
     return chip
 
 
@@ -30,7 +30,7 @@ def make_docs():
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip, mode='batch'):
+def setup(chip, mode='batch'):
     '''
     '''
 

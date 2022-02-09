@@ -22,14 +22,14 @@ def make_docs():
     chip.set('arg','step','<apr>')
     chip.set('arg','index','<index>')
     chip.set('design','<design>')
-    setup_tool(chip)
+    setup(chip)
     return chip
 
 ################################
 # Setup NextPNR
 ################################
 
-def setup_tool(chip):
+def setup(chip):
     ''' Sets up default settings on a per step basis
     '''
 

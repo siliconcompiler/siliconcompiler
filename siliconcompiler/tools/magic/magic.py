@@ -20,16 +20,16 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
-    chip.target('skywater130')
+    chip.load_pdk('skywater130')
     chip.set('arg','index','<index>')
 
     # check drc
     chip.set('arg','step','drc')
-    setup_tool(chip)
+    setup(chip)
 
     # check lvs
     chip.set('arg','step', 'extspice')
-    setup_tool(chip)
+    setup(chip)
 
     return chip
 
@@ -37,7 +37,7 @@ def make_docs():
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip):
+def setup(chip):
     ''' Setup function for 'magic' tool
     '''
 
@@ -119,9 +119,9 @@ if __name__ == "__main__":
     # create a chip instance
     chip = siliconcompiler.Chip(loglevel="INFO")
     # load configuration
-    chip.target('asicflow_skywater130')
+    chip.load_target('skywater130_demo')
     chip.set('arg','index','0')
     chip.set('arg','step','drc')
-    setup_tool(chip)
+    setup(chip)
     # write out results
     chip.writecfg(output)

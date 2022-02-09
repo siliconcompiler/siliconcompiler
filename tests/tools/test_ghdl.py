@@ -10,11 +10,13 @@ def test_ghdl(datadir):
     design_src = os.path.join(datadir, f'{design}.vhdl')
 
     chip = siliconcompiler.Chip(loglevel="INFO")
+    chip.load_target('freepdk45_demo')
     chip.set('source', design_src)
     chip.set('design', design)
     chip.set('mode', 'sim')
     chip.set('arg','step','import')
-    chip.target('ghdl')
+    chip.set('flow', 'ghdl')
+
     chip.run()
 
     # check that compilation succeeded

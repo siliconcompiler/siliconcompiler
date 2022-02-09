@@ -24,7 +24,7 @@ def make_docs():
     chip = siliconcompiler.Chip()
     chip.set('arg','step','bitstream')
     chip.set('arg','index','<index>')
-    setup_tool(chip)
+    setup(chip)
     return chip
 
 
@@ -32,7 +32,7 @@ def make_docs():
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip):
+def setup(chip):
     ''' Sets up default settings on a per step basis
     '''
     tool = 'icepack'

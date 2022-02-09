@@ -52,14 +52,15 @@ def make_docs():
     chip.set('flowarg', 'place_np', n)
     chip.set('flowarg', 'cts_np', n)
     chip.set('flowarg', 'route_np', n)
-    setup_flow(chip)
+    chip.set('flow', 'asicflow')
+    setup(chip)
 
     return chip
 
 ###########################################################################
 # Flowgraph Setup
 ############################################################################
-def setup_flow(chip):
+def setup(chip, flowname='asicflow'):
     '''
     Setup function for 'asicflow' ASIC compilation execution flowgraph.
 
@@ -137,37 +138,37 @@ def setup_flow(chip):
         # create nodes
         for index in range(fanout):
             # nodes
-            chip.node(step, tool, index=index)
+            chip.node(flowname, step, tool, index=index)
             # edges
             if re.search(r'join|maximum|minimum|verify', tool):
                 prevparam = prevstep + "_np"
                 fanin  = int(chip.get('flowarg', prevparam)[0])
                 for i in range(fanin):
-                    chip.edge(prevstep,step, tail_index=i)
+                    chip.edge(flowname, prevstep, step, tail_index=i)
             elif step != 'import':
-                chip.edge(prevstep, step, head_index=index)
+                chip.edge(flowname, prevstep, step, head_index=index)
             # metrics
             for metric in  ('errors','drvs','holdwns','setupwns','holdtns','setuptns'):
                 chip.set('metric', step, str(index), metric, 'goal', 0)
             for metric in ('cellarea', 'peakpower', 'standbypower'):
-                chip.set('flowgraph', step, str(index), 'weight', metric, 1.0)
+                chip.set('flowgraph', flowname, step, str(index), 'weight', metric, 1.0)
         prevstep = step
 
     # If running verify steps, manually set up parallel LVS/DRC
     if verify:
-        chip.node('extspice', 'magic')
-        chip.node('lvsjoin', 'join')
-        chip.node('drc', 'magic')
-        chip.node('lvs', 'netgen')
-        chip.node('signoff', 'join')
+        chip.node(flowname, 'extspice', 'magic')
+        chip.node(flowname, 'lvsjoin', 'join')
+        chip.node(flowname, 'drc', 'magic')
+        chip.node(flowname, 'lvs', 'netgen')
+        chip.node(flowname, 'signoff', 'join')
 
-        chip.edge('export', 'extspice')
-        chip.edge('extspice', 'lvsjoin')
-        chip.edge('dfm', 'lvsjoin')
-        chip.edge('lvsjoin', 'lvs')
-        chip.edge('export', 'drc')
-        chip.edge('lvs', 'signoff')
-        chip.edge('drc', 'signoff')
+        chip.edge(flowname, 'export', 'extspice')
+        chip.edge(flowname, 'extspice', 'lvsjoin')
+        chip.edge(flowname, 'dfm', 'lvsjoin')
+        chip.edge(flowname, 'lvsjoin', 'lvs')
+        chip.edge(flowname, 'export', 'drc')
+        chip.edge(flowname, 'lvs', 'signoff')
+        chip.edge(flowname, 'drc', 'signoff')
 
 ##################################################
 if __name__ == "__main__":

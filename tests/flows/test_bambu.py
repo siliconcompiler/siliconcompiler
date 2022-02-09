@@ -13,7 +13,7 @@ def test_bambu(datadir):
     chip.add('source', gcd_src)
     chip.set('design', design)
     chip.set('frontend', 'c')
-    chip.target('asicflow_freepdk45')
+    chip.load_target('freepdk45_demo')
 
     chip.run()
 

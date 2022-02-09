@@ -31,13 +31,13 @@ def make_docs():
     chip.set('arg','step', 'apr')
     chip.set('arg','index', '<index>')
     chip.set('design', '<design>')
-    setup_tool(chip)
+    setup(chip)
     return chip
 
 ################################
 # Setup Tool (pre executable)
 ################################
-def setup_tool(chip):
+def setup(chip):
 
      tool = 'vpr'
      refdir = 'tools/'+tool

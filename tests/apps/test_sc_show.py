@@ -24,7 +24,7 @@ def heartbeat_dir(tmpdir_factory):
     chip.set('loglevel', 'ERROR')
     chip.set('quiet', True)
     chip.add('source', os.path.join(datadir, 'heartbeat.v'))
-    chip.target('asicflow_freepdk45')
+    chip.load_target('freepdk45_demo')
     chip.run()
 
     return cwd

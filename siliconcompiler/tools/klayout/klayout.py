@@ -23,11 +23,11 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
-    chip.target('freepdk45')
+    chip.load_target('freepdk45_demo')
     chip.set('arg','step','export')
     chip.set('arg','index','<index>')
     chip.set('design', '<design>')
-    setup_tool(chip)
+    setup(chip)
 
     return chip
 
@@ -35,7 +35,7 @@ def make_docs():
 # Setup tool
 ####################################################################
 
-def setup_tool(chip, mode="batch"):
+def setup(chip, mode="batch"):
     '''
     Setup function for Klayout
     '''
@@ -108,12 +108,12 @@ def setup_tool(chip, mode="batch"):
 
     # Adding requirements
     if mode != 'show':
-        targetlibs = chip.get('asic', 'targetlib')
+        targetlibs = chip.get('asic', 'logiclib')
         stackup = chip.get('asic', 'stackup')
         if bool(stackup) & bool(targetlibs):
             macrolibs = chip.get('asic', 'macrolib')
 
-            chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'targetlib']))
+            chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'logiclib']))
             chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'stackup']))
             chip.add('eda', tool, 'require', step, index,  ",".join(['pdk', 'layermap', 'klayout', stackup, 'def','gds']))
 
@@ -122,7 +122,7 @@ def setup_tool(chip, mode="batch"):
                 chip.add('eda', tool, 'require', step, index, ",".join(['library', lib, 'lef']))
         else:
             chip.error = 1
-            chip.logger.error(f'Stackup and targetlib paremeters required for KLayout.')
+            chip.logger.error(f'Stackup and targetlib paremeters required for Klayout.')
 
 
 ################################
@@ -165,8 +165,8 @@ if __name__ == "__main__":
 
     # create a chip instance
     chip = siliconcompiler.Chip()
-    chip.target("freepdk45")
+    chip.load_target("freepdk45_demo")
     # load configuration
-    setup_tool(chip, step='export', index='0')
+    setup(chip, step='export', index='0')
     # write out results
     chip.writecfg(output)

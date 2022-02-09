@@ -29,7 +29,7 @@ def make_docs():
     chip.set('arg','step','<step>')
     chip.set('arg','index','<index>')
     chip.set('design', '<design>')
-    setup_tool(chip)
+    setup(chip)
 
     return chip
 
@@ -37,7 +37,7 @@ def make_docs():
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip, mode='batch'):
+def setup(chip, mode='batch'):
 
     # default tool settings, note, not additive!
 
@@ -84,7 +84,7 @@ def setup_tool(chip, mode='batch'):
     chip.add('eda', tool, 'output', step, index, chip.get('design') + '.def')
 
     # openroad makes use of these parameters
-    targetlibs = chip.get('asic', 'targetlib')
+    targetlibs = chip.get('asic', 'logiclib')
     stackup = chip.get('asic', 'stackup')
     if bool(stackup) & bool(targetlibs):
         mainlib = targetlibs[0]
@@ -92,7 +92,7 @@ def setup_tool(chip, mode='batch'):
         libtype = str(chip.get('library', mainlib, 'arch'))
         techlef = chip.get('pdk', 'aprtech', 'openroad', stackup, libtype, 'lef')
 
-        chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'targetlib']))
+        chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'logiclib']))
         chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'stackup']))
         chip.add('eda', tool, 'require', step, index, ",".join(['library', mainlib, 'arch']))
         chip.add('eda', tool, 'require', step, index, ",".join(['pdk', 'aprtech', 'openroad', stackup, libtype, 'lef']))

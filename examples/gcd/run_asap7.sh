@@ -4,7 +4,7 @@ OPT=$1
 
 echo $OPT
 sc examples/gcd/gcd.v \
-   -target "freepdk45_demo" \
+   -target "asap7_demo" \
    -constraint "examples/gcd/gcd.sdc" \
    -asic_diearea "(0,0)" \
    -asic_diearea "(100.13,100.8)" \

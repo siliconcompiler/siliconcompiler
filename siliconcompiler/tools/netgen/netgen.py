@@ -22,12 +22,12 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
-    chip.target('skywater130')
+    chip.load_pdk('skywater130')
     chip.set('arg','index','<index>')
 
     # check lvs
     chip.set('arg','step', 'lvs')
-    setup_tool(chip)
+    setup(chip)
 
     return chip
 
@@ -35,7 +35,7 @@ def make_docs():
 # Setup Tool (pre executable)
 ################################
 
-def setup_tool(chip):
+def setup(chip):
     ''' Setup function for 'magic' tool
     '''
 
@@ -117,6 +117,6 @@ if __name__ == "__main__":
     chip.target('skywater130_asicflow')
     chip.set('arg','index','0')
     chip.set('arg','step','lvs')
-    setup_tool(chip)
+    setup(chip)
     # write out results
     chip.writecfg(output)

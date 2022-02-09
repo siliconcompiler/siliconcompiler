@@ -36,7 +36,7 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
-    setup_pdk(chip)
+    setup(chip)
 
     return chip
 
@@ -44,14 +44,10 @@ def make_docs():
 # PDK Setup
 ####################################################
 
-def setup_pdk(chip):
+def setup(chip):
     '''
     Setup function for the skywater130 PDK.
     '''
-
-    ###############################################
-    # Process
-    ###############################################
 
     foundry = 'skywater'
     process = 'skywater130'
@@ -146,147 +142,6 @@ def setup_pdk(chip):
     chip.set('pdk','grid', stackup, 'met5', 'yoffset', 1.7)
     chip.set('pdk','grid', stackup, 'met5', 'ypitch',  3.4)
     chip.set('pdk','grid', stackup, 'met5', 'adj', 0.5)
-
-    ###############################################
-    # Libraries
-    ###############################################
-
-    rev = 'v0_0_2'
-    libname = 'sky130hd' # not sure if this should be something else
-    libtype = 'hd' # TODO: update this
-
-    # TODO: should I be using a different name for the corner
-    corner = 'typical'
-
-    libdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'libs', libname, rev)
-
-
-    chip.set('library', libname, 'type', 'stdcell')
-
-    # rev
-    chip.set('library', libname, 'package', 'version', rev)
-
-    # timing
-    chip.add('library', libname, 'nldm', corner, 'lib',
-             libdir+'/lib/sky130_fd_sc_hd__tt_025C_1v80.lib')
-
-    # lef
-    chip.add('library', libname, 'lef',
-             libdir+'/lef/sky130_fd_sc_hd_merged.lef')
-    # gds
-    chip.add('library', libname, 'gds',
-             libdir+'/gds/sky130_fd_sc_hd.gds')
-
-    # placement sites
-    chip.set('library', libname, 'site', 'unithd', 'symmetry', 'Y')
-    chip.set('library', libname, 'site', 'unithd', 'size', (0.46,2.72))
-
-    chip.set('library', libname, 'site', 'unithddbl', 'symmetry', 'Y')
-    chip.set('library', libname, 'site', 'unithddbl', 'size', (0.46,5.44))
-
-    # lib arch
-    chip.set('library', libname, 'arch', libtype)
-
-    # clock buffers
-    chip.add('library', libname, 'cells', 'clkbuf', 'sky130_fd_sc_hd__clkbuf_1')
-
-    # hold cells
-    chip.add('library', libname, 'cells', 'hold', 'sky130_fd_sc_hd__buf_1')
-
-    # filler
-    chip.add('library', libname, 'cells', 'filler', ['sky130_fd_sc_hd__fill_1',
-                                                     'sky130_fd_sc_hd__fill_2',
-                                                     'sky130_fd_sc_hd__fill_4',
-                                                     'sky130_fd_sc_hd__fill_8'])
-
-    # Tapcell
-    chip.add('library', libname, 'cells','tapcell', 'sky130_fd_sc_hd__tapvpwrvgnd_1')
-
-    # Endcap
-    chip.add('library', libname, 'cells', 'endcap', 'sky130_fd_sc_hd__decap_4')
-
-    chip.add('library', libname, 'cells', 'ignore', [
-        'sky130_fd_sc_hd__probe_p_8',
-        'sky130_fd_sc_hd__probec_p_8',
-        'sky130_fd_sc_hd__lpflow_bleeder_1',
-        'sky130_fd_sc_hd__lpflow_clkbufkapwr_1',
-        'sky130_fd_sc_hd__lpflow_clkbufkapwr_16',
-        'sky130_fd_sc_hd__lpflow_clkbufkapwr_2',
-        'sky130_fd_sc_hd__lpflow_clkbufkapwr_4',
-        'sky130_fd_sc_hd__lpflow_clkbufkapwr_8',
-        'sky130_fd_sc_hd__lpflow_clkinvkapwr_1',
-        'sky130_fd_sc_hd__lpflow_clkinvkapwr_16',
-        'sky130_fd_sc_hd__lpflow_clkinvkapwr_2',
-        'sky130_fd_sc_hd__lpflow_clkinvkapwr_4',
-        'sky130_fd_sc_hd__lpflow_clkinvkapwr_8',
-        'sky130_fd_sc_hd__lpflow_decapkapwr_12',
-        'sky130_fd_sc_hd__lpflow_decapkapwr_3',
-        'sky130_fd_sc_hd__lpflow_decapkapwr_4',
-        'sky130_fd_sc_hd__lpflow_decapkapwr_6',
-        'sky130_fd_sc_hd__lpflow_decapkapwr_8',
-        'sky130_fd_sc_hd__lpflow_inputiso0n_1',
-        'sky130_fd_sc_hd__lpflow_inputiso0p_1',
-        'sky130_fd_sc_hd__lpflow_inputiso1n_1',
-        'sky130_fd_sc_hd__lpflow_inputiso1p_1',
-        'sky130_fd_sc_hd__lpflow_inputisolatch_1',
-        'sky130_fd_sc_hd__lpflow_isobufsrc_1',
-        'sky130_fd_sc_hd__lpflow_isobufsrc_16',
-        'sky130_fd_sc_hd__lpflow_isobufsrc_2',
-        'sky130_fd_sc_hd__lpflow_isobufsrc_4',
-        'sky130_fd_sc_hd__lpflow_isobufsrc_8',
-        'sky130_fd_sc_hd__lpflow_isobufsrckapwr_16',
-        'sky130_fd_sc_hd__lpflow_lsbuf_lh_hl_isowell_tap_1',
-        'sky130_fd_sc_hd__lpflow_lsbuf_lh_hl_isowell_tap_2',
-        'sky130_fd_sc_hd__lpflow_lsbuf_lh_hl_isowell_tap_4',
-        'sky130_fd_sc_hd__lpflow_lsbuf_lh_isowell_4',
-        'sky130_fd_sc_hd__lpflow_lsbuf_lh_isowell_tap_1',
-        'sky130_fd_sc_hd__lpflow_lsbuf_lh_isowell_tap_2',
-        'sky130_fd_sc_hd__lpflow_lsbuf_lh_isowell_tap_4',
-        'sky130_fd_sc_hd__buf_16'
-    ])
-
-    # TODO: should probably fill these in, but they're currently unused by
-    # OpenROAD flow
-    #driver
-    chip.add('library', libname, 'driver', '')
-
-    # buffer cell
-    chip.add('library', libname, 'cells', 'buf', ['sky130_fd_sc_hd__buf_4/A/X'])
-
-    # tie cells
-    chip.add('library', libname, 'cells', 'tie', ['sky130_fd_sc_hd__conb_1/HI',
-                                                  'sky130_fd_sc_hd__conb_1/LO'])
-
-    ###############################################
-    # Methodology
-    ###############################################
-
-    chip.add('asic', 'targetlib', libname)
-    chip.set('asic', 'stackup', chip.get('pdk', 'stackup')[0])
-    # TODO: how does LI get taken into account?
-    chip.set('asic', 'minlayer', "m1")
-    chip.set('asic', 'maxlayer', "m5")
-    chip.set('asic', 'maxfanout', 5) # TODO: fix this
-    chip.set('asic', 'maxlength', 21000)
-    chip.set('asic', 'maxslew', 1.5e-9)
-    chip.set('asic', 'maxcap', .1532e-12)
-    chip.set('asic', 'rclayer', 'clk', 'm5')
-    chip.set('asic', 'rclayer', 'data', 'm3')
-    chip.set('asic', 'hpinlayer', "m3")
-    chip.set('asic', 'vpinlayer', "m2")
-
-    corner = 'typical'
-    # hard coded mcmm settings (only one corner!)
-    chip.set('mcmm','worst','libcorner', corner)
-    chip.set('mcmm','worst','pexcorner', corner)
-    chip.set('mcmm','worst','mode', 'func')
-    chip.add('mcmm','worst','check', ['setup','hold'])
-
-    # Floorplanning defaults for quick experiments
-    chip.set('asic', 'density', 10, clobber=False)
-    chip.set('asic', 'aspectratio', 1, clobber=False)
-    # Least common multiple of std. cell width (0.46) and height (2.72)
-    chip.set('asic', 'coremargin', 62.56, clobber=False)
 
 #########################
 if __name__ == "__main__":

@@ -14,10 +14,10 @@ def make_docs():
     chip = siliconcompiler.Chip()
     chip.set('arg','step','<step>')
     chip.set('arg','index','<index>')
-    setup_tool(chip)
+    setup(chip)
     return chip
 
-def setup_tool(chip):
+def setup(chip):
     '''
     Setup Tool (pre executable)
     '''
