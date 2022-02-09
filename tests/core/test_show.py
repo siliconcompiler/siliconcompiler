@@ -38,6 +38,29 @@ def test_show(project, testfile, datadir, display, headless=True):
 
 @pytest.mark.eda
 @pytest.mark.quick
+def test_show_lyp(datadir, display, headless=True):
+    ''' Test sc-show with only a KLayout .lyp file for layer properties '''
+
+    chip = siliconcompiler.Chip()
+    chip.set('design', 'heartbeat')
+    chip.target(f'asicflow_freepdk45')
+    chip.set("quiet", True)
+
+    # Replace the '.lyt' file with the corresponding '.lyp'
+    stackup = chip.get('pdk', 'stackup')[0]
+    klayout_techfile = chip.get('pdk', 'layermap', 'klayout', stackup, 'def', 'gds')[0]
+    klayout_layerprops = klayout_techfile[:-4] + '.lyp'
+    chip.set('pdk', 'layermap', 'klayout', stackup, 'def', 'gds', klayout_layerprops, clobber=True)
+
+    if headless:
+        # Adjust command line options to exit KLayout after run
+        chip.set('eda', 'klayout', 'option', 'showdef', '0', ['-z', '-r'])
+
+    path = os.path.join(datadir, 'heartbeat_freepdk45.def')
+    assert chip.show(path)
+
+@pytest.mark.eda
+@pytest.mark.quick
 def test_show_nopdk(datadir, display):
     chip = siliconcompiler.Chip()
     chip.set('design', 'heartbeat')
