@@ -43,7 +43,7 @@ def test_show_lyp(datadir, display, headless=True):
 
     chip = siliconcompiler.Chip()
     chip.set('design', 'heartbeat')
-    chip.target(f'asicflow_freepdk45')
+    chip.load_target(f'freepdk45_demo')
     chip.set("quiet", True)
 
     # Replace the '.lyt' file with the corresponding '.lyp'
