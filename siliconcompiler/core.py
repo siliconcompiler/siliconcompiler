@@ -409,7 +409,7 @@ class Chip:
         * flows/modulename.py
         * pdks/modulname.py
 
-        If the modtype is None, the module paths are search in the
+        If the moduletype is None, the module paths are search in the
         order: 'targets'->'flows'->'tools'->'pdks'->'libs'):
 
 
@@ -425,7 +425,7 @@ class Chip:
         Args:
             modulename (str): Name of module to import.
             funcname (str): Name of the function to find within the module.
-            modtype (str): Type of module (tools,flows, pdks,libs,targets).
+            moduletype (str): Type of module (flows, pdks,libs,targets).
 
         Examples:
             >>> setup_pdk = chip.find_function('freepdk45', 'setup', 'pdk')
@@ -474,7 +474,7 @@ class Chip:
     ##########################################################################
     def load_target(self, name):
         """
-        Loads a project module and runs the setup() function.
+        Loads a target module and runs the setup() function.
 
         The function searches the $SCPATH for targets/<name>.py and runs
         the setup function in that module if found.
@@ -2561,15 +2561,19 @@ class Chip:
 
         # Using manifest to get defaults
 
+        flow = self.get('flow')
+        design = self.get('design')
+
         if jobname is None:
             jobname = self.get('jobname')
         if logfile is None:
             logfile = f"{step}.log"
+        if step is None:
+            step = self.get('arg', 'step')
+        if index is None:
+            index = self.getkeys('flowgraph', flow, step)[0]
 
-        flow = self.get('flow')
         tool = self.get('flowgraph', flow, step, index, 'tool')
-        design = self.get('design')
-
 
         # Creating local dictionary (for speed)
         # self.get is slow
