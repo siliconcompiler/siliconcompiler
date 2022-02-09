@@ -224,7 +224,7 @@ Schema configuration handoff from SiliconCompiler to script based tools is accom
 
 .. code-block:: tcl
 
-   dict set sc_cfg asic targetlib [list  NangateOpenCellLibrary ]
+   dict set sc_cfg asic logiclib [list  NangateOpenCellLibrary ]
    dict set sc_cfg asic maxfanout [list  64 ]
    dict set sc_cfg design [list  gcd ]
    dict set sc_cfg constraint [list gcd.sdc ]
@@ -240,8 +240,8 @@ It is the responsibility of the tool reference flow developer to bind the standa
    set sc_optmode    [dict get $sc_cfg optmode]
 
    # APR Parameters
-   set sc_mainlib     [lindex [dict get $sc_cfg asic targetlib] 0]
-   set sc_targetlibs  [dict get $sc_cfg asic targetlib]
+   set sc_mainlib     [lindex [dict get $sc_cfg asic logiclib] 0]
+   set sc_targetlibs  [dict get $sc_cfg asic logiclib]
    set sc_stackup     [dict get $sc_cfg asic stackup]
    set sc_density     [dict get $sc_cfg asic density]
    set sc_hpinlayer   [dict get $sc_cfg asic hpinlayer]
