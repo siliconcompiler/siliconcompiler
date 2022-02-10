@@ -12,6 +12,37 @@ The following code snippet shows how library gds and lef files can be set up in 
     chip.add('library','NangateOpenCellLibrary','lef','$FREEPDK45/lef/NangateOpenCellLibrary.lef')
     chip.add('library','NangateOpenCellLibrary','gds','$FREEPDK45/gds/NangateOpenCellLibrary.gds')
 
-To enable simple 'target' based access, it is recommended that fundamental physical foundry sponsored IP (stdcells, GPIO, memory macros) are set up as part of the setup_pdk function.
-
 SiliconCompiler also supports referencing soft libraries (RTL, C-code, etc), in which case many of the physical IP parameters can be omitted.
+
+Library Modules
+----------------
+To enable simple 'target' based access, it is recommended that fundamental physical foundry sponsored IP (stdcells, GPIO, memory macros) are set up as part of reusable library modules.
+
+Similarly to :ref:`PDKs<PDKs>`, library modules must implement the following functions.
+
+.. list-table::
+   :widths: 10 10 10 10 10 10
+   :header-rows: 1
+
+   * - Function
+     - Description
+     - Arg
+     - Returns
+     - Used by
+     - Required
+
+   * - **setup**
+     - Library setup function
+     - chip
+     - chip
+     - load_flow()
+     - yes
+
+   * - **make_docs**
+     - Doc generator
+     - None
+     - chip
+     - sphinx
+     - yes
+
+A complete set of supported standard cell libraries for SC's included open PDKs can be found in the :ref:`Libraries Directory`.

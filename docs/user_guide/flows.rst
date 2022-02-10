@@ -19,7 +19,7 @@ SiliconCompiler flows are created by configuring the 'flowgraph' parameters with
      - PDK setup function
      - chip
      - chip
-     - target()
+     - load_flow()
      - yes
 
    * - **make_docs**
