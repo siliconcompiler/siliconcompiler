@@ -20,6 +20,10 @@ from common import *
 
 import siliconcompiler
 
+#############
+# Helpers
+#############
+
 # We need this in a few places, so just make it global
 SC_ROOT = os.path.abspath(f'{__file__}/../../../')
 
@@ -47,6 +51,41 @@ def build_schema_value_table(schema, keypath_prefix=[], skip_zero_weight=False):
         return build_table(table)
     else:
         return None
+
+def build_config_recursive(schema, keypath_prefix=[], sec_key_prefix=[]):
+    '''Helper function for displaying schema at each level as tables unde nested
+    sections.
+
+    For each item:
+    - If it's a leaf, collect it into a table we will display at this
+        level
+    - Otherwise, recurse and collect sections of lower levels
+    '''
+    leaves = {}
+    child_sections = []
+    for key, val in schema.items():
+        if key == 'default': continue
+        if 'help' in val:
+            if 'value' in val:
+                leaves.update({key: val})
+        else:
+            children = build_config_recursive(val, keypath_prefix=keypath_prefix+[key], sec_key_prefix=sec_key_prefix)
+            child_sections.extend(children)
+
+    # If we've found leaves, create a new section where we'll display a
+    # table plus all child sections.
+    if len(leaves) > 0:
+        keypath = ', '.join(keypath_prefix)
+        section_key = '-'.join(sec_key_prefix + keypath_prefix)
+        top = build_section(keypath, section_key)
+        top += build_schema_value_table(leaves, keypath_prefix=keypath_prefix)
+        top += child_sections
+        return [top]
+    else:
+        # Otherwise, just pass on the child sections -- we don't want to
+        # create an extra level of section hierarchy for levels of the
+        # schema without leaves.
+        return child_sections
 
 def trim(docstring):
     '''Helper function for cleaning up indentation of docstring.
@@ -78,6 +117,10 @@ def trim(docstring):
         trimmed.pop(0)
     # Return a single string:
     return '\n'.join(trimmed)
+
+#############
+# Base class
+#############
 
 class DynamicGen(SphinxDirective):
     '''Base class for all three directives provided by this extension.
@@ -202,6 +245,10 @@ class DynamicGen(SphinxDirective):
         '''
         return None
 
+#########################
+# Specialized extensions
+#########################
+
 class FlowGen(DynamicGen):
     PATH = 'flows'
 
@@ -261,45 +308,42 @@ class PDKGen(DynamicGen):
         section_key = '-'.join(['pdks', modname, 'configuration'])
         settings = build_section('Configuration', section_key)
 
-        for prefix in [('pdk',), ('asic',), ('library',)]:
-            cfg = chip.getdict(*prefix)
-            pruned = chip._prune(cfg)
-            settings += self.build_config_recursive(cfg, keypath_prefix=list(prefix), sec_key_prefix=['pdks', modname])
+        cfg = chip.getdict('pdk')
+        settings += build_config_recursive(cfg, keypath_prefix=['pdk'], sec_key_prefix=['pdks', modname])
 
         return settings
 
-    def build_config_recursive(self, schema, keypath_prefix=[], sec_key_prefix=[]):
-        '''Iterate through all items at this level of schema.
+class LibGen(DynamicGen):
+    PATH = 'libs'
 
-        For each item:
-        - If it's a leaf, collect it into a table we will display at this
-          level
-        - Otherwise, recurse and collect sections of lower levels
-        '''
-        leaves = {}
-        child_sections = []
-        for key, val in schema.items():
-            if key == 'default': continue
-            if 'help' in val:
-                leaves.update({key: val})
-            else:
-                children = self.build_config_recursive(val, keypath_prefix=keypath_prefix+[key], sec_key_prefix=sec_key_prefix)
-                child_sections.extend(children)
+    def extra_content(self, chip, modname):
+        # assume same pdk for all libraries configured by this module
+        libname = chip.getkeys('library')[0]
+        pdk = chip.get('library', libname, 'pdk')
 
-        # If we've found leaves, create a new section where we'll display a
-        # table plus all child sections.
-        if len(leaves) > 0:
-            keypath = ', '.join(keypath_prefix)
-            section_key = '-'.join(sec_key_prefix + keypath_prefix)
-            top = build_section(keypath, section_key)
-            top += build_schema_value_table(leaves, keypath_prefix=keypath_prefix)
-            top += child_sections
-            return [top]
-        else:
-            # Otherwise, just pass on the child sections -- we don't want to
-            # create an extra level of section hierarchy for levels of the
-            # schema without leaves.
-            return child_sections
+        path = os.path.join(SC_ROOT, 'siliconcompiler', 'pdks', f'{pdk}.py')
+        if os.path.isfile(path):
+            root_url = 'https://docs.siliconcompiler.com/en/latest/reference_manual/pdks.html'
+            pdk_url = f'{root_url}#{pdk}'
+            p = para('Associated PDK: ')
+            p += link(pdk_url, text=pdk)
+            return [p]
+
+        return None
+
+    def display_config(self, chip, modname):
+        '''Display parameters under in nested form.'''
+
+        sections = []
+
+        for libname in chip.getkeys('library'):
+            section_key = '-'.join(['libs', modname, libname, 'configuration'])
+            settings = build_section(libname, section_key)
+            cfg = chip.getdict('library', libname)
+            settings += build_config_recursive(cfg, keypath_prefix=['library', libname], sec_key_prefix=['libs', modname])
+            sections.append(settings)
+
+        return sections
 
 class ToolGen(DynamicGen):
     PATH = 'tools'
@@ -398,6 +442,7 @@ class ExampleGen(DynamicGen):
 def setup(app):
     app.add_directive('flowgen', FlowGen)
     app.add_directive('pdkgen', PDKGen)
+    app.add_directive('libgen', LibGen)
     app.add_directive('toolgen', ToolGen)
     app.add_directive('appgen', AppGen)
     app.add_directive('examplegen', ExampleGen)

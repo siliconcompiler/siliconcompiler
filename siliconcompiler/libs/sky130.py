@@ -1,19 +1,13 @@
 import os
-import sys
-import re
 import siliconcompiler
 
 def make_docs():
     '''
-    Library description
-
-    Documentation: https://
-    Sources: https://
-    Installation: https://
+    Skywater130 standard cell library.
     '''
 
     chip = siliconcompiler.Chip()
-    setup_lib(chip)
+    setup(chip)
     return chip
 
 def setup(chip):
@@ -34,6 +28,8 @@ def setup(chip):
 
     # rev
     chip.set('library', libname, 'package', 'version', rev)
+
+    chip.set('library', libname, 'pdk', 'skywater130')
 
     # timing
     chip.add('library', libname, 'nldm', corner, 'lib',
