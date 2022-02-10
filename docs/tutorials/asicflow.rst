@@ -195,7 +195,7 @@ We have now set up the basic execution flow and metrics, but we haven't specifie
           tool = 'openroad'
       chip.set('flowgraph', step, 'tool', tool)
 
-The 'magic' of setting up these tools happens at runtime when calling the run() function, at which point point the <tool>.py module is loaded and a a fixed name function "setup_tool()" is exeucted. The setup of these tools is beyond the scope o this tutorial, but if you curious about the process, you can take a look at one of the setup files here. [TODO: Add link]
+The 'magic' of setting up these tools happens at runtime when calling the run() function, at which point point the <tool>.py module is loaded and a fixed name function "setup()" is exeucted. The setup of these tools is beyond the scope o this tutorial, but if you curious about the process, you can take a look at one of the setup files here. [TODO: Add link]
 
 
 Check

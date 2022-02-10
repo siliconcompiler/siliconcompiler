@@ -15,7 +15,7 @@ Process Design Kits (PDKs) for leading process nodes generally include hundreds 
      - Used by
      - Required
 
-   * - **setup_pdk**
+   * - **setup**
      - PDK setup function
      - chip
      - chip
@@ -30,7 +30,7 @@ Process Design Kits (PDKs) for leading process nodes generally include hundreds 
      - yes
 
 
-setup_pdk(chip)
+setup(chip)
 -----------------
 
 A minimally viable PDK will include a simulation device model and a set of codified manufacturing rules ("drc").
@@ -68,7 +68,7 @@ Note that the 'techarg' dictionary in the schema can be used to pass named argum
 
 make_docs()
 -----------------
-The make_docs() function is used by the projects auto-doc generation. The function should include a descriptive docstring and a call to the setup_pdk function to populate the schema with all settings::
+The make_docs() function is used by the projects auto-doc generation. The function should include a descriptive docstring and a call to the setup function to populate the schema with all settings:
 
   def make_docs():
     '''
@@ -76,6 +76,6 @@ The make_docs() function is used by the projects auto-doc generation. The functi
     '''
 
     chip = siliconcompiler.Chip()
-    setup_pdk(chip)
+    setup(chip)
 
     return chip

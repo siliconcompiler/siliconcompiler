@@ -15,7 +15,7 @@ SiliconCompiler flows are created by configuring the 'flowgraph' parameters with
      - Used by
      - Required
 
-   * - **setup_flow**
+   * - **setup**
      - PDK setup function
      - chip
      - chip
@@ -30,7 +30,7 @@ SiliconCompiler flows are created by configuring the 'flowgraph' parameters with
      - yes
 
 
-setup_flow(chip)
+setup(chip)
 -----------------
 
 A SiliconCompiler flowgraph consists of a set of connected nodes and edges, where a node is an executable tool performing some ("task"), and an edge is the connection between those tasks. The first task in the flowgraph must be named 'import'. ::
@@ -56,7 +56,7 @@ For a complete working example, see the `asicflow <https://github.com/siliconcom
 
 make_docs()
 -----------------
-The make_docs() function is used by the projects auto-doc generation. The function should include a descriptive docstring and a call to the setup_flow function that populates the appropriate schema settings. ::
+The make_docs() function is used by the projects auto-doc generation. The function should include a descriptive docstring and a call to the setup function that populates the appropriate schema settings. ::
 
   def make_docs():
     '''
@@ -64,5 +64,5 @@ The make_docs() function is used by the projects auto-doc generation. The functi
     '''
 
     chip = siliconcompiler.Chip()
-    setup_flow(chip)
+    setup(chip)
     return chip
