@@ -130,10 +130,10 @@ configured in the provided chip object:
 
 Let's fill out ``configure_chip()`` to accomplish these tasks one-by-one. First,
 we instantiate a new chip and set its target to Skywater 130, an open-source PDK
-that has its configuration bundled with SC::
+that has a demo build target bundled with SC::
 
   chip = Chip()
-  chip.load_pdk('skywater130')
+  chip.load_target('skywater130_demo')
 
 Next, we'll provide the design name as a parameter so that we can reuse this
 configuration function for testing both the core and top padring::
@@ -180,7 +180,7 @@ library, your definition of ``configure_chip()`` should look like this::
 
   def configure_chip(design):
       chip = Chip()
-      chip.load_pdk('skywater130')
+      chip.load_target('skywater130_demo')
 
       chip.set('design', design)
 
