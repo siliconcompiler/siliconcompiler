@@ -10,6 +10,7 @@ from sphinx.util.docutils import SphinxDirective
 import docutils
 from docutils.parsers.rst import directives
 
+import copy
 import importlib
 import pkgutil
 import os
@@ -382,6 +383,55 @@ class ToolGen(DynamicGen):
 
         return modules
 
+class TargetGen(DynamicGen):
+    PATH = 'targets'
+
+    def build_module_list(self, chip, header, modtype, targetname):
+        modules = chip._loaded_modules[modtype]
+        if len(modules) > 0:
+            section = build_section(header, f'{targetname}-{modtype}')
+            items = []
+            for module in modules:
+                path = os.path.join(SC_ROOT, 'siliconcompiler', modtype, f'{module}.py')
+                if os.path.isfile(path):
+                    root_url = f'https://docs.siliconcompiler.com/en/latest/reference_manual/{modtype}.html'
+                    module_url = f'{root_url}#{module}'
+                    p = para(text='')
+                    p += link(module_url, text=module)
+                    items.append(p)
+
+            section += build_list(items, enumerated=False)
+            return section
+        return None
+
+    def display_config(self, chip, modname):
+        sections = []
+
+        pdk_section = self.build_module_list(chip, 'PDK', 'pdks', modname)
+        if pdk_section is not None:
+            sections.append(pdk_section)
+
+
+        libs_section = self.build_module_list(chip, 'Libraries', 'libs', modname)
+        if libs_section is not None:
+            sections.append(libs_section)
+
+        flow_section = self.build_module_list(chip, 'Flows', 'flows', modname)
+        if flow_section is not None:
+            sections.append(flow_section)
+
+        filtered_cfg = {}
+        for key in ('asic', 'mcmm'):
+            filtered_cfg[key] = chip.getdict(key)
+        pruned_cfg = chip._prune(filtered_cfg)
+
+        if len(pruned_cfg) > 0:
+            schema_section = build_section('Configuration', key=f'{modname}-config')
+            schema_section += build_schema_value_table(pruned_cfg)
+            sections.append(schema_section)
+
+        return sections
+
 class AppGen(DynamicGen):
     PATH = 'apps'
 
@@ -446,6 +496,7 @@ def setup(app):
     app.add_directive('toolgen', ToolGen)
     app.add_directive('appgen', AppGen)
     app.add_directive('examplegen', ExampleGen)
+    app.add_directive('targetgen', TargetGen)
 
     return {
         'version': '0.1',

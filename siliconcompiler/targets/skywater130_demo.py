@@ -1,6 +1,3 @@
-import os
-import sys
-import re
 import siliconcompiler
 
 ############################################################################
@@ -9,11 +6,12 @@ import siliconcompiler
 
 def make_docs():
     '''
-    Template project file.
+    Demonstration target for compiling ASICs with Skywater130 and the
+    open-source asicflow.
     '''
 
     chip = siliconcompiler.Chip()
-    setup_project(chip)
+    setup(chip)
     return chip
 
 

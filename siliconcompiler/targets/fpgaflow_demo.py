@@ -1,14 +1,12 @@
-import os
-import sys
-import re
 import siliconcompiler
 
 def make_docs():
     '''
-    Documentation
+    Demonstration target for running the open-source fpgaflow.
     '''
 
     chip = siliconcompiler.Chip()
+    chip.set('fpga', 'partname', 'ice40up5k-sg48')
     setup(chip)
     return chip
 

@@ -1,6 +1,3 @@
-import os
-import sys
-import re
 import siliconcompiler
 
 ############################################################################
@@ -9,7 +6,8 @@ import siliconcompiler
 
 def make_docs():
     '''
-    Template project file.
+    Demonstration target for compiling ASICs with FreePDK45 and the open-source
+    asicflow.
     '''
 
     chip = siliconcompiler.Chip()

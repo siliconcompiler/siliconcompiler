@@ -58,6 +58,19 @@ def link(url, text=None):
         text = url
     return nodes.reference(internal=False, refuri=url, text=text)
 
+def build_list(items, enumerated=False):
+    if enumerated:
+        list = nodes.enumerated_list()
+    else:
+        list = nodes.bullet_list()
+
+    for item in items:
+        docutils_item = nodes.list_item()
+        docutils_item += item
+        list += docutils_item
+
+    return list
+
 # SC schema helpers
 def is_leaf(schema):
     if 'defvalue' in schema:

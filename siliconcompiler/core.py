@@ -91,6 +91,12 @@ class Chip:
 
         self._init_logger()
 
+        self._loaded_modules = {
+            'flows': [],
+            'pdks': [],
+            'libs': []
+        }
+
     ###########################################################################
     def _init_logger(self, step=None, index=None):
 
@@ -517,6 +523,7 @@ class Chip:
 
         func = self.find_function(name, 'setup', 'pdks')
         if func is not None:
+            self._loaded_modules['pdks'].append(name)
             func(self)
         else:
             self.logger.error(f'Module {name} not found.')
@@ -541,6 +548,7 @@ class Chip:
 
         func = self.find_function(name, 'setup', 'flows')
         if func is not None:
+            self._loaded_modules['flows'].append(name)
             func(self)
         else:
             self.logger.error(f'Module {name} not found.')
@@ -565,6 +573,7 @@ class Chip:
 
         func = self.find_function(name, 'setup', 'libs')
         if func is not None:
+            self._loaded_modules['libs'].append(name)
             func(self)
         else:
             self.logger.error(f'Module {name} not found.')

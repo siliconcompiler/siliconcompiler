@@ -1,0 +1,4 @@
+Targets directory
+====================
+
+.. targetgen::
