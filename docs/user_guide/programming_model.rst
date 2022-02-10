@@ -17,7 +17,7 @@ Compilation is based on a single chip object that follows the design from start 
 Setup
 ----------------
 
-Once the chip object has been created, functions and data are all contained within that object. A compilation is set up by accessing methods and parameters from the chip object. Parameters can generally be configured in any order during setup. The exceptions are flowarg and techarg parameters, which must be set before calling chip.target().
+Once the chip object has been created, functions and data are all contained within that object. A compilation is set up by accessing methods and parameters from the chip object. Parameters can generally be configured in any order during setup. The exceptions are flowarg and techarg parameters, which must be set before calling chip.load_flow() or chip.load_pdk(), respectively.
 
 The snippet of code below shows the basic principles. ::
 

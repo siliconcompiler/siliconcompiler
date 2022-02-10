@@ -3472,7 +3472,7 @@ def schema_options(cfg):
                     "api: chip.set('techarg','mimcap', 'true')"],
         'help': """
         Parameter passed in as key/value pair to the technology target
-        referenced in the target() API call. See the target technology
+        referenced in the load_pdk() API call. See the target technology
         for specific guidelines regarding configuration parameters.
         """
     }
@@ -3490,7 +3490,7 @@ def schema_options(cfg):
                     "api: chip.set('flowarg','n', '100')"],
         'help': """
         Parameter passed in as key/value pair to the technology target
-        referenced in the target() API call. See the target flow for
+        referenced in the load_flow() API call. See the target flow for
         specific guidelines regarding configuration parameters.
         """
     }
@@ -3976,7 +3976,7 @@ def schema_options(cfg):
         Specifies the frontend that flows should use for importing and
         processing source files. Default option is 'verilog', also supports
         'systemverilog' and 'chisel'. When using the Python API, this parameter
-        must be configured before calling target().
+        must be configured before calling load_target().
         """
     }
 

@@ -36,9 +36,9 @@ See the :ref:`PDK<PDKs>`, :ref:`Library<Libraries>`, and :ref:`Flow<Flows>` User
 
 Generally, these functions will be called by targets, and then a user will only have to call ``load_target()`` in their build script.  However, the ``run()`` function requires all mandatory flowgraph, pdk, and tool settings to be defined prior to execution, so if a partial target is loaded, additional setup may be required.
 
-The following example calls the target function to load the built-in :ref:`freepdk45_demo` target. ::
+The following example calls the ``load_target()`` function to load the built-in :ref:`freepdk45_demo` target. ::
 
-  chip.target('freepdk45_dmeo')
+  chip.load_target('freepdk45_demo')
 
 The following example demonstrates the functional equivalent at the command line:
 

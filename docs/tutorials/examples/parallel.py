@@ -19,7 +19,7 @@ def run_design(design, M, job):
     chip.set('flowarg','syn_place', str(M))
     chip.set('flowarg','syn_cts', str(M))
     chip.set('flowarg','syn_route', str(M))
-    chip.target("asicflow_freepdk45")
+    chip.load_target("freepdk45_demo")
     chip.run()
 
 def main():

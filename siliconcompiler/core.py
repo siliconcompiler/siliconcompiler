@@ -155,9 +155,11 @@ class Chip:
          1. design
          2. loglevel
          3. mode
-         4. target('target')
-         5. read_manifest([cfg])
-         6. all other switches
+         4. arg_step
+         5. fpga_partname
+         6. load_target('target')
+         7. read_manifest([cfg])
+         8. all other switches
 
         The cmdline interface is implemented using the Python argparse package
         and the following use restrictions apply.

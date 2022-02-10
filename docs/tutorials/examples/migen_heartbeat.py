@@ -22,7 +22,7 @@ def main():
     chip.set('design', 'heartbeat')
     # default Migen clock pin is named 'sys_clk'
     chip.clock(name='sys', pin='sys_clk', period=1)
-    chip.target('asicflow_freepdk45')
+    chip.load_target('freepdk45_demo')
     chip.run()
     chip.summary()
     chip.show()

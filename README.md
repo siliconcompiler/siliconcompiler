@@ -32,7 +32,7 @@ Intrigued? Check out the extensive [documentation!](https://docs.siliconcompiler
 ```python
 import siliconcompiler                    # import python package
 chip = siliconcompiler.Chip()             # create chip object
-chip.target('asicflow_freepdk45')         # load pre-defined flow
+chip.load_target('freepdk45_demo')        # load pre-defined flow
 chip.set('source', 'heartbeat.v')         # define list of sources
 chip.set('design', 'heartbeat')           # set top module name
 chip.set('constraint', 'heartbeat.sdc')   # define constraints
@@ -58,7 +58,7 @@ sc flipflop.v -remote
 More complex designs are handled by simply adding more options.
 
 ```bash
-sc hello.v add.v -remote -constraint hello.sdc -target "asicflow_skywater130"
+sc hello.v add.v -remote -constraint hello.sdc -target "skywater130_demo"
 ```
 
 ## Installation

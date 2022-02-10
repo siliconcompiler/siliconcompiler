@@ -1,7 +1,7 @@
 Flows
 ===================================
 
-SiliconCompiler flows are created by configuring the 'flowgraph' parameters within the schema. To simplify reuse of complex flows, the project includes standardized interfaces for bundling flowgraph settings as reusable named modules. These flow modules get loaded by the target() function during compilation setup. A complete set of supported open PDKs can be found in the :ref:`Flows Directory`. The table below shows the function interfaces required in setting up flows.
+SiliconCompiler flows are created by configuring the 'flowgraph' parameters within the schema. To simplify reuse of complex flows, the project includes standardized interfaces for bundling flowgraph settings as reusable named modules. These flow modules get loaded by the load_flow() function during compilation setup. A complete set of supported open PDKs can be found in the :ref:`Flows Directory`. The table below shows the function interfaces required in setting up flows.
 
 
 .. list-table::
