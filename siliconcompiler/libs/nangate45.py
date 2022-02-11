@@ -1,20 +1,13 @@
-
 import os
-import sys
-import re
 import siliconcompiler
 
 def make_docs():
     '''
-    Library description
-
-    Documentation: https://
-    Sources: https://
-    Installation: https://
+    Nangate open standard cell library for FreePDK45.
     '''
 
     chip = siliconcompiler.Chip()
-    setup_lib(chip)
+    setup(chip)
     return chip
 
 def setup(chip):
@@ -41,6 +34,8 @@ def setup(chip):
 
     # rev
     chip.set('library',libname, 'package', 'version',rev)
+
+    chip.set('library', libname, 'pdk', 'freepdk45')
 
     # timing
     chip.add('library',libname, 'nldm', corner, 'lib',

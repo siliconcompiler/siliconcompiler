@@ -91,6 +91,12 @@ class Chip:
 
         self._init_logger()
 
+        self._loaded_modules = {
+            'flows': [],
+            'pdks': [],
+            'libs': []
+        }
+
     ###########################################################################
     def _init_logger(self, step=None, index=None):
 
@@ -149,9 +155,11 @@ class Chip:
          1. design
          2. loglevel
          3. mode
-         4. target('target')
-         5. read_manifest([cfg])
-         6. all other switches
+         4. arg_step
+         5. fpga_partname
+         6. load_target('target')
+         7. read_manifest([cfg])
+         8. all other switches
 
         The cmdline interface is implemented using the Python argparse package
         and the following use restrictions apply.
@@ -517,6 +525,7 @@ class Chip:
 
         func = self.find_function(name, 'setup', 'pdks')
         if func is not None:
+            self._loaded_modules['pdks'].append(name)
             func(self)
         else:
             self.logger.error(f'Module {name} not found.')
@@ -541,6 +550,7 @@ class Chip:
 
         func = self.find_function(name, 'setup', 'flows')
         if func is not None:
+            self._loaded_modules['flows'].append(name)
             func(self)
         else:
             self.logger.error(f'Module {name} not found.')
@@ -565,6 +575,7 @@ class Chip:
 
         func = self.find_function(name, 'setup', 'libs')
         if func is not None:
+            self._loaded_modules['libs'].append(name)
             func(self)
         else:
             self.logger.error(f'Module {name} not found.')

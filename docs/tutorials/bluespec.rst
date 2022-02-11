@@ -60,7 +60,7 @@ Or using Python::
         chip.set('design', 'mkFibOne')
         # default Bluespec clock pin is 'CLK'
         chip.clock(name='clock', pin='CLK', period=5)
-        chip.target('asicflow_freepdk45')
+        chip.load_target('freepdk45_demo')
         chip.run()
         chip.summary()
         chip.show()

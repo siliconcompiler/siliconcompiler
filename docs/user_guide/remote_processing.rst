@@ -19,7 +19,7 @@ Remote processing is also supported from the Python interface when the 'remote' 
 
   chip.set('remote', True)
 
-For security reasons, only a subset of the full Schema parameters is currently supported. Values for disallowed keypaths will be silently dropped by the server. In addition, note that the target() function will be re-run on the server, to ensure targets are set up with their default configurations. The following table documents the list of supported remote parameters and any associated restrictions.
+For security reasons, only a subset of the full Schema parameters is currently supported. Values for disallowed keypaths will be silently dropped by the server. In addition, note that the load_target() function will be re-run on the server, to ensure targets are set up with their default configurations. The following table documents the list of supported remote parameters and any associated restrictions.
 
 .. list-table::
    :widths: 10 10

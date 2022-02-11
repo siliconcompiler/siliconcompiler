@@ -1,15 +1,9 @@
 import os
-import sys
-import re
 import siliconcompiler
 
 def make_docs():
     '''
-    Library description
-
-    Documentation: https://
-    Sources: https://
-    Installation: https://
+    ASAP 7 7.5-track standard cell library.
     '''
 
     chip = siliconcompiler.Chip()
@@ -37,6 +31,8 @@ def setup(chip):
 
         # rev
         chip.set('library',libname, 'package', 'version',rev)
+
+        chip.set('library', libname, 'pdk', 'asap7')
 
         # timing
         chip.add('library', libname, 'nldm', corner, 'lib',

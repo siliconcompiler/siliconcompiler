@@ -36,13 +36,13 @@ copy paste the code into your text editor and save it to disk as "heartbeat.py".
 .. literalinclude:: examples/heartbeat.py
 
 Much of the complexity of setting up a hardware compilation flow is abstracted away
-from the user through the target() function which sets up a large number of PDK,
-flow, and tool parameters based on a "tuple" of strings separated by underscore
-('_'). To understand the complete target configuration, see the
-:ref:`Flows Directory` and :ref:`PDK Directory` sections of the reference manual and
-read the source code for
-`asicflow <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/flows/asicflow.py>`_ and
-`freepdk45 <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/pdks/freepdk45.py>`_.
+from the user through the load_target() function which sets up a large number of PDK,
+flow, and tool parameters based on a target setup module. To understand the
+complete target configuration, see the :ref:`Flows Directory`, :ref:`PDK
+Directory`, and :ref:`Target Directory` sections of the reference manual and read the source code for
+`asicflow <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/flows/asicflow.py>`_,
+`freepdk45 <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/pdks/freepdk45.py>`_, and
+`freepdk45_demo <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/targets/freepdk45_demo.py>`_.
 
 .. note::
 

@@ -12,7 +12,7 @@ def main():
     chip.set('quiet', True)
     chip.set('asic', 'diearea', [(0,0), (100.13,100.8)])
     chip.set('asic', 'corearea', [(10.07,11.2), (90.25,91)])
-    chip.target("asicflow_freepdk45")
+    chip.load_target("freepdk45_demo")
     chip.run()
     chip.summary()
 

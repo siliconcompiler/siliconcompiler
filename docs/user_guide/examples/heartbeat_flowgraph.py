@@ -3,7 +3,7 @@ chip = siliconcompiler.Chip()              # create chip object
 chip.set('source', 'heartbeat.v')          # define list of source files
 chip.set('design', 'heartbeat')            # set top module
 chip.set('constraint', 'heartbeat.sdc')    # set constraints file
-chip.target('freepdk45')                   # load freepdk45
+chip.load_pdk('freepdk45')                 # load freepdk45
 # start of flowgraph setup
 chip.node('import', 'surelog')             # use surelog for import
 chip.node('syn', 'yosys')                  # use yosys for synthesis

@@ -1,7 +1,7 @@
 PDKs
 ===================================
 
-Process Design Kits (PDKs) for leading process nodes generally include hundreds of files, documents, and configuration parameters, resulting in significant startup times in porting a design to a new node. The SiliconCompiler project minimizes per design PDK setup efforts by packaging PDKs as standardized reusable objects and making them available as named modules by the target() function. A complete set of supported open PDKs can be found in the :ref:`PDK Directory`. The table below shows the function interfaces supported in setting up PDKs.
+Process Design Kits (PDKs) for leading process nodes generally include hundreds of files, documents, and configuration parameters, resulting in significant startup times in porting a design to a new node. The SiliconCompiler project minimizes per design PDK setup efforts by packaging PDKs as standardized reusable objects and making them available as named modules by the load_pdk() function. A complete set of supported open PDKs can be found in the :ref:`PDK Directory`. The table below shows the function interfaces supported in setting up PDKs.
 
 
 .. list-table::
@@ -15,11 +15,11 @@ Process Design Kits (PDKs) for leading process nodes generally include hundreds 
      - Used by
      - Required
 
-   * - **setup_pdk**
+   * - **setup**
      - PDK setup function
      - chip
      - chip
-     - target()
+     - load_pdk()
      - yes
 
    * - **make_docs**
@@ -30,7 +30,7 @@ Process Design Kits (PDKs) for leading process nodes generally include hundreds 
      - yes
 
 
-setup_pdk(chip)
+setup(chip)
 -----------------
 
 A minimally viable PDK will include a simulation device model and a set of codified manufacturing rules ("drc").
@@ -49,11 +49,9 @@ The following Schema parameters are mandatory in setting up PDKs for SiliconComp
     chip.set('pdk','lvs',<tool>, <stackup>, 'runset', <file>)
     chip.set('pdk','devmodel', <stackup>, <modeltype>, <tool>, <file>)
 
-To support standard RTL2GDS flows, the PDK setup will also need to specify pointers to routing technology rules, timing libraries, layout abstractions, layer maps, and routing grids as shown in the below example. For a complete set of available PDK parameters, see the :ref:`Schema<SiliconCompiler Schema>`. ::
+To support standard RTL2GDS flows, the PDK setup will also need to specify pointers to routing technology rules, layout abstractions, layer maps, and routing grids as shown in the below example. For a complete set of available PDK parameters, see the :ref:`Schema<SiliconCompiler Schema>`. ::
 
     chip.set('pdk','aprtech', <stackup>, <libtype>, 'lef', <file>)
-    chip.add('library',<libname>, 'nldm', <corner>, <libformat>, <file>)
-    chip.add('library',<libname>, 'lef', <file>)
     chip.set('pdk','layermap',<stackup>, 'def', 'gds', <file>)
 
     #Per layer grid setup
@@ -68,7 +66,7 @@ Note that the 'techarg' dictionary in the schema can be used to pass named argum
 
 make_docs()
 -----------------
-The make_docs() function is used by the projects auto-doc generation. The function should include a descriptive docstring and a call to the setup_pdk function to populate the schema with all settings::
+The make_docs() function is used by the projects auto-doc generation. The function should include a descriptive docstring and a call to the setup function to populate the schema with all settings:
 
   def make_docs():
     '''
@@ -76,6 +74,6 @@ The make_docs() function is used by the projects auto-doc generation. The functi
     '''
 
     chip = siliconcompiler.Chip()
-    setup_pdk(chip)
+    setup(chip)
 
     return chip

@@ -1,6 +1,6 @@
 Introduction
 ===================================
-SiliconCompiler is an open source compiler framework that aims to enable automated translation from source code to silicon.
+SiliconCompiler is an open source build system that automates translation from source code to silicon.
 
 Motivation
 -----------

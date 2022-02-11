@@ -41,8 +41,8 @@ The process for target contributions is as follows:
        |    └── ...
        └── <...>
 
-3.) Test the new target by calling it from a the target() function. For example. ::
+3.) Test the new target by calling it using the appropriate "load" function. For example. ::
 
-  chip.target('asicflow_<newpdk>')
+  chip.load_pdk('<newpdk>')
 
 4.) Read the `CONTRIBUTING <https://github.com/siliconcompiler/siliconcompiler/blob/main/CONTRIBUTING.md>`_ guide to learn how to submit a PR.

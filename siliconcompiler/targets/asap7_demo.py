@@ -1,11 +1,9 @@
-import os
-import sys
-import re
 import siliconcompiler
 
 def make_docs():
     '''
-    Documentation
+    Demonstration target for compiling ASICs with ASAP7 and the open-source
+    asicflow.
     '''
 
     chip = siliconcompiler.Chip()
