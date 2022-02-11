@@ -2206,12 +2206,12 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         """
     }
 
-    report_type = 'default'
+    metric = 'default'
     cfg['eda'][tool]['report'] = {}
     cfg['eda'][tool]['report'][step] = {}
     cfg['eda'][tool]['report'][step][index] = {}
-    cfg['eda'][tool]['report'][step][index][report_type] = {
-        'switch': "-eda_report 'tool step index report_type <str>'",
+    cfg['eda'][tool]['report'][step][index][metric] = {
+        'switch': "-eda_report 'tool step index metric <str>'",
         'type': '[file]',
         'lock': 'false',
         'copy': 'false',
@@ -2225,11 +2225,11 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'defvalue': [],
         'shorthelp': 'Tool report files ',
         'example': [
-            "cli: -eda_report 'yosys syn 0 hold hold.rpt'",
-            "api: chip.set('eda','yosys','report','syn','0','hold','hold.rpt')"],
+            "cli: -eda_report 'openroad place 0 holdtns place.log'",
+            "api: chip.set('eda','openroad','report','syn','0','holdtns','place.log')"],
         'help': """
-        List of reports of type of a certain kind produced by the task within the
-        local 'reports' directory.
+        List of report files associated with a specific 'metric'. The file path
+        specified is relative to the run directory of the current task.
         """
     }
 
