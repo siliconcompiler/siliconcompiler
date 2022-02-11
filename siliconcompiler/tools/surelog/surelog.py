@@ -77,6 +77,8 @@ def setup(chip):
         surelog_path = os.path.join(os.path.dirname(__file__), 'bin')
         chip.set('eda', tool, 'path', surelog_path, clobber=False)
 
+
+
 def parse_version(stdout):
     # Surelog --version output looks like:
     # VERSION: 1.13
@@ -133,9 +135,19 @@ def post_process(chip):
     '''
     design = chip.get('design')
     step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool = 'surelog'
 
     if step != 'import':
         return 0
+
+    # Log file parsing
+    chip.set('eda', tool, 'regex', step, index, 'warnings', "WARNING")
+    chip.set('eda', tool, 'regex', step, index, 'errors', "ERROR")
+
+    # Output reprts for deep dive
+    for metric in ('errors', 'warnings'):
+        chip.set('eda', tool, 'report', step, index, metric, f"{step}.log")
 
     # Look in slpp_all/file_elab.lst for list of Verilog files included in
     # design, read these and concatenate them into one pickled output file.

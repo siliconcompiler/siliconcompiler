@@ -125,6 +125,8 @@ def setup(chip, mode="batch"):
             chip.logger.error(f'Stackup and targetlib paremeters required for Klayout.')
 
 
+
+
 ################################
 #  Environment setup
 ################################
@@ -156,6 +158,30 @@ def runtime_options(chip):
 def parse_version(stdout):
     # KLayout 0.26.11
     return stdout.split()[1]
+
+
+################################
+# Post_process (post executable)
+################################
+
+def post_process(chip):
+    ''' Tool specific function to run after step execution
+    '''
+
+    tool = 'klayout'
+    step = chip.get('arg', 'step')
+    index = chip.get('arg','index')
+    logfile = f"{step}.log"
+
+    # Log file parsing
+    chip.set('eda', tool, 'regex', step, index, 'warnings', "WARNING", clobber=False)
+    chip.set('eda', tool, 'regex', step, index, 'errors', "ERROR", clobber=False)
+
+    # Reports
+    for metric in ('errors', 'warnings'):
+        chip.set('eda', tool, 'report', step, index, metric, logfile)
+
+    return 0
 
 ##################################################
 if __name__ == "__main__":

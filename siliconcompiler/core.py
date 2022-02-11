@@ -3374,7 +3374,7 @@ class Chip:
                     self._haltstep(step, index, active)
 
         ##################
-        # 18. Check log file
+        # 18. Check log file (must be after post-process)
         if (tool not in self.builtin) and (not self.get('checkonly')) :
             self.check_logfile(step=step, index=index, display=not quiet)
 
