@@ -1278,10 +1278,13 @@ class Chip:
 
         # Special case where we're looking to find tool outputs: check the
         # output directory and return those files directly
-        if len(keypath) == 5 and keypath[0] == 'eda' and keypath[2] in ('input', 'output'):
+        if keypath[0] == 'eda' and keypath[2] in ('input', 'output', 'report'):
             step = keypath[3]
             index = keypath[4]
-            io = keypath[2] + 's' # inputs or outputs
+            if keypath[2] == 'report':
+                io = ""
+            else:
+                io = keypath[2] + 's'
             iodir = os.path.join(self._getworkdir(step=step, index=index), io)
             for path in paths:
                 abspath = os.path.join(iodir, path)
