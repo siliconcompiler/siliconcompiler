@@ -3908,6 +3908,23 @@ def schema_options(cfg):
         """
     }
 
+    cfg['skipcheck'] = {
+        'switch': "-skipcheck <bool>",
+        'type': 'bool',
+        'lock': 'false',
+        'require': 'all',
+        'signature': None,
+        'defvalue': "false",
+        'shorthelp': "Skip configuration runtime check",
+        'example': ["cli: -skipcheck true",
+                    "api: chip.set('skipcheck', True)"],
+        'help': """
+        Skips the runtime configuration check. Useful for lowering the initial
+        barrier for creation of new tool/flow/pdk/libs targets. Not
+        recommended for actual design compilation.
+        """
+    }
+
     cfg['copyall'] = {
         'switch': "-copyall <bool>",
         'type': 'bool',

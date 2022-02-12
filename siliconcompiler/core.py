@@ -3273,10 +3273,10 @@ class Chip:
         self.set('arg', 'step', step, clobber=True)
         self.set('arg', 'index', index, clobber=True)
 
-        if self.check_manifest():
-            self.logger.error(f"Fatal error in check_manifest()! See previous errors.")
-            self._haltstep(step, index, active)
-
+        if not self.get('skipcheck'):
+            if self.check_manifest():
+                self.logger.error(f"Fatal error in check_manifest()! See previous errors.")
+                self._haltstep(step, index, active)
 
         ##################
         # 12. Run preprocess step for tool
@@ -3597,7 +3597,8 @@ class Chip:
 
             # Check validity of setup
             self.logger.info("Checking manifest before running.")
-            self.check_manifest()
+            if not self.get('skipcheck'):
+                self.check_manifest()
 
             # Check if there were errors before proceeding with run
             if self.error:
