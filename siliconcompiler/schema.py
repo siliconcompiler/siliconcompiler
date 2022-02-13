@@ -558,6 +558,77 @@ def schema_pdk(cfg, stackup='default'):
         """
     }
 
+    key='default'
+    cfg['pdk']['file'] = {}
+    cfg['pdk']['file'][tool] = {}
+    cfg['pdk']['file'][tool][stackup] = {}
+    cfg['pdk']['file'][tool][stackup][key] = {
+        'switch': "-pdk_file 'tool stackup key <file>'",
+        'require': None,
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'PDK named file',
+        'example': [
+            "cli: -pdk_file 'xyce M10 spice asap7.sp'",
+            "api: chip.set('pdk','file','xyce','M10','spice','asap7.sp')"],
+        'help': """
+        List of named files specified on a per tool and per stackup basis.
+        The parameter is useful for specifying files that are not directly
+        covered by the rest of the PDK schema.
+        """
+    }
+
+    cfg['pdk']['directory'] = {}
+    cfg['pdk']['directory'][tool] = {}
+    cfg['pdk']['directory'][tool][stackup] = {}
+    cfg['pdk']['directory'][tool][stackup][key] = {
+        'switch': "-pdk_directory 'tool stackup key <file>'",
+        'require': None,
+        'type': '[dir]',
+        'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'signature': [],
+        'shorthelp': 'PDK named directory',
+        'example': [
+            "cli: -pdk_directory 'xyce M10 rfmodel rftechdir'",
+            "api: chip.set('pdk','directory','xyce','M10','rfmodel','rftechdir')"],
+        'help': """
+        List of named directories specified on a per tool and per stackup basis.
+        The parameter is useful for specifying files that are not directly
+        covered by the rest of the PDK schema.
+        """
+
+    }
+
+    cfg['pdk']['variable'] = {}
+    cfg['pdk']['variable'][tool] = {}
+    cfg['pdk']['variable'][tool][stackup] = {}
+    cfg['pdk']['variable'][tool][stackup][key] = {
+        'switch': "-pdk_variable 'tool stackup key <str>'",
+        'require': None,
+        'type': '[str]',
+        'lock': 'false',
+        'signature' : None,
+        'defvalue': [],
+        'shorthelp': 'PDK named variable',
+        'example': [
+            "cli: -pdk_variable 'xyce M10 modeltype bsim4'""",
+            "api: chip.set('pdk','variable','xyce', 'M10','modeltype','bsim4')"],
+        'help': """
+        List of key/value strings specified on a per tool and per stackup basis.
+        The parameter is useful for specifying files that are not directly
+        covered by the rest of the PDK schema.
+        """
+    }
+
     cfg['pdk']['devmodel'] = {}
     cfg['pdk']['devmodel'][tool] = {}
     cfg['pdk']['devmodel'][tool][stackup] = {}
