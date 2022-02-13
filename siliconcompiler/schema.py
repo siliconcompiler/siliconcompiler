@@ -3893,37 +3893,59 @@ def schema_options(cfg):
         """
     }
 
-    cfg['checkonly'] = {
-        'switch': "-checkonly <bool>",
+
+    cfg['skip'] = {}
+    cfg['skip']['all'] = {
+        'switch': "-skip_all <bool>",
         'type': 'bool',
         'lock': 'false',
         'require': 'all',
         'signature': None,
         'defvalue': "false",
         'shorthelp': "Exit after checking flow",
-        'example': ["cli: -checkonly true",
-                    "api: chip.set('checkonly','true')"],
+        'example': ["cli: -skip_all true",
+                    "api: chip.set('skip', 'all','true')"],
         'help': """
-        Checks the legality of the configuration but doesn't run the flow.
+        Skips the execution of all tools in run(), enabling a quick check
+        of tool and setup without having to run through eachc step of a flow
+        to completion.
         """
     }
 
-    cfg['skipcheck'] = {
-        'switch': "-skipcheck <bool>",
+    cfg['skip']['check'] = {
+        'switch': "-skip_check <bool>",
         'type': 'bool',
         'lock': 'false',
         'require': 'all',
         'signature': None,
         'defvalue': "false",
         'shorthelp': "Skip configuration runtime check",
-        'example': ["cli: -skipcheck true",
-                    "api: chip.set('skipcheck', True)"],
+        'example': ["cli: -skip_check true",
+                    "api: chip.set('skip', 'check', True)"],
         'help': """
         Skips the runtime configuration check. Useful for lowering the initial
         barrier for creation of new tool/flow/pdk/libs targets. Not
         recommended for actual design compilation.
         """
     }
+
+    step = 'default'
+    cfg['skip']['step'] = {}
+    cfg['skip']['step'][step] = {
+        'switch': "-skip_step 'step <bool>",
+        'type': 'bool',
+        'lock': 'false',
+        'require': 'all',
+        'signature': None,
+        'defvalue': "false",
+        'shorthelp': "Skip a flowgraph step",
+        'example': ["cli: -skip_step 'lvs true'",
+                    "api: chip.set('skip', 'step', 'lvs', True)"],
+        'help': """
+        Skips a specific step when executing the flowgraph in run().
+        """
+    }
+
 
     cfg['copyall'] = {
         'switch': "-copyall <bool>",

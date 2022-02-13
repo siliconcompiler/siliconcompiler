@@ -38,7 +38,8 @@ SiliconCompiler 0.6.0 (2022-02-11)
 * Schema: Changed tool version switch to a list
 * Schema: Changed 'asic', 'targetlib' to 'asic', 'logiclib' for clarity.
 * Schema: Changed 'eda, 'report' parameter guideline to always use 'metric' as keyword
-* Schema: Added -skipcheck option to speed up new target bringup
+* Schema: Added -skip_check option to speed up new target bringup
+* Schema: Added -skip_step option to enable skipping specific steps
 
 SiliconCompiler 0.4.1 (2022-01-06)
 ===================================
