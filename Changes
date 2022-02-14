@@ -20,13 +20,11 @@ SiliconCompiler 0.6.0 (2022-02-11)
 * Schema: Changed metal grid to use PDK metal name as the major key.
 * Schema: Added 'tool' key to PDK settings to avoid tool file conflicts.
 * Schema: Added 'units' parameter to enable tech agnostic SDC.
-* Schema: Added ability to specify tricky setup files on a per tool basis (tracks, taps, vias, antenna, etc).
+* Schema: Added ability to specify tricky apr setup files on a per tool basis (tracks, taps, vias, antenna, etc).
 * Schema: Added checklist functionality
-* Schema: Changed cell types to be hardcoded (tapcell, buf, clkbuf, etc) to avoid fragmentation.
 * Added core.grep function
 * Added core.check_logfile function to core API to emulate grep behavior
 * Added core.load_{target, flow, lib, pdk} functions to core API in place of target()
-* Added -checkonly option to speed up new flow installation.
 * Added asap7 target
 * Added docker support for basic RTL2GDS tool chain
 * Removed core.target() function
@@ -40,6 +38,8 @@ SiliconCompiler 0.6.0 (2022-02-11)
 * Schema: Changed 'eda, 'report' parameter guideline to always use 'metric' as keyword
 * Schema: Added -skip_check option to speed up new target bringup
 * Schema: Added -skip_step option to enable skipping specific steps
+* Schema: Added 'pdk', ['file', 'directory', 'variable'] parameters to enable tool-specific PDK setups.
+* Schema: Changed cell types to be hardcoded (tapcell, buf, clkbuf, etc) to avoid fragmentation.
 
 SiliconCompiler 0.4.1 (2022-01-06)
 ===================================

@@ -1619,7 +1619,7 @@ class Chip:
         # TODO: Need to add skip step
         step = self.get('arg', 'step')
         index = self.get('arg', 'index')
-        if step and index and not self.get('skip','all'):
+        if step and index and not self.get('skip', 'all'):
             tool = self.get('flowgraph', flow, step, index, 'tool')
             if self.valid('eda', tool, 'input', step, index):
                 required_inputs = self.get('eda', tool, 'input', step, index)
