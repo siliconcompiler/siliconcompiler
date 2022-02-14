@@ -1278,10 +1278,13 @@ class Chip:
 
         # Special case where we're looking to find tool outputs: check the
         # output directory and return those files directly
-        if len(keypath) == 5 and keypath[0] == 'eda' and keypath[2] in ('input', 'output'):
+        if keypath[0] == 'eda' and keypath[2] in ('input', 'output', 'report'):
             step = keypath[3]
             index = keypath[4]
-            io = keypath[2] + 's' # inputs or outputs
+            if keypath[2] == 'report':
+                io = ""
+            else:
+                io = keypath[2] + 's'
             iodir = os.path.join(self._getworkdir(step=step, index=index), io)
             for path in paths:
                 abspath = os.path.join(iodir, path)
@@ -1612,10 +1615,11 @@ class Chip:
 
         # Dynamic checks
         # We only perform these if arg, step and arg, index are set.
-        # We don't check inputs for checkonly pass through
+        # We don't check inputs for skip all
+        # TODO: Need to add skip step
         step = self.get('arg', 'step')
         index = self.get('arg', 'index')
-        if step and index and not self.get('checkonly'):
+        if step and index and not self.get('skip', 'all'):
             tool = self.get('flowgraph', flow, step, index, 'tool')
             if self.valid('eda', tool, 'input', step, index):
                 required_inputs = self.get('eda', tool, 'input', step, index)
@@ -3270,10 +3274,10 @@ class Chip:
         self.set('arg', 'step', step, clobber=True)
         self.set('arg', 'index', index, clobber=True)
 
-        if self.check_manifest():
-            self.logger.error(f"Fatal error in check_manifest()! See previous errors.")
-            self._haltstep(step, index, active)
-
+        if not self.get('skip', 'check'):
+            if self.check_manifest():
+                self.logger.error(f"Fatal error in check_manifest()! See previous errors.")
+                self._haltstep(step, index, active)
 
         ##################
         # 12. Run preprocess step for tool
@@ -3328,7 +3332,7 @@ class Chip:
 
         if tool in self.builtin:
             utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True, link=True)
-        elif not self.get('checkonly'):
+        elif not self.get('skip', 'all'):
             cmdlist = self._makecmd(tool, step, index)
             cmdstr = ' '.join(cmdlist)
             self.logger.info("Running in %s", workdir)
@@ -3365,7 +3369,7 @@ class Chip:
         ##################
         # 17. Post process (could fail)
         post_error = 0
-        if (tool not in self.builtin) and (not self.get('checkonly')) :
+        if (tool not in self.builtin) and (not self.get('skip', 'all')) :
             func = self.find_function(tool, 'post_process', 'tools')
             if func:
                 post_error = func(self)
@@ -3374,8 +3378,8 @@ class Chip:
                     self._haltstep(step, index, active)
 
         ##################
-        # 18. Check log file
-        if (tool not in self.builtin) and (not self.get('checkonly')) :
+        # 18. Check log file (must be after post-process)
+        if (tool not in self.builtin) and (not self.get('skip', 'all')) :
             self.check_logfile(step=step, index=index, display=not quiet)
 
         ##################
@@ -3594,7 +3598,8 @@ class Chip:
 
             # Check validity of setup
             self.logger.info("Checking manifest before running.")
-            self.check_manifest()
+            if not self.get('skip', 'check'):
+                self.check_manifest()
 
             # Check if there were errors before proceeding with run
             if self.error:

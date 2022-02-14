@@ -97,6 +97,7 @@ def setup(chip):
         chip.set('pdk','grid', stackup, layer, 'yoffset', 0.07)
         chip.set('pdk','grid', stackup, layer, 'ypitch',  0.14)
         chip.set('pdk','grid', stackup, layer, 'adj',     1.0)
+        chip.set('pdk','grid', stackup, layer, 'dir',    'horizontal')
 
     for layer, sc_name in [('metal2', 'm2')]:
         chip.set('pdk','grid', stackup, layer, 'name',    sc_name)
@@ -105,6 +106,7 @@ def setup(chip):
         chip.set('pdk','grid', stackup, layer, 'yoffset', 0.07)
         chip.set('pdk','grid', stackup, layer, 'ypitch',  0.14)
         chip.set('pdk','grid', stackup, layer, 'adj',     0.8)
+        chip.set('pdk','grid', stackup, layer, 'dir',    'vertical')
 
     for layer, sc_name in [('metal3', 'm3')]:
         chip.set('pdk','grid', stackup, layer, 'name',    sc_name)
@@ -113,6 +115,7 @@ def setup(chip):
         chip.set('pdk','grid', stackup, layer, 'yoffset', 0.07)
         chip.set('pdk','grid', stackup, layer, 'ypitch',  0.14)
         chip.set('pdk','grid', stackup, layer, 'adj',     0.7)
+        chip.set('pdk','grid', stackup, layer, 'dir',    'horizontal')
 
     for layer, sc_name in [('metal4', 'm4'), ('metal5', 'm5'), ('metal6', 'm6')]:
         chip.set('pdk','grid', stackup, layer, 'name',    sc_name)
@@ -121,6 +124,10 @@ def setup(chip):
         chip.set('pdk','grid', stackup, layer, 'yoffset', 0.07)
         chip.set('pdk','grid', stackup, layer, 'ypitch',  0.28)
         chip.set('pdk','grid', stackup, layer, 'adj',     0.4)
+        if layer in ('metal4', 'metal6'):
+            chip.set('pdk','grid', stackup, layer, 'dir', 'vertical')
+        else:
+            chip.set('pdk','grid', stackup, layer, 'dir', 'horizontal')
 
     for layer, sc_name in [('metal7', 'm7'), ('metal8', 'm8')]:
         chip.set('pdk','grid', stackup, layer, 'name',    sc_name)
@@ -129,6 +136,11 @@ def setup(chip):
         chip.set('pdk','grid', stackup, layer, 'yoffset', 0.07)
         chip.set('pdk','grid', stackup, layer, 'ypitch',  0.8)
         chip.set('pdk','grid', stackup, layer, 'adj',     0.4)
+        if layer in ('metal8'):
+            chip.set('pdk','grid', stackup, layer, 'dir', 'vertical')
+        else:
+            chip.set('pdk','grid', stackup, layer, 'dir', 'horizontal')
+
 
     for layer, sc_name in [('metal9', 'm9'), ('metal10', 'm10')]:
         chip.set('pdk','grid', stackup, layer, 'name',    sc_name)
@@ -137,6 +149,10 @@ def setup(chip):
         chip.set('pdk','grid', stackup, layer, 'yoffset', 0.07)
         chip.set('pdk','grid', stackup, layer, 'ypitch',  1.6)
         chip.set('pdk','grid', stackup, layer, 'adj',     0.4)
+        if layer in ('metal10'):
+            chip.set('pdk','grid', stackup, layer, 'dir', 'vertical')
+        else:
+            chip.set('pdk','grid', stackup, layer, 'dir', 'horizontal')
 
 #########################
 if __name__ == "__main__":

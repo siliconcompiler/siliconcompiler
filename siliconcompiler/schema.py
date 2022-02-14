@@ -558,6 +558,77 @@ def schema_pdk(cfg, stackup='default'):
         """
     }
 
+    key='default'
+    cfg['pdk']['file'] = {}
+    cfg['pdk']['file'][tool] = {}
+    cfg['pdk']['file'][tool][stackup] = {}
+    cfg['pdk']['file'][tool][stackup][key] = {
+        'switch': "-pdk_file 'tool stackup key <file>'",
+        'require': None,
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'PDK named file',
+        'example': [
+            "cli: -pdk_file 'xyce M10 spice asap7.sp'",
+            "api: chip.set('pdk','file','xyce','M10','spice','asap7.sp')"],
+        'help': """
+        List of named files specified on a per tool and per stackup basis.
+        The parameter is useful for specifying files that are not directly
+        covered by the rest of the PDK schema.
+        """
+    }
+
+    cfg['pdk']['directory'] = {}
+    cfg['pdk']['directory'][tool] = {}
+    cfg['pdk']['directory'][tool][stackup] = {}
+    cfg['pdk']['directory'][tool][stackup][key] = {
+        'switch': "-pdk_directory 'tool stackup key <file>'",
+        'require': None,
+        'type': '[dir]',
+        'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'signature': [],
+        'shorthelp': 'PDK named directory',
+        'example': [
+            "cli: -pdk_directory 'xyce M10 rfmodel rftechdir'",
+            "api: chip.set('pdk','directory','xyce','M10','rfmodel','rftechdir')"],
+        'help': """
+        List of named directories specified on a per tool and per stackup basis.
+        The parameter is useful for specifying files that are not directly
+        covered by the rest of the PDK schema.
+        """
+
+    }
+
+    cfg['pdk']['variable'] = {}
+    cfg['pdk']['variable'][tool] = {}
+    cfg['pdk']['variable'][tool][stackup] = {}
+    cfg['pdk']['variable'][tool][stackup][key] = {
+        'switch': "-pdk_variable 'tool stackup key <str>'",
+        'require': None,
+        'type': '[str]',
+        'lock': 'false',
+        'signature' : None,
+        'defvalue': [],
+        'shorthelp': 'PDK named variable',
+        'example': [
+            "cli: -pdk_variable 'xyce M10 modeltype bsim4'""",
+            "api: chip.set('pdk','variable','xyce', 'M10','modeltype','bsim4')"],
+        'help': """
+        List of key/value strings specified on a per tool and per stackup basis.
+        The parameter is useful for specifying files that are not directly
+        covered by the rest of the PDK schema.
+        """
+    }
+
     cfg['pdk']['devmodel'] = {}
     cfg['pdk']['devmodel'][tool] = {}
     cfg['pdk']['devmodel'][tool][stackup] = {}
@@ -2206,12 +2277,12 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         """
     }
 
-    report_type = 'default'
+    metric = 'default'
     cfg['eda'][tool]['report'] = {}
     cfg['eda'][tool]['report'][step] = {}
     cfg['eda'][tool]['report'][step][index] = {}
-    cfg['eda'][tool]['report'][step][index][report_type] = {
-        'switch': "-eda_report 'tool step index report_type <str>'",
+    cfg['eda'][tool]['report'][step][index][metric] = {
+        'switch': "-eda_report 'tool step index metric <str>'",
         'type': '[file]',
         'lock': 'false',
         'copy': 'false',
@@ -2225,11 +2296,11 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'defvalue': [],
         'shorthelp': 'Tool report files ',
         'example': [
-            "cli: -eda_report 'yosys syn 0 hold hold.rpt'",
-            "api: chip.set('eda','yosys','report','syn','0','hold','hold.rpt')"],
+            "cli: -eda_report 'openroad place 0 holdtns place.log'",
+            "api: chip.set('eda','openroad','report','syn','0','holdtns','place.log')"],
         'help': """
-        List of reports of type of a certain kind produced by the task within the
-        local 'reports' directory.
+        List of report files associated with a specific 'metric'. The file path
+        specified is relative to the run directory of the current task.
         """
     }
 
@@ -3893,20 +3964,59 @@ def schema_options(cfg):
         """
     }
 
-    cfg['checkonly'] = {
-        'switch': "-checkonly <bool>",
+
+    cfg['skip'] = {}
+    cfg['skip']['all'] = {
+        'switch': "-skip_all <bool>",
         'type': 'bool',
         'lock': 'false',
         'require': 'all',
         'signature': None,
         'defvalue': "false",
         'shorthelp': "Exit after checking flow",
-        'example': ["cli: -checkonly true",
-                    "api: chip.set('checkonly','true')"],
+        'example': ["cli: -skip_all true",
+                    "api: chip.set('skip', 'all','true')"],
         'help': """
-        Checks the legality of the configuration but doesn't run the flow.
+        Skips the execution of all tools in run(), enabling a quick check
+        of tool and setup without having to run through eachc step of a flow
+        to completion.
         """
     }
+
+    cfg['skip']['check'] = {
+        'switch': "-skip_check <bool>",
+        'type': 'bool',
+        'lock': 'false',
+        'require': 'all',
+        'signature': None,
+        'defvalue': "false",
+        'shorthelp': "Skip configuration runtime check",
+        'example': ["cli: -skip_check true",
+                    "api: chip.set('skip', 'check', True)"],
+        'help': """
+        Skips the runtime configuration check. Useful for lowering the initial
+        barrier for creation of new tool/flow/pdk/libs targets. Not
+        recommended for actual design compilation.
+        """
+    }
+
+    step = 'default'
+    cfg['skip']['step'] = {}
+    cfg['skip']['step'][step] = {
+        'switch': "-skip_step 'step <bool>",
+        'type': 'bool',
+        'lock': 'false',
+        'require': 'all',
+        'signature': None,
+        'defvalue': "false",
+        'shorthelp': "Skip a flowgraph step",
+        'example': ["cli: -skip_step 'lvs true'",
+                    "api: chip.set('skip', 'step', 'lvs', True)"],
+        'help': """
+        Skips a specific step when executing the flowgraph in run().
+        """
+    }
+
 
     cfg['copyall'] = {
         'switch': "-copyall <bool>",

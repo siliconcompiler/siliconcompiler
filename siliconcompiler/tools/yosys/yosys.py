@@ -80,7 +80,7 @@ def setup(chip):
         if not chip.get('source'):
             chip.set('eda', tool, 'input', step, index, chip.get('design') + '.v')
 
-    #Schema requirements
+    # Schema requirements
     if chip.get('mode') == 'asic':
         chip.add('eda', tool, 'require', step, index, ",".join(['pdk', 'process']))
         chip.add('eda', tool, 'require', step, index, ",".join(['design']))
@@ -95,10 +95,6 @@ def setup(chip):
                 chip.add('eda', tool, 'require', step, index, ",".join(['library', lib, 'nldm', 'typical', 'lib']))
     else:
         chip.add('eda', tool, 'require', step, index, ",".join(['fpga','partname']))
-
-    #Log file parsing
-    chip.set('eda', tool, 'regex', step, index, 'warnings', "Warning", clobber=False)
-    chip.set('eda', tool, 'regex', step, index, 'errors', "Error", clobber=False)
 
 
 #############################################
@@ -131,6 +127,18 @@ def post_process(chip):
     step = chip.get('arg','step')
     index = chip.get('arg','index')
 
+    # Setting up regex patterns
+    chip.set('eda', tool, 'regex', step, index, 'warnings', "Warning", clobber=False)
+    chip.set('eda', tool, 'regex', step, index, 'errors', "Error", clobber=False)
+
+    # Reports
+    for metric in ('errors', 'warnings', 'drvs', 'coverage', 'security',
+                   'luts', 'dsps', 'brams',
+                   'cellarea',
+                   'cells', 'registers', 'buffers', 'nets', 'pins'):
+        chip.set('eda', tool, 'report', step, index, metric, f"{step}.log")
+
+    # Extracting
     if step == 'syn':
         #TODO: looks like Yosys exits on error, so no need to check metric
         chip.set('metric', step, index, 'errors', 'real', 0, clobber=True)
@@ -156,6 +164,8 @@ def post_process(chip):
                 if errors is not None:
                     num_errors = int(errors.group(1))
                     chip.set('metric', step, index, 'errors', 'real', num_errors, clobber=True)
+
+
 
     #Return 0 if successful
     return 0
