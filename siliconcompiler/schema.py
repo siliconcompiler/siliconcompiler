@@ -1697,10 +1697,14 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
              'tie',
              'hold',
              'clkbuf',
+             'clkinv',
+             'clkgate',
+             'clklogic',
              'ignore',
              'filler',
              'tapcell',
-             'endcap']
+             'endcap',
+             'antenna']
 
     cfg['library'][lib]['cells'] = {}
     for item in names:
