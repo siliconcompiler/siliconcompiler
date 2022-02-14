@@ -15,7 +15,7 @@ def _deferstep(chip, step, index, active, error):
     '''
 
     # Ensure that error bits are up-to-date in this schema.
-    for in_step, in_index in chip.get('flowgraph', step, index, 'input'):
+    for in_step, in_index in chip.get('flowgraph', chip.get('flow'), step, index, 'input'):
         #TODO: Why is this needed?
         chip.set('flowstatus', in_step, in_index, 'error', error[f'{in_step}{in_index}'])
 
