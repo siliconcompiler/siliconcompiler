@@ -2342,7 +2342,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
             "cli: -eda_refdir 'yosys syn 0 ./myref'",
             "api:  chip.set('eda','yosys','refdir','syn','0','./myref')"],
         'help': """
-        Path to directories  containing compilation scripts, specified
+        Path to directories containing compilation scripts, specified
         on a per step basis.
         """
     }
@@ -2746,9 +2746,9 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
             "cli: -metric_peakpower 'place 0 real 0.001'",
             "api: chip.set('metric','place','0','peakpower','real','0.001')"],
         'help': """
-        Metric tracking the worst case total power of the design on a per
-        step basis calculated based on setup config and VCD stimulus.
-        stimulus. Metric unit is Watts.
+        Metric tracking the worst case total power of the design on a per step
+        basis calculated based on setup config and VCD stimulus. Metric unit is
+        Watts.
         """
     }
 
