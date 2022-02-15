@@ -1764,7 +1764,7 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'shorthelp': 'Library techmap file',
         'example': [
             "cli: -library_techmap 'lib mylib yosys verilog map.v'",
-            "api: chip.set('library', 'mylib', 'techmap', 'verilog', 'map.v')"],
+            "api: chip.set('library', 'mylib', 'techmap', 'yosys', 'verilog', 'map.v')"],
         'help': """
         Filepaths specifying mappings from tool-specific generic cells to
         library cells.
