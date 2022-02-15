@@ -35,6 +35,8 @@ foreach libname $sc_macrolibs {
     }
 }
 
+set sc_techmap_files [dict get $sc_cfg library $sc_mainlib techmap $sc_tool verilog]
+
 ########################################################
 # Synthesis
 ########################################################
@@ -57,15 +59,9 @@ yosys opt -purge
 # Technology Mapping
 ########################################################
 
-# Techmap latches for supported open PDKs
-if {$sc_process == "freepdk45"} {
-    yosys techmap -map "cells_latch_freepdk45.v"
-} elseif {$sc_process == "skywater130"} {
-    yosys techmap -map "cells_latch_sky130hd.v"
-} elseif {$sc_process == "asap7"} {
-    yosys techmap -map "cells_latch_asap7.v"
+foreach mapfile $sc_techmap_files {
+    yosys techmap -map $mapfile
 }
-
 yosys dfflibmap -liberty $library_file
 
 yosys opt

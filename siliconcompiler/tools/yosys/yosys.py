@@ -93,6 +93,9 @@ def setup(chip):
         for lib in macrolibs:
             if chip.valid('library', lib, 'nldm', 'typical', 'lib'):
                 chip.add('eda', tool, 'require', step, index, ",".join(['library', lib, 'nldm', 'typical', 'lib']))
+
+        keypath = ','.join(['library', mainlib, 'techmap', tool, 'verilog'])
+        chip.add('eda', tool, 'require', step, index, keypath)
     else:
         chip.add('eda', tool, 'require', step, index, ",".join(['fpga','partname']))
 

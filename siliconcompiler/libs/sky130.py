@@ -121,3 +121,7 @@ def setup(chip):
     # tie cells
     chip.add('library', libname, 'cells', 'tie', ['sky130_fd_sc_hd__conb_1/HI',
                                                   'sky130_fd_sc_hd__conb_1/LO'])
+
+    # Techmap
+    chip.add('library', libname, 'techmap', 'yosys', 'verilog',
+             libdir + '/techmap/yosys/cells_latch.v')
