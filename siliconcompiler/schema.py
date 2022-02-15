@@ -1745,6 +1745,31 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         basis. Example formats include oa, mw, ndm, opendb.
         """
     }
+    tool = 'default'
+    filetype = 'default'
+    cfg['library'][lib]['techmap'] = {}
+    cfg['library'][lib]['techmap'][tool] = {}
+    cfg['library'][lib]['techmap'][tool][filetype] = {
+        'switch': "-library_techmap 'lib tool filetype <file>'",
+        'require': None,
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Library techmap file',
+        'example': [
+            "cli: -library_techmap 'lib mylib yosys verilog map.v'",
+            "api: chip.set('library', 'mylib', 'techmap', 'verilog', 'map.v')"],
+        'help': """
+        Filepaths specifying mappings from tool-specific generic cells to
+        library cells.
+        """
+    }
 
     return cfg
 
