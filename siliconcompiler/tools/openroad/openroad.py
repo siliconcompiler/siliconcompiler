@@ -27,6 +27,9 @@ def make_docs():
     chip.set('arg', 'step', '<step>')
     chip.set('arg', 'index', '<index>')
     chip.set('design', '<design>')
+    # TODO: how to make it clear in docs that certain settings are
+    # target-dependent?
+    chip.load_target('freepdk45_demo')
     setup(chip)
 
     return chip
