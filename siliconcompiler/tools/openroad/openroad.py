@@ -1,8 +1,6 @@
 import os
-import importlib
 import re
 import shutil
-import sys
 import siliconcompiler
 from siliconcompiler.floorplan import _infer_diearea
 
@@ -13,7 +11,7 @@ from siliconcompiler.floorplan import _infer_diearea
 def make_docs():
     '''
     OpenROAD is an automated physical design platform for
-    integreated circuit design with a complete set of features
+    integrated circuit design with a complete set of features
     needed to translate a synthesized netlist to a tapeout ready
     GDSII.
 
@@ -56,7 +54,7 @@ def setup(chip, mode='batch'):
         option = "-no_init"
 
     # exit automatically in batch mode and not bkpt
-    if (mode=='batch') & (step not in chip.get('bkpt')):
+    if (mode=='batch') and (step not in chip.get('bkpt')):
         option += " -exit"
 
     chip.set('eda', tool, 'exe', tool, clobber=clobber)
@@ -86,11 +84,10 @@ def setup(chip, mode='batch'):
     # openroad makes use of these parameters
     targetlibs = chip.get('asic', 'logiclib')
     stackup = chip.get('asic', 'stackup')
-    if bool(stackup) & bool(targetlibs):
+    if stackup and targetlibs:
         mainlib = targetlibs[0]
         macrolibs = chip.get('asic', 'macrolib')
         libtype = str(chip.get('library', mainlib, 'arch'))
-        techlef = chip.get('pdk', 'aprtech', 'openroad', stackup, libtype, 'lef')
 
         chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'logiclib']))
         chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'stackup']))
@@ -99,13 +96,11 @@ def setup(chip, mode='batch'):
 
         for lib in (targetlibs + macrolibs):
             for corner in chip.getkeys('library', lib, 'nldm'):
-                nldm = chip.get('library', lib, 'nldm', corner, 'lib')
                 chip.add('eda', tool, 'require', step, index, ",".join(['library', lib, 'nldm', corner, 'lib']))
-            lef = chip.get('library', lib, 'lef')
             chip.add('eda', tool, 'require', step, index, ",".join(['library', lib, 'lef']))
     else:
         chip.error = 1
-        chip.logger.error(f'Stackup and targetlib paremeters required for OpenROAD.')
+        chip.logger.error(f'Stackup and logiclib parameters required for OpenROAD.')
 
 
     # defining default dictionary
