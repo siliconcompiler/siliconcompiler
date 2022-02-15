@@ -102,66 +102,26 @@ def setup(chip, mode='batch'):
         chip.error = 1
         chip.logger.error(f'Stackup and logiclib parameters required for OpenROAD.')
 
+    variables = (
+        'place_density',
+        'pad_global_place',
+        'pad_detail_place',
+        'macro_place_halo',
+        'macro_place_channel'
+    )
+    for variable in variables:
+        # For each OpenROAD tool variable, read default from PDK and write it
+        # into schema. If PDK doesn't contain a default, the value must be set
+        # by the user, so we add the variable keypath as a requirement.
+        if chip.valid('pdk', 'variable', tool, stackup, variable):
+            value = chip.get('pdk', 'variable', tool, stackup, variable)
+            # Clobber needs to be False here, since a user might want to
+            # overwrite these.
+            chip.set('eda', tool, 'variable', step, index, variable, value,
+                     clobber=False)
 
-    # defining default dictionary
-    default_options = {
-        'place_density': [],
-        'pad_global_place': [],
-        'pad_detail_place': [],
-        'macro_place_halo': [],
-        'macro_place_channel': []
-    }
-
-    # Setting up technologies with default values
-    # NOTE: no reasonable defaults, for halo and channel.
-    # TODO: Could possibly scale with node number for default, but safer to error out?
-    # perhaps we should use node as comp instead?
-    if chip.get('pdk', 'process'):
-        process = chip.get('pdk', 'process')
-        if process == 'freepdk45':
-            default_options = {
-                'place_density': ['0.3'],
-                'pad_global_place': ['2'],
-                'pad_detail_place': ['1'],
-                'macro_place_halo': ['22.4', '15.12'],
-                'macro_place_channel': ['18.8', '19.95']
-            }
-        elif process == 'asap7':
-            default_options = {
-                'place_density': ['0.77'],
-                'pad_global_place': ['2'],
-                'pad_detail_place': ['1'],
-                'macro_place_halo': ['22.4', '15.12'],
-                'macro_place_channel': ['18.8', '19.95']
-            }
-        elif process == 'skywater130':
-            default_options = {
-                'place_density': ['0.6'],
-                'pad_global_place': ['4'],
-                'pad_detail_place': ['2'],
-                'macro_place_halo': ['1', '1'],
-                'macro_place_channel': ['80', '80']
-            }
-        else:
-            chip.error = 1
-            chip.logger.error(f'Process {process} not supported with OpenROAD.')
-    else:
-        default_options = {
-            'place_density': ['1'],
-            'pad_global_place': ['<space>'],
-            'pad_detail_place': ['<space>'],
-            'macro_place_halo': ['<xspace>', '<yspace>'],
-            'macro_place_channel': ['<xspace>', '<yspace>']
-        }
-
-    for option in default_options:
-        if chip.valid('eda', tool, 'variable', step, index, option, quiet=True, default_valid=False):
-            chip.logger.info('User provided variable %s OpenROAD flow detected.', option)
-        elif not default_options[option]:
-            chip.error = 1
-            chip.logger.error('Missing variable %s for OpenROAD.', option)
-        else:
-            chip.set('eda', tool, 'variable', step, index, option, default_options[option], clobber=clobber)
+        keypath = ','.join(['eda', tool, 'variable', step, index, variable])
+        chip.add('eda', tool, 'require', step, index, keypath)
 
     for clock in chip.getkeys('clock'):
         chip.add('eda', tool, 'require', step, index, ','.join(['clock', clock, 'period']))
