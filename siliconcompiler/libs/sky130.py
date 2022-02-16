@@ -123,5 +123,5 @@ def setup(chip):
                                                   'sky130_fd_sc_hd__conb_1/LO'])
 
     # Techmap
-    chip.add('library', libname, 'techmap', 'yosys', 'verilog',
+    chip.add('library', libname, 'techmap', 'yosys',
              libdir + '/techmap/yosys/cells_latch.v')

@@ -1748,9 +1748,8 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
     tool = 'default'
     filetype = 'default'
     cfg['library'][lib]['techmap'] = {}
-    cfg['library'][lib]['techmap'][tool] = {}
-    cfg['library'][lib]['techmap'][tool][filetype] = {
-        'switch': "-library_techmap 'lib tool filetype <file>'",
+    cfg['library'][lib]['techmap'][tool] = {
+        'switch': "-library_techmap 'lib tool <file>'",
         'require': None,
         'type': '[file]',
         'lock': 'false',
@@ -1763,8 +1762,8 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'signature': [],
         'shorthelp': 'Library techmap file',
         'example': [
-            "cli: -library_techmap 'lib mylib yosys verilog map.v'",
-            "api: chip.set('library', 'mylib', 'techmap', 'yosys', 'verilog', 'map.v')"],
+            "cli: -library_techmap 'lib mylib yosys map.v'",
+            "api: chip.set('library', 'mylib', 'techmap', 'yosys','map.v')"],
         'help': """
         Filepaths specifying mappings from tool-specific generic cells to
         library cells.

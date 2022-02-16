@@ -93,7 +93,7 @@ def setup(chip):
     chip.add('library',libname,'cells','endcap', "FILLCELL_X1")
 
     # Techmap
-    chip.add('library', libname, 'techmap', 'yosys', 'verilog',
+    chip.add('library', libname, 'techmap', 'yosys',
              libdir + '/techmap/yosys/cells_latch.v')
 
 #########################

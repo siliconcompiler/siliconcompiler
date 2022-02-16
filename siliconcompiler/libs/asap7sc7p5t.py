@@ -89,5 +89,5 @@ def setup(chip):
         # Techmap
         if libname.endswith('rvt'):
             # TODO: write map files for other groups
-            chip.add('library', libname, 'techmap', 'yosys', 'verilog',
+            chip.add('library', libname, 'techmap', 'yosys',
                      libdir + '/techmap/yosys/cells_latch.v')

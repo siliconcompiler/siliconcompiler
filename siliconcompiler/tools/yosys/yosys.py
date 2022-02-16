@@ -94,7 +94,7 @@ def setup(chip):
             if chip.valid('library', lib, 'nldm', 'typical', 'lib'):
                 chip.add('eda', tool, 'require', step, index, ",".join(['library', lib, 'nldm', 'typical', 'lib']))
 
-        keypath = ','.join(['library', mainlib, 'techmap', tool, 'verilog'])
+        keypath = ','.join(['library', mainlib, 'techmap', tool])
         chip.add('eda', tool, 'require', step, index, keypath)
     else:
         chip.add('eda', tool, 'require', step, index, ",".join(['fpga','partname']))

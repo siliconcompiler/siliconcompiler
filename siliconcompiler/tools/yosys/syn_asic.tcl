@@ -35,7 +35,7 @@ foreach libname $sc_macrolibs {
     }
 }
 
-set sc_techmap_files [dict get $sc_cfg library $sc_mainlib techmap $sc_tool verilog]
+set sc_techmap_files [dict get $sc_cfg library $sc_mainlib techmap $sc_tool]
 
 ########################################################
 # Synthesis
