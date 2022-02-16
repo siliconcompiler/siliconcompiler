@@ -602,7 +602,7 @@ def schema_pdk(cfg, stackup='default'):
             "api: chip.set('pdk','directory','xyce','M10','rfmodel','rftechdir')"],
         'help': """
         List of named directories specified on a per tool and per stackup basis.
-        The parameter is useful for specifying files that are not directly
+        The parameter is useful for specifying directories that are not directly
         covered by the rest of the PDK schema.
         """
 
@@ -624,7 +624,7 @@ def schema_pdk(cfg, stackup='default'):
             "api: chip.set('pdk','variable','xyce', 'M10','modeltype','bsim4')"],
         'help': """
         List of key/value strings specified on a per tool and per stackup basis.
-        The parameter is useful for specifying files that are not directly
+        The parameter is useful for specifying values that are not directly
         covered by the rest of the PDK schema.
         """
     }
