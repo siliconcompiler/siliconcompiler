@@ -2740,23 +2740,28 @@ class Chip:
         return list(sorted_dict.keys())
 
     ###########################################################################
-    def _allpaths(self, cfg, flow, step, index, path=None, allpaths=None):
+    def _allpaths(self, cfg, flow, step, index, path=None):
+        '''Recursive helper for finding all paths from provided step, index to
+        root node(s) with no inputs.
+
+        Returns a list of lists.
+        '''
 
         if path is None:
             path = []
-            allpaths = []
 
         inputs = self.get('flowgraph', flow, step, index, 'input', cfg=cfg)
 
         if not self.get('flowgraph', flow, step, index, 'input', cfg=cfg):
-            allpaths.append(path)
+            return [path]
         else:
+            allpaths = []
             for in_step, in_index in inputs:
                 newpath = path.copy()
                 newpath.append(in_step + in_index)
-                return self._allpaths(cfg, flow, in_step, in_index, path=newpath, allpaths=allpaths)
+                allpaths.extend(self._allpaths(cfg, flow, in_step, in_index, path=newpath))
 
-        return list(allpaths)
+        return allpaths
 
     ###########################################################################
     def clock(self, *, name, pin, period, jitter=0):
