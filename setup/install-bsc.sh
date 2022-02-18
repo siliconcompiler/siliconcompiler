@@ -1,6 +1,11 @@
 sudo mkdir -p /opt/tools/bsc
 sudo chown $USER:$USER /opt/tools/bsc
 
+# Install Haskell build tools
+sudo add-apt-repository -y ppa:hvr/ghc
+sudo apt-get update
+sudo apt-get install -y cabal-install ghc
+
 sudo apt-get install -y ghc libghc-regex-compat-dev libghc-syb-dev \
     libghc-old-time-dev libghc-split-dev tcl-dev build-essential pkg-config \
     autoconf gperf flex bison
