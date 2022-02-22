@@ -3170,10 +3170,11 @@ class Chip:
 
         # support for sharing data across jobs
         job = self.get('jobname')
+        in_job = job
         if job in self.getkeys('jobinput'):
             if step in self.getkeys('jobinput',job):
                 if index in self.getkeys('jobinput',job,step):
-                    job = self.get('jobinput', job, step, index)
+                    in_job = self.get('jobinput', job, step, index)
 
         workdir = self._getworkdir(step=step,index=index)
         cwd = os.getcwd()
@@ -3194,7 +3195,7 @@ class Chip:
                 index_error = error[in_step + in_index]
                 self.set('flowstatus', in_step, in_index, 'error', index_error)
                 if not index_error:
-                    cfgfile = f"../../../{job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
+                    cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
                     self.read_manifest(cfgfile, clobber=False)
 
         ##################
@@ -3264,7 +3265,7 @@ class Chip:
 
             # Skip copying pkg.json files here, since we write the current chip
             # configuration into inputs/{design}.pkg.json earlier in _runstep.
-            utils.copytree(f"../../../{job}/{in_step}/{in_index}/outputs", 'inputs/', dirs_exist_ok=True,
+            utils.copytree(f"../../../{in_job}/{in_step}/{in_index}/outputs", 'inputs/', dirs_exist_ok=True,
                 ignore=[f'{design}.pkg.json'], link=True)
 
         ##################
