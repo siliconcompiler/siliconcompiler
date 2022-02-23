@@ -3510,6 +3510,18 @@ class Chip:
             if os.path.isdir(cur_job_dir):
                 shutil.rmtree(cur_job_dir)
 
+        # List of indices to run per step. Precomputing this ensures we won't
+        # have any problems if [arg, index] gets clobbered, and reduces logic
+        # repetition.
+        indexlist = {}
+        for step in steplist:
+            if self.get('arg', 'index'):
+                indexlist[step] = [self.get('arg', 'index')]
+            elif self.get('indexlist'):
+                indexlist[step] = self.get('indexlist')
+            else:
+                indexlist[step] = self.getkeys('flowgraph', flow, step)
+
         # Set env variables
         for envvar in self.getkeys('env'):
             val = self.get('env', envvar)
@@ -3559,13 +3571,7 @@ class Chip:
             for step in self.getkeys('flowgraph', flow):
                 for index in self.getkeys('flowgraph', flow, step):
                     stepstr = step + index
-                    if self.get('arg', 'index'):
-                        indexlist = [self.get('arg', 'index')]
-                    elif self.get('indexlist'):
-                        indexlist = self.get('indexlist')
-                    else:
-                        indexlist = self.getkeys('flowgraph', flow, step)
-                    if (step in steplist) & (index in indexlist):
+                    if step in steplist and index in indexlist[step]:
                         self.set('flowstatus', step, str(index), 'error', 1)
                         error[stepstr] = self.get('flowstatus', step, str(index), 'error')
                         active[stepstr] = 1
@@ -3615,11 +3621,7 @@ class Chip:
             # Create all processes
             processes = []
             for step in steplist:
-                if self.get('arg', 'index'):
-                    indexlist = [self.get('arg', 'index')]
-                else:
-                    indexlist = self.getkeys('flowgraph', flow, step)
-                for index in indexlist:
+                for index in indexlist[step]:
                     processes.append(multiprocessing.Process(target=self._runtask_safe,
                                                              args=(step, index, active, error,)))
 
@@ -3643,11 +3645,7 @@ class Chip:
             halt = 0
             for step in steplist:
                 index_error = 1
-                if self.get('arg', 'index'):
-                    indexlist = [self.get('arg', 'index')]
-                else:
-                    indexlist = self.getkeys('flowgraph', flow, step)
-                for index in indexlist:
+                for index in indexlist[step]:
                     stepstr = step + index
                     index_error = index_error & error[stepstr]
                 halt = halt + index_error
@@ -3676,6 +3674,7 @@ class Chip:
             for step in steplist[:-1]:
                 step_has_cfg = False
                 for index in self.getkeys('flowgraph', flow, step):
+                    # TODO: should be index instead of lastindex?
                     stepdir = self._getworkdir(step=step, index=lastindex)
                     cfg = f"{stepdir}/outputs/{self.get('design')}.pkg.json"
                     if os.path.isfile(cfg):
