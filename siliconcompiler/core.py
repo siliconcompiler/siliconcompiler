@@ -1781,8 +1781,6 @@ class Chip:
         if update:
             self.merge_manifest(localcfg, job=job, clear=clear, clobber=clobber)
 
-        return localcfg
-
     ###########################################################################
     def write_manifest(self, filename, prune=True, abspath=False, job=None):
         '''
