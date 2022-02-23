@@ -67,6 +67,9 @@ def chip(scroot):
     chip.set('quiet', True)
     chip.load_target('freepdk45_demo')
 
+    # Important: set up our own flow instead of using asicflow.
+    chip.set('flow', 'test')
+
     # no-op import since we're not preprocessing source files
     chip.set('flowgraph', chip.get('flow'), 'import', '0', 'tool', 'join')
 
@@ -80,7 +83,6 @@ def chip(scroot):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.skip(reason="TODO: why is this failing???")
 def test_failed_branch_min(chip):
     '''Test that a minimum will allow failed inputs, as long as at least
     one passes.'''
