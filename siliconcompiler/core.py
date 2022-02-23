@@ -1716,7 +1716,12 @@ class Chip:
                         # If we're not running the input step, the required
                         # inputs need to already be copied into the build
                         # directory.
-                        workdir = self._getworkdir(step=in_step, index=in_index)
+                        jobname = self.get('jobname')
+                        if self.valid('jobinput', jobname, step, index):
+                            in_job = self.get('jobinput', jobname, step, index)
+                        else:
+                            in_job = jobname
+                        workdir = self._getworkdir(jobname=in_job, step=in_step, index=in_index)
                         in_step_out_dir = os.path.join(workdir, 'outputs')
                         inputs = set(os.listdir(in_step_out_dir))
                     else:
