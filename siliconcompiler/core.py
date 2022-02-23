@@ -433,10 +433,10 @@ class Chip:
         Args:
             modulename (str): Name of module to import.
             funcname (str): Name of the function to find within the module.
-            moduletype (str): Type of module (flows, pdks,libs,targets).
+            moduletype (str): Type of module (flows, pdks, libs, targets).
 
         Examples:
-            >>> setup_pdk = chip.find_function('freepdk45', 'setup', 'pdk')
+            >>> setup_pdk = chip.find_function('freepdk45', 'setup', 'pdks')
             >>> setup_pdk()
             Imports the freepdk45 module and runs the setup_pdk function
 
