@@ -2508,7 +2508,7 @@ def schema_arg(cfg):
         'lock': 'false',
         'require': None,
         'signature': None,
-        'defvalue': '0',
+        'defvalue': None,
         'shorthelp': 'Current index',
         'example': ["cli: -arg_index 0",
                     "api: chip.set('arg','index','0')"],
