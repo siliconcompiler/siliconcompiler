@@ -3657,25 +3657,28 @@ class Chip:
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
 
-        # Merge cfg back from last executed runstep.
-        # (Only if the index-0 run's results exist.)
+        # Merge cfg back from last executed runsteps.
+        # Note: any information generated in steps that do not merge into the
+        # last step will not be picked up in this chip object.
         laststep = steplist[-1]
-        lastindex = '0'
-        lastdir = self._getworkdir(step=laststep, index=lastindex)
-        lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
-        if os.path.isfile(lastcfg):
-            local_dir = self.get('dir')
-            self.read_manifest(lastcfg, clobber=True, clear=True)
-            self.set('dir', local_dir)
-        else:
+        last_step_failed = True
+        for index in indexlist[laststep]:
+            lastdir = self._getworkdir(step=laststep, index=index)
+            lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
+            if os.path.isfile(lastcfg):
+                last_step_failed = False
+                local_dir = self.get('dir')
+                self.read_manifest(lastcfg, clobber=True, clear=True)
+                self.set('dir', local_dir)
+
+        if last_step_failed:
             # Hack to find first failed step by checking for presence of output
             # manifests.
             failed_step = laststep
             for step in steplist[:-1]:
                 step_has_cfg = False
-                for index in self.getkeys('flowgraph', flow, step):
-                    # TODO: should be index instead of lastindex?
-                    stepdir = self._getworkdir(step=step, index=lastindex)
+                for index in indexlist[step]:
+                    stepdir = self._getworkdir(step=step, index=index)
                     cfg = f"{stepdir}/outputs/{self.get('design')}.pkg.json"
                     if os.path.isfile(cfg):
                         step_has_cfg = True
