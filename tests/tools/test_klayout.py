@@ -18,8 +18,8 @@ def test_klayout(datadir):
     chip.set('read', 'def', 'export', '0', in_def)
 
     chip.add('asic', 'macrolib', 'heartbeat')
-    chip.set('library', 'heartbeat', 'lef', library_lef)
-    chip.set('library', 'heartbeat', 'gds', library_gds)
+    chip.set('library', 'heartbeat', 'lef', '10M', library_lef)
+    chip.set('library', 'heartbeat', 'gds', '10M', library_gds)
 
     chip.set('arg', 'step', 'export')
     chip.set('flow', 'klayout')

@@ -15,6 +15,7 @@ def setup(chip):
     libname = 'nangate45'
     foundry = 'virtual'
     process = 'freepdk45'
+    stackup = '10M'
     libtype = '10t'
     rev = 'r1p0'
     corner = 'typical'
@@ -30,7 +31,7 @@ def setup(chip):
                           rev)
 
     # standard cell typ
-    chip.set('library',libname,'type','stdcell')
+    chip.set('library',libname, 'type', 'logiclib')
 
     # rev
     chip.set('library',libname, 'package', 'version',rev)
@@ -42,15 +43,18 @@ def setup(chip):
              libdir+'/lib/NangateOpenCellLibrary_typical.lib')
 
     # lef
-    chip.add('library',libname,'lef',
+    chip.add('library',libname,'lef', stackup,
              libdir+'/lef/NangateOpenCellLibrary.macro.mod.lef')
+
     # gds
-    chip.add('library',libname,'gds',
+    chip.add('library',libname,'gds', stackup,
              libdir+'/gds/NangateOpenCellLibrary.gds')
+
     # site name
     chip.set('library',libname,
              'site','FreePDK45_38x28_10R_NP_162NW_34O',
              'symmetry', 'Y')
+
     chip.set('library',libname,
              'site','FreePDK45_38x28_10R_NP_162NW_34O',
              'size', (0.19,1.4))

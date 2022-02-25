@@ -1626,7 +1626,7 @@ class Chip:
                             keypath = item.split(',')
                             if self._keypath_empty(keypath):
                                 self.error = 1
-                                self.logger.error(f"Value empty for [{keypath}].")
+                                self.logger.error(f"Value empty for [{keypath}] for {tool}.")
                     if self._keypath_empty(['eda', tool, 'exe']):
                         self.error = 1
                         self.logger.error(f'Executable not specified for tool {tool}')
