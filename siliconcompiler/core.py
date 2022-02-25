@@ -3664,6 +3664,14 @@ class Chip:
         last_step_failed = True
         for index in indexlist[laststep]:
             lastdir = self._getworkdir(step=laststep, index=index)
+
+            # This no-op listdir operation is important for ensuring we have a
+            # consistent view of the filesystem when dealing with NFS. Without
+            # this, this thread is often unable to find the final manifest of
+            # runs performed on job schedulers, even if they completed
+            # successfully. Inspired by: https://stackoverflow.com/a/70029046.
+            os.listdir(os.path.dirname(lastdir))
+
             lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
             if os.path.isfile(lastcfg):
                 last_step_failed = False
