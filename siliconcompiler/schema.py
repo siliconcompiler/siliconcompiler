@@ -1490,13 +1490,14 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'shorthelp': 'Library LEF files',
+        'shorthelp': 'Library LEF layout files',
         'example': ["cli: -library_lef 'mylib 10M mylib.lef'",
                     "api: chip.set('library','mylib','lef','10M','mylib.lef')"],
         'help': """
-        Abstracted view of library cells that gives a complete description
-        of the cell's place and route boundary, pin positions, pin metals, and
-        metal routing blockages specified on a per stackup basis.
+        List of abstracted LEF format layout views of library cells that gives a
+        complete description of the cell's place and route boundary, pin positions,
+        pin metals, and metal routing blockages specified on a per stackup
+        basis.
         """
     }
 
@@ -1513,15 +1514,59 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'shorthelp': 'Library GDS files',
-        'example': ["cli: -library_gds 'mylib 10M mylib.gds'",
-                    "api: chip.set('library','mylib','gds','10M,'mylib.gds')"],
+        'shorthelp': 'Library GDS layout files',
+        'example': [
+            "cli: -library_gds 'mylib 10M mylib.gds'",
+            "api: chip.set('library','mylib','gds','10M,'mylib.gds')"],
         'help': """
-        Complete mask layout of the library cells specified on a per stackup
-        basis.
+        List of library GDS layout files specified on a per stackup basis.
         """
     }
 
+
+    cfg['library'][lib]['def']= {}
+    cfg['library'][lib]['def'][stackup] = {
+        'switch': "-library_def 'lib stackup <file>'",
+        'require': None,
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Library DEF layout files',
+        'example': [
+            "cli: -library_def 'mylib 10M mymacro.def'",
+            "api: chip.set('library','mylib','def','10M,'mymacro.def')"],
+        'help': """
+        List of library DEF layout files specified on a per stackup basis.
+        """
+    }
+
+    cfg['library'][lib]['gerber']= {}
+    cfg['library'][lib]['gerber'][stackup] = {
+        'switch': "-library_gerber 'lib stackup <file>'",
+        'require': None,
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Library Gerber layout files',
+        'example': [
+            "cli: -library_gerber 'mylib 4L6MIL myboard.gbr'",
+            "api: chip.set('library','mylib','gerber','4L6MIL,'myboard.gbr')"],
+        'help': """
+        List of library Gerber layout files specified on a per stackup basis.
+        """
+    }
 
     ###############################
     # Netlist/Design
@@ -1697,7 +1742,6 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         are specified in the normal (or north) orientations in microns.
         """
     }
-
 
     # Library units
     names = ['driver',
@@ -5155,6 +5199,7 @@ def schema_read(cfg, step='default', index='default'):
         """
     }
 
+
     # DEF file
     cfg['read']['def'] = {}
     cfg['read']['def'][step] = {}
@@ -5175,6 +5220,28 @@ def schema_read(cfg, step='default', index='default'):
                     "api: chip.set('read','def','floorplan','0','hello.def')"],
         'help': """
         List of technology specific DEF layout files.
+        """
+    }
+
+    cfg['read']['gerber'] = {}
+    cfg['read']['gerber'][step] = {}
+    cfg['read']['gerber'][step][index] = {
+        'switch': "-read_gerber 'step index <file>'",
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'true',
+        'require': None,
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Read Gerber layout file',
+        'example': ["cli: -read_gerber 'export 0 myboard.gbr'",
+                    "api: chip.set('read','gerber','export','0','myboard.gbr')"],
+        'help': """
+        List of technology specific Gerber layout files.
         """
     }
 
