@@ -602,7 +602,7 @@ def schema_pdk(cfg, stackup='default'):
             "api: chip.set('pdk','directory','xyce','M10','rfmodel','rftechdir')"],
         'help': """
         List of named directories specified on a per tool and per stackup basis.
-        The parameter is useful for specifying files that are not directly
+        The parameter is useful for specifying directories that are not directly
         covered by the rest of the PDK schema.
         """
 
@@ -624,7 +624,7 @@ def schema_pdk(cfg, stackup='default'):
             "api: chip.set('pdk','variable','xyce', 'M10','modeltype','bsim4')"],
         'help': """
         List of key/value strings specified on a per tool and per stackup basis.
-        The parameter is useful for specifying files that are not directly
+        The parameter is useful for specifying values that are not directly
         covered by the rest of the PDK schema.
         """
     }
@@ -1696,10 +1696,14 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
              'tie',
              'hold',
              'clkbuf',
+             'clkinv',
+             'clkgate',
+             'clklogic',
              'ignore',
              'filler',
              'tapcell',
-             'endcap']
+             'endcap',
+             'antenna']
 
     cfg['library'][lib]['cells'] = {}
     for item in names:
@@ -1742,6 +1746,30 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'help': """
         Filepaths to compiled library database specified on a per format
         basis. Example formats include oa, mw, ndm, opendb.
+        """
+    }
+    tool = 'default'
+    filetype = 'default'
+    cfg['library'][lib]['techmap'] = {}
+    cfg['library'][lib]['techmap'][tool] = {
+        'switch': "-library_techmap 'lib tool <file>'",
+        'require': None,
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Library techmap file',
+        'example': [
+            "cli: -library_techmap 'lib mylib yosys map.v'",
+            "api: chip.set('library', 'mylib', 'techmap', 'yosys','map.v')"],
+        'help': """
+        Filepaths specifying mappings from tool-specific generic cells to
+        library cells.
         """
     }
 
@@ -2339,7 +2367,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
             "cli: -eda_refdir 'yosys syn 0 ./myref'",
             "api:  chip.set('eda','yosys','refdir','syn','0','./myref')"],
         'help': """
-        Path to directories  containing compilation scripts, specified
+        Path to directories containing compilation scripts, specified
         on a per step basis.
         """
     }
@@ -2743,9 +2771,9 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
             "cli: -metric_peakpower 'place 0 real 0.001'",
             "api: chip.set('metric','place','0','peakpower','real','0.001')"],
         'help': """
-        Metric tracking the worst case total power of the design on a per
-        step basis calculated based on setup config and VCD stimulus.
-        stimulus. Metric unit is Watts.
+        Metric tracking the worst case total power of the design on a per step
+        basis calculated based on setup config and VCD stimulus. Metric unit is
+        Watts.
         """
     }
 

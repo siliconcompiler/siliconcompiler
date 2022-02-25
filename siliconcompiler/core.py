@@ -2765,23 +2765,28 @@ class Chip:
         return list(sorted_dict.keys())
 
     ###########################################################################
-    def _allpaths(self, cfg, flow, step, index, path=None, allpaths=None):
+    def _allpaths(self, cfg, flow, step, index, path=None):
+        '''Recursive helper for finding all paths from provided step, index to
+        root node(s) with no inputs.
+
+        Returns a list of lists.
+        '''
 
         if path is None:
             path = []
-            allpaths = []
 
         inputs = self.get('flowgraph', flow, step, index, 'input', cfg=cfg)
 
         if not self.get('flowgraph', flow, step, index, 'input', cfg=cfg):
-            allpaths.append(path)
+            return [path]
         else:
+            allpaths = []
             for in_step, in_index in inputs:
                 newpath = path.copy()
                 newpath.append(in_step + in_index)
-                return self._allpaths(cfg, flow, in_step, in_index, path=newpath, allpaths=allpaths)
+                allpaths.extend(self._allpaths(cfg, flow, in_step, in_index, path=newpath))
 
-        return list(allpaths)
+        return allpaths
 
     ###########################################################################
     def clock(self, *, name, pin, period, jitter=0):
@@ -3190,10 +3195,11 @@ class Chip:
 
         # support for sharing data across jobs
         job = self.get('jobname')
+        in_job = job
         if job in self.getkeys('jobinput'):
             if step in self.getkeys('jobinput',job):
                 if index in self.getkeys('jobinput',job,step):
-                    job = self.get('jobinput', job, step, index)
+                    in_job = self.get('jobinput', job, step, index)
 
         workdir = self._getworkdir(step=step,index=index)
         cwd = os.getcwd()
@@ -3214,7 +3220,7 @@ class Chip:
                 index_error = error[in_step + in_index]
                 self.set('flowstatus', in_step, in_index, 'error', index_error)
                 if not index_error:
-                    cfgfile = f"../../../{job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
+                    cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
                     self.read_manifest(cfgfile, clobber=False)
 
         ##################
@@ -3284,7 +3290,7 @@ class Chip:
 
             # Skip copying pkg.json files here, since we write the current chip
             # configuration into inputs/{design}.pkg.json earlier in _runstep.
-            utils.copytree(f"../../../{job}/{in_step}/{in_index}/outputs", 'inputs/', dirs_exist_ok=True,
+            utils.copytree(f"../../../{in_job}/{in_step}/{in_index}/outputs", 'inputs/', dirs_exist_ok=True,
                 ignore=[f'{design}.pkg.json'], link=True)
 
         ##################

@@ -16,8 +16,11 @@ class InstallScripts(SphinxDirective):
         scripts = {}
 
         for script in os.listdir(setup_dir):
+            if not script.startswith('install-'):
+                continue
+
             # Ignore directories such as 'setup/docker/'.
-            if os.path.isfile(script):
+            if os.path.isfile(os.path.join(setup_dir, script)):
                 components = script.split('.')[0].split('-')
                 tool = components[1]
 
