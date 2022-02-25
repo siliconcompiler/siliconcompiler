@@ -1278,33 +1278,32 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
     cfg['library'][lib]['pdk'] = {
         'switch': "-library_pdk 'lib <str>'",
         'require': None,
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'signature' : None,
-        'defvalue': None,
+        'defvalue': [],
         'shorthelp': 'Library PDK',
         'example': ["cli: -library_pdk 'mylib freepdk45",
                     "api:  chip.set('library', 'mylib', 'pdk', 'freepdk45')"],
         'help': """
-        Name of the PDK module used to create the library package. The module
-        is checked and loaded based on the 'scpath' schema parameter. The
-        parameter is required for hardened technology specific library types.
+        List of PDK modules supported by the library. The
+        parameter is required for technology hardened ASIC libraries.
         """
     }
 
     cfg['library'][lib]['stackup'] = {
         'switch': "-library_stackup 'lib <str>'",
         'require': None,
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'signature' : None,
-        'defvalue': None,
+        'defvalue': [],
         'shorthelp': 'Library stackup',
         'example': ["cli: -library_stackup 'mylib M10",
                     "api:  chip.set('library', 'mylib', 'stackup', '10')"],
         'help': """
-        Name of the PDK metal stackup used by the library. The parameter is
-        required for hardened technology specific library types.
+        List of PDK metal stackups supported by the library. The
+        parameter is required for technology hardened ASIC libraries.
         """
     }
 
@@ -1727,7 +1726,7 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
     cfg['library'][lib]['binary'][filetype] = {
         'switch': "-library_binary 'lib filetype <file>'",
         'require': None,
-        'type': '[file]',
+        'type': '[dir]',
         'lock': 'false',
         'copy': 'false',
         'defvalue': [],
@@ -1745,6 +1744,8 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         basis. Example formats include oa, mw, ndm, opendb.
         """
     }
+
+
 
     return cfg
 
