@@ -344,7 +344,7 @@ class Chip:
         # 4. read in all cfg files
         if 'cfg' in cmdargs.keys():
             for item in cmdargs['cfg']:
-                self.read_manifest(item, update=True, clobber=True, clear=True)
+                self.read_manifest(item, clobber=True, clear=True)
 
         # insert all parameters in dictionary
         self.logger.info('Setting commandline arguments')
@@ -433,10 +433,10 @@ class Chip:
         Args:
             modulename (str): Name of module to import.
             funcname (str): Name of the function to find within the module.
-            moduletype (str): Type of module (flows, pdks,libs,targets).
+            moduletype (str): Type of module (flows, pdks, libs, targets).
 
         Examples:
-            >>> setup_pdk = chip.find_function('freepdk45', 'setup', 'pdk')
+            >>> setup_pdk = chip.find_function('freepdk45', 'setup', 'pdks')
             >>> setup_pdk()
             Imports the freepdk45 module and runs the setup_pdk function
 
@@ -1741,7 +1741,12 @@ class Chip:
                         # If we're not running the input step, the required
                         # inputs need to already be copied into the build
                         # directory.
-                        workdir = self._getworkdir(step=in_step, index=in_index)
+                        jobname = self.get('jobname')
+                        if self.valid('jobinput', jobname, step, index):
+                            in_job = self.get('jobinput', jobname, step, index)
+                        else:
+                            in_job = jobname
+                        workdir = self._getworkdir(jobname=in_job, step=in_step, index=in_index)
                         in_step_out_dir = os.path.join(workdir, 'outputs')
                         inputs = set(os.listdir(in_step_out_dir))
                     else:
@@ -1762,7 +1767,7 @@ class Chip:
         return True
 
     ###########################################################################
-    def read_manifest(self, filename, job=None, update=True, clear=True, clobber=True):
+    def read_manifest(self, filename, job=None, clear=True, clobber=True):
         """
         Reads a manifest from disk and merges it with the current compilation manifest.
 
@@ -1771,12 +1776,9 @@ class Chip:
 
         Args:
             filename (filepath): Path to a manifest file to be loaded.
-            update (bool): If True, manifest is merged into chip object.
+            job (str): Specifies non-default job to merge into.
             clear (bool): If True, disables append operations for list type.
             clobber (bool): If True, overwrites existing parameter value.
-
-        Returns:
-            A manifest dictionary.
 
         Examples:
             >>> chip.read_manifest('mychip.json')
@@ -1798,10 +1800,7 @@ class Chip:
         f.close()
 
         #Merging arguments with the Chip configuration
-        if update:
-            self.merge_manifest(localcfg, job=job, clear=clear, clobber=clobber)
-
-        return localcfg
+        self.merge_manifest(localcfg, job=job, clear=clear, clobber=clobber)
 
     ###########################################################################
     def write_manifest(self, filename, prune=True, abspath=False, job=None):
