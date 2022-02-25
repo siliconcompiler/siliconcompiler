@@ -155,6 +155,7 @@ class Floorplan:
         self.chip = chip
 
         self.design = chip.get('design')
+        self.stackup = chip.get('asic', 'stackup')
         self.diearea = None
         self.corearea = None
         self.pins = {}
@@ -199,7 +200,7 @@ class Floorplan:
         self.available_cells = {}
 
         for macrolib in self.chip.get('asic', 'macrolib'):
-            lef_path = chip.find_files('library', macrolib, 'lef')[0]
+            lef_path = chip.find_files('library', macrolib, 'lef', self.stackup)[0]
             lef_data = leflib.parse(lef_path)
 
             if 'macros' not in lef_data:
@@ -235,17 +236,16 @@ class Floorplan:
             self.grid = None
 
         # extract layers based on stackup
-        stackup = self.chip.get('asic', 'stackup')
-        self._stackup = stackup
+
         # TODO: consider making this a dictionary of namedtuples to ensure layer
         # info is immutable.
         self.layers = {}
-        for pdk_name in self.chip.getkeys('pdk', 'grid', stackup):
-            sc_name = self.chip.get('pdk', 'grid', stackup, pdk_name, 'name')
-            xpitch = self.chip.get('pdk', 'grid', stackup, pdk_name, 'xpitch')
-            ypitch = self.chip.get('pdk', 'grid', stackup, pdk_name, 'ypitch')
-            xoffset = self.chip.get('pdk', 'grid', stackup, pdk_name, 'xoffset')
-            yoffset = self.chip.get('pdk', 'grid', stackup, pdk_name, 'yoffset')
+        for pdk_name in self.chip.getkeys('pdk', 'grid', self.stackup):
+            sc_name = self.chip.get('pdk', 'grid', self.stackup, pdk_name, 'name')
+            xpitch = self.chip.get('pdk', 'grid', self.stackup, pdk_name, 'xpitch')
+            ypitch = self.chip.get('pdk', 'grid', self.stackup, pdk_name, 'ypitch')
+            xoffset = self.chip.get('pdk', 'grid', self.stackup, pdk_name, 'xoffset')
+            yoffset = self.chip.get('pdk', 'grid', self.stackup, pdk_name, 'yoffset')
 
             if ('layers' not in tech_lef_data) or (pdk_name not in tech_lef_data['layers']):
                 raise ValueError(f'No layer named {pdk_name} in tech LEF!')
@@ -370,8 +370,8 @@ class Floorplan:
     def get_layers(self):
         '''Returns list of SC-standardized layer names defined in schema.'''
         layers = []
-        for pdk_name in self.chip.getkeys('pdk', 'grid', self._stackup):
-            sc_name = self.chip.get('pdk', 'grid', self._stackup, pdk_name, 'name')
+        for pdk_name in self.chip.getkeys('pdk', 'grid', self.stackup):
+            sc_name = self.chip.get('pdk', 'grid', self.stackup, pdk_name, 'name')
             layers.append(sc_name)
         return layers
 
@@ -1361,7 +1361,7 @@ class Floorplan:
             raise ValueError('Invalid orientation')
 
     def _pdk_to_sc_layer(self, layer):
-        return self.chip.get('pdk', 'grid', self._stackup, layer, 'name')
+        return self.chip.get('pdk', 'grid', self.stackup, layer, 'name')
 
 # Helper functions used for diearea inference. These are more-or-less
 # floorplanning related, so including them in this file.
