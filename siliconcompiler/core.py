@@ -344,7 +344,7 @@ class Chip:
         # 4. read in all cfg files
         if 'cfg' in cmdargs.keys():
             for item in cmdargs['cfg']:
-                self.read_manifest(item, update=True, clobber=True, clear=True)
+                self.read_manifest(item, clobber=True, clear=True)
 
         # insert all parameters in dictionary
         self.logger.info('Setting commandline arguments')
@@ -1742,7 +1742,7 @@ class Chip:
         return True
 
     ###########################################################################
-    def read_manifest(self, filename, job=None, update=True, clear=True, clobber=True):
+    def read_manifest(self, filename, job=None, clear=True, clobber=True):
         """
         Reads a manifest from disk and merges it with the current compilation manifest.
 
@@ -1751,12 +1751,9 @@ class Chip:
 
         Args:
             filename (filepath): Path to a manifest file to be loaded.
-            update (bool): If True, manifest is merged into chip object.
+            job (str): Specifies non-default job to merge into.
             clear (bool): If True, disables append operations for list type.
             clobber (bool): If True, overwrites existing parameter value.
-
-        Returns:
-            A manifest dictionary.
 
         Examples:
             >>> chip.read_manifest('mychip.json')
@@ -1778,8 +1775,7 @@ class Chip:
         f.close()
 
         #Merging arguments with the Chip configuration
-        if update:
-            self.merge_manifest(localcfg, job=job, clear=clear, clobber=clobber)
+        self.merge_manifest(localcfg, job=job, clear=clear, clobber=clobber)
 
     ###########################################################################
     def write_manifest(self, filename, prune=True, abspath=False, job=None):
