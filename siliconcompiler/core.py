@@ -1531,6 +1531,31 @@ class Chip:
         return True
 
     ###########################################################################
+    def check_filepaths(self):
+        '''
+        Verifies that paths to all files in manifest are valid.
+        '''
+
+        allkeys = self.getkeys()
+        for keypath in allkeys:
+            allpaths = []
+            paramtype = self.get(*keypath, field='type')
+            if 'file' in paramtype or 'dir' in paramtype:
+                if 'dir' not in keypath and self.get(*keypath):
+                    allpaths = list(self.get(*keypath))
+                for path in allpaths:
+                    #check for env var
+                    m = re.match(r'\$(\w+)(.*)', path)
+                    if m:
+                        prefix_path = os.environ[m.group(1)]
+                        path = prefix_path + m.group(2)
+                    file_error = 'file' in paramtype and not os.path.isfile(path)
+                    dir_error = 'dir' in paramtype and not os.path.isdir(path)
+                    if file_error or dir_error:
+                        self.logger.error(f"Paramater {keypath} path {path} is invalid")
+                        self.error = 1
+
+    ###########################################################################
     def check_manifest(self):
         '''
         Verifies the integrity of the pre-run compilation manifest.
@@ -3294,7 +3319,8 @@ class Chip:
 
         for item in self.getkeys('eda', tool, 'licenseserver'):
             license_file = self.get('eda', tool, 'licenseserver', item)
-            os.environ[item] = ':'.join(license_file)
+            if license_file:
+                os.environ[item] = ':'.join(license_file)
 
         ##################
         # 14. Check exe version
