@@ -4736,7 +4736,7 @@ def schema_design(cfg):
         'switch': "-design <str>",
         'type': 'str',
         'lock': 'false',
-        'require': None,
+        'require': 'all',
         'signature': None,
         'defvalue': None,
         'shorthelp': 'Design top module name',
