@@ -1620,49 +1620,35 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         """
     }
 
-    cfg['library'][lib]['hdl'] = {}
-    cfg['library'][lib]['hdl']['default'] = {
-        'switch': "-library_hdl 'lib format <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Library HDL models',
-        'example': [
-            "cli: -library_hdl 'mylib verilog mylib.v'",
-            "api: chip.set('library','mylib','hdl','verilog','mylib.v')"],
-        'help': """
-        Library HDL models, specified on a per format basis. Examples
-        of legal formats include verilog, vhdl, systemc, c++, python.
-        """
-    }
+    modeltypes = ['verilog',
+                  'vhdl',
+                  'systemc',
+                  'iss',
+                  'qemu',
+                  'gem5']
 
-    cfg['library'][lib]['atpg'] = {
-        'switch': "-library_atpg 'lib <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Library ATPG models',
-        'example': ["cli: -library_atpg 'mylib mylib.atpg'",
-                    "api: chip.set('library','mylib','atpg','mylib.atpg')"],
-        'help': """
-        Library models used for ATPG based automated fault based post
-        manufacturing testing.
-        """
-    }
+    cfg['library'][lib]['model'] = {}
+    for item in modeltypes:
+        cfg['library'][lib]['model'][item] = {
+            'switch': f"-library_model_{item} 'lib <file>'",
+            'require': None,
+            'type': '[file]',
+            'lock': 'false',
+            'copy': 'false',
+            'defvalue': [],
+            'filehash': [],
+            'hashalgo': 'sha256',
+            'date': [],
+            'author': [],
+            'signature': [],
+            'shorthelp': f'Library {item} model',
+            'example': [
+                f"cli: -library_model_{item} 'mylib modelname'",
+                f"api: chip.set('library','mylib','model',{item},'modelname')"],
+            'help': """
+            List of library {item} models.
+            """
+        }
 
     ###############################
     # Options
