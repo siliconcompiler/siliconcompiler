@@ -2709,53 +2709,54 @@ class Chip:
 
         # Create a report for the Chip object which can be viewed in a web browser.
         # Place report files in the build's root directory.
-        # Only produce reports for ASIC flows.
-        if self.get('mode') == 'asic':
-            web_dir = os.path.join(self.get('dir'),
-                                   self.get('design'),
-                                   self.get('jobname'))
-            if os.path.isdir(web_dir):
-                # Gather essential variables.
-                templ_dir = os.path.join(self.scroot, 'templates', 'report')
-                flow = self.get('flow')
-                flow_steps = self.list_steps()
-                flow_tasks = {}
-                for step in flow_steps:
-                    flow_tasks[step] = self.getkeys('flowgraph', flow, step)
+        web_dir = os.path.join(self.get('dir'),
+                               self.get('design'),
+                               self.get('jobname'))
+        if os.path.isdir(web_dir):
+            # Gather essential variables.
+            templ_dir = os.path.join(self.scroot, 'templates', 'report')
+            flow = self.get('flow')
+            flow_steps = self.list_steps()
+            flow_tasks = {}
+            for step in flow_steps:
+                flow_tasks[step] = self.getkeys('flowgraph', flow, step)
 
-                # Copy Bootstrap JS/CSS
-                shutil.copyfile(os.path.join(templ_dir, 'bootstrap.min.js'),
-                                os.path.join(web_dir, 'bootstrap.min.js'))
-                shutil.copyfile(os.path.join(templ_dir, 'bootstrap.min.css'),
-                                os.path.join(web_dir, 'bootstrap.min.css'))
+            # Copy Bootstrap JS/CSS
+            shutil.copyfile(os.path.join(templ_dir, 'bootstrap.min.js'),
+                            os.path.join(web_dir, 'bootstrap.min.js'))
+            shutil.copyfile(os.path.join(templ_dir, 'bootstrap.min.css'),
+                            os.path.join(web_dir, 'bootstrap.min.css'))
 
-                # Call 'show()' to generate a low-res PNG of the design.
-                self.show(self.find_result('gds', step='export'),
+            # Call 'show()' to generate a low-res PNG of the design.
+            results_gds = self.find_result('gds', step='export')
+            if results_gds:
+                self.show(results_gds,
                           ['-rd', 'screenshot=1', '-rd', 'scr_w=1024', '-rd', 'scr_h=1024', '-z'])
 
-                # Generate results page by passing the Chip manifest into the Jinja2 template.
-                env = Environment(loader=FileSystemLoader(templ_dir))
-                results_page = os.path.join(web_dir, 'report.html')
-                with open(results_page, 'w') as wf:
-                    wf.write(env.get_template('sc_report.j2').render(
-                        manifest = self.cfg,
-                        metric_keys = metric_list,
-                        metrics = self.cfg['metric'],
-                        tasks = flow_tasks
-                    ))
+            # Generate results page by passing the Chip manifest into the Jinja2 template.
+            env = Environment(loader=FileSystemLoader(templ_dir))
+            results_page = os.path.join(web_dir, 'report.html')
+            with open(results_page, 'w') as wf:
+                wf.write(env.get_template('sc_report.j2').render(
+                    manifest = self.cfg,
+                    metric_keys = metric_list,
+                    metrics = self.cfg['metric'],
+                    tasks = flow_tasks,
+                    results_fn = results_gds
+                ))
 
-                # Try to open the results page in a browser, only if '-nodisplay' is not set.
-                if not self.get('nodisplay'):
-                    try:
-                        webbrowser.get(results_page)
-                    except webbrowser.Error:
-                        # Python 'webbrowser' module includes a limited number of popular defaults.
-                        # Depending on the platform, the user may have defined their own with $BROWSER.
-                        if 'BROWSER' in os.environ:
-                            subprocess.run([os.environ['BROWSER'], results_page])
-                        else:
-                            self.logger.warning('Unable to open results page in web browser:\n' +
-                                                os.path.abspath(os.path.join(web_dir, "report.html")))
+            # Try to open the results page in a browser, only if '-nodisplay' is not set.
+            if not self.get('nodisplay'):
+                try:
+                    webbrowser.get(results_page)
+                except webbrowser.Error:
+                    # Python 'webbrowser' module includes a limited number of popular defaults.
+                    # Depending on the platform, the user may have defined their own with $BROWSER.
+                    if 'BROWSER' in os.environ:
+                        subprocess.run([os.environ['BROWSER'], results_page])
+                    else:
+                        self.logger.warning('Unable to open results page in web browser:\n' +
+                                            os.path.abspath(os.path.join(web_dir, "report.html")))
 
     ###########################################################################
     def list_steps(self, flow=None):
