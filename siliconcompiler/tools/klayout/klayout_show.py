@@ -98,7 +98,7 @@ if lyp_path:
 try:
     if screenshot:
         # Save a screenshot. TODO: Get aspect ratio from sc_cfg?
-        gds_img = layout_view.get_image(1024, 1024)
+        gds_img = layout_view.get_image(int(scr_w), int(scr_h))
         design = sc_cfg["design"]["value"]
         jobname = sc_cfg["jobname"]["value"]
         gds_img.save(f'../{design}/{jobname}/{design}.png', 'PNG')
