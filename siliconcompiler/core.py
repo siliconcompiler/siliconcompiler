@@ -3385,7 +3385,7 @@ class Chip:
         if (step in self.getkeys('eda', tool, 'environment')) and \
            (index in self.getkeys('eda', tool, 'environment', step)):
             for item in self.getkeys('eda', tool, 'environment', step, index):
-                os.environ[item] = self.get('eda', tool, 'environment', step, index, item)
+                os.environ[item] = ':'.join(self.get('eda', tool, 'environment', step, index, item))
 
         ##################
         # 14. Check exe version
