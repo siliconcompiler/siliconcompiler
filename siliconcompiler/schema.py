@@ -4421,7 +4421,7 @@ def schema_package(cfg, group):
     }
 
     localcfg['license'] = {
-        'switch': f"-{group}_license '{lib}<file>'",
+        'switch': f"-{group}_license '{lib}<str>'",
         'type': '[str]',
         'lock': 'false',
         'require': None,
@@ -4429,11 +4429,33 @@ def schema_package(cfg, group):
         'defvalue': [],
         'shorthelp': f"{group.capitalize()} license names",
         'example': [
-            f"cli: -{group}_license '{lib}./LICENSE",
-            f"api: chip.set('{group}',{libapi}'license', './LICENSE')"],
+            f"cli: -{group}_license '{lib}Apache-2.0",
+            f"api: chip.set('{group}',{libapi}'license','Apache-2.0')"],
         'help': f"""
         The license(s) for {group}. SPDX identifiers should be used when
         applicable.
+        """
+    }
+
+    localcfg['licensefile'] = {
+        'switch': f"-{group}_licensefile '{lib}<file>'",
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'false',
+        'require': None,
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': f"{group.capitalize()} license files",
+        'example': [
+            f"cli: -{group}_licensefile '{lib}./LICENSE",
+            f"api: chip.set('{group}',{libapi}'licensefile','./LICENSE')"],
+        'help': f"""
+        List of license files for {group} to be applied in cases when a
+        SPDX identifier is not available. (eg. proprietary licenses).
         """
     }
 
