@@ -3595,6 +3595,18 @@ class Chip:
             if os.path.isdir(cur_job_dir):
                 shutil.rmtree(cur_job_dir)
 
+        # List of indices to run per step. Precomputing this ensures we won't
+        # have any problems if [arg, index] gets clobbered, and reduces logic
+        # repetition.
+        indexlist = {}
+        for step in steplist:
+            if self.get('arg', 'index'):
+                indexlist[step] = [self.get('arg', 'index')]
+            elif self.get('indexlist'):
+                indexlist[step] = self.get('indexlist')
+            else:
+                indexlist[step] = self.getkeys('flowgraph', flow, step)
+
         # Set env variables
         for envvar in self.getkeys('env'):
             val = self.get('env', envvar)
@@ -3644,13 +3656,7 @@ class Chip:
             for step in self.getkeys('flowgraph', flow):
                 for index in self.getkeys('flowgraph', flow, step):
                     stepstr = step + index
-                    if self.get('arg', 'index'):
-                        indexlist = [self.get('arg', 'index')]
-                    elif self.get('indexlist'):
-                        indexlist = self.get('indexlist')
-                    else:
-                        indexlist = self.getkeys('flowgraph', flow, step)
-                    if (step in steplist) & (index in indexlist):
+                    if step in steplist and index in indexlist[step]:
                         self.set('flowstatus', step, str(index), 'error', 1)
                         error[stepstr] = self.get('flowstatus', step, str(index), 'error')
                         active[stepstr] = 1
@@ -3700,11 +3706,7 @@ class Chip:
             # Create all processes
             processes = []
             for step in steplist:
-                if self.get('arg', 'index'):
-                    indexlist = [self.get('arg', 'index')]
-                else:
-                    indexlist = self.getkeys('flowgraph', flow, step)
-                for index in indexlist:
+                for index in indexlist[step]:
                     processes.append(multiprocessing.Process(target=self._runtask_safe,
                                                              args=(step, index, active, error,)))
 
@@ -3728,11 +3730,7 @@ class Chip:
             halt = 0
             for step in steplist:
                 index_error = 1
-                if self.get('arg', 'index'):
-                    indexlist = [self.get('arg', 'index')]
-                else:
-                    indexlist = self.getkeys('flowgraph', flow, step)
-                for index in indexlist:
+                for index in indexlist[step]:
                     stepstr = step + index
                     index_error = index_error & error[stepstr]
                 halt = halt + index_error
@@ -3744,24 +3742,36 @@ class Chip:
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
 
-        # Merge cfg back from last executed runstep.
-        # (Only if the index-0 run's results exist.)
+        # Merge cfg back from last executed runsteps.
+        # Note: any information generated in steps that do not merge into the
+        # last step will not be picked up in this chip object.
         laststep = steplist[-1]
-        lastindex = '0'
-        lastdir = self._getworkdir(step=laststep, index=lastindex)
-        lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
-        if os.path.isfile(lastcfg):
-            local_dir = self.get('dir')
-            self.read_manifest(lastcfg, clobber=True, clear=True)
-            self.set('dir', local_dir)
-        else:
+        last_step_failed = True
+        for index in indexlist[laststep]:
+            lastdir = self._getworkdir(step=laststep, index=index)
+
+            # This no-op listdir operation is important for ensuring we have a
+            # consistent view of the filesystem when dealing with NFS. Without
+            # this, this thread is often unable to find the final manifest of
+            # runs performed on job schedulers, even if they completed
+            # successfully. Inspired by: https://stackoverflow.com/a/70029046.
+            os.listdir(os.path.dirname(lastdir))
+
+            lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
+            if os.path.isfile(lastcfg):
+                last_step_failed = False
+                local_dir = self.get('dir')
+                self.read_manifest(lastcfg, clobber=True, clear=True)
+                self.set('dir', local_dir)
+
+        if last_step_failed:
             # Hack to find first failed step by checking for presence of output
             # manifests.
             failed_step = laststep
             for step in steplist[:-1]:
                 step_has_cfg = False
-                for index in self.getkeys('flowgraph', flow, step):
-                    stepdir = self._getworkdir(step=step, index=lastindex)
+                for index in indexlist[step]:
+                    stepdir = self._getworkdir(step=step, index=index)
                     cfg = f"{stepdir}/outputs/{self.get('design')}.pkg.json"
                     if os.path.isfile(cfg):
                         step_has_cfg = True
