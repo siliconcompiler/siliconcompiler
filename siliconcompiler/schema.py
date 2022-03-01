@@ -2333,7 +2333,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     cfg['eda'][tool]['environment'][step][index] = {}
     cfg['eda'][tool]['environment'][step][index]['default'] = {
         'switch': "-eda_environment 'tool step index name <str>'",
-        'type': '[str]',
+        'type': 'str',
         'lock': 'false',
         'require': None,
         'signature' : [],
