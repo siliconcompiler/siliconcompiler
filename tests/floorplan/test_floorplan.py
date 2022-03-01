@@ -9,10 +9,11 @@ def _fp(datadir):
     c = Chip(loglevel='INFO')
     c.set('design', 'test', clobber=True)
     c.load_target('freepdk45_demo')
+    stackup = '10M'
     lib = 'ram'
     c.add('asic', 'macrolib', lib)
     c.set('library', lib, 'type', 'component')
-    c.add('library', lib, 'lef', os.path.join(datadir, 'ram.lef'))
+    c.add('library', lib, 'lef', stackup, os.path.join(datadir, 'ram.lef'))
 
     fp = Floorplan(c)
     cell_w = fp.stdcell_width
@@ -83,13 +84,14 @@ def test_padring(datadir):
     chip.load_target('freepdk45_demo')
 
     macro = 'io'
+    stackup = '10M'
     chip.add('asic', 'macrolib', macro)
-    chip.set('library', macro, 'lef', os.path.join(datadir, 'iocells.lef'))
+    chip.set('library', macro, 'lef', stackup, os.path.join(datadir, 'iocells.lef'))
     chip.set('library', macro, 'cells', 'IOPAD', 'IOPAD')
 
     macro = 'sram_32x2048_1rw'
     chip.add('asic', 'macrolib', macro)
-    chip.set('library', macro, 'lef', os.path.join(datadir, f'{macro}.lef'))
+    chip.set('library', macro, 'lef', stackup, os.path.join(datadir, f'{macro}.lef'))
     chip.set('library', macro, 'cells', 'ram', 'sram_32x2048_1rw')
 
     fp = Floorplan(chip)
@@ -183,10 +185,11 @@ def test_place_vias(datadir):
     c = Chip()
     c.set('design', 'test', clobber=True)
     c.load_target('freepdk45_demo')
+    stackup = '10M'
     lib = 'ram'
     c.add('asic', 'macrolib', lib)
     c.set('library', lib, 'type', 'component')
-    c.add('library', lib, 'lef', os.path.join(datadir, 'ram.lef'))
+    c.add('library', lib, 'lef', stackup, os.path.join(datadir, 'ram.lef'))
 
     fp = Floorplan(c)
 

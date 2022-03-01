@@ -100,7 +100,7 @@ def setup(chip, mode='batch'):
         for lib in (targetlibs + macrolibs):
             for corner in chip.getkeys('library', lib, 'nldm'):
                 chip.add('eda', tool, 'require', step, index, ",".join(['library', lib, 'nldm', corner, 'lib']))
-            chip.add('eda', tool, 'require', step, index, ",".join(['library', lib, 'lef']))
+            chip.add('eda', tool, 'require', step, index, ",".join(['library', lib, 'lef', stackup]))
     else:
         chip.error = 1
         chip.logger.error(f'Stackup and logiclib parameters required for OpenROAD.')

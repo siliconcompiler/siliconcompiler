@@ -5,7 +5,7 @@
 source ./sc_manifest.tcl
 
 ###############################
-# Openroad Constants
+# Openroad Hard Coded Constants
 ###############################
 
 set openroad_overflow_iter 100
@@ -19,12 +19,6 @@ set openroad_cluster_size 30
 set sc_tool    openroad
 set sc_step    [dict get $sc_cfg arg step]
 set sc_index   [dict get $sc_cfg arg index]
-
-set openroad_place_density [lindex [dict get $sc_cfg eda $sc_tool {variable} $sc_step $sc_index  place_density] 0]
-set openroad_pad_global_place [lindex [dict get $sc_cfg eda $sc_tool {variable} $sc_step $sc_index  pad_global_place] 0]
-set openroad_pad_detail_place [lindex [dict get $sc_cfg eda $sc_tool {variable} $sc_step $sc_index  pad_detail_place] 0]
-set openroad_macro_place_halo [dict get $sc_cfg eda $sc_tool {variable} $sc_step  $sc_index  macro_place_halo]
-set openroad_macro_place_channel [dict get $sc_cfg eda $sc_tool {variable} $sc_step $sc_index  macro_place_channel]
 
 #Handling remote/local script execution
 if {[dict get $sc_cfg eda $sc_tool copy] eq True} {
@@ -55,7 +49,7 @@ set sc_maxlength   [dict get $sc_cfg asic maxlength]
 set sc_maxcap      [dict get $sc_cfg asic maxcap]
 set sc_maxslew     [dict get $sc_cfg asic maxslew]
 
-# TPDK agnostic design rule translation
+# PDK agnostic design rule translation
 dict for {key value} [dict get $sc_cfg pdk grid $sc_stackup] {
     set sc_name [dict get $sc_cfg pdk grid $sc_stackup $key name]
 
@@ -100,6 +94,14 @@ set sc_tapoffset   [lindex [dict get $sc_cfg pdk tapoffset] end]
 
 set sc_threads     [dict get $sc_cfg eda $sc_tool threads $sc_step $sc_index ]
 
+# Sweep parameters
+
+set openroad_place_density [lindex [dict get $sc_cfg eda $sc_tool {variable} $sc_step $sc_index  place_density] 0]
+set openroad_pad_global_place [lindex [dict get $sc_cfg eda $sc_tool {variable} $sc_step $sc_index  pad_global_place] 0]
+set openroad_pad_detail_place [lindex [dict get $sc_cfg eda $sc_tool {variable} $sc_step $sc_index  pad_detail_place] 0]
+set openroad_macro_place_halo [dict get $sc_cfg eda $sc_tool {variable} $sc_step  $sc_index  macro_place_halo]
+set openroad_macro_place_channel [dict get $sc_cfg eda $sc_tool {variable} $sc_step $sc_index  macro_place_channel]
+
 ###############################
 # Optional
 ###############################
@@ -118,7 +120,7 @@ read_lef  $sc_techlef
 # Read Targetlibs
 foreach lib $sc_targetlibs {
 	read_liberty [dict get $sc_cfg library $lib nldm typical lib]
-	read_lef [dict get $sc_cfg library $lib lef]
+	read_lef [dict get $sc_cfg library $lib lef $sc_stackup]
 }
 
 # Read Macrolibs
@@ -126,7 +128,7 @@ foreach lib $sc_macrolibs {
     if {[dict exists $sc_cfg library $lib nldm]} {
         read_liberty [dict get $sc_cfg library $lib nldm typical lib]
     }
-    read_lef [dict get $sc_cfg library $lib lef]
+    read_lef [dict get $sc_cfg library $lib lef stackup]
 }
 
 # Read Verilog

@@ -225,18 +225,6 @@
             "value": "m2"
         }
     },
-    "checkonly": {
-        "defvalue": "false",
-        "lock": "false",
-        "require": "all",
-        "shorthelp": "Exit after checking flow",
-        "signature": [
-            null
-        ],
-        "switch": "-checkonly <bool>",
-        "type": "bool",
-        "value": "false"
-    },
     "clean": {
         "defvalue": "false",
         "lock": "false",
@@ -517,8 +505,8 @@
                             "asic,logiclib",
                             "asic,stackup",
                             "pdk,layermap,klayout,10M,def,gds",
-                            "library,nangate45,gds",
-                            "library,nangate45,lef"
+                            "library,nangate45,gds,10M",
+                            "library,nangate45,lef,10M"
                         ]
                     }
                 }
@@ -4599,7 +4587,12 @@
                             "library,nangate45,arch",
                             "pdk,aprtech,openroad,10M,10t,lef",
                             "library,nangate45,nldm,typical,lib",
-                            "library,nangate45,lef"
+                            "library,nangate45,lef,10M",
+                            "eda,openroad,variable,cts,0,place_density",
+                            "eda,openroad,variable,cts,0,pad_global_place",
+                            "eda,openroad,variable,cts,0,pad_detail_place",
+                            "eda,openroad,variable,cts,0,macro_place_halo",
+                            "eda,openroad,variable,cts,0,macro_place_channel"
                         ]
                     }
                 },
@@ -4618,7 +4611,12 @@
                             "library,nangate45,arch",
                             "pdk,aprtech,openroad,10M,10t,lef",
                             "library,nangate45,nldm,typical,lib",
-                            "library,nangate45,lef"
+                            "library,nangate45,lef,10M",
+                            "eda,openroad,variable,dfm,0,place_density",
+                            "eda,openroad,variable,dfm,0,pad_global_place",
+                            "eda,openroad,variable,dfm,0,pad_detail_place",
+                            "eda,openroad,variable,dfm,0,macro_place_halo",
+                            "eda,openroad,variable,dfm,0,macro_place_channel"
                         ]
                     }
                 },
@@ -4637,7 +4635,12 @@
                             "library,nangate45,arch",
                             "pdk,aprtech,openroad,10M,10t,lef",
                             "library,nangate45,nldm,typical,lib",
-                            "library,nangate45,lef"
+                            "library,nangate45,lef,10M",
+                            "eda,openroad,variable,floorplan,0,place_density",
+                            "eda,openroad,variable,floorplan,0,pad_global_place",
+                            "eda,openroad,variable,floorplan,0,pad_detail_place",
+                            "eda,openroad,variable,floorplan,0,macro_place_halo",
+                            "eda,openroad,variable,floorplan,0,macro_place_channel"
                         ]
                     }
                 },
@@ -4656,7 +4659,12 @@
                             "library,nangate45,arch",
                             "pdk,aprtech,openroad,10M,10t,lef",
                             "library,nangate45,nldm,typical,lib",
-                            "library,nangate45,lef"
+                            "library,nangate45,lef,10M",
+                            "eda,openroad,variable,physyn,0,place_density",
+                            "eda,openroad,variable,physyn,0,pad_global_place",
+                            "eda,openroad,variable,physyn,0,pad_detail_place",
+                            "eda,openroad,variable,physyn,0,macro_place_halo",
+                            "eda,openroad,variable,physyn,0,macro_place_channel"
                         ]
                     }
                 },
@@ -4675,7 +4683,12 @@
                             "library,nangate45,arch",
                             "pdk,aprtech,openroad,10M,10t,lef",
                             "library,nangate45,nldm,typical,lib",
-                            "library,nangate45,lef"
+                            "library,nangate45,lef,10M",
+                            "eda,openroad,variable,place,0,place_density",
+                            "eda,openroad,variable,place,0,pad_global_place",
+                            "eda,openroad,variable,place,0,pad_detail_place",
+                            "eda,openroad,variable,place,0,macro_place_halo",
+                            "eda,openroad,variable,place,0,macro_place_channel"
                         ]
                     }
                 },
@@ -4694,7 +4707,12 @@
                             "library,nangate45,arch",
                             "pdk,aprtech,openroad,10M,10t,lef",
                             "library,nangate45,nldm,typical,lib",
-                            "library,nangate45,lef"
+                            "library,nangate45,lef,10M",
+                            "eda,openroad,variable,route,0,place_density",
+                            "eda,openroad,variable,route,0,pad_global_place",
+                            "eda,openroad,variable,route,0,pad_detail_place",
+                            "eda,openroad,variable,route,0,macro_place_halo",
+                            "eda,openroad,variable,route,0,macro_place_channel"
                         ]
                     }
                 }
@@ -5992,7 +6010,8 @@
                             "pdk,process",
                             "design",
                             "asic,logiclib",
-                            "library,nangate45,nldm,typical,lib"
+                            "library,nangate45,nldm,typical,lib",
+                            "library,nangate45,techmap,yosys"
                         ]
                     }
                 }
@@ -10550,42 +10569,46 @@
                 }
             },
             "gds": {
-                "author": [],
-                "copy": "false",
-                "date": [],
-                "defvalue": [],
-                "filehash": [],
-                "hashalgo": [
-                    "sha256"
-                ],
-                "lock": "false",
-                "require": null,
-                "shorthelp": "Library GDS files",
-                "signature": [],
-                "switch": "-library_gds 'lib <file>'",
-                "type": "[file]",
-                "value": [
-                    "../third_party/pdks/virtual/freepdk45/libs/nangate45/r1p0/gds/NangateOpenCellLibrary.gds"
-                ]
+                "10M": {
+                    "author": [],
+                    "copy": "false",
+                    "date": [],
+                    "defvalue": [],
+                    "filehash": [],
+                    "hashalgo": [
+                        "sha256"
+                    ],
+                    "lock": "false",
+                    "require": null,
+                    "shorthelp": "Library GDS layout files",
+                    "signature": [],
+                    "switch": "-library_gds 'lib stackup <file>'",
+                    "type": "[file]",
+                    "value": [
+                        "../third_party/pdks/virtual/freepdk45/libs/nangate45/r1p0/gds/NangateOpenCellLibrary.gds"
+                    ]
+                }
             },
             "lef": {
-                "author": [],
-                "copy": "false",
-                "date": [],
-                "defvalue": [],
-                "filehash": [],
-                "hashalgo": [
-                    "sha256"
-                ],
-                "lock": "false",
-                "require": null,
-                "shorthelp": "Library LEF files",
-                "signature": [],
-                "switch": "-library_lef 'lib <file>'",
-                "type": "[file]",
-                "value": [
-                    "../third_party/pdks/virtual/freepdk45/libs/nangate45/r1p0/lef/NangateOpenCellLibrary.macro.mod.lef"
-                ]
+                "10M": {
+                    "author": [],
+                    "copy": "false",
+                    "date": [],
+                    "defvalue": [],
+                    "filehash": [],
+                    "hashalgo": [
+                        "sha256"
+                    ],
+                    "lock": "false",
+                    "require": null,
+                    "shorthelp": "Library LEF layout files",
+                    "signature": [],
+                    "switch": "-library_lef 'lib stackup <file>'",
+                    "type": "[file]",
+                    "value": [
+                        "../third_party/pdks/virtual/freepdk45/libs/nangate45/r1p0/lef/NangateOpenCellLibrary.macro.mod.lef"
+                    ]
+                }
             },
             "nldm": {
                 "typical": {
@@ -10625,7 +10648,7 @@
                 }
             },
             "pdk": {
-                "defvalue": null,
+                "defvalue": [],
                 "lock": "false",
                 "require": null,
                 "shorthelp": "Library PDK",
@@ -10633,8 +10656,10 @@
                     null
                 ],
                 "switch": "-library_pdk 'lib <str>'",
-                "type": "str",
-                "value": "freepdk45"
+                "type": "[str]",
+                "value": [
+                    "freepdk45"
+                ]
             },
             "site": {
                 "FreePDK45_38x28_10R_NP_162NW_34O": {
@@ -10660,6 +10685,27 @@
                     }
                 }
             },
+            "techmap": {
+                "yosys": {
+                    "author": [],
+                    "copy": "false",
+                    "date": [],
+                    "defvalue": [],
+                    "filehash": [],
+                    "hashalgo": [
+                        "sha256"
+                    ],
+                    "lock": "false",
+                    "require": null,
+                    "shorthelp": "Library techmap file",
+                    "signature": [],
+                    "switch": "-library_techmap 'lib tool <file>'",
+                    "type": "[file]",
+                    "value": [
+                        "../third_party/pdks/virtual/freepdk45/libs/nangate45/r1p0/techmap/yosys/cells_latch.v"
+                    ]
+                }
+            },
             "type": {
                 "defvalue": null,
                 "lock": "false",
@@ -10670,7 +10716,7 @@
                 ],
                 "switch": "-library_type 'lib <str>'",
                 "type": "str",
-                "value": "stdcell"
+                "value": "logiclib"
             }
         }
     },
@@ -11081,7 +11127,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "2.42"
+                        "value": "2.62"
                     }
                 },
                 "security": {
@@ -11633,7 +11679,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "1.07"
+                        "value": "1.16"
                     }
                 },
                 "security": {
@@ -12143,7 +12189,7 @@
                         "signature": null,
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "1.04"
+                        "value": "1.06"
                     }
                 },
                 "security": {
@@ -13221,7 +13267,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.38"
+                        "value": "0.39"
                     }
                 },
                 "security": {
@@ -14325,7 +14371,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "1.2"
+                        "value": "1.21"
                     }
                 },
                 "security": {
@@ -14877,7 +14923,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "2.54"
+                        "value": "2.65"
                     }
                 },
                 "security": {
@@ -15429,7 +15475,7 @@
                         ],
                         "switch": "-metric_runtime 'step index group <float>",
                         "type": "float",
-                        "value": "0.77"
+                        "value": "0.86"
                     }
                 },
                 "security": {
@@ -15794,6 +15840,18 @@
                         "type": "float",
                         "value": "1.0"
                     },
+                    "dir": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": null,
+                        "shorthelp": "PDK preferred metal routing direction",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-pdk_grid_dir 'stackup layer <str>'",
+                        "type": "str",
+                        "value": "horizontal"
+                    },
                     "name": {
                         "defvalue": null,
                         "lock": "false",
@@ -15867,6 +15925,18 @@
                         "switch": "-pdk_grid_adj 'stackup layer <float>'",
                         "type": "float",
                         "value": "0.4"
+                    },
+                    "dir": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": null,
+                        "shorthelp": "PDK preferred metal routing direction",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-pdk_grid_dir 'stackup layer <str>'",
+                        "type": "str",
+                        "value": "vertical"
                     },
                     "name": {
                         "defvalue": null,
@@ -15942,6 +16012,18 @@
                         "type": "float",
                         "value": "0.8"
                     },
+                    "dir": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": null,
+                        "shorthelp": "PDK preferred metal routing direction",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-pdk_grid_dir 'stackup layer <str>'",
+                        "type": "str",
+                        "value": "vertical"
+                    },
                     "name": {
                         "defvalue": null,
                         "lock": "false",
@@ -16015,6 +16097,18 @@
                         "switch": "-pdk_grid_adj 'stackup layer <float>'",
                         "type": "float",
                         "value": "0.7"
+                    },
+                    "dir": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": null,
+                        "shorthelp": "PDK preferred metal routing direction",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-pdk_grid_dir 'stackup layer <str>'",
+                        "type": "str",
+                        "value": "horizontal"
                     },
                     "name": {
                         "defvalue": null,
@@ -16090,6 +16184,18 @@
                         "type": "float",
                         "value": "0.4"
                     },
+                    "dir": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": null,
+                        "shorthelp": "PDK preferred metal routing direction",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-pdk_grid_dir 'stackup layer <str>'",
+                        "type": "str",
+                        "value": "vertical"
+                    },
                     "name": {
                         "defvalue": null,
                         "lock": "false",
@@ -16163,6 +16269,18 @@
                         "switch": "-pdk_grid_adj 'stackup layer <float>'",
                         "type": "float",
                         "value": "0.4"
+                    },
+                    "dir": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": null,
+                        "shorthelp": "PDK preferred metal routing direction",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-pdk_grid_dir 'stackup layer <str>'",
+                        "type": "str",
+                        "value": "horizontal"
                     },
                     "name": {
                         "defvalue": null,
@@ -16238,6 +16356,18 @@
                         "type": "float",
                         "value": "0.4"
                     },
+                    "dir": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": null,
+                        "shorthelp": "PDK preferred metal routing direction",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-pdk_grid_dir 'stackup layer <str>'",
+                        "type": "str",
+                        "value": "vertical"
+                    },
                     "name": {
                         "defvalue": null,
                         "lock": "false",
@@ -16311,6 +16441,18 @@
                         "switch": "-pdk_grid_adj 'stackup layer <float>'",
                         "type": "float",
                         "value": "0.4"
+                    },
+                    "dir": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": null,
+                        "shorthelp": "PDK preferred metal routing direction",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-pdk_grid_dir 'stackup layer <str>'",
+                        "type": "str",
+                        "value": "horizontal"
                     },
                     "name": {
                         "defvalue": null,
@@ -16386,6 +16528,18 @@
                         "type": "float",
                         "value": "0.4"
                     },
+                    "dir": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": null,
+                        "shorthelp": "PDK preferred metal routing direction",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-pdk_grid_dir 'stackup layer <str>'",
+                        "type": "str",
+                        "value": "vertical"
+                    },
                     "name": {
                         "defvalue": null,
                         "lock": "false",
@@ -16459,6 +16613,18 @@
                         "switch": "-pdk_grid_adj 'stackup layer <float>'",
                         "type": "float",
                         "value": "0.4"
+                    },
+                    "dir": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": null,
+                        "shorthelp": "PDK preferred metal routing direction",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-pdk_grid_dir 'stackup layer <str>'",
+                        "type": "str",
+                        "value": "horizontal"
                     },
                     "name": {
                         "defvalue": null,
@@ -16622,6 +16788,84 @@
             "type": "float",
             "value": "2"
         },
+        "variable": {
+            "openroad": {
+                "10M": {
+                    "macro_place_channel": {
+                        "defvalue": [],
+                        "lock": "false",
+                        "require": null,
+                        "shorthelp": "PDK named variable",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-pdk_variable 'tool stackup key <str>'",
+                        "type": "[str]",
+                        "value": [
+                            "18.8",
+                            "19.95"
+                        ]
+                    },
+                    "macro_place_halo": {
+                        "defvalue": [],
+                        "lock": "false",
+                        "require": null,
+                        "shorthelp": "PDK named variable",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-pdk_variable 'tool stackup key <str>'",
+                        "type": "[str]",
+                        "value": [
+                            "22.4",
+                            "15.12"
+                        ]
+                    },
+                    "pad_detail_place": {
+                        "defvalue": [],
+                        "lock": "false",
+                        "require": null,
+                        "shorthelp": "PDK named variable",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-pdk_variable 'tool stackup key <str>'",
+                        "type": "[str]",
+                        "value": [
+                            "1"
+                        ]
+                    },
+                    "pad_global_place": {
+                        "defvalue": [],
+                        "lock": "false",
+                        "require": null,
+                        "shorthelp": "PDK named variable",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-pdk_variable 'tool stackup key <str>'",
+                        "type": "[str]",
+                        "value": [
+                            "2"
+                        ]
+                    },
+                    "place_density": {
+                        "defvalue": [],
+                        "lock": "false",
+                        "require": null,
+                        "shorthelp": "PDK named variable",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-pdk_variable 'tool stackup key <str>'",
+                        "type": "[str]",
+                        "value": [
+                            "0.3"
+                        ]
+                    }
+                }
+            }
+        },
         "version": {
             "defvalue": null,
             "lock": "false",
@@ -16733,6 +16977,32 @@
             "value": "klayout"
         }
     },
+    "skip": {
+        "all": {
+            "defvalue": "false",
+            "lock": "false",
+            "require": "all",
+            "shorthelp": "Exit after checking flow",
+            "signature": [
+                null
+            ],
+            "switch": "-skip_all <bool>",
+            "type": "bool",
+            "value": "false"
+        },
+        "check": {
+            "defvalue": "false",
+            "lock": "false",
+            "require": "all",
+            "shorthelp": "Skip configuration runtime check",
+            "signature": [
+                null
+            ],
+            "switch": "-skip_check <bool>",
+            "type": "bool",
+            "value": "false"
+        }
+    },
     "source": {
         "author": [],
         "copy": "true",
@@ -16824,14 +17094,14 @@
             "value": "0.6.0"
         },
         "schema": {
-            "defvalue": "0.6.0",
+            "defvalue": "0.7.0",
             "lock": "true",
             "require": "all",
             "shorthelp": "Schema version number",
             "signature": null,
             "switch": "-version_schema <str>",
             "type": "str",
-            "value": "0.6.0"
+            "value": "0.7.0"
         }
     }
 }

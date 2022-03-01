@@ -14,6 +14,7 @@ def setup(chip):
 
     foundry = 'virtual'
     process = 'asap7'
+    stackup = '10M'
     libtype = '7p5t'
     rev = 'r1p7'
     corner = 'typical'
@@ -39,10 +40,10 @@ def setup(chip):
                  libdir+'/nldm/'+libname+'_ff.lib')
 
         # lef
-        chip.add('library',libname,'lef',
+        chip.add('library',libname,'lef', stackup,
                  libdir+'/lef/'+libname+'.lef')
         # gds
-        chip.add('library',libname,'gds',
+        chip.add('library',libname,'gds', stackup,
                  libdir+'/gds/'+libname+'.gds')
 
         # site name

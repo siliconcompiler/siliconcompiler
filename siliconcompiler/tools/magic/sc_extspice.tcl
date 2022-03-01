@@ -5,7 +5,7 @@ set sc_mainlib [dict get $sc_cfg asic logiclib]
 set sc_stackup [dict get $sc_cfg asic stackup]
 set sc_libtype [dict get $sc_cfg library $sc_mainlib arch]
 set sc_techlef [dict get $sc_cfg pdk aprtech magic $sc_stackup $sc_libtype lef]
-set sc_liblef  [dict get $sc_cfg library $sc_mainlib lef]
+set sc_liblef  [dict get $sc_cfg library $sc_mainlib lef $sc_stackup]
 set sc_macrolibs [dict get $sc_cfg asic macrolib]
 set sc_exclude [dict get $sc_cfg asic exclude]
 

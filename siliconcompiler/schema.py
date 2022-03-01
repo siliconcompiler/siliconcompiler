@@ -17,7 +17,8 @@ def schema_cfg():
 
     # SC version number (bump on every non trivial change)
     # Version number following semver standard.
-    SCHEMA_VERSION = '0.6.1'
+
+    SCHEMA_VERSION = '0.7.0'
 
     # Basic schema setup
     cfg = {}
@@ -580,8 +581,8 @@ def schema_pdk(cfg, stackup='default'):
             "api: chip.set('pdk','file','xyce','M10','spice','asap7.sp')"],
         'help': """
         List of named files specified on a per tool and per stackup basis.
-        The parameter is useful for specifying files that are not directly
-        covered by the rest of the PDK schema.
+        The parameter should only be used for specifying files that are
+        not directly  supported by the SiliconCompiler PDK schema.
         """
     }
 
@@ -602,8 +603,8 @@ def schema_pdk(cfg, stackup='default'):
             "api: chip.set('pdk','directory','xyce','M10','rfmodel','rftechdir')"],
         'help': """
         List of named directories specified on a per tool and per stackup basis.
-        The parameter is useful for specifying directories that are not directly
-        covered by the rest of the PDK schema.
+        The parameter should only be used for specifying files that are
+        not directly  supported by the SiliconCompiler PDK schema.
         """
 
     }
@@ -624,8 +625,8 @@ def schema_pdk(cfg, stackup='default'):
             "api: chip.set('pdk','variable','xyce', 'M10','modeltype','bsim4')"],
         'help': """
         List of key/value strings specified on a per tool and per stackup basis.
-        The parameter is useful for specifying values that are not directly
-        covered by the rest of the PDK schema.
+        The parameter should only be used for specifying variables that are
+        not directly  supported by the SiliconCompiler PDK schema.
         """
     }
 
@@ -1278,33 +1279,32 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
     cfg['library'][lib]['pdk'] = {
         'switch': "-library_pdk 'lib <str>'",
         'require': None,
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'signature' : None,
-        'defvalue': None,
+        'defvalue': [],
         'shorthelp': 'Library PDK',
         'example': ["cli: -library_pdk 'mylib freepdk45",
                     "api:  chip.set('library', 'mylib', 'pdk', 'freepdk45')"],
         'help': """
-        Name of the PDK module used to create the library package. The module
-        is checked and loaded based on the 'scpath' schema parameter. The
-        parameter is required for hardened technology specific library types.
+        List of PDK modules supported by the library. The
+        parameter is required for technology hardened ASIC libraries.
         """
     }
 
     cfg['library'][lib]['stackup'] = {
         'switch': "-library_stackup 'lib <str>'",
         'require': None,
-        'type': 'str',
+        'type': '[str]',
         'lock': 'false',
         'signature' : None,
-        'defvalue': None,
+        'defvalue': [],
         'shorthelp': 'Library stackup',
         'example': ["cli: -library_stackup 'mylib M10",
                     "api:  chip.set('library', 'mylib', 'stackup', '10')"],
         'help': """
-        Name of the PDK metal stackup used by the library. The parameter is
-        required for hardened technology specific library types.
+        List of PDK metal stackups supported by the library. The
+        parameter is required for technology hardened ASIC libraries.
         """
     }
 
@@ -1330,10 +1330,9 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
     }
 
     ###############################
-    #Models (Timing, Power, Noise)
+    # Models (Timing, Power, Noise)
     ###############################
 
-    #Operating Conditions (per corner)
     cfg['library'][lib]['opcond'] = {}
     cfg['library'][lib]['opcond'][corner] = {
         'switch': "-library_opcond 'lib corner <str>'",
@@ -1352,7 +1351,6 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         """
     }
 
-    #Checks To Do (per corner)
     cfg['library'][lib]['check'] = {}
     cfg['library'][lib]['check'][corner] = {
         'switch': "-library_check 'lib corner <str>'",
@@ -1374,7 +1372,6 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         """
     }
 
-    #NLDM
     cfg['library'][lib]['nldm'] = {}
     cfg['library'][lib]['nldm'][corner] = {}
     cfg['library'][lib]['nldm'][corner]['default'] = {
@@ -1401,7 +1398,6 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         """
     }
 
-    #CCS
     cfg['library'][lib]['ccs'] = {}
     cfg['library'][lib]['ccs'][corner] = {}
     cfg['library'][lib]['ccs'][corner]['default'] = {
@@ -1428,7 +1424,6 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         """
     }
 
-    #SCM
     cfg['library'][lib]['scm'] = {}
     cfg['library'][lib]['scm'][corner] = {}
     cfg['library'][lib]['scm'][corner]['default'] = {
@@ -1455,7 +1450,6 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         """
     }
 
-    #AOCV
     cfg['library'][lib]['aocv'] = {}
     cfg['library'][lib]['aocv'][corner] = {
         'switch': "-library_aocv 'lib corner <file>'",
@@ -1480,9 +1474,13 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         """
     }
 
-    #LEF
-    cfg['library'][lib]['lef'] = {
-        'switch': "-library_lef 'lib <file>'",
+    ###############################
+    # Layout
+    ###############################
+
+    cfg['library'][lib]['lef']= {}
+    cfg['library'][lib]['lef'][stackup] = {
+        'switch': "-library_lef 'lib stackup <file>'",
         'require': None,
         'type': '[file]',
         'lock': 'false',
@@ -1493,19 +1491,20 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'shorthelp': 'Library LEF files',
-        'example': ["cli: -library_lef 'mylib mylib.lef'",
-                    "api: chip.set('library','mylib','lef,'mylib.lef')"],
+        'shorthelp': 'Library LEF layout files',
+        'example': ["cli: -library_lef 'mylib 10M mylib.lef'",
+                    "api: chip.set('library','mylib','lef','10M','mylib.lef')"],
         'help': """
-        Abstracted view of library cells that gives a complete description
-        of the cell's place and route boundary, pin positions, pin metals, and
-        metal routing blockages.
+        List of abstracted LEF format layout views of library cells that gives a
+        complete description of the cell's place and route boundary, pin positions,
+        pin metals, and metal routing blockages specified on a per stackup
+        basis.
         """
     }
 
-    #GDS
-    cfg['library'][lib]['gds'] = {
-        'switch': "-library_gds 'lib <file>'",
+    cfg['library'][lib]['gds']= {}
+    cfg['library'][lib]['gds'][stackup] = {
+        'switch': "-library_gds 'lib stackup <file>'",
         'require': None,
         'type': '[file]',
         'lock': 'false',
@@ -1516,13 +1515,64 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'date': [],
         'author': [],
         'signature': [],
-        'shorthelp': 'Library GDS files',
-        'example': ["cli: -library_gds 'mylib mylib.gds'",
-                    "api: chip.set('library','mylib','gds','mylib.gds')"],
+        'shorthelp': 'Library GDS layout files',
+        'example': [
+            "cli: -library_gds 'mylib 10M mylib.gds'",
+            "api: chip.set('library','mylib','gds','10M,'mylib.gds')"],
         'help': """
-        Complete mask layout of the library cells.
+        List of library GDS layout files specified on a per stackup basis.
         """
     }
+
+
+    cfg['library'][lib]['def']= {}
+    cfg['library'][lib]['def'][stackup] = {
+        'switch': "-library_def 'lib stackup <file>'",
+        'require': None,
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Library DEF layout files',
+        'example': [
+            "cli: -library_def 'mylib 10M mymacro.def'",
+            "api: chip.set('library','mylib','def','10M,'mymacro.def')"],
+        'help': """
+        List of library DEF layout files specified on a per stackup basis.
+        """
+    }
+
+    cfg['library'][lib]['gerber']= {}
+    cfg['library'][lib]['gerber'][stackup] = {
+        'switch': "-library_gerber 'lib stackup <file>'",
+        'require': None,
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Library Gerber layout files',
+        'example': [
+            "cli: -library_gerber 'mylib 4L6MIL myboard.gbr'",
+            "api: chip.set('library','mylib','gerber','4L6MIL,'myboard.gbr')"],
+        'help': """
+        List of library Gerber layout files specified on a per stackup basis.
+        """
+    }
+
+    ###############################
+    # Netlist/Design
+    ###############################
+
     cfg['library'][lib]['netlist'] = {}
     cfg['library'][lib]['netlist']['default'] = {
         'switch': "-library_netlist 'lib cdl <file>'",
@@ -1571,49 +1621,39 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         """
     }
 
-    cfg['library'][lib]['hdl'] = {}
-    cfg['library'][lib]['hdl']['default'] = {
-        'switch': "-library_hdl 'lib format <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Library HDL models',
-        'example': [
-            "cli: -library_hdl 'mylib verilog mylib.v'",
-            "api: chip.set('library','mylib','hdl','verilog','mylib.v')"],
-        'help': """
-        Library HDL models, specified on a per format basis. Examples
-        of legal formats include verilog, vhdl, systemc, c++, python.
-        """
-    }
+    modeltypes = ['verilog',
+                  'vhdl',
+                  'systemc',
+                  'iss',
+                  'qemu',
+                  'gem5']
 
-    cfg['library'][lib]['atpg'] = {
-        'switch': "-library_atpg 'lib <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Library ATPG models',
-        'example': ["cli: -library_atpg 'mylib mylib.atpg'",
-                    "api: chip.set('library','mylib','atpg','mylib.atpg')"],
-        'help': """
-        Library models used for ATPG based automated fault based post
-        manufacturing testing.
-        """
-    }
+    cfg['library'][lib]['model'] = {}
+    for item in modeltypes:
+        cfg['library'][lib]['model'][item] = {
+            'switch': f"-library_model_{item} 'lib <file>'",
+            'require': None,
+            'type': '[file]',
+            'lock': 'false',
+            'copy': 'false',
+            'defvalue': [],
+            'filehash': [],
+            'hashalgo': 'sha256',
+            'date': [],
+            'author': [],
+            'signature': [],
+            'shorthelp': f'Library {item} model',
+            'example': [
+                f"cli: -library_model_{item} 'mylib modelname'",
+                f"api: chip.set('library','mylib','model',{item},'modelname')"],
+            'help': """
+            List of library {item} models.
+            """
+        }
+
+    ###############################
+    # Options
+    ###############################
 
     cfg['library'][lib]['pgmetal'] = {
         'switch': "-library_pgmetal 'lib <str>'",
@@ -1690,7 +1730,6 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         """
     }
 
-
     # Library units
     names = ['driver',
              'buf',
@@ -1726,29 +1765,12 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
             for the tool.
         """
     }
-    filetype = 'default'
-    cfg['library'][lib]['binary'] = {}
-    cfg['library'][lib]['binary'][filetype] = {
-        'switch': "-library_binary 'lib filetype <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Library binary database',
-        'example': [
-            "cli: -library_binary 'lib oa ~/libdb'",
-            "api: chip.set('library','lib','binary', 'oa','~/libdb')"],
-        'help': """
-        Filepaths to compiled library database specified on a per format
-        basis. Example formats include oa, mw, ndm, opendb.
-        """
-    }
+
+
+    ###############################
+    # Tool Specific Files
+    ###############################
+
     tool = 'default'
     filetype = 'default'
     cfg['library'][lib]['techmap'] = {}
@@ -1771,6 +1793,60 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'help': """
         Filepaths specifying mappings from tool-specific generic cells to
         library cells.
+        """
+    }
+
+    key = 'default'
+    cfg['library'][lib]['file'] = {}
+    cfg['library'][lib]['file'][tool] = {}
+    cfg['library'][lib]['file'][tool][stackup] = {}
+    cfg['library'][lib]['file'][tool][stackup][key] = {
+        'switch': "-library_file 'lib tool stackup key <file>'",
+        'require': None,
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Library named file',
+        'example': [
+            "cli: -library_file 'lib atool 10M db ~/libdb'",
+            "api: chip.set('library','lib','file','atool',10M,'db','~/libdb')"],
+        'help': """
+        List of named files specified on a per tool and per stackup basis.
+        The parameter should only be used for specifying files that are
+        not directly supported by the SiliconCompiler Library schema.
+        """
+    }
+
+
+    cfg['library'][lib]['dir'] = {}
+    cfg['library'][lib]['dir'][tool] = {}
+    cfg['library'][lib]['dir'][tool][stackup] = {}
+    cfg['library'][lib]['dir'][tool][stackup][key] = {
+        'switch': "-library_dir 'lib tool stackup key <file>'",
+        'require': None,
+        'type': '[dir]',
+        'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Library named directory',
+        'example': [
+            "cli: -library_file 'lib atool 10M db ~/libdb'",
+            "api: chip.set('library','lib','file','atool',10M,'db','~/libdb')"],
+        'help': """
+        List of named dirtectories specified on a per tool and per stackup
+        basis. The parameter should only be used for specifying files that are
+        not directly supported by the SiliconCompiler Library schema.
         """
     }
 
@@ -4383,7 +4459,7 @@ def schema_package(cfg, group):
     }
 
     localcfg['license'] = {
-        'switch': f"-{group}_license '{lib}<file>'",
+        'switch': f"-{group}_license '{lib}<str>'",
         'type': '[str]',
         'lock': 'false',
         'require': None,
@@ -4391,11 +4467,33 @@ def schema_package(cfg, group):
         'defvalue': [],
         'shorthelp': f"{group.capitalize()} license names",
         'example': [
-            f"cli: -{group}_license '{lib}./LICENSE",
-            f"api: chip.set('{group}',{libapi}'license', './LICENSE')"],
+            f"cli: -{group}_license '{lib}Apache-2.0",
+            f"api: chip.set('{group}',{libapi}'license','Apache-2.0')"],
         'help': f"""
         The license(s) for {group}. SPDX identifiers should be used when
         applicable.
+        """
+    }
+
+    localcfg['licensefile'] = {
+        'switch': f"-{group}_licensefile '{lib}<file>'",
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'false',
+        'require': None,
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': f"{group.capitalize()} license files",
+        'example': [
+            f"cli: -{group}_licensefile '{lib}./LICENSE",
+            f"api: chip.set('{group}',{libapi}'licensefile','./LICENSE')"],
+        'help': f"""
+        List of license files for {group} to be applied in cases when a
+        SPDX identifier is not available. (eg. proprietary licenses).
         """
     }
 
@@ -4698,7 +4796,7 @@ def schema_design(cfg):
         'switch': "-design <str>",
         'type': 'str',
         'lock': 'false',
-        'require': None,
+        'require': 'all',
         'signature': None,
         'defvalue': None,
         'shorthelp': 'Design top module name',
@@ -5147,6 +5245,7 @@ def schema_read(cfg, step='default', index='default'):
         """
     }
 
+
     # DEF file
     cfg['read']['def'] = {}
     cfg['read']['def'][step] = {}
@@ -5167,6 +5266,28 @@ def schema_read(cfg, step='default', index='default'):
                     "api: chip.set('read','def','floorplan','0','hello.def')"],
         'help': """
         List of technology specific DEF layout files.
+        """
+    }
+
+    cfg['read']['gerber'] = {}
+    cfg['read']['gerber'][step] = {}
+    cfg['read']['gerber'][step][index] = {
+        'switch': "-read_gerber 'step index <file>'",
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'true',
+        'require': None,
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'Read Gerber layout file',
+        'example': ["cli: -read_gerber 'export 0 myboard.gbr'",
+                    "api: chip.set('read','gerber','export','0','myboard.gbr')"],
+        'help': """
+        List of technology specific Gerber layout files.
         """
     }
 

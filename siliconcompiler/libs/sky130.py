@@ -14,6 +14,7 @@ def setup(chip):
 
     foundry = 'skywater'
     process = 'skywater130'
+    stackup = '5M1LI'
     rev = 'v0_0_2'
     libname = 'sky130hd' # not sure if this should be something else
     libtype = 'hd' # TODO: update this
@@ -23,8 +24,7 @@ def setup(chip):
 
     libdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'libs', libname, rev)
 
-
-    chip.set('library', libname, 'type', 'stdcell')
+    chip.set('library', libname, 'type', 'logiclib')
 
     # rev
     chip.set('library', libname, 'package', 'version', rev)
@@ -36,10 +36,10 @@ def setup(chip):
              libdir+'/lib/sky130_fd_sc_hd__tt_025C_1v80.lib')
 
     # lef
-    chip.add('library', libname, 'lef',
+    chip.add('library', libname, 'lef', stackup,
              libdir+'/lef/sky130_fd_sc_hd_merged.lef')
     # gds
-    chip.add('library', libname, 'gds',
+    chip.add('library', libname, 'gds', stackup,
              libdir+'/gds/sky130_fd_sc_hd.gds')
 
     # placement sites
