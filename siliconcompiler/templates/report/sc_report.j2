@@ -1,0 +1,167 @@
+<!--
+  Initial Jinja2 template for generating browser-based reports for SiliconCompiler job runs.
+
+  Currently, the generated page contains two tabular options for displaying the recorded metrics.
+  There is also a placeholder for an interactive signoff checklist, but the 'schema_checklist'
+  method does not yet contain concrete signoff criteria in the demo ASIC flows.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>SiliconCompiler Manifest Viewer</title>
+
+    <link href="bootstrap.min.css" rel="stylesheet">
+
+    <script type="text/javascript">
+      // Helper method to download the current manifest as a .json file.
+      // Creates a virtual 'a' tag and sends it a click event to download the data as a file.
+      const saveTemplateAsFile = (filename, dataObjToWrite) => {
+        const blob = new Blob([JSON.stringify(dataObjToWrite)], { type: "text/json" });
+        const link = document.createElement("a");
+
+        link.download = filename;
+        link.href = window.URL.createObjectURL(blob);
+        link.dataset.downloadurl = ["text/json", link.download, link.href].join(":");
+
+        const evt = new MouseEvent("click", {
+          view: window,
+          bubbles: true,
+          cancelable: true,
+        });
+
+        link.dispatchEvent(evt);
+        link.remove()
+      };
+
+      // Initialization function to setup buttons/links/etc after all DOM elements are lodaed.
+      document.addEventListener("DOMContentLoaded", function() {
+        // Initialize the JSON manifest. TODO: There should probably be a 'file upload' option too
+        var cur_manifest = {{ manifest|tojson|safe }};
+
+        // Setup the 'download manifest' button.
+        var download_btn = document.getElementById("download_manifest_btn");
+        download_btn.addEventListener('click', () => {
+          saveTemplateAsFile('{{ manifest["design"]["value"] }}.json', cur_manifest);
+        });
+
+        // Setup links in the metrics tables. Each metric is associated with at least one log file.
+        {% for mk in metric_keys %}
+          {% for step in tasks %}
+            {% for index in tasks[step] %}
+              {% if step in manifest['eda'][manifest['flowgraph'][manifest['flow']['value']][step][index]['tool']['value']]['report'] and mk in manifest['eda'][manifest['flowgraph'][manifest['flow']['value']][step][index]['tool']['value']]['report'][step][index] %}
+                var sim_log_btn = document.getElementById("{{ step }}{{ index }}_{{ mk }}_metlink");
+                sim_log_btn.addEventListener('click', () => {
+                  // TODO: clean up... >_>
+                  log_link = "{{ step }}/{{ index }}/{{ manifest['eda'][manifest['flowgraph'][manifest['flow']['value']][step][index]['tool']['value']]['report'][step][index][mk]['value'][0] }}";
+                  window.open(log_link, "_blank");
+                });
+                var sim_log_btn = document.getElementById("{{ step }}{{ index }}_{{ mk }}_ddmetlink");
+                sim_log_btn.addEventListener('click', () => {
+                  // TODO: clean up... >_>
+                  log_link = "{{ step }}/{{ index }}/{{ manifest['eda'][manifest['flowgraph'][manifest['flow']['value']][step][index]['tool']['value']]['report'][step][index][mk]['value'][0] }}";
+                  window.open(log_link, "_blank");
+                });
+              {% endif %}
+            {% endfor %}
+          {% endfor %}
+        {% endfor %}
+      });
+    </script>
+  </head>
+
+  <body>
+    <script src="bootstrap.min.js"></script>
+
+    <span style="width: 33%; float: left;">
+      {% if results_fn %}
+        <div style="text-align: center; width: 100%;">
+          <h2>GDS Preview</h2>
+          <img src="{{ manifest['design']['value'] }}.png" class="rounded mx-auto d-block" style="width: 100%;"></img>
+        </div>
+      {% endif %}
+
+      <div style="text-align: center;"><a class="btn btn-primary" data-bs-toggle="collapse" href="#mqa_checklist_div", role="button", aria-controls="mqa_checklist_div" style="width:50%;">
+        Toggle Checklist Mockup
+      </a></div>
+      <div id="mqa_checklist_div" class="collapse" style="text-align: center;">
+        <h2>(Checklist Items go here)</h2>
+        <button id="download_manifest_btn" class="btn btn-warning">Download Manifest</button>
+      </div>
+    </span>
+
+    <span style="width: 67%; float: right; height: 100vh; overflow: scroll;">
+      <div style="text-align: center;"><a class="btn btn-primary" data-bs-toggle="collapse" href="#metrics_table_div", role="button", aria-controls="metrics_table_div" style="width: 30%;">
+        Toggle Metrics Table
+      </a></div>
+
+      <div id="metrics_table_div" class="collapse" style="text-align: center;">
+        <h2>Full {{ manifest["design"]["value"] }} Metrics</h2>
+        <table id="metrics_table" class="table table-dark table-striped table-bordered">
+            <tr>
+              <th>-</th>
+              {% for step in tasks %}
+                {% for index in tasks[step] %}
+                  <th>{{ step }}{{ index }}</th>
+                {% endfor %}
+              {% endfor %}
+            </tr>
+            {% for mk in metric_keys %}
+              <tr>
+                <th>{{ mk }}</th>
+                {% for step in tasks %}
+                  {% for index in tasks[step] %}
+                    {% if step in manifest['eda'][manifest['flowgraph'][manifest['flow']['value']][step][index]['tool']['value']]['report'] and mk in manifest['eda'][manifest['flowgraph'][manifest['flow']['value']][step][index]['tool']['value']]['report'][step][index] %}
+                      <td><a href="#" class="link-success" id="{{ step }}{{ index }}_{{ mk }}_metlink">{{ manifest["metric"][step][index][mk]["real"]["value"] }}</a></td>
+                    {% else %}
+                      <td>{{ manifest["metric"][step][index][mk]["real"]["value"] }}</td>
+                    {% endif %}
+                  {% endfor %}
+                {% endfor %}
+              </tr>
+            {% endfor %}
+        </table>
+      </div>
+
+      <div style="text-align: center;"><a class="btn btn-primary" data-bs-toggle="collapse" href="#metrics_dropdowns_div", role="button", aria-controls="metrics_dropdowns_div" style="width:30%;">
+        Toggle Metrics Dropdowns
+      </a></div>
+
+      <div id="metrics_dropdowns_div" class="collapse" style="text-align: center;">
+        <h2>Metrics for {{ manifest["design"]["value"] }} Tasks</h2>
+        {% for step in tasks %}
+          {% for index in tasks[step] %}
+            <div>
+              <a class="btn btn-success" data-bs-toggle="collapse" href="#{{ step }}{{ index }}_dropdown_div", role="button", aria-controls="{{ step }}{{ index }}_dropdown_div">
+                Toggle {{ step }}{{ index }} Metrics
+              </a>
+            </div>
+            <div id="{{ step }}{{ index }}_dropdown_div" class="collapse">
+              <table id="{{ step }}{{ index }}_metrics_table" class="table table-dark table-striped table-bordered">
+                <tr>
+                  {% for mk in metric_keys %}
+                    <th>{{ mk }}</th>
+                  {% endfor %}
+                </tr>
+                <tr>
+                  {% for mk in metric_keys %}
+                    {% if step in manifest['eda'][manifest['flowgraph'][manifest['flow']['value']][step][index]['tool']['value']]['report'] and mk in manifest['eda'][manifest['flowgraph'][manifest['flow']['value']][step][index]['tool']['value']]['report'][step][index] %}
+                      <td><a href="#" class="link-success" id="{{ step }}{{ index }}_{{ mk }}_ddmetlink">{{ manifest["metric"][step][index][mk]["real"]["value"] }}</a></td>
+                    {% else %}
+                      <td>{{ manifest["metric"][step][index][mk]["real"]["value"] }}</td>
+                    {% endif %}
+                  {% endfor %}
+                </tr>
+              </table>
+            </div>
+          {% endfor %}
+        {% endfor %}
+      </div>
+    </span>
+  </body>
+
+</html>

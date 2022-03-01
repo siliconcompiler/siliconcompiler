@@ -128,7 +128,7 @@ setup(
 
     #include_package_data=True,
     package_data={
-        'siliconcompiler': ['templates/*.j2'],
+        'siliconcompiler': ['templates/*.j2', 'templates/report/*'],
         'siliconcompiler.tools': tool_package_data
     },
 

@@ -93,3 +93,17 @@ if lyp_path:
     # Set layer properties -- setting second argument to True ensures things like
     # KLayout's extra outline, blockage, and obstruction layers appear.
     layout_view.load_layer_props(lyp_path, True)
+
+# If 'screenshot' mode is set, save image and exit.
+try:
+    if screenshot:
+        # Save a screenshot. TODO: Get aspect ratio from sc_cfg?
+        gds_img = layout_view.get_image(int(scr_w), int(scr_h))
+        design = sc_cfg["design"]["value"]
+        jobname = sc_cfg["jobname"]["value"]
+        gds_img.save(f'../{design}/{jobname}/{design}.png', 'PNG')
+        # Done, exit.
+        app.exit(0)
+except:
+    # 'screenshot' var may not be defined.
+    pass
