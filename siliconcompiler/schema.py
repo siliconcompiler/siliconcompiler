@@ -17,6 +17,7 @@ def schema_cfg():
 
     # SC version number (bump on every non trivial change)
     # Version number following semver standard.
+
     SCHEMA_VERSION = '0.7.0'
 
     # Basic schema setup
@@ -2327,6 +2328,27 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         """
     }
 
+    cfg['eda'][tool]['environment'] = {}
+    cfg['eda'][tool]['environment'][step] = {}
+    cfg['eda'][tool]['environment'][step][index] = {}
+    cfg['eda'][tool]['environment'][step][index]['default'] = {
+        'switch': "-eda_environment 'tool step index name <str>'",
+        'type': '[str]',
+        'lock': 'false',
+        'require': None,
+        'signature' : [],
+        'defvalue': [],
+        'shorthelp': 'Tool script environment variables',
+        'example': [
+            "cli: -eda_environment 'openroad cts 0 MYVAR 42'",
+            "api: chip.set('eda','openroad','environment','cts','0','MYVAR','42')"],
+        'help': """
+        Environment variables to set for individual tasks. Keys and values should be
+        set in accordance with the tool's documentation. Many tools do not require extra
+        environment variables to function, but they are sometimes used for advanced configuration.
+        """
+    }
+
     cfg['eda'][tool]['input'] = {}
     cfg['eda'][tool]['input'][step] = {}
     cfg['eda'][tool]['input'][step][index] = {
@@ -3778,6 +3800,22 @@ def schema_options(cfg):
         Enables hashing of all inputs and outputs during
         compilation. The hash values are stored in the hashvalue field
         of the individual parameters.
+        """
+    }
+
+    cfg['nodisplay'] = {
+        'switch': "-nodisplay <bool>",
+        'type': 'bool',
+        'lock': 'false',
+        'require': 'all',
+        'signature': None,
+        'defvalue': 'false',
+        'shorthelp': 'Headless execution',
+        'example': ["cli: -nodisplay",
+                    "api: chip.set('nodisplay', True)"],
+        'help': """
+        The '-nodisplay' flag prevents SiliconCompiler from opening GUI windows,
+        such as the final metrics report.
         """
     }
 

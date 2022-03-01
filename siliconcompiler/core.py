@@ -32,6 +32,8 @@ import platform
 import getpass
 import distro
 import netifaces
+import webbrowser
+from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 from timeit import default_timer as timer
 from siliconcompiler.client import *
@@ -2730,6 +2732,57 @@ class Chip:
         print(df.to_string())
         print("-"*135)
 
+        # Create a report for the Chip object which can be viewed in a web browser.
+        # Place report files in the build's root directory.
+        web_dir = os.path.join(self.get('dir'),
+                               self.get('design'),
+                               self.get('jobname'))
+        if os.path.isdir(web_dir):
+            # Gather essential variables.
+            templ_dir = os.path.join(self.scroot, 'templates', 'report')
+            flow = self.get('flow')
+            flow_steps = self.list_steps()
+            flow_tasks = {}
+            for step in flow_steps:
+                flow_tasks[step] = self.getkeys('flowgraph', flow, step)
+
+            # Copy Bootstrap JS/CSS
+            shutil.copyfile(os.path.join(templ_dir, 'bootstrap.min.js'),
+                            os.path.join(web_dir, 'bootstrap.min.js'))
+            shutil.copyfile(os.path.join(templ_dir, 'bootstrap.min.css'),
+                            os.path.join(web_dir, 'bootstrap.min.css'))
+
+            # Call 'show()' to generate a low-res PNG of the design.
+            results_gds = self.find_result('gds', step='export')
+            if results_gds:
+                self.show(results_gds,
+                          ['-rd', 'screenshot=1', '-rd', 'scr_w=1024', '-rd', 'scr_h=1024', '-z'])
+
+            # Generate results page by passing the Chip manifest into the Jinja2 template.
+            env = Environment(loader=FileSystemLoader(templ_dir))
+            results_page = os.path.join(web_dir, 'report.html')
+            with open(results_page, 'w') as wf:
+                wf.write(env.get_template('sc_report.j2').render(
+                    manifest = self.cfg,
+                    metric_keys = metric_list,
+                    metrics = self.cfg['metric'],
+                    tasks = flow_tasks,
+                    results_fn = results_gds
+                ))
+
+            # Try to open the results page in a browser, only if '-nodisplay' is not set.
+            if not self.get('nodisplay'):
+                try:
+                    webbrowser.get(results_page)
+                except webbrowser.Error:
+                    # Python 'webbrowser' module includes a limited number of popular defaults.
+                    # Depending on the platform, the user may have defined their own with $BROWSER.
+                    if 'BROWSER' in os.environ:
+                        subprocess.run([os.environ['BROWSER'], results_page])
+                    else:
+                        self.logger.warning('Unable to open results page in web browser:\n' +
+                                            os.path.abspath(os.path.join(web_dir, "report.html")))
+
     ###########################################################################
     def list_steps(self, flow=None):
         '''
@@ -3320,12 +3373,19 @@ class Chip:
                     self._haltstep(step, index, active)
 
         ##################
-        # 13. Set license variable
+        # 13. Set environment variables
 
+        # License file configuration.
         for item in self.getkeys('eda', tool, 'licenseserver'):
             license_file = self.get('eda', tool, 'licenseserver', item)
             if license_file:
                 os.environ[item] = ':'.join(license_file)
+
+        # Tool-specific environment variables for this task.
+        if (step in self.getkeys('eda', tool, 'environment')) and \
+           (index in self.getkeys('eda', tool, 'environment', step)):
+            for item in self.getkeys('eda', tool, 'environment', step, index):
+                os.environ[item] = self.get('eda', tool, 'environment', step, index, item)
 
         ##################
         # 14. Check exe version
@@ -3720,7 +3780,7 @@ class Chip:
         self.cfghistory[self.get('jobname')] = copy.deepcopy(self.cfg)
 
     ###########################################################################
-    def show(self, filename=None):
+    def show(self, filename=None, extra_options=[]):
         '''
         Opens a graphical viewer for the filename provided.
 
@@ -3804,6 +3864,10 @@ class Chip:
             self.set('arg', 'index', index)
             setup_tool = self.find_function(tool, 'setup', 'tools')
             setup_tool(self, mode='show')
+            if extra_options:
+                # Options must be pre-pended so that the input filename remains valid.
+                cur_opts = self.get('eda', tool, 'option', step, index)
+                self.set('eda', tool, 'option', step, index, extra_options + cur_opts, clobber=True)
 
             exe = self._getexe(tool)
             if shutil.which(exe) is None:
