@@ -36,7 +36,7 @@ def build_schema_value_table(schema, keypath_prefix=[], skip_zero_weight=False):
         full_keypath = list(keypath_prefix) + list(keys)
 
         if (skip_zero_weight and
-            len(full_keypath) == 5 and full_keypath[0] == 'flowgraph' and full_keypath[-2] == 'weight' and
+            len(full_keypath) == 6 and full_keypath[0] == 'flowgraph' and full_keypath[-2] == 'weight' and
             'value' in val and val['value'] == '0'):
             continue
 
@@ -46,7 +46,15 @@ def build_schema_value_table(schema, keypath_prefix=[], skip_zero_weight=False):
             # Don't display false booleans
             if val['type'] == 'bool' and val['value'] == 'false':
                 continue
-            table.append([code(keypath), code(val['value'])])
+            if val['type'].startswith('['):
+                if len(val['value']) > 1:
+                    val_node = build_list([code(v) for v in val['value']])
+                else:
+                    val_node = code(val['value'][0])
+            else:
+                val_node = code(val['value'])
+
+            table.append([code(keypath), val_node])
 
     if len(table) > 1:
         return build_table(table)
@@ -123,6 +131,11 @@ def trim(docstring):
 # Base class
 #############
 
+def flag_opt(argument):
+    if argument is not None:
+        raise ValueError('Flag should not have content')
+    return True
+
 class DynamicGen(SphinxDirective):
     '''Base class for all three directives provided by this extension.
 
@@ -130,9 +143,11 @@ class DynamicGen(SphinxDirective):
     method and setting a PATH member variable.
     '''
 
+    option_spec = {'nobuiltins': flag_opt}
+
     def document_module(self, module, modname, path):
         '''Build section documenting given module and name.'''
-        s = build_section(modname, modname)
+        s = build_section_with_target(modname, f'{modname}-ref', self.state.document)
 
         if not hasattr(module, 'make_docs'):
             return None
@@ -204,7 +219,10 @@ class DynamicGen(SphinxDirective):
         declares a duplicate tool), where SCPATH takes priority.
         '''
         builtins_dir = f'{SC_ROOT}/siliconcompiler/{self.PATH}'
-        modules = self.get_modules_in_dir(builtins_dir)
+        if 'nobuiltins' not in self.options:
+            modules = self.get_modules_in_dir(builtins_dir)
+        else:
+            modules = []
 
         if 'SCPATH' in os.environ:
             scpaths = os.environ['SCPATH'].split(':')
@@ -254,7 +272,7 @@ class FlowGen(DynamicGen):
     PATH = 'flows'
 
     def extra_content(self, chip, modname):
-        flow_path = f'_images/gen/{modname}.svg'
+        flow_path = os.path.join(self.env.app.outdir, f'_images/gen/{modname}.svg')
         #chip.write_flowgraph(flow_path, fillcolor='#1c4587', fontcolor='#f1c232', border=False)
         chip.write_flowgraph(flow_path)
         return [image(flow_path, center=True)]
@@ -322,12 +340,9 @@ class LibGen(DynamicGen):
         libname = chip.getkeys('library')[0]
         pdk = chip.get('library', libname, 'pdk')
 
-        path = os.path.join(SC_ROOT, 'siliconcompiler', 'pdks', f'{pdk}.py')
-        if os.path.isfile(path):
-            root_url = 'https://docs.siliconcompiler.com/en/latest/reference_manual/pdks.html'
-            pdk_url = f'{root_url}#{pdk}'
-            p = para('Associated PDK: ')
-            p += link(pdk_url, text=pdk)
+        if pdk:
+            p = docutils.nodes.inline('')
+            self.parse_rst(f'Associated PDK: :ref:`{pdk}<{pdk}-ref>`', p)
             return [p]
 
         return None
@@ -390,35 +405,32 @@ class TargetGen(DynamicGen):
         modules = chip._loaded_modules[modtype]
         if len(modules) > 0:
             section = build_section(header, f'{targetname}-{modtype}')
-            items = []
+            modlist = nodes.bullet_list()
             for module in modules:
-                path = os.path.join(SC_ROOT, 'siliconcompiler', modtype, f'{module}.py')
-                if os.path.isfile(path):
-                    root_url = f'https://docs.siliconcompiler.com/en/latest/reference_manual/{modtype}.html'
-                    module_url = f'{root_url}#{module}'
-                    p = para(text='')
-                    p += link(module_url, text=module)
-                    items.append(p)
+                list_item = nodes.list_item()
+                # TODO: replace with proper docutils nodes: sphinx.addnodes.pending_xref
+                modkey = nodes.make_id(module)
+                self.parse_rst(f':ref:`{module}<{modkey}-ref>`', list_item)
+                modlist += list_item
 
-            section += build_list(items, enumerated=False)
+            section += modlist
             return section
         return None
 
     def display_config(self, chip, modname):
         sections = []
 
+        flow_section = self.build_module_list(chip, 'Flows', 'flows', modname)
+        if flow_section is not None:
+            sections.append(flow_section)
+
         pdk_section = self.build_module_list(chip, 'PDK', 'pdks', modname)
         if pdk_section is not None:
             sections.append(pdk_section)
 
-
         libs_section = self.build_module_list(chip, 'Libraries', 'libs', modname)
         if libs_section is not None:
             sections.append(libs_section)
-
-        flow_section = self.build_module_list(chip, 'Flows', 'flows', modname)
-        if flow_section is not None:
-            sections.append(flow_section)
 
         filtered_cfg = {}
         for key in ('asic', 'mcmm'):

@@ -5,6 +5,7 @@ from docutils.statemachine import ViewList
 # Docutils helpers
 def build_table(items):
     table = nodes.table()
+    table['classes'] = ['longtable']
 
     group = nodes.tgroup(cols=len(items[0]))
     table += group
@@ -28,6 +29,18 @@ def build_table(items):
 def build_section(text, key):
     sec = nodes.section(ids=[nodes.make_id(key)])
     sec += nodes.title(text=text)
+    return sec
+
+def build_section_with_target(text, key, ctx):
+    id = nodes.make_id(key)
+    target = nodes.target('', '', ids=[id], names=[id])
+    sec = nodes.section(ids=[id])
+    sec += nodes.title(text=text)
+
+    # We don't need to add target node to hierarchy, just need to call this
+    # function.
+    ctx.note_explicit_target(target)
+
     return sec
 
 def para(text):
