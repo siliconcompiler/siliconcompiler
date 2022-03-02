@@ -32,7 +32,7 @@ macro_lefs = []
 if 'macrolib' in sc_cfg['asic']:
     sc_macrolibs = sc_cfg['asic']['macrolib']['value']
     for lib in sc_macrolibs:
-        macro_lefs.append(sc_cfg['library'][lib]['lef']['value'][0])
+        macro_lefs.append(sc_cfg['library'][lib]['lef'][sc_stackup]['value'][0])
 
 # Tech / library LEF files are optional.
 try:
@@ -40,7 +40,7 @@ try:
 except KeyError:
     tech_lef = None
 try:
-    lib_lef = sc_cfg['library'][sc_mainlib]['lef']['value'][0]
+    lib_lef = sc_cfg['library'][sc_mainlib]['lef'][sc_stackup]['value'][0]
 except KeyError:
     lib_lef = None
 
