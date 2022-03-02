@@ -149,10 +149,11 @@ starting with ``library``, followed by a designer-defined macro library name.
 The following lines show how the ZeroSoC configuration points to its RAM macro
 library::
 
+  stackup = chip.get('asic', 'stackup')
   libname = 'ram'
   chip.add('library', libname, 'nldm', 'typical', 'lib', 'asic/sky130/ram/sky130_sram_2kbyte_1rw1r_32x512_8_TT_1p8V_25C.lib')
-  chip.add('library', libname, 'lef', 'asic/sky130/ram/sky130_sram_2kbyte_1rw1r_32x512_8.lef')
-  chip.add('library', libname, 'gds', 'asic/sky130/ram/sky130_sram_2kbyte_1rw1r_32x512_8.gds')
+  chip.add('library', libname, 'lef', stackup, 'asic/sky130/ram/sky130_sram_2kbyte_1rw1r_32x512_8.lef')
+  chip.add('library', libname, 'gds', stackup, 'asic/sky130/ram/sky130_sram_2kbyte_1rw1r_32x512_8.gds')
 
 In addition, the name of the macro library must be added to the ``'asic', 'macrolib'``
 parameter::
@@ -184,19 +185,20 @@ library, your definition of ``configure_chip()`` should look like this::
 
       chip.set('design', design)
 
+      stackup = chip.get('asic', 'stackup')
       libname = 'ram'
       chip.add('library', libname, 'nldm', 'typical', 'lib', 'asic/sky130/ram/sky130_sram_2kbyte_1rw1r_32x512_8_TT_1p8V_25C.lib')
-      chip.add('library', libname, 'lef', 'asic/sky130/ram/sky130_sram_2kbyte_1rw1r_32x512_8.lef')
-      chip.add('library', libname, 'gds', 'asic/sky130/ram/sky130_sram_2kbyte_1rw1r_32x512_8.gds')
+      chip.add('library', libname, 'lef', stackup, 'asic/sky130/ram/sky130_sram_2kbyte_1rw1r_32x512_8.lef')
+      chip.add('library', libname, 'gds', stackup, 'asic/sky130/ram/sky130_sram_2kbyte_1rw1r_32x512_8.gds')
       chip.add('asic', 'macrolib', libname)
       chip.set('library', libname, 'type', 'component')
 
       libname = 'io'
       chip.add('library', libname, 'nldm', 'typical', 'lib', 'asic/sky130/io/sky130_dummy_io.lib')
-      chip.set('library', libname, 'lef', 'asic/sky130/io/sky130_ef_io.lef')
+      chip.set('library', libname, 'lef', stackup, 'asic/sky130/io/sky130_ef_io.lef')
       # Need both GDS files: "ef" relies on "fd"
-      chip.add('library', libname, 'gds', 'asic/sky130/io/sky130_ef_io.gds')
-      chip.add('library', libname, 'gds', 'asic/sky130/io/sky130_fd_io.gds')
+      chip.add('library', libname, 'gds', stackup, 'asic/sky130/io/sky130_ef_io.gds')
+      chip.add('library', libname, 'gds', stackup, 'asic/sky130/io/sky130_fd_io.gds')
       chip.add('asic', 'macrolib', libname)
       chip.set('library', libname, 'type', 'component')
 
