@@ -2761,17 +2761,22 @@ class Chip:
             # Generate results page by passing the Chip manifest into the Jinja2 template.
             env = Environment(loader=FileSystemLoader(templ_dir))
             results_page = os.path.join(web_dir, 'report.html')
-            with open(results_page, 'w') as wf:
-                wf.write(env.get_template('sc_report.j2').render(
-                    manifest = self.cfg,
-                    metric_keys = metric_list,
-                    metrics = self.cfg['metric'],
-                    tasks = flow_tasks,
-                    results_fn = results_gds
-                ))
+            results_gen = False
+            try:
+                with open(results_page, 'w') as wf:
+                    wf.write(env.get_template('sc_report.j2').render(
+                        manifest = self.cfg,
+                        metric_keys = metric_list,
+                        metrics = self.cfg['metric'],
+                        tasks = flow_tasks,
+                        results_fn = results_gds
+                    ))
+                results_gen = True
+            except:
+                self.logger.warning("Report generation failed.")
 
             # Try to open the results page in a browser, only if '-nodisplay' is not set.
-            if not self.get('nodisplay'):
+            if results_gen and (not self.get('nodisplay')):
                 try:
                     webbrowser.get(results_page)
                 except webbrowser.Error:
@@ -3788,6 +3793,10 @@ class Chip:
 
         # Store run in history
         self.cfghistory[self.get('jobname')] = copy.deepcopy(self.cfg)
+
+        # Run 'summary()' after a remote run to generate a final report file.
+        if self.get('remote'):
+            self.summary()
 
     ###########################################################################
     def show(self, filename=None, extra_options=[]):
