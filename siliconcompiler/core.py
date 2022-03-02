@@ -2755,8 +2755,11 @@ class Chip:
             # Call 'show()' to generate a low-res PNG of the design.
             results_gds = self.find_result('gds', step='export')
             if results_gds:
-                self.show(results_gds,
-                          ['-rd', 'screenshot=1', '-rd', 'scr_w=1024', '-rd', 'scr_h=1024', '-z'])
+                try:
+                    self.show(results_gds,
+                              ['-rd', 'screenshot=1', '-rd', 'scr_w=1024', '-rd', 'scr_h=1024', '-z'])
+                except:
+                    self.logger.warning("Screenshot generation failed.")
 
             # Generate results page by passing the Chip manifest into the Jinja2 template.
             env = Environment(loader=FileSystemLoader(templ_dir))
@@ -3793,10 +3796,6 @@ class Chip:
 
         # Store run in history
         self.cfghistory[self.get('jobname')] = copy.deepcopy(self.cfg)
-
-        # Run 'summary()' after a remote run to generate a final report file.
-        if self.get('remote'):
-            self.summary()
 
     ###########################################################################
     def show(self, filename=None, extra_options=[]):
