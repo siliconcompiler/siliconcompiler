@@ -128,7 +128,7 @@ foreach lib $sc_macrolibs {
     if {[dict exists $sc_cfg library $lib nldm]} {
         read_liberty [dict get $sc_cfg library $lib nldm typical lib]
     }
-    read_lef [dict get $sc_cfg library $lib lef stackup]
+    read_lef [dict get $sc_cfg library $lib lef $sc_stackup]
 }
 
 # Read Verilog

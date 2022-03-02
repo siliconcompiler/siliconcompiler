@@ -8,6 +8,31 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.7.0 (2022-03-02)
+=========================================
+
+**Major:**
+
+* Schema: Added ability to specify environment variables on a per-tool, per-task basis.
+* Schema: Added per-tool 'techmap' parameter to library schema.
+* Added browser-viewable report generation to core.summary().
+
+**Minor:**
+
+* Schema: Added filetypes to library schema: 'def', 'gerber', 'netlist', 'model' category.
+* Schema: Added 'stackup' key to library lef/gds parameters.
+* Schema: Changed 'pdk' and 'stackup' library parameters to lists.
+* Schema: Added 'dir' passthrough to library schema.
+* Schema: Added 'nodisplay' option to schema to better support headless jobs.
+* Schema: Added 'licensefile' to package parameters to support non-standard licenses.
+* Schema: Added 'gerber' to read schema.
+* Schema: Added several cell categories to library schema.
+* Changed how PDK-specific Yosys and OpenROAD parameters are driven to avoid hardcoding process info in tool drivers.
+* Fixed step ordering bug in core.summary().
+* Fixed bug with how 'arg', 'index' is handled.
+* Fixed small bugs in automatic documentation generation.
+* Added core.check_filepaths() helper.
+
 SiliconCompiler 0.6.0 (2022-02-11)
 =========================================
 
