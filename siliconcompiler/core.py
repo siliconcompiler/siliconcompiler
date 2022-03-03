@@ -2741,7 +2741,7 @@ class Chip:
             # Gather essential variables.
             templ_dir = os.path.join(self.scroot, 'templates', 'report')
             flow = self.get('flow')
-            flow_steps = self.list_steps()
+            flow_steps = steplist
             flow_tasks = {}
             for step in flow_steps:
                 flow_tasks[step] = self.getkeys('flowgraph', flow, step)
@@ -2755,31 +2755,23 @@ class Chip:
             # Call 'show()' to generate a low-res PNG of the design.
             results_gds = self.find_result('gds', step='export')
             if results_gds:
-                try:
-                    self.show(results_gds,
-                              ['-rd', 'screenshot=1', '-rd', 'scr_w=1024', '-rd', 'scr_h=1024', '-z'])
-                except:
-                    self.logger.warning("Screenshot generation failed.")
+                self.show(results_gds,
+                          ['-rd', 'screenshot=1', '-rd', 'scr_w=1024', '-rd', 'scr_h=1024', '-z'])
 
             # Generate results page by passing the Chip manifest into the Jinja2 template.
             env = Environment(loader=FileSystemLoader(templ_dir))
             results_page = os.path.join(web_dir, 'report.html')
-            results_gen = False
-            try:
-                with open(results_page, 'w') as wf:
-                    wf.write(env.get_template('sc_report.j2').render(
-                        manifest = self.cfg,
-                        metric_keys = metric_list,
-                        metrics = self.cfg['metric'],
-                        tasks = flow_tasks,
-                        results_fn = results_gds
-                    ))
-                results_gen = True
-            except:
-                self.logger.warning("Report generation failed.")
+            with open(results_page, 'w') as wf:
+                wf.write(env.get_template('sc_report.j2').render(
+                    manifest = self.cfg,
+                    metric_keys = metric_list,
+                    metrics = self.cfg['metric'],
+                    tasks = flow_tasks,
+                    results_fn = results_gds
+                ))
 
             # Try to open the results page in a browser, only if '-nodisplay' is not set.
-            if results_gen and (not self.get('nodisplay')):
+            if not self.get('nodisplay'):
                 try:
                     webbrowser.get(results_page)
                 except webbrowser.Error:
