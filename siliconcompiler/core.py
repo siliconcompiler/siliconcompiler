@@ -3193,8 +3193,8 @@ class Chip:
         T19. Run post_process()
         T20. Check log file
         T21. Hash all task files
-        T22. Make a task record
-        T23. Stop Wall timer
+        T22. Stop Wall timer
+        T23. Make a task record
         T24. Save manifest to disk
         T25. Clean up
         T26. chdir
@@ -3502,15 +3502,15 @@ class Chip:
                         self.hash_files(*args)
 
         ##################
-        # 22. Make a record if tracking is enabled
-        if self.get('track'):
-            self._make_record(job, step, index, start, end, version)
-
-        ##################
-        # 23. Capture wall runtime
+        # 22. Capture wall runtime
         wall_end = time.time()
         walltime = round((wall_end - wall_start),2)
         self.set('metric',step, index, 'walltime', 'real', walltime)
+
+        ##################
+        # 23. Make a record if tracking is enabled
+        if self.get('track'):
+            self._make_record(job, step, index, wall_start, wall_end, version)
 
         ##################
         # 24. Save a successful manifest
