@@ -81,7 +81,7 @@ class Chip:
         self.status = {}
 
         self.builtin = ['minimum','maximum',
-                        'mux', 'join', 'verify']
+                        'nop', 'mux', 'join', 'verify']
 
         # We set 'design' and 'loglevel' directly in the config dictionary
         # because of a chicken-and-egg problem: self.set() relies on the logger,
@@ -1620,7 +1620,7 @@ class Chip:
         for step in steplist:
             for index in self.getkeys('flowgraph', flow, step):
                 tool = self.get('flowgraph', flow, step, index, 'tool')
-                if tool not in self.builtin:
+                if (tool not in self.builtin) and (self.valid('eda', tool)):
                     # checking that requirements are set
                     if self.valid('eda', tool, 'require', step, index):
                         all_required = self.get('eda', tool, 'require', step, index)
@@ -1688,7 +1688,7 @@ class Chip:
             if tool in ('minimum', 'maximum'):
                 if len(in_task_outputs) > 0:
                     outputs = in_task_outputs[0].intersection(*in_task_outputs[1:])
-            elif tool in ('join'):
+            elif tool in ('join', 'nop'):
                 if len(in_task_outputs) > 0:
                     outputs = in_task_outputs[0].union(*in_task_outputs[1:])
             else:
@@ -2203,7 +2203,7 @@ class Chip:
             design = self.get('design')
             ignore = outputs + [f'{design}.pkg.json']
             utils.copytree(indir, outdir, dirs_exist_ok=True, link=True, ignore=ignore)
-        elif tool != 'join':
+        elif tool not in ('join', 'nop'):
             self.error = 1
             self.logger.error(f'Invalid import step builtin {tool}. Must be tool or join.')
 
@@ -2951,6 +2951,24 @@ class Chip:
         return sel_inputs
 
     ###########################################################################
+    def nop(self, *task):
+        '''
+        A no-operation that passes inputs to outputs.
+
+        Args:
+            task(list): Input task specified as a (step,index) tuple.
+
+        Returns:
+            Input task
+
+        Examples:
+            >>> select = chip.nop(('lvs','0'))
+           Select gets the tuple [('lvs',0')]
+        '''
+
+        return list(task)
+
+    ###########################################################################
     def minimum(self, *tasks):
         '''
         Selects the task with the minimum metric score from a list of inputs.
@@ -3590,7 +3608,7 @@ class Chip:
             self.set('flowgraph', flow, step, '0', 'weight', 'runtime', 0)
             if step != 'import':
                 self.set('flowgraph', flow, step, '0', 'input', ('import','0'))
-                self.set('flowgraph', flow, 'import', '0', 'tool', 'join')
+                self.set('flowgraph', flow, 'import', '0', 'tool', 'nop')
 
             self.set('arg', 'step', None)
 
