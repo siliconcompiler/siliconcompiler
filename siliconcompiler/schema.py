@@ -4836,6 +4836,24 @@ def schema_design(cfg):
         """
     }
 
+    cfg['oformat'] = {
+        'switch': "-oformat <str>",
+        'type': 'str',
+        'lock': 'false',
+        'require': None,
+        'signature': None,
+        'defvalue': [],
+        'shorthelp': 'Output format',
+        'example': ["cli: -oformat gds",
+                    "api: chip.set('oformat', 'gds')"],
+        'help': """
+        File format to use for writing the final siliconcompiler output to
+        disk. For cases, when only one output format exists, the 'oformat'
+        parameter can be omitted. Examples of ASIC layout output formats
+        include GDS and OASIS.
+        """
+    }
+
     cfg['constraint'] = {
         'switch': "-constraint <file>",
         'type': '[file]',
