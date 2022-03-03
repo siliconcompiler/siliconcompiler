@@ -16,7 +16,7 @@ lef read $sc_liblef
 foreach lib $sc_macrolibs {
     puts $lib
     if {[lsearch -exact $sc_exclude $lib] >= 0} {
-        lef read [dict get $sc_cfg library $lib lef]
+        lef read [dict get $sc_cfg library $lib lef $sc_stackup]
     }
 }
 
