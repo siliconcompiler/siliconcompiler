@@ -3173,30 +3173,32 @@ class Chip:
 
         Execution flow:
         T1. Wait in loop until all previous steps/indexes have completed
-        T2. Defer job to compute node if using job scheduler
-        T3. Start task timer
+        T2. Start wall timer
+        T3. Defer job to compute node if using job scheduler
         T4. Set up working directory + chdir
         T5. Merge manifests from all input dependancies
         T6. Write manifest to input directory for convenience
-        T7. Resetting all metrics to 0 (consider removing)
+        T7. Reset all metrics to 0 (consider removing)
         T8. Select inputs
         T9. Copy data from previous step outputs into inputs
         T10. Copy reference script directory
         T11. Check manifest
         T12. Run pre_process() function
-        T13. Set license file
+        T13. Set environment variables
         T14. Check EXE version
         T15. Save manifest as TCL/YAML
-        T16. Run EXE
-        T17. Run post_process()
-        T18. Check log file
-        T19. Hash all task files
-        T20. Measure run time
-        T21. Make a task record
-        T22. Save manifest to disk
-        T23. Clean up
-        T24. chdir
-        T25. clear error/active bits and return control to run()
+        T16. Start CPU timer
+        T17. Run EXE
+        T18. stop CPU timer
+        T19. Run post_process()
+        T20. Check log file
+        T21. Hash all task files
+        T22. Make a task record
+        T23. Stop Wall timer
+        T24. Save manifest to disk
+        T25. Clean up
+        T26. chdir
+        T27. clear error/active bits and return control to run()
 
         Note that since _runtask occurs in its own process with a separate
         address space, any changes made to the `self` object will not
@@ -3226,21 +3228,23 @@ class Chip:
             time.sleep(0.1)
 
         ##################
-        # 2. Defer job to compute node
+        # 2. Start wall timer
+        wall_start = time.time()
+
+        ##################
+        # 3. Defer job to compute node
         # If the job is configured to run on a cluster, collect the schema
         # and send it to a compute node for deferred execution.
         # (Run the initial 'import' stage[s] locally)
+
+        wall_start = time.time()
+
         if self.get('jobscheduler') and \
            self.get('flowgraph', flow, step, index, 'input'):
             # Note: The _deferstep method blocks until the compute node
             # finishes processing this step, and it sets the active/error bits.
             _deferstep(self, step, index, active, error)
             return
-
-        ##################
-        # 3. Start Task Timer
-        self.logger.debug(f"Starting process")
-        start = time.time()
 
         ##################
         # 4. Directory setup
@@ -3276,7 +3280,7 @@ class Chip:
                     self.read_manifest(cfgfile, clobber=False)
 
         ##################
-        # 6. Write configuration prior to step running into inputs
+        # 6. Write manifest prior to step running into inputs
 
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
@@ -3284,7 +3288,7 @@ class Chip:
         #self.write_manifest(f'inputs/{design}.pkg.json')
 
         ##################
-        # 7. Resetting metrics to zero
+        # 7. Reset metrics to zero
         # TODO: There should be no need for this, but need to fix
         # without it we need to be more careful with flows to make sure
         # things like the builtin functions don't look at None values
@@ -3324,7 +3328,7 @@ class Chip:
         self.set('flowstatus', step, index, 'select', sel_inputs)
 
         ##################
-        # 9. Copy outputs from previous steps
+        # 9. Copy (link) output data from previous steps
 
         if step == 'import':
             self._collect(step, index, active)
@@ -3353,7 +3357,7 @@ class Chip:
                 utils.copytree(refdir, ".", dirs_exist_ok=True)
 
         ##################
-        # 11. Check that all requirements met
+        # 11. Check manifest
         self.set('arg', 'step', step, clobber=True)
         self.set('arg', 'index', index, clobber=True)
 
@@ -3413,13 +3417,18 @@ class Chip:
                     self._haltstep(step, index, active)
 
         ##################
-        # 15. Interface with tools (Don't move this!)
+        # 15. Write manifest (tool interface) (Don't move this!)
         suffix = self.get('eda', tool, 'format')
         if suffix:
             self.write_manifest(f"sc_manifest.{suffix}", abspath=True)
 
         ##################
-        # 16. Run executable (or copy inputs to outputs for builtin functions)
+        # 16. Start CPU Timer
+        self.logger.debug(f"Starting executable")
+        cpu_start = time.time()
+
+        ##################
+        # 17. Run executable (or copy inputs to outputs for builtin functions)
 
         if tool in self.builtin:
             utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True, link=True)
@@ -3458,7 +3467,14 @@ class Chip:
                     self._haltstep(step, index, active)
 
         ##################
-        # 17. Post process (could fail)
+        # 18. Capture cpu runtime
+
+        cpu_end = time.time()
+        cputime = round((cpu_end - cpu_start),2)
+        self.set('metric',step, index, 'cputime', 'real', cputime)
+
+        ##################
+        # 19. Post process (could fail)
         post_error = 0
         if (tool not in self.builtin) and (not self.get('skip', 'all')) :
             func = self.find_function(tool, 'post_process', 'tools')
@@ -3469,12 +3485,12 @@ class Chip:
                     self._haltstep(step, index, active)
 
         ##################
-        # 18. Check log file (must be after post-process)
+        # 20. Check log file (must be after post-process)
         if (tool not in self.builtin) and (not self.get('skip', 'all')) :
             self.check_logfile(step=step, index=index, display=not quiet)
 
         ##################
-        # 19. Hash files
+        # 21. Hash files
         if self.get('hash') and (tool not in self.builtin):
             # hash all outputs
             self.hash_files('eda', tool, 'output', step, index)
@@ -3486,20 +3502,18 @@ class Chip:
                         self.hash_files(*args)
 
         ##################
-        # 20. Capture total runtime
-
-        end = time.time()
-        elapsed_time = round((end - start),2)
-        self.set('metric',step, index, 'runtime', 'real', elapsed_time)
-
-        ##################
-        # 21. Make a record if tracking is enabled
+        # 22. Make a record if tracking is enabled
         if self.get('track'):
             self._make_record(job, step, index, start, end, version)
 
         ##################
-        # 22. Save a successful manifest
+        # 23. Capture wall runtime
+        wall_end = time.time()
+        walltime = round((wall_end - wall_start),2)
+        self.set('metric',step, index, 'walltime', 'real', walltime)
 
+        ##################
+        # 24. Save a successful manifest
         self.set('flowstatus', step, str(index), 'error', 0)
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
@@ -3507,16 +3521,16 @@ class Chip:
         self.write_manifest("outputs/" + self.get('design') +'.pkg.json')
 
         ##################
-        # 23. Clean up non-essential files
+        # 25. Clean up non-essential files
         if self.get('clean'):
             self.logger.error('Self clean not implemented')
 
         ##################
-        # 24. return to original directory
+        # 26. return to original directory
         os.chdir(cwd)
 
         ##################
-        # 25. clearing active and error bits
+        # 27. clearing active and error bits
         # !!Do not move this code!!
         error[step + str(index)] = 0
         active[step + str(index)] = 0
