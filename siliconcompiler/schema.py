@@ -3219,24 +3219,6 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
-    cfg['metric'][step][index]['runtime'] = {}
-    cfg['metric'][step][index]['runtime'][group] = {
-        'switch': "-metric_runtime 'step index group <float>",
-        'type': 'float',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric total runtime',
-        'example': [
-            "cli: -metric_runtime 'dfm 0 goal 35.3'",
-            "api: chip.set('metric','dfm','0','runtime','real','35.3')"],
-        'help': """
-        Metric tracking the total runtime on a per step basis. Time recorded
-        as wall clock time specified in seconds.
-        """
-    }
-
     cfg['metric'][step][index]['memory'] = {}
     cfg['metric'][step][index]['memory'][group] = {
         'switch': "-metric_memory 'step index group <float>'",
@@ -3252,6 +3234,44 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'help': """
         Metric tracking the total memory on a per step basis, specified
         in bytes.
+        """
+    }
+
+    cfg['metric'][step][index]['cputime'] = {}
+    cfg['metric'][step][index]['cputime'][group] = {
+        'switch': "-metric_cputime 'step index group <float>",
+        'type': 'float',
+        'lock': 'false',
+        'require': 'all',
+        'signature': None,
+        'defvalue': None,
+        'shorthelp': 'Metric CPU time',
+        'example': [
+            "cli: -metric_cputime 'dfm 0 goal 35.3'",
+            "api: chip.set('metric','dfm','0','cputime','real','35.3')"],
+        'help': """
+        CPU time tracks the amount of time spent executing a task on a compute
+        node. It does not include the time used by the siliconcompiler runtime
+        or waitig for I/O operations and inter-processor communication to
+        complete.
+        """
+    }
+
+    cfg['metric'][step][index]['walltime'] = {}
+    cfg['metric'][step][index]['walltime'][group] = {
+        'switch': "-metric_walltime 'step index group <float>",
+        'type': 'float',
+        'lock': 'false',
+        'require': 'all',
+        'signature': None,
+        'defvalue': None,
+        'shorthelp': 'Metric wall time',
+        'example': [
+            "cli: -metric_walltime 'dfm 0 goal 35.3'",
+            "api: chip.set('metric','dfm','0','walltime','real','35.3')"],
+        'help': """
+        Wall time tracks the total amount of tie spent executing a task from
+        beginning to end, including data transfer time.
         """
     }
 
