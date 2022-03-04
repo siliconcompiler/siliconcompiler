@@ -1620,7 +1620,7 @@ class Chip:
         for step in steplist:
             for index in self.getkeys('flowgraph', flow, step):
                 tool = self.get('flowgraph', flow, step, index, 'tool')
-                if (tool not in self.builtin) and (self.valid('eda', tool)):
+                if (tool not in self.builtin) and (tool in self.getkeys('eda')):
                     # checking that requirements are set
                     if self.valid('eda', tool, 'require', step, index):
                         all_required = self.get('eda', tool, 'require', step, index)
