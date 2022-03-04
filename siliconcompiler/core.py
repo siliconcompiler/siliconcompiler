@@ -3489,7 +3489,7 @@ class Chip:
 
         cpu_end = time.time()
         cputime = round((cpu_end - cpu_start),2)
-        self.set('metric',step, index, 'cputime', 'real', cputime)
+        self.set('metric',step, index, 'exetime', 'real', cputime)
 
         ##################
         # 19. Post process (could fail)
@@ -3523,7 +3523,7 @@ class Chip:
         # 22. Capture wall runtime
         wall_end = time.time()
         walltime = round((wall_end - wall_start),2)
-        self.set('metric',step, index, 'walltime', 'real', walltime)
+        self.set('metric',step, index, 'tasktime', 'real', walltime)
 
         ##################
         # 23. Make a record if tracking is enabled

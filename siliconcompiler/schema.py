@@ -3237,41 +3237,41 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
-    cfg['metric'][step][index]['cputime'] = {}
-    cfg['metric'][step][index]['cputime'][group] = {
-        'switch': "-metric_cputime 'step index group <float>",
+    cfg['metric'][step][index]['exetime'] = {}
+    cfg['metric'][step][index]['exetime'][group] = {
+        'switch': "-metric_exetime 'step index group <float>",
         'type': 'float',
         'lock': 'false',
         'require': 'all',
         'signature': None,
         'defvalue': None,
-        'shorthelp': 'Metric CPU time',
+        'shorthelp': 'Metric executable time',
         'example': [
-            "cli: -metric_cputime 'dfm 0 goal 35.3'",
-            "api: chip.set('metric','dfm','0','cputime','real','35.3')"],
+            "cli: -metric_exetime 'dfm 0 goal 35.3'",
+            "api: chip.set('metric','dfm','0','exetime','real','35.3')"],
         'help': """
-        CPU time tracks the amount of time spent executing a task on a compute
-        node. It does not include the time used by the siliconcompiler runtime
-        or waitig for I/O operations and inter-processor communication to
-        complete.
+        Executable time tracks the amount of time spent by the eda
+        executable 'exe'. It does not include the siliconcompiler
+        runtime overhead or time waitig for I/O operations and
+        inter-processor communication to complete.
         """
     }
 
-    cfg['metric'][step][index]['walltime'] = {}
-    cfg['metric'][step][index]['walltime'][group] = {
-        'switch': "-metric_walltime 'step index group <float>",
+    cfg['metric'][step][index]['tasktime'] = {}
+    cfg['metric'][step][index]['tasktime'][group] = {
+        'switch': "-metric_tasktime 'step index group <float>",
         'type': 'float',
         'lock': 'false',
         'require': 'all',
         'signature': None,
         'defvalue': None,
-        'shorthelp': 'Metric wall time',
+        'shorthelp': 'Metric task time',
         'example': [
-            "cli: -metric_walltime 'dfm 0 goal 35.3'",
-            "api: chip.set('metric','dfm','0','walltime','real','35.3')"],
+            "cli: -metric_tasktime 'dfm 0 goal 35.3'",
+            "api: chip.set('metric','dfm','0','tasktime','real','35.3')"],
         'help': """
-        Wall time tracks the total amount of tie spent executing a task from
-        beginning to end, including data transfer time.
+        Task time tracks the total amount of time spent on a task from
+        beginning to end, including data transfers and pre/post processing.
         """
     }
 
