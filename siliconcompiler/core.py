@@ -2741,7 +2741,7 @@ class Chip:
             # Gather essential variables.
             templ_dir = os.path.join(self.scroot, 'templates', 'report')
             flow = self.get('flow')
-            flow_steps = self.list_steps()
+            flow_steps = steplist
             flow_tasks = {}
             for step in flow_steps:
                 flow_tasks[step] = self.getkeys('flowgraph', flow, step)

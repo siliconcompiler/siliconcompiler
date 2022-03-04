@@ -31,19 +31,10 @@ def _deferstep(chip, step, index, active, error):
             slurm_constraint = chip.status['slurm_constraint']
         else:
             slurm_constraint = 'SHARED'
-        # The task directory may not exist before the 'sc' command is run;
-        # create it to ensure that the log file can be written to.
-        os.makedirs(os.path.join(chip.get('dir'),
-                                 chip.get('design'),
-                                 chip.get('jobname'),
-                                 step,
-                                 index),
-                    exist_ok = True)
+        # Set the log file location.
         output_file = os.path.join(chip.get('design'),
                                    chip.get('jobname'),
-                                   step,
-                                   index,
-                                   'sc_remote.log')
+                                   f'sc_remote-{step}-{index}.log')
         schedule_cmd = ['sbatch', '--exclusive',
                        '--constraint', slurm_constraint,
                        '--account', username,
