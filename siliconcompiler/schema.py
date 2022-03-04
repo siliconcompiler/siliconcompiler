@@ -3219,24 +3219,6 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         """
     }
 
-    cfg['metric'][step][index]['runtime'] = {}
-    cfg['metric'][step][index]['runtime'][group] = {
-        'switch': "-metric_runtime 'step index group <float>",
-        'type': 'float',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric total runtime',
-        'example': [
-            "cli: -metric_runtime 'dfm 0 goal 35.3'",
-            "api: chip.set('metric','dfm','0','runtime','real','35.3')"],
-        'help': """
-        Metric tracking the total runtime on a per step basis. Time recorded
-        as wall clock time specified in seconds.
-        """
-    }
-
     cfg['metric'][step][index]['memory'] = {}
     cfg['metric'][step][index]['memory'][group] = {
         'switch': "-metric_memory 'step index group <float>'",
@@ -3252,6 +3234,44 @@ def schema_metric(cfg, step='default', index='default',group='default', ):
         'help': """
         Metric tracking the total memory on a per step basis, specified
         in bytes.
+        """
+    }
+
+    cfg['metric'][step][index]['exetime'] = {}
+    cfg['metric'][step][index]['exetime'][group] = {
+        'switch': "-metric_exetime 'step index group <float>",
+        'type': 'float',
+        'lock': 'false',
+        'require': 'all',
+        'signature': None,
+        'defvalue': None,
+        'shorthelp': 'Metric executable time',
+        'example': [
+            "cli: -metric_exetime 'dfm 0 goal 35.3'",
+            "api: chip.set('metric','dfm','0','exetime','real','35.3')"],
+        'help': """
+        Executable time tracks the amount of time spent by the eda
+        executable 'exe'. It does not include the siliconcompiler
+        runtime overhead or time waitig for I/O operations and
+        inter-processor communication to complete.
+        """
+    }
+
+    cfg['metric'][step][index]['tasktime'] = {}
+    cfg['metric'][step][index]['tasktime'][group] = {
+        'switch': "-metric_tasktime 'step index group <float>",
+        'type': 'float',
+        'lock': 'false',
+        'require': 'all',
+        'signature': None,
+        'defvalue': None,
+        'shorthelp': 'Metric task time',
+        'example': [
+            "cli: -metric_tasktime 'dfm 0 goal 35.3'",
+            "api: chip.set('metric','dfm','0','tasktime','real','35.3')"],
+        'help': """
+        Task time tracks the total amount of time spent on a task from
+        beginning to end, including data transfers and pre/post processing.
         """
     }
 
@@ -4833,6 +4853,24 @@ def schema_design(cfg):
         (\\*.c)         = C
         (\\*.cpp, .cc)  = C++
         (\\*.py)        = Python
+        """
+    }
+
+    cfg['oformat'] = {
+        'switch': "-oformat <str>",
+        'type': 'str',
+        'lock': 'false',
+        'require': None,
+        'signature': None,
+        'defvalue': [],
+        'shorthelp': 'Output format',
+        'example': ["cli: -oformat gds",
+                    "api: chip.set('oformat', 'gds')"],
+        'help': """
+        File format to use for writing the final siliconcompiler output to
+        disk. For cases, when only one output format exists, the 'oformat'
+        parameter can be omitted. Examples of ASIC layout output formats
+        include GDS and OASIS.
         """
     }
 

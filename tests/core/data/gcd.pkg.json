@@ -1,18 +1,4 @@
 {
-    "arg": {
-        "index": {
-            "defvalue": "0",
-            "lock": "false",
-            "require": null,
-            "shorthelp": "Current index",
-            "signature": [
-                null
-            ],
-            "switch": "-arg_index <str>",
-            "type": "str",
-            "value": null
-        }
-    },
     "asic": {
         "aspectratio": {
             "defvalue": null,
@@ -271,7 +257,7 @@
     "design": {
         "defvalue": null,
         "lock": "false",
-        "require": null,
+        "require": "all",
         "shorthelp": "Design top module name",
         "signature": [
             null
@@ -1356,6 +1342,25 @@
                                 "cts.log"
                             ]
                         },
+                        "exetime": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "filehash": [],
+                            "hashalgo": [
+                                "sha256"
+                            ],
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Tool report files ",
+                            "signature": [],
+                            "switch": "-eda_report 'tool step index metric <str>'",
+                            "type": "[file]",
+                            "value": [
+                                "cts.log"
+                            ]
+                        },
                         "holdpaths": {
                             "author": [],
                             "copy": "false",
@@ -1642,6 +1647,25 @@
                             ]
                         },
                         "standbypower": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "filehash": [],
+                            "hashalgo": [
+                                "sha256"
+                            ],
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Tool report files ",
+                            "signature": [],
+                            "switch": "-eda_report 'tool step index metric <str>'",
+                            "type": "[file]",
+                            "value": [
+                                "cts.log"
+                            ]
+                        },
+                        "tasktime": {
                             "author": [],
                             "copy": "false",
                             "date": [],
@@ -1911,6 +1935,25 @@
                                 "dfm.log"
                             ]
                         },
+                        "exetime": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "filehash": [],
+                            "hashalgo": [
+                                "sha256"
+                            ],
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Tool report files ",
+                            "signature": [],
+                            "switch": "-eda_report 'tool step index metric <str>'",
+                            "type": "[file]",
+                            "value": [
+                                "dfm.log"
+                            ]
+                        },
                         "holdpaths": {
                             "author": [],
                             "copy": "false",
@@ -2197,6 +2240,25 @@
                             ]
                         },
                         "standbypower": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "filehash": [],
+                            "hashalgo": [
+                                "sha256"
+                            ],
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Tool report files ",
+                            "signature": [],
+                            "switch": "-eda_report 'tool step index metric <str>'",
+                            "type": "[file]",
+                            "value": [
+                                "dfm.log"
+                            ]
+                        },
+                        "tasktime": {
                             "author": [],
                             "copy": "false",
                             "date": [],
@@ -2466,6 +2528,25 @@
                                 "floorplan.log"
                             ]
                         },
+                        "exetime": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "filehash": [],
+                            "hashalgo": [
+                                "sha256"
+                            ],
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Tool report files ",
+                            "signature": [],
+                            "switch": "-eda_report 'tool step index metric <str>'",
+                            "type": "[file]",
+                            "value": [
+                                "floorplan.log"
+                            ]
+                        },
                         "holdpaths": {
                             "author": [],
                             "copy": "false",
@@ -2752,6 +2833,25 @@
                             ]
                         },
                         "standbypower": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "filehash": [],
+                            "hashalgo": [
+                                "sha256"
+                            ],
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Tool report files ",
+                            "signature": [],
+                            "switch": "-eda_report 'tool step index metric <str>'",
+                            "type": "[file]",
+                            "value": [
+                                "floorplan.log"
+                            ]
+                        },
+                        "tasktime": {
                             "author": [],
                             "copy": "false",
                             "date": [],
@@ -3021,6 +3121,25 @@
                                 "physyn.log"
                             ]
                         },
+                        "exetime": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "filehash": [],
+                            "hashalgo": [
+                                "sha256"
+                            ],
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Tool report files ",
+                            "signature": [],
+                            "switch": "-eda_report 'tool step index metric <str>'",
+                            "type": "[file]",
+                            "value": [
+                                "physyn.log"
+                            ]
+                        },
                         "holdpaths": {
                             "author": [],
                             "copy": "false",
@@ -3307,6 +3426,25 @@
                             ]
                         },
                         "standbypower": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "filehash": [],
+                            "hashalgo": [
+                                "sha256"
+                            ],
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Tool report files ",
+                            "signature": [],
+                            "switch": "-eda_report 'tool step index metric <str>'",
+                            "type": "[file]",
+                            "value": [
+                                "physyn.log"
+                            ]
+                        },
+                        "tasktime": {
                             "author": [],
                             "copy": "false",
                             "date": [],
@@ -3576,6 +3714,25 @@
                                 "place.log"
                             ]
                         },
+                        "exetime": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "filehash": [],
+                            "hashalgo": [
+                                "sha256"
+                            ],
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Tool report files ",
+                            "signature": [],
+                            "switch": "-eda_report 'tool step index metric <str>'",
+                            "type": "[file]",
+                            "value": [
+                                "place.log"
+                            ]
+                        },
                         "holdpaths": {
                             "author": [],
                             "copy": "false",
@@ -3862,6 +4019,25 @@
                             ]
                         },
                         "standbypower": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "filehash": [],
+                            "hashalgo": [
+                                "sha256"
+                            ],
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Tool report files ",
+                            "signature": [],
+                            "switch": "-eda_report 'tool step index metric <str>'",
+                            "type": "[file]",
+                            "value": [
+                                "place.log"
+                            ]
+                        },
+                        "tasktime": {
                             "author": [],
                             "copy": "false",
                             "date": [],
@@ -4131,6 +4307,25 @@
                                 "route.log"
                             ]
                         },
+                        "exetime": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "filehash": [],
+                            "hashalgo": [
+                                "sha256"
+                            ],
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Tool report files ",
+                            "signature": [],
+                            "switch": "-eda_report 'tool step index metric <str>'",
+                            "type": "[file]",
+                            "value": [
+                                "route.log"
+                            ]
+                        },
                         "holdpaths": {
                             "author": [],
                             "copy": "false",
@@ -4417,6 +4612,25 @@
                             ]
                         },
                         "standbypower": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "filehash": [],
+                            "hashalgo": [
+                                "sha256"
+                            ],
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Tool report files ",
+                            "signature": [],
+                            "switch": "-eda_report 'tool step index metric <str>'",
+                            "type": "[file]",
+                            "value": [
+                                "route.log"
+                            ]
+                        },
+                        "tasktime": {
                             "author": [],
                             "copy": "false",
                             "date": [],
@@ -6216,6 +6430,18 @@
                             "type": "float",
                             "value": "0"
                         },
+                        "exetime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": [
+                                null
+                            ],
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
                         "holdpaths": {
                             "defvalue": null,
                             "lock": "false",
@@ -6360,18 +6586,6 @@
                             "type": "float",
                             "value": "0"
                         },
-                        "runtime": {
-                            "defvalue": null,
-                            "lock": "false",
-                            "require": null,
-                            "shorthelp": "Flowgraph metric weights",
-                            "signature": [
-                                null
-                            ],
-                            "switch": "-flowgraph_weight 'flow step metric <float>'",
-                            "type": "float",
-                            "value": "0"
-                        },
                         "security": {
                             "defvalue": null,
                             "lock": "false",
@@ -6443,6 +6657,18 @@
                             "switch": "-flowgraph_weight 'flow step metric <float>'",
                             "type": "float",
                             "value": "1.0"
+                        },
+                        "tasktime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": [
+                                null
+                            ],
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
                         },
                         "totalarea": {
                             "defvalue": null,
@@ -6666,6 +6892,18 @@
                             "type": "float",
                             "value": "0"
                         },
+                        "exetime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": [
+                                null
+                            ],
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
                         "holdpaths": {
                             "defvalue": null,
                             "lock": "false",
@@ -6810,18 +7048,6 @@
                             "type": "float",
                             "value": "0"
                         },
-                        "runtime": {
-                            "defvalue": null,
-                            "lock": "false",
-                            "require": null,
-                            "shorthelp": "Flowgraph metric weights",
-                            "signature": [
-                                null
-                            ],
-                            "switch": "-flowgraph_weight 'flow step metric <float>'",
-                            "type": "float",
-                            "value": "0"
-                        },
                         "security": {
                             "defvalue": null,
                             "lock": "false",
@@ -6893,6 +7119,18 @@
                             "switch": "-flowgraph_weight 'flow step metric <float>'",
                             "type": "float",
                             "value": "1.0"
+                        },
+                        "tasktime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": [
+                                null
+                            ],
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
                         },
                         "totalarea": {
                             "defvalue": null,
@@ -7116,6 +7354,18 @@
                             "type": "float",
                             "value": "0"
                         },
+                        "exetime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": [
+                                null
+                            ],
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
                         "holdpaths": {
                             "defvalue": null,
                             "lock": "false",
@@ -7260,18 +7510,6 @@
                             "type": "float",
                             "value": "0"
                         },
-                        "runtime": {
-                            "defvalue": null,
-                            "lock": "false",
-                            "require": null,
-                            "shorthelp": "Flowgraph metric weights",
-                            "signature": [
-                                null
-                            ],
-                            "switch": "-flowgraph_weight 'flow step metric <float>'",
-                            "type": "float",
-                            "value": "0"
-                        },
                         "security": {
                             "defvalue": null,
                             "lock": "false",
@@ -7343,6 +7581,18 @@
                             "switch": "-flowgraph_weight 'flow step metric <float>'",
                             "type": "float",
                             "value": "1.0"
+                        },
+                        "tasktime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": [
+                                null
+                            ],
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
                         },
                         "totalarea": {
                             "defvalue": null,
@@ -7566,6 +7816,18 @@
                             "type": "float",
                             "value": "0"
                         },
+                        "exetime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": [
+                                null
+                            ],
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
                         "holdpaths": {
                             "defvalue": null,
                             "lock": "false",
@@ -7710,18 +7972,6 @@
                             "type": "float",
                             "value": "0"
                         },
-                        "runtime": {
-                            "defvalue": null,
-                            "lock": "false",
-                            "require": null,
-                            "shorthelp": "Flowgraph metric weights",
-                            "signature": [
-                                null
-                            ],
-                            "switch": "-flowgraph_weight 'flow step metric <float>'",
-                            "type": "float",
-                            "value": "0"
-                        },
                         "security": {
                             "defvalue": null,
                             "lock": "false",
@@ -7793,6 +8043,18 @@
                             "switch": "-flowgraph_weight 'flow step metric <float>'",
                             "type": "float",
                             "value": "1.0"
+                        },
+                        "tasktime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": [
+                                null
+                            ],
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
                         },
                         "totalarea": {
                             "defvalue": null,
@@ -8004,6 +8266,18 @@
                             "type": "float",
                             "value": "0"
                         },
+                        "exetime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": [
+                                null
+                            ],
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
                         "holdpaths": {
                             "defvalue": null,
                             "lock": "false",
@@ -8148,18 +8422,6 @@
                             "type": "float",
                             "value": "0"
                         },
-                        "runtime": {
-                            "defvalue": null,
-                            "lock": "false",
-                            "require": null,
-                            "shorthelp": "Flowgraph metric weights",
-                            "signature": [
-                                null
-                            ],
-                            "switch": "-flowgraph_weight 'flow step metric <float>'",
-                            "type": "float",
-                            "value": "0"
-                        },
                         "security": {
                             "defvalue": null,
                             "lock": "false",
@@ -8231,6 +8493,18 @@
                             "switch": "-flowgraph_weight 'flow step metric <float>'",
                             "type": "float",
                             "value": "1.0"
+                        },
+                        "tasktime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": [
+                                null
+                            ],
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
                         },
                         "totalarea": {
                             "defvalue": null,
@@ -8454,6 +8728,18 @@
                             "type": "float",
                             "value": "0"
                         },
+                        "exetime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": [
+                                null
+                            ],
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
                         "holdpaths": {
                             "defvalue": null,
                             "lock": "false",
@@ -8598,18 +8884,6 @@
                             "type": "float",
                             "value": "0"
                         },
-                        "runtime": {
-                            "defvalue": null,
-                            "lock": "false",
-                            "require": null,
-                            "shorthelp": "Flowgraph metric weights",
-                            "signature": [
-                                null
-                            ],
-                            "switch": "-flowgraph_weight 'flow step metric <float>'",
-                            "type": "float",
-                            "value": "0"
-                        },
                         "security": {
                             "defvalue": null,
                             "lock": "false",
@@ -8681,6 +8955,18 @@
                             "switch": "-flowgraph_weight 'flow step metric <float>'",
                             "type": "float",
                             "value": "1.0"
+                        },
+                        "tasktime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": [
+                                null
+                            ],
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
                         },
                         "totalarea": {
                             "defvalue": null,
@@ -8904,6 +9190,18 @@
                             "type": "float",
                             "value": "0"
                         },
+                        "exetime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": [
+                                null
+                            ],
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
                         "holdpaths": {
                             "defvalue": null,
                             "lock": "false",
@@ -9048,18 +9346,6 @@
                             "type": "float",
                             "value": "0"
                         },
-                        "runtime": {
-                            "defvalue": null,
-                            "lock": "false",
-                            "require": null,
-                            "shorthelp": "Flowgraph metric weights",
-                            "signature": [
-                                null
-                            ],
-                            "switch": "-flowgraph_weight 'flow step metric <float>'",
-                            "type": "float",
-                            "value": "0"
-                        },
                         "security": {
                             "defvalue": null,
                             "lock": "false",
@@ -9131,6 +9417,18 @@
                             "switch": "-flowgraph_weight 'flow step metric <float>'",
                             "type": "float",
                             "value": "1.0"
+                        },
+                        "tasktime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": [
+                                null
+                            ],
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
                         },
                         "totalarea": {
                             "defvalue": null,
@@ -9354,6 +9652,18 @@
                             "type": "float",
                             "value": "0"
                         },
+                        "exetime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": [
+                                null
+                            ],
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
                         "holdpaths": {
                             "defvalue": null,
                             "lock": "false",
@@ -9498,18 +9808,6 @@
                             "type": "float",
                             "value": "0"
                         },
-                        "runtime": {
-                            "defvalue": null,
-                            "lock": "false",
-                            "require": null,
-                            "shorthelp": "Flowgraph metric weights",
-                            "signature": [
-                                null
-                            ],
-                            "switch": "-flowgraph_weight 'flow step metric <float>'",
-                            "type": "float",
-                            "value": "0"
-                        },
                         "security": {
                             "defvalue": null,
                             "lock": "false",
@@ -9581,6 +9879,18 @@
                             "switch": "-flowgraph_weight 'flow step metric <float>'",
                             "type": "float",
                             "value": "1.0"
+                        },
+                        "tasktime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": [
+                                null
+                            ],
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
                         },
                         "totalarea": {
                             "defvalue": null,
@@ -9804,6 +10114,18 @@
                             "type": "float",
                             "value": "0"
                         },
+                        "exetime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": [
+                                null
+                            ],
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
                         "holdpaths": {
                             "defvalue": null,
                             "lock": "false",
@@ -9948,18 +10270,6 @@
                             "type": "float",
                             "value": "0"
                         },
-                        "runtime": {
-                            "defvalue": null,
-                            "lock": "false",
-                            "require": null,
-                            "shorthelp": "Flowgraph metric weights",
-                            "signature": [
-                                null
-                            ],
-                            "switch": "-flowgraph_weight 'flow step metric <float>'",
-                            "type": "float",
-                            "value": "0"
-                        },
                         "security": {
                             "defvalue": null,
                             "lock": "false",
@@ -10031,6 +10341,18 @@
                             "switch": "-flowgraph_weight 'flow step metric <float>'",
                             "type": "float",
                             "value": "1.0"
+                        },
+                        "tasktime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": [
+                                null
+                            ],
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
                         },
                         "totalarea": {
                             "defvalue": null,
@@ -10924,6 +11246,20 @@
                         "value": "0"
                     }
                 },
+                "exetime": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": "all",
+                        "shorthelp": "Metric executable time",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-metric_exetime 'step index group <float>",
+                        "type": "float",
+                        "value": "2.21"
+                    }
+                },
                 "holdpaths": {
                     "real": {
                         "defvalue": null,
@@ -11116,20 +11452,6 @@
                         "value": "0"
                     }
                 },
-                "runtime": {
-                    "real": {
-                        "defvalue": null,
-                        "lock": "false",
-                        "require": "all",
-                        "shorthelp": "Metric total runtime",
-                        "signature": [
-                            null
-                        ],
-                        "switch": "-metric_runtime 'step index group <float>",
-                        "type": "float",
-                        "value": "2.62"
-                    }
-                },
                 "security": {
                     "real": {
                         "defvalue": null,
@@ -11236,6 +11558,20 @@
                         "switch": "-metric_standbypower step index group <float>",
                         "type": "float",
                         "value": "1.17e-05"
+                    }
+                },
+                "tasktime": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": "all",
+                        "shorthelp": "Metric task time",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-metric_tasktime 'step index group <float>",
+                        "type": "float",
+                        "value": "2.42"
                     }
                 },
                 "totalarea": {
@@ -11476,6 +11812,20 @@
                         "value": "0"
                     }
                 },
+                "exetime": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": "all",
+                        "shorthelp": "Metric executable time",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-metric_exetime 'step index group <float>",
+                        "type": "float",
+                        "value": "0.91"
+                    }
+                },
                 "holdpaths": {
                     "real": {
                         "defvalue": null,
@@ -11668,20 +12018,6 @@
                         "value": "0"
                     }
                 },
-                "runtime": {
-                    "real": {
-                        "defvalue": null,
-                        "lock": "false",
-                        "require": "all",
-                        "shorthelp": "Metric total runtime",
-                        "signature": [
-                            null
-                        ],
-                        "switch": "-metric_runtime 'step index group <float>",
-                        "type": "float",
-                        "value": "1.16"
-                    }
-                },
                 "security": {
                     "real": {
                         "defvalue": null,
@@ -11788,6 +12124,20 @@
                         "switch": "-metric_standbypower step index group <float>",
                         "type": "float",
                         "value": "1.17e-05"
+                    }
+                },
+                "tasktime": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": "all",
+                        "shorthelp": "Metric task time",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-metric_tasktime 'step index group <float>",
+                        "type": "float",
+                        "value": "1.15"
                     }
                 },
                 "totalarea": {
@@ -12012,6 +12362,18 @@
                         "value": "0"
                     }
                 },
+                "exetime": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": "all",
+                        "shorthelp": "Metric executable time",
+                        "signature": null,
+                        "switch": "-metric_exetime 'step index group <float>",
+                        "type": "float",
+                        "value": "0.71"
+                    }
+                },
                 "holdpaths": {
                     "real": {
                         "defvalue": null,
@@ -12180,18 +12542,6 @@
                         "value": "0"
                     }
                 },
-                "runtime": {
-                    "real": {
-                        "defvalue": null,
-                        "lock": "false",
-                        "require": "all",
-                        "shorthelp": "Metric total runtime",
-                        "signature": null,
-                        "switch": "-metric_runtime 'step index group <float>",
-                        "type": "float",
-                        "value": "1.06"
-                    }
-                },
                 "security": {
                     "real": {
                         "defvalue": null,
@@ -12286,6 +12636,18 @@
                         "switch": "-metric_standbypower step index group <float>",
                         "type": "float",
                         "value": "0"
+                    }
+                },
+                "tasktime": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": "all",
+                        "shorthelp": "Metric task time",
+                        "signature": null,
+                        "switch": "-metric_tasktime 'step index group <float>",
+                        "type": "float",
+                        "value": "1.05"
                     }
                 },
                 "totalarea": {
@@ -12512,6 +12874,20 @@
                         "value": "0"
                     }
                 },
+                "exetime": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": "all",
+                        "shorthelp": "Metric executable time",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-metric_exetime 'step index group <float>",
+                        "type": "float",
+                        "value": "0.81"
+                    }
+                },
                 "holdpaths": {
                     "real": {
                         "defvalue": null,
@@ -12704,20 +13080,6 @@
                         "value": "0"
                     }
                 },
-                "runtime": {
-                    "real": {
-                        "defvalue": null,
-                        "lock": "false",
-                        "require": "all",
-                        "shorthelp": "Metric total runtime",
-                        "signature": [
-                            null
-                        ],
-                        "switch": "-metric_runtime 'step index group <float>",
-                        "type": "float",
-                        "value": "0.98"
-                    }
-                },
                 "security": {
                     "real": {
                         "defvalue": null,
@@ -12824,6 +13186,20 @@
                         "switch": "-metric_standbypower step index group <float>",
                         "type": "float",
                         "value": "8.62e-06"
+                    }
+                },
+                "tasktime": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": "all",
+                        "shorthelp": "Metric task time",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-metric_tasktime 'step index group <float>",
+                        "type": "float",
+                        "value": "0.98"
                     }
                 },
                 "totalarea": {
@@ -13064,6 +13440,20 @@
                         "value": "0"
                     }
                 },
+                "exetime": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": "all",
+                        "shorthelp": "Metric executable time",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-metric_exetime 'step index group <float>",
+                        "type": "float",
+                        "value": "0.31"
+                    }
+                },
                 "holdpaths": {
                     "real": {
                         "defvalue": null,
@@ -13256,20 +13646,6 @@
                         "value": "0"
                     }
                 },
-                "runtime": {
-                    "real": {
-                        "defvalue": null,
-                        "lock": "false",
-                        "require": "all",
-                        "shorthelp": "Metric total runtime",
-                        "signature": [
-                            null
-                        ],
-                        "switch": "-metric_runtime 'step index group <float>",
-                        "type": "float",
-                        "value": "0.39"
-                    }
-                },
                 "security": {
                     "real": {
                         "defvalue": null,
@@ -13376,6 +13752,20 @@
                         "switch": "-metric_standbypower step index group <float>",
                         "type": "float",
                         "value": "0.0"
+                    }
+                },
+                "tasktime": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": "all",
+                        "shorthelp": "Metric task time",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-metric_tasktime 'step index group <float>",
+                        "type": "float",
+                        "value": "0.38"
                     }
                 },
                 "totalarea": {
@@ -13616,6 +14006,20 @@
                         "value": "0"
                     }
                 },
+                "exetime": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": "all",
+                        "shorthelp": "Metric executable time",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-metric_exetime 'step index group <float>",
+                        "type": "float",
+                        "value": "0.81"
+                    }
+                },
                 "holdpaths": {
                     "real": {
                         "defvalue": null,
@@ -13808,20 +14212,6 @@
                         "value": "0"
                     }
                 },
-                "runtime": {
-                    "real": {
-                        "defvalue": null,
-                        "lock": "false",
-                        "require": "all",
-                        "shorthelp": "Metric total runtime",
-                        "signature": [
-                            null
-                        ],
-                        "switch": "-metric_runtime 'step index group <float>",
-                        "type": "float",
-                        "value": "0.99"
-                    }
-                },
                 "security": {
                     "real": {
                         "defvalue": null,
@@ -13928,6 +14318,20 @@
                         "switch": "-metric_standbypower step index group <float>",
                         "type": "float",
                         "value": "8.62e-06"
+                    }
+                },
+                "tasktime": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": "all",
+                        "shorthelp": "Metric task time",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-metric_tasktime 'step index group <float>",
+                        "type": "float",
+                        "value": "1.03"
                     }
                 },
                 "totalarea": {
@@ -14168,6 +14572,20 @@
                         "value": "0"
                     }
                 },
+                "exetime": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": "all",
+                        "shorthelp": "Metric executable time",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-metric_exetime 'step index group <float>",
+                        "type": "float",
+                        "value": "1.01"
+                    }
+                },
                 "holdpaths": {
                     "real": {
                         "defvalue": null,
@@ -14360,20 +14778,6 @@
                         "value": "0"
                     }
                 },
-                "runtime": {
-                    "real": {
-                        "defvalue": null,
-                        "lock": "false",
-                        "require": "all",
-                        "shorthelp": "Metric total runtime",
-                        "signature": [
-                            null
-                        ],
-                        "switch": "-metric_runtime 'step index group <float>",
-                        "type": "float",
-                        "value": "1.21"
-                    }
-                },
                 "security": {
                     "real": {
                         "defvalue": null,
@@ -14480,6 +14884,20 @@
                         "switch": "-metric_standbypower step index group <float>",
                         "type": "float",
                         "value": "1.13e-05"
+                    }
+                },
+                "tasktime": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": "all",
+                        "shorthelp": "Metric task time",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-metric_tasktime 'step index group <float>",
+                        "type": "float",
+                        "value": "1.2"
                     }
                 },
                 "totalarea": {
@@ -14720,6 +15138,20 @@
                         "value": "0"
                     }
                 },
+                "exetime": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": "all",
+                        "shorthelp": "Metric executable time",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-metric_exetime 'step index group <float>",
+                        "type": "float",
+                        "value": "2.41"
+                    }
+                },
                 "holdpaths": {
                     "real": {
                         "defvalue": null,
@@ -14912,20 +15344,6 @@
                         "value": "0"
                     }
                 },
-                "runtime": {
-                    "real": {
-                        "defvalue": null,
-                        "lock": "false",
-                        "require": "all",
-                        "shorthelp": "Metric total runtime",
-                        "signature": [
-                            null
-                        ],
-                        "switch": "-metric_runtime 'step index group <float>",
-                        "type": "float",
-                        "value": "2.65"
-                    }
-                },
                 "security": {
                     "real": {
                         "defvalue": null,
@@ -15032,6 +15450,20 @@
                         "switch": "-metric_standbypower step index group <float>",
                         "type": "float",
                         "value": "1.17e-05"
+                    }
+                },
+                "tasktime": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": "all",
+                        "shorthelp": "Metric task time",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-metric_tasktime 'step index group <float>",
+                        "type": "float",
+                        "value": "2.68"
                     }
                 },
                 "totalarea": {
@@ -15272,6 +15704,20 @@
                         "value": "0"
                     }
                 },
+                "exetime": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": "all",
+                        "shorthelp": "Metric executable time",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-metric_exetime 'step index group <float>",
+                        "type": "float",
+                        "value": "0.61"
+                    }
+                },
                 "holdpaths": {
                     "real": {
                         "defvalue": null,
@@ -15464,20 +15910,6 @@
                         "value": "0"
                     }
                 },
-                "runtime": {
-                    "real": {
-                        "defvalue": null,
-                        "lock": "false",
-                        "require": "all",
-                        "shorthelp": "Metric total runtime",
-                        "signature": [
-                            null
-                        ],
-                        "switch": "-metric_runtime 'step index group <float>",
-                        "type": "float",
-                        "value": "0.86"
-                    }
-                },
                 "security": {
                     "real": {
                         "defvalue": null,
@@ -15584,6 +16016,20 @@
                         "switch": "-metric_standbypower step index group <float>",
                         "type": "float",
                         "value": "0.0"
+                    }
+                },
+                "tasktime": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": "all",
+                        "shorthelp": "Metric task time",
+                        "signature": [
+                            null
+                        ],
+                        "switch": "-metric_tasktime 'step index group <float>",
+                        "type": "float",
+                        "value": "0.77"
                     }
                 },
                 "totalarea": {
@@ -15698,6 +16144,18 @@
         "switch": "-mode <str>",
         "type": "str",
         "value": "asic"
+    },
+    "nodisplay": {
+        "defvalue": "false",
+        "lock": "false",
+        "require": "all",
+        "shorthelp": "Headless execution",
+        "signature": [
+            null
+        ],
+        "switch": "-nodisplay <bool>",
+        "type": "bool",
+        "value": "false"
     },
     "optmode": {
         "defvalue": "O0",
@@ -17091,7 +17549,7 @@
             "signature": null,
             "switch": "-version_sc <str>",
             "type": "str",
-            "value": "0.6.0"
+            "value": "0.7.0"
         },
         "schema": {
             "defvalue": "0.7.0",
