@@ -28,7 +28,7 @@ def test_gcd_infer_diesize(gcd_chip):
             diearea = match.group(1, 2, 3, 4)
             break
 
-    assert diearea == ('0', '0', '136400', '136400')
+    assert diearea == ('0', '0', '139200', '139200')
 
 if __name__ == '__main__':
     from tests.fixtures import gcd_chip
