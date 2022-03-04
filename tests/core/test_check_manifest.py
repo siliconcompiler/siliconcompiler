@@ -87,7 +87,7 @@ def test_check_missing_file_param():
     chip.set('eda', 'yosys', 'output', 'syn', '0',[])
 
     # not real file, will cause error
-    libname = 'NangateOpenCellLibrary'
+    libname = 'nangate45'
     corner = 'typical'
     chip.add('library', libname, 'nldm', corner, 'lib', '/fake/timing/file.lib')
 
@@ -96,3 +96,4 @@ def test_check_missing_file_param():
 #########################
 if __name__ == "__main__":
     test_check_manifest()
+    test_check_missing_file_param()
