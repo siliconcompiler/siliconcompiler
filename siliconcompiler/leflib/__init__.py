@@ -37,7 +37,8 @@ def parse(path):
 
     The dictionary returned by this function is designed to mimic the structure
     of the LEF file as closely as possible, and this function does minimal
-    legality checking. It looks like follows:
+    legality checking. The order all top-level objects appear in the dictionary
+    is guaranteed to match the LEF file. It looks like follows:
 
         .. code-block:: python
 
@@ -116,8 +117,8 @@ def parse(path):
                                     'layer_geometries': [{
                                         'layer': 'M1',
                                         'exceptpgnet': True,
-                                        'spacing': 0.01, 
-                                        'designrulewidth': 0.05, 
+                                        'spacing': 0.01,
+                                        'designrulewidth': 0.05,
                                         'width': 1.5,
                                         'shapes': [
                                             {
