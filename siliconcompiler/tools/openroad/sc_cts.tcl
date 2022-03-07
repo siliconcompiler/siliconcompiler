@@ -24,8 +24,8 @@ if {[llength [all_clocks]] > 0} {
     repair_clock_nets
 
     set_placement_padding -global \
-	-left $openroad_pad_global_place \
-	-right $openroad_pad_global_place
+	-left $openroad_pad_detail_place \
+	-right $openroad_pad_detail_place
 
     detailed_placement
 

@@ -50,7 +50,7 @@ def setup(chip):
     # Standard Setup
     chip.set('eda', tool, 'exe', 'yosys', clobber=False)
     chip.set('eda', tool, 'vswitch', '--version', clobber=False)
-    chip.set('eda', tool, 'version', '0.9', clobber=False)
+    chip.set('eda', tool, 'version', '0.13', clobber=False)
     chip.set('eda', tool, 'format', 'tcl', clobber=False)
     chip.set('eda', tool, 'copy', 'true', clobber=False)
     chip.set('eda', tool, 'option', step, index, '-c', clobber=False)

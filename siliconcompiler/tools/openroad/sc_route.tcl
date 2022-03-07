@@ -31,9 +31,9 @@ if {[dict exists $sc_cfg eda $sc_tool variable $sc_step $sc_index grt_allow_cong
 }
 
 global_route -guide_file "./route.guide" \
-    -overflow_iterations $openroad_overflow_iter \
-    -verbose 2 \
-    $additional_grt_args
+    -congestion_iterations $openroad_overflow_iter \
+    -verbose \
+    {*}$additional_grt_args
 
 ######################
 # Report Antennas

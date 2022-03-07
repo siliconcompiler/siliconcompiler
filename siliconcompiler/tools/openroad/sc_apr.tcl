@@ -185,10 +185,6 @@ set_dont_use $sc_dontuse
 set_wire_rc -clock  -layer $sc_clkmetal
 set_wire_rc -signal -layer $sc_rcmetal
 
-set_placement_padding -global \
-    -left $openroad_pad_global_place \
-    -right $openroad_pad_global_place
-
 ###############################
 # Source Step Script
 ###############################
