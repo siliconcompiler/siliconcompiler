@@ -1,8 +1,5 @@
 #!/bin/sh
 
-OPT=$1
-
-echo $OPT
 sc examples/gcd/gcd.v \
    -target "freepdk45_demo" \
    -constraint "examples/gcd/gcd.sdc" \
@@ -13,4 +10,4 @@ sc examples/gcd/gcd.v \
    -loglevel "INFO" \
    -quiet \
    -relax \
-   -design gcd $OPT
+   -design gcd
