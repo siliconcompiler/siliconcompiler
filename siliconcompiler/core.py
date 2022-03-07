@@ -1357,11 +1357,12 @@ class Chip:
 
         for keypath in self.getkeys(cfg=cfg):
             paramtype = self.get(*keypath, cfg=cfg, field='type')
-
-            #only do something if type is file or dir
-            if 'file' in paramtype or 'dir' in paramtype:
-                abspaths = self.find_files(*keypath, cfg=cfg, missing_ok=True)
-                self.set(*keypath, abspaths, cfg=cfg)
+            value = self.get(*keypath, cfg=cfg)
+            if value:
+                #only do something if type is file or dir
+                if 'file' in paramtype or 'dir' in paramtype:
+                    abspaths = self.find_files(*keypath, cfg=cfg, missing_ok=True)
+                    self.set(*keypath, abspaths, cfg=cfg)
 
     ###########################################################################
     def _print_csv(self, cfg, file=None):
@@ -1376,56 +1377,44 @@ class Chip:
                 print(f"{keypath},{value}", file=file)
 
     ###########################################################################
-    def _print_tcl(self, cfg, keys=None, file=None, prefix=""):
+    def _print_tcl(self, cfg, file=None, prefix=""):
         '''
         Prints out schema as TCL dictionary
         '''
 
-        #TODO: simplify, no need for recursion
-        if keys is None:
-            keys = []
-        for k in cfg:
-            newkeys = keys.copy()
-            newkeys.append(k)
-            #detect leaf cell
-            if 'defvalue' in cfg[k]:
-                if 'value' not in cfg[k]:
-                    selval = cfg[k]['defvalue']
-                else:
-                    selval =  cfg[k]['value']
-                if bool(re.match(r'\[', str(cfg[k]['type']))):
-                    alist = selval
-                else:
-                    alist = [selval]
-                for i, val in enumerate(alist):
-                    #replace $VAR with env(VAR) for tcl
-                    m = re.match(r'\$(\w+)(.*)', str(val))
-                    if m:
-                        alist[i] = ('$env(' +
-                                    m.group(1) +
-                                    ')' +
-                                    m.group(2))
+        allkeys = self.getkeys(cfg=cfg)
 
-                #create a TCL dict
-                keystr = ' '.join(newkeys)
-                valstr = ' '.join(map(str, alist)).replace(';', '\\;')
-                outlst = [prefix,
-                          keystr,
-                          '[list ',
-                          valstr,
-                          ']']
-                outstr = ' '.join(outlst)
-                outstr = outstr + '\n'
-                #print out value
-                if file is None:
-                    print(outstr)
-                else:
-                    print(outstr, file=file)
+        for key in allkeys:
+            typestr = self.get(*key, cfg=cfg, field='type')
+            value = self.get(*key, cfg=cfg)
+            # everything becomes a list
+            # convert None to empty list
+            if value is None:
+                alist = []
+            elif bool(re.match(r'\[', typestr)):
+                alist = value
+            elif typestr == "bool" and value:
+                alist = ["true"]
+            elif typestr == "bool" and not value:
+                alist = ["false"]
             else:
-                self._print_tcl(cfg[k],
-                               keys=newkeys,
-                               file=file,
-                               prefix=prefix)
+                alist = [value]
+
+            #replace $VAR with env(VAR) for tcl
+            for i, val in enumerate(alist):
+                m = re.match(r'\$(\w+)(.*)', str(val))
+                if m:
+                    alist[i] = ('$env(' + m.group(1) + ')' + m.group(2))
+
+            #create a TCL dict
+            keystr = ' '.join(key)
+            valstr = ' '.join(map(str, alist)).replace(';', '\\;')
+            outstr = f"{prefix} {keystr} [list {valstr}]\n"
+
+            #print out all nom default values
+            if 'default' not in key:
+                print(outstr, file=file)
+
 
     ###########################################################################
     def merge_manifest(self, cfg, job=None, clobber=True, clear=True, check=False):
@@ -3438,7 +3427,8 @@ class Chip:
         # 15. Write manifest (tool interface) (Don't move this!)
         suffix = self.get('eda', tool, 'format')
         if suffix:
-            self.write_manifest(f"sc_manifest.{suffix}", abspath=True)
+            pruneopt = bool(suffix!='tcl')
+            self.write_manifest(f"sc_manifest.{suffix}", prune=pruneopt, abspath=True)
 
         ##################
         # 16. Start CPU Timer

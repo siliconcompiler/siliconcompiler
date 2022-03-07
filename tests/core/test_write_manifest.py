@@ -13,7 +13,7 @@ def test_write_manifest():
 
     chip.write_manifest('top.pkg.json')
     chip.write_manifest('top.csv')
-    chip.write_manifest('top.tcl')
+    chip.write_manifest('top.tcl', prune=False)
     chip.write_manifest('top.yaml')
 
 #########################
