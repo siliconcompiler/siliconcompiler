@@ -2097,7 +2097,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
         'type': 'dir',
         'lock': 'false',
         'require': None,
-        'signature' : [],
+        'signature' : None,
         'defvalue': None,
         'shorthelp': 'Tool executable path',
         'example': [
@@ -3589,7 +3589,7 @@ def schema_options(cfg):
         'lock': 'false',
         'require': None,
         'signature': None,
-        'defvalue': False,
+        'defvalue': 'false',
         'shorthelp': 'Enables remote processing',
         'example': ["cli: -remote",
                     "api: chip.set('remote', True)"],
@@ -5465,7 +5465,25 @@ def schema_asic(cfg):
             "cli: -asic_logiclib nangate45",
             "api: chip.set('asic', 'logiclib','nangate45')"],
         'help': """
-        Logical libraries used in all synthesis and place and route steps.
+        List of all available standard cell logic libraries for a given
+        library architecture (9T, 11T, etc).
+        """
+    }
+
+    cfg['asic']['macrolib'] = {
+        'switch': "-asic_macrolib <str>",
+        'type': '[str]',
+        'lock': 'false',
+        'defvalue': [],
+        'require': None,
+        'signature': [],
+        'shorthelp': 'ASIC macro libraries',
+        'example': ["cli: -asic_macrolib sram64x1024",
+                    "api: chip.set('asic', 'macrolib', 'sram64x1024')"],
+        'help': """
+        List of macro libraries to be linked in during synthesis and place
+        and route. Macro libraries are used for resolving instances but are
+        not used as target for automated synthesis.
         """
     }
 
@@ -5485,26 +5503,8 @@ def schema_asic(cfg):
             "cli: -asic_optlib 'place 0 asap7sc7p5t_lvt'",
             "api: chip.set('asic','optlib','place','0','asap7sc7p5t_lvt')"],
         'help': """
-        Logical libraries used in the specified step and index in the
-        asic implementation flow. Names must match up exactly with the library
-        name handle in the 'library' dictionary.
-        """
-    }
-
-    cfg['asic']['macrolib'] = {
-        'switch': "-asic_macrolib <str>",
-        'type': '[str]',
-        'lock': 'false',
-        'defvalue': [],
-        'require': None,
-        'signature': [],
-        'shorthelp': 'ASIC macro libraries',
-        'example': ["cli: -asic_macrolib sram64x1024",
-                    "api: chip.set('asic', 'macrolib', 'sram64x1024')"],
-        'help': """
-        List of macro libraries to be linked in during synthesis and place
-        and route. Macro libraries are used for resolving instances but are
-        not used as target for automated synthesis.
+        List of logical libraries used during synthesis and place and route
+        specified on a per step and per index basis.
         """
     }
 
