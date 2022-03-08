@@ -60,6 +60,8 @@ cimport _leflib
 import cython
 import traceback
 
+from collections import OrderedDict
+
 # These are definitions of some custom Cython "fused types". An instance of a
 # fused type can be any one of the types listed in the definition.  For example,
 # an instance of `RectGeometry` (as defined below) could be a pointer to a
@@ -154,7 +156,7 @@ cdef int divider_chars_cb(lefrCallbackType_e cb_type, const char* val, lefiUserD
 cdef int units_cb(lefrCallbackType_e t, lefiUnits* units, lefiUserData data):
     try:
         if 'units' not in _state.data:
-            _state.data['units'] = {}
+            _state.data['units'] = OrderedDict()
 
         if units.hasDatabase():
             _state.data['units']['database'] = units.databaseNumber()
@@ -188,7 +190,7 @@ cdef int manufacturing_grid_cb(lefrCallbackType_e cb_type, double value, lefiUse
 cdef int use_min_spacing_cb(lefrCallbackType_e cb_type, lefiUseMinSpacing* minspacing, lefiUserData data):
     try:
         if 'useminspacing' not in _state.data:
-            _state.data['useminspacing'] = {}
+            _state.data['useminspacing'] = OrderedDict()
 
         # I think this should always be 'OBS', but read from the object just to
         # be flexible.
@@ -224,7 +226,7 @@ cdef int fixed_mask_cb(lefrCallbackType_e cb_type, int val, lefiUserData data):
 cdef int layer_cb(lefrCallbackType_e cb_type, lefiLayer* layer, lefiUserData data):
     try:
         if 'layers' not in _state.data:
-            _state.data['layers'] = {}
+            _state.data['layers'] = OrderedDict()
 
         name = layer.name().decode('ascii')
         _state.data['layers'][name] = {}
@@ -269,7 +271,7 @@ cdef int max_via_stack_cb(lefrCallbackType_e cb_type, lefiMaxStackVia* maxstackv
 cdef int viarule_cb(lefrCallbackType_e cb_type, lefiViaRule* viarule, void* data):
     try:
         if 'viarules' not in _state.data:
-            _state.data['viarules'] = {}
+            _state.data['viarules'] = OrderedDict()
 
         viarule_data = {}
         if viarule.hasDefault():
@@ -328,7 +330,7 @@ cdef int viarule_cb(lefrCallbackType_e cb_type, lefiViaRule* viarule, void* data
 cdef int site_cb(lefrCallbackType_e cb_type, lefiSite* site, lefiUserData data):
     try:
         if 'sites' not in _state.data:
-            _state.data['sites'] = {}
+            _state.data['sites'] = OrderedDict()
 
         site_data = {}
         if site.hasClass():
@@ -375,7 +377,7 @@ cdef int site_cb(lefrCallbackType_e cb_type, lefiSite* site, lefiUserData data):
 cdef int macro_begin_cb(lefrCallbackType_e cb_type, const char* name, lefiUserData data):
     try:
         if 'macros' not in _state.data:
-            _state.data['macros'] = {}
+            _state.data['macros'] = OrderedDict()
 
         _state.cur_macro = name.decode('ascii')
         _state.data['macros'][_state.cur_macro] = {}
