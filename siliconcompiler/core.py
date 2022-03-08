@@ -3813,7 +3813,7 @@ class Chip:
         self.cfghistory[self.get('jobname')] = copy.deepcopy(self.cfg)
 
     ###########################################################################
-    def show(self, filename=None, extra_options=[]):
+    def show(self, filename=None, extra_options=None):
         '''
         Opens a graphical viewer for the filename provided.
 
@@ -3843,12 +3843,19 @@ class Chip:
             Displays manifest in the browser
         '''
 
-        self.logger.info("Showing file %s", filename)
+        if extra_options is None:
+            extra_options = []
 
-        # Finding lasts layout if no argument specified
+        # Finding last layout if no argument specified
         if filename is None:
+            self.logger.info('Searching build directory for layout to show.')
             design = self.get('design')
-            laststep = self.list_steps()[-1]
+            # TODO: consider a more flexible approach here. I tried doing a
+            # reverse search through all steps, but when verification steps are
+            # enabled this finds a DEF passed into LVS rather than the GDS
+            # Perhaps we could have a way for flows to register their "final"
+            # output.
+            laststep = 'export'
             lastindex = '0'
             lastdir = self._getworkdir(step=laststep, index=lastindex)
             gds_file= f"{lastdir}/outputs/{design}.gds"
@@ -3857,6 +3864,13 @@ class Chip:
                 filename = gds_file
             elif os.path.isfile(def_file):
                 filename = def_file
+
+        if filename is None:
+            self.logger.error('Unable to automatically find layout in build directory.')
+            self.logger.error('Try passing in a full path to show() instead.')
+            return 1
+
+        self.logger.info('Showing file %s', filename)
 
         # Parsing filepath
         filepath = os.path.abspath(filename)
@@ -3897,10 +3911,6 @@ class Chip:
             self.set('arg', 'index', index)
             setup_tool = self.find_function(tool, 'setup', 'tools')
             setup_tool(self, mode='show')
-            if extra_options:
-                # Options must be pre-pended so that the input filename remains valid.
-                cur_opts = self.get('eda', tool, 'option', step, index)
-                self.set('eda', tool, 'option', step, index, extra_options + cur_opts, clobber=True)
 
             exe = self._getexe(tool)
             if shutil.which(exe) is None:
@@ -3908,7 +3918,7 @@ class Chip:
                 success = False
             else:
                 # Running command
-                cmdlist = self._makecmd(tool, step, index)
+                cmdlist = self._makecmd(tool, step, index, extra_options=extra_options)
                 proc = subprocess.run(cmdlist)
                 success = proc.returncode == 0
         else:
@@ -4055,7 +4065,7 @@ class Chip:
         return fullexe
 
     #######################################
-    def _makecmd(self, tool, step, index):
+    def _makecmd(self, tool, step, index, extra_options=None):
         '''
         Constructs a subprocess run command based on eda tool setup.
         Creates a replay.sh command in current directory.
@@ -4076,12 +4086,12 @@ class Chip:
             scripts = []
 
         cmdlist = [fullexe]
-        logfile = step + ".log"
+        if extra_options:
+            cmdlist.extend(extra_options)
         cmdlist.extend(options)
         cmdlist.extend(scripts)
         runtime_options = self.find_function(tool, 'runtime_options', 'tools')
         if runtime_options:
-            #print(runtime_options(self))
             for option in runtime_options(self):
                 cmdlist.extend(shlex.split(option, posix=is_posix))
 
