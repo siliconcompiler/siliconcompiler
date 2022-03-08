@@ -107,16 +107,5 @@ def post_process(chip):
 ##################################################
 if __name__ == "__main__":
 
-    # File being executed
-    prefix = os.path.splitext(os.path.basename(__file__))[0]
-    output = prefix + '.json'
-
-    # create a chip instance
-    chip = siliconcompiler.Chip(loglevel="INFO")
-    # load configuration
-    chip.target('skywater130_asicflow')
-    chip.set('arg','index','0')
-    chip.set('arg','step','lvs')
-    setup(chip)
-    # write out results
-    chip.writecfg(output)
+    chip = make_docs()
+    chip.write_manifest("netgen.json")

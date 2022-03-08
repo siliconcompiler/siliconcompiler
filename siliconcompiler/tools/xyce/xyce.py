@@ -60,4 +60,4 @@ def post_process(chip):
 if __name__ == "__main__":
 
     chip = make_docs()
-    chip.writecfg("xyce.json")
+    chip.write_manifest("xyce.json")

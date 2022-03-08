@@ -24,7 +24,7 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip()
-    chip.set('arg','step', 'sim')
+    chip.set('arg','step', 'run')
     chip.set('arg','index', '<index>')
     setup(chip)
     return chip
@@ -113,4 +113,4 @@ def post_process(chip):
 if __name__ == "__main__":
 
     chip = make_docs()
-    chip.writecfg("icarus.json")
+    chip.write_manifest("icarus.json")

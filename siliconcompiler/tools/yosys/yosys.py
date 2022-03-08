@@ -177,4 +177,4 @@ def post_process(chip):
 if __name__ == "__main__":
 
     chip = make_docs()
-    chip.writecfg("yosys.json")
+    chip.write_manifest("yosys.json")

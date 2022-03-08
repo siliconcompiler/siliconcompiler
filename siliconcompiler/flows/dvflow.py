@@ -101,4 +101,4 @@ def setup(chip, flow='dflow'):
 ##################################################
 if __name__ == "__main__":
     chip = make_docs()
-    chip.writecfg("dvflow.json")
+    chip.write_flowgraph("dvflow.png")

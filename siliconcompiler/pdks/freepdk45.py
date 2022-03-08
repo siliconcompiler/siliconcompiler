@@ -165,4 +165,4 @@ def setup(chip):
 if __name__ == "__main__":
 
     chip = make_docs()
-    chip.writecfg('freepdk45.json')
+    chip.write_manifest('freepdk45.tcl')

@@ -146,4 +146,4 @@ def setup(chip):
 if __name__ == "__main__":
 
     chip = make_docs()
-    chip.writecfg('asap7.json')
+    chip.write_manifest('asap7.tcl')

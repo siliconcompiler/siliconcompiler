@@ -25,8 +25,7 @@ def setup(chip):
     '''
 
     #1. Defining the project
-    project = 'freepdk45_demo'
-    chip.set('target', project)
+    chip.set('target','freepdk45_demo')
 
     #2. Load PDK, flow, libs combo
     chip.load_pdk('freepdk45')
