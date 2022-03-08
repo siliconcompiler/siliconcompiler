@@ -260,6 +260,7 @@ class Floorplan:
 
             self.layers[sc_name] = {
                 'name': pdk_name,
+                'sc_name': sc_name,
                 'width': width,
                 'direction': direction,
                 'xpitch': xpitch,
@@ -1290,7 +1291,8 @@ class Floorplan:
                 empty or None, look at all nets.
             layers (list of tuples): List of tuples representing pairs of layers
                 to check for intersections between. If empty or None, look at all
-                layer pairs.
+                layer pairs. Each pair should be ordered with lower layer
+                first and higher layer second.
         '''
 
         if not nets:
@@ -1301,8 +1303,7 @@ class Floorplan:
                 raise ValueError(f'Unable to insert vias on net {net}, not '
                     'in list of known specialnets.')
 
-            # TODO: is this valid? trying to sort from bottom to top
-            wires = sorted(self.nets[net]['wires'], key=lambda w: w['sclayer'] )
+            wires = sorted(self.nets[net]['wires'], key=lambda w: _layer_i(w['sclayer']) )
             for i, wire_bottom in enumerate(wires):
                 for wire_top in wires[i:]:
                     bottom_layer = wire_bottom['sclayer']
@@ -1461,7 +1462,13 @@ class Floorplan:
         self.place_wires([vss] * ngnd, core_left, bottom, 0, spacing,
                          core_w, stripe_w, stripe_layer, 'followpin')
 
-        self.insert_vias(layers=[(stripe_layer, vlayer), (vlayer, hlayer)])
+        vlayer_i = _layer_i(self.layers[vlayer]['sc_name'])
+        hlayer_i = _layer_i(self.layers[hlayer]['sc_name'])
+        if vlayer_i > hlayer_i:
+            gridlayers = hlayer, vlayer
+        else:
+            gridlayers = vlayer, hlayer
+        self.insert_vias(layers=[(stripe_layer, vlayer), gridlayers])
 
     def generate_block_floorplan(self, diearea, corearea, inputs, outputs, pdn=None):
         '''Generate a basic floorplan for a block-level design.
