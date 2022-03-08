@@ -185,14 +185,6 @@ def post_process(chip):
 
 ##################################################
 if __name__ == "__main__":
-    # File being executed
-    prefix = os.path.splitext(os.path.basename(__file__))[0]
-    output = prefix + '.json'
 
-    # create a chip instance
-    chip = siliconcompiler.Chip()
-    chip.load_target("freepdk45_demo")
-    # load configuration
-    setup(chip, step='export', index='0')
-    # write out results
-    chip.writecfg(output)
+    chip = make_docs()
+    chip.write_manifest("klayout.json")

@@ -112,16 +112,5 @@ def post_process(chip):
 ##################################################
 if __name__ == "__main__":
 
-    # File being executed
-    prefix = os.path.splitext(os.path.basename(__file__))[0]
-    output = prefix + '.json'
-
-    # create a chip instance
-    chip = siliconcompiler.Chip(loglevel="INFO")
-    # load configuration
-    chip.load_target('skywater130_demo')
-    chip.set('arg','index','0')
-    chip.set('arg','step','drc')
-    setup(chip)
-    # write out results
-    chip.writecfg(output)
+    chip = make_docs()
+    chip.write_manifest("magic.json")
