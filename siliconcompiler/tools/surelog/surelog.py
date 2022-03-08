@@ -154,6 +154,7 @@ def post_process(chip):
     with open('slpp_all/file_elab.lst', 'r') as filelist, \
             open(f'outputs/{design}.v', 'w') as outfile:
         for path in filelist.read().split('\n'):
+            path = path.strip('"')
             if not path:
                 # skip empty lines
                 continue
