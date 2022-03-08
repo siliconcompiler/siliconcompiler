@@ -49,7 +49,7 @@ def setup(chip):
 
     chip.set('eda', tool, 'exe', tool)
     chip.set('eda', tool, 'vswitch', '-batch')
-    chip.set('eda', tool, 'version', '1.5.192')
+    chip.set('eda', tool, 'version', '1.5.210')
     chip.set('eda', tool, 'format', 'tcl')
     chip.set('eda', tool, 'copy', 'true')
     chip.set('eda', tool, 'threads', step, index, 4)
