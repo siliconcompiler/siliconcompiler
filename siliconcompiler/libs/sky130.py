@@ -125,3 +125,5 @@ def setup(chip):
     # Techmap
     chip.add('library', libname, 'techmap', 'yosys',
              libdir + '/techmap/yosys/cells_latch.v')
+
+    chip.set('library', libname, 'pgmetal', 'm1')
