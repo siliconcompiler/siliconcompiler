@@ -1,6 +1,43 @@
 import os
 import siliconcompiler
+from siliconcompiler.floorplan import Floorplan
 import pytest
+
+
+def make_floorplan(chip):
+    fp = Floorplan(chip)
+
+    diearea = [(0, 0), (200.56, 201.28)]
+    corearea = [(20.24, 21.76), (180.32, 184.96)]
+    inputs = [
+        ('clk', 1),
+        ('req_val', 1),
+        ('reset', 1),
+        ('resp_rdy', 1),
+        ('req_msg', 32)
+    ]
+    outputs = [
+        ('req_rdy', 1),
+        ('resp_val', 1),
+        ('resp_msg', 16)
+    ]
+    pdn_params = {
+        'vdd': 'vdd',
+        'vss': 'vss',
+        'hwidth': 2,
+        'hspacing': 10,
+        'hlayer': 'm5',
+        'vwidth': 2,
+        'vspacing': 10,
+        'vlayer': 'm4',
+        'stdcell_pin_vdd': 'VPWR',
+        'stdcell_pin_vss': 'VGND',
+        'stdcell_pin_width': 0.48
+    }
+
+    fp.generate_block_floorplan(diearea, corearea, inputs, outputs, pdn_params)
+    fp.write_def('gcd.def')
+    return 'gcd.def'
 
 ##################################
 @pytest.mark.eda
@@ -22,10 +59,11 @@ def test_gcd_checks(scroot):
     chip.set('clock', 'core_clock', 'pin', 'clk')
     chip.set('clock', 'core_clock', 'period', 2)
     chip.set('flowarg', 'verify', 'true')
-    chip.set('asic', 'diearea', [(0, 0), (200.56, 201.28)])
-    chip.set('asic', 'corearea', [(20.24, 21.76), (180.32, 184.96)])
 
     chip.load_target("skywater130_demo")
+
+    def_path = make_floorplan(chip)
+    chip.set('read', 'def', 'floorplan', '0', def_path)
 
     # Run the chip's build process synchronously.
     chip.run()
