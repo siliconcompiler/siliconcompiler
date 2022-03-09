@@ -18,7 +18,7 @@ def schema_cfg():
     # SC version number (bump on every non trivial change)
     # Version number following semver standard.
 
-    SCHEMA_VERSION = '0.7.0'
+    SCHEMA_VERSION = '0.8.0'
 
     # Basic schema setup
     cfg = {}
@@ -885,8 +885,7 @@ def schema_pdk(cfg, stackup='default'):
         """
     }
 
-
-    # DRC settings
+    # DRC runsets
     cfg['pdk']['drc'] = {}
     cfg['pdk']['drc']['runset'] = {}
     cfg['pdk']['drc']['runset'][tool] = {}
@@ -1849,9 +1848,9 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
     key = 'default'
     cfg['library'][lib]['file'] = {}
     cfg['library'][lib]['file'][tool] = {}
-    cfg['library'][lib]['file'][tool][stackup] = {}
-    cfg['library'][lib]['file'][tool][stackup][key] = {
-        'switch': "-library_file 'lib tool stackup key <file>'",
+    cfg['library'][lib]['file'][tool][key] = {}
+    cfg['library'][lib]['file'][tool][key][stackup] = {
+        'switch': "-library_file 'lib tool key stackup <file>'",
         'require': None,
         'type': '[file]',
         'lock': 'false',
@@ -1864,8 +1863,8 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'signature': [],
         'shorthelp': 'Library named file',
         'example': [
-            "cli: -library_file 'lib atool 10M db ~/libdb'",
-            "api: chip.set('library','lib','file','atool',10M,'db','~/libdb')"],
+            "cli: -library_file 'lib atool db 10M ~/libdb'",
+            "api: chip.set('library','lib','file','atool','db',10M,'~/libdb')"],
         'help': """
         List of named files specified on a per tool and per stackup basis.
         The parameter should only be used for specifying files that are
@@ -1876,9 +1875,9 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
 
     cfg['library'][lib]['dir'] = {}
     cfg['library'][lib]['dir'][tool] = {}
-    cfg['library'][lib]['dir'][tool][stackup] = {}
-    cfg['library'][lib]['dir'][tool][stackup][key] = {
-        'switch': "-library_dir 'lib tool stackup key <file>'",
+    cfg['library'][lib]['dir'][tool][key] = {}
+    cfg['library'][lib]['dir'][tool][key][stackup] = {
+        'switch': "-library_dir 'lib tool key stackup <file>'",
         'require': None,
         'type': '[dir]',
         'lock': 'false',
@@ -1891,8 +1890,8 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'signature': [],
         'shorthelp': 'Library named directory',
         'example': [
-            "cli: -library_file 'lib atool 10M db ~/libdb'",
-            "api: chip.set('library','lib','file','atool',10M,'db','~/libdb')"],
+            "cli: -library_file 'lib atool db 10M ~/libdb'",
+            "api: chip.set('library','lib','file','atool','db','10M','~/libdb')"],
         'help': """
         List of named dirtectories specified on a per tool and per stackup
         basis. The parameter should only be used for specifying files that are

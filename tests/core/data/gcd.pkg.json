@@ -547,7 +547,7 @@
                 "switch": "-eda_version 'tool <str>'",
                 "type": "[str]",
                 "value": [
-                    "0.26.11"
+                    "0.27.8"
                 ]
             },
             "vswitch": {
@@ -6262,7 +6262,7 @@
                 "switch": "-eda_version 'tool <str>'",
                 "type": "[str]",
                 "value": [
-                    "0.9"
+                    "0.13"
                 ]
             },
             "vswitch": {
@@ -11149,7 +11149,7 @@
                         ],
                         "switch": "-metric_cellarea step index group <float>",
                         "type": "float",
-                        "value": "499.0"
+                        "value": "494.0"
                     }
                 },
                 "cells": {
@@ -11163,7 +11163,7 @@
                         ],
                         "switch": "-metric_cells step index group <int>",
                         "type": "int",
-                        "value": "421"
+                        "value": "424"
                     }
                 },
                 "coverage": {
@@ -11257,7 +11257,7 @@
                         ],
                         "switch": "-metric_exetime 'step index group <float>",
                         "type": "float",
-                        "value": "2.21"
+                        "value": "1.81"
                     }
                 },
                 "holdpaths": {
@@ -11393,7 +11393,7 @@
                         ],
                         "switch": "-metric_nets step index group <int>",
                         "type": "int",
-                        "value": "378"
+                        "value": "381"
                     }
                 },
                 "overflow": {
@@ -11421,7 +11421,7 @@
                         ],
                         "switch": "-metric_peakpower step index group <float>",
                         "type": "float",
-                        "value": "0.000279"
+                        "value": "0.000277"
                     }
                 },
                 "pins": {
@@ -11491,7 +11491,7 @@
                         ],
                         "switch": "-metric_setupslack 'step index group <float>'",
                         "type": "float",
-                        "value": "1.11"
+                        "value": "1.0"
                     }
                 },
                 "setuptns": {
@@ -11571,7 +11571,7 @@
                         ],
                         "switch": "-metric_tasktime 'step index group <float>",
                         "type": "float",
-                        "value": "2.42"
+                        "value": "2.08"
                     }
                 },
                 "totalarea": {
@@ -11585,7 +11585,7 @@
                         ],
                         "switch": "-metric_totalarea step index group <float>",
                         "type": "float",
-                        "value": "6237.5"
+                        "value": "6175.0"
                     }
                 },
                 "transistors": {
@@ -11715,7 +11715,7 @@
                         ],
                         "switch": "-metric_cellarea step index group <float>",
                         "type": "float",
-                        "value": "499.0"
+                        "value": "494.0"
                     }
                 },
                 "cells": {
@@ -11729,7 +11729,7 @@
                         ],
                         "switch": "-metric_cells step index group <int>",
                         "type": "int",
-                        "value": "1869"
+                        "value": "1899"
                     }
                 },
                 "coverage": {
@@ -11823,7 +11823,7 @@
                         ],
                         "switch": "-metric_exetime 'step index group <float>",
                         "type": "float",
-                        "value": "0.91"
+                        "value": "0.31"
                     }
                 },
                 "holdpaths": {
@@ -11959,7 +11959,7 @@
                         ],
                         "switch": "-metric_nets step index group <int>",
                         "type": "int",
-                        "value": "378"
+                        "value": "381"
                     }
                 },
                 "overflow": {
@@ -11987,7 +11987,7 @@
                         ],
                         "switch": "-metric_peakpower step index group <float>",
                         "type": "float",
-                        "value": "0.000292"
+                        "value": "0.000289"
                     }
                 },
                 "pins": {
@@ -12057,7 +12057,7 @@
                         ],
                         "switch": "-metric_setupslack 'step index group <float>'",
                         "type": "float",
-                        "value": "1.09"
+                        "value": "0.98"
                     }
                 },
                 "setuptns": {
@@ -12137,7 +12137,7 @@
                         ],
                         "switch": "-metric_tasktime 'step index group <float>",
                         "type": "float",
-                        "value": "1.15"
+                        "value": "0.63"
                     }
                 },
                 "totalarea": {
@@ -12151,7 +12151,7 @@
                         ],
                         "switch": "-metric_totalarea step index group <float>",
                         "type": "float",
-                        "value": "6237.5"
+                        "value": "6175.0"
                     }
                 },
                 "transistors": {
@@ -12371,7 +12371,7 @@
                         "signature": null,
                         "switch": "-metric_exetime 'step index group <float>",
                         "type": "float",
-                        "value": "0.71"
+                        "value": "0.91"
                     }
                 },
                 "holdpaths": {
@@ -12647,7 +12647,7 @@
                         "signature": null,
                         "switch": "-metric_tasktime 'step index group <float>",
                         "type": "float",
-                        "value": "1.05"
+                        "value": "1.25"
                     }
                 },
                 "totalarea": {
@@ -12777,7 +12777,7 @@
                         ],
                         "switch": "-metric_cellarea step index group <float>",
                         "type": "float",
-                        "value": "414.0"
+                        "value": "415.0"
                     }
                 },
                 "cells": {
@@ -12791,7 +12791,7 @@
                         ],
                         "switch": "-metric_cells step index group <int>",
                         "type": "int",
-                        "value": "363"
+                        "value": "364"
                     }
                 },
                 "coverage": {
@@ -12885,7 +12885,7 @@
                         ],
                         "switch": "-metric_exetime 'step index group <float>",
                         "type": "float",
-                        "value": "0.81"
+                        "value": "0.31"
                     }
                 },
                 "holdpaths": {
@@ -13021,7 +13021,7 @@
                         ],
                         "switch": "-metric_nets step index group <int>",
                         "type": "int",
-                        "value": "320"
+                        "value": "321"
                     }
                 },
                 "overflow": {
@@ -13119,7 +13119,7 @@
                         ],
                         "switch": "-metric_setupslack 'step index group <float>'",
                         "type": "float",
-                        "value": "0.95"
+                        "value": "0.79"
                     }
                 },
                 "setuptns": {
@@ -13185,7 +13185,7 @@
                         ],
                         "switch": "-metric_standbypower step index group <float>",
                         "type": "float",
-                        "value": "8.62e-06"
+                        "value": "8.69e-06"
                     }
                 },
                 "tasktime": {
@@ -13199,7 +13199,7 @@
                         ],
                         "switch": "-metric_tasktime 'step index group <float>",
                         "type": "float",
-                        "value": "0.98"
+                        "value": "0.58"
                     }
                 },
                 "totalarea": {
@@ -13213,7 +13213,7 @@
                         ],
                         "switch": "-metric_totalarea step index group <float>",
                         "type": "float",
-                        "value": "6900.0"
+                        "value": "6916.67"
                     }
                 },
                 "transistors": {
@@ -13283,7 +13283,7 @@
                         ],
                         "switch": "-metric_warnings 'step index group <int>'",
                         "type": "int",
-                        "value": "1"
+                        "value": "2"
                     }
                 },
                 "wirelength": {
@@ -13909,7 +13909,7 @@
                         ],
                         "switch": "-metric_cellarea step index group <float>",
                         "type": "float",
-                        "value": "414.0"
+                        "value": "415.0"
                     }
                 },
                 "cells": {
@@ -13923,7 +13923,7 @@
                         ],
                         "switch": "-metric_cells step index group <int>",
                         "type": "int",
-                        "value": "363"
+                        "value": "364"
                     }
                 },
                 "coverage": {
@@ -14017,7 +14017,7 @@
                         ],
                         "switch": "-metric_exetime 'step index group <float>",
                         "type": "float",
-                        "value": "0.81"
+                        "value": "0.31"
                     }
                 },
                 "holdpaths": {
@@ -14153,7 +14153,7 @@
                         ],
                         "switch": "-metric_nets step index group <int>",
                         "type": "int",
-                        "value": "320"
+                        "value": "321"
                     }
                 },
                 "overflow": {
@@ -14251,7 +14251,7 @@
                         ],
                         "switch": "-metric_setupslack 'step index group <float>'",
                         "type": "float",
-                        "value": "0.95"
+                        "value": "0.79"
                     }
                 },
                 "setuptns": {
@@ -14317,7 +14317,7 @@
                         ],
                         "switch": "-metric_standbypower step index group <float>",
                         "type": "float",
-                        "value": "8.62e-06"
+                        "value": "8.69e-06"
                     }
                 },
                 "tasktime": {
@@ -14331,7 +14331,7 @@
                         ],
                         "switch": "-metric_tasktime 'step index group <float>",
                         "type": "float",
-                        "value": "1.03"
+                        "value": "0.53"
                     }
                 },
                 "totalarea": {
@@ -14345,7 +14345,7 @@
                         ],
                         "switch": "-metric_totalarea step index group <float>",
                         "type": "float",
-                        "value": "6900.0"
+                        "value": "6916.67"
                     }
                 },
                 "transistors": {
@@ -14475,7 +14475,7 @@
                         ],
                         "switch": "-metric_cellarea step index group <float>",
                         "type": "float",
-                        "value": "490.0"
+                        "value": "485.0"
                     }
                 },
                 "cells": {
@@ -14489,7 +14489,7 @@
                         ],
                         "switch": "-metric_cells step index group <int>",
                         "type": "int",
-                        "value": "416"
+                        "value": "419"
                     }
                 },
                 "coverage": {
@@ -14583,7 +14583,7 @@
                         ],
                         "switch": "-metric_exetime 'step index group <float>",
                         "type": "float",
-                        "value": "1.01"
+                        "value": "0.51"
                     }
                 },
                 "holdpaths": {
@@ -14719,7 +14719,7 @@
                         ],
                         "switch": "-metric_nets step index group <int>",
                         "type": "int",
-                        "value": "373"
+                        "value": "376"
                     }
                 },
                 "overflow": {
@@ -14747,7 +14747,7 @@
                         ],
                         "switch": "-metric_peakpower step index group <float>",
                         "type": "float",
-                        "value": "0.000206"
+                        "value": "0.000205"
                     }
                 },
                 "pins": {
@@ -14817,7 +14817,7 @@
                         ],
                         "switch": "-metric_setupslack 'step index group <float>'",
                         "type": "float",
-                        "value": "1.11"
+                        "value": "1.01"
                     }
                 },
                 "setuptns": {
@@ -14883,7 +14883,7 @@
                         ],
                         "switch": "-metric_standbypower step index group <float>",
                         "type": "float",
-                        "value": "1.13e-05"
+                        "value": "1.12e-05"
                     }
                 },
                 "tasktime": {
@@ -14897,7 +14897,7 @@
                         ],
                         "switch": "-metric_tasktime 'step index group <float>",
                         "type": "float",
-                        "value": "1.2"
+                        "value": "0.74"
                     }
                 },
                 "totalarea": {
@@ -14911,7 +14911,7 @@
                         ],
                         "switch": "-metric_totalarea step index group <float>",
                         "type": "float",
-                        "value": "6125.0"
+                        "value": "6062.5"
                     }
                 },
                 "transistors": {
@@ -14981,7 +14981,7 @@
                         ],
                         "switch": "-metric_warnings 'step index group <int>'",
                         "type": "int",
-                        "value": "2"
+                        "value": "1"
                     }
                 },
                 "wirelength": {
@@ -15041,7 +15041,7 @@
                         ],
                         "switch": "-metric_cellarea step index group <float>",
                         "type": "float",
-                        "value": "499.0"
+                        "value": "494.0"
                     }
                 },
                 "cells": {
@@ -15055,7 +15055,7 @@
                         ],
                         "switch": "-metric_cells step index group <int>",
                         "type": "int",
-                        "value": "1869"
+                        "value": "1899"
                     }
                 },
                 "coverage": {
@@ -15149,7 +15149,7 @@
                         ],
                         "switch": "-metric_exetime 'step index group <float>",
                         "type": "float",
-                        "value": "2.41"
+                        "value": "2.21"
                     }
                 },
                 "holdpaths": {
@@ -15285,7 +15285,7 @@
                         ],
                         "switch": "-metric_nets step index group <int>",
                         "type": "int",
-                        "value": "378"
+                        "value": "381"
                     }
                 },
                 "overflow": {
@@ -15313,7 +15313,7 @@
                         ],
                         "switch": "-metric_peakpower step index group <float>",
                         "type": "float",
-                        "value": "0.000291"
+                        "value": "0.000289"
                     }
                 },
                 "pins": {
@@ -15383,7 +15383,7 @@
                         ],
                         "switch": "-metric_setupslack 'step index group <float>'",
                         "type": "float",
-                        "value": "1.09"
+                        "value": "0.98"
                     }
                 },
                 "setuptns": {
@@ -15463,7 +15463,7 @@
                         ],
                         "switch": "-metric_tasktime 'step index group <float>",
                         "type": "float",
-                        "value": "2.68"
+                        "value": "2.52"
                     }
                 },
                 "totalarea": {
@@ -15477,7 +15477,7 @@
                         ],
                         "switch": "-metric_totalarea step index group <float>",
                         "type": "float",
-                        "value": "6237.5"
+                        "value": "6175.0"
                     }
                 },
                 "transistors": {
@@ -15533,7 +15533,7 @@
                         ],
                         "switch": "-metric_vias step index group <int>",
                         "type": "int",
-                        "value": "2194"
+                        "value": "2211"
                     }
                 },
                 "warnings": {
@@ -15547,7 +15547,7 @@
                         ],
                         "switch": "-metric_warnings 'step index group <int>'",
                         "type": "int",
-                        "value": "3"
+                        "value": "1"
                     }
                 },
                 "wirelength": {
@@ -15561,7 +15561,7 @@
                         ],
                         "switch": "-metric_wirelength step index group <float>",
                         "type": "float",
-                        "value": "6291.0"
+                        "value": "6317.0"
                     }
                 }
             }
@@ -15607,7 +15607,7 @@
                         ],
                         "switch": "-metric_cellarea step index group <float>",
                         "type": "float",
-                        "value": "413.63"
+                        "value": "414.96"
                     }
                 },
                 "cells": {
@@ -15621,7 +15621,7 @@
                         ],
                         "switch": "-metric_cells step index group <int>",
                         "type": "int",
-                        "value": "249"
+                        "value": "250"
                     }
                 },
                 "coverage": {
@@ -15715,7 +15715,7 @@
                         ],
                         "switch": "-metric_exetime 'step index group <float>",
                         "type": "float",
-                        "value": "0.61"
+                        "value": "0.71"
                     }
                 },
                 "holdpaths": {
@@ -16029,7 +16029,7 @@
                         ],
                         "switch": "-metric_tasktime 'step index group <float>",
                         "type": "float",
-                        "value": "0.77"
+                        "value": "0.97"
                     }
                 },
                 "totalarea": {
@@ -16258,6 +16258,29 @@
             "switch": "-pdk_d0 <float>",
             "type": "float",
             "value": "1.25"
+        },
+        "display": {
+            "klayout": {
+                "10M": {
+                    "author": [],
+                    "copy": "false",
+                    "date": [],
+                    "defvalue": [],
+                    "filehash": [],
+                    "hashalgo": [
+                        "sha256"
+                    ],
+                    "lock": "false",
+                    "require": null,
+                    "shorthelp": "PDK display configuration file",
+                    "signature": [],
+                    "switch": "-pdk_display 'tool stackup <file>'",
+                    "type": "[file]",
+                    "value": [
+                        "../third_party/pdks/virtual/freepdk45/pdk/r1p0/setup/klayout/freepdk45.lyp"
+                    ]
+                }
+            }
         },
         "edgemargin": {
             "defvalue": null,
@@ -17386,7 +17409,7 @@
         "value": "true"
     },
     "remote": {
-        "defvalue": false,
+        "defvalue": "false",
         "lock": "false",
         "require": null,
         "shorthelp": "Enables remote processing",
@@ -17395,7 +17418,7 @@
         ],
         "switch": "-remote <bool>",
         "type": "bool",
-        "value": false
+        "value": "false"
     },
     "show": {
         "defvalue": "false",
@@ -17552,14 +17575,14 @@
             "value": "0.7.0"
         },
         "schema": {
-            "defvalue": "0.7.0",
+            "defvalue": "0.8.0",
             "lock": "true",
             "require": "all",
             "shorthelp": "Schema version number",
             "signature": null,
             "switch": "-version_schema <str>",
             "type": "str",
-            "value": "0.7.0"
+            "value": "0.8.0"
         }
     }
 }
