@@ -92,7 +92,12 @@ set sc_techlef     [dict get $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtyp
 set sc_tapmax      [expr {int([lindex [dict get $sc_cfg pdk tapmax] end])}]
 set sc_tapoffset   [lindex [dict get $sc_cfg pdk tapoffset] end]
 
-set sc_supplies    [dict keys [dict get $sc_cfg supply]]
+# TODO: why do we need to check whether key exists? I thought this was fixed.
+if {[dict exists $sc_cfg suppy]} {
+    set sc_supplies    [dict keys [dict get $sc_cfg supply]]
+} else {
+    set sc_supplies    [list]
+}
 
 set sc_threads     [dict get $sc_cfg eda $sc_tool threads $sc_step $sc_index ]
 
