@@ -858,9 +858,33 @@ def schema_pdk(cfg, stackup='default'):
             "cli: -pdk_lvs_runset 'magic M10 $PDK/lvs.magicrc'",
             "api: chip.set('pdk','lvs','runset','magic', 'M10','$PDK/lvs.magicrc')"],
         'help': """
-        Runset files for runset LVS verification
+        Runset files for LVS verification
         """
     }
+
+    cfg['pdk']['lvs']['waiver'] = {}
+    cfg['pdk']['lvs']['waiver'][tool] = {}
+    cfg['pdk']['lvs']['waiver'][tool][stackup] = {
+        'switch': "-pdk_lvs_waiver 'tool stackup <file>'",
+        'require': None,
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'PDK LVS waiver files',
+        'example': [
+            "cli: -pdk_lvs_waiver 'magic M10 $PDK/waiver.txt'",
+            "api: chip.set('pdk','lvs','waiver','magic', 'M10','$PDK/waiver.txt')"],
+        'help': """
+        Waiver files for LVS verification
+        """
+    }
+
 
     # DRC settings
     cfg['pdk']['drc'] = {}
@@ -883,11 +907,10 @@ def schema_pdk(cfg, stackup='default'):
             "cli: -pdk_drc_runset 'magic M10 $PDK/drc.magicrc'",
             "api: chip.set('pdk','drc','runset','magic', 'M10','$PDK/drc.magicrc')"],
         'help': """
-        Runset files for runset DRC verification
+        Runset files for DRC verification
         """
     }
 
-    cfg['pdk']['drc'] = {}
     cfg['pdk']['drc']['waiver'] = {}
     cfg['pdk']['drc']['waiver'][tool] = {}
     cfg['pdk']['drc']['waiver'][tool][stackup] = {
@@ -907,7 +930,7 @@ def schema_pdk(cfg, stackup='default'):
             "cli: -pdk_drc_waiver 'magic M10 $PDK/waiver.txt'",
             "api: chip.set('pdk','drc','waiver','magic','M10,'$PDK/waiver.txt')"],
         'help': """
-        Design rule waiver file for DRC verification
+        Waiver files for DRC verification
         """
     }
 
@@ -932,11 +955,10 @@ def schema_pdk(cfg, stackup='default'):
             "cli: -pdk_erc_runset 'magic M10 $PDK/erc.magicrc'",
             "api: chip.set('pdk','erc','runset','magic','M10','$PDK/erc.magicrc')"],
         'help': """
-        Runset files for runset ERC verification
+        Runset files for ERC verification
         """
     }
 
-    cfg['pdk']['erc'] = {}
     cfg['pdk']['erc']['waiver'] = {}
     cfg['pdk']['erc']['waiver'][tool] = {}
     cfg['pdk']['erc']['waiver'][tool][stackup] = {
@@ -956,7 +978,7 @@ def schema_pdk(cfg, stackup='default'):
             "cli: -pdk_erc_waiver 'magic M10 $PDK/waiver.txt'",
             "api: chip.set('pdk','erc','waiver','magic','M10,'$PDK/waiver.txt')"],
         'help': """
-        Design rule waiver file for ERC verification
+        Waiver files for ERC verification
         """
     }
 
