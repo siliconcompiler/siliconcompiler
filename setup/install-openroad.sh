@@ -1,5 +1,5 @@
 #!/bin/sh
-sudo apt-get install -y pkg-config build-essential libatomic-ops-dev python3 bison flex libreadline-dev gawk libffi-dev git graphviz tcl xdot libboost-system-dev libboost-python-dev libboost-filesystem-dev zlib1g-dev cmake swig libeigen3-dev
+sudo apt-get install -y pkg-config build-essential libatomic-ops-dev python3 bison flex libreadline-dev gawk libffi-dev git graphviz tcl xdot libboost-system-dev libboost-python-dev libboost-filesystem-dev libboost-serialization-dev libboost-thread-dev zlib1g-dev cmake swig libeigen3-dev
 sudo apt-get install -y libboost-test-dev libspdlog-dev libqt5opengl5-dev
 
 mkdir -p deps

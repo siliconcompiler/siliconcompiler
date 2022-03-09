@@ -86,8 +86,11 @@ def setup(chip):
                  pdkdir+'/apr/freepdk45.tech.lef')
 
     # Klayout setup file
-    chip.set('pdk','layermap','klayout',stackup, 'def', 'gds',
+    chip.set('pdk','layermap', 'klayout', stackup, 'def', 'gds',
              pdkdir+'/setup/klayout/freepdk45.lyt')
+
+    chip.set('pdk', 'display', 'klayout', stackup,
+            pdkdir + '/setup/klayout/freepdk45.lyp')
 
     # Routing Grid Definitions
     for layer, sc_name in [('metal1', 'm1')]:

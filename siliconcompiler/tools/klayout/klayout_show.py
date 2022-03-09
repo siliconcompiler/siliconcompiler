@@ -15,18 +15,14 @@ sc_stackup = sc_cfg['pdk']['stackup']['value'][0]
 sc_mainlib = sc_cfg['asic']['logiclib']['value'][0]
 sc_libtype = sc_cfg['library'][sc_mainlib]['arch']['value']
 
-# The layermap may be provided as part of a KLayout tech file (.lyt),
-# or in the standalone format (.lyp).
-tech_filename = sc_cfg['pdk']['layermap']['klayout'][sc_stackup]['def']['gds']['value'][0]
-tech_file = None
-lyp_path = None
-if tech_filename:
-    if tech_filename[-4:] == '.lyt':
-        # 'lyp_path' will be read out of the .lyt file later.
-        tech_file = tech_filename
-    elif tech_filename[-4:] == '.lyp':
-        # Tech file will not be imported, only layermap properties.
-        lyp_path = tech_filename
+try:
+    tech_file = sc_cfg['pdk']['layermap']['klayout'][sc_stackup]['def']['gds']['value'][0]
+except KeyError:
+    tech_file = None
+try:
+    lyp_path = sc_cfg['pdk']['display']['klayout'][sc_stackup]['value'][0]
+except KeyError:
+    lyp_path = None
 
 macro_lefs = []
 if 'macrolib' in sc_cfg['asic']:
@@ -82,12 +78,6 @@ app.set_config('text-visible', 'false')
 # Display the file!
 cell_view = pya.MainWindow.instance().load_layout(filename, layoutOptions, 0)
 layout_view = cell_view.view()
-
-if tech_file and os.path.isfile(tech_file):
-    # We assume the layer properties file is specified as a relative path in our
-    # technology file, and resolve it relative to the tech file's directory.
-    tech_file_dir = os.path.dirname(tech_file)
-    lyp_path = tech_file_dir + '/' + tech.layer_properties_file
 
 if lyp_path:
     # Set layer properties -- setting second argument to True ensures things like
