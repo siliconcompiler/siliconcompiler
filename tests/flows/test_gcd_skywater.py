@@ -1,5 +1,5 @@
 import siliconcompiler
-from siliconcompiler.floorplan import Floorplan
+from siliconcompiler.floorplan import Floorplan, _layer_i
 
 import math
 import os
@@ -31,10 +31,9 @@ def place_pdn(fp, vdd, vss, hwidth, hspacing, hlayer, vwidth, vspacing,
    vdd_ring_height = vss_ring_height - 4 * hwidth
 
    fp.place_ring(vdd, vdd_ring_left, vdd_ring_bottom, vdd_ring_width,
-                   vdd_ring_height, hwidth, vwidth, hlayer, vlayer, pins=True)
+                   vdd_ring_height, hwidth, vwidth, hlayer, vlayer)
    fp.place_ring(vss, vss_ring_left, vss_ring_bottom, vss_ring_width,
-                   vss_ring_height, hwidth, vwidth, hlayer, vlayer, pins=True)
-
+                   vss_ring_height, hwidth, vwidth, hlayer, vlayer)
    # Horizontal stripes
    spacing = 2 * (hspacing + hwidth)
    n_hori = int(core_h // (hspacing + hwidth))
@@ -78,8 +77,8 @@ def place_pdn(fp, vdd, vss, hwidth, hspacing, hlayer, vwidth, vspacing,
    fp.place_wires([vss] * ngnd, core_left, bottom, 0, spacing,
                     core_w, stripe_w, stripe_layer, 'followpin')
 
-   vlayer_i = fp._layer_i(fp.layers[vlayer]['sc_name'])
-   hlayer_i = fp._layer_i(fp.layers[hlayer]['sc_name'])
+   vlayer_i = _layer_i(fp.layers[vlayer]['sc_name'])
+   hlayer_i = _layer_i(fp.layers[hlayer]['sc_name'])
    if vlayer_i > hlayer_i:
        gridlayers = hlayer, vlayer
    else:
