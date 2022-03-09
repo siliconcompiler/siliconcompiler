@@ -46,11 +46,9 @@ def test_show_lyp(datadir, display, headless=True):
     chip.load_target(f'freepdk45_demo')
     chip.set("quiet", True)
 
-    # Replace the '.lyt' file with the corresponding '.lyp'
-    stackup = chip.get('pdk', 'stackup')[0]
-    klayout_techfile = chip.get('pdk', 'layermap', 'klayout', stackup, 'def', 'gds')[0]
-    klayout_layerprops = klayout_techfile[:-4] + '.lyp'
-    chip.set('pdk', 'layermap', 'klayout', stackup, 'def', 'gds', klayout_layerprops, clobber=True)
+    # Remove the '.lyt' file
+    stackup = chip.get('asic', 'stackup')
+    chip.set('pdk', 'layermap', 'klayout', stackup, 'def', 'gds', None)
 
     if headless:
         # Adjust command line options to exit KLayout after run
