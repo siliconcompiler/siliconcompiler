@@ -47,12 +47,9 @@ def setup(chip):
     index = chip.get('arg','index')
 
     # magic used for drc and lvs
-    if step == 'drc':
-        script = 'sc_drc.tcl'
-    elif step == 'extspice':
-        script = 'sc_extspice.tcl'
-    else:
+    if step not in ('drc', 'extspice'):
         raise ValueError(f"Magic tool doesn't support step {step}.")
+    script = 'sc_magic.tcl'
 
     chip.set('eda', tool, 'exe', tool)
     chip.set('eda', tool, 'vswitch', '--version')
