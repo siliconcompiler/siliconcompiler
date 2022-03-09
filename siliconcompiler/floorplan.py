@@ -260,6 +260,7 @@ class Floorplan:
 
             self.layers[sc_name] = {
                 'name': pdk_name,
+                'sc_name': sc_name,
                 'width': width,
                 'direction': direction,
                 'xpitch': xpitch,
@@ -1086,7 +1087,7 @@ class Floorplan:
                 'vias': []
             }
 
-    def place_ring(self, net, x, y, width, height, hwidth, vwidth, hlayer, vlayer):
+    def place_ring(self, net, x, y, width, height, hwidth, vwidth, hlayer, vlayer, pins=False):
         '''Place wire ring.
 
         Args:
@@ -1099,6 +1100,7 @@ class Floorplan:
             vwidth (float): Width of vertical wires used in ring.
             hlayer (str): Metal layer to place horizontal wires on.
             vlayer (str): Metal layer to place vertical wires on.
+            pins (bool): Whether to overlay pin definitions on rings.
         '''
 
         # bottom
@@ -1109,6 +1111,12 @@ class Floorplan:
         self.place_wires([net], x, y, 0, 0, vwidth, height, vlayer, 'stripe')
         # right
         self.place_wires([net], x + width - vwidth, y, 0, 0, vwidth, height, vlayer, 'stripe')
+
+        if pins:
+            self.place_pins([net], x, y, 0, 0, width, hwidth, hlayer, use='power')
+            self.place_pins([net], x, y + height - hwidth, 0, 0, width, hwidth, hlayer, use='power')
+            self.place_pins([net], x, y, 0, 0, vwidth, height, vlayer, use='power')
+            self.place_pins([net], x + width - vwidth, y, 0, 0, vwidth, height, vlayer, use='power')
 
     def _determine_num_via_cols(self, viarule, width, lower_dir):
         '''Determine number of via columns we can insert in a given intersection.
@@ -1283,7 +1291,8 @@ class Floorplan:
                 empty or None, look at all nets.
             layers (list of tuples): List of tuples representing pairs of layers
                 to check for intersections between. If empty or None, look at all
-                layer pairs.
+                layer pairs. Each pair should be ordered with lower layer
+                first and higher layer second.
         '''
 
         if not nets:
@@ -1294,8 +1303,7 @@ class Floorplan:
                 raise ValueError(f'Unable to insert vias on net {net}, not '
                     'in list of known specialnets.')
 
-            # TODO: is this valid? trying to sort from bottom to top
-            wires = sorted(self.nets[net]['wires'], key=lambda w: w['sclayer'] )
+            wires = sorted(self.nets[net]['wires'], key=lambda w: _layer_i(w['sclayer']) )
             for i, wire_bottom in enumerate(wires):
                 for wire_top in wires[i:]:
                     bottom_layer = wire_bottom['sclayer']

@@ -92,6 +92,13 @@ set sc_techlef     [dict get $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtyp
 set sc_tapmax      [expr {int([lindex [dict get $sc_cfg pdk tapmax] end])}]
 set sc_tapoffset   [lindex [dict get $sc_cfg pdk tapoffset] end]
 
+# TODO: why do we need to check whether key exists? I thought this was fixed.
+if {[dict exists $sc_cfg suppy]} {
+    set sc_supplies    [dict keys [dict get $sc_cfg supply]]
+} else {
+    set sc_supplies    [list]
+}
+
 set sc_threads     [dict get $sc_cfg eda $sc_tool threads $sc_step $sc_index ]
 
 # Sweep parameters
@@ -145,13 +152,11 @@ if {$sc_step == "floorplan"} {
 
 # Read DEF
 if {[dict exists $sc_cfg "read" def $sc_step $sc_index]} {
-    foreach def [dict get $sc_cfg "read" def $sc_step $sc_index] {
-	if {$sc_step == "floorplan"} {
-	    #only one floorplan supported
-	    read_def -floorplan_initialize $def
-	} else {
-	    read_def $def
-	}
+    if {$sc_step != "floorplan"} {
+        # Floorplan initialize handled separately in sc_floorplan.tcl
+        foreach def [dict get $sc_cfg "read" def $sc_step $sc_index] {
+            read_def $def
+        }
     }
 } elseif {[file exists "inputs/$sc_design.def"]} {
     read_def "inputs/$sc_design.def"

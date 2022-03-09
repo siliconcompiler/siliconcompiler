@@ -7,7 +7,7 @@ cd deps
 
 git clone https://github.com/RTimothyEdwards/magic.git
 cd magic
-git checkout 8.3.196
+git checkout 8.3.274
 
 ./configure
 make
