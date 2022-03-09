@@ -90,13 +90,13 @@ def setup(chip):
                  pdkdir+'/apr/sky130_fd_sc_hd.tlef')
 
     # DRC Runsets
-    chip.set('pdk','drc','magic', stackup, 'runset', pdkdir+'/setup/magic/sky130A.tech')
+    chip.set('pdk','drc','runset', 'magic', stackup, pdkdir+'/setup/magic/sky130A.tech')
 
     # LVS Runsets
-    chip.set('pdk','lvs','netgen', stackup, 'runset', pdkdir+'/setup/netgen/lvs_setup.tcl')
+    chip.set('pdk','lvs','runset','netgen', stackup, pdkdir+'/setup/netgen/lvs_setup.tcl')
 
     # Layer map
-    chip.set('pdk','layermap','klayout',stackup, 'def', 'gds', pdkdir+'/setup/klayout/skywater130.lyt')
+    chip.set('pdk','layermap','klayout', stackup, 'def', 'gds', pdkdir+'/setup/klayout/skywater130.lyt')
 
     # Routing Grid Definitions
 
