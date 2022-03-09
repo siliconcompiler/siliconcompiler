@@ -32,4 +32,4 @@ def test_klayout(datadir):
 
     with open(result, 'rb') as gds_file:
         data = gds_file.read()
-        assert hashlib.md5(data).hexdigest() == '1fa776a8ce442b1a4072d85d638c4bdd'
+        assert hashlib.md5(data).hexdigest() == '5045229cefe367e6cb4200b3e2f5bd54'
