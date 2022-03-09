@@ -3911,6 +3911,8 @@ class Chip:
             self.set('arg', 'index', index)
             setup_tool = self.find_function(tool, 'setup', 'tools')
             setup_tool(self, mode='show')
+            self.set('arg', 'step', None)
+            self.set('arg', 'index', None)
 
             exe = self._getexe(tool)
             if shutil.which(exe) is None:
