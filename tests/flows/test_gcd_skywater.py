@@ -173,7 +173,6 @@ def test_gcd_checks(scroot):
     chip.set('quiet', True)
     chip.set('clock', 'core_clock', 'pin', 'clk')
     chip.set('clock', 'core_clock', 'period', 2)
-    # chip.set('flowarg', 'verify', 'true')
 
     chip.load_target("skywater130_demo")
 

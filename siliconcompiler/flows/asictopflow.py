@@ -8,6 +8,7 @@ def make_docs():
     verification/signoff flow.
     '''
     chip = siliconcompiler.Chip()
+    chip.set('flow', 'asictopflow')
     setup(chip)
     return chip
 

@@ -10,6 +10,7 @@ def make_docs():
         chip.set('read', 'gds', 'drc', '0', '<path-to-layout>.gds')
     '''
     chip = siliconcompiler.Chip()
+    chip.set('flow', 'signoffflow')
     setup(chip)
     return chip
 
