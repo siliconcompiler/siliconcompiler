@@ -64,7 +64,10 @@ def setup(chip):
 
     design = chip.get('design')
     chip.add('eda', tool, 'input', step, index, f'{design}.spice')
-    chip.add('eda', tool, 'input', step, index, f'{design}.vg')
+    if chip.valid('read', 'netlist', step, index):
+        chip.add('eda', tool, 'require', step, index, ','.join(['read', 'netlist', step, index]))
+    else:
+        chip.add('eda', tool, 'input', step, index, f'{design}.vg')
     chip.add('eda', tool, 'output', step, index, f'{design}.lvs.out')
 
 ################################
