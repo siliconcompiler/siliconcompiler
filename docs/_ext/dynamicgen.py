@@ -338,9 +338,10 @@ class LibGen(DynamicGen):
     def extra_content(self, chip, modname):
         # assume same pdk for all libraries configured by this module
         libname = chip.getkeys('library')[0]
-        pdk = chip.get('library', libname, 'pdk')
+        pdks = chip.get('library', libname, 'pdk')
 
-        if pdk:
+        if len(pdks) > 0:
+            pdk = pdks[0]
             p = docutils.nodes.inline('')
             self.parse_rst(f'Associated PDK: :ref:`{pdk}<{pdk}-ref>`', p)
             return [p]
