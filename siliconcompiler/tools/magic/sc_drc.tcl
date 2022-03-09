@@ -20,6 +20,9 @@ set sc_macrolibs [dict get $sc_cfg asic macrolib]
 set sc_exclude [dict get $sc_cfg asic exclude]
 set sc_stackup [dict get $sc_cfg asic stackup]
 
+set sc_step    [dict get $sc_cfg arg step]
+set sc_index   [dict get $sc_cfg arg index]
+
 # Ignore specific libraries by reading their LEFs (causes magic to abstract them)
 foreach lib $sc_macrolibs {
     puts $lib
@@ -30,7 +33,13 @@ foreach lib $sc_macrolibs {
 
 gds noduplicates true
 
-gds read inputs/$sc_design.gds
+if {[dict exists $sc_cfg "read" gds $sc_step $sc_index]} {
+    set gds_path [dict get $sc_cfg "read" gds $sc_step $sc_index]
+} else {
+    set gds_path "inputs/$sc_design.gds"
+}
+
+gds read $gds_path
 puts $sc_design.gds
 set fout [open outputs/$sc_design.drc w]
 set oscale [cif scale out]

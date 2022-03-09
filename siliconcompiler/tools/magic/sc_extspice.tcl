@@ -9,6 +9,9 @@ set sc_liblef  [dict get $sc_cfg library $sc_mainlib lef $sc_stackup]
 set sc_macrolibs [dict get $sc_cfg asic macrolib]
 set sc_exclude [dict get $sc_cfg asic exclude]
 
+set sc_step    [dict get $sc_cfg arg step]
+set sc_index   [dict get $sc_cfg arg index]
+
 lef read $sc_techlef
 lef read $sc_liblef
 
@@ -20,8 +23,14 @@ foreach lib $sc_macrolibs {
     }
 }
 
+if {[dict exists $sc_cfg "read" gds $sc_step $sc_index]} {
+    set gds_path [dict get $sc_cfg "read" gds $sc_step $sc_index]
+} else {
+    set gds_path "inputs/$sc_design.gds"
+}
+
 gds noduplicates true
-gds read inputs/$sc_design.gds
+gds read $gds_path
 
 # Extract layout to Spice netlist
 load $sc_design -dereference

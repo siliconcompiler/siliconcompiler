@@ -69,7 +69,10 @@ def setup(chip):
     chip.set('eda', tool, 'option', step, index,  options, clobber=False)
 
     design = chip.get('design')
-    chip.add('eda', tool, 'input', step, index, f'{design}.gds')
+    if chip.valid('read', 'gds', step, index):
+        chip.add('eda', tool, 'require', step, index, ','.join(['read', 'gds', step, index]))
+    else:
+        chip.add('eda', tool, 'input', step, index, f'{design}.gds')
     if step == 'extspice':
         chip.add('eda', tool, 'output', step, index, f'{design}.spice')
     elif step == 'drc':

@@ -6,8 +6,16 @@ set sc_exclude [dict get $sc_cfg asic exclude]
 set sc_stackup [dict get $sc_cfg asic stackup]
 set sc_runset [dict get $sc_cfg pdk lvs netgen $sc_stackup runset]
 
+set sc_step    [dict get $sc_cfg arg step]
+set sc_index   [dict get $sc_cfg arg index]
+
 set layout_file "inputs/$sc_design.spice"
-set schematic_file "inputs/$sc_design.vg"
+if {[dict exists $sc_cfg "read" netlist $sc_step $sc_index]} {
+    set schematic_file [dict get $sc_cfg "read" netlist $sc_step $sc_index]
+} else {
+    set schematic_file "inputs/$sc_design.vg"
+}
+
 
 # readnet returns a number that can be used to associate additional files with
 # each netlist read in here
