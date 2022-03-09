@@ -31,6 +31,7 @@ def setup(chip):
     #2. Load PDK, flow, libs
     chip.load_pdk('skywater130')
     chip.load_flow('asicflow')
+    chip.load_flow('signoffflow')
     chip.load_lib('sky130')
 
     #3. Set default targets

@@ -173,7 +173,7 @@ def test_gcd_checks(scroot):
     chip.set('quiet', True)
     chip.set('clock', 'core_clock', 'pin', 'clk')
     chip.set('clock', 'core_clock', 'period', 2)
-    chip.set('flowarg', 'verify', 'true')
+    # chip.set('flowarg', 'verify', 'true')
 
     chip.load_target("skywater130_demo")
 
@@ -184,14 +184,30 @@ def test_gcd_checks(scroot):
     chip.set('supply', 'vss', 'pin', 'vss')
     chip.set('supply', 'vss', 'level', 0)
 
+    # 1) RTL2GDS
+
     def_path = make_floorplan(chip)
     chip.set('read', 'def', 'floorplan', '0', def_path)
 
     # Run the chip's build process synchronously.
     chip.run()
 
+    gds_path = chip.find_result('gds', step='export')
+    vg_path = chip.find_result('vg', step='dfm')
+
     # Verify that GDS and SVG files were generated.
-    assert os.path.isfile('build/gcd/job0/export/0/outputs/gcd.gds')
+    assert os.path.isfile(gds_path)
+
+    # 2) Signoff
+
+    chip.set('jobname', 'signoff')
+    chip.set('flow', 'signoffflow')
+
+    chip.set('read', 'gds', 'drc', '0', gds_path)
+    chip.set('read', 'gds', 'extspice', '0', gds_path)
+    chip.set('read', 'netlist', 'lvs', '0', vg_path)
+
+    chip.run()
 
     # Verify that the build was LVS and DRC clean.
     assert chip.get('metric', 'lvs', '0', 'errors', 'real') == 0

@@ -38,9 +38,6 @@ def make_docs():
     * place_np : Number of parallel place jobs to launch
     * cts_np : Number of parallel clock tree synthesis jobs to launch
     * route_np : Number of parallel routing jobs to launch
-
-    In order to enable running DRC and LVS verification, set the 'flowarg',
-    'verify' arg to "true" (currently supported for Skywater130 only).
     '''
 
     chip = siliconcompiler.Chip()
@@ -113,11 +110,6 @@ def setup(chip, flowname='asicflow'):
             flowpipe.append(step)
         prevstep = step
 
-    # Run verification steps only if `flowarg, verify` is True
-    verify = ('verify' in chip.getkeys('flowarg') and
-              len(chip.get('flowarg', 'verify')) > 0 and
-              chip.get('flowarg', 'verify')[0] == 'true')
-
     # Set mandatory mode
     chip.set('mode', 'asic')
 
@@ -153,22 +145,6 @@ def setup(chip, flowname='asicflow'):
             for metric in ('cellarea', 'peakpower', 'standbypower'):
                 chip.set('flowgraph', flowname, step, str(index), 'weight', metric, 1.0)
         prevstep = step
-
-    # If running verify steps, manually set up parallel LVS/DRC
-    if verify:
-        chip.node(flowname, 'extspice', 'magic')
-        chip.node(flowname, 'lvsjoin', 'join')
-        chip.node(flowname, 'drc', 'magic')
-        chip.node(flowname, 'lvs', 'netgen')
-        chip.node(flowname, 'signoff', 'join')
-
-        chip.edge(flowname, 'export', 'extspice')
-        chip.edge(flowname, 'extspice', 'lvsjoin')
-        chip.edge(flowname, 'dfm', 'lvsjoin')
-        chip.edge(flowname, 'lvsjoin', 'lvs')
-        chip.edge(flowname, 'export', 'drc')
-        chip.edge(flowname, 'lvs', 'signoff')
-        chip.edge(flowname, 'drc', 'signoff')
 
 ##################################################
 if __name__ == "__main__":
