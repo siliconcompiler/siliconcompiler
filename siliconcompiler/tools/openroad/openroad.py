@@ -130,6 +130,10 @@ def setup(chip, mode='batch'):
         chip.add('eda', tool, 'require', step, index, ','.join(['clock', clock, 'period']))
         chip.add('eda', tool, 'require', step, index, ','.join(['clock', clock, 'pin']))
 
+    for supply in chip.getkeys('supply'):
+        chip.add('eda', tool, 'require', step, index, ','.join(['supply', supply, 'level']))
+        chip.add('eda', tool, 'require', step, index, ','.join(['supply', supply, 'pin']))
+
 ################################
 # Version Check
 ################################

@@ -103,6 +103,33 @@ if {[expr ! [dict exists $sc_cfg "read" def $sc_step $sc_index]]} {
     ###########################
     #pdngen $::env(PDN_CFG) -verbose
 
+} else {
+    ###########################
+    # Add power nets
+    ###########################
+    set block [ord::get_db_block]
+    foreach supply $sc_supplies {
+        set pin [dict get $sc_cfg supply $supply pin]
+        puts $pin
+        set level [dict get $sc_cfg supply $supply level]
+        puts $level
+
+        if {[set net [$block findNet $pin]] == "NULL"} {
+            set net [odb::dbNet_create $block $pin]
+            $net setSpecial
+            if {$level > 0} {
+                $net setSigType "POWER"
+            } else {
+                $net setSigType "GROUND"
+            }
+        }
+    }
+
+    ###########################
+    # Initialize floorplan
+    ###########################
+    set def [dict get $sc_cfg "read" def $sc_step $sc_index]
+    read_def -floorplan_initialize $def
 }
 
 ###########################

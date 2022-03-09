@@ -62,6 +62,13 @@ def test_gcd_checks(scroot):
 
     chip.load_target("skywater130_demo")
 
+    chip.set('supply', 'vdd', 'pin', 'vdd')
+    # dummy level, just needs to be >0 to indicate power
+    chip.set('supply', 'vdd', 'level', 1)
+
+    chip.set('supply', 'vss', 'pin', 'vss')
+    chip.set('supply', 'vss', 'level', 0)
+
     def_path = make_floorplan(chip)
     chip.set('read', 'def', 'floorplan', '0', def_path)
 

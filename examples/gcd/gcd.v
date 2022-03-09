@@ -9,8 +9,6 @@
 //module GcdUnit
 module gcd
 (
-  input wire vdd,
-  input wire vss,
   input  wire clk,
   input  wire [  31:0] req_msg,
   output wire req_rdy,
