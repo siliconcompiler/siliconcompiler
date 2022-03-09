@@ -86,7 +86,7 @@ def setup(chip):
                  pdkdir+'/apr/freepdk45.tech.lef')
 
     # Klayout setup file
-    chip.set('pdk','layermap', 'klayout', stackup, 'def', 'gds',
+    chip.set('pdk','layermap', 'klayout', 'def', 'gds', stackup,
              pdkdir+'/setup/klayout/freepdk45.lyt')
 
     chip.set('pdk', 'display', 'klayout', stackup,

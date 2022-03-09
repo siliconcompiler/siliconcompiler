@@ -710,13 +710,14 @@ def schema_pdk(cfg, stackup='default'):
         stackup and per tool basis.
         """
     }
-
+    src = 'default'
+    dst = 'default'
     cfg['pdk']['layermap'] = {}
     cfg['pdk']['layermap'][tool] = {}
-    cfg['pdk']['layermap'][tool][stackup] = {}
-    cfg['pdk']['layermap'][tool][stackup]['default'] = {}
-    cfg['pdk']['layermap'][tool][stackup]['default']['default'] = {
-        'switch': "-pdk_layermap 'tool stackup src dst <file>'",
+    cfg['pdk']['layermap'][tool][src] = {}
+    cfg['pdk']['layermap'][tool][src][dst] = {}
+    cfg['pdk']['layermap'][tool][src][dst][stackup] = {
+        'switch': "-pdk_layermap 'tool src dst stackup <file>'",
         'require': None,
         'type': '[file]',
         'lock': 'false',
@@ -729,8 +730,8 @@ def schema_pdk(cfg, stackup='default'):
         'signature': [],
         'shorthelp': 'PDK layout data mapping file',
         'example': [
-            "cli: -pdk_layermap 'klayout M10 db gds asap7.map'",
-            "api: chip.set('pdk','layermap','klayout','M10','db','gds','asap7.map')"],
+            "cli: -pdk_layermap 'klayout db gds M10 asap7.map'",
+            "api: chip.set('pdk','layermap','klayout','db','gds','M10','asap7.map')"],
         'help': """
         Files describing input/output mapping for streaming layout data from
         one format to another. A foundry PDK will include an official layer

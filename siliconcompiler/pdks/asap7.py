@@ -83,7 +83,7 @@ def setup(chip):
              pdkdir + '/apr/openroad_tapcells.tcl')
 
     # Klayout setup file
-    chip.set('pdk','layermap','klayout',stackup, 'def', 'gds',
+    chip.set('pdk','layermap','klayout','def','gds',stackup,
              pdkdir+'/setup/klayout/asap7.lyt')
 
     # Routing Grid Definitions

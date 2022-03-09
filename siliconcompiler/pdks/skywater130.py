@@ -96,7 +96,7 @@ def setup(chip):
     chip.set('pdk','lvs','runset','netgen', stackup, pdkdir+'/setup/netgen/lvs_setup.tcl')
 
     # Layer map and display file
-    chip.set('pdk', 'layermap', 'klayout', stackup, 'def', 'gds', pdkdir+'/setup/klayout/skywater130.lyt')
+    chip.set('pdk', 'layermap', 'klayout', 'def', 'gds', stackup, pdkdir+'/setup/klayout/skywater130.lyt')
     chip.set('pdk', 'display', 'klayout', stackup, pdkdir+'/setup/klayout/sky130A.lyp')
 
     # Routing Grid Definitions
