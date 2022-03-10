@@ -16,7 +16,7 @@ sc_mainlib = sc_cfg['asic']['logiclib']['value'][0]
 sc_libtype = sc_cfg['library'][sc_mainlib]['arch']['value']
 
 try:
-    tech_file = sc_cfg['pdk']['layermap']['klayout'][sc_stackup]['def']['gds']['value'][0]
+    tech_file = sc_cfg['pdk']['layermap']['klayout']['def']['gds'][sc_stackup]['value'][0]
 except KeyError:
     tech_file = None
 try:

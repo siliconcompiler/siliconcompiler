@@ -4,7 +4,7 @@ set sc_design  [dict get $sc_cfg design]
 set sc_macrolibs [dict get $sc_cfg asic macrolib]
 set sc_exclude [dict get $sc_cfg asic exclude]
 set sc_stackup [dict get $sc_cfg asic stackup]
-set sc_runset [dict get $sc_cfg pdk lvs netgen $sc_stackup runset]
+set sc_runset [dict get $sc_cfg pdk lvs runset netgen $sc_stackup]
 
 set sc_step    [dict get $sc_cfg arg step]
 set sc_index   [dict get $sc_cfg arg index]

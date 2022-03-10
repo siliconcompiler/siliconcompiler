@@ -18,7 +18,7 @@ def schema_cfg():
     # SC version number (bump on every non trivial change)
     # Version number following semver standard.
 
-    SCHEMA_VERSION = '0.7.0'
+    SCHEMA_VERSION = '0.8.0'
 
     # Basic schema setup
     cfg = {}
@@ -562,9 +562,9 @@ def schema_pdk(cfg, stackup='default'):
     key='default'
     cfg['pdk']['file'] = {}
     cfg['pdk']['file'][tool] = {}
-    cfg['pdk']['file'][tool][stackup] = {}
-    cfg['pdk']['file'][tool][stackup][key] = {
-        'switch': "-pdk_file 'tool stackup key <file>'",
+    cfg['pdk']['file'][tool][key] = {}
+    cfg['pdk']['file'][tool][key][stackup] = {
+        'switch': "-pdk_file 'tool key stackup <file>'",
         'require': None,
         'type': '[file]',
         'lock': 'false',
@@ -577,8 +577,8 @@ def schema_pdk(cfg, stackup='default'):
         'signature': [],
         'shorthelp': 'PDK named file',
         'example': [
-            "cli: -pdk_file 'xyce M10 spice asap7.sp'",
-            "api: chip.set('pdk','file','xyce','M10','spice','asap7.sp')"],
+            "cli: -pdk_file 'xyce spice M10 asap7.sp'",
+            "api: chip.set('pdk','file','xyce','spice','M10','asap7.sp')"],
         'help': """
         List of named files specified on a per tool and per stackup basis.
         The parameter should only be used for specifying files that are
@@ -588,9 +588,9 @@ def schema_pdk(cfg, stackup='default'):
 
     cfg['pdk']['directory'] = {}
     cfg['pdk']['directory'][tool] = {}
-    cfg['pdk']['directory'][tool][stackup] = {}
-    cfg['pdk']['directory'][tool][stackup][key] = {
-        'switch': "-pdk_directory 'tool stackup key <file>'",
+    cfg['pdk']['directory'][tool][key] = {}
+    cfg['pdk']['directory'][tool][key][stackup] = {
+        'switch': "-pdk_directory 'tool key stackup <file>'",
         'require': None,
         'type': '[dir]',
         'lock': 'false',
@@ -599,8 +599,8 @@ def schema_pdk(cfg, stackup='default'):
         'signature': [],
         'shorthelp': 'PDK named directory',
         'example': [
-            "cli: -pdk_directory 'xyce M10 rfmodel rftechdir'",
-            "api: chip.set('pdk','directory','xyce','M10','rfmodel','rftechdir')"],
+            "cli: -pdk_directory 'xyce rfmodel M10 rftechdir'",
+            "api: chip.set('pdk','directory','xyce','rfmodel','M10','rftechdir')"],
         'help': """
         List of named directories specified on a per tool and per stackup basis.
         The parameter should only be used for specifying files that are
@@ -611,8 +611,8 @@ def schema_pdk(cfg, stackup='default'):
 
     cfg['pdk']['variable'] = {}
     cfg['pdk']['variable'][tool] = {}
-    cfg['pdk']['variable'][tool][stackup] = {}
-    cfg['pdk']['variable'][tool][stackup][key] = {
+    cfg['pdk']['variable'][tool][key] = {}
+    cfg['pdk']['variable'][tool][key][stackup] = {
         'switch': "-pdk_variable 'tool stackup key <str>'",
         'require': None,
         'type': '[str]',
@@ -621,8 +621,8 @@ def schema_pdk(cfg, stackup='default'):
         'defvalue': [],
         'shorthelp': 'PDK named variable',
         'example': [
-            "cli: -pdk_variable 'xyce M10 modeltype bsim4'""",
-            "api: chip.set('pdk','variable','xyce', 'M10','modeltype','bsim4')"],
+            "cli: -pdk_variable 'xyce modeltype M10 bsim4'""",
+            "api: chip.set('pdk','variable','xyce','modeltype','M10','bsim4')"],
         'help': """
         List of key/value strings specified on a per tool and per stackup basis.
         The parameter should only be used for specifying variables that are
@@ -630,11 +630,12 @@ def schema_pdk(cfg, stackup='default'):
         """
     }
 
+    simtype = 'default'
     cfg['pdk']['devmodel'] = {}
     cfg['pdk']['devmodel'][tool] = {}
-    cfg['pdk']['devmodel'][tool][stackup] = {}
-    cfg['pdk']['devmodel'][tool][stackup]['default'] = {
-        'switch': "-pdk_devmodel 'tool stackup simtype <file>'",
+    cfg['pdk']['devmodel'][tool][simtype] = {}
+    cfg['pdk']['devmodel'][tool][simtype][stackup] = {
+        'switch': "-pdk_devmodel 'tool simtype stackup <file>'",
         'require': None,
         'type': '[file]',
         'lock': 'false',
@@ -647,8 +648,8 @@ def schema_pdk(cfg, stackup='default'):
         'signature': [],
         'shorthelp': 'PDK device models',
         'example': [
-            "cli: -pdk_devmodel 'xyce M10 spice asap7.sp'",
-            "api: chip.set('pdk','devmodel','xyce','M10','spice','asap7.sp')"],
+            "cli: -pdk_devmodel 'xyce spice M10 asap7.sp'",
+            "api: chip.set('pdk','devmodel','xyce','spice','M10','asap7.sp')"],
         'help': """
         List of filepaths to PDK device models for different simulation
         purposes and for different tools. Examples of device model types
@@ -709,13 +710,14 @@ def schema_pdk(cfg, stackup='default'):
         stackup and per tool basis.
         """
     }
-
+    src = 'default'
+    dst = 'default'
     cfg['pdk']['layermap'] = {}
     cfg['pdk']['layermap'][tool] = {}
-    cfg['pdk']['layermap'][tool][stackup] = {}
-    cfg['pdk']['layermap'][tool][stackup]['default'] = {}
-    cfg['pdk']['layermap'][tool][stackup]['default']['default'] = {
-        'switch': "-pdk_layermap 'tool stackup src dst <file>'",
+    cfg['pdk']['layermap'][tool][src] = {}
+    cfg['pdk']['layermap'][tool][src][dst] = {}
+    cfg['pdk']['layermap'][tool][src][dst][stackup] = {
+        'switch': "-pdk_layermap 'tool src dst stackup <file>'",
         'require': None,
         'type': '[file]',
         'lock': 'false',
@@ -728,8 +730,8 @@ def schema_pdk(cfg, stackup='default'):
         'signature': [],
         'shorthelp': 'PDK layout data mapping file',
         'example': [
-            "cli: -pdk_layermap 'klayout M10 db gds asap7.map'",
-            "api: chip.set('pdk','layermap','klayout','M10','db','gds','asap7.map')"],
+            "cli: -pdk_layermap 'klayout db gds M10 asap7.map'",
+            "api: chip.set('pdk','layermap','klayout','db','gds','M10','asap7.map')"],
         'help': """
         Files describing input/output mapping for streaming layout data from
         one format to another. A foundry PDK will include an official layer
@@ -838,10 +840,10 @@ def schema_pdk(cfg, stackup='default'):
     # LVS runsets
     tool = 'default'
     cfg['pdk']['lvs'] = {}
-    cfg['pdk']['lvs'][tool] = {}
-    cfg['pdk']['lvs'][tool][stackup] = {}
-    cfg['pdk']['lvs'][tool][stackup]['runset'] = {
-        'switch': "-pdk_lvs_runset 'stackup tool <file>'",
+    cfg['pdk']['lvs']['runset'] = {}
+    cfg['pdk']['lvs']['runset'][tool] = {}
+    cfg['pdk']['lvs']['runset'][tool][stackup] = {
+        'switch': "-pdk_lvs_runset 'tool stackup <file>'",
         'require': None,
         'type': '[file]',
         'lock': 'false',
@@ -855,18 +857,41 @@ def schema_pdk(cfg, stackup='default'):
         'shorthelp': 'PDK LVS runset files',
         'example': [
             "cli: -pdk_lvs_runset 'magic M10 $PDK/lvs.magicrc'",
-            "api: chip.set('pdk','lvs','magic', 'M10', 'runset', '$PDK/lvs.magicrc')"],
+            "api: chip.set('pdk','lvs','runset','magic', 'M10','$PDK/lvs.magicrc')"],
         'help': """
-        Runset files for runset LVS verification
+        Runset files for LVS verification
         """
     }
 
-    # DRC settings
+    cfg['pdk']['lvs']['waiver'] = {}
+    cfg['pdk']['lvs']['waiver'][tool] = {}
+    cfg['pdk']['lvs']['waiver'][tool][stackup] = {
+        'switch': "-pdk_lvs_waiver 'tool stackup <file>'",
+        'require': None,
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'PDK LVS waiver files',
+        'example': [
+            "cli: -pdk_lvs_waiver 'magic M10 $PDK/waiver.txt'",
+            "api: chip.set('pdk','lvs','waiver','magic', 'M10','$PDK/waiver.txt')"],
+        'help': """
+        Waiver files for LVS verification
+        """
+    }
+
+    # DRC runsets
     cfg['pdk']['drc'] = {}
-    cfg['pdk']['drc'][tool] = {}
-    cfg['pdk']['drc'][tool][stackup] = {}
-    cfg['pdk']['drc'][tool][stackup]['runset'] = {
-        'switch': "-pdk_drc_runset 'stackup tool <file>'",
+    cfg['pdk']['drc']['runset'] = {}
+    cfg['pdk']['drc']['runset'][tool] = {}
+    cfg['pdk']['drc']['runset'][tool][stackup] = {
+        'switch': "-pdk_drc_runset 'tool stackup <file>'",
         'require': None,
         'type': '[file]',
         'lock': 'false',
@@ -880,14 +905,16 @@ def schema_pdk(cfg, stackup='default'):
         'shorthelp': 'PDK DRC runset files',
         'example': [
             "cli: -pdk_drc_runset 'magic M10 $PDK/drc.magicrc'",
-            "api: chip.set('pdk','drc','magic', 'M10', 'runset', '$PDK/drc.magicrc')"],
+            "api: chip.set('pdk','drc','runset','magic', 'M10','$PDK/drc.magicrc')"],
         'help': """
-        Runset files for runset DRC verification
+        Runset files for DRC verification
         """
     }
 
-    cfg['pdk']['drc'][tool][stackup]['waiver'] = {
-        'switch': "-pdk_drc_waiver 'stackup tool <file>'",
+    cfg['pdk']['drc']['waiver'] = {}
+    cfg['pdk']['drc']['waiver'][tool] = {}
+    cfg['pdk']['drc']['waiver'][tool][stackup] = {
+        'switch': "-pdk_drc_waiver 'tool waiver <file>'",
         'require': None,
         'type': '[file]',
         'lock': 'false',
@@ -900,19 +927,19 @@ def schema_pdk(cfg, stackup='default'):
         'signature': [],
         'shorthelp': 'PDK DRC runset waiver files',
         'example': [
-            "cli: -pdk_drc_waiver 'magic M10 waiver $PDK/waiver.txt'",
-            "api: chip.set('pdk','drc','magic', 'M10', 'waiver', '$PDK/waiver.txt')"],
+            "cli: -pdk_drc_waiver 'magic M10 $PDK/waiver.txt'",
+            "api: chip.set('pdk','drc','waiver','magic','M10,'$PDK/waiver.txt')"],
         'help': """
-        Design rule waiver file for DRC verification
+        Waiver files for DRC verification
         """
     }
 
     # ERC runsets
     cfg['pdk']['erc'] = {}
-    cfg['pdk']['erc'][tool] = {}
-    cfg['pdk']['erc'][tool][stackup] = {}
-    cfg['pdk']['erc'][tool][stackup]['runset'] = {
-        'switch': "-pdk_erc_runset 'stackup tool <file>'",
+    cfg['pdk']['erc']['runset'] = {}
+    cfg['pdk']['erc']['runset'][tool] = {}
+    cfg['pdk']['erc']['runset'][tool][stackup] = {
+        'switch': "-pdk_erc_runset 'tool stackup <file>'",
         'require': None,
         'type': '[file]',
         'lock': 'false',
@@ -926,9 +953,32 @@ def schema_pdk(cfg, stackup='default'):
         'shorthelp': 'PDK ERC runset files',
         'example': [
             "cli: -pdk_erc_runset 'magic M10 $PDK/erc.magicrc'",
-            "api: chip.set('pdk','erc','magic', 'M10', 'runset', '$PDK/erc.magicrc')"],
+            "api: chip.set('pdk','erc','runset','magic','M10','$PDK/erc.magicrc')"],
         'help': """
-        Runset files for runset ERC verification
+        Runset files for ERC verification
+        """
+    }
+
+    cfg['pdk']['erc']['waiver'] = {}
+    cfg['pdk']['erc']['waiver'][tool] = {}
+    cfg['pdk']['erc']['waiver'][tool][stackup] = {
+        'switch': "-pdk_erc_waiver 'tool waiver <file>'",
+        'require': None,
+        'type': '[file]',
+        'lock': 'false',
+        'copy': 'false',
+        'defvalue': [],
+        'filehash': [],
+        'hashalgo': 'sha256',
+        'date': [],
+        'author': [],
+        'signature': [],
+        'shorthelp': 'PDK ERC runset waiver files',
+        'example': [
+            "cli: -pdk_erc_waiver 'magic M10 $PDK/waiver.txt'",
+            "api: chip.set('pdk','erc','waiver','magic','M10,'$PDK/waiver.txt')"],
+        'help': """
+        Waiver files for ERC verification
         """
     }
 
@@ -1799,9 +1849,9 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
     key = 'default'
     cfg['library'][lib]['file'] = {}
     cfg['library'][lib]['file'][tool] = {}
-    cfg['library'][lib]['file'][tool][stackup] = {}
-    cfg['library'][lib]['file'][tool][stackup][key] = {
-        'switch': "-library_file 'lib tool stackup key <file>'",
+    cfg['library'][lib]['file'][tool][key] = {}
+    cfg['library'][lib]['file'][tool][key][stackup] = {
+        'switch': "-library_file 'lib tool key stackup <file>'",
         'require': None,
         'type': '[file]',
         'lock': 'false',
@@ -1814,8 +1864,8 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'signature': [],
         'shorthelp': 'Library named file',
         'example': [
-            "cli: -library_file 'lib atool 10M db ~/libdb'",
-            "api: chip.set('library','lib','file','atool',10M,'db','~/libdb')"],
+            "cli: -library_file 'lib atool db 10M ~/libdb'",
+            "api: chip.set('library','lib','file','atool','db',10M,'~/libdb')"],
         'help': """
         List of named files specified on a per tool and per stackup basis.
         The parameter should only be used for specifying files that are
@@ -1826,9 +1876,9 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
 
     cfg['library'][lib]['dir'] = {}
     cfg['library'][lib]['dir'][tool] = {}
-    cfg['library'][lib]['dir'][tool][stackup] = {}
-    cfg['library'][lib]['dir'][tool][stackup][key] = {
-        'switch': "-library_dir 'lib tool stackup key <file>'",
+    cfg['library'][lib]['dir'][tool][key] = {}
+    cfg['library'][lib]['dir'][tool][key][stackup] = {
+        'switch': "-library_dir 'lib tool key stackup <file>'",
         'require': None,
         'type': '[dir]',
         'lock': 'false',
@@ -1841,8 +1891,8 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
         'signature': [],
         'shorthelp': 'Library named directory',
         'example': [
-            "cli: -library_file 'lib atool 10M db ~/libdb'",
-            "api: chip.set('library','lib','file','atool',10M,'db','~/libdb')"],
+            "cli: -library_file 'lib atool db 10M ~/libdb'",
+            "api: chip.set('library','lib','file','atool','db','10M','~/libdb')"],
         'help': """
         List of named dirtectories specified on a per tool and per stackup
         basis. The parameter should only be used for specifying files that are
