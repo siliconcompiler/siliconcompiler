@@ -90,8 +90,7 @@ set sc_endcap      [dict get $sc_cfg library $sc_mainlib cells endcap]
 # PDK Design Rules
 set sc_techlef     [dict get $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype lef]
 
-# TODO: why do we need to check whether key exists? I thought this was fixed.
-if {[dict exists $sc_cfg suppy]} {
+if {[dict exists $sc_cfg supply]} {
     set sc_supplies    [dict keys [dict get $sc_cfg supply]]
 } else {
     set sc_supplies    [list]
