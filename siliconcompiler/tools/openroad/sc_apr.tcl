@@ -122,18 +122,21 @@ set sc_constraints [dict get $sc_cfg constraint]
 # Read techlef
 read_lef  $sc_techlef
 
-# Read Libraries
+# Read Liberty
 foreach item $sc_scenarios {
     set libcorner [dict get $sc_cfg mcmm $item libcorner]
     foreach lib "$sc_targetlibs $sc_macrolibs" {
-	#Lef
-	read_lef [dict get $sc_cfg library $lib lef $sc_stackup]
 	#Liberty
 	if {[dict exists $sc_cfg library $lib nldm]} {
 	    set lib_file [dict get $sc_cfg library $lib $sc_delaymodel $libcorner lib]
 	    read_liberty $lib_file
 	}
     }
+}
+
+# Read Lefs
+foreach lib "$sc_targetlibs $sc_macrolibs" {
+    read_lef [dict get $sc_cfg library $lib lef $sc_stackup]
 }
 
 # Read Verilog
