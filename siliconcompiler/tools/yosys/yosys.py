@@ -86,16 +86,16 @@ def setup(chip):
         chip.add('eda', tool, 'require', step, index, ",".join(['design']))
         chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'logiclib']))
 
+        targetlibs = chip.get('asic', 'logiclib')
         mainlib = chip.get('asic', 'logiclib')[0]
-        chip.add('eda', tool, 'require', step, index, ",".join(['library', mainlib, 'nldm', 'typical', 'lib']))
-
         macrolibs = chip.get('asic', 'macrolib')
-        for lib in macrolibs:
-            if chip.valid('library', lib, 'nldm', 'typical', 'lib'):
-                chip.add('eda', tool, 'require', step, index, ",".join(['library', lib, 'nldm', 'typical', 'lib']))
 
-        keypath = ','.join(['library', mainlib, 'techmap', tool])
-        chip.add('eda', tool, 'require', step, index, keypath)
+        for lib in (targetlibs + macrolibs):
+            for corner in chip.getkeys('library', lib, 'nldm'):
+                chip.add('eda', tool, 'require', step, index, ",".join(['library', lib, 'nldm', corner, 'lib']))
+
+        #keypath = ','.join(['library', mainlib, 'techmap', tool])
+        #chip.add('eda', tool, 'require', step, index, keypath)
     else:
         chip.add('eda', tool, 'require', step, index, ",".join(['fpga','partname']))
 
