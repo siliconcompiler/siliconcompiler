@@ -140,12 +140,6 @@ if {[expr ! [dict exists $sc_cfg "read" def $sc_step $sc_index]]} {
 
 if [dict exists $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype tapcells] {
     source [lindex [dict get $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype tapcells] 0]
-} else {
-    tapcell \
-	-endcap_cpp $sc_tapoffset \
-	-distance $sc_tapmax \
-	-tapcell_master $sc_tapcell \
-	-endcap_master $sc_endcap
 }
 
 remove_buffers
