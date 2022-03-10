@@ -1123,7 +1123,9 @@ def schema_pdk(cfg, stackup='default'):
     }
 
     # Routing Layer Capacitance
-    cfg['pdk']['grid'][stackup][layer]['cap'] = {
+    pexcorner = 'default'
+    cfg['pdk']['grid'][stackup][layer]['cap'] = {}
+    cfg['pdk']['grid'][stackup][layer]['cap'][pexcorner] = {
         'switch': "-pdk_grid_cap 'stackup layer <float>'",
         'require': None,
         'type': 'float',
@@ -1132,20 +1134,22 @@ def schema_pdk(cfg, stackup='default'):
         'defvalue': None,
         'shorthelp': 'PDK routing layer unit capacitance',
         'example': [
-            "cli: -pdk_grid_cap 'M10 m2 0.2'",
-            "api: chip.set('pdk','grid','M10','m2','cap','0.2')"],
+            "cli: -pdk_grid_cap 'M10 m2 worst 0.2'",
+            "api: chip.set('pdk','grid','M10','m2','cap', 'worst', '0.2')"],
         'help': """
         Unit capacitance of a wire defined by the grid width and spacing values
         in the 'grid' structure. The value is specified as ff/um on a per
-        stackup and per metal basis. As a rough rule of thumb, this value
+        corner basis. As a rough rule of thumb, this value
         tends to stay around 0.2ff/um. This number should only be used for
-        reality confirmation. Accurate analysis should use the PEX models.
+        reality confirmation. Accurate analysis should use 2.5D or 3D
+        PEX models.
         """
     }
 
     # Routing Layer Resistance
-    cfg['pdk']['grid'][stackup][layer]['res'] = {
-        'switch': "-pdk_grid_res 'stackup layer <float>'",
+    cfg['pdk']['grid'][stackup][layer]['res'] = {}
+    cfg['pdk']['grid'][stackup][layer]['res'][pexcorner] = {
+        'switch': "-pdk_grid_res 'stackup layer pexcorner <float>'",
         'require': None,
         'type': 'float',
         'lock': 'false',
@@ -1153,13 +1157,14 @@ def schema_pdk(cfg, stackup='default'):
         'defvalue': None,
         'shorthelp': 'PDK routing layer unit resistance',
         'example': [
-            "cli: -pdk_grid_res 'M10 m2 0.2'",
-            "api: chip.set('pdk','grid','M10','m2','res','0.2')"],
+            "cli: -pdk_grid_res 'M10 m2 worst 0.2'",
+            "api: chip.set('pdk','grid','M10','m2','res','worst','0.2')"],
         'help': """
         Resistance of a wire defined by the grid width and spacing values
-        in the 'grid' structure.  The value is specified as ohms/um. The number
-        is only meant to be used as a sanity check and for coarse design
-        planning. Accurate analysis should use the PEX models.
+        in the 'grid' structure.  The value is specified as ohms/um on a per
+        corner basis. The number is only meant to be used as a sanity check
+        and for coarse design planning. Accurate analysis should use 2.5D or 3D
+        PEX models.
         """
     }
 
@@ -1178,7 +1183,7 @@ def schema_pdk(cfg, stackup='default'):
         'help': """
         Temperature coefficient of resistance of the wire defined by the grid
         width and spacing values in the 'grid' structure. The value is specified
-        in %/ deg C. The number is only meant to be used as a sanity check and
+        in %/degree. The number is only meant to be used as a sanity check and
         for coarse design planning. Accurate analysis should use the PEX models.
         """
     }
