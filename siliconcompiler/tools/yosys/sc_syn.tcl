@@ -61,6 +61,7 @@ if { [file exists "inputs/$sc_design.v"] } {
 ########################################################
 # Override top level parameters
 ########################################################
+
 yosys chparam -list
 if {[dict exists $sc_cfg param]} {
     dict for {key value} [dict get $sc_cfg param] {

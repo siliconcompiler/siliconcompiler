@@ -9,7 +9,6 @@ set sc_delaymodel  [dict get $sc_cfg asic delaymodel]
 set sc_process     [dict get $sc_cfg pdk process]
 set sc_tie         [dict get $sc_cfg library $sc_mainlib cells tie]
 set sc_buf         [dict get $sc_cfg library $sc_mainlib cells buf]
-set sc_techmap     [dict get $sc_cfg library $sc_mainlib techmap $sc_tool]
 set sc_scenarios   [dict keys [dict get $sc_cfg mcmm]]
 
 ########################################################
@@ -51,9 +50,11 @@ yosys opt -purge
 ########################################################
 # Technology Mapping
 ########################################################
-
-foreach mapfile $sc_techmap {
-    yosys techmap -map $mapfile
+if [dict exists dict get $sc_cfg library $sc_mainlib techmap $sc_tool] {
+    set sc_techmap     [dict get $sc_cfg library $sc_mainlib techmap $sc_tool]
+    foreach mapfile $sc_techmap {
+	yosys techmap -map $mapfile
+    }
 }
 
 #TODO: Fix better
