@@ -4139,7 +4139,7 @@ def schema_options(cfg):
                     "api: chip.set('skip', 'all','true')"],
         'help': """
         Skips the execution of all tools in run(), enabling a quick check
-        of tool and setup without having to run through eachc step of a flow
+        of tool and setup without having to run through each step of a flow
         to completion.
         """
     }
