@@ -51,20 +51,6 @@ if {[expr ! [dict exists $sc_cfg "read" def $sc_step $sc_index]]} {
     # source tracks from file if found, else else use schema entries
     if [dict exists $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype tracks] {
 	source [lindex [dict get $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype tracks]]
-    } elseif {$sc_process == "asap7"} {
-	foreach metal $metal_list {
-    	    #extracting values from dictionary
-  	    set xpitch [dict get $sc_cfg pdk grid $sc_stackup $metal xpitch]
-	    set xoffset [dict get $sc_cfg pdk grid $sc_stackup $metal xoffset]
-	    set ypitch [dict get $sc_cfg pdk grid $sc_stackup $metal ypitch]
-	    set yoffset [dict get $sc_cfg pdk grid $sc_stackup $metal yoffset]
-
-	    make_tracks $metal \
-		-x_offset $xoffset \
-		-x_pitch $xpitch \
-		-y_offset $yoffset \
-		-y_pitch $ypitch
-	}
     } else {
 	make_tracks
     }
