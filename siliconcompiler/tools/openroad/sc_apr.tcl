@@ -32,6 +32,7 @@ set sc_design     [dict get $sc_cfg design]
 set sc_optmode    [dict get $sc_cfg optmode]
 
 # APR Parameters
+set sc_process     [dict get $sc_cfg pdk process]
 set sc_mainlib     [lindex [dict get $sc_cfg asic logiclib] 0]
 set sc_targetlibs  [dict get $sc_cfg asic logiclib]
 
