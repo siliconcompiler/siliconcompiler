@@ -53,7 +53,7 @@ yosys read_liberty -ignore_miss_func $sc_liberty
 if {[dict exists $sc_cfg read netlist $sc_step $sc_index]} {
     set netlist [lindex [dict get $sc_cfg read netlist $sc_step $sc_index] 0]
 } else {
-    set netlist "inputs/$design.vg"
+    set netlist "inputs/$sc_design.vg"
 }
 yosys read_verilog $netlist
 
