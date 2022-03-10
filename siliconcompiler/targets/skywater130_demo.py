@@ -42,6 +42,7 @@ def setup(chip):
     chip.set('asic', 'logiclib', 'sky130hd')
 
     #5. et project specific design choices
+    chip.set('asic', 'delaymodel', 'nldm')
     chip.set('asic', 'stackup', '5M1LI')
     # TODO: how does LI get taken into account?
     chip.set('asic', 'minlayer', "m1")
