@@ -53,7 +53,11 @@ def scparam(cfg,
         schelp = re.sub(r'\n\s*', " ", schelp)
         schelp = schelp.strip()
 
-        # converting None to [] for lists
+        # setting valus based on types
+        # note (bools are never lists)
+        if re.match(r'bool',satype):
+            require = 'all'
+            defvalue = 'false'
         if re.match(r'\[',sctype) and signature is None:
             signature = []
         if re.match(r'\[',sctype) and defvalue is None:
@@ -144,52 +148,34 @@ def schema_cfg():
 
 def schema_version(cfg, version):
 
-    cfg['version'] = {}
-    cfg['version']['schema'] = {
-        'switch': "-version_schema <str>",
-        'type': 'str',
-        'lock': 'true',
-        'require': 'all',
-        'signature': None,
-        'defvalue': version,
-        'shorthelp': 'Schema version number',
-        'example': ["cli: -version_schema",
-                    "api: chip.get('version', 'schema')"],
-        'help': """
-        SiliconCompiler schema version number.
-        """
-    }
+    # schema version
+    scparam(cfg,['version', 'schema'],
+            sctype='str',
+            defvalue=version,
+            shorthelp="Schema version number",
+            switch="-version_schema <str>",
+            example=["cli: -version_schema",
+                     "api: chip.get('version', 'schema')"],
+            schelp="""SiliconCompiler schema version number.""")
 
-    cfg['version']['sc'] = {
-        'switch': "-version_sc <str>",
-        'type': 'str',
-        'lock': 'true',
-        'require': 'all',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'SiliconCompiler version number',
-        'example': ["cli: -version_sc",
-                    "api: chip.get('version', 'sc')"],
-        'help': """
-        SiliconCompiler software version number.
-        """
-    }
+    # sc version
+    scparam(cfg,['version', 'sc'],
+            sctype='str',
+            defvalue=version,
+            shorthelp="SiliconCompiler version number",
+            switch="-version_sc <str>",
+            example=["cli: -version_sc",
+                     "api: chip.get('version', 'sc')"],
+            schelp="""SiliconCompiler schema version number.""")
 
-    # Print SC version number
-    cfg['version']['print'] = {
-        'switch': "-version <bool>",
-        'type': 'bool',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': 'false',
-        'shorthelp': 'Prints version number',
-        'example': ["cli: -version",
-                    "api: chip.get('version')"],
-        'help': """
-        Command line switch to print SC version number.
-        """
-    }
+    # print versions
+    scparam(cfg,['version', 'print'],
+            sctype='bool',
+            shorthelp="Prints version number",
+            switch="-version <bool>",
+            example=["cli: -version",
+                    "api: chip.get('version', 'print')"],
+            schelp="""Command line switch to print SC version numbers.""")
 
     return cfg
 
