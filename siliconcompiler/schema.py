@@ -55,7 +55,7 @@ def scparam(cfg,
 
         # setting valus based on types
         # note (bools are never lists)
-        if re.match(r'bool',satype):
+        if re.match(r'bool',sctype):
             require = 'all'
             defvalue = 'false'
         if re.match(r'\[',sctype) and signature is None:
@@ -179,7 +179,6 @@ def schema_version(cfg, version):
 
     return cfg
 
-
 ###############################################################################
 # FPGA
 ###############################################################################
@@ -187,116 +186,80 @@ def schema_version(cfg, version):
 def schema_fpga(cfg):
     ''' FPGA configuration
     '''
-    cfg['fpga'] = {}
 
-    cfg['fpga']['arch'] = {
-        'switch': "-fpga_arch <file>",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'true',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'FPGA architecture file',
-        'example': ["cli: -fpga_arch myfpga.xml",
-                    "api:  chip.set('fpga', 'arch', 'myfpga.xml')"],
-        'help': """
-        Architecture definition file for FPGA place and route tool. For the
-        VPR tool, the file is a required XML based description, allowing
-        targeting a large number of virtual and commercial architectures.
-        For most commercial tools, the fpga part name provides enough
-        information to enable compilation and the 'arch' parameter is
-        optional.
-        """
-    }
+    # fpga architecture file
+    scparam(cfg,['fpga', 'arch'],
+            sctype='[file]',
+            copy='true',
+            shorthelp="FPGA architecture file",
+            switch="-fpga_arch <file>",
+            example=["cli: -fpga_arch myfpga.xml",
+                     "api:  chip.set('fpga', 'arch', 'myfpga.xml')"],
+            schelp=""" Architecture definition file for FPGA place and route
+            tool. For the VPR tool, the file is a required XML based description,
+            allowing targeting a large number of virtual and commercial
+            architectures. For most commercial tools, the fpga part name provides
+            enough information to enable compilation and the 'arch' parameter is
+            optional.""")
 
-    cfg['fpga']['vendor'] = {
-        'switch': "-fpga_vendor <str>",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'FPGA vendor name',
-        'example': ["cli: -fpga_vendor acme",
+    # fpga vendor name
+    scparam(cfg,['fpga', 'vendor'],
+            sctype='str',
+            shorthelp="FPGA vendor name",
+            switch="-fpga_vendor <str>",
+            example=["cli: -fpga_vendor acme",
                     "api:  chip.set('fpga', 'vendor', 'acme')"],
-        'help': """
-        Name of the FPGA vendor. The parameter is used to check part
-        name and to select the eda tool flow in case 'edaflow' is
-        unspecified.
-        """
-    }
+            schelp="""
+            Name of the FPGA vendor. The parameter is used to check part
+            name and to select the eda tool flow in case 'edaflow' is
+            unspecified.""")
 
-    cfg['fpga']['partname'] = {
-        'switch': "-fpga_partname <str>",
-        'type': 'str',
-        'lock': 'false',
-        'require': 'fpga',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'FPGA part name',
-        'example': ["cli: -fpga_partname fpga64k",
-                    "api:  chip.set('fpga', 'partname', 'fpga64k')"],
-        'help': """
-        Complete part name used as a device target by the FPGA compilation
-        tool. The part name must be an exact string match to the partname
-        hard coded within the FPGA eda tool.
-        """
-    }
 
-    cfg['fpga']['board'] = {
-        'switch': "-fpga_board <str>",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'FPGA board name',
-        'example': ["cli: -fpga_board parallella",
-                    "api:  chip.set('fpga', 'board', 'parallella')"],
-        'help': """
-        Complete board name used as a device target by the FPGA compilation
-        tool. The board name must be an exact string match to the partname
-        hard coded within the FPGA eda tool. The parameter is optional and can
-        be used in place of a partname and pin constraints for some tools.
-        """
-    }
+    # fpga partname
+    scparam(cfg,['fpga', 'partname'],
+            sctype='str',
+            require='fpga',
+            shorthelp="FPGA part name",
+            switch="-fpga_partname <str>",
+            example=["cli: -fpga_partname fpga64k",
+                     "api:  chip.set('fpga', 'partname', 'fpga64k')"],
+            schelp="""
+            Complete part name used as a device target by the FPGA compilation
+            tool. The part name must be an exact string match to the partname
+            hard coded within the FPGA eda tool.""")
 
-    cfg['fpga']['program'] = {
-        'switch': "-fpga_program <bool>",
-        'require': 'fpga',
-        'type': 'bool',
-        'lock': 'false',
-        'require': 'fpga',
-        'signature': None,
-        'defvalue': 'false',
-        'shorthelp': 'FPGA program enable',
-        'example': ["cli: -fpga_program",
-                    "api:  chip.set('fpga', 'program', True)"],
-        'help': """
-        Specifies that the bitstream should be loaded into an FPGA.
-        """
-    }
+    # fpga board
+    scparam(cfg,['fpga', 'board'],
+            sctype='str',
+            shorthelp="FPGA board name",
+            switch="-fpga_board <str>",
+            example=["cli: -fpga_board parallella",
+                     "api:  chip.set('fpga', 'board', 'parallella')"],
+            schelp="""
+            Complete board name used as a device target by the FPGA compilation
+            tool. The board name must be an exact string match to the partname
+            hard coded within the FPGA eda tool. The parameter is optional and can
+            be used in place of a partname and pin constraints for some tools.""")
 
-    cfg['fpga']['flash'] = {
-        'switch': "-fpga_flash <bool>",
-        'type': 'bool',
-        'lock': 'false',
-        'require': 'fpga',
-        'signature': None,
-        'defvalue': 'false',
-        'shorthelp': 'FPGA flash enable',
-        'example': ["cli: -fpga_flash",
-                    "api:  chip.set('fpga', 'flash', True)"],
-        'help': """
-        Specifies that the bitstream should be flashed in the board/device.
-        The default is to load the bitstream into volatile memory (SRAM).
-        """
-    }
+    # fpga program enable
+    scparam(cfg,['fpga', 'program'],
+            sctype='bool',
+            shorthelp="FPGA program enable",
+            switch="-fpga_program <bool>",
+            example=["cli: -fpga_program",
+                     "api:  chip.set('fpga', 'program', True)"],
+            schelp="""Specifies that the bitstream should be loaded into an FPGA.""")
+
+    # fpga flash enable
+    scparam(cfg,['fpga', 'flash'],
+            sctype='bool',
+            shorthelp="FPGA flash enable",
+            switch="-fpga_flash <bool>",
+            example=["cli: -fpga_flash",
+                     "api:  chip.set('fpga', 'flash', True)"],
+            schelp="""Specifies that the bitstream should be flashed in the board/device.
+            The default is to load the bitstream into volatile memory (SRAM).""")
+
 
     return cfg
 
