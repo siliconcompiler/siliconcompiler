@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-sc examples/blinky/blinky_fusesoc.v \
-   -target "fpgaflow_xc7a35ticsg324" \
-   -mode "fpga" \
+sc blinky_fusesoc.v \
+   -fpga_partname "xc7a35ticsg324" \
+   -target "fpgaflow_demo" \
    -relax \
-   -constraint "examples/blinky/blinky_fusesoc.xdc" \
+   -constraint "blinky_fusesoc.xdc" \
    -design "blinky"
