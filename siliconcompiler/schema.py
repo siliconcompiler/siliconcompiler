@@ -13,13 +13,13 @@ import json
 def scparam(cfg,
             keypath,
             sctype=None,
-            scope=None,
             require=None,
             defvalue=None,
+            scope='global',
             copy='false',
             lock='false',
-            signature=None,
             hashalgo='sha256',
+            signature=None,
             shorthelp=None,
             switch=None,
             example=None,
@@ -1982,129 +1982,81 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
 
 def schema_flowgraph(cfg, flow='default', step='default', index='default'):
 
-    cfg['flowgraph'] = {}
-    cfg['flowgraph'][flow] = {}
-    cfg['flowgraph'][flow][step] =  {}
-    cfg['flowgraph'][flow][step][index] =  {}
+    #flowgraph input
+    scparam(cfg,['flowgraph', flow, step, index, 'input'],
+            sctype='[(str,str)]',
+            shorthelp="Flowgraph step input",
+            switch="-flowgraph_input 'flow step index <(str,str)>'",
+            example=[
+                "cli: -flowgraph_input 'asicflow cts 0 (place,0)'",
+                "api:  chip.set('flowgraph','asicflow','cts','0','input',('place','0'))"],
+            schelp="""A list of inputs for the current step and index, specified as a
+            (step,index) tuple.""")
 
-    # Execution flowgraph
-    cfg['flowgraph'][flow][step][index]['input'] = {
-        'switch': "-flowgraph_input 'flow step index <(str,str)>'",
-        'type': '[(str,str)]',
-        'lock': 'false',
-        'require': None,
-        'signature' : [],
-        'defvalue': [],
-        'shorthelp': 'Flowgraph step input',
-        'example': [
-            "cli: -flowgraph_input 'asicflow cts 0 (place,0)'",
-            "api:  chip.set('flowgraph','asicflow','cts','0','input',('place','0'))"],
-        'help': """
-        A list of inputs for the current step and index, specified as a
-        (step,index) tuple.
-        """
-    }
+    # flowgraph metric weights
+    metric='default'
+    scparam(cfg,['flowgraph', flow, step, index, 'weight', metric],
+            sctype='float',
+            shorthelp="Flowgraph metric weights",
+            switch="-flowgraph_weight 'flow step metric <float>'",
+            example=[
+                "cli: -flowgraph_weight 'asicflow cts 0 area_cells 1.0'",
+                "api:  chip.set('flowgraph','asicflow','cts','0','weight','area_cells',1.0)"],
+            schelp="""Weights specified on a per step and per metric basis used to give
+            effective "goodnes" score for a step by calculating the sum all step
+            real metrics results by the corresponding per step weights.""")
 
-    # Flow graph score weights
-    cfg['flowgraph'][flow][step][index]['weight'] = {}
-    cfg['flowgraph'][flow][step][index]['weight']['default'] = {
-        'switch': "-flowgraph_weight 'flow step metric <float>'",
-        'type': 'float',
-        'lock': 'false',
-        'require': None,
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'Flowgraph metric weights',
-        'example': [
-            "cli: -flowgraph_weight 'asicflow cts 0 area_cells 1.0'",
-            "api:  chip.set('flowgraph','asicflow','cts','0','weight','area_cells',1.0)"],
-        'help': """
-        Weights specified on a per step and per metric basis used to give
-        effective "goodnes" score for a step by calculating the sum all step
-        real metrics results by the corresponding per step weights.
-        """
-    }
+    # flowgraph tool
+    scparam(cfg,['flowgraph', flow, step, index, 'tool'],
+            sctype='str',
+            shorthelp="Flowgraph tool selection",
+            switch="-flowgraph_tool 'flow step <str>'",
+            example=[
+                "cli: -flowgraph_tool 'asicflow place openroad'",
+                "api: chip.set('flowgraph','asicflow','place','0','tool','openroad')"],
+            schelp="""Name of the tool name used for task execution. Builtin tool names
+            associated bound to core API functions include: minimum, maximum, join,
+            verify, mux.""")
 
-    # Task tool/function
-    cfg['flowgraph'][flow][step][index]['tool'] = {
-        'switch': "-flowgraph_tool 'flow step <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'Flowgraph tool selection',
-        'example': [
-            "cli: -flowgraph_tool 'asicflow place openroad'",
-            "api: chip.set('flowgraph','asicflow','place','0','tool','openroad')"],
-        'help': """
-        Name of the tool name used for task execution. Builtin tool names
-        associated bound to core API functions include: minimum, maximum, join,
-        verify, mux.
-        """
-    }
+    # flowgraph arguments
+    scparam(cfg,['flowgraph', flow, step, index, 'args'],
+            sctype='[str]',
+            shorthelp="Flowgraph setup arguments",
+            switch="-flowgraph_args 'flow step index <str>'",
+            example=[
+                "cli: -flowgraph_args 'asicflow cts 0 0'",
+                "api:  chip.add('flowgraph','asicflow','cts','0','args','0')"],
+            schelp="""User specified flowgraph string arguments specified on a per
+            step and per index basis.""")
 
-    # Arguments passed by user to setup function
-    cfg['flowgraph'][flow][step][index]['args'] = {
-        'switch': "-flowgraph_args 'flow step index <str>'",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'signature' : [],
-        'defvalue': [],
-        'shorthelp': 'Flowgraph function selection',
-        'example': [
-            "cli: -flowgraph_args 'asicflow cts 0 0'",
-            "api:  chip.add('flowgraph','asicflow','cts','0','args','0')"],
-        'help': """
-        User specified flowgraph string arguments specified on a
-        per step and per index basis.
-        """
-    }
+    #flowgraph valid bits
+    scparam(cfg,['flowgraph', flow, step, index, 'valid'],
+            sctype='bool',
+            shorthelp="Flowgraph task valid bit",
+            switch="-flowgraph_valid 'flow step index <str>'",
+            example=[
+                "cli: -flowgraph_valid 'asicflow cts 0 true'",
+                "api:  chip.set('flowgraph','asicflow','cts','0','valid',True)"],
+            schelp="""Flowgraph valid bit specified on a per step and per index basis.
+            The parameter can be used to control flow execution. If the bit
+            is cleared (0), then the step/index combination is invalid and
+            should not be run.""")
 
-    # Valid bits set by user
-    cfg['flowgraph'][flow][step][index]['valid'] = {
-        'switch': "-flowgraph_valid 'flow step index <str>'",
-        'type': 'bool',
-        'lock': 'false',
-        'require': None,
-        'signature' : None,
-        'defvalue': 'false',
-        'shorthelp': 'Flowgraph task valid bit',
-        'example': [
-            "cli: -flowgraph_valid 'asicflow cts 0 true'",
-            "api:  chip.set('flowgraph','asicflow','cts','0','valid',True)"],
-        'help': """
-        Flowgraph valid bit specified on a per step and per index basis.
-        The parameter can be used to control flow execution. If the bit
-        is cleared (0), then the step/index combination is invalid and
-        should not be run.
-        """
-    }
-
-
-    # Valid bits set by user
-    cfg['flowgraph'][flow][step][index]['timeout'] = {
-        'switch': "-flowgraph_timeout 'flow step 0 <float>'",
-        'type': 'float',
-        'lock': 'false',
-        'require': None,
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'Flowgraph step/index timeout value',
-        'example': [
-            "cli: -flowgraph_timeout 'asicflow cts 0 3600'",
-            "api:  chip.set('flowgraph','asicflow','cts','0','timeout', 3600)"],
-        'help': """
-        Timeout value in seconds specified on a per step and per index
-        basis. The flowgraph timeout value is compared against the
-        wall time tracked by the SC runtime to determine if an
-        operation should continue. Timeout values help in situations
-        where 1.) an operation is stuck and may never finish. 2.) the
-        operation progress has saturated and continued execution has
-        a negative return on investment.
-        """
-    }
+    #flowgraph timeout value
+    scparam(cfg,['flowgraph', flow, step, index, 'timeout'],
+            sctype='float',
+            shorthelp="Flowgraph task timeout value",
+            switch="-flowgraph_timeout 'flow step 0 <float>'",
+            example=[
+                "cli: -flowgraph_timeout 'asicflow cts 0 3600'",
+                "api:  chip.set('flowgraph','asicflow','cts','0','timeout', 3600)"],
+            schelp="""Timeout value in seconds specified on a per step and per index
+            basis. The flowgraph timeout value is compared against the
+            wall time tracked by the SC runtime to determine if an
+            operation should continue. Timeout values help in situations
+            where 1.) an operation is stuck and may never finish. 2.) the
+            operation progress has saturated and continued execution has
+            a negative return on investment.""")
 
     return cfg
 
