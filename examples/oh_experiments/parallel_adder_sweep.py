@@ -1,9 +1,9 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
-import os
-import sys
-import multiprocessing
 import siliconcompiler
+
+import os
+import multiprocessing
 
 # Setting up the experiment
 
@@ -18,7 +18,7 @@ def run_design(rootdir, design, N, job):
     chip.set('relax', True)
     chip.set('quiet', True)
     chip.set('steplist', ['import', 'syn'])
-    chip.target("asicflow_freepdk45")
+    chip.load_target('freepdk45_demo')
     chip.run()
     #chip.summary()
 
@@ -28,7 +28,7 @@ def main():
            "/../../third_party/designs/oh/")
     design = 'oh_add'
     N = [4, 8, 16, 32, 64, 128]
-        
+
     # Define parallel processingg
     processes = []
     for i in range(len(N)):
@@ -53,8 +53,8 @@ def main():
     for i in range(len(N)):
         jobname = 'job'+str(i)
         chip.read_manifest(f"build/{design}/{jobname}/syn/0/outputs/{design}.pkg.json", job=jobname)
-        area = chip.get('metric','syn','0','cellarea','real', job=jobname)
-        print(design, ", N =", N[i], ", cellarea =",area) 
+        area = chip.get('metric','syn','0', 'cellarea','real', job=jobname)
+        print(design, ", N =", N[i], ", cellarea =",area)
 
 if __name__ == '__main__':
     main()

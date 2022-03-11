@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-sc examples/blinky/blinky.v \
-    -target "ice40_nextpnr" \
-    -constraint "examples/blinky/icebreaker.pcf" \
+sc blinky.v \
+    -fpga_partname "ice40up5k-sg48" \
+    -target "fpgaflow_demo" \
+    -constraint "icebreaker.pcf" \
     -design "blinky"
