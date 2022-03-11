@@ -32,9 +32,10 @@ set sc_design     [dict get $sc_cfg design]
 set sc_optmode    [dict get $sc_cfg optmode]
 
 # APR Parameters
+set sc_process     [dict get $sc_cfg pdk process]
 set sc_mainlib     [lindex [dict get $sc_cfg asic logiclib] 0]
 set sc_targetlibs  [dict get $sc_cfg asic logiclib]
-
+set sc_delaymodel  [dict get $sc_cfg asic delaymodel]
 set sc_stackup     [dict get $sc_cfg asic stackup]
 set sc_density     [dict get $sc_cfg asic density]
 set sc_hpinmetal   [dict get $sc_cfg asic hpinlayer]
@@ -48,6 +49,7 @@ set sc_maxfanout   [dict get $sc_cfg asic maxfanout]
 set sc_maxlength   [dict get $sc_cfg asic maxlength]
 set sc_maxcap      [dict get $sc_cfg asic maxcap]
 set sc_maxslew     [dict get $sc_cfg asic maxslew]
+set sc_scenarios   [dict keys [dict get $sc_cfg mcmm]]
 
 # PDK agnostic design rule translation
 dict for {key value} [dict get $sc_cfg pdk grid $sc_stackup] {
@@ -88,10 +90,6 @@ set sc_endcap      [dict get $sc_cfg library $sc_mainlib cells endcap]
 # PDK Design Rules
 set sc_techlef     [dict get $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype lef]
 
-# TODO: workaround until OpenROAD allows floating-point 'tapmax' values.
-set sc_tapmax      [expr {int([lindex [dict get $sc_cfg pdk tapmax] end])}]
-set sc_tapoffset   [lindex [dict get $sc_cfg pdk tapoffset] end]
-
 if {[dict exists $sc_cfg supply]} {
     set sc_supplies    [dict keys [dict get $sc_cfg supply]]
 } else {
@@ -123,17 +121,20 @@ set sc_constraints [dict get $sc_cfg constraint]
 # Read techlef
 read_lef  $sc_techlef
 
-# Read Targetlibs
-foreach lib $sc_targetlibs {
-	read_liberty [dict get $sc_cfg library $lib nldm typical lib]
-	read_lef [dict get $sc_cfg library $lib lef $sc_stackup]
+# Read Liberty
+foreach item $sc_scenarios {
+    set libcorner [dict get $sc_cfg mcmm $item libcorner]
+    foreach lib "$sc_targetlibs $sc_macrolibs" {
+	#Liberty
+	if {[dict exists $sc_cfg library $lib nldm]} {
+	    set lib_file [dict get $sc_cfg library $lib $sc_delaymodel $libcorner lib]
+	    read_liberty $lib_file
+	}
+    }
 }
 
-# Read Macrolibs
-foreach lib $sc_macrolibs {
-    if {[dict exists $sc_cfg library $lib nldm]} {
-        read_liberty [dict get $sc_cfg library $lib nldm typical lib]
-    }
+# Read Lefs
+foreach lib "$sc_targetlibs $sc_macrolibs" {
     read_lef [dict get $sc_cfg library $lib lef $sc_stackup]
 }
 

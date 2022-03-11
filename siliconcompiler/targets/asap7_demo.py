@@ -31,6 +31,7 @@ def setup(chip):
     chip.set('asic', 'logiclib', 'asap7sc7p5t_rvt')
 
     #5. Project specific design choices
+    chip.set('asic', 'delaymodel', 'nldm')
     chip.set('asic', 'stackup', '10M')
     chip.set('asic', 'minlayer', "m2")
     chip.set('asic', 'maxlayer', "m7")

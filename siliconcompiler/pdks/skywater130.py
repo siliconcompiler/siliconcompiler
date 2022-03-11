@@ -84,10 +84,14 @@ def setup(chip):
     chip.set('pdk','tapmax', 14)
     chip.set('pdk','tapoffset', 2)
 
-    # Tech file
+    # Tech LEF
     for tool in ('openroad', 'klayout', 'magic'):
         chip.set('pdk','aprtech',tool,stackup, libtype,'lef',
                  pdkdir+'/apr/sky130_fd_sc_hd.tlef')
+
+    # Openroad specific files
+    chip.set('pdk','aprtech','openroad', stackup, libtype,'tapcells',
+                 pdkdir+'/apr/tapcell.tcl')
 
     # DRC Runsets
     chip.set('pdk','drc','runset', 'magic', stackup, pdkdir+'/setup/magic/sky130A.tech')

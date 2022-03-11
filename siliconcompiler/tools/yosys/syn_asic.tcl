@@ -1,41 +1,33 @@
+####################
+# DESIGNER's CHOICE
+####################
 
-
-########################################################
-# Read Macro Libraries
-########################################################
-set sc_process     [dict get $sc_cfg pdk process]
 set sc_targetlibs  [dict get $sc_cfg asic logiclib]
+set sc_macrolibs   [dict get $sc_cfg asic macrolib]
 set sc_mainlib     [lindex [dict get $sc_cfg asic logiclib] 0]
+set sc_delaymodel  [dict get $sc_cfg asic delaymodel]
+set sc_process     [dict get $sc_cfg pdk process]
 set sc_tie         [dict get $sc_cfg library $sc_mainlib cells tie]
 set sc_buf         [dict get $sc_cfg library $sc_mainlib cells buf]
+set sc_scenarios   [dict keys [dict get $sc_cfg mcmm]]
 
-set sc_tool  yosys
-set sc_step  [dict get $sc_cfg arg step]
-set sc_index [dict get $sc_cfg arg index]
+########################################################
+# Read Libraries
+########################################################
 
-#TODO: fix to handle multiple libraries
-# (note that ABC and dfflibmap can only accept one library from Yosys, so
-# for now everything needs to be concatenated into one library regardless)
-set library_file [dict get $sc_cfg library $sc_mainlib nldm typical lib]
-
-yosys read_liberty -lib $library_file
-
-set sc_macrolibs [dict get $sc_cfg asic macrolib]
-
-# Read macro library files, and gather argument list to pass into stat later
-# on (for area estimation).
 set stat_libs ""
-foreach libname $sc_macrolibs {
-    # TODO: we assume corner name is "typical" - this should probably be
-    # documented somewhere?
-    if {[dict exists $sc_cfg library $libname nldm]} {
-        set macro_lib [dict get $sc_cfg library $libname nldm typical lib]
-        yosys read_liberty -lib $macro_lib
-        append stat_libs "-liberty $macro_lib "
+foreach item $sc_scenarios {
+    set libcorner [dict get $sc_cfg mcmm $item libcorner]
+    foreach lib $sc_targetlibs {
+	set lib_file [dict get $sc_cfg library $lib $sc_delaymodel $libcorner lib]
+	yosys read_liberty -lib $lib_file
+    }
+    foreach lib $sc_macrolibs {
+	set lib_file [dict get $sc_cfg library $lib $sc_delaymodel $libcorner lib]
+	yosys read_liberty -lib $lib_file
+	append stat_libs "-liberty $lib_file "
     }
 }
-
-set sc_techmap_files [dict get $sc_cfg library $sc_mainlib techmap $sc_tool]
 
 ########################################################
 # Synthesis
@@ -58,11 +50,18 @@ yosys opt -purge
 ########################################################
 # Technology Mapping
 ########################################################
-
-foreach mapfile $sc_techmap_files {
-    yosys techmap -map $mapfile
+if [dict exists dict get $sc_cfg library $sc_mainlib techmap $sc_tool] {
+    set sc_techmap     [dict get $sc_cfg library $sc_mainlib techmap $sc_tool]
+    foreach mapfile $sc_techmap {
+	yosys techmap -map $mapfile
+    }
 }
-yosys dfflibmap -liberty $library_file
+
+#TODO: Fix better
+set libcorner    [dict get $sc_cfg mcmm [lindex $sc_scenarios 0] libcorner]
+set mainlib      [dict get $sc_cfg library $sc_mainlib $sc_delaymodel $libcorner lib]
+
+yosys dfflibmap -liberty $mainlib
 
 yosys opt
 
@@ -85,12 +84,12 @@ if {[dict exists $sc_cfg eda $sc_tool variable $sc_step $sc_index strategy]} {
 #   user-provided constraint)
 
 if {$script != ""} {
-    yosys abc -liberty $library_file -script $script
+    yosys abc -liberty $mainlib -script $script
 } else {
-    yosys abc -liberty $library_file
+    yosys abc -liberty $mainlib
 }
 
-yosys stat -liberty $library_file {*}$stat_libs
+yosys stat -liberty $mainlib {*}$stat_libs
 
 ########################################################
 # Cleanup
