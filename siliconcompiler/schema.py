@@ -148,7 +148,6 @@ def schema_cfg():
 
 def schema_version(cfg, version):
 
-    # schema version
     scparam(cfg,['version', 'schema'],
             sctype='str',
             defvalue=version,
@@ -158,7 +157,6 @@ def schema_version(cfg, version):
                      "api: chip.get('version', 'schema')"],
             schelp="""SiliconCompiler schema version number.""")
 
-    # sc version
     scparam(cfg,['version', 'sc'],
             sctype='str',
             defvalue=version,
@@ -168,7 +166,6 @@ def schema_version(cfg, version):
                      "api: chip.get('version', 'sc')"],
             schelp="""SiliconCompiler schema version number.""")
 
-    # print versions
     scparam(cfg,['version', 'print'],
             sctype='bool',
             shorthelp="Prints version number",
@@ -187,7 +184,6 @@ def schema_fpga(cfg):
     ''' FPGA configuration
     '''
 
-    # fpga architecture file
     scparam(cfg,['fpga', 'arch'],
             sctype='[file]',
             copy='true',
@@ -202,7 +198,6 @@ def schema_fpga(cfg):
             enough information to enable compilation and the 'arch' parameter is
             optional.""")
 
-    # fpga vendor name
     scparam(cfg,['fpga', 'vendor'],
             sctype='str',
             shorthelp="FPGA vendor name",
@@ -214,8 +209,6 @@ def schema_fpga(cfg):
             name and to select the eda tool flow in case 'edaflow' is
             unspecified.""")
 
-
-    # fpga partname
     scparam(cfg,['fpga', 'partname'],
             sctype='str',
             require='fpga',
@@ -228,7 +221,6 @@ def schema_fpga(cfg):
             tool. The part name must be an exact string match to the partname
             hard coded within the FPGA eda tool.""")
 
-    # fpga board
     scparam(cfg,['fpga', 'board'],
             sctype='str',
             shorthelp="FPGA board name",
@@ -241,7 +233,6 @@ def schema_fpga(cfg):
             hard coded within the FPGA eda tool. The parameter is optional and can
             be used in place of a partname and pin constraints for some tools.""")
 
-    # fpga program enable
     scparam(cfg,['fpga', 'program'],
             sctype='bool',
             shorthelp="FPGA program enable",
@@ -250,7 +241,6 @@ def schema_fpga(cfg):
                      "api:  chip.set('fpga', 'program', True)"],
             schelp="""Specifies that the bitstream should be loaded into an FPGA.""")
 
-    # fpga flash enable
     scparam(cfg,['fpga', 'flash'],
             sctype='bool',
             shorthelp="FPGA flash enable",
@@ -271,261 +261,497 @@ def schema_pdk(cfg, stackup='default'):
     ''' Process design kit configuration
     '''
 
-    # for clarity
     tool = 'default'
     filetype = 'default'
 
-    cfg['pdk'] = {}
-    cfg['pdk']['foundry'] = {
-        'switch': "-pdk_foundry <str>",
-        'require': 'asic',
-        'type': 'str',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'PDK foundry name',
-        'example': ["cli: -pdk_foundry virtual",
+    scparam(cfg, ['pdk', 'foundry'],
+            sctype='str',
+            require="asic",
+            shorthelp="PDK foundry name",
+            switch="-pdk_foundry <str>",
+            example=["cli: -pdk_foundry virtual",
                     "api:  chip.set('pdk', 'foundry', 'virtual')"],
-        'help': """
-        Name of foundry corporation. Examples include intel, gf, tsmc,
-        samsung, skywater, virtual. The \'virtual\' keyword is reserved for
-        simulated non-manufacturable processes.
-        """
-    }
+            schelp="""
+            Name of foundry corporation. Examples include intel, gf, tsmc,
+            samsung, skywater, virtual. The \'virtual\' keyword is reserved for
+            simulated non-manufacturable processes.""")
 
-    cfg['pdk']['process'] = {
-        'switch': "-pdk_process <str>",
-        'require': 'asic',
-        'type': 'str',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'PDK process name',
-        'example': ["cli: -pdk_process asap7",
-                    "api:  chip.set('pdk', 'process', 'asap7')"],
-        'help': """
-        Public name of the foundry process. The string is case insensitive and
-        must match the public process name exactly. Examples of virtual
-        processes include freepdk45 and asap7.
-        """
-    }
+    scparam(cfg, ['pdk', 'process'],
+            sctype='str',
+            require="asic",
+            shorthelp="PDK process name",
+            switch="-pdk_process <str>",
+            example=["cli: -pdk_process asap7",
+                     "api:  chip.set('pdk', 'process', 'asap7')"],
+            schelp="""
+            Public name of the foundry process. The string is case insensitive and
+            must match the public process name exactly. Examples of virtual
+            processes include freepdk45 and asap7.""")
 
-    cfg['pdk']['node'] = {
-        'switch': "-pdk_node <float>",
-        'require': 'asic',
-        'type': 'float',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'PDK process node',
-        'example': ["cli: -pdk_node 130",
-                    "api:  chip.set('pdk', 'node', 130)"],
-        'help': """
-        Approximate relative minimum dimension of the process target specified
-        in nanometers. The parameter is required for flows and tools that
-        leverage the value to drive technology dependent synthesis and APR
-        optimization. Node examples include 180, 130, 90, 65, 45, 32, 22 14,
-        10, 7, 5, 3.
-        """
-    }
-
-    cfg['pdk']['wafersize'] = {
-        'switch': "-pdk_wafersize <float>",
-        'require': None,
-        'type': 'float',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'PDK wafer size',
-        'example': ["cli: -pdk_wafersize 300",
-                    "api:  chip.set('pdk', 'wafersize', 300)"],
-        'help': """
-        Wafer diameter used in manufacturing process specified in mm. The
-        standard diameter for leading edge manufacturing is 300mm. For older
-        process technologies and specialty fabs, smaller diameters such as
-        200, 100, 125, 100 are common. The value is used to calculate dies per
-        wafer and full factory chip costs.
-        """
-    }
-
-    cfg['pdk']['wafercost'] = {
-        'switch': "-pdk_wafercost <float>",
-        'require': None,
-        'type': 'float',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'PDK wafer cost',
-        'example': ["cli: -pdk_wafercost 10000",
-                    "api:  chip.set('pdk', 'wafercost', 10000)"],
-        'help': """
-        Raw cost per wafer purchased specified in USD, not accounting for
-        yield loss. The values is used to calculate chip full factory costs.
-        """
-    }
-
-    cfg['pdk']['d0'] = {
-        'switch': "-pdk_d0 <float>",
-        'require': None,
-        'type': 'float',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'PDK process defect density',
-        'example': ["cli: -pdk_d0 0.1",
-                    "api:  chip.set('pdk', 'd0', 0.1)"],
-        'help': """
-        Process defect density (d0) expressed as random defects per cm^2. The
-        value is used to calculate yield losses as a function of area, which in
-        turn affects the chip full factory costs. Two yield models are
-        supported: Poisson (default), and Murphy. The Poisson based yield is
-        calculated as dy = exp(-area * d0/100). The Murphy based yield is
-        calculated as dy = ((1-exp(-area * d0/100))/(area * d0/100))^2.
-        """
-    }
-
-    cfg['pdk']['hscribe'] = {
-        'switch': "-pdk_hscribe <float>",
-        'require': None,
-        'type': 'float',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'PDK horizontal scribe line width',
-        'example': ["cli: -pdk_hscribe 0.1",
-                    "api:  chip.set('pdk', 'hscribe', 0.1)"],
-        'help': """
-        Width of the horizontal scribe line (in mm) used during die separation.
-        The process is generally completed using a mechanical saw, but can be
-        done through combinations of mechanical saws, lasers, wafer thinning,
-        and chemical etching in more advanced technologies. The value is used
-        to calculate effective dies per wafer and full factory cost.
-        """
-    }
-
-    cfg['pdk']['vscribe'] = {
-        'switch': "-pdk_vscribe <float>",
-        'require': None,
-        'type': 'float',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'PDK vertical scribe line width',
-        'example': ["cli: -pdk_vscribe 0.1",
-                    "api:  chip.set('pdk', 'vscribe', 0.1)"],
-        'help': """
-        Width of the vertical scribe line (in mm) used during die separation.
-        The process is generally completed using a mechanical saw, but can be
-        done through combinations of mechanical saws, lasers, wafer thinning,
-        and chemical etching in more advanced technologies. The value is used
-        to calculate effective dies per wafer and full factory cost.
-        """
-    }
-
-    cfg['pdk']['edgemargin'] = {
-        'switch': "-pdk_edgemargin <float>",
-        'require': None,
-        'type': 'float',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'PDK wafer edge keep-out margin',
-        'example': ["cli: -pdk_edgemargin 1",
-                    "api:  chip.set('pdk', 'edgemargin', 1)"],
-        'help': """
-        Keep-out distance/margin from the wafer edge inwards specified in mm.
-        The wafer edge is prone to chipping and need special treatment that
-        preclude placement of designs in this area. The edge value is used to
-        calculate effective dies per wafer and full factory cost.
-        """
-    }
-
-    cfg['pdk']['density'] = {
-        'switch': "-pdk_density <float>",
-        'require': None,
-        'type': 'float',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'PDK transistor density',
-        'example': ["cli: -pdk_density 100e6",
-                    "api:  chip.set('pdk', 'density', 10e6)"],
-        'help': """
-        Approximate logic density expressed as # transistors / mm^2
-        calculated as:
-        0.6 * (Nand2 Transistor Count) / (Nand2 Cell Area) +
-        0.4 * (Register Transistor Count) / (Register Cell Area)
-        The value is specified for a fixed standard cell library within a node
-        and will differ depending on the library vendor, library track height
-        and library type. The value can be used to to normalize the effective
-        density reported for the design across different process nodes. The
-        value can be derived from a variety of sources, including the PDK DRM,
-        library LEFs, conference presentations, and public analysis.
-        """
-    }
-
-    cfg['pdk']['sramsize'] = {
-        'switch': "-pdk_sramsize <float>",
-        'require': None,
-        'type': 'float',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'PDK SRAM bitcell size',
-        'example': ["cli: -pdk_sramsize 0.032",
-                    "api:  chip.set('pdk', 'sramsize', '0.026')"],
-        'help': """
-        Area of an SRAM bitcell expressed in um^2. The value can be derived
-        from a variety of sources, including the PDK DRM, library LEFs,
-        conference presentations, and public analysis. The number is a good
-        first order indicator of SRAM density for large memory arrays where
-        the bitcell dominates the array I/O logic.
-        """
-    }
-
-    cfg['pdk']['version'] = {
-        'switch': "-pdk_version <str>",
-        'require': None,
-        'type': 'str',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'PDK version number',
-        'example': ["cli: -pdk_version 1.0",
+    scparam(cfg, ['pdk', 'version'],
+            sctype='str',
+            shorthelp="PDK version number",
+            switch="-pdk_version <str>",
+            example=["cli: -pdk_version 1.0",
                     "api:  chip.set('pdk', 'version', '1.0')"],
-        'help': """
-        Alphanumeric string specifying the version of the PDK. Verification of
-        correct PDK and IP versions is a hard ASIC tapeout require in all
-        commercial foundries. The version number can be used for design manifest
-        tracking and tapeout checklists.
-        """
-    }
+            schelp="""
+            Alphanumeric string specifying the version of the PDK. Verification of
+            correct PDK and IP versions is a hard ASIC tapeout require in all
+            commercial foundries. The version number can be used for design manifest
+            tracking and tapeout checklists.""")
 
-    #Documentation index
-    cfg['pdk']['doc'] = {}
-    cfg['pdk']['doc']['homepage'] = {
-            'switch': f"-pdk_doc_homepage '<file>'",
-            'type': '[file]',
-            'lock': 'false',
-            'copy': 'false',
-            'require': None,
-            'defvalue': [],
-            'filehash': [],
-            'hashalgo': 'sha256',
-            'date': [],
-            'author': [],
-            'signature': [],
-            'shorthelp': f"PDK documentation homepage",
-            'example': [
-                f"cli: -pdk_doc_homepage 'index.html",
-                f"api: chip.set('pdk','doc','homepage','index.html')"],
-            'help': f"""
+    scparam(cfg, ['pdk', 'stackup'],
+            sctype='[str]',
+            require='asic',
+            shorthelp="PDK metal stackups",
+            switch="-pdk_stackup <str>",
+            example=["cli: -pdk_stackup 2MA4MB2MC",
+                     "api: chip.add('pdk','stackup','2MA4MB2MC')"],
+            schelp="""
+            List of all metal stackups offered in the process node. Older process
+            nodes may only offer a single metal stackup, while advanced nodes
+            offer a large but finite list of metal stacks with varying combinations
+            of metal line pitches and thicknesses. Stackup naming is unique to a
+            foundry, but is generally a long string or code. For example, a 10
+            metal stackup with two 1x wide, four 2x wide, and 4x wide metals,
+            might be identified as 2MA4MB2MC, where MA, MB, and MC denote wiring
+            layers with different properties (thickness, width, space). Each
+            stackup will come with its own set of routing technology files and
+            parasitic models specified in the pdk_pexmodel and pdk_aprtech
+            parameters.""")
+
+    scparam(cfg, ['pdk', 'node'],
+            sctype='float',
+            require="asic",
+            shorthelp="PDK process node",
+            switch="-pdk_node <float>",
+            example=["cli: -pdk_node 130",
+                    "api:  chip.set('pdk', 'node', 130)"],
+            schelp="""
+            Approximate relative minimum dimension of the process target specified
+            in nanometers. The parameter is required for flows and tools that
+            leverage the value to drive technology dependent synthesis and APR
+            optimization. Node examples include 180, 130, 90, 65, 45, 32, 22 14,
+            10, 7, 5, 3.""")
+
+    scparam(cfg, ['pdk', 'wafersize'],
+            sctype='float',
+            require="asic",
+            shorthelp="PDK process node",
+            switch="-pdk_wafersize <float>",
+            example=["cli: -pdk_wafersize 300",
+                    "api:  chip.set('pdk', 'wafersize', 300)"],
+            schelp="""
+            Wafer diameter used in manufacturing process specified in mm. The
+            standard diameter for leading edge manufacturing is 300mm. For older
+            process technologies and specialty fabs, smaller diameters such as
+            200, 100, 125, 100 are common. The value is used to calculate dies per
+            wafer and full factory chip costs.""")
+
+    scparam(cfg, ['pdk', 'wafercost'],
+            sctype='float',
+            shorthelp="PDK wafer cost",
+            switch="-pdk_wafercost <float>",
+            example=["cli: -pdk_wafercost 10000",
+                     "api:  chip.set('pdk', 'wafercost', 10000)"],
+            schelp="""
+            Raw cost per wafer purchased specified in USD, not accounting for
+            yield loss. The values is used to calculate chip full factory costs.""")
+
+    scparam(cfg, ['pdk', 'd0'],
+            sctype='float',
+            shorthelp="PDK process defect density",
+            switch="-pdk_d0 <float>",
+            example=["cli: -pdk_d0 0.1",
+                     "api:  chip.set('pdk', 'd0', 0.1)"],
+            schelp="""
+            Process defect density (d0) expressed as random defects per cm^2. The
+            value is used to calculate yield losses as a function of area, which in
+            turn affects the chip full factory costs. Two yield models are
+            supported: Poisson (default), and Murphy. The Poisson based yield is
+            calculated as dy = exp(-area * d0/100). The Murphy based yield is
+            calculated as dy = ((1-exp(-area * d0/100))/(area * d0/100))^2.""")
+
+    scparam(cfg, ['pdk', 'hscribe'],
+            sctype='float',
+            shorthelp="PDK horizontal scribe line width",
+            switch="-pdk_hscribe <float>",
+            example=["cli: -pdk_hscribe 0.1",
+                     "api:  chip.set('pdk', 'hscribe', 0.1)"],
+            schelp="""
+             Width of the horizontal scribe line (in mm) used during die separation.
+            The process is generally completed using a mechanical saw, but can be
+            done through combinations of mechanical saws, lasers, wafer thinning,
+            and chemical etching in more advanced technologies. The value is used
+            to calculate effective dies per wafer and full factory cost.""")
+
+    scparam(cfg, ['pdk', 'vscribe'],
+            sctype='float',
+            shorthelp="PDK vertical scribe line width",
+            switch="-pdk_vscribe <float>",
+            example=["cli: -pdk_vscribe 0.1",
+                     "api:  chip.set('pdk', 'vscribe', 0.1)"],
+            schelp="""
+             Width of the vertical scribe line (in mm) used during die separation.
+            The process is generally completed using a mechanical saw, but can be
+            done through combinations of mechanical saws, lasers, wafer thinning,
+            and chemical etching in more advanced technologies. The value is used
+            to calculate effective dies per wafer and full factory cost.""")
+
+    scparam(cfg, ['pdk', 'edgemargin'],
+            sctype='float',
+            shorthelp="PDK wafer edge keep-out margin",
+            switch="-pdk_edgemargin <float>",
+            example=["cli: -pdk_edgemargin 1",
+                     "api:  chip.set('pdk', 'edgemargin', 1)"],
+            schelp="""
+            Keep-out distance/margin from the wafer edge inwards specified in mm.
+            The wafer edge is prone to chipping and need special treatment that
+            preclude placement of designs in this area. The edge value is used to
+            calculate effective dies per wafer and full factory cost.""")
+
+    scparam(cfg, ['pdk', 'density'],
+            sctype='float',
+            shorthelp="PDK transistor density",
+            switch="-pdk_density <float>",
+            example=["cli: -pdk_density 100e6",
+                    "api:  chip.set('pdk', 'density', 10e6)"],
+            schelp="""
+            Approximate logic density expressed as # transistors / mm^2
+            calculated as:
+            0.6 * (Nand2 Transistor Count) / (Nand2 Cell Area) +
+            0.4 * (Register Transistor Count) / (Register Cell Area)
+            The value is specified for a fixed standard cell library within a node
+            and will differ depending on the library vendor, library track height
+            and library type. The value can be used to to normalize the effective
+            density reported for the design across different process nodes. The
+            value can be derived from a variety of sources, including the PDK DRM,
+            library LEFs, conference presentations, and public analysis.""")
+
+    scparam(cfg, ['pdk', 'sramsize'],
+            sctype='float',
+            shorthelp="PDK SRAM bitcell size",
+            switch="-pdk_sramsize <float>",
+            example=["cli: -pdk_sramsize 0.032",
+                     "api:  chip.set('pdk', 'sramsize', '0.026')"],
+            schelp="""
+            Area of an SRAM bitcell expressed in um^2. The value can be derived
+            from a variety of sources, including the PDK DRM, library LEFs,
+            conference presentations, and public analysis. The number is a good
+            first order indicator of SRAM density for large memory arrays where
+            the bitcell dominates the array I/O logic.""")
+
+    simtype = 'default'
+    scparam(cfg, ['pdk', 'devmodel', tool, simtype, stackup],
+            sctype='[file]',
+            shorthelp="PDK device models",
+            switch="-pdk_devmodel 'tool simtype stackup <file>'",
+            example=[
+            "cli: -pdk_devmodel 'xyce spice M10 asap7.sp'",
+            "api: chip.set('pdk','devmodel','xyce','spice','M10','asap7.sp')"],
+            schelp="""
+            List of filepaths to PDK device models for different simulation
+            purposes and for different tools. Examples of device model types
+            include spice, aging, electromigration, radiation. An example of a
+            'spice' tool is xyce. Device models are specified on a per metal stack
+            basis. Process nodes with a single device model across all stacks will
+            have a unique parameter record per metal stack pointing to the same
+            device model file.  Device types and tools are dynamic entries
+            that depend on the tool setup and device technology. Pseud-standardized
+            device types include spice, em (electromigration), and aging.""")
+
+    corner='default'
+    scparam(cfg, ['pdk', 'pexmodel', tool, simtype, stackup, corner],
+            sctype='[file]',
+            shorthelp="PDK parasitic TCAD models",
+            switch="-pdk_pexmodel 'tool stackup corner <file>'",
+            example=[
+                "cli: -pdk_pexmodel 'fastcap M10 max wire.mod'",
+                "api: chip.set('pdk','pexmodel','fastcap','M10','max','wire.mod')"],
+            schelp="""
+            List of filepaths to PDK wire TCAD models used during automated
+            synthesis, APR, and signoff verification. Pexmodels are specified on
+            a per metal stack basis. Corner values depend on the process being
+            used, but typically include nomenclature such as min, max, nominal.
+            For exact names, refer to the DRM. Pexmodels are generally not
+            standardized and specified on a per tool basis. An example of pexmodel
+            type is 'fastcap'.""")
+
+    src = 'default'
+    dst = 'default'
+    scparam(cfg, ['pdk', 'layermap', tool, src, dst, stackup],
+            sctype='[file]',
+            shorthelp="PDK layout data mapping file",
+            switch="-pdk_layermap 'tool src dst stackup <file>'",
+            example=[
+                "cli: -pdk_layermap 'klayout db gds M10 asap7.map'",
+                "api: chip.set('pdk','layermap','klayout','db','gds','M10','asap7.map')"],
+            schelp="""
+            Files describing input/output mapping for streaming layout data from
+            one format to another. A foundry PDK will include an official layer
+            list for all user entered and generated layers supported in the GDS
+            accepted by the foundry for processing, but there is no standardized
+            layer definition format that can be read and written by all EDA tools.
+            To ensure mask layer matching, key/value type mapping files are needed
+            to convert EDA databases to/from GDS and to convert between different
+            types of EDA databases. Layer maps are specified on a per metal
+            stackup basis. The 'src' and 'dst' can be names of SC supported tools
+            or file formats (like 'gds').""")
+
+
+    scparam(cfg, ['pdk', 'display', tool, stackup],
+            sctype='[file]',
+            shorthelp="PDK display configuration file",
+            switch="-pdk_display 'tool stackup <file>'",
+            example=[
+                "cli: -pdk_display 'klayout M10 display.lyt'",
+                "api: chip.set('pdk','display','klayout','M10','display.cfg')"],
+            schelp="""
+            Display configuration files describing colors and pattern schemes for
+            all layers in the PDK. The display configuration file is entered on a
+            stackup and tool basis.""")
+
+    #TODO: create firm list of accepted files
+    libarch = 'default'
+    scparam(cfg, ['pdk', 'aprtech', tool, stackup, libarch, filetype],
+            sctype='[file]',
+            shorthelp="PDK APR technology file",
+            switch="-pdk_aprtech 'tool stackup libarch filetype <file>'",
+            example=[
+                "cli: -pdk_aprtech 'openroad M10 12t lef tech.lef'",
+                "api: chip.set('pdk','aprtech','openroad','M10','12t','lef','tech.lef')"],
+            schelp="""
+            Technology file containing setup information needed to enable DRC clean APR
+            for the specified stackup, libarch, and format. The 'libarch' specifies the
+            library architecture (e.g. library height). For example a PDK with support
+            for 9 and 12 track libraries might have 'libarchs' called 9t and 12t.
+            The standard filetype for specifying place and route design rules for a
+            process node is through a 'lef' format technology file. The
+            'filetype' used in the aprtech is used by the tool specific APR TCL scripts
+            to set up the technology parameters. Some tools may require additional
+            files beyond the tech.lef file. Examples of extra file types include
+            antenna, tracks, tapcell, viarules, em.""")
+
+    checks = ['lvs', 'drc', 'erc']
+    for item in checks:
+        scparam(cfg, ['pdk', item, 'runset', tool, stackup],
+                sctype='[file]',
+                shorthelp=f"PDK {item.upper()} runset files",
+                switch=f"-pdk_{item}_runset 'tool stackup <file>'",
+                example=[
+                    f"cli: -pdk_{item}_runset 'magic M10 $PDK/{item}.rs'",
+                    f"api: chip.set('pdk','{item}','runset','magic','M10','$PDK/{item}.rs')"],
+                schelp=f"""Runset files for {item.upper()} verification.""")
+
+        scparam(cfg, ['pdk', item, 'waiver', tool, stackup],
+                sctype='[file]',
+                shorthelp=f"PDK {item.upper()} waiver files",
+                switch=f"-pdk_{item}_waiver 'tool stackup <file>'",
+                example=[
+                    f"cli: -pdk_{item}_waiver 'magic M10 $PDK/{item}.txt'",
+                    f"api: chip.set('pdk','{item}','waiver','magic','M10','$PDK/{item}.txt')"],
+                schelp=f"""Waiver files for {item.upper()} verification.""")
+
+    ################
+    # Routing grid
+    ################
+
+    layer = 'default'
+    scparam(cfg, ['pdk', 'grid', stackup, layer, 'name'],
+            sctype='str',
+            shorthelp="PDK metal layer name map",
+            switch="-pdk_grid_name 'stackup layer <str>'",
+            example=[
+                "cli: -pdk_grid_name 'M10 metal1 m1'",
+                "api: chip.set('pdk','grid','M10','metal1','name','m1')"],
+            schelp="""
+            Maps PDK metal names to the SC standardized layer stack
+            starting with m1 as the lowest routing layer and ending
+            with m<n> as the highest routing layer. The map is
+            specified on a per metal stack basis.""")
+
+    scparam(cfg, ['pdk', 'grid', stackup, layer, 'dir'],
+            sctype='str',
+            shorthelp="PDK preferred metal routing direction",
+            switch="-pdk_grid_dir 'stackup layer <str>'",
+            example=[
+                "cli: -pdk_grid_dir 'M10 m1 horizontal'",
+                "api: chip.set('pdk','grid','M10','m1','dir','horizontal')"],
+            schelp="""
+            Preferred routing direction specified on a per stackup
+            and per metal basis. Valid routing directions are horizontal
+            and vertical.""")
+
+    scparam(cfg, ['pdk', 'grid', stackup, layer, 'xpitch'],
+            sctype='float',
+            shorthelp="PDK routing grid vertical wire pitch",
+            switch="-pdk_grid_xpitch 'stackup layer <float>'",
+            example= [
+                "cli: -pdk_grid_xpitch 'M10 m1 0.5'",
+                "api: chip.set('pdk','grid','M10','m1','xpitch','0.5')"],
+            schelp="""
+            Defines the routing pitch for vertical wires on a per stackup and
+            per metal basis, specified in um.""")
+
+    scparam(cfg, ['pdk', 'grid', stackup, layer, 'ypitch'],
+            sctype='float',
+            shorthelp="PDK routing grid horizontal wire pitch",
+            switch="-pdk_grid_ypitch 'stackup layer <float>'",
+            example= [
+                "cli: -pdk_grid_ypitch 'M10 m1 0.5'",
+                "api: chip.set('pdk','grid','M10','m1','ypitch','0.5')"],
+            schelp="""
+            Defines the routing pitch for horizontal wires on a per stackup and
+            per metal basis, specified in um.""")
+
+    scparam(cfg, ['pdk', 'grid', stackup, layer, 'xoffset'],
+            sctype='float',
+            shorthelp="PDK routing grid vertical wire offset",
+            switch="-pdk_grid_xoffset 'stackup layer <float>'",
+            example= [
+                "cli: -pdk_grid_xoffset 'M10 m2 0.5'",
+                "api: chip.set('pdk','grid','M10','m2','xoffset','0.5')"],
+            schelp="""
+            Defines the grid offset of a vertical metal layer specified on a per
+            stackup and per metal basis, specified in um.""")
+
+    scparam(cfg, ['pdk', 'grid', stackup, layer, 'yoffset'],
+            sctype='float',
+            shorthelp="PDK routing grid horizontal wire offset",
+            switch="-pdk_grid_yoffset 'stackup layer <float>'",
+            example= [
+                "cli: -pdk_grid_yoffset 'M10 m2 0.5'",
+                "api: chip.set('pdk','grid','M10','m2','yoffset','0.5')"],
+            schelp="""
+            Defines the grid offset of a horizontal metal layer specified on a per
+            stackup and per metal basis, specified in um.""")
+
+    scparam(cfg, ['pdk', 'grid', stackup, layer, 'adj'],
+            sctype='float',
+            shorthelp="PDK routing grid resource adjustment",
+            switch="-pdk_grid_adj 'stackup layer <float>'",
+            example= [
+                "cli: -pdk_grid_adj 'M10 m2 0.5'",
+                "api: chip.set('pdk','grid','M10','m2','adj','0.5')"],
+            schelp="""
+            Defines the routing resources adjustments for the design on a per layer
+            basis. The value is expressed as a fraction from 0 to 1. A value of
+            0.5 reduces the routing resources by 50%. If not defined, 100%
+            routing resource utilization is permitted.""")
+
+    scparam(cfg, ['pdk', 'grid', stackup, layer, 'adj'],
+            sctype='float',
+            shorthelp="PDK routing grid resource adjustment",
+            switch="-pdk_grid_adj 'stackup layer <float>'",
+            example= [
+                "cli: -pdk_grid_adj 'M10 m2 0.5'",
+                "api: chip.set('pdk','grid','M10','m2','adj','0.5')"],
+            schelp="""
+            Defines the routing resources adjustments for the design on a per layer
+            basis. The value is expressed as a fraction from 0 to 1. A value of
+            0.5 reduces the routing resources by 50%. If not defined, 100%
+            routing resource utilization is permitted.""")
+
+    corner='default'
+    scparam(cfg, ['pdk', 'grid', stackup, layer, 'cap', corner],
+            sctype='float',
+            shorthelp="PDK routing layer unit capacitance",
+            switch="-pdk_grid_cap 'stackup layer corner <float>''",
+            example= [
+                "cli: -pdk_grid_cap 'M10 m2 fast 0.2'",
+                "api: chip.set('pdk','grid','M10','m2','cap','fast','0.2')"],
+            schelp="""
+            Unit capacitance of a wire defined by the grid width and spacing values
+            in the 'grid' structure. The value is specified as ff/um on a per
+            stackup, metal, and corner basis. As a rough rule of thumb, this value
+            tends to stay around 0.2ff/um. This number should only be used for
+            reality confirmation. Accurate analysis should use the PEX models.""")
+
+    scparam(cfg, ['pdk', 'grid', stackup, layer, 'res', corner],
+            sctype='float',
+            shorthelp="PDK routing layer unit resistance",
+            switch="-pdk_grid_res 'stackup layer corner <float>''",
+            example= [
+                "cli: -pdk_grid_res 'M10 m2 fast 0.2'",
+                "api: chip.set('pdk','grid','M10','m2','res','fast','0.2')"],
+            schelp="""
+            Resistance of a wire defined by the grid width and spacing values
+            in the 'grid' structure.  The value is specified as ohms/um on a per
+            stackup, metal, and corner basis. The parameter is only meant to be
+            used as a sanity check and for coarse design planning. Accurate
+            analysis should use the TCAD PEX models.""")
+
+    scparam(cfg, ['pdk', 'grid', stackup, layer, 'tcr', corner],
+            sctype='float',
+            shorthelp="PDK routing layer temperature coefficient",
+            switch="-pdk_grid_tcr 'stackup layer corner <float>'",
+            example= [
+                "cli: -pdk_grid_tcr 'M10 m2 fast 0.2'",
+                "api: chip.set('pdk','grid','M10','m2','tcr','fast','0.2')"],
+            schelp="""
+            Temperature coefficient of resistance of the wire defined by the grid
+            width and spacing values in the 'grid' structure. The value is specified
+            in %/ deg C on a per stackup, layer, and corner basis. The number is
+            only meant to be used as a sanity check and for coarse design
+            planning. Accurate analysis should use the PEX models.""")
+
+    ###############
+    # EDA vars
+    ###############
+
+    key='default'
+    scparam(cfg, ['pdk', 'file', tool, key, stackup],
+            sctype='[file]',
+            shorthelp="PDK named file",
+            switch="-pdk_file 'tool key stackup <file>'",
+            example=[
+                "cli: -pdk_file 'xyce spice M10 asap7.sp'",
+                "api: chip.set('pdk','file','xyce','spice','M10','asap7.sp')"],
+            schelp="""
+            List of named files specified on a per tool and per stackup basis.
+            The parameter should only be used for specifying files that are
+            not directly  supported by the SiliconCompiler PDK schema.""")
+
+
+    scparam(cfg, ['pdk', 'directory', tool, key, stackup],
+            sctype='[dir]',
+            shorthelp="PDK named directory",
+            switch="-pdk_directory 'tool key stackup <file>'",
+            example=[
+                "cli: -pdk_directory 'xyce rfmodel M10 rftechdir'",
+                "api: chip.set('pdk','directory','xyce','rfmodel','M10','rftechdir')"],
+            schelp="""
+            List of named directories specified on a per tool and per stackup basis.
+            The parameter should only be used for specifying files that are
+            not directly  supported by the SiliconCompiler PDK schema.""")
+
+    scparam(cfg, ['pdk', 'variable', tool, key, stackup],
+            sctype='[str]',
+            shorthelp="PDK named variable",
+            switch="-pdk_variable 'tool stackup key <str>'",
+            example=[
+                "cli: -pdk_variable 'xyce modeltype M10 bsim4'""",
+                "api: chip.set('pdk','variable','xyce','modeltype','M10','bsim4')"],
+            schelp="""
+             List of key/value strings specified on a per tool and per stackup basis.
+            The parameter should only be used for specifying variables that are
+            not directly  supported by the SiliconCompiler PDK schema.""")
+
+    ###############
+    # Docs
+    ###############
+
+    scparam(cfg,['pdk', 'doc', 'homepage'],
+            sctype='[file]',
+            shorthelp="PDK documentation homepage",
+            switch="-pdk_doc_homepage <file>",
+            example=["cli: -pdk_doc_homepage 'index.html",
+                     "api: chip.set('pdk','doc','homepage','index.html')"],
+            schelp="""
             Filepath to PDK docs homepage. Modern PDKs can include tens or
             hundreds of individual documents. A single html entry point can
             be used to present an organized documentation dashboard to the
-            designer.
-            """
-    }
+            designer.""")
 
     doctypes = ['datasheet',
                 'reference',
@@ -536,717 +762,19 @@ def schema_pdk(cfg, stackup='default'):
                 'tutorial']
 
     for item in doctypes:
-        cfg['pdk']['doc'][item] = {
-            'switch': f"-pdk_doc_{item} '<file>'",
-            'type': '[file]',
-            'lock': 'false',
-            'copy': 'false',
-            'require': None,
-            'defvalue': [],
-            'filehash': [],
-            'hashalgo': 'sha256',
-            'date': [],
-            'author': [],
-            'signature': [],
-            'shorthelp': f"PDK {item}",
-            'example': [
-                f"cli: -pdk_doc_{item} '{item}.pdf",
-                f"api: chip.set('pdk','doc',{item},'{item}.pdf')"],
-            'help': f"""
-            List of {item} documents for the PDK.
-            """
-        }
-
-    cfg['pdk']['stackup'] = {
-        'switch': "-pdk_stackup <str>",
-        'require': None,
-        'type': '[str]',
-        'lock': 'false',
-        'signature': [],
-        'defvalue': [],
-        'shorthelp': 'PDK metal stackups',
-        'example': ["cli: -pdk_stackup 2MA4MB2MC",
-                    "api: chip.add('pdk','stackup','2MA4MB2MC')"],
-        'help': """
-        List of all metal stackups offered in the process node. Older process
-        nodes may only offer a single metal stackup, while advanced nodes
-        offer a large but finite list of metal stacks with varying combinations
-        of metal line pitches and thicknesses. Stackup naming is unique to a
-        foundry, but is generally a long string or code. For example, a 10
-        metal stackup with two 1x wide, four 2x wide, and 4x wide metals,
-        might be identified as 2MA4MB2MC, where MA, MB, and MC denote wiring
-        layers with different properties (thickness, width, space). Each
-        stackup will come with its own set of routing technology files and
-        parasitic models specified in the pdk_pexmodel and pdk_aprtech
-        parameters.
-        """
-    }
-
-    key='default'
-    cfg['pdk']['file'] = {}
-    cfg['pdk']['file'][tool] = {}
-    cfg['pdk']['file'][tool][key] = {}
-    cfg['pdk']['file'][tool][key][stackup] = {
-        'switch': "-pdk_file 'tool key stackup <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'PDK named file',
-        'example': [
-            "cli: -pdk_file 'xyce spice M10 asap7.sp'",
-            "api: chip.set('pdk','file','xyce','spice','M10','asap7.sp')"],
-        'help': """
-        List of named files specified on a per tool and per stackup basis.
-        The parameter should only be used for specifying files that are
-        not directly  supported by the SiliconCompiler PDK schema.
-        """
-    }
-
-    cfg['pdk']['directory'] = {}
-    cfg['pdk']['directory'][tool] = {}
-    cfg['pdk']['directory'][tool][key] = {}
-    cfg['pdk']['directory'][tool][key][stackup] = {
-        'switch': "-pdk_directory 'tool key stackup <file>'",
-        'require': None,
-        'type': '[dir]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'signature': [],
-        'shorthelp': 'PDK named directory',
-        'example': [
-            "cli: -pdk_directory 'xyce rfmodel M10 rftechdir'",
-            "api: chip.set('pdk','directory','xyce','rfmodel','M10','rftechdir')"],
-        'help': """
-        List of named directories specified on a per tool and per stackup basis.
-        The parameter should only be used for specifying files that are
-        not directly  supported by the SiliconCompiler PDK schema.
-        """
-
-    }
-
-    cfg['pdk']['variable'] = {}
-    cfg['pdk']['variable'][tool] = {}
-    cfg['pdk']['variable'][tool][key] = {}
-    cfg['pdk']['variable'][tool][key][stackup] = {
-        'switch': "-pdk_variable 'tool stackup key <str>'",
-        'require': None,
-        'type': '[str]',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': [],
-        'shorthelp': 'PDK named variable',
-        'example': [
-            "cli: -pdk_variable 'xyce modeltype M10 bsim4'""",
-            "api: chip.set('pdk','variable','xyce','modeltype','M10','bsim4')"],
-        'help': """
-        List of key/value strings specified on a per tool and per stackup basis.
-        The parameter should only be used for specifying variables that are
-        not directly  supported by the SiliconCompiler PDK schema.
-        """
-    }
-
-    simtype = 'default'
-    cfg['pdk']['devmodel'] = {}
-    cfg['pdk']['devmodel'][tool] = {}
-    cfg['pdk']['devmodel'][tool][simtype] = {}
-    cfg['pdk']['devmodel'][tool][simtype][stackup] = {
-        'switch': "-pdk_devmodel 'tool simtype stackup <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'PDK device models',
-        'example': [
-            "cli: -pdk_devmodel 'xyce spice M10 asap7.sp'",
-            "api: chip.set('pdk','devmodel','xyce','spice','M10','asap7.sp')"],
-        'help': """
-        List of filepaths to PDK device models for different simulation
-        purposes and for different tools. Examples of device model types
-        include spice, aging, electromigration, radiation. An example of a
-        'spice' tool is xyce. Device models are specified on a per metal stack
-        basis. Process nodes with a single device model across all stacks will
-        have a unique parameter record per metal stack pointing to the same
-        device model file.  Device types and tools are dynamic entries
-        that depend on the tool setup and device technology. Pseud-standardized
-        device types include spice, em (electromigration), and aging.
-        """
-    }
-
-    cfg['pdk']['pexmodel'] = {}
-    cfg['pdk']['pexmodel'][tool] = {}
-    cfg['pdk']['pexmodel'][tool][stackup] = {}
-    cfg['pdk']['pexmodel'][tool][stackup]['default'] = {
-        'switch': "-pdk_pexmodel 'tool stackup corner <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'PDK parasitic TCAD models',
-        'example': [
-            "cli: -pdk_pexmodel 'fastcap M10 max wire.mod'",
-            "api: chip.set('pdk','pexmodel','fastcap','M10','max','wire.mod')"],
-        'help': """
-        List of filepaths to PDK wire TCAD models used during automated
-        synthesis, APR, and signoff verification. Pexmodels are specified on
-        a per metal stack basis. Corner values depend on the process being
-        used, but typically include nomenclature such as min, max, nominal.
-        For exact names, refer to the DRM. Pexmodels are generally not
-        standardized and specified on a per tool basis. An example of pexmodel
-        type is 'fastcap'.
-        """
-    }
-
-    cfg['pdk']['techdir'] = {}
-    cfg['pdk']['techdir'][tool] = {}
-    cfg['pdk']['techdir'][tool][stackup] = {
-        'switch': "-pdk_techdir 'tool stackup <file>'",
-        'require': None,
-        'type': 'dir',
-        'lock': 'false',
-        'defvalue': None,
-        'shorthelp': 'PDK technology directory',
-        'example': [
-            "cli: -pdk_techdir 'klayout M10 ~/mytechdir'",
-            "api: chip.set('pdk','techdir','klayout','M10','~/mytechdir')"],
-        'help': """
-        Filepath to technology library for custom design, specified on a per
-        stackup and per tool basis.
-        """
-    }
-    src = 'default'
-    dst = 'default'
-    cfg['pdk']['layermap'] = {}
-    cfg['pdk']['layermap'][tool] = {}
-    cfg['pdk']['layermap'][tool][src] = {}
-    cfg['pdk']['layermap'][tool][src][dst] = {}
-    cfg['pdk']['layermap'][tool][src][dst][stackup] = {
-        'switch': "-pdk_layermap 'tool src dst stackup <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'PDK layout data mapping file',
-        'example': [
-            "cli: -pdk_layermap 'klayout db gds M10 asap7.map'",
-            "api: chip.set('pdk','layermap','klayout','db','gds','M10','asap7.map')"],
-        'help': """
-        Files describing input/output mapping for streaming layout data from
-        one format to another. A foundry PDK will include an official layer
-        list for all user entered and generated layers supported in the GDS
-        accepted by the foundry for processing, but there is no standardized
-        layer definition format that can be read and written by all EDA tools.
-        To ensure mask layer matching, key/value type mapping files are needed
-        to convert EDA databases to/from GDS and to convert between different
-        types of EDA databases. Layer maps are specified on a per metal
-        stackup basis. The 'src' and 'dst' can be names of SC supported tools
-        or file formats (like 'gds').
-        """
-    }
-
-    cfg['pdk']['display'] = {}
-    cfg['pdk']['display'][tool] = {}
-    cfg['pdk']['display'][tool][stackup] = {
-        'switch': "-pdk_display 'tool stackup <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'PDK display configuration file',
-        'example': [
-            "cli: -pdk_display 'klayout M10 display.lyt'",
-            "api: chip.set('pdk','display','klayout','M10','display.cfg')"],
-        'help': """
-        Display configuration files describing colors and pattern schemes for
-        all layers in the PDK. The display configuration file is entered on a
-        stackup and tool basis.
-        """
-    }
-
-    cfg['pdk']['plib'] = {}
-    cfg['pdk']['plib'][tool] = {}
-    cfg['pdk']['plib'][tool][stackup] = {
-        'switch': "-pdk_plib 'tool stackup <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'PDK process primitive cell libraries',
-        'example': [
-            "cli: -pdk_plib 'klayout M10 ~/devlib'",
-            "api: chip.set('pdk','plib','klayout','M10','~/devlib')"],
-        'help': """
-        Filepaths to primitive cell libraries supported by the PDK specified
-        on a per stackup and per tool basis. The plib cells is the first layer
-        of design abstraction encountered above the basic device models, and
-        generally include parameterized transistors, resistors, capacitors,
-        inductors, etc, enabling ground up custom design. All modern PDKs
-        ship with parameterized plib cells.
-        """
-    }
-
-    libarch = 'default'
-
-    #TODO: create firm list of accepted files
-
-    cfg['pdk']['aprtech'] = {}
-    cfg['pdk']['aprtech'][tool] = {}
-    cfg['pdk']['aprtech'][tool][stackup] = {}
-    cfg['pdk']['aprtech'][tool][stackup][libarch] = {}
-    cfg['pdk']['aprtech'][tool][stackup][libarch][filetype] = {
-        'switch': "-pdk_aprtech 'tool stackup libarch filetype <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'PDK APR technology file',
-        'example': [
-            "cli: -pdk_aprtech 'openroad M10 12t lef tech.lef'",
-            "api: chip.set('pdk','aprtech','openroad','M10','12t','lef','tech.lef')"],
-        'help': """
-        Technology file containing setup information needed to enable DRC clean APR
-        for the specified stackup, libarch, and format. The 'libarch' specifies the
-        library architecture (e.g. library height). For example a PDK with support
-        for 9 and 12 track libraries might have 'libarchs' called 9t and 12t.
-        The standard filetype for specifying place and route design rules for a
-        process node is through a 'lef' format technology file. The
-        'filetype' used in the aprtech is used by the tool specific APR TCL scripts
-        to set up the technology parameters. Some tools may require additional
-        files beyond the tech.lef file. Examples of extra file types include
-        antenna, tracks, tapcell, viarules, em.
-        """
-    }
-
-    # LVS runsets
-    tool = 'default'
-    cfg['pdk']['lvs'] = {}
-    cfg['pdk']['lvs']['runset'] = {}
-    cfg['pdk']['lvs']['runset'][tool] = {}
-    cfg['pdk']['lvs']['runset'][tool][stackup] = {
-        'switch': "-pdk_lvs_runset 'tool stackup <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'PDK LVS runset files',
-        'example': [
-            "cli: -pdk_lvs_runset 'magic M10 $PDK/lvs.magicrc'",
-            "api: chip.set('pdk','lvs','runset','magic', 'M10','$PDK/lvs.magicrc')"],
-        'help': """
-        Runset files for LVS verification
-        """
-    }
-
-    cfg['pdk']['lvs']['waiver'] = {}
-    cfg['pdk']['lvs']['waiver'][tool] = {}
-    cfg['pdk']['lvs']['waiver'][tool][stackup] = {
-        'switch': "-pdk_lvs_waiver 'tool stackup <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'PDK LVS waiver files',
-        'example': [
-            "cli: -pdk_lvs_waiver 'magic M10 $PDK/waiver.txt'",
-            "api: chip.set('pdk','lvs','waiver','magic', 'M10','$PDK/waiver.txt')"],
-        'help': """
-        Waiver files for LVS verification
-        """
-    }
-
-    # DRC runsets
-    cfg['pdk']['drc'] = {}
-    cfg['pdk']['drc']['runset'] = {}
-    cfg['pdk']['drc']['runset'][tool] = {}
-    cfg['pdk']['drc']['runset'][tool][stackup] = {
-        'switch': "-pdk_drc_runset 'tool stackup <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'PDK DRC runset files',
-        'example': [
-            "cli: -pdk_drc_runset 'magic M10 $PDK/drc.magicrc'",
-            "api: chip.set('pdk','drc','runset','magic', 'M10','$PDK/drc.magicrc')"],
-        'help': """
-        Runset files for DRC verification
-        """
-    }
-
-    cfg['pdk']['drc']['waiver'] = {}
-    cfg['pdk']['drc']['waiver'][tool] = {}
-    cfg['pdk']['drc']['waiver'][tool][stackup] = {
-        'switch': "-pdk_drc_waiver 'tool waiver <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'PDK DRC runset waiver files',
-        'example': [
-            "cli: -pdk_drc_waiver 'magic M10 $PDK/waiver.txt'",
-            "api: chip.set('pdk','drc','waiver','magic','M10,'$PDK/waiver.txt')"],
-        'help': """
-        Waiver files for DRC verification
-        """
-    }
-
-    # ERC runsets
-    cfg['pdk']['erc'] = {}
-    cfg['pdk']['erc']['runset'] = {}
-    cfg['pdk']['erc']['runset'][tool] = {}
-    cfg['pdk']['erc']['runset'][tool][stackup] = {
-        'switch': "-pdk_erc_runset 'tool stackup <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'PDK ERC runset files',
-        'example': [
-            "cli: -pdk_erc_runset 'magic M10 $PDK/erc.magicrc'",
-            "api: chip.set('pdk','erc','runset','magic','M10','$PDK/erc.magicrc')"],
-        'help': """
-        Runset files for ERC verification
-        """
-    }
-
-    cfg['pdk']['erc']['waiver'] = {}
-    cfg['pdk']['erc']['waiver'][tool] = {}
-    cfg['pdk']['erc']['waiver'][tool][stackup] = {
-        'switch': "-pdk_erc_waiver 'tool waiver <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'PDK ERC runset waiver files',
-        'example': [
-            "cli: -pdk_erc_waiver 'magic M10 $PDK/waiver.txt'",
-            "api: chip.set('pdk','erc','waiver','magic','M10,'$PDK/waiver.txt')"],
-        'help': """
-        Waiver files for ERC verification
-        """
-    }
-
-    #############################
-    # Routing grid
-    #############################
-
-    layer = 'default'
-    cfg['pdk']['grid'] = {}
-    cfg['pdk']['grid'][stackup] = {}
-    cfg['pdk']['grid'][stackup][layer] = {}
-
-    # Name map
-    cfg['pdk']['grid'][stackup][layer]['name'] = {
-        'switch': "-pdk_grid_name 'stackup layer <str>'",
-        'require': None,
-        'type': 'str',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'PDK metal layer name map',
-        'example': [
-            "cli: -pdk_grid_name 'M10 metal1 m1'""",
-            "api: chip.set('pdk','grid','M10','metal1','name','m1')"],
-        'help': """
-        Maps PDK metal names to the SC standardized layer stack
-        starting with m1 as the lowest routing layer and ending
-        with m<n> as the highest routing layer. The map is
-        specified on a per metal stack basis.
-        """
-    }
-
-    # Preferred routing direction
-    cfg['pdk']['grid'][stackup][layer]['dir'] = {
-        'switch': "-pdk_grid_dir 'stackup layer <str>'",
-        'require': None,
-        'type': 'str',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'PDK preferred metal routing direction',
-        'example': [
-            "cli: -pdk_grid_dir 'M10 m1 horizontal'""",
-            "api: chip.set('pdk','grid','M10','m1','dir','horizontal')"],
-        'help': """
-        Preferred routing direction specified on a per stackup
-        and per metal basis. Valid routing directions are horizontal
-        and vertical.
-        """
-    }
-
-    # Vertical wires
-    cfg['pdk']['grid'][stackup][layer]['xpitch'] = {
-        'switch': "-pdk_grid_xpitch 'stackup layer <float>'",
-        'require': None,
-        'type': 'float',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'PDK routing grid vertical wire pitch',
-        'example': [
-            "cli: -pdk_grid_xpitch 'M10 m1 0.5'",
-            "api: chip.set('pdk','grid','M10','m1','xpitch','0.5')"],
-        'help': """
-        Defines the routing pitch for vertical wires on a per stackup and
-        per metal basis, specified in um.
-        """
-    }
-
-    # Horizontal wires
-    cfg['pdk']['grid'][stackup][layer]['ypitch'] = {
-        'switch': "-pdk_grid_ypitch 'stackup layer <float>'",
-        'require': None,
-        'type': 'float',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'PDK routing grid horizontal wire pitch',
-        'example': [
-            "cli: -pdk_grid_ypitch 'M10 m2 0.5'",
-            "api: chip.set('pdk','grid','M10','m2','ypitch','0.5')"],
-        'help': """
-        Defines the routing pitch for horizontal wires on a per stackup and
-        per metal basis, specified in um.
-        """
-    }
-
-    # Vertical Grid Offset
-    cfg['pdk']['grid'][stackup][layer]['xoffset'] = {
-        'switch': "-pdk_grid_xoffset 'stackup layer <float>'",
-        'require': None,
-        'type': 'float',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'PDK routing grid vertical wire offset',
-        'example': [
-            "cli: -pdk_grid_xoffset 'M10 m2 0.5'",
-            "api: chip.set('pdk','grid','M10','m2','xoffset','0.5')"],
-        'help': """
-        Defines the grid offset of a vertical metal layer specified on a per
-        stackup and per metal basis, specified in um.
-        """
-    }
-
-    # Horizontal Grid Offset
-    cfg['pdk']['grid'][stackup][layer]['yoffset'] = {
-        'switch': "-pdk_grid_yoffset 'stackup layer <float>'",
-        'require': None,
-        'type': 'float',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'PDK routing grid horizontal wire offset',
-        'example': [
-            "cli: -pdk_grid_yoffset 'M10 m2 0.5'",
-            "api: chip.set('pdk','grid','M10','m2','yoffset','0.5')"],
-        'help': """
-        Defines the grid offset of a horizontal metal layer specified on a per
-        stackup and per metal basis, specified in um.
-        """
-    }
-
-    # Routing Layer Adjustment
-    cfg['pdk']['grid'][stackup][layer]['adj'] = {
-        'switch': "-pdk_grid_adj 'stackup layer <float>'",
-        'require': None,
-        'type': 'float',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'PDK routing grid resource adjustment',
-        'example': [
-            "cli: -pdk_grid_adj 'M10 m2 0.5'",
-            "api: chip.set('pdk','grid','M10','m2','adj','0.5')"],
-        'help': """
-        Defines the routing resources adjustments for the design on a per layer
-        basis. The value is expressed as a fraction from 0 to 1. A value of
-        0.5 reduces the routing resources by 50%. If not defined, 100%
-        routing resource utilization is permitted.
-        """
-    }
-
-    # Routing Layer Capacitance
-    cfg['pdk']['grid'][stackup][layer]['cap'] = {
-        'switch': "-pdk_grid_cap 'stackup layer <float>'",
-        'require': None,
-        'type': 'float',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'PDK routing layer unit capacitance',
-        'example': [
-            "cli: -pdk_grid_cap 'M10 m2 0.2'",
-            "api: chip.set('pdk','grid','M10','m2','cap','0.2')"],
-        'help': """
-        Unit capacitance of a wire defined by the grid width and spacing values
-        in the 'grid' structure. The value is specified as ff/um on a per
-        stackup and per metal basis. As a rough rule of thumb, this value
-        tends to stay around 0.2ff/um. This number should only be used for
-        reality confirmation. Accurate analysis should use the PEX models.
-        """
-    }
-
-    # Routing Layer Resistance
-    cfg['pdk']['grid'][stackup][layer]['res'] = {
-        'switch': "-pdk_grid_res 'stackup layer <float>'",
-        'require': None,
-        'type': 'float',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'PDK routing layer unit resistance',
-        'example': [
-            "cli: -pdk_grid_res 'M10 m2 0.2'",
-            "api: chip.set('pdk','grid','M10','m2','res','0.2')"],
-        'help': """
-        Resistance of a wire defined by the grid width and spacing values
-        in the 'grid' structure.  The value is specified as ohms/um. The number
-        is only meant to be used as a sanity check and for coarse design
-        planning. Accurate analysis should use the PEX models.
-        """
-    }
-
-    # Wire Temperature Coefficient
-    cfg['pdk']['grid'][stackup][layer]['tcr'] = {
-        'switch': "-pdk_grid_tcr 'stackup layer <float>'",
-        'require': None,
-        'type': 'float',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'PDK routing layer temperature coefficient',
-        'example': [
-            "cli: -pdk_grid_tcr 'M10 m2 0.1'",
-            "api: chip.set('pdk','grid','M10','m2','tcr','0.1')"],
-        'help': """
-        Temperature coefficient of resistance of the wire defined by the grid
-        width and spacing values in the 'grid' structure. The value is specified
-        in %/ deg C. The number is only meant to be used as a sanity check and
-        for coarse design planning. Accurate analysis should use the PEX models.
-        """
-    }
-
-    cfg['pdk']['tapmax'] = {
-        'switch': '-pdk_tapmax <float>',
-        'require': None,
-        'type': 'float',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'PDK tap cell max distance rule',
-        'example': [
-            "cli: -pdk_tapmax 100",
-            "api: chip.set('pdk', 'tapmax','100')"],
-        'help': """
-        Maximum distance allowed between tap cells in the PDK specified in
-        um. The value is required for APR.
-        """
-    }
-
-    cfg['pdk']['tapoffset'] = {
-        'switch': "-pdk_tapoffset <float>",
-        'require': None,
-        'type': 'float',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'PDK tap cell offset rule',
-        'example': [
-            "cli: -pdk_tapoffset 100",
-            "api: chip.set('pdk, 'tapoffset','100')"],
-        'help': """
-        Offset from the edge of the block to the tap cell grid specified
-        in um. The value is required for APR.
-        """
-    }
+        scparam(cfg,['pdk', 'doc', item],
+                sctype='[file]',
+                shorthelp=f"PDK {item} doc",
+                switch= f"-pdk_doc_{item} <file>",
+                example=[f"cli: -pdk_doc_{item} {item}.pdf",
+                         f"api: chip.set('pdk','doc',{item},'{item}.pdf')"],
+                schelp=f"""Filepath to {item} document.""")
 
     return cfg
 
 ###############################################################################
 # Library Configuration
 ###############################################################################
-
-#TODO: refactor to pull project parameters directly from 'project'
 
 def schema_libs(cfg, lib='default', stackup='default', corner='default'):
 
