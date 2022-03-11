@@ -69,3 +69,8 @@ def picorv32_dir():
 def oh_dir():
     dir = os.path.join('third_party', 'designs', 'oh')
     return clone_submodule(dir)
+
+@pytest.fixture(scope='session')
+def microwatt_dir():
+    dir = os.path.join('third_party', 'designs', 'microwatt')
+    return clone_submodule(dir)
