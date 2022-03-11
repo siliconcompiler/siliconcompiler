@@ -66,11 +66,10 @@ jobs:
         # Hack: LEF parser build is broken for currently bundled version of
         # OpenROAD, so check out old version.
         CIBW_BEFORE_ALL: >
-          git -C {package} submodule --update --init --recursive third_party/tools/openroad
-          cd {package}/third_party/tools/openroad
-          git checkout 3be623
+          git -C {package} submodule update --init --recursive third_party/tools/openroad &&
+          cd {package}/third_party/tools/openroad &&
+          git checkout 3be623 &&
           git submodule update --init --recursive
-          cd -
         CIBW_BEFORE_ALL_LINUX: >
           export PREFIX={package}/siliconcompiler/tools/surelog &&
           {package}/.github/workflows/bin/setup_wheel_env_linux.sh
